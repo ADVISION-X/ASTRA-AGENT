@@ -41,7 +41,7 @@ const verifyDevelopmentBootstrap = (packages: ReturnType<typeof loadBuiltinMapPa
     if (!imported.imported) {
       throw new Error(`MAP_PACKAGE_STARTUP_IMPORT_FAILED packageId=${mapPackage.manifest.packageId}`);
     }
-    if (mapPackage.manifest.approvalStatus === "approved" && mapPackage.taskTemplate.availabilityPolicy === "active") {
+    if (mapPackage.manifest.activationGateStatus === "gate_passed" && mapPackage.taskTemplate.availabilityPolicy === "active") {
       const activated = registry.activatePackage(mapPackage.manifest.packageId, mapPackage.manifest.packageVersion, "startup-map-package-readiness", "startup readiness probe");
       if (!activated.activated) {
         throw new Error(`MAP_PACKAGE_STARTUP_ACTIVATION_FAILED packageId=${mapPackage.manifest.packageId}`);

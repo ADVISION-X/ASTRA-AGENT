@@ -60,7 +60,7 @@ export type MapLabGenerateDraftResult = {
   draftStatus: "draft_ready" | "needs_clarification" | null;
 };
 
-export type MapLabApprovalResult = {
+export type MapLabAutomationGateResult = {
   status: "success" | "failed";
   reason: string | null;
   packageId: string | null;
@@ -83,7 +83,7 @@ export type MapLabSnapshot = {
     mapId: string;
     title: string;
     lifecycleStatus: string;
-    approvalStatus: string;
+    activationGateStatus: string;
     summary: string;
     chain: string[];
     validationIssues: Array<{ code: string; message: string; path?: string; severity: string }>;

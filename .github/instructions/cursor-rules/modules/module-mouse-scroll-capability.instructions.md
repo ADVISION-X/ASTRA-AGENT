@@ -21,7 +21,7 @@ Core doctrine:
 - Mouse Scroll only consumes Geometry Guard `allow` with normalized executable anchor/region.
 - Mouse Scroll executes governed primitive scroll through `MouseScrollPrimitivePort`.
 - Mouse Scroll success means primitive scroll accepted/executed only; it is not page-state truth and not “next video changed” truth.
-- Real-platform scroll-next-video primitive adapters must use ACTION AND THEN observable landing semantics: execute the scroll, then poll cheap browser-native video identity/URL evidence until the page shows video identity change; timeout is only a large deadlock fallback and must never be the technical proof of success.
+- Real-platform scroll-next-video primitive adapters must execute the scroll and hand off governed observation refs only; browser-native URL or identity evidence may be captured as raw observations but must not become local next-video-changed truth.
 - Post-action Verification verifies what happened after the scroll.
 - Forensics persists final action logs; Mouse Scroll emits runtime proof and scrollExecutionRef only.
 - No Geometry Guard allow, no scroll.
@@ -93,7 +93,7 @@ Forbidden:
 - legacy visual-action scroll path.
 - platform-action scroll owner.
 - BrowserController in public contract.
-- scroll-next-video primitive relying on fixed wait instead of ACTION AND THEN observable browser identity polling.
+- scroll-next-video primitive claiming next-video-changed truth through browser identity polling, URL comparison, or fixed wait.
 
 ---
 

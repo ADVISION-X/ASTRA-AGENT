@@ -1,5 +1,1 @@
-export type VisualTargetProfileOverride = {
-  minimumConfidence?: number;
-  minimumAmbiguityGap?: number;
-  freshnessTtlMs?: number;
-};
+export type VisualTargetProfileOverride = Record<string, never>;

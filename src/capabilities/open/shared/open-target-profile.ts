@@ -29,15 +29,8 @@ export const OPEN_ALLOWED_CALLERS = [
 ] as const;
 
 export const OPEN_POST_OPEN_CLASSIFICATIONS = [
-  "platform_feed",
-  "local_workbench",
-  "local_program",
-  "wrong_domain",
-  "login_wall",
-  "security_wall",
-  "captcha_wall",
-  "permission_wall",
-  "blank_page",
-  "unexpected_redirect",
-  "unknown",
+  "browser_navigation_observation",
+  "session_reuse_observation",
+  "local_program_observation",
+  "navigation_failure_observation",
 ] as const;

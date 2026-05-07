@@ -5,7 +5,7 @@ type AbilityGroupPolicy = {
   routableByMap: boolean;
   requiresGeometryProof: boolean;
   requiresPostActionVerification: boolean;
-  requiresReviewGate: boolean;
+  requiresAutomationGate: boolean;
   sensitiveOperation: boolean;
   forbiddenResponsibilities: string[];
 };
@@ -29,7 +29,7 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
     routableByMap: true,
     requiresGeometryProof: false,
     requiresPostActionVerification: false,
-    requiresReviewGate: false,
+    requiresAutomationGate: false,
     sensitiveOperation: false,
     forbiddenResponsibilities: ["execute browser actions", "invent prompt text", "read credentials or cookies"],
   },
@@ -38,7 +38,7 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
     routableByMap: true,
     requiresGeometryProof: false,
     requiresPostActionVerification: true,
-    requiresReviewGate: false,
+    requiresAutomationGate: false,
     sensitiveOperation: false,
     forbiddenResponsibilities: ["click page elements", "skip page-state handoff", "reuse ungoverned URLs"],
   },
@@ -47,7 +47,7 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
     routableByMap: true,
     requiresGeometryProof: false,
     requiresPostActionVerification: false,
-    requiresReviewGate: false,
+    requiresAutomationGate: false,
     sensitiveOperation: false,
     forbiddenResponsibilities: ["execute actions", "author prompt contracts", "persist evidence records directly"],
   },
@@ -56,7 +56,7 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
     routableByMap: true,
     requiresGeometryProof: false,
     requiresPostActionVerification: false,
-    requiresReviewGate: false,
+    requiresAutomationGate: false,
     sensitiveOperation: false,
     forbiddenResponsibilities: ["click targets", "mutate platform state", "decide mission branching"],
   },
@@ -65,7 +65,7 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
     routableByMap: true,
     requiresGeometryProof: false,
     requiresPostActionVerification: false,
-    requiresReviewGate: false,
+    requiresAutomationGate: false,
     sensitiveOperation: false,
     forbiddenResponsibilities: ["execute actions", "capture screenshots", "persist evidence"],
   },
@@ -74,7 +74,7 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
     routableByMap: true,
     requiresGeometryProof: true,
     requiresPostActionVerification: true,
-    requiresReviewGate: false,
+    requiresAutomationGate: false,
     sensitiveOperation: true,
     forbiddenResponsibilities: ["invent geometry", "skip post-action verification", "read page state"],
   },
@@ -83,7 +83,7 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
     routableByMap: true,
     requiresGeometryProof: true,
     requiresPostActionVerification: true,
-    requiresReviewGate: true,
+    requiresAutomationGate: true,
     sensitiveOperation: true,
     forbiddenResponsibilities: ["invent credentials", "click targets", "decide map branching"],
   },
@@ -92,7 +92,7 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
     routableByMap: true,
     requiresGeometryProof: true,
     requiresPostActionVerification: false,
-    requiresReviewGate: false,
+    requiresAutomationGate: false,
     sensitiveOperation: false,
     forbiddenResponsibilities: ["invent geometry", "capture screenshots", "persist evidence", "judge whether video content changed"],
   },
@@ -101,7 +101,7 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
     routableByMap: true,
     requiresGeometryProof: false,
     requiresPostActionVerification: false,
-    requiresReviewGate: false,
+    requiresAutomationGate: false,
     sensitiveOperation: true,
     forbiddenResponsibilities: ["execute browser actions", "classify page state", "author prompts"],
   },
@@ -110,7 +110,7 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
     routableByMap: true,
     requiresGeometryProof: false,
     requiresPostActionVerification: false,
-    requiresReviewGate: false,
+    requiresAutomationGate: false,
     sensitiveOperation: false,
     forbiddenResponsibilities: ["execute actions", "persist evidence", "author prompts"],
   },
@@ -119,7 +119,7 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
     routableByMap: true,
     requiresGeometryProof: false,
     requiresPostActionVerification: false,
-    requiresReviewGate: false,
+    requiresAutomationGate: false,
     sensitiveOperation: false,
     forbiddenResponsibilities: ["execute recovery actions", "invent prompts", "persist unrelated evidence"],
   },
@@ -148,7 +148,7 @@ const buildPolicyFlags = (policy: AbilityGroupPolicy) => ({
   routableByMap: policy.routableByMap,
   requiresGeometryProof: policy.requiresGeometryProof,
   requiresPostActionVerification: policy.requiresPostActionVerification,
-  requiresReviewGate: policy.requiresReviewGate,
+  requiresAutomationGate: policy.requiresAutomationGate,
   sensitiveOperation: policy.sensitiveOperation,
 });
 

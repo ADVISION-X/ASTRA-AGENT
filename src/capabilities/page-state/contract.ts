@@ -13,11 +13,8 @@ export {
   createPageStateChildInputSchema,
   createPageStateChildOutputSchema,
   PageStateChildCapabilityIdSchema,
-  PageStateChildDetectionSchema,
-  PageStateConfidencePolicySchema,
-  PageStateDecisionSchema,
+  PageStateChildObservationSchema,
   PageStateFailureReasonSchema,
-  PageStateFreshnessPolicySchema,
   PageStateOpenHandoffPolicySchema,
   PageStateObservationSchema,
   PageStateOutputSchema,
@@ -25,19 +22,15 @@ export {
   PageStateRuntimeProofSchema,
   PageStateSnapshotSchema,
   PageStateStatusSchema,
-  PageStateTypeSchema,
 } from "./schema.js";
 
 export type {
   PageStateAbilityInput,
   PageStateAbilityResult,
   PageStateChildCapabilityId,
-  PageStateChildDetection,
-  PageStateConfidencePolicy,
+  PageStateChildObservation,
   PageStateDataQualityFlag,
-  PageStateDecision,
   PageStateFailureReason,
-  PageStateFreshnessPolicy,
   PageStateObservation,
   PageStateOpenHandoffPolicy,
   PageStateOutput,
@@ -45,7 +38,6 @@ export type {
   PageStateRuntimeProof,
   PageStateSnapshot,
   PageStateStatus,
-  PageStateType,
 } from "./schema.js";
 
 export type { PageStateChildCapability } from "./runtime/page-state-child-contract.js";

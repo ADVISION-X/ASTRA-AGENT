@@ -1,5 +1,7 @@
 import type { MissionState, OperationalMap } from "../contract.js";
 
+const PRODUCTION_MAX_HOPS = 500;
+
 export function evaluateLoopGuard(input: { state: MissionState; map: OperationalMap; nowIsoTimestamp: string }) {
   if (input.state.configuredMaxRounds !== null && input.state.currentRoundIndex >= input.state.configuredMaxRounds) {
     return { loopDecision: "stop_completed" as const, nextHopCount: input.state.hopCount };
@@ -13,13 +15,11 @@ export function evaluateLoopGuard(input: { state: MissionState; map: Operational
   }
 
   const nextHopCount = input.state.hopCount + 1;
-  if (nextHopCount <= input.map.sequencePolicy.maxHops) {
+  if (nextHopCount <= PRODUCTION_MAX_HOPS) {
     return { loopDecision: "continue" as const, nextHopCount };
   }
   return {
-    loopDecision: input.map.sequencePolicy.loopDecisionOnLimit === "failed"
-      ? "stop_failed" as const
-      : "stop_review_required" as const,
+    loopDecision: "stop_failed" as const,
     nextHopCount,
   };
 }

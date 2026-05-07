@@ -19,9 +19,9 @@ const NERVE_BUS_ADAPTER_PATH = "src/capabilities/orchestration/runtime/orchestra
 const MAP_VALIDATION_GATE_PATH = "src/capabilities/orchestration/runtime/map-validation-gate.ts";
 const CHILD_RUNNER_PATH = "src/capabilities/orchestration/runtime/orchestration-child-runner.ts";
 const EXECUTOR_PATH = "src/capabilities/orchestration/runtime/orchestration-executor.ts";
+const FORBIDDEN_HUMAN_REVIEW_CHILD_PATH = "src/capabilities/orchestration/children/request-human-review/implementation.ts";
 const THROW_BOUNDARY_PATHS = [
   EXECUTOR_PATH,
-  "src/capabilities/orchestration/children/request-human-review/implementation.ts",
   "src/capabilities/orchestration/children/finalize-mission/implementation.ts",
 ] as const;
 const FROZEN_STATE_FIELDS = [
@@ -48,7 +48,6 @@ const CHILD_OUTPUT_SCHEMA_NAMES = [
   "EmergencyStopChildOutputSchema",
   "ExecuteMapStepChildOutputSchema",
   "EvaluateStepTransitionChildOutputSchema",
-  "RequestHumanReviewChildOutputSchema",
   "FinalizeMissionChildOutputSchema",
 ] as const;
 const DIRECT_EXECUTOR_IMPORTS = new Set([
@@ -57,7 +56,6 @@ const DIRECT_EXECUTOR_IMPORTS = new Set([
   "resumeMissionCommand",
   "stopMissionCommand",
   "emergencyStopMissionCommand",
-  "submitMissionReviewDecision",
 ]);
 
 type PhaseResult = {
@@ -102,6 +100,9 @@ function inspectGovernedPublicSurface(project: ReturnType<typeof createAuditProj
   const contractSource = getSourceFileOrThrow(project, config.CONTRACT_PATH);
   const abilityGroupSource = getSourceFileOrThrow(project, config.ABILITY_GROUP_PATH);
   const childRunnerSource = getSourceFileOrThrow(project, CHILD_RUNNER_PATH);
+  const schemaSource = getSourceFileOrThrow(project, config.SCHEMA_PATH);
+  const registrySource = getSourceFileOrThrow(project, config.REGISTRY_PATH);
+  const executorSource = getSourceFileOrThrow(project, EXECUTOR_PATH);
   const findings: Finding[] = [];
 
   const executeMethod = contractSource.getInterface("OrchestrationAbilityGroup")?.getMethod("execute");
@@ -128,6 +129,25 @@ function inspectGovernedPublicSurface(project: ReturnType<typeof createAuditProj
     findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: CHILD_RUNNER_PATH, line: childRunnerSource.getFunction("executeOrchestrationChild")?.getStartLineNumber() ?? 1, message: "Orchestration child executor pipeline must return a governed envelope, not Promise<unknown>." }));
   }
 
+  const forbiddenSources = [
+    { file: config.SCHEMA_PATH, text: schemaSource.getFullText() },
+    { file: config.REGISTRY_PATH, text: registrySource.getFullText() },
+    { file: CHILD_RUNNER_PATH, text: childRunnerText },
+    { file: EXECUTOR_PATH, text: executorSource.getFullText() },
+    { file: config.CONTRACT_PATH, text: contractSource.getFullText() },
+    { file: config.ABILITY_GROUP_PATH, text: abilityGroupSource.getFullText() },
+  ];
+  for (const source of forbiddenSources) {
+    if (source.text.includes("request-human-review") || source.text.includes("RequestHumanReview") || source.text.includes("submitReviewDecision") || source.text.includes("submitMissionReviewDecision")) {
+      findings.push(createFatalFinding({
+        lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
+        file: source.file,
+        line: collectLineNumber(source.text, "request-human-review"),
+        message: "Orchestration must not expose request-human-review or review-decision routing. Automation failures must terminate as failed, not route to a human review child.",
+      }));
+    }
+  }
+
   return {
     findings,
     phase: createRuntimePhase(
@@ -135,6 +155,27 @@ function inspectGovernedPublicSurface(project: ReturnType<typeof createAuditProj
       findings,
       "Orchestration public execute surface is typed and the ability-group no longer bypasses the governed execute pipeline.",
       "Orchestration public surface is still broad, untyped, or bypasses the governed execute pipeline.",
+    ),
+  };
+}
+
+async function inspectForbiddenHumanReviewChildDeleted(): Promise<PhaseResult> {
+  const exists = await fileExists(pathFromRepoRoot(FORBIDDEN_HUMAN_REVIEW_CHILD_PATH));
+  const findings = exists
+    ? [createFatalFinding({
+      lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
+      file: FORBIDDEN_HUMAN_REVIEW_CHILD_PATH,
+      line: 1,
+      message: "request-human-review child must stay physically deleted; automated agents cannot route into human review.",
+    })]
+    : [];
+  return {
+    findings,
+    phase: createRuntimePhase(
+      "human-review-child-removed",
+      findings,
+      "request-human-review is physically absent from the Orchestration child surface.",
+      "request-human-review still exists in the Orchestration child surface.",
     ),
   };
 }
@@ -348,6 +389,7 @@ async function inspectNegativeProofReadiness(): Promise<PhaseResult> {
 export async function runOrchestrationGovernedRuntimeChecks(project: ReturnType<typeof createAuditProject>) {
   const phaseResults = await Promise.all([
     Promise.resolve(inspectGovernedPublicSurface(project)),
+    inspectForbiddenHumanReviewChildDeleted(),
     inspectFrozenActivation(project),
     Promise.resolve(inspectUnifiedChildEnvelope(project)),
     Promise.resolve(inspectRuntimeProofRunIdChain(project)),

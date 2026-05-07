@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T16:20:04.582Z",
+  "generatedAt": "2026-05-07T19:43:07.458Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -286,6 +286,28 @@
       "summary": "AI-generated map authoring must use the governed capability catalog.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 239
+    },
+    {
+      "lawId": "GRASSEYE-CAPABILITY-GROUP-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "non-AI body groups and support layers must not own video-change cognition or revive verify-video-changed-after-scroll.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
+      "line": 257
+    },
+    {
+      "lawId": "GRASSEYE-CAPABILITY-GROUP-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+inspector+negative-proof",
+      "summary": "non-AI open, scroll, page-state, post-action-verification, screenshot, text-input, and visual-target surfaces must not publish AI-owned cognition.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
+      "line": 288
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-001-V1",
@@ -833,9 +855,9 @@
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "map packages must pass import, quarantine, validation, human approval, activation, active registry, and rollback lifecycle before runtime consumption.",
+      "summary": "map packages must pass import, quarantine, validation, automation gate, activation, active registry, and rollback lifecycle before runtime consumption.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 173
+      "line": 180
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-003-V2",
@@ -846,7 +868,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map package schema must contain complete governance metadata and must not depend on runtime truth as package authority.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 292
+      "line": 299
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-004-V2",
@@ -857,7 +879,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages must never carry executable payloads, runtime code, prompt text, shell scripts, dynamic imports, handlers, or direct ability control.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 404
+      "line": 406
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-005-V2",
@@ -868,7 +890,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages may reference prompt contracts but must not own prompt content or create prompt double-truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 525
+      "line": 527
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-006-V2",
@@ -877,9 +899,9 @@
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "AI-generated map packages must be authored against governed catalogs and remain draft/quarantine until all gates and human approval pass.",
+      "summary": "AI-generated map packages must be authored against governed catalogs and remain draft/quarantine until all gates and automation gate pass.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 600
+      "line": 599
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-007-V2",
@@ -890,7 +912,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "capability catalog is a generated read model used for authoring and validation; it must not become runtime truth or a second ability registry.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 752
+      "line": 751
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-008-V2",
@@ -901,7 +923,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "branch condition DSL must be schema-declared, closed, non-executable, and able to reference declared outputSchemaRef fields.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 829
+      "line": 828
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-009-V2",
@@ -910,9 +932,9 @@
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "ordinary and developer map surfaces must stay separate, and Commander must not activate or mutate maps without governed validation/approval path.",
+      "summary": "ordinary and developer map surfaces must stay separate, and Commander must not activate or mutate maps without governed validation/automation-gate path.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 927
+      "line": 926
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-010-V2",
@@ -921,9 +943,9 @@
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "map activation, validation, approval, prompt binding, and authoring must produce Forensics-compatible proof records.",
+      "summary": "map activation, validation, automation gate, prompt binding, and authoring must produce Forensics-compatible proof records.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1025
+      "line": 1024
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-011-V2",
@@ -934,7 +956,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "user-facing map explanation must translate route data into understandable task flow without exposing runtime internals in ordinary mode.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1126
+      "line": 1125
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-012-V2",
@@ -945,7 +967,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map-plugin-package enforcement must close through owner-local AST/schema/reference inspector, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1196
+      "line": 1195
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-013-V2",
@@ -956,7 +978,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "advanced AI map generation must receive a complete Map Authoring Input Package; missing catalogs or policies must block generation.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1374
+      "line": 1373
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-014-V2",
@@ -967,7 +989,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "capability catalog must be detailed enough for advanced AI to generate maps without inventing abilities.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1495
+      "line": 1494
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-015-V2",
@@ -978,7 +1000,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "prompt contract and output schema catalogs must define every AI step and branchable field used by maps.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1601
+      "line": 1600
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-016-V2",
@@ -987,9 +1009,9 @@
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "safety, human approval, evidence, PAV, Forensics, privacy, secret, rate-limit, and platform policies must be first-class inputs to map authoring.",
+      "summary": "safety, automation gate, evidence, PAV, Forensics, privacy, secret, rate-limit, and platform policies must be first-class inputs to map authoring.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1698
+      "line": 1696
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-017-V2",
@@ -1000,7 +1022,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map-plugin-package enforcement must prove Map Authoring Input Package completeness, generated-map safety, and lifecycle boundaries in addition to existing map package governance.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1794
+      "line": 1792
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2",
@@ -1308,7 +1330,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open Ability Group is the only owner of governed open behavior.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 93
+      "line": 94
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -1319,7 +1341,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open boundary stays pure and cannot own state, verification, AI, screenshot, visual target, action, Forensics, or mission branching truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 141
+      "line": 142
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
@@ -1330,7 +1352,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open input must carry governed chain fields, target profile context, source proof, timeout, and idempotency.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 198
+      "line": 199
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
@@ -1341,7 +1363,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open must run a fixed target/profile/session/navigation/idempotency/timeout/page-state-handoff pipeline.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 277
+      "line": 278
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
@@ -1352,7 +1374,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open success requires page-state handoff and must not claim page-state readiness or action-result verification.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 352
+      "line": 353
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
@@ -1363,7 +1385,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open result and runtime proof must preserve real upstream chain, gate decisions, browser attempt refs, timeout/cancellation, idempotency, and page-state handoff.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 431
+      "line": 432
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
@@ -1374,7 +1396,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "child capabilities are narrow target-open bindings and must use unified Open runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 581
+      "line": 582
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-009-V1",
@@ -1385,7 +1407,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open must support governed macOS local program launch as a first-class target and must not confuse local program opening with local workbench URL opening.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 645
+      "line": 646
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
@@ -1396,7 +1418,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Open enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 730
+      "line": 731
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V3",
@@ -1407,7 +1429,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration is the only owner of mission flow, operational map selection, mission state, step state, branch evaluation, and finalization.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 106
+      "line": 105
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V3",
@@ -1418,7 +1440,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Operational maps are declarative approved packages consumed by Orchestration, not executable code, child abilities, or second runtimes.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 175
+      "line": 174
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V3",
@@ -1429,7 +1451,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration must freeze map activation snapshot and must not reselect latest map during mission execution.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 267
+      "line": 269
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-004-V3",
@@ -1440,7 +1462,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration dispatches only through Nerve Bus envelopes and public ability group contracts.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 342
+      "line": 344
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3",
@@ -1451,7 +1473,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration step execution must follow the active map and enforce preconditions, PAV after actions, evidence routing, loop guard, and transition closure.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 416
+      "line": 418
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V3",
@@ -1462,7 +1484,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Prompt selection is map-owned and frozen; Orchestration must not build raw prompts or hardcode prompt selection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 482
+      "line": 484
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-007-V3",
@@ -1473,7 +1495,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration may request persistence but must not hide finalization, branch, candidate, or delivery-state ownership under Forensics.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 537
+      "line": 539
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3",
@@ -1484,7 +1506,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration result and runtime proof must preserve command, map activation, state transition, dispatch envelope, branch, loop, timeout, idempotency, and finalization chain.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 599
+      "line": 601
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-009-V3",
@@ -1495,7 +1517,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration children are mission lifecycle and transition actions only and must use unified runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 743
+      "line": 745
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-010-V3",
@@ -1506,7 +1528,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Orchestration enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 812
+      "line": 814
     },
     {
       "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-001-V2",
@@ -1779,7 +1801,7 @@
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Screenshot artifacts are transient runtime materials by default and must carry lifecycle manifest, retention, TTL, quota, and non-self-promotion truth.",
+      "summary": "Screenshot artifacts are transient runtime materials by default and must carry lifecycle manifest, retention, TTL, quota, physical burn-after-handoff cleanup, and non-self-promotion truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
       "line": 753
     },
@@ -1966,7 +1988,7 @@
       "capabilityDomain": "visual-target-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Visual Target input must carry full chain fields, source proof, candidate proof, policy, and idempotency.",
+      "summary": "Visual Target input must carry full chain fields, source proof, candidate proof, and idempotency.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
       "line": 210
     },
@@ -1979,7 +2001,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "coordinate-space truth must be explicit; Visual Target output is not executable until Geometry Guard.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 334
+      "line": 329
     },
     {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-005-V2",
@@ -1990,7 +2012,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Visual Target runtime must use a single gate pipeline and fail closed on ambiguity, stale evidence, source mismatch, and critical data quality.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 403
+      "line": 398
     },
     {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-006-V2",
@@ -2001,7 +2023,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Visual Target result and runtime proof must preserve real chain, source refs, candidate refs, gate decisions, coordinate transform trace, and Geometry Guard handoff.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 476
+      "line": 471
     },
     {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-007-V2",
@@ -2012,7 +2034,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "child capabilities are narrow target bindings and must use unified Visual Target runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 657
+      "line": 652
     },
     {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-008-V2",
@@ -2023,7 +2045,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "Visual Target enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 720
+      "line": 715
     }
   ]
 }

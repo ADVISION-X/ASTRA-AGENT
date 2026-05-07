@@ -12,11 +12,7 @@ type MatchedTransitionRecord = {
   transitionId: string;
   finalStatus: "running" | "completed" | "stopped" | "review_required" | "failed";
   toStepId: string | null;
-  condition: {
-    leftRef: string;
-    operator: "equals" | "notEquals" | "exists" | "notExists" | "greaterThan" | "lessThan" | "confidenceAbove" | "confidenceBelow" | "statusIs" | "reviewRequired";
-    rightValue: string | number | boolean | null;
-  };
+  condition: null;
 };
 
 type HandleDispatchedStepDetails = {
@@ -37,11 +33,7 @@ const normalizeMatchedTransition = (transition: MatchedTransitionInput): Matched
   transitionId: transition.transitionId,
   finalStatus: transition.finalStatus ?? "running",
   toStepId: transition.toStepId,
-  condition: {
-    leftRef: transition.condition.leftRef,
-    operator: transition.condition.operator,
-    rightValue: transition.condition.rightValue,
-  },
+  condition: null,
 });
 
 const buildTransitionFailureDetails = (

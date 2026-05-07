@@ -58,7 +58,7 @@ function createReservation(input: {
   reason: string | null;
   reservationExpiresAt: string | null;
   duplicateOpenReviewRequired: boolean;
-  alreadyOnTargetDecision: OpenIdempotencyReservation["alreadyOnTargetDecision"];
+  alreadyOnTargetHandlingMode: OpenIdempotencyReservation["alreadyOnTargetHandlingMode"];
 }): OpenIdempotencyReservation {
   return input;
 }
@@ -71,7 +71,7 @@ function buildAlreadyOnTargetReservation(idempotencyKey: string): OpenIdempotenc
     reason: "browser session is already on the governed target url",
     reservationExpiresAt: null,
     duplicateOpenReviewRequired: false,
-    alreadyOnTargetDecision: "freshness_required",
+    alreadyOnTargetHandlingMode: "session_reused",
   });
 }
 
@@ -83,7 +83,7 @@ function buildDuplicateReviewRequiredReservation(idempotencyKey: string): OpenId
     reason: "duplicate open request blocked by governed idempotency policy",
     reservationExpiresAt: null,
     duplicateOpenReviewRequired: true,
-    alreadyOnTargetDecision: "not_applicable",
+    alreadyOnTargetHandlingMode: "not_applicable",
   });
 }
 
@@ -95,7 +95,7 @@ function buildScopeCapacityExceededReservation(idempotencyKey: string): OpenIdem
     reason: "open idempotency reservation capacity exceeded",
     reservationExpiresAt: null,
     duplicateOpenReviewRequired: true,
-    alreadyOnTargetDecision: "not_applicable",
+    alreadyOnTargetHandlingMode: "not_applicable",
   });
 }
 
@@ -107,7 +107,7 @@ function buildReservedReservation(idempotencyKey: string): OpenIdempotencyReserv
     reason: null,
     reservationExpiresAt: null,
     duplicateOpenReviewRequired: false,
-    alreadyOnTargetDecision: "not_applicable",
+    alreadyOnTargetHandlingMode: "not_applicable",
   });
 }
 

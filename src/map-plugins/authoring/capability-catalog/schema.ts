@@ -13,7 +13,7 @@ export const CapabilityCatalogEntrySchema = z.object({
   requiresPostOpenWindowHandoff: z.boolean().default(false),
   requiresGeometryProof: z.boolean(),
   requiresPostActionVerification: z.boolean(),
-  requiresReviewGate: z.boolean(),
+  requiresAutomationGate: z.boolean(),
   sensitiveOperation: z.boolean(),
   forbiddenResponsibilities: z.array(z.string().min(1)).default([]),
 }).strict();

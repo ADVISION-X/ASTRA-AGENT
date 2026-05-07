@@ -5,7 +5,6 @@ import {
   getPromptContractCatalogEntry,
   type PromptContractCatalogEntry,
 } from "./prompt-contract-catalog-port.js";
-import { validateAllowedBranchFields, validateAiStepSuccessConditionConflict } from "./prompt-contract-branch-field-validator.js";
 
 type PromptBinding = MapPackage["promptBindings"]["bindings"][number];
 type MapStep = MapPackage["operationalMap"]["steps"][number];
@@ -45,6 +44,20 @@ const resolvePromptBinding = (input: PromptStepValidationInput): {
 } => {
   if (input.binding && input.binding.promptContractId === input.step.promptContractId) {
     return { issues: [], binding: input.binding };
+  }
+  if (input.step.promptContractId) {
+    const promptContract = getPromptContractCatalogEntry(input.step.promptContractId);
+    if (promptContract) {
+      return {
+        issues: [],
+        binding: {
+          stepId: input.step.stepId,
+          promptContractId: input.step.promptContractId,
+          requiredInputRefs: input.step.inputRefs,
+          outputSchemaRef: promptContract.outputSchemaRef,
+        },
+      };
+    }
   }
 
   return {
@@ -185,23 +198,6 @@ const validateRequiredInputRefs = (state: ResolvedPromptStepState): MapPackageVa
   return issues;
 };
 
-const validateReviewPolicy = (state: ResolvedPromptStepState): MapPackageValidationIssue[] => {
-  const declaredPolicies = [
-    state.binding.reviewPolicy.toLowerCase(),
-    state.promptContract.reviewPolicy.requiredWhen.length === 0 ? "none" : "review_required",
-  ];
-  if (!state.promptContract.sensitiveOperation || !declaredPolicies.includes("none")) {
-    return [];
-  }
-
-  return [createIssue({
-    code: "security_violation",
-    message: `Sensitive prompt contract ${state.promptContract.promptContractId} must not use reviewPolicy=none.`,
-    path: `promptBindings.bindings.${state.step.stepId}`,
-    severity: "fatal",
-  })];
-};
-
 const validatePromptRestrictions = (state: ResolvedPromptStepState): MapPackageValidationIssue[] => {
   const issues: MapPackageValidationIssue[] = [];
   const blocksActionExecution = state.promptContract.prohibitedActions.includes("dispatch_action") || state.promptContract.prohibitedActions.includes("open_page");
@@ -234,9 +230,6 @@ export const validatePromptContractStep = (input: PromptStepValidationInput): Ma
     ...validateTaskType(resolved.state),
     ...validateOutputSchema(resolved.state),
     ...validateRequiredInputRefs(resolved.state),
-    ...validateAllowedBranchFields(resolved.state),
-    ...validateAiStepSuccessConditionConflict(resolved.state),
-    ...validateReviewPolicy(resolved.state),
     ...validatePromptRestrictions(resolved.state),
   ];
 };

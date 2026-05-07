@@ -1,5 +1,9 @@
 import type { LocalAiTaskRequest } from "../../types/local-ai.js";
 import type { VideoFrameSamplePointLabel } from "../../types/multi-frame-evidence.js";
+import {
+  PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
+  PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
+} from "../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
 import { VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT } from "./prompts/vision-product-presence.v1.js";
 
 type VisionProductPresenceRequest = Extract<LocalAiTaskRequest, { taskType: "vision.productPresence" }>;
@@ -35,6 +39,8 @@ const buildVisionOutputTemplate = (request: VisionProductPresenceRequest) => ({
   missingFrames: request.input.missingFrames,
   isProductVideo: null,
   decision: "product_no",
+  routeLabel: PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
+  nextIntent: "跳过当前视频并继续自动发现。",
   confidence: "AI_ESTIMATE_NUMBER_0_TO_1_DO_NOT_COPY_THIS_PLACEHOLDER",
   visibleProductTypes: [],
   evidenceObservations: ["describe only what is visibly present in the sampled frames"],
@@ -56,9 +62,11 @@ export const buildVisionPromptParts = (request: VisionProductPresenceRequest): V
   const expectedFrameLabels = resolveExpectedFrameLabels(request);
   const userPrompt = [
     "Every key in the required schema is mandatory. The product-presence route is binary: decision must be product_yes or product_no.",
+    `routeLabel is mandatory and must come from the selected binary options: product_yes => ${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}; product_no => ${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}.`,
+    "nextIntent is mandatory and must briefly describe the selected routeLabel. It must not introduce a third path or a human-review path.",
     "confidence must be your own calibrated estimate as a JSON number from 0 to 1 based only on visible evidence; do not copy any placeholder or example value.",
     "Do not reserve confidence around 0.5 to avoid deciding. If evidence is ambiguous, blocked, too partial, text-only, or not enough to prove product presence, choose product_no with lower confidence and describe the limitation.",
-    "If the sampled evidence clearly shows no concrete product being demonstrated, featured, used, unboxed, compared, worn, held, installed, assembled, displayed for sale, or presented, return isProductVideo=false, decision=product_no, suggestedNextAction=scroll_next, and mustReview=false.",
+    `If the sampled evidence clearly shows no concrete product being demonstrated, featured, used, unboxed, compared, worn, held, installed, assembled, displayed for sale, or presented, return isProductVideo=false, decision=product_no, routeLabel=${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}, suggestedNextAction=scroll_next, and mustReview=false.`,
     "For decision=product_no, isProductVideo must be false. For decision=product_yes, isProductVideo must be true.",
     "Never return product_uncertain, review_required, null decision, skip_or_operator_review, or mustReview=true for this automated discovery task.",
     "Use uncertainty only as explanatory evidence for why a product_no decision was chosen; uncertainty must never request human review.",

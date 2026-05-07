@@ -38,7 +38,7 @@ const OpenIdempotencyDecisionSchema = z.enum([
   "scope_capacity_exceeded",
   "not_started",
 ]);
-const OpenAlreadyOnTargetFreshnessDecisionSchema = z.enum(["not_applicable", "freshness_required", "freshness_verified"]);
+const OpenAlreadyOnTargetHandlingModeSchema = z.enum(["not_applicable", "session_reused"]);
 
 const OpenDataQualityFlagSchema = z.object({
   code: z.string().min(1),
@@ -73,7 +73,7 @@ export {
   OpenAbortDecisionSchema,
   OpenCircuitBreakerStateSchema,
   OpenIdempotencyDecisionSchema,
-  OpenAlreadyOnTargetFreshnessDecisionSchema,
+  OpenAlreadyOnTargetHandlingModeSchema,
   OpenDataQualityFlagSchema,
   OpenFailureSchema,
 };

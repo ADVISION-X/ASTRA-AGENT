@@ -15,7 +15,6 @@ export const orchestrationInspectionConstants = {
     "emergency-stop",
     "execute-map-step",
     "evaluate-step-transition",
-    "request-human-review",
     "finalize-mission",
   ] as const,
   REQUIRED_RUNTIME_FILES: [
@@ -79,7 +78,6 @@ export const orchestrationInspectionConstants = {
     "emergencyStop",
     "getMissionState",
     "executeMission",
-    "submitReviewDecision",
   ] as const,
   FORBIDDEN_IMPORT_MARKERS: [
     "lib/browser/",

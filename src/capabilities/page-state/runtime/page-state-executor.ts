@@ -1,47 +1,43 @@
 import type { PageStateChildCapability } from "./page-state-child-contract.js";
-import type { PageStateAbilityInput } from "../schema.js";
+import type { PageStateAbilityInput, PageStateAbilityResult } from "../schema.js";
 import type { PageStateClockPort } from "../ports/page-state-clock-port.js";
-import type { PageStateProfilePort } from "../ports/page-state-profile-port.js";
-import { dispatchPageStateFailure } from "./page-state-dispatch-failure.js";
-import { runPageStatePreflight } from "./page-state-preflight.js";
-import { buildPageStateSuccessResult } from "./page-state-success-result.js";
+import {
+  createPageStateFailureResult,
+  createSuccessfulPageStateResult,
+} from "./page-state-result-builders.js";
 
 export async function executePageState(input: {
   request: PageStateAbilityInput;
   childCapability: PageStateChildCapability;
   clock: PageStateClockPort;
-  profilePort: PageStateProfilePort;
-}): Promise<import("../schema.js").PageStateAbilityResult> {
+}): Promise<PageStateAbilityResult> {
   const startedAt = input.clock.now();
-  const preflight = runPageStatePreflight({
-    request: input.request,
-    clock: input.clock,
-    profilePort: input.profilePort,
-  });
-  if (!preflight.ok) {
-    return preflight.result;
+
+  const childObservation = await input.childCapability.execute(input.request);
+  if (input.request.sourceEvidenceRefs.length === 0 || childObservation.supportingEvidenceRefs.length === 0) {
+    return createPageStateFailureResult({
+      request: input.request,
+      failureReason: "missing_source_evidence",
+      reviewRequiredReason: "Page State can only forward governed observation bundles with evidence references.",
+      status: "review_required",
+      clock: input.clock,
+    });
   }
 
-  try {
-    return await buildPageStateSuccessResult({
+  if (childObservation.matchedObservationIds.length === 0) {
+    return createPageStateFailureResult({
       request: input.request,
-      childCapability: input.childCapability,
-      startedAt,
-      clock: input.clock,
-      preflight: preflight.state,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown page-state execution failure.";
-    return dispatchPageStateFailure({
-      request: input.request,
-      failureReason: "execution_failed",
-      stateSummary: `Page State execution failed: ${message}`,
-      reviewRequiredReason: null,
-      pageStateType: "unknown_page",
-      status: "failed",
-      decision: "fail",
-      dataQualityFlags: ["insufficient_signal"],
+      failureReason: "missing_observation_support",
+      reviewRequiredReason: childObservation.reviewRequiredReason ?? "No governed observations were packaged for AI review.",
+      status: "review_required",
       clock: input.clock,
     });
   }
+
+  return createSuccessfulPageStateResult({
+    request: input.request,
+    childObservation,
+    startedAt,
+    endedAt: input.clock.now(),
+  });
 }

@@ -73,7 +73,6 @@ stop-mission
 emergency-stop
 execute-map-step
 evaluate-step-transition
-request-human-review
 finalize-mission
 ```
 
@@ -192,7 +191,10 @@ Operational maps are governed declarative map packages. Orchestration remains th
 
 Required:
 - Map package must be data-only.
-- Map package may define route shape, steps, transitions, dependency refs, promptContractId, outputSchemaRef, capability target refs, and platform/profile constraints.
+- Production automation maps must be `routePlanBoundMap`.
+- `routePlanBoundMap` may declare only the deterministic entry spine, AI handoff, Prompt Contract refs, input/output refs, platform/profile constraints, dependency refs, and `routePlanId`.
+- Route Plan is the single source for routeLabel action chains and owns `routeLabel -> step chain -> ability group/child capability`.
+- Generic diagnostic maps may declare diagnostic steps and transitions, but they must not bind Route Plan or enter production automation execution.
 - Map package must not execute code.
 - Map package must not import TypeScript modules.
 - Map package must not dispatch Nerve Bus.
@@ -766,7 +768,6 @@ stop-mission
 emergency-stop
 execute-map-step
 evaluate-step-transition
-request-human-review
 finalize-mission
 ```
 
@@ -779,7 +780,7 @@ Required:
 - Child does not build final proof/result directly when unified builder applies.
 - `emergency-stop` must latch state and prevent further dispatch.
 - `pause/resume/stop` must be governed state transitions, not raw mutations.
-- `request-human-review` must go through governed Commander/Nerve Bus review channel.
+- Orchestration must not expose `request-human-review`, `submitReviewDecision`, or any review-decision route. Automation failures terminate as `failed`.
 
 ### 禁止
 
@@ -792,7 +793,8 @@ FORBIDDEN:
 - child importing open/page-state/AI/action implementations.
 - child returning boolean.
 - child bypassing state policy gate.
-- child bypassing Nerve Bus port for dispatch/review.
+- child bypassing Nerve Bus port for dispatch.
+- `request-human-review` child, registry entry, schema value, or public method.
 
 Required inspector:
 - Child folder/registry/schema parity.
@@ -805,7 +807,7 @@ Required negative proof:
 - Add browse-next-video child → FAIL.
 - Child imports open implementation → FAIL.
 - emergency-stop does not latch state → FAIL.
-- request-human-review bypasses Nerve Bus/Commander channel → FAIL.
+- request-human-review exists anywhere in Orchestration child/registry/schema/public method surface → FAIL.
 
 ---
 

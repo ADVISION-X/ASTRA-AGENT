@@ -6,8 +6,8 @@ import { joinHtml, renderCard } from "../../render-utils.js";
 export function renderDraftMapPanel(viewModel: CommanderConsoleViewModel): string {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
   const table = renderDataTable(
-    [t("地图", "Map"), t("审批", "Approval"), t("能力链", "Chain")],
-    viewModel.availableMaps.map((map) => [map.title, map.approvalStatus, map.chain.join(" -> ")]),
+    [t("地图", "Map"), t("门禁", "Automation Gate"), t("能力链", "Chain")],
+    viewModel.availableMaps.map((map) => [map.title, map.activationGateStatus, map.chain.join(" -> ")]),
     t("当前没有地图草稿。", "No data available."),
   );
 

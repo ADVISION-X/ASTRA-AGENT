@@ -28,11 +28,7 @@ type MatchedTransitionRecord = {
   transitionId: string;
   finalStatus: "running" | "completed" | "stopped" | "review_required" | "failed";
   toStepId: string | null;
-  condition: {
-    leftRef: string;
-    operator: "equals" | "notEquals" | "exists" | "notExists" | "greaterThan" | "lessThan" | "confidenceAbove" | "confidenceBelow" | "statusIs" | "reviewRequired";
-    rightValue: string | number | boolean | null;
-  };
+  condition: null;
 };
 
 type TransitionSuccessProofDetails = {
@@ -93,26 +89,13 @@ function buildTransitionSuccessEnvelopeFields(input: TransitionSuccessProofInput
 }
 
 function buildTransitionSuccessRoutingFields(details: TransitionSuccessProofDetails) {
-  const conditionSource = details.transition.condition.leftRef;
   return {
     transitionId: details.transition.transitionId,
     transitionEvaluationDecision: details.transitionEvaluationDecision,
-    transitionConditionSource: conditionSource,
-    transitionConditionExpected: details.transition.condition.rightValue,
-    transitionConditionActual: resolveTransitionConditionActual(details.lastResult, conditionSource),
+    transitionConditionSource: "route-only",
+    transitionConditionExpected: details.transition.transitionId,
+    transitionConditionActual: details.lastResult.decision ?? details.lastResult.status,
   };
-}
-
-function resolveTransitionConditionActual(result: TransitionResultRecord, conditionSource: string): string | number | boolean | null {
-  if (conditionSource === "status") {
-    return result.status;
-  }
-
-  if (Object.prototype.hasOwnProperty.call(result.branchFieldValues, conditionSource)) {
-    return result.branchFieldValues[conditionSource] ?? null;
-  }
-
-  return conditionSource === "decision" ? (result.decision ?? null) : null;
 }
 
 function buildTransitionSuccessStatusFields(details: TransitionSuccessProofDetails) {

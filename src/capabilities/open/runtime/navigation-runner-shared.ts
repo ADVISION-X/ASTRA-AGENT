@@ -35,7 +35,7 @@ export type NavigationDecisionInput = {
   timeoutDecision: "within_limit" | "timed_out";
   abortDecision: "not_requested" | "timeout_abort_requested";
   browserOpenStillRunningGuard: boolean;
-  alreadyOnTargetFreshnessDecision: "not_applicable" | "freshness_required";
+  alreadyOnTargetHandlingMode: "not_applicable" | "session_reused";
 };
 
 export const buildSessionSnapshotFailureReason = (error: unknown): string =>
@@ -54,7 +54,7 @@ export const buildNavigationDecision = (input: NavigationDecisionInput): OpenNav
   abortDecision: input.abortDecision,
   circuitBreakerState: "closed",
   browserOpenStillRunningGuard: input.browserOpenStillRunningGuard,
-  alreadyOnTargetFreshnessDecision: input.alreadyOnTargetFreshnessDecision,
+  alreadyOnTargetHandlingMode: input.alreadyOnTargetHandlingMode,
 });
 
 export const buildNavigationResponse = (input: OpenNavigationRunResult): OpenNavigationRunResult => input;

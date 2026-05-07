@@ -25,7 +25,7 @@ type BuildResultInput = {
   failureReason?: string | null;
   reviewRequiredReason?: string | null;
   stateDecision: ResultStateDecision;
-  internalOperationKind?: "execute-map-step" | "evaluate-step-transition" | "request-human-review" | "finalize-mission" | null;
+  internalOperationKind?: "execute-map-step" | "evaluate-step-transition" | "finalize-mission" | null;
   dataQualityFlags?: string[];
 };
 
@@ -39,7 +39,7 @@ type BuildFailureInput = {
   startedAt: string;
   endedAt: string;
   failureReason: string;
-  internalOperationKind?: "execute-map-step" | "evaluate-step-transition" | "request-human-review" | "finalize-mission" | null;
+  internalOperationKind?: "execute-map-step" | "evaluate-step-transition" | "finalize-mission" | null;
   dataQualityFlags?: string[];
 };
 
@@ -78,7 +78,7 @@ function resolveProofStatus(status: ResultStatus): "completed" | "failed" | "rev
   return "failed";
 }
 
-function resolveCommandKind(state: MissionState, childCapabilityId: string): "start-mission" | "pause-mission" | "resume-mission" | "stop-mission" | "emergency-stop" | "submit-review-decision" {
+function resolveCommandKind(state: MissionState, childCapabilityId: string): "start-mission" | "pause-mission" | "resume-mission" | "stop-mission" | "emergency-stop" {
   return COMMAND_KIND_BY_CHILD[childCapabilityId as keyof typeof COMMAND_KIND_BY_CHILD] ?? state.lastHumanCommand ?? "resume-mission";
 }
 

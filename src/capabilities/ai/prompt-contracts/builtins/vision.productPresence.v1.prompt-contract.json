@@ -12,7 +12,8 @@
   ],
   "outputSchemaRef": "ai.product_presence_judgment.v1",
   "allowedBranchFields": [
-    "decision"
+    "decision",
+    "routeLabel"
   ],
   "systemPromptTemplateRef": "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
   "userPromptTemplateRef": "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
@@ -59,9 +60,9 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:10f2779fb184ea753d152dff2dea573fb7d9bb2b6d52f4abf1ea77718514c041",
+  "promptHash": "sha256:0310dbae815d6b0c98ff9554324388fd847ce5b178657d1b293697f2ce91954c",
   "sensitiveOperation": false,
-  "promptContractHash": "sha256:10f2779fb184ea753d152dff2dea573fb7d9bb2b6d52f4abf1ea77718514c041",
+  "promptContractHash": "sha256:0310dbae815d6b0c98ff9554324388fd847ce5b178657d1b293697f2ce91954c",
   "dataPolicy": {
     "productPresenceDecisionMode": "binary_yes_no",
     "ambiguousEvidenceRouting": "product_no",
@@ -73,6 +74,8 @@
     "promptVersion": "v1",
     "schemaVersion": "vision.productPresence.schema.v1",
     "decision": "product_yes | product_no only",
+    "routeLabel": "product_yes => read-comments-and-save-evidence | product_no => skip-current-video",
+    "nextIntent": "short human-readable intent for the selected routeLabel",
     "isProductVideo": "boolean; true iff decision=product_yes",
     "confidence": "number 0..1; never used to request human review for this binary route",
     "visibleProductTypes": "string[]; empty when decision=product_no unless a visible object is mentioned as insufficient evidence",

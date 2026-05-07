@@ -8,10 +8,10 @@ export type MapActivationRecord = {
   mapVersion: string;
   taskTemplateId: string;
   requestedPlatformId: string | null;
-  approvedBy: string;
+  gateActor: string;
   activatedAt: string;
   reason: string;
-  humanApprovalRef: string;
+  automationGateRef: string;
   validationReportRef: string;
   capabilityCatalogVersion: string;
   promptCatalogVersion: string;

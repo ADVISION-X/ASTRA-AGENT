@@ -3,7 +3,7 @@ import { z } from "zod";
 import { VISUAL_TARGET_DATA_QUALITY_FLAGS } from "./shared/visual-target-candidate.js";
 import { VISUAL_TARGET_FAILURE_REASONS } from "./shared/visual-target-failure.js";
 import { VISUAL_TARGET_EXECUTION_BOUNDARY, VISUAL_TARGET_GEOMETRY_HANDOFF_KIND } from "./shared/visual-target-geometry-handoff.js";
-import { VISUAL_TARGET_CHAIN_FIELD_NAMES, VisualTargetAmbiguityPolicySchema, VisualTargetChainInputShape, VisualTargetChainResultShape, VisualTargetConfidencePolicySchema, VisualTargetCoordinatePolicySchema, VisualTargetDataQualityPolicySchema, VisualTargetSelectionPolicySchema } from "./shared/visual-target-governance.js";
+import { VISUAL_TARGET_CHAIN_FIELD_NAMES, VisualTargetChainInputShape, VisualTargetChainResultShape } from "./shared/visual-target-governance.js";
 import { VISUAL_TARGET_CLOCK_KIND, VISUAL_TARGET_GEOMETRY_HANDOFF_POLICY, VISUAL_TARGET_NON_EXECUTABLE_COORDINATE_POLICY } from "./shared/visual-target-proof.js";
 import {
   VISUAL_TARGET_AI_DECISIONS,
@@ -174,11 +174,6 @@ const VisualTargetAbilityInputSchema = z.object({
   targetNature: VisualTargetNatureSchema,
   sourceProof: VisualTargetSourceProofSchema,
   candidates: z.array(VisualTargetCandidateSchema).max(50),
-  confidencePolicy: VisualTargetConfidencePolicySchema,
-  selectionPolicy: VisualTargetSelectionPolicySchema,
-  ambiguityPolicy: VisualTargetAmbiguityPolicySchema,
-  coordinatePolicy: VisualTargetCoordinatePolicySchema,
-  dataQualityPolicy: VisualTargetDataQualityPolicySchema,
 }).strict();
 
 const VisualTargetGeometryGuardHandoffSchema = z.object({

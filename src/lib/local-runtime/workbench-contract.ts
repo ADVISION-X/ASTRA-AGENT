@@ -14,7 +14,7 @@ import type { StructuredLogBus } from "./structured-log-bus.js";
 import type { WorkbenchNerveBusAbilityGroup as NerveBusAbilityGroup } from "./workbench-nerve-bus-types.js";
 import type {
   MapLabActivationResult,
-  MapLabApprovalResult,
+  MapLabAutomationGateResult,
   MapLabGenerateDraftResult,
   MapLabProviderConfigInput,
   MapLabProviderState,
@@ -208,8 +208,8 @@ export type WorkbenchRuntime = WorkbenchBaseRuntime & {
   getMapLabSnapshot(): Promise<MapLabSnapshot>;
   saveMapLabProviderConfig(input: MapLabProviderConfigInput): Promise<MapLabProviderState>;
   generateMapLabDraft(input: unknown): Promise<MapLabGenerateDraftResult>;
-  approveMapLabDraft(input: { packageId: string; packageVersion: string; approvedBy: string }): Promise<MapLabApprovalResult>;
-  activateMapLabDraft(input: { packageId: string; packageVersion: string; approvedBy: string; reason: string }): Promise<MapLabActivationResult>;
+  passMapLabAutomationGate(input: { packageId: string; packageVersion: string; gateActor: string }): Promise<MapLabAutomationGateResult>;
+  activateMapLabDraft(input: { packageId: string; packageVersion: string; gateActor: string; reason: string }): Promise<MapLabActivationResult>;
   getModeInfo(): {
     dataMode: "Real Platform";
     platformId: string;

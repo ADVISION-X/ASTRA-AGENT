@@ -4,7 +4,7 @@ import { type CreatePostActionVerificationAbilityGroupInput, type PostActionVeri
 import { PostActionVerificationAbilityResultSchema, PostActionVerificationAbilityInputSchema } from "./schema.js";
 import { createPostActionVerificationRegistry, listPostActionVerificationChildren } from "./registry.js";
 import { executePostActionVerification } from "./runtime/post-action-verification-executor.js";
-import { dispatchPostActionVerificationFailure } from "./runtime/verification-dispatch-failure.js";
+import { createInvalidPostActionInputResult, createPostActionFailureResult } from "./runtime/post-action-result-builders.js";
 
 async function executePostActionVerificationChildCapability(input: {
   registry: ReturnType<typeof createPostActionVerificationRegistry>;
@@ -17,8 +17,8 @@ async function executePostActionVerificationChildCapability(input: {
 }) {
   const capability = input.registry.get(input.childCapabilityId);
   if (!capability) {
-    return dispatchPostActionVerificationFailure({
-      rawInput: input.callInput,
+    return createPostActionFailureResult({
+      request: input.callInput,
       context: input.context,
       status: "failed",
       failureReason: "unknown_child_capability",
@@ -33,9 +33,10 @@ async function executePostActionVerificationChildCapability(input: {
       capability,
     }));
   } catch (error) {
-    return dispatchPostActionVerificationFailure({
-      rawInput: input.callInput,
+    return createPostActionFailureResult({
+      request: input.callInput,
       context: input.context,
+      status: "failed",
       failureReason: "child_execution_failed",
       statusMessage: error instanceof Error ? error.message : "Post Action Verification child execution failed.",
     });
@@ -52,13 +53,10 @@ async function executePostActionVerificationInput(input: {
 }) {
   const parsed = PostActionVerificationAbilityInputSchema.safeParse(input.inputValue);
   if (!parsed.success) {
-    return dispatchPostActionVerificationFailure({
+    return createInvalidPostActionInputResult({
       rawInput: input.inputValue,
       context: input.context,
-      status: "failed",
-      failureReason: "input_schema_invalid",
-      statusMessage: "Post Action Verification rejected invalid input schema.",
-      parseErrors: parsed.error.issues.map((issue) => `${issue.path.join(".") || "root"}:${issue.message}`),
+      issues: parsed.error.issues,
     });
   }
 

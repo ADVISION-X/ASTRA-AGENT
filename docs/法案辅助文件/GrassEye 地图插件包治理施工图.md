@@ -35,6 +35,18 @@ notExecutionOwner: true
 ```txt
 map-plugins 是“路线图系统”。
 能力组是“执行工具”。
+
+地图插件包治理红线：
+
+- 生产自动化地图必须是 `routePlanBoundMap`。
+- `routePlanBoundMap` 只能声明入口脊柱、AI 交付、Prompt Contract 引用、输入/输出 refs、`routePlanId`。
+- Route Plan 是肌肉记忆唯一来源，独占 `routeLabel -> 步骤链 -> 能力组/子能力`。
+- `genericDiagnosticMap` 只能用于隔离诊断，可以写诊断步骤和 transitions，但不得绑定 Route Plan，也不得进入生产自动化主链。
+- 地图禁止写任何约束逻辑、判断逻辑、超时策略、重试策略、证据保留策略、后动作验证策略、人工审核动作。
+- 一个地图 + 对应 Prompt Contract，才是完整地图。
+- AI 判断语义必须进入 Prompt Contract 和 Output Schema；生产代码只负责运行边界、超时兜底、证据交付和失败终止。
+- 自动化地图严厉禁止 request-human-review、human-review、manual-review、operator-review、review_required 终态或任何等待人的步骤。
+- Route Plan 是调度肌肉记忆的唯一来源。地图只能引用 `routePlanId`，不得复制 Route Plan 已经拥有的步骤、transition、routeLabel 或动作链。
 Orchestration 是“按路线图调度工具的人”。
 AI 是“帮用户画路线图的人”。
 Commander 是“用户下命令和确认路线图的界面”。
@@ -72,6 +84,7 @@ Forensics Writer
 ```txt
 Commander Console
 → 用户输入自然语言需求
+→ Commander 补入系统二元默认选项
 → Commander 创建 map-authoring request
 → Nerve Bus governed transport
 → AI Capability
@@ -84,6 +97,29 @@ Commander Console
 ```
 
 Map Plugin 不直接调用 AI API，不读取 API key，不选择模型。
+
+用户需求转地图的源头必须包含：
+
+```txt
+naturalLanguageGoal
+product_yes outcome options:
+  1 read-comments
+  2 save-evidence
+  3 read-comments-and-save-evidence
+  4 finish-current-video
+product_no outcome options:
+  1 skip-current-video
+  2 mark-not-interested-then-continue
+  3 publish-default-smile-comment-then-continue
+  4 stop-task
+selected/default:
+  product_yes -> read-comments-and-save-evidence
+  product_no -> skip-current-video
+```
+
+这些选项进入 Map Authoring Input Package 的 `userRequirement.binaryOutcomePolicy`，再进入运行期 Prompt Contract。地图只暴露路线标签；调度只机械匹配 AI 输出的 `routeLabel`，不得把 `product_yes/product_no` 硬编码成下一步。
+
+二元选项到动作链的匹配表不写在地图中，必须写入 Route Plan。地图只声明 `routePlanId`。生产调度读取 Route Plan 后机械执行 `routeLabel -> step chain`，不得在 Orchestration 内新增第二套匹配表。
 
 ---
 
@@ -102,8 +138,8 @@ draft map package
 → security validation
 → dry-run validation
 → validation report
-→ Commander human review
-→ human approval
+→ Commander governed activation
+→ automation gate
 → activation proof
 → activation record
 → activationSnapshotRef
@@ -126,7 +162,7 @@ Commander task selection
 → PAV / Forensics proof
 ```
 
-Orchestration 只消费 active approved frozen activation map。  
+Orchestration 只消费 active gate-passed frozen activation map。  
 Map Plugin 不运行地图。
 
 ---
@@ -146,7 +182,7 @@ src/map-plugins/
 ├── import/
 │   ├── map-package-importer.ts
 │   ├── map-package-quarantine.ts
-│   ├── map-package-approval.ts
+│   ├── map-package-automation-gate.ts
 │   ├── map-package-activation.ts
 │   └── map-package-rollback.ts
 ├── registry/
@@ -226,7 +262,7 @@ author: required
 createdAt: required
 minimumGrassEyeVersion: required
 mapSchemaVersion: required
-approvalStatus: draft | quarantined | approved | rejected | disabled
+activationGateStatus: draft | quarantined | gate_passed | rejected | disabled
 aiGenerated: boolean
 authoringPromptRef: required when aiGenerated
 authoringModelRef: required when aiGenerated
@@ -234,19 +270,19 @@ authoringRunId: required when aiGenerated
 authoringProofRef: required when aiGenerated
 userRequirementRef: required when aiGenerated
 sourceRequirementHash: required when aiGenerated
-capabilityCatalogVersion: required when approved or aiGenerated
-promptCatalogVersion: required when approved or aiGenerated
-validationReportRef: required when approved
-humanApprovalRef: required when approved
+capabilityCatalogVersion: required when gate_passed or aiGenerated
+promptCatalogVersion: required when gate_passed or aiGenerated
+validationReportRef: required when gate_passed
+automationGateRef: required when gate_passed
 ```
 
 Forbidden:
 
 ```txt
-approvalStatus=approved without humanApprovalRef
-approvalStatus=approved without validationReportRef
+activationGateStatus=gate_passed without automationGateRef
+activationGateStatus=gate_passed without validationReportRef
 aiGenerated=true without authoringProofRef
-aiGenerated=true with approvalStatus=approved at generation time
+aiGenerated=true with activationGateStatus=gate_passed at generation time
 ```
 
 ---
@@ -264,11 +300,14 @@ targetAbilityGroupId: required
 inputRefs: list
 outputRefPolicy: required
 promptContractId: required for AI step
-proofPolicy: required
-successCondition: required
-failureBranch: required
-reviewBranch: required
-postActionVerification: required for action step
+Route-only map shape: required
+stepId: required
+targetAbilityGroupId: required for ability/AI execution step
+childCapabilityId: required
+promptContractId: required only for AI step
+inputRefs/outputRefPolicy: required evidence handoff only
+transition: fromStepId + onStatus + toStepId/finalStatus only
+Forbidden in map: proofPolicy, successCondition, failureBranch, reviewBranch, postActionVerification, transition.condition
 ```
 
 Rules:
@@ -293,9 +332,6 @@ stepId: required
 promptContractId: required
 requiredInputRefs: list
 outputSchemaRef: required
-confidencePolicy: required
-reviewPolicy: required
-failureBranch: required
 ```
 
 Rules:
@@ -382,7 +418,7 @@ external AI provider execution
 API key
 provider selection
 cost policy
-external transmission approval
+external transmission automated gate
 AI model choice
 ```
 
@@ -438,17 +474,17 @@ Generated package must set:
 
 ```yaml
 aiGenerated: true
-approvalStatus: draft
+activationGateStatus: draft
 availabilityPolicy: draft
 ```
 
 Forbidden in AI output:
 
 ```txt
-approvalStatus=approved
+activationGateStatus=gate_passed
 active=true
 activationSnapshotRef
-humanApprovalRef
+automationGateRef
 validationReportRef
 rawPrompt
 functionBody
@@ -476,7 +512,7 @@ You cannot execute tools.
 You cannot call APIs.
 You cannot activate maps.
 You cannot approve maps.
-You cannot emit humanApprovalRef.
+You cannot emit automationGateRef.
 You cannot emit validationReportRef.
 You cannot emit activationSnapshotRef.
 You cannot invent abilityGroupId.
@@ -485,8 +521,8 @@ You cannot invent promptContractId.
 You must use only capabilityCatalog and promptContractCatalog.
 If requirement is unclear, output requiredClarifications.
 If current abilities are insufficient, output needsCapabilityExpansion.
-If operation sends/deletes/buys/submits/modifies user data, add review gate.
-If operation involves commit/send/publish behavior, require explicit human confirmation.
+If operation sends/deletes/buys/submits/modifies user data, add automated gate.
+If operation involves commit/send/publish behavior, require explicit automated gate.
 Return strict JSON matching MapAuthoringAiOutputSchema.
 ```
 
@@ -549,20 +585,20 @@ Activation blocked if any P0/P1 issue remains.
 
 ---
 
-### 10.3 Human Approval
+### 10.3 Automation Gate
 
 Required:
 
 ```txt
-humanApprovalRef
-approvedBy
-approvedAt
-approvalReason
+automationGateRef
+gateActor
+gatePassedAt
+automationGateReason
 acceptedRiskWarnings
 ```
 
-Commander owns approval UI.  
-Map Plugin stores approval record through governed registry API.
+Commander owns automation-gate UI.  
+Map Plugin stores automation-gate record through governed registry API.
 
 ---
 
@@ -580,10 +616,10 @@ mapId: required
 mapVersion: required
 taskTemplateId: required
 requestedPlatformId: required
-approvedBy: required
+gateActor: required
 activatedAt: required
 reason: required
-humanApprovalRef: required
+automationGateRef: required
 validationReportRef: required
 importProofRef: required
 quarantineProofRef: required
@@ -601,7 +637,7 @@ Forbidden:
 activation by availabilityPolicy only
 activation from draft
 activation without validationReportRef
-activation without humanApprovalRef
+activation without automationGateRef
 activation without activationProofRef
 production built-in active by side door
 ```
@@ -702,7 +738,7 @@ permissionsAndLoginNeeds
 evidenceToBeSaved
 screenshotRetentionSummary
 aiJudgmentRisk
-humanReviewPoints
+automationGatePoints
 safetyWarnings
 activationReadinessSummary
 ```
@@ -740,7 +776,7 @@ outputSchemaRef
 routableByMap
 requiresGeometryProof
 requiresPostActionVerification
-requiresReviewGate
+requiresAutomationGate
 sensitiveOperation
 supportedTargets
 forbiddenResponsibilities
@@ -752,7 +788,7 @@ Rules:
 map may reference only routableByMap=true entries
 action step with PAV requirement must include PAV
 geometry step with geometry requirement must include geometry proof
-sensitive operation requires review gate
+sensitive operation requires automated gate
 unknown requirement produces needsCapabilityExpansion
 ```
 
@@ -821,7 +857,7 @@ Required proof chain:
 importProofRef
 quarantineProofRef
 validationReportRef
-humanApprovalRef
+automationGateRef
 activationProofRef
 activationSnapshotRef
 mapPackageHash
@@ -897,21 +933,21 @@ builtin loader direct parse diagnostic bypass
 registry dispatches Nerve Bus
 builtin package active without lifecycle proof
 builtin auto-active in production
-activate unapproved map
+activate map before automation gate passes
 activate package with validation issues
 active record missing activationSnapshotRef
 active record missing activationProofRef
-approved manifest without humanApprovalRef
+gate-passed manifest without automationGateRef
 AI-generated package missing authoringPromptRef
 AI-generated package missing authoringProofRef
-AI output approvalStatus=approved
+AI output activationGateStatus=gate_passed
 AI output active=true
 AI output contains rawPrompt
 AI output contains activationSnapshotRef
 AI output references unknown abilityGroupId
 AI output references unknown childCapabilityId
 AI output references unknown promptContractId
-AI generated send/publish flow without review gate
+AI generated send/publish flow without automated gate
 map package adds functionBody
 map package adds eval string
 map package adds direct ability call
@@ -948,8 +984,8 @@ maps are data-only
 no runtime/child ability behavior
 all built-ins and imported packages pass same lifecycle
 production registry does not auto-active builtins
-active map has validationReportRef + humanApprovalRef + activationProofRef + activationSnapshotRef + hashes
-AI-generated maps remain draft/quarantine until validation + human approval
+active map has validationReportRef + automationGateRef + activationProofRef + activationSnapshotRef + hashes
+AI-generated maps remain draft/quarantine until validation + automation gate
 AI-generated maps include full authoring chain
 authoring prompt prevents authority spoofing and capability invention
 prompt binding matches AI step and Prompt Contract Catalog
@@ -1021,7 +1057,7 @@ mapPackageSchema: required
 mapAuthoringOutputSchema: required
 
 safetyPolicy: required
-humanApprovalPolicy: required
+automationGatePolicy: required
 evidencePolicy: required
 pavPolicy: required
 forensicsPolicy: required
@@ -1078,7 +1114,7 @@ requiresTargetProof: boolean
 requiresFocusProof: boolean
 requiresApprovedText: boolean
 requiresPostActionVerification: boolean
-requiresHumanReview: boolean
+requiresAutomationGate: boolean
 sensitiveOperation: boolean
 sideEffectLevel: none | read | write | submit | delete | purchase
 allowedStepKinds: list
@@ -1117,8 +1153,7 @@ outputSchemaRef: required
 allowedInputRefs: list
 dataPolicy: required
 providerPolicy: required
-reviewPolicy: required
-failurePolicy: required
+binaryDecisionPolicy: required when the prompt produces branchable judgment
 redactionPolicy: required
 forensicsPolicy: required
 forbiddenOutputs: list
@@ -1160,20 +1195,20 @@ raw AI natural language branch
 
 ---
 
-## E. Safety / Human Approval Policy
+## E. Safety / Automation Gate Policy
 
 必须定义：
 
 ```txt
-send message → human approval required
-submit form → human approval required
-purchase/payment → human approval required
-delete content → human approval required
-modify user data → human approval required
-bulk action → human approval + rate limit required
-text-input commit/send/publish semantics → explicit approval required
-external AI transmission of userRequirement → externalTransmissionApproval required
-AI-generated map activation → human approval required
+send message → automation gate required
+submit form → automation gate required
+purchase/payment → automation gate required
+delete content → automation gate required
+modify user data → automation gate required
+bulk action → automation gate + rate limit required
+text-input commit/send/publish semantics → Route Plan automated gate required
+external AI transmission of userRequirement → externalTransmissionGate required
+AI-generated map activation → governed activation proof required
 ```
 
 ---
@@ -1209,7 +1244,7 @@ supportedTargets: list
 prohibitedOperations: list
 rateLimitPolicyRef: required
 captchaPolicy: required
-humanReviewPolicyRef: required
+automationGatePolicyRef: required
 safetyPauseConditions: list
 ```
 
@@ -1230,7 +1265,7 @@ You cannot execute tools.
 You cannot call APIs.
 You cannot activate maps.
 You cannot approve maps.
-You cannot emit humanApprovalRef.
+You cannot emit automationGateRef.
 You cannot emit validationReportRef.
 You cannot emit activationSnapshotRef.
 You cannot invent abilityGroupId.
@@ -1242,8 +1277,8 @@ You must treat capabilityCatalog as the only ability truth and must not rely on 
 If requirement is unclear, output requiredClarifications.
 If current abilities are insufficient, output needsCapabilityExpansion.
 If capabilityCatalog is missing, stale, or inconsistent with governed capability truth, return BLOCKED_CAPABILITY_CATALOG_STALE.
-If operation sends/deletes/buys/submits/modifies user data, add review gate.
-If operation involves commit/send/publish behavior, require explicit human confirmation.
+If operation sends/deletes/buys/submits/modifies user data, add automated gate.
+If operation involves commit/send/publish behavior, require explicit automated gate.
 Return strict JSON matching MapAuthoringAiOutputSchema.
 ```
 
@@ -1255,17 +1290,17 @@ AI 输出必须是 draft candidate：
 
 ```yaml
 aiGenerated: true
-approvalStatus: draft
+activationGateStatus: draft
 availabilityPolicy: draft
 ```
 
 禁止：
 
 ```txt
-approvalStatus=approved
+activationGateStatus=gate_passed
 active=true
 activationSnapshotRef
-humanApprovalRef
+automationGateRef
 validationReportRef
 rawPrompt
 functionBody
@@ -1299,7 +1334,7 @@ platformAssumptions
 evidenceToBeSaved
 screenshotRetentionSummary
 aiJudgmentRisk
-humanReviewPoints
+automationGatePoints
 safetyWarnings
 capabilityLimitations
 needsCapabilityExpansionSummary
@@ -1331,12 +1366,12 @@ promptContractCatalog present
 outputSchemaCatalog present
 mapPackageSchema present
 mapAuthoringOutputSchema present
-safety/humanApproval/evidence/PAV/Forensics/platform policies present
+safety/automationGate/evidence/PAV/Forensics/platform policies present
 prompt template contains rules only and no duplicated ability catalog text
 stale capability catalog blocks authoring
 AI output schema strict
 AI generated maps draft/quarantine only
-high-risk actions require review gates
+high-risk actions require automated gates
 action steps require PAV
 evidence steps require Forensics/evidence policy
 ordinary explanation hides internals
@@ -1345,27 +1380,30 @@ inspector PASS
 negative proof PASS
 ```
 
-## L. Runtime Debug Loop 补充：step branch closure
+## L. Runtime Debug Loop 补充：route-only closure
 
 正确链路：
-- 每个 step 声明的 `failureBranch` / `reviewBranch` 必须同时存在于 top-level branch registry 与 `operationalMap.transitions.transitionId`。
-- iPhone Mirroring 初始 `open-iphone-mirroring` 必须提供 success、failed、review 三类闭合 transition。
+- 每个 step 只能声明调用能力组、子能力、输入输出引用，以及 AI step 的 Prompt Contract 引用。
+- 每个 transition 只能声明 fromStepId、onStatus、toStepId/finalStatus。
+- AI 分支语义来自 Prompt Contract 输出，生产运行时消费 AI decision 后选择路线。
 
 禁止链路：
-- step 只声明 branch 字段但不提供 transition。
-- 只在 top-level branch array 声明但没有对应 transition。
+- step 声明 failureBranch/reviewBranch/successCondition/postActionVerification/proofPolicy。
+- transition 声明 condition。
+- top-level 声明 failureBranches/reviewBranches/sequencePolicy/proofPolicy/policy。
 - Orchestration 在运行时猜测 fallback transition。
 
 inspector 应覆盖：
-- `validateMapTransitionClosure()` 必须检查 step-level `failureBranch` / `reviewBranch` 到 top-level branch set 与 transition id 的闭合。
+- `validateMapTransitionClosure()` 必须检查 route-only step 可达性和 transition 指向闭合。
+- schema/audit 必须物理禁止地图约束字段复发。
 
 negative proof 应覆盖：
-- 篡改 `open-iphone-mirroring.failureBranch` 为未声明 transition id。
-- 删除 failure/review transition while leaving step declaration behind。
+- 向 step 注入 `successCondition` / `failureBranch` / `reviewBranch` / `postActionVerification` / `proofPolicy` 必须失败。
+- 向 transition 注入 `condition` 必须失败。
 
 结构化日志必备字段：
-- mapId、stepId、transitionId、fromStepId、status、matchedTransition、failureBranch、reviewBranch、ownerResponsible、actionableMessage。
+- mapId、stepId、transitionId、fromStepId、status、matchedTransition、ownerResponsible、actionableMessage。
 
 READY 标准：
-- 真实重启后 mirroring map 失败路径必须进入 governed failed/review transition，不得出现 no matching transition。
+- 真实重启后 map 路线不得依赖任何地图约束逻辑。
 - 修复后必须真实触发任务并重新执行第一阶段日志分析。

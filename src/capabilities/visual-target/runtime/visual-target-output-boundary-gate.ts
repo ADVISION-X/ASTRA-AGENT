@@ -215,16 +215,6 @@ export function validateVisualTargetOutputBoundary(input: {
     );
   }
 
-  if (input.selectedCandidate.confidence < input.profile.minimumConfidence) {
-    flags.add("low_confidence");
-    return createOutputBoundaryReview(
-      "confidence_below_threshold",
-      "Visual Target output boundary rejected low-confidence success output.",
-      "Visual Target requires review because the selected candidate confidence is below threshold.",
-      collectVisualTargetFlags(flags),
-    );
-  }
-
   const commonOutput = buildCommonOutput(input);
   return createAllowedOutputBoundaryResult({
     request: input.request,

@@ -57,9 +57,9 @@ export function buildSessionGateFailureResult(input: {
       abortDecision: "not_requested",
       circuitBreakerState: "closed",
       browserOpenStillRunningGuard: false,
-      alreadyOnTargetFreshnessDecision: "not_applicable",
+      alreadyOnTargetHandlingMode: "not_applicable",
     },
-    postOpenStateDecision: createPostOpenFailure(input.sessionGate.status, input.sessionGate.status === "review_required" ? "security_wall" : "unknown", input.sessionGate.reason),
+    postOpenStateDecision: createPostOpenFailure(input.sessionGate.status, "navigation_failure_observation", input.sessionGate.reason),
     idempotencyKey: `${input.request.runId}:session-gate-blocked`,
     idempotencyDecision: "not_started",
     beforeSession: fallbackSession,
@@ -90,7 +90,7 @@ export function buildIdempotencyFailureResult(input: {
     idempotencyKey: string;
     decision: OpenIdempotencyDecision;
     reason: string | null;
-    alreadyOnTargetDecision: "not_applicable" | "freshness_required" | "freshness_verified";
+    alreadyOnTargetHandlingMode: "not_applicable" | "session_reused";
   };
 }): OpenResult {
   return buildFailureResult({
@@ -112,9 +112,9 @@ export function buildIdempotencyFailureResult(input: {
       abortDecision: "not_requested",
       circuitBreakerState: "closed",
       browserOpenStillRunningGuard: false,
-      alreadyOnTargetFreshnessDecision: input.idempotency.alreadyOnTargetDecision,
+      alreadyOnTargetHandlingMode: input.idempotency.alreadyOnTargetHandlingMode,
     },
-    postOpenStateDecision: createPostOpenFailure("review_required", "unexpected_redirect", input.idempotency.reason),
+    postOpenStateDecision: createPostOpenFailure("review_required", "navigation_failure_observation", input.idempotency.reason),
     idempotencyKey: input.idempotency.idempotencyKey,
     idempotencyDecision: input.idempotency.decision,
     beforeSession: input.beforeSession,

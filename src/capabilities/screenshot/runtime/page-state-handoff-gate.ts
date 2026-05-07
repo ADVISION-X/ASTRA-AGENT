@@ -53,12 +53,11 @@ function resolvePageStateHandoffGate(input: {
   }
 
   if (pageStateProof.status !== "approved") {
-    const status = pageStateProof.status === "wrong_domain" ? "failed" : "review_required";
     return buildPageStateHandoffFailure({
-      status,
-      reason: pageStateProof.status,
+      status: "review_required",
+      reason: `page_state_observation:${pageStateProof.status}`,
       code: "page_state_invalid",
-      message: `Screenshot page state handoff rejected status=${pageStateProof.status}.`,
+      message: `Screenshot page state handoff received non-authoritative pageStateProof status=${pageStateProof.status}.`,
       pageStateProofRef: pageStateProof.proofRef,
     });
   }

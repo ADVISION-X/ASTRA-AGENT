@@ -10,6 +10,54 @@ const MapAuthoringRunLimitSchema = z.object({
   maxMinutes: z.number().int().positive(),
 }).strict();
 
+const MapAuthoringBinaryOutcomeOptionSchema = z.object({
+  optionId: z.string().min(1),
+  label: z.string().min(1),
+  routeLabel: z.string().min(1),
+  description: z.string().min(1),
+}).strict();
+
+const MapAuthoringBinaryOutcomePolicySchema = z.object({
+  positiveDecision: z.literal("product_yes"),
+  negativeDecision: z.literal("product_no"),
+  positiveOutcomeOptions: z.array(MapAuthoringBinaryOutcomeOptionSchema).min(1),
+  negativeOutcomeOptions: z.array(MapAuthoringBinaryOutcomeOptionSchema).min(1),
+  selectedPositiveOutcomeId: z.string().min(1),
+  selectedNegativeOutcomeId: z.string().min(1),
+  selectedPositiveRouteLabel: z.string().min(1),
+  selectedNegativeRouteLabel: z.string().min(1),
+  defaultedBySystem: z.boolean(),
+}).strict().superRefine((value, context) => {
+  const positive = value.positiveOutcomeOptions.find((option) => option.optionId === value.selectedPositiveOutcomeId);
+  const negative = value.negativeOutcomeOptions.find((option) => option.optionId === value.selectedNegativeOutcomeId);
+  if (!positive) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "selectedPositiveOutcomeId must reference positiveOutcomeOptions.",
+      path: ["selectedPositiveOutcomeId"],
+    });
+  } else if (positive.routeLabel !== value.selectedPositiveRouteLabel) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "selectedPositiveRouteLabel must match the selected positive option routeLabel.",
+      path: ["selectedPositiveRouteLabel"],
+    });
+  }
+  if (!negative) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "selectedNegativeOutcomeId must reference negativeOutcomeOptions.",
+      path: ["selectedNegativeOutcomeId"],
+    });
+  } else if (negative.routeLabel !== value.selectedNegativeRouteLabel) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "selectedNegativeRouteLabel must match the selected negative option routeLabel.",
+      path: ["selectedNegativeRouteLabel"],
+    });
+  }
+});
+
 const MapAuthoringPolicyDescriptorSchema = z.object({
   policyRef: z.string().min(1),
   summary: z.string().min(1),
@@ -29,6 +77,7 @@ const MapAuthoringUserRequirementSchema = z.object({
   mustAskBefore: z.array(z.string().min(1)).default([]),
   failureHandlingPreference: OptionalStringSchema,
   evidencePreference: OptionalStringSchema,
+  binaryOutcomePolicy: MapAuthoringBinaryOutcomePolicySchema,
   runLimit: MapAuthoringRunLimitSchema.nullable().default(null),
   operatorNotes: z.string().default(""),
   outputLanguage: z.enum(["zh-CN", "en-US"]).default("zh-CN"),
@@ -48,7 +97,7 @@ const MapAuthoringCapabilityChildSchema = z.object({
   requiresFocusProof: z.boolean(),
   requiresApprovedText: z.boolean(),
   requiresPostActionVerification: z.boolean(),
-  requiresHumanReview: z.boolean(),
+  requiresAutomationGate: z.boolean(),
   sensitiveOperation: z.boolean(),
   sideEffectLevel: z.enum(["none", "read", "write", "submit", "delete", "purchase"]),
   allowedStepKinds: NonEmptyStringListSchema,
@@ -101,8 +150,7 @@ const MapAuthoringPromptContractCatalogEntrySchema = z.object({
   allowedInputRefs: z.array(z.string().min(1)).default([]),
   dataPolicy: MapAuthoringPolicyDescriptorSchema,
   providerPolicy: MapAuthoringPolicyDescriptorSchema,
-  reviewPolicy: MapAuthoringPolicyDescriptorSchema,
-  failurePolicy: MapAuthoringPolicyDescriptorSchema,
+  binaryDecisionPolicy: MapAuthoringPolicyDescriptorSchema,
   redactionPolicy: MapAuthoringPolicyDescriptorSchema,
   forensicsPolicy: MapAuthoringPolicyDescriptorSchema,
   forbiddenOutputs: z.array(z.string().min(1)).default([]),
@@ -160,7 +208,7 @@ const MapAuthoringPlatformProfileSchema = z.object({
   rateLimit: MapAuthoringRateLimitSchema,
   safetyPauseConditions: NonEmptyStringListSchema,
   securityCheckBehavior: NonEmptyStringListSchema,
-  humanReviewRules: NonEmptyStringListSchema,
+  automationGateRules: NonEmptyStringListSchema,
 }).strict();
 
 const MapAuthoringExampleMapSchema = z.object({
@@ -195,7 +243,7 @@ const MapAuthoringInputPackageSchema = z.object({
   mapPackageSchema: MapAuthoringMapPackageSchemaDescriptorSchema,
   mapAuthoringOutputSchema: MapAuthoringOutputSchemaDescriptorSchema,
   safetyPolicy: MapAuthoringPolicyDescriptorSchema,
-  humanApprovalPolicy: MapAuthoringPolicyDescriptorSchema,
+  automationGatePolicy: MapAuthoringPolicyDescriptorSchema,
   evidencePolicy: MapAuthoringPolicyDescriptorSchema,
   pavPolicy: MapAuthoringPolicyDescriptorSchema,
   forensicsPolicy: MapAuthoringPolicyDescriptorSchema,
@@ -217,6 +265,8 @@ type MapAuthoringInputPackage = z.output<typeof MapAuthoringInputPackageSchema>;
 
 export {
   MapAuthoringRunLimitSchema,
+  MapAuthoringBinaryOutcomeOptionSchema,
+  MapAuthoringBinaryOutcomePolicySchema,
   MapAuthoringPolicyDescriptorSchema,
   MapAuthoringRateLimitSchema,
   MapAuthoringUserRequirementSchema,

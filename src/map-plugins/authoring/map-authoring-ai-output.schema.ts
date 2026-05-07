@@ -1,14 +1,11 @@
 import { z } from "zod";
 
 import { MapDependenciesSchema } from "../schema/map-dependencies.schema.js";
-import { MapPolicySchema } from "../schema/map-policy.schema.js";
 import {
-  MapPluginAllowedAbilityGroupIdSchema,
   MapPluginOperationalMapStepSchema,
   MapPluginTransitionSchema,
 } from "../schema/operational-map-core.schema.js";
 import { MapPluginMissionTerminalStatusSchema } from "../schema/operational-map-payload.schema.js";
-import { MapPluginOrchestrationSequencePolicySchema } from "../schema/operational-map-policy.schema.js";
 import { PromptBindingsSchema } from "../schema/prompt-bindings.schema.js";
 import { MapAuthoringChainSchema } from "./map-authoring-proof-chain.js";
 
@@ -28,17 +25,12 @@ export const MapAuthoringDraftPackageSchema = z.object({
   defaultRunLimit: DraftRunLimitSchema,
   maxAllowedRunLimit: DraftRunLimitSchema,
   humanGoal: z.string().min(1),
-  allowedAbilityGroups: z.array(MapPluginAllowedAbilityGroupIdSchema).min(1),
   initialStepId: z.string().min(1),
   steps: z.array(MapPluginOperationalMapStepSchema).min(1),
   transitions: z.array(MapPluginTransitionSchema).min(1),
-  failureBranches: z.array(z.string().min(1)).default([]),
-  reviewBranches: z.array(z.string().min(1)).default([]),
   finalStates: z.array(MapPluginMissionTerminalStatusSchema).min(1),
   forbiddenDirectCalls: z.array(z.string().min(1)).default(["PlatformAdapter", "EvidenceStoreService", "direct-ability-call"]),
-  sequencePolicy: MapPluginOrchestrationSequencePolicySchema,
   dependencies: MapDependenciesSchema,
-  policy: MapPolicySchema,
   promptBindings: PromptBindingsSchema,
 }).strict();
 

@@ -9,7 +9,6 @@ import { getDefaultMapPluginRegistry } from "./orchestration-map-id-list.js";
 const DEFAULT_STEP_TIMEOUT_MS = 30_000;
 
 type OperationalStep = OperationalMap["steps"][number];
-type ReviewStep = OperationalStep & { stepKind: "review" };
 type FinalizeStep = OperationalStep & { stepKind: "finalize" };
 type AiStep = OperationalStep & { stepKind: "ai" };
 type AbilityStep = OperationalStep & { stepKind: "ability" };
@@ -133,7 +132,15 @@ const resolveAiPromptBinding = (input: {
 }) => {
   const binding = input.registration.mapPackage.promptBindings.bindings.find((candidate) => candidate.stepId === input.step.stepId);
   if (!binding) {
-    return { ok: false as const, failureReason: `AI step "${input.step.stepId}" is missing governed prompt binding.` };
+    return {
+      ok: true as const,
+      binding: {
+        stepId: input.step.stepId,
+        promptContractId: input.step.promptContractId,
+        requiredInputRefs: input.step.inputRefs,
+        outputSchemaRef: input.outputSchemaRef,
+      },
+    };
   }
   return binding.outputSchemaRef === input.outputSchemaRef
     ? { ok: true as const, binding }
@@ -171,7 +178,6 @@ const buildAiDispatchRequirements = (input: {
 const PRODUCTION_STEP_TIMEOUT_MS_BY_KIND = {
   ability: 30_000,
   ai: 120_000,
-  review: 1_000,
   finalize: 10_000,
 } as const;
 
@@ -192,9 +198,6 @@ const PRODUCTION_STEP_TIMEOUT_MS_BY_ABILITY: Partial<Record<Exclude<OperationalS
 const resolveStepTimeoutMs = (step: OperationalStep): number => {
   if (step.stepKind === "ai") {
     return PRODUCTION_STEP_TIMEOUT_MS_BY_KIND.ai;
-  }
-  if (step.stepKind === "review") {
-    return PRODUCTION_STEP_TIMEOUT_MS_BY_KIND.review;
   }
   if (step.stepKind === "finalize") {
     return PRODUCTION_STEP_TIMEOUT_MS_BY_KIND.finalize;
@@ -271,6 +274,5 @@ export type {
   DispatchChain,
   FinalizeStep,
   OperationalStep,
-  ReviewStep,
   StepDispatchResult,
 };

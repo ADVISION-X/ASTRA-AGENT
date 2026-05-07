@@ -1,8 +1,7 @@
-import type { MissionCommand, MissionControlCommand, MissionReviewDecisionInput } from "../contract.js";
+import type { MissionCommand, MissionControlCommand } from "../contract.js";
 import {
   MissionCommandSchema,
   MissionControlCommandSchema,
-  MissionReviewDecisionInputSchema,
 } from "../schema.js";
 
 export function parseMissionCommand(input: unknown): MissionCommand {
@@ -11,8 +10,4 @@ export function parseMissionCommand(input: unknown): MissionCommand {
 
 export function parseMissionControlCommand(input: unknown): MissionControlCommand {
   return MissionControlCommandSchema.parse(input);
-}
-
-export function parseMissionReviewDecision(input: unknown): MissionReviewDecisionInput {
-  return MissionReviewDecisionInputSchema.parse(input);
 }

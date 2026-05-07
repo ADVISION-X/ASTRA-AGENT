@@ -23,9 +23,7 @@ const {
   LAW_RUNTIME_GOVERNANCE,
   NAVIGATION_RUNNER_PATH,
   NAVIGATION_RUNNER_SUPPORT_PATH,
-  POST_OPEN_STATE_GATE_PATH,
-  POST_OPEN_STATE_HELPERS_PATH,
-  POST_OPEN_STATE_RESULT_BUILDERS_PATH,
+  POST_OPEN_OBSERVATION_HANDOFF_PATH,
   PROOF_BUILDER_PATH,
   RESULT_BUILDER_PATH,
   SESSION_GATE_PATH,
@@ -66,7 +64,7 @@ const collectExecutorFindings = (project: import("ts-morph").Project): Finding[]
     { file: EXECUTOR_PREFLIGHT_PATH, callName: "evaluateUrlSafety", message: "Open execution chain must route through evaluateUrlSafety." },
     { file: EXECUTOR_PREFLIGHT_PATH, callName: "evaluateRealChromeSession", message: "Open execution chain must route through evaluateRealChromeSession." },
     { file: EXECUTOR_COMPLETION_PATH, callName: "runOpenNavigation", message: "Open execution chain must route through runOpenNavigation." },
-    { file: EXECUTOR_COMPLETION_PATH, callName: "evaluatePostOpenState", message: "Open execution chain must route through evaluatePostOpenState." },
+    { file: EXECUTOR_COMPLETION_PATH, callName: "evaluatePostOpenObservationHandoff", message: "Open execution chain must route through evaluatePostOpenObservationHandoff." },
     { file: EXECUTOR_FLOW_SUPPORT_PATH, callName: "buildOpenResult", message: "Open execution chain must route through buildOpenResult." },
   ] as const;
 
@@ -137,15 +135,30 @@ const collectMissingFieldFindings = (input: {
 };
 
 const collectPostOpenStateFindings = (project: import("ts-morph").Project): Finding[] => {
-  const postOpenStateSource = getOpenSourceOrThrow(project, POST_OPEN_STATE_HELPERS_PATH);
-  const postOpenStateResultBuilders = getOpenSourceOrThrow(project, POST_OPEN_STATE_RESULT_BUILDERS_PATH);
+  const postOpenObservationSource = getOpenSourceOrThrow(project, POST_OPEN_OBSERVATION_HANDOFF_PATH);
   const findings: Finding[] = [];
 
-  if (!hasLiteralTextFragment(postOpenStateSource, "captcha_wall") || !hasLiteralTextFragment(postOpenStateSource, "permission_wall")) {
-    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_STATE_GATE_PATH, line: 1, severity: "fatal", message: "Post-open state gate must classify captcha and permission walls explicitly." }));
+  if (!hasIdentifier(postOpenObservationSource, "evaluatePostOpenObservationHandoff") || !hasCallExpression(postOpenObservationSource, "buildPostOpenDecision")) {
+    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_OBSERVATION_HANDOFF_PATH, line: 1, severity: "fatal", message: "Post-open observation handoff must evaluate the governed post-open observation and build a non-authoritative handoff decision." }));
   }
-  if (!hasLiteralTextFragment(postOpenStateResultBuilders, "login_wall") || !hasLiteralTextFragment(postOpenStateResultBuilders, "wrong_domain") || !hasCallExpression(postOpenStateSource, "buildReviewRequiredPostOpenStateResult") || !hasCallExpression(postOpenStateSource, "buildFailedPostOpenStateResult")) {
-    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_STATE_GATE_PATH, line: 1, severity: "fatal", message: "Post-open state gate must keep explicit login_wall and wrong_domain branches out of success." }));
+
+  if (!hasPropertyNamed(postOpenObservationSource, "authoritative")
+    || !hasLiteralTextFragment(postOpenObservationSource, "AI owns readiness, safety, freshness, and page-kind judgment.")
+    || !hasPropertyNamed(postOpenObservationSource, "pageStateHandoffRequired")
+    || !hasPropertyNamed(postOpenObservationSource, "pageStateHandoffRef")) {
+    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_OBSERVATION_HANDOFF_PATH, line: 1, severity: "fatal", message: "Post-open observation handoff must stay non-authoritative, preserve page-state handoff, and explicitly hand readiness judgment to AI." }));
+  }
+
+  if (!hasLiteralTextFragment(postOpenObservationSource, "timed_out")
+    || !hasLiteralTextFragment(postOpenObservationSource, "navigation_failure_observation")) {
+    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_OBSERVATION_HANDOFF_PATH, line: 1, severity: "fatal", message: "Post-open observation handoff must treat timed_out and failed navigation as failure observations instead of success." }));
+  }
+
+  if (hasLiteralTextFragment(postOpenObservationSource, "captcha_wall")
+    || hasLiteralTextFragment(postOpenObservationSource, "permission_wall")
+    || hasLiteralTextFragment(postOpenObservationSource, "login_wall")
+    || hasLiteralTextFragment(postOpenObservationSource, "wrong_domain")) {
+    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_OBSERVATION_HANDOFF_PATH, line: 1, severity: "fatal", message: "Post-open observation handoff must not revive local page-state truth branches such as login_wall, wrong_domain, captcha_wall, or permission_wall." }));
   }
 
   return findings;

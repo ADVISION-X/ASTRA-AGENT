@@ -68,15 +68,26 @@ DOM/BOM 查询
 真实平台 `scroll-next-video` 的 primitive adapter 必须采用：
 
 ```txt
-ACTION AND THEN observation
+ACTION AND THEN observation handoff
 ```
 
 也就是：
 
 ```txt
 先执行受治理的滚动 primitive
-AND THEN 轮询浏览器原生可观测身份（视频 DOM identity / URL）
-直到看到视频身份变化
+AND THEN 只记录 primitive scroll settle 与滚动后观测交接 ref
+禁止在 Mouse Scroll 内轮询浏览器原生可观测身份（视频 DOM identity / URL）
+禁止在 Mouse Scroll 内得出“已经进入新视频”或“视频内容已经变化”的本地结论
+```
+
+是否进入新视频只能走：
+
+```txt
+Scroll
+→ Screenshot
+→ Page State stable
+→ AI / Visual evidence
+→ Orchestration next round
 ```
 
 这里的 timeout 只允许作为大额度防死锁兜底：
@@ -88,7 +99,7 @@ timeout != 调试手段
 timeout != 换视频证明
 ```
 
-如果 AND THEN 没有观测到视频身份变化，后续 PAV 必须用二元结果判定成功或失败，不能进入人工审查。
+滚动后的下一视频判断不属于 Mouse Scroll，也不属于本地 DOM / URL 规则；后续只能交给 Screenshot、Page State、AI 与编排链处理。
 
 一句话：
 

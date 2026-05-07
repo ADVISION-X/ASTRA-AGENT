@@ -31,7 +31,7 @@ export function buildAiStepResult(input: {
       decision: input.dispatchResult.decision,
       branchFieldValues: buildBranchFieldValues({ decision: input.dispatchResult.decision, branchFieldValues: input.dispatchResult.branchFieldValues }),
       failureReason: input.dispatchResult.failureReason,
-      reviewRequiredReason: input.dispatchResult.status === "review_required" ? (input.dispatchResult.failureReason ?? "review required") : null,
+      reviewRequiredReason: null,
       payloadRefs: applyStepOutputRefPolicy(input.step, { ...input.state.payloadRefs, ...input.dispatchResult.payloadRefs }, outputRef),
     }),
   };

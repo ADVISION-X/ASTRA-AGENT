@@ -4,9 +4,6 @@ import { createAiProofBindingFailure, createAiProofQualityReview } from "./ai-re
 
 type AiResultProofInput = {
   request: ParsedVisualTargetAbilityInput;
-  nowEpochMs: number;
-  freshnessTtlMs: number;
-  minimumConfidence: number;
 };
 
 type AiProof = NonNullable<ParsedVisualTargetAbilityInput["sourceProof"]["ai"]>;

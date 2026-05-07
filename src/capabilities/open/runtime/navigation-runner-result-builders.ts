@@ -6,7 +6,7 @@ export const buildAlreadyOnTargetNavigationResult = (input: {
   beforeSession: BrowserSessionSnapshot;
   targetUrl: string;
   idempotencyKey: string;
-  alreadyOnTargetDecision: "not_applicable" | "freshness_required";
+  alreadyOnTargetHandlingMode: "not_applicable" | "session_reused";
 }): OpenNavigationRunResult => {
   const navigationCallId = `${input.idempotencyKey}:navigation-call`;
   const currentUrl = input.beforeSession.currentUrl;
@@ -32,7 +32,7 @@ export const buildAlreadyOnTargetNavigationResult = (input: {
       timeoutDecision: "within_limit",
       abortDecision: "not_requested",
       browserOpenStillRunningGuard: false,
-      alreadyOnTargetFreshnessDecision: input.alreadyOnTargetDecision,
+      alreadyOnTargetHandlingMode: input.alreadyOnTargetHandlingMode,
     }),
   });
 };
@@ -68,7 +68,7 @@ export const buildTimedOutNavigationResult = (input: {
       timeoutDecision: "timed_out",
       abortDecision: "timeout_abort_requested",
       browserOpenStillRunningGuard: true,
-      alreadyOnTargetFreshnessDecision: "not_applicable",
+      alreadyOnTargetHandlingMode: "not_applicable",
     }),
   });
 };
@@ -106,7 +106,7 @@ export const buildSessionSnapshotFailureResult = (input: {
       timeoutDecision: "within_limit",
       abortDecision: "not_requested",
       browserOpenStillRunningGuard: false,
-      alreadyOnTargetFreshnessDecision: "not_applicable",
+      alreadyOnTargetHandlingMode: "not_applicable",
     }),
   });
 };
@@ -144,7 +144,7 @@ export const buildNavigationFailedResult = (input: {
       timeoutDecision: "within_limit",
       abortDecision: "not_requested",
       browserOpenStillRunningGuard: false,
-      alreadyOnTargetFreshnessDecision: "not_applicable",
+      alreadyOnTargetHandlingMode: "not_applicable",
     }),
   });
 };
@@ -182,7 +182,7 @@ export const buildNavigationSuccessResult = (input: {
       timeoutDecision: "within_limit",
       abortDecision: "not_requested",
       browserOpenStillRunningGuard: false,
-      alreadyOnTargetFreshnessDecision: "not_applicable",
+      alreadyOnTargetHandlingMode: "not_applicable",
     }),
   });
 };

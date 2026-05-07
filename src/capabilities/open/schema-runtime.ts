@@ -6,7 +6,7 @@ import {
   BrowserProfileStatusSchema,
   BrowserProfileVerificationStatusSchema,
   OpenAbortDecisionSchema,
-  OpenAlreadyOnTargetFreshnessDecisionSchema,
+  OpenAlreadyOnTargetHandlingModeSchema,
   OpenCircuitBreakerStateSchema,
   OpenStatusSchema,
   OpenTargetUrlSourceSchema,
@@ -113,7 +113,7 @@ export const OpenNavigationDecisionSchema = z.object({
   abortDecision: OpenAbortDecisionSchema,
   circuitBreakerState: OpenCircuitBreakerStateSchema,
   browserOpenStillRunningGuard: z.boolean(),
-  alreadyOnTargetFreshnessDecision: OpenAlreadyOnTargetFreshnessDecisionSchema,
+  alreadyOnTargetHandlingMode: OpenAlreadyOnTargetHandlingModeSchema,
 }).strict();
 
 export const PostOpenStateDecisionSchema = z.object({
@@ -125,7 +125,6 @@ export const PostOpenStateDecisionSchema = z.object({
   pageStateHandoffRequired: z.boolean(),
   pageStateHandoffRef: nullableString,
   authoritative: z.literal(false),
-  documentReadyState: z.enum(["loading", "interactive", "complete"]).nullable().default(null),
 }).strict().superRefine((value, context) => {
   if (value.status === "success" && (!value.pageStateHandoffRequired || value.pageStateHandoffRef === null)) {
     context.addIssue({

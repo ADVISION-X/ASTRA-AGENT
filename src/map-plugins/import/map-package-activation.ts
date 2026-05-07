@@ -10,7 +10,7 @@ import {
 import { buildActivationProofRef } from "../shared/map-package-proof.js";
 import type { QuarantinedMapRecord } from "../registry/quarantined-map-registry.js";
 
-type ActivationFailureReason = "map_not_found" | "map_validation_failed" | "map_not_approved";
+type ActivationFailureReason = "map_not_found" | "map_validation_failed" | "automation_gate_not_passed";
 
 type ActivationFailure = {
   activated: false;
@@ -18,7 +18,7 @@ type ActivationFailure = {
 };
 
 type ActivationManifestRefs = {
-  humanApprovalRef: string;
+  automationGateRef: string;
   validationReportRef: string;
   capabilityCatalogVersion: string;
   promptCatalogVersion: string;
@@ -28,7 +28,7 @@ type ActivationRecordInput = {
   activationId: string;
   mapPackage: NonNullable<ReturnType<MapPluginRegistry["versions"]["get"]>>;
   quarantined: QuarantinedMapRecord;
-  approvedBy: string;
+  gateActor: string;
   reason: string;
   manifestRefs: ActivationManifestRefs;
 };
@@ -66,8 +66,8 @@ function resolveActivationPackage(input: {
 }
 
 function resolveActivationManifestRefs(mapPackage: NonNullable<ReturnType<MapPluginRegistry["versions"]["get"]>>): ActivationFailure | ActivationManifestRefs {
-  if (mapPackage.manifest.approvalStatus !== "approved" || mapPackage.manifest.humanApprovalRef === null) {
-    return createActivationFailure("map_not_approved");
+  if (mapPackage.manifest.activationGateStatus !== "gate_passed" || mapPackage.manifest.automationGateRef === null) {
+    return createActivationFailure("automation_gate_not_passed");
   }
   if (mapPackage.manifest.validationReportRef === null) {
     return createActivationFailure("map_validation_failed");
@@ -76,7 +76,7 @@ function resolveActivationManifestRefs(mapPackage: NonNullable<ReturnType<MapPlu
     return createActivationFailure("map_validation_failed");
   }
   return {
-    humanApprovalRef: mapPackage.manifest.humanApprovalRef,
+    automationGateRef: mapPackage.manifest.automationGateRef,
     validationReportRef: mapPackage.manifest.validationReportRef,
     capabilityCatalogVersion: mapPackage.manifest.capabilityCatalogVersion,
     promptCatalogVersion: mapPackage.manifest.promptCatalogVersion,
@@ -137,10 +137,10 @@ function buildActivationRecord(input: ActivationRecordInput) {
     mapVersion: input.mapPackage.operationalMap.mapVersion,
     taskTemplateId: input.mapPackage.taskTemplate.taskTemplateId,
     requestedPlatformId: input.mapPackage.taskTemplate.requestedPlatformId,
-    approvedBy: input.approvedBy,
+    gateActor: input.gateActor,
     activatedAt: new Date().toISOString(),
     reason: input.reason,
-    humanApprovalRef: input.manifestRefs.humanApprovalRef,
+    automationGateRef: input.manifestRefs.automationGateRef,
     validationReportRef: input.manifestRefs.validationReportRef,
     capabilityCatalogVersion: input.manifestRefs.capabilityCatalogVersion,
     promptCatalogVersion: input.manifestRefs.promptCatalogVersion,
@@ -154,7 +154,7 @@ export function activateMapPackage(input: {
   registry: MapPluginRegistry;
   packageId: string;
   packageVersion: string;
-  approvedBy: string;
+  gateActor: string;
   reason: string;
 }) {
   const activationPackage = resolveActivationPackage(input);
@@ -171,7 +171,7 @@ export function activateMapPackage(input: {
     activationId: randomUUID(),
     mapPackage: activationPackage.mapPackage,
     quarantined: activationPackage.quarantined,
-    approvedBy: input.approvedBy,
+    gateActor: input.gateActor,
     reason: input.reason,
     manifestRefs,
   });

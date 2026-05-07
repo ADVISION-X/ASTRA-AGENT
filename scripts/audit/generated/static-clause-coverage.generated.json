@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T16:20:06.932Z",
+  "generatedAt": "2026-05-07T19:43:09.599Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -6956,6 +6956,13 @@
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
+        {
+          "checkPhase": "required-shape-lifecycle-findings",
+          "checkFunction": "collectLifecycleTruthFindings",
+          "sourceFile": "scripts/audit/domains/screenshot-capability/required-shape-lifecycle-findings.ts",
+          "targetSymbol": "collectLifecycleTruthFindings",
+          "checkKind": "required-shape"
+        },
         {
           "checkPhase": "required-shape-lifecycle-findings",
           "checkFunction": "collectLifecycleTruthFindings",

@@ -30,8 +30,6 @@ function runPayloadBudgetStage(state: VisualTargetExecutionState): VisualTargetA
 function runScreenshotStage(state: VisualTargetExecutionState): VisualTargetAbilityResult | null {
   const screenshotGate = executionGates.validateScreenshotProof({
     request: state.input.request,
-    nowEpochMs: state.started.epochMs,
-    freshnessTtlMs: state.profile.freshnessTtlMs,
   });
   state.decisions.screenshotDecision = screenshotGate.decision;
   state.telemetry.screenshotHash = screenshotGate.screenshotHash;
@@ -51,9 +49,6 @@ function runScreenshotStage(state: VisualTargetExecutionState): VisualTargetAbil
 function runAiStage(state: VisualTargetExecutionState): VisualTargetAbilityResult | null {
   const aiGate = executionGates.validateAiResultProof({
     request: state.input.request,
-    nowEpochMs: state.started.epochMs,
-    freshnessTtlMs: state.profile.freshnessTtlMs,
-    minimumConfidence: state.profile.minimumConfidence,
   });
   state.decisions.aiDecision = aiGate.decision;
   state.telemetry.aiInputHash = aiGate.aiInputHash;
@@ -93,7 +88,6 @@ function runPageStateStage(state: VisualTargetExecutionState): VisualTargetAbili
 function runCandidateSourceStage(state: VisualTargetExecutionState): VisualTargetAbilityResult | null {
   const candidateSourceGate = executionGates.validateCandidateSources({
     request: state.input.request,
-    nowEpochMs: state.started.epochMs,
     profile: state.profile,
   });
   state.decisions.candidateSourceDecision = candidateSourceGate.decision;
@@ -163,9 +157,6 @@ function runTargetTypeStage(state: VisualTargetExecutionState): VisualTargetAbil
 function runSelectionStage(state: VisualTargetExecutionState): VisualTargetAbilityResult | null {
   const selectionGate = selectionGates.selectTargetCandidate({
     candidates: state.targetTypeCandidates,
-    nowEpochMs: state.started.epochMs,
-    freshnessTtlMs: state.profile.freshnessTtlMs,
-    minimumConfidence: state.profile.minimumConfidence,
   });
   state.decisions.selectionDecision = selectionGate.decision;
   state.telemetry.candidateScoreTrace = selectionGate.candidateScoreTrace;
@@ -189,7 +180,6 @@ function runSelectionStage(state: VisualTargetExecutionState): VisualTargetAbili
 function runAmbiguityStage(state: VisualTargetExecutionState): VisualTargetAbilityResult | null {
   const ambiguityGate = selectionGates.validateAmbiguity({
     candidates: state.selectedCandidates,
-    minimumAmbiguityGap: state.profile.minimumAmbiguityGap,
   });
   state.decisions.ambiguityDecision = ambiguityGate.decision;
   state.telemetry.ambiguityTrace = ambiguityGate.ambiguityTrace;

@@ -183,19 +183,19 @@ function collectVisibleScrollPrimitiveFindings(project: ReturnType<typeof makePr
   }
 
   const text = source.getFullText();
-  const hasAndThenObservation = source.getClass("CurrentChromeBrowserController")?.getInstanceMethod("waitForScrollNextVideoIdentityChange") !== undefined
-    && text.includes("AND THEN observed video identity change")
-    && text.includes("AND THEN fallback timeout reached without video identity change")
-    && text.includes("readCurrentVideoIdentitySnapshot");
+  const hasForbiddenVideoIdentityPolling = source.getClass("CurrentChromeBrowserController")?.getInstanceMethod("waitForScrollNextVideoIdentityChange") !== undefined
+    || text.includes("AND THEN observed video identity change")
+    || text.includes("AND THEN fallback timeout reached without video identity change")
+    || text.includes("readCurrentVideoIdentitySnapshot");
   const hasFixedScrollNextTimeout = text.includes("targetLabel.includes(\"scroll_next_video\") ? 1200 : 300")
     || text.includes("targetLabel.includes('scroll_next_video') ? 1200 : 300");
-  if (!hasAndThenObservation || hasFixedScrollNextTimeout) {
+  if (hasForbiddenVideoIdentityPolling || hasFixedScrollNextTimeout) {
     return [createFinding({
       lawId: LAW_IDS.EXECUTION,
       file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER,
       line: scrollMethod.getStartLineNumber(),
       severity: "fatal",
-      message: "Current Chrome scroll-next-video primitive must use ACTION AND THEN observable video identity polling; fixed debug waits may only be deadlock fallbacks and must not be the technical success condition.",
+      message: "Current Chrome scroll-next-video primitive must not use DOM/URL/native video identity polling or fixed waits as next-video proof; Mouse Scroll may only execute the primitive, observe settle, and hand off downstream evidence refs.",
     })];
   }
   return [];

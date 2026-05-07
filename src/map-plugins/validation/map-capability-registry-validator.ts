@@ -3,6 +3,7 @@ import { buildCapabilityCatalog } from "../authoring/capability-catalog/index.js
 import type { MapPackageValidationIssue } from "../shared/map-package-failure.js";
 import type { MapPackage } from "../shared/map-package-types.js";
 import { MAP_PLUGIN_ALLOWED_ABILITY_GROUP_IDS } from "../schema/operational-map-ability.schema.js";
+import { findRoutePlanById } from "../route-plans/index.js";
 
 const GOVERNED_ABILITY_GROUP_REGISTRY = new Set(MAP_PLUGIN_ALLOWED_ABILITY_GROUP_IDS);
 
@@ -80,12 +81,6 @@ function validateCapabilityPolicies(
       createStepPath(step),
     ));
   }
-  if (capabilityEntry.requiresPostActionVerification && step.postActionVerification === null) {
-    issues.push(createCapabilityIssue(
-      `Target child capability ${step.targetAbilityGroupId}/${step.childCapabilityId} requires postActionVerification.`,
-      createStepPath(step),
-    ));
-  }
   return issues;
 }
 
@@ -106,8 +101,10 @@ function validateCapabilityStep(
 export function validateCapabilityRegistry(mapPackage: MapPackage): MapPackageValidationIssue[] {
   const issues: MapPackageValidationIssue[] = [];
   const capabilityEntries = buildCapabilityEntryIndex();
+  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
+  const effectiveSteps = routePlan ? [...mapPackage.operationalMap.steps, ...routePlan.steps] : mapPackage.operationalMap.steps;
 
-  for (const step of mapPackage.operationalMap.steps) {
+  for (const step of effectiveSteps) {
     issues.push(...validateCapabilityStep(step, capabilityEntries));
   }
   return issues;

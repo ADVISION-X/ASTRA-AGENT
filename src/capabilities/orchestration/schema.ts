@@ -6,12 +6,8 @@ import {
   OrchestrationOperationalMapSchemaSource,
   OrchestrationOperationalMapStepSchemaSource,
   OrchestrationPayloadRefKeySchemaSource,
-  OrchestrationProofPolicySchemaSource,
   OrchestrationRequestedPlatformIdSchemaSource,
-  OrchestrationSequencePolicySchemaSource,
   OrchestrationStepKindSchemaSource,
-  OrchestrationTransitionConditionSchemaSource,
-  OrchestrationTransitionConditionSourceSchemaSource,
   OrchestrationTransitionSchemaSource,
   OrchestrationTransitionStatusSchemaSource,
 } from "../../map-plugins/schema/orchestration-consumer.schema.js";
@@ -26,7 +22,6 @@ const ORCHESTRATION_CHILD_CAPABILITY_IDS = [
   "emergency-stop",
   "execute-map-step",
   "evaluate-step-transition",
-  "request-human-review",
   "finalize-mission",
 ] as const;
 
@@ -36,13 +31,11 @@ const ORCHESTRATION_HUMAN_COMMAND_KINDS = [
   "resume-mission",
   "stop-mission",
   "emergency-stop",
-  "submit-review-decision",
 ] as const;
 
 const ORCHESTRATION_INTERNAL_OPERATION_KINDS = [
   "execute-map-step",
   "evaluate-step-transition",
-  "request-human-review",
   "finalize-mission",
   "loop-guard",
 ] as const;
@@ -58,7 +51,6 @@ const OrchestrationChildCapabilityIdSchema = z.enum([
   "emergency-stop",
   "execute-map-step",
   "evaluate-step-transition",
-  "request-human-review",
   "finalize-mission",
 ]);
 export const OperationalMapIdSchema = z.string().min(1);
@@ -78,7 +70,7 @@ const MissionStatusSchema = z.enum([
 ]);
 const StepKindSchema = OrchestrationStepKindSchemaSource;
 const TransitionStatusSchema = OrchestrationTransitionStatusSchemaSource;
-const TransitionConditionSourceSchema = OrchestrationTransitionConditionSourceSchemaSource;
+const TransitionConditionSourceSchema = z.string().min(1);
 const TransitionConditionValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 const BranchFieldValuesSchema = z.record(TransitionConditionValueSchema).default({});
 const LoopDecisionSchema = z.enum(["continue", "stop_completed", "stop_failed", "stop_review_required"]);
@@ -143,21 +135,21 @@ const MissionCommandSchema = z.object({
   initialPayload: MissionInitialPayloadSchema,
 }).strict();
 
-const MissionReviewDecisionInputSchema = z.object({
-  missionId: z.string().min(1),
-  decision: z.enum(["resume", "stop", "hold"]),
-  note: z.string().min(1).nullable().optional().default(null),
-}).strict();
-
 const MissionControlCommandSchema = z.object({
   missionId: z.string().min(1),
   reason: z.string().min(1).nullable().optional().default(null),
   note: z.string().min(1).nullable().optional().default(null),
 }).strict();
 
-const TransitionConditionSchema = OrchestrationTransitionConditionSchemaSource;
-const OrchestrationSequencePolicySchema = OrchestrationSequencePolicySchemaSource;
-const ProofPolicySchema = OrchestrationProofPolicySchemaSource;
+const OrchestrationSequencePolicySchema = z.object({
+  maxHops: z.number().int().positive(),
+  maxRetriesPerStep: z.number().int().nonnegative(),
+  loopDecisionOnLimit: z.enum(["failed", "review_required"]),
+  branchPolicy: z.enum(["strict", "allow_review_handoff"]),
+}).strict();
+const ProofPolicySchema = z.object({
+  requiresRuntimeProof: z.literal(true),
+}).strict();
 const OperationalMapStepSchema = OrchestrationOperationalMapStepSchemaSource;
 const TransitionSchema = OrchestrationTransitionSchemaSource;
 const OperationalMapSchema = OrchestrationOperationalMapSchemaSource;
@@ -329,7 +321,6 @@ const StopMissionChildInputSchema = MissionControlCommandSchema;
 const EmergencyStopChildInputSchema = MissionControlCommandSchema;
 const ExecuteMapStepChildInputSchema = z.object({ missionId: z.string().min(1) }).strict();
 const EvaluateStepTransitionChildInputSchema = z.object({ missionId: z.string().min(1) }).strict();
-const RequestHumanReviewChildInputSchema = z.object({ missionId: z.string().min(1), reason: z.string().min(1) }).strict();
 const FinalizeMissionChildInputSchema = z.object({ missionId: z.string().min(1), status: MissionStatusSchema.exclude(["idle", "pending", "running", "paused"]) }).strict();
 
 const StartMissionChildOutputSchema = OrchestrationExecuteResultSchema;
@@ -339,7 +330,6 @@ const StopMissionChildOutputSchema = OrchestrationExecuteResultSchema;
 const EmergencyStopChildOutputSchema = OrchestrationExecuteResultSchema;
 const ExecuteMapStepChildOutputSchema = OrchestrationExecuteResultSchema;
 const EvaluateStepTransitionChildOutputSchema = OrchestrationExecuteResultSchema;
-const RequestHumanReviewChildOutputSchema = OrchestrationExecuteResultSchema;
 const FinalizeMissionChildOutputSchema = OrchestrationExecuteResultSchema;
 
 export {
@@ -374,9 +364,7 @@ export {
   PayloadRefBundleSchema,
   MissionInitialPayloadSchema,
   MissionCommandSchema,
-  MissionReviewDecisionInputSchema,
   MissionControlCommandSchema,
-  TransitionConditionSchema,
   OrchestrationSequencePolicySchema,
   ProofPolicySchema,
   OperationalMapStepSchema,
@@ -395,7 +383,6 @@ export {
   EmergencyStopChildInputSchema,
   ExecuteMapStepChildInputSchema,
   EvaluateStepTransitionChildInputSchema,
-  RequestHumanReviewChildInputSchema,
   FinalizeMissionChildInputSchema,
   StartMissionChildOutputSchema,
   PauseMissionChildOutputSchema,
@@ -404,6 +391,5 @@ export {
   EmergencyStopChildOutputSchema,
   ExecuteMapStepChildOutputSchema,
   EvaluateStepTransitionChildOutputSchema,
-  RequestHumanReviewChildOutputSchema,
   FinalizeMissionChildOutputSchema,
 };

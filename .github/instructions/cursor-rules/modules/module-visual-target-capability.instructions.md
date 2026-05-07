@@ -60,15 +60,15 @@ src/capabilities/visual-target/
 Required children:
 
 ```txt
-detect-comments-button
-detect-not-interested-button
-detect-next-video-region
-detect-like-button
-detect-save-button
-detect-comments-panel
-detect-close-comments-button
-detect-metric-like-count
-detect-metric-comment-count
+observe-comments-button
+observe-not-interested-button
+observe-next-video-region
+observe-like-button
+observe-save-button
+observe-comments-panel
+observe-close-comments-button
+observe-metric-like-count
+observe-metric-comment-count
 ```
 
 Required enforcement:
@@ -215,7 +215,7 @@ capabilityDomain: visual-target-capability
 enforcementMode: machine-blocking
 evidenceMode: law+inspector+negative-proof
 
-summary: Visual Target input must carry full chain fields, source proof, candidate proof, policy, and idempotency.
+summary: Visual Target input must carry full chain fields, source proof, candidate proof, and idempotency.
 
 ### 主题
 
@@ -250,11 +250,6 @@ targetType
 targetNature
 sourceProof
 candidates
-confidencePolicy
-selectionPolicy
-ambiguityPolicy
-coordinatePolicy
-dataQualityPolicy
 inputRef
 idempotencyKey
 ```
@@ -673,15 +668,15 @@ summary: child capabilities are narrow target bindings and must use unified Visu
 Active child capabilities:
 
 ```txt
-detect-comments-button
-detect-not-interested-button
-detect-next-video-region
-detect-like-button
-detect-save-button
-detect-comments-panel
-detect-close-comments-button
-detect-metric-like-count
-detect-metric-comment-count
+observe-comments-button
+observe-not-interested-button
+observe-next-video-region
+observe-like-button
+observe-save-button
+observe-comments-panel
+observe-close-comments-button
+observe-metric-like-count
+observe-metric-comment-count
 ```
 
 Required:

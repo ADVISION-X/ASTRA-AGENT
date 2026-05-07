@@ -1,5 +1,6 @@
 import type { MapPackageValidationIssue } from "../shared/map-package-failure.js";
 import type { MapPackage } from "../shared/map-package-types.js";
+import { findRoutePlanById } from "../route-plans/index.js";
 
 function isTargetAbilityGroup(
   targetAbilityGroupId: MapPackage["operationalMap"]["steps"][number]["targetAbilityGroupId"],
@@ -12,12 +13,22 @@ function buildStepIndexMap(steps: MapPackage["operationalMap"]["steps"]): Map<st
   return new Map(steps.map((step, index) => [step.stepId, index]));
 }
 
-function buildAdjacency(mapPackage: MapPackage): Map<string, string[]> {
+function getEffectiveSteps(mapPackage: MapPackage): MapPackage["operationalMap"]["steps"] {
+  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
+  return routePlan ? [...mapPackage.operationalMap.steps, ...routePlan.steps] : mapPackage.operationalMap.steps;
+}
+
+function getEffectiveTransitions(mapPackage: MapPackage): MapPackage["operationalMap"]["transitions"] {
+  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
+  return routePlan ? [...mapPackage.operationalMap.transitions, ...routePlan.transitions] : mapPackage.operationalMap.transitions;
+}
+
+function buildAdjacency(mapPackage: MapPackage, steps: MapPackage["operationalMap"]["steps"]): Map<string, string[]> {
   const adjacency = new Map<string, string[]>();
-  for (const step of mapPackage.operationalMap.steps) {
+  for (const step of steps) {
     adjacency.set(step.stepId, []);
   }
-  for (const transition of mapPackage.operationalMap.transitions) {
+  for (const transition of getEffectiveTransitions(mapPackage)) {
     if (transition.toStepId) {
       adjacency.get(transition.fromStepId)?.push(transition.toStepId);
     }
@@ -174,9 +185,9 @@ function validatePromptBindingSteps(
 }
 
 export function validateMapDryRun(mapPackage: MapPackage): MapPackageValidationIssue[] {
-  const steps = mapPackage.operationalMap.steps;
+  const steps = getEffectiveSteps(mapPackage);
   const stepIndex = buildStepIndexMap(steps);
-  const adjacency = buildAdjacency(mapPackage);
+  const adjacency = buildAdjacency(mapPackage, steps);
   return [
     ...validateAiPreparation(steps),
     ...validateMouseClickDryRun(steps, adjacency, stepIndex),

@@ -253,3 +253,71 @@ summary: AI-generated map authoring must use the governed capability catalog.
 ### 法条
 
 AI-generated map authoring must use the capability catalog and must not invent unknown ability groups or child capabilities.
+
+## Law GRASSEYE-CAPABILITY-GROUP-009-V1
+
+status: active
+tier: P0
+capabilityDomain: capability-group-governance
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: non-AI body groups and support layers must not own video-change cognition or revive verify-video-changed-after-scroll.
+
+### 主题
+
+非 AI 视频变化判断禁令
+
+### 法条
+
+AI is the brain. Non-AI ability groups and support layers may capture observations, execute primitives, validate geometry, and transport proof, but they must not determine whether media or video content changed.
+
+Required direction:
+- Only AI may judge whether before/after video content is the same, changed, ambiguous, or semantically different.
+- Post-action Verification must not expose or revive `verify-video-changed-after-scroll`.
+- Browser or runtime support may observe page URL, DOM identity, screenshot refs, or video identity refs, but those observations must be handed to AI or downstream governed proof instead of becoming a local changed/unchanged verdict.
+- Mouse Scroll success remains primitive execution truth only; it must not claim video-change truth.
+
+### 禁止
+
+FORBIDDEN:
+- `verify-video-changed-after-scroll` as a child capability, expected outcome type, dispatch route, or support helper.
+- DOM, URL, perceptual hash, pixel diff, threshold, or hand-written rule deciding whether the video changed outside AI.
+- Browser support helpers that compare before/after video identity and return local video-change truth.
+
+## Law GRASSEYE-CAPABILITY-GROUP-010-V1
+
+status: active
+tier: P0
+capabilityDomain: capability-group-governance
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: non-AI open, scroll, page-state, post-action-verification, screenshot, text-input, and visual-target surfaces must not publish AI-owned cognition.
+
+### 主题
+
+非 AI 页面认知命名禁令
+
+### 法条
+
+AI is the brain. Open, Mouse Scroll, Page State, Post-action Verification, Screenshot, Text Input, and Visual Target may execute primitives, preserve observations, transport proof, and normalize governed evidence, but they must not publish cognition-labelled surfaces that decide or classify page readiness, login state, safety review, freshness, sensitive-text verdict, page/domain truth, target ranking, ambiguity thresholds, or local visual-target selection policy.
+
+Required direction:
+- Mouse Scroll may expose primitive execution status, safety gate metadata, and proof refs only.
+- Open may expose navigation attempt status and post-open observation handoff refs only.
+- Page State may preserve governed observations, source binding, and observation packaging only.
+- Post-action Verification may package before/after evidence and observation refs only; final action-outcome judgment belongs to AI.
+- Screenshot may expose governed capture state and handoff proof only; it must not emit login-wall or wrong-domain verdict truth.
+- Text Input may consume approved sensitiveTextPolicy and redact payload proof only; it must not heuristically detect or classify sensitive text.
+- Visual Target may normalize governed candidates, bind source proof, and build Geometry Guard handoff only; it must not publish detect child ids, local threshold/freshness/ambiguity policy, or non-AI target-selection judgment surfaces.
+- Readiness, safety, stability, freshness, login, domain, sensitive-text, and page-kind judgment must be emitted by AI through an AI-owned contract instead of non-AI child ids, classification fields, or local verdict helpers.
+
+### 禁止
+
+FORBIDDEN:
+- `detect-*` child capabilities or child ids under non-AI cognition surfaces.
+- `classificationDecision`, `classificationSource`, `freshnessDecision`, `proceedDecision`, `alreadyOnTargetFreshnessDecision`, `detectSensitiveText`, `minimumConfidence`, `minimumAmbiguityGap`, `freshnessTtlMs`, `freshnessPolicy`, `maxSnapshotAgeMs`, `maxObservationAgeMs`, `maxObservationSkewMs`, `confidencePolicy`, `selectionPolicy`, `ambiguityPolicy`, `coordinatePolicy`, or `dataQualityPolicy` under non-AI cognition purge targets.
+- `post-open-state`, `state-classification`, or `proceed-decision` runtime gates outside AI.
+- `login_wall`, `wrong_domain`, or `security_wall` as exported non-AI verdict literals.
+- Hand-written readiness, safety, stability, freshness, login, domain, sensitive-text, platform-kind, target-ranking, or ambiguity-threshold truth being published by non-AI groups.

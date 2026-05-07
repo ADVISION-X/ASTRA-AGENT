@@ -3,6 +3,8 @@ const LAW_ID_002 = "GRASSEYE-CAPABILITY-GROUP-002-V1";
 const LAW_ID_003 = "GRASSEYE-CAPABILITY-GROUP-003-V1";
 const LAW_ID_004 = "GRASSEYE-CAPABILITY-GROUP-004-V1";
 const LAW_ID_006 = "GRASSEYE-CAPABILITY-GROUP-006-V1";
+const LAW_ID_009 = "GRASSEYE-CAPABILITY-GROUP-009-V1";
+const LAW_ID_010 = "GRASSEYE-CAPABILITY-GROUP-010-V1";
 
 const KERNEL_FILE = ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md";
 const INDEX_FILE = ".github/instructions/cursor-rules/grasseye-index.instructions.md";
@@ -76,12 +78,88 @@ const RUNTIME_PROOF_TARGETS = [
   { file: "src/capabilities/forensics-persistence/schema.ts", schemaName: "ForensicsRuntimeProofSchema" },
 ] as const;
 
+const AI_ONLY_MEDIA_CHANGE_TARGETS = [
+  "src/capabilities/post-action-verification/",
+  "src/lib/browser/current-chrome-browser-controller.ts",
+  "src/lib/local-runtime/workbench-post-action-dispatch-input.ts",
+] as const;
+
+const AI_ONLY_MEDIA_CHANGE_FORBIDDEN_DECLARATION_STEMS = [
+  "VideoChanged",
+  "VideoIdentityChange",
+  "Perceptual",
+  "ComparableVideoId",
+  "Ahash",
+  "HammingDistance",
+] as const;
+
+const AI_ONLY_MEDIA_CHANGE_FORBIDDEN_LITERALS = [
+  "verify-video-changed-after-scroll",
+  "video_changed_after_scroll",
+] as const;
+
+const AI_ONLY_COGNITION_TARGETS = [
+  "src/capabilities/mouse-scroll/",
+  "src/capabilities/open/",
+  "src/capabilities/page-state/",
+  "src/capabilities/post-action-verification/",
+  "src/capabilities/screenshot/",
+  "src/capabilities/text-input/",
+  "src/capabilities/visual-target/",
+] as const;
+
+const AI_ONLY_COGNITION_FORBIDDEN_PATH_SEGMENTS = [
+  "/children/detect-",
+  "/runtime/post-open-state-",
+  "/runtime/state-classification-gate.ts",
+  "/runtime/proceed-decision-gate.ts",
+] as const;
+
+const AI_ONLY_COGNITION_FORBIDDEN_IDENTIFIER_STEMS = [
+  "Detect",
+  "Classification",
+  "FreshnessDecision",
+  "ProceedDecision",
+  "AlreadyOnTargetFreshnessDecision",
+  "DetectSensitiveText",
+  "detectSensitiveText",
+  "minimumConfidence",
+  "minimumAmbiguityGap",
+  "freshnessTtlMs",
+  "freshnessPolicy",
+  "maxSnapshotAgeMs",
+  "maxObservationAgeMs",
+  "maxObservationSkewMs",
+  "confidencePolicy",
+  "selectionPolicy",
+  "ambiguityPolicy",
+  "coordinatePolicy",
+  "dataQualityPolicy",
+] as const;
+
+const AI_ONLY_COGNITION_FORBIDDEN_LITERAL_PREFIXES = [
+  "detect-",
+] as const;
+
+const AI_ONLY_COGNITION_FORBIDDEN_LITERALS = [
+  "classificationDecision",
+  "classificationSource",
+  "freshnessDecision",
+  "proceedDecision",
+  "alreadyOnTargetFreshnessDecision",
+  "login_wall",
+  "wrong_domain",
+  "security_wall",
+] as const;
+
 export const capabilityGroupGovernanceConstants = {
   LAW_ID_001,
   LAW_ID_002,
   LAW_ID_003,
   LAW_ID_004,
   LAW_ID_006,
+  LAW_ID_009,
+  LAW_ID_010,
   KERNEL_FILE,
   INDEX_FILE,
   INSPECTOR_ENTRY,
@@ -102,4 +180,12 @@ export const capabilityGroupGovernanceConstants = {
   OWNER_LITERAL_PROPERTIES,
   REQUIRED_RUNTIME_PROOF_FIELDS,
   RUNTIME_PROOF_TARGETS,
+  AI_ONLY_MEDIA_CHANGE_TARGETS,
+  AI_ONLY_MEDIA_CHANGE_FORBIDDEN_DECLARATION_STEMS,
+  AI_ONLY_MEDIA_CHANGE_FORBIDDEN_LITERALS,
+  AI_ONLY_COGNITION_TARGETS,
+  AI_ONLY_COGNITION_FORBIDDEN_PATH_SEGMENTS,
+  AI_ONLY_COGNITION_FORBIDDEN_IDENTIFIER_STEMS,
+  AI_ONLY_COGNITION_FORBIDDEN_LITERAL_PREFIXES,
+  AI_ONLY_COGNITION_FORBIDDEN_LITERALS,
 } as const;

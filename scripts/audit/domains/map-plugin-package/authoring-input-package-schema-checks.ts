@@ -20,7 +20,19 @@ const SCHEMA_FIELD_SPECS: readonly SchemaFieldSpec[] = [
     schemaName: "MapAuthoringInputPackageSchema",
     lawId: MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE,
     message: "Map Authoring Input Package schema must declare every required top-level governance field.",
-    requiredFields: ["inputPackageId", "inputPackageVersion", "generatedAt", "requesterRef", "userRequirement", "userRequirementRef", "sourceRequirementHash", "targetPlatformProfileRef", "targetPlatformProfile", "capabilityCatalog", "promptContractCatalog", "outputSchemaCatalog", "mapPackageSchema", "mapAuthoringOutputSchema", "safetyPolicy", "humanApprovalPolicy", "evidencePolicy", "pavPolicy", "forensicsPolicy", "privacyPolicy", "secretPolicy", "rateLimitPolicy", "exampleMaps", "exampleMapsVersion", "exampleMapsSourceRef", "validationPolicy", "expectedDraftStatus"],
+    requiredFields: ["inputPackageId", "inputPackageVersion", "generatedAt", "requesterRef", "userRequirement", "userRequirementRef", "sourceRequirementHash", "targetPlatformProfileRef", "targetPlatformProfile", "capabilityCatalog", "promptContractCatalog", "outputSchemaCatalog", "mapPackageSchema", "mapAuthoringOutputSchema", "safetyPolicy", "automationGatePolicy", "evidencePolicy", "pavPolicy", "forensicsPolicy", "privacyPolicy", "secretPolicy", "rateLimitPolicy", "exampleMaps", "exampleMapsVersion", "exampleMapsSourceRef", "validationPolicy", "expectedDraftStatus"],
+  },
+  {
+    schemaName: "MapAuthoringUserRequirementSchema",
+    lawId: MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE,
+    message: "User requirement schema must carry source intent plus selected/default binary outcome policy into map authoring.",
+    requiredFields: ["goal", "targetPlatform", "allowedAutomationScope", "mustAskBefore", "failureHandlingPreference", "evidencePreference", "binaryOutcomePolicy", "runLimit", "operatorNotes", "outputLanguage"],
+  },
+  {
+    schemaName: "MapAuthoringBinaryOutcomePolicySchema",
+    lawId: MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE,
+    message: "Binary outcome policy schema must expose the YES/NO option catalog and selected route labels.",
+    requiredFields: ["positiveDecision", "negativeDecision", "positiveOutcomeOptions", "negativeOutcomeOptions", "selectedPositiveOutcomeId", "selectedNegativeOutcomeId", "selectedPositiveRouteLabel", "selectedNegativeRouteLabel", "defaultedBySystem"],
   },
   {
     schemaName: "MapAuthoringCapabilityCatalogSchema",
@@ -38,13 +50,13 @@ const SCHEMA_FIELD_SPECS: readonly SchemaFieldSpec[] = [
     schemaName: "MapAuthoringCapabilityChildSchema",
     lawId: MAP_PLUGIN_LAWS.CAPABILITY_CATALOG_DETAIL,
     message: "Capability child schema must declare proof, review, and boundary metadata.",
-    requiredFields: ["childCapabilityId", "childCapabilityCode", "displayName", "description", "inputSchemaRef", "outputSchemaRef", "requiredInputRefs", "producedOutputRefs", "requiresGeometryProof", "requiresTargetProof", "requiresFocusProof", "requiresApprovedText", "requiresPostActionVerification", "requiresHumanReview", "sensitiveOperation", "sideEffectLevel", "allowedStepKinds", "supportedTargetKinds", "forbiddenResponsibilities", "proofRequirements", "failureModes"],
+    requiredFields: ["childCapabilityId", "childCapabilityCode", "displayName", "description", "inputSchemaRef", "outputSchemaRef", "requiredInputRefs", "producedOutputRefs", "requiresGeometryProof", "requiresTargetProof", "requiresFocusProof", "requiresApprovedText", "requiresPostActionVerification", "requiresAutomationGate", "sensitiveOperation", "sideEffectLevel", "allowedStepKinds", "supportedTargetKinds", "forbiddenResponsibilities", "proofRequirements", "failureModes"],
   },
   {
     schemaName: "MapAuthoringPromptContractCatalogEntrySchema",
     lawId: MAP_PLUGIN_LAWS.PROMPT_OUTPUT_CATALOGS,
     message: "Prompt contract catalog schema must declare the full governed reference contract.",
-    requiredFields: ["promptContractId", "promptContractVersion", "promptHash", "displayName", "description", "inputSchemaRef", "outputSchemaRef", "allowedInputRefs", "dataPolicy", "providerPolicy", "reviewPolicy", "failurePolicy", "redactionPolicy", "forensicsPolicy", "forbiddenOutputs", "branchableOutputFields"],
+    requiredFields: ["promptContractId", "promptContractVersion", "promptHash", "displayName", "description", "inputSchemaRef", "outputSchemaRef", "allowedInputRefs", "dataPolicy", "providerPolicy", "binaryDecisionPolicy", "redactionPolicy", "forensicsPolicy", "forbiddenOutputs", "branchableOutputFields"],
   },
   {
     schemaName: "MapAuthoringOutputSchemaCatalogEntrySchema",

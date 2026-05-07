@@ -1,20 +1,7 @@
 import { z } from "zod";
 
 import { POST_ACTION_EVIDENCE_KINDS } from "./shared/post-action-evidence.js";
-import { POST_ACTION_FAILURE_REASONS } from "./shared/post-action-failure.js";
-import {
-  POST_ACTION_MAX_DATA_QUALITY_FLAGS,
-  POST_ACTION_MAX_EVIDENCE_REFS,
-  POST_ACTION_MAX_OBSERVATIONS,
-  POST_ACTION_MAX_SIGNAL_TYPE_LENGTH,
-  POST_ACTION_MAX_SOURCE_PROOF_REFS,
-  POST_ACTION_MAX_STATUS_MESSAGE_LENGTH,
-  POST_ACTION_MAX_SUMMARY_LENGTH,
-  POST_ACTION_MAX_TARGET_TYPE_LENGTH,
-  POST_ACTION_VERIFICATION_MODES,
-} from "./shared/post-action-policy.js";
 import { POST_ACTION_ACTION_STATUSES, POST_ACTION_VERIFICATION_CLOCK_KIND } from "./shared/post-action-proof.js";
-import { POST_ACTION_VERIFICATION_DECISIONS, POST_ACTION_VERIFICATION_STATUSES } from "./shared/post-action-result.js";
 import {
   POST_ACTION_OBSERVATION_KINDS,
   POST_ACTION_OBSERVATION_SOURCE_ABILITY_GROUP_IDS,
@@ -27,6 +14,25 @@ import {
   POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS,
 } from "./shared/post-action-types.js";
 
+const POST_ACTION_VERIFICATION_STATUSES = ["success", "failed", "review_required"] as const;
+const POST_ACTION_FAILURE_REASONS = [
+  "input_schema_invalid",
+  "unknown_child_capability",
+  "child_execution_failed",
+  "missing_observation_support",
+  "insufficient_evidence",
+  "output_boundary_violation",
+] as const;
+const POST_ACTION_VERIFICATION_MODES = ["visual_evidence", "observation_only", "before_after_comparison"] as const;
+const POST_ACTION_MAX_OBSERVATIONS = 50;
+const POST_ACTION_MAX_EVIDENCE_REFS = 50;
+const POST_ACTION_MAX_SOURCE_PROOF_REFS = 50;
+const POST_ACTION_MAX_SUMMARY_LENGTH = 1000;
+const POST_ACTION_MAX_SIGNAL_TYPE_LENGTH = 120;
+const POST_ACTION_MAX_TARGET_TYPE_LENGTH = 120;
+const POST_ACTION_MAX_STATUS_MESSAGE_LENGTH = 1000;
+const POST_ACTION_MAX_DATA_QUALITY_FLAGS = 30;
+
 const nonNegativeInt = z.number().int().nonnegative();
 const requiredString = z.string().min(1);
 const requiredLimitedString = requiredString.max(POST_ACTION_MAX_SUMMARY_LENGTH);
@@ -36,7 +42,6 @@ const dataQualityFlagsSchema = z.array(z.string().min(1).max(120)).max(POST_ACTI
 
 const PostActionVerificationChildCapabilityIdSchema = z.enum(POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS);
 const PostActionVerificationStatusSchema = z.enum(POST_ACTION_VERIFICATION_STATUSES);
-const PostActionVerificationDecisionSchema = z.enum(POST_ACTION_VERIFICATION_DECISIONS);
 const PostActionFailureReasonSchema = z.enum(POST_ACTION_FAILURE_REASONS);
 const PostActionActionStatusSchema = z.enum(POST_ACTION_ACTION_STATUSES);
 const PostActionExpectedOutcomeTypeSchema = z.enum(POST_ACTION_EXPECTED_OUTCOME_TYPES);
@@ -106,7 +111,7 @@ const PostActionEvidenceRefSchema = z.object({
 const PageStateObservationPayloadSchema = z.object({
   kind: z.literal("page_state"),
   currentUrl: nullableLimitedString,
-  loginState: z.enum(["unknown", "ready", "login_required", "review_required", "captcha", "security_wall"]).default("unknown"),
+  loginState: z.enum(["unknown", "ready", "login_required", "review_required", "captcha", "security_review"]).default("unknown"),
   commentsPanelOpen: z.boolean().nullable().default(null),
   modalOverlayPresent: z.boolean().nullable().default(null),
   recommendationChanged: z.boolean().nullable().default(null),
@@ -204,11 +209,6 @@ const PostActionVerificationPolicySchema = z.object({
   allowSelfReportedSuccess: z.boolean().default(false),
 }).strict();
 
-const PostActionConfidencePolicySchema = z.object({
-  minimumConfidence: z.number().gt(0).lte(1),
-  allowReviewRequired: z.boolean().default(true),
-}).strict();
-
 const PostActionObservationSetSchema = z.object({
   observations: z.array(PostActionObservationSchema).max(POST_ACTION_MAX_OBSERVATIONS).default([]),
 }).strict();
@@ -238,7 +238,6 @@ const PostActionVerificationAbilityInputSchema = z.object({
   beforeAfterEvidence: PostActionBeforeAfterEvidenceSchema,
   observationSet: PostActionObservationSetSchema,
   verificationPolicy: PostActionVerificationPolicySchema,
-  confidencePolicy: PostActionConfidencePolicySchema,
   inputRef: requiredString,
   idempotencyKey: requiredString,
 }).strict();
@@ -250,14 +249,12 @@ const PostActionVerificationClockSchema = z.object({
 }).strict();
 
 const PostActionVerificationOutputSchema = z.object({
-  observedOutcome: z.string().min(1).max(POST_ACTION_MAX_SUMMARY_LENGTH),
-  verificationDecision: z.literal("verified"),
-  confidence: z.number().min(0).max(1),
+  packageLabel: z.string().min(1).max(POST_ACTION_MAX_SUMMARY_LENGTH),
+  observationSummary: z.string().min(1).max(POST_ACTION_MAX_SUMMARY_LENGTH),
   evidenceRefs: z.array(requiredString).max(POST_ACTION_MAX_EVIDENCE_REFS).default([]),
   observationRefs: z.array(requiredString).max(POST_ACTION_MAX_OBSERVATIONS).default([]),
-  actionResultVerifiedRef: requiredString,
-  confidenceSource: z.string().min(1).max(POST_ACTION_MAX_SIGNAL_TYPE_LENGTH),
-  verifiedByEvidenceKinds: z.array(PostActionEvidenceKindSchema).max(POST_ACTION_MAX_EVIDENCE_REFS).default([]),
+  actionResultObservationRef: requiredString,
+  observationFingerprint: requiredString,
   supportingSourceProofRefs: z.array(requiredString).max(POST_ACTION_MAX_SOURCE_PROOF_REFS).default([]),
 }).strict();
 
@@ -303,25 +300,15 @@ const PostActionRuntimeProofSchema = z.object({
   beforeEvidenceHash: nullableString,
   afterEvidenceHash: nullableString,
   observationSetHash: requiredString,
+  observationFingerprint: nullableString,
   receivedShapeHash: nullableString,
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
   durationMs: nonNegativeInt,
   status: PostActionVerificationStatusSchema,
-  verificationDecision: PostActionVerificationDecisionSchema,
-  confidence: z.number().min(0).max(1),
   failureReason: PostActionFailureReasonSchema.nullable().default(null),
   reviewRequiredReason: nullableLimitedString,
-  inputDecision: requiredString,
-  actionProofDecision: requiredString,
-  evidenceSourceDecision: requiredString,
-  beforeAfterDecision: requiredString,
-  policyDecision: requiredString,
-  outputBoundaryDecision: requiredString,
-  criticalDataQualityDecision: requiredString,
-  observationBindingDecision: requiredString,
-  beforeAfterPairDecision: requiredString,
-  verificationDecisionTrace: z.array(requiredString).max(POST_ACTION_MAX_SOURCE_PROOF_REFS),
+  processingMode: z.enum(["observation_packaging", "invalid_input_failure"]),
   dataQualityFlags: dataQualityFlagsSchema,
   clock: PostActionVerificationClockSchema,
 }).strict().superRefine((value, context) => {
@@ -329,9 +316,6 @@ const PostActionRuntimeProofSchema = z.object({
     context.addIssue({ code: z.ZodIssueCode.custom, message: "startedAt must not be after endedAt", path: ["startedAt"] });
   }
   if (value.status === "success") {
-    if (value.verificationDecision !== "verified") {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success status requires verified decision", path: ["verificationDecision"] });
-    }
     if (value.outputRef === null) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires outputRef", path: ["outputRef"] });
     }
@@ -343,10 +327,9 @@ const PostActionRuntimeProofSchema = z.object({
   }
 });
 
-const PostActionChildAssessmentSchema = z.object({
-  observedOutcome: z.string().min(1).max(POST_ACTION_MAX_SUMMARY_LENGTH),
-  verificationDecision: PostActionVerificationDecisionSchema,
-  confidence: z.number().min(0).max(1),
+const PostActionChildObservationSchema = z.object({
+  packageLabel: z.string().min(1).max(POST_ACTION_MAX_SUMMARY_LENGTH),
+  observationSummary: z.string().min(1).max(POST_ACTION_MAX_SUMMARY_LENGTH),
   failureReason: PostActionFailureReasonSchema.nullable().default(null),
   reviewRequiredReason: nullableLimitedString,
   statusMessage: z.string().min(1).max(POST_ACTION_MAX_STATUS_MESSAGE_LENGTH),
@@ -354,8 +337,6 @@ const PostActionChildAssessmentSchema = z.object({
   supportingEvidenceRefs: z.array(requiredString).max(POST_ACTION_MAX_EVIDENCE_REFS).default([]),
   supportingObservationRefs: z.array(requiredString).max(POST_ACTION_MAX_OBSERVATIONS).default([]),
   supportingSourceProofRefs: z.array(requiredString).max(POST_ACTION_MAX_SOURCE_PROOF_REFS).default([]),
-  verifiedByEvidenceKinds: z.array(PostActionEvidenceKindSchema).max(POST_ACTION_MAX_EVIDENCE_REFS).default([]),
-  confidenceSource: z.string().min(1).max(POST_ACTION_MAX_SIGNAL_TYPE_LENGTH),
 }).strict();
 
 const PostActionVerificationAbilityResultBaseSchema = z.object({
@@ -378,14 +359,12 @@ const PostActionVerificationAbilityResultBaseSchema = z.object({
   actionProofRef: nullableString,
   expectedOutcome: PostActionExpectedOutcomeSchema.nullable(),
   output: PostActionVerificationOutputSchema.nullable(),
-  verificationDecision: PostActionVerificationDecisionSchema,
   failureReason: PostActionFailureReasonSchema.nullable().default(null),
   reviewRequiredReason: nullableLimitedString,
   statusMessage: z.string().min(1).max(POST_ACTION_MAX_STATUS_MESSAGE_LENGTH),
   debugLogRef: requiredString,
   structuredRuntimeEventRef: nullableString,
   diagnosticPayloadRef: nullableString,
-  policyDecision: requiredString,
   runtimeProof: PostActionRuntimeProofSchema,
   dataQualityFlags: dataQualityFlagsSchema,
 }).strict();
@@ -407,22 +386,12 @@ const RESULT_RUNTIME_PROOF_CHAIN_FIELDS = [
   "nerveBusEnvelopeId",
 ] as const;
 
-const OPTIONAL_GOVERNED_RESULT_CHAIN_FIELDS = new Set<ResultRuntimeProofChainField>(["videoVisitId"]);
+const OPTIONAL_GOVERNED_RESULT_CHAIN_FIELDS = new Set<(typeof RESULT_RUNTIME_PROOF_CHAIN_FIELDS)[number]>([
+  "roundId",
+  "videoVisitId",
+]);
 
-type ResultRuntimeProofChainField = (typeof RESULT_RUNTIME_PROOF_CHAIN_FIELDS)[number];
-
-function postActionVerificationAbilityResultSuperRefine(
-  value: PostActionVerificationAbilityResultValue,
-  context: z.RefinementCtx,
-): void {
-  validatePostActionVerificationAbilityResultRuntimeProofConsistency(value, context);
-  validatePostActionVerificationAbilityResultShape(value, context);
-  validatePostActionVerificationAbilityResultGovernedFields(value, context);
-}
-
-const PostActionVerificationAbilityResultSchema = PostActionVerificationAbilityResultBaseSchema.superRefine(postActionVerificationAbilityResultSuperRefine);
-
-const validatePostActionVerificationAbilityResultRuntimeProofConsistency = (
+const validateRuntimeProofChain = (
   value: PostActionVerificationAbilityResultValue,
   context: z.RefinementCtx,
 ): void => {
@@ -434,9 +403,6 @@ const validatePostActionVerificationAbilityResultRuntimeProofConsistency = (
   if (value.runtimeProof.status !== value.status) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
   }
-  if (value.runtimeProof.verificationDecision !== value.verificationDecision) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.verificationDecision must equal result.verificationDecision", path: ["runtimeProof", "verificationDecision"] });
-  }
 };
 
 const validatePostActionVerificationAbilityResultShape = (
@@ -446,9 +412,6 @@ const validatePostActionVerificationAbilityResultShape = (
   if (value.status === "success") {
     if (value.output === null) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires output", path: ["output"] });
-    }
-    if (value.verificationDecision !== "verified") {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires verified decision", path: ["verificationDecision"] });
     }
     if (value.diagnosticPayloadRef !== null) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "success result must not expose diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
@@ -490,4 +453,10 @@ const validatePostActionVerificationAbilityResultGovernedFields = (
   }
 };
 
-export { PostActionVerificationChildCapabilityIdSchema, PostActionVerificationStatusSchema, PostActionVerificationDecisionSchema, PostActionFailureReasonSchema, PostActionActionStatusSchema, PostActionExpectedOutcomeTypeSchema, PostActionEvidenceKindSchema, PostActionObservationKindSchema, PostActionVerificationModeSchema, PostActionSourceAbilityGroupIdSchema, PostActionSourceChildCapabilityIdSchema, PostActionObservationSourceAbilityGroupIdSchema, PostActionObservationSourceSchema, PostActionExpectedOutcomeSchema, PostActionActionProofSchema, PostActionEvidenceRefSchema, PageStateObservationPayloadSchema, AiObservationPayloadSchema, VisualTargetObservationPayloadSchema, ScreenshotDiffObservationPayloadSchema, VideoIdentityObservationPayloadSchema, ActionCompletionObservationPayloadSchema, RuntimeSignalObservationPayloadSchema, PostActionObservationPayloadSchema, PostActionObservationSchema, PostActionBeforeAfterEvidenceSchema, PostActionVerificationPolicySchema, PostActionConfidencePolicySchema, PostActionObservationSetSchema, PostActionVerificationAbilityInputSchema, PostActionVerificationClockSchema, PostActionVerificationOutputSchema, PostActionRuntimeProofSchema, PostActionChildAssessmentSchema, PostActionVerificationAbilityResultSchema };
+const PostActionVerificationAbilityResultSchema = PostActionVerificationAbilityResultBaseSchema.superRefine((value, context) => {
+  validateRuntimeProofChain(value, context);
+  validatePostActionVerificationAbilityResultShape(value, context);
+  validatePostActionVerificationAbilityResultGovernedFields(value, context);
+});
+
+export { PostActionVerificationChildCapabilityIdSchema, PostActionVerificationStatusSchema, PostActionFailureReasonSchema, PostActionActionStatusSchema, PostActionExpectedOutcomeTypeSchema, PostActionEvidenceKindSchema, PostActionObservationKindSchema, PostActionVerificationModeSchema, PostActionSourceAbilityGroupIdSchema, PostActionSourceChildCapabilityIdSchema, PostActionObservationSourceAbilityGroupIdSchema, PostActionObservationSourceSchema, PostActionExpectedOutcomeSchema, PostActionActionProofSchema, PostActionEvidenceRefSchema, PageStateObservationPayloadSchema, AiObservationPayloadSchema, VisualTargetObservationPayloadSchema, ScreenshotDiffObservationPayloadSchema, VideoIdentityObservationPayloadSchema, ActionCompletionObservationPayloadSchema, RuntimeSignalObservationPayloadSchema, PostActionObservationPayloadSchema, PostActionObservationSchema, PostActionBeforeAfterEvidenceSchema, PostActionVerificationPolicySchema, PostActionObservationSetSchema, PostActionVerificationAbilityInputSchema, PostActionVerificationClockSchema, PostActionVerificationOutputSchema, PostActionRuntimeProofSchema, PostActionChildObservationSchema, PostActionVerificationAbilityResultSchema };

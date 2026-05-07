@@ -111,9 +111,9 @@ const SCREENSHOT_DECISION_STATUSES = [
 const SCREENSHOT_PAGE_STATE_STATUSES = [
   "approved",
   "stale",
-  "login_wall",
+  "login_surface",
   "safety_wall",
-  "wrong_domain",
+  "domain_review_required",
   "unknown",
 ] as const;
 

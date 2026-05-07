@@ -10,8 +10,6 @@ import {
   OrchestrationChildCapabilityIdSchema,
   PauseMissionChildInputSchema,
   PauseMissionChildOutputSchema,
-  RequestHumanReviewChildInputSchema,
-  RequestHumanReviewChildOutputSchema,
   ResumeMissionChildInputSchema,
   ResumeMissionChildOutputSchema,
   StartMissionChildInputSchema,
@@ -149,19 +147,6 @@ const REGISTRY: readonly OrchestrationRegistryEntry[] = [
     idempotencyPolicy: "per-sequence-step",
   },
   {
-    childCapabilityId: "request-human-review",
-    internalOperationKind: "request-human-review",
-    inputSchema: RequestHumanReviewChildInputSchema,
-    outputSchema: RequestHumanReviewChildOutputSchema,
-    allowedCaller: "orchestration",
-    requiresMissionId: true,
-    requiresMapId: true,
-    requiresNerveBus: true,
-    emergencyPriority: "normal",
-    maxDurationMs: 10000,
-    idempotencyPolicy: "per-sequence-step",
-  },
-  {
     childCapabilityId: "finalize-mission",
     internalOperationKind: "finalize-mission",
     inputSchema: FinalizeMissionChildInputSchema,
@@ -193,4 +178,3 @@ export function getOrchestrationRegistryEntry(childCapabilityId: OrchestrationCh
   }
   return entry;
 }
-

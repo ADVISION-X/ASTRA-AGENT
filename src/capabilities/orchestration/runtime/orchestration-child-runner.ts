@@ -3,7 +3,6 @@ import { createEvaluateStepTransitionCapability } from "../children/evaluate-ste
 import { createExecuteMapStepCapability } from "../children/execute-map-step/implementation.js";
 import { createFinalizeMissionCapability } from "../children/finalize-mission/implementation.js";
 import { createPauseMissionCapability } from "../children/pause-mission/implementation.js";
-import { createRequestHumanReviewCapability } from "../children/request-human-review/implementation.js";
 import { createResumeMissionCapability } from "../children/resume-mission/implementation.js";
 import type { OrchestrationExecuteInput, OrchestrationExecuteResult } from "../contract.js";
 import { buildFailureExecuteResult } from "./orchestration-execute-result.js";
@@ -24,7 +23,6 @@ export function createOrchestrationChildren(): Record<string, OrchestrationAbili
     "emergency-stop": createEmergencyStopCapability(),
     "execute-map-step": createExecuteMapStepCapability(),
     "evaluate-step-transition": createEvaluateStepTransitionCapability(),
-    "request-human-review": createRequestHumanReviewCapability(),
     "finalize-mission": createFinalizeMissionCapability(),
   };
 }

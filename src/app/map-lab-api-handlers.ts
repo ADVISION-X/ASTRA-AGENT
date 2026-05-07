@@ -102,18 +102,18 @@ async function handleApproveDraftRequest(
   activeWorkbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> {
-  if (request.method !== "POST" || url.pathname !== "/api/map-lab/approve") {
+  if (request.method !== "POST" || url.pathname !== "/api/map-lab/automation-gate") {
     return false;
   }
-  const body = await parseJsonBody(request) as { packageId?: string; packageVersion?: string; approvedBy?: string };
-  if (!body.packageId || !body.packageVersion || !body.approvedBy) {
-    writeJsonResponse(response, 400, { error: "invalid_map_lab_approval_request" });
+  const body = await parseJsonBody(request) as { packageId?: string; packageVersion?: string; gateActor?: string };
+  if (!body.packageId || !body.packageVersion || !body.gateActor) {
+    writeJsonResponse(response, 400, { error: "invalid_map_lab_automation_gate_request" });
     return true;
   }
-  writeJsonResponse(response, 200, await activeWorkbench.approveMapLabDraft({
+  writeJsonResponse(response, 200, await activeWorkbench.passMapLabAutomationGate({
     packageId: body.packageId,
     packageVersion: body.packageVersion,
-    approvedBy: body.approvedBy,
+    gateActor: body.gateActor,
   }));
   return true;
 }
@@ -130,17 +130,17 @@ async function handleActivateDraftRequest(
   const body = await parseJsonBody(request) as {
     packageId?: string;
     packageVersion?: string;
-    approvedBy?: string;
+    gateActor?: string;
     reason?: string;
   };
-  if (!body.packageId || !body.packageVersion || !body.approvedBy || !body.reason) {
+  if (!body.packageId || !body.packageVersion || !body.gateActor || !body.reason) {
     writeJsonResponse(response, 400, { error: "invalid_map_lab_activation_request" });
     return true;
   }
   writeJsonResponse(response, 200, await activeWorkbench.activateMapLabDraft({
     packageId: body.packageId,
     packageVersion: body.packageVersion,
-    approvedBy: body.approvedBy,
+    gateActor: body.gateActor,
     reason: body.reason,
   }));
   return true;

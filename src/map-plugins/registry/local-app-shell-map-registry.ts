@@ -1,5 +1,5 @@
 import { loadBuiltinMapPackages } from "../builtins/index.js";
-import { approveMapPackage } from "../import/map-package-approval.js";
+import { passMapPackageAutomationGate } from "../import/map-package-automation-gate.js";
 import {
   createMapPluginRegistry,
   getDevelopmentMapPluginRegistry,
@@ -11,7 +11,7 @@ const LOCAL_APP_SHELL_IMPORTER = "local-app-shell-development-seed";
 let fallbackRegistry: MapPluginRegistry | null = null;
 
 function shouldActivateBuiltinPackage(builtinPackage: (ReturnType<typeof loadBuiltinMapPackages>)[number]) {
-  return builtinPackage.manifest.approvalStatus === "approved"
+  return builtinPackage.manifest.activationGateStatus === "gate_passed"
     && builtinPackage.taskTemplate.availabilityPolicy === "active";
 }
 
@@ -24,13 +24,13 @@ function buildFallbackRegistry(): MapPluginRegistry {
       continue;
     }
 
-    const approved = approveMapPackage({
+    const gateResult = passMapPackageAutomationGate({
       registry,
       packageId: builtinPackage.manifest.packageId,
       packageVersion: builtinPackage.manifest.packageVersion,
-      approvedBy: LOCAL_APP_SHELL_IMPORTER,
+      gateActor: LOCAL_APP_SHELL_IMPORTER,
     });
-    if (!approved.approved) {
+    if (!gateResult.gatePassed) {
       continue;
     }
 

@@ -13,14 +13,14 @@ const DEFAULT_PLATFORM_URL = {
 } satisfies Record<RequestedPlatformId, string>;
 
 const PAGE_STATE_CHILD_CAPABILITY_IDS = new Set([
-  "detect-login-state",
-  "detect-safety-page",
-  "detect-feed-ready",
-  "detect-video-stable",
-  "detect-comment-panel-state",
-  "detect-modal-overlay-state",
-  "detect-page-abnormality",
-  "detect-platform-page-kind",
+  "observe-login-surface",
+  "observe-safety-surface",
+  "observe-feed-surface",
+  "observe-video-surface",
+  "observe-comment-panel-surface",
+  "observe-modal-overlay-surface",
+  "observe-page-abnormality-surface",
+  "observe-platform-surface",
 ]);
 
 const resolvePlatformFromUrl = (currentUrl: string): RequestedPlatformId | null => {
@@ -185,8 +185,6 @@ const buildPageStateSnapshot = (input: DispatchPayloadBuildInput) => ({
 });
 
 const buildPageStatePolicies = () => ({
-  freshnessPolicy: { maxSnapshotAgeMs: 300000, maxObservationAgeMs: 300000, maxObservationSkewMs: 300000 },
-  confidencePolicy: { minimumConfidence: 0.5, allowReviewRequired: true },
   statePolicy: { expectedPlatformHost: null, allowLocalWorkbench: true, allowModalOverlay: false, allowUnknownState: true },
 });
 

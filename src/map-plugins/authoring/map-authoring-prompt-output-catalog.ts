@@ -79,17 +79,12 @@ const buildPromptContractCatalogPolicies = (entry: PromptContractCatalogEntry) =
     "Constrains provider routing for the governed prompt contract.",
     [entry.modelRole, entry.taskType],
   ),
-  reviewPolicy: buildPolicyDescriptor(
-    `policy://prompt-contract/${entry.promptContractId}/review`,
-    "Declares when review is required.",
-    entry.reviewPolicy.requiredWhen.length > 0
-      ? entry.reviewPolicy.requiredWhen
-      : ["no_human_review_required_route_to_failed"],
-  ),
-  failurePolicy: buildPolicyDescriptor(
-    `policy://prompt-contract/${entry.promptContractId}/failure`,
-    "Declares how prompt execution failures are handled.",
-    Object.entries(entry.failurePolicy).map(([key, value]) => `${key}:${value}`),
+  binaryDecisionPolicy: buildPolicyDescriptor(
+    `policy://prompt-contract/${entry.promptContractId}/binary-decision`,
+    "Declares branchable AI output semantics without map-side constraint logic.",
+    entry.allowedBranchFields.length > 0
+      ? [`branchable_fields:${entry.allowedBranchFields.join(",")}`, "no_human_review_branch"]
+      : ["no_branchable_output"],
   ),
   redactionPolicy: buildPolicyDescriptor(
     `policy://prompt-contract/${entry.promptContractId}/redaction`,
@@ -144,7 +139,7 @@ const buildOutputSchemaCatalogEntry = (
     }),
     reviewFields: declaredFields.filter((fieldName) => fieldName.toLowerCase().includes("review") || fieldName === "requiredClarifications"),
     confidenceFields: declaredFields.filter((fieldName) => fieldName.toLowerCase().includes("confidence") || fieldName === "score"),
-    forbiddenFields: ["rawPrompt", "systemPrompt", "userPrompt", "approvalStatus", "activationSnapshotRef"],
+    forbiddenFields: ["rawPrompt", "systemPrompt", "userPrompt", "activationGateStatus", "activationSnapshotRef"],
     exampleOutput: null,
   };
 };
@@ -180,12 +175,12 @@ export const buildOutputSchemaCatalog = (
 export const buildMapPackageSchemaDescriptor = (): MapAuthoringInputPackage["mapPackageSchema"] => ({
   schemaRef: "map-plugin-package.schema.v1",
   schemaVersion: MAP_AUTHORING_SCHEMA_VERSION,
-  requiredSections: ["manifest", "taskTemplate", "operationalMap", "dependencies", "compatibility", "policy", "promptBindings", "changelog", "signature"],
-  requiredManifestFields: ["packageId", "packageKind", "packageVersion", "mapId", "taskTemplateId", "approvalStatus", "aiGenerated"],
-  requiredStepFields: ["stepId", "childCapabilityId", "stepKind", "targetAbilityGroupId", "inputRefs", "outputRefPolicy", "proofPolicy"],
-  draftOnlyFields: ["approvalStatus=draft", "availabilityPolicy=draft", "validationReportRef=null", "humanApprovalRef=null"],
-  activationFields: ["validationReportRef", "humanApprovalRef", "activationProofRef", "activationSnapshotRef", "mapPackageHash", "operationalMapHash"],
-  forbiddenFields: ["rawPrompt", "systemPrompt", "userPrompt", "functionBody", "eval", "directAbilityCall", "timeoutPolicy", "timeoutMs", "maxDurationMs", "primitiveTimeoutMs"],
+  requiredSections: ["manifest", "taskTemplate", "operationalMap", "dependencies", "compatibility", "promptBindings", "changelog", "signature"],
+  requiredManifestFields: ["packageId", "packageKind", "packageVersion", "mapId", "taskTemplateId", "activationGateStatus", "aiGenerated"],
+  requiredStepFields: ["stepId", "childCapabilityId", "stepKind", "targetAbilityGroupId", "inputRefs", "outputRefPolicy"],
+  draftOnlyFields: ["activationGateStatus=draft", "availabilityPolicy=draft", "validationReportRef=null", "automationGateRef=null"],
+  activationFields: ["validationReportRef", "automationGateRef", "activationProofRef", "activationSnapshotRef", "mapPackageHash", "operationalMapHash"],
+  forbiddenFields: ["rawPrompt", "systemPrompt", "userPrompt", "functionBody", "eval", "directAbilityCall", "timeoutPolicy", "timeoutMs", "maxDurationMs", "primitiveTimeoutMs", "policy", "proofPolicy", "successCondition", "failureBranch", "reviewBranch", "postActionVerification", "condition", "allowedAbilityGroups", "failureBranches", "reviewBranches", "sequencePolicy"],
 });
 
 export const buildMapAuthoringOutputSchemaDescriptor = (): MapAuthoringInputPackage["mapAuthoringOutputSchema"] => {
@@ -196,6 +191,6 @@ export const buildMapAuthoringOutputSchemaDescriptor = (): MapAuthoringInputPack
     schemaVersion: MAP_AUTHORING_OUTPUT_FORMAT_VERSION,
     requiredTopLevelFields: Object.keys(descriptor.schema.shape),
     draftStatusValues: ["draft_ready", "needs_clarification"],
-    forbiddenFields: ["approvalStatus", "validationReportRef", "humanApprovalRef", "activationSnapshotRef", "rawPrompt", "systemPrompt", "userPrompt"],
+    forbiddenFields: ["activationGateStatus", "validationReportRef", "automationGateRef", "activationSnapshotRef", "rawPrompt", "systemPrompt", "userPrompt"],
   };
 };

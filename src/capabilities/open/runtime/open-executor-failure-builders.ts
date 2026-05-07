@@ -42,7 +42,7 @@ export function makeDataFlag(code: string, severity: OpenDataQualityFlag["severi
   return { code, severity, reason };
 }
 
-export function createPostOpenFailure(status: OpenResult["status"], classification: "unknown" | "wrong_domain" | "security_wall" | "unexpected_redirect", reason: string | null) {
+export function createPostOpenFailure(status: OpenResult["status"], classification: "browser_navigation_observation" | "session_reuse_observation" | "local_program_observation" | "navigation_failure_observation", reason: string | null) {
   return {
     status,
     classification,
@@ -52,7 +52,6 @@ export function createPostOpenFailure(status: OpenResult["status"], classificati
     pageStateHandoffRequired: false,
     pageStateHandoffRef: null,
     authoritative: false as const,
-    documentReadyState: null,
   };
 }
 
@@ -88,7 +87,7 @@ function buildBlockedNavigationDecision(input: {
   openedUrl: string | null;
   pageTitleAfter: string | null;
   redirectChain: string[];
-  alreadyOnTargetFreshnessDecision: "not_applicable" | "freshness_required" | "freshness_verified";
+  alreadyOnTargetHandlingMode: "not_applicable" | "session_reused";
 }): OpenNavigationDecision {
   return {
     status: "failed",
@@ -103,7 +102,7 @@ function buildBlockedNavigationDecision(input: {
     abortDecision: "not_requested",
     circuitBreakerState: "closed",
     browserOpenStillRunningGuard: false,
-    alreadyOnTargetFreshnessDecision: input.alreadyOnTargetFreshnessDecision,
+    alreadyOnTargetHandlingMode: input.alreadyOnTargetHandlingMode,
   };
 }
 
@@ -178,9 +177,9 @@ export function buildTargetPolicyFailureResult(input: {
       openedUrl: null,
       pageTitleAfter: null,
       redirectChain: [],
-      alreadyOnTargetFreshnessDecision: "not_applicable",
+      alreadyOnTargetHandlingMode: "not_applicable",
     }),
-    postOpenStateDecision: createPostOpenFailure("failed", "unknown", input.reason),
+    postOpenStateDecision: createPostOpenFailure("failed", "navigation_failure_observation", input.reason),
     idempotencyKey: `${input.request.runId}:target-policy-blocked`,
     idempotencyDecision: "not_started",
     beforeSession: unavailableSession,
@@ -225,9 +224,9 @@ export function buildInvalidAllowFailureResult(input: {
       openedUrl: null,
       pageTitleAfter: null,
       redirectChain: [],
-      alreadyOnTargetFreshnessDecision: "not_applicable",
+      alreadyOnTargetHandlingMode: "not_applicable",
     }),
-    postOpenStateDecision: createPostOpenFailure("failed", "unknown", reason),
+    postOpenStateDecision: createPostOpenFailure("failed", "navigation_failure_observation", reason),
     idempotencyKey: `${input.request.runId}:target-policy-invalid-allow`,
     idempotencyDecision: "not_started",
     beforeSession: unavailableSession,
@@ -273,9 +272,9 @@ export function buildUrlSafetyFailureResult(input: {
       openedUrl: null,
       pageTitleAfter: null,
       redirectChain,
-      alreadyOnTargetFreshnessDecision: "not_applicable",
+      alreadyOnTargetHandlingMode: "not_applicable",
     }),
-    postOpenStateDecision: createPostOpenFailure("failed", "wrong_domain", input.reason),
+    postOpenStateDecision: createPostOpenFailure("failed", "navigation_failure_observation", input.reason),
     idempotencyKey: `${input.request.runId}:url-safety-blocked`,
     idempotencyDecision: "not_started",
     beforeSession: unavailableSession,

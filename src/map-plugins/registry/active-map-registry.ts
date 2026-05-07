@@ -17,7 +17,7 @@ type RegistrationMap = Map<string, ActiveRegistration>;
 type ActivationRegistrationMap = Map<string, ActiveRegistration>;
 
 function toOperationalMap(mapPackage: MapPackage): OperationalMap {
-  const { mapVersion: _mapVersion, proofPolicy: _proofPolicy, ...operationalMap } = mapPackage.operationalMap;
+  const { mapVersion: _mapVersion, ...operationalMap } = mapPackage.operationalMap;
   return operationalMap;
 }
 
@@ -45,12 +45,11 @@ function toActiveOperationalMapRecord(registration: ActiveRegistration): ActiveO
     capabilityCatalogVersion: registration.activationRecord.capabilityCatalogVersion,
     promptCatalogVersion: registration.activationRecord.promptCatalogVersion,
     validationReportRef: registration.activationRecord.validationReportRef,
-    humanApprovalRef: registration.activationRecord.humanApprovalRef,
+    automationGateRef: registration.activationRecord.automationGateRef,
     importProofRef: registration.activationRecord.importProofRef,
     quarantineProofRef: registration.activationRecord.quarantineProofRef,
     activationProofRef: registration.activationRecord.activationProofRef,
     authoringProofRef: registration.activationRecord.authoringProofRef,
-    proofPolicy: registration.mapPackage.operationalMap.proofPolicy,
     operationalMap: toOperationalMap(registration.mapPackage),
   };
 }

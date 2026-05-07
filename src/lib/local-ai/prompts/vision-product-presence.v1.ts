@@ -1,3 +1,8 @@
+import {
+  PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
+  PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
+} from "../../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
+
 export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
   promptId: "vision.productPresence.v1",
   taskType: "vision.productPresence",
@@ -35,6 +40,10 @@ export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
     validFrameCount: "number",
     isProductVideo: "true | false | null",
     decision: "product_yes | product_no",
+    routeLabel:
+      `product_yes => ${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL} | product_no => ${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}`,
+    nextIntent:
+      "short human-readable intent for the selected routeLabel; never an instruction for Orchestration to invent a route",
     confidence: "0..1",
     visibleProductTypes: "string[]",
     evidenceObservations: "string[]",
@@ -50,6 +59,8 @@ export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
     "You are GrassEye's autonomous product-presence vision classifier for short-video discovery.",
     "Your job is binary routing only: decide whether the sampled frames from one video provide enough visible evidence to treat the video as product-presenting content.",
     "Return exactly one product-presence decision: product_yes or product_no.",
+    `Return routeLabel from the selected binary outcome options: for product_yes use ${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}; for product_no use ${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}.`,
+    "Return nextIntent as a short explanation of the selected routeLabel; do not ask Orchestration to infer the route from product_yes or product_no.",
     "Never return product_uncertain, review_required, null, maybe, unknown, or a human-review decision.",
     "Use only what is visible in the sampled frame evidence; do not use hidden page state or outside assumptions.",
     "Treat contact sheet input as one governed multi-frame task, not separate decisions.",

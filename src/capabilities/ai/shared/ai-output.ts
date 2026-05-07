@@ -11,6 +11,7 @@ import type {
 } from "../contract.js";
 import type { MapAuthoringFallbackOutput } from "./ai-map-authoring-fallback.js";
 import { buildMapAuthoringFallback } from "./ai-map-authoring-fallback.js";
+import { PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL } from "../../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
 
 function buildVisualFallback(reason: string): AiVisualOutput {
   return {
@@ -26,6 +27,8 @@ function buildVisualFallback(reason: string): AiVisualOutput {
     missingFrames: [],
     isProductVideo: false,
     decision: "product_no",
+    routeLabel: PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
+    nextIntent: "跳过当前视频并继续自动发现。",
     confidence: 0,
     visibleProductTypes: [],
     evidenceObservations: [],

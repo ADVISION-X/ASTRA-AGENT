@@ -77,6 +77,8 @@ const buildAiOutputPayload = (input: {
   status: "success" | "failed" | "review_required";
   aiTaskType: string;
   decision: string;
+  routeLabel: string | null;
+  nextIntent: string | null;
   confidence: number | null;
   failureReason: string | null;
   reviewRequiredReason: string | null;
@@ -92,6 +94,8 @@ const buildAiOutputPayload = (input: {
   content: {
     aiTaskType: input.aiTaskType,
     decision: input.decision,
+    routeLabel: input.routeLabel,
+    nextIntent: input.nextIntent,
     status: input.status,
     confidence: input.confidence,
     failureReason: input.failureReason,
@@ -142,6 +146,8 @@ const buildWorkbenchAiResponseEnvelope = (input: {
     proofRef: `${input.envelope.envelopeId}:response:proof`,
     status: input.resolvedDecision.status,
     decision: input.resolvedDecision.decision,
+    routeLabel: input.resolvedDecision.routeLabel,
+    nextIntent: input.resolvedDecision.nextIntent,
     confidence: input.confidence,
     implementationStatus: input.diagnostics.implementationStatus,
     runtimeCallId: input.diagnostics.runtimeCallId,
@@ -191,6 +197,8 @@ const buildWorkbenchAiResponse = (input: {
     status: resolvedDecision.status,
     aiTaskType,
     decision: resolvedDecision.decision,
+    routeLabel: resolvedDecision.routeLabel,
+    nextIntent: resolvedDecision.nextIntent,
     confidence,
     failureReason,
     reviewRequiredReason: resolvedDecision.reviewRequiredReason,

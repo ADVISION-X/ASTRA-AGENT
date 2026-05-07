@@ -1,25 +1,25 @@
 import type { VisualTargetChildCapabilityId } from "./contract.js";
-import { createDetectCloseCommentsButtonCapability } from "./children/detect-close-comments-button/implementation.js";
-import { createDetectCommentsButtonCapability } from "./children/detect-comments-button/implementation.js";
-import { createDetectCommentsPanelCapability } from "./children/detect-comments-panel/implementation.js";
-import { createDetectLikeButtonCapability } from "./children/detect-like-button/implementation.js";
-import { createDetectMetricCommentCountCapability } from "./children/detect-metric-comment-count/implementation.js";
-import { createDetectMetricLikeCountCapability } from "./children/detect-metric-like-count/implementation.js";
-import { createDetectNextVideoRegionCapability } from "./children/detect-next-video-region/implementation.js";
-import { createDetectNotInterestedButtonCapability } from "./children/detect-not-interested-button/implementation.js";
-import { createDetectSaveButtonCapability } from "./children/detect-save-button/implementation.js";
+import { createObserveCloseCommentsButtonCapability } from "./children/observe-close-comments-button/implementation.js";
+import { createObserveCommentsButtonCapability } from "./children/observe-comments-button/implementation.js";
+import { createObserveCommentsPanelCapability } from "./children/observe-comments-panel/implementation.js";
+import { createObserveLikeButtonCapability } from "./children/observe-like-button/implementation.js";
+import { createObserveMetricCommentCountCapability } from "./children/observe-metric-comment-count/implementation.js";
+import { createObserveMetricLikeCountCapability } from "./children/observe-metric-like-count/implementation.js";
+import { createObserveNextVideoRegionCapability } from "./children/observe-next-video-region/implementation.js";
+import { createObserveNotInterestedButtonCapability } from "./children/observe-not-interested-button/implementation.js";
+import { createObserveSaveButtonCapability } from "./children/observe-save-button/implementation.js";
 import type { VisualTargetChildCapability } from "./runtime/visual-target-child-contract.js";
 
 const CHILDREN = [
-  createDetectLikeButtonCapability(),
-  createDetectSaveButtonCapability(),
-  createDetectCommentsButtonCapability(),
-  createDetectCommentsPanelCapability(),
-  createDetectCloseCommentsButtonCapability(),
-  createDetectNotInterestedButtonCapability(),
-  createDetectNextVideoRegionCapability(),
-  createDetectMetricLikeCountCapability(),
-  createDetectMetricCommentCountCapability(),
+  createObserveLikeButtonCapability(),
+  createObserveSaveButtonCapability(),
+  createObserveCommentsButtonCapability(),
+  createObserveCommentsPanelCapability(),
+  createObserveCloseCommentsButtonCapability(),
+  createObserveNotInterestedButtonCapability(),
+  createObserveNextVideoRegionCapability(),
+  createObserveMetricLikeCountCapability(),
+  createObserveMetricCommentCountCapability(),
 ] as const;
 
 export function createVisualTargetCapabilityRegistry(): Map<VisualTargetChildCapabilityId, VisualTargetChildCapability> {

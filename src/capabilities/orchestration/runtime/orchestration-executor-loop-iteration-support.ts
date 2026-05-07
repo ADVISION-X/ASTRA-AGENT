@@ -22,6 +22,7 @@ import {
 } from "./orchestration-loop-proof-builders.js";
 import type { MatchedTransitionRecord } from "./orchestration-loop-iteration-transition-support.js";
 import { toMissionControlState } from "./orchestration-state-support.js";
+import { findEffectiveOperationalStep } from "./route-plan-resolver.js";
 
 type StepDispatchResult = Awaited<ReturnType<typeof dispatchOperationalStep>>;
 type OrchestrationStepResultRecord = Extract<StepDispatchResult, { dispatched: true }>["stepResult"];
@@ -121,7 +122,7 @@ const createPreparedMissionLoopIterationContext = (
 });
 
 const findOperationalStep = (map: OperationalMap, stepId: string): OperationalStep | null =>
-  map.steps.find((candidate) => candidate.stepId === stepId) ?? null;
+  findEffectiveOperationalStep(map, stepId);
 
 const buildDispatchGateFailureOutcome = async (
   input: RunMissionLoopIterationInput,

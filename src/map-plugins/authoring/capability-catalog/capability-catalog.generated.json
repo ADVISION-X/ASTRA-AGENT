@@ -15,7 +15,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute browser actions",
@@ -36,7 +36,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute browser actions",
@@ -57,7 +57,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute browser actions",
@@ -78,7 +78,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute browser actions",
@@ -99,7 +99,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute browser actions",
@@ -124,7 +124,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "execute browser actions",
@@ -149,7 +149,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "execute browser actions",
@@ -174,7 +174,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "execute browser actions",
@@ -199,7 +199,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "execute browser actions",
@@ -224,7 +224,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "execute browser actions",
@@ -249,7 +249,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "execute browser actions",
@@ -274,7 +274,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "execute browser actions",
@@ -299,7 +299,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "execute browser actions",
@@ -324,7 +324,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -349,7 +349,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -374,7 +374,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -399,7 +399,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -424,7 +424,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -449,7 +449,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -474,7 +474,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -499,7 +499,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -524,7 +524,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -548,7 +548,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
       "requiresPostActionVerification": true,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "invent geometry",
@@ -572,7 +572,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
       "requiresPostActionVerification": true,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "invent geometry",
@@ -596,7 +596,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "invent geometry",
@@ -621,7 +621,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "invent geometry",
@@ -646,7 +646,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "invent geometry",
@@ -670,7 +670,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": true,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "click page elements",
@@ -695,7 +695,7 @@
       "requiresPostOpenWindowHandoff": true,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": true,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "click inside app",
@@ -721,7 +721,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": true,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "click page elements",
@@ -744,7 +744,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": true,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "click page elements",
@@ -754,10 +754,10 @@
     },
     {
       "abilityGroupId": "page-state",
-      "childCapabilityId": "detect-comment-panel-state",
-      "description": "Classify governed page state for detect comment panel state.",
-      "inputSchemaRef": "page-state.detect-comment-panel-state.input",
-      "outputSchemaRef": "page-state.detect-comment-panel-state.output",
+      "childCapabilityId": "observe-comment-panel-surface",
+      "description": "Classify governed page state for observe comment panel surface.",
+      "inputSchemaRef": "page-state.observe-comment-panel-surface.input",
+      "outputSchemaRef": "page-state.observe-comment-panel-surface.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -767,7 +767,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -777,10 +777,10 @@
     },
     {
       "abilityGroupId": "page-state",
-      "childCapabilityId": "detect-feed-ready",
-      "description": "Classify governed page state for detect feed ready.",
-      "inputSchemaRef": "page-state.detect-feed-ready.input",
-      "outputSchemaRef": "page-state.detect-feed-ready.output",
+      "childCapabilityId": "observe-feed-surface",
+      "description": "Classify governed page state for observe feed surface.",
+      "inputSchemaRef": "page-state.observe-feed-surface.input",
+      "outputSchemaRef": "page-state.observe-feed-surface.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -790,7 +790,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -800,10 +800,10 @@
     },
     {
       "abilityGroupId": "page-state",
-      "childCapabilityId": "detect-login-state",
-      "description": "Classify governed page state for detect login state.",
-      "inputSchemaRef": "page-state.detect-login-state.input",
-      "outputSchemaRef": "page-state.detect-login-state.output",
+      "childCapabilityId": "observe-login-surface",
+      "description": "Classify governed page state for observe login surface.",
+      "inputSchemaRef": "page-state.observe-login-surface.input",
+      "outputSchemaRef": "page-state.observe-login-surface.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -813,7 +813,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -823,10 +823,10 @@
     },
     {
       "abilityGroupId": "page-state",
-      "childCapabilityId": "detect-modal-overlay-state",
-      "description": "Classify governed page state for detect modal overlay state.",
-      "inputSchemaRef": "page-state.detect-modal-overlay-state.input",
-      "outputSchemaRef": "page-state.detect-modal-overlay-state.output",
+      "childCapabilityId": "observe-modal-overlay-surface",
+      "description": "Classify governed page state for observe modal overlay surface.",
+      "inputSchemaRef": "page-state.observe-modal-overlay-surface.input",
+      "outputSchemaRef": "page-state.observe-modal-overlay-surface.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -836,7 +836,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -846,10 +846,10 @@
     },
     {
       "abilityGroupId": "page-state",
-      "childCapabilityId": "detect-page-abnormality",
-      "description": "Classify governed page state for detect page abnormality.",
-      "inputSchemaRef": "page-state.detect-page-abnormality.input",
-      "outputSchemaRef": "page-state.detect-page-abnormality.output",
+      "childCapabilityId": "observe-page-abnormality-surface",
+      "description": "Classify governed page state for observe page abnormality surface.",
+      "inputSchemaRef": "page-state.observe-page-abnormality-surface.input",
+      "outputSchemaRef": "page-state.observe-page-abnormality-surface.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -859,7 +859,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -869,10 +869,10 @@
     },
     {
       "abilityGroupId": "page-state",
-      "childCapabilityId": "detect-platform-page-kind",
-      "description": "Classify governed page state for detect platform page kind.",
-      "inputSchemaRef": "page-state.detect-platform-page-kind.input",
-      "outputSchemaRef": "page-state.detect-platform-page-kind.output",
+      "childCapabilityId": "observe-platform-surface",
+      "description": "Classify governed page state for observe platform surface.",
+      "inputSchemaRef": "page-state.observe-platform-surface.input",
+      "outputSchemaRef": "page-state.observe-platform-surface.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -882,7 +882,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -892,10 +892,10 @@
     },
     {
       "abilityGroupId": "page-state",
-      "childCapabilityId": "detect-safety-page",
-      "description": "Classify governed page state for detect safety page.",
-      "inputSchemaRef": "page-state.detect-safety-page.input",
-      "outputSchemaRef": "page-state.detect-safety-page.output",
+      "childCapabilityId": "observe-safety-surface",
+      "description": "Classify governed page state for observe safety surface.",
+      "inputSchemaRef": "page-state.observe-safety-surface.input",
+      "outputSchemaRef": "page-state.observe-safety-surface.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -905,7 +905,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -915,10 +915,10 @@
     },
     {
       "abilityGroupId": "page-state",
-      "childCapabilityId": "detect-video-stable",
-      "description": "Classify governed page state for detect video stable.",
-      "inputSchemaRef": "page-state.detect-video-stable.input",
-      "outputSchemaRef": "page-state.detect-video-stable.output",
+      "childCapabilityId": "observe-video-surface",
+      "description": "Classify governed page state for observe video surface.",
+      "inputSchemaRef": "page-state.observe-video-surface.input",
+      "outputSchemaRef": "page-state.observe-video-surface.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -928,12 +928,137 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
         "persist evidence",
         "author prompts"
+      ]
+    },
+    {
+      "abilityGroupId": "post-action-verification",
+      "childCapabilityId": "observe-comments-panel-close-attempt",
+      "description": "Verify governed post-action outcome for observe comments panel close attempt.",
+      "inputSchemaRef": "post-action-verification.observe-comments-panel-close-attempt.input",
+      "outputSchemaRef": "post-action-verification.observe-comments-panel-close-attempt.output",
+      "platformId": null,
+      "targetKind": null,
+      "supportedTargets": [
+        "browser-page",
+        "browser-viewport",
+        "runtime-proof"
+      ],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresAutomationGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "execute recovery actions",
+        "invent prompts",
+        "persist unrelated evidence"
+      ]
+    },
+    {
+      "abilityGroupId": "post-action-verification",
+      "childCapabilityId": "observe-comments-panel-open-attempt",
+      "description": "Verify governed post-action outcome for observe comments panel open attempt.",
+      "inputSchemaRef": "post-action-verification.observe-comments-panel-open-attempt.input",
+      "outputSchemaRef": "post-action-verification.observe-comments-panel-open-attempt.output",
+      "platformId": null,
+      "targetKind": null,
+      "supportedTargets": [
+        "browser-page",
+        "browser-viewport",
+        "runtime-proof"
+      ],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresAutomationGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "execute recovery actions",
+        "invent prompts",
+        "persist unrelated evidence"
+      ]
+    },
+    {
+      "abilityGroupId": "post-action-verification",
+      "childCapabilityId": "observe-not-interested-attempt",
+      "description": "Verify governed post-action outcome for observe not interested attempt.",
+      "inputSchemaRef": "post-action-verification.observe-not-interested-attempt.input",
+      "outputSchemaRef": "post-action-verification.observe-not-interested-attempt.output",
+      "platformId": null,
+      "targetKind": null,
+      "supportedTargets": [
+        "browser-page",
+        "browser-viewport",
+        "runtime-proof"
+      ],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresAutomationGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "execute recovery actions",
+        "invent prompts",
+        "persist unrelated evidence"
+      ]
+    },
+    {
+      "abilityGroupId": "post-action-verification",
+      "childCapabilityId": "observe-page-open-attempt",
+      "description": "Verify governed post-action outcome for observe page open attempt.",
+      "inputSchemaRef": "post-action-verification.observe-page-open-attempt.input",
+      "outputSchemaRef": "post-action-verification.observe-page-open-attempt.output",
+      "platformId": null,
+      "targetKind": null,
+      "supportedTargets": [
+        "browser-page",
+        "browser-viewport",
+        "runtime-proof"
+      ],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresAutomationGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "execute recovery actions",
+        "invent prompts",
+        "persist unrelated evidence"
+      ]
+    },
+    {
+      "abilityGroupId": "post-action-verification",
+      "childCapabilityId": "observe-target-state-transition",
+      "description": "Verify governed post-action outcome for observe target state transition.",
+      "inputSchemaRef": "post-action-verification.observe-target-state-transition.input",
+      "outputSchemaRef": "post-action-verification.observe-target-state-transition.output",
+      "platformId": null,
+      "targetKind": null,
+      "supportedTargets": [
+        "browser-page",
+        "browser-viewport",
+        "runtime-proof"
+      ],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresAutomationGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "execute recovery actions",
+        "invent prompts",
+        "persist unrelated evidence"
       ]
     },
     {
@@ -953,132 +1078,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
-      "sensitiveOperation": false,
-      "forbiddenResponsibilities": [
-        "execute recovery actions",
-        "invent prompts",
-        "persist unrelated evidence"
-      ]
-    },
-    {
-      "abilityGroupId": "post-action-verification",
-      "childCapabilityId": "verify-comments-panel-closed",
-      "description": "Verify governed post-action outcome for verify comments panel closed.",
-      "inputSchemaRef": "post-action-verification.verify-comments-panel-closed.input",
-      "outputSchemaRef": "post-action-verification.verify-comments-panel-closed.output",
-      "platformId": null,
-      "targetKind": null,
-      "supportedTargets": [
-        "browser-page",
-        "browser-viewport",
-        "runtime-proof"
-      ],
-      "routableByMap": true,
-      "requiresPostOpenWindowHandoff": false,
-      "requiresGeometryProof": false,
-      "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
-      "sensitiveOperation": false,
-      "forbiddenResponsibilities": [
-        "execute recovery actions",
-        "invent prompts",
-        "persist unrelated evidence"
-      ]
-    },
-    {
-      "abilityGroupId": "post-action-verification",
-      "childCapabilityId": "verify-comments-panel-opened",
-      "description": "Verify governed post-action outcome for verify comments panel opened.",
-      "inputSchemaRef": "post-action-verification.verify-comments-panel-opened.input",
-      "outputSchemaRef": "post-action-verification.verify-comments-panel-opened.output",
-      "platformId": null,
-      "targetKind": null,
-      "supportedTargets": [
-        "browser-page",
-        "browser-viewport",
-        "runtime-proof"
-      ],
-      "routableByMap": true,
-      "requiresPostOpenWindowHandoff": false,
-      "requiresGeometryProof": false,
-      "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
-      "sensitiveOperation": false,
-      "forbiddenResponsibilities": [
-        "execute recovery actions",
-        "invent prompts",
-        "persist unrelated evidence"
-      ]
-    },
-    {
-      "abilityGroupId": "post-action-verification",
-      "childCapabilityId": "verify-not-interested-result",
-      "description": "Verify governed post-action outcome for verify not interested result.",
-      "inputSchemaRef": "post-action-verification.verify-not-interested-result.input",
-      "outputSchemaRef": "post-action-verification.verify-not-interested-result.output",
-      "platformId": null,
-      "targetKind": null,
-      "supportedTargets": [
-        "browser-page",
-        "browser-viewport",
-        "runtime-proof"
-      ],
-      "routableByMap": true,
-      "requiresPostOpenWindowHandoff": false,
-      "requiresGeometryProof": false,
-      "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
-      "sensitiveOperation": false,
-      "forbiddenResponsibilities": [
-        "execute recovery actions",
-        "invent prompts",
-        "persist unrelated evidence"
-      ]
-    },
-    {
-      "abilityGroupId": "post-action-verification",
-      "childCapabilityId": "verify-page-opened",
-      "description": "Verify governed post-action outcome for verify page opened.",
-      "inputSchemaRef": "post-action-verification.verify-page-opened.input",
-      "outputSchemaRef": "post-action-verification.verify-page-opened.output",
-      "platformId": null,
-      "targetKind": null,
-      "supportedTargets": [
-        "browser-page",
-        "browser-viewport",
-        "runtime-proof"
-      ],
-      "routableByMap": true,
-      "requiresPostOpenWindowHandoff": false,
-      "requiresGeometryProof": false,
-      "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
-      "sensitiveOperation": false,
-      "forbiddenResponsibilities": [
-        "execute recovery actions",
-        "invent prompts",
-        "persist unrelated evidence"
-      ]
-    },
-    {
-      "abilityGroupId": "post-action-verification",
-      "childCapabilityId": "verify-target-state-changed",
-      "description": "Verify governed post-action outcome for verify target state changed.",
-      "inputSchemaRef": "post-action-verification.verify-target-state-changed.input",
-      "outputSchemaRef": "post-action-verification.verify-target-state-changed.output",
-      "platformId": null,
-      "targetKind": null,
-      "supportedTargets": [
-        "browser-page",
-        "browser-viewport",
-        "runtime-proof"
-      ],
-      "routableByMap": true,
-      "requiresPostOpenWindowHandoff": false,
-      "requiresGeometryProof": false,
-      "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute recovery actions",
@@ -1103,7 +1103,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -1128,7 +1128,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -1153,7 +1153,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -1178,7 +1178,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -1203,7 +1203,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "execute actions",
@@ -1227,7 +1227,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
       "requiresPostActionVerification": true,
-      "requiresReviewGate": true,
+      "requiresAutomationGate": true,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "invent credentials",
@@ -1251,7 +1251,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
       "requiresPostActionVerification": true,
-      "requiresReviewGate": true,
+      "requiresAutomationGate": true,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "invent credentials",
@@ -1275,7 +1275,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
       "requiresPostActionVerification": true,
-      "requiresReviewGate": true,
+      "requiresAutomationGate": true,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "invent credentials",
@@ -1299,7 +1299,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
       "requiresPostActionVerification": true,
-      "requiresReviewGate": true,
+      "requiresAutomationGate": true,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "invent credentials",
@@ -1323,7 +1323,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
       "requiresPostActionVerification": true,
-      "requiresReviewGate": true,
+      "requiresAutomationGate": true,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "invent credentials",
@@ -1347,7 +1347,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": true,
       "requiresPostActionVerification": true,
-      "requiresReviewGate": true,
+      "requiresAutomationGate": true,
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "invent credentials",
@@ -1357,10 +1357,10 @@
     },
     {
       "abilityGroupId": "visual-target",
-      "childCapabilityId": "detect-close-comments-button",
-      "description": "Resolve a governed visual target for detect close comments button.",
-      "inputSchemaRef": "visual-target.detect-close-comments-button.input",
-      "outputSchemaRef": "visual-target.detect-close-comments-button.output",
+      "childCapabilityId": "observe-close-comments-button",
+      "description": "Resolve a governed visual target for observe close comments button.",
+      "inputSchemaRef": "visual-target.observe-close-comments-button.input",
+      "outputSchemaRef": "visual-target.observe-close-comments-button.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -1372,7 +1372,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "click targets",
@@ -1382,10 +1382,10 @@
     },
     {
       "abilityGroupId": "visual-target",
-      "childCapabilityId": "detect-comments-button",
-      "description": "Resolve a governed visual target for detect comments button.",
-      "inputSchemaRef": "visual-target.detect-comments-button.input",
-      "outputSchemaRef": "visual-target.detect-comments-button.output",
+      "childCapabilityId": "observe-comments-button",
+      "description": "Resolve a governed visual target for observe comments button.",
+      "inputSchemaRef": "visual-target.observe-comments-button.input",
+      "outputSchemaRef": "visual-target.observe-comments-button.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -1397,7 +1397,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "click targets",
@@ -1407,10 +1407,10 @@
     },
     {
       "abilityGroupId": "visual-target",
-      "childCapabilityId": "detect-comments-panel",
-      "description": "Resolve a governed visual target for detect comments panel.",
-      "inputSchemaRef": "visual-target.detect-comments-panel.input",
-      "outputSchemaRef": "visual-target.detect-comments-panel.output",
+      "childCapabilityId": "observe-comments-panel",
+      "description": "Resolve a governed visual target for observe comments panel.",
+      "inputSchemaRef": "visual-target.observe-comments-panel.input",
+      "outputSchemaRef": "visual-target.observe-comments-panel.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -1422,7 +1422,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "click targets",
@@ -1432,10 +1432,10 @@
     },
     {
       "abilityGroupId": "visual-target",
-      "childCapabilityId": "detect-like-button",
-      "description": "Resolve a governed visual target for detect like button.",
-      "inputSchemaRef": "visual-target.detect-like-button.input",
-      "outputSchemaRef": "visual-target.detect-like-button.output",
+      "childCapabilityId": "observe-like-button",
+      "description": "Resolve a governed visual target for observe like button.",
+      "inputSchemaRef": "visual-target.observe-like-button.input",
+      "outputSchemaRef": "visual-target.observe-like-button.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -1447,7 +1447,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "click targets",
@@ -1457,10 +1457,10 @@
     },
     {
       "abilityGroupId": "visual-target",
-      "childCapabilityId": "detect-metric-comment-count",
-      "description": "Resolve a governed visual target for detect metric comment count.",
-      "inputSchemaRef": "visual-target.detect-metric-comment-count.input",
-      "outputSchemaRef": "visual-target.detect-metric-comment-count.output",
+      "childCapabilityId": "observe-metric-comment-count",
+      "description": "Resolve a governed visual target for observe metric comment count.",
+      "inputSchemaRef": "visual-target.observe-metric-comment-count.input",
+      "outputSchemaRef": "visual-target.observe-metric-comment-count.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -1472,7 +1472,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "click targets",
@@ -1482,10 +1482,10 @@
     },
     {
       "abilityGroupId": "visual-target",
-      "childCapabilityId": "detect-metric-like-count",
-      "description": "Resolve a governed visual target for detect metric like count.",
-      "inputSchemaRef": "visual-target.detect-metric-like-count.input",
-      "outputSchemaRef": "visual-target.detect-metric-like-count.output",
+      "childCapabilityId": "observe-metric-like-count",
+      "description": "Resolve a governed visual target for observe metric like count.",
+      "inputSchemaRef": "visual-target.observe-metric-like-count.input",
+      "outputSchemaRef": "visual-target.observe-metric-like-count.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -1497,7 +1497,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "click targets",
@@ -1507,10 +1507,10 @@
     },
     {
       "abilityGroupId": "visual-target",
-      "childCapabilityId": "detect-next-video-region",
-      "description": "Resolve a governed visual target for detect next video region.",
-      "inputSchemaRef": "visual-target.detect-next-video-region.input",
-      "outputSchemaRef": "visual-target.detect-next-video-region.output",
+      "childCapabilityId": "observe-next-video-region",
+      "description": "Resolve a governed visual target for observe next video region.",
+      "inputSchemaRef": "visual-target.observe-next-video-region.input",
+      "outputSchemaRef": "visual-target.observe-next-video-region.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -1522,7 +1522,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "click targets",
@@ -1532,10 +1532,10 @@
     },
     {
       "abilityGroupId": "visual-target",
-      "childCapabilityId": "detect-not-interested-button",
-      "description": "Resolve a governed visual target for detect not interested button.",
-      "inputSchemaRef": "visual-target.detect-not-interested-button.input",
-      "outputSchemaRef": "visual-target.detect-not-interested-button.output",
+      "childCapabilityId": "observe-not-interested-button",
+      "description": "Resolve a governed visual target for observe not interested button.",
+      "inputSchemaRef": "visual-target.observe-not-interested-button.input",
+      "outputSchemaRef": "visual-target.observe-not-interested-button.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -1547,7 +1547,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "click targets",
@@ -1557,10 +1557,10 @@
     },
     {
       "abilityGroupId": "visual-target",
-      "childCapabilityId": "detect-save-button",
-      "description": "Resolve a governed visual target for detect save button.",
-      "inputSchemaRef": "visual-target.detect-save-button.input",
-      "outputSchemaRef": "visual-target.detect-save-button.output",
+      "childCapabilityId": "observe-save-button",
+      "description": "Resolve a governed visual target for observe save button.",
+      "inputSchemaRef": "visual-target.observe-save-button.input",
+      "outputSchemaRef": "visual-target.observe-save-button.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [
@@ -1572,7 +1572,7 @@
       "requiresPostOpenWindowHandoff": false,
       "requiresGeometryProof": false,
       "requiresPostActionVerification": false,
-      "requiresReviewGate": false,
+      "requiresAutomationGate": false,
       "sensitiveOperation": false,
       "forbiddenResponsibilities": [
         "click targets",

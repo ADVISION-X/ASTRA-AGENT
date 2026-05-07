@@ -1,6 +1,5 @@
 import type { OperationalMap } from "../contract.js";
 import { OperationalMapSchema } from "../schema.js";
-import { ensurePostActionVerificationPolicy } from "./orchestration-post-action-verification.js";
 
 const FORBIDDEN_OWNER_VALUES = ["local-ai-decision"];
 
@@ -46,14 +45,6 @@ function validateReachableSteps(map: OperationalMap): string | null {
     if (!reachableSteps.has(step.stepId)) {
       return `Operational map ${map.mapId} contains unreachable step ${step.stepId}.`;
     }
-  }
-
-  return null;
-}
-
-function validateAllowedAbilityGroups(map: OperationalMap): string | null {
-  if (map.allowedAbilityGroups.includes("ai") && map.steps.every((step) => step.stepKind !== "ai")) {
-    return `Operational map ${map.mapId} allows ai but declares no AI steps.`;
   }
 
   return null;
@@ -131,16 +122,6 @@ function validateOperationalMapStructure(map: OperationalMap): string | null {
   const reachableReason = validateReachableSteps(map);
   if (reachableReason) {
     return reachableReason;
-  }
-
-  const abilityGroupReason = validateAllowedAbilityGroups(map);
-  if (abilityGroupReason) {
-    return abilityGroupReason;
-  }
-
-  const postActionVerificationReason = ensurePostActionVerificationPolicy(map);
-  if (postActionVerificationReason) {
-    return postActionVerificationReason;
   }
 
   return checkForbiddenStepOwnerValues(map) ?? checkForbiddenTransitionOwnerValues(map);

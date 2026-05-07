@@ -13,7 +13,6 @@ import {
   MissionCommandSchema,
   MissionControlCommandSchema,
   MissionExecutionResultSchema,
-  MissionReviewDecisionInputSchema,
   MissionStateSchema,
   MissionStepResultSchema,
   OrchestrationExecuteInputSchema,
@@ -26,8 +25,6 @@ import {
   PauseMissionChildInputSchema,
   PauseMissionChildOutputSchema,
   PayloadRefBundleSchema,
-  RequestHumanReviewChildInputSchema,
-  RequestHumanReviewChildOutputSchema,
   ResumeMissionChildInputSchema,
   ResumeMissionChildOutputSchema,
   RuntimeProofSchema,
@@ -47,7 +44,6 @@ type PayloadRefBundle = z.output<typeof PayloadRefBundleSchema>;
 type OrchestrationSequencePolicy = z.output<typeof OrchestrationSequencePolicySchema>;
 type MissionCommand = z.output<typeof MissionCommandSchema>;
 type MissionControlCommand = z.output<typeof MissionControlCommandSchema>;
-type MissionReviewDecisionInput = z.output<typeof MissionReviewDecisionInputSchema>;
 type MissionState = z.output<typeof MissionStateSchema>;
 type MissionControlState = MissionState;
 type MissionExecutionResult = z.output<typeof MissionExecutionResultSchema>;
@@ -64,7 +60,6 @@ type StopMissionChildInput = z.output<typeof StopMissionChildInputSchema>;
 type EmergencyStopChildInput = z.output<typeof EmergencyStopChildInputSchema>;
 type ExecuteMapStepChildInput = z.output<typeof ExecuteMapStepChildInputSchema>;
 type EvaluateStepTransitionChildInput = z.output<typeof EvaluateStepTransitionChildInputSchema>;
-type RequestHumanReviewChildInput = z.output<typeof RequestHumanReviewChildInputSchema>;
 type FinalizeMissionChildInput = z.output<typeof FinalizeMissionChildInputSchema>;
 
 type StartMissionChildOutput = z.output<typeof StartMissionChildOutputSchema>;
@@ -74,7 +69,6 @@ type StopMissionChildOutput = z.output<typeof StopMissionChildOutputSchema>;
 type EmergencyStopChildOutput = z.output<typeof EmergencyStopChildOutputSchema>;
 type ExecuteMapStepChildOutput = z.output<typeof ExecuteMapStepChildOutputSchema>;
 type EvaluateStepTransitionChildOutput = z.output<typeof EvaluateStepTransitionChildOutputSchema>;
-type RequestHumanReviewChildOutput = z.output<typeof RequestHumanReviewChildOutputSchema>;
 type FinalizeMissionChildOutput = z.output<typeof FinalizeMissionChildOutputSchema>;
 
 interface OrchestrationAbilityGroup {
@@ -88,7 +82,6 @@ interface OrchestrationAbilityGroup {
   emergencyStop(input: { missionId: string; reason?: string }): Promise<MissionControlState>;
   getMissionState(missionId?: string | null): Promise<MissionControlState>;
   executeMission(command: MissionCommand): Promise<OrchestrationExecuteResult>;
-  submitReviewDecision(input: MissionReviewDecisionInput): Promise<MissionControlState>;
 }
 
 export type {
@@ -104,7 +97,6 @@ export type {
   MissionControlCommand,
   MissionControlState,
   MissionExecutionResult,
-  MissionReviewDecisionInput,
   MissionState,
   MissionStepResult,
   OrchestrationExecuteInput,
@@ -119,8 +111,6 @@ export type {
   PauseMissionChildOutput,
   PayloadRefBundle,
   RequestedPlatformId,
-  RequestHumanReviewChildInput,
-  RequestHumanReviewChildOutput,
   ResumeMissionChildInput,
   ResumeMissionChildOutput,
   RuntimeProof,
@@ -129,4 +119,3 @@ export type {
   StopMissionChildInput,
   StopMissionChildOutput,
 };
-

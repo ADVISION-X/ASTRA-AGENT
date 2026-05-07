@@ -62,7 +62,7 @@ type CommanderConsoleMapView = {
   title: string;
   readiness: CommanderConsoleStatusTone;
   summary: string;
-  approvalStatus: string;
+  activationGateStatus: string;
   lifecycleStatus: string;
   validationSummary: string;
   activationId: string | null;
@@ -116,7 +116,7 @@ type CommanderConsoleSummaryItem = {
 
 type CommanderConsoleReviewSummary = {
   pendingCount: number;
-  approvedCount: number;
+  gatePassedCount: number;
   rejectedCount: number;
   archivedCount: number;
 };
@@ -203,7 +203,7 @@ interface CommanderConsolePublicHandlers {
   onResumeMission: () => Promise<void>;
   onStopMission: () => Promise<void>;
   onEmergencyStop: () => Promise<void>;
-  onSubmitReviewDecision: (payload: { candidateId: string; disposition: "approve" | "reject" | "pending" }) => Promise<void>;
+  onSubmitReviewDecision: (payload: { candidateId: string; disposition: "automationGate" | "reject" | "pending" }) => Promise<void>;
   onRequestExport: (payload: { exportType: "candidate-summary" }) => Promise<void>;
   onOpenInspect: (payload: { kind: CommanderConsoleInspectKind; id: string }) => void;
 }export type { CommanderConsolePrimaryPageId, CommanderConsoleStatusTone, CommanderConsoleInspectKind, CommanderConsoleTabView, CommanderConsolePageView, CommanderConsoleTopMetric, CommanderConsoleBadge, CommanderConsoleMapView, CommanderConsolePreflightCheck, CommanderConsoleTaskTemplate, CommanderConsoleCommandDraft, CommanderConsoleSummaryItem, CommanderConsoleReviewSummary, CommanderConsoleFailureItem, CommanderConsoleLogEntry, CommanderConsoleExportRequest, CommanderConsolePolicyCheck, CommanderConsoleInspectReference, CommanderConsoleInspectItem, CommanderConsoleViewModel, CommanderConsolePublicHandlers };

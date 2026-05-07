@@ -36,7 +36,7 @@ export const createWorkbenchRuntime = (
   runtime.getMapLabSnapshot = () => getMapLabService().getSnapshot();
   runtime.saveMapLabProviderConfig = (input) => getMapLabService().saveProviderConfig(input);
   runtime.generateMapLabDraft = (input) => getMapLabService().generateDraft(input);
-  runtime.approveMapLabDraft = (input) => getMapLabService().approveDraft(input);
+  runtime.passMapLabAutomationGate = (input) => getMapLabService().passAutomationGate(input);
   runtime.activateMapLabDraft = (input) => getMapLabService().activateDraft(input);
   runtime.getModeInfo = () => getModeInfo(runtime);
   return runtime;

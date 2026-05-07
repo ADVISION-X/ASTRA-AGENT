@@ -2,6 +2,7 @@ import type { z } from "zod";
 
 import type { OperationalMap } from "../contract.js";
 import { MissionStepResultSchema } from "../schema.js";
+import { getEffectiveOperationalTransitions } from "./route-plan-resolver.js";
 
 export type TransitionEvaluationDecision =
   | "matched"
@@ -14,146 +15,109 @@ export type TransitionEvaluationResult =
   | { decision: Exclude<TransitionEvaluationDecision, "matched">; failureReason: string };
 
 type MissionStepResultRecord = z.output<typeof MissionStepResultSchema>;
-type TransitionOperator = OperationalMap["transitions"][number]["condition"]["operator"];
-type NumericConditionOperator = Extract<TransitionOperator, "greaterThan" | "lessThan" | "confidenceAbove" | "confidenceBelow">;
-type DirectConditionOperator = Exclude<TransitionOperator, NumericConditionOperator>;
-type TransitionConditionValue = string | number | boolean | null;
 
-function resolveConditionValue(result: MissionStepResultRecord, leftRef: string): { supported: boolean; actual: TransitionConditionValue } {
-  if (leftRef === "status") {
-    return { supported: true, actual: result.status };
-  }
+const normalizeRouteToken = (value: string): string =>
+  value.toLowerCase().replace(/[^a-z0-9]+/gu, "");
 
-  if (leftRef.startsWith("schemaFieldRef:")) {
-    const fieldName = leftRef.slice("schemaFieldRef:".length);
-    return Object.prototype.hasOwnProperty.call(result.branchFieldValues, fieldName)
-      ? { supported: true, actual: result.branchFieldValues[fieldName] ?? null }
-      : { supported: false, actual: null };
-  }
-
-  if (Object.prototype.hasOwnProperty.call(result.branchFieldValues, leftRef)) {
-    return { supported: true, actual: result.branchFieldValues[leftRef] ?? null };
-  }
-
-  if (leftRef === "decision") {
-    return { supported: true, actual: result.decision ?? null };
-  }
-
-  return { supported: false, actual: null };
-}
-
-function toNumericValue(value: string | number | boolean | null): number | null {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null;
-  }
-  if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-}
-
-function isNumericOperator(operator: TransitionOperator): operator is NumericConditionOperator {
-  return ["greaterThan", "lessThan", "confidenceAbove", "confidenceBelow"].includes(operator);
-}
-
-function matchesNumericCondition(input: {
-  operator: OperationalMap["transitions"][number]["condition"]["operator"];
-  actual: TransitionConditionValue;
-  expected: string | number | boolean | null;
-}): boolean {
-  const numericActual = toNumericValue(input.actual);
-  const numericExpected = toNumericValue(input.expected);
-  if (numericActual === null || numericExpected === null) {
-    return false;
-  }
-
-  return input.operator === "greaterThan" || input.operator === "confidenceAbove"
-    ? numericActual > numericExpected
-    : numericActual < numericExpected;
-}
-
-const DIRECT_CONDITION_MATCHERS: Record<DirectConditionOperator, (input: {
-  actual: TransitionConditionValue;
-  expected: string | number | boolean | null;
-  result: MissionStepResultRecord;
-}) => boolean> = {
-  equals: ({ actual, expected }) => actual === expected,
-  statusIs: ({ actual, expected }) => actual === expected,
-  notEquals: ({ actual, expected }) => actual !== expected,
-  exists: ({ actual }) => actual !== null,
-  notExists: ({ actual }) => actual === null,
-  reviewRequired: ({ result }) => result.status === "review_required",
+const readRouteLabel = (result: MissionStepResultRecord): string | null => {
+  const routeLabel = result.branchFieldValues.routeLabel;
+  return typeof routeLabel === "string" && routeLabel.length > 0 ? routeLabel : null;
 };
 
-function matchesDirectCondition(input: {
-  operator: DirectConditionOperator;
-  actual: TransitionConditionValue;
-  expected: string | number | boolean | null;
-  result: MissionStepResultRecord;
-}): boolean {
-  return DIRECT_CONDITION_MATCHERS[input.operator](input);
-}
+const transitionMatchesRouteLabel = (
+  transition: OperationalMap["transitions"][number],
+  routeLabel: string,
+): boolean => {
+  const routeToken = transition.transitionId.split(":").pop() ?? transition.transitionId;
+  return normalizeRouteToken(routeLabel) === normalizeRouteToken(routeToken);
+};
 
-function matchesTransitionCondition(input: {
-  condition: OperationalMap["transitions"][number]["condition"];
-  result: MissionStepResultRecord;
-}): boolean {
-  const resolved = resolveConditionValue(input.result, input.condition.leftRef);
-  if (!resolved.supported) {
-    return false;
-  }
-
-  return isNumericOperator(input.condition.operator)
-    ? matchesNumericCondition({ operator: input.condition.operator, actual: resolved.actual, expected: input.condition.rightValue })
-    : matchesDirectCondition({ operator: input.condition.operator, actual: resolved.actual, expected: input.condition.rightValue, result: input.result });
-}
-
-function findMatchingTransitions(input: {
+const findMatchingStatusTransitions = (input: {
   map: OperationalMap;
   currentStepId: string;
   result: MissionStepResultRecord;
-}): OperationalMap["transitions"] {
-  return input.map.transitions.filter((candidate) => {
-    if (candidate.fromStepId !== input.currentStepId) {
-      return false;
-    }
-    if (candidate.onStatus !== input.result.status) {
-      return false;
-    }
-    return matchesTransitionCondition({ condition: candidate.condition, result: input.result });
-  });
-}
+}): OperationalMap["transitions"] =>
+  getEffectiveOperationalTransitions(input.map).filter((candidate) =>
+    candidate.fromStepId === input.currentStepId
+    && candidate.onStatus === input.result.status,
+  );
 
-function buildNoValidTransitionFailure(mapId: string, currentStepId: string, status: string): string {
-  return `Map "${mapId}" has no matching transition from step "${currentStepId}" for status "${status}".`;
-}
+const filterByAiRouteLabel = (input: {
+  candidates: OperationalMap["transitions"];
+  result: MissionStepResultRecord;
+}): TransitionEvaluationResult | { decision: "candidates"; candidates: OperationalMap["transitions"] } => {
+  if (input.candidates.length <= 1) {
+    return { decision: "candidates", candidates: input.candidates };
+  }
 
-function buildAmbiguousTransitionFailure(mapId: string, currentStepId: string, transitions: OperationalMap["transitions"]): string {
+  const routeLabel = readRouteLabel(input.result);
+  if (!routeLabel) {
+    return {
+      decision: "invalid_decision",
+      failureReason: `Step "${input.result.stepId}" matched multiple transitions but did not provide branchFieldValues.routeLabel.`,
+    };
+  }
+
+  const routeMatches = input.candidates.filter((candidate) =>
+    transitionMatchesRouteLabel(candidate, routeLabel),
+  );
+  if (routeMatches.length === 0) {
+    return {
+      decision: "invalid_decision",
+      failureReason: `Step "${input.result.stepId}" returned routeLabel "${routeLabel}" but no transition suffix matched it.`,
+    };
+  }
+
+  return { decision: "candidates", candidates: routeMatches };
+};
+
+const buildNoValidTransitionFailure = (mapId: string, currentStepId: string, status: string): string =>
+  `Map "${mapId}" has no matching transition from step "${currentStepId}" for status "${status}".`;
+
+const buildAmbiguousTransitionFailure = (mapId: string, currentStepId: string, transitions: OperationalMap["transitions"]): string => {
   const ids = transitions.map((t) => t.transitionId).join(", ");
   return `Map "${mapId}" step "${currentStepId}" matched ${transitions.length} transitions: [${ids}]. Exactly one must match.`;
-}
+};
+
+const selectSingleTransition = (input: {
+  map: OperationalMap;
+  currentStepId: string;
+  candidates: OperationalMap["transitions"];
+  status: string;
+}): TransitionEvaluationResult => {
+  if (input.candidates.length === 0) {
+    return {
+      decision: "no_valid_transition",
+      failureReason: buildNoValidTransitionFailure(input.map.mapId, input.currentStepId, input.status),
+    };
+  }
+
+  if (input.candidates.length > 1) {
+    return {
+      decision: "ambiguous_transition",
+      failureReason: buildAmbiguousTransitionFailure(input.map.mapId, input.currentStepId, input.candidates),
+    };
+  }
+
+  return { decision: "matched", transition: input.candidates[0]! };
+};
 
 export function evaluateStepTransition(input: {
   map: OperationalMap;
   currentStepId: string;
   result: MissionStepResultRecord;
 }): TransitionEvaluationResult {
-  const candidates = findMatchingTransitions(input);
-
-  if (candidates.length === 0) {
-    return {
-      decision: "no_valid_transition",
-      failureReason: buildNoValidTransitionFailure(input.map.mapId, input.currentStepId, input.result.status),
-    };
+  const routeFiltered = filterByAiRouteLabel({
+    candidates: findMatchingStatusTransitions(input),
+    result: input.result,
+  });
+  if (routeFiltered.decision !== "candidates") {
+    return routeFiltered;
   }
-
-  if (candidates.length > 1) {
-    return {
-      decision: "ambiguous_transition",
-      failureReason: buildAmbiguousTransitionFailure(input.map.mapId, input.currentStepId, candidates),
-    };
-  }
-
-  return { decision: "matched", transition: candidates[0]! };
+  return selectSingleTransition({
+    map: input.map,
+    currentStepId: input.currentStepId,
+    candidates: routeFiltered.candidates,
+    status: input.result.status,
+  });
 }

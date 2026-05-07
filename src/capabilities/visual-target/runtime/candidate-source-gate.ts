@@ -1,6 +1,5 @@
 import type { ParsedVisualTargetAbilityInput, VisualTargetCandidate, VisualTargetDataQualityFlag, VisualTargetFailureReason } from "../contract.js";
 import type { ResolvedVisualTargetProfile } from "./visual-target-input-gate.js";
-import { parseVisualTargetIsoTimestamp } from "./visual-target-clock.js";
 import {
   collectVisualTargetFlags,
   createVisualTargetGateBlocked,
@@ -137,8 +136,6 @@ function findOperatorManualInspection(input: {
 
 function findCandidateSourceReadinessInspection(input: {
   candidate: VisualTargetCandidate;
-  nowEpochMs: number;
-  freshnessTtlMs: number;
 }): CandidateSourceInspection | null {
   const { candidate } = input;
   if (candidate.blockedReason) {
@@ -148,15 +145,11 @@ function findCandidateSourceReadinessInspection(input: {
     return createRejectedCandidateSourceInspection(candidate.candidateRef, "candidate_invisible");
   }
 
-  const ageMs = Math.max(0, input.nowEpochMs - parseVisualTargetIsoTimestamp(candidate.capturedAt));
-  return ageMs > input.freshnessTtlMs
-    ? createRejectedCandidateSourceInspection(candidate.candidateRef, "stale_candidate")
-    : null;
+  return null;
 }
 
 function inspectCandidateSourceCandidate(input: {
   request: ParsedVisualTargetAbilityInput;
-  nowEpochMs: number;
   profile: ResolvedVisualTargetProfile;
   candidate: VisualTargetCandidate;
 }): CandidateSourceInspection {
@@ -170,8 +163,6 @@ function inspectCandidateSourceCandidate(input: {
   }
   const readinessInspection = findCandidateSourceReadinessInspection({
     candidate: input.candidate,
-    nowEpochMs: input.nowEpochMs,
-    freshnessTtlMs: input.profile.freshnessTtlMs,
   });
   return readinessInspection ?? createAcceptedCandidateSourceInspection(input.candidate);
 }
@@ -217,7 +208,6 @@ function createEmptyCandidateSourceFailure(
 
 function collectCandidateSourceResults(input: {
   request: ParsedVisualTargetAbilityInput;
-  nowEpochMs: number;
   profile: ResolvedVisualTargetProfile;
 }): {
   candidates: VisualTargetCandidate[];
@@ -250,7 +240,6 @@ function collectCandidateSourceResults(input: {
 
 export function validateCandidateSources(input: {
   request: ParsedVisualTargetAbilityInput;
-  nowEpochMs: number;
   profile: ResolvedVisualTargetProfile;
 }): CandidateSourceAllow | CandidateSourceBlocked | CandidateSourceReviewRequired {
   if (input.request.candidates.length === 0) {

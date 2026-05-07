@@ -758,7 +758,7 @@ capabilityDomain: screenshot-capability
 enforcementMode: machine-blocking
 evidenceMode: law+inspector+negative-proof
 
-summary: Screenshot artifacts are transient runtime materials by default and must carry lifecycle manifest, retention, TTL, quota, and non-self-promotion truth.
+summary: Screenshot artifacts are transient runtime materials by default and must carry lifecycle manifest, retention, TTL, quota, physical burn-after-handoff cleanup, and non-self-promotion truth.
 
 ### 主题
 
@@ -769,8 +769,12 @@ Artifact Lifecycle / Screenshot Retention 治理
 Screenshot artifacts are runtime materials by default, not permanent evidence.
 
 Required:
+- Only product-selection evidence images formally accepted by Forensics/evidence-store may be retained as long-lived evidence; every other Screenshot-created file is ephemeral runtime material.
 - Every governed success output/proof must carry `artifactLifecycleManifestRef`, `retentionClass`, `expiresAt`, `deleteAfter`, `artifactHash`, `byteSize`, `promotionStatus`, and `cleanupEligible`.
 - Screenshot must persist a governed `ScreenshotArtifactLifecycleManifest` for every stored artifact.
+- Screenshot must physically delete ephemeral work files after artifact handoff; this includes full-screen source captures, browser viewport work files, region/optimize work files, and AI-input prep work files.
+- Screenshot must also physically delete non-evidence work files after artifact handoff failure or output-boundary failure; cleanup failure must fail closed.
+- The only file allowed to survive Screenshot cleanup is the retained artifact `storageRef` itself; final long-term evidence retention remains Forensics-owned.
 - Default retention classes are:
 	- browser/desktop capture and lossless optimize → `transient-capture`
 	- region crop → `transient-region`
@@ -801,6 +805,8 @@ Required:
 
 Forbidden:
 - treating Screenshot artifacts as permanent evidence by default.
+- leaving `/tmp/grasseye-screenshot-*`, browser capture work files, or full-screen source captures behind after their governed handoff completes.
+- using logs, manual cleanup, or debug scripts as a substitute for production-code physical deletion.
 - success without lifecycle manifest ref.
 - success without `artifactHash` or `byteSize`.
 - success without `expiresAt` / `deleteAfter` for transient or diagnostic artifacts.
@@ -812,12 +818,15 @@ Required inspector:
 - Lifecycle schema field presence.
 - Artifact budget/backpressure gate presence.
 - Artifact storage gate writes lifecycle manifest.
+- Execution phase invokes physical ephemeral work-file cleanup.
+- Cleanup bypass is covered by negative proof.
 - Output boundary gate validates manifest parity and self-promotion ban.
 
 Required negative proof:
 - Remove `artifactLifecycleManifestRef` from success output → FAIL.
 - Remove `artifactHash` from proof/output → FAIL.
 - Set Screenshot `promotionStatus` to `promoted` by default → FAIL.
+- Remove ephemeral work-file cleanup after artifact handoff → FAIL.
 - Artifact budget exceeded but Screenshot still returns success → FAIL.
 
 ---

@@ -1,12 +1,8 @@
 import type { ParsedVisualTargetAbilityInput, VisualTargetDataQualityFlag, VisualTargetFailureReason } from "../contract.js";
-import { parseVisualTargetIsoTimestamp } from "./visual-target-clock.js";
 
 export function createAiProofBindingFailure(
   input: {
     request: ParsedVisualTargetAbilityInput;
-    nowEpochMs: number;
-    freshnessTtlMs: number;
-    minimumConfidence: number;
   },
   aiProof: NonNullable<ParsedVisualTargetAbilityInput["sourceProof"]["ai"]> | null,
 ):
@@ -148,9 +144,6 @@ function createAiProofSessionMismatchFailure(
 export function createAiProofQualityReview(
   input: {
     request: ParsedVisualTargetAbilityInput;
-    nowEpochMs: number;
-    freshnessTtlMs: number;
-    minimumConfidence: number;
   },
   aiProof: NonNullable<ParsedVisualTargetAbilityInput["sourceProof"]["ai"]> | null,
 ):
@@ -166,31 +159,5 @@ export function createAiProofQualityReview(
       dataQualityFlags: VisualTargetDataQualityFlag[];
     }
   | null {
-  if (!aiProof) {
-    return null;
-  }
-
-  const ageMs = Math.max(0, input.nowEpochMs - parseVisualTargetIsoTimestamp(aiProof.capturedAt));
-  const flags: VisualTargetDataQualityFlag[] = [];
-  if (ageMs > input.freshnessTtlMs) {
-    flags.push("stale_candidate");
-  }
-  if (aiProof.confidence < input.minimumConfidence) {
-    flags.push("low_confidence");
-  }
-  if (flags.length === 0) {
-    return null;
-  }
-
-  return {
-    ok: false,
-    status: "review_required",
-    decision: "review_required",
-    failureReason: "confidence_below_threshold",
-    statusMessage: "AI proof is present but its freshness or confidence requires review.",
-    reviewRequiredReason: "Visual Target requires review because AI proof freshness or confidence is below policy.",
-    aiInputHash: aiProof.aiInputHash,
-    aiOutputPayloadHash: aiProof.outputPayloadHash,
-    dataQualityFlags: flags,
-  };
+  return null;
 }

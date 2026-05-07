@@ -24,6 +24,16 @@ Map Authoring Input Package 给 AI 提供上下文，但不把 prompt 内容写�
 
 ```txt
 AI Capability owns Prompt Contract Catalog.
+
+Map/Prompt Contract boundary:
+
+- 生产自动化地图必须使用 `routePlanBoundMap`，只能声明入口脊柱、AI 交付、Prompt Contract 引用、输入/输出 refs、`routePlanId`。
+- 禁止地图出现任何约束逻辑。
+- 一个地图 + 对应 Prompt Contract，才是完整地图。
+- 地图只引用 Prompt Contract；Prompt Contract 定义 AI 问题、输入、输出结构、二元判断语义和可分支输出字段。
+- 自动化地图严厉禁止加入任何人工审查的动作，必须自动化完成。
+- Prompt Contract 输出 `routeLabel`；Route Plan 负责 `routeLabel -> step chain`。地图不得写 IF/ELSE，也不得复制 Route Plan 步骤、transition、routeLabel 或动作链。
+- 生产代码负责超时、重试、JSON 无效、证据交付、后动作验证和失败终止。
 Map Plugin Package references promptContractId.
 Map Plugin Package validates promptContractId/outputSchemaRef references.
 Orchestration consumes frozen active map and sends promptContractId through Nerve Bus.
@@ -61,8 +71,7 @@ outputSchemaRef: required
 allowedInputRefs: list
 dataPolicy: required
 providerPolicy: required
-reviewPolicy: required
-failurePolicy: required
+binaryDecisionPolicy: required when prompt output is branchable
 redactionPolicy: required
 forensicsPolicy: required
 forbiddenOutputs: list
@@ -101,7 +110,7 @@ outputSchemaCatalog
 mapPackageSchema
 mapAuthoringOutputSchema
 safetyPolicy
-humanApprovalPolicy
+automationGatePolicy
 evidencePolicy
 pavPolicy
 forensicsPolicy
@@ -121,7 +130,7 @@ You cannot execute tools.
 You cannot call APIs.
 You cannot activate maps.
 You cannot approve maps.
-You cannot emit humanApprovalRef.
+You cannot emit automationGateRef.
 You cannot emit validationReportRef.
 You cannot emit activationSnapshotRef.
 You cannot invent abilityGroupId.
@@ -133,8 +142,8 @@ You must treat capabilityCatalog as the only ability truth and must not rely on 
 If requirement is unclear, output requiredClarifications.
 If current abilities are insufficient, output needsCapabilityExpansion.
 If capabilityCatalog is missing, stale, or inconsistent with governed capability truth, return BLOCKED_CAPABILITY_CATALOG_STALE.
-If operation sends/deletes/buys/submits/modifies user data, add review gate.
-If operation involves commit/send/publish behavior, require explicit human confirmation.
+If operation sends/deletes/buys/submits/modifies user data, add automated gate.
+If operation involves commit/send/publish behavior, require explicit automated gate.
 Return strict JSON matching MapAuthoringAiOutputSchema.
 ```
 
@@ -158,7 +167,7 @@ outputSchemaCatalogVersion: required
 mapPackageSchemaVersion: required
 securityPolicyRef: required
 safetyPolicyRef: required
-humanApprovalPolicyRef: required
+automationGatePolicyRef: required
 evidencePolicyRef: required
 pavPolicyRef: required
 forensicsPolicyRef: required
@@ -179,10 +188,10 @@ draftStatus: draft | needs_clarification | needs_capability_expansion
 Forbidden：
 
 ```txt
-approvalStatus=approved
+activationGateStatus=gate_passed
 active=true
 activationSnapshotRef
-humanApprovalRef
+automationGateRef
 validationReportRef
 rawPrompt
 functionBody
@@ -235,9 +244,6 @@ stepId
 promptContractId
 requiredInputRefs
 outputSchemaRef
-confidencePolicy
-reviewPolicy
-failureBranch
 ```
 
 Rules：
@@ -300,7 +306,7 @@ Orchestration hardcodes prompt text
 Nerve Bus carries raw prompt body
 branch reads undeclared output field
 AI map authoring output emits activationSnapshotRef
-AI map authoring output emits approvalStatus=approved
+AI map authoring output emits activationGateStatus=gate_passed
 AI map authoring output references unknown outputSchemaRef
 Map Authoring Input Package missing outputSchemaCatalog
 Map Authoring Input Package missing safetyPolicy
@@ -353,7 +359,7 @@ outputSchemaCatalog
 mapPackageSchema
 mapAuthoringOutputSchema
 safetyPolicy
-humanApprovalPolicy
+automationGatePolicy
 evidencePolicy
 pavPolicy
 forensicsPolicy
@@ -385,7 +391,7 @@ You cannot execute tools.
 You cannot call APIs.
 You cannot activate maps.
 You cannot approve maps.
-You cannot emit humanApprovalRef.
+You cannot emit automationGateRef.
 You cannot emit validationReportRef.
 You cannot emit activationSnapshotRef.
 You cannot invent abilityGroupId.
@@ -395,8 +401,8 @@ You cannot invent outputSchemaRef.
 You must use only capabilityCatalog, promptContractCatalog, outputSchemaCatalog, and policy catalogs.
 If requirement is unclear, output requiredClarifications.
 If current abilities are insufficient, output needsCapabilityExpansion.
-If operation sends/deletes/buys/submits/modifies user data, add review gate.
-If operation involves commit/send/publish behavior, require explicit human confirmation.
+If operation sends/deletes/buys/submits/modifies user data, add automated gate.
+If operation involves commit/send/publish behavior, require explicit automated gate.
 Return strict JSON matching MapAuthoringAiOutputSchema.
 ```
 
@@ -416,7 +422,7 @@ outputSchemaCatalogVersion: required
 mapPackageSchemaVersion: required
 securityPolicyRef: required
 safetyPolicyRef: required
-humanApprovalPolicyRef: required
+automationGatePolicyRef: required
 evidencePolicyRef: required
 pavPolicyRef: required
 forensicsPolicyRef: required
@@ -437,10 +443,10 @@ draftStatus: draft | needs_clarification | needs_capability_expansion
 Forbidden output:
 
 ```txt
-approvalStatus=approved
+activationGateStatus=gate_passed
 active=true
 activationSnapshotRef
-humanApprovalRef
+automationGateRef
 validationReportRef
 rawPrompt
 functionBody
@@ -477,8 +483,18 @@ Branch DSL may read only:
 
 ```txt
 status
-schemaFieldRef:<fieldName> where fieldName ∈ branchableFields
+AI-provided routeLabel where routeLabel is declared by Prompt Contract output schema
 ```
+
+For product-presence binary routing:
+
+```txt
+decision: product_yes | product_no
+routeLabel: selected userRequirement.binaryOutcomePolicy route label
+nextIntent: short explanation of the selected route label
+```
+
+Orchestration must not infer routes from `product_yes` or `product_no`. It may only match `routeLabel` mechanically against map route labels.
 
 ## E. Forensics Proof Requirements
 
@@ -498,7 +514,7 @@ promptCatalogVersion
 outputSchemaCatalogVersion
 mapPackageSchemaVersion
 safetyPolicyRef
-humanApprovalPolicyRef
+automationGatePolicyRef
 evidencePolicyRef
 pavPolicyRef
 forensicsPolicyRef
@@ -521,6 +537,8 @@ raw sensitive text
 Must fail:
 
 ```txt
+Prompt Contract missing routeLabel for binary product decision
+Orchestration infers product_yes/product_no into next action
 hardcoded ability-group list inside map-authoring prompt template
 hardcoded child-capability list inside map-authoring prompt template
 build authoring prompt from duplicated static ability text instead of governed capabilityCatalog
@@ -535,7 +553,7 @@ Map Authoring Input Package missing safetyPolicy
 Map Authoring Input Package missing evidencePolicy
 Map Authoring Input Package missing targetPlatformProfile
 AI map authoring output emits activationSnapshotRef
-AI map authoring output emits approvalStatus=approved
+AI map authoring output emits activationGateStatus=gate_passed
 AI map authoring output references unknown outputSchemaRef
 AI map authoring output branches over undeclared field
 ```

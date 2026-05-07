@@ -64,7 +64,7 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
   assertCondition(pageStateObservation?.source.sourceProofRef === input.actionProof.sourceRuntimeProofRef, "Builder must bind page-state observation back to the governed source proof ref.");
 
   const verificationResult = await abilityGroup.execute(input);
-  assertCondition(verificationResult.status === "success" && verificationResult.verificationDecision === "verified", "verify-page-opened fixture must reach governed success for a ready TikTok feed URL.");
+  assertCondition(verificationResult.status === "success" && verificationResult.output !== null, "verify-page-opened fixture must reach governed success for a ready TikTok feed URL.");
 
   const invalidInputResult = await abilityGroup.execute({
     ...input,

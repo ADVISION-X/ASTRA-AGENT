@@ -32,12 +32,12 @@ Core doctrine:
 - Ability Groups are execution tools.
 - Orchestration is the dispatcher that follows frozen activated route maps.
 - AI Capability is the map authoring assistant and Prompt Contract owner.
-- Commander Console is the user command, review, explanation, approval, activation, and task-selection surface.
+- Commander Console is the user command, review, explanation, automation-gate pass, activation, and task-selection surface.
 - Map Plugin Package may reference `promptContractId`, but never owns prompt text.
 - Commander may display, review, approve, activate, disable, and rollback through governed ports only.
-- AI-generated maps are draft/quarantine only until validation and human approval pass.
+- AI-generated maps are draft/quarantine only until validation and automation gate pass.
 - Built-in map packages must pass the same lifecycle gates as imported packages.
-- No map package may become active without validation report, human approval, activation proof, activation record, and frozen activation snapshot.
+- No map package may become active without validation report, automation gate, activation proof, activation record, and frozen activation snapshot.
 - No active map law without inspector + runner + negative proof.
 
 ---
@@ -127,11 +127,18 @@ Map packages are declarative route data packages consumed by Orchestration. They
 Required:
 
 - map packages must remain JSON/data-only.
-- map packages may define task template, route steps, transitions, dependencies, compatibility, policy, prompt bindings, branch conditions, review policies, and proof policy.
+- map packages must declare one operational map kind: `routePlanBoundMap` for production automation or `genericDiagnosticMap` for isolated diagnostics.
+- `routePlanBoundMap` may declare only the deterministic entry spine, AI handoff, Prompt Contract refs, input refs, output refs, and `routePlanId`.
+- `routePlanBoundMap` must not own routeLabel action-chain steps or AI success routing; Route Plan is the only owner of `routeLabel -> step chain -> ability group/child capability`.
+- `genericDiagnosticMap` may declare diagnostic steps and transitions, but it must not bind a Route Plan or enter the production automation main chain.
+- operational maps must not define constraint logic: policy, proofPolicy, successCondition, failureBranch, reviewBranch, postActionVerification, transition.condition, allowedAbilityGroups, failureBranches, reviewBranches, sequencePolicy, timeout, retry, or human-review routing are forbidden.
+- one map plus the referenced Prompt Contract is the complete map; AI branch semantics belong to Prompt Contract output and production runtime consumption, not map condition DSL.
+- Route Plan is the single source of muscle-memory action chains. Maps may declare `routePlanId`, but must not duplicate Route Plan-owned steps, transitions, route labels, or branch semantics.
+- automation maps must strictly forbid request-human-review, human-review, manual-review, operator-review, review_required terminal routing, or any step that waits for a person.
 - map packages must not expand the frozen ability-group constitution.
-- registry governs import, quarantine, validation, approval, activation, rollback, and active-read access only.
+- registry governs import, quarantine, validation, automation gate, activation, rollback, and active-read access only.
 - registry must not execute abilities, mutate mission state, dispatch steps, dispatch Nerve Bus, or decide branches.
-- built-in packages must pass the same import/quarantine/validation/approval/activation pipeline as imported packages.
+- built-in packages must pass the same import/quarantine/validation/automation-gate/activation pipeline as imported packages.
 - ordinary UI consumes taskTemplate records, not map internals.
 - developer UI may inspect packageId, activationId, mapId, dependency chain, validation findings, internal runtime identifiers, and activation proof.
 
@@ -178,7 +185,7 @@ capabilityDomain: map-plugin-package
 enforcementMode: machine-blocking  
 evidenceMode: law+inspector+negative-proof
 
-summary: map packages must pass import, quarantine, validation, human approval, activation, active registry, and rollback lifecycle before runtime consumption.
+summary: map packages must pass import, quarantine, validation, automation gate, activation, active registry, and rollback lifecycle before runtime consumption.
 
 ### 主题
 
@@ -203,7 +210,7 @@ import
 → security validation
 → dry-run validation
 → validation report
-→ human approval
+→ automation gate
 → activation proof
 → activation
 → active registry
@@ -222,10 +229,10 @@ mapId
 mapVersion
 taskTemplateId
 requestedPlatformId
-approvedBy
+gateActor
 activatedAt
 reason
-humanApprovalRef
+automationGateRef
 validationReportRef
 importProofRef
 quarantineProofRef
@@ -242,10 +249,10 @@ Required:
 
 - imported package enters quarantine first.
 - built-in package enters quarantine first unless explicit dev-only seed mode is active.
-- development seed auto-activation must generate `developmentApprovalRef`, `validationReportRef`, `activationProofRef`, `activationSnapshotRef`, `mapPackageHash`, and `operationalMapHash`.
+- development seed auto-activation must generate `developmentAutomationGateRef`, `validationReportRef`, `activationProofRef`, `activationSnapshotRef`, `mapPackageHash`, and `operationalMapHash`.
 - validation issues block activation.
-- approvalStatus must be approved before activation.
-- humanApprovalRef is mandatory for production activation.
+- activationGateStatus must be gate_passed before activation.
+- automationGateRef is mandatory for production activation.
 - validationReportRef is mandatory for activation.
 - activationProofRef is mandatory for activation.
 - capabilityCatalogVersion and promptCatalogVersion are mandatory for activation.
@@ -256,13 +263,13 @@ Required:
 Forbidden:
 
 - active map without validationReportRef.
-- active map without humanApprovalRef or governed developmentApprovalRef.
+- active map without automationGateRef or governed developmentAutomationGateRef.
 - active map without activationProofRef.
 - active map without activationSnapshotRef.
 - active map without capabilityCatalogVersion/promptCatalogVersion.
 - active map without mapPackageHash/operationalMapHash.
 - unvalidated package active.
-- unapproved package active.
+- package before automation gate active.
 - activation directly from draft without quarantine.
 - activation by availabilityPolicy only.
 - rollback deleting activation history.
@@ -279,7 +286,7 @@ Required inspector:
 
 Required negative proof:
 
-- Activate unapproved package → FAIL.
+- Activate package before automation gate → FAIL.
 - Activate package with validation issues → FAIL.
 - Active record missing activationSnapshotRef → FAIL.
 - Active record missing activationProofRef → FAIL.
@@ -334,7 +341,7 @@ author
 createdAt
 minimumGrassEyeVersion
 mapSchemaVersion
-approvalStatus
+activationGateStatus
 aiGenerated
 authoringPromptRef when aiGenerated
 authoringModelRef when aiGenerated
@@ -342,10 +349,10 @@ authoringRunId when aiGenerated
 authoringProofRef when aiGenerated
 userRequirementRef when aiGenerated
 sourceRequirementHash when aiGenerated
-capabilityCatalogVersion when approved/aiGenerated
-promptCatalogVersion when approved/aiGenerated
-validationReportRef when approved
-humanApprovalRef when approved
+capabilityCatalogVersion when gate_passed/aiGenerated
+promptCatalogVersion when gate_passed/aiGenerated
+validationReportRef when gate_passed
+automationGateRef when gate_passed
 ```
 
 Required map step fields:
@@ -359,11 +366,6 @@ targetAbilityGroupId
 inputRefs
 outputRefPolicy
 promptContractId for AI step
-proofPolicy
-successCondition
-failureBranch
-reviewBranch
-postActionVerification when action step
 ```
 
 Forbidden:
@@ -372,16 +374,16 @@ Forbidden:
 - schema default that turns missing governance fields into active-safe values.
 - map package declaring timeoutPolicy, timeoutMs, maxDurationMs, primitiveTimeoutMs, or other execution-time budgets.
 - map package deciding timeout, wait, retry, polling, or AND THEN fallback behavior. Maps may only choose ability group / child capability / transition truth; production runtime code owns all timeout and observable-condition control.
-- approved manifest without validationReportRef.
-- approved manifest without humanApprovalRef.
-- approved manifest without activation/validation proof dependencies.
+- gate-passed manifest without validationReportRef.
+- gate-passed manifest without automationGateRef.
+- gate-passed manifest without activation/validation proof dependencies.
 - aiGenerated package without authoringPromptRef/authoringModelRef/authoringRunId/authoringProofRef/userRequirementRef/sourceRequirementHash.
-- taskTemplate availability active while manifest approvalStatus is draft/quarantined/rejected.
+- taskTemplate availability active while manifest activationGateStatus is draft/quarantined/rejected.
 
 Required inspector:
 
 - schema requiredness check.
-- approved manifest superRefine check.
+- gate-passed manifest superRefine check.
 - AI-generated authoring chain requiredness check.
 - cross-section parity check:
   - manifest.mapId === operationalMap.mapId.
@@ -392,8 +394,8 @@ Required inspector:
 
 Required negative proof:
 
-- Approved manifest without humanApprovalRef → FAIL.
-- taskTemplate active while approvalStatus draft → FAIL.
+- Gate-passed manifest without automationGateRef → FAIL.
+- taskTemplate active while activationGateStatus draft → FAIL.
 - schema imports Orchestration static map truth → FAIL.
 - AI-generated package missing authoringPromptRef → FAIL.
 - AI-generated package missing authoringProofRef → FAIL.
@@ -547,9 +549,6 @@ stepId
 promptContractId
 requiredInputRefs
 outputSchemaRef
-confidencePolicy
-reviewPolicy
-failureBranch
 ```
 
 Required:
@@ -605,7 +604,7 @@ capabilityDomain: map-plugin-package
 enforcementMode: machine-blocking  
 evidenceMode: law+inspector+negative-proof
 
-summary: AI-generated map packages must be authored against governed catalogs and remain draft/quarantine until all gates and human approval pass.
+summary: AI-generated map packages must be authored against governed catalogs and remain draft/quarantine until all gates and automation gate pass.
 
 ### 主题
 
@@ -679,7 +678,7 @@ requiredClarifications
 needsCapabilityExpansion
 promptBindings
 aiGenerated = true
-approvalStatus = draft
+activationGateStatus = draft
 availabilityPolicy = draft
 draftStatus = draft | needs_clarification | needs_capability_expansion
 ```
@@ -694,7 +693,7 @@ draft
 → prompt contract validation
 → safety validation
 → dry-run validation
-→ human approval
+→ automation gate
 → activation
 ```
 
@@ -704,29 +703,29 @@ Required:
 - generated map may reference only catalog-listed promptContractId.
 - generated map cannot active itself.
 - generated map cannot spoof aiGenerated=false.
-- generated map cannot spoof approvalStatus=approved.
+- generated map cannot spoof activationGateStatus=gate_passed.
 - generated map cannot emit activationSnapshotRef.
-- generated map cannot emit humanApprovalRef.
+- generated map cannot emit automationGateRef.
 - generated map cannot emit validationReportRef.
 - generated map cannot bypass Commander review.
 - if capability is unavailable, `needsCapabilityExpansion=true`.
 - if requirement is unclear, `requiredClarifications` must be non-empty.
-- if operation sends/deletes/buys/submits/modifies user data, review gate must be added.
-- if operation involves Text Input commit/send/publish semantics, explicit human confirmation must be required.
+- if operation sends/deletes/buys/submits/modifies user data, automated gate must be added.
+- if operation involves Text Input commit/send/publish semantics, explicit automated gate must be required.
 
 Forbidden:
 
 - AI-generated map active directly.
-- generated package with approvalStatus=approved.
+- generated package with activationGateStatus=gate_passed.
 - generated package with aiGenerated=false.
-- generated package containing humanApprovalRef.
+- generated package containing automationGateRef.
 - generated package containing validationReportRef.
 - generated package containing activationSnapshotRef.
 - generated map with unknown abilityGroupId/childCapabilityId.
 - generated map with unknown promptContractId.
 - generated map with raw prompt.
 - generated map with executable logic.
-- generated map with commit/send/publish without review gate.
+- generated map with commit/send/publish without automated gate.
 
 Required inspector:
 
@@ -735,17 +734,17 @@ Required inspector:
 - catalog reference check.
 - authority spoofing check.
 - userRequirementRef/sourceRequirementHash chain check.
-- review gate for sensitive/commit actions.
+- automated gate for sensitive/commit actions.
 
 Required negative proof:
 
 - AI generated map with aiGenerated=false → FAIL.
-- AI generated map with approvalStatus=approved → FAIL.
+- AI generated map with activationGateStatus=gate_passed → FAIL.
 - AI generated map active immediately → FAIL.
 - AI generated map emits activationSnapshotRef → FAIL.
 - AI generated map references missing capability → FAIL.
 - AI generated map references missing promptContractId → FAIL.
-- AI generated map sends/publishes without review gate → FAIL.
+- AI generated map sends/publishes without automated gate → FAIL.
 
 ---
 
@@ -779,7 +778,7 @@ outputSchemaRef
 routableByMap
 requiresGeometryProof
 requiresPostActionVerification
-requiresReviewGate
+requiresAutomationGate
 sensitiveOperation
 supportedTargets
 forbiddenResponsibilities
@@ -791,8 +790,8 @@ Required:
 - map validation must verify referenced abilityGroupId/childCapabilityId exists in catalog and is routableByMap.
 - action capabilities must carry requiresPostActionVerification=true.
 - coordinate-action capabilities must carry requiresGeometryProof=true.
-- sensitive operations must carry requiresReviewGate=true.
-- text-input commit/send/publish-like flows must require explicit review/approval gates.
+- sensitive operations must carry requiresAutomationGate=true.
+- text-input commit/send/publish-like flows must require Route Plan automated gates.
 - unknown capability must become `needsCapabilityExpansion`, not fabricated capability.
 
 Forbidden:
@@ -804,7 +803,7 @@ Forbidden:
 - map routes to ability with routableByMap=false.
 - action step without PAV when catalog requires it.
 - geometry action without geometry proof when catalog requires it.
-- sensitive operation without review when catalog requires it.
+- sensitive operation without automated gate when catalog requires it.
 
 Required inspector:
 
@@ -812,7 +811,7 @@ Required inspector:
 - catalog entry required fields check.
 - map validation against catalog.
 - action/PAV and geometry gate check.
-- sensitive/review gate check.
+- sensitive/automated gate check.
 - no manual-edit generated catalog check.
 
 Required negative proof:
@@ -821,7 +820,7 @@ Required negative proof:
 - Map routes to routableByMap=false → FAIL.
 - Action step missing PAV → FAIL.
 - Geometry action step missing geometry proof → FAIL.
-- Sensitive operation missing review gate → FAIL.
+- Sensitive operation missing automated gate → FAIL.
 - Manual edit of generated catalog accepted → FAIL.
 
 ---
@@ -932,7 +931,7 @@ capabilityDomain: map-plugin-package
 enforcementMode: machine-blocking  
 evidenceMode: law+inspector+negative-proof
 
-summary: ordinary and developer map surfaces must stay separate, and Commander must not activate or mutate maps without governed validation/approval path.
+summary: ordinary and developer map surfaces must stay separate, and Commander must not activate or mutate maps without governed validation/automation-gate path.
 
 ### 主题
 
@@ -982,10 +981,10 @@ childCapabilityId
 
 Required:
 
-- ordinary runnable task must resolve through active approved binding.
+- ordinary runnable task must resolve through active gate-passed binding.
 - quarantined/draft/disabled/rejected map packages must not appear as runnable ordinary tasks.
 - ordinary feed must not require mapId or requestedPlatformId as launch key.
-- Commander Console may request import, approval, activation, disable, and rollback only through governed ports/APIs.
+- Commander Console may request import, automation-gate pass, activation, disable, and rollback only through governed ports/APIs.
 - Commander preflight summary is not final validation truth.
 - user-facing map explanation must be plain language and must not expose runtime internals by default.
 
@@ -999,7 +998,7 @@ Forbidden:
 - ordinary mode exposing package dependency graph.
 - ordinary mode requiring mapId/requestedPlatformId as launch key.
 - Commander directly writing active registry.
-- Commander directly writing approval records.
+- Commander directly writing automation-gate records.
 - Commander executing draft-only AI map.
 - Commander bypassing validator.
 
@@ -1008,7 +1007,7 @@ Required inspector:
 - ordinary feed field allowlist.
 - developer feed boundary.
 - Commander registry write ban.
-- runnable task active/approved check.
+- runnable task active/gate-passed check.
 - draft/quarantine/disabled feed ban.
 - user explanation/internal id separation check.
 
@@ -1030,7 +1029,7 @@ capabilityDomain: map-plugin-package
 enforcementMode: machine-blocking  
 evidenceMode: law+inspector+negative-proof
 
-summary: map activation, validation, approval, prompt binding, and authoring must produce Forensics-compatible proof records.
+summary: map activation, validation, automation gate, prompt binding, and authoring must produce Forensics-compatible proof records.
 
 ### 主题
 
@@ -1046,7 +1045,7 @@ Required proof records:
 importProofRef
 quarantineProofRef
 validationReportRef
-humanApprovalRef
+automationGateRef
 activationId
 activationProofRef
 activationSnapshotRef
@@ -1079,7 +1078,7 @@ sourceRequirementHash
 capabilityCatalogVersion
 promptCatalogVersion
 validationReportRef
-humanApprovalRef
+automationGateRef
 activationProofRef
 ```
 
@@ -1087,7 +1086,7 @@ Required:
 
 - validation report must include validator names, pass/fail, issue list, severity, and generatedAt.
 - activation proof must include exact package hash and operational map hash.
-- activation proof must include validationReportRef and humanApprovalRef/developmentApprovalRef.
+- activation proof must include validationReportRef and automationGateRef/developmentAutomationGateRef.
 - rollback proof must preserve previous activation and new active state.
 - prompt binding proof must carry promptContractId and outputSchemaRef.
 - evidence chain must reference hashes/refs, not raw prompt body.
@@ -1097,7 +1096,7 @@ Forbidden:
 
 - active map without activation proof.
 - validation pass without issue list.
-- human approval without humanApprovalRef.
+- automation gate without automationGateRef.
 - prompt proof without promptHash from AI Prompt Contract Catalog.
 - raw prompt stored in map package proof.
 - rollback without rollback record.
@@ -1153,7 +1152,7 @@ permissionsAndLoginNeeds
 evidenceToBeSaved
 screenshotRetentionSummary
 aiJudgmentRisk
-humanReviewPoints
+automationGatePoints
 safetyWarnings
 activationReadinessSummary
 ```
@@ -1248,10 +1247,10 @@ Required inspector checks:
 2. map-plugin-package is not an ability group.
 3. Maps are data-only, not child abilities.
 4. Built-ins pass same lifecycle gates and cannot production auto-active.
-5. Import/quarantine/validation/approval/activation/rollback present.
-6. Active record contains activationSnapshotRef, activationProofRef, validationReportRef, humanApprovalRef, hashes, catalog versions.
-7. Approved/active map requires humanApprovalRef and validationReportRef.
-8. AI-generated maps contain authoring chain and remain draft/quarantine until human approval.
+5. Import/quarantine/validation/automation-gate/activation/rollback present.
+6. Active record contains activationSnapshotRef, activationProofRef, validationReportRef, automationGateRef, hashes, catalog versions.
+7. Approved/active map requires automationGateRef and validationReportRef.
+8. AI-generated maps contain authoring chain and remain draft/quarantine until automation gate.
 9. Map package has complete manifest/task/operational/dependency/compatibility/policy/promptBinding sections.
 10. No executable payload/rawPrompt/handler/function/eval/import/script/shell.
 11. Natural-language explanation fields are not falsely blocked by prompt/executable scanner.
@@ -1260,7 +1259,7 @@ Required inspector checks:
 14. Capability Catalog references are valid and routableByMap.
 15. PAV/Geometry/Review requirements from catalog are enforced.
 16. Ordinary/developer feed boundary is enforced.
-17. Commander cannot direct-write active registry or approval records.
+17. Commander cannot direct-write active registry or automation-gate records.
 18. Forensics-compatible proof fields exist.
 19. User-facing explanation hides runtime internals and exposes validation risks.
 20. ALL active Map Plugin laws in registry/matrix/audit-plan/runner.
@@ -1275,21 +1274,21 @@ map package modeled as child ability
 registry dispatches Nerve Bus
 builtin package active without lifecycle proof
 builtin auto-active in production
-activate unapproved map
+activate map before automation gate passes
 activate package with validation issues
 active record missing activationSnapshotRef
 active record missing activationProofRef
-approved manifest without humanApprovalRef
+gate-passed manifest without automationGateRef
 AI-generated package missing authoringPromptRef
 AI-generated package missing authoringProofRef
-AI output approvalStatus=approved
+AI output activationGateStatus=gate_passed
 AI output active=true
 AI output contains rawPrompt
 AI output contains activationSnapshotRef
 AI output references unknown abilityGroupId
 AI output references unknown childCapabilityId
 AI output references unknown promptContractId
-AI generated send/publish flow without review gate
+AI generated send/publish flow without automated gate
 map package adds functionBody
 map package adds eval string
 map package adds direct ability call
@@ -1327,8 +1326,8 @@ map packages remain data-only
 no map package becomes a child ability or runtime owner
 all built-ins and imported packages pass same lifecycle
 production registry does not auto-active builtins
-active map has validationReportRef + humanApprovalRef + activationProofRef + activationSnapshotRef + hashes
-AI-generated maps remain draft/quarantine until validation + human approval
+active map has validationReportRef + automationGateRef + activationProofRef + activationSnapshotRef + hashes
+AI-generated maps remain draft/quarantine until validation + automation gate
 AI-generated maps include full authoring chain
 authoring prompt prevents authority spoofing and capability invention
 prompt binding matches AI step and Prompt Contract Catalog
@@ -1363,11 +1362,11 @@ CI-FULL PASS
 - Prompt Contract Catalog tells AI how AI judgment steps are governed.
 - Output Schema Catalog tells AI which fields may be used for map branching.
 - Map Package Schema tells AI how to write the route.
-- Safety and Human Approval Policies tell AI which actions must pause for user authorization.
+- Safety and Automation Gate Policies tell AI which actions must pause for user authorization.
 - Evidence, PAV, and Forensics Policies tell AI how actions must be proven and retained.
 - Target Platform Profile tells AI what platform constraints, login assumptions, rate limits, and prohibited operations apply.
 - If any required input package component is missing, AI map authoring must stop with `BLOCKED_AUTHORING_INPUT_INCOMPLETE`.
-- AI must never infer missing system capabilities, missing prompt contracts, missing output fields, missing approval rules, or missing evidence rules from natural language.
+- AI must never infer missing system capabilities, missing prompt contracts, missing output fields, missing automation-gate rules, or missing evidence rules from natural language.
 
 ---
 
@@ -1407,7 +1406,7 @@ outputSchemaCatalog
 mapPackageSchema
 mapAuthoringOutputSchema
 safetyPolicy
-humanApprovalPolicy
+automationGatePolicy
 evidencePolicy
 pavPolicy
 forensicsPolicy
@@ -1421,14 +1420,14 @@ expectedDraftStatus
 
 Required:
 - `userRequirement` must describe the user goal in natural language and preserve target platform, allowed automation scope, required confirmations, failure handling, evidence preference, and run limits when provided.
-- `capabilityCatalog` must contain ability groups and child capabilities with ids, codes, descriptions, inputs, outputs, boundaries, routableByMap, proof/PAV/review requirements, sideEffectLevel, and forbidden responsibilities.
-- `promptContractCatalog` must contain promptContractId, versions, inputSchemaRef, outputSchemaRef, allowedInputRefs, dataPolicy, providerPolicy, reviewPolicy, failurePolicy, redactionPolicy, and forensicsPolicy.
+- `capabilityCatalog` must contain ability groups and child capabilities with ids, codes, descriptions, inputs, outputs, boundaries, routableByMap, proof/PAV/automation-gate requirements, sideEffectLevel, and forbidden responsibilities.
+- `promptContractCatalog` must contain promptContractId, versions, inputSchemaRef, outputSchemaRef, allowedInputRefs, dataPolicy, providerPolicy, binary decision policy for branchable prompts, redactionPolicy, and forensicsPolicy.
 - `outputSchemaCatalog` must declare all branchable output fields for each outputSchemaRef.
-- `mapPackageSchema` must define manifest, taskTemplate, operationalMap, transitions, promptBindings, policy, proofPolicy, lifecycle status, and draft/activation fields.
+- `mapPackageSchema` must define manifest, taskTemplate, operationalMap kind, routePlanBoundMap binding fields, genericDiagnosticMap diagnostic fields, promptBindings, lifecycle status, and draft/activation fields.
 - `mapAuthoringOutputSchema` must define the exact AI output shape.
-- `safetyPolicy` and `humanApprovalPolicy` must define all operations that require user approval.
+- `safetyPolicy` and `automationGatePolicy` must define all operations that require Route Plan automated gate.
 - `evidencePolicy`, `pavPolicy`, and `forensicsPolicy` must define proof refs, screenshot retention, PAV handoff, evidence packet, redaction, and no-raw-secret rules.
-- `targetPlatformProfile` must define platform constraints, login/auth expectations, supported targets, prohibited operations, rate limits, security/captcha pause behavior, and human review rules.
+- `targetPlatformProfile` must define platform constraints, login/auth expectations, supported targets, prohibited operations, rate limits, security/captcha pause behavior, and automation gate rules.
 - `exampleMaps` must be optional but, when present, must be schema-valid and marked `exampleOnly=true`.
 - The AI map authoring prompt must be built only from this input package or refs derived from it.
 - The prompt template may hardcode generation rules only; it must not hardcode ability-group or child-capability lists.
@@ -1448,7 +1447,7 @@ Forbidden:
 - generation without outputSchemaCatalog.
 - generation without mapPackageSchema.
 - generation without mapAuthoringOutputSchema.
-- generation without safetyPolicy or humanApprovalPolicy.
+- generation without safetyPolicy or automationGatePolicy.
 - generation without evidencePolicy, pavPolicy, or forensicsPolicy.
 - generation without targetPlatformProfile.
 - examples treated as active maps.
@@ -1458,14 +1457,14 @@ Forbidden:
 - prompt text acting as a second capability catalog.
 - AI instructed to infer missing system capabilities from natural language.
 - AI instructed to infer missing prompt contracts or output fields.
-- AI instructed to infer approval/evidence rules from natural language.
+- AI instructed to infer automation-gate/evidence rules from natural language.
 
 Required inspector:
 - MapAuthoringInputPackageSchema required fields.
 - catalog completeness checks.
 - outputSchemaCatalog declared branch-field checks.
 - mapPackageSchema and mapAuthoringOutputSchema presence checks.
-- safety/humanApproval/evidence/PAV/Forensics/platform policy presence.
+- safety/automationGate/evidence/PAV/Forensics/platform policy presence.
 - authoring prompt builder uses input package, not ad-hoc string.
 - prompt template contains rules only and reads ability data from governed capabilityCatalog input.
 - stale capability catalog blocks authoring.
@@ -1479,7 +1478,7 @@ Required negative proof:
 - Remove mapPackageSchema → FAIL.
 - Remove mapAuthoringOutputSchema → FAIL.
 - Remove safetyPolicy → FAIL.
-- Remove humanApprovalPolicy → FAIL.
+- Remove automationGatePolicy → FAIL.
 - Remove evidencePolicy → FAIL.
 - Remove pavPolicy → FAIL.
 - Remove forensicsPolicy → FAIL.
@@ -1542,7 +1541,7 @@ requiresTargetProof
 requiresFocusProof
 requiresApprovedText
 requiresPostActionVerification
-requiresHumanReview
+requiresAutomationGate
 sensitiveOperation
 sideEffectLevel = none | read | write | submit | delete | purchase
 allowedStepKinds
@@ -1558,7 +1557,7 @@ Required:
 - coordinate-action children must declare Geometry Guard requirements.
 - visual-target children must declare target proof outputs and must not click/write.
 - screenshot children must declare capture proof, image refs, retention policy needs, and no judgment ownership.
-- text-input children must declare approvedText, target/focus proof, sensitive text, commit/human approval, and PAV requirements.
+- text-input children must declare approvedText, target/focus proof, sensitive text, commit/automation gate, and PAV requirements.
 - mouse-click children must declare geometry proof and PAV requirements.
 - mouse-scroll children must declare scroll bounds and post-scroll verification policy.
 - AI children must declare promptContract/outputSchema requirements.
@@ -1574,7 +1573,7 @@ Forbidden:
 - child capability without inputSchemaRef/outputSchemaRef.
 - vague capability descriptions with no boundary.
 - missing forbiddenResponsibilities.
-- missing proof/PAV/review requirements.
+- missing proof/PAV/automation-gate requirements.
 - AI-generated map referencing unknown abilityGroupId or childCapabilityId.
 - AI-generated map referencing routableByMap=false capability.
 - AI inventing capability because userRequirement asks for it.
@@ -1629,8 +1628,7 @@ outputSchemaRef
 allowedInputRefs
 dataPolicy
 providerPolicy
-reviewPolicy
-failurePolicy
+binaryDecisionPolicy for branchable prompts
 redactionPolicy
 forensicsPolicy
 forbiddenOutputs
@@ -1703,7 +1701,7 @@ capabilityDomain: map-plugin-package
 enforcementMode: machine-blocking  
 evidenceMode: law+inspector+negative-proof
 
-summary: safety, human approval, evidence, PAV, Forensics, privacy, secret, rate-limit, and platform policies must be first-class inputs to map authoring.
+summary: safety, automation gate, evidence, PAV, Forensics, privacy, secret, rate-limit, and platform policies must be first-class inputs to map authoring.
 
 ### 主题
 
@@ -1717,7 +1715,7 @@ Required policy catalogs:
 
 ```txt
 safetyPolicy
-humanApprovalPolicy
+automationGatePolicy
 evidencePolicy
 pavPolicy
 forensicsPolicy
@@ -1727,16 +1725,16 @@ rateLimitPolicy
 targetPlatformProfile
 ```
 
-Required safety/human approval rules:
-- send message → human approval required.
-- submit form → human approval required.
-- purchase/payment → human approval required.
-- delete content → human approval required.
-- modify user data → human approval required.
-- bulk action → human approval + rate limit required.
-- text-input commit/send/publish semantics → explicit approval required.
-- external AI transmission of userRequirement → externalTransmissionApproval required.
-- activation of AI-generated map → human approval required.
+Required safety/automation gate rules:
+- send message → automation gate required.
+- submit form → automation gate required.
+- purchase/payment → automation gate required.
+- delete content → automation gate required.
+- modify user data → automation gate required.
+- bulk action → automation gate + rate limit required.
+- text-input commit/send/publish semantics → Route Plan automated gate required.
+- external AI transmission of userRequirement → externalTransmissionGate required.
+- activation of AI-generated map → automation gate required.
 
 Required evidence/PAV/Forensics rules:
 - action step requires PAV when catalog says so.
@@ -1745,7 +1743,7 @@ Required evidence/PAV/Forensics rules:
 - screenshot step requires retention policy.
 - product candidate/evidence capture steps require evidencePacketRef or Forensics write request.
 - AI steps must record aiProofRef and promptContract refs.
-- map activation must record validationReportRef, humanApprovalRef, activationProofRef, activationSnapshotRef, and hashes.
+- map activation must record validationReportRef, governedActivationProofRef, activationSnapshotRef, and hashes.
 - raw API keys, cookies, secrets, raw prompt body, raw sensitive text, and raw clipboard text must not enter proof/log/map package.
 - Forensics stores refs/hashes, not raw sensitive content.
 
@@ -1757,37 +1755,37 @@ Required platform profile rules:
 - rate limit.
 - safety pause conditions.
 - captcha/security check behavior.
-- user review requirements.
+- automation gate requirements.
 
 Forbidden:
-- generated map with high-risk side effect and no human review.
+- generated map with high-risk side effect and no Route Plan automated gate.
 - generated map with action step and missing PAV requirement.
 - generated map with evidence step and missing evidence policy.
 - generated map with screenshot step and missing retention policy.
 - generated map that persists raw secrets or raw sensitive text.
 - generated map that assumes platform login bypass.
 - generated map that ignores targetPlatformProfile constraints.
-- external AI authoring without transmission approval when policy requires it.
+- external AI authoring without transmission gate when policy requires it.
 
 Required inspector:
-- high-risk operation review gate check.
+- high-risk operation automated gate check.
 - action/PAV policy check.
 - evidence/Forensics policy check.
 - screenshot retention policy check.
 - no raw secret/sensitive text proof check.
 - platform profile reference check.
-- external transmission approval check.
-- AI-generated map activation approval check.
+- external transmission automated gate check.
+- AI-generated map activation gate check.
 
 Required negative proof:
-- send-message map without human review → FAIL.
-- text-input commit without approval → FAIL.
+- send-message map without Route Plan automated gate → FAIL.
+- text-input commit without Route Plan automated gate → FAIL.
 - mouse-click action without PAV → FAIL.
 - evidence step without Forensics/evidence policy → FAIL.
 - screenshot step without retention policy → FAIL.
 - raw secret in proof → FAIL.
-- external AI authoring without transmission approval → FAIL.
-- AI-generated map activation without humanApprovalRef → FAIL.
+- external AI authoring without transmission gate → FAIL.
+- AI-generated map activation without governed activation proof → FAIL.
 
 ---
 
@@ -1812,23 +1810,25 @@ Map Plugin Package enforcement must close Map Authoring Input Package completene
 Required inspector coverage additions:
 1. Map Authoring Input Package schema exists.
 2. Map Authoring Input Package has all required fields.
-3. capabilityCatalog is detailed and child-capability complete.
-4. promptContractCatalog and outputSchemaCatalog are present and referenced.
-5. mapPackageSchema and mapAuthoringOutputSchema are present.
-6. safety/humanApproval/evidence/PAV/Forensics/privacy/secret/rateLimit/platform policies are present.
-7. authoring prompt builder uses only input package fields.
-8. generated map output is draft/quarantine only.
-9. generated map cannot invent ability/prompt/schema ids.
-10. generated map high-risk operations require review gates.
-11. generated map action steps require PAV.
-12. generated map evidence steps require evidence/Forensics policies.
-13. generated map screenshot steps require retention policy.
-14. ordinary/developer feed boundary remains enforced.
-15. activation proof and frozen snapshot fields remain enforced.
-16. user explanation schema and no runtime-internal leakage remain enforced.
-17. no raw prompt/secret/sensitive text leakage.
-18. all active map-plugin laws in registry/matrix/audit-plan/runner.
-19. negative-proof-harness executed.
+3. UserRequirement includes binaryOutcomePolicy with product_yes/product_no option catalogs and selected route labels.
+4. capabilityCatalog is detailed and child-capability complete.
+5. promptContractCatalog and outputSchemaCatalog are present and referenced.
+6. mapPackageSchema and mapAuthoringOutputSchema are present.
+7. safety/automationGate/evidence/PAV/Forensics/privacy/secret/rateLimit/platform policies are present.
+8. authoring prompt builder uses only input package fields.
+9. generated map output is draft/quarantine only.
+10. generated map cannot invent ability/prompt/schema ids.
+11. generated map high-risk operations require automated gates, not human review in automation maps.
+12. generated map action steps require PAV where production catalogs require it.
+13. generated map evidence steps require evidence/Forensics policies.
+14. generated map screenshot steps require retention policy.
+15. ordinary/developer feed boundary remains enforced.
+16. activation proof and frozen snapshot fields remain enforced.
+17. user explanation schema and no runtime-internal leakage remain enforced.
+18. no raw prompt/secret/sensitive text leakage.
+19. Orchestration matches AI routeLabel mechanically and must not infer next action from product_yes/product_no.
+20. all active map-plugin laws in registry/matrix/audit-plan/runner.
+21. negative-proof-harness executed.
 
 Required negative proof additions:
 
@@ -1839,11 +1839,15 @@ remove outputSchemaCatalog
 remove mapPackageSchema
 remove mapAuthoringOutputSchema
 remove safetyPolicy
-remove humanApprovalPolicy
+remove automationGatePolicy
 remove evidencePolicy
 remove pavPolicy
 remove forensicsPolicy
 remove targetPlatformProfile
+remove binaryOutcomePolicy
+remove selected routeLabel
+Prompt Contract missing routeLabel for binary product decision
+Orchestration reintroduces product_yes/product_no route inference
 capability child without boundary
 capability child without forbiddenResponsibilities
 AI output unknown childCapabilityId
@@ -1851,10 +1855,10 @@ AI output unknown promptContractId
 AI output unknown outputSchemaRef
 AI output branch over undeclared output field
 AI output active=true
-AI output approvalStatus=approved
+AI output activationGateStatus=gate_passed
 AI output activationSnapshotRef
 AI output rawPrompt
-AI output high-risk action without review
+AI output high-risk action without Route Plan gate
 AI output action without PAV
 AI output evidence step without Forensics/evidence policy
 AI output screenshot step without retention policy
@@ -1877,7 +1881,7 @@ outputSchemaCatalog present
 mapPackageSchema present
 mapAuthoringOutputSchema present
 safety/evidence/PAV/Forensics/platform policies enforced
-human approval enforced
+automation gate enforced
 AI generated maps draft-only
 catalog references valid
 activation proof enforced

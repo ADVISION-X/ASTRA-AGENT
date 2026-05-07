@@ -4,7 +4,7 @@ import { buildProviderStateSnapshot, saveMapLabProviderConfig } from "./map-lab-
 import { createMapLabRegistrySupport } from "./map-lab-registry-support.js";
 import type {
   MapLabActivationResult,
-  MapLabApprovalResult,
+  MapLabAutomationGateResult,
   MapLabGenerateDraftResult,
   MapLabProviderConfigInput,
   MapLabProviderState,
@@ -30,9 +30,9 @@ export function createMapLabService(runtime: WorkbenchRuntime) {
       saveMapLabProviderConfig(runtime, input),
     generateDraft: (input: unknown): Promise<MapLabGenerateDraftResult> =>
       generateMapLabDraft({ runtime, registry: registrySupport.registry, requestInput: input }),
-    approveDraft: (input: { packageId: string; packageVersion: string; approvedBy: string }): Promise<MapLabApprovalResult> =>
-      Promise.resolve(registrySupport.approveDraft(input)),
-    activateDraft: (input: { packageId: string; packageVersion: string; approvedBy: string; reason: string }): Promise<MapLabActivationResult> =>
+    passAutomationGate: (input: { packageId: string; packageVersion: string; gateActor: string }): Promise<MapLabAutomationGateResult> =>
+      Promise.resolve(registrySupport.passAutomationGate(input)),
+    activateDraft: (input: { packageId: string; packageVersion: string; gateActor: string; reason: string }): Promise<MapLabActivationResult> =>
       Promise.resolve(registrySupport.activateDraft(input)),
   };
 }

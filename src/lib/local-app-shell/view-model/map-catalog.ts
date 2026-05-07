@@ -30,7 +30,7 @@ export function buildMapCatalog(locale: Locale): CommanderConsoleMapView[] {
     title: mapPackage.title,
     readiness: getReadinessTone(mapPackage.lifecycleStatus),
     summary: mapPackage.summary,
-    approvalStatus: mapPackage.approvalStatus,
+    activationGateStatus: mapPackage.activationGateStatus,
     lifecycleStatus: mapPackage.lifecycleStatus,
     validationSummary: getValidationSummary(locale, mapPackage.validationIssues.length),
     activationId: mapPackage.activationId,

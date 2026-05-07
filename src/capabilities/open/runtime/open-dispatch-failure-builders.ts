@@ -98,19 +98,18 @@ const buildOpenDispatchFailureNavigationDecision = (
   abortDecision: input.failureCode === "navigation_timeout" ? "timeout_abort_requested" as const : "not_requested" as const,
   circuitBreakerState: "closed" as const,
   browserOpenStillRunningGuard: false,
-  alreadyOnTargetFreshnessDecision: "not_applicable" as const,
+  alreadyOnTargetHandlingMode: "not_applicable" as const,
 });
 
 const buildOpenDispatchFailurePostOpenDecision = (input: OpenDispatchFailureInput) => ({
   status: input.status,
-  classification: "unknown" as const,
+  classification: "navigation_failure_observation" as const,
   reason: input.reason,
   openedUrl: null,
   pageTitleAfter: null,
   pageStateHandoffRequired: false,
   pageStateHandoffRef: null,
   authoritative: false,
-  documentReadyState: null,
 });
 
 const buildOpenDispatchFailureRuntimeProofCoreFields = (
@@ -148,7 +147,7 @@ const buildOpenDispatchFailureRuntimeProofDecisionFields = (
   sessionDecision: buildOpenDispatchFailureSessionDecision(input),
   navigationDecision: buildOpenDispatchFailureNavigationDecision(input, derived),
   postOpenDecision: buildOpenDispatchFailurePostOpenDecision(input),
-  preliminaryOpenClassification: "unknown" as const,
+  preliminaryOpenClassification: "navigation_failure_observation" as const,
   pageStateHandoffRequired: false,
   pageStateHandoffRef: null,
 });

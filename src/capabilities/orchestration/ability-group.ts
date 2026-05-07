@@ -1,4 +1,4 @@
-import type { MissionCommand, MissionReviewDecisionInput, OrchestrationAbilityGroup, OrchestrationExecuteInput, OrchestrationExecuteResult } from "./contract.js";
+import type { MissionCommand, OrchestrationAbilityGroup, OrchestrationExecuteInput, OrchestrationExecuteResult } from "./contract.js";
 import type { NerveBusAbilityGroup } from "../nerve-bus/contract.js";
 import type {
   ForensicsPersistenceAbilityResult,
@@ -27,16 +27,6 @@ type ExecuteEnvelope = (inputValue: OrchestrationExecuteInput) => Promise<Orches
 
 function readStateSnapshot(executeEnvelope: ExecuteEnvelope, inputValue: OrchestrationExecuteInput) {
   return executeEnvelope(inputValue).then((result) => result.stateSnapshot);
-}
-
-function buildReviewDecisionInput(inputValue: MissionReviewDecisionInput): OrchestrationExecuteInput {
-  if (inputValue.decision === "resume") {
-    return { childCapabilityId: "resume-mission", payload: { missionId: inputValue.missionId, reason: null, note: inputValue.note ?? null } };
-  }
-  if (inputValue.decision === "stop") {
-    return { childCapabilityId: "stop-mission", payload: { missionId: inputValue.missionId, reason: inputValue.note ?? "review stop requested", note: inputValue.note ?? null } };
-  }
-  return { childCapabilityId: "request-human-review", payload: { missionId: inputValue.missionId, reason: inputValue.note ?? "review hold requested" } };
 }
 
 function createCatalogMethods(context: OrchestrationRuntime): Pick<OrchestrationAbilityGroup, "listChildCapabilityIds" | "listMapIds" | "getMissionState"> {
@@ -85,20 +75,11 @@ function createControlMethods(executeEnvelope: ExecuteEnvelope): Pick<Orchestrat
   };
 }
 
-function createReviewMethods(executeEnvelope: ExecuteEnvelope): Pick<OrchestrationAbilityGroup, "submitReviewDecision"> {
-  return {
-    submitReviewDecision(inputValue: MissionReviewDecisionInput) {
-      return readStateSnapshot(executeEnvelope, buildReviewDecisionInput(inputValue));
-    },
-  };
-}
-
 function assembleOrchestrationAbilityGroup(context: OrchestrationRuntime, executeEnvelope: ExecuteEnvelope): OrchestrationAbilityGroup {
   return {
     ...createCatalogMethods(context),
     ...createExecutionMethods(executeEnvelope),
     ...createControlMethods(executeEnvelope),
-    ...createReviewMethods(executeEnvelope),
   };
 }
 

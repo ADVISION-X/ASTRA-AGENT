@@ -15,7 +15,7 @@ function buildMapInspectItems(locale: Locale, mapCatalog: CommanderConsoleMapVie
     json: map,
     references: [
       { label: localizeCommanderText(locale, "地图包", "Package"), value: map.packageId },
-      { label: localizeCommanderText(locale, "审批", "Approval"), value: map.approvalStatus },
+      { label: localizeCommanderText(locale, "门禁", "Automation Gate"), value: map.activationGateStatus },
     ],
   }));
 }

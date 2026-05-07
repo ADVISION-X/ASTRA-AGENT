@@ -141,7 +141,7 @@ export const resolveIdempotencyFailureResult = (input: {
       idempotencyKey: input.idempotency.idempotencyKey,
       decision: input.idempotency.decision,
       reason: input.idempotency.reason,
-      alreadyOnTargetDecision: input.idempotency.alreadyOnTargetDecision,
+      alreadyOnTargetHandlingMode: input.idempotency.alreadyOnTargetHandlingMode,
     },
   });
 };
@@ -178,7 +178,7 @@ export const buildOpenChildResult = (input: {
   failureReason: input.postOpenState.status === "failed"
     ? createOpenFailure({
         code: input.navigation.failureCode ?? input.postOpenState.failureCode ?? "post_open_state_failed",
-        message: input.postOpenState.reason ?? input.navigation.reason ?? "open failed after post-open state evaluation",
+        message: input.postOpenState.reason ?? input.navigation.reason ?? "open failed before post-open observation handoff completed",
       })
     : null,
   reviewRequiredReason: input.postOpenState.status === "review_required" ? input.postOpenState.reason : null,

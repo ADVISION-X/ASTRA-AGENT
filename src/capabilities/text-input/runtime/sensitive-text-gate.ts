@@ -1,5 +1,5 @@
 import type { ParsedTextInputAbilityInput } from "../contract.js";
-import { buildRedactedPreview, detectSensitiveText } from "../shared/text-input-redaction.js";
+import { buildRedactedPreview } from "../shared/text-input-redaction.js";
 
 const WRITE_CHILDREN = new Set(["type-text", "paste-text", "replace-input"]);
 
@@ -123,16 +123,17 @@ const SENSITIVE_TEXT_VALIDATORS = [
   validateSensitiveMapApproval,
 ] as const;
 
+function isPolicySensitive(request: ParsedTextInputAbilityInput) {
+  return request.policy.sensitiveTextPolicy.classification === "sensitive"
+    || request.policy.sensitiveTextPolicy.classification === "restricted";
+}
+
 function resolveSensitiveTextValidationFailure(input: {
   request: ParsedTextInputAbilityInput;
   payload: string;
   redactedPreview: string | null;
 }) {
-  const heuristicallySensitive = input.payload.length > 0 && detectSensitiveText(input.payload);
-  const policySensitive = input.request.policy.sensitiveTextPolicy.classification === "sensitive"
-    || input.request.policy.sensitiveTextPolicy.classification === "restricted";
-
-  if (!heuristicallySensitive && !policySensitive) {
+  if (input.payload.length === 0 || !isPolicySensitive(input.request)) {
     return null;
   }
 

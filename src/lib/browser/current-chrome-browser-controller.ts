@@ -15,7 +15,6 @@ import {
   activateChrome,
   buildOpenUrlScript,
   clickAt,
-  escapeAppleScriptText,
   pressBrowserKey,
   readFrontChromeWindowState,
   runAppleScript,
@@ -33,16 +32,6 @@ type CurrentChromeBrowserControllerOptions = {
   screenshotDir: string;
   headlessRequested?: boolean;
 };
-
-type ScrollVideoIdentitySnapshot = {
-  url: string | null;
-  title: string | null;
-  videoKey: string | null;
-  capturedAt: string;
-};
-
-const SCROLL_NEXT_VIDEO_OBSERVATION_TIMEOUT_MS = 8_000;
-const SCROLL_NEXT_VIDEO_OBSERVATION_POLL_MS = 250;
 
 export class CurrentChromeBrowserController implements BrowserController {
   private snapshot: BrowserStateSnapshot;
@@ -119,10 +108,7 @@ export class CurrentChromeBrowserController implements BrowserController {
     if (input.deltaX === 0 && input.deltaY === 0) {
       return this.createActionResult({ message: `skipped zero scroll for ${input.targetLabel}`, ok: false, fallbackUsed: input.fallbackUsed ?? false });
     }
-    const requiresVideoAdvanceObservation = input.targetLabel.includes("scroll_next_video") && input.deltaY > 0;
-    const beforeVideoIdentity = requiresVideoAdvanceObservation
-      ? await this.readCurrentVideoIdentitySnapshot(input.abortSignal)
-      : null;
+    const requiresArrowDownAssist = input.targetLabel.includes("scroll_next_video") && input.deltaY > 0;
     await activateChrome(input.abortSignal);
     await scrollAt({
       x: Math.round(scrollX),
@@ -132,7 +118,7 @@ export class CurrentChromeBrowserController implements BrowserController {
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
     let auxiliaryKeyMessage = "";
-    if (requiresVideoAdvanceObservation) {
+    if (requiresArrowDownAssist) {
       await this.sleep(120, input.abortSignal);
       try {
         await pressBrowserKey(125, input.abortSignal);
@@ -141,11 +127,9 @@ export class CurrentChromeBrowserController implements BrowserController {
         auxiliaryKeyMessage = `; ArrowDown assist skipped: ${error instanceof Error ? error.message : "unknown key dispatch error"}`;
       }
     }
-    const observationMessage = requiresVideoAdvanceObservation
-      ? await this.waitForScrollNextVideoIdentityChange(beforeVideoIdentity, input.abortSignal)
-      : (await this.sleep(300, input.abortSignal), "browser scroll settle observed");
+    await this.sleep(300, input.abortSignal);
     await this.refreshSnapshot();
-    return this.createActionResult({ message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}${auxiliaryKeyMessage}; ${observationMessage}`, fallbackUsed: input.fallbackUsed ?? false });
+    return this.createActionResult({ message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}${auxiliaryKeyMessage}; browser scroll settle observed`, fallbackUsed: input.fallbackUsed ?? false });
   }
 
   async click(input: { targetLabel: string; point: { x: number; y: number }; coordinateSpace?: "browserViewport" | "desktopScreen"; button?: "left" | "right" | "middle"; clickCount?: 1 | 2; fallbackUsed?: boolean }): Promise<BrowserActionResult> {
@@ -223,108 +207,6 @@ export class CurrentChromeBrowserController implements BrowserController {
       };
       abortSignal?.addEventListener("abort", abortHandler, { once: true });
     });
-  }
-
-  private async readCurrentVideoIdentitySnapshot(abortSignal?: AbortSignal): Promise<ScrollVideoIdentitySnapshot | null> {
-    const script = `
-(() => {
-  const visibleArea = (rect) => {
-    const left = Math.max(0, rect.left);
-    const top = Math.max(0, rect.top);
-    const right = Math.min(window.innerWidth || 0, rect.right);
-    const bottom = Math.min(window.innerHeight || 0, rect.bottom);
-    return Math.max(0, right - left) * Math.max(0, bottom - top);
-  };
-  const nearestHref = (element) => {
-    const direct = element.closest("a[href]");
-    if (direct) return direct.href;
-    let parent = element.parentElement;
-    for (let depth = 0; parent && depth < 5; depth += 1, parent = parent.parentElement) {
-      const anchor = parent.querySelector('a[href*="/reel/"],a[href*="/watch"],a[href*="/videos/"],a[href*="/video/"]');
-      if (anchor) return anchor.href;
-    }
-    return "";
-  };
-  const videos = Array.from(document.querySelectorAll("video"))
-    .map((video, index) => {
-      const rect = video.getBoundingClientRect();
-      const duration = Number.isFinite(video.duration) ? String(Math.round(video.duration * 100) / 100) : "";
-      const parts = [
-        video.currentSrc || video.src || "",
-        video.poster || "",
-        nearestHref(video),
-        duration,
-        String(Math.round(rect.left)),
-        String(Math.round(rect.top)),
-        String(Math.round(rect.width)),
-        String(Math.round(rect.height)),
-      ].filter(Boolean);
-      return { index, area: visibleArea(rect), key: parts.join("|") };
-    })
-    .filter((entry) => entry.area > 1024 && entry.key.length > 0)
-    .sort((left, right) => right.area - left.area || left.index - right.index);
-  const activeVideo = videos[0] || null;
-  return JSON.stringify({
-    url: location.href || null,
-    title: document.title || null,
-    videoKey: activeVideo ? activeVideo.key : null,
-    capturedAt: new Date().toISOString(),
-  });
-})()
-`;
-    try {
-      const output = await runAppleScript(`
-tell application "Google Chrome"
-    if (count of windows) = 0 then return ""
-    return execute active tab of front window javascript "${escapeAppleScriptText(script)}"
-end tell
-`, abortSignal ? { signal: abortSignal } : undefined);
-      const parsed = JSON.parse(output) as ScrollVideoIdentitySnapshot;
-      return {
-        url: typeof parsed.url === "string" ? parsed.url : null,
-        title: typeof parsed.title === "string" ? parsed.title : null,
-        videoKey: typeof parsed.videoKey === "string" ? parsed.videoKey : null,
-        capturedAt: typeof parsed.capturedAt === "string" ? parsed.capturedAt : new Date().toISOString(),
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  private normalizeComparableUrl(value: string | null): string | null {
-    if (value === null || !URL.canParse(value)) {
-      return value;
-    }
-    const parsed = new URL(value);
-    parsed.hash = "";
-    return parsed.toString();
-  }
-
-  private didVideoIdentityChange(before: ScrollVideoIdentitySnapshot | null, after: ScrollVideoIdentitySnapshot | null): boolean {
-    if (before === null || after === null) {
-      return false;
-    }
-    if (before.videoKey !== null && after.videoKey !== null && before.videoKey !== after.videoKey) {
-      return true;
-    }
-    const beforeUrl = this.normalizeComparableUrl(before.url);
-    const afterUrl = this.normalizeComparableUrl(after.url);
-    return beforeUrl !== null && afterUrl !== null && beforeUrl !== afterUrl;
-  }
-
-  private async waitForScrollNextVideoIdentityChange(before: ScrollVideoIdentitySnapshot | null, abortSignal?: AbortSignal): Promise<string> {
-    const deadline = Date.now() + SCROLL_NEXT_VIDEO_OBSERVATION_TIMEOUT_MS;
-    let lastSnapshot: ScrollVideoIdentitySnapshot | null = null;
-    while (Date.now() < deadline) {
-      lastSnapshot = await this.readCurrentVideoIdentitySnapshot(abortSignal);
-      if (this.didVideoIdentityChange(before, lastSnapshot)) {
-        return "AND THEN observed video identity change";
-      }
-      await this.sleep(SCROLL_NEXT_VIDEO_OBSERVATION_POLL_MS, abortSignal);
-    }
-    const beforeState = before?.videoKey ?? before?.url ?? "unknown-before-video-identity";
-    const afterState = lastSnapshot?.videoKey ?? lastSnapshot?.url ?? "unknown-after-video-identity";
-    return `AND THEN fallback timeout reached without video identity change before=${beforeState} after=${afterState}`;
   }
 
   private async refreshSnapshot() {

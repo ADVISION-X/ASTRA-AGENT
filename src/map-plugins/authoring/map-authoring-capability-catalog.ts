@@ -99,7 +99,7 @@ const buildSideEffectLevel = (
 };
 
 const buildFailureModes = (abilityGroupId: string): string[] => {
-  return FAILURE_MODES_BY_ABILITY_GROUP[abilityGroupId] ?? ["precondition_failed", "timeout", "review_required"];
+  return FAILURE_MODES_BY_ABILITY_GROUP[abilityGroupId] ?? ["precondition_failed", "timeout", "failed"];
 };
 
 const includeProofRequirements = (condition: boolean, refs: string[]): string[] => {
@@ -140,7 +140,7 @@ const buildCapabilityChild = (
     requiresFocusProof: entry.abilityGroupId === "text-input",
     requiresApprovedText: entry.abilityGroupId === "text-input",
     requiresPostActionVerification: entry.requiresPostActionVerification,
-    requiresHumanReview: entry.requiresReviewGate || ["submit", "delete", "purchase"].includes(sideEffectLevel),
+    requiresAutomationGate: entry.requiresAutomationGate || ["submit", "delete", "purchase"].includes(sideEffectLevel),
     sensitiveOperation: entry.sensitiveOperation,
     sideEffectLevel,
     allowedStepKinds: buildAllowedStepKinds(entry.abilityGroupId),
@@ -165,7 +165,7 @@ const buildRuntimeOnlyChild = (abilityGroupId: string): MapAuthoringCapabilityCh
   requiresFocusProof: false,
   requiresApprovedText: false,
   requiresPostActionVerification: false,
-  requiresHumanReview: true,
+  requiresAutomationGate: false,
   sensitiveOperation: false,
   sideEffectLevel: "none",
   allowedStepKinds: ["runtime-owner-boundary"],

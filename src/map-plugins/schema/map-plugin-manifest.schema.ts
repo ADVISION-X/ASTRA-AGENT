@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-import { MAP_PACKAGE_APPROVAL_STATUSES } from "../shared/map-package-status.js";
+import { MAP_PACKAGE_ACTIVATION_GATE_STATUSES } from "../shared/map-package-status.js";
 
 const APPROVED_REQUIRED_FIELDS = [
   "capabilityCatalogVersion",
   "promptCatalogVersion",
   "validationReportRef",
-  "humanApprovalRef",
+  "automationGateRef",
 ] as const;
 
 const AI_GENERATED_REQUIRED_FIELDS = [
@@ -47,7 +47,7 @@ const MapPluginManifestBaseSchema = z.object({
   createdAt: z.string().datetime(),
   minimumGrassEyeVersion: z.string().min(1),
   mapSchemaVersion: z.string().min(1),
-  approvalStatus: z.enum(MAP_PACKAGE_APPROVAL_STATUSES),
+  activationGateStatus: z.enum(MAP_PACKAGE_ACTIVATION_GATE_STATUSES),
   aiGenerated: z.boolean().default(false),
   authoringPromptRef: z.string().min(1).nullable().default(null),
   authoringModelRef: z.string().min(1).nullable().default(null),
@@ -66,19 +66,19 @@ const MapPluginManifestBaseSchema = z.object({
   generatedAt: z.string().datetime().nullable().default(null),
   authoringProofRef: z.string().min(1).nullable().default(null),
   validationReportRef: z.string().min(1).nullable().default(null),
-  humanApprovalRef: z.string().min(1).nullable().default(null)
+  automationGateRef: z.string().min(1).nullable().default(null)
 }).strict();
 
 type MapPluginManifestValue = z.input<typeof MapPluginManifestBaseSchema>;
 
 function validateApprovedManifest(manifest: MapPluginManifestValue, context: z.RefinementCtx): void {
-  if (manifest.approvalStatus !== "approved") {
+  if (manifest.activationGateStatus !== "gate_passed") {
     return;
   }
 
   for (const fieldName of APPROVED_REQUIRED_FIELDS) {
     if (manifest[fieldName] === null) {
-      addManifestIssue(context, fieldName, `${fieldName} is required when approvalStatus is approved.`);
+      addManifestIssue(context, fieldName, `${fieldName} is required when activationGateStatus is gate_passed.`);
     }
   }
 }
@@ -94,8 +94,8 @@ function validateAiGeneratedManifest(manifest: MapPluginManifestValue, context: 
     }
   }
 
-  if (manifest.approvalStatus === "approved" && manifest.humanApprovalRef === null) {
-    addManifestIssue(context, "humanApprovalRef", "humanApprovalRef is required when an AI-generated map is approved.");
+  if (manifest.activationGateStatus === "gate_passed" && manifest.automationGateRef === null) {
+    addManifestIssue(context, "automationGateRef", "automationGateRef is required when an AI-generated map passed the automation gate.");
   }
 }
 

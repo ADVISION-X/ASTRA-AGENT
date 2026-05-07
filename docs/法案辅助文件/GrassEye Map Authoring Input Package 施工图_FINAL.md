@@ -62,7 +62,7 @@ mapPackageSchema: required
 mapAuthoringOutputSchema: required
 
 safetyPolicy: required
-humanApprovalPolicy: required
+automationGatePolicy: required
 evidencePolicy: required
 pavPolicy: required
 forensicsPolicy: required
@@ -139,7 +139,7 @@ requiresTargetProof: boolean
 requiresFocusProof: boolean
 requiresApprovedText: boolean
 requiresPostActionVerification: boolean
-requiresHumanReview: boolean
+requiresAutomationGate: boolean
 sensitiveOperation: boolean
 sideEffectLevel: none | read | write | submit | delete | purchase
 allowedStepKinds: list
@@ -169,6 +169,16 @@ Missing or stale capability catalog truth must block map authoring with BLOCKED_
 
 ## 5. Prompt Contract Catalog
 
+核心边界：
+
+- 生产自动化地图必须使用 `routePlanBoundMap`，只能声明入口脊柱、AI 交付、Prompt Contract 引用、输入/输出 refs、`routePlanId`。
+- 禁止地图出现任何约束逻辑。
+- 一个地图 + 对应 Prompt Contract，才是完整地图。
+- Prompt Contract 定义 AI 问题、输入、输出结构、二元语义和可分支输出字段。
+- 生产代码定义超时、重试、JSON 无效、证据保留、后动作验证和失败终止。
+- 自动化地图严禁人工审查动作，严禁 review_required 终态。
+- Route Plan 是二元选项动作链的唯一来源；地图只能引用 `routePlanId`，不能复制 Route Plan 步骤、transition、routeLabel 或动作链。
+
 ```yaml
 promptContractId: required
 promptContractVersion: required
@@ -180,8 +190,7 @@ outputSchemaRef: required
 allowedInputRefs: list
 dataPolicy: required
 providerPolicy: required
-reviewPolicy: required
-failurePolicy: required
+binaryDecisionPolicy: required when prompt output is branchable
 redactionPolicy: required
 forensicsPolicy: required
 forbiddenOutputs: list
@@ -228,8 +237,8 @@ operationalMap
 step
 transition
 promptBindings
-policy
-proofPolicy
+route-only operationalMap
+Prompt Contract references
 lifecycle status
 draft fields
 activation fields
@@ -253,7 +262,7 @@ outputSchemaCatalogVersion: required
 mapPackageSchemaVersion: required
 securityPolicyRef: required
 safetyPolicyRef: required
-humanApprovalPolicyRef: required
+automationGatePolicyRef: required
 evidencePolicyRef: required
 pavPolicyRef: required
 forensicsPolicyRef: required
@@ -274,10 +283,10 @@ draftStatus: draft | needs_clarification | needs_capability_expansion
 Forbidden:
 
 ```txt
-approvalStatus=approved
+activationGateStatus=gate_passed
 active=true
 activationSnapshotRef
-humanApprovalRef
+automationGateRef
 validationReportRef
 rawPrompt
 functionBody
@@ -293,21 +302,21 @@ unknown outputSchemaRef
 
 ---
 
-## 9. Safety / Human Approval Policy
+## 9. Safety / Automation Gate Policy
 
 ```yaml
 highRiskOperations:
-  sendMessage: humanApprovalRequired
-  submitForm: humanApprovalRequired
-  purchasePayment: humanApprovalRequired
-  deleteContent: humanApprovalRequired
-  modifyUserData: humanApprovalRequired
-  bulkAction: humanApprovalRequiredWithRateLimit
-  textInputCommit: humanApprovalRequired
+  sendMessage: automationGateRequired
+  submitForm: automationGateRequired
+  purchasePayment: automationGateRequired
+  deleteContent: automationGateRequired
+  modifyUserData: automationGateRequired
+  bulkAction: automationGateRequiredWithRateLimit
+  textInputCommit: automationGateRequired
 externalAiTransmission:
-  userRequirement: approvalRequired
+  userRequirement: externalTransmissionGateRequired
 aiGeneratedMapActivation:
-  humanApprovalRequired: true
+  governedActivationProofRequired: true
 ```
 
 ---
@@ -351,7 +360,7 @@ supportedTargets: list
 prohibitedOperations: list
 rateLimitPolicyRef: required
 captchaPolicy: required
-humanReviewPolicyRef: required
+automationGatePolicyRef: required
 safetyPauseConditions: list
 ```
 
@@ -365,7 +374,7 @@ Rules:
 exampleOnly=true
 schema-valid
 not active
-not approved
+not gate_passed
 not imported without lifecycle
 must not contain rawPrompt
 must not contain activationSnapshotRef
@@ -429,7 +438,7 @@ platformAssumptions
 evidenceToBeSaved
 screenshotRetentionSummary
 aiJudgmentRisk
-humanReviewPoints
+automationGatePoints
 safetyWarnings
 capabilityLimitations
 needsCapabilityExpansionSummary
@@ -456,13 +465,15 @@ Inspector must check:
 
 ```txt
 MapAuthoringInputPackage required fields
+userRequirement.binaryOutcomePolicy required
+binary outcome selected route labels included in sourceRequirementHash
 capabilityCatalog completeness
 promptContractCatalog completeness
 outputSchemaCatalog completeness
 mapPackageSchema presence
 mapAuthoringOutputSchema presence
 safetyPolicy presence
-humanApprovalPolicy presence
+automationGatePolicy presence
 evidencePolicy presence
 pavPolicy presence
 forensicsPolicy presence
@@ -477,13 +488,15 @@ stale capability catalog blocks authoring
 Negative proof must include:
 
 ```txt
+remove binaryOutcomePolicy
+remove selected routeLabel from binary outcome policy
 remove capabilityCatalog
 remove promptContractCatalog
 remove outputSchemaCatalog
 remove mapPackageSchema
 remove mapAuthoringOutputSchema
 remove safetyPolicy
-remove humanApprovalPolicy
+remove automationGatePolicy
 remove evidencePolicy
 remove pavPolicy
 remove forensicsPolicy
@@ -500,12 +513,14 @@ Map Authoring Input Package READY only when:
 
 ```txt
 all required fields present
+userRequirement carries natural language goal plus selected/default binary outcome options
+selectedPositiveRouteLabel and selectedNegativeRouteLabel are present and hash-covered
 capabilityCatalog detailed
 promptContractCatalog present
 outputSchemaCatalog present
 mapPackageSchema present
 mapAuthoringOutputSchema present
-safety/humanApproval/evidence/PAV/Forensics policies present
+safety/automationGate/evidence/PAV/Forensics policies present
 platformProfile present
 example maps marked exampleOnly
 missing package blocks generation

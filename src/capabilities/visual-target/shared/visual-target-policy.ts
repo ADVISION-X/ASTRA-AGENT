@@ -26,9 +26,6 @@ export type VisualTargetChildProfile = {
   childCapabilityId: VisualTargetChildCapabilityId;
   targetType: VisualTargetType;
   targetNature: "action" | "region" | "metric";
-  minimumConfidence: number;
-  minimumAmbiguityGap: number;
-  freshnessTtlMs: number;
   requireClickPoint: boolean;
   allowOperatorManual: boolean;
   allowedPageStateTypes: readonly string[];
@@ -47,13 +44,10 @@ const METRIC_COORDINATE_SPACES = ["browser_viewport", "source_image", "ai_input"
 const DEFAULT_SOURCE_ABILITY_GROUPS = ["orchestration", "page-state", "mouse-scroll", "mouse-click"] as const;
 
 export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId, VisualTargetChildProfile> = {
-  "detect-like-button": {
-    childCapabilityId: "detect-like-button",
+  "observe-like-button": {
+    childCapabilityId: "observe-like-button",
     targetType: "like_button",
     targetNature: "action",
-    minimumConfidence: 0.78,
-    minimumAmbiguityGap: 0.08,
-    freshnessTtlMs: 3000,
     requireClickPoint: true,
     allowOperatorManual: false,
     allowedPageStateTypes: ["platform_feed"],
@@ -63,13 +57,10 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     allowedSourceAbilityGroups: DEFAULT_SOURCE_ABILITY_GROUPS,
     requiredObservationKinds: ["like_button"],
   },
-  "detect-save-button": {
-    childCapabilityId: "detect-save-button",
+  "observe-save-button": {
+    childCapabilityId: "observe-save-button",
     targetType: "save_button",
     targetNature: "action",
-    minimumConfidence: 0.78,
-    minimumAmbiguityGap: 0.08,
-    freshnessTtlMs: 3000,
     requireClickPoint: true,
     allowOperatorManual: false,
     allowedPageStateTypes: ["platform_feed"],
@@ -79,13 +70,10 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     allowedSourceAbilityGroups: DEFAULT_SOURCE_ABILITY_GROUPS,
     requiredObservationKinds: ["save_button"],
   },
-  "detect-comments-button": {
-    childCapabilityId: "detect-comments-button",
+  "observe-comments-button": {
+    childCapabilityId: "observe-comments-button",
     targetType: "comments_button",
     targetNature: "action",
-    minimumConfidence: 0.78,
-    minimumAmbiguityGap: 0.08,
-    freshnessTtlMs: 3000,
     requireClickPoint: true,
     allowOperatorManual: false,
     allowedPageStateTypes: ["platform_feed"],
@@ -95,13 +83,10 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     allowedSourceAbilityGroups: DEFAULT_SOURCE_ABILITY_GROUPS,
     requiredObservationKinds: ["comments_button"],
   },
-  "detect-comments-panel": {
-    childCapabilityId: "detect-comments-panel",
+  "observe-comments-panel": {
+    childCapabilityId: "observe-comments-panel",
     targetType: "comments_panel",
     targetNature: "region",
-    minimumConfidence: 0.72,
-    minimumAmbiguityGap: 0.06,
-    freshnessTtlMs: 3000,
     requireClickPoint: false,
     allowOperatorManual: false,
     allowedPageStateTypes: ["comments_panel"],
@@ -111,13 +96,10 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     allowedSourceAbilityGroups: DEFAULT_SOURCE_ABILITY_GROUPS,
     requiredObservationKinds: ["comments_panel"],
   },
-  "detect-close-comments-button": {
-    childCapabilityId: "detect-close-comments-button",
+  "observe-close-comments-button": {
+    childCapabilityId: "observe-close-comments-button",
     targetType: "close_comments_button",
     targetNature: "action",
-    minimumConfidence: 0.78,
-    minimumAmbiguityGap: 0.08,
-    freshnessTtlMs: 3000,
     requireClickPoint: true,
     allowOperatorManual: false,
     allowedPageStateTypes: ["comments_panel"],
@@ -127,13 +109,10 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     allowedSourceAbilityGroups: DEFAULT_SOURCE_ABILITY_GROUPS,
     requiredObservationKinds: ["close_comments_button"],
   },
-  "detect-not-interested-button": {
-    childCapabilityId: "detect-not-interested-button",
+  "observe-not-interested-button": {
+    childCapabilityId: "observe-not-interested-button",
     targetType: "not_interested_button",
     targetNature: "action",
-    minimumConfidence: 0.8,
-    minimumAmbiguityGap: 0.1,
-    freshnessTtlMs: 3000,
     requireClickPoint: true,
     allowOperatorManual: false,
     allowedPageStateTypes: ["platform_feed", "context_menu"],
@@ -143,13 +122,10 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     allowedSourceAbilityGroups: DEFAULT_SOURCE_ABILITY_GROUPS,
     requiredObservationKinds: ["not_interested_button"],
   },
-  "detect-next-video-region": {
-    childCapabilityId: "detect-next-video-region",
+  "observe-next-video-region": {
+    childCapabilityId: "observe-next-video-region",
     targetType: "next_video_region",
     targetNature: "region",
-    minimumConfidence: 0.72,
-    minimumAmbiguityGap: 0.06,
-    freshnessTtlMs: 3000,
     requireClickPoint: false,
     allowOperatorManual: false,
     allowedPageStateTypes: ["platform_feed"],
@@ -159,13 +135,10 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     allowedSourceAbilityGroups: DEFAULT_SOURCE_ABILITY_GROUPS,
     requiredObservationKinds: ["next_video_region"],
   },
-  "detect-metric-like-count": {
-    childCapabilityId: "detect-metric-like-count",
+  "observe-metric-like-count": {
+    childCapabilityId: "observe-metric-like-count",
     targetType: "metric_like_count",
     targetNature: "metric",
-    minimumConfidence: 0.72,
-    minimumAmbiguityGap: 0.06,
-    freshnessTtlMs: 3000,
     requireClickPoint: false,
     allowOperatorManual: false,
     allowedPageStateTypes: ["platform_feed", "comments_panel"],
@@ -175,13 +148,10 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     allowedSourceAbilityGroups: DEFAULT_SOURCE_ABILITY_GROUPS,
     requiredObservationKinds: ["metric_like_count"],
   },
-  "detect-metric-comment-count": {
-    childCapabilityId: "detect-metric-comment-count",
+  "observe-metric-comment-count": {
+    childCapabilityId: "observe-metric-comment-count",
     targetType: "metric_comment_count",
     targetNature: "metric",
-    minimumConfidence: 0.72,
-    minimumAmbiguityGap: 0.06,
-    freshnessTtlMs: 3000,
     requireClickPoint: false,
     allowOperatorManual: false,
     allowedPageStateTypes: ["platform_feed", "comments_panel"],

@@ -8,7 +8,7 @@ export {
 	nullableUrl,
 	OpenAbortDecisionSchema,
 	OpenAllowedCallerSchema,
-	OpenAlreadyOnTargetFreshnessDecisionSchema,
+	OpenAlreadyOnTargetHandlingModeSchema,
 	OpenChildCapabilityIdSchema,
 	OpenCircuitBreakerStateSchema,
 	OpenDataQualityFlagSchema,

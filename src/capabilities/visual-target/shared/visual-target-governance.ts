@@ -42,28 +42,3 @@ export const VisualTargetChainResultShape = {
   capabilityCallId: nullableString,
   nerveBusEnvelopeId: nullableString,
 } satisfies z.ZodRawShape;
-
-export const VisualTargetConfidencePolicySchema = z.object({
-  minimumConfidence: z.number().min(0).max(1),
-  reviewBelowThreshold: z.boolean(),
-}).strict();
-
-export const VisualTargetSelectionPolicySchema = z.object({
-  strategy: z.enum(["highest_score"]),
-  requireScoreTrace: z.literal(true),
-}).strict();
-
-export const VisualTargetAmbiguityPolicySchema = z.object({
-  minimumGap: z.number().min(0),
-  reviewOnAmbiguous: z.boolean(),
-}).strict();
-
-export const VisualTargetCoordinatePolicySchema = z.object({
-  allowAiInputMapping: z.boolean(),
-  allowContactSheetAsExecutable: z.literal(false),
-}).strict();
-
-export const VisualTargetDataQualityPolicySchema = z.object({
-  blockOnCritical: z.boolean(),
-  reviewOnLowConfidence: z.boolean(),
-}).strict();

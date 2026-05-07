@@ -1,5 +1,6 @@
 import type { MapPackageValidationIssue } from "../shared/map-package-failure.js";
 import type { MapPackage } from "../shared/map-package-types.js";
+import { findRoutePlanById } from "../route-plans/index.js";
 import { validatePromptContractStep } from "./prompt-contract-step-validator.js";
 
 const INITIAL_INPUT_REFS = new Set([
@@ -22,12 +23,23 @@ const recordProducedRefs = (step: MapPackage["operationalMap"]["steps"][number],
   }
 };
 
+const getEffectiveSteps = (mapPackage: MapPackage): MapPackage["operationalMap"]["steps"] => {
+  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
+  return routePlan ? [...mapPackage.operationalMap.steps, ...routePlan.steps] : mapPackage.operationalMap.steps;
+};
+
+const getEffectiveTransitions = (mapPackage: MapPackage): MapPackage["operationalMap"]["transitions"] => {
+  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
+  return routePlan ? [...mapPackage.operationalMap.transitions, ...routePlan.transitions] : mapPackage.operationalMap.transitions;
+};
+
 const validateAiSteps = (mapPackage: MapPackage): MapPackageValidationIssue[] => {
   const issues: MapPackageValidationIssue[] = [];
   const bindingsByStep = createBindingsByStep(mapPackage);
   const producedRefs = new Set<string>(INITIAL_INPUT_REFS);
+  const transitions = getEffectiveTransitions(mapPackage);
 
-  for (const step of mapPackage.operationalMap.steps) {
+  for (const step of getEffectiveSteps(mapPackage)) {
     recordProducedRefs(step, producedRefs);
     if (step.stepKind !== "ai") {
       continue;
@@ -37,7 +49,7 @@ const validateAiSteps = (mapPackage: MapPackage): MapPackageValidationIssue[] =>
       step,
       binding: bindingsByStep.get(step.stepId),
       producedRefs,
-      transitions: mapPackage.operationalMap.transitions,
+      transitions,
     }));
   }
 
@@ -53,16 +65,16 @@ const validateAiGeneratedDraftState = (mapPackage: MapPackage): MapPackageValida
   if (mapPackage.taskTemplate.availabilityPolicy !== "draft") {
     issues.push({
       code: "map_validation_failed",
-      message: "AI-generated map packages must remain draft-only until approved.",
+      message: "AI-generated map packages must remain draft-only until automation gate passes.",
       path: "taskTemplate.availabilityPolicy",
       severity: "fatal"
     });
   }
-  if (mapPackage.manifest.approvalStatus === "approved" && mapPackage.manifest.humanApprovalRef === null) {
+  if (mapPackage.manifest.activationGateStatus === "gate_passed" && mapPackage.manifest.automationGateRef === null) {
     issues.push({
       code: "map_validation_failed",
-      message: "AI-generated approved maps must include humanApprovalRef.",
-      path: "manifest.humanApprovalRef",
+      message: "AI-generated gate-passed maps must include automationGateRef.",
+      path: "manifest.automationGateRef",
       severity: "fatal"
     });
   }

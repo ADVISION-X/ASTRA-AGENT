@@ -487,6 +487,8 @@ Artifact 生命周期治理：
 ```txt
 截图文件默认不是永久证据，而是临时运行材料。
 只有被 Forensics 正式提升为 evidence 的 artifact，才允许长期保留。
+只有将来会作为选品证据图片交给 Forensics/evidence-store 的图片，才允许进入长期保留路径。
+非证据链图片必须用完即物理删除；不得依赖“以后再清理”的人工习惯或调试约定。
 ```
 
 默认 retention classes：
@@ -520,6 +522,30 @@ Screenshot 必须：
 默认 promotionStatus = not_promoted
 不得输出 promoted-evidence / legal-hold-evidence
 在 quota/backpressure 超限时 fail closed
+artifact handoff 完成后立即 burn ephemeral work file
+artifact handoff 失败时也必须 burn ephemeral work file
+ephemeral work file 清理失败必须 fail closed
+只有 retained artifact storageRef 本身可以跳过本次 burn
+```
+
+物理保留裁决：
+
+```txt
+必须保留：
+- Forensics/evidence-store 已正式接收的选品证据图片
+- 该证据图片的 record/proof/hash/manifest
+
+必须用完即焚：
+- screencapture 产生的 full-screen source 临时图
+- browser viewport capture 的工作图，在复制为 governed artifact 后删除
+- capture-region / optimize-lossless / prepare-ai-input 生成的 /tmp 工作图，在复制为 governed artifact 后删除
+- artifact 写入失败、boundary 失败、运行失败产生的非证据工作图
+
+禁止：
+- 把 browser-captures 当长期证据目录
+- 把 /tmp/grasseye-screenshot-* 当长期缓存
+- 让 AI / Visual Target / Geometry Guard 私自保留截图副本
+- 用日志、调试习惯、人工清理替代生产代码物理删除
 ```
 
 Failure / review_required：
@@ -1000,6 +1026,9 @@ source candidates 必须包括 screenshotEvidenceRef、abilityResultRef、inputR
 prepare-ai-input command 必须只在 resolved source 存在时携带 source
 ability result envelope 必须记录 screenshot source handoff
 handoff helper 必须保留 sourceArtifactRef、sourceProof、sha256、storageRef
+screenshot-execution-phases 必须调用 burnEphemeralScreenshotFile
+screenshot-ephemeral-file-cleanup 必须物理 rm outputFilePath
+ephemeral cleanup bypass negative proof 必须 FAIL
 ```
 
 negative proof 应覆盖：

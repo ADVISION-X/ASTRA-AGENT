@@ -10,12 +10,12 @@
     "createdAt": "2026-05-05T00:00:00.000Z",
     "minimumGrassEyeVersion": "0.1.0",
     "mapSchemaVersion": "1",
-    "approvalStatus": "approved",
+    "activationGateStatus": "gate_passed",
     "aiGenerated": false,
     "capabilityCatalogVersion": "2026-04-map-prompt-contract-v1",
     "promptCatalogVersion": "map-prompt-contract-catalog.v1",
     "validationReportRef": "audit://map-plugin-package/builtin.macos-local-program-open-smoke/validation/v1",
-    "humanApprovalRef": "approval://builtin.macos-local-program-open-smoke/v1"
+    "automationGateRef": "automation-gate://builtin.macos-local-program-open-smoke/v1"
   },
   "taskTemplate": {
     "taskTemplateId": "macos-local-program-open-smoke",
@@ -44,14 +44,10 @@
     "defaultHumanGoal": "Open iPhone Mirroring and stop after the local app window handoff proof is available."
   },
   "operationalMap": {
+    "mapKind": "genericDiagnosticMap",
     "mapId": "macos.local-program.open-smoke.v1",
     "displayName": "macOS Local Program Open Smoke",
     "humanGoal": "Open iPhone Mirroring as a governed macOS local program without clicking, typing, scrolling, screenshotting, or opening an app inside it.",
-    "allowedAbilityGroups": [
-      "open",
-      "post-action-verification",
-      "forensics-persistence"
-    ],
     "initialStepId": "open-iphone-mirroring",
     "steps": [
       {
@@ -69,26 +65,7 @@
             "abilityResultRef"
           ]
         },
-        "promptContractId": null,
-        "successCondition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "success"
-        },
-        "failureBranch": "open-iphone-mirroring:failed",
-        "reviewBranch": "open-iphone-mirroring:failed",
-        "postActionVerification": {
-          "required": true,
-          "verificationKind": "result-signal",
-          "expectedSignal": "local-app-window-handoff",
-          "onPassTransitionId": "verify-iphone-mirroring-window-opened:success",
-          "onFailTransitionId": "verify-iphone-mirroring-window-opened:failed",
-          "onAmbiguousTransitionId": "verify-iphone-mirroring-window-opened:failed"
-        },
-        "proofPolicy": {
-          "requiresRuntimeProof": true
-        }
+        "promptContractId": null
       },
       {
         "stepId": "verify-iphone-mirroring-window-opened",
@@ -104,18 +81,7 @@
             "abilityResultRef"
           ]
         },
-        "promptContractId": null,
-        "successCondition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "success"
-        },
-        "failureBranch": "verify-iphone-mirroring-window-opened:failed",
-        "reviewBranch": "verify-iphone-mirroring-window-opened:failed",
-        "proofPolicy": {
-          "requiresRuntimeProof": true
-        }
+        "promptContractId": null
       },
       {
         "stepId": "write-open-handoff-runtime-event",
@@ -131,18 +97,7 @@
             "runtimeLogRef"
           ]
         },
-        "promptContractId": null,
-        "successCondition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "success"
-        },
-        "failureBranch": "write-open-handoff-runtime-event:failed",
-        "reviewBranch": "write-open-handoff-runtime-event:failed",
-        "proofPolicy": {
-          "requiresRuntimeProof": true
-        }
+        "promptContractId": null
       }
     ],
     "transitions": [
@@ -150,12 +105,6 @@
         "transitionId": "open-iphone-mirroring:success",
         "fromStepId": "open-iphone-mirroring",
         "onStatus": "success",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "success"
-        },
         "toStepId": "verify-iphone-mirroring-window-opened",
         "finalStatus": null
       },
@@ -163,12 +112,6 @@
         "transitionId": "verify-iphone-mirroring-window-opened:success",
         "fromStepId": "verify-iphone-mirroring-window-opened",
         "onStatus": "success",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "success"
-        },
         "toStepId": "write-open-handoff-runtime-event",
         "finalStatus": null
       },
@@ -176,12 +119,6 @@
         "transitionId": "verify-iphone-mirroring-window-opened:failed",
         "fromStepId": "verify-iphone-mirroring-window-opened",
         "onStatus": "failed",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "failed"
-        },
         "toStepId": null,
         "finalStatus": "failed"
       },
@@ -189,12 +126,6 @@
         "transitionId": "write-open-handoff-runtime-event:success",
         "fromStepId": "write-open-handoff-runtime-event",
         "onStatus": "success",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "success"
-        },
         "toStepId": null,
         "finalStatus": "failed"
       },
@@ -202,12 +133,6 @@
         "transitionId": "open-iphone-mirroring:failed",
         "fromStepId": "open-iphone-mirroring",
         "onStatus": "failed",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "failed"
-        },
         "toStepId": null,
         "finalStatus": "failed"
       },
@@ -215,25 +140,9 @@
         "transitionId": "write-open-handoff-runtime-event:failed",
         "fromStepId": "write-open-handoff-runtime-event",
         "onStatus": "failed",
-        "condition": {
-          "conditionType": "comparison",
-          "leftRef": "status",
-          "operator": "equals",
-          "rightValue": "failed"
-        },
         "toStepId": null,
         "finalStatus": "failed"
       }
-    ],
-    "failureBranches": [
-      "open-iphone-mirroring:failed",
-      "verify-iphone-mirroring-window-opened:failed",
-      "write-open-handoff-runtime-event:failed"
-    ],
-    "reviewBranches": [
-      "open-iphone-mirroring:failed",
-      "verify-iphone-mirroring-window-opened:failed",
-      "write-open-handoff-runtime-event:failed"
     ],
     "finalStates": [
       "failed"
@@ -245,17 +154,7 @@
       "clickSelector",
       "typeText"
     ],
-    "sequencePolicy": {
-      "maxHops": 3,
-      "maxRetriesPerStep": 0,
-      "loopDecisionOnLimit": "failed",
-      "branchPolicy": "strict"
-    },
-    "mapVersion": "1.0.0",
-    "proofPolicy": {
-      "runtimeProof": "required",
-      "recordPackageSelection": true
-    }
+    "mapVersion": "1.0.0"
   },
   "dependencies": {
     "requiredCapabilities": [
@@ -290,17 +189,6 @@
       "macos-local:iphone-mirroring",
       "macos-app:iphone-mirroring"
     ]
-  },
-  "policy": {
-    "safetyPolicy": "Open governed app/window only; no clicks, typing, scrolling, screenshots, shell commands, or internal app navigation.",
-    "runLimitPolicy": {
-      "defaultMaxRounds": 1,
-      "maxAllowedMaxRounds": 1,
-      "maxAllowedMaxMinutes": 10
-    },
-    "reviewPolicy": "Automation maps must terminate unresolved guarded outcomes as failed.",
-    "exportPolicy": "runtime proof refs only",
-    "debugPolicy": "developer-inspect only; no direct local app launch outside Open"
   },
   "promptBindings": {
     "bindings": []

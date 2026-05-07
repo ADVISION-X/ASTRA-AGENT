@@ -1,9 +1,9 @@
 type MapLabLocale = "zh" | "en";
 type MapLabFeedbackTone = "ok" | "attention" | "blocked";
 type MapLabProviderState = { providerId: string; displayName: string | null; providerKind: string | null; providerCompany: "openai" | "deepseek" | "openrouter" | null; configured: boolean; enabled: boolean; configRef: string | null; secretRef: string | null; hasSecret: boolean; secretLast4: string | null; model: string | null; allowPaidProvider: boolean; allowExternalTransmission: boolean; maxEstimatedCost: number | null; operatorApprovalRef: string | null; missingReason: string | null; updatedAt: string | null; };
-type MapLabCatalogItem = { packageId: string; packageVersion: string; mapId: string; title: string; lifecycleStatus: string; approvalStatus: string; summary: string; chain: string[]; validationIssues: Array<{ code: string; message: string; severity: string }>; activationId: string | null; draftOnly: boolean; };
+type MapLabCatalogItem = { packageId: string; packageVersion: string; mapId: string; title: string; lifecycleStatus: string; activationGateStatus: string; summary: string; chain: string[]; validationIssues: Array<{ code: string; message: string; severity: string }>; activationId: string | null; draftOnly: boolean; };
 type MapLabSnapshot = { provider: MapLabProviderState; developerCatalog: MapLabCatalogItem[]; };
-type MapLabPreviewPackage = { manifest: { displayName: string; packageId: string; packageVersion: string; approvalStatus: string }; taskTemplate: { description: string; requestedPlatformId: string }; operationalMap: { allowedAbilityGroups: string[]; finalStates: string[] }; dependencies: { requiredCapabilities: string[]; requiredPromptContracts: string[]; requiredPlatformProfiles: string[] }; };
+type MapLabPreviewPackage = { manifest: { displayName: string; packageId: string; packageVersion: string; activationGateStatus: string }; taskTemplate: { description: string; requestedPlatformId: string }; operationalMap: { allowedAbilityGroups: string[]; finalStates: string[] }; dependencies: { requiredCapabilities: string[]; requiredPromptContracts: string[]; requiredPlatformProfiles: string[] }; };
 type MapLabGenerateDraftResult = { status: "success" | "failed" | "review_required" | "dry_run_captured"; failureReason: string | null; reviewRequiredReason: string | null; dryRunCaptured?: boolean; wouldSendToProvider?: boolean; externalHttpSent?: boolean; realAiCalled?: boolean; packageId: string | null; packageVersion: string | null; mapPackage: MapLabPreviewPackage | null; humanReadableExplanation: string | null; requiredClarifications: string[]; riskWarnings: string[]; validationHints: string[]; validationIssues: string[]; needsCapabilityExpansion: boolean; draftStatus: "draft_ready" | "needs_clarification" | null; };
 type MapLabFeedback = { tone: MapLabFeedbackTone; title: string; body: string };
 type MapLabClientState = { snapshot: MapLabSnapshot | null; lastResult: MapLabGenerateDraftResult | null; focusedPackageId: string | null; feedback: MapLabFeedback | null; busyAction: string | null; };
@@ -30,21 +30,21 @@ function mapLabResolveProviderDefaults(providerCompany: "openai" | "deepseek" | 
 }
 
 function mapLabBuildStatsHtml(snapshot: MapLabSnapshot, locale: MapLabLocale): string {
-  const approvedCount = snapshot.developerCatalog.filter((item) => item.approvalStatus === "approved").length;
+  const gatePassedCount = snapshot.developerCatalog.filter((item) => item.activationGateStatus === "gate_passed").length;
   const activeCount = snapshot.developerCatalog.filter((item) => item.activationId !== null).length;
-  return `<div class="cc-stat-tile"><span>${mapLabEscapeHtml(mapLabText(locale, "草稿目录", "Draft Catalog"))}</span><strong>${mapLabEscapeHtml(String(snapshot.developerCatalog.length))}</strong></div><div class="cc-stat-tile"><span>${mapLabEscapeHtml(mapLabText(locale, "已批准 / 已激活", "Approved / Active"))}</span><strong>${mapLabEscapeHtml(`${approvedCount} / ${activeCount}`)}</strong></div>`;
+  return `<div class="cc-stat-tile"><span>${mapLabEscapeHtml(mapLabText(locale, "草稿目录", "Draft Catalog"))}</span><strong>${mapLabEscapeHtml(String(snapshot.developerCatalog.length))}</strong></div><div class="cc-stat-tile"><span>${mapLabEscapeHtml(mapLabText(locale, "已过门禁 / 已激活", "Gate Passed / Active"))}</span><strong>${mapLabEscapeHtml(`${gatePassedCount} / ${activeCount}`)}</strong></div>`;
 }
 
 function mapLabBuildCatalogPreviewHtml(item: MapLabCatalogItem, locale: MapLabLocale): string {
   const issues = item.validationIssues.map((issue) => `${issue.severity}: ${issue.message}`);
-  return `<div class="cc-stack"><div class="cc-detail-block"><span>${mapLabEscapeHtml(mapLabText(locale, "草稿标题", "Draft Title"))}</span><strong>${mapLabEscapeHtml(item.title)}</strong><p class="cc-note">${mapLabEscapeHtml(item.summary || mapLabText(locale, "该草稿没有额外摘要。", "This draft has no additional summary."))}</p></div><dl class="cc-summary-list"><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "审批状态", "Approval"))}</dt><dd>${mapLabEscapeHtml(item.approvalStatus)}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "生命周期", "Lifecycle"))}</dt><dd>${mapLabEscapeHtml(item.lifecycleStatus)}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "激活记录", "Activation"))}</dt><dd>${mapLabEscapeHtml(item.activationId ?? mapLabText(locale, "尚未激活", "Not active"))}</dd></div></dl>${mapLabListHtml(item.chain, mapLabText(locale, "该草稿没有公开链路说明。", "This draft does not expose a public chain summary."))}${mapLabListHtml(issues, mapLabText(locale, "当前没有 validation issue。", "No validation issues."))}</div>`;
+  return `<div class="cc-stack"><div class="cc-detail-block"><span>${mapLabEscapeHtml(mapLabText(locale, "草稿标题", "Draft Title"))}</span><strong>${mapLabEscapeHtml(item.title)}</strong><p class="cc-note">${mapLabEscapeHtml(item.summary || mapLabText(locale, "该草稿没有额外摘要。", "This draft has no additional summary."))}</p></div><dl class="cc-summary-list"><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "门禁状态", "Automation Gate"))}</dt><dd>${mapLabEscapeHtml(item.activationGateStatus)}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "生命周期", "Lifecycle"))}</dt><dd>${mapLabEscapeHtml(item.lifecycleStatus)}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "激活记录", "Activation"))}</dt><dd>${mapLabEscapeHtml(item.activationId ?? mapLabText(locale, "尚未激活", "Not active"))}</dd></div></dl>${mapLabListHtml(item.chain, mapLabText(locale, "该草稿没有公开链路说明。", "This draft does not expose a public chain summary."))}${mapLabListHtml(issues, mapLabText(locale, "当前没有 validation issue。", "No validation issues."))}</div>`;
 }
 
 function mapLabBuildResultPreviewHtml(result: MapLabGenerateDraftResult, locale: MapLabLocale): string {
   const mapPackage = result.mapPackage;
   const title = mapPackage?.manifest.displayName ?? mapLabText(locale, "未产出地图", "No map produced");
   const summary = mapPackage?.taskTemplate.description ?? result.humanReadableExplanation ?? mapLabText(locale, "当前结果没有可展示摘要。", "The current result has no display summary.");
-  const statusLine = result.status === "success" ? mapLabText(locale, "已生成可审阅 draft。", "A reviewable draft was generated.") : result.status === "review_required" ? mapLabText(locale, "草稿已生成，但需要人工复核后才能继续。", "A draft was generated, but it requires human review before proceeding.") : mapLabText(locale, "本次生成失败，没有拿到可导入草稿。", "Generation failed and no importable draft was returned.");
+  const statusLine = result.status === "success" ? mapLabText(locale, "已生成可验证 draft。", "A gate-checkable draft was generated.") : result.status === "review_required" ? mapLabText(locale, "草稿已生成，但必须通过自动化门禁后才能继续。", "A draft was generated, but it must pass the automation gate before proceeding.") : mapLabText(locale, "本次生成失败，没有拿到可导入草稿。", "Generation failed and no importable draft was returned.");
   return `<div class="cc-stack"><div class="cc-detail-block"><span>${mapLabEscapeHtml(mapLabText(locale, "最新结果", "Latest Result"))}</span><strong>${mapLabEscapeHtml(title)}</strong><p class="cc-note">${mapLabEscapeHtml(summary)}</p></div><div class="cc-detail-block"><span>${mapLabEscapeHtml(mapLabText(locale, "状态", "Status"))}</span><strong>${mapLabEscapeHtml(statusLine)}</strong></div><dl class="cc-summary-list"><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "Package", "Package"))}</dt><dd>${mapLabEscapeHtml(result.packageId ?? mapLabText(locale, "未生成", "Not generated"))}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "Draft Status", "Draft Status"))}</dt><dd>${mapLabEscapeHtml(result.draftStatus ?? mapLabText(locale, "未知", "Unknown"))}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "平台", "Platform"))}</dt><dd>${mapLabEscapeHtml(mapPackage?.taskTemplate.requestedPlatformId ?? mapLabText(locale, "未知", "Unknown"))}</dd></div></dl>${mapLabListHtml(result.requiredClarifications, mapLabText(locale, "当前没有必须补充说明的项。", "There are no required clarifications right now."))}${mapLabListHtml(result.riskWarnings, mapLabText(locale, "当前没有额外风险警告。", "There are no additional risk warnings right now."))}${mapLabListHtml(result.validationHints, mapLabText(locale, "当前没有额外 validation hint。", "There are no additional validation hints right now."))}${mapLabListHtml(result.validationIssues, mapLabText(locale, "当前没有 validation issue。", "There are no validation issues right now."))}${mapLabListHtml(mapPackage?.dependencies.requiredCapabilities ?? [], mapLabText(locale, "当前没有新增 capability 依赖。", "There are no additional capability dependencies right now."))}${mapLabListHtml(mapPackage?.dependencies.requiredPromptContracts ?? [], mapLabText(locale, "当前没有额外 prompt contract 依赖。", "There are no additional prompt contract dependencies right now."))}</div>`;
 }
 
@@ -55,7 +55,7 @@ function mapLabBuildCatalogActions(item: MapLabCatalogItem, locale: MapLabLocale
 }
 
 function mapLabBuildCatalogCardHtml(item: MapLabCatalogItem, locale: MapLabLocale): string {
-  return `<section class="cc-card" data-map-lab-package-card data-package-id="${mapLabEscapeHtml(item.packageId)}" data-package-version="${mapLabEscapeHtml(item.packageVersion)}"><div class="cc-stack"><div class="cc-list-row"><div><strong>${mapLabEscapeHtml(item.title)}</strong><small>${mapLabEscapeHtml(item.summary || item.packageId)}</small></div><span class="cc-pill">${mapLabEscapeHtml(item.approvalStatus)}</span></div><dl class="cc-summary-list"><div class="cc-summary-row"><dt>Package</dt><dd>${mapLabEscapeHtml(item.packageId)}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "验证问题", "Validation Issues"))}</dt><dd>${mapLabEscapeHtml(String(item.validationIssues.length))}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "激活记录", "Activation"))}</dt><dd>${mapLabEscapeHtml(item.activationId ?? mapLabText(locale, "尚未激活", "Not active"))}</dd></div></dl><div class="cc-inline-actions">${mapLabBuildCatalogActions(item, locale)}</div></div></section>`;
+  return `<section class="cc-card" data-map-lab-package-card data-package-id="${mapLabEscapeHtml(item.packageId)}" data-package-version="${mapLabEscapeHtml(item.packageVersion)}"><div class="cc-stack"><div class="cc-list-row"><div><strong>${mapLabEscapeHtml(item.title)}</strong><small>${mapLabEscapeHtml(item.summary || item.packageId)}</small></div><span class="cc-pill">${mapLabEscapeHtml(item.activationGateStatus)}</span></div><dl class="cc-summary-list"><div class="cc-summary-row"><dt>Package</dt><dd>${mapLabEscapeHtml(item.packageId)}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "验证问题", "Validation Issues"))}</dt><dd>${mapLabEscapeHtml(String(item.validationIssues.length))}</dd></div><div class="cc-summary-row"><dt>${mapLabEscapeHtml(mapLabText(locale, "激活记录", "Activation"))}</dt><dd>${mapLabEscapeHtml(item.activationId ?? mapLabText(locale, "尚未激活", "Not active"))}</dd></div></dl><div class="cc-inline-actions">${mapLabBuildCatalogActions(item, locale)}</div></div></section>`;
 }
 
 function mapLabBuildCatalogHtml(state: MapLabClientState, locale: MapLabLocale): string {
@@ -163,10 +163,10 @@ function mapLabBuildGeneratePayload(form: HTMLFormElement): Record<string, strin
   return { missionId: `map-lab-${Date.now()}`, objective: String(formData.get("objective") ?? "").trim(), targetPlatform: String(formData.get("targetPlatform") ?? "tiktok-web"), allowedAutomationScope: String(formData.get("allowedAutomationScope") ?? "").trim(), mustAskBefore: String(formData.get("mustAskBefore") ?? "").trim(), runLimit: String(formData.get("runLimit") ?? "").trim(), failureHandlingPreference: String(formData.get("failureHandlingPreference") ?? "").trim(), evidencePreference: String(formData.get("evidencePreference") ?? "").trim(), operatorNotes: String(formData.get("operatorNotes") ?? "").trim(), outputLanguage: String(formData.get("outputLanguage") ?? "zh-CN") };
 }
 
-function mapLabReadApprovalContext(page: HTMLElement): { approvedBy: string; reason: string } | null {
-  const approvedByInput = page.querySelector("[data-map-lab-approved-by]");
+function mapLabReadAutomationGateContext(page: HTMLElement): { gateActor: string; reason: string } | null {
+  const gateActorInput = page.querySelector("[data-map-lab-gate_passed-by]");
   const reasonInput = page.querySelector("[data-map-lab-activation-reason]");
-  return approvedByInput instanceof HTMLInputElement && reasonInput instanceof HTMLInputElement ? { approvedBy: approvedByInput.value.trim(), reason: reasonInput.value.trim() || "operator_confirmed_map_lab_draft" } : null;
+  return gateActorInput instanceof HTMLInputElement && reasonInput instanceof HTMLInputElement ? { gateActor: gateActorInput.value.trim(), reason: reasonInput.value.trim() || "operator_confirmed_map_lab_draft" } : null;
 }
 
 async function mapLabHandleProviderSubmit(target: HTMLFormElement, state: MapLabClientState, locale: MapLabLocale): Promise<void> {
@@ -184,27 +184,27 @@ async function mapLabHandleGenerateSubmit(target: HTMLFormElement, state: MapLab
   await mapLabRunAction(state, locale, "generate", async () => {
     state.lastResult = await mapLabPostJson("/api/map-lab/generate", mapLabBuildGeneratePayload(target)) as MapLabGenerateDraftResult;
     state.focusedPackageId = state.lastResult.packageId;
-    state.feedback = { tone: state.lastResult.status === "success" ? "ok" : state.lastResult.status === "review_required" ? "attention" : "blocked", title: mapLabText(locale, "地图草稿已返回", "Draft result returned"), body: state.lastResult.reviewRequiredReason ?? state.lastResult.failureReason ?? mapLabText(locale, "可以继续人工审阅。", "You can continue to human review.") };
+    state.feedback = { tone: state.lastResult.status === "success" ? "ok" : state.lastResult.status === "review_required" ? "attention" : "blocked", title: mapLabText(locale, "地图草稿已返回", "Draft result returned"), body: state.lastResult.reviewRequiredReason ?? state.lastResult.failureReason ?? mapLabText(locale, "可以继续自动化门禁。", "You can continue to automation gate.") };
     await mapLabRefreshSnapshot(state, locale);
   });
 }
 
 async function mapLabHandleApprove(button: HTMLElement, page: HTMLElement, state: MapLabClientState, locale: MapLabLocale): Promise<void> {
-  const approvalContext = mapLabReadApprovalContext(page); const packageId = button.getAttribute("data-map-lab-approve"); const packageVersion = button.getAttribute("data-package-version");
-  if (!approvalContext || !packageId || !packageVersion || approvalContext.approvedBy.length === 0) return;
-  await mapLabRunAction(state, locale, "approve", async () => {
-    await mapLabPostJson("/api/map-lab/approve", { packageId, packageVersion, approvedBy: approvalContext.approvedBy });
+  const approvalContext = mapLabReadAutomationGateContext(page); const packageId = button.getAttribute("data-map-lab-automation-gate"); const packageVersion = button.getAttribute("data-package-version");
+  if (!approvalContext || !packageId || !packageVersion || approvalContext.gateActor.length === 0) return;
+  await mapLabRunAction(state, locale, "automationGate", async () => {
+    await mapLabPostJson("/api/map-lab/automation-gate", { packageId, packageVersion, gateActor: approvalContext.gateActor });
     state.focusedPackageId = packageId;
-    state.feedback = { tone: "ok", title: mapLabText(locale, "草稿已批准", "Draft approved"), body: mapLabText(locale, "现在可以继续激活，并回到开始页选择运行。", "You can now activate it and return to the start page to run it.") };
+    state.feedback = { tone: "ok", title: mapLabText(locale, "草稿已通过自动化门禁", "Draft gate passed"), body: mapLabText(locale, "现在可以继续激活，并回到开始页选择运行。", "You can now activate it and return to the start page to run it.") };
     await mapLabRefreshSnapshot(state, locale);
   });
 }
 
 async function mapLabHandleActivate(button: HTMLElement, page: HTMLElement, state: MapLabClientState, locale: MapLabLocale): Promise<void> {
-  const approvalContext = mapLabReadApprovalContext(page); const packageId = button.getAttribute("data-map-lab-activate"); const packageVersion = button.getAttribute("data-package-version");
-  if (!approvalContext || !packageId || !packageVersion || approvalContext.approvedBy.length === 0) return;
+  const approvalContext = mapLabReadAutomationGateContext(page); const packageId = button.getAttribute("data-map-lab-activate"); const packageVersion = button.getAttribute("data-package-version");
+  if (!approvalContext || !packageId || !packageVersion || approvalContext.gateActor.length === 0) return;
   await mapLabRunAction(state, locale, "activate", async () => {
-    await mapLabPostJson("/api/map-lab/activate", { packageId, packageVersion, approvedBy: approvalContext.approvedBy, reason: approvalContext.reason });
+    await mapLabPostJson("/api/map-lab/activate", { packageId, packageVersion, gateActor: approvalContext.gateActor, reason: approvalContext.reason });
     state.focusedPackageId = packageId;
     state.feedback = { tone: "ok", title: mapLabText(locale, "地图已激活", "Map activated"), body: mapLabText(locale, "回到开始页后，新的任务模板应该已经可以选择运行。", "Return to the start page and the new task template should now be runnable.") };
     await mapLabRefreshSnapshot(state, locale);
@@ -240,8 +240,8 @@ function mapLabHandleFocusClick(target: HTMLElement, state: MapLabClientState, l
 }
 
 function mapLabHandleCommandClick(target: HTMLElement, page: HTMLElement, state: MapLabClientState, locale: MapLabLocale): boolean {
-  const approveButton = target.closest("[data-map-lab-approve]");
-  if (approveButton instanceof HTMLElement) { void mapLabHandleApprove(approveButton, page, state, locale); return true; }
+  const automationGateButton = target.closest("[data-map-lab-automation-gate]");
+  if (automationGateButton instanceof HTMLElement) { void mapLabHandleApprove(automationGateButton, page, state, locale); return true; }
   const activateButton = target.closest("[data-map-lab-activate]");
   if (activateButton instanceof HTMLElement) { void mapLabHandleActivate(activateButton, page, state, locale); return true; }
   return false;
@@ -271,4 +271,4 @@ function mapLabBootstrap(): void {
   mapLabHandlePageChange(state, locale);
 }
 
-export const mapLabClient = [mapLabText, mapLabEscapeHtml, mapLabListHtml, mapLabBuildProviderSummaryHtml, mapLabBuildStatsHtml, mapLabBuildCatalogPreviewHtml, mapLabBuildResultPreviewHtml, mapLabBuildCatalogActions, mapLabBuildCatalogCardHtml, mapLabBuildCatalogHtml, mapLabBuildFeedbackHtml, mapLabBuildPageUrl, mapLabGetPage, mapLabPostJson, mapLabSeedProviderForm, mapLabResolveProviderStatus, mapLabResolveCatalogSummary, mapLabResolvePreviewHtml, mapLabResolveNextAction, mapLabSyncProviderPanel, mapLabSyncCatalogPanel, mapLabSyncPreviewPanel, mapLabSyncBusyState, mapLabSyncPage, mapLabRefreshSnapshot, mapLabRunAction, mapLabBuildGeneratePayload, mapLabReadApprovalContext, mapLabHandleProviderSubmit, mapLabHandleGenerateSubmit, mapLabHandleApprove, mapLabHandleActivate, mapLabHandleSubmit, mapLabHandleRefreshClick, mapLabHandleOpenStartClick, mapLabHandleFocusClick, mapLabHandleCommandClick, mapLabHandleClick, mapLabHandlePageChange, mapLabBootstrap].map((fn) => String(fn)).join("\n") + "\nmapLabBootstrap();";
+export const mapLabClient = [mapLabText, mapLabEscapeHtml, mapLabListHtml, mapLabBuildProviderSummaryHtml, mapLabBuildStatsHtml, mapLabBuildCatalogPreviewHtml, mapLabBuildResultPreviewHtml, mapLabBuildCatalogActions, mapLabBuildCatalogCardHtml, mapLabBuildCatalogHtml, mapLabBuildFeedbackHtml, mapLabBuildPageUrl, mapLabGetPage, mapLabPostJson, mapLabSeedProviderForm, mapLabResolveProviderStatus, mapLabResolveCatalogSummary, mapLabResolvePreviewHtml, mapLabResolveNextAction, mapLabSyncProviderPanel, mapLabSyncCatalogPanel, mapLabSyncPreviewPanel, mapLabSyncBusyState, mapLabSyncPage, mapLabRefreshSnapshot, mapLabRunAction, mapLabBuildGeneratePayload, mapLabReadAutomationGateContext, mapLabHandleProviderSubmit, mapLabHandleGenerateSubmit, mapLabHandleApprove, mapLabHandleActivate, mapLabHandleSubmit, mapLabHandleRefreshClick, mapLabHandleOpenStartClick, mapLabHandleFocusClick, mapLabHandleCommandClick, mapLabHandleClick, mapLabHandlePageChange, mapLabBootstrap].map((fn) => String(fn)).join("\n") + "\nmapLabBootstrap();";

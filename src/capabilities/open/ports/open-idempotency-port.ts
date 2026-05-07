@@ -13,7 +13,7 @@ export type OpenIdempotencyReservation = {
   reason: string | null;
   reservationExpiresAt: string | null;
   duplicateOpenReviewRequired: boolean;
-  alreadyOnTargetDecision: "not_applicable" | "freshness_required";
+  alreadyOnTargetHandlingMode: "not_applicable" | "session_reused";
 };
 
 export interface OpenIdempotencyPort {

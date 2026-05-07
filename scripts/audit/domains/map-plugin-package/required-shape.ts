@@ -5,6 +5,7 @@ import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { hasCallExpression, hasCallExpressionPath, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
 import { getTypeAliasPropertyNames, getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
 import { findAiOutputSchemaDescriptorBySchemaVersion } from "../../../../src/capabilities/ai/output-schema-catalog-port.js";
+import { findRoutePlanById } from "../../../../src/map-plugins/route-plans/index.js";
 import { getSource } from "./audit-project.js";
 import { missingFiles } from "./audit-files.js";
 import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
@@ -24,10 +25,10 @@ const ACTIVATION_REQUIRED_FIELDS = [
   "mapVersion",
   "taskTemplateId",
   "requestedPlatformId",
-  "approvedBy",
+  "gateActor",
   "activatedAt",
   "reason",
-  "humanApprovalRef",
+  "automationGateRef",
   "validationReportRef",
   "capabilityCatalogVersion",
   "promptCatalogVersion",
@@ -44,8 +45,7 @@ const ACTIVE_RECORD_REQUIRED_FIELDS = [
   "capabilityCatalogVersion",
   "promptCatalogVersion",
   "validationReportRef",
-  "humanApprovalRef",
-  "proofPolicy",
+  "automationGateRef",
 ] as const;
 const BUILTIN_INDEX_PATH = `${ROOT}/builtins/index.ts`;
 const BUILTIN_PARSER_PATH = `${ROOT}/builtin-loader/builtin-map-package-parser.ts`;
@@ -88,8 +88,8 @@ const inspectBuiltinRecord = (record: Awaited<ReturnType<typeof loadBuiltinPacka
 
   const findings: Finding[] = [];
   if (record.mapPackage.manifest.aiGenerated) {
-    if (record.mapPackage.manifest.approvalStatus !== "draft" || record.mapPackage.taskTemplate.availabilityPolicy !== "draft") {
-      findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.AI_DRAFT, file: record.file, line: 1, severity: "fatal", message: "AI-generated map packages must remain draft-only until later governed approval flow exists." }));
+    if (record.mapPackage.manifest.activationGateStatus !== "draft" || record.mapPackage.taskTemplate.availabilityPolicy !== "draft") {
+      findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.AI_DRAFT, file: record.file, line: 1, severity: "fatal", message: "AI-generated map packages must remain draft-only until later governed automation-gate flow exists." }));
     }
     return findings;
   }
@@ -106,32 +106,29 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
     return [];
   }
 
-  const steps = record.mapPackage.operationalMap.steps;
+  const routePlan = findRoutePlanById(record.mapPackage.operationalMap.routePlanId);
+  const steps = routePlan ? [...record.mapPackage.operationalMap.steps, ...routePlan.steps] : record.mapPackage.operationalMap.steps;
+  const mapStepIds = new Set(record.mapPackage.operationalMap.steps.map((step) => step.stepId));
+  const routePlanOwnedStepIds = new Set((routePlan?.steps ?? []).map((step) => step.stepId));
+  const routePlanTransitionIds = new Set((routePlan?.transitions ?? []).map((transition) => transition.transitionId));
   const capture = steps.find((step) => step.stepId === "capture-video-viewport");
   const prepare = steps.find((step) => step.stepId === "prepare-ai-input");
   const judge = steps.find((step) => step.stepId === "judge-seeding-video");
-  const detectNext = steps.find((step) => step.stepId === "detect-next-video-region");
+  const detectNext = steps.find((step) => step.stepId === "observe-next-video-region");
   const normalizeNext = steps.find((step) => step.stepId === "normalize-next-video-region");
   const scrollNext = steps.find((step) => step.stepId === "scroll-next-video");
   const promptBinding = record.mapPackage.promptBindings.bindings.find((binding) => binding.stepId === "judge-seeding-video");
-  const judgeTransitions = record.mapPackage.operationalMap.transitions.filter((transition) => transition.fromStepId === "judge-seeding-video");
-  const transitions = record.mapPackage.operationalMap.transitions;
+  const transitions = routePlan ? [...record.mapPackage.operationalMap.transitions, ...routePlan.transitions] : record.mapPackage.operationalMap.transitions;
+  const mapTransitions = record.mapPackage.operationalMap.transitions;
+  const routePlanTransitions = routePlan?.transitions ?? [];
+  const judgeTransitions = transitions.filter((transition) => transition.fromStepId === "judge-seeding-video");
   const dependencies = record.mapPackage.dependencies;
-  const hasTransition = (fromStepId: string, onStatus: string, toStepId: string) =>
-    transitions.some((transition) =>
-      transition.fromStepId === fromStepId
-      && transition.onStatus === onStatus
-      && transition.toStepId === toStepId,
-    );
   const hasForbiddenHumanReviewHandoff =
     steps.some((step) => step.stepId === "request-human-review" || step.childCapabilityId === "request-human-review")
     || transitions.some((transition) =>
       transition.fromStepId === "request-human-review"
-      || transition.toStepId === "request-human-review"
-      || transition.finalStatus === "review_required",
+      || transition.toStepId === "request-human-review",
     )
-    || record.mapPackage.operationalMap.finalStates.includes("review_required")
-    || record.mapPackage.operationalMap.sequencePolicy.loopDecisionOnLimit === "review_required"
     || dependencies.requiredChildCapabilities.includes("request-human-review");
   const hasForbiddenVideoChangePav =
     steps.some((step) => step.stepId.includes("verify-video-changed") || step.childCapabilityId === "verify-video-changed-after-scroll")
@@ -140,27 +137,32 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
       || transition.fromStepId.includes("verify-video-changed")
       || (transition.toStepId ?? "").includes("verify-video-changed"),
     )
-    || dependencies.requiredChildCapabilities.includes("verify-video-changed-after-scroll")
-    || JSON.stringify(scrollNext?.postActionVerification ?? null).includes("video-changed");
+    || dependencies.requiredChildCapabilities.includes("verify-video-changed-after-scroll");
+  const duplicatesRoutePlanOwnedSteps = [...routePlanOwnedStepIds].some((stepId) => mapStepIds.has(stepId));
+  const duplicatesRoutePlanOwnedTransitions = mapTransitions.some((transition) => routePlanTransitionIds.has(transition.transitionId));
+  const mapOwnsAiSuccessRouting = mapTransitions.some((transition) =>
+    transition.fromStepId === "judge-seeding-video"
+    && transition.onStatus === "success"
+  );
   const hasForbiddenUncertainBranch = judgeTransitions.some((transition) =>
-    transition.condition.rightValue === "product_uncertain"
+    transition.transitionId.includes("uncertain")
     || transition.toStepId === "request-human-review"
-    || transition.finalStatus === "review_required",
   );
   const hasAutomaticNonProductScrollPath =
-    hasTransition("judge-seeding-video", "success", "detect-next-video-region")
-    && hasTransition("detect-next-video-region", "success", "normalize-next-video-region")
-    && hasTransition("normalize-next-video-region", "success", "scroll-next-video")
-    && hasTransition("scroll-next-video", "success", "capture-video-viewport")
+    record.mapPackage.operationalMap.routePlanId === "product-discovery-route-plan.v1"
+    && record.mapPackage.operationalMap.mapKind === "routePlanBoundMap"
+    && routePlanTransitions.some((transition) => transition.fromStepId === "judge-seeding-video" && transition.onStatus === "success" && transition.toStepId === "observe-next-video-region")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "observe-next-video-region" && transition.onStatus === "success" && transition.toStepId === "normalize-next-video-region")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "normalize-next-video-region" && transition.onStatus === "success" && transition.toStepId === "scroll-next-video")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "scroll-next-video" && transition.onStatus === "success" && transition.toStepId === "capture-video-viewport")
     && detectNext?.targetAbilityGroupId === "visual-target"
-    && detectNext.childCapabilityId === "detect-next-video-region"
+    && detectNext.childCapabilityId === "observe-next-video-region"
     && normalizeNext?.targetAbilityGroupId === "geometry-guard"
     && normalizeNext.childCapabilityId === "normalize-coordinate-geometry"
     && scrollNext?.targetAbilityGroupId === "mouse-scroll"
     && scrollNext.childCapabilityId === "scroll-browser-viewport"
     && scrollNext.inputRefs.includes("visualTargetRef")
     && scrollNext.inputRefs.includes("geometryProofRef")
-    && scrollNext.postActionVerification === null
     && !hasForbiddenVideoChangePav;
   const hasChain = capture?.outputRefPolicy.storeAs.includes("screenshotEvidenceRef") === true
     && prepare?.inputRefs.includes("screenshotEvidenceRef") === true
@@ -170,10 +172,11 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
     && judge.promptContractId === "vision.productPresence.v1"
     && promptBinding?.requiredInputRefs.includes("promptInputRef") === true
     && promptBinding.outputSchemaRef === "ai.product_presence_judgment.v1"
-    && promptBinding.confidencePolicy === "binary-no-human-review"
-    && promptBinding.reviewPolicy === "no-human-handoff-for-product-presence"
     && !hasForbiddenUncertainBranch
     && !hasForbiddenHumanReviewHandoff
+    && !duplicatesRoutePlanOwnedSteps
+    && !duplicatesRoutePlanOwnedTransitions
+    && !mapOwnsAiSuccessRouting
     && hasAutomaticNonProductScrollPath;
 
   return hasChain
@@ -183,7 +186,7 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
       file: record.file,
       line: 1,
       severity: "fatal",
-      message: "Seeding video map packages must wire screenshot evidence into the product-presence prompt and keep routing binary: product_yes opens evidence capture, product_no must automatically flow through visual-target -> geometry-guard -> mouse-scroll -> capture-video-viewport for the next AI judgment. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
+      message: "Seeding video map packages must be routePlanBoundMap, wire screenshot evidence into the product-presence prompt, and declare product-discovery-route-plan.v1 as the single muscle-memory source. Route Plan-owned action steps/transitions and AI success routing must not be duplicated in the map body; routeLabel read-comments-and-save-evidence opens evidence capture, skip-current-video flows through visual-target -> geometry-guard -> mouse-scroll -> capture-video-viewport from Route Plan only. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
     })];
 };
 
@@ -265,25 +268,18 @@ const inspectRollbackSource = (project: Project): Finding[] => {
 const inspectTransitionConditionDslSource = (project: Project): Finding[] => {
   const schemaSource = getSource(project, `${ROOT}/schema/operational-map-payload.schema.ts`);
   const propertyNames = getZodObjectPropertyNames(schemaSource, "MapPluginTransitionConditionSchema");
-  const requiredFields = ["conditionType", "leftRef", "operator", "rightValue", "onTrue", "onFalse"] as const;
-  const missingFields = requiredFields.filter((fieldName) => !propertyNames.has(fieldName));
-  const forbiddenFields = ["source", "equals"].filter((fieldName) => propertyNames.has(fieldName));
-  const findings: Finding[] = [];
-  if (missingFields.length > 0) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.BRANCH_DSL, file: `${ROOT}/schema/operational-map-payload.schema.ts`, line: 1, severity: "fatal", message: "Map transition condition schema must use governed branch DSL fields.", detail: missingFields.join(", ") }));
-  }
-  if (forbiddenFields.length > 0) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.BRANCH_DSL, file: `${ROOT}/schema/operational-map-payload.schema.ts`, line: 1, severity: "fatal", message: "Legacy source/equals branch DSL must not remain active truth.", detail: forbiddenFields.join(", ") }));
-  }
-  return findings;
+  return propertyNames.size === 0
+    ? []
+    : [createFinding({ lawId: MAP_PLUGIN_LAWS.BRANCH_DSL, file: `${ROOT}/schema/operational-map-payload.schema.ts`, line: 1, severity: "fatal", message: "Map transition condition schema must stay physically absent; AI Prompt Contract owns branch semantics and production runtime consumes AI decision output." })];
 };
 
 const inspectStepSchemaSource = (project: Project): Finding[] => {
   const schemaSource = getSource(project, `${ROOT}/schema/operational-map-step.schema.ts`);
   const propertyNames = getZodObjectPropertyNames(schemaSource, "MapPluginOperationalMapStepSchema");
-  return propertyNames.has("postActionVerification")
+  const forbiddenFields = ["successCondition", "failureBranch", "reviewBranch", "postActionVerification", "proofPolicy"].filter((fieldName) => propertyNames.has(fieldName));
+  return forbiddenFields.length === 0
     ? []
-    : [createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: `${ROOT}/schema/operational-map-step.schema.ts`, line: 1, severity: "fatal", message: "Map step schema must declare postActionVerification as schema-level action policy." })];
+    : [createFinding({ lawId: MAP_PLUGIN_LAWS.SCHEMA, file: `${ROOT}/schema/operational-map-step.schema.ts`, line: 1, severity: "fatal", message: "Map step schema must not declare constraint/policy/judgment fields.", detail: forbiddenFields.join(", ") })];
 };
 
 const inspectActivationTypes = (project: Project): Finding[] => {
@@ -309,6 +305,7 @@ const inspectActivationTypes = (project: Project): Finding[] => {
 
 const VISION_PROMPT_TEMPLATE_PATH = "src/lib/local-ai/prompts/vision-product-presence.v1.ts";
 const VISION_PROMPT_OUTPUT_SCHEMA_REF = "ai.product_presence_judgment.v1";
+const TRANSITION_EVALUATOR_PATH = "src/capabilities/orchestration/runtime/transition-evaluator.ts";
 
 const inspectPromptTemplateRequiredOutputSchema = (project: Project): Finding[] => {
   const source = getSource(project, VISION_PROMPT_TEMPLATE_PATH);
@@ -343,6 +340,27 @@ const inspectPromptTemplateRequiredOutputSchema = (project: Project): Finding[] 
   );
 };
 
+const inspectTransitionEvaluatorRouteBoundary = (project: Project): Finding[] => {
+  const source = getSource(project, TRANSITION_EVALUATOR_PATH);
+  const sourceText = source.getFullText();
+  if (
+    sourceText.includes("productyes")
+    || sourceText.includes("productno")
+    || sourceText.includes("getDecisionRouteAliases")
+    || !sourceText.includes("branchFieldValues.routeLabel")
+    || !sourceText.includes("transitionMatchesRouteLabel")
+  ) {
+    return [createFinding({
+      lawId: MAP_PLUGIN_LAWS.BRANCH_DSL,
+      file: TRANSITION_EVALUATOR_PATH,
+      line: 1,
+      severity: "fatal",
+      message: "Orchestration transition evaluator must not infer routes from product_yes/product_no. It may only mechanically match AI-provided branchFieldValues.routeLabel against map route labels.",
+    })];
+  }
+  return [];
+};
+
 const inspectLifecycleSources = (project: Project): Finding[] => {
   return [
     ...inspectBuiltinIndexSource(project),
@@ -354,6 +372,7 @@ const inspectLifecycleSources = (project: Project): Finding[] => {
     ...inspectActivationTypes(project),
     ...inspectAuthoringPromptSources(project),
     ...inspectPromptTemplateRequiredOutputSchema(project),
+    ...inspectTransitionEvaluatorRouteBoundary(project),
   ];
 };
 

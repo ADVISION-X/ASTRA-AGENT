@@ -1,5 +1,4 @@
 import type { ParsedVisualTargetAbilityInput, VisualTargetDataQualityFlag, VisualTargetFailureReason } from "../contract.js";
-import { parseVisualTargetIsoTimestamp } from "./visual-target-clock.js";
 import {
   createVisualTargetGateBlocked,
   createVisualTargetGateReviewRequired,
@@ -61,8 +60,6 @@ function findScreenshotStructuralFailure(screenshotProof: ParsedVisualTargetAbil
 function findScreenshotReviewRequirement(input: {
   screenshotProof: ParsedVisualTargetAbilityInput["sourceProof"]["screenshot"];
   screenshotHash: string;
-  nowEpochMs: number;
-  freshnessTtlMs: number;
 }): ScreenshotProofReviewRequired | null {
   if (input.screenshotProof.coordinateSpace === "ai_input" && (!input.screenshotProof.scaleMapping || !input.screenshotProof.sourceScreenshotEvidenceId)) {
     return createScreenshotReview({
@@ -74,15 +71,7 @@ function findScreenshotReviewRequirement(input: {
     });
   }
 
-  return isStaleScreenshotProof(input.nowEpochMs, input.freshnessTtlMs, input.screenshotProof.capturedAt)
-    ? createScreenshotReview({
-      failureReason: "stale_screenshot_proof",
-      statusMessage: "Screenshot proof is stale for the requested visual target arbitration window.",
-      reviewRequiredReason: "Visual Target requires a fresher screenshot proof before selecting a governed target.",
-      screenshotHash: input.screenshotHash,
-      dataQualityFlags: ["stale_screenshot"],
-    })
-    : null;
+  return null;
 }
 
 function findScreenshotBindingConflict(input: {
@@ -102,15 +91,8 @@ function findScreenshotBindingConflict(input: {
   return null;
 }
 
-function isStaleScreenshotProof(nowEpochMs: number, freshnessTtlMs: number, capturedAt: string): boolean {
-  const ageMs = Math.max(0, nowEpochMs - parseVisualTargetIsoTimestamp(capturedAt));
-  return ageMs > freshnessTtlMs;
-}
-
 export function validateScreenshotProof(input: {
   request: ParsedVisualTargetAbilityInput;
-  nowEpochMs: number;
-  freshnessTtlMs: number;
 }): ScreenshotProofAllow | ScreenshotProofBlocked | ScreenshotProofReviewRequired {
   const screenshotProof = input.request.sourceProof.screenshot;
   const screenshotHash = screenshotProof.imageHash;
@@ -136,8 +118,6 @@ export function validateScreenshotProof(input: {
   const reviewRequirement = findScreenshotReviewRequirement({
     screenshotProof,
     screenshotHash,
-    nowEpochMs: input.nowEpochMs,
-    freshnessTtlMs: input.freshnessTtlMs,
   });
   if (reviewRequirement) {
     return reviewRequirement;

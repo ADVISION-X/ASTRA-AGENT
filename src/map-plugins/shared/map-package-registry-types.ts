@@ -48,12 +48,11 @@ export type ActiveOperationalMapRecord = {
   capabilityCatalogVersion: string;
   promptCatalogVersion: string;
   validationReportRef: string;
-  humanApprovalRef: string;
+  automationGateRef: string;
   importProofRef: string;
   quarantineProofRef: string;
   activationProofRef: string;
   authoringProofRef: string | null;
-  proofPolicy: MapPackage["operationalMap"]["proofPolicy"];
   operationalMap: OperationalMap;
 };
 
@@ -77,7 +76,7 @@ export type DeveloperMapPackageItem = {
   mapId: string;
   title: string;
   lifecycleStatus: MapPackageLifecycleStatus;
-  approvalStatus: string;
+  activationGateStatus: string;
   summary: string;
   chain: string[];
   validationIssues: MapPackageValidationIssue[];

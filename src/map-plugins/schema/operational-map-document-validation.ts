@@ -1,24 +1,26 @@
 import { z } from "zod";
+import { findRoutePlanById } from "../route-plans/index.js";
 
 type StepValue = {
   stepId: string;
   targetAbilityGroupId?: string | null;
+  promptContractId?: string | null;
 };
 
 type TransitionValue = {
   transitionId: string;
   fromStepId: string;
+  onStatus: string;
   toStepId?: string | null;
   finalStatus?: string | null;
 };
 
 type OperationalMapValue = {
-  allowedAbilityGroups: readonly string[];
+  mapKind: "routePlanBoundMap" | "genericDiagnosticMap";
+  routePlanId?: string | null;
   initialStepId: string;
   steps: StepValue[];
   transitions: TransitionValue[];
-  failureBranches: string[];
-  reviewBranches: string[];
   finalStates: string[];
 };
 
@@ -33,9 +35,6 @@ const collectStepIds = (value: OperationalMapValue, context: z.RefinementCtx): S
       addIssue(context, "steps", "Operational map stepId must be unique.");
     }
     stepIds.add(step.stepId);
-    if (step.targetAbilityGroupId && !value.allowedAbilityGroups.includes(step.targetAbilityGroupId)) {
-      addIssue(context, "steps", "Step targetAbilityGroupId must be in allowedAbilityGroups.");
-    }
   }
   return stepIds;
 };
@@ -63,22 +62,6 @@ const collectTransitionIds = (transitions: TransitionValue[], stepIds: Set<strin
   return transitionIds;
 };
 
-const validateTransitionReferences = (
-  branchIds: string[],
-  transitionIds: Set<string>,
-  branch: {
-    path: "failureBranches" | "reviewBranches";
-    label: "failureBranch" | "reviewBranch";
-  },
-  context: z.RefinementCtx,
-): void => {
-  for (const transitionId of branchIds) {
-    if (!transitionIds.has(transitionId)) {
-      addIssue(context, branch.path, `${branch.label} ${transitionId} must reference an existing transitionId.`);
-    }
-  }
-};
-
 const hasReachableFinalState = (transitions: TransitionValue[], finalState: string): boolean =>
   transitions.some((transition) => transition.finalStatus === finalState);
 
@@ -90,12 +73,87 @@ const validateFinalStates = (finalStates: string[], transitions: TransitionValue
   }
 };
 
+const validateRoutePlanBoundMap = (
+  value: OperationalMapValue,
+  routePlan: NonNullable<ReturnType<typeof findRoutePlanById>>,
+  context: z.RefinementCtx,
+): void => {
+  const mapStepIds = new Set(value.steps.map((step) => step.stepId));
+  const routePlanStepIds = new Set(routePlan.steps.map((step) => step.stepId));
+  const duplicatedStepIds = [...routePlanStepIds].filter((stepId) => mapStepIds.has(stepId));
+  if (duplicatedStepIds.length > 0) {
+    addIssue(context, "steps", `routePlanBoundMap must not duplicate Route Plan-owned steps: ${duplicatedStepIds.join(", ")}.`);
+  }
+
+  const routePlanTransitionIds = new Set(routePlan.transitions.map((transition) => transition.transitionId));
+  const duplicatedTransitionIds = value.transitions
+    .filter((transition) => routePlanTransitionIds.has(transition.transitionId))
+    .map((transition) => transition.transitionId);
+  if (duplicatedTransitionIds.length > 0) {
+    addIssue(context, "transitions", `routePlanBoundMap must not duplicate Route Plan-owned transitions: ${duplicatedTransitionIds.join(", ")}.`);
+  }
+
+  const routeLabels = new Set(routePlan.outcomeOptions.map((option) => option.routeLabel));
+  const localRouteLabelTransitions = value.transitions
+    .filter((transition) => [...routeLabels].some((routeLabel) => transition.transitionId.endsWith(`:${routeLabel}`)))
+    .map((transition) => transition.transitionId);
+  if (localRouteLabelTransitions.length > 0) {
+    addIssue(context, "transitions", `routePlanBoundMap must not declare routeLabel action-chain transitions: ${localRouteLabelTransitions.join(", ")}.`);
+  }
+
+  const aiStepIds = value.steps
+    .filter((step) => step.targetAbilityGroupId === "ai")
+    .map((step) => step.stepId);
+  const localAiSuccessTransitions = value.transitions
+    .filter((transition) => aiStepIds.includes(transition.fromStepId) && transition.onStatus === "success")
+    .map((transition) => transition.transitionId);
+  if (localAiSuccessTransitions.length > 0) {
+    addIssue(context, "transitions", `routePlanBoundMap must let Route Plan own AI success routing: ${localAiSuccessTransitions.join(", ")}.`);
+  }
+
+  const routePlanPromptContractIds = new Set(routePlan.promptContractIds);
+  const hasBoundAiPrompt = value.steps.some((step) =>
+    step.targetAbilityGroupId === "ai"
+    && typeof step.promptContractId === "string"
+    && routePlanPromptContractIds.has(step.promptContractId)
+  );
+  if (!hasBoundAiPrompt) {
+    addIssue(context, "steps", "routePlanBoundMap must bind an AI step to a Prompt Contract owned by its Route Plan.");
+  }
+};
+
+const validateMapKindBoundary = (
+  value: OperationalMapValue,
+  routePlan: ReturnType<typeof findRoutePlanById>,
+  context: z.RefinementCtx,
+): void => {
+  if (value.mapKind === "genericDiagnosticMap") {
+    if (value.routePlanId !== null && value.routePlanId !== undefined) {
+      addIssue(context, "routePlanId", "genericDiagnosticMap must not bind a Route Plan.");
+    }
+    return;
+  }
+
+  if (!value.routePlanId) {
+    addIssue(context, "routePlanId", "routePlanBoundMap must declare routePlanId.");
+    return;
+  }
+  if (!routePlan) {
+    addIssue(context, "routePlanId", "routePlanBoundMap routePlanId must resolve to a governed Route Plan.");
+    return;
+  }
+  validateRoutePlanBoundMap(value, routePlan, context);
+};
+
 export const validateMapPluginOperationalMap = (value: OperationalMapValue, context: z.RefinementCtx): void => {
-  const stepIds = collectStepIds(value, context);
+  const routePlan = findRoutePlanById(value.routePlanId ?? null);
+  validateMapKindBoundary(value, routePlan, context);
+  const routePlanSteps = routePlan?.steps ?? [];
+  const routePlanTransitions = routePlan?.transitions ?? [];
+  const stepIds = collectStepIds({ ...value, steps: [...value.steps, ...routePlanSteps] }, context);
   validateInitialStepId(value.initialStepId, stepIds, context);
 
-  const transitionIds = collectTransitionIds(value.transitions, stepIds, context);
-  validateTransitionReferences(value.failureBranches, transitionIds, { path: "failureBranches", label: "failureBranch" }, context);
-  validateTransitionReferences(value.reviewBranches, transitionIds, { path: "reviewBranches", label: "reviewBranch" }, context);
-  validateFinalStates(value.finalStates, value.transitions, context);
+  const transitions = [...value.transitions, ...routePlanTransitions];
+  collectTransitionIds(transitions, stepIds, context);
+  validateFinalStates(value.finalStates, transitions, context);
 };

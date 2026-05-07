@@ -3,15 +3,15 @@ import { createHash } from "node:crypto";
 const VISUAL_TARGET_ABILITY_GROUP_ID = "visual-target" as const;
 
 const VISUAL_TARGET_CHILD_CAPABILITY_IDS = [
-  "detect-like-button",
-  "detect-save-button",
-  "detect-comments-button",
-  "detect-comments-panel",
-  "detect-close-comments-button",
-  "detect-not-interested-button",
-  "detect-next-video-region",
-  "detect-metric-like-count",
-  "detect-metric-comment-count",
+  "observe-like-button",
+  "observe-save-button",
+  "observe-comments-button",
+  "observe-comments-panel",
+  "observe-close-comments-button",
+  "observe-not-interested-button",
+  "observe-next-video-region",
+  "observe-metric-like-count",
+  "observe-metric-comment-count",
 ] as const;
 
 const VISUAL_TARGET_STATUSES = ["success", "failed", "review_required"] as const;

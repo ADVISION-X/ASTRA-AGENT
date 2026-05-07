@@ -1,12 +1,14 @@
 export const POST_ACTION_VERIFICATION_ABILITY_GROUP_ID = "post-action-verification";
 
 export const POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS = [
-  "verify-page-opened",
-  "verify-comments-panel-opened",
-  "verify-comments-panel-closed",
-  "verify-not-interested-result",
-  "verify-target-state-changed",
+  "observe-page-open-attempt",
+  "observe-comments-panel-open-attempt",
+  "observe-comments-panel-close-attempt",
+  "observe-not-interested-attempt",
+  "observe-target-state-transition",
 ] as const;
+
+export type PostActionVerificationChildCapabilityId = (typeof POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS)[number];
 
 export const POST_ACTION_EXPECTED_OUTCOME_TYPES = [
   "page_opened",

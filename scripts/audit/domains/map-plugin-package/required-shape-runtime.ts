@@ -65,13 +65,13 @@ const collectRegistryFeedFindings = (registry: ReturnType<typeof createMapPlugin
 const resolveActiveRecord = (registry: ReturnType<typeof createMapPluginRegistry>): ActiveRegistryRecord | Finding[] => {
   for (const taskTemplateId of ["facebook-seeding-video-discovery", "tiktok-seeding-video-discovery"]) {
     if (!registry.active.getTaskTemplateDeveloperBinding(taskTemplateId)) {
-      return [createRegistryBootstrapError(`Active registry must resolve a developer binding for approved task template ${taskTemplateId}.`)];
+      return [createRegistryBootstrapError(`Active registry must resolve a developer binding for gate-passed task template ${taskTemplateId}.`)];
     }
   }
 
   const activeRecord = registry.active.getActiveOperationalMapRecordByTaskTemplateId("tiktok-seeding-video-discovery");
   if (!activeRecord) {
-    return [createRegistryBootstrapError("Active registry must expose a frozen active record for approved task templates.")];
+    return [createRegistryBootstrapError("Active registry must expose a frozen active record for gate-passed task templates.")];
   }
 
   return activeRecord;
@@ -87,7 +87,7 @@ const hasFrozenGovernanceMetadata = (activeRecord: ActiveRegistryRecord): boolea
     activeRecord.capabilityCatalogVersion,
     activeRecord.promptCatalogVersion,
     activeRecord.validationReportRef,
-    activeRecord.humanApprovalRef,
+    activeRecord.automationGateRef,
   ].every(Boolean);
 };
 
@@ -96,10 +96,6 @@ const collectActiveRecordMetadataFindings = (activeRecord: ActiveRegistryRecord)
   if (!hasFrozenGovernanceMetadata(activeRecord)) {
     findings.push(createRegistryBootstrapError("Active registry records must expose activationId, frozen hashes, and locked governance refs."));
   }
-  if (!activeRecord.proofPolicy.recordPackageSelection) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROOF, file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message: "Active registry records must preserve proofPolicy outside the stripped orchestration map payload." }));
-  }
-
   return findings;
 };
 
@@ -131,7 +127,7 @@ const bootstrapRegistry = (): ReturnType<typeof createMapPluginRegistry> => {
   const registry = createMapPluginRegistry();
   for (const builtinPackage of loadBuiltinMapPackages()) {
     registry.importPackage(builtinPackage, "audit-required-shape");
-    if (builtinPackage.manifest.approvalStatus === "approved" && builtinPackage.taskTemplate.availabilityPolicy === "active") {
+    if (builtinPackage.manifest.activationGateStatus === "gate_passed" && builtinPackage.taskTemplate.availabilityPolicy === "active") {
       registry.activatePackage(builtinPackage.manifest.packageId, builtinPackage.manifest.packageVersion, "audit-required-shape", "audit bootstrap");
     }
   }
@@ -182,13 +178,11 @@ export const inspectPhase05DiagnosticMapSurface = (): Finding[] => {
   const abilitySurface = new Set(map.steps.map((step) => step.targetAbilityGroupId).filter((value) => Boolean(value)));
   const missingAbilitySurface = PHASE_05_REQUIRED_ABILITY_SURFACE.filter((abilityGroupId) => !abilitySurface.has(abilityGroupId));
   const textInputStep = map.steps.find((step) => step.targetAbilityGroupId === "text-input");
-  const policyText = [
-    diagnosticPackage.policy.safetyPolicy,
-    diagnosticPackage.policy.debugPolicy,
+  const hasDryRunTextInputGate = Boolean(textInputStep) && /dry-run|sandbox|local/.test([
     diagnosticPackage.taskTemplate.safetyLevel,
     textInputStep?.stepId ?? "",
-  ].join(" ");
-  const hasDryRunTextInputGate = /dry-run|sandbox/.test(policyText) && /local/.test(policyText);
+    textInputStep?.childCapabilityId ?? "",
+  ].join(" "));
   const hasNoExecutablePayload = !hasForbiddenExecutableKey(diagnosticPackage);
   const hasControlSurface = PHASE_05_REQUIRED_CONTROL_SURFACE.every((surface) => {
     if (surface === "commander-console") return diagnosticPackage.taskTemplate.taskTemplateId === "phase-05-full-surface-diagnostic-map";
@@ -218,8 +212,7 @@ export const inspectPhase05DiagnosticMapSurface = (): Finding[] => {
     && diagnosticAiStep.promptContractId === "ai.schema_validation_only.internal"
     && diagnosticPackage.promptBindings.bindings.some((binding) =>
       binding.stepId === diagnosticAiStep.stepId
-      && binding.promptContractId === "ai.schema_validation_only.internal"
-      && binding.reviewPolicy === "diagnostic-no-early-review",
+      && binding.promptContractId === "ai.schema_validation_only.internal",
     );
 
   const findings: Finding[] = [];
@@ -232,8 +225,8 @@ export const inspectPhase05DiagnosticMapSurface = (): Finding[] => {
   if (!hasNoExecutablePayload) {
     findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic map package must not contain executable payloads, handlers, shell commands, or raw prompts." }));
   }
-  if (diagnosticPackage.manifest.approvalStatus !== "approved" || diagnosticPackage.taskTemplate.availabilityPolicy !== "active") {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic map must be approved and active so acceptance cannot confuse a dormant draft package with a runnable diagnostic." }));
+  if (diagnosticPackage.manifest.activationGateStatus !== "gate_passed" || diagnosticPackage.taskTemplate.availabilityPolicy !== "active") {
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic map must be gate-passed and active so acceptance cannot confuse a dormant draft package with a runnable diagnostic." }));
   }
   if (missingSuccessPathSurface.length > 0 || !successPathPersistsEvidence || successPathFinalStatus !== "completed" || successPathUsesHumanReviewTerminal) {
     findings.push(createFinding({

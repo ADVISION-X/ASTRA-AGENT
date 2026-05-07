@@ -1,9 +1,9 @@
 import type { MissionState, OperationalMap } from "../contract.js";
-import { ensurePostActionVerificationDispatchGate } from "./orchestration-post-action-verification.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import { buildAiStepResult } from "./step-dispatch-ai.js";
-import { buildAbilityDispatchResult, buildAiDispatchRequest, buildReviewDispatchRequest } from "./step-dispatch-request-builders.js";
-import { buildFinalizeStepResult, buildReviewStepResult } from "./step-dispatch-review.js";
+import { findEffectiveOperationalStep } from "./route-plan-resolver.js";
+import { buildAbilityDispatchResult, buildAiDispatchRequest } from "./step-dispatch-request-builders.js";
+import { buildFinalizeStepResult } from "./step-dispatch-review.js";
 import {
   buildAbilityOutputSchemaRef,
   resolveAiDispatchRequirements,
@@ -15,7 +15,6 @@ import {
   type AiStep,
   type FinalizeStep,
   type OperationalStep,
-  type ReviewStep,
   type StepDispatchResult,
 } from "./step-dispatch-shared.js";
 import { dispatchWithTimeout } from "./step-dispatch-timeout-gate.js";
@@ -25,8 +24,18 @@ function validateAbilityDispatch(input: AbilityDispatchInput): string | null {
     return `Ability step "${input.step.stepId}" is missing required targetAbilityGroupId.`;
   }
 
-  const postActionVerificationReason = ensurePostActionVerificationDispatchGate(input.map, input.step.stepId);
-  return postActionVerificationReason;
+  return null;
+}
+
+const PRODUCTION_POST_ACTION_VERIFICATION_GROUPS = new Set([
+  "open",
+  "mouse-click",
+  "mouse-scroll",
+  "text-input",
+]);
+
+function requiresProductionPostActionVerification(targetAbilityGroupId: string): boolean {
+  return PRODUCTION_POST_ACTION_VERIFICATION_GROUPS.has(targetAbilityGroupId);
 }
 
 async function sendAbilityDispatch(input: AbilityDispatchInput, targetAbilityGroupId: AbilityDispatchTarget) {
@@ -53,7 +62,7 @@ async function sendAbilityDispatch(input: AbilityDispatchInput, targetAbilityGro
       targetAbilityGroupId,
       childCapabilityId: input.step.childCapabilityId,
       expectedOutputSchemaRef: buildAbilityOutputSchemaRef(targetAbilityGroupId, input.step.childCapabilityId),
-      postActionVerificationRequired: input.step.postActionVerification !== null,
+      postActionVerificationRequired: requiresProductionPostActionVerification(targetAbilityGroupId),
       payloadRefs: input.state.payloadRefs,
       sequenceNo: input.sequenceNo,
       idempotencyKey: input.idempotencyKey,
@@ -129,31 +138,6 @@ async function dispatchAiStep(input: {
     : buildAiStepResult({ state: input.state, map: input.map, step: input.step, missionId: input.missionId, dispatchResult: timeoutResult.result });
 }
 
-async function dispatchReviewStep(input: {
-  state: MissionState;
-  map: OperationalMap;
-  step: ReviewStep;
-  reason: string | undefined;
-  sequenceNo: number;
-  idempotencyKey: string;
-  context: Pick<OrchestrationRuntimeContext, "nerveBus">;
-  missionId: string;
-}): Promise<StepDispatchResult> {
-  const chain = resolveDispatchChain(input.state, input.step.stepId);
-  if (!chain.ok) {
-    return { dispatched: false, failureReason: chain.failureReason };
-  }
-  const timeoutMs = resolveStepTimeoutMs(input.step);
-
-  const timeoutResult = await dispatchWithTimeout(
-    async (_signal) => input.context.nerveBus.sendReviewRequestToCommander(buildReviewDispatchRequest({ ...input, chain: chain.value })),
-    timeoutMs,
-  );
-  return timeoutResult.timedOut
-    ? { dispatched: false, failureReason: `Review dispatch timed out after ${timeoutMs}ms for step "${input.step.stepId}".` }
-    : buildReviewStepResult({ map: input.map, missionId: input.missionId, step: input.step, reason: input.reason, reviewResult: timeoutResult.result });
-}
-
 async function dispatchOperationalStepCore(input: {
   state: MissionState;
   map: OperationalMap;
@@ -165,19 +149,6 @@ async function dispatchOperationalStepCore(input: {
   context: Pick<OrchestrationRuntimeContext, "nerveBus">;
   missionId: string;
 }): Promise<StepDispatchResult> {
-  if (input.step.stepKind === "review") {
-    return dispatchReviewStep({
-      state: input.state,
-      map: input.map,
-      step: input.step as ReviewStep,
-      reason: input.reason,
-      sequenceNo: input.sequenceNo,
-      idempotencyKey: input.idempotencyKey,
-      context: input.context,
-      missionId: input.missionId,
-    });
-  }
-
   if (input.step.stepKind === "finalize") {
     return buildFinalizeStepResult({ map: input.map, missionId: input.missionId, step: input.step as FinalizeStep });
   }
@@ -216,7 +187,7 @@ export async function dispatchOperationalStep(input: {
   idempotencyKey: string;
   context: Pick<OrchestrationRuntimeContext, "nerveBus">;
 }): Promise<StepDispatchResult> {
-  const step = input.map.steps.find((candidate) => candidate.stepId === input.stepId);
+  const step = findEffectiveOperationalStep(input.map, input.stepId);
   if (!step) {
     return {
       dispatched: false,

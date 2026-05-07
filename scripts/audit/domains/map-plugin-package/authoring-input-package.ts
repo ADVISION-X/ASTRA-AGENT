@@ -30,7 +30,7 @@ const REQUIRED_INPUT_PACKAGE_BUILDER_FIELDS = [
   "mapPackageSchema",
   "mapAuthoringOutputSchema",
   "safetyPolicy",
-  "humanApprovalPolicy",
+  "automationGatePolicy",
   "evidencePolicy",
   "pavPolicy",
   "forensicsPolicy",
@@ -71,6 +71,17 @@ const inspectInputPackageBuilder = (project: Project): Finding[] => {
       MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT,
       INPUT_PACKAGE_BUILDER_FILE,
       "Map Authoring Input Package builder must lock expectedDraftStatus=draft.",
+    ));
+  }
+  if (
+    !sourceText.includes("binaryOutcomePolicy: buildBinaryOutcomePolicy(request)")
+    || !sourceText.includes("productPositiveOutcomeOptions")
+    || !sourceText.includes("selectedProductNegativeOutcomeId")
+  ) {
+    findings.push(createAuthoringFinding(
+      MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE,
+      INPUT_PACKAGE_BUILDER_FILE,
+      "Map Authoring Input Package builder must carry hardcoded/default binary outcome options from user request into userRequirement and sourceRequirementHash.",
     ));
   }
 
@@ -155,6 +166,17 @@ const inspectPromptTemplateHardcoding = (project: Project): Finding[] => {
       MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT,
       PROMPT_TEMPLATE_FILE,
       "Map authoring prompt template must explicitly forbid human-review actions and require automation maps to complete through automated execution, blocking, or failed termination.",
+    ));
+  }
+  if (
+    !sourceText.includes("UserRequirement.binaryOutcomePolicy is mandatory source truth")
+    || !sourceText.includes("decision plus routeLabel")
+    || !sourceText.includes("Orchestration may only match the routeLabel mechanically")
+  ) {
+    findings.push(createAuthoringFinding(
+      MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT,
+      PROMPT_TEMPLATE_FILE,
+      "Map authoring prompt template must require selected/default binary outcome options to become AI decision plus routeLabel, with Orchestration limited to mechanical route matching.",
     ));
   }
   return findings;

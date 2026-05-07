@@ -1,3 +1,8 @@
+import {
+  PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
+  PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
+} from "../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
+
 const PRODUCT_PRESENCE_TASK_TYPE = "product_presence_judgment";
 const PRODUCT_PRESENCE_MIN_CONFIDENCE = 0.6;
 
@@ -19,7 +24,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 const isProductPresenceOutput = (
   value: unknown,
-): value is { isProductVideo: boolean | null; mustReview: boolean } => (
+): value is { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nextIntent?: string } => (
   isRecord(value)
   && "isProductVideo" in value
   && (typeof value.isProductVideo === "boolean" || value.isProductVideo === null)
@@ -62,16 +67,34 @@ const buildDefaultDecision = (input: {
       : null,
     isProductVideo: null,
     mustReview: null,
+    routeLabel: null,
+    nextIntent: null,
   };
 };
 
-const buildProductPresenceFailedDecision = (output: { isProductVideo: boolean | null; mustReview: boolean }) => {
+const resolveProductPresenceRouteLabel = (output: { routeLabel?: string; isProductVideo: boolean | null }) =>
+  typeof output.routeLabel === "string" && output.routeLabel.length > 0
+    ? output.routeLabel
+    : (output.isProductVideo === true ? PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL : PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL);
+
+const resolveProductPresenceNextIntent = (output: { nextIntent?: string; routeLabel?: string; isProductVideo: boolean | null }) => {
+  if (typeof output.nextIntent === "string" && output.nextIntent.length > 0) {
+    return output.nextIntent;
+  }
+  return resolveProductPresenceRouteLabel(output) === PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL
+    ? "读取评论并保存当前视频的选品证据。"
+    : "跳过当前视频并继续自动发现。";
+};
+
+const buildProductPresenceFailedDecision = (output: { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nextIntent?: string }) => {
   return {
     status: "failed" as const,
     decision: "product_presence_failed",
     reviewRequiredReason: null,
     isProductVideo: output.isProductVideo,
     mustReview: output.mustReview,
+    routeLabel: resolveProductPresenceRouteLabel(output),
+    nextIntent: resolveProductPresenceNextIntent(output),
   };
 };
 
@@ -87,6 +110,8 @@ const buildProductPresenceReviewDecision = (input: {
     reviewRequiredReason: resolveProductPresenceReviewReason(input),
     isProductVideo: input.isProductVideo,
     mustReview: input.mustReview,
+    routeLabel: PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
+    nextIntent: "跳过当前视频并继续自动发现。",
   };
 };
 
@@ -94,7 +119,7 @@ const resolveProductPresenceDecision = (input: {
   status: "success" | "failed" | "review_required";
   confidence: number | null;
   reviewRequiredReason: string | null | undefined;
-  output: { isProductVideo: boolean | null; mustReview: boolean };
+  output: { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nextIntent?: string };
 }) => {
   const lowConfidence = input.confidence === null || input.confidence < PRODUCT_PRESENCE_MIN_CONFIDENCE;
   const { isProductVideo, mustReview } = input.output;
@@ -108,6 +133,8 @@ const resolveProductPresenceDecision = (input: {
       reviewRequiredReason: null,
       isProductVideo,
       mustReview,
+      routeLabel: resolveProductPresenceRouteLabel(input.output),
+      nextIntent: resolveProductPresenceNextIntent(input.output),
     };
   }
   return {
@@ -116,6 +143,8 @@ const resolveProductPresenceDecision = (input: {
     reviewRequiredReason: null,
     isProductVideo: isProductVideo === true,
     mustReview: false,
+    routeLabel: resolveProductPresenceRouteLabel(input.output),
+    nextIntent: resolveProductPresenceNextIntent(input.output),
   };
 };
 

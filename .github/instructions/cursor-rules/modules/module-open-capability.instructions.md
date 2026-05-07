@@ -20,6 +20,7 @@ Core doctrine:
 - Open success means a governed navigation/open attempt produced a structured handoff; it is not final page-state truth.
 - Page State owns current-state truth after Open.
 - Post-action Verification owns action-result truth after Open when a map requires outcome verification.
+- AI owns readiness, safety, freshness, and page-kind judgment; Open may only hand off raw post-open observations.
 - Open must never silently pick a platform/map/page.
 - Open must never read cookies, DOM/BOM, or private browser state directly.
 - Open must never become platform adapter, browser controller, Orchestration, Page State, PAV, Screenshot, AI, or Forensics.
@@ -163,7 +164,7 @@ Allowed:
 - navigation/open attempt through OpenBrowserPort
 - idempotency reserve/commit/release
 - timeout/cancellation for navigation
-- post-open preliminary classification only as non-authoritative handoff metadata
+- post-open observation summary only as non-authoritative handoff metadata
 - page-state handoff ref creation
 - runtime proof/result construction
 

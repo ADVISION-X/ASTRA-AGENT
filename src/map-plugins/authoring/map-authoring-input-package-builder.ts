@@ -30,6 +30,39 @@ const buildPolicyDescriptor = (
   rules: string[],
 ): MapAuthoringPolicyDescriptor => ({ policyRef, summary, rules });
 
+const resolveSelectedBinaryOutcome = (
+  options: MapAuthoringRequest["productPositiveOutcomeOptions"],
+  selectedOptionId: string,
+) => {
+  const selected = options.find((option) => option.optionId === selectedOptionId);
+  if (!selected) {
+    throw new Error(`Map authoring binary outcome option not found: ${selectedOptionId}`);
+  }
+  return selected;
+};
+
+const buildBinaryOutcomePolicy = (request: MapAuthoringRequest) => {
+  const positive = resolveSelectedBinaryOutcome(
+    request.productPositiveOutcomeOptions,
+    request.selectedProductPositiveOutcomeId,
+  );
+  const negative = resolveSelectedBinaryOutcome(
+    request.productNegativeOutcomeOptions,
+    request.selectedProductNegativeOutcomeId,
+  );
+  return {
+    positiveDecision: "product_yes" as const,
+    negativeDecision: "product_no" as const,
+    positiveOutcomeOptions: request.productPositiveOutcomeOptions,
+    negativeOutcomeOptions: request.productNegativeOutcomeOptions,
+    selectedPositiveOutcomeId: positive.optionId,
+    selectedNegativeOutcomeId: negative.optionId,
+    selectedPositiveRouteLabel: positive.routeLabel,
+    selectedNegativeRouteLabel: negative.routeLabel,
+    defaultedBySystem: true,
+  };
+};
+
 const buildUserRequirement = (request: MapAuthoringRequest) => ({
   goal: request.objective,
   targetPlatform: request.targetPlatform,
@@ -37,6 +70,7 @@ const buildUserRequirement = (request: MapAuthoringRequest) => ({
   mustAskBefore: request.mustAskBefore,
   failureHandlingPreference: request.failureHandlingPreference,
   evidencePreference: request.evidencePreference,
+  binaryOutcomePolicy: buildBinaryOutcomePolicy(request),
   runLimit: request.runLimit,
   operatorNotes: request.operatorNotes,
   outputLanguage: request.outputLanguage,
@@ -50,8 +84,8 @@ const buildPlatformProfile = (request: MapAuthoringRequest): MapAuthoringInputPa
   supportedTargets: ["browser-page", "browser-viewport", "browser-input", "runtime-proof"],
   rateLimit: { maxActionsPerMinute: 20, burstLimit: 5, refillPolicy: "token-bucket" },
   safetyPauseConditions: ["captcha_detected", "security_check_detected", "unexpected_auth_wall"],
-  securityCheckBehavior: ["pause_and_require_review", "do_not_continue_autonomously"],
-  humanReviewRules: ["high_side_effect_requires_review", "draft_activation_requires_review"],
+  securityCheckBehavior: ["automated_block_on_security_check", "do_not_continue_autonomously"],
+  automationGateRules: ["high_side_effect_requires_route_plan_gate", "unsupported_high_risk_action_fails_closed"],
 });
 
 const buildRequirementFingerprint = (request: MapAuthoringRequest) => ({
@@ -62,6 +96,10 @@ const buildRequirementFingerprint = (request: MapAuthoringRequest) => ({
   mustAskBefore: request.mustAskBefore,
   failureHandlingPreference: request.failureHandlingPreference,
   evidencePreference: request.evidencePreference,
+  productPositiveOutcomeOptions: request.productPositiveOutcomeOptions,
+  productNegativeOutcomeOptions: request.productNegativeOutcomeOptions,
+  selectedProductPositiveOutcomeId: request.selectedProductPositiveOutcomeId,
+  selectedProductNegativeOutcomeId: request.selectedProductNegativeOutcomeId,
   runLimit: request.runLimit,
   operatorNotes: request.operatorNotes,
   outputLanguage: request.outputLanguage,
@@ -73,14 +111,14 @@ type BuildMapAuthoringInputPackageOptions = {
 };
 
 const buildMapAuthoringPolicies = () => ({
-  safetyPolicy: buildPolicyDescriptor("policy://map-authoring/safety/v1", "Declares the no-code and review-gated safety baseline for map authoring.", ["no_code_generation", "no_runtime_activation", "review_high_risk_operations"]),
-  humanApprovalPolicy: buildPolicyDescriptor("policy://map-authoring/human-approval/v1", "Declares operations that require explicit human approval.", ["send_message_requires_approval", "submit_requires_approval", "purchase_requires_approval", "activate_ai_generated_map_requires_approval"]),
+  safetyPolicy: buildPolicyDescriptor("policy://map-authoring/safety/v1", "Declares the no-code and automated-gated safety baseline for map authoring.", ["no_code_generation", "no_runtime_activation", "automated_gate_high_risk_operations"]),
+  automationGatePolicy: buildPolicyDescriptor("policy://map-authoring/automation-gate/v1", "Declares operations that require Route Plan-owned automated gates or fail-closed blocking.", ["send_message_requires_route_plan_gate", "submit_requires_route_plan_gate", "purchase_requires_route_plan_gate", "unsupported_high_risk_action_fails_closed"]),
   evidencePolicy: buildPolicyDescriptor("policy://map-authoring/evidence/v1", "Requires evidence refs and retention rules instead of raw content.", ["evidence_refs_only", "screenshot_retention_required", "record_evidence_packet_ref"]),
   pavPolicy: buildPolicyDescriptor("policy://map-authoring/pav/v1", "Requires action steps to hand off to post-action verification when mandated by catalogs.", ["action_steps_require_pav_when_catalog_says_so", "mouse_click_requires_pav", "text_input_requires_pav"]),
   forensicsPolicy: buildPolicyDescriptor("policy://map-authoring/forensics/v1", "Forensics stores refs and hashes, not raw secrets or prompt bodies.", ["store_refs_and_hashes_only", "record_prompt_contract_refs", "record_activation_hashes"]),
   privacyPolicy: buildPolicyDescriptor("policy://map-authoring/privacy/v1", "Sensitive content must be redacted before proof persistence.", ["redact_sensitive_text", "no_raw_clipboard_text", "no_raw_prompt_body"]),
   secretPolicy: buildPolicyDescriptor("policy://map-authoring/secret/v1", "Secrets and credentials must never enter the map package, prompt, or proof payload.", ["no_api_keys_in_map", "no_cookies_in_map", "no_credentials_in_proof"]),
-  rateLimitPolicy: buildPolicyDescriptor("policy://map-authoring/rate-limit/v1", "Bulk or repeated operations must respect platform rate limits and review gates.", ["bulk_actions_require_review", "respect_platform_rate_limit", "pause_on_limit_exceeded"]),
+  rateLimitPolicy: buildPolicyDescriptor("policy://map-authoring/rate-limit/v1", "Bulk or repeated operations must respect platform rate limits and automated gates.", ["bulk_actions_require_route_plan_gate", "respect_platform_rate_limit", "pause_on_limit_exceeded"]),
 });
 
 const buildMapAuthoringExamples = () => ({

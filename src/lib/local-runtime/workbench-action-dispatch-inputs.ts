@@ -78,7 +78,7 @@ export const buildVisualTargetCommand = (
 ) => {
   const payload = payloadDocumentToObject(inputPayload);
   const now = envelope.createdAt;
-  const isCommentsButton = envelope.commandName === "detect-comments-button";
+  const isCommentsButton = envelope.commandName === "observe-comments-button";
   const targetType = isCommentsButton ? "comments_button" : "next_video_region";
   const targetNature = isCommentsButton ? "action" : "region";
   const sourceProofRef = `${envelope.inputRef}:visual-target-source-proof`;
@@ -89,7 +89,7 @@ export const buildVisualTargetCommand = (
   const candidateRef = `${envelope.inputRef}:${targetType}:heuristic-region`;
   return JSON.parse(JSON.stringify({
     abilityGroupId: "visual-target",
-    childCapabilityId: isCommentsButton ? "detect-comments-button" : "detect-next-video-region",
+    childCapabilityId: isCommentsButton ? "observe-comments-button" : "observe-next-video-region",
     missionId: envelope.missionId,
     runId: envelope.runId,
     sessionId: envelope.missionId,
@@ -164,26 +164,6 @@ export const buildVisualTargetCommand = (
       scaleMapping: null,
       dataQualityFlags: [],
     }],
-    confidencePolicy: {
-      minimumConfidence: isCommentsButton ? 0.78 : 0.72,
-      reviewBelowThreshold: true,
-    },
-    selectionPolicy: {
-      strategy: "highest_score",
-      requireScoreTrace: true,
-    },
-    ambiguityPolicy: {
-      minimumGap: isCommentsButton ? 0.08 : 0.06,
-      reviewOnAmbiguous: true,
-    },
-    coordinatePolicy: {
-      allowAiInputMapping: true,
-      allowContactSheetAsExecutable: false,
-    },
-    dataQualityPolicy: {
-      blockOnCritical: true,
-      reviewOnLowConfidence: true,
-    },
   }));
 };
 
@@ -214,7 +194,7 @@ export const buildGeometryGuardCommand = (
     requestedBy: "orchestration",
     purpose: inputPayload.summary,
     sourceAbilityGroupId: "visual-target",
-    sourceChildCapabilityId: isNextVideoGeometry ? "detect-next-video-region" : "detect-comments-button",
+    sourceChildCapabilityId: isNextVideoGeometry ? "observe-next-video-region" : "observe-comments-button",
     inputRef: envelope.inputRef,
     sourceRef: sourceTargetRef,
     sourceScreenshotEvidenceRef,
@@ -370,7 +350,7 @@ export const buildMouseScrollCommand = async (
       abilityGroupId: "geometry-guard",
       childCapabilityId: "validate-browser-viewport-bounds",
       sourceAbilityGroupId: "visual-target",
-      sourceChildCapabilityId: "detect-next-video-region",
+      sourceChildCapabilityId: "observe-next-video-region",
       sessionId: envelope.missionId,
       roundId: envelope.stepId,
       videoVisitId: null,

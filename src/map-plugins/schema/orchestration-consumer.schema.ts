@@ -8,14 +8,8 @@ import {
 } from "./operational-map-core.schema.js";
 import {
   MapPluginStepKindSchema,
-  MapPluginTransitionConditionSchema,
-  MapPluginTransitionConditionSourceSchema,
   MapPluginTransitionStatusSchema,
 } from "./operational-map-payload.schema.js";
-import {
-  MapPluginOrchestrationSequencePolicySchema,
-  MapPluginProofPolicySchema,
-} from "./operational-map-policy.schema.js";
 import { RequestedPlatformIdSchema } from "./platform-id.schema.js";
 
 const OrchestrationAllowedAbilityGroupIdsSchemaSource = MAP_PLUGIN_ALLOWED_ABILITY_GROUP_IDS;
@@ -25,11 +19,7 @@ const OrchestrationOperationalMapStepSchemaSource = MapPluginOperationalMapStepS
 const OrchestrationPayloadRefKeySchemaSource = MapPluginPayloadRefKeySchema;
 const OrchestrationTransitionSchemaSource = MapPluginTransitionSchema;
 const OrchestrationStepKindSchemaSource = MapPluginStepKindSchema;
-const OrchestrationTransitionConditionSchemaSource = MapPluginTransitionConditionSchema;
-const OrchestrationTransitionConditionSourceSchemaSource = MapPluginTransitionConditionSourceSchema;
 const OrchestrationTransitionStatusSchemaSource = MapPluginTransitionStatusSchema;
-const OrchestrationSequencePolicySchemaSource = MapPluginOrchestrationSequencePolicySchema;
-const OrchestrationProofPolicySchemaSource = MapPluginProofPolicySchema;
 const OrchestrationRequestedPlatformIdSchemaSource = RequestedPlatformIdSchema;
 
-export { OrchestrationAllowedAbilityGroupIdsSchemaSource, OrchestrationAllowedAbilityGroupIdSchemaSource, OrchestrationOperationalMapSchemaSource, OrchestrationOperationalMapStepSchemaSource, OrchestrationPayloadRefKeySchemaSource, OrchestrationTransitionSchemaSource, OrchestrationStepKindSchemaSource, OrchestrationTransitionConditionSchemaSource, OrchestrationTransitionConditionSourceSchemaSource, OrchestrationTransitionStatusSchemaSource, OrchestrationSequencePolicySchemaSource, OrchestrationProofPolicySchemaSource, OrchestrationRequestedPlatformIdSchemaSource };
+export { OrchestrationAllowedAbilityGroupIdsSchemaSource, OrchestrationAllowedAbilityGroupIdSchemaSource, OrchestrationOperationalMapSchemaSource, OrchestrationOperationalMapStepSchemaSource, OrchestrationPayloadRefKeySchemaSource, OrchestrationTransitionSchemaSource, OrchestrationStepKindSchemaSource, OrchestrationTransitionStatusSchemaSource, OrchestrationRequestedPlatformIdSchemaSource };

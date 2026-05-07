@@ -1,18 +1,18 @@
-import { approveMapPackage } from "../../../map-plugins/import/map-package-approval.js";
+import { passMapPackageAutomationGate } from "../../../map-plugins/import/map-package-automation-gate.js";
 import { getDevelopmentMapPluginRegistry } from "../../../map-plugins/registry/map-plugin-registry.js";
-import type { MapLabActivationResult, MapLabApprovalResult, MapLabGenerateDraftResult } from "./map-lab-types.js";
+import type { MapLabActivationResult, MapLabAutomationGateResult, MapLabGenerateDraftResult } from "./map-lab-types.js";
 
 type MapLabRegistry = ReturnType<typeof getDevelopmentMapPluginRegistry>;
 type MapLabImportedPackage = NonNullable<MapLabGenerateDraftResult["mapPackage"]>;
 
-function createApprovalResult(
-  approved: ReturnType<typeof approveMapPackage>,
+function createAutomationGateResult(
+  automationGated: ReturnType<typeof passMapPackageAutomationGate>,
   input: { packageId: string; packageVersion: string },
-): MapLabApprovalResult {
-  if (!approved.approved) {
+): MapLabAutomationGateResult {
+  if (!automationGated.gatePassed) {
     return {
       status: "failed",
-      reason: approved.reason,
+      reason: automationGated.reason,
       packageId: input.packageId,
       packageVersion: input.packageVersion,
     };
@@ -21,8 +21,8 @@ function createApprovalResult(
   return {
     status: "success",
     reason: null,
-    packageId: approved.mapPackage.manifest.packageId,
-    packageVersion: approved.mapPackage.manifest.packageVersion,
+    packageId: automationGated.mapPackage.manifest.packageId,
+    packageVersion: automationGated.mapPackage.manifest.packageVersion,
   };
 }
 
@@ -64,11 +64,11 @@ export function createMapLabRegistrySupport() {
       };
     },
     listDeveloperCatalog: () => registry.listDeveloperCatalog(),
-    approveDraft: (input: { packageId: string; packageVersion: string; approvedBy: string }) =>
-      createApprovalResult(approveMapPackage({ registry, ...input }), input),
-    activateDraft: (input: { packageId: string; packageVersion: string; approvedBy: string; reason: string }) =>
+    passAutomationGate: (input: { packageId: string; packageVersion: string; gateActor: string }) =>
+      createAutomationGateResult(passMapPackageAutomationGate({ registry, ...input }), input),
+    activateDraft: (input: { packageId: string; packageVersion: string; gateActor: string; reason: string }) =>
       createActivationResult(
-        registry.activatePackage(input.packageId, input.packageVersion, input.approvedBy, input.reason),
+        registry.activatePackage(input.packageId, input.packageVersion, input.gateActor, input.reason),
         input,
       ),
   };

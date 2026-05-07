@@ -3,7 +3,9 @@ import { runRegionProofGate } from "./region-proof-gate.js";
 import { runCaptureRunner } from "./capture-runner.js";
 import { runImageProcessingRunner } from "./image-processing-runner.js";
 import { runArtifactStorageGate } from "./artifact-storage-gate.js";
+import { burnEphemeralScreenshotFile } from "./screenshot-ephemeral-file-cleanup.js";
 import { executeScreenshotExecutionSuccess } from "./screenshot-execution-success.js";
+import { createScreenshotFailure } from "../shared/screenshot-failure.js";
 import {
   buildScreenshotArtifactStorageFailure,
   buildScreenshotCaptureExecutionFailure,
@@ -222,6 +224,21 @@ async function executeScreenshotArtifactStoragePhase(input: {
     mimeType: input.metadata.mimeType,
     createdAt: input.metadata.createdAt,
   });
+  const ephemeralCleanup = await burnEphemeralScreenshotFile({
+    outputFilePath: input.metadata.outputFilePath,
+    retainedArtifactStorageRef: artifactGate.artifactRef?.storageRef ?? null,
+  });
+  if (ephemeralCleanup.attempted && !ephemeralCleanup.deleted) {
+    return await buildArtifactStorageFailureResult(input, {
+      ...artifactGate,
+      decision: { status: "failed", reason: "ephemeral_cleanup_failed" },
+      failure: createScreenshotFailure({
+        code: "artifact_lifecycle_invalid",
+        message: "Screenshot ephemeral work file cleanup failed after artifact handoff.",
+        detail: ephemeralCleanup.reason,
+      }),
+    });
+  }
   if (hasArtifactStorageGateFailure(artifactGate)) {
     return await buildArtifactStorageFailureResult(input, artifactGate);
   }

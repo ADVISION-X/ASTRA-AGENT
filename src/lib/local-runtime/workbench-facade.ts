@@ -17,7 +17,7 @@ export type WorkbenchFacade = Pick<
   | "getMapLabSnapshot"
   | "saveMapLabProviderConfig"
   | "generateMapLabDraft"
-  | "approveMapLabDraft"
+  | "passMapLabAutomationGate"
   | "activateMapLabDraft"
   | "getModeInfo"
 >;
@@ -38,7 +38,7 @@ export const createWorkbenchFacade = (runtime: WorkbenchRuntime): WorkbenchFacad
   getMapLabSnapshot: () => runtime.getMapLabSnapshot(),
   saveMapLabProviderConfig: (input) => runtime.saveMapLabProviderConfig(input),
   generateMapLabDraft: (input) => runtime.generateMapLabDraft(input),
-  approveMapLabDraft: (input) => runtime.approveMapLabDraft(input),
+  passMapLabAutomationGate: (input) => runtime.passMapLabAutomationGate(input),
   activateMapLabDraft: (input) => runtime.activateMapLabDraft(input),
   getModeInfo: () => runtime.getModeInfo(),
 });

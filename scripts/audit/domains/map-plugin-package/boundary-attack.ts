@@ -19,7 +19,7 @@ const inspectMapSelectionGate = (project: Project): Finding[] => {
   const mapSelectionGate = getSource(project, ORCHESTRATION_MAP_SELECTION_GATE);
 
   if (!hasCallExpression(mapSelectionGate, "getActiveMapRecordByTaskTemplateId") || !hasCallExpression(mapSelectionGate, "getActiveMapRecordByActivationId")) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: ORCHESTRATION_MAP_SELECTION_GATE, line: 1, severity: "fatal", message: "Orchestration map selection must resolve active approved bindings through taskTemplateId and activationId seams." }));
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: ORCHESTRATION_MAP_SELECTION_GATE, line: 1, severity: "fatal", message: "Orchestration map selection must resolve active gate-passed bindings through taskTemplateId and activationId seams." }));
   }
   if (mapSelectionGate.getFullText().includes("resolvePreferredMapId") || mapSelectionGate.getFullText().includes("platform_policy")) {
     findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: ORCHESTRATION_MAP_SELECTION_GATE, line: 1, severity: "fatal", message: "Orchestration map selection must not preserve platform-policy fallback after plugin integration cutover." }));

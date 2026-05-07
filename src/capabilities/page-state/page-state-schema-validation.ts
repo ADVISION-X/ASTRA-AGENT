@@ -4,8 +4,7 @@ import { validatePageStateAbilityResultContent } from "./page-state-result-valid
 
 type PageStateRuntimeProofLike = {
   status: "success" | "failed" | "review_required";
-  decision: "proceed" | "block" | "review_required" | "fail";
-  classificationSource: "child_capability" | "invalid_input_failure";
+  processingMode: "observation_packaging" | "invalid_input_failure";
   childCapabilityId: string | null;
   runId: string | null;
   missionId: string | null;
@@ -34,8 +33,7 @@ type PageStateRuntimeProofLike = {
   snapshotHash: string | null;
   observationHash: string | null;
   currentUrl: string | null;
-  pageStateFingerprint: string | null;
-  payloadBudgetDecision: "allow" | "review_required" | "fail";
+  observationFingerprint: string | null;
   receivedShapeHash: string | null;
   sourceEvidenceRefs: string[];
   observationRefs: string[];
@@ -43,7 +41,6 @@ type PageStateRuntimeProofLike = {
 
 type PageStateAbilityResultLike = {
   status: "success" | "failed" | "review_required";
-  decision: "proceed" | "block" | "review_required" | "fail";
   childCapabilityId: string | null;
   runId: string | null;
   missionId: string | null;
@@ -59,20 +56,17 @@ type PageStateAbilityResultLike = {
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   output: {
-    pageStateType: string;
-    stateSummary: string;
-    confidence: number;
+    packageLabel: string;
+    observationSummary: string;
     evidenceRefs: string[];
     observationRefs: string[];
-    pageStateFingerprint: string;
+    observationFingerprint: string;
   } | null;
-  pageStateType: string | null;
-  stateSummary: string | null;
-  confidence: number | null;
+  observationSummary: string | null;
   evidenceRefs: string[];
   observationRefs: string[];
   sourceEvidenceRefs: string[];
-  pageStateFingerprint: string | null;
+  observationFingerprint: string | null;
   failureReason: string | null;
   reviewRequiredReason: string | null;
   dataQualityFlags: string[];
@@ -90,7 +84,7 @@ const isMissingString = (value: string | null | undefined): boolean => value == 
 const arraysMatch = (left: readonly string[], right: readonly string[]): boolean =>
   left.length === right.length && left.every((value, index) => value === right[index]);
 
-const isInvalidInputProof = (proof: PageStateRuntimeProofLike): boolean => proof.classificationSource === "invalid_input_failure";
+const isInvalidInputProof = (proof: PageStateRuntimeProofLike): boolean => proof.processingMode === "invalid_input_failure";
 
 const EXECUTION_PROOF_FIELDS = [
   "childCapabilityId",
@@ -113,7 +107,7 @@ const EXECUTION_PROOF_FIELDS = [
   "sourceAbilityGroupId",
   "sourceChildCapabilityId",
   "currentUrl",
-  "pageStateFingerprint",
+  "observationFingerprint",
 ] as const;
 
 const EXECUTION_RESULT_FIELDS = [
@@ -176,20 +170,12 @@ function validateInvalidInputProof(proof: PageStateRuntimeProofLike, ctx: Refine
 }
 
 function validateRuntimeProofSuccess(proof: PageStateRuntimeProofLike, ctx: RefinementCtx): void {
-  if (proof.decision !== "proceed") {
-    addIssue(ctx, ["decision"], "success proof must proceed");
-  }
-
   if (!proof.outputRef) {
     addIssue(ctx, ["outputRef"], "success proof must retain outputRef");
   }
 }
 
 function validateRuntimeProofFailure(proof: PageStateRuntimeProofLike, ctx: RefinementCtx): void {
-  if (proof.decision === "proceed") {
-    addIssue(ctx, ["decision"], "failed or review_required proof cannot proceed");
-  }
-
   if (proof.outputRef !== null) {
     addIssue(ctx, ["outputRef"], "failed or review_required proof must null outputRef");
   }

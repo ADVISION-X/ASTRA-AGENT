@@ -20,7 +20,7 @@
   "allowedBranchFields": [],
   "systemPromptTemplateRef": "src/map-plugins/authoring/map-authoring-template.ts#system",
   "userPromptTemplateRef": "src/map-plugins/authoring/map-authoring-template.ts#user",
-  "systemPromptTemplateHash": "sha256:eaaf8d6581d5474488a67f19c4b37968385bd99256dff5458d35b3719ed1246e",
+  "systemPromptTemplateHash": "sha256:e7bd8f853074b5a699ded94f6979993671c23c4f638c655030ab201242133fc0",
   "userPromptTemplateHash": "sha256:03b247ed24f9b2a1899b6f802af88a16dcd67f594062e5341e9589e41a4482bb",
   "purpose": "Draft a governed GrassEye map package candidate from Commander operator requirements.",
   "forbiddenOutputs": [
@@ -31,8 +31,8 @@
     "import",
     "require",
     "active=true",
-    "approvalStatus=approved",
-    "humanApprovalRef",
+    "activationGateStatus=gate_passed",
+    "automationGateRef",
     "validationReportRef",
     "activationSnapshotRef",
     "unknown abilityGroupId",
@@ -59,7 +59,7 @@
   ],
   "confidencePolicy": {
     "minConfidence": 0.6,
-    "belowMin": "review_required"
+    "belowMin": "failed"
   },
   "reviewPolicy": {
     "requiredWhen": [
@@ -69,8 +69,8 @@
     ]
   },
   "failurePolicy": {
-    "badJson": "review_required",
-    "schemaMismatch": "review_required",
+    "badJson": "failed",
+    "schemaMismatch": "failed",
     "timeout": "failed",
     "modelUnavailable": "failed"
   },
@@ -96,7 +96,7 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:680bfeb2d1185d2ecad4c550f327d94a3f81f1ecc7030c08cfdbb4d98adbda56",
-  "promptContractHash": "sha256:680bfeb2d1185d2ecad4c550f327d94a3f81f1ecc7030c08cfdbb4d98adbda56",
+  "promptHash": "sha256:12988c02a8a98033a54137c160cb0c14e9b172c82a79f90725b4dd18d8ee8585",
+  "promptContractHash": "sha256:12988c02a8a98033a54137c160cb0c14e9b172c82a79f90725b4dd18d8ee8585",
   "sensitiveOperation": true
 }

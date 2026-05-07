@@ -5,6 +5,7 @@ import {
   ProductPresenceInputModeSchema,
   VideoFrameSamplePointLabelSchema,
 } from "./multi-frame-evidence.js";
+import { PRODUCT_DISCOVERY_ROUTE_LABELS } from "../map-plugins/route-plans/product-discovery-route-plan.constants.js";
 
 const VisionProductPresenceMissingFrameSchema = z.object({
   frameLabel: VideoFrameSamplePointLabelSchema,
@@ -21,6 +22,8 @@ const VisionProductPresenceSuggestedNextActionSchema = z.enum([
   "scroll_next",
   "click_not_interested_or_scroll_next",
 ]);
+
+const VisionProductPresenceRouteLabelSchema = z.enum(PRODUCT_DISCOVERY_ROUTE_LABELS);
 
 const VisionProductPresenceDecisionSchema = z.enum([
   "product_yes",
@@ -69,6 +72,8 @@ const VisionProductPresencePayloadSchema = z.object({
   missingFrames: z.array(VisionProductPresenceMissingFrameSchema).default([]),
   isProductVideo: z.boolean().nullable(),
   decision: VisionProductPresenceDecisionSchema,
+  routeLabel: VisionProductPresenceRouteLabelSchema,
+  nextIntent: z.string().min(1),
   confidence: z.number().min(0).max(1),
   visibleProductTypes: z.array(z.string().min(1)),
   evidenceObservations: z.array(z.string().min(1)),
@@ -83,10 +88,11 @@ const VisionProductPresencePayloadSchema = z.object({
 const validateVisionProductPresenceResult = (input: unknown) => VisionProductPresencePayloadSchema.parse(input);
 
 type VisionProductPresenceSuggestedNextAction = z.infer<typeof VisionProductPresenceSuggestedNextActionSchema>;
+type VisionProductPresenceRouteLabel = z.infer<typeof VisionProductPresenceRouteLabelSchema>;
 type VisionProductPresenceRequestInput = z.infer<typeof VisionProductPresenceRequestInputSchema>;
 type VisionProductPresenceFrameObservation = z.infer<typeof VisionProductPresenceFrameObservationSchema>;
 type VisionProductPresenceResult = z.infer<typeof VisionProductPresencePayloadSchema>;
 type VisionProductPresencePayload = VisionProductPresenceResult;
 
-export { VisionProductPresenceMissingFrameSchema, VisionProductPresencePromptIdSchema, VisionProductPresenceTaskTypeSchema, VisionProductPresencePromptVersionSchema, VisionProductPresenceSchemaVersionSchema, VisionProductPresenceSuggestedNextActionSchema, VisionProductPresenceDecisionSchema, VisionProductPresenceRequestInputSchema, VisionProductPresenceFrameObservationSchema, VisionProductPresencePayloadSchema, validateVisionProductPresenceResult };
-export type { VisionProductPresenceSuggestedNextAction, VisionProductPresenceRequestInput, VisionProductPresenceFrameObservation, VisionProductPresenceResult, VisionProductPresencePayload };
+export { VisionProductPresenceMissingFrameSchema, VisionProductPresencePromptIdSchema, VisionProductPresenceTaskTypeSchema, VisionProductPresencePromptVersionSchema, VisionProductPresenceSchemaVersionSchema, VisionProductPresenceSuggestedNextActionSchema, VisionProductPresenceRouteLabelSchema, VisionProductPresenceDecisionSchema, VisionProductPresenceRequestInputSchema, VisionProductPresenceFrameObservationSchema, VisionProductPresencePayloadSchema, validateVisionProductPresenceResult };
+export type { VisionProductPresenceSuggestedNextAction, VisionProductPresenceRouteLabel, VisionProductPresenceRequestInput, VisionProductPresenceFrameObservation, VisionProductPresenceResult, VisionProductPresencePayload };

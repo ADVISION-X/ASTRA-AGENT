@@ -4,7 +4,7 @@ import { OpenResultSchema } from "../schema.js";
 import { createOpenFailure } from "../shared/open-failure.js";
 import { buildOpenChildResult } from "./open-executor-flow-support.js";
 import type { OpenChildPreflightState } from "./open-executor-preflight.js";
-import { evaluatePostOpenState } from "./post-open-state-gate.js";
+import { evaluatePostOpenObservationHandoff } from "./post-open-observation-handoff.js";
 import { runOpenNavigation } from "./navigation-runner.js";
 import { resolveOpenTimeoutMs } from "./open-timeout-policy.js";
 
@@ -20,13 +20,13 @@ async function resolveCompletedNavigation(input: Parameters<typeof completeOpenC
     timeoutMs: resolveOpenTimeoutMs(input.profile),
     idempotencyKey: input.state.idempotency.idempotencyKey,
     reservationDecision: input.state.idempotency.decision === "already_on_target" ? "already_on_target" : "reserved",
-    alreadyOnTargetDecision: input.state.idempotency.alreadyOnTargetDecision,
+    alreadyOnTargetHandlingMode: input.state.idempotency.alreadyOnTargetHandlingMode,
     targetProfileRef: input.state.targetPolicy.decision.targetProfileRef,
     beforeSession,
   });
 }
 
-function reconcileIdempotencyReservation(input: Parameters<typeof completeOpenChildExecution>[0], postOpenState: ReturnType<typeof evaluatePostOpenState>) {
+function reconcileIdempotencyReservation(input: Parameters<typeof completeOpenChildExecution>[0], postOpenState: ReturnType<typeof evaluatePostOpenObservationHandoff>) {
   if (postOpenState.status === "success") {
     input.context.idempotency.commitSuccess({ idempotencyKey: input.state.idempotency.idempotencyKey });
     return;
@@ -47,7 +47,7 @@ export async function completeOpenChildExecution(input: {
   const beforeSession = input.state.sessionGate.sessionSnapshot!;
   const navigation = await resolveCompletedNavigation(input, beforeSession);
 
-  const postOpenState = evaluatePostOpenState({
+  const postOpenState = evaluatePostOpenObservationHandoff({
     profile: input.profile,
     beforeSession,
     afterSession: navigation.afterSession,

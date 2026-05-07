@@ -1,7 +1,7 @@
 export const MAP_PACKAGE_FAILURE_REASONS = [
   "map_not_found",
   "map_not_active",
-  "map_not_approved",
+  "automation_gate_not_passed",
   "map_incompatible",
   "map_validation_failed",
   "missing_dependency",

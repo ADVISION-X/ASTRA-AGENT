@@ -28,7 +28,7 @@ type OpenNavigationInput = {
   timeoutMs: number;
   idempotencyKey: string;
   reservationDecision: "reserved" | "already_on_target";
-  alreadyOnTargetDecision: "not_applicable" | "freshness_required";
+  alreadyOnTargetHandlingMode: "not_applicable" | "session_reused";
   targetProfileRef: string | null;
   beforeSession: BrowserSessionSnapshot;
 };
@@ -55,7 +55,7 @@ export async function runOpenNavigation(input: OpenNavigationInput): Promise<Ope
       beforeSession: input.beforeSession,
       targetUrl: input.targetUrl,
       idempotencyKey: input.idempotencyKey,
-      alreadyOnTargetDecision: input.alreadyOnTargetDecision,
+      alreadyOnTargetHandlingMode: input.alreadyOnTargetHandlingMode,
     });
   }
 

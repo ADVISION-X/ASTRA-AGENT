@@ -9,7 +9,6 @@ import {
   type AbilityDispatchInput,
   type AiStep,
   type DispatchChain,
-  type ReviewStep,
   type StepDispatchResult,
 } from "./step-dispatch-shared.js";
 
@@ -57,36 +56,6 @@ export function buildAiDispatchRequest(input: {
   };
 }
 
-export function buildReviewDispatchRequest(input: {
-  state: MissionState;
-  map: OperationalMap;
-  step: ReviewStep;
-  reason: string | undefined;
-  sequenceNo: number;
-  idempotencyKey: string;
-  missionId: string;
-  chain: DispatchChain;
-}) {
-  return {
-    missionId: input.missionId,
-    mapId: input.map.mapId,
-    stepId: input.step.stepId,
-    runId: input.chain.runId,
-    sessionId: input.chain.sessionId,
-    roundId: input.chain.roundId,
-    videoVisitId: input.chain.videoVisitId,
-    mapPackageId: input.chain.mapPackageId,
-    mapPackageVersion: input.chain.mapPackageVersion,
-    selectedMapVersion: input.chain.selectedMapVersion,
-    activationId: input.chain.activationId,
-    activationSnapshotRef: input.chain.activationSnapshotRef,
-    reason: input.reason ?? input.state.reviewRequiredReason ?? "orchestration requires human review",
-    payloadRefs: input.state.payloadRefs,
-    sequenceNo: input.sequenceNo,
-    idempotencyKey: input.idempotencyKey,
-  };
-}
-
 export function buildAbilityDispatchResult(
   input: AbilityDispatchInput,
   dispatchResult: Awaited<ReturnType<OrchestrationRuntimeContext["nerveBus"]["sendCommandToAbility"]>>,
@@ -110,7 +79,7 @@ export function buildAbilityDispatchResult(
         branchFieldValues: dispatchResult.branchFieldValues,
       }),
       failureReason: dispatchResult.failureReason,
-      reviewRequiredReason: dispatchResult.status === "review_required" ? (dispatchResult.failureReason ?? "review required") : null,
+      reviewRequiredReason: null,
       payloadRefs: applyStepOutputRefPolicy(input.step, { ...input.state.payloadRefs, ...dispatchResult.payloadRefs }, outputRef),
     }),
   };

@@ -5,11 +5,11 @@ import { resolveAbilityResultProofSummary, type AbilityResultProofSummary } from
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
 
 type SupportedPostActionChildCapabilityId =
-  | "verify-page-opened"
-  | "verify-comments-panel-opened"
-  | "verify-comments-panel-closed"
-  | "verify-not-interested-result"
-  | "verify-target-state-changed";
+  | "observe-page-open-attempt"
+  | "observe-comments-panel-open-attempt"
+  | "observe-comments-panel-close-attempt"
+  | "observe-not-interested-attempt"
+  | "observe-target-state-transition";
 
 type PostActionInputPolicy = {
   childCapabilityId: SupportedPostActionChildCapabilityId;
@@ -52,8 +52,8 @@ const resolveOpenSourceChildCapabilityId = (selectedMapId: string) => {
 const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, Omit<PostActionInputPolicy, "sourceChildCapabilityId"> & {
   sourceChildCapabilityId?: PostActionInputPolicy["sourceChildCapabilityId"];
 }>> = {
-  "verify-page-opened": {
-    childCapabilityId: "verify-page-opened",
+  "observe-page-open-attempt": {
+    childCapabilityId: "observe-page-open-attempt",
     outcomeType: "page_opened",
     sourceAbilityGroupId: "open",
     sourceActionType: "open_feed",
@@ -63,8 +63,8 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, Omit<PostActionInput
     requiresVisualEvidence: false,
     executionRefField: "navigationAttemptRef",
   },
-  "verify-comments-panel-opened": {
-    childCapabilityId: "verify-comments-panel-opened",
+  "observe-comments-panel-open-attempt": {
+    childCapabilityId: "observe-comments-panel-open-attempt",
     outcomeType: "comments_panel_opened",
     sourceAbilityGroupId: "mouse-click",
     sourceChildCapabilityId: "click-browser-coordinate",
@@ -75,8 +75,8 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, Omit<PostActionInput
     requiresVisualEvidence: true,
     executionRefField: "primitiveExecutionRef",
   },
-  "verify-comments-panel-closed": {
-    childCapabilityId: "verify-comments-panel-closed",
+  "observe-comments-panel-close-attempt": {
+    childCapabilityId: "observe-comments-panel-close-attempt",
     outcomeType: "comments_panel_closed",
     sourceAbilityGroupId: "mouse-click",
     sourceChildCapabilityId: "click-browser-coordinate",
@@ -87,8 +87,8 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, Omit<PostActionInput
     requiresVisualEvidence: true,
     executionRefField: "primitiveExecutionRef",
   },
-  "verify-not-interested-result": {
-    childCapabilityId: "verify-not-interested-result",
+  "observe-not-interested-attempt": {
+    childCapabilityId: "observe-not-interested-attempt",
     outcomeType: "not_interested_result",
     sourceAbilityGroupId: "mouse-click",
     sourceChildCapabilityId: "click-browser-coordinate",
@@ -102,7 +102,7 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, Omit<PostActionInput
 };
 
 const DEFAULT_POST_ACTION_POLICY: PostActionInputPolicy = {
-  childCapabilityId: "verify-target-state-changed",
+  childCapabilityId: "observe-target-state-transition",
   outcomeType: "target_state_changed",
   sourceAbilityGroupId: "mouse-click",
   sourceChildCapabilityId: "click-browser-coordinate",
@@ -159,7 +159,7 @@ const buildPageStateObservation = (
     kind: "page_state" as const,
     source: {
       sourceAbilityGroupId: "page-state" as const,
-      sourceChildCapabilityId: "detect-platform-page-kind",
+      sourceChildCapabilityId: "observe-platform-surface",
       sourceProofRef,
     },
     capturedAt: new Date().toISOString(),
@@ -221,7 +221,7 @@ const buildExpectedOutcome = (
 ) => ({
   outcomeType: policy.outcomeType,
   description: inputPayload.summary,
-  expectedUrlHost: policy.childCapabilityId === "verify-page-opened" ? resolveExpectedUrlHost(envelope.selectedMapId) : null,
+  expectedUrlHost: policy.childCapabilityId === "observe-page-open-attempt" ? resolveExpectedUrlHost(envelope.selectedMapId) : null,
   expectedUrlPrefix: null,
   expectedState: null,
   expectedTargetType: null,
@@ -278,7 +278,6 @@ export const buildPostActionVerificationInput = async (
       observations: [buildPageStateObservation(runtime, envelope, sourceProofRef, inputPayload.summary)],
     },
     verificationPolicy: buildVerificationPolicy(policy),
-    confidencePolicy: { minimumConfidence: 0.5, allowReviewRequired: true },
     inputRef: envelope.inputRef,
     idempotencyKey: envelope.idempotencyKey,
   }));

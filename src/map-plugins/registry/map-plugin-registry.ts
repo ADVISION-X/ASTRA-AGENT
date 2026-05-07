@@ -1,5 +1,5 @@
 import { loadBuiltinMapPackages } from "../builtins/index.js";
-import { approveMapPackage } from "../import/map-package-approval.js";
+import { passMapPackageAutomationGate } from "../import/map-package-automation-gate.js";
 import { activateMapPackage } from "../import/map-package-activation.js";
 import { importMapPackage } from "../import/map-package-importer.js";
 import { rollbackMapPackage } from "../import/map-package-rollback.js";
@@ -19,7 +19,7 @@ const getLifecycleStatus = (
   if (activationId) {
     return "active";
   }
-  if (mapPackage.manifest.approvalStatus === "draft") {
+  if (mapPackage.manifest.activationGateStatus === "draft") {
     return "draft";
   }
   return isQuarantined ? "quarantined" : "disabled";
@@ -28,15 +28,18 @@ const getLifecycleStatus = (
 const toDeveloperMapPackageItem = (registry: MapPluginRegistry, mapPackage: MapPackage): DeveloperMapPackageItem => {
   const activation = registry.active.getRegistration(mapPackage.manifest.mapId)?.activationRecord ?? null;
   const quarantined = registry.quarantined.get(mapPackage.manifest.packageId, mapPackage.manifest.packageVersion);
+  const chain = Array.from(
+    new Set(mapPackage.operationalMap.steps.flatMap((step) => step.targetAbilityGroupId ? [step.targetAbilityGroupId] : [])),
+  );
   return {
     packageId: mapPackage.manifest.packageId,
     packageVersion: mapPackage.manifest.packageVersion,
     mapId: mapPackage.manifest.mapId,
     title: mapPackage.taskTemplate.displayName,
     lifecycleStatus: getLifecycleStatus(mapPackage, activation?.activationId ?? null, Boolean(quarantined)),
-    approvalStatus: mapPackage.manifest.approvalStatus,
+    activationGateStatus: mapPackage.manifest.activationGateStatus,
     summary: mapPackage.taskTemplate.description,
-    chain: mapPackage.operationalMap.allowedAbilityGroups,
+    chain,
     validationIssues: quarantined?.validationIssues ?? [],
     activationId: activation?.activationId ?? null,
     draftOnly: mapPackage.manifest.aiGenerated || mapPackage.taskTemplate.availabilityPolicy === "draft",
@@ -44,7 +47,7 @@ const toDeveloperMapPackageItem = (registry: MapPluginRegistry, mapPackage: MapP
 };
 
 const shouldActivateBuiltinPackage = (builtinPackage: MapPackage): boolean =>
-  builtinPackage.manifest.approvalStatus === "approved" && builtinPackage.taskTemplate.availabilityPolicy === "active";
+  builtinPackage.manifest.activationGateStatus === "gate_passed" && builtinPackage.taskTemplate.availabilityPolicy === "active";
 
 const BUILTIN_PRODUCTION_IMPORTER = "builtin-production-seed";
 const BUILTIN_DEVELOPMENT_ACTOR = "builtin-development-seed";
@@ -58,7 +61,7 @@ export type MapPluginRegistry = {
   activations: MapActivationRecordStore;
   rollbacks: MapRollbackRecordStore;
   importPackage(rawPackage: unknown, importedBy: string): ReturnType<typeof importMapPackage>;
-  activatePackage(packageId: string, packageVersion: string, approvedBy: string, reason: string): ReturnType<typeof activateMapPackage>;
+  activatePackage(packageId: string, packageVersion: string, gateActor: string, reason: string): ReturnType<typeof activateMapPackage>;
   rollbackActiveMap(mapId: string, rolledBackBy: string, reason: string): ReturnType<typeof rollbackMapPackage>;
   listDeveloperCatalog(): DeveloperMapPackageItem[];
 };
@@ -79,8 +82,8 @@ export const createMapPluginRegistry = (): MapPluginRegistry => {
     importPackage(rawPackage, importedBy) {
       return importMapPackage({ registry, rawPackage, importedBy });
     },
-    activatePackage(packageId, packageVersion, approvedBy, reason) {
-      return activateMapPackage({ registry, packageId, packageVersion, approvedBy, reason });
+    activatePackage(packageId, packageVersion, gateActor, reason) {
+      return activateMapPackage({ registry, packageId, packageVersion, gateActor, reason });
     },
     rollbackActiveMap(mapId, rolledBackBy, reason) {
       return rollbackMapPackage({ registry, mapId, rolledBackBy, reason });
@@ -118,17 +121,17 @@ const seedBuiltinDevelopmentActivation = (registry: MapPluginRegistry): void => 
       continue;
     }
 
-    const approved = approveMapPackage({
+    const gateResult = passMapPackageAutomationGate({
       registry,
       packageId: builtinPackage.manifest.packageId,
       packageVersion: builtinPackage.manifest.packageVersion,
-      approvedBy: BUILTIN_DEVELOPMENT_ACTOR,
+      gateActor: BUILTIN_DEVELOPMENT_ACTOR,
     });
-    if (!approved.approved) {
-      const detail = approved.validationIssues.length > 0
-        ? ` validationIssues=${formatValidationIssues(approved.validationIssues)}`
+    if (!gateResult.gatePassed) {
+      const detail = gateResult.validationIssues.length > 0
+        ? ` validationIssues=${formatValidationIssues(gateResult.validationIssues)}`
         : "";
-      throw new Error(`Builtin map package ${builtinPackage.manifest.packageId} failed development approval.${detail}`);
+      throw new Error(`Builtin map package ${builtinPackage.manifest.packageId} failed development automation gate.${detail}`);
     }
 
     const activated = registry.activatePackage(

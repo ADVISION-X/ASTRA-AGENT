@@ -132,7 +132,7 @@ function applyReviewStatusSummary(
   reviewStatus: CommanderMissionDashboardView["candidates"][number]["reviewStatus"],
 ): CommanderConsoleViewModel["reviewQueueSummary"] {
   if (reviewStatus === "approved") {
-    summary.approvedCount += 1;
+    summary.gatePassedCount += 1;
     return summary;
   }
   if (reviewStatus === "rejected") {
@@ -292,5 +292,5 @@ export function buildReviewSummary(
 ): CommanderConsoleViewModel["reviewQueueSummary"] {
   return dashboard.candidates.reduce<CommanderConsoleViewModel["reviewQueueSummary"]>((summary, candidate) => {
     return applyReviewStatusSummary(summary, candidate.reviewStatus);
-  }, { pendingCount: 0, approvedCount: 0, rejectedCount: 0, archivedCount: 0 });
+  }, { pendingCount: 0, gatePassedCount: 0, rejectedCount: 0, archivedCount: 0 });
 }

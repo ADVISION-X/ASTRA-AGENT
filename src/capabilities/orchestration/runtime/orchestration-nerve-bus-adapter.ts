@@ -55,6 +55,9 @@ function buildProofBranchFieldValues(outputRef: string | null): Record<string, s
   );
 }
 
+const normalizeDispatchStatus = (status: "success" | "failed" | "review_required"): "success" | "failed" =>
+  status === "success" ? "success" : "failed";
+
 function createAbilityCommandDispatcher(nerveBus: OrchestrationNerveBusTransportSurface, clock: EnvelopeClock) {
   return async (input: SendAbilityInput) => {
     const envelopeId = randomUUID();
@@ -66,7 +69,7 @@ function createAbilityCommandDispatcher(nerveBus: OrchestrationNerveBusTransport
     });
     const outputRef = transport.resultEnvelope.outputRef ?? null;
     return {
-      status: transport.resultEnvelope.status,
+      status: normalizeDispatchStatus(transport.resultEnvelope.status),
       envelopeId: transport.commandEnvelope.envelopeId,
       resultRef: transport.resultEnvelope.resultId ?? `${envelopeId}:result`,
       decision: null,
@@ -91,12 +94,14 @@ function createAiRequestDispatcher(nerveBus: OrchestrationNerveBusTransportSurfa
       signal: input.signal,
     });
     return {
-      status: transport.responseEnvelope.status,
+      status: normalizeDispatchStatus(transport.responseEnvelope.status),
       envelopeId: transport.requestEnvelope.envelopeId,
       resultRef: transport.responseEnvelope.responseId ?? `${envelopeId}:result`,
       decision: transport.responseEnvelope.decision ?? null,
       branchFieldValues: {
         decision: transport.responseEnvelope.decision ?? null,
+        routeLabel: transport.responseEnvelope.routeLabel ?? null,
+        nextIntent: transport.responseEnvelope.nextIntent ?? null,
         confidence: transport.responseEnvelope.confidence ?? null,
         implementationStatus: transport.responseEnvelope.implementationStatus ?? null,
         runtimeCallId: transport.responseEnvelope.runtimeCallId ?? null,

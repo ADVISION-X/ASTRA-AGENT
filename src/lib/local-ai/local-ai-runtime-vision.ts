@@ -8,6 +8,10 @@ import {
 import { LocalAiRuntimeError } from "./local-ai-runtime-error.js";
 import { extractFirstJsonObject } from "./runtime-adapters/runtime-adapter-utils.js";
 import { resolveExpectedFrameLabels } from "./local-ai-runtime-vision-prompt.js";
+import {
+  PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
+  PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
+} from "../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
 
 type JsonRecord = Record<string, unknown>;
 type VisionProductPresenceRequest = Extract<LocalAiVisionTaskRequest, { taskType: "vision.productPresence" }>;
@@ -159,6 +163,14 @@ const normalizeProductDecision = (value: JsonRecord, isProductVideo: boolean | n
   return "product_no";
 };
 
+const resolveRouteLabelForDecision = (decision: "product_yes" | "product_no") =>
+  decision === "product_yes" ? PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL : PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL;
+
+const resolveNextIntentForRouteLabel = (routeLabel: string) =>
+  routeLabel === PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL
+    ? "读取评论并保存当前视频的选品证据。"
+    : "跳过当前视频并继续自动发现。";
+
 const normalizeDecisionConsistency = (input: {
   decision: "product_yes" | "product_no";
   isProductVideo: boolean | null;
@@ -203,6 +215,10 @@ const normalizeVisionRuntimeOutput = (
   const normalizedRootIsProductVideo = normalizeNullableBoolean(value.isProductVideo);
   const rootIsProductVideo = normalizedRootIsProductVideo === undefined ? null : normalizedRootIsProductVideo;
   const decision = normalizeProductDecision(value, rootIsProductVideo);
+  const routeLabel = resolveRouteLabelForDecision(decision);
+  const nextIntent = typeof value.nextIntent === "string" && value.nextIntent.length > 0
+    ? value.nextIntent
+    : resolveNextIntentForRouteLabel(routeLabel);
   const uncertainty = toStringArray(value.uncertainty);
   const consistentDecision = normalizeDecisionConsistency({
     decision,
@@ -232,6 +248,8 @@ const normalizeVisionRuntimeOutput = (
       || consistentDecision.suggestedNextAction !== value.suggestedNextAction
       || consistentDecision.mustReview !== value.mustReview
       || decision !== value.decision
+      || routeLabel !== value.routeLabel
+      || typeof value.nextIntent !== "string"
       || normalizedFrameObservations.adjusted
       || value.taskType !== "vision.productPresence"
       || value.promptId !== "vision.productPresence.v1"
@@ -246,6 +264,8 @@ const normalizeVisionRuntimeOutput = (
       schemaVersion: "vision.productPresence.schema.v1",
       isProductVideo,
       decision,
+      routeLabel,
+      nextIntent,
       reason: typeof value.reason === "string" && value.reason.length > 0
         ? value.reason
         : (typeof value.aggregateReason === "string" && value.aggregateReason.length > 0

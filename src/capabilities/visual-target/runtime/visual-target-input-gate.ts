@@ -63,16 +63,7 @@ export function resolveVisualTargetExecutionProfile(input: {
   profilePort: VisualTargetProfilePort | null;
 }) {
   const baseProfile = getVisualTargetChildProfile(input.request.childCapabilityId);
-  const override = input.profilePort?.resolveProfileOverride({
-    childCapabilityId: input.request.childCapabilityId,
-  }) ?? null;
-
-  return {
-    ...baseProfile,
-    minimumConfidence: override?.minimumConfidence ?? baseProfile.minimumConfidence,
-    minimumAmbiguityGap: override?.minimumAmbiguityGap ?? baseProfile.minimumAmbiguityGap,
-    freshnessTtlMs: override?.freshnessTtlMs ?? baseProfile.freshnessTtlMs,
-  };
+  return baseProfile;
 }
 
 export function extractVisualTargetFailureTrace(input: unknown): VisualTargetFailureTrace {

@@ -29,6 +29,12 @@ const LIFECYCLE_GATE_SNIPPETS = [
   "artifact_lifecycle_manifest_mismatch",
 ] as const;
 
+const EPHEMERAL_CLEANUP_SNIPPETS = [
+  "burnEphemeralScreenshotFile",
+  "output_is_retained_artifact",
+  "rm(input.outputFilePath, { force: true })",
+] as const;
+
 function sourceContainsAll(path: string, project: Project, snippets: readonly string[]): boolean {
   const text = getSource(project, path).getFullText();
   return snippets.every((snippet) => text.includes(snippet));
@@ -68,6 +74,14 @@ function collectLifecycleTruthFindings(project: Project): Finding[] {
     "artifactLifecycleManifestRef",
   ])) {
     findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.ARTIFACT_STORAGE_GATE, line: 1, severity: "fatal", message: "Screenshot artifact storage gate must write lifecycle metadata and fail closed on budget overflow." }));
+  }
+
+  if (!sourceContainsAll(PATHS.EPHEMERAL_FILE_CLEANUP, project, EPHEMERAL_CLEANUP_SNIPPETS) || !sourceContainsAll(PATHS.EXECUTION_PHASES, project, [
+    "burnEphemeralScreenshotFile",
+    "ephemeral_cleanup_failed",
+    "Screenshot ephemeral work file cleanup failed after artifact handoff.",
+  ])) {
+    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.EPHEMERAL_FILE_CLEANUP, line: 1, severity: "fatal", message: "Screenshot lifecycle must physically delete ephemeral work files after artifact handoff; only retained artifact storage refs may survive." }));
   }
 
   if (!sourceContainsAll(PATHS.OUTPUT_BOUNDARY_GATE, project, LIFECYCLE_GATE_SNIPPETS)) {

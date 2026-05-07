@@ -21,7 +21,7 @@ export function buildLocalProgramNavigationDecision(input: {
     abortDecision: input.timedOut ? "timeout_abort_requested" : "not_requested",
     circuitBreakerState: "closed",
     browserOpenStillRunningGuard: input.timedOut,
-    alreadyOnTargetFreshnessDecision: "not_applicable",
+    alreadyOnTargetHandlingMode: "not_applicable",
   };
 }
 
@@ -32,14 +32,13 @@ export function buildLocalProgramPostOpenDecision(input: {
 }): PostOpenStateDecision {
   return {
     status: input.status,
-    classification: "local_program",
+    classification: "local_program_observation",
     reason: input.reason,
     openedUrl: null,
     pageTitleAfter: null,
     pageStateHandoffRequired: true,
     pageStateHandoffRef: input.status === "success" ? input.pageStateHandoffRef : null,
     authoritative: false,
-    documentReadyState: null,
   };
 }
 

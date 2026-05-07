@@ -10,7 +10,7 @@ const STEP_BY_STEP_ID: Record<string, RoundLifecycleStep> = {
   "click-comments-button": "open_comments",
   "verify-comments-open": "open_comments",
   "capture-comments-panel": "screenshot_comments",
-  "detect-next-video-region": "scroll_next_video",
+  "observe-next-video-region": "scroll_next_video",
   "normalize-next-video-region": "scroll_next_video",
   "scroll-next-video": "scroll_next_video",
   "persist-seeding-candidate-record": "create_pending_candidate",
@@ -19,10 +19,10 @@ const STEP_BY_STEP_ID: Record<string, RoundLifecycleStep> = {
 const STEP_BY_CHILD_CAPABILITY: Record<string, RoundLifecycleStep> = {
   "open-facebook": "open_target_page",
   "open-tiktok": "open_target_page",
-  "verify-page-opened": "open_target_page",
-  "detect-login-state": "detect_login_or_safety",
-  "detect-safety-page": "detect_login_or_safety",
-  "detect-feed-ready": "wait_feed_ready",
+  "observe-page-open-attempt": "open_target_page",
+  "observe-login-surface": "detect_login_or_safety",
+  "observe-safety-surface": "detect_login_or_safety",
+  "observe-feed-surface": "wait_feed_ready",
   "capture-browser-viewport": "screenshot_video_area",
   "prepare-ai-input": "record_video_evidence",
   "product-presence-judgment": "ask_ai_product_presence",
@@ -31,12 +31,11 @@ const STEP_BY_CHILD_CAPABILITY: Record<string, RoundLifecycleStep> = {
 };
 
 const VERIFIED_ACTION_STEP_BY_CHILD_CAPABILITY: Record<string, RoundLifecycleStep> = {
-  "verify-page-opened": "open_target_page",
-  "verify-comments-panel-opened": "open_comments",
+  "observe-page-open-attempt": "open_target_page",
+  "observe-comments-panel-open-attempt": "open_comments",
 };
 
 const FALLBACK_STEP_BY_KIND: Partial<Record<OperationalStep["stepKind"], RoundLifecycleStep>> = {
-  review: "review_required",
   finalize: "stop",
 };
 

@@ -3,9 +3,6 @@ import { evaluateAiResultProof } from "./ai-result-proof-gate-support.js";
 
 export function validateAiResultProof(input: {
   request: ParsedVisualTargetAbilityInput;
-  nowEpochMs: number;
-  freshnessTtlMs: number;
-  minimumConfidence: number;
 }):
   | { ok: true; decision: "allow" | "not_required"; aiInputHash: string | null; aiOutputPayloadHash: string | null; dataQualityFlags: VisualTargetDataQualityFlag[] }
   | {

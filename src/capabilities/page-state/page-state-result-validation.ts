@@ -1,27 +1,16 @@
 import { ZodIssueCode, type RefinementCtx } from "zod";
 
-const OBSERVATION_REQUIRED_CHILDREN = new Set([
-  "detect-feed-ready",
-  "detect-video-stable",
-  "detect-comment-panel-state",
-  "detect-modal-overlay-state",
-  "detect-safety-page",
-]);
-
 const CRITICAL_DATA_QUALITY_FLAGS = new Set([
-  "low_confidence",
   "missing_observation",
   "stale_snapshot",
   "stale_observation",
   "source_mismatch",
-  "platform_mismatch",
   "insufficient_signal",
 ]);
 
 type PageStateRuntimeProofLike = {
   status: "success" | "failed" | "review_required";
-  decision: "proceed" | "block" | "review_required" | "fail";
-  classificationSource: "child_capability" | "invalid_input_failure";
+  processingMode: "observation_packaging" | "invalid_input_failure";
   childCapabilityId: string | null;
   runId: string | null;
   missionId: string | null;
@@ -36,7 +25,7 @@ type PageStateRuntimeProofLike = {
   activationSnapshotRef: string | null;
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
-  pageStateFingerprint: string | null;
+  observationFingerprint: string | null;
   receivedShapeHash: string | null;
   sourceEvidenceRefs: string[];
   observationRefs: string[];
@@ -44,7 +33,6 @@ type PageStateRuntimeProofLike = {
 
 type PageStateAbilityResultLike = {
   status: "success" | "failed" | "review_required";
-  decision: "proceed" | "block" | "review_required" | "fail";
   childCapabilityId: string | null;
   runId: string | null;
   missionId: string | null;
@@ -60,20 +48,17 @@ type PageStateAbilityResultLike = {
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   output: {
-    pageStateType: string;
-    stateSummary: string;
-    confidence: number;
+    packageLabel: string;
+    observationSummary: string;
     evidenceRefs: string[];
     observationRefs: string[];
-    pageStateFingerprint: string;
+    observationFingerprint: string;
   } | null;
-  pageStateType: string | null;
-  stateSummary: string | null;
-  confidence: number | null;
+  observationSummary: string | null;
   evidenceRefs: string[];
   observationRefs: string[];
   sourceEvidenceRefs: string[];
-  pageStateFingerprint: string | null;
+  observationFingerprint: string | null;
   failureReason: string | null;
   reviewRequiredReason: string | null;
   dataQualityFlags: string[];
@@ -123,15 +108,11 @@ const isMissingString = (value: string | null | undefined): boolean => value == 
 const arraysMatch = (left: readonly string[], right: readonly string[]): boolean =>
   left.length === right.length && left.every((value, index) => value === right[index]);
 
-const isInvalidInputProof = (proof: PageStateRuntimeProofLike): boolean => proof.classificationSource === "invalid_input_failure";
+const isInvalidInputProof = (proof: PageStateRuntimeProofLike): boolean => proof.processingMode === "invalid_input_failure";
 
 function validateResultStatusParity(result: PageStateAbilityResultLike, ctx: RefinementCtx): void {
   if (result.runtimeProof.status !== result.status) {
     addIssue(ctx, ["runtimeProof", "status"], "runtime proof status must match result status");
-  }
-
-  if (result.runtimeProof.decision !== result.decision) {
-    addIssue(ctx, ["runtimeProof", "decision"], "runtime proof decision must match result decision");
   }
 }
 
@@ -152,8 +133,8 @@ function validateResultReferenceParity(result: PageStateAbilityResultLike, ctx: 
     addIssue(ctx, ["observationRefs"], "result observationRefs must match runtime proof observationRefs");
   }
 
-  if (result.pageStateFingerprint !== result.runtimeProof.pageStateFingerprint) {
-    addIssue(ctx, ["pageStateFingerprint"], "result pageStateFingerprint must match runtime proof pageStateFingerprint");
+  if (result.observationFingerprint !== result.runtimeProof.observationFingerprint) {
+    addIssue(ctx, ["observationFingerprint"], "result observationFingerprint must match runtime proof observationFingerprint");
   }
 }
 
@@ -185,11 +166,8 @@ function validateSuccessResultEnvelope(result: PageStateAbilityResultLike, ctx: 
   if (!result.output) {
     addIssue(ctx, ["output"], "success result must include output");
   }
-  if (result.decision !== "proceed") {
-    addIssue(ctx, ["decision"], "success result must proceed");
-  }
-  if (result.pageStateType === null || result.stateSummary === null || result.confidence === null || result.pageStateFingerprint === null) {
-    addIssue(ctx, ["output"], "success result must retain pageStateType, stateSummary, confidence, and pageStateFingerprint");
+  if (result.observationSummary === null || result.observationFingerprint === null) {
+    addIssue(ctx, ["output"], "success result must retain observationSummary and observationFingerprint");
   }
 }
 
@@ -200,8 +178,8 @@ function validateSuccessResultEvidence(result: PageStateAbilityResultLike, ctx: 
   if (result.sourceEvidenceRefs.length === 0) {
     addIssue(ctx, ["sourceEvidenceRefs"], "success result must retain sourceEvidenceRefs");
   }
-  if (result.childCapabilityId && OBSERVATION_REQUIRED_CHILDREN.has(result.childCapabilityId) && result.observationRefs.length === 0) {
-    addIssue(ctx, ["observationRefs"], "observation-required child must retain observationRefs on success");
+  if (result.observationRefs.length === 0) {
+    addIssue(ctx, ["observationRefs"], "success result must retain observationRefs");
   }
 }
 
@@ -217,17 +195,11 @@ function validateSuccessOutputParity(result: PageStateAbilityResultLike, ctx: Re
     return;
   }
 
-  if (result.output.pageStateType !== result.pageStateType) {
-    addIssue(ctx, ["output", "pageStateType"], "success output pageStateType must match result pageStateType");
+  if (result.output.observationSummary !== result.observationSummary) {
+    addIssue(ctx, ["output", "observationSummary"], "success output observationSummary must match result observationSummary");
   }
-  if (result.output.stateSummary !== result.stateSummary) {
-    addIssue(ctx, ["output", "stateSummary"], "success output stateSummary must match result stateSummary");
-  }
-  if (result.output.confidence !== result.confidence) {
-    addIssue(ctx, ["output", "confidence"], "success output confidence must match result confidence");
-  }
-  if (result.output.pageStateFingerprint !== result.pageStateFingerprint) {
-    addIssue(ctx, ["output", "pageStateFingerprint"], "success output pageStateFingerprint must match result pageStateFingerprint");
+  if (result.output.observationFingerprint !== result.observationFingerprint) {
+    addIssue(ctx, ["output", "observationFingerprint"], "success output observationFingerprint must match result observationFingerprint");
   }
   if (!arraysMatch(result.output.evidenceRefs, result.evidenceRefs)) {
     addIssue(ctx, ["output", "evidenceRefs"], "success output evidenceRefs must match result evidenceRefs");
@@ -240,9 +212,6 @@ function validateSuccessOutputParity(result: PageStateAbilityResultLike, ctx: Re
 function validateFailureResultEnvelope(result: PageStateAbilityResultLike, ctx: RefinementCtx): void {
   if (result.output !== null) {
     addIssue(ctx, ["output"], "failed or review_required result must null output");
-  }
-  if (result.decision === "proceed") {
-    addIssue(ctx, ["decision"], "failed or review_required result cannot proceed");
   }
   if (!result.diagnosticPayloadRef) {
     addIssue(ctx, ["diagnosticPayloadRef"], "failed or review_required result must retain diagnosticPayloadRef");

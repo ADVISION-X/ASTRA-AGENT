@@ -1,5 +1,5 @@
-import type { MissionExecutionResult, MissionState, OrchestrationExecuteResult } from "../contract.js";
-import { parseMissionControlCommand, parseMissionReviewDecision } from "./mission-command-gate.js";
+import type { MissionState, OrchestrationExecuteResult } from "../contract.js";
+import { parseMissionControlCommand } from "./mission-command-gate.js";
 import { checkCanEmergencyStop, checkCanPause, checkCanStop } from "./mission-state-policy-gate.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import { buildFailureExecuteResult, buildStateBackedExecuteResult } from "./orchestration-execute-result.js";
@@ -32,7 +32,7 @@ function buildControlFailureResult(input: {
 
 function buildControlSuccessResult(input: {
   state: MissionState;
-  childCapabilityId: "pause-mission" | "stop-mission" | "emergency-stop" | "request-human-review";
+  childCapabilityId: "pause-mission" | "stop-mission" | "emergency-stop";
   now: string;
   stateDecision: "paused" | "stopped" | "emergency_stopped" | "updated";
 }): OrchestrationExecuteResult {
@@ -109,30 +109,4 @@ export async function emergencyStopMissionCommand(input: { command: unknown; con
   });
   await input.context.statePort.putMissionState(nextState);
   return buildControlSuccessResult({ state: nextState, childCapabilityId: "emergency-stop", now, stateDecision: "emergency_stopped" });
-}
-
-export async function submitMissionReviewDecision(input: {
-  command: unknown;
-  caller: "commander-console" | "orchestration";
-  context: OrchestrationRuntimeContext;
-}): Promise<OrchestrationExecuteResult | MissionExecutionResult> {
-  const command = parseMissionReviewDecision(input.command);
-  if (command.decision === "hold") {
-    const now = input.context.clock.now().isoTimestamp;
-    const state = await input.context.statePort.getMissionState(command.missionId);
-    if (!state) {
-      return buildControlFailureResult({ childCapabilityId: "request-human-review", missionId: command.missionId, state: null, failureReason: `Mission ${command.missionId} not found for review decision.`, now });
-    }
-    const nextState = toMissionControlState(state, now, {
-      status: "review_required",
-      reviewRequiredReason: command.note ?? "review hold requested",
-      resumeCheckpointRef: buildResumeCheckpointRef(state),
-    });
-    await input.context.statePort.putMissionState(nextState);
-    return buildControlSuccessResult({ state: nextState, childCapabilityId: "request-human-review", now, stateDecision: "updated" });
-  }
-  if (command.decision === "stop") {
-    return stopMissionCommand({ command: { missionId: command.missionId, reason: command.note ?? "review stop requested" }, context: input.context });
-  }
-  return resumeMissionCommand({ command: { missionId: command.missionId, note: command.note }, caller: input.caller, context: input.context });
 }

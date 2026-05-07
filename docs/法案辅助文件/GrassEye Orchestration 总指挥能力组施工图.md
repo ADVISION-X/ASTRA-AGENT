@@ -154,7 +154,6 @@ src/capabilities/orchestration/
 │   ├── emergency-stop/
 │   ├── execute-map-step/
 │   ├── evaluate-step-transition/
-│   ├── request-human-review/
 │   └── finalize-mission/
 └── maps/
     └── data-only operational map packages
@@ -567,7 +566,7 @@ completed state
 ```txt
 while true without guard
 continue after emergency-stop
-continue after review_required unless governed review resume command
+continue after review_required
 continue after failed/completed/stopped
 ```
 
@@ -734,10 +733,13 @@ READY 标准：preflight passed 后不允许出现仅因 MissionCommandSchema pa
 | emergency-stop | latch emergency stop，阻断后续 dispatch |
 | execute-map-step | 根据 frozen map 执行当前 step dispatch |
 | evaluate-step-transition | 基于声明字段评估 transition |
-| request-human-review | 通过 governed review channel 请求人工复核 |
 | finalize-mission | 结算 mission outcome |
 
 禁止新增：
+
+- `request-human-review` 子能力、registry 项、schema 枚举、公开方法或 Route Plan 步骤。
+- `submitReviewDecision` / `submitMissionReviewDecision` 人工复核入口。
+- 自动化任务中的 review route；失败必须终止为 `failed`。
 
 ```txt
 browse-next-video
@@ -1068,7 +1070,7 @@ qualityDecision
 outputBoundaryDecision
 ```
 
-如果 AI child 返回 failed/review_required，Orchestration 可以进入 failed/review transition，但结构化日志不得只显示 `runtime_execution_failed`。`aiResultRef` 在非 success 情况下应指向 diagnostic payload ref，而不是丢成 null。
+如果 AI child 返回 failed/review_required，Orchestration 必须归一为失败终止，不能进入人工 review route；结构化日志不得只显示 `runtime_execution_failed`。`aiResultRef` 在非 success 情况下应指向 diagnostic payload ref，而不是丢成 null。
 
 禁止：
 
