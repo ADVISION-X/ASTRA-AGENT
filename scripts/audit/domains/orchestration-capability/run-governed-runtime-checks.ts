@@ -266,6 +266,34 @@ function inspectPostActionVerificationChain(project: ReturnType<typeof createAud
   };
 }
 
+function inspectRoundAndVideoVisitChain(project: ReturnType<typeof createAuditProject>): PhaseResult {
+  const sharedSource = getSourceFileOrThrow(project, STEP_DISPATCH_SHARED_PATH);
+  const loopSupportSource = getSourceFileOrThrow(project, "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts");
+  const sharedText = sharedSource.getFullText();
+  const loopSupportText = loopSupportSource.getFullText();
+  const findings: Finding[] = [];
+
+  if (sharedText.includes("videoVisitId: null")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: STEP_DISPATCH_SHARED_PATH, line: collectLineNumber(sharedText, "videoVisitId: null"), message: "Orchestration dispatch chain must bind a non-null videoVisitId per mission round; no-video dispatch chains can hide same-video AI loops." }));
+  }
+  if (!sharedText.includes("video-visit") || !sharedText.includes("state.currentRoundIndex")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: STEP_DISPATCH_SHARED_PATH, line: 1, message: "Orchestration dispatch chain must derive videoVisitId from mission identity and currentRoundIndex." }));
+  }
+  if (!loopSupportText.includes("shouldAdvanceMissionRound") || !loopSupportText.includes("verify-video-changed-after-scroll") || !loopSupportText.includes("capture-video-viewport")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts", line: 1, message: "Mission round advancement must treat verified next-video scroll returning to capture-video-viewport as a round boundary." }));
+  }
+
+  return {
+    findings,
+    phase: createRuntimePhase(
+      "round-video-visit-chain",
+      findings,
+      "Orchestration binds non-null per-round videoVisitId and advances rounds after verified next-video scroll.",
+      "Orchestration can still dispatch no-video loops or fail to advance rounds after verified next-video scroll.",
+    ),
+  };
+}
+
 function inspectAiStepTimeoutChain(project: ReturnType<typeof createAuditProject>): PhaseResult {
   const sharedSource = getSourceFileOrThrow(project, STEP_DISPATCH_SHARED_PATH);
   const dispatcherSource = getSourceFileOrThrow(project, STEP_DISPATCHER_PATH);
@@ -325,6 +353,7 @@ export async function runOrchestrationGovernedRuntimeChecks(project: ReturnType<
     Promise.resolve(inspectRuntimeProofRunIdChain(project)),
     Promise.resolve(inspectTypedFailureBoundary(project)),
     Promise.resolve(inspectPostActionVerificationChain(project)),
+    Promise.resolve(inspectRoundAndVideoVisitChain(project)),
     Promise.resolve(inspectAiStepTimeoutChain(project)),
     inspectAiPromptContractTaskTypeDispatch(),
     Promise.resolve(inspectMissionLoopTraceability(project)),

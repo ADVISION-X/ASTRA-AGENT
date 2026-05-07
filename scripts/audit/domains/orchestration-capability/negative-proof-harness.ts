@@ -108,8 +108,20 @@ const MUTATIONS: Mutation[] = [
   {
     name: "round budget per-step mutation",
     file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts",
-    search: "  const nextRoundIndex = nextStatus === \"running\"\n    && nextStepId === input.map.initialStepId\n    && details.currentStepId !== input.map.initialStepId\n    ? input.state.currentRoundIndex + 1\n    : input.state.currentRoundIndex;\n",
+    search: "  const nextRoundIndex = shouldAdvanceMissionRound({\n    currentStepId: details.currentStepId,\n    nextStepId,\n    nextStatus,\n    initialStepId: input.map.initialStepId,\n    currentRoundIndex: input.state.currentRoundIndex,\n  });\n",
     replace: "  const nextRoundIndex = input.state.currentRoundIndex + 1;\n",
+  },
+  {
+    name: "video visit id dropped from dispatch chain mutation",
+    file: "src/capabilities/orchestration/runtime/step-dispatch-shared.ts",
+    search: "      videoVisitId: `${state.missionId}:video-visit:${state.currentRoundIndex}`,\n",
+    replace: "      videoVisitId: null,\n",
+  },
+  {
+    name: "verified next-video round boundary removal mutation",
+    file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts",
+    search: "  const verifiedNextVideoAndReturnedToCapture = input.currentStepId === \"verify-video-changed-after-scroll\"\n    && input.nextStepId === \"capture-video-viewport\";\n\n  return returnedToInitialStep || verifiedNextVideoAndReturnedToCapture\n",
+    replace: "  const verifiedNextVideoAndReturnedToCapture = false;\n\n  return returnedToInitialStep || verifiedNextVideoAndReturnedToCapture\n",
   },
   {
     name: "post-action verification started event removal mutation",

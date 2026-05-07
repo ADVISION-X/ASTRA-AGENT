@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-05-07T11:23:04.931Z",
+  "generatedAt": "2026-05-07T11:37:13.863Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/map-plugin-package/negative-proof-mutations.ts",
-    "scripts/audit/domains/map-plugin-package/required-shape.ts",
-    "scripts/audit/domains/mouse-scroll-capability/config.ts",
-    "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
-    "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+    "scripts/audit/domains/orchestration-capability/mission-loop-event-semantics-checks.ts",
+    "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
+    "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
+    "scripts/audit/generated/runner-summary.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
-    "src/lib/browser/current-chrome-browser-controller-primitives.ts"
+    "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts",
+    "src/capabilities/orchestration/runtime/step-dispatch-shared.ts"
   ]
 }

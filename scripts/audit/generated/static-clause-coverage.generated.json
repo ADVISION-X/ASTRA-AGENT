@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T11:23:07.111Z",
+  "generatedAt": "2026-05-07T11:37:15.831Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -4744,6 +4744,27 @@
           "sourceFile": "scripts/audit/domains/orchestration-capability/mission-loop-traceability-phase.ts",
           "targetSymbol": "collectStepTraceRecorderFindings",
           "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectRoundAndVideoVisitChain",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectRoundAndVideoVisitChain",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectRoundAndVideoVisitChain",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectRoundAndVideoVisitChain",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-governed-runtime-checks",
+          "checkFunction": "inspectRoundAndVideoVisitChain",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
+          "targetSymbol": "inspectRoundAndVideoVisitChain",
+          "checkKind": "forbidden-shape"
         }
       ],
       "blockers": [

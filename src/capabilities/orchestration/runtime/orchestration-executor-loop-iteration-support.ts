@@ -178,13 +178,36 @@ const buildTransitionSuccessState = (
 ): MissionState => {
   const nextStatus = details.transition.finalStatus;
   const nextStepId = nextStatus === "running" ? details.transition.toStepId : null;
-  const nextRoundIndex = nextStatus === "running"
-    && nextStepId === input.map.initialStepId
-    && details.currentStepId !== input.map.initialStepId
-    ? input.state.currentRoundIndex + 1
-    : input.state.currentRoundIndex;
+  const nextRoundIndex = shouldAdvanceMissionRound({
+    currentStepId: details.currentStepId,
+    nextStepId,
+    nextStatus,
+    initialStepId: input.map.initialStepId,
+    currentRoundIndex: input.state.currentRoundIndex,
+  });
   return toMissionControlState(input.state, details.endedAt, { previousStepId: details.currentStepId, currentStepId: nextStepId, status: nextStatus, hopCount: details.nextHopCount, sequenceNo: input.state.sequenceNo + 1, currentRoundIndex: nextRoundIndex, reviewRequiredReason: nextStatus === "review_required" ? details.lastResult.reviewRequiredReason : null, failureReason: nextStatus === "failed" ? details.lastResult.failureReason : null, lastEnvelopeId: details.lastResult.envelopeId ?? null, lastResultRef: details.lastResult.resultRef ?? null, payloadRefs: details.lastResult.payloadRefs, endedAt: nextStatus === "running" ? null : details.endedAt });
 };
+
+function shouldAdvanceMissionRound(input: {
+  currentStepId: string;
+  nextStepId: string | null;
+  nextStatus: MissionState["status"];
+  initialStepId: string;
+  currentRoundIndex: number;
+}): number {
+  if (input.nextStatus !== "running" || input.nextStepId === null) {
+    return input.currentRoundIndex;
+  }
+
+  const returnedToInitialStep = input.nextStepId === input.initialStepId
+    && input.currentStepId !== input.initialStepId;
+  const verifiedNextVideoAndReturnedToCapture = input.currentStepId === "verify-video-changed-after-scroll"
+    && input.nextStepId === "capture-video-viewport";
+
+  return returnedToInitialStep || verifiedNextVideoAndReturnedToCapture
+    ? input.currentRoundIndex + 1
+    : input.currentRoundIndex;
+}
 
 const buildTransitionSuccessOutcome = async (
   input: RunMissionLoopIterationInput,

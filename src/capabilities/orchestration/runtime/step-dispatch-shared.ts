@@ -84,7 +84,7 @@ const resolveDispatchChain = (state: MissionState, stepId: string): { ok: true; 
       runId: state.activeTaskRunId,
       sessionId: state.missionId,
       roundId: String(state.currentRoundIndex),
-      videoVisitId: null,
+      videoVisitId: `${state.missionId}:video-visit:${state.currentRoundIndex}`,
       mapPackageId: state.mapPackageId,
       mapPackageVersion: state.mapPackageVersion,
       selectedMapVersion: state.selectedMapVersion,

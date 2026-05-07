@@ -110,10 +110,13 @@ const collectLoopStateFindings = (input: {
   loopIterationSupportSource: ReturnType<typeof getSourceFileOrThrow>;
   stepTraceRecorderSource: ReturnType<typeof getSourceFileOrThrow>;
   transitionStateText: string;
+  roundBoundaryText: string;
 }): Finding[] => {
   const findings: Finding[] = [];
-  const guardsRoundIncrementByInitialStep = input.transitionStateText.includes("nextStepId === input.map.initialStepId")
-    && input.transitionStateText.includes("details.currentStepId !== input.map.initialStepId");
+  const guardsRoundIncrementByInitialStep = input.roundBoundaryText.includes("nextStepId === input.initialStepId")
+    && input.roundBoundaryText.includes("currentStepId !== input.initialStepId");
+  const guardsVerifiedNextVideoCaptureBoundary = input.roundBoundaryText.includes("verify-video-changed-after-scroll")
+    && input.roundBoundaryText.includes("capture-video-viewport");
   const usesPerStepRoundIncrement = input.transitionStateText.includes("currentRoundIndex: input.state.currentRoundIndex + 1");
 
   if (!hasCallExpressionPath(input.loopIterationSource, ["recordPostActionVerificationActionLog"])) {
@@ -128,8 +131,8 @@ const collectLoopStateFindings = (input: {
   if (!hasSuccessProofClosure(input.loopIterationSupportSource)) {
     findings.push(createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success path must persist lastRuntimeProofRef and runtimeProofRefs before Commander reads mission state." }));
   }
-  if (!guardsRoundIncrementByInitialStep || usesPerStepRoundIncrement) {
-    findings.push(createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success state must increment currentRoundIndex only when the governed loop explicitly returns to map.initialStepId." }));
+  if (!guardsRoundIncrementByInitialStep || !guardsVerifiedNextVideoCaptureBoundary || usesPerStepRoundIncrement) {
+    findings.push(createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success state must increment currentRoundIndex only at governed round boundaries: map initial-step return or verified next-video scroll returning to capture-video-viewport." }));
   }
 
   return findings;
@@ -166,13 +169,15 @@ export function inspectMissionLoopEventSemantics(project: ReturnType<typeof crea
   const workbenchOrchestrationSource = getSourceFileOrThrow(project, WORKBENCH_ORCHESTRATION_PATH);
   const buildTransitionSuccessState = getNamedFunctionLike(loopIterationSupportSource, "buildTransitionSuccessState");
   const transitionStateText = buildTransitionSuccessState?.getFullText() ?? "";
+  const shouldAdvanceMissionRound = getNamedFunctionLike(loopIterationSupportSource, "shouldAdvanceMissionRound");
+  const roundBoundaryText = shouldAdvanceMissionRound?.getFullText() ?? "";
   const recordDispatchStarted = loopEventsSource.getFunction("recordDispatchStarted");
   const dispatchStartedText = recordDispatchStarted?.getFullText() ?? "";
   const runtimeEventTypes = collectRuntimeEventTypes([loopEventsSource, loopEventsSharedSource]);
   const findings = [
     ...collectForensicsWiringFindings({ internalSource, abilityGroupSource, workbenchOrchestrationSource }),
     ...collectRuntimeEventCoverageFindings({ loopIterationSource, loopEventsSource, runtimeEventTypes, dispatchStartedText }),
-    ...collectLoopStateFindings({ loopIterationSource, loopIterationSupportSource, stepTraceRecorderSource, transitionStateText }),
+    ...collectLoopStateFindings({ loopIterationSource, loopIterationSupportSource, stepTraceRecorderSource, transitionStateText, roundBoundaryText }),
     ...collectCapabilityCallIdStabilityFindings({ loopIterationSource, loopEventsSource }),
   ];
 
