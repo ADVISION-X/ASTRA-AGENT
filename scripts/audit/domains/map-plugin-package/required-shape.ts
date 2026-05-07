@@ -101,13 +101,40 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
   const capture = steps.find((step) => step.stepId === "capture-video-viewport");
   const prepare = steps.find((step) => step.stepId === "prepare-ai-input");
   const judge = steps.find((step) => step.stepId === "judge-seeding-video");
+  const detectNext = steps.find((step) => step.stepId === "detect-next-video-region");
+  const normalizeNext = steps.find((step) => step.stepId === "normalize-next-video-region");
+  const scrollNext = steps.find((step) => step.stepId === "scroll-next-video");
+  const verifyChanged = steps.find((step) => step.stepId === "verify-video-changed-after-scroll");
   const promptBinding = record.mapPackage.promptBindings.bindings.find((binding) => binding.stepId === "judge-seeding-video");
   const judgeTransitions = record.mapPackage.operationalMap.transitions.filter((transition) => transition.fromStepId === "judge-seeding-video");
+  const hasTransition = (fromStepId: string, onStatus: string, toStepId: string) =>
+    record.mapPackage?.operationalMap.transitions.some((transition) =>
+      transition.fromStepId === fromStepId
+      && transition.onStatus === onStatus
+      && transition.toStepId === toStepId,
+    ) === true;
   const hasForbiddenUncertainBranch = judgeTransitions.some((transition) =>
     transition.condition.rightValue === "product_uncertain"
     || transition.toStepId === "request-human-review"
     || transition.finalStatus === "review_required",
   );
+  const hasAutomaticNonProductScrollPath =
+    hasTransition("judge-seeding-video", "success", "detect-next-video-region")
+    && hasTransition("detect-next-video-region", "success", "normalize-next-video-region")
+    && hasTransition("normalize-next-video-region", "success", "scroll-next-video")
+    && hasTransition("scroll-next-video", "success", "verify-video-changed-after-scroll")
+    && detectNext?.targetAbilityGroupId === "visual-target"
+    && detectNext.childCapabilityId === "detect-next-video-region"
+    && normalizeNext?.targetAbilityGroupId === "geometry-guard"
+    && normalizeNext.childCapabilityId === "normalize-coordinate-geometry"
+    && scrollNext?.targetAbilityGroupId === "mouse-scroll"
+    && scrollNext.childCapabilityId === "scroll-browser-viewport"
+    && scrollNext.inputRefs.includes("visualTargetRef")
+    && scrollNext.inputRefs.includes("geometryProofRef")
+    && scrollNext.postActionVerification?.required === true
+    && scrollNext.postActionVerification.expectedSignal === "video-changed"
+    && verifyChanged?.targetAbilityGroupId === "post-action-verification"
+    && verifyChanged.childCapabilityId === "verify-video-changed-after-scroll";
   const hasChain = capture?.outputRefPolicy.storeAs.includes("screenshotEvidenceRef") === true
     && prepare?.inputRefs.includes("screenshotEvidenceRef") === true
     && prepare.outputRefPolicy.storeAs.includes("promptInputRef")
@@ -119,7 +146,8 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
     && promptBinding.outputSchemaRef === "ai.product_presence_judgment.v1"
     && promptBinding.confidencePolicy === "binary-no-human-review"
     && promptBinding.reviewPolicy === "no-human-handoff-for-product-presence"
-    && !hasForbiddenUncertainBranch;
+    && !hasForbiddenUncertainBranch
+    && hasAutomaticNonProductScrollPath;
 
   return hasChain
     ? []
@@ -128,7 +156,7 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
       file: record.file,
       line: 1,
       severity: "fatal",
-      message: "Seeding video map packages must wire screenshot evidence into the product-presence prompt and keep product-presence routing binary: product_yes opens evidence capture, product_no scrolls next, and product_uncertain/human-review handoff is forbidden.",
+      message: "Seeding video map packages must wire screenshot evidence into the product-presence prompt and keep product-presence routing binary: product_yes opens evidence capture, product_no must automatically flow through visual-target -> geometry-guard -> mouse-scroll -> video-changed PAV, and product_uncertain/human-review handoff is forbidden.",
     })];
 };
 

@@ -1,28 +1,19 @@
 {
-  "generatedAt": "2026-05-07T11:03:10.529Z",
+  "generatedAt": "2026-05-07T11:23:04.931Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/ai-capability/negative-proof-definitions.ts",
-    "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
+    "scripts/audit/domains/map-plugin-package/negative-proof-mutations.ts",
     "scripts/audit/domains/map-plugin-package/required-shape.ts",
+    "scripts/audit/domains/mouse-scroll-capability/config.ts",
+    "scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts",
+    "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
-    "scripts/audit/generated/runner-summary.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
-    "src/capabilities/ai/prompt-contracts/builtins/vision.productPresence.v1.prompt-contract.json",
-    "src/capabilities/ai/runtime/ai-quality-gate.ts",
-    "src/capabilities/ai/shared/ai-output.ts",
-    "src/lib/local-ai/local-ai-runtime-vision-prompt.ts",
-    "src/lib/local-ai/local-ai-runtime-vision.ts",
-    "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
-    "src/lib/local-runtime/workbench-nerve-bus-ai-decision.ts",
-    "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts",
-    "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
-    "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
-    "src/types/vision-product-presence.ts"
+    "src/lib/browser/current-chrome-browser-controller-primitives.ts"
   ]
 }

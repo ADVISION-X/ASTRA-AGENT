@@ -96,6 +96,12 @@ const MUTATIONS: Mutation[] = [
     replace: "    runtimeProof,\n    BrowserActionId: input.primitiveCallId,",
   },
   {
+    name: "quartz-wheel-polarity mutation",
+    file: "src/lib/browser/current-chrome-browser-controller-primitives.ts",
+    search: "const toQuartzWheelDelta = (value: number): number => -Math.round(value);",
+    replace: "const toQuartzWheelDelta = (value: number): number => Math.round(value);",
+  },
+  {
     name: "pav-decision-field mutation",
     file: "src/capabilities/mouse-scroll/runtime/mouse-scroll-result-builder.ts",
     search: "    runtimeProof,",
@@ -187,6 +193,12 @@ const MUTATION_LAW_COVERAGE: Record<string, MutationCoverage> = {
     coveredLawIds: [LAW_IDS.CHILDREN],
     coverageReasonByLawId: {
       [LAW_IDS.CHILDREN]: "The mutation injects a platform business verb into the Mouse Scroll child registry, proving children must remain narrow primitive bindings only.",
+    },
+  },
+  "quartz-wheel-polarity mutation": {
+    coveredLawIds: [LAW_IDS.EXECUTION],
+    coverageReasonByLawId: {
+      [LAW_IDS.EXECUTION]: "The mutation removes browser-to-Quartz wheel polarity conversion, proving production scroll must advance the visible feed instead of replaying the current video.",
     },
   },
 };

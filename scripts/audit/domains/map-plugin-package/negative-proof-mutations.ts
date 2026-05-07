@@ -14,6 +14,7 @@ export const REQUIRED_MUTATION_NAMES = [
   "macos local smoke missing open-local-program mutation",
   "phase05 diagnostic success path uses review terminal mutation",
   "phase05 diagnostic ai reverted to product presence mutation",
+  "facebook non-product scroll path skips geometry mutation",
 ] as const;
 
 export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
@@ -137,6 +138,12 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     file: "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
     search: '"inputRefs": ["visualTargetRef", "geometryProofRef"]',
     replace: '"inputRefs": ["visualTargetRef"]',
+  },
+  {
+    name: "facebook non-product scroll path skips geometry mutation",
+    file: "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
+    search: '"transitionId": "detect-next-video-region:success",\n        "fromStepId": "detect-next-video-region",\n        "onStatus": "success",\n        "condition": {\n          "conditionType": "comparison",\n          "leftRef": "status",\n          "operator": "equals",\n          "rightValue": "success"\n        },\n        "toStepId": "normalize-next-video-region",',
+    replace: '"transitionId": "detect-next-video-region:success",\n        "fromStepId": "detect-next-video-region",\n        "onStatus": "success",\n        "condition": {\n          "conditionType": "comparison",\n          "leftRef": "status",\n          "operator": "equals",\n          "rightValue": "success"\n        },\n        "toStepId": "scroll-next-video",',
   },
   {
     name: "activation snapshot proof mutation",

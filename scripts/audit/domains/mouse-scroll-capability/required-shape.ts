@@ -169,6 +169,37 @@ function collectVisibleScrollPrimitiveFindings(project: ReturnType<typeof makePr
   return [];
 }
 
+function collectQuartzWheelPolarityFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  const source = getSourceFile(project, PATHS.CURRENT_CHROME_BROWSER_CONTROLLER_PRIMITIVES);
+  if (!source) {
+    return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER_PRIMITIVES, line: 1, severity: "fatal", message: "Current Chrome scroll primitive adapter is missing." })];
+  }
+
+  const converter = source.getVariableDeclaration("toQuartzWheelDelta");
+  const converterInitializer = converter?.getInitializer();
+  const converterBody = Node.isArrowFunction(converterInitializer) ? converterInitializer.getBody() : null;
+  const converterNegatesBrowserDelta = converterBody !== null
+    && Node.isPrefixUnaryExpression(converterBody)
+    && converterBody.getOperatorToken() === SyntaxKind.MinusToken
+    && converterBody.getOperand().getText().startsWith("Math.round(");
+  const scrollAt = source.getVariableDeclaration("scrollAt");
+  const scrollAtInitializer = scrollAt?.getInitializer();
+  const scrollAtCallsConverter = scrollAtInitializer?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((call) => call.getExpression().getText() === "toQuartzWheelDelta" && ["input.deltaY", "input.deltaX"].includes(call.getArguments()[0]?.getText() ?? "")) === true;
+  const scrollTemplate = scrollAtInitializer?.getText() ?? "";
+  const scrollTemplateUsesConvertedDeltas = scrollTemplate.includes("${quartzWheelDeltaY}") && scrollTemplate.includes("${quartzWheelDeltaX}");
+
+  return converterNegatesBrowserDelta && scrollAtCallsConverter && scrollTemplateUsesConvertedDeltas
+    ? []
+    : [createFinding({
+      lawId: LAW_IDS.EXECUTION,
+      file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER_PRIMITIVES,
+      line: converter?.getStartLineNumber() ?? scrollAt?.getStartLineNumber() ?? 1,
+      severity: "fatal",
+      message: "Current Chrome Quartz wheel primitive must invert browser-semantic deltas before posting CGEvent scroll events, so direction=down advances the feed instead of replaying the current video.",
+    })];
+}
+
 export async function runRequiredShapeAttack(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
   const findings: Finding[] = [];
   await collectMissingFileFindings(findings);
@@ -180,6 +211,7 @@ export async function runRequiredShapeAttack(): Promise<{ findings: Finding[]; p
   findings.push(...collectChildImplementationFindings(project));
   findings.push(...collectWorkbenchDispatchFindings(project));
   findings.push(...collectVisibleScrollPrimitiveFindings(project));
+  findings.push(...collectQuartzWheelPolarityFindings(project));
 
   const passed = findings.length === 0;
   return {
