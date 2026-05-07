@@ -73,22 +73,6 @@
         "promptContractId": null
       },
       {
-        "stepId": "verify-tiktok-feed-open",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "observe-page-open-attempt",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "post-action-verification",
-        "inputRefs": [
-          "abilityResultRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "abilityResultRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
         "stepId": "observe-login-surface",
         "capabilityId": "orchestration",
         "childCapabilityId": "observe-login-surface",
@@ -198,26 +182,12 @@
         "transitionId": "open-tiktok-feed:success",
         "fromStepId": "open-tiktok-feed",
         "onStatus": "success",
-        "toStepId": "verify-tiktok-feed-open",
+        "toStepId": "observe-login-surface",
         "finalStatus": null
       },
       {
         "transitionId": "open-tiktok-feed:failed",
         "fromStepId": "open-tiktok-feed",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "verify-tiktok-feed-open:success",
-        "fromStepId": "verify-tiktok-feed-open",
-        "onStatus": "success",
-        "toStepId": "observe-login-surface",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-tiktok-feed-open:failed",
-        "fromStepId": "verify-tiktok-feed-open",
         "onStatus": "failed",
         "toStepId": null,
         "finalStatus": "failed"
@@ -327,7 +297,6 @@
     ],
     "requiredChildCapabilities": [
       "open-tiktok",
-      "observe-page-open-attempt",
       "observe-login-surface",
       "observe-safety-surface",
       "observe-feed-surface",

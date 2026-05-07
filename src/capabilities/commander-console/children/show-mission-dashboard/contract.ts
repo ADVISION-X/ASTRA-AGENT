@@ -16,7 +16,7 @@ export const SHOW_MISSION_DASHBOARD_CONTRACT: CommanderReadChildContract = {
   readModelSource: "mission-read-model",
   requiresOperatorRef: true,
   hardStopPriority: null,
-  maxDurationMs: 4000,
+  maxDurationMs: 60_000,
   idempotencyPolicy: "idempotent-read",
   boundaryPolicy: ShowMissionDashboardBoundaryPolicySchema.parse({
     allowedCaller: "commander-console",
@@ -25,7 +25,7 @@ export const SHOW_MISSION_DASHBOARD_CONTRACT: CommanderReadChildContract = {
     readModelSource: "mission-read-model",
     requiresOperatorRef: true,
     hardStopPriority: null,
-    maxDurationMs: 4000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "idempotent-read",
   }),
   evidencePolicy: CommanderEvidencePolicySchema.parse({

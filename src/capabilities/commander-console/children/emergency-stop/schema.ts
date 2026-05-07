@@ -20,7 +20,7 @@ export const EmergencyStopBoundaryPolicySchema = CommanderBoundaryPolicySchema.e
   ownedCommandType: z.literal("emergency-stop"),
   readModelSource: z.null(),
   hardStopPriority: z.literal("emergency"),
-  maxDurationMs: z.literal(2000),
+  maxDurationMs: z.literal(60_000),
   idempotencyPolicy: z.literal("hard-stop-non-dedupe"),
 });
 

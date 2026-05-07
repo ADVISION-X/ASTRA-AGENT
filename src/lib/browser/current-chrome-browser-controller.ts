@@ -91,7 +91,6 @@ export class CurrentChromeBrowserController implements BrowserController {
 
   async open(input: { url: string; title: string }): Promise<BrowserActionResult> {
     await runAppleScript(buildOpenUrlScript(input.url));
-    await this.wait(1200);
     await this.refreshSnapshot();
     return this.createActionResult({ message: `opened ${input.url} in current Chrome session` });
   }
@@ -119,7 +118,6 @@ export class CurrentChromeBrowserController implements BrowserController {
     });
     let auxiliaryKeyMessage = "";
     if (requiresArrowDownAssist) {
-      await this.sleep(120, input.abortSignal);
       try {
         await pressBrowserKey(125, input.abortSignal);
         auxiliaryKeyMessage = " with ArrowDown assist";
@@ -127,7 +125,6 @@ export class CurrentChromeBrowserController implements BrowserController {
         auxiliaryKeyMessage = `; ArrowDown assist skipped: ${error instanceof Error ? error.message : "unknown key dispatch error"}`;
       }
     }
-    await this.sleep(300, input.abortSignal);
     await this.refreshSnapshot();
     return this.createActionResult({ message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}${auxiliaryKeyMessage}; browser scroll settle observed`, fallbackUsed: input.fallbackUsed ?? false });
   }
@@ -139,13 +136,13 @@ export class CurrentChromeBrowserController implements BrowserController {
     const clickX = coordinateSpace === "desktopScreen" ? input.point.x : geometry.windowX + input.point.x;
     const clickY = coordinateSpace === "desktopScreen" ? input.point.y : geometry.windowY + input.point.y;
     await clickAt(Math.round(clickX), Math.round(clickY), input.button ?? "left", input.clickCount ?? 1);
-    await this.wait(700);
+    await this.refreshSnapshot();
     return this.createActionResult({ message: `clicked ${input.targetLabel}`, fallbackUsed: input.fallbackUsed ?? false });
   }
 
   async textInput(input: { targetLabel: string; action: BrowserTextInputAction; text?: string | null; key?: BrowserTextInputKey | null; fallbackUsed?: boolean; abortSignal?: AbortSignal }): Promise<BrowserActionResult> {
     const result = await executeCurrentChromeTextInput(input, () => createId("browser"));
-    await this.wait(300);
+    await this.refreshSnapshot();
     return result;
   }
 

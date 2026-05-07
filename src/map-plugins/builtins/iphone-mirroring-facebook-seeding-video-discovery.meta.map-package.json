@@ -72,23 +72,6 @@
         "promptContractId": null
       },
       {
-        "stepId": "verify-iphone-mirroring-window-opened",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "verify-action-result",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "post-action-verification",
-        "inputRefs": [
-          "abilityResultRef",
-          "sourceEvidenceRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "abilityResultRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
         "stepId": "capture-iphone-mirroring-window-overview",
         "capabilityId": "orchestration",
         "childCapabilityId": "capture-desktop-screen",
@@ -193,23 +176,6 @@
         "promptContractId": null
       },
       {
-        "stepId": "verify-target-app-opened",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "verify-action-result",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "post-action-verification",
-        "inputRefs": [
-          "abilityResultRef",
-          "visualTargetRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "abilityResultRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
         "stepId": "observe-app-feed-or-home-state",
         "capabilityId": "orchestration",
         "childCapabilityId": "observe-feed-surface",
@@ -287,23 +253,6 @@
         "inputRefs": [
           "visualTargetRef",
           "geometryProofRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "abilityResultRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
-        "stepId": "verify-video-feed-ready",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "verify-action-result",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "post-action-verification",
-        "inputRefs": [
-          "abilityResultRef",
-          "visualTargetRef"
         ],
         "outputRefPolicy": {
           "storeAs": [
@@ -553,7 +502,7 @@
         "transitionId": "open-iphone-mirroring:success",
         "fromStepId": "open-iphone-mirroring",
         "onStatus": "success",
-        "toStepId": "verify-iphone-mirroring-window-opened",
+        "toStepId": "capture-iphone-mirroring-window-overview",
         "finalStatus": null
       },
       {
@@ -562,13 +511,6 @@
         "onStatus": "failed",
         "toStepId": null,
         "finalStatus": "failed"
-      },
-      {
-        "transitionId": "verify-iphone-mirroring-window-opened:success",
-        "fromStepId": "verify-iphone-mirroring-window-opened",
-        "onStatus": "success",
-        "toStepId": "capture-iphone-mirroring-window-overview",
-        "finalStatus": null
       },
       {
         "transitionId": "capture-iphone-mirroring-window-overview:success",
@@ -609,13 +551,6 @@
         "transitionId": "click-facebook-app-icon:success",
         "fromStepId": "click-facebook-app-icon",
         "onStatus": "success",
-        "toStepId": "verify-target-app-opened",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-target-app-opened:success",
-        "fromStepId": "verify-target-app-opened",
-        "onStatus": "success",
         "toStepId": "observe-app-feed-or-home-state",
         "finalStatus": null
       },
@@ -650,13 +585,6 @@
       {
         "transitionId": "click-video-tab-or-feed-entry:success",
         "fromStepId": "click-video-tab-or-feed-entry",
-        "onStatus": "success",
-        "toStepId": "verify-video-feed-ready",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-video-feed-ready:success",
-        "fromStepId": "verify-video-feed-ready",
         "onStatus": "success",
         "toStepId": "observe-video-surface",
         "finalStatus": null
@@ -765,27 +693,6 @@
         "onStatus": "success",
         "toStepId": null,
         "finalStatus": "completed"
-      },
-      {
-        "transitionId": "verify-iphone-mirroring-window-opened:failed",
-        "fromStepId": "verify-iphone-mirroring-window-opened",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "verify-target-app-opened:failed",
-        "fromStepId": "verify-target-app-opened",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "verify-video-feed-ready:failed",
-        "fromStepId": "verify-video-feed-ready",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
       },
       {
         "transitionId": "judge-product-seeding-video:failed",
@@ -984,7 +891,6 @@
   "dependencies": {
     "requiredCapabilities": [
       "open",
-      "post-action-verification",
       "screenshot",
       "page-state",
       "visual-target",
@@ -996,7 +902,6 @@
     ],
     "requiredChildCapabilities": [
       "open-local-program",
-      "verify-action-result",
       "capture-desktop-screen",
       "capture-region",
       "observe-platform-surface",
@@ -1039,7 +944,6 @@
     "requiresMapSchema": "1",
     "requiresCapabilityRegistry": [
       "open",
-      "post-action-verification",
       "screenshot",
       "page-state",
       "visual-target",

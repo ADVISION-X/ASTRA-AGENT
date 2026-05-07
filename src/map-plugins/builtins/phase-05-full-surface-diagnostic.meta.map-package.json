@@ -72,22 +72,6 @@
         "promptContractId": null
       },
       {
-        "stepId": "verify-local-workbench-open",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "observe-page-open-attempt",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "post-action-verification",
-        "inputRefs": [
-          "abilityResultRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "abilityResultRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
         "stepId": "observe-diagnostic-page-kind",
         "capabilityId": "orchestration",
         "childCapabilityId": "observe-platform-surface",
@@ -325,13 +309,6 @@
         "transitionId": "open-local-workbench-diagnostic:success",
         "fromStepId": "open-local-workbench-diagnostic",
         "onStatus": "success",
-        "toStepId": "verify-local-workbench-open",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-local-workbench-open:success",
-        "fromStepId": "verify-local-workbench-open",
-        "onStatus": "success",
         "toStepId": "observe-diagnostic-page-kind",
         "finalStatus": null
       },
@@ -429,13 +406,6 @@
       {
         "transitionId": "open-local-workbench-diagnostic:failed",
         "fromStepId": "open-local-workbench-diagnostic",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "verify-local-workbench-open:failed",
-        "fromStepId": "verify-local-workbench-open",
         "onStatus": "failed",
         "toStepId": null,
         "finalStatus": "failed"
@@ -587,7 +557,6 @@
       "click-browser-coordinate",
       "type-text",
       "scroll-browser-viewport",
-      "observe-page-open-attempt",
       "verify-action-result",
       "observe-target-state-transition",
       "write-evidence-record",

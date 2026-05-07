@@ -6,7 +6,7 @@ import type { OrchestrationRuntimeContext } from "./orchestration-runtime-contex
 import { findAiPromptContractCatalogEntry } from "../../ai/index.js";
 import { getDefaultMapPluginRegistry } from "./orchestration-map-id-list.js";
 
-const DEFAULT_STEP_TIMEOUT_MS = 30_000;
+const DEFAULT_STEP_TIMEOUT_MS = 60_000;
 
 type OperationalStep = OperationalMap["steps"][number];
 type FinalizeStep = OperationalStep & { stepKind: "finalize" };
@@ -176,23 +176,23 @@ const buildAiDispatchRequirements = (input: {
 });
 
 const PRODUCTION_STEP_TIMEOUT_MS_BY_KIND = {
-  ability: 30_000,
-  ai: 120_000,
-  finalize: 10_000,
+  ability: 60_000,
+  ai: 60_000,
+  finalize: 60_000,
 } as const;
 
 const PRODUCTION_STEP_TIMEOUT_MS_BY_ABILITY: Partial<Record<Exclude<OperationalStep["targetAbilityGroupId"], null>, number>> = {
   ai: PRODUCTION_STEP_TIMEOUT_MS_BY_KIND.ai,
-  open: 30_000,
-  screenshot: 20_000,
-  "visual-target": 15_000,
-  "geometry-guard": 10_000,
-  "mouse-click": 15_000,
-  "mouse-scroll": 30_000,
-  "text-input": 20_000,
-  "post-action-verification": 20_000,
-  "page-state": 10_000,
-  "forensics-persistence": 10_000,
+  open: 60_000,
+  screenshot: 60_000,
+  "visual-target": 60_000,
+  "geometry-guard": 60_000,
+  "mouse-click": 60_000,
+  "mouse-scroll": 60_000,
+  "text-input": 60_000,
+  "post-action-verification": 60_000,
+  "page-state": 60_000,
+  "forensics-persistence": 60_000,
 } as const;
 
 const resolveStepTimeoutMs = (step: OperationalStep): number => {

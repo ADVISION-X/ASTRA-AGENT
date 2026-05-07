@@ -16,7 +16,7 @@ export const SHOW_OPERATIONAL_MAP_PROGRESS_CONTRACT: CommanderReadChildContract 
   readModelSource: "mission-read-model",
   requiresOperatorRef: true,
   hardStopPriority: null,
-  maxDurationMs: 2500,
+  maxDurationMs: 60_000,
   idempotencyPolicy: "idempotent-read",
   boundaryPolicy: ShowOperationalMapProgressBoundaryPolicySchema.parse({
     allowedCaller: "commander-console",
@@ -25,7 +25,7 @@ export const SHOW_OPERATIONAL_MAP_PROGRESS_CONTRACT: CommanderReadChildContract 
     readModelSource: "mission-read-model",
     requiresOperatorRef: true,
     hardStopPriority: null,
-    maxDurationMs: 2500,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "idempotent-read",
   }),
   evidencePolicy: CommanderEvidencePolicySchema.parse({

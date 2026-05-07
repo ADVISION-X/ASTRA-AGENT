@@ -13,7 +13,7 @@ import {
   isGovernedAppInstalled,
   isGovernedAppRunning,
   runFixedMacOSCommand,
-  waitForLocalProgram,
+  waitForLocalProgramCondition,
 } from "./open-local-program-adapter-system.js";
 
 type Readiness = {
@@ -106,8 +106,12 @@ async function openGovernedLocalProgram(input: OpenLocalProgramInput) {
   if (!isGovernedAppInstalled()) return failMissingApp(input, createdAt);
   const launch = await runFixedMacOSCommand(MACOS_OPEN_BIN, ["-b", GOVERNED_BUNDLE_ID], input.abortSignal);
   if (launch.exitCode !== 0) return failLaunch(input, createdAt, launch);
-  await waitForLocalProgram(Math.min(1200, Math.max(250, input.timeoutMs / 4)), input.abortSignal);
-  if (!(await isGovernedAppRunning())) return failWindow(input, createdAt);
+  const appVisible = await waitForLocalProgramCondition({
+    timeoutMs: input.timeoutMs,
+    abortSignal: input.abortSignal,
+    isReady: isGovernedAppRunning,
+  });
+  if (!appVisible) return failWindow(input, createdAt);
   return { localProgramActionId: `${input.openAttemptRef}:macos-open`, ok: true, message: "governed iPhone Mirroring launch handed off to local app window chain", createdAt, appLaunchAttemptRef: `${input.openAttemptRef}:launched`, windowHandoffRef: buildRef("local-app-window", input), localAppStateHandoffRef: buildRef("local-app-state", input), portKind: "open-local-program-port" as const };
 }
 

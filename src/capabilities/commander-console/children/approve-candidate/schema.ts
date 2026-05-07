@@ -20,7 +20,7 @@ export const ApproveCandidateBoundaryPolicySchema = CommanderBoundaryPolicySchem
   ownedCommandType: z.literal("approve-candidate"),
   readModelSource: z.null(),
   hardStopPriority: z.null(),
-  maxDurationMs: z.literal(4000),
+  maxDurationMs: z.literal(60_000),
   idempotencyPolicy: z.literal("dedupe-command"),
 });
 

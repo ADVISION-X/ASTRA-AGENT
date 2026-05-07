@@ -10,7 +10,7 @@ export const ShowAuditSummaryBoundaryPolicySchema = CommanderBoundaryPolicySchem
   ownedCommandType: z.null(),
   readModelSource: z.literal("audit-read-model"),
   hardStopPriority: z.null(),
-  maxDurationMs: z.literal(2500),
+  maxDurationMs: z.literal(60_000),
   idempotencyPolicy: z.literal("idempotent-read"),
 });
 

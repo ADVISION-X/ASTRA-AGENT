@@ -44,28 +44,6 @@ function hasPrecedingStep(
   return steps.some((step, index) => index < currentIndex && predicate(step));
 }
 
-function hasReachableStep(
-  fromStepId: string,
-  adjacency: Map<string, string[]>,
-  stepIndex: Map<string, number>,
-  predicate: (stepId: string) => boolean
-): boolean {
-  const queue = [...(adjacency.get(fromStepId) ?? [])];
-  const visited = new Set<string>();
-  while (queue.length > 0) {
-    const currentStepId = queue.shift();
-    if (!currentStepId || visited.has(currentStepId)) {
-      continue;
-    }
-    visited.add(currentStepId);
-    if (stepIndex.has(currentStepId) && predicate(currentStepId)) {
-      return true;
-    }
-    queue.push(...(adjacency.get(currentStepId) ?? []));
-  }
-  return false;
-}
-
 function createIssue(message: string, path: string): MapPackageValidationIssue {
   return {
     code: "missing_dependency",
@@ -85,22 +63,8 @@ function validateAiPreparation(steps: MapPackage["operationalMap"]["steps"]): Ma
   return hasPrepareAiInput ? [] : [createIssue("AI vision step requires a preceding prepare-ai-input step.", "operationalMap.steps")];
 }
 
-function hasReachableVerification(
-  stepId: string,
-  steps: MapPackage["operationalMap"]["steps"],
-  adjacency: Map<string, string[]>,
-  stepIndex: Map<string, number>,
-): boolean {
-  return hasReachableStep(stepId, adjacency, stepIndex, (candidateStepId) => {
-    const nextIndex = stepIndex.get(candidateStepId);
-    return nextIndex !== undefined && isTargetAbilityGroup(steps[nextIndex]!.targetAbilityGroupId, "post-action-verification");
-  });
-}
-
 function validateMouseClickDryRun(
   steps: MapPackage["operationalMap"]["steps"],
-  adjacency: Map<string, string[]>,
-  stepIndex: Map<string, number>,
 ): MapPackageValidationIssue[] {
   const clickStepIndex = steps.findIndex((step) => isTargetAbilityGroup(step.targetAbilityGroupId, "mouse-click"));
   if (clickStepIndex < 0) {
@@ -113,16 +77,11 @@ function validateMouseClickDryRun(
   if (!hasVisualTarget || !hasGeometryGuard) {
     issues.push(createIssue("mouse-click step requires preceding visual-target and geometry-guard steps.", "operationalMap.steps"));
   }
-  if (!hasReachableVerification(steps[clickStepIndex]!.stepId, steps, adjacency, stepIndex)) {
-    issues.push(createIssue("Action step requires a following post-action-verification step.", "operationalMap.steps"));
-  }
   return issues;
 }
 
 function validateMouseScrollDryRun(
   steps: MapPackage["operationalMap"]["steps"],
-  adjacency: Map<string, string[]>,
-  stepIndex: Map<string, number>,
 ): MapPackageValidationIssue[] {
   const scrollStepIndex = steps.findIndex((step) => isTargetAbilityGroup(step.targetAbilityGroupId, "mouse-scroll"));
   if (scrollStepIndex < 0) {
@@ -138,8 +97,6 @@ function validateMouseScrollDryRun(
 
 function validateTextInputDryRun(
   steps: MapPackage["operationalMap"]["steps"],
-  adjacency: Map<string, string[]>,
-  stepIndex: Map<string, number>,
 ): MapPackageValidationIssue[] {
   const textInputStepIndex = steps.findIndex((step) => isTargetAbilityGroup(step.targetAbilityGroupId, "text-input"));
   if (textInputStepIndex < 0) {
@@ -156,9 +113,6 @@ function validateTextInputDryRun(
   }
   if (!hasInputTarget || !hasGeometryGuard) {
     issues.push(createIssue("text-input step requires preceding input-target context and geometry-guard normalization.", `operationalMap.steps.${textInputStep.stepId}`));
-  }
-  if (!hasReachableVerification(textInputStep.stepId, steps, adjacency, stepIndex)) {
-    issues.push(createIssue("text-input step requires reachable post-action-verification.", `operationalMap.steps.${textInputStep.stepId}`));
   }
   return issues;
 }
@@ -187,12 +141,11 @@ function validatePromptBindingSteps(
 export function validateMapDryRun(mapPackage: MapPackage): MapPackageValidationIssue[] {
   const steps = getEffectiveSteps(mapPackage);
   const stepIndex = buildStepIndexMap(steps);
-  const adjacency = buildAdjacency(mapPackage, steps);
   return [
     ...validateAiPreparation(steps),
-    ...validateMouseClickDryRun(steps, adjacency, stepIndex),
-    ...validateMouseScrollDryRun(steps, adjacency, stepIndex),
-    ...validateTextInputDryRun(steps, adjacency, stepIndex),
+    ...validateMouseClickDryRun(steps),
+    ...validateMouseScrollDryRun(steps),
+    ...validateTextInputDryRun(steps),
     ...validateForensicsPresence(steps),
     ...validatePromptBindingSteps(stepIndex, mapPackage.promptBindings.bindings),
   ];

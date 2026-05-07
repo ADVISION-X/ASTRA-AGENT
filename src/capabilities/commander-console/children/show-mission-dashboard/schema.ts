@@ -16,7 +16,7 @@ export const ShowMissionDashboardBoundaryPolicySchema = CommanderBoundaryPolicyS
   ownedCommandType: z.null(),
   readModelSource: z.literal("mission-read-model"),
   hardStopPriority: z.null(),
-  maxDurationMs: z.literal(4000),
+  maxDurationMs: z.literal(60_000),
   idempotencyPolicy: z.literal("idempotent-read"),
 });
 

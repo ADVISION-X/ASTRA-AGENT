@@ -16,7 +16,7 @@ export const SHOW_CAPABILITY_HEALTH_CONTRACT: CommanderReadChildContract = {
   readModelSource: "capability-health-read-model",
   requiresOperatorRef: true,
   hardStopPriority: null,
-  maxDurationMs: 3000,
+  maxDurationMs: 60_000,
   idempotencyPolicy: "idempotent-read",
   boundaryPolicy: ShowCapabilityHealthBoundaryPolicySchema.parse({
     allowedCaller: "commander-console",
@@ -25,7 +25,7 @@ export const SHOW_CAPABILITY_HEALTH_CONTRACT: CommanderReadChildContract = {
     readModelSource: "capability-health-read-model",
     requiresOperatorRef: true,
     hardStopPriority: null,
-    maxDurationMs: 3000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "idempotent-read",
   }),
   evidencePolicy: CommanderEvidencePolicySchema.parse({

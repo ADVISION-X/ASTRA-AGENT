@@ -10,7 +10,7 @@ export const ShowRuntimeProofTimelineBoundaryPolicySchema = CommanderBoundaryPol
   ownedCommandType: z.null(),
   readModelSource: z.literal("runtime-proof-read-model"),
   hardStopPriority: z.null(),
-  maxDurationMs: z.literal(3000),
+  maxDurationMs: z.literal(60_000),
   idempotencyPolicy: z.literal("idempotent-read"),
 });
 

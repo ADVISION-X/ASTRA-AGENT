@@ -73,22 +73,6 @@
         "promptContractId": null
       },
       {
-        "stepId": "verify-facebook-reels-open",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "observe-page-open-attempt",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "post-action-verification",
-        "inputRefs": [
-          "abilityResultRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "abilityResultRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
         "stepId": "observe-login-surface",
         "capabilityId": "orchestration",
         "childCapabilityId": "observe-login-surface",
@@ -198,26 +182,12 @@
         "transitionId": "open-facebook-reels:success",
         "fromStepId": "open-facebook-reels",
         "onStatus": "success",
-        "toStepId": "verify-facebook-reels-open",
+        "toStepId": "observe-login-surface",
         "finalStatus": null
       },
       {
         "transitionId": "open-facebook-reels:failed",
         "fromStepId": "open-facebook-reels",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "verify-facebook-reels-open:success",
-        "fromStepId": "verify-facebook-reels-open",
-        "onStatus": "success",
-        "toStepId": "observe-login-surface",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-facebook-reels-open:failed",
-        "fromStepId": "verify-facebook-reels-open",
         "onStatus": "failed",
         "toStepId": null,
         "finalStatus": "failed"
@@ -327,7 +297,6 @@
     ],
     "requiredChildCapabilities": [
       "open-facebook",
-      "observe-page-open-attempt",
       "observe-login-surface",
       "observe-safety-surface",
       "observe-feed-surface",

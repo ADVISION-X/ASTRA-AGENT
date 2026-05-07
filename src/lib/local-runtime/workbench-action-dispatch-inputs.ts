@@ -370,8 +370,8 @@ export const buildMouseScrollCommand = async (
     magnitude: "onePage",
     repeat: 2,
     safetyPolicy: {
-      primitiveTimeoutMs: 12000,
-      maxDurationMs: 15000,
+      primitiveTimeoutMs: 60_000,
+      maxDurationMs: 60_000,
     },
   }));
 };

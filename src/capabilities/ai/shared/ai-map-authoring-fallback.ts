@@ -35,7 +35,7 @@ const MAP_AUTHORING_REVIEW_DRAFT_TEMPLATE = {
         failureBranch: "finalize-mission:failed",
         reviewBranch: "finalize-mission:review",
         postActionVerification: null,
-        timeoutPolicy: { maxDurationMs: 1000 },
+        timeoutPolicy: { maxDurationMs: 60_000 },
         proofPolicy: { requiresRuntimeProof: true },
       },
     ],

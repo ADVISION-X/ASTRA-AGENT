@@ -16,7 +16,7 @@ export const SHOW_RUNTIME_PROOF_TIMELINE_CONTRACT: CommanderReadChildContract = 
   readModelSource: "runtime-proof-read-model",
   requiresOperatorRef: true,
   hardStopPriority: null,
-  maxDurationMs: 3000,
+  maxDurationMs: 60_000,
   idempotencyPolicy: "idempotent-read",
   boundaryPolicy: ShowRuntimeProofTimelineBoundaryPolicySchema.parse({
     allowedCaller: "commander-console",
@@ -25,7 +25,7 @@ export const SHOW_RUNTIME_PROOF_TIMELINE_CONTRACT: CommanderReadChildContract = 
     readModelSource: "runtime-proof-read-model",
     requiresOperatorRef: true,
     hardStopPriority: null,
-    maxDurationMs: 3000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "idempotent-read",
   }),
   evidencePolicy: CommanderEvidencePolicySchema.parse({

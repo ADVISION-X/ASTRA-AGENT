@@ -19,7 +19,6 @@ const STEP_BY_STEP_ID: Record<string, RoundLifecycleStep> = {
 const STEP_BY_CHILD_CAPABILITY: Record<string, RoundLifecycleStep> = {
   "open-facebook": "open_target_page",
   "open-tiktok": "open_target_page",
-  "observe-page-open-attempt": "open_target_page",
   "observe-login-surface": "detect_login_or_safety",
   "observe-safety-surface": "detect_login_or_safety",
   "observe-feed-surface": "wait_feed_ready",
@@ -31,7 +30,6 @@ const STEP_BY_CHILD_CAPABILITY: Record<string, RoundLifecycleStep> = {
 };
 
 const VERIFIED_ACTION_STEP_BY_CHILD_CAPABILITY: Record<string, RoundLifecycleStep> = {
-  "observe-page-open-attempt": "open_target_page",
   "observe-comments-panel-open-attempt": "open_comments",
 };
 

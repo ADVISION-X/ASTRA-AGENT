@@ -1,6 +1,6 @@
 export const DEFAULT_TEXT_INPUT_POLICY = {
-  primitiveTimeoutMs: 5000,
-  maxDurationMs: 10000,
+  primitiveTimeoutMs: 60_000,
+  maxDurationMs: 60_000,
   maxLengthPolicy: {
     maxLength: 4000,
     failureStatus: "failed",

@@ -16,7 +16,7 @@ export const RESUME_MISSION_CONTRACT: CommanderCommandChildContract = {
   readModelSource: null,
   requiresOperatorRef: true,
   hardStopPriority: null,
-  maxDurationMs: 4000,
+  maxDurationMs: 60_000,
   idempotencyPolicy: "dedupe-command",
   boundaryPolicy: ResumeMissionBoundaryPolicySchema.parse({
     allowedCaller: "commander-console",
@@ -25,7 +25,7 @@ export const RESUME_MISSION_CONTRACT: CommanderCommandChildContract = {
     readModelSource: null,
     requiresOperatorRef: true,
     hardStopPriority: null,
-    maxDurationMs: 4000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "dedupe-command",
   }),
   evidencePolicy: CommanderEvidencePolicySchema.parse({

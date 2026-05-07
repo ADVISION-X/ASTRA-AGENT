@@ -20,7 +20,7 @@ export const PauseMissionBoundaryPolicySchema = CommanderBoundaryPolicySchema.ex
   ownedCommandType: z.literal("pause-mission"),
   readModelSource: z.null(),
   hardStopPriority: z.null(),
-  maxDurationMs: z.literal(4000),
+  maxDurationMs: z.literal(60_000),
   idempotencyPolicy: z.literal("dedupe-command"),
 });
 

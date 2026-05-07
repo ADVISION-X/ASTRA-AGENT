@@ -24,7 +24,7 @@ export const ISSUE_HUMAN_COMMAND_CONTRACT: CommanderCommandChildContract = {
   readModelSource: null,
   requiresOperatorRef: true,
   hardStopPriority: null,
-  maxDurationMs: 5000,
+  maxDurationMs: 60_000,
   idempotencyPolicy: "dedupe-command",
   boundaryPolicy: IssueHumanCommandBoundaryPolicySchema.parse({
     allowedCaller: "commander-console",
@@ -33,7 +33,7 @@ export const ISSUE_HUMAN_COMMAND_CONTRACT: CommanderCommandChildContract = {
     readModelSource: null,
     requiresOperatorRef: true,
     hardStopPriority: null,
-    maxDurationMs: 5000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "dedupe-command",
   }),
   evidencePolicy: CommanderEvidencePolicySchema.parse({

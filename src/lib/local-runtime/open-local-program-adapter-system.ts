@@ -26,6 +26,29 @@ export const waitForLocalProgram = (ms: number, abortSignal?: AbortSignal) =>
     }, { once: true });
   });
 
+export const waitForLocalProgramCondition = async (input: {
+  timeoutMs: number;
+  abortSignal?: AbortSignal;
+  pollIntervalMs?: number;
+  isReady: () => Promise<boolean>;
+}) => {
+  const deadline = Date.now() + input.timeoutMs;
+  const pollIntervalMs = Math.max(50, input.pollIntervalMs ?? 100);
+
+  while (true) {
+    if (await input.isReady()) {
+      return true;
+    }
+
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      return false;
+    }
+
+    await waitForLocalProgram(Math.min(pollIntervalMs, remainingMs), input.abortSignal);
+  }
+};
+
 export const runFixedMacOSCommand = (bin: string, args: readonly string[], abortSignal?: AbortSignal): Promise<MacOSCommandResult> =>
   new Promise((resolve, reject) => {
     const child = spawn(bin, [...args], { shell: false, stdio: ["ignore", "ignore", "pipe"] });

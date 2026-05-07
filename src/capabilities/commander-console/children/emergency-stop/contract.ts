@@ -16,7 +16,7 @@ export const EMERGENCY_STOP_CONTRACT: CommanderCommandChildContract = {
   readModelSource: null,
   requiresOperatorRef: true,
   hardStopPriority: "emergency",
-  maxDurationMs: 2000,
+  maxDurationMs: 60_000,
   idempotencyPolicy: "hard-stop-non-dedupe",
   boundaryPolicy: EmergencyStopBoundaryPolicySchema.parse({
     allowedCaller: "commander-console",
@@ -25,7 +25,7 @@ export const EMERGENCY_STOP_CONTRACT: CommanderCommandChildContract = {
     readModelSource: null,
     requiresOperatorRef: true,
     hardStopPriority: "emergency",
-    maxDurationMs: 2000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "hard-stop-non-dedupe",
   }),
   evidencePolicy: CommanderEvidencePolicySchema.parse({

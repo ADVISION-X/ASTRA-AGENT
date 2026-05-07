@@ -16,7 +16,7 @@ export const SHOW_REVIEW_QUEUE_CONTRACT: CommanderReadChildContract = {
   readModelSource: "forensics-read-model",
   requiresOperatorRef: true,
   hardStopPriority: null,
-  maxDurationMs: 3000,
+  maxDurationMs: 60_000,
   idempotencyPolicy: "idempotent-read",
   boundaryPolicy: ShowReviewQueueBoundaryPolicySchema.parse({
     allowedCaller: "commander-console",
@@ -25,7 +25,7 @@ export const SHOW_REVIEW_QUEUE_CONTRACT: CommanderReadChildContract = {
     readModelSource: "forensics-read-model",
     requiresOperatorRef: true,
     hardStopPriority: null,
-    maxDurationMs: 3000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "idempotent-read",
   }),
   evidencePolicy: CommanderEvidencePolicySchema.parse({

@@ -16,7 +16,7 @@ export const SHOW_AUDIT_SUMMARY_CONTRACT: CommanderReadChildContract = {
   readModelSource: "audit-read-model",
   requiresOperatorRef: true,
   hardStopPriority: null,
-  maxDurationMs: 2500,
+  maxDurationMs: 60_000,
   idempotencyPolicy: "idempotent-read",
   boundaryPolicy: ShowAuditSummaryBoundaryPolicySchema.parse({
     allowedCaller: "commander-console",
@@ -25,7 +25,7 @@ export const SHOW_AUDIT_SUMMARY_CONTRACT: CommanderReadChildContract = {
     readModelSource: "audit-read-model",
     requiresOperatorRef: true,
     hardStopPriority: null,
-    maxDurationMs: 2500,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "idempotent-read",
   }),
   evidencePolicy: CommanderEvidencePolicySchema.parse({

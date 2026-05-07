@@ -150,7 +150,7 @@ const ScreenshotCapturePolicySchema = z.object({
   preservePixels: z.boolean().default(true),
   evidencePolicy: ScreenshotEvidencePolicySchema.default("evidence_original"),
   artifactBudget: ScreenshotArtifactBudgetPolicySchema.default(DEFAULT_SCREENSHOT_ARTIFACT_BUDGET_POLICY),
-  maxDurationMs: z.number().int().positive().default(10_000),
+  maxDurationMs: z.number().int().positive().default(60_000),
   onTimeoutStatus: ScreenshotStatusSchema.exclude(["success"]).default("failed"),
 }).strict();
 
@@ -283,7 +283,7 @@ const ScreenshotBaseInputSchema = z.object({
     preservePixels: true,
     evidencePolicy: "evidence_original",
     artifactBudget: DEFAULT_SCREENSHOT_ARTIFACT_BUDGET_POLICY,
-    maxDurationMs: 10_000,
+    maxDurationMs: 60_000,
     onTimeoutStatus: "failed",
   }),
 }).strict();

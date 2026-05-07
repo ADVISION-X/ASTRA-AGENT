@@ -1,6 +1,6 @@
 const SCREENSHOT_POLICY_DEFAULTS = {
   aiInputMaxWidth: 768,
-  maxDurationMs: 10_000,
+  maxDurationMs: 60_000,
   contentLineLimit: 12,
   contentLineLength: 200,
   maxArtifactsPerVideoVisit: 30,

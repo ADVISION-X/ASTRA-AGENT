@@ -5,7 +5,6 @@ import { resolveAbilityResultProofSummary, type AbilityResultProofSummary } from
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
 
 type SupportedPostActionChildCapabilityId =
-  | "observe-page-open-attempt"
   | "observe-comments-panel-open-attempt"
   | "observe-comments-panel-close-attempt"
   | "observe-not-interested-attempt"
@@ -13,15 +12,15 @@ type SupportedPostActionChildCapabilityId =
 
 type PostActionInputPolicy = {
   childCapabilityId: SupportedPostActionChildCapabilityId;
-  outcomeType: "page_opened" | "comments_panel_opened" | "comments_panel_closed" | "not_interested_result" | "target_state_changed";
-  sourceAbilityGroupId: "open" | "mouse-click" | "mouse-scroll";
-  sourceChildCapabilityId: "open-tiktok" | "open-facebook" | "open-local-workbench" | "click-browser-coordinate" | "scroll-browser-viewport";
+  outcomeType: "comments_panel_opened" | "comments_panel_closed" | "not_interested_result" | "target_state_changed";
+  sourceAbilityGroupId: "mouse-click" | "mouse-scroll";
+  sourceChildCapabilityId: "click-browser-coordinate" | "scroll-browser-viewport";
   sourceActionType: string;
   verificationMode: "observation_only" | "visual_evidence" | "before_after_comparison";
   requireAfterEvidence: boolean;
   requireBeforeAfterComparison: boolean;
   requiresVisualEvidence: boolean;
-  executionRefField: "navigationAttemptRef" | "primitiveExecutionRef" | "scrollExecutionRef";
+  executionRefField: "primitiveExecutionRef" | "scrollExecutionRef";
 };
 
 const DEFAULT_PAGE_URL_BY_MAP = {
@@ -39,30 +38,7 @@ const normalizePageStateLogin = (loginState: string | null | undefined) => {
   return "unknown" as const;
 };
 
-const resolveOpenSourceChildCapabilityId = (selectedMapId: string) => {
-  if (selectedMapId.includes("facebook")) {
-    return "open-facebook" as const;
-  }
-  if (selectedMapId.includes("tiktok")) {
-    return "open-tiktok" as const;
-  }
-  return "open-local-workbench" as const;
-};
-
-const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, Omit<PostActionInputPolicy, "sourceChildCapabilityId"> & {
-  sourceChildCapabilityId?: PostActionInputPolicy["sourceChildCapabilityId"];
-}>> = {
-  "observe-page-open-attempt": {
-    childCapabilityId: "observe-page-open-attempt",
-    outcomeType: "page_opened",
-    sourceAbilityGroupId: "open",
-    sourceActionType: "open_feed",
-    verificationMode: "observation_only",
-    requireAfterEvidence: false,
-    requireBeforeAfterComparison: false,
-    requiresVisualEvidence: false,
-    executionRefField: "navigationAttemptRef",
-  },
+const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, PostActionInputPolicy>> = {
   "observe-comments-panel-open-attempt": {
     childCapabilityId: "observe-comments-panel-open-attempt",
     outcomeType: "comments_panel_opened",
@@ -116,10 +92,7 @@ const DEFAULT_POST_ACTION_POLICY: PostActionInputPolicy = {
 
 const resolvePostActionInputPolicy = (envelope: AbilityCommandEnvelope): PostActionInputPolicy => {
   const policy = POST_ACTION_POLICY_BY_COMMAND[envelope.commandName] ?? DEFAULT_POST_ACTION_POLICY;
-  return {
-    ...policy,
-    sourceChildCapabilityId: policy.sourceChildCapabilityId ?? resolveOpenSourceChildCapabilityId(envelope.selectedMapId),
-  };
+  return policy;
 };
 
 const resolveSourceProofRef = (
@@ -134,16 +107,6 @@ const resolveSourceProofRef = (
 const readSummaryString = (summary: AbilityResultProofSummary | null, key: string): string | null => {
   const value = summary?.[key];
   return typeof value === "string" && value.length > 0 ? value : null;
-};
-
-const resolveExpectedUrlHost = (selectedMapId: string) => {
-  if (selectedMapId.includes("facebook")) {
-    return "www.facebook.com";
-  }
-  if (selectedMapId.includes("tiktok")) {
-    return "www.tiktok.com";
-  }
-  return null;
 };
 
 const buildPageStateObservation = (
@@ -198,7 +161,7 @@ const buildActionProof = (input: {
   actionType: input.policy.sourceActionType,
   actionStatus: "success" as const,
   primitiveExecutionRef: input.policy.executionRefField === "primitiveExecutionRef" ? input.sourceProofRef : null,
-  navigationAttemptRef: input.policy.executionRefField === "navigationAttemptRef" ? input.sourceProofRef : null,
+  navigationAttemptRef: null,
   scrollExecutionRef: input.policy.executionRefField === "scrollExecutionRef"
     ? readSummaryString(input.sourceSummary ?? null, "scrollExecutionRef") ?? input.sourceProofRef
     : null,
@@ -221,7 +184,7 @@ const buildExpectedOutcome = (
 ) => ({
   outcomeType: policy.outcomeType,
   description: inputPayload.summary,
-  expectedUrlHost: policy.childCapabilityId === "observe-page-open-attempt" ? resolveExpectedUrlHost(envelope.selectedMapId) : null,
+  expectedUrlHost: null,
   expectedUrlPrefix: null,
   expectedState: null,
   expectedTargetType: null,

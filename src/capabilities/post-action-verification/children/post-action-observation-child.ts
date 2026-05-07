@@ -3,7 +3,6 @@ import type { PostActionVerificationChildCapabilityId } from "../shared/post-act
 import type { PostActionVerificationChildCapability, PostActionVerificationRuntimeContext, PostActionChildObservation } from "../runtime/post-action-verification-runtime-context.js";
 
 const POST_ACTION_PACKAGE_LABELS: Record<PostActionVerificationChildCapabilityId, string> = {
-  "observe-page-open-attempt": "page-open attempt observation bundle",
   "observe-comments-panel-open-attempt": "comments-panel open attempt observation bundle",
   "observe-comments-panel-close-attempt": "comments-panel close attempt observation bundle",
   "observe-not-interested-attempt": "not-interested attempt observation bundle",

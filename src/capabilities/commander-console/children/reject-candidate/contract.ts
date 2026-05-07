@@ -16,7 +16,7 @@ export const REJECT_CANDIDATE_CONTRACT: CommanderCommandChildContract = {
   readModelSource: null,
   requiresOperatorRef: true,
   hardStopPriority: null,
-  maxDurationMs: 4000,
+  maxDurationMs: 60_000,
   idempotencyPolicy: "dedupe-command",
   boundaryPolicy: RejectCandidateBoundaryPolicySchema.parse({
     allowedCaller: "commander-console",
@@ -25,7 +25,7 @@ export const REJECT_CANDIDATE_CONTRACT: CommanderCommandChildContract = {
     readModelSource: null,
     requiresOperatorRef: true,
     hardStopPriority: null,
-    maxDurationMs: 4000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "dedupe-command",
   }),
   evidencePolicy: CommanderEvidencePolicySchema.parse({

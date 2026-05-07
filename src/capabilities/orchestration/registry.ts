@@ -65,7 +65,7 @@ const REGISTRY: readonly OrchestrationRegistryEntry[] = [
     requiresMapId: false,
     requiresNerveBus: true,
     emergencyPriority: "normal",
-    maxDurationMs: 30000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "per-mission-command",
   },
   {
@@ -78,7 +78,7 @@ const REGISTRY: readonly OrchestrationRegistryEntry[] = [
     requiresMapId: false,
     requiresNerveBus: false,
     emergencyPriority: "normal",
-    maxDurationMs: 1000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "single-flight",
   },
   {
@@ -91,7 +91,7 @@ const REGISTRY: readonly OrchestrationRegistryEntry[] = [
     requiresMapId: false,
     requiresNerveBus: true,
     emergencyPriority: "normal",
-    maxDurationMs: 30000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "single-flight",
   },
   {
@@ -104,7 +104,7 @@ const REGISTRY: readonly OrchestrationRegistryEntry[] = [
     requiresMapId: false,
     requiresNerveBus: false,
     emergencyPriority: "normal",
-    maxDurationMs: 1000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "single-flight",
   },
   {
@@ -117,7 +117,7 @@ const REGISTRY: readonly OrchestrationRegistryEntry[] = [
     requiresMapId: false,
     requiresNerveBus: false,
     emergencyPriority: "hard-stop",
-    maxDurationMs: 1000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "single-flight",
   },
   {
@@ -130,7 +130,7 @@ const REGISTRY: readonly OrchestrationRegistryEntry[] = [
     requiresMapId: true,
     requiresNerveBus: true,
     emergencyPriority: "normal",
-    maxDurationMs: 30000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "per-sequence-step",
   },
   {
@@ -143,7 +143,7 @@ const REGISTRY: readonly OrchestrationRegistryEntry[] = [
     requiresMapId: true,
     requiresNerveBus: false,
     emergencyPriority: "normal",
-    maxDurationMs: 1000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "per-sequence-step",
   },
   {
@@ -156,7 +156,7 @@ const REGISTRY: readonly OrchestrationRegistryEntry[] = [
     requiresMapId: true,
     requiresNerveBus: false,
     emergencyPriority: "normal",
-    maxDurationMs: 1000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "per-sequence-step",
   },
 ];

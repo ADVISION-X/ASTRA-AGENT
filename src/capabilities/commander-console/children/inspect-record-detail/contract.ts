@@ -16,7 +16,7 @@ export const INSPECT_RECORD_DETAIL_CONTRACT: CommanderReadChildContract = {
   readModelSource: "forensics-read-model",
   requiresOperatorRef: true,
   hardStopPriority: null,
-  maxDurationMs: 3000,
+  maxDurationMs: 60_000,
   idempotencyPolicy: "idempotent-read",
   boundaryPolicy: InspectRecordDetailBoundaryPolicySchema.parse({
     allowedCaller: "commander-console",
@@ -25,7 +25,7 @@ export const INSPECT_RECORD_DETAIL_CONTRACT: CommanderReadChildContract = {
     readModelSource: "forensics-read-model",
     requiresOperatorRef: true,
     hardStopPriority: null,
-    maxDurationMs: 3000,
+    maxDurationMs: 60_000,
     idempotencyPolicy: "idempotent-read",
   }),
   evidencePolicy: CommanderEvidencePolicySchema.parse({

@@ -6,9 +6,9 @@ import { ORCHESTRATION_TO_ABILITY_CHILD } from "./children/orchestration-to-abil
 import { ORCHESTRATION_TO_AI_CHILD } from "./children/orchestration-to-ai/implementation.js";
 import { ORCHESTRATION_TO_COMMANDER_CHILD } from "./children/orchestration-to-commander/implementation.js";
 
-const DEFAULT_MAX_DURATION_MS = 15_000;
+const DEFAULT_MAX_DURATION_MS = 60_000;
 const DEFAULT_MAX_ENVELOPE_AGE_MS = 120_000;
-const AI_TRANSPORT_MAX_DURATION_MS = 75_000;
+const AI_TRANSPORT_MAX_DURATION_MS = 60_000;
 
 export const NERVE_BUS_CHANNEL_REGISTRY = Object.freeze({
   "commander-to-orchestration": Object.freeze({

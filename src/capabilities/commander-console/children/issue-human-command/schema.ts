@@ -42,7 +42,7 @@ export const IssueHumanCommandBoundaryPolicySchema = CommanderBoundaryPolicySche
   ownedCommandType: z.literal("start-mission"),
   readModelSource: z.null(),
   hardStopPriority: z.null(),
-  maxDurationMs: z.literal(5000),
+  maxDurationMs: z.literal(60_000),
   idempotencyPolicy: z.literal("dedupe-command"),
 });
 

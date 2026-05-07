@@ -68,22 +68,6 @@
         "promptContractId": null
       },
       {
-        "stepId": "verify-iphone-mirroring-window-opened",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "verify-action-result",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "post-action-verification",
-        "inputRefs": [
-          "abilityResultRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "abilityResultRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
         "stepId": "write-open-handoff-runtime-event",
         "capabilityId": "orchestration",
         "childCapabilityId": "write-structured-runtime-event",
@@ -105,22 +89,8 @@
         "transitionId": "open-iphone-mirroring:success",
         "fromStepId": "open-iphone-mirroring",
         "onStatus": "success",
-        "toStepId": "verify-iphone-mirroring-window-opened",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-iphone-mirroring-window-opened:success",
-        "fromStepId": "verify-iphone-mirroring-window-opened",
-        "onStatus": "success",
         "toStepId": "write-open-handoff-runtime-event",
         "finalStatus": null
-      },
-      {
-        "transitionId": "verify-iphone-mirroring-window-opened:failed",
-        "fromStepId": "verify-iphone-mirroring-window-opened",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
       },
       {
         "transitionId": "write-open-handoff-runtime-event:success",
@@ -159,12 +129,10 @@
   "dependencies": {
     "requiredCapabilities": [
       "open",
-      "post-action-verification",
       "forensics-persistence"
     ],
     "requiredChildCapabilities": [
       "open-local-program",
-      "verify-action-result",
       "write-structured-runtime-event"
     ],
     "requiredPromptContracts": [],
@@ -181,7 +149,6 @@
     "requiresMapSchema": "1",
     "requiresCapabilityRegistry": [
       "open",
-      "post-action-verification",
       "forensics-persistence"
     ],
     "requiresPromptRegistry": [],
