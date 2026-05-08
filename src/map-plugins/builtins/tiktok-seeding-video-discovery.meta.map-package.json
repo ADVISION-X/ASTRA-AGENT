@@ -113,13 +113,13 @@
       "normalize-coordinate-geometry",
       "click-browser-coordinate",
       "capture-region",
-      "comment-intent-analysis",
+      "comment-text-cleanup",
       "write-evidence-record"
     ],
     "requiredPromptContracts": [
       "vision.pagePreparation.v1",
       "vision.productPresence.v1",
-      "comments.intent_analysis.v1"
+      "comments.ocr_cleanup.v1"
     ],
     "requiredPlatformProfiles": [
       "tiktok-web:persistent-local-profile"
@@ -145,7 +145,7 @@
     "requiresPromptRegistry": [
       "vision.pagePreparation.v1",
       "vision.productPresence.v1",
-      "comments.intent_analysis.v1"
+      "comments.ocr_cleanup.v1"
     ],
     "requiresPlatformProfileRegistry": [
       "tiktok-web:persistent-local-profile"

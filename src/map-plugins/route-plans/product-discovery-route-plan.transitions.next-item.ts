@@ -65,7 +65,7 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS: RoutePlan["tran
     transitionId: `verify-next-item-advanced:${NEXT_ITEM_ADVANCED_ROUTE_LABEL}`,
     fromStepId: "verify-next-item-advanced",
     onStatus: "success",
-    toStepId: "capture-current-video-viewport",
+    toStepId: "judge-seeding-video",
     finalStatus: null,
   },
   {

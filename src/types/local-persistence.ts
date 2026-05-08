@@ -9,7 +9,7 @@ import {
   EvidencePacketActionTriggerSourceSchema,
   EvidencePacketCandidateRefSchema,
   EvidencePacketCommentEvidenceSchema,
-  EvidencePacketCommentSignalsSchema,
+  EvidencePacketAdvancedAIAnalysisPlaceholderSchema,
   EvidencePacketDataQualityFlagSchema,
   EvidencePacketPageStateSchema,
   EvidencePacketPreActionMetricsSchema,
@@ -219,7 +219,7 @@ const EvidencePacketRecordSchema = z.object({
   preActionMetricsJson: EvidencePacketPreActionMetricsSchema,
   actionsJson: z.array(StructuredActionLogRecordSchema).default([]),
   commentEvidenceJson: EvidencePacketCommentEvidenceSchema,
-  commentSignalsJson: EvidencePacketCommentSignalsSchema,
+  advancedAIAnalysisPlaceholderJson: EvidencePacketAdvancedAIAnalysisPlaceholderSchema,
   candidateJson: EvidencePacketCandidateRefSchema,
   dataQualityFlagsJson: z.array(EvidencePacketDataQualityFlagSchema).default([]),
   exportForAdvancedAIJson: z.object({

@@ -3,11 +3,14 @@ import { hasBlockingFindings } from "../../core/result.js";
 import { createInspectorContext, loadGeneratedArtifacts, runWithStandaloneHeartbeat } from "../../core/runtime.js";
 import { inspectCodePurity } from "./components/inspect-code-purity.js";
 
+const NESTED_AUDIT_SYSTEM_SKIP_ENV = "GRASSEYE_SKIP_AUDIT_SYSTEM_CODE_PURITY";
+
 const main = async (): Promise<void> => {
   process.stdout.write("[AUDIT] building artifacts...\n");
   await runWithStandaloneHeartbeat("build-audit-artifacts", buildAuditArtifacts());
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);
+  delete process.env[NESTED_AUDIT_SYSTEM_SKIP_ENV];
   process.stdout.write("[AUDIT] starting code-purity...\n");
   const result = await runWithStandaloneHeartbeat("code-purity", inspectCodePurity(context));
   const blocking = hasBlockingFindings(result.findings);

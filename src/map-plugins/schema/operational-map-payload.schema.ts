@@ -23,6 +23,7 @@ export const MapPluginPayloadRefKeySchema = z.enum([
   "pageStateRef",
   "pagePreparationAiResultRef",
   "productPresenceAiResultRef",
+  "commentCleanupAiResultRef",
   "aiResultRef",
   "commentIntentAiResultRef",
   "abilityResultRef",

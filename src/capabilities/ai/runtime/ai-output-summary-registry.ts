@@ -3,10 +3,12 @@ import { createHash } from "node:crypto";
 import type {
   AiAbilityResult,
   AiCommentSignalSummaryOutput,
+  AiOcrCleanupOutput,
   AiPagePreparationOutput,
   AiVisualOutput,
   AiVisualTargetCandidateOutput,
   CommentSignalSummaryInput,
+  OcrCleanupInput,
   PagePreparationJudgmentInput,
   ParsedAiAbilityInput,
   ProductPresenceJudgmentInput,
@@ -46,6 +48,12 @@ export type AiPagePreparationOutputSummary = AiOutputSummaryBase & {
   output: AiPagePreparationOutput;
 };
 
+export type AiOcrCleanupOutputSummary = AiOutputSummaryBase & {
+  taskType: "ocr_cleanup";
+  input: OcrCleanupInput["input"];
+  output: AiOcrCleanupOutput;
+};
+
 export type AiProductPresenceOutputSummary = AiOutputSummaryBase & {
   taskType: "product_presence_judgment";
   input: ProductPresenceJudgmentInput["input"];
@@ -61,6 +69,7 @@ export type AiCommentSignalOutputSummary = AiOutputSummaryBase & {
 type RecordedAiOutputSummary =
   | AiVisualTargetCandidateOutputSummary
   | AiPagePreparationOutputSummary
+  | AiOcrCleanupOutputSummary
   | AiProductPresenceOutputSummary
   | AiCommentSignalOutputSummary;
 
@@ -125,6 +134,15 @@ const isSuccessfulPagePreparationJudgment = (
     && result.output !== null;
 };
 
+const isSuccessfulOcrCleanup = (
+  request: ParsedAiAbilityInput,
+  result: AiAbilityResult,
+): result is SuccessfulAiResult<AiOcrCleanupOutput> => {
+  return request.taskType === "ocr_cleanup"
+    && result.status === "success"
+    && result.output !== null;
+};
+
 const isSuccessfulProductPresenceJudgment = (
   request: ParsedAiAbilityInput,
   result: AiAbilityResult,
@@ -166,6 +184,17 @@ export function recordAiOutputSummary(input: {
     storeAiOutputSummary({
       ...buildSummaryBase({ outputRef: input.outputRef, request: input.request, result: input.result, output: input.result.output }),
       taskType: "page_preparation_judgment",
+      input: typedRequest.input,
+      output: input.result.output,
+    });
+    return;
+  }
+
+  if (isSuccessfulOcrCleanup(input.request, input.result)) {
+    const typedRequest = input.request as Extract<ParsedAiAbilityInput, { taskType: "ocr_cleanup" }>;
+    storeAiOutputSummary({
+      ...buildSummaryBase({ outputRef: input.outputRef, request: input.request, result: input.result, output: input.result.output }),
+      taskType: "ocr_cleanup",
       input: typedRequest.input,
       output: input.result.output,
     });
@@ -226,6 +255,16 @@ export function resolveAiPagePreparationOutputSummary(
   }
   const summary = summaries.get(ref) ?? null;
   return summary?.taskType === "page_preparation_judgment" ? summary : null;
+}
+
+export function resolveAiOcrCleanupOutputSummary(
+  ref: string | null | undefined,
+): AiOcrCleanupOutputSummary | null {
+  if (!ref) {
+    return null;
+  }
+  const summary = summaries.get(ref) ?? null;
+  return summary?.taskType === "ocr_cleanup" ? summary : null;
 }
 
 export function resolveAiProductPresenceOutputSummary(

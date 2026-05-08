@@ -1,0 +1,8 @@
+{
+  "runId": "2026-05-08T23:31:55.384Z",
+  "baseUrl": "http://127.0.0.1:4173",
+  "ownerResponsible": "startup-entrypoint",
+  "failureReason": "Local service exited before Commander Console shell probe passed with code 1.",
+  "actionableMessage": "Inspect startup structured logs and rerun npm run grasseye:start.",
+  "writtenAt": "2026-05-08T23:31:57.179Z"
+}

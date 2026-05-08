@@ -45,10 +45,12 @@ export {
 export {
   recordAiOutputSummaryAlias,
   resolveAiCommentSignalOutputSummary,
+  resolveAiOcrCleanupOutputSummary,
   resolveAiPagePreparationOutputSummary,
   resolveAiProductPresenceOutputSummary,
   resolveAiVisualTargetCandidateOutputSummary,
   type AiCommentSignalOutputSummary,
+  type AiOcrCleanupOutputSummary,
   type AiPagePreparationOutputSummary,
   type AiProductPresenceOutputSummary,
   type AiVisualTargetCandidateOutputSummary,

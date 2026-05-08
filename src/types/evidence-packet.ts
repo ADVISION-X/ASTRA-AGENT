@@ -220,20 +220,13 @@ const EvidencePacketCommentEvidenceSchema = z.object({
   commentPanelOpened: z.boolean(),
   commentScreenshotEvidenceIds: z.array(z.string().min(1)).default([]),
   ocrTextRecordIds: z.array(z.string().min(1)).default([]),
+  rawCommentBlocks: z.array(z.string().min(1)).default([]),
+  cleanedComments: z.array(z.string().min(1)).default([]),
+  uncertainText: z.array(z.string().min(1)).default([]),
+  extractionConfidence: z.number().min(0).max(1).nullable().default(null),
   visibleCommentCount: z.number().int().nonnegative(),
   commentCaptureLimit: z.number().int().positive(),
   failureReason: z.string().min(1).nullable().default(null),
-});
-
-const EvidencePacketCommentSignalsSchema = z.object({
-  whereToBuyQuestions: z.array(z.string().min(1)).default([]),
-  priceQuestions: z.array(z.string().min(1)).default([]),
-  purchaseIntent: z.array(z.string().min(1)).default([]),
-  qualityConcerns: z.array(z.string().min(1)).default([]),
-  problemComplaints: z.array(z.string().min(1)).default([]),
-  repeatedDemandTerms: z.array(z.string().min(1)).default([]),
-  confidence: z.number().min(0).max(1),
-  uncertainty: z.array(z.string().min(1)).default([]),
 });
 
 const EvidencePacketCandidateRefSchema = z.object({
@@ -241,6 +234,22 @@ const EvidencePacketCandidateRefSchema = z.object({
   status: z.literal("pending_analysis"),
   candidateType: z.enum(["video_only", "richer_candidate", "none"]),
   evidenceRefs: z.array(EvidenceRefSchema).default([]),
+});
+
+const EvidencePacketAdvancedAIAnalysisPlaceholderSchema = z.object({
+  downstreamAnalysisPending: z.literal(true),
+  pendingAnalysisScopes: z.array(z.enum([
+    "comment_purchase_intent",
+    "comment_pain_points",
+    "comment_demand_terms",
+    "commercial_viability",
+  ])).default([
+    "comment_purchase_intent",
+    "comment_pain_points",
+    "comment_demand_terms",
+    "commercial_viability",
+  ]),
+  reason: z.literal("local_ai_evidence_only_boundary"),
 });
 
 const EvidencePacketAdvancedAIExportBoundarySchema = z.object({
@@ -339,7 +348,7 @@ const ProductDiscoveryEvidencePacketSchema = z.object({
   preActionMetrics: EvidencePacketPreActionMetricsSchema,
   actions: z.array(EvidencePacketActionSchema).default([]),
   commentEvidence: EvidencePacketCommentEvidenceSchema,
-  commentSignals: EvidencePacketCommentSignalsSchema,
+  advancedAIAnalysisPlaceholder: EvidencePacketAdvancedAIAnalysisPlaceholderSchema,
   candidate: EvidencePacketCandidateRefSchema,
   evidenceRefs: z.array(EvidenceRefSchema).default([]),
   actionLogRefs: z.array(z.string().min(1)).default([]),
@@ -354,8 +363,8 @@ type EvidencePacketProductPresenceAI = z.infer<typeof EvidencePacketProductPrese
 type EvidencePacketPreActionMetrics = z.infer<typeof EvidencePacketPreActionMetricsSchema>;
 type EvidencePacketAction = z.infer<typeof EvidencePacketActionSchema>;
 type EvidencePacketCommentEvidence = z.infer<typeof EvidencePacketCommentEvidenceSchema>;
-type EvidencePacketCommentSignals = z.infer<typeof EvidencePacketCommentSignalsSchema>;
 type EvidencePacketCandidateRef = z.infer<typeof EvidencePacketCandidateRefSchema>;
+type EvidencePacketAdvancedAIAnalysisPlaceholder = z.infer<typeof EvidencePacketAdvancedAIAnalysisPlaceholderSchema>;
 type EvidencePacketDataQualityFlag = z.infer<typeof EvidencePacketDataQualityFlagSchema>;
 type EvidencePacketRoundOutcome = z.infer<typeof EvidencePacketRoundOutcomeSchema>;
 type EvidencePacketActionPurpose = z.infer<typeof EvidencePacketActionPurposeSchema>;
@@ -375,5 +384,5 @@ type BrowseSessionSummary = z.infer<typeof BrowseSummarySchema>;
 type AdvancedAIExportSet = z.infer<typeof AdvancedAIExportSetSchema>;
 type ProductDiscoveryEvidencePacket = z.infer<typeof ProductDiscoveryEvidencePacketSchema>;
 
-export { EvidencePacketRoundOutcomeSchema, BrowseLedgerOutcomeSchema, BrowseLedgerProductPresenceDecisionSchema, RoundStructuralDecisionSchema, RoundArtifactKindSchema, RoundLifecycleStepSchema, RoundLifecycleEventStatusSchema, EvidencePacketActionPurposeSchema, EvidencePacketActionTriggerSourceSchema, EvidencePacketDataQualityFlagSchema, EvidencePacketPageStateSchema, EvidencePacketVideoEvidenceSchema, EvidencePacketProductPresenceAISchema, EvidencePacketPreActionMetricsSchema, EvidencePacketActionSchema, EvidencePacketCommentEvidenceSchema, EvidencePacketCommentSignalsSchema, EvidencePacketCandidateRefSchema, EvidencePacketAdvancedAIExportBoundarySchema, BrowseLedgerEntrySchema, RoundStructuralLogSchema, RoundLifecycleEventSchema, BrowseSummarySchema, AdvancedAIExportSetSchema, ProductDiscoveryEvidencePacketSchema };
-export type { EvidencePacketPageState, EvidencePacketVideoEvidence, EvidencePacketProductPresenceAI, EvidencePacketPreActionMetrics, EvidencePacketAction, EvidencePacketCommentEvidence, EvidencePacketCommentSignals, EvidencePacketCandidateRef, EvidencePacketDataQualityFlag, EvidencePacketRoundOutcome, EvidencePacketActionPurpose, EvidencePacketActionTriggerSource, EvidencePacketAdvancedAIExportBoundary, BrowseLedgerOutcome, BrowseLedgerProductPresenceDecision, RoundStructuralDecision, RoundArtifactKind, BrowseLedgerEntry, RoundStructuralLog, RoundLifecycleStep, BrowseRoundStep, RoundLifecycleEventStatus, RoundLifecycleEvent, BrowseSessionSummary, AdvancedAIExportSet, ProductDiscoveryEvidencePacket };
+export { EvidencePacketRoundOutcomeSchema, BrowseLedgerOutcomeSchema, BrowseLedgerProductPresenceDecisionSchema, RoundStructuralDecisionSchema, RoundArtifactKindSchema, RoundLifecycleStepSchema, RoundLifecycleEventStatusSchema, EvidencePacketActionPurposeSchema, EvidencePacketActionTriggerSourceSchema, EvidencePacketDataQualityFlagSchema, EvidencePacketPageStateSchema, EvidencePacketVideoEvidenceSchema, EvidencePacketProductPresenceAISchema, EvidencePacketPreActionMetricsSchema, EvidencePacketActionSchema, EvidencePacketCommentEvidenceSchema, EvidencePacketCandidateRefSchema, EvidencePacketAdvancedAIAnalysisPlaceholderSchema, EvidencePacketAdvancedAIExportBoundarySchema, BrowseLedgerEntrySchema, RoundStructuralLogSchema, RoundLifecycleEventSchema, BrowseSummarySchema, AdvancedAIExportSetSchema, ProductDiscoveryEvidencePacketSchema };
+export type { EvidencePacketPageState, EvidencePacketVideoEvidence, EvidencePacketProductPresenceAI, EvidencePacketPreActionMetrics, EvidencePacketAction, EvidencePacketCommentEvidence, EvidencePacketCandidateRef, EvidencePacketAdvancedAIAnalysisPlaceholder, EvidencePacketDataQualityFlag, EvidencePacketRoundOutcome, EvidencePacketActionPurpose, EvidencePacketActionTriggerSource, EvidencePacketAdvancedAIExportBoundary, BrowseLedgerOutcome, BrowseLedgerProductPresenceDecision, RoundStructuralDecision, RoundArtifactKind, BrowseLedgerEntry, RoundStructuralLog, RoundLifecycleStep, BrowseRoundStep, RoundLifecycleEventStatus, RoundLifecycleEvent, BrowseSessionSummary, AdvancedAIExportSet, ProductDiscoveryEvidencePacket };

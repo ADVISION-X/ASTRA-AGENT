@@ -21,7 +21,7 @@ const buildPagePreparationOutputTemplate = () => ({
   decision: "no",
   routeLabel: STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
   nonExecutableSummary: "当前页面准备工作未完成，必须 fail-closed。",
-  confidence: "AI_ESTIMATE_NUMBER_0_TO_1_DO_NOT_COPY_THIS_PLACEHOLDER",
+  confidence: 0.18,
   reason: "one sentence explaining the startup preparation decision",
   evidenceObservations: ["describe only what is visibly present in the current page evidence"],
   readinessSignals: [],

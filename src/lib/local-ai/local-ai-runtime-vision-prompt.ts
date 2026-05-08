@@ -44,7 +44,7 @@ const buildVisionOutputTemplate = (request: VisionProductPresenceRequest) => ({
   decision: "product_no",
   routeLabel: PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
   nonExecutableSummary: "当前证据未证明产品展示，选择非产品路线标签。",
-  confidence: "AI_ESTIMATE_NUMBER_0_TO_1_DO_NOT_COPY_THIS_PLACEHOLDER",
+  confidence: 0.24,
   visibleProductTypes: [],
   evidenceObservations: ["describe only what is visibly present in the sampled frames"],
   reason: "one sentence explaining the product-presence decision",

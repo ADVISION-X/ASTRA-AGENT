@@ -65,7 +65,7 @@ const ROUTE_PLAN_OWNED_ACTION_STEP_IDS = new Set([
   "click-comments-button",
   "verify-comments-open",
   "capture-comments-panel",
-  "analyze-comment-intent",
+  "extract-visible-comments",
   "write-seeding-evidence-record",
   "finalize-seeding-evidence-packet",
   "finalize-seeding-browse-ledger",

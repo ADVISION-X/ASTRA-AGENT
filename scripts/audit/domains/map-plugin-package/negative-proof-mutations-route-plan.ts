@@ -14,6 +14,7 @@ export const ROUTE_PLAN_REQUIRED_MUTATION_NAMES = [
   "press next video key wrong child mutation",
   "press next video key missing page-state input mutation",
   "press next video key success direct capture mutation",
+  "advanced success redundant recapture mutation",
   "loop guard generic completed mutation",
   "previous-video hidden owner mutation",
 ] as const;
@@ -66,6 +67,12 @@ export const ROUTE_PLAN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     file: "src/map-plugins/route-plans/product-discovery-route-plan.transitions.ts",
     search: '    transitionId: "press-next-video-key:success",\n    fromStepId: "press-next-video-key",\n    onStatus: "success",\n    toStepId: "capture-next-item-verification-viewport",',
     replace: '    transitionId: "press-next-video-key:success",\n    fromStepId: "press-next-video-key",\n    onStatus: "success",\n    toStepId: "capture-current-video-viewport",',
+  },
+  {
+    name: "advanced success redundant recapture mutation",
+    file: "src/map-plugins/route-plans/product-discovery-route-plan.transitions.next-item.ts",
+    search: '    transitionId: `verify-next-item-advanced:${NEXT_ITEM_ADVANCED_ROUTE_LABEL}`,\n    fromStepId: "verify-next-item-advanced",\n    onStatus: "success",\n    toStepId: "judge-seeding-video",',
+    replace: '    transitionId: `verify-next-item-advanced:${NEXT_ITEM_ADVANCED_ROUTE_LABEL}`,\n    fromStepId: "verify-next-item-advanced",\n    onStatus: "success",\n    toStepId: "capture-current-video-viewport",',
   },
   {
     name: "loop guard generic completed mutation",

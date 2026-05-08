@@ -19,6 +19,8 @@ const {
   STORAGE_ADAPTER_PATH,
   WORKBENCH_PATH,
 } = forensicsPersistenceInspectionConstants;
+const EVIDENCE_PACKET_SCHEMA_PATH = "src/types/evidence-packet.ts";
+const WORKBENCH_FINALIZATION_PATH = "src/lib/local-runtime/workbench-forensics-finalization-dispatch.ts";
 const {
   getFunctionLine,
   getIdentifierReferencePaths,
@@ -155,6 +157,37 @@ const collectStorageFindings = (project: import("ts-morph").Project): Finding[] 
   return [...findings, ...collectDurabilityFindings(project)];
 };
 
+const collectCommentEvidencePacketFindings = (project: import("ts-morph").Project): Finding[] => {
+  const schemaSource = getSourceFileOrThrow(project, EVIDENCE_PACKET_SCHEMA_PATH);
+  const finalizationSource = getSourceFileOrThrow(project, WORKBENCH_FINALIZATION_PATH);
+  const schemaText = schemaSource.getFullText();
+  const finalizationText = finalizationSource.getFullText();
+  const findings: Finding[] = [];
+
+  if (
+    !schemaText.includes("rawCommentBlocks")
+    || !schemaText.includes("cleanedComments")
+    || !schemaText.includes("uncertainText")
+    || !schemaText.includes("advancedAIAnalysisPlaceholder")
+    || schemaText.includes("const EvidencePacketCommentSignalsSchema")
+  ) {
+    findings.push(createFinding({ lawId: LAW_RUNTIME, file: EVIDENCE_PACKET_SCHEMA_PATH, line: 1, severity: "fatal", message: "Evidence packet schema must preserve raw comment evidence, OCR cleanup text, and downstream-analysis placeholder fields without local commercial commentSignals." }));
+  }
+
+  if (
+    !finalizationText.includes("commentScreenshotEvidenceIds")
+    || !finalizationText.includes("rawCommentBlocks")
+    || !finalizationText.includes("comments_unavailable_candidate_created")
+    || !finalizationText.includes("advancedAIAnalysisPlaceholder")
+    || finalizationText.includes("commentSignals:")
+    || finalizationText.includes("commentIntentAiResultRef")
+  ) {
+    findings.push(createFinding({ lawId: LAW_RUNTIME, file: WORKBENCH_FINALIZATION_PATH, line: 1, severity: "fatal", message: "Evidence packet finalization must keep comment screenshot refs, raw OCR evidence, comments-unavailable fallback, and advanced-analysis placeholder while rejecting local commercial comment analysis fields." }));
+  }
+
+  return findings;
+};
+
 const collectRetiredRootFindings = async (project: import("ts-morph").Project): Promise<Finding[]> => {
   const findings: Finding[] = [];
   const indexSource = getSourceFileOrThrow(project, INDEX_PATH);
@@ -177,6 +210,7 @@ export async function runForensicsRuntimeChecks(project: import("ts-morph").Proj
     ...collectRuntimeReferenceFindings(project),
     ...collectHashBuilderFindings(project),
     ...collectStorageFindings(project),
+    ...collectCommentEvidencePacketFindings(project),
     ...(await collectRetiredRootFindings(project)),
   ];
 }

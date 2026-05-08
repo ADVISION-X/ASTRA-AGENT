@@ -49,6 +49,18 @@ const normalizeNullableBoolean = (value: unknown): boolean | null | undefined =>
     : undefined;
 };
 
+const normalizeConfidence = (value: unknown): number => {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1) {
+    return value;
+  }
+  if (typeof value !== "string") {
+    return 0;
+  }
+
+  const parsed = Number(value.trim());
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 1 ? parsed : 0;
+};
+
 const parseRuntimeJsonOutput = (text: string, taskType: string): unknown => {
   const extractedJson = extractFirstJsonObject(text);
   try {
@@ -215,6 +227,7 @@ const normalizeVisionRuntimeOutput = (
   const nonExecutableSummary = typeof value.nonExecutableSummary === "string" && value.nonExecutableSummary.length > 0
     ? value.nonExecutableSummary
     : resolveNonExecutableSummaryForRouteLabel(routeLabel);
+  const confidence = normalizeConfidence(value.confidence);
   const uncertainty = toStringArray(value.uncertainty);
   const consistentDecision = normalizeDecisionConsistency({
     decision,
@@ -249,6 +262,7 @@ const normalizeVisionRuntimeOutput = (
       || value.promptId !== "vision.productPresence.v1"
       || value.promptVersion !== "v1"
       || value.schemaVersion !== "vision.productPresence.schema.v1"
+      || confidence !== value.confidence
       || typeof value.reason !== "string",
     normalized: {
       ...value,
@@ -260,6 +274,7 @@ const normalizeVisionRuntimeOutput = (
       decision,
       routeLabel,
       nonExecutableSummary,
+      confidence,
       reason: typeof value.reason === "string" && value.reason.length > 0
         ? value.reason
         : (typeof value.aggregateReason === "string" && value.aggregateReason.length > 0

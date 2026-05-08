@@ -1,369 +1,435 @@
-明白。现在专门设计 **Visual Target 定位能力强化方案**。
-核心原则：**不扩大系统，不新增大链路，不让 Visual Target 越权点击，只把“眼睛”练准。**
-
-我刚核了最新 `main`，现在 Visual Target 已经开始补强化：`stage-runners` 已经插入 `validateCandidateStructure` 和 `validateCandidateConfidence`；`candidate-readiness-gate` 已经开始做结构门和低置信度门；`target-selection-gate` 已经从“选第一个”升级为按 confidence、stale、dataQuality、source penalty 排序；`visual-target-policy` 也已有 `minimumScore` 和 `selectionWindow`。   
-
-所以这次不是重建，而是在现有骨架上做 **交付级加固**。
-
-# 总设计：一条定位链，四道铁门
+结论先说清楚：
 
 ```txt
-输入证据门
-→ 候选结构门
-→ 候选评分门
-→ 输出边界门
+1. 这轮日志里，系统确实 0 个种草视频命中。
+2. 但你肉眼看到好几个产品视频，所以这是“AI 产品识别漏判”，不是没有刷到产品视频。
+3. 当前效率确实不可接受，但第一刀不应该降级功能，而是压缩重复链路、合并证据输入、减少重复 AI 调用。
 ```
-
-Visual Target 只做一件事：
-
-```txt
-把 AI / Page State / Screenshot 提供的候选目标，
-变成一个可交给 Geometry Guard 的结构化定位结果。
-```
-
-它不点击，不判断业务成功，不决定值不值得操作。
 
 ---
 
-# 四方攻击模型
+# 一、一个种草视频都没有发现吗？
 
-## 攻击一：AI 乱报候选
-
-风险：
+从日志看，`judge-seeding-video` 一共跑了 **7 次**，7 次全部走：
 
 ```txt
-AI 幻觉出一个不存在的按钮
-AI 把评论按钮看成分享按钮
-AI 返回低置信度候选
-AI 返回多个模糊候选
+judge-seeding-video:skip-current-video
 ```
 
-防御：
+也就是系统层面判定：
 
 ```txt
-1. AI proof 必须存在。
-2. promptContractId / outputSchemaRef 必须在白名单。
-3. candidate.targetType 必须匹配当前 childCapabilityId 的 profile。
-4. confidence 低于 profile.minimumScore，直接 review_required。
-5. 多候选如果分数差低于 selectionWindow，不强行选，review_required。
+product_no = 7
+product_yes = 0
 ```
 
-当前已有一部分：`visual-target-policy.ts` 已定义每个 child 的 `minimumScore`、`selectionWindow`、`targetType`、`targetNature`、`requiredObservationKinds`。
+所以这轮运行没有进入：
 
-还要补强：**requiredObservationKinds 必须真正参与候选校验**，不能只是 profile 里写着。
+```txt
+observe-comments-entry-page-state
+→ analyze-comments-entry-target-candidate
+→ locate-comments-entry-target
+→ click-comments-button
+→ capture-comments-panel
+→ write-seeding-evidence-record
+```
+
+也就没有真正写入任何种草视频 evidence packet。这个和你肉眼看到多个产品视频冲突，说明是识别口径/输入证据问题。
 
 ---
 
-## 攻击二：坐标污染
+# 二、为什么会漏判产品视频？
 
-风险：
+## 1. 当前产品判断口径太严
 
-```txt
-候选 bbox 越界
-clickPoint 缺失
-clickPoint 不在 bbox 内
-source_image / ai_input / desktop_screen 没正确映射
-viewport 变化后继续用旧坐标
-```
-
-防御：
+当前产品判断 prompt 明确要求：
 
 ```txt
-1. bbox width/height 必须 > 0。
-2. action target 必须有 clickPoint。
-3. region/metric target 不允许携带裸 clickPoint。
-4. clickPoint 必须在 bbox 内。
-5. coordinateSpace 必须在 profile.allowedCoordinateSpaces 内。
-6. 非 browser_viewport 坐标必须带 scaleMapping / transform proof。
-7. 只输出 geometryGuardHandoff，不输出可执行点击。
+只有当画面中清楚显示具体产品被演示、展示、使用、开箱、比较、穿戴、手持、安装、组装、展示销售，才判 product_yes。
 ```
 
-当前已有一部分：`candidate-readiness-gate.ts` 已经检查 bbox、clickPoint、低置信度。
+同时又明确：
 
-还要补强：**clickPoint 是否落在 bbox 内**，以及 **映射坐标必须带 mapping proof**。
+```txt
+如果证据模糊、局部、被遮挡、文字声称但产品不清楚、人在说话但产品不明显，就选 product_no。
+```
+
+也就是说，现在 AI 是“宁可漏掉，也不误判”。
+
+这在早期防误判可以，但对“种草视频发现”太保守。真实种草视频经常是：
+
+```txt
+前几秒人在说话
+产品一闪而过
+产品在手里但不占画面中心
+先讲痛点，再展示产品
+有包装/工具/使用场景，但不是标准商品图
+```
+
+如果只看单张图，很容易被判成 `product_no`。
 
 ---
 
-## 攻击三：证据错配
+## 2. 当前输入很可能仍是单帧，不是多帧
 
-风险：
-
-```txt
-候选来自旧截图
-AI 结果来自上一轮
-Page State 和截图不是同一个 videoVisitId
-roundId / videoVisitId 不一致
-payload 混入旧 ref
-```
-
-防御：
+当前 Route Plan 里，产品判断前的链路是：
 
 ```txt
-1. screenshotProof、aiProof、pageStateProof 必须同时存在。
-2. 三者 missionId / runId / roundId / videoVisitId 必须一致。
-3. candidate.sourceScreenshotEvidenceRef 必须等于当前 request.sourceProof.screenshot。
-4. stale_screenshot / stale_candidate 不能只是扣分，严重时必须 review_required。
-5. candidateSetHash 必须进入 telemetry，方便复盘。
+capture-current-video-viewport
+→ prepare-current-video-ai-input
+→ judge-seeding-video
 ```
 
-当前 Stage Runner 已经有 screenshot、AI、page-state gate 顺序。
+`prepare-current-video-ai-input` 的输入只有一个：
 
-还要补强：**跨 proof 的 identity binding**，也就是三份证据必须属于同一轮、同一个 videoVisitId。
+```txt
+screenshotEvidenceRef
+```
+
+这说明每次产品判断核心上还是“一次截图 → 一次 AI 判断”。
+
+但你的多帧施工图已经写得很清楚：产品存在性判断应该避免 opening frame、黑屏、字幕过场或延迟出镜主导结果；`contact sheet` 是优先输入模式，`single_frame_fallback` 只是输入不足时的诚实标记。
+
+更关键的是，请求构造器里也写死了这个逻辑：
+
+```txt
+aiInputRefs.length > 1 → multi_image
+否则 → single_frame_fallback
+```
+
+也就是说，如果当前只传一个 promptInputRef，AI 看到的就是单帧 fallback。
+
+这就是第一大根因：
+
+```txt
+产品视频不是没出现，是产品出现的时间点没有被当前单帧捕捉到。
+```
 
 ---
 
-## 攻击四：下游绕过
+# 三、现在效率为什么这么低？
 
-风险：
+我按日志里的 `durationMs` 粗算了一下，这轮主要耗时是：
+
+| 模块                                   |      次数 |       总耗时 |       平均 |
+| ------------------------------------ | ------: | --------: | -------: |
+| `judge-seeding-video` 产品判断 AI        |     7 次 | 约 105.6 秒 | 约 15.1 秒 |
+| `verify-next-item-advanced` 下一条验证 AI | 6 次完整返回 |  约 69.8 秒 | 约 11.6 秒 |
+| `startup-preparation` 启动判断 AI        |     1 次 |    约 21 秒 |   约 21 秒 |
+| 截图类                                  |      多次 |    约 28 秒 |    1–6 秒 |
+| `press-next-video-key`               |     7 次 |     约 6 秒 | 约 0.86 秒 |
+
+也就是说，键盘切换现在不是瓶颈。瓶颈是：
 
 ```txt
-Geometry Guard 直接吃裸 clickPoint
-Mouse Click 绕过 Visual Target output
-Route Plan 直接塞 sourceTargetRef
-summary 里反解析 bbox/clickPoint
-机械成功被当成定位成功
+AI 调用太多、太重、重复截图太多。
 ```
 
-防御：
-
-```txt
-1. Visual Target 输出只能是 public output + geometryGuardHandoff。
-2. Geometry Guard 只能接收 geometryGuardHandoffRef，不接收裸 clickPoint。
-3. Mouse Click 只能接收 Geometry Guard proof。
-4. Visual Target success 不代表可以点击。
-5. Mouse Click success 不代表业务成功。
-6. 所有绕过 handoff 的路径 audit fail。
-```
-
-这条很关键。之前 `workbench-visual-dispatch-input-next-item.ts` 这种从 summary 反读 bbox/clickPoint 的方式，就是定位能力不成熟时的典型风险。现在下一个视频已经改键盘，后续评论按钮等动作也要禁止这种绕行。
+这轮能力调用总耗时约 238 秒，其中 AI 约 197 秒，占 80% 以上。
 
 ---
 
-# 最小强化路线
+# 四、先不要降级功能，第一刀应该“压缩”
 
-## 第一阶段：把现有门补完整
+你说得对：现在先不要降级功能。不能为了快，把 AI 产品判断砍掉，也不能把种草识别变成非 AI 规则判断。
 
-当前已经有：
-
-```txt
-validateCandidateStructure
-validateCandidateConfidence
-rankCandidates
-selectionWindow
-outputBoundary
-```
-
-下一步只补 5 个最小点：
+要做的是压缩：
 
 ```txt
-1. clickPoint 必须在 bbox 内。
-2. 非 browser_viewport 坐标必须有 mapping proof。
-3. requiredObservationKinds 必须和 candidate.observationKind / targetType 绑定。
-4. screenshot / AI / pageState 的 roundId、videoVisitId 必须一致。
-5. critical flags 不得只扣分，必须 block 或 review_required。
+同样功能
+更少重复
+更少 AI 次数
+更高命中率
 ```
-
-这不是增加复杂度，是把门补严。
 
 ---
 
-## 第二阶段：评分逻辑保持简单
+# 五、最高优先级压缩方案
 
-不要搞复杂模型。只用一个可解释公式：
+## 压缩 1：把产品判断从单帧升级为“一次多帧 contact sheet”
+
+不要做三次 AI。
+不要让地图写 `3s/6s/10s`。
+不要把采样脚本塞回地图。
+
+正确做法：
 
 ```txt
-finalScore =
+Screenshot / ability owner 在一个视频内采 3 帧
+→ 合成一个轻量 contact sheet
+→ 一次 prepare-ai-input
+→ 一次 product-presence AI
+```
+
+这样功能没有降级，反而更准。
+
+目标从：
+
+```txt
+单帧截图 → AI 判断
+```
+
+改成：
+
+```txt
+3帧/多帧 contact sheet → AI 判断
+```
+
+这正好符合多帧施工图：多帧是 Screenshot、AI、Forensics 共享取证边界，不是独立 owner，也不应该回到地图里写死帧点。
+
+这会同时解决两个问题：
+
+```txt
+1. 漏判降低。
+2. 不增加 AI 次数，因为仍然是一轮视频一次 product AI。
+```
+
+---
+
+## 压缩 2：复用“下一条验证截图”，不要再重复截图
+
+当前下一条链路是：
+
+```txt
+press-next-video-key
+→ capture-next-item-verification-viewport
+→ prepare-next-item-verification-ai-input
+→ verify-next-item-advanced
+→ capture-current-video-viewport
+→ prepare-current-video-ai-input
+→ judge-seeding-video
+```
+
+这里有明显重复：
+
+```txt
+capture-next-item-verification-viewport 已经截到了新视频
+后面又 capture-current-video-viewport 再截一次
+```
+
+当前代码里也能看到，`verify-next-item-advanced` 不管 advanced / not advanced，都会跳到 `capture-current-video-viewport`。
+
+这应该压缩成：
+
+```txt
+press-next-video-key
+→ capture-next-item-verification-viewport
+→ verify / or lightweight confirm
+→ 直接复用 nextItemVerificationEvidenceRef 作为 current video evidence
+→ prepare-current-video-ai-input
+→ judge-seeding-video
+```
+
+这不是降级，是消除重复取证。
+
+---
+
+## 压缩 3：`verify-next-item-advanced` 先不要每轮强制重 AI
+
+现在每切一次下一条，都跑一次 `verify-next-item-advanced`，平均 11–12 秒。这个太重。
+
+不降级的做法是：
+
+```txt
+先机械验证
+如果机械验证明确成功，就不问 AI
+如果机械验证不确定，再问 AI
+```
+
+机械验证可以是：
+
+```txt
+before/after screenshot hash
+frame fingerprint
+页面视频区域变化
+videoVisitId / visible frame hash 变化
+```
+
+注意：这不是让非 AI 判断“是不是产品视频”。
+它只判断：
+
+```txt
+画面是否变化，是否进入下一条。
+```
+
+产品识别仍然由 AI 做。
+
+---
+
+# 六、产品漏判的修复方向
+
+现在最要紧的不是调 prompt 句子，而是先让 AI 看到正确证据。
+
+## 第一层：输入证据修复
+
+必须让 `judge-seeding-video` 的输入从：
+
+```txt
+single_frame_fallback
+```
+
+升级成：
+
+```txt
+multi_frame_contact_sheet 或 multi_image
+```
+
+并且日志里必须打印轻量摘要：
+
+```txt
+inputMode
+sampledFrameCount
+validFrameCount
+fallbackReason
+```
+
+现在日志没有展示 AI 具体判定内容，只看到 `AI_RESPONSE_DEBUG` 和 diagnostic ref，看不到：
+
+```txt
+decision
+routeLabel
 confidence
-- stalePenalty
-- dataQualityPenalty
-- sourcePenalty
-- mappingPenalty
+reason
+visibleProductTypes
+evidenceObservations
 ```
 
-当前 `target-selection-gate.ts` 已经这样做了：按 stale、dataQuality、source penalty 计算 finalScore，再用 selectionWindow 判断是否模糊。
+所以现在无法复盘每个产品视频为什么被判 `product_no`。这个必须补，不暴露原图，只暴露 AI 结构化摘要。
 
-继续保持，不要引入 AI 二次判断。
+## 第二层：产品判断口径微调
+
+当前 prompt 的核心问题是：
+
+```txt
+ambiguous / partial → product_no
+```
+
+这会把很多种草视频早期画面打掉。
+
+但我不建议改成宽松乱判。应该加一个更贴合种草场景的 YES 口径：
+
+```txt
+只要多帧中出现明确的商品实物、包装、工具、配件、使用前后对比、手持展示、安装/试用动作，即可 product_yes。
+不要求标准商品图。
+不要求完整展示全过程。
+不判断是否值得采购。
+```
+
+仍然保持二元输出：
+
+```txt
+product_yes / product_no
+```
+
+不恢复 `product_uncertain`，否则路线又复杂。
 
 ---
 
-## 第三阶段：输出只分三种
+# 七、当前最关键的两个 BUG 定性
 
-Visual Target 最终只能返回三种结果：
+## BUG 1：产品漏判
 
 ```txt
-success
-review_required
-failed
+系统判定：7 个视频全部 skip-current-video。
+用户观察：其中多个是产品视频。
+根因倾向：产品判断输入过弱，当前实际仍偏单帧；prompt 又要求“清晰具体产品展示”，导致大量 false negative。
 ```
 
-规则：
+## BUG 2：效率低
 
 ```txt
-success：
-只有一个高置信度、结构完整、证据一致、可 handoff 的候选。
-
-review_required：
-候选存在，但置信度不足、多个候选差距太小、证据轻微漂移。
-
-failed：
-没有候选、bbox 越界、proof 缺失、targetType 错、coordinateSpace 非法。
-```
-
-这符合大道至简。
-
----
-
-# 不要做的事
-
-```txt
-不要让 Visual Target 点击。
-不要让 Visual Target 判断是否进入下一条视频。
-不要让 Visual Target 判断产品价值。
-不要让 Visual Target 直接调用 Mouse Click。
-不要搞多套定位系统。
-不要让 Geometry Guard 自己猜目标。
-不要让 Route Plan 写坐标细节。
-不要把低置信度候选硬选出来继续点。
-```
-
-Visual Target 是眼睛，不是手，不是大脑。
-
----
-
-# 执法必须补的防复发
-
-新增或强化 inspector：
-
-```txt
-1. Visual Target success output 必须包含：
-   sourceScreenshotEvidenceId
-   sourceScreenshotProofRef
-   sourceAiResultRef / sourceAiProofRef
-   sourcePageStateProofRef
-   coordinateSpace
-   boundingBox
-   confidence
-   geometryGuardHandoffRef
-
-2. action target 必须有 candidateClickPoint。
-3. region / metric target 不得有 candidateClickPoint。
-4. confidence < profile.minimumScore 必须 review_required。
-5. 多候选 score gap < selectionWindow 必须 review_required。
-6. Geometry Guard 不得接收裸 clickPoint。
-7. Mouse Click 不得直接接收 Visual Target 原始 clickPoint。
-8. summary 反解析 bbox/clickPoint 的代码必须 FAIL。
-9. requiredObservationKinds 不匹配必须 FAIL。
-10. proof identity 不一致必须 FAIL。
+当前每轮视频大约 30–45 秒。
+AI 占主要耗时。
+press-next-video-key 不是瓶颈。
+主要浪费来自：
+1. 产品判断 AI 每轮 15 秒；
+2. 下一条验证 AI 每轮 11–12 秒；
+3. 下一条验证截图后又重复 capture-current-video；
+4. 全量结构日志和 Forensics 持久化也偏重。
 ```
 
 ---
 
-# 负向证明设计
-
-让 Codex 必须加这些 mutation：
+# 八、给 Codex 的提示词
 
 ```txt
-1. 删除 bbox → audit 必须 FAIL。
-2. clickPoint 放到 bbox 外 → audit 必须 FAIL。
-3. confidence 改成 0.4 → runtime 必须 review_required。
-4. 两个候选分数差小于 selectionWindow → runtime 必须 review_required。
-5. candidate.targetType 与 child profile 不一致 → FAIL。
-6. sourceScreenshotEvidenceRef 换成旧截图 → FAIL。
-7. coordinateSpace 改成 source_image 但不给 mapping proof → FAIL。
-8. Geometry Guard 直接吃 clickPoint，不走 geometryGuardHandoff → FAIL。
-9. Mouse Click 直接吃 Visual Target output，不走 Geometry Guard proof → FAIL。
-10. 把 low_confidence 只当 penalty 不封死 → FAIL。
+最新运行日志结论：
+
+第一问题：
+本轮 judge-seeding-video 共 7 次，全部 transition 到 judge-seeding-video:skip-current-video。
+系统记录为 0 个 product_yes / 0 个种草视频 evidence packet。
+但人工观察多个视频是产品视频，所以这是 product-presence false negative，不是没有刷到产品视频。
+
+第二问题：
+运行效率严重不可接受。
+总能力耗时约 238s，其中 AI 约 197s，占 80%+。
+press-next-video-key 平均 <1s，不是瓶颈。
+瓶颈是产品判断 AI、下一条验证 AI、重复截图和重日志。
+
+不要降级功能。先做压缩优化。
+
+修复方向：
+
+1. 产品判断输入升级为多帧 contact sheet。
+   - 不要在地图里写死 3s/6s/10s。
+   - 由 Screenshot / ability owner 在同一 videoVisitId 下采样多帧。
+   - 合成一个 contact sheet 或 multi_image 输入。
+   - judge-seeding-video 仍然只调用一次 product-presence AI。
+   - 禁止三次独立 AI 调用冒充多帧。
+   - 日志必须输出 inputMode、sampledFrameCount、validFrameCount、fallbackReason。
+
+2. 修复产品漏判口径。
+   - 仍保持 product_yes / product_no 二元判断。
+   - 不恢复 product_uncertain。
+   - 多帧中只要出现明确商品实物、包装、手持展示、安装、试用、使用前后对比、配件/工具展示，即可 product_yes。
+   - 不要求标准商品图，不判断盈利、采购、广告。
+
+3. 压缩重复截图。
+   当前链路：
+   press-next-video-key
+   → capture-next-item-verification-viewport
+   → verify-next-item-advanced
+   → capture-current-video-viewport
+   → prepare-current-video-ai-input
+
+   问题：
+   capture-next-item-verification-viewport 已经是新视频截图，后面又 capture-current-video-viewport，重复。
+
+   改为：
+   press-next-video-key
+   → capture-next-item-verification-viewport
+   → verify next item
+   → 复用 nextItemVerificationEvidenceRef 作为 current video evidence
+   → prepare-current-video-ai-input
+   → judge-seeding-video
+
+4. 压缩 next item verification。
+   - 不要每次都强制 AI verify-next-item-advanced。
+   - 先做轻量机械验证：before/after screenshot hash、frame fingerprint、video surface变化。
+   - 明确变化则通过。
+   - 不确定才调用 AI verify-next-item-advanced。
+   - 这不是降级，因为产品判断仍由 AI 做；机械验证只判断“有没有切到下一条”。
+
+5. 日志增强但不要变重。
+   AI_RESPONSE_DEBUG 必须输出结构化摘要：
+   - stepId
+   - decision
+   - routeLabel
+   - confidence
+   - inputMode
+   - sampledFrameCount
+   - validFrameCount
+   - visibleProductTypes
+   - reason
+   - evidenceObservations count
+   不输出 raw image，不输出大 payload。
+
+6. 加执法防复发。
+   - product_presence_judgment 使用 single_frame_fallback 且无 fallbackReason 必须 FAIL。
+   - 多帧被拆成多次 AI 调用必须 FAIL。
+   - verify-next-item-advanced 后强制重新 capture-current-video-viewport 必须 FAIL。
+   - AI_RESPONSE_DEBUG 缺 decision / routeLabel / inputMode / validFrameCount 摘要必须 FAIL。
+   - product_yes 后没有进入 comments/evidence path 必须 FAIL。
 ```
 
----
-
-# 最终施工顺序
-
-```txt
-1. 补 candidate-readiness-gate：
-   clickPoint in bbox
-   coordinate mapping proof
-   requiredObservationKinds binding
-
-2. 补 proof consistency gate：
-   screenshot / AI / pageState / candidate 的 missionId、roundId、videoVisitId 绑定
-
-3. 补 selection gate：
-   保持当前 scoring，不复杂化
-   只强化 selectionWindow 的 review_required 证明
-
-4. 补 output boundary：
-   success output 必须有完整 handoff
-   禁止裸 clickPoint 外泄为可执行动作
-
-5. 补 inspectors + negative proof
-```
-
----
-
-# 给 Codex 的精准提示词
-
-```txt
-现在专门强化 Visual Target 定位能力，不要改下一视频键盘链路，不要新增复杂系统。
-
-当前 main 已有基础：
-- visual-target-execution-stage-runners.ts 已加入 validateCandidateStructure / validateCandidateConfidence。
-- candidate-readiness-gate.ts 已做 bbox、clickPoint、low confidence 初步门。
-- target-selection-gate.ts 已按 confidence - stalePenalty - dataQualityPenalty - sourcePenalty 排序。
-- visual-target-policy.ts 已定义 minimumScore、selectionWindow、targetNature、requireClickPoint、allowedCoordinateSpaces。
-
-请在现有骨架上做交付级加固：
-
-1. Candidate structure gate 增强：
-   - bbox width/height 必须 > 0。
-   - action target 必须有 clickPoint。
-   - region/metric target 不得有 clickPoint。
-   - clickPoint 必须落在 bbox 内。
-   - 缺 bbox / clickPoint 越界 / 裸 clickPoint 错用必须 FAIL 或 review_required。
-
-2. Coordinate proof 增强：
-   - coordinateSpace 必须在 profile.allowedCoordinateSpaces。
-   - 非 browser_viewport 坐标必须有 mapping / scale proof。
-   - candidate_coordinate_requires_mapping 不能只扣分，缺 proof 必须 review_required 或 FAIL。
-
-3. Proof identity 增强：
-   - screenshotProof、aiProof、pageStateProof、candidate source 必须绑定同一 missionId / runId / roundId / videoVisitId。
-   - stale_screenshot / stale_candidate / sourceScreenshotEvidenceRef 不一致必须 review_required 或 FAIL。
-
-4. Target semantic binding：
-   - candidate targetType / observationKind 必须匹配 profile.requiredObservationKinds。
-   - observe-comments-button 只能输出 comments_button。
-   - observe-close-comments-button 只能输出 close_comments_button。
-   - observe-next-item-target-candidate 不再参与下一视频主链，但保留能力时也必须受 profile 约束。
-
-5. Selection gate 保持大道至简：
-   - 不引入复杂 AI 二次判断。
-   - 保持 finalScore = confidence - penalties。
-   - score gap < selectionWindow 必须 review_required。
-   - 不得退回“永远选择第一个候选”。
-
-6. Output boundary：
-   - success output 必须包含 sourceScreenshotEvidenceId、sourceScreenshotProofRef、sourceAiResultRef/sourceAiProofRef、sourcePageStateProofRef、coordinateSpace、boundingBox、confidence、geometryGuardHandoffRef。
-   - Visual Target 不得输出可执行点击，只能输出 geometryGuardHandoff。
-   - Geometry Guard 只能消费 geometryGuardHandoff，不得消费裸 clickPoint。
-   - Mouse Click 只能消费 Geometry Guard proof。
-
-7. Inspector / negative proof：
-   - 删除 bbox 必须 FAIL。
-   - clickPoint outside bbox 必须 FAIL。
-   - confidence below profile.minimumScore 必须 review_required。
-   - two candidates within selectionWindow 必须 review_required。
-   - targetType 与 profile 不匹配必须 FAIL。
-   - sourceScreenshotEvidenceRef 与 request screenshot 不一致必须 FAIL。
-   - source_image 坐标无 mapping proof 必须 FAIL。
-   - Geometry Guard 裸吃 clickPoint 必须 FAIL。
-   - selection gate 退回 input-order-first 必须 FAIL。
-
-不要改下一视频键盘方案。
-不要恢复 click-next-video-arrow。
-不要让 Visual Target 点击。
-不要让 Visual Target 做业务判断。
-只强化定位能力本身。
-```
-
-一句话定性：**Visual Target 要练成“稳准的眼睛”，不是变成“会动手的大脑”。四方攻击下，只要证据错、结构错、坐标错、候选模糊，就宁可 review_required，也不能瞎给 Geometry Guard。**
+一句话：**现在不是先降功能，而是把“单帧慢判断”压成“一次多帧准判断”，把“切换后重复截图+重复AI验证”压成“复用证据+不确定再问AI”。**

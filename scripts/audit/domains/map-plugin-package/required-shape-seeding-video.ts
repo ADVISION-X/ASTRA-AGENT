@@ -48,6 +48,7 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
   const locateComments = steps.find((step) => step.stepId === "locate-comments-entry-target");
   const normalizeComments = steps.find((step) => step.stepId === "normalize-comments-target");
   const clickComments = steps.find((step) => step.stepId === "click-comments-button");
+  const extractVisibleComments = steps.find((step) => step.stepId === "extract-visible-comments");
   const writeSeedingEvidence = steps.find((step) => step.stepId === "write-seeding-evidence-record");
   const finalizeSeedingPacket = steps.find((step) => step.stepId === "finalize-seeding-evidence-packet");
   const finalizeSeedingBrowseLedger = steps.find((step) => step.stepId === "finalize-seeding-browse-ledger");
@@ -126,16 +127,27 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
     && clickComments.childCapabilityId === "click-browser-coordinate"
     && clickComments.inputRefs.includes("visualTargetRef")
     && clickComments.inputRefs.includes("geometryProofRef")
-    && routePlanTransitions.some((transition) => transition.fromStepId === "analyze-comment-intent" && transition.onStatus === "success" && transition.toStepId === "write-seeding-evidence-record")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "capture-comments-panel" && transition.onStatus === "success" && transition.toStepId === "extract-visible-comments")
+    && extractVisibleComments?.stepKind === "ai"
+    && extractVisibleComments.childCapabilityId === "comment-text-cleanup"
+    && extractVisibleComments.promptContractId === "comments.ocr_cleanup.v1"
+    && extractVisibleComments.inputRefs.includes("commentsEvidenceRef")
+    && extractVisibleComments.outputRefPolicy.storeAs.includes("commentCleanupAiResultRef")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "extract-visible-comments" && transition.onStatus === "success" && transition.toStepId === "write-seeding-evidence-record")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "extract-visible-comments" && transition.onStatus === "failed" && transition.toStepId === "write-seeding-evidence-record")
     && routePlanTransitions.some((transition) => transition.fromStepId === "write-seeding-evidence-record" && transition.onStatus === "success" && transition.toStepId === "finalize-seeding-evidence-packet")
     && routePlanTransitions.some((transition) => transition.fromStepId === "finalize-seeding-evidence-packet" && transition.onStatus === "success" && transition.toStepId === "finalize-seeding-browse-ledger")
+    && !steps.some((step) => step.stepId === "analyze-comment-intent" || step.childCapabilityId === "comment-intent-analysis")
+    && !routePlanTransitions.some((transition) => transition.fromStepId === "analyze-comment-intent" || transition.toStepId === "analyze-comment-intent")
+    && !requiredChildCapabilities.includes("comment-intent-analysis")
+    && !record.mapPackage.dependencies.requiredPromptContracts.includes("comments.intent_analysis.v1")
     && writeSeedingEvidence?.targetAbilityGroupId === "forensics-persistence"
     && writeSeedingEvidence.childCapabilityId === "write-evidence-record"
     && writeSeedingEvidence.inputRefs.includes("commentsEvidenceRef")
     && finalizeSeedingPacket?.targetAbilityGroupId === "forensics-persistence"
     && finalizeSeedingPacket.childCapabilityId === "finalize-evidence-packet"
     && finalizeSeedingPacket.inputRefs.includes("productPresenceAiResultRef")
-    && finalizeSeedingPacket.inputRefs.includes("commentIntentAiResultRef")
+    && finalizeSeedingPacket.inputRefs.includes("commentCleanupAiResultRef")
     && finalizeSeedingBrowseLedger?.targetAbilityGroupId === "forensics-persistence"
     && finalizeSeedingBrowseLedger.childCapabilityId === "finalize-browse-ledger"
     && finalizeSeedingBrowseLedger.inputRefs.includes("productPresenceAiResultRef")
@@ -156,7 +168,8 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
     && routePlanTransitions.some((transition) => transition.fromStepId === "finalize-seeding-browse-ledger" && transition.onStatus === "success" && transition.toStepId === "observe-next-item-page-state")
     && routePlanTransitions.some((transition) => transition.fromStepId === "observe-next-item-page-state" && transition.onStatus === "success" && transition.toStepId === "press-next-video-key")
     && routePlanTransitions.some((transition) => transition.fromStepId === "press-next-video-key" && transition.onStatus === "success" && transition.toStepId === "capture-next-item-verification-viewport")
-    && routePlanTransitions.some((transition) => transition.fromStepId === "verify-next-item-advanced" && transition.onStatus === "success" && transition.toStepId === "capture-current-video-viewport")
+    && routePlanTransitions.some((transition) => transition.transitionId === "verify-next-item-advanced:next-item-advanced" && transition.onStatus === "success" && transition.toStepId === "judge-seeding-video")
+    && routePlanTransitions.some((transition) => transition.transitionId === "verify-next-item-advanced:next-item-not-advanced" && transition.onStatus === "success" && transition.toStepId === "capture-current-video-viewport")
     && pressNext?.targetAbilityGroupId === "text-input"
     && pressNext.childCapabilityId === "press-navigation-key"
     && pressNext.inputRefs.includes("pageStateRef")
@@ -201,6 +214,6 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
     ? []
     : [createPromptContractFinding(
       record,
-      "Seeding video map packages must keep only the open entry local while Route Plan owns capture-startup-video-viewport -> prepare-startup-ai-input -> startup-preparation -> judge-seeding-video and capture-current-video-viewport -> prepare-current-video-ai-input -> judge-seeding-video. ProductPresence must stay binary route-only and must not leak target candidate ownership. Product-yes must pass observe-comments-entry-page-state -> analyze-comments-entry-target-candidate -> locate-comments-entry-target -> normalize-comments-target -> click-comments-button -> write-seeding-evidence-record -> finalize-seeding-evidence-packet -> finalize-seeding-browse-ledger with vision.commentsEntryTargetCandidate.v1. Advance-next-item must pass observe-next-item-page-state -> press-next-video-key -> capture-next-item-verification-viewport -> prepare-next-item-verification-ai-input -> verify-next-item-advanced before capture-current-video-viewport, and press-next-video-key must use text-input/press-navigation-key with pageStateRef. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
+      "Seeding video map packages must keep only the open entry local while Route Plan owns capture-startup-video-viewport -> prepare-startup-ai-input -> startup-preparation -> judge-seeding-video and capture-current-video-viewport -> prepare-current-video-ai-input -> judge-seeding-video. ProductPresence must stay binary route-only and must not leak target candidate ownership. Product-yes must pass observe-comments-entry-page-state -> analyze-comments-entry-target-candidate -> locate-comments-entry-target -> normalize-comments-target -> click-comments-button -> capture-comments-panel -> extract-visible-comments -> write-seeding-evidence-record -> finalize-seeding-evidence-packet -> finalize-seeding-browse-ledger with vision.commentsEntryTargetCandidate.v1 plus comments.ocr_cleanup.v1. analyze-comment-intent, comment-intent-analysis, comments.intent_analysis.v1, and commentIntentAiResultRef are forbidden in the governed product-yes chain. Advance-next-item must pass observe-next-item-page-state -> press-next-video-key -> capture-next-item-verification-viewport -> prepare-next-item-verification-ai-input -> verify-next-item-advanced, then reuse the verified prompt input by routing next-item-advanced directly to judge-seeding-video while next-item-not-advanced falls back to capture-current-video-viewport. press-next-video-key must use text-input/press-navigation-key with pageStateRef. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
     )];
 };

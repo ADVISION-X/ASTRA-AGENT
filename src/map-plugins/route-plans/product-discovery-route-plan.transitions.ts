@@ -196,7 +196,7 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     transitionId: "capture-comments-panel:success",
     fromStepId: "capture-comments-panel",
     onStatus: "success",
-    toStepId: "analyze-comment-intent",
+    toStepId: "extract-visible-comments",
     finalStatus: null,
   },
   {
@@ -207,18 +207,18 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     finalStatus: "failed",
   },
   {
-    transitionId: "analyze-comment-intent:success",
-    fromStepId: "analyze-comment-intent",
+    transitionId: "extract-visible-comments:success",
+    fromStepId: "extract-visible-comments",
     onStatus: "success",
     toStepId: "write-seeding-evidence-record",
     finalStatus: null,
   },
   {
-    transitionId: "analyze-comment-intent:failed",
-    fromStepId: "analyze-comment-intent",
+    transitionId: "extract-visible-comments:failed",
+    fromStepId: "extract-visible-comments",
     onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
+    toStepId: "write-seeding-evidence-record",
+    finalStatus: null,
   },
   {
     transitionId: "write-seeding-evidence-record:success",

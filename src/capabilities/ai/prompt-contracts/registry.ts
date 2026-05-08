@@ -18,7 +18,6 @@ const BUILTIN_PROMPT_CONTRACT_FILES = [
   "vision.nextItemTargetCandidate.v1.prompt-contract.json",
   "vision.commentsEntryTargetCandidate.v1.prompt-contract.json",
   "comments.ocr_cleanup.v1.prompt-contract.json",
-  "comments.intent_analysis.v1.prompt-contract.json",
   "product.signal_summary.v1.prompt-contract.json",
 ] as const;
 

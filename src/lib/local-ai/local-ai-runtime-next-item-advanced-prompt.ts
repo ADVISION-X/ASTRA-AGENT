@@ -21,7 +21,7 @@ const buildNextItemAdvancedOutputTemplate = () => ({
   decision: "no",
   routeLabel: NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
   nonExecutableSummary: "当前证据未证明已经推进到下一条视频，必须 fail-closed。",
-  confidence: "AI_ESTIMATE_NUMBER_0_TO_1_DO_NOT_COPY_THIS_PLACEHOLDER",
+  confidence: 0.22,
   reason: "one sentence explaining whether the next-item action advanced to a new item",
   evidenceObservations: ["describe only what is visibly present in the current post-click viewport evidence"],
   readinessSignals: [],

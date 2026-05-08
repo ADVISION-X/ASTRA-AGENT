@@ -1,6 +1,9 @@
+import { existsSync } from "node:fs";
+
 import { Node, SyntaxKind, type Project, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../core/result.js";
+import { pathFromRepoRoot } from "../../core/paths.js";
 import type { Finding } from "../../core/schema.js";
 
 import { aiInspectionConstants } from "./inspection-constants.js";
@@ -9,6 +12,7 @@ import { aiInspectionUtils } from "./inspection-utils.js";
 const { AI_ROOT } = aiInspectionConstants;
 const { getSourceOrThrow } = aiInspectionUtils;
 const PROMPT_POLICY_FIELDS = ["confidencePolicy", "reviewPolicy", "failurePolicy", "debugPolicy"] as const;
+const LEGACY_COMMENT_INTENT_PROMPT_PATH = `${AI_ROOT}/prompt-contracts/builtins/comments.intent_analysis.v1.prompt-contract.json`;
 
 const hasPromptRegistryResolutionType = (sourceFile: SourceFile): boolean => {
   const resolveMethod = sourceFile.getInterface("AiPromptRegistryPort")?.getMethod("resolvePromptContract");
@@ -97,6 +101,33 @@ const findRuntimeMapperPromptViolations = (sourceFile: SourceFile): Finding[] =>
   return [createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006A-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-mapper.ts`, line: 1, severity: "fatal", message: "Local AI runtime mapper must use governed typed prompt resolution and must not call throw-based legacy prompt helpers." })];
 };
 
+const findCommentCommercialBoundaryViolations = (project: Project): Finding[] => {
+  const promptRegistryCatalogSource = getSourceOrThrow(project, `${AI_ROOT}/prompt-contracts/registry.ts`);
+  const localRuntimeExecutionSource = getSourceOrThrow(project, "src/lib/local-ai/local-ai-runtime-execution.ts");
+  const governedTaskSource = getSourceOrThrow(project, "src/lib/local-ai/governed-task-execution.ts");
+  const findings: Finding[] = [];
+  const promptRegistryText = promptRegistryCatalogSource.getFullText();
+  const localRuntimeText = localRuntimeExecutionSource.getFullText();
+  const governedTaskText = governedTaskSource.getFullText();
+
+  if (existsSync(pathFromRepoRoot(LEGACY_COMMENT_INTENT_PROMPT_PATH)) || promptRegistryText.includes("comments.intent_analysis.v1.prompt-contract.json")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006A-V1", file: `${AI_ROOT}/prompt-contracts/registry.ts`, line: 1, severity: "fatal", message: "Local AI prompt governance must not retain comments.intent_analysis commercial-analysis contracts once comments evidence is evidence-only." }));
+  }
+  if (!localRuntimeText.includes("comments.intent_analysis is not allowed") || localRuntimeText.includes("executeCommentSignalRuntimeTask")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006A-V1", file: "src/lib/local-ai/local-ai-runtime-execution.ts", line: 1, severity: "fatal", message: "Local AI runtime must hard-reject comments.intent_analysis instead of executing local commercial comment analysis." }));
+  }
+  if (
+    !governedTaskText.includes("comments.intent_analysis is not allowed")
+    || !governedTaskText.includes("product.signal_summary is not allowed")
+    || governedTaskText.includes("purchaseIntent =")
+    || governedTaskText.includes("candidate generated from evidence-backed vision and comment signals")
+  ) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006A-V1", file: "src/lib/local-ai/governed-task-execution.ts", line: 1, severity: "fatal", message: "Governed local AI fallback must not synthesize purchase intent, pain points, demand terms, or downstream commercial conclusions." }));
+  }
+
+  return findings;
+};
+
 export const findPromptGovernanceViolations = (project: Project): Finding[] => {
   const promptRegistryPortSource = getSourceOrThrow(project, `${AI_ROOT}/ports/ai-prompt-registry-port.ts`);
   const promptCatalogSchemaSource = getSourceOrThrow(project, `${AI_ROOT}/prompt-contracts/schema.ts`);
@@ -113,5 +144,6 @@ export const findPromptGovernanceViolations = (project: Project): Finding[] => {
     ...findLocalPromptRegistryViolations(localPromptRegistrySource),
     ...findLocalTaskContractViolations(localTaskContractSource),
     ...findRuntimeMapperPromptViolations(localRuntimeMapperSource),
+    ...findCommentCommercialBoundaryViolations(project),
   ];
 };
