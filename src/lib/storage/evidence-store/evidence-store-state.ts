@@ -37,15 +37,57 @@ export const PersistedStateSchema = z.object({
 
 export type PersistedState = z.infer<typeof PersistedStateSchema>;
 
+const PERSISTED_LOG_TOKEN_MIGRATIONS = new Map<string, string>([
+  ["scroll_next_video", "click_next_video"],
+  ["scroll_next_video_started", "click_next_video_started"],
+  ["scroll_next_video_completed", "click_next_video_completed"],
+]);
+
+function migratePersistedLogTokens(value: unknown): { normalized: unknown; migrated: boolean } {
+  if (typeof value === "string") {
+    const replacement = PERSISTED_LOG_TOKEN_MIGRATIONS.get(value);
+    return replacement
+      ? { normalized: replacement, migrated: true }
+      : { normalized: value, migrated: false };
+  }
+
+  if (Array.isArray(value)) {
+    let migrated = false;
+    const normalized = value.map((entry) => {
+      const result = migratePersistedLogTokens(entry);
+      migrated ||= result.migrated;
+      return result.normalized;
+    });
+    return migrated ? { normalized, migrated: true } : { normalized: value, migrated: false };
+  }
+
+  if (typeof value !== "object" || value === null) {
+    return { normalized: value, migrated: false };
+  }
+
+  let migrated = false;
+  const normalizedEntries = Object.entries(value).map(([key, entryValue]) => {
+    const result = migratePersistedLogTokens(entryValue);
+    migrated ||= result.migrated;
+    return [key, result.normalized] as const;
+  });
+
+  if (!migrated) {
+    return { normalized: value, migrated: false };
+  }
+
+  return {
+    normalized: Object.fromEntries(normalizedEntries),
+    migrated: true,
+  };
+}
+
 export function normalizePersistedState(value: unknown): { normalized: unknown; migrated: boolean } {
   if (typeof value !== "object" || value === null) {
     return { normalized: value, migrated: false };
   }
 
-  return {
-    migrated: false,
-    normalized: value,
-  };
+  return migratePersistedLogTokens(value);
 }
 
 export function createInitialState(): PersistedState {

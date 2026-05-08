@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T01:04:15.311Z",
+  "generatedAt": "2026-05-08T01:41:22.795Z",
   "phase": "phase-04-full-enforcement",
   "phaseGateFile": "scripts/audit/phase-gates/phase-04-full-enforcement.json",
   "owners": [
@@ -24,6 +24,7 @@
         "GRASSEYE-MAP-PLUGIN-014-V2",
         "GRASSEYE-MAP-PLUGIN-015-V2",
         "GRASSEYE-MAP-PLUGIN-016-V2",
+        "GRASSEYE-MAP-PLUGIN-018-V2",
         "GRASSEYE-MAP-PLUGIN-017-V2"
       ]
     },

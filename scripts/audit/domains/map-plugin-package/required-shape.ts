@@ -49,6 +49,16 @@ const ACTIVE_RECORD_REQUIRED_FIELDS = [
 ] as const;
 const BUILTIN_INDEX_PATH = `${ROOT}/builtins/index.ts`;
 const BUILTIN_PARSER_PATH = `${ROOT}/builtin-loader/builtin-map-package-parser.ts`;
+const buildFrameSpecificMapTokens = (): string[] =>
+  ["3s", "6s", "10s"].flatMap((framePoint) => [
+    `capture-video-frame-${framePoint}`,
+    `prepare-ai-input-frame-${framePoint}`,
+  ]).concat(
+    ["Frame3s", "Frame6s", "Frame10s"].flatMap((frameRef) => [
+      `screenshotEvidenceRef${frameRef}`,
+      `promptInputRef${frameRef}`,
+    ]),
+  );
 
 const collectMissingTypeFieldFindings = (input: {
   fieldSet: Set<string>;
@@ -123,7 +133,7 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
   const routePlanTransitions = routePlan?.transitions ?? [];
   const judgeTransitions = transitions.filter((transition) => transition.fromStepId === "judge-seeding-video");
   const dependencies = record.mapPackage.dependencies;
-  const requiredAbilityGroups = dependencies?.requiredAbilityGroups ?? [];
+  const requiredCapabilities = dependencies?.requiredCapabilities ?? [];
   const requiredChildCapabilities = dependencies?.requiredChildCapabilities ?? [];
   const hasForbiddenHumanReviewHandoff =
     steps.some((step) => step.stepId === "request-human-review" || step.childCapabilityId === "request-human-review")
@@ -162,22 +172,10 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
     || transition.toStepId === "request-human-review"
   );
   const usesLegacyNextVideoScrollPath =
-    requiredAbilityGroups.includes("mouse-scroll")
+    requiredCapabilities.includes("mouse-scroll")
     || requiredChildCapabilities.includes("observe-next-video-region")
     || requiredChildCapabilities.includes("scroll-browser-viewport");
-  const hasForbiddenMapSamplingInternals =
-    record.text.includes("capture-video-frame-3s")
-    || record.text.includes("capture-video-frame-6s")
-    || record.text.includes("capture-video-frame-10s")
-    || record.text.includes("prepare-ai-input-frame-3s")
-    || record.text.includes("prepare-ai-input-frame-6s")
-    || record.text.includes("prepare-ai-input-frame-10s")
-    || record.text.includes("screenshotEvidenceRefFrame3s")
-    || record.text.includes("screenshotEvidenceRefFrame6s")
-    || record.text.includes("screenshotEvidenceRefFrame10s")
-    || record.text.includes("promptInputRefFrame3s")
-    || record.text.includes("promptInputRefFrame6s")
-    || record.text.includes("promptInputRefFrame10s");
+  const hasForbiddenMapSamplingInternals = buildFrameSpecificMapTokens().some((token) => record.text.includes(token));
   const hasAutomaticNonProductClickPath =
     record.mapPackage.operationalMap.routePlanId === "product-discovery-route-plan.v1"
     && record.mapPackage.operationalMap.mapKind === "routePlanBoundMap"

@@ -1794,6 +1794,63 @@ Required negative proof:
 
 ---
 
+## Law GRASSEYE-MAP-PLUGIN-018-V2
+
+status: active  
+tier: P0  
+capabilityDomain: map-plugin-package  
+enforcementMode: machine-blocking  
+evidenceMode: law+inspector+negative-proof
+
+summary: GrassEye Muscle Memory is the reusable visible-surface instinct layer, constrained to four first-level muscles and separated from Map, AI, Ability Group, and Surface Profile authority.
+
+### 主题
+
+GrassEye Muscle Memory Governance FINAL
+
+### 法条
+
+Muscle Memory is the reusable instinct layer of GrassEye. It is not a map package, prompt owner, AI provider, direct runtime executor, platform-specific script, DOM crawler, or second Orchestration. It owns reusable task instinct composition, routeLabel-to-muscle-segment mapping, cross-surface action pattern reuse, post-AI mechanical action sequence, and visible-surface task instinct abstraction.
+
+Only these four first-level muscle classes are allowed:
+
+1. Visible State Muscle
+2. Target Action Muscle
+3. Evidence Analysis Muscle
+4. Advance Next Item Muscle
+
+Any proposed new first-level muscle must prove it cannot be expressed as a mode, profile, or segment of these four. Default decision is reject.
+
+AI owns visual/page/business meaning: whether a page is correct, login, captcha, safety wall, feed, video, or local-app-ready; whether a video is product-related; whether a comment has purchase intent; whether a UI element is a comments button, next-item affordance, or app control; routeLabel from semantic judgment; and targetCandidate semantic identity.
+
+Muscle Memory may consume AI routeLabel, AI targetCandidateRef, and AI analysis result refs. Muscle Memory must not derive product_yes/product_no from non-AI signals, page_ready from URL/DOM/title, comment_intent from raw text without AI, or next-item success from URL/hash/screenshot diff alone.
+
+Map may bind task identity, platform/profile refs, entry open step, startup AI handoff, product judgment AI handoff, promptContractId, routePlanId, and fail-closed transitions. Map must not own muscle chains, comment chains, target action chains, evidence analysis chains, next-item chains, frame sampling internals, or platform-specific action mechanics.
+
+Route Plan owns routeLabel-to-muscle-memory mapping, composition of the four core muscles, post-AI action sequence, and reusable task instinct chain. Route Plan must not become a second map package, duplicate platform maps, perform semantic judgment, import DOM/BOM, hardcode platform UI meaning as truth, contain raw prompt text, call AI provider directly, or execute mouse/keyboard directly.
+
+Ability Groups execute atomic mechanics: open, screenshot, visual-target validation, geometry guard, mouse click, scroll, text input, post-action verification, and forensics persistence. Ability Groups must not decide business meaning, page meaning, product meaning, comment intent, or routeLabel semantics.
+
+Surface Profile may contain platform id, target profile, supported surface kind, mechanical affordance hints, screenshot policy, rate/safety policy, and target candidate hint fields. Surface Profile must not contain step chains, transitions, routeLabel mapping, prompt text, semantic final decisions, or action fallback scripts.
+
+### 四大核心肌肉
+
+Visible State Muscle opens or observes the target, captures current visible state, prepares AI input, and hands the visible state to AI for readiness/page/app-state judgment. It may call open, screenshot, prepare-ai-input, and AI readiness/page/app-state judgment. It must not decide page correctness, login/captcha/safety status, video readiness, product presence, or local app readiness by itself.
+
+Target Action Muscle consumes AI targetCandidateRef or governed mechanical target profile hints, validates visual/geometry safety, executes mouse click, mouse scroll, or text input, and performs mechanical PAV. It must not decide what an icon, button, or Mac UI element semantically means, infer meaning from DOM/URL/pageStateType, or generate heuristic semantic target candidates.
+
+Evidence Analysis Muscle captures evidence regions, prepares AI/OCR input, sends content to AI analysis, persists evidence, and forms evidence records. Screenshot and Forensics may carry evidence, but they must not judge evidence value or summarize content meaning without AI.
+
+Advance Next Item Muscle finds the next-item affordance through AI target candidate or governed mechanical profile hints, validates geometry, clicks or scrolls, captures the new visible state, and optionally asks AI to verify new-item state. Mouse Scroll, PAV, Route Plan, and Ability Groups must not semantically decide that the content is a new video/item.
+
+### 禁止
+
+Forbidden first-level muscles include TikTokMuscle, FacebookMuscle, YouTubeMuscle, InstagramMuscle, MacMuscle, CommentMuscle, VideoSamplingMuscle, and LocalWindowMuscle. These concepts may only appear as modes, profiles, or segment variations of the four core muscles.
+
+Video evidence sampling is a Visible State Muscle mode. Comment surface evidence is an Evidence Analysis Muscle mode. Local window observation is a Visible State Muscle mode. Next video arrow, swipe, or scroll is an Advance Next Item Muscle profile variation. Mac local app target click is a Target Action Muscle local-window target mode.
+
+---
+
 ## Law GRASSEYE-MAP-PLUGIN-017-V2
 
 status: active  

@@ -22,6 +22,14 @@ export const REQUIRED_MUTATION_NAMES = [
   "seeding map frame-specific ref leakage mutation",
   "seeding map facebook sampling exception reintroduced mutation",
   "seeding map owns product success action chain mutation",
+  "platform-specific muscle mutation",
+  "mac muscle mutation",
+  "profile becomes second map mutation",
+  "map owns muscle segment mutation",
+  "route plan semantic judgment mutation",
+  "ability group semantic judgment mutation",
+  "mac smoke workflow creep mutation",
+  "fifth core muscle mutation",
 ] as const;
 
 export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
@@ -49,6 +57,54 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     file: "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
     search: '      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
     replace: '      {\n        "transitionId": "judge-seeding-video:success",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "success",\n        "toStepId": "observe-comments-button",\n        "finalStatus": null\n      },\n      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
+  },
+  {
+    name: "platform-specific muscle mutation",
+    file: "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
+    search: '      coreMuscle: "visible-state",\n',
+    replace: '      coreMuscle: "tiktok-muscle",\n',
+  },
+  {
+    name: "mac muscle mutation",
+    file: "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
+    search: '      coreMuscle: "target-action",\n',
+    replace: '      coreMuscle: "mac-muscle",\n',
+  },
+  {
+    name: "profile becomes second map mutation",
+    file: "src/capabilities/open/shared/open-target-profile.ts",
+    search: 'export const OPEN_ABILITY_GROUP_ID = "open" as const;\n',
+    replace: 'export const OPEN_ABILITY_GROUP_ID = "open" as const;\nexport const OPEN_PROFILE_SECOND_MAP = { steps: [], transitions: [] } as const;\n',
+  },
+  {
+    name: "map owns muscle segment mutation",
+    file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
+    search: '  "dependencies": {\n',
+    replace: '  "muscleSegments": [\n    {\n      "segmentId": "map-owned-target-action",\n      "coreMuscle": "target-action"\n    }\n  ],\n  "dependencies": {\n',
+  },
+  {
+    name: "route plan semantic judgment mutation",
+    file: "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
+    search: '      stepId: "observe-comments-button",\n',
+    replace: '      stepId: "observe-comments-button",\n      semanticDecision: "product_yes",\n',
+  },
+  {
+    name: "ability group semantic judgment mutation",
+    file: "src/capabilities/visual-target/children/observe-comments-button/implementation.ts",
+    search: '      const request = ObserveCommentsButtonInputSchema.parse(input);\n',
+    replace: '      const isProductVideo = false;\n      const request = ObserveCommentsButtonInputSchema.parse(input);\n',
+  },
+  {
+    name: "mac smoke workflow creep mutation",
+    file: "src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json",
+    search: '      {\n        "stepId": "write-open-handoff-runtime-event",\n',
+    replace: '      {\n        "stepId": "click-local-program-button",\n        "capabilityId": "orchestration",\n        "childCapabilityId": "click-browser-coordinate",\n        "stepKind": "ability",\n        "targetAbilityGroupId": "mouse-click",\n        "inputRefs": [\n          "abilityResultRef"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "abilityResultRef"\n          ]\n        },\n        "promptContractId": null\n      },\n      {\n        "stepId": "write-open-handoff-runtime-event",\n',
+  },
+  {
+    name: "fifth core muscle mutation",
+    file: "src/map-plugins/route-plans/route-plan.schema.ts",
+    search: '  "advance-next-item",\n]);\n',
+    replace: '  "advance-next-item",\n  "workflow-control",\n]);\n',
   },
   {
     name: "delete binary outcome policy from authoring input package mutation",

@@ -6,6 +6,7 @@ import { runAntiEscape } from "./anti-escape.js";
 import { runAuthoringInputPackage } from "./authoring-input-package.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
+import { runMuscleMemoryGovernance } from "./muscle-memory-governance.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShape } from "./required-shape.js";
 import { runScorecardGate } from "./scorecard-gate.js";
@@ -35,7 +36,8 @@ const runDirectGovernancePhases = async (project: ReturnType<typeof createMapPlu
   const forbidden = await runForbiddenShape(project);
   const boundary = runBoundaryAttack(project);
   const startupPreparation = await runStartupPreparationEntrySpine();
-  return { required, authoringInput, forbidden, boundary, startupPreparation };
+  const muscleMemory = await runMuscleMemoryGovernance();
+  return { required, authoringInput, forbidden, boundary, startupPreparation, muscleMemory };
 };
 
 const runSupplementalPhases = async (project: ReturnType<typeof createMapPluginAuditProject>, context: Parameters<DomainInspector>[0]) => {
@@ -85,6 +87,7 @@ const collectFindings = (input: {
   ...input.directPhases.forbidden.findings,
   ...input.directPhases.boundary.findings,
   ...input.directPhases.startupPreparation.findings,
+  ...input.directPhases.muscleMemory.findings,
   ...input.supplementalPhases.antiEscape.findings,
   ...input.supplementalPhases.scorecard.findings,
   ...input.supplementalPhases.integrationPhases.required.findings,
@@ -105,6 +108,7 @@ const collectPhases = (input: {
   input.directPhases.forbidden.phase,
   input.directPhases.boundary.phase,
   input.directPhases.startupPreparation.phase,
+  input.directPhases.muscleMemory.phase,
   input.supplementalPhases.antiEscape.phase,
   input.supplementalPhases.scorecard.phase,
   input.supplementalPhases.integrationPhases.required.phase,

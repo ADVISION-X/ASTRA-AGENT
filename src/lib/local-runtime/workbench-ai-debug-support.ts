@@ -248,16 +248,16 @@ const buildAiDebugPromptFields = (input: WorkbenchAiDebugEvent) => ({
   systemPromptHash: input.systemPromptHash,
   userPromptHash: input.userPromptHash,
   promptPreview: input.promptPreview,
-  promptFullText: input.promptFullText,
+  promptFullText: null,
   promptDebugBundleRef: input.promptDebugBundleRef,
 });
 
 const buildAiDebugResponseFields = (input: WorkbenchAiDebugEvent) => ({
   rawResponsePreview: input.rawResponsePreview,
-  rawResponseText: input.rawResponseText,
+  rawResponseText: null,
   rawResponseHash: input.rawResponseHash,
   rawResponseRef: input.rawResponseRef,
-  parsedJson: input.parsedJson,
+  parsedJson: null,
   parsedDecision: input.parsedDecision,
   parserErrors: input.parserErrors,
 });
@@ -269,14 +269,14 @@ const buildAiDebugMapAuthoringFields = (input: WorkbenchAiDebugEvent) => ({
   capabilityCatalogVersion: input.capabilityCatalogVersion,
   outputSchemaCatalogVersion: input.outputSchemaCatalogVersion,
   mapPackageSchemaVersion: input.mapPackageSchemaVersion,
-  providerRequestBodyRedacted: input.providerRequestBodyRedacted,
+  providerRequestBodyRedacted: null,
   providerRequestDebugRef: input.providerRequestDebugRef,
 });
 
 const buildAiDebugRefFields = (input: WorkbenchAiDebugEvent, artifactRefs: LocalForensicsArtifactRef[]) => ({
   sourceScreenshotEvidenceId: input.sourceScreenshotEvidenceId,
   aiInputArtifactRef: input.aiInputArtifactRef,
-  imageInputs: input.imageInputs,
+  imageInputs: [],
   tokenEstimate: input.tokenEstimate,
   createdAt: new Date().toISOString(),
   refs: input.refs,

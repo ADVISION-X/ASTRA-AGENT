@@ -2,13 +2,14 @@ import type { ServerResponse } from "node:http";
 
 import type { GrassEyeWorkbenchHandle } from "../local-runtime/workbench-handle.js";
 import { writeTaskJsonResponse } from "./task-http-helpers.js";
+import { recordTaskStartDebugEvent } from "./task-start-debug-writer.js";
 import type { MissionStartBinding } from "./task-start-binding.js";
 import type { StartApproval, StartDraft } from "./task-start-types.js";
 
 const toNullableString = (value: string | undefined): string | null => value ?? null;
 
 export async function recordTaskStartDraftEvents(activeWorkbench: GrassEyeWorkbenchHandle, draft: StartDraft, taskTemplateId: string | null) {
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "HUMAN_COMMAND_DRAFTED",
     status: "started",
     traceId: draft.traceId,
@@ -20,7 +21,7 @@ export async function recordTaskStartDraftEvents(activeWorkbench: GrassEyeWorkbe
     actionableMessage: "Persist the governed human-command draft before validation.",
     ownerResponsible: "Commander Console / Local App Shell",
   });
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "HUMAN_COMMAND_RECEIVED",
     status: "started",
     traceId: draft.traceId,
@@ -56,7 +57,7 @@ const recordBindingFailureEvent = async (
   taskTemplateId: string | null,
   binding: Extract<MissionStartBinding, { ok: false }>,
 ) => {
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "COMMAND_REJECTED",
     status: "failed",
     traceId: draft.traceId,
@@ -90,7 +91,7 @@ export async function sendTaskStartBindingFailure(input: {
 }
 
 export async function recordTaskStartPreflightStart(activeWorkbench: GrassEyeWorkbenchHandle, approval: StartApproval) {
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "HUMAN_COMMAND_VALIDATED",
     status: "success",
     traceId: approval.traceId,
@@ -102,7 +103,7 @@ export async function recordTaskStartPreflightStart(activeWorkbench: GrassEyeWor
     actionableMessage: "Run mission preflight before dispatching the governed human command.",
     ownerResponsible: "Commander Console",
   });
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "MISSION_READINESS_CHECK_STARTED",
     status: "started",
     traceId: approval.traceId,
@@ -114,7 +115,7 @@ export async function recordTaskStartPreflightStart(activeWorkbench: GrassEyeWor
     actionableMessage: "Check selected task map binding, browser, local AI, platform target, human goal, and run limits.",
     ownerResponsible: "Commander Console / Orchestration / Map Plugin Registry",
   });
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "MISSION_PREFLIGHT_STARTED",
     status: "started",
     traceId: approval.traceId,
@@ -129,7 +130,7 @@ export async function recordTaskStartPreflightStart(activeWorkbench: GrassEyeWor
 }
 
 export async function recordCommanderEnvelopeBuilt(activeWorkbench: GrassEyeWorkbenchHandle, approval: StartApproval) {
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "COMMANDER_COMMAND_ENVELOPE_BUILT",
     status: "success",
     traceId: approval.traceId,
@@ -144,7 +145,7 @@ export async function recordCommanderEnvelopeBuilt(activeWorkbench: GrassEyeWork
 }
 
 export async function recordTaskStartCommandAccepted(activeWorkbench: GrassEyeWorkbenchHandle, approval: StartApproval) {
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "COMMAND_DISPATCH_READY",
     status: "success",
     traceId: approval.traceId,
@@ -163,7 +164,7 @@ export async function recordTaskStartLocalAiReadiness(
   approval: StartApproval,
   component: { ok?: boolean; detail?: string; actionableMessage?: string; ownerResponsible?: string } | undefined,
 ) {
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "LOCAL_AI_READINESS_STARTED",
     status: "started",
     traceId: approval.traceId,
@@ -179,7 +180,7 @@ export async function recordTaskStartLocalAiReadiness(
     return;
   }
 
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "LOCAL_AI_READINESS_DEGRADED",
     status: "failed",
     traceId: approval.traceId,
@@ -191,7 +192,7 @@ export async function recordTaskStartLocalAiReadiness(
     actionableMessage: toNullableString(component.actionableMessage),
     ownerResponsible: toNullableString(component.ownerResponsible),
   });
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "LOCAL_AI_READINESS_BLOCKING_REASON",
     status: "failed",
     traceId: approval.traceId,
@@ -211,7 +212,7 @@ export async function sendBlockedTaskStartPreflight(
   approval: StartApproval,
   preflight: Awaited<ReturnType<GrassEyeWorkbenchHandle["getMissionStartPreflight"]>>,
 ) {
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "MISSION_PREFLIGHT_FAILED",
     status: "failed",
     traceId: approval.traceId,
@@ -223,7 +224,7 @@ export async function sendBlockedTaskStartPreflight(
     actionableMessage: preflight.nextAction,
     ownerResponsible: preflight.ownerResponsible,
   });
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "COMMAND_REJECTED",
     status: "failed",
     traceId: approval.traceId,

@@ -38,49 +38,64 @@ function hasMultiFramePackagingSchema(multiFrameTypes: ReturnType<typeof getSour
   ].every(Boolean);
 }
 
-function hasProductPresenceTwoFrameBuilder(requestBuilder: ReturnType<typeof getSourceFileOrThrow>): boolean {
+function hasProductPresenceRoutePlanOwnedSamplingBuilder(requestBuilder: ReturnType<typeof getSourceFileOrThrow>): boolean {
   const text = requestBuilder.getFullText();
   return [
-    "PRODUCT_PRESENCE_FRAME_COUNT = 2",
-    "aiInputRefs.length !== PRODUCT_PRESENCE_FRAME_COUNT",
-    "fixed_3_6",
-    "Product-presence AI requires exactly",
+    "route_plan_or_ability_owned_sampling",
+    "aiInputRefs.length > 1 ? \"multi_image\" : \"single_frame_fallback\"",
+    "frameEvidenceIds: inputMode === \"multi_image\" ? aiInputRefs : []",
   ].every((snippet) => text.includes(snippet));
 }
 
-async function collectProductPresenceTwoFrameFindings(): Promise<Finding[]> {
+function forbiddenFrameMapTokens(): string[] {
+  const framePoints = [
+    { step: "3s", ref: "Frame3s" },
+    { step: "6s", ref: "Frame6s" },
+    { step: "10s", ref: "Frame10s" },
+  ] as const;
+  return framePoints.flatMap((framePoint) => [
+    `"stepId": "prepare-ai-input-frame-${framePoint.step}"`,
+    `"stepId": "capture-video-frame-${framePoint.step}"`,
+    `screenshotEvidenceRef${framePoint.ref}`,
+    `promptInputRef${framePoint.ref}`,
+  ]);
+}
+
+async function collectProductPresenceRoutePlanOwnedSamplingFindings(): Promise<Finding[]> {
   const findings: Finding[] = [];
   const project = createAuditProject();
   const requestBuilder = getSourceFileOrThrow(project, WORKBENCH_AI_REQUEST_BUILDER_PATH);
-  if (!hasProductPresenceTwoFrameBuilder(requestBuilder)) {
-    findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_AI_REQUEST_BUILDER_PATH, line: 1, severity: "fatal", message: "Product-presence AI request builder must require exactly two prepared frame inputs and use fixed_3_6 sampling; single-frame fallback is not allowed for product video judgment." }));
+  if (!hasProductPresenceRoutePlanOwnedSamplingBuilder(requestBuilder)) {
+    findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_AI_REQUEST_BUILDER_PATH, line: 1, severity: "fatal", message: "Product-presence AI request builder must consume Route Plan / ability-owned image inputs when available and preserve honest single-frame fallback metadata without hard-coding frame-specific map refs." }));
   }
 
-  const dualFrameMaps = [
+  const seedingMaps = [
     {
       file: TIKTOK_SEEDING_MAP_PATH,
       label: "TikTok seeding-video discovery",
-      startupPrepareStepId: '"stepId": "prepare-ai-input"',
+      openStepId: '"stepId": "open-tiktok-feed"',
     },
     {
       file: FACEBOOK_SEEDING_MAP_PATH,
       label: "Facebook seeding-video discovery",
-      startupPrepareStepId: '"stepId": "prepare-startup-ai-input"',
+      openStepId: '"stepId": "open-facebook-reels"',
     },
   ] as const;
 
-  for (const dualFrameMap of dualFrameMaps) {
-    const mapText = await readFile(pathFromRepoRoot(dualFrameMap.file), "utf8");
+  const forbiddenTokens = forbiddenFrameMapTokens();
+  for (const seedingMap of seedingMaps) {
+    const mapText = await readFile(pathFromRepoRoot(seedingMap.file), "utf8");
+    const leakedTokens = forbiddenTokens.filter((token) => mapText.includes(token));
     if (
-      !mapText.includes('"stepId": "capture-video-viewport"')
-      || !mapText.includes(dualFrameMap.startupPrepareStepId)
-      || !mapText.includes('"stepId": "prepare-ai-input-frame-3s"')
-      || !mapText.includes('"stepId": "capture-video-frame-6s"')
-      || !mapText.includes('"stepId": "prepare-ai-input-frame-6s"')
-      || !mapText.includes("promptInputRefFrame3s")
-      || !mapText.includes("promptInputRefFrame6s")
+      !mapText.includes(seedingMap.openStepId)
+      || !mapText.includes('"stepId": "capture-video-viewport"')
+      || !mapText.includes('"stepId": "prepare-ai-input"')
+      || !mapText.includes('"stepId": "startup-preparation"')
+      || !mapText.includes('"stepId": "judge-seeding-video"')
+      || !mapText.includes('"routePlanId": "product-discovery-route-plan.v1"')
+      || leakedTokens.length > 0
     ) {
-      findings.push(createFinding({ lawId: LAW_ID, file: dualFrameMap.file, line: 1, severity: "fatal", message: `${dualFrameMap.label} must keep Route Plan-compatible first-frame anchors and feed product-presence AI with the governed 3s and 6s prepared frame refs.` }));
+      findings.push(createFinding({ lawId: LAW_ID, file: seedingMap.file, line: 1, severity: "fatal", message: `${seedingMap.label} must remain a weak entry-spine map. Product video sampling is Route Plan / ability-owned, and frame-specific capture or prompt refs must not appear in the production map.`, detail: leakedTokens.join(", ") }));
     }
   }
 
@@ -149,13 +164,13 @@ export async function inspectMultiFrameScreenshotBoundary(repoRoot = pathFromRep
   const schemaPassed = hasMultiFramePackagingSchema(multiFrameTypes);
   const runtimeHonestyPassed = !illegalAgentRuntimeExists;
   const findings = collectScreenshotBoundaryFindings(multiFrameTypes, illegalAgentRuntimeExists, forbiddenTests);
-  findings.push(...await collectProductPresenceTwoFrameFindings());
+  findings.push(...await collectProductPresenceRoutePlanOwnedSamplingFindings());
 
   return {
     findings,
     phases: [
       createPhase("multi-frame-input-packaging", schemaPassed ? "PASS" : "CODE VIOLATION", schemaPassed, schemaPassed ? "Multi-frame screenshot packaging defines governed sampling strategies and evidence-set metadata." : "Multi-frame screenshot packaging is incomplete."),
-      createPhase("multi-frame-runtime-honesty", runtimeHonestyPassed ? "PASS" : "CODE VIOLATION", runtimeHonestyPassed, runtimeHonestyPassed ? "Runtime has governed product-presence fixed_3_6 evidence and still exposes fallback honesty only outside product judgment." : "Runtime is not honestly representing current multi-frame and fallback state."),
+      createPhase("multi-frame-runtime-honesty", runtimeHonestyPassed ? "PASS" : "CODE VIOLATION", runtimeHonestyPassed, runtimeHonestyPassed ? "Runtime keeps multi-frame evidence metadata while production maps stay weak; product sampling must be supplied by Route Plan / ability owners, with fallback honesty preserved." : "Runtime is not honestly representing current multi-frame and fallback state."),
       createPhase("multi-frame-test-boundary", forbiddenTests.length === 0 ? "PASS" : "FAKE ENFORCEMENT", forbiddenTests.length === 0, forbiddenTests.length === 0 ? "Repository contains no tests, __tests__, or *.test.* artifacts." : "Repository contains forbidden test artifacts."),
     ],
   };

@@ -2,6 +2,7 @@ import type { ServerResponse } from "node:http";
 
 import type { GrassEyeWorkbenchHandle } from "../local-runtime/workbench-handle.js";
 import { writeTaskJsonResponse } from "./task-http-helpers.js";
+import { recordTaskStartDebugEvent } from "./task-start-debug-writer.js";
 import type { StartApproval, StartCommandResult } from "./task-start-types.js";
 
 type DispatchResultContext = {
@@ -72,7 +73,7 @@ const recordRejectedDispatch = async (input: {
   result: StartCommandResult;
   context: DispatchResultContext;
 }) => {
-  await input.activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(input.activeWorkbench, {
     eventType: "COMMAND_REJECTED",
     status: input.result.status === "review_required" ? "review_required" : "failed",
     traceId: input.approval.traceId,
@@ -98,7 +99,7 @@ const recordAcceptedObserverTimeout = async (input: {
   result: StartCommandResult;
   context: DispatchResultContext;
 }) => {
-  await input.activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(input.activeWorkbench, {
     eventType: "COMMAND_RECEIPT_TIMEOUT_AFTER_ACCEPTED",
     status: "review_required",
     traceId: input.result.runtimeProof?.runId ?? input.approval.traceId,
@@ -128,7 +129,7 @@ const recordAcceptedDispatch = async (input: {
   context: DispatchResultContext;
 }) => {
   const runId = input.result.runtimeProof?.runId ?? input.approval.traceId;
-  await input.activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(input.activeWorkbench, {
     eventType: "COMMAND_RESPONSE_SENT",
     status: "success",
     traceId: runId,

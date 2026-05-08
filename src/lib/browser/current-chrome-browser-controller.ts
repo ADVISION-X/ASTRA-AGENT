@@ -14,6 +14,7 @@ import { createId } from "../local-runtime/ids.js";
 import {
   activateChrome,
   buildOpenUrlScript,
+  clickAt,
   pressBrowserKey,
   readFrontChromeWindowState,
   runAppleScript,

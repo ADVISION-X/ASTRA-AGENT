@@ -1,4 +1,4 @@
-generatedAt: 2026-05-08T01:04:15.311Z
+generatedAt: 2026-05-08T01:41:22.795Z
 owners:
   - inspectorId: ai-capability-owner
     capabilityDomain: ai-capability
@@ -278,6 +278,7 @@ owners:
       - GRASSEYE-MAP-PLUGIN-014-V2
       - GRASSEYE-MAP-PLUGIN-015-V2
       - GRASSEYE-MAP-PLUGIN-016-V2
+      - GRASSEYE-MAP-PLUGIN-018-V2
       - GRASSEYE-MAP-PLUGIN-017-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md
@@ -288,6 +289,7 @@ owners:
       - "docs/法案辅助文件/GrassEye 地图插件包治理施工图.md"
       - "docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md"
       - "docs/法案辅助文件/GrassEye Map Authoring Input Package 施工图_FINAL.md"
+      - "docs/法案辅助文件/GrassEye Muscle Memory 肌肉记忆治理施工图.md"
       - "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md"
       - "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md"
       - "docs/法案辅助文件/GrassEye 执法系统施工图.md"

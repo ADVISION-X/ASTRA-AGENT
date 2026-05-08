@@ -16,6 +16,16 @@ import { createEvidenceStoreId } from "./evidence-store-runtime-types.js";
 import { persistImageArtifact, type ImageEvidenceInput } from "./evidence-store-artifacts.js";
 import type { EvidenceStoreRecordsContext } from "./evidence-store-record-context.js";
 
+const MAX_RETAINED_STRUCTURED_RUNTIME_EVENTS = 400;
+const MAX_RETAINED_STRUCTURED_ACTION_LOGS = 400;
+
+const retainRecentRecords = <TRecord>(records: TRecord[], maxRecords: number) => {
+  if (records.length <= maxRecords) {
+    return;
+  }
+  records.splice(0, records.length - maxRecords);
+};
+
 export async function saveImageEvidenceRecord(
   ctx: EvidenceStoreRecordsContext,
   input: ImageEvidenceInput,
@@ -96,6 +106,7 @@ export async function saveStructuredRuntimeEventRecord(
   const state = await ctx.listState();
   const parsed = StructuredRuntimeEventSchema.parse(input);
   state.structuredRuntimeEvents.push(parsed);
+  retainRecentRecords(state.structuredRuntimeEvents, MAX_RETAINED_STRUCTURED_RUNTIME_EVENTS);
   await ctx.stateStore.write(state);
   ctx.structuredLogBus?.emitRuntimeEvent(parsed);
   return parsed;
@@ -108,6 +119,7 @@ export async function saveStructuredActionLogRecord(
   const state = await ctx.listState();
   const parsed = StructuredActionLogSchema.parse(input);
   state.structuredActionLogs.push(parsed);
+  retainRecentRecords(state.structuredActionLogs, MAX_RETAINED_STRUCTURED_ACTION_LOGS);
   await ctx.stateStore.write(state);
   ctx.structuredLogBus?.emitActionLog(parsed);
   return parsed;

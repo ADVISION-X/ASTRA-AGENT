@@ -17,4 +17,4 @@ export {
 } from "./product-discovery-route-plan.constants.js";
 export { PRODUCT_DISCOVERY_ROUTE_PLAN } from "./product-discovery-route-plan.v1.js";
 
-export type { RoutePlan, RoutePlanOutcomeOption } from "./route-plan.schema.js";
+export type { CoreMuscle, MuscleSegment, RoutePlan, RoutePlanOutcomeOption } from "./route-plan.schema.js";

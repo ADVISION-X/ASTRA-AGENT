@@ -19,6 +19,7 @@ import {
   sendBlockedTaskStartPreflight,
   sendTaskStartBindingFailure,
 } from "./task-start-support.js";
+import { recordTaskStartDebugEvent } from "./task-start-debug-writer.js";
 import { writeTaskStartDispatchResult } from "./task-start-dispatch-result.js";
 import type { StartApproval, StartDraft, StartTaskBody } from "./task-start-types.js";
 
@@ -93,7 +94,7 @@ const recordMissionPreflightPassed = async (
   approval: StartApproval,
   reason: string,
 ) => {
-  await activeWorkbench.recordCommanderDebugEvent({
+  recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "MISSION_PREFLIGHT_PASSED",
     status: "success",
     traceId: approval.traceId,

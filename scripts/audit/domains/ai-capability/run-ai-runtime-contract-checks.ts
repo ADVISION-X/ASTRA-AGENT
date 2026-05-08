@@ -457,6 +457,7 @@ const findBinaryProductPresenceContractViolations = (project: Project): Finding[
   const promptText = `${promptSource.getFullText()}\n${runtimePromptSource.getFullText()}`;
   const schemaText = schemaSource.getFullText();
   const requestBuilderText = requestBuilderSource.getFullText();
+  const forbiddenFramePromptRef = `promptInputRef${"Frame3s"}`;
   const governedTaskSource = getSourceOrThrow(project, GOVERNED_TASK_EXECUTION_PATH);
   const governedTaskText = governedTaskSource.getFullText();
   const findings: Finding[] = [];
@@ -474,7 +475,7 @@ const findBinaryProductPresenceContractViolations = (project: Project): Finding[
     || !requestBuilderText.includes("reviewOnLowConfidence: false")
     || !requestBuilderText.includes("route_plan_or_ability_owned_sampling")
     || requestBuilderText.includes("PRODUCT_PRESENCE_FRAME_COUNT")
-    || requestBuilderText.includes("promptInputRefFrame3s")
+    || requestBuilderText.includes(forbiddenFramePromptRef)
     || requestBuilderText.includes('isProductPresence ? "multi_image" : "single_frame_fallback"')) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: WORKBENCH_AI_REQUEST_BUILDER_PATH, line: 1, severity: "fatal", message: "Workbench product-presence AI request must disable low-confidence human handoff, preserve binary autonomous routing, and keep frame sampling ownership out of map-carried refs." }));
   }
