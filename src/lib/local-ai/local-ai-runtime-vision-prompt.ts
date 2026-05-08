@@ -62,23 +62,23 @@ const buildVisionOutputTemplate = (request: VisionProductPresenceRequest) => ({
 export const buildVisionPromptParts = (request: VisionProductPresenceRequest): VisionPromptParts => {
   const contract = VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT;
   const expectedFrameLabels = resolveExpectedFrameLabels(request);
+  const evidenceMetadata = {
+    inputMode: request.input.inputMode,
+    sampledFrameCount: request.input.sampledFrameCount,
+    validFrameCount: request.input.validFrameCount,
+    expectedFrameCount: request.input.expectedFrameCount,
+    frameLabels: expectedFrameLabels,
+  };
   const userPrompt = [
-    "Every key in the required schema is mandatory. The product-presence route is binary: decision must be product_yes or product_no.",
-    `routeLabel is mandatory and must come from the selected binary options: product_yes => ${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}; product_no => ${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}.`,
-    "nonExecutableSummary is mandatory and may only summarize evidence for logging. It must not introduce a third path, a human-review path, or any executable click/scroll/type instruction.",
-    "confidence must be your own calibrated estimate as a JSON number from 0 to 1 based only on visible evidence; do not copy any placeholder or example value.",
-    "Do not reserve confidence around 0.5 to avoid deciding. If evidence is ambiguous, blocked, too partial, text-only, or not enough to prove product presence, choose product_no with lower confidence and describe the limitation.",
-    `If the sampled evidence clearly shows no concrete product being demonstrated, featured, used, unboxed, compared, worn, held, installed, assembled, displayed for sale, or presented, return isProductVideo=false, decision=product_no, routeLabel=${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}, and mustReview=false.`,
-    "For decision=product_no, isProductVideo must be false. For decision=product_yes, isProductVideo must be true.",
-    "Never return product_uncertain, review_required, null decision, skip_or_operator_review, or mustReview=true for this automated discovery task.",
-    "Use uncertainty only as explanatory evidence for why a product_no decision was chosen; uncertainty must never request human review.",
-    "Never copy instructional placeholder text into uncertainty, evidenceObservations, reason, aggregateReason, or frameLevelObservations.",
-    `frameLevelObservations[].frameLabel must use only these labels: ${expectedFrameLabels.join(", ")}.`,
-    "frameLevelObservations[].hasVisibleProduct must be true, false, or null.",
-    `Return JSON matching this schema: ${JSON.stringify(contract.requiredOutputSchema)}`,
+    "Binary route only: decision must be product_yes or product_no, and every required key must be present.",
+    `routeLabel is mandatory: product_yes => ${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}; product_no => ${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}.`,
+    "Use only the visible sampled evidence. One clearly visible product frame is enough for product_yes; do not require all frames to show the product.",
+    "If a concrete product is clearly being demonstrated, displayed, used, unboxed, compared, worn, held, installed, assembled, or shown for sale, return decision=product_yes, isProductVideo=true, and list the visible product types.",
+    `If the sampled evidence does not visibly show that kind of product presentation, return decision=product_no, isProductVideo=false, routeLabel=${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}, and explain the missing visual proof.`,
+    "nonExecutableSummary is logging-only. confidence must be a JSON number from 0 to 1. mustReview must stay false. uncertainty may explain a no decision but must never become a third branch.",
+    "Never copy placeholders into confidence, evidenceObservations, reason, aggregateReason, uncertainty, or frameLevelObservations.",
+    `Evidence metadata: ${JSON.stringify(evidenceMetadata)}`,
     `Return JSON structurally similar to this template: ${JSON.stringify(buildVisionOutputTemplate(request))}`,
-    `Task input: ${JSON.stringify(request.input)}`,
-    `Forbidden outputs: ${contract.forbiddenOutputs.join("; ")}`,
   ].join("\n\n");
 
   return {
