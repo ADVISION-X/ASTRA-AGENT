@@ -88,7 +88,7 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS: RoutePlan["steps"] = [
     stepKind: "ability",
     targetAbilityGroupId: "visual-target",
     inputRefs: ["screenshotEvidenceRef", "aiTargetCandidateRef", "sourceAiResultRef"],
-    outputRefPolicy: { storeAs: ["visualTargetRef", "sourceVisualTargetResultRef", "nextItemTargetCandidateRef"] },
+    outputRefPolicy: { storeAs: ["visualTargetRef", "nextItemTargetCandidateRef"] },
     promptContractId: null,
   },
   {
