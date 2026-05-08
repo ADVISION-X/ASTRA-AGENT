@@ -4,6 +4,8 @@ import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./work
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
 import { resolveScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
 
+const BOOTSTRAP_CAPTURE_SAMPLE_DELAY_MS = 5_000;
+
 function resolveTransportTimeoutMs(envelope: AbilityCommandEnvelope) {
   const startedAt = Date.parse(envelope.createdAt);
   const expiresAt = Date.parse(envelope.expiresAt);
@@ -104,6 +106,7 @@ function buildCaptureBrowserViewportCommand(
   return {
     ...buildScreenshotCommonFields(envelope, inputPayload),
     childCapabilityId: "capture-browser-viewport",
+    sampleDelayMs: capturePolicy ? BOOTSTRAP_CAPTURE_SAMPLE_DELAY_MS : null,
     source: {
       kind: "browser_viewport",
       pageUrl: payloadValueToString(payload.targetUrl),
