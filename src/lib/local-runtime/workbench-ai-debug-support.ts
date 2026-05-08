@@ -254,10 +254,12 @@ const buildAiDebugPromptFields = (input: WorkbenchAiDebugEvent) => ({
 
 const buildAiDebugResponseFields = (input: WorkbenchAiDebugEvent) => ({
   rawResponsePreview: input.rawResponsePreview,
-  rawResponseText: null,
+  rawResponseText: input.eventType === "AI_RAW_RESPONSE_DEBUG" ? input.rawResponseText : null,
   rawResponseHash: input.rawResponseHash,
   rawResponseRef: input.rawResponseRef,
-  parsedJson: null,
+  parsedJson: input.eventType === "AI_RESPONSE_DEBUG" || input.eventType === "AI_NORMALIZED_RESPONSE_DEBUG"
+    ? input.parsedJson
+    : null,
   parsedDecision: input.parsedDecision,
   parserErrors: input.parserErrors,
 });

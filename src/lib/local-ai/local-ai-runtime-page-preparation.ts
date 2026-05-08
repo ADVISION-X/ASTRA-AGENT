@@ -14,10 +14,76 @@ const isRecord = (value: unknown): value is JsonRecord => typeof value === "obje
 const toStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.length > 0) : [];
 
-const resolveDecision = (value: JsonRecord): "yes" | "no" => value.decision === "yes" ? "yes" : "no";
+const normalizeToken = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
 
-const resolveRouteLabel = (decision: "yes" | "no") =>
-  decision === "yes" ? STARTUP_PREPARATION_READY_ROUTE_LABEL : STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL;
+  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/gu, "-").replace(/^-+|-+$/gu, "");
+  return normalized.length > 0 ? normalized : null;
+};
+
+const READY_ROUTE_TOKEN = normalizeToken(STARTUP_PREPARATION_READY_ROUTE_LABEL);
+const BLOCKED_ROUTE_TOKEN = normalizeToken(STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL);
+
+const YES_DECISION_TOKENS = new Set<string>([
+  "yes",
+  "ready",
+  "prepared",
+  "pass",
+  "passed",
+  "proceed",
+  "proceedable",
+  "ok",
+  READY_ROUTE_TOKEN ?? STARTUP_PREPARATION_READY_ROUTE_LABEL,
+]);
+
+const NO_DECISION_TOKENS = new Set<string>([
+  "no",
+  "blocked",
+  "not-ready",
+  "notready",
+  "fail",
+  "failed",
+  "stop",
+  "reject",
+  BLOCKED_ROUTE_TOKEN ?? STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
+]);
+
+const resolveExplicitRouteLabel = (value: JsonRecord) => {
+  const routeToken = normalizeToken(value.routeLabel);
+  if (routeToken === READY_ROUTE_TOKEN) {
+    return STARTUP_PREPARATION_READY_ROUTE_LABEL;
+  }
+  if (routeToken === BLOCKED_ROUTE_TOKEN) {
+    return STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL;
+  }
+  return null;
+};
+
+const resolveDecision = (value: JsonRecord): "yes" | "no" => {
+  const explicitRouteLabel = resolveExplicitRouteLabel(value);
+  if (explicitRouteLabel === STARTUP_PREPARATION_READY_ROUTE_LABEL) {
+    return "yes";
+  }
+  if (explicitRouteLabel === STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL) {
+    return "no";
+  }
+
+  const decisionToken = normalizeToken(value.decision);
+  if (decisionToken && YES_DECISION_TOKENS.has(decisionToken)) {
+    return "yes";
+  }
+  if (decisionToken && NO_DECISION_TOKENS.has(decisionToken)) {
+    return "no";
+  }
+
+  return "no";
+};
+
+const resolveRouteLabel = (value: JsonRecord, decision: "yes" | "no") =>
+  resolveExplicitRouteLabel(value)
+  ?? (decision === "yes" ? STARTUP_PREPARATION_READY_ROUTE_LABEL : STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL);
 
 const resolveSummary = (value: JsonRecord, decision: "yes" | "no") => {
   if (typeof value.nonExecutableSummary === "string" && value.nonExecutableSummary.length > 0) {
@@ -62,7 +128,7 @@ export function parsePagePreparationRuntimeOutput(
     promptVersion: "v1",
     schemaVersion: "vision.pagePreparation.schema.v1",
     decision,
-    routeLabel: resolveRouteLabel(decision),
+    routeLabel: resolveRouteLabel(raw, decision),
     nonExecutableSummary: resolveSummary(raw, decision),
     confidence: resolveConfidence(raw),
     reason: resolveReason(raw, decision),
