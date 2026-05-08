@@ -110,7 +110,7 @@ const buildInputDebugBase = (
   fields: InputDebugFields,
   identity: ReturnType<typeof buildInputDebugIdentity>,
 ): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "runId" | "roundId" | "videoVisitId" | "stepId" | "mapPackageId" | "mapPackageVersion" | "selectedMapId" | "selectedMapVersion" | "activationSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId" | "inputRef" | "idempotencyKey" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => ({
-  eventType: "AI_REQUEST_DEBUG",
+  eventType: "AI_INPUT_REQUEST_DEBUG",
   level: "DEBUG",
   status: "started",
   sessionId: fields.sessionId,
@@ -175,7 +175,8 @@ const buildInputDebugPrompt = (
 const buildInputDebugOutput = (
   fields: InputDebugFields,
 ): Pick<AiRuntimeStructuredDebugEvent, "rawResponsePreview" | "rawResponseText" | "rawResponseHash" | "rawResponseRef" | "parsedJson" | "parsedDecision" | "parserErrors" | "sourceScreenshotEvidenceId" | "aiInputArtifactRef" | "imageInputs" | "tokenEstimate" | "durationMs"> => {
-  const proof = resolveAiInputProofSummary(fields.refs[0]);
+  const proofs = fields.refs.map((ref) => resolveAiInputProofSummary(ref)).filter((proof): proof is NonNullable<ReturnType<typeof resolveAiInputProofSummary>> => proof !== null);
+  const firstProof = proofs[0];
   return {
     rawResponsePreview: null,
     rawResponseText: null,
@@ -184,9 +185,9 @@ const buildInputDebugOutput = (
     parsedJson: null,
     parsedDecision: null,
     parserErrors: [],
-    sourceScreenshotEvidenceId: proof?.sourceScreenshotEvidenceId ?? fields.refs[0] ?? null,
-    aiInputArtifactRef: proof?.aiInputArtifactRef ?? fields.refs[0] ?? null,
-    imageInputs: proof ? [{
+    sourceScreenshotEvidenceId: firstProof?.sourceScreenshotEvidenceId ?? fields.refs[0] ?? null,
+    aiInputArtifactRef: firstProof?.aiInputArtifactRef ?? fields.refs[0] ?? null,
+    imageInputs: proofs.map((proof) => ({
       refId: proof.promptInputRef,
       artifactRef: proof.aiInputArtifactRef,
       filePath: proof.aiInputStorageRef,
@@ -194,7 +195,7 @@ const buildInputDebugOutput = (
       bytes: null,
       width: proof.preparedImageWidth,
       height: proof.preparedImageHeight,
-    }] : [],
+    })),
     tokenEstimate: null,
     durationMs: null,
   };

@@ -9,6 +9,7 @@ export const captureBrowserViewportChildCapability: CaptureBrowserViewportChildC
       operation: "browser-viewport",
       regionLabel: request.purpose,
       contentLines: request.contentLines,
+      sampleDelayMs: request.sampleDelayMs,
     });
   },
 };

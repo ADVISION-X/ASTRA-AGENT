@@ -9,7 +9,6 @@ import {
 
 const PAGE_PREPARATION_TASK_TYPE = "page_preparation_judgment";
 const PRODUCT_PRESENCE_TASK_TYPE = "product_presence_judgment";
-const PRODUCT_PRESENCE_MIN_CONFIDENCE = 0.6;
 
 export const describeFailureReason = (
   failureReason: string | { code?: string; message?: string; detail?: string | null } | null | undefined,
@@ -48,7 +47,6 @@ const isPagePreparationOutput = (
 const resolveProductPresenceReviewReason = (input: {
   reviewRequiredReason: string | null | undefined;
   mustReview: boolean;
-  lowConfidence: boolean;
   isProductVideo: boolean | null;
 }) => {
   if (input.reviewRequiredReason) {
@@ -56,9 +54,6 @@ const resolveProductPresenceReviewReason = (input: {
   }
   if (input.mustReview) {
     return "product_presence_requires_human_review";
-  }
-  if (input.lowConfidence) {
-    return "product_presence_low_confidence";
   }
   if (input.isProductVideo === null) {
     return "product_presence_uncertain";
@@ -141,7 +136,6 @@ const buildProductPresenceFailedDecision = (output: { isProductVideo: boolean | 
 const buildProductPresenceReviewDecision = (input: {
   reviewRequiredReason: string | null | undefined;
   mustReview: boolean;
-  lowConfidence: boolean;
   isProductVideo: boolean | null;
 }) => {
   return {
@@ -157,11 +151,9 @@ const buildProductPresenceReviewDecision = (input: {
 
 const resolveProductPresenceDecision = (input: {
   status: "success" | "failed" | "review_required";
-  confidence: number | null;
   reviewRequiredReason: string | null | undefined;
   output: { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nonExecutableSummary?: string };
 }) => {
-  const lowConfidence = input.confidence === null || input.confidence < PRODUCT_PRESENCE_MIN_CONFIDENCE;
   const { isProductVideo, mustReview } = input.output;
   if (input.status === "failed") {
     return buildProductPresenceFailedDecision({ isProductVideo, mustReview });
@@ -209,7 +201,6 @@ export const resolveWorkbenchAiDecision = (input: {
 
   return resolveProductPresenceDecision({
     status: input.status,
-    confidence: input.confidence,
     reviewRequiredReason: input.reviewRequiredReason,
     output: input.output,
   });

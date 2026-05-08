@@ -11,6 +11,7 @@ const { ROOT } = MAP_PLUGIN_PATHS;
 const STARTUP_PREPARATION_PROMPT_CONTRACT_ID = "vision.pagePreparation.v1";
 const STARTUP_PREPARATION_CHILD_CAPABILITY_ID = "page-preparation-judgment";
 const STARTUP_PREPARATION_OUTPUT_SCHEMA_REF = "ai.page_preparation_judgment.v1";
+const FACEBOOK_STARTUP_PREPARE_STEP_ID = "prepare-startup-ai-input";
 const TARGET_PACKAGE_IDS = [
   "builtin.facebook-seeding-video-discovery",
   "builtin.tiktok-seeding-video-discovery",
@@ -39,6 +40,8 @@ const inspectSeedingStartupPreparation = (packageId: string): Finding[] => {
   const file = toMapFile(packageId);
   const steps = new Map(mapPackage.operationalMap.steps.map((step) => [step.stepId, step]));
   const startupPreparationStep = steps.get("startup-preparation");
+  const isFacebook = packageId === "builtin.facebook-seeding-video-discovery";
+  const startupPrepareStep = steps.get(isFacebook ? FACEBOOK_STARTUP_PREPARE_STEP_ID : "prepare-ai-input");
   if (!startupPreparationStep) {
     findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "Seeding map must declare startup-preparation AI step after prepare-ai-input." }));
   } else if (
@@ -48,12 +51,15 @@ const inspectSeedingStartupPreparation = (packageId: string): Finding[] => {
   ) {
     findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "startup-preparation step must be AI-owned page-preparation-judgment bound to vision.pagePreparation.v1." }));
   }
+  if (!startupPrepareStep || !startupPrepareStep.outputRefPolicy.storeAs.includes("promptInputRef")) {
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "Startup preparation must receive its own promptInputRef from a dedicated prepare-ai-input step." }));
+  }
 
   const transitions = mapPackage.operationalMap.transitions;
   const requiredTransitions = [
     {
-      transitionId: "prepare-ai-input:success",
-      fromStepId: "prepare-ai-input",
+      transitionId: isFacebook ? `${FACEBOOK_STARTUP_PREPARE_STEP_ID}:success` : "prepare-ai-input:success",
+      fromStepId: isFacebook ? FACEBOOK_STARTUP_PREPARE_STEP_ID : "prepare-ai-input",
       onStatus: "success",
       toStepId: "startup-preparation",
       finalStatus: null,
@@ -62,9 +68,18 @@ const inspectSeedingStartupPreparation = (packageId: string): Finding[] => {
       transitionId: `startup-preparation:${STARTUP_PREPARATION_READY_ROUTE_LABEL}`,
       fromStepId: "startup-preparation",
       onStatus: "success",
-      toStepId: "judge-seeding-video",
+      toStepId: isFacebook ? "prepare-ai-input-frame-3s" : "judge-seeding-video",
       finalStatus: null,
     },
+    ...(isFacebook ? [
+      {
+        transitionId: "prepare-ai-input-frame-3s:success",
+        fromStepId: "prepare-ai-input-frame-3s",
+        onStatus: "success",
+        toStepId: "capture-video-frame-6s",
+        finalStatus: null,
+      },
+    ] : []),
     {
       transitionId: `startup-preparation:${STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL}`,
       fromStepId: "startup-preparation",

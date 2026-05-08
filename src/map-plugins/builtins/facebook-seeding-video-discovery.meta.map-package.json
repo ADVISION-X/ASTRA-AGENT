@@ -84,19 +84,20 @@
         ],
         "outputRefPolicy": {
           "storeAs": [
-            "screenshotEvidenceRef"
+            "screenshotEvidenceRef",
+            "screenshotEvidenceRefFrame3s"
           ]
         },
         "promptContractId": null
       },
       {
-        "stepId": "prepare-ai-input",
+        "stepId": "prepare-startup-ai-input",
         "capabilityId": "orchestration",
         "childCapabilityId": "prepare-ai-input",
         "stepKind": "ability",
         "targetAbilityGroupId": "screenshot",
         "inputRefs": [
-          "screenshotEvidenceRef"
+          "screenshotEvidenceRefFrame3s"
         ],
         "outputRefPolicy": {
           "storeAs": [
@@ -122,13 +123,63 @@
         "promptContractId": "vision.pagePreparation.v1"
       },
       {
+        "stepId": "prepare-ai-input-frame-3s",
+        "capabilityId": "orchestration",
+        "childCapabilityId": "prepare-ai-input",
+        "stepKind": "ability",
+        "targetAbilityGroupId": "screenshot",
+        "inputRefs": [
+          "screenshotEvidenceRefFrame3s"
+        ],
+        "outputRefPolicy": {
+          "storeAs": [
+            "promptInputRefFrame3s"
+          ]
+        },
+        "promptContractId": null
+      },
+      {
+        "stepId": "capture-video-frame-6s",
+        "capabilityId": "orchestration",
+        "childCapabilityId": "capture-browser-viewport",
+        "stepKind": "ability",
+        "targetAbilityGroupId": "screenshot",
+        "inputRefs": [
+          "targetUrl",
+          "targetTitle"
+        ],
+        "outputRefPolicy": {
+          "storeAs": [
+            "screenshotEvidenceRefFrame6s"
+          ]
+        },
+        "promptContractId": null
+      },
+      {
+        "stepId": "prepare-ai-input-frame-6s",
+        "capabilityId": "orchestration",
+        "childCapabilityId": "prepare-ai-input",
+        "stepKind": "ability",
+        "targetAbilityGroupId": "screenshot",
+        "inputRefs": [
+          "screenshotEvidenceRefFrame6s"
+        ],
+        "outputRefPolicy": {
+          "storeAs": [
+            "promptInputRefFrame6s"
+          ]
+        },
+        "promptContractId": null
+      },
+      {
         "stepId": "judge-seeding-video",
         "capabilityId": "orchestration",
         "childCapabilityId": "product-presence-judgment",
         "stepKind": "ai",
         "targetAbilityGroupId": "ai",
         "inputRefs": [
-          "promptInputRef"
+          "promptInputRefFrame3s",
+          "promptInputRefFrame6s"
         ],
         "outputRefPolicy": {
           "storeAs": [
@@ -157,7 +208,7 @@
         "transitionId": "capture-video-viewport:success",
         "fromStepId": "capture-video-viewport",
         "onStatus": "success",
-        "toStepId": "prepare-ai-input",
+        "toStepId": "prepare-startup-ai-input",
         "finalStatus": null
       },
       {
@@ -168,15 +219,15 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "prepare-ai-input:success",
-        "fromStepId": "prepare-ai-input",
+        "transitionId": "prepare-startup-ai-input:success",
+        "fromStepId": "prepare-startup-ai-input",
         "onStatus": "success",
         "toStepId": "startup-preparation",
         "finalStatus": null
       },
       {
-        "transitionId": "prepare-ai-input:failed",
-        "fromStepId": "prepare-ai-input",
+        "transitionId": "prepare-startup-ai-input:failed",
+        "fromStepId": "prepare-startup-ai-input",
         "onStatus": "failed",
         "toStepId": null,
         "finalStatus": "failed"
@@ -185,7 +236,7 @@
         "transitionId": "startup-preparation:startup-ready-for-seeding-judgment",
         "fromStepId": "startup-preparation",
         "onStatus": "success",
-        "toStepId": "judge-seeding-video",
+        "toStepId": "prepare-ai-input-frame-3s",
         "finalStatus": null
       },
       {
@@ -198,6 +249,48 @@
       {
         "transitionId": "startup-preparation:failed",
         "fromStepId": "startup-preparation",
+        "onStatus": "failed",
+        "toStepId": null,
+        "finalStatus": "failed"
+      },
+      {
+        "transitionId": "prepare-ai-input-frame-3s:success",
+        "fromStepId": "prepare-ai-input-frame-3s",
+        "onStatus": "success",
+        "toStepId": "capture-video-frame-6s",
+        "finalStatus": null
+      },
+      {
+        "transitionId": "prepare-ai-input-frame-3s:failed",
+        "fromStepId": "prepare-ai-input-frame-3s",
+        "onStatus": "failed",
+        "toStepId": null,
+        "finalStatus": "failed"
+      },
+      {
+        "transitionId": "capture-video-frame-6s:success",
+        "fromStepId": "capture-video-frame-6s",
+        "onStatus": "success",
+        "toStepId": "prepare-ai-input-frame-6s",
+        "finalStatus": null
+      },
+      {
+        "transitionId": "capture-video-frame-6s:failed",
+        "fromStepId": "capture-video-frame-6s",
+        "onStatus": "failed",
+        "toStepId": null,
+        "finalStatus": "failed"
+      },
+      {
+        "transitionId": "prepare-ai-input-frame-6s:success",
+        "fromStepId": "prepare-ai-input-frame-6s",
+        "onStatus": "success",
+        "toStepId": "judge-seeding-video",
+        "finalStatus": null
+      },
+      {
+        "transitionId": "prepare-ai-input-frame-6s:failed",
+        "fromStepId": "prepare-ai-input-frame-6s",
         "onStatus": "failed",
         "toStepId": null,
         "finalStatus": "failed"
@@ -300,7 +393,8 @@
         "stepId": "judge-seeding-video",
         "promptContractId": "vision.productPresence.v1",
         "requiredInputRefs": [
-          "promptInputRef"
+          "promptInputRefFrame3s",
+          "promptInputRefFrame6s"
         ],
         "outputSchemaRef": "ai.product_presence_judgment.v1"
       }

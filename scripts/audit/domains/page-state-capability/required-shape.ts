@@ -69,6 +69,29 @@ function resolveZodObjectLiteral(node: Node | undefined): ObjectLiteralExpressio
   return Node.isPropertyAccessExpression(expression) ? resolveZodObjectLiteral(expression.getExpression()) : null;
 }
 
+function resolveZodDiscriminatedUnionObjectLiterals(node: Node | undefined): ObjectLiteralExpression[] {
+  if (!node || !Node.isCallExpression(node)) {
+    return [];
+  }
+
+  const expression = node.getExpression();
+  if (Node.isPropertyAccessExpression(expression) && expression.getExpression().getText() === "z" && expression.getName() === "discriminatedUnion") {
+    const [, variants] = node.getArguments();
+    if (!Node.isArrayLiteralExpression(variants)) {
+      return [];
+    }
+
+    return variants.getElements().flatMap((variant) => {
+      const objectLiteral = resolveZodObjectLiteral(variant);
+      return objectLiteral ? [objectLiteral] : [];
+    });
+  }
+
+  return Node.isPropertyAccessExpression(expression)
+    ? resolveZodDiscriminatedUnionObjectLiterals(expression.getExpression())
+    : [];
+}
+
 function getSchemaFields(project: Project, schemaName: string): Set<string> {
   const schemaSource = getSource(project, `${ROOT}/schema.ts`);
   const initializer = schemaSource.getVariableDeclaration(schemaName)?.getInitializer();
@@ -85,8 +108,17 @@ function getSchemaFields(project: Project, schemaName: string): Set<string> {
   }));
 }
 
-function countPropertyAssignments(sourceFile: SourceFile, propertyName: string): number {
-  return sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).filter((property) => property.getName() === propertyName).length;
+function getDiscriminatedUnionVariantFieldSets(project: Project, schemaName: string): Set<string>[] {
+  const schemaSource = getSource(project, `${ROOT}/schema.ts`);
+  const initializer = schemaSource.getVariableDeclaration(schemaName)?.getInitializer();
+  return resolveZodDiscriminatedUnionObjectLiterals(initializer).map((objectLiteral) =>
+    new Set(objectLiteral.getProperties().flatMap((property) => {
+      if (Node.isPropertyAssignment(property) || Node.isShorthandPropertyAssignment(property)) {
+        return [property.getName()];
+      }
+      return [];
+    })),
+  );
 }
 
 function getMissingRequiredFields(fieldSet: Set<string>, requiredFields: readonly string[]): string[] {
@@ -131,6 +163,8 @@ const inspectSchemaShape = (project: Project): Finding[] => {
   const findings: Finding[] = [];
   const schemaSource = getSource(project, `${ROOT}/schema.ts`);
   const childIds = getZodEnumValues(schemaSource, "PageStateChildCapabilityIdSchema");
+  const snapshotFields = getSchemaFields(project, "PageStateSnapshotSchema");
+  const observationVariantFieldSets = getDiscriminatedUnionVariantFieldSets(project, "PageStateObservationSchema");
 
   if (childIds.sort().join(",") !== [...CHILDREN].sort().join(",")) {
     findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-007-V2", file: `${ROOT}/schema.ts`, line: 1, severity: "fatal", message: "Page State schema child ids must match the frozen child registry." }));
@@ -140,12 +174,12 @@ const inspectSchemaShape = (project: Project): Finding[] => {
     findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2", file: `${ROOT}/schema.ts`, line: 1, severity: "fatal", message: "Page State schema must expose governed input/result/proof shapes." }));
   }
 
-  if (countPropertyAssignments(schemaSource, "sourceProofRef") < 7) {
+  if (!snapshotFields.has("sourceProofRef") || observationVariantFieldSets.length === 0 || observationVariantFieldSets.some((fieldSet) => !fieldSet.has("sourceProofRef"))) {
     findings.push(createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-004-V2", file: `${ROOT}/schema.ts`, line: 1, severity: "fatal", message: "Page State schema must retain sourceProofRef on snapshot and every governed observation shape." }));
   }
 
   findings.push(...createMissingFieldFindings({ file: `${ROOT}/schema.ts`, lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", scope: "PageStateAbilityInputSchema", fieldSet: getSchemaFields(project, "PageStateAbilityInputSchema"), requiredFields: INPUT_CHAIN_FIELDS }));
-  findings.push(...createMissingFieldFindings({ file: `${ROOT}/schema.ts`, lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", scope: "PageStateSnapshotSchema", fieldSet: getSchemaFields(project, "PageStateSnapshotSchema"), requiredFields: ["currentUrl", "sourceProofRef"] }));
+  findings.push(...createMissingFieldFindings({ file: `${ROOT}/schema.ts`, lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", scope: "PageStateSnapshotSchema", fieldSet: snapshotFields, requiredFields: ["currentUrl", "sourceProofRef"] }));
   findings.push(...createMissingFieldFindings({ file: `${ROOT}/schema.ts`, lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", scope: "PageStateOpenHandoffPolicySchema", fieldSet: getSchemaFields(project, "PageStateOpenHandoffPolicySchema"), requiredFields: ["openProofRef", "browserSessionRef", "platformProfileId"] }));
   findings.push(...createMissingFieldFindings({ file: `${ROOT}/schema.ts`, lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2", scope: "PageStateRuntimeProofSchema", fieldSet: getSchemaFields(project, "PageStateRuntimeProofSchema"), requiredFields: RUNTIME_PROOF_CHAIN_FIELDS }));
   findings.push(...createMissingFieldFindings({ file: `${ROOT}/schema.ts`, lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", scope: "PageStateAbilityResultSchema", fieldSet: getSchemaFields(project, "PageStateAbilityResultSchema"), requiredFields: RESULT_CHAIN_FIELDS }));

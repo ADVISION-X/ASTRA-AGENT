@@ -372,6 +372,7 @@ const AiDispatchFailureEnvelopeSchema = z.object({
 const AiAbilityOutcomeSchema = z.union([AiResultSchema, AiDispatchFailureEnvelopeSchema]);
 
 const LocalVisionAiResultSchema = z.union([
+  PagePreparationJudgmentResultSchema,
   ProductPresenceJudgmentResultSchema,
   VisualObservationResultSchema,
   VisualTargetCandidateAnalysisResultSchema,

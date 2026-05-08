@@ -31,7 +31,7 @@ function hashText(value: string): string {
 }
 
 function isFullAiIoDebugEnabled(): boolean {
-  return process.env.GRASSEYE_DEBUG_AI_IO === "full";
+  return true;
 }
 
 function truncatePreview(value: string, maxLength = 220): string {

@@ -16,6 +16,7 @@ type WorkbenchAiExecuteInput = Parameters<import("./workbench-contract.js").Work
 
 const PAGE_PREPARATION_TASK_TYPE = "page_preparation_judgment";
 const PRODUCT_PRESENCE_TASK_TYPE = "product_presence_judgment";
+const PRODUCT_PRESENCE_FRAME_COUNT = 2;
 const SUPPORTED_WORKBENCH_AI_TASK_TYPES = [
   "page_preparation_judgment",
   "product_presence_judgment",
@@ -76,8 +77,12 @@ const buildVisionImageCollectionInputPayload = (
   const proof = resolveAiInputProofSummary(preparedInputRef) ?? null;
   const screenshotEvidenceId = proof?.sourceScreenshotEvidenceId ?? payloadValueToString(payload.screenshotEvidenceRef) ?? preparedInputRef;
   const aiInputRefs = envelope.aiInputRefs.length > 0 ? envelope.aiInputRefs : (preparedInputRef ? [preparedInputRef] : []);
-  const inputMode = aiInputRefs.length > 1 ? "multi_image" : "single_frame_fallback";
-  const samplingStrategy = aiInputRefs.length > 1 ? "adaptive_short_video" : "single_frame_fallback";
+  const isProductPresence = envelope.taskType === PRODUCT_PRESENCE_TASK_TYPE;
+  if (isProductPresence && aiInputRefs.length !== PRODUCT_PRESENCE_FRAME_COUNT) {
+    throw new Error(`Product-presence AI requires exactly ${PRODUCT_PRESENCE_FRAME_COUNT} prepared frame inputs at 3s and 6s.`);
+  }
+  const inputMode = isProductPresence || aiInputRefs.length > 1 ? "multi_image" : "single_frame_fallback";
+  const samplingStrategy = isProductPresence ? "fixed_3_6" : aiInputRefs.length > 1 ? "adaptive_short_video" : "single_frame_fallback";
 
   return {
     inputMode,
@@ -88,9 +93,9 @@ const buildVisionImageCollectionInputPayload = (
     screenshotRegion: null,
     sourceUrl: payloadValueToString(payload.targetUrl) ?? "workbench://local-runtime/product-presence",
     samplingStrategy,
-    sampledFrameCount: Math.max(aiInputRefs.length, 1),
+    sampledFrameCount: isProductPresence ? PRODUCT_PRESENCE_FRAME_COUNT : Math.max(aiInputRefs.length, 1),
     validFrameCount: aiInputRefs.length,
-    expectedFrameCount: Math.max(aiInputRefs.length, 1),
+    expectedFrameCount: isProductPresence ? PRODUCT_PRESENCE_FRAME_COUNT : Math.max(aiInputRefs.length, 1),
     fallbackReason: inputMode === "single_frame_fallback" ? "workbench_single_frame_dispatch" : null,
     missingFrames: [],
     summary: inputPayload.summary,
@@ -143,9 +148,20 @@ const resolveWorkbenchAiSafetyPolicy = (taskType: SupportedWorkbenchAiTaskType) 
     ? { reviewOnLowConfidence: false, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true }
     : { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true };
 
-function ensureWorkbenchAiInputProof(inputPayload: WorkbenchAiPayloadDocument): void {
+const collectAiInputProofRefs = (
+  envelope: WorkbenchAiRequestEnvelope,
+  inputPayload: WorkbenchAiPayloadDocument,
+): string[] => {
   const payload = payloadDocumentToObject(inputPayload);
-  const promptInputRef = payloadValueToString(payload.promptInputRef);
+  return [
+    ...envelope.aiInputRefs,
+    payloadValueToString(payload.promptInputRef),
+    payloadValueToString(payload.promptInputRefFrame3s),
+    payloadValueToString(payload.promptInputRefFrame6s),
+  ].filter((ref): ref is string => typeof ref === "string" && ref.length > 0);
+};
+
+function ensureSingleWorkbenchAiInputProof(promptInputRef: string): void {
   if (!promptInputRef || resolveAiInputProofSummary(promptInputRef)) {
     return;
   }
@@ -174,6 +190,12 @@ function ensureWorkbenchAiInputProof(inputPayload: WorkbenchAiPayloadDocument): 
   }
 }
 
+function ensureWorkbenchAiInputProof(envelope: WorkbenchAiRequestEnvelope, inputPayload: WorkbenchAiPayloadDocument): void {
+  for (const promptInputRef of new Set(collectAiInputProofRefs(envelope, inputPayload))) {
+    ensureSingleWorkbenchAiInputProof(promptInputRef);
+  }
+}
+
 export const throwIfAborted = (signal: AbortSignal) => {
   if (signal.aborted) {
     throw new Error(typeof signal.reason === "string" ? signal.reason : "Transport aborted before AI completion.");
@@ -186,7 +208,7 @@ export const buildWorkbenchAiAbilityRequest = (
 ): WorkbenchAiExecuteInput => {
   const mapRecord = getDevelopmentMapPluginRegistry().active.getActiveOperationalMapRecord(envelope.mapId);
   const taskType = resolveAiTaskType(envelope);
-  ensureWorkbenchAiInputProof(inputPayload);
+  ensureWorkbenchAiInputProof(envelope, inputPayload);
 
   return {
     abilityGroupId: "ai" as const,

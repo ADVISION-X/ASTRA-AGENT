@@ -32,9 +32,6 @@ const canonicalize = (value: unknown): unknown => {
   return value;
 };
 
-const resolveDebugMode = (): "summary" | "full" =>
-  process.env.GRASSEYE_DEBUG_AI_IO === "full" ? "full" : "summary";
-
 const previewText = (value: string, maxLength = 500): string =>
   value.length <= maxLength ? value : `${value.slice(0, maxLength)}...`;
 
@@ -59,13 +56,12 @@ const buildPromptFields = (input: {
   messages: ExternalDebugMessages;
   promptDebugRef: string;
 }) => {
-  const mode = resolveDebugMode();
   return {
     promptDebugRef: input.promptDebugRef,
     systemPromptHash: `sha256:${hashExternalDebugValue(input.messages.system)}`,
     userPromptHash: `sha256:${hashExternalDebugValue(input.messages.user)}`,
     promptPreview: previewText(input.messages.user),
-    promptFullText: mode === "full" ? `${input.messages.system}\n\n${input.messages.user}` : null,
+    promptFullText: `${input.messages.system}\n\n${input.messages.user}`,
     promptDebugBundleRef: input.promptDebugRef,
     tokenEstimate: Math.ceil((input.messages.system.length + input.messages.user.length) / 4),
   };
@@ -76,16 +72,9 @@ const buildProviderRequestFields = (input: {
   messages: ExternalDebugMessages;
   promptDebugRef: string;
 }) => {
-  const mode = resolveDebugMode();
   const fullProviderRequestBody = buildRedactedProviderRequestBody(input.config, input.messages);
   return {
-    providerRequestBodyRedacted: mode === "full"
-      ? fullProviderRequestBody
-      : {
-          model: input.config.model,
-          headers: { authorization: "[REDACTED]" },
-          promptLength: input.messages.system.length + input.messages.user.length,
-        },
+    providerRequestBodyRedacted: fullProviderRequestBody,
     providerRequestBodyHash: `sha256:${hashExternalDebugValue(fullProviderRequestBody)}`,
     providerRequestDebugRef: `${input.promptDebugRef}/provider-request`,
   };
@@ -125,7 +114,7 @@ const buildResponseFields = (input: {
   parserErrors?: string[];
 }) => ({
   rawResponsePreview: input.rawResponseText ? previewText(input.rawResponseText) : null,
-  rawResponseText: resolveDebugMode() === "full" ? input.rawResponseText ?? null : null,
+  rawResponseText: input.rawResponseText ?? null,
   rawResponseHash: input.rawResponseText ? `sha256:${hashExternalDebugValue(input.rawResponseText)}` : null,
   rawResponseRef: buildExternalRawResponseRef(input.request),
   parsedJson: input.parsedJson ?? null,

@@ -11,7 +11,15 @@ const getEffectiveSteps = (mapPackage: MapPackage): MapPackage["operationalMap"]
 
 const getEffectiveTransitions = (mapPackage: MapPackage): MapPackage["operationalMap"]["transitions"] => {
   const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
-  return routePlan ? [...mapPackage.operationalMap.transitions, ...routePlan.transitions] : mapPackage.operationalMap.transitions;
+  if (!routePlan) {
+    return mapPackage.operationalMap.transitions;
+  }
+
+  const mapTransitionIds = new Set(mapPackage.operationalMap.transitions.map((transition) => transition.transitionId));
+  return [
+    ...mapPackage.operationalMap.transitions,
+    ...routePlan.transitions.filter((transition) => !mapTransitionIds.has(transition.transitionId)),
+  ];
 };
 
 const issue = (input: { message: string; path: string }): MapPackageValidationIssue => ({

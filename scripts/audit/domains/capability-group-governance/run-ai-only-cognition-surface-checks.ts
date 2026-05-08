@@ -15,6 +15,8 @@ const {
   AI_ONLY_COGNITION_FORBIDDEN_LITERALS,
 } = capabilityGroupGovernanceConstants;
 
+const PRODUCT_PRESENCE_DECISION_PATH = "src/lib/local-runtime/workbench-nerve-bus-ai-decision.ts";
+
 const matchesTargetSurface = (relativePath: string): boolean => (
   AI_ONLY_COGNITION_TARGETS.some((target) => relativePath === target || relativePath.startsWith(target))
 );
@@ -130,6 +132,23 @@ export function runAiOnlyCognitionSurfaceChecks(project: ReturnType<typeof getAu
     findings.push(...collectPathFinding(relativePath));
     findings.push(...collectIdentifierFinding(relativePath, sourceFile));
     findings.push(...collectLiteralFinding(relativePath, sourceFile));
+  }
+
+  const productDecisionSource = project.getSourceFile(PRODUCT_PRESENCE_DECISION_PATH);
+  const productDecisionText = productDecisionSource?.getFullText() ?? "";
+  if (
+    productDecisionText.includes("PRODUCT_PRESENCE_MIN_CONFIDENCE")
+    || productDecisionText.includes("lowConfidence")
+    || productDecisionText.includes("input.confidence <")
+    || productDecisionText.includes("confidence <")
+  ) {
+    findings.push(createFinding({
+      lawId: LAW_ID_010,
+      file: PRODUCT_PRESENCE_DECISION_PATH,
+      line: 1,
+      severity: "fatal",
+      message: "Product-presence routing code must not judge low confidence or product truth; only AI output may decide product_yes/product_no.",
+    }));
   }
 
   return {

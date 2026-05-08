@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import { fileExists, listFilesRecursive } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
@@ -11,12 +13,15 @@ const VISION_TYPES_PATH = "src/types/vision-product-presence.ts";
 const RESULT_HELPER_PATH = "src/lib/local-ai/vision-task-result.ts";
 const EVIDENCE_PACKET_TYPES_PATH = "src/types/evidence-packet.ts";
 const AGENT_SERVICE_PATH = "src/lib/local-runtime/runtime-executor.ts";
+const WORKBENCH_AI_REQUEST_BUILDER_PATH = "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts";
+const FACEBOOK_SEEDING_MAP_PATH = "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json";
 
 function hasMultiFramePackagingSchema(multiFrameTypes: ReturnType<typeof getSourceFileOrThrow>): boolean {
   const samplingStrategies = getZodEnumValues(multiFrameTypes, "MultiFrameSamplingStrategySchema");
   const inputModes = getZodEnumValues(multiFrameTypes, "ProductPresenceInputModeSchema");
   const evidenceSetFields = getZodObjectPropertyNames(multiFrameTypes, "MultiFrameVideoEvidenceSetSchema");
   return [
+    samplingStrategies.includes("fixed_3_6"),
     samplingStrategies.includes("fixed_3_6_10"),
     samplingStrategies.includes("adaptive_short_video"),
     samplingStrategies.includes("single_frame_fallback"),
@@ -30,6 +35,39 @@ function hasMultiFramePackagingSchema(multiFrameTypes: ReturnType<typeof getSour
     evidenceSetFields.has("validFrameCount"),
     evidenceSetFields.has("contactSheetEvidenceId"),
   ].every(Boolean);
+}
+
+function hasProductPresenceTwoFrameBuilder(requestBuilder: ReturnType<typeof getSourceFileOrThrow>): boolean {
+  const text = requestBuilder.getFullText();
+  return [
+    "PRODUCT_PRESENCE_FRAME_COUNT = 2",
+    "aiInputRefs.length !== PRODUCT_PRESENCE_FRAME_COUNT",
+    "fixed_3_6",
+    "Product-presence AI requires exactly",
+  ].every((snippet) => text.includes(snippet));
+}
+
+async function collectProductPresenceTwoFrameFindings(): Promise<Finding[]> {
+  const findings: Finding[] = [];
+  const project = createAuditProject();
+  const requestBuilder = getSourceFileOrThrow(project, WORKBENCH_AI_REQUEST_BUILDER_PATH);
+  if (!hasProductPresenceTwoFrameBuilder(requestBuilder)) {
+    findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_AI_REQUEST_BUILDER_PATH, line: 1, severity: "fatal", message: "Product-presence AI request builder must require exactly two prepared frame inputs and use fixed_3_6 sampling; single-frame fallback is not allowed for product video judgment." }));
+  }
+
+  const mapText = await readFile(pathFromRepoRoot(FACEBOOK_SEEDING_MAP_PATH), "utf8");
+  if (
+    !mapText.includes('"stepId": "capture-video-viewport"')
+    || !mapText.includes('"stepId": "prepare-ai-input"')
+    || !mapText.includes('"stepId": "capture-video-frame-6s"')
+    || !mapText.includes('"stepId": "prepare-ai-input-frame-6s"')
+    || !mapText.includes("promptInputRefFrame3s")
+    || !mapText.includes("promptInputRefFrame6s")
+  ) {
+    findings.push(createFinding({ lawId: LAW_ID, file: FACEBOOK_SEEDING_MAP_PATH, line: 1, severity: "fatal", message: "Facebook seeding-video discovery must keep Route Plan-compatible first-frame anchors and feed product-presence AI with the 3s and 6s prepared frame refs." }));
+  }
+
+  return findings;
 }
 
 function collectScreenshotBoundaryFindings(multiFrameTypes: ReturnType<typeof getSourceFileOrThrow>, illegalAgentRuntimeExists: boolean, forbiddenTests: string[]): Finding[] {
@@ -94,12 +132,13 @@ export async function inspectMultiFrameScreenshotBoundary(repoRoot = pathFromRep
   const schemaPassed = hasMultiFramePackagingSchema(multiFrameTypes);
   const runtimeHonestyPassed = !illegalAgentRuntimeExists;
   const findings = collectScreenshotBoundaryFindings(multiFrameTypes, illegalAgentRuntimeExists, forbiddenTests);
+  findings.push(...await collectProductPresenceTwoFrameFindings());
 
   return {
     findings,
     phases: [
       createPhase("multi-frame-input-packaging", schemaPassed ? "PASS" : "CODE VIOLATION", schemaPassed, schemaPassed ? "Multi-frame screenshot packaging defines governed sampling strategies and evidence-set metadata." : "Multi-frame screenshot packaging is incomplete."),
-      createPhase("multi-frame-runtime-honesty", runtimeHonestyPassed ? "PASS" : "CODE VIOLATION", runtimeHonestyPassed, runtimeHonestyPassed ? "Runtime still honestly declares single-frame fallback until multi-frame production sampling lands." : "Runtime is not honestly representing current single-frame fallback state."),
+      createPhase("multi-frame-runtime-honesty", runtimeHonestyPassed ? "PASS" : "CODE VIOLATION", runtimeHonestyPassed, runtimeHonestyPassed ? "Runtime has governed product-presence fixed_3_6 evidence and still exposes fallback honesty only outside product judgment." : "Runtime is not honestly representing current multi-frame and fallback state."),
       createPhase("multi-frame-test-boundary", forbiddenTests.length === 0 ? "PASS" : "FAKE ENFORCEMENT", forbiddenTests.length === 0, forbiddenTests.length === 0 ? "Repository contains no tests, __tests__, or *.test.* artifacts." : "Repository contains forbidden test artifacts."),
     ],
   };

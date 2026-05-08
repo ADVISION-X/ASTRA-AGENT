@@ -121,10 +121,12 @@ runtimeProof 至少应包含：
 ## AI Request / Response / Error Debug Events
 
 - AI_REQUEST_DEBUG 必须在 model call 前写出 provider、model、modelRole、runtime、taskType、promptContractId、promptVersion、outputSchemaRef、systemPromptHash、userPromptHash、promptDebugRef、image refs、image hashes、image bytes、image dimensions、aiInputArtifactRef、traceId、spanId。
-- summary mode 至少显示 prompt hash、prompt preview、prompt length、image refs、尺寸和模型元数据。
-- full mode 必须能通过终端或 debug bundle 查看完整 prompt；但 base64 image content 不得打印到终端。
+- governed debug records 默认保留完整 prompt；终端摘要至少显示 prompt hash、prompt preview、prompt length、image refs、尺寸和模型元数据；base64 image content 不得打印到终端。
+- AI_RAW_RESPONSE_DEBUG 必须在 parser/normalize 前写出 full rawResponseText、rawResponseHash、rawResponseRef、modelDurationMs。
+- AI_NORMALIZED_RESPONSE_DEBUG 必须在 parser 修补、补字段、组装或 normalize 后写出 assembled parsedJson，并同时保留 rawResponseText/rawResponseHash。
 - AI_RESPONSE_DEBUG 必须保留 rawResponseHash、rawResponseRef、rawResponsePreview 或 rawResponseText、parsedJson、parsedDecision、parserErrors、confidence、dataQualityFlags、modelDurationMs。
 - parsed output 不能成为模型响应的唯一记录；raw response 必须能通过 rawResponseRef 或 debug bundle 回看。
+- rawResponseText / promptFullText 不得被环境变量开关降级为默认不可见。
 - AI_ERROR_DEBUG 必须给出 errorKind、rejectedBy、actualValue、maxAllowedValue、missingPrecondition、upstreamRequiredAction、ownerResponsible、actionableMessage。
 - oversized image、missing prepare-ai-input、local AI readiness failure 都必须明确指出责任 owner 和上游动作。
 

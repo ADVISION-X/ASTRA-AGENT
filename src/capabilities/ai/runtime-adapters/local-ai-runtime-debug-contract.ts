@@ -3,7 +3,7 @@ import { type StructuredAiImageInput } from "../../../types/structured-log.js";
 import type { AiTaskType } from "../contract.js";
 
 type AiRuntimeStructuredDebugEvent = {
-  eventType: "AI_REQUEST_DEBUG" | "AI_RESPONSE_DEBUG" | "AI_ERROR_DEBUG" | "AI_INPUT_DEBUG_REJECTED";
+  eventType: "AI_INPUT_REQUEST_DEBUG" | "AI_PROMPT_REQUEST_DEBUG" | "AI_REQUEST_DEBUG" | "AI_RAW_RESPONSE_DEBUG" | "AI_NORMALIZED_RESPONSE_DEBUG" | "AI_RESPONSE_DEBUG" | "AI_ERROR_DEBUG" | "AI_INPUT_DEBUG_REJECTED";
   level: "DEBUG" | "ERROR";
   status: "started" | "success" | "failed" | "review_required";
   sessionId: string;
@@ -105,6 +105,8 @@ type CollectedDebugState = {
   imageInputs: StructuredAiImageInput[];
   tokenEstimate: number | null;
   requestEmitted: boolean;
+  rawResponseEmitted: boolean;
+  normalizedResponseEmitted: boolean;
   responseEmitted: boolean;
 };
 

@@ -33,6 +33,20 @@ async function runAbortableCapture<T>(input: {
   }
 }
 
+async function waitForSampleDelay(input: { delayMs: number | null; abortSignal: AbortSignal }): Promise<void> {
+  if (!input.delayMs) {
+    return;
+  }
+  const delayMs = input.delayMs;
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(resolve, delayMs);
+    input.abortSignal.addEventListener("abort", () => {
+      clearTimeout(timeout);
+      reject(input.abortSignal.reason instanceof Error ? input.abortSignal.reason : new Error("sample delay aborted"));
+    }, { once: true });
+  });
+}
+
 async function runBrowserViewportCapture(input: {
   plan: Extract<ScreenshotExecutionPlan, { kind: "capture" }> & { operation: "browser-viewport" };
   context: ScreenshotRuntimeContext;
@@ -40,11 +54,14 @@ async function runBrowserViewportCapture(input: {
 }) {
   const captureResult = await runAbortableCapture({
     timeoutMs: input.timeoutMs,
-    invoke: (abortSignal) => input.context.capturePort.captureBrowserViewport({
-      regionLabel: input.plan.regionLabel,
-      contentLines: input.plan.contentLines,
-      abortSignal,
-    }),
+    invoke: async (abortSignal) => {
+      await waitForSampleDelay({ delayMs: input.plan.sampleDelayMs, abortSignal });
+      return input.context.capturePort.captureBrowserViewport({
+        regionLabel: input.plan.regionLabel,
+        contentLines: input.plan.contentLines,
+        abortSignal,
+      });
+    },
   });
   ScreenshotBrowserCaptureSchema.parse(captureResult.capture);
   return {

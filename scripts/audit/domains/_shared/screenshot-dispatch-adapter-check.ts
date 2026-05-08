@@ -41,6 +41,16 @@ const PREPARE_AI_INPUT_SNIPPETS = [
   "...(source ? { source } : {})",
 ] as const;
 
+const PREPARE_AI_INPUT_SIZE_SNIPPETS = [
+  "const STARTUP_PREPARATION_AI_INPUT_MAX_WIDTH = 512;",
+  "const PRODUCT_PRESENCE_AI_INPUT_MAX_WIDTH = 768;",
+  "stepId === \"prepare-startup-ai-input\"",
+  "stepId === \"prepare-ai-input-frame-3s\"",
+  "stepId === \"prepare-ai-input-frame-6s\"",
+  "const maxAiWidth = resolvePrepareAiInputMaxWidth(envelope.stepId);",
+  "...(maxAiWidth ? { maxAiWidth } : {})",
+] as const;
+
 const RESULT_HANDOFF_SNIPPETS = [
   "recordScreenshotSourceHandoff({ outputRef: outputPayload.documentRef, result: input.result });",
 ] as const;
@@ -149,6 +159,12 @@ function getFunctionPropertyNames(project: Project, filePath: string, functionNa
   ]);
 }
 
+function getNormalizedFunctionText(project: Project, filePath: string, functionName: string): string {
+  const source = getSourceFileOrThrow(project, filePath);
+  const functionLike = getFunctionLike(source, functionName);
+  return normalize(functionLike?.getText() ?? "");
+}
+
 function functionHasFields(project: Project, filePath: string, functionName: string, fields: readonly string[]): boolean {
   const propertyNames = getFunctionPropertyNames(project, filePath, functionName);
   return fields.every((field) => propertyNames.has(field));
@@ -183,7 +199,7 @@ const getCommonBindingFindings = (commonFields: ObjectLiteralExpression, lawId: 
       message: "Screenshot local-runtime dispatch adapter must preserve governed chain fields, inputRef, idempotencyKey, and timeoutMs before entering the Screenshot owner boundary.",
     })];
 
-const getViewportDispatchFindings = (captureBrowserViewport: ObjectLiteralExpression | null, lawId: string): Finding[] => {
+const getViewportDispatchFindings = (project: Project, captureBrowserViewport: ObjectLiteralExpression | null, lawId: string): Finding[] => {
   const findings: Finding[] = [];
   if (!captureBrowserViewport) {
     return [createFinding({
@@ -201,18 +217,35 @@ const getViewportDispatchFindings = (captureBrowserViewport: ObjectLiteralExpres
     && hasBinding(sourceLiteral, { name: "pageUrl", initializer: "payloadValueToString(payload.targetUrl)" })
     && hasBinding(sourceLiteral, { name: "pageTitle", initializer: "payloadValueToString(payload.targetTitle)" })
     && hasBinding(sourceLiteral, { name: "browserSessionRef", initializer: "null" });
-  const hasPageStateProof = hasBinding(captureBrowserViewport, {
+  const pageStateProofProperty = captureBrowserViewport.getProperty("pageStateProof");
+  const hasDirectPageStateProofBinding = hasBinding(captureBrowserViewport, {
     name: "pageStateProof",
     initializer: "buildScreenshotPageStateProof(envelope, payload)",
   });
+  const hasShorthandPageStateProofBinding = Boolean(pageStateProofProperty && Node.isShorthandPropertyAssignment(pageStateProofProperty));
+  const captureViewportFunctionText = getNormalizedFunctionText(
+    project,
+    DISPATCH_FILE,
+    "buildCaptureBrowserViewportCommand",
+  );
+  const bootstrapCapturePolicyFunctionText = getNormalizedFunctionText(
+    project,
+    DISPATCH_FILE,
+    "buildBootstrapCapturePolicy",
+  );
+  const hasPageStateProofHandoff = (hasDirectPageStateProofBinding || hasShorthandPageStateProofBinding)
+    && captureViewportFunctionText.includes(normalize("const pageStateProof = buildScreenshotPageStateProof(envelope, payload);"));
+  const hasBootstrapCaptureException = bootstrapCapturePolicyFunctionText.includes(normalize("payloadValueToString(input.payload.sourceEvidenceRef)"))
+    && bootstrapCapturePolicyFunctionText.includes(normalize("allowFirstCaptureWithoutPageStateProof: true"))
+    && bootstrapCapturePolicyFunctionText.includes(normalize("if (input.pageStateProof) { return undefined; }"));
 
-  if (!hasViewportSource || !hasPageStateProof) {
+  if (!hasViewportSource || !hasPageStateProofHandoff || !hasBootstrapCaptureException) {
     findings.push(createFinding({
       lawId,
       file: DISPATCH_FILE,
       line: 1,
       severity: "fatal",
-      message: "Screenshot browser viewport dispatch adapter must derive browser_viewport source and pageStateProof from governed transport payload refs.",
+      message: "Screenshot browser viewport dispatch adapter must derive browser_viewport source and governed pageStateProof, or a lawful startup bootstrap capturePolicy exception, from governed transport payload refs.",
     }));
   }
   return findings;
@@ -227,6 +260,15 @@ const getSourceHandoffFindings = (project: Project, lawId: string): Finding[] =>
       line: 1,
       severity: "fatal",
       message: "Screenshot prepare-ai-input dispatch adapter must resolve governed stored_image source handoff refs from screenshotEvidenceRef, abilityResultRef, or inputRef before entering the Screenshot owner boundary.",
+    }));
+  }
+  if (!sourceContainsAll(project, DISPATCH_FILE, PREPARE_AI_INPUT_SIZE_SNIPPETS)) {
+    findings.push(createFinding({
+      lawId,
+      file: DISPATCH_FILE,
+      line: 1,
+      severity: "fatal",
+      message: "Screenshot prepare-ai-input dispatch adapter must keep startup-preparation AI input at 512px while preserving product-presence frame inputs at 768px.",
     }));
   }
 
@@ -282,7 +324,7 @@ export function inspectScreenshotDispatchAdapter(project: Project, lawId: string
   return commonFields
     ? [
       ...getCommonBindingFindings(commonFields, lawId),
-      ...getViewportDispatchFindings(captureBrowserViewport, lawId),
+      ...getViewportDispatchFindings(project, captureBrowserViewport, lawId),
       ...getSourceHandoffFindings(project, lawId),
       ...getTerminalProofSummaryFindings(project, lawId),
     ]

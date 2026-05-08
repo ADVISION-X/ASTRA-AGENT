@@ -10,6 +10,7 @@ const VideoFrameSamplePointLabelSchema = z.enum([
 ]);
 
 const MultiFrameSamplingStrategySchema = z.enum([
+  "fixed_3_6",
   "fixed_3_6_10",
   "adaptive_short_video",
   "single_frame_fallback",

@@ -1402,6 +1402,10 @@ The ai-capability negative proof must prove fail → rollback → pass for at le
 - Convert ai inspector to warning-only → FAIL.
 - Remove ai negative proof invocation → FAIL.
 - Detach ai inspector from audit runner → FAIL.
+- Gate full raw AI IO behind `GRASSEYE_DEBUG_AI_IO` or emit only rawResponsePreview → FAIL.
+- Collapse raw model output and parser-normalized output into one AI_RESPONSE_DEBUG event → FAIL.
+- Let product_presence_judgment use single_frame_fallback or fewer/more than fixed 3s/6s two-frame input refs → FAIL.
+- Reintroduce production low-confidence product judgment outside the AI response contract → FAIL.
 
 No AI audit result is valid unless negative proof executes and reports.
 
@@ -1425,6 +1429,8 @@ AI Capability Phase 3.5 is READY only when all conditions are true:
 - Disabled/paid/future providers fail closed.
 - Local runtime adapter does not become second prompt/result truth.
 - Bad JSON/schema mismatch/low confidence cannot success.
+- Product-presence routing is AI-owned only: production code may mechanically transport product_yes/product_no from AI output, but must not invent product truth from confidence thresholds.
+- Local debug emits AI_RAW_RESPONSE_DEBUG, AI_NORMALIZED_RESPONSE_DEBUG, then terminal AI_RESPONSE_DEBUG/AI_ERROR_DEBUG with full rawResponseText by default.
 - Output boundary recursively blocks action authority.
 - Success has rawOutputRef/rawOutputHash and complete proof.
 - Failure/review_required have reasons and proof.

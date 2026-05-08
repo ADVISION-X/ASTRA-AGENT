@@ -129,6 +129,7 @@ Required:
 - map packages must remain JSON/data-only.
 - map packages must declare one operational map kind: `routePlanBoundMap` for production automation or `genericDiagnosticMap` for isolated diagnostics.
 - `routePlanBoundMap` may declare only the deterministic entry spine, including one AI-owned startup preparation step and its fail-closed local routeLabel transitions before Route Plan takeover, AI handoff, Prompt Contract refs, input refs, output refs, and `routePlanId`.
+- `routePlanBoundMap` may keep Route Plan-compatible first-frame anchor step ids such as `capture-video-viewport` and `prepare-ai-input`; frame-specific semantics must travel through stored refs such as `screenshotEvidenceRefFrame3s` and `promptInputRefFrame3s`, not through a duplicate post-startup action chain.
 - `routePlanBoundMap` must not own post-startup routeLabel action-chain steps or duplicate Route Plan AI success routing; Route Plan is the only owner of `routeLabel -> step chain -> ability group/child capability` after the startup preparation gate.
 - `genericDiagnosticMap` may declare diagnostic steps and transitions, but it must not bind a Route Plan or enter the production automation main chain.
 - operational maps must not define constraint logic: policy, proofPolicy, successCondition, failureBranch, reviewBranch, postActionVerification, transition.condition, allowedAbilityGroups, failureBranches, reviewBranches, sequencePolicy, timeout, retry, or human-review routing are forbidden.

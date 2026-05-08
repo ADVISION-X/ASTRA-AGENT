@@ -85,9 +85,9 @@ export class LocalAiGateway {
     if (request.promptVersion !== contract.promptVersion || request.schemaVersion !== contract.schemaVersion) {
       throw new Error(`Local AI request contract drift detected for ${request.taskType}.`);
     }
-    if (roleConfig.promptVersion !== contract.promptVersion || roleConfig.schemaVersion !== contract.schemaVersion) {
-      throw new Error(`Local AI model config drift detected for ${request.taskType}.`);
-    }
+    // One local model role can legally serve multiple prompt contracts.
+    // Contract integrity is enforced request-vs-contract, not by pinning a role-wide
+    // schemaVersion/promptVersion to every task that reuses the same governed model.
 
     return roleConfig;
   }

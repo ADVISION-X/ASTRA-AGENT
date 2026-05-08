@@ -1034,6 +1034,31 @@
     },
     {
       "abilityGroupId": "post-action-verification",
+      "childCapabilityId": "observe-page-open-attempt",
+      "description": "Verify governed post-action outcome for observe page open attempt.",
+      "inputSchemaRef": "post-action-verification.observe-page-open-attempt.input",
+      "outputSchemaRef": "post-action-verification.observe-page-open-attempt.output",
+      "platformId": null,
+      "targetKind": null,
+      "supportedTargets": [
+        "browser-page",
+        "browser-viewport",
+        "runtime-proof"
+      ],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresAutomationGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "execute recovery actions",
+        "invent prompts",
+        "persist unrelated evidence"
+      ]
+    },
+    {
+      "abilityGroupId": "post-action-verification",
       "childCapabilityId": "observe-target-state-transition",
       "description": "Verify governed post-action outcome for observe target state transition.",
       "inputSchemaRef": "post-action-verification.observe-target-state-transition.input",

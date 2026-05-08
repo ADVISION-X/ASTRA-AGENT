@@ -17,7 +17,14 @@ type WorkbenchAiDebugForensicsRuntime = WorkbenchAiDebugRuntime & {
 };
 
 const isCriticalAiRuntimeProof = (eventType: WorkbenchAiDebugEvent["eventType"]): boolean => (
-  eventType === "AI_REQUEST_DEBUG" || eventType === "AI_INPUT_DEBUG_REJECTED" || eventType === "AI_RESPONSE_DEBUG" || eventType === "AI_ERROR_DEBUG"
+  eventType === "AI_INPUT_REQUEST_DEBUG"
+  || eventType === "AI_PROMPT_REQUEST_DEBUG"
+  || eventType === "AI_REQUEST_DEBUG"
+  || eventType === "AI_INPUT_DEBUG_REJECTED"
+  || eventType === "AI_RAW_RESPONSE_DEBUG"
+  || eventType === "AI_NORMALIZED_RESPONSE_DEBUG"
+  || eventType === "AI_RESPONSE_DEBUG"
+  || eventType === "AI_ERROR_DEBUG"
 );
 
 const resolveCanonicalAiChain = (input: WorkbenchAiDebugEvent) => {

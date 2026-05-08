@@ -62,7 +62,7 @@ export async function invokeLocalOcrTask(runtime: "local-ocr", input: OcrInvocat
     runtime,
     modelName: engine,
     rawResponsePreview: ocrText.slice(0, 220),
-    ...(process.env.GRASSEYE_DEBUG_AI_IO === "full" ? { rawResponseText: ocrText } : {}),
+    rawResponseText: ocrText,
   });
 
   return ocrText;

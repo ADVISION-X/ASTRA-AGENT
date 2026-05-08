@@ -64,3 +64,7 @@ Route Plan 是调度肌肉记忆的唯一来源。
 匹配链路：
 
 `observe-next-video-region -> normalize-next-video-region -> scroll-next-video -> capture-video-viewport`
+
+补充说明：
+
+- `scroll-next-video` 是肌肉记忆意图名；Route Plan 不为平台特化分叉第二条动作链路。

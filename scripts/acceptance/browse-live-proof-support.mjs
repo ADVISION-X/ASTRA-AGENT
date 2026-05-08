@@ -2,11 +2,12 @@ import { readdir } from "node:fs/promises";
 import path from "node:path";
 
 const ignoredDirs = new Set([".git", "dist", "node_modules", ".grasseye-data"]);
+const REAL_PLATFORM_TARGETS = new Set(["tiktok-web", "facebook-web"]);
 
 export function requireRealPlatformTarget() {
   const platformTarget = process.env.GRASSEYE_PLATFORM_TARGET?.trim() || "tiktok-web";
-  if (platformTarget !== "tiktok-web") {
-    throw new Error("acceptance:browse-live-proof requires GRASSEYE_PLATFORM_TARGET=tiktok-web.");
+  if (!REAL_PLATFORM_TARGETS.has(platformTarget)) {
+    throw new Error("acceptance:browse-live-proof requires GRASSEYE_PLATFORM_TARGET=tiktok-web or facebook-web.");
   }
 
   return platformTarget;
@@ -122,6 +123,16 @@ const assertStructuredActionProof = (browserSession, structuredActionLogs) => {
   }
 };
 
+const assertPlatformBinding = (platformTarget, browserSession, browseRuntimeSnapshot) => {
+  const currentUrl = browserSession.currentUrl || browseRuntimeSnapshot.currentUrl || "";
+  if (platformTarget === "facebook-web") {
+    assert(currentUrl.includes("facebook.com"), "browse live proof must stay on facebook.com for facebook-web runs");
+    return;
+  }
+
+  assert(currentUrl.includes("tiktok.com"), "browse live proof must stay on tiktok.com for tiktok-web runs");
+};
+
 const assertScrollRuntimeProof = (structuredActionLogs, structuredRuntimeEvents) => {
   const hasFinalizeStep = structuredActionLogs.some((entry) => ["finalize_browse_ledger", "finalize_evidence_packet", "finalize_failed_or_review_record"].includes(entry.step));
   const scrollRuntimeEvents = structuredRuntimeEvents.filter((entry) => entry.step === "scroll_next_video");
@@ -184,8 +195,9 @@ const assertSingleFrameFallbackEvents = (structuredRuntimeEvents) => {
   assert(singleFrameFallbackEvents.some((entry) => Array.isArray(entry.missingFrames) && entry.missingFrames.length > 0), "single_frame_fallback runtime proof must include missingFrames");
 };
 
-export function validateBrowseLiveProofSnapshot(snapshot) {
+export function validateBrowseLiveProofSnapshot(snapshot, platformTarget) {
   assertBrowseRuntimeSnapshotShape(snapshot.browseRuntimeSnapshot);
+  assertPlatformBinding(platformTarget, snapshot.browserSession, snapshot.browseRuntimeSnapshot);
   assertStructuredActionProof(snapshot.browserSession, snapshot.state.structuredActionLogs);
   assertScrollRuntimeProof(snapshot.state.structuredActionLogs, snapshot.state.structuredRuntimeEvents);
   assertRoundOutcomes(snapshot.state.roundStructuralLogs);

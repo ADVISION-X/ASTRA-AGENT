@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T22:17:43.462Z",
+  "generatedAt": "2026-05-08T00:09:01.790Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -241,6 +241,13 @@
           "checkFunction": "findReferenceIntegrityViolations",
           "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
           "targetSymbol": "findReferenceIntegrityViolations",
+          "checkKind": "forbidden-shape"
+        },
+        {
+          "checkPhase": "run-ai-runtime-contract-checks",
+          "checkFunction": "findBinaryProductPresenceContractViolations",
+          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
+          "targetSymbol": "findBinaryProductPresenceContractViolations",
           "checkKind": "forbidden-shape"
         },
         {
@@ -2939,6 +2946,13 @@
           "checkFunction": "collectWorkbenchDispatchFindings",
           "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
           "targetSymbol": "collectWorkbenchDispatchFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectVisibleScrollPrimitiveFindings",
+          "sourceFile": "scripts/audit/domains/mouse-scroll-capability/required-shape.ts",
+          "targetSymbol": "collectVisibleScrollPrimitiveFindings",
           "checkKind": "required-shape"
         },
         {

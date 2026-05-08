@@ -35,11 +35,12 @@ async function main() {
   const forbiddenTests = await scanForForbiddenTestFiles(repoRoot);
   assert(forbiddenTests.length === 0, `forbidden test files detected: ${forbiddenTests.join(", ")}`);
   assert(process.env.GRASSEYE_BROWSER_HEADLESS !== "true", "acceptance:browse-live-proof forbids GRASSEYE_BROWSER_HEADLESS=true in real-platform mode");
+  const platformTarget = requireRealPlatformTarget();
 
   const tempDataDir = await mkdtemp(path.join(tmpdir(), "grasseye-browse-proof-"));
   try {
     const snapshot = await executeBrowseLiveProof(tempDataDir);
-    validateBrowseLiveProofSnapshot(snapshot);
+    validateBrowseLiveProofSnapshot(snapshot, platformTarget);
 
     process.stdout.write("acceptance:browse-live-proof: PASS\n");
   } finally {

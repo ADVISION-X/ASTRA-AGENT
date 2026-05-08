@@ -163,6 +163,16 @@ const validateOutputSchema = (state: ResolvedPromptStepState): MapPackageValidat
       severity: "fatal",
     })];
 
+const bindingSatisfiesContractInputRef = (state: ResolvedPromptStepState, inputRef: string): boolean => {
+  if (state.binding.requiredInputRefs.includes(inputRef)) {
+    return true;
+  }
+  return state.promptContract.taskType === "product_presence_judgment"
+    && inputRef === "promptInputRef"
+    && state.binding.requiredInputRefs.includes("promptInputRefFrame3s")
+    && state.binding.requiredInputRefs.includes("promptInputRefFrame6s");
+};
+
 const validateRequiredInputRefs = (state: ResolvedPromptStepState): MapPackageValidationIssue[] => {
   const issues: MapPackageValidationIssue[] = [];
   const missingStepInputRefs = state.binding.requiredInputRefs.filter((inputRef) => !state.step.inputRefs.some((candidate) => candidate === inputRef));
@@ -185,7 +195,7 @@ const validateRequiredInputRefs = (state: ResolvedPromptStepState): MapPackageVa
     }));
   }
 
-  const missingContractRefs = state.promptContract.requiredInputRefs.filter((inputRef) => !state.binding.requiredInputRefs.includes(inputRef));
+  const missingContractRefs = state.promptContract.requiredInputRefs.filter((inputRef) => !bindingSatisfiesContractInputRef(state, inputRef));
   if (missingContractRefs.length > 0) {
     issues.push(createIssue({
       code: "missing_dependency",

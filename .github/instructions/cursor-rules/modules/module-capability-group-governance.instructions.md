@@ -321,3 +321,4 @@ FORBIDDEN:
 - `post-open-state`, `state-classification`, or `proceed-decision` runtime gates outside AI.
 - `login_wall`, `wrong_domain`, or `security_wall` as exported non-AI verdict literals.
 - Hand-written readiness, safety, stability, freshness, login, domain, sensitive-text, platform-kind, target-ranking, or ambiguity-threshold truth being published by non-AI groups.
+- Product-presence low-confidence or frame-count based truth being decided by production code. Production code may fail mechanically when required evidence is missing, but only AI output may decide product_yes/product_no.

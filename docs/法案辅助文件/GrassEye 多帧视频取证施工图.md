@@ -22,15 +22,17 @@
 ## 当前运行事实
 
 - 当前治理目标是 multi-frame default。
-- 当前生产 runtime 仍然诚实声明 single_frame_fallback，不能伪装成已经完成真实 3s / 6s / 10s 抽帧闭环。
+- Facebook 种草视频第一问已经禁止 single_frame_fallback：产品存在性判断必须喂给 AI 两张间隔 3 秒的准备后图片，采样语义为 3s / 6s。
+- Facebook 生产 `routePlanBoundMap` 的首帧锚点继续使用 `capture-video-viewport` / `prepare-ai-input`；3s 语义通过 `screenshotEvidenceRefFrame3s` / `promptInputRefFrame3s` 承载，第二帧固定为 `capture-video-frame-6s` / `prepare-ai-input-frame-6s`。
+- single_frame_fallback 只能用于非产品第一问的诚实降级路径，不能进入 product_presence_judgment。
 - contact sheet 仍是优先输入模式；多图直喂仅作为可替换能力。
 
 ## 核心约束
 
-- 默认采样点为 3s / 6s / 10s。
+- 通用默认采样点为 3s / 6s / 10s；Facebook 种草视频第一问的固定采样点为 3s / 6s。
 - 同一组帧必须属于同一 roundId 与同一 videoVisitId。
 - 必须形成一个 MultiFrameVideoEvidenceSet，而不是三次互不关联的 AI 调用。
-- validFrameCount 小于 2 时不得伪装成高置信度 product_yes。
+- product_presence_judgment 的 validFrameCount 必须等于 2；不足 2 时生产代码只能机械失败，不能改判 product_no、product_yes 或 review。
 - single_frame_fallback 必须留下 fallbackReason、missingFrames 与 validFrameCount。
 - Browse Ledger 对 product_no 默认只保留 lightweight references，不默认保留完整多帧长期证据。
 
@@ -52,10 +54,12 @@
 
 - 第一问输入字段包含 inputMode、multiFrameEvidenceSetId、contactSheetEvidenceId、sampledFrameCount、validFrameCount。
 - Evidence Packet 可记录 multi-frame 证据元数据。
-- 当前 runtime 若仍未完成真实多帧抽帧，会诚实标记 single_frame_fallback。
+- Facebook 种草视频第一问输入为 promptInputRefFrame3s + promptInputRefFrame6s，AI request builder 对 product_presence_judgment 要求 exactly 2。
 
 漂移信号：
 
 - 重新把第一问默认输入退回单帧 opening screenshot。
+- 为了表面命名统一，把首帧改成 `capture-video-frame-3s` / `prepare-ai-input-frame-3s`，从而打断 `scroll-next-video:success -> capture-video-viewport` 的 Route Plan 回环。
+- product_presence_judgment 出现 single_frame_fallback。
 - 三次独立 AI 调用冒充一个 multi-frame 任务。
 - fake frame、伪造 validFrameCount 或隐藏 fallbackReason。

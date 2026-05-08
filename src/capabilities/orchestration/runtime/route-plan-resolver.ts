@@ -13,7 +13,15 @@ export const getEffectiveOperationalSteps = (map: OperationalMap): OperationalSt
 
 export const getEffectiveOperationalTransitions = (map: OperationalMap): OperationalTransition[] => {
   const routePlan = getRoutePlan(map);
-  return routePlan ? [...map.transitions, ...routePlan.transitions] : map.transitions;
+  if (!routePlan) {
+    return map.transitions;
+  }
+
+  const mapTransitionIds = new Set(map.transitions.map((transition) => transition.transitionId));
+  return [
+    ...map.transitions,
+    ...routePlan.transitions.filter((transition) => !mapTransitionIds.has(transition.transitionId)),
+  ];
 };
 
 export const findEffectiveOperationalStep = (map: OperationalMap, stepId: string): OperationalStep | null =>

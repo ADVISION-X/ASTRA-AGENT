@@ -286,6 +286,7 @@ const ScreenshotBaseInputSchema = z.object({
     maxDurationMs: 60_000,
     onTimeoutStatus: "failed",
   }),
+  sampleDelayMs: z.number().int().nonnegative().nullable().optional().default(null),
 }).strict();
 
 const CaptureBrowserViewportInputSchema = ScreenshotBaseInputSchema.extend({

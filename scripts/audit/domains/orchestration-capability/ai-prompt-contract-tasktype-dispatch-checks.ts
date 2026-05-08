@@ -25,6 +25,17 @@ function createTaskTypePhase(findings: Finding[]) {
   );
 }
 
+function hasUnifiedVisionImageCollectionRoute(aiRequestText: string): boolean {
+  return aiRequestText.includes("buildVisionImageCollectionInputPayload")
+    && aiRequestText.includes("const PRODUCT_PRESENCE_TASK_TYPE = \"product_presence_judgment\";")
+    && aiRequestText.includes("envelope.taskType === PAGE_PREPARATION_TASK_TYPE || envelope.taskType === PRODUCT_PRESENCE_TASK_TYPE")
+    && aiRequestText.includes("buildWorkbenchAiInputPayload({ ...envelope, taskType }, inputPayload)");
+}
+
+function hasImageCollectionModalityForWorkbenchVisionTasks(aiRequestText: string): boolean {
+  return aiRequestText.includes('taskType === "schema_validation_only" ? "structured_record" as const : "image_collection" as const');
+}
+
 export async function inspectAiPromptContractTaskTypeDispatch() {
   const [sharedText, envelopeText, aiRequestText] = await Promise.all([
     readTextFile(pathFromRepoRoot(STEP_DISPATCH_SHARED_PATH)),
@@ -39,7 +50,11 @@ export async function inspectAiPromptContractTaskTypeDispatch() {
   if (envelopeText.includes("taskType: input.promptContractId") || !envelopeText.includes("taskType: input.taskType")) {
     findings.push(createTaskTypeFinding({ file: NERVE_BUS_ENVELOPE_BUILDERS_PATH, message: "Orchestration-to-AI envelope must transport prompt-contract taskType, not promptContractId, as the AI schema discriminant." }));
   }
-  if (!aiRequestText.includes("resolveAiTaskType(envelope)") || !aiRequestText.includes("buildProductPresenceInputPayload")) {
+
+  const hasResolvedTransportedTaskType = aiRequestText.includes("resolveAiTaskType(envelope)");
+  const hasProductPresenceImageCollectionRoute = hasUnifiedVisionImageCollectionRoute(aiRequestText);
+  const hasImageCollectionModality = hasImageCollectionModalityForWorkbenchVisionTasks(aiRequestText);
+  if (!hasResolvedTransportedTaskType || !hasProductPresenceImageCollectionRoute || !hasImageCollectionModality) {
     findings.push(createTaskTypeFinding({ file: AI_REQUEST_BUILDER_PATH, message: "Workbench AI request builder must resolve transported taskType and build the product presence image_collection payload for product_presence_judgment." }));
   }
 

@@ -5,6 +5,7 @@ import { resolveAbilityResultProofSummary, type AbilityResultProofSummary } from
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
 
 type SupportedPostActionChildCapabilityId =
+  | "observe-page-open-attempt"
   | "observe-comments-panel-open-attempt"
   | "observe-comments-panel-close-attempt"
   | "observe-not-interested-attempt"
@@ -12,9 +13,9 @@ type SupportedPostActionChildCapabilityId =
 
 type PostActionInputPolicy = {
   childCapabilityId: SupportedPostActionChildCapabilityId;
-  outcomeType: "comments_panel_opened" | "comments_panel_closed" | "not_interested_result" | "target_state_changed";
-  sourceAbilityGroupId: "mouse-click" | "mouse-scroll";
-  sourceChildCapabilityId: "click-browser-coordinate" | "scroll-browser-viewport";
+  outcomeType: "page_opened" | "comments_panel_opened" | "comments_panel_closed" | "not_interested_result" | "target_state_changed";
+  sourceAbilityGroupId: "open" | "mouse-click" | "mouse-scroll";
+  sourceChildCapabilityId: "open-tiktok" | "open-facebook" | "click-browser-coordinate" | "scroll-browser-viewport";
   sourceActionType: string;
   verificationMode: "observation_only" | "visual_evidence" | "before_after_comparison";
   requireAfterEvidence: boolean;
@@ -38,7 +39,30 @@ const normalizePageStateLogin = (loginState: string | null | undefined) => {
   return "unknown" as const;
 };
 
+const resolveCanonicalPlatformUrl = (selectedMapId: string | null | undefined): string | null =>
+  DEFAULT_PAGE_URL_BY_MAP[selectedMapId as keyof typeof DEFAULT_PAGE_URL_BY_MAP] ?? null;
+
+const resolveCanonicalPlatformHost = (selectedMapId: string | null | undefined): string | null => {
+  const canonicalUrl = resolveCanonicalPlatformUrl(selectedMapId);
+  if (!canonicalUrl) {
+    return null;
+  }
+  return new URL(canonicalUrl).hostname;
+};
+
 const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, PostActionInputPolicy>> = {
+  "observe-page-open-attempt": {
+    childCapabilityId: "observe-page-open-attempt",
+    outcomeType: "page_opened",
+    sourceAbilityGroupId: "open",
+    sourceChildCapabilityId: "open-tiktok",
+    sourceActionType: "open_page",
+    verificationMode: "observation_only",
+    requireAfterEvidence: false,
+    requireBeforeAfterComparison: false,
+    requiresVisualEvidence: false,
+    executionRefField: "primitiveExecutionRef",
+  },
   "observe-comments-panel-open-attempt": {
     childCapabilityId: "observe-comments-panel-open-attempt",
     outcomeType: "comments_panel_opened",
@@ -116,7 +140,7 @@ const buildPageStateObservation = (
   summary: string,
 ) => {
   const session = runtime.browserController.getSessionState();
-  const currentUrl = session.currentUrl || DEFAULT_PAGE_URL_BY_MAP[envelope.selectedMapId as keyof typeof DEFAULT_PAGE_URL_BY_MAP] || null;
+  const currentUrl = session.currentUrl || resolveCanonicalPlatformUrl(envelope.selectedMapId) || null;
   return {
     ref: `${envelope.inputRef}:page-state`,
     kind: "page_state" as const,
@@ -184,7 +208,7 @@ const buildExpectedOutcome = (
 ) => ({
   outcomeType: policy.outcomeType,
   description: inputPayload.summary,
-  expectedUrlHost: null,
+  expectedUrlHost: policy.childCapabilityId === "observe-page-open-attempt" ? resolveCanonicalPlatformHost(envelope.selectedMapId) : null,
   expectedUrlPrefix: null,
   expectedState: null,
   expectedTargetType: null,

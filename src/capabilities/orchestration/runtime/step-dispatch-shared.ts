@@ -3,7 +3,7 @@ import type { z } from "zod";
 import type { MissionState, OperationalMap } from "../contract.js";
 import { MissionStepResultSchema } from "../schema.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
-import { findAiPromptContractCatalogEntry } from "../../ai/index.js";
+import { findAiPromptContractCatalogEntry, resolveAiDispatchTimeoutMs } from "../../ai/index.js";
 import { getDefaultMapPluginRegistry } from "./orchestration-map-id-list.js";
 
 const DEFAULT_STEP_TIMEOUT_MS = 60_000;
@@ -197,7 +197,8 @@ const PRODUCTION_STEP_TIMEOUT_MS_BY_ABILITY: Partial<Record<Exclude<OperationalS
 
 const resolveStepTimeoutMs = (step: OperationalStep): number => {
   if (step.stepKind === "ai") {
-    return PRODUCTION_STEP_TIMEOUT_MS_BY_KIND.ai;
+    const promptContract = step.promptContractId ? findAiPromptContractCatalogEntry(step.promptContractId) : null;
+    return promptContract ? resolveAiDispatchTimeoutMs(promptContract.taskType) : PRODUCTION_STEP_TIMEOUT_MS_BY_KIND.ai;
   }
   if (step.stepKind === "finalize") {
     return PRODUCTION_STEP_TIMEOUT_MS_BY_KIND.finalize;

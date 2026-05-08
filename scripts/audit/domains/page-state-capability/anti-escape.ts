@@ -103,6 +103,12 @@ function hasProofBuilderChainBindings(project: Project): boolean {
     && hasPropertyPath(project, `${ROOT}/runtime/page-state-runtime-proof-builder.ts`, "request?.inputRef");
 }
 
+function appearsBeforeSuccessOutput(executorText: string, fragment: string): boolean {
+  const fragmentIndex = executorText.indexOf(fragment);
+  const successIndex = executorText.indexOf("return createSuccessfulPageStateResult({");
+  return fragmentIndex !== -1 && successIndex !== -1 && fragmentIndex < successIndex;
+}
+
 function collectSchemaFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
 
@@ -138,11 +144,15 @@ function collectSchemaFindings(project: Project): Finding[] {
 function collectOutputBoundaryFindings(project: Project): Finding[] {
   const executorSource = getSource(project, `${ROOT}/runtime/page-state-executor.ts`);
   const executorText = executorSource.getFullText();
-  const hasEvidenceGate = executorText.includes("sourceEvidenceRefs.length === 0") && executorText.includes("missing_source_evidence");
-  const hasObservationGate = executorText.includes("matchedObservationIds.length === 0") && executorText.includes("missing_observation_support");
-  const hasReviewBoundary = executorText.includes("Page State can only forward governed observation bundles with evidence references.");
+  const hasFailureRoute = hasCallExpression(executorSource, "createPageStateFailureResult");
+  const hasSuccessRoute = hasCallExpression(executorSource, "createSuccessfulPageStateResult");
+  const hasEvidenceGate = appearsBeforeSuccessOutput(executorText, "input.request.sourceEvidenceRefs.length === 0")
+    && appearsBeforeSuccessOutput(executorText, "childObservation.supportingEvidenceRefs.length === 0")
+    && appearsBeforeSuccessOutput(executorText, 'failureReason: "missing_source_evidence"');
+  const hasObservationGate = appearsBeforeSuccessOutput(executorText, "matchedObservationIds.length === 0")
+    && appearsBeforeSuccessOutput(executorText, 'failureReason: "missing_observation_support"');
 
-  return hasEvidenceGate && hasObservationGate && hasReviewBoundary
+  return hasFailureRoute && hasSuccessRoute && hasEvidenceGate && hasObservationGate
     ? []
     : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2", file: `${ROOT}/runtime/page-state-executor.ts`, line: 1, severity: "fatal", message: "Page State executor must block missing evidence and missing observation support before success output is built." })];
 }

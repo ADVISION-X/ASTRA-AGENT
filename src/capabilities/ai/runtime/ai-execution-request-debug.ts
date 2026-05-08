@@ -30,7 +30,7 @@ const buildRequestDebugBase = (
   input: ExecutionRequestDebugInput,
   runtimeCallId: string,
 ): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "runId" | "roundId" | "videoVisitId" | "stepId" | "mapPackageId" | "mapPackageVersion" | "selectedMapId" | "selectedMapVersion" | "activationSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId" | "inputRef" | "idempotencyKey" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => ({
-  eventType: "AI_REQUEST_DEBUG",
+  eventType: "AI_PROMPT_REQUEST_DEBUG",
   level: "DEBUG",
   status: "started",
   sessionId: input.request.sessionId,
@@ -96,7 +96,8 @@ const buildRequestDebugPrompt = (
 const buildRequestDebugOutput = (
   input: ExecutionRequestDebugInput,
 ): Pick<AiRuntimeStructuredDebugEvent, "rawResponsePreview" | "rawResponseText" | "rawResponseHash" | "rawResponseRef" | "parsedJson" | "parsedDecision" | "parserErrors" | "sourceScreenshotEvidenceId" | "aiInputArtifactRef" | "imageInputs" | "tokenEstimate"> => {
-  const proof = resolveAiInputProofSummary(input.request.inputRefs[0]?.id);
+  const proofs = input.request.inputRefs.map((ref) => resolveAiInputProofSummary(ref.id)).filter((entry): entry is NonNullable<ReturnType<typeof resolveAiInputProofSummary>> => entry !== null);
+  const firstProof = proofs[0];
   return {
     rawResponsePreview: null,
     rawResponseText: null,
@@ -105,9 +106,9 @@ const buildRequestDebugOutput = (
     parsedJson: null,
     parsedDecision: null,
     parserErrors: [],
-    sourceScreenshotEvidenceId: proof?.sourceScreenshotEvidenceId ?? null,
-    aiInputArtifactRef: proof?.aiInputArtifactRef ?? null,
-    imageInputs: proof ? [{
+    sourceScreenshotEvidenceId: firstProof?.sourceScreenshotEvidenceId ?? null,
+    aiInputArtifactRef: firstProof?.aiInputArtifactRef ?? null,
+    imageInputs: proofs.map((proof) => ({
       refId: proof.promptInputRef,
       artifactRef: proof.aiInputArtifactRef,
       filePath: proof.aiInputStorageRef,
@@ -115,7 +116,7 @@ const buildRequestDebugOutput = (
       bytes: null,
       width: proof.preparedImageWidth,
       height: proof.preparedImageHeight,
-    }] : [],
+    })),
     tokenEstimate: null,
   };
 };

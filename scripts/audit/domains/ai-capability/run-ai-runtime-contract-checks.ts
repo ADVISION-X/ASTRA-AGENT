@@ -53,6 +53,11 @@ const WORKBENCH_AI_DEBUG_SUPPORT_PATH = "src/lib/local-runtime/workbench-ai-debu
 const VISION_PRODUCT_PRESENCE_PROMPT_PATH = "src/lib/local-ai/prompts/vision-product-presence.v1.ts";
 const VISION_PRODUCT_PRESENCE_SCHEMA_PATH = "src/types/vision-product-presence.ts";
 const WORKBENCH_AI_REQUEST_BUILDER_PATH = "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts";
+const LOCAL_AI_TASK_SUPPORT_PATH = "src/lib/local-ai/local-ai-runtime-task-support.ts";
+const OLLAMA_RUNTIME_SUPPORT_PATH = "src/lib/local-ai/runtime-adapters/ollama-runtime-support.ts";
+const OCR_RUNTIME_SUPPORT_PATH = "src/lib/local-ai/runtime-adapters/local-ocr-runtime-support.ts";
+const VISION_RUNTIME_TASK_PATH = "src/lib/local-ai/local-ai-runtime-vision-task.ts";
+const GOVERNED_TASK_EXECUTION_PATH = "src/lib/local-ai/governed-task-execution.ts";
 
 const findRequiredExecutorCalls = (project: Project): Finding[] => {
   const findings: Finding[] = [];
@@ -132,6 +137,12 @@ const collectRuntimeDebugShapeFindings = (project: Project): Finding[] => {
   if (!hasCallExpression(localAdapterSource, "emitAiErrorDebug") || !hasObjectLiteralProperty(localDebugContractSource, "implementationStatus") || !hasObjectLiteralProperty(localDebugContractSource, "runtimeCallId") || !hasObjectLiteralProperty(localDebugContractSource, "diagnosticPayloadRef")) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug-contract.ts`, line: 1, severity: "fatal", message: "AI runtime debug events must expose implementationStatus, runtimeCallId, and diagnosticPayloadRef without raw prompt/image payloads." }));
   }
+  if (!hasStringLiteral(localDebugSource, "AI_RAW_RESPONSE_DEBUG") || !hasStringLiteral(localDebugSource, "AI_NORMALIZED_RESPONSE_DEBUG") || !hasStringLiteral(localDebugContractSource, "AI_RAW_RESPONSE_DEBUG") || !hasStringLiteral(localDebugContractSource, "AI_NORMALIZED_RESPONSE_DEBUG")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug.ts`, line: 1, severity: "fatal", message: "AI debug must emit raw model response and normalized/assembled response as separate structured events before terminal AI_RESPONSE_DEBUG." }));
+  }
+  if (!hasStringLiteral(localDebugContractSource, "AI_INPUT_REQUEST_DEBUG") || !hasStringLiteral(localDebugContractSource, "AI_PROMPT_REQUEST_DEBUG")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-debug-contract.ts`, line: 1, severity: "fatal", message: "AI debug request stages must distinguish input parsing, prompt preparation, and actual model request start." }));
+  }
 
   return findings;
 };
@@ -202,6 +213,32 @@ const hasTerminalDebugPaths = (project: Project): boolean => {
   const externalRuntimeSource = getSourceOrThrow(project, `${AI_ROOT}/runtime-adapters/external-provider-runtime-execution.ts`);
   return [localDebugSource, runtimeFailureSource, externalRuntimeSource].some((source) => hasStringLiteral(source, "AI_ERROR_DEBUG"))
     && [localDebugSource, externalRuntimeSource].some((source) => hasStringLiteral(source, "AI_RESPONSE_DEBUG"));
+};
+
+const findAiDebugTransparencyViolations = (project: Project): Finding[] => {
+  const localTaskSupport = getSourceOrThrow(project, LOCAL_AI_TASK_SUPPORT_PATH);
+  const ollamaSupport = getSourceOrThrow(project, OLLAMA_RUNTIME_SUPPORT_PATH);
+  const ocrSupport = getSourceOrThrow(project, OCR_RUNTIME_SUPPORT_PATH);
+  const visionTask = getSourceOrThrow(project, VISION_RUNTIME_TASK_PATH);
+  const findings: Finding[] = [];
+
+  for (const [file, source] of [
+    [LOCAL_AI_TASK_SUPPORT_PATH, localTaskSupport],
+    [OLLAMA_RUNTIME_SUPPORT_PATH, ollamaSupport],
+    [OCR_RUNTIME_SUPPORT_PATH, ocrSupport],
+  ] as const) {
+    if (source.getFullText().includes("GRASSEYE_DEBUG_AI_IO")) {
+      findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file, line: 1, severity: "fatal", message: "AI IO transparency must not be gated by GRASSEYE_DEBUG_AI_IO; governed logs must carry full raw AI IO by default." }));
+    }
+  }
+  if (!ollamaSupport.getFullText().includes("rawResponseText: parsed.response") || !ocrSupport.getFullText().includes("rawResponseText: ocrText")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: OLLAMA_RUNTIME_SUPPORT_PATH, line: 1, severity: "fatal", message: "Local AI adapters must emit full rawResponseText by default, not only rawResponsePreview." }));
+  }
+  if (!hasStringLiteral(visionTask, "local_ai_output_normalized") || !visionTask.getFullText().includes("adjusted=${String(visionOutput.adjusted)}") || !visionTask.getFullText().includes("rawResponseText: responseText")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: VISION_RUNTIME_TASK_PATH, line: 1, severity: "fatal", message: "Vision parser must emit a separate normalized/assembled debug step with the original raw response still attached." }));
+  }
+
+  return findings;
 };
 
 const collectWorkbenchAiDebugChainFindings = (project: Project): Finding[] => {
@@ -420,6 +457,8 @@ const findBinaryProductPresenceContractViolations = (project: Project): Finding[
   const promptText = `${promptSource.getFullText()}\n${runtimePromptSource.getFullText()}`;
   const schemaText = schemaSource.getFullText();
   const requestBuilderText = requestBuilderSource.getFullText();
+  const governedTaskSource = getSourceOrThrow(project, GOVERNED_TASK_EXECUTION_PATH);
+  const governedTaskText = governedTaskSource.getFullText();
   const findings: Finding[] = [];
 
   if (!promptText.includes("Return exactly one product-presence decision: product_yes or product_no.")
@@ -432,8 +471,14 @@ const findBinaryProductPresenceContractViolations = (project: Project): Finding[
   }
   if (!requestBuilderText.includes("taskType === PRODUCT_PRESENCE_TASK_TYPE")
     || !requestBuilderText.includes("minimumConfidence: null")
-    || !requestBuilderText.includes("reviewOnLowConfidence: false")) {
+    || !requestBuilderText.includes("reviewOnLowConfidence: false")
+    || !requestBuilderText.includes("PRODUCT_PRESENCE_FRAME_COUNT")
+    || !requestBuilderText.includes("fixed_3_6")
+    || requestBuilderText.includes('isProductPresence ? "multi_image" : "single_frame_fallback"')) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: WORKBENCH_AI_REQUEST_BUILDER_PATH, line: 1, severity: "fatal", message: "Workbench product-presence AI request must disable low-confidence human handoff and preserve binary autonomous routing." }));
+  }
+  if (!governedTaskText.includes("vision.productPresence forbids governed heuristic execution") || governedTaskText.includes("resolveVisionDecision") || governedTaskText.includes("resolveVisionClassification") || governedTaskText.includes("single-frame fallback reduced trust")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: GOVERNED_TASK_EXECUTION_PATH, line: 1, severity: "fatal", message: "Product-presence cannot have governed heuristic fallback execution; only model-backed AI may decide product presence." }));
   }
 
   return findings;
@@ -476,6 +521,7 @@ export function runAiRuntimeContractChecks(project: Project): Finding[] {
     ...findRuntimeContractViolations(project),
     ...findRuntimeDiagnosticTransparencyViolations(project),
     ...collectWorkbenchAiDebugChainFindings(project),
+    ...findAiDebugTransparencyViolations(project),
     ...findPublicContractViolations(project),
     ...findFakeLiteralViolations(project),
     ...findDisabledChildExecutionViolations(project),

@@ -33,7 +33,7 @@ type AiRuntimeProofRecord = {
 const PAGE_PREPARATION_TASK_TYPE = "page_preparation_judgment";
 
 const resolveMinimumConfidence = (aiTaskType: string): number | null =>
-  aiTaskType === PAGE_PREPARATION_TASK_TYPE ? null : 0.6;
+  aiTaskType === PAGE_PREPARATION_TASK_TYPE || aiTaskType === "product_presence_judgment" ? null : 0.6;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
 

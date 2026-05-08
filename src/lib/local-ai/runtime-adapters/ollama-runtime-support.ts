@@ -15,8 +15,6 @@ const truncatePreview = (value: string, maxLength = 220): string => {
   return normalized.length <= maxLength ? normalized : `${normalized.slice(0, maxLength)}...`;
 };
 
-const shouldIncludeFullAiIo = () => process.env.GRASSEYE_DEBUG_AI_IO === "full";
-
 export async function listOllamaAvailableModels(baseUrl: string): Promise<string[]> {
   const response = await fetchJsonWithTimeout(`${baseUrl}/api/tags`, { method: "GET", timeoutMs: 8_000 });
   const parsed = response as OllamaTagsResponse;
@@ -91,7 +89,7 @@ export async function invokeOllamaGenerate(input: {
     modelName: input.model,
     runtime: input.runtime,
     rawResponsePreview: truncatePreview(parsed.response),
-    ...(shouldIncludeFullAiIo() ? { rawResponseText: parsed.response } : {}),
+    rawResponseText: parsed.response,
     durationMs: Date.now() - startedAt,
   });
 

@@ -1125,7 +1125,7 @@ provider_secret_missing
 local_ai_unavailable
 ```
 
-`AI_REQUEST_DEBUG` / `AI_RESPONSE_DEBUG` / `AI_ERROR_DEBUG` 必须进入 structured runtime event sink。AI 不直接 import Forensics internals；composition root 注入 `emitDebugEvent`，Forensics public boundary 负责持久化。
+`AI_REQUEST_DEBUG` / `AI_RAW_RESPONSE_DEBUG` / `AI_NORMALIZED_RESPONSE_DEBUG` / `AI_RESPONSE_DEBUG` / `AI_ERROR_DEBUG` 必须进入 structured runtime event sink。AI 不直接 import Forensics internals；composition root 注入 `emitDebugEvent`，Forensics public boundary 负责持久化。
 
 禁止：
 
@@ -1133,7 +1133,9 @@ local_ai_unavailable
 local-ai adapter 自己写 Forensics storage
 AI result failureReason 只剩 runtime_execution_failed
 invalid_output 被改写成 schema_validation_failed 而丢失 rawOutputRef/runtimeCallId
-终端输出 raw image base64/raw prompt/secret/cookie/token
+终端输出 raw image base64/secret/cookie/token
+用 rawResponsePreview 代替 full rawResponseText
+把 parser normalize 后的 assembled JSON 冒充模型原始输出
 ```
 
 Inspector 必须用 AST/symbol/import graph 固化：
@@ -1151,5 +1153,6 @@ unexpected child throw 暴露 implementationStatus/errorKind/diagnosticPayloadRe
 - `traceId` is not governance truth. AI debug code must not derive `runId`, `selectedMapId`, `mapPackageId`, `selectedMapVersion`, or `activationSnapshotRef` from `traceId`.
 - AI debug events must carry explicit chain fields from governed request context: `missionId`, `runId`, `sessionId`, `stepId`, `mapPackageId`, `mapPackageVersion`, `selectedMapId`, `selectedMapVersion`, `activationSnapshotRef`, `capabilityCallId`, `nerveBusEnvelopeId`, `inputRef`, and `idempotencyKey`.
 - Every emitted `AI_REQUEST_DEBUG` must be paired by `runtimeCallId` with one terminal `AI_RESPONSE_DEBUG` or `AI_ERROR_DEBUG`. `AI_ERROR_DEBUG` must include `implementationStatus`, `errorKind`, `failureReason`, `runtimeCallId`, `diagnosticPayloadRef`, `promptContractId`, `outputSchemaRef`, `ownerResponsible`, `actionableMessage`, and `durationMs`.
+- Every local model response must first emit `AI_RAW_RESPONSE_DEBUG` with full `rawResponseText`. Parser normalization/assembly must then emit `AI_NORMALIZED_RESPONSE_DEBUG` as a separate proof before terminal `AI_RESPONSE_DEBUG`; production debug code must never hide raw model defects behind repaired fields.
 - `runId` must come from the governed mission run, and `capabilityCallId` must remain the Orchestration step invocation id. `runtimeCallId`, `spanId`, and `traceId` are observability/runtime fields and cannot replace governance chain fields.
 - AI quality review/failure proof must not collapse to `quality_gate_blocked` alone. It must preserve `qualityDecisionReason`, `schemaDecision`, `schemaValidationStatus`, `schemaIssueCount`, `outputBoundaryDecision`, `confidence`, `minimumConfidence`, `dataQualityFlags`, `parsedDecision`, `runtimeCallId`, and `diagnosticPayloadRef`.

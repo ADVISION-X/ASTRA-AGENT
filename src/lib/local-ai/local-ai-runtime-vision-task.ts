@@ -82,12 +82,15 @@ export async function executeVisionRuntimeTask(input: RuntimeExecutionInput, cre
     ...(input.debugHook ? { debugHook: input.debugHook } : {}),
   });
   const visionOutput = parseVisionRuntimeOutput(responseText, request);
-  if (visionOutput.adjusted) {
-    await input.debugHook?.({
-      eventType: "local_ai_output_normalized",
-      detail: `taskType=${request.taskType}; normalizedFrameLevelObservations=${visionOutput.normalizedFrameCount}`,
-    });
-  }
+  await input.debugHook?.({
+    eventType: "local_ai_output_normalized",
+    detail: `taskType=${request.taskType}; adjusted=${String(visionOutput.adjusted)}; normalizedFrameLevelObservations=${visionOutput.normalizedFrameCount}`,
+    taskType: request.taskType,
+    rawResponsePreview: buildPromptPreview(responseText),
+    rawResponseText: responseText,
+    parsedJson: visionOutput.payload,
+    parsedDecision: visionOutput.payload.isProductVideo === true ? "product_yes" : visionOutput.payload.isProductVideo === false ? "product_no" : "product_uncertain",
+  });
   const payload = visionOutput.payload;
   await input.debugHook?.({
     eventType: "local_ai_output_parsed",

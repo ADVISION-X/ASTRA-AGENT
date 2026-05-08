@@ -3,7 +3,7 @@ import { StructuredRuntimeEventSchema } from "../../types/structured-log.js";
 import { createId } from "./ids.js";
 
 export type WorkbenchAiDebugEvent = {
-  eventType: "AI_REQUEST_DEBUG" | "AI_RESPONSE_DEBUG" | "AI_ERROR_DEBUG" | "AI_INPUT_DEBUG_REJECTED";
+  eventType: "AI_INPUT_REQUEST_DEBUG" | "AI_PROMPT_REQUEST_DEBUG" | "AI_REQUEST_DEBUG" | "AI_RAW_RESPONSE_DEBUG" | "AI_NORMALIZED_RESPONSE_DEBUG" | "AI_RESPONSE_DEBUG" | "AI_ERROR_DEBUG" | "AI_INPUT_DEBUG_REJECTED";
   level: "DEBUG" | "INFO" | "WARN" | "ERROR";
   status: "started" | "success" | "failed" | "review_required";
   taskType: string;
@@ -150,14 +150,26 @@ export const splitTraceId = (traceId: string | null): { missionId: string | null
 };
 
 const getAiDebugReason = (input: WorkbenchAiDebugEvent): string | null => {
+  if (input.eventType === "AI_INPUT_REQUEST_DEBUG") {
+    return `AI input request parsed for ${input.taskType}.`;
+  }
+  if (input.eventType === "AI_PROMPT_REQUEST_DEBUG") {
+    return `AI prompt request prepared for ${input.taskType}.`;
+  }
   if (input.eventType === "AI_REQUEST_DEBUG") {
-    return `AI request prepared for ${input.taskType}.`;
+    return `AI model request started for ${input.taskType}.`;
   }
   if (input.eventType === "AI_INPUT_DEBUG_REJECTED") {
     return `AI input debug rejected for ${input.taskType}.`;
   }
   if (input.eventType === "AI_RESPONSE_DEBUG") {
     return `AI response captured for ${input.taskType}.`;
+  }
+  if (input.eventType === "AI_RAW_RESPONSE_DEBUG") {
+    return `Raw AI response captured for ${input.taskType}.`;
+  }
+  if (input.eventType === "AI_NORMALIZED_RESPONSE_DEBUG") {
+    return `Normalized AI response captured for ${input.taskType}.`;
   }
   return input.failureReason;
 };

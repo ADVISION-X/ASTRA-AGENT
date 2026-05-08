@@ -198,6 +198,21 @@ function collectVisibleScrollPrimitiveFindings(project: ReturnType<typeof makePr
       message: "Current Chrome scroll-next-video primitive must not use DOM/URL/native video identity polling or fixed waits as next-video proof; Mouse Scroll may only execute the primitive, observe settle, and hand off downstream evidence refs.",
     })];
   }
+  const scrollMethodText = scrollMethod.getText();
+  const hasForbiddenClickBridge =
+    scrollMethodText.includes("clickAt(")
+    || scrollMethodText.includes("FACEBOOK_REELS_NEXT_ARROW_CLICK_TARGET_LABEL")
+    || scrollMethodText.includes("isFacebookReelsNextVideoScroll")
+    || scrollMethodText.includes("resolveFacebookReelsNextArrowPoint");
+  if (hasForbiddenClickBridge) {
+    return [createFinding({
+      lawId: LAW_IDS.EXECUTION,
+      file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER,
+      line: scrollMethod.getStartLineNumber(),
+      severity: "fatal",
+      message: "Current Chrome scroll primitive must stay scroll-only. Embedding click execution or facebook-specific arrow-click substitution inside scroll_next_video is a forbidden cross-owner bridge.",
+    })];
+  }
   return [];
 }
 

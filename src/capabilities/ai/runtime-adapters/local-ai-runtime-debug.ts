@@ -85,6 +85,42 @@ async function emitResponseDebug(args: {
   });
 }
 
+async function emitRawResponseDebug(args: {
+  emit: LocalAiRuntimePortOptions["emitDebugEvent"];
+  baseEvent: () => Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs">;
+  durationMs: number | null;
+}) {
+  await emitDebugEvent(args.emit, {
+    eventType: "AI_RAW_RESPONSE_DEBUG",
+    level: "DEBUG",
+    status: "success",
+    ...args.baseEvent(),
+    failureReason: null,
+    errorKind: null,
+    actionableMessage: null,
+    ownerResponsible: null,
+    durationMs: args.durationMs,
+  });
+}
+
+async function emitNormalizedResponseDebug(args: {
+  emit: LocalAiRuntimePortOptions["emitDebugEvent"];
+  baseEvent: () => Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs">;
+  durationMs: number | null;
+}) {
+  await emitDebugEvent(args.emit, {
+    eventType: "AI_NORMALIZED_RESPONSE_DEBUG",
+    level: "DEBUG",
+    status: "success",
+    ...args.baseEvent(),
+    failureReason: null,
+    errorKind: null,
+    actionableMessage: null,
+    ownerResponsible: null,
+    durationMs: args.durationMs,
+  });
+}
+
 async function emitErrorDebug(args: {
   emit: LocalAiRuntimePortOptions["emitDebugEvent"];
   baseEvent: () => Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs">;
@@ -117,6 +153,24 @@ async function handleDebugHookEvent(args: {
   if (args.event.eventType === "local_ai_runtime_request_started" && !args.state.requestEmitted) {
     args.state.requestEmitted = true;
     await emitRequestDebug({ emit: args.emit, baseEvent: args.baseEvent });
+    return;
+  }
+  if (args.event.eventType === "local_ai_adapter_response_received" && !args.state.rawResponseEmitted) {
+    args.state.rawResponseEmitted = true;
+    await emitRawResponseDebug({
+      emit: args.emit,
+      baseEvent: args.baseEvent,
+      durationMs: typeof args.event.durationMs === "number" ? args.event.durationMs : null,
+    });
+    return;
+  }
+  if (args.event.eventType === "local_ai_output_normalized" && !args.state.normalizedResponseEmitted) {
+    args.state.normalizedResponseEmitted = true;
+    await emitNormalizedResponseDebug({
+      emit: args.emit,
+      baseEvent: args.baseEvent,
+      durationMs: typeof args.event.durationMs === "number" ? args.event.durationMs : null,
+    });
     return;
   }
   if (args.event.eventType === "local_ai_output_parsed") {

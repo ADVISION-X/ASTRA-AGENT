@@ -15,6 +15,9 @@ export type VisionPromptParts = {
 };
 
 export const resolveExpectedFrameLabels = (request: VisionProductPresenceRequest): VideoFrameSamplePointLabel[] => {
+  if (request.input.samplingStrategy === "fixed_3_6") {
+    return ["frame_3s", "frame_6s"];
+  }
   if (request.input.samplingStrategy === "fixed_3_6_10") {
     return ["frame_3s", "frame_6s", "frame_10s"];
   }

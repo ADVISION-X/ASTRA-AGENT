@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T20:15:45.974Z",
+  "generatedAt": "2026-05-07T23:27:48.596Z",
   "phase": "phase-04-full-enforcement",
   "passed": true,
   "totals": {
@@ -50,6 +50,12 @@
           "classification": "PASS",
           "passed": true,
           "summary": "Page State anti-escape checks are closed."
+        },
+        {
+          "name": "ai-only-page-state-boundary",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Page State raw-observation boundary contains no forbidden page interpretation tokens."
         },
         {
           "name": "page-state-enforcement-coverage",

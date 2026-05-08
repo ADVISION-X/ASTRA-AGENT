@@ -5,6 +5,10 @@ export {
   saveAiExternalProviderConfig,
 } from "./provider-config.js";
 export {
+  AI_TRANSPORT_TIMEOUT_MS,
+  resolveAiDispatchTimeoutMs,
+} from "./runtime/local-ai-runtime-policy.js";
+export {
   AI_PROMPT_CONTRACT_CATALOG_VERSION,
   findAiPromptContractCatalogEntry,
   listAiPromptContractCatalogEntries,

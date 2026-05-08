@@ -1,4 +1,5 @@
 import { AbilityResultEnvelopeSchema, AiResponseEnvelopeSchema, HumanCommandResultEnvelopeSchema } from "./schema.js";
+import { AI_TRANSPORT_TIMEOUT_MS } from "../ai/index.js";
 import { ABILITY_TO_ORCHESTRATION_CHILD } from "./children/ability-to-orchestration/implementation.js";
 import { AI_TO_ORCHESTRATION_CHILD } from "./children/ai-to-orchestration/implementation.js";
 import { COMMANDER_TO_ORCHESTRATION_CHILD } from "./children/commander-to-orchestration/implementation.js";
@@ -8,7 +9,7 @@ import { ORCHESTRATION_TO_COMMANDER_CHILD } from "./children/orchestration-to-co
 
 const DEFAULT_MAX_DURATION_MS = 60_000;
 const DEFAULT_MAX_ENVELOPE_AGE_MS = 120_000;
-const AI_TRANSPORT_MAX_DURATION_MS = 60_000;
+const AI_TRANSPORT_MAX_DURATION_MS = AI_TRANSPORT_TIMEOUT_MS;
 
 export const NERVE_BUS_CHANNEL_REGISTRY = Object.freeze({
   "commander-to-orchestration": Object.freeze({

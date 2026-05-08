@@ -145,8 +145,8 @@ Required fields:
 - systemPromptHash
 - userPromptHash
 - promptDebugRef
-- promptFullText when GRASSEYE_DEBUG_AI_IO=full
-- promptPreview when GRASSEYE_DEBUG_AI_IO=summary
+- promptFullText by default for governed AI debug records
+- promptPreview by default for terminal scanability
 - imageRefs
 - imagePaths or artifactRefs
 - imageHashes
@@ -161,8 +161,8 @@ Required fields:
 - missionId, roundId, and stepId when applicable
 
 Required direction:
-- summary mode may show prompt hash, prompt preview, prompt length, image refs, sizes, and model metadata.
-- full mode must be able to show complete system prompt and user prompt in terminal and or debug bundle.
+- terminal summaries may show prompt hash, prompt preview, prompt length, image refs, sizes, and model metadata.
+- governed debug records must preserve complete system prompt and user prompt in terminal and or debug bundle by default.
 - base64 image content must never be printed to terminal.
 - secrets, cookies, tokens, and credentials must be redacted before terminal display or persistence.
 
@@ -185,7 +185,7 @@ capabilityDomain: forensics-persistence-capability
 enforcementMode: manual-first
 evidenceMode: law
 
-summary: every AI model response must emit a structured AI_RESPONSE_DEBUG event before parser output is allowed to hide raw model output.
+summary: every AI model response must emit structured raw and normalized debug events before parser output is allowed to hide raw model output.
 
 ### 主题
 
@@ -193,14 +193,14 @@ AI 原始回复和解析结果必须可追踪
 
 ### 法条
 
-After an AI model returns, GrassEye must emit a governed AI_RESPONSE_DEBUG event before raw output can be discarded, parsed-only, or transformed.
+After an AI model returns, GrassEye must emit a governed AI_RAW_RESPONSE_DEBUG event with full rawResponseText before raw output can be discarded, parsed-only, or transformed. If parser code normalizes, repairs, assembles, or fills any model field, GrassEye must then emit AI_NORMALIZED_RESPONSE_DEBUG as a separate event before terminal AI_RESPONSE_DEBUG.
 
 Required fields:
 - provider
 - model
 - modelRole
-- rawResponseText when GRASSEYE_DEBUG_AI_IO=full
-- rawResponsePreview when summary mode
+- rawResponseText by default
+- rawResponsePreview for terminal scanability
 - rawResponseHash
 - rawResponseRef
 - parsedJson
@@ -213,6 +213,10 @@ Required fields:
 - failureReason
 - reviewRequiredReason
 - traceId
+
+Forbidden:
+- gating rawResponseText or promptFullText behind GRASSEYE_DEBUG_AI_IO.
+- emitting only normalized parsedJson when raw model text was malformed, partial, or repaired.
 - spanId
 - missionId, roundId, and stepId when applicable
 

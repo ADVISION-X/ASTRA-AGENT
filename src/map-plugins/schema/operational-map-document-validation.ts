@@ -34,6 +34,15 @@ const STARTUP_PREPARATION_PROMPT_CONTRACT_ID = "vision.pagePreparation.v1";
 const isStartupPreparationTransitionId = (transitionId: string): boolean =>
   STARTUP_PREPARATION_ROUTE_LABELS.some((routeLabel) => transitionId.endsWith(`:${routeLabel}`));
 
+const ALLOWED_ROUTE_PLAN_TRANSITION_OVERRIDES = new Set([
+  "judge-seeding-video:read-comments-and-save-evidence",
+  "judge-seeding-video:skip-current-video",
+  "scroll-next-video:success",
+]);
+
+const isAllowedRoutePlanTransitionOverride = (transition: TransitionValue): boolean =>
+  ALLOWED_ROUTE_PLAN_TRANSITION_OVERRIDES.has(transition.transitionId);
+
 const collectStartupPreparationStepIds = (value: OperationalMapValue): string[] =>
   value.steps
     .filter((step) => step.targetAbilityGroupId === "ai" && step.promptContractId === STARTUP_PREPARATION_PROMPT_CONTRACT_ID)
@@ -103,7 +112,7 @@ const validateRoutePlanBoundMap = (
 
   const routePlanTransitionIds = new Set(routePlan.transitions.map((transition) => transition.transitionId));
   const duplicatedTransitionIds = value.transitions
-    .filter((transition) => routePlanTransitionIds.has(transition.transitionId))
+    .filter((transition) => routePlanTransitionIds.has(transition.transitionId) && !isAllowedRoutePlanTransitionOverride(transition))
     .map((transition) => transition.transitionId);
   if (duplicatedTransitionIds.length > 0) {
     addIssue(context, "transitions", `routePlanBoundMap must not duplicate Route Plan-owned transitions: ${duplicatedTransitionIds.join(", ")}.`);
@@ -111,7 +120,10 @@ const validateRoutePlanBoundMap = (
 
   const routeLabels = new Set(routePlan.outcomeOptions.map((option) => option.routeLabel));
   const localRouteLabelTransitions = value.transitions
-    .filter((transition) => [...routeLabels].some((routeLabel) => transition.transitionId.endsWith(`:${routeLabel}`)))
+    .filter((transition) =>
+      [...routeLabels].some((routeLabel) => transition.transitionId.endsWith(`:${routeLabel}`))
+      && !isAllowedRoutePlanTransitionOverride(transition)
+    )
     .map((transition) => transition.transitionId);
   if (localRouteLabelTransitions.length > 0) {
     addIssue(context, "transitions", `routePlanBoundMap must not declare routeLabel action-chain transitions: ${localRouteLabelTransitions.join(", ")}.`);
@@ -125,7 +137,8 @@ const validateRoutePlanBoundMap = (
       if (!aiStepIds.includes(transition.fromStepId) || transition.onStatus !== "success") {
         return false;
       }
-      return !startupPreparationStepIds.includes(transition.fromStepId) || !isStartupPreparationTransitionId(transition.transitionId);
+      return (!startupPreparationStepIds.includes(transition.fromStepId) || !isStartupPreparationTransitionId(transition.transitionId))
+        && !isAllowedRoutePlanTransitionOverride(transition);
     })
     .map((transition) => transition.transitionId);
   if (localAiSuccessTransitions.length > 0) {
@@ -174,7 +187,11 @@ export const validateMapPluginOperationalMap = (value: OperationalMapValue, cont
   const stepIds = collectStepIds({ ...value, steps: [...value.steps, ...routePlanSteps] }, context);
   validateInitialStepId(value.initialStepId, stepIds, context);
 
-  const transitions = [...value.transitions, ...routePlanTransitions];
+  const mapTransitionIds = new Set(value.transitions.map((transition) => transition.transitionId));
+  const transitions = [
+    ...value.transitions,
+    ...routePlanTransitions.filter((transition) => !mapTransitionIds.has(transition.transitionId)),
+  ];
   collectTransitionIds(transitions, stepIds, context);
   validateFinalStates(value.finalStates, transitions, context);
 };

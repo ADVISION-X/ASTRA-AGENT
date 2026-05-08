@@ -40,6 +40,7 @@ export type ScreenshotExecutionPlan =
       operation: "browser-viewport";
       regionLabel: string;
       contentLines: string[];
+      sampleDelayMs: number | null;
     }
   | {
       kind: "capture";

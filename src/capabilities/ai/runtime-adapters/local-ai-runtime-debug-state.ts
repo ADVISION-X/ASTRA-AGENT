@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import type { LocalAiDebugEvent } from "../../../lib/local-ai/runtime-adapters/local-ai-runtime-adapter.js";
 import { type StructuredAiImageInput } from "../../../types/structured-log.js";
 import type { ParsedAiAbilityInput } from "../contract.js";
+import { resolveAiInputProofSummary } from "../shared/ai-input-proof-registry.js";
 import type { AiRuntimeStructuredDebugEvent, CollectedDebugState } from "./local-ai-runtime-debug-contract.js";
 
 function hashValue(value: unknown): string {
@@ -29,7 +30,49 @@ function toStructuredImageInputs(items: LocalAiDebugEvent["imageInputs"] | undef
   }));
 }
 
+function buildRequestImageInputs(request: ParsedAiAbilityInput): StructuredAiImageInput[] {
+  return request.inputRefs.flatMap((ref) => {
+    const proof = resolveAiInputProofSummary(ref.id);
+    return proof ? [{
+      refId: proof.promptInputRef,
+      artifactRef: proof.aiInputArtifactRef,
+      filePath: proof.aiInputStorageRef,
+      hash: proof.preparedImageHash,
+      bytes: null,
+      width: proof.preparedImageWidth,
+      height: proof.preparedImageHeight,
+    }] : [];
+  });
+}
+
+function mergeImageInputs(existing: StructuredAiImageInput[], incoming: StructuredAiImageInput[]): StructuredAiImageInput[] {
+  const merged = [...existing];
+  for (const item of incoming) {
+    const index = merged.findIndex((candidate) =>
+      (item.refId && candidate.refId === item.refId)
+      || (item.filePath && candidate.filePath === item.filePath)
+    );
+    if (index === -1) {
+      merged.push(item);
+      continue;
+    }
+    const current = merged[index]!;
+    merged[index] = {
+      refId: item.refId ?? current.refId,
+      artifactRef: item.artifactRef ?? current.artifactRef,
+      filePath: item.filePath ?? current.filePath,
+      hash: item.hash ?? current.hash,
+      bytes: item.bytes ?? current.bytes,
+      width: item.width ?? current.width,
+      height: item.height ?? current.height,
+    };
+  }
+  return merged;
+}
+
 function createCollectedDebugState(request: ParsedAiAbilityInput, promptDebugRef: string): CollectedDebugState {
+  const imageInputs = buildRequestImageInputs(request);
+  const firstProof = request.inputRefs.map((ref) => resolveAiInputProofSummary(ref.id)).find((proof): proof is NonNullable<ReturnType<typeof resolveAiInputProofSummary>> => proof !== null) ?? null;
   return {
     provider: "local",
     model: null,
@@ -54,11 +97,13 @@ function createCollectedDebugState(request: ParsedAiAbilityInput, promptDebugRef
     parsedJson: null,
     parsedDecision: null,
     parserErrors: [],
-    sourceScreenshotEvidenceId: null,
-    aiInputArtifactRef: request.inputRefs[0]?.id ?? null,
-    imageInputs: [],
+    sourceScreenshotEvidenceId: firstProof?.sourceScreenshotEvidenceId ?? null,
+    aiInputArtifactRef: firstProof?.aiInputArtifactRef ?? request.inputRefs[0]?.id ?? null,
+    imageInputs,
     tokenEstimate: null,
     requestEmitted: false,
+    rawResponseEmitted: false,
+    normalizedResponseEmitted: false,
     responseEmitted: false,
   };
 }
@@ -76,11 +121,14 @@ function updateDebugState(state: CollectedDebugState, event: LocalAiDebugEvent) 
   state.promptFullText = normalizeText(event.promptFullText) ?? state.promptFullText;
   state.rawResponsePreview = normalizeText(event.rawResponsePreview) ?? state.rawResponsePreview;
   state.rawResponseText = normalizeText(event.rawResponseText) ?? state.rawResponseText;
+  state.parsedJson = event.parsedJson ?? state.parsedJson;
+  state.parsedDecision = normalizeText(event.parsedDecision) ?? state.parsedDecision;
+  state.parserErrors = event.parserErrors ?? state.parserErrors;
   state.sourceScreenshotEvidenceId = normalizeText(event.sourceScreenshotEvidenceId) ?? state.sourceScreenshotEvidenceId;
   state.aiInputArtifactRef = normalizeText(event.aiInputArtifactRef) ?? state.aiInputArtifactRef;
   state.tokenEstimate = typeof event.tokenEstimate === "number" ? event.tokenEstimate : state.tokenEstimate;
   if ((event.imageInputs ?? []).length > 0) {
-    state.imageInputs = toStructuredImageInputs(event.imageInputs);
+    state.imageInputs = mergeImageInputs(state.imageInputs, toStructuredImageInputs(event.imageInputs));
   }
 }
 
