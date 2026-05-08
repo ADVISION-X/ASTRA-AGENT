@@ -1,10 +1,9 @@
 import type { RoutePlan } from "./route-plan.schema.js";
 import {
-  NEXT_ITEM_ADVANCED_ROUTE_LABEL,
-  NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
   PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
   PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
 } from "./product-discovery-route-plan.constants.js";
+import { PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS } from "./product-discovery-route-plan.transitions.next-item.js";
 
 export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] = [
   {
@@ -175,125 +174,7 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     toStepId: null,
     finalStatus: "failed",
   },
-  {
-    transitionId: "observe-next-item-page-state:success",
-    fromStepId: "observe-next-item-page-state",
-    onStatus: "success",
-    toStepId: "analyze-next-item-target-candidate",
-    finalStatus: null,
-  },
-  {
-    transitionId: "observe-next-item-page-state:failed",
-    fromStepId: "observe-next-item-page-state",
-    onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
-  },
-  {
-    transitionId: "analyze-next-item-target-candidate:success",
-    fromStepId: "analyze-next-item-target-candidate",
-    onStatus: "success",
-    toStepId: "locate-next-item-target",
-    finalStatus: null,
-  },
-  {
-    transitionId: "analyze-next-item-target-candidate:failed",
-    fromStepId: "analyze-next-item-target-candidate",
-    onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
-  },
-  {
-    transitionId: "locate-next-item-target:success",
-    fromStepId: "locate-next-item-target",
-    onStatus: "success",
-    toStepId: "normalize-next-video-arrow",
-    finalStatus: null,
-  },
-  {
-    transitionId: "locate-next-item-target:failed",
-    fromStepId: "locate-next-item-target",
-    onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
-  },
-  {
-    transitionId: "normalize-next-video-arrow:success",
-    fromStepId: "normalize-next-video-arrow",
-    onStatus: "success",
-    toStepId: "click-next-video-arrow",
-    finalStatus: null,
-  },
-  {
-    transitionId: "normalize-next-video-arrow:failed",
-    fromStepId: "normalize-next-video-arrow",
-    onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
-  },
-  {
-    transitionId: "click-next-video-arrow:success",
-    fromStepId: "click-next-video-arrow",
-    onStatus: "success",
-    toStepId: "capture-next-item-verification-viewport",
-    finalStatus: null,
-  },
-  {
-    transitionId: "click-next-video-arrow:failed",
-    fromStepId: "click-next-video-arrow",
-    onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
-  },
-  {
-    transitionId: "capture-next-item-verification-viewport:success",
-    fromStepId: "capture-next-item-verification-viewport",
-    onStatus: "success",
-    toStepId: "prepare-next-item-verification-ai-input",
-    finalStatus: null,
-  },
-  {
-    transitionId: "capture-next-item-verification-viewport:failed",
-    fromStepId: "capture-next-item-verification-viewport",
-    onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
-  },
-  {
-    transitionId: "prepare-next-item-verification-ai-input:success",
-    fromStepId: "prepare-next-item-verification-ai-input",
-    onStatus: "success",
-    toStepId: "verify-next-item-advanced",
-    finalStatus: null,
-  },
-  {
-    transitionId: "prepare-next-item-verification-ai-input:failed",
-    fromStepId: "prepare-next-item-verification-ai-input",
-    onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
-  },
-  {
-    transitionId: `verify-next-item-advanced:${NEXT_ITEM_ADVANCED_ROUTE_LABEL}`,
-    fromStepId: "verify-next-item-advanced",
-    onStatus: "success",
-    toStepId: "capture-video-viewport",
-    finalStatus: null,
-  },
-  {
-    transitionId: `verify-next-item-advanced:${NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL}`,
-    fromStepId: "verify-next-item-advanced",
-    onStatus: "success",
-    toStepId: "capture-video-viewport",
-    finalStatus: null,
-  },
-  {
-    transitionId: "verify-next-item-advanced:failed",
-    fromStepId: "verify-next-item-advanced",
-    onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
-  },
+  ...PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS,
   {
     transitionId: "finalize-mission:success",
     fromStepId: "finalize-mission",

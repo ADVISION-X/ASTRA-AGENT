@@ -202,7 +202,7 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     name: "seeding map duplicates route plan-owned step mutation",
     file: "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
     search: '      {\n        "stepId": "judge-seeding-video",\n        "capabilityId": "orchestration",',
-    replace: '      {\n        "stepId": "normalize-next-video-arrow",\n        "capabilityId": "orchestration",\n        "childCapabilityId": "normalize-coordinate-geometry",\n        "stepKind": "ability",\n        "targetAbilityGroupId": "geometry-guard",\n        "inputRefs": [\n          "screenshotEvidenceRef"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "geometryProofRef"\n          ]\n        },\n        "promptContractId": null\n      },\n      {\n        "stepId": "judge-seeding-video",\n        "capabilityId": "orchestration",',
+    replace: '      {\n        "stepId": "press-next-video-key",\n        "capabilityId": "orchestration",\n        "childCapabilityId": "press-navigation-key",\n        "stepKind": "ability",\n        "targetAbilityGroupId": "text-input",\n        "inputRefs": [\n          "pageStateRef",\n          "screenshotEvidenceRef"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "abilityResultRef"\n          ]\n        },\n        "promptContractId": null\n      },\n      {\n        "stepId": "judge-seeding-video",\n        "capabilityId": "orchestration",',
   },
   {
     name: "seeding map removes route plan id mutation",
@@ -220,7 +220,7 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     name: "seeding map owns ai success route mutation",
     file: "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
     search: '      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
-    replace: '      {\n        "transitionId": "judge-seeding-video:success",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "success",\n        "toStepId": "normalize-next-video-arrow",\n        "finalStatus": null\n      },\n      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
+    replace: '      {\n        "transitionId": "judge-seeding-video:success",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "success",\n        "toStepId": "press-next-video-key",\n        "finalStatus": null\n      },\n      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
   },
   {
     name: "startup preparation spine bypass mutation",

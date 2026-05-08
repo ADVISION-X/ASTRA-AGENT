@@ -98,23 +98,35 @@ function validateMouseScrollDryRun(
 function validateTextInputDryRun(
   steps: MapPackage["operationalMap"]["steps"],
 ): MapPackageValidationIssue[] {
-  const textInputStepIndex = steps.findIndex((step) => isTargetAbilityGroup(step.targetAbilityGroupId, "text-input"));
-  if (textInputStepIndex < 0) {
+  const textInputSteps = steps
+    .map((step, index) => ({ step, index }))
+    .filter(({ step }) => isTargetAbilityGroup(step.targetAbilityGroupId, "text-input"));
+
+  if (textInputSteps.length === 0) {
     return [];
   }
 
-  const textInputStep = steps[textInputStepIndex]!;
-  const issues: MapPackageValidationIssue[] = [];
-  const hasTextSource = textInputStep.inputRefs.includes("commandInputRef") || textInputStep.inputRefs.includes("promptInputRef");
-  const hasInputTarget = hasPrecedingStep(steps, textInputStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "visual-target") || isTargetAbilityGroup(step.targetAbilityGroupId, "page-state"));
-  const hasGeometryGuard = hasPrecedingStep(steps, textInputStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "geometry-guard"));
-  if (!hasTextSource) {
-    issues.push(createIssue("text-input step requires commandInputRef or promptInputRef as approved text source.", `operationalMap.steps.${textInputStep.stepId}`));
-  }
-  if (!hasInputTarget || !hasGeometryGuard) {
-    issues.push(createIssue("text-input step requires preceding input-target context and geometry-guard normalization.", `operationalMap.steps.${textInputStep.stepId}`));
-  }
-  return issues;
+  return textInputSteps.flatMap(({ step: textInputStep, index: textInputStepIndex }) => {
+    const hasInputTarget = hasPrecedingStep(steps, textInputStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "visual-target") || isTargetAbilityGroup(step.targetAbilityGroupId, "page-state"));
+
+    if (textInputStep.childCapabilityId === "press-navigation-key") {
+      const hasPageStateProof = textInputStep.inputRefs.includes("pageStateRef");
+      return hasInputTarget && hasPageStateProof
+        ? []
+        : [createIssue("press-navigation-key step requires preceding page-state context and pageStateRef input.", `operationalMap.steps.${textInputStep.stepId}`)];
+    }
+
+    const issues: MapPackageValidationIssue[] = [];
+    const hasTextSource = textInputStep.inputRefs.includes("commandInputRef") || textInputStep.inputRefs.includes("promptInputRef");
+    const hasGeometryGuard = hasPrecedingStep(steps, textInputStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "geometry-guard"));
+    if (!hasTextSource) {
+      issues.push(createIssue("text-input step requires commandInputRef or promptInputRef as approved text source.", `operationalMap.steps.${textInputStep.stepId}`));
+    }
+    if (!hasInputTarget || !hasGeometryGuard) {
+      issues.push(createIssue("text-input step requires preceding input-target context and geometry-guard normalization.", `operationalMap.steps.${textInputStep.stepId}`));
+    }
+    return issues;
+  });
 }
 
 function validateForensicsPresence(steps: MapPackage["operationalMap"]["steps"]): MapPackageValidationIssue[] {

@@ -6,5 +6,5 @@ export {
 export {
   buildMouseClickCommand,
   buildMouseScrollCommand,
-  buildTextInputCommand,
 } from "./workbench-pointer-dispatch-input.js";
+export { buildTextInputCommand } from "./workbench-text-input-dispatch-input.js";

@@ -12,6 +12,7 @@ import { collectNonAiNextSemanticFindings, collectPreviousVideoOwnerFindings } f
 const ROUTE_PLAN_ROOT = "src/map-plugins/route-plans";
 const ROUTE_PLAN_SCHEMA_PATH = `${ROUTE_PLAN_ROOT}/route-plan.schema.ts`;
 const PRODUCT_DISCOVERY_ROUTE_PLAN_PATH = `${ROUTE_PLAN_ROOT}/product-discovery-route-plan.v1.ts`;
+const WORKBENCH_TEXT_INPUT_DISPATCH_PATH = "src/lib/local-runtime/workbench-text-input-dispatch-input.ts";
 const WORKBENCH_VISUAL_DISPATCH_PATH = "src/lib/local-runtime/workbench-visual-dispatch-input.ts";
 const WORKBENCH_NEXT_ITEM_DISPATCH_PATH = "src/lib/local-runtime/workbench-visual-dispatch-input-next-item.ts";
 const LOOP_GUARD_PATH = "src/capabilities/orchestration/runtime/loop-guard.ts";
@@ -228,27 +229,42 @@ async function collectAdvanceNextItemRuntimeFindings(): Promise<Finding[]> {
   const routePlanStepsText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH);
   const routePlanTransitionsText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH);
   const routePlanRuntimeText = `${routePlanText}\n${routePlanStepsText}\n${routePlanTransitionsText}`;
+  const textInputDispatchText = await readRepoFile(WORKBENCH_TEXT_INPUT_DISPATCH_PATH);
   const visualDispatchText = await readRepoFile(WORKBENCH_VISUAL_DISPATCH_PATH);
   const nextItemDispatchText = await readRepoFile(WORKBENCH_NEXT_ITEM_DISPATCH_PATH);
   const visualRuntimeText = `${visualDispatchText}\n${nextItemDispatchText}`;
   const loopGuardText = await readRepoFile(LOOP_GUARD_PATH);
   const loopGuardProofText = await readRepoFile(LOOP_GUARD_PROOF_PATH);
-  const normalizeNextBlock = routePlanRuntimeText.match(/stepId: "normalize-next-video-arrow"[\s\S]*?promptContractId: null,\n  }/)?.[0] ?? "";
+  const forbiddenLegacyNextItemTokens = [
+    'stepId: "analyze-next-item-target-candidate"',
+    'stepId: "locate-next-item-target"',
+    'stepId: "normalize-next-video-arrow"',
+    'stepId: "click-next-video-arrow"',
+    'promptContractId: "vision.nextItemTargetCandidate.v1"',
+  ];
 
-  if (normalizeNextBlock.includes('inputRefs: ["screenshotEvidenceRef"]')) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "normalize-next-video-arrow must not consume only screenshotEvidenceRef; it needs AI target/source evidence for Advance Next Item."));
+  if (forbiddenLegacyNextItemTokens.some((token) => routePlanRuntimeText.includes(token))) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Advance Next Item main route must no longer include the legacy AI/Visual Target/Geometry/Click chain."));
   }
-  if (!routePlanRuntimeText.includes('"sourceAiResultRef"') || !routePlanRuntimeText.includes('"sourceTargetRef"')) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "click-next-video-arrow must preserve sourceAiResultRef and sourceTargetRef evidence chain."));
+  if (!routePlanRuntimeText.includes('stepId: "press-next-video-key"')
+    || !routePlanRuntimeText.includes('childCapabilityId: "press-navigation-key"')
+    || !routePlanRuntimeText.includes('targetAbilityGroupId: "text-input"')) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Advance Next Item must declare press-next-video-key as a text-input/press-navigation-key muscle step."));
   }
-  if (!routePlanText.includes("requiresTargetCandidateRef: true") || !routePlanText.includes("postClickObservation: true")) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH, "Advance Next Item muscle must require a target candidate ref and mark post-click observation as a non-blocking quality signal."));
+  if (!routePlanTransitionsText.includes('fromStepId: "observe-next-item-page-state",\n    onStatus: "success",\n    toStepId: "press-next-video-key"')
+    || !routePlanTransitionsText.includes('fromStepId: "press-next-video-key",\n    onStatus: "success",\n    toStepId: "capture-next-item-verification-viewport"')) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH, "Advance Next Item transitions must route observe-next-item-page-state -> press-next-video-key -> capture-next-item-verification-viewport."));
   }
-  if (!routePlanText.includes('fallbackPolicy: "fallback-only-with-post-click-observation"')) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH, "Advance Next Item deterministic geometry fallback must be policy-marked fallback-only-with-post-click-observation."));
+  if (!routePlanText.includes('allowedAbilityGroups: ["page-state", "text-input", "screenshot", "ai"]')
+    || !routePlanText.includes("requiresTargetCandidateRef: false")
+    || !routePlanText.includes('fallbackPolicy: "post-action-observation-required"')) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH, "Advance Next Item muscle metadata must reflect page-state + text-input ownership and mandatory post-action observation."));
   }
-  if (routePlanTransitionsText.includes('fromStepId: "click-next-video-arrow",\n    onStatus: "success",\n    toStepId: "capture-video-viewport"')) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH, "click-next-video-arrow:success must not jump directly to capture-video-viewport; it must pass through next-item verification."));
+  if (!textInputDispatchText.includes('childCapabilityId: "press-navigation-key"')
+    || !textInputDispatchText.includes('targetProofOwner: "page-state"')
+    || !textInputDispatchText.includes('focusProofOwner: "page-state"')
+    || !textInputDispatchText.includes('return "ArrowDown"')) {
+    findings.push(toFinding(WORKBENCH_TEXT_INPUT_DISPATCH_PATH, "press-navigation-key dispatch must bind page-state proof/focus and emit ArrowDown for press-next-video-key."));
   }
   if (!routePlanRuntimeText.includes('stepId: "observe-comments-entry-page-state"')
     || !routePlanRuntimeText.includes('stepId: "analyze-comments-entry-target-candidate"')
@@ -257,7 +273,7 @@ async function collectAdvanceNextItemRuntimeFindings(): Promise<Finding[]> {
     findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Product-yes must be governed by the comments-entry AI candidate chain and bind vision.commentsEntryTargetCandidate.v1."));
   }
   if (!routePlanRuntimeText.includes('stepId: "verify-next-item-advanced"') || !routePlanRuntimeText.includes('toStepId: "verify-next-item-advanced"')) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Route Plan must include verify-next-item-advanced so AI judges whether a new video is visible after click."));
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Route Plan must include verify-next-item-advanced so AI judges whether a new video is visible after press-navigation-key."));
   }
   if (!routePlanRuntimeText.includes('promptContractId: "vision.nextItemAdvanced.v1"')
     || !routePlanTransitionsText.includes("NEXT_ITEM_ADVANCED_ROUTE_LABEL")
@@ -267,21 +283,8 @@ async function collectAdvanceNextItemRuntimeFindings(): Promise<Finding[]> {
   if (!visualRuntimeText.includes("buildCommentsEntryVisualTargetCommand") || visualRuntimeText.includes("Math.round(geometry.viewportWidth / 2)") || visualRuntimeText.includes("Math.round(geometry.viewportHeight / 2)")) {
     findings.push(toFinding(WORKBENCH_VISUAL_DISPATCH_PATH, "Comments-entry visual dispatch must consume governed AI candidate geometry and must not fall back to center-screen geometry."));
   }
-  if (visualRuntimeText.includes('dataQualityFlags: ["deterministic_next_video_arrow_geometry"]')) {
-    findings.push(toFinding(WORKBENCH_NEXT_ITEM_DISPATCH_PATH, "Deterministic next-video geometry must not be emitted as normal-quality target truth."));
-  }
-  if (visualRuntimeText.includes('return buildDeterministicNextVideoArrowCommand(runtime, envelope, inputPayload);')
-    && !visualRuntimeText.includes("deterministic_next_video_arrow_geometry_fallback")) {
-    findings.push(toFinding(WORKBENCH_NEXT_ITEM_DISPATCH_PATH, "Deterministic next-video geometry may only appear as explicit fallback with fallback data-quality flag."));
-  }
-  if (visualRuntimeText.includes("buildDeterministicNextVideoArrowCommand")) {
-    findings.push(toFinding(WORKBENCH_NEXT_ITEM_DISPATCH_PATH, "Deterministic next-video helper must be named fallback-only, not normal command."));
-  }
-  if (!visualRuntimeText.includes('riskLevel: "high"') || !visualRuntimeText.includes("requiresPostClickAiVerification: true") || !visualRuntimeText.includes('fallbackReason: "missing_governed_next_item_target_candidate"')) {
-    findings.push(toFinding(WORKBENCH_NEXT_ITEM_DISPATCH_PATH, "Deterministic next-video fallback must be high risk and require post-click AI verification."));
-  }
-  if (!visualRuntimeText.includes("GRASSEYE_ALLOW_NEXT_VIDEO_DETERMINISTIC_FALLBACK")) {
-    findings.push(toFinding(WORKBENCH_NEXT_ITEM_DISPATCH_PATH, "Deterministic next-video fallback must be gated by explicit runtime policy."));
+  if (visualRuntimeText.includes('return buildDeterministicNextVideoArrowCommand(runtime, envelope, inputPayload);')) {
+    findings.push(toFinding(WORKBENCH_NEXT_ITEM_DISPATCH_PATH, "Legacy normalize-next-video-arrow deterministic path must not be reinstated as the active next-item route."));
   }
   if (!loopGuardText.includes("completed_by_run_limit") || !loopGuardText.includes("blocked_by_loop_guard")) {
     findings.push(toFinding(LOOP_GUARD_PATH, "Loop guard must distinguish run-limit completion from blocked loop-guard failures."));
