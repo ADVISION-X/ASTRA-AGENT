@@ -14,6 +14,7 @@ export const VISUAL_TARGET_ALLOWED_AI_PROMPT_CONTRACT_IDS = [
   "local-vision.target-detection.v1",
   "local-ocr.ui-target.v1",
   "visual-target.candidate-extraction.v1",
+  "vision.commentsEntryTargetCandidate.v1",
   "vision.nextItemTargetCandidate.v1",
 ] as const;
 

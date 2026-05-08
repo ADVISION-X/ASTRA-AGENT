@@ -5,6 +5,7 @@ import { type MapPluginAiChildCapabilityId } from "../shared/map-plugin-ai-child
 const AI_TASK_TYPE_BY_CHILD_CAPABILITY_ID: Record<MapPluginAiChildCapabilityId, AiTaskType> = {
   "page-preparation-judgment": "page_preparation_judgment",
   "product-presence-judgment": "product_presence_judgment",
+  "comments-entry-target-candidate-analysis": "visual_target_candidate_analysis",
   "next-item-target-candidate-analysis": "visual_target_candidate_analysis",
   "comment-text-cleanup": "ocr_cleanup",
   "comment-intent-analysis": "comment_signal_summary",
