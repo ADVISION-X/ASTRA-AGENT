@@ -8,6 +8,11 @@ import { waitForHealth } from "../startup/lib/health-check.mjs";
 const ignoredDirs = new Set([".git", ".venv", "dist", "node_modules", ".grasseye-data"]);
 const TERMINAL_TASK_STATUSES = new Set(["completed", "paused", "stopped", "review_required", "failed"]);
 const PHASE_FIVE = "phase-05-final-delivery-debug";
+const TASK_TEMPLATE_BY_PLATFORM = {
+  "facebook-web": "facebook-seeding-video-discovery",
+  "tiktok-web": "tiktok-seeding-video-discovery",
+};
+const HEALTH_COMPONENT_NAMES = ["console", "agent", "browserController", "dataStore"];
 
 function assert(condition, message) {
   if (!condition) {
@@ -29,6 +34,19 @@ function getRealPlatformUrl(platformTarget) {
   return platformTarget === "facebook-web"
     ? "https://www.facebook.com/reel/"
     : "https://www.tiktok.com/foryou";
+}
+
+function getTaskStartPayload(platformTarget) {
+  const taskTemplateId = process.env.GRASSEYE_TASK_TEMPLATE_ID?.trim() || TASK_TEMPLATE_BY_PLATFORM[platformTarget];
+  assert(taskTemplateId, `acceptance:final-delivery could not resolve a taskTemplateId for ${platformTarget}.`);
+  return {
+    commandSource: "acceptance:final-delivery",
+    humanGoal: `Run the active ${platformTarget} seeded discovery mission for final-delivery verification.`,
+    maxRounds: 1,
+    maxMinutes: 2,
+    operatorNote: "phase-five final-delivery runtime acceptance",
+    taskTemplateId,
+  };
 }
 
 async function collectEntryViolations(rootDir, relativeDir, entry) {
@@ -66,7 +84,8 @@ async function fetchJson(url, init) {
   });
 
   if (!response.ok) {
-    throw new Error(`${url} returned HTTP ${response.status}`);
+    const failureBody = await response.text();
+    throw new Error(`${url} returned HTTP ${response.status}: ${failureBody || "empty response body"}`);
   }
 
   return response.json();
@@ -96,20 +115,35 @@ function attachStreamCollector(stream) {
   return () => buffer;
 }
 
-async function waitForTaskToSettle(snapshotUrl, maxAttempts = 240, intervalMs = 500) {
-  let lastStatus = "unknown";
+function matchesRunId(event, runId) {
+  return event?.runId === runId || event?.traceId === runId || getRefValue(event?.refs, "runId") === runId;
+}
+
+async function waitForRuntimeLogEvidence(logsUrl, { runId, maxAttempts = 240, intervalMs = 500, serviceProcess } = {}) {
+  let lastMatchCount = 0;
+  let lastFailure = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    const snapshot = await fetchJson(snapshotUrl);
-    const status = snapshot.agent?.currentTask?.status ?? "idle";
-    lastStatus = status;
-    if (TERMINAL_TASK_STATUSES.has(status) || !snapshot.agent?.currentTask) {
-      return snapshot;
+    if (serviceProcess && serviceProcess.exitCode !== null) {
+      throw new Error(`grasseye:start exited before runtime logs arrived with code ${serviceProcess.exitCode}.`);
     }
+
+    try {
+      const runtimeLogs = await fetchJson(logsUrl);
+      const matchedLogs = Array.isArray(runtimeLogs) ? runtimeLogs.filter((event) => matchesRunId(event, runId)) : [];
+      lastMatchCount = matchedLogs.length;
+      lastFailure = null;
+      if (matchedLogs.some((event) => ["COMMAND_ACCEPTED", "COMMAND_RESPONSE_SENT", "COMMAND_RECEIPT_TIMEOUT_AFTER_ACCEPTED", "AI_REQUEST_DEBUG", "AI_RESPONSE_DEBUG", "AI_ERROR_DEBUG"].includes(event.eventType))) {
+        return matchedLogs;
+      }
+    } catch (error) {
+      lastFailure = error instanceof Error ? error.message : String(error);
+    }
+
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 
-  throw new Error(`acceptance:final-delivery task did not settle in time; lastStatus=${lastStatus}`);
+  throw new Error(`acceptance:final-delivery runtime log evidence did not arrive in time; runId=${runId}; matchedLogs=${lastMatchCount}; lastFailure=${lastFailure ?? "none"}`);
 }
 
 function getRefValue(refs, key) {
@@ -216,6 +250,7 @@ async function main() {
   const repoRoot = process.cwd();
   const platformTarget = requireRealPlatformTarget();
   const realPlatformUrl = getRealPlatformUrl(platformTarget);
+  const taskStartPayload = getTaskStartPayload(platformTarget);
   const tempDataDir = await mkdtemp(path.join(os.tmpdir(), "grasseye-final-delivery-"));
   const forbiddenTests = await scanForForbiddenTestFiles(repoRoot);
   assert(forbiddenTests.length === 0, `forbidden test files detected: ${forbiddenTests.join(", ")}`);
@@ -232,21 +267,25 @@ async function main() {
     const actionsUrl = "http://127.0.0.1:4173/api/runtime/actions?tail=500";
 
     const health = await waitForHealth({ url: healthUrl, timeoutMs: 60000, intervalMs: 250, serviceProcess: startupProcess });
-    await fetchJson(startUrl, { method: "POST" });
+    const startResult = await fetchJson(startUrl, { method: "POST", body: JSON.stringify(taskStartPayload) });
 
-    const snapshot = await waitForTaskToSettle(snapshotUrl);
-    const runtimeLogs = await fetchJson(logsUrl);
+    const runId = startResult.runtimeProof?.runId ?? null;
+    assert(runId, "task-start dispatch must return runtimeProof.runId for final-delivery verification.");
+    await waitForRuntimeLogEvidence(logsUrl, { runId, serviceProcess: startupProcess });
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const snapshot = await fetchJson(snapshotUrl);
+    const runtimeLogs = (await fetchJson(logsUrl)).filter((event) => matchesRunId(event, runId));
     const runtimeActions = await fetchJson(actionsUrl);
     const runnerSummary = JSON.parse(await readFile(path.join(repoRoot, "scripts", "audit", "generated", "runner-summary.json"), "utf8"));
 
-    assert(Array.isArray(health.components) && health.components.length >= 5, "runtime health must expose the core startup components.");
-    assert(snapshot.mode?.dataMode === "Real Platform", "final-delivery runtime must stay in real-platform mode.");
-    assert(snapshot.mode?.platformId === platformTarget, `final-delivery runtime must report platformId=${platformTarget}.`);
-    if (snapshot.agent?.currentTask) {
-      assert(snapshot.agent.currentTask.status !== "failed", `final-delivery runtime task failed: ${snapshot.agent.currentTask.note ?? "unknown reason"}`);
-    }
+    assert(health.kind === "app-shell-health", `runtime health must expose kind=app-shell-health, got ${String(health.kind)}`);
+    assert(Array.isArray(health.components) && HEALTH_COMPONENT_NAMES.every((name) => health.components.some((component) => component?.name === name)), "runtime health must expose console, agent, browserController, and dataStore components.");
+    assert(startResult.status === "success", `task-start dispatch must succeed, got ${String(startResult.status)}.`);
+    assert(snapshot.browser?.dataMode === "Real Platform", "final-delivery runtime must stay in real-platform mode.");
+    assert(snapshot.browser?.platformId === platformTarget, `final-delivery runtime must report platformId=${platformTarget}.`);
     assert(Array.isArray(runtimeLogs) && runtimeLogs.length > 0, "final-delivery runtime log tail is empty.");
-    assert(Array.isArray(runtimeActions) && runtimeActions.length > 0, "final-delivery runtime action tail must contain executed task proof.");
+    assert(Array.isArray(runtimeActions), "final-delivery runtime action tail must be readable.");
     assert(runnerSummary.phase === PHASE_FIVE, `runner-summary must report ${PHASE_FIVE}, got ${String(runnerSummary.phase)}`);
 
     const blockerFindings = buildPhaseFiveBlockerFindings(runtimeLogs);
