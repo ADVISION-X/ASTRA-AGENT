@@ -9,6 +9,7 @@ export const VISUAL_TARGET_DATA_QUALITY_FLAGS = [
   "candidate_source_binding_mismatch",
   "candidate_source_frame_missing",
   "candidate_source_kind_mismatch",
+  "candidate_observation_kind_mismatch",
   "candidate_missing_click_point",
   "candidate_click_point_forbidden",
   "candidate_bbox_out_of_bounds",

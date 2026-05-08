@@ -65,7 +65,7 @@ export const ROUTE_PLAN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     name: "press next video key success direct capture mutation",
     file: "src/map-plugins/route-plans/product-discovery-route-plan.transitions.ts",
     search: '    transitionId: "press-next-video-key:success",\n    fromStepId: "press-next-video-key",\n    onStatus: "success",\n    toStepId: "capture-next-item-verification-viewport",',
-    replace: '    transitionId: "press-next-video-key:success",\n    fromStepId: "press-next-video-key",\n    onStatus: "success",\n    toStepId: "capture-video-viewport",',
+    replace: '    transitionId: "press-next-video-key:success",\n    fromStepId: "press-next-video-key",\n    onStatus: "success",\n    toStepId: "capture-current-video-viewport",',
   },
   {
     name: "loop guard generic completed mutation",

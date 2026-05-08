@@ -37,9 +37,11 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
   const mapStepIds = new Set(record.mapPackage.operationalMap.steps.map((step) => step.stepId));
   const routePlanOwnedStepIds = new Set((routePlan?.steps ?? []).map((step) => step.stepId));
   const routePlanTransitionIds = new Set((routePlan?.transitions ?? []).map((transition) => transition.transitionId));
-  const capture = steps.find((step) => step.stepId === "capture-video-viewport");
-  const prepare = steps.find((step) => step.stepId === "prepare-ai-input");
+  const startupCapture = steps.find((step) => step.stepId === "capture-startup-video-viewport");
+  const startupPrepare = steps.find((step) => step.stepId === "prepare-startup-ai-input");
   const startupPreparation = steps.find((step) => step.stepId === "startup-preparation");
+  const currentCapture = steps.find((step) => step.stepId === "capture-current-video-viewport");
+  const currentPrepare = steps.find((step) => step.stepId === "prepare-current-video-ai-input");
   const judge = steps.find((step) => step.stepId === "judge-seeding-video");
   const observeCommentsState = steps.find((step) => step.stepId === "observe-comments-entry-page-state");
   const analyzeComments = steps.find((step) => step.stepId === "analyze-comments-entry-target-candidate");
@@ -79,7 +81,7 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
     routePlanTransitionIds.has(transition.transitionId)
   );
   const mapOwnsAiSuccessRouting = mapTransitions.some((transition) =>
-    transition.fromStepId === "judge-seeding-video"
+    (transition.fromStepId === "startup-preparation" || transition.fromStepId === "judge-seeding-video")
     && transition.onStatus === "success"
   );
   const judgeLeaksNextTargetCandidate = judge?.outputRefPolicy.storeAs.includes("aiTargetCandidateRef") === true
@@ -154,7 +156,7 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
     && routePlanTransitions.some((transition) => transition.fromStepId === "finalize-seeding-browse-ledger" && transition.onStatus === "success" && transition.toStepId === "observe-next-item-page-state")
     && routePlanTransitions.some((transition) => transition.fromStepId === "observe-next-item-page-state" && transition.onStatus === "success" && transition.toStepId === "press-next-video-key")
     && routePlanTransitions.some((transition) => transition.fromStepId === "press-next-video-key" && transition.onStatus === "success" && transition.toStepId === "capture-next-item-verification-viewport")
-    && routePlanTransitions.some((transition) => transition.fromStepId === "verify-next-item-advanced" && transition.onStatus === "success" && transition.toStepId === "capture-video-viewport")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "verify-next-item-advanced" && transition.onStatus === "success" && transition.toStepId === "capture-current-video-viewport")
     && pressNext?.targetAbilityGroupId === "text-input"
     && pressNext.childCapabilityId === "press-navigation-key"
     && pressNext.inputRefs.includes("pageStateRef")
@@ -165,10 +167,20 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
     && verifyNext.promptContractId === "vision.nextItemAdvanced.v1"
     && !hasForbiddenVideoChangePav
     && !usesLegacyNextVideoScrollPath;
-  const hasChain = capture?.outputRefPolicy.storeAs.includes("screenshotEvidenceRef") === true
-    && prepare?.inputRefs.includes("screenshotEvidenceRef") === true
-    && prepare?.outputRefPolicy.storeAs.includes("promptInputRef") === true
+  const hasRoutePlanOwnedStartupGate =
+    routePlanTransitions.some((transition) => transition.fromStepId === "capture-startup-video-viewport" && transition.onStatus === "success" && transition.toStepId === "prepare-startup-ai-input")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "prepare-startup-ai-input" && transition.onStatus === "success" && transition.toStepId === "startup-preparation")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "startup-preparation" && transition.onStatus === "success" && transition.toStepId === "judge-seeding-video")
+    && startupCapture?.outputRefPolicy.storeAs.includes("screenshotEvidenceRef") === true
+    && startupPrepare?.inputRefs.includes("screenshotEvidenceRef") === true
+    && startupPrepare?.outputRefPolicy.storeAs.includes("promptInputRef") === true
     && startupPreparation?.inputRefs.includes("promptInputRef") === true
+    && currentCapture?.outputRefPolicy.storeAs.includes("screenshotEvidenceRef") === true
+    && currentPrepare?.inputRefs.includes("screenshotEvidenceRef") === true
+    && currentPrepare?.outputRefPolicy.storeAs.includes("promptInputRef") === true
+    && routePlanTransitions.some((transition) => transition.fromStepId === "capture-current-video-viewport" && transition.onStatus === "success" && transition.toStepId === "prepare-current-video-ai-input")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "prepare-current-video-ai-input" && transition.onStatus === "success" && transition.toStepId === "judge-seeding-video");
+  const hasChain = hasRoutePlanOwnedStartupGate
     && judge?.stepKind === "ai"
     && judge?.inputRefs.includes("promptInputRef") === true
     && judge?.promptContractId === "vision.productPresence.v1"
@@ -189,6 +201,6 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
     ? []
     : [createPromptContractFinding(
       record,
-      "Seeding video map packages must be weak routePlanBoundMap entry spines: startup/product AI handoffs may use promptInputRef, but frame-specific sampling refs/steps and post-judgment action chains belong to Route Plan or ability owners. ProductPresence must stay binary route-only and must not leak target candidate ownership. Product-yes must pass observe-comments-entry-page-state -> analyze-comments-entry-target-candidate -> locate-comments-entry-target -> normalize-comments-target -> click-comments-button -> write-seeding-evidence-record -> finalize-seeding-evidence-packet -> finalize-seeding-browse-ledger with vision.commentsEntryTargetCandidate.v1. Advance-next-item must pass observe-next-item-page-state -> press-next-video-key -> capture-next-item-verification-viewport -> prepare-next-item-verification-ai-input -> verify-next-item-advanced before capture-video-viewport, and press-next-video-key must use text-input/press-navigation-key with pageStateRef. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
+      "Seeding video map packages must keep only the open entry local while Route Plan owns capture-startup-video-viewport -> prepare-startup-ai-input -> startup-preparation -> judge-seeding-video and capture-current-video-viewport -> prepare-current-video-ai-input -> judge-seeding-video. ProductPresence must stay binary route-only and must not leak target candidate ownership. Product-yes must pass observe-comments-entry-page-state -> analyze-comments-entry-target-candidate -> locate-comments-entry-target -> normalize-comments-target -> click-comments-button -> write-seeding-evidence-record -> finalize-seeding-evidence-packet -> finalize-seeding-browse-ledger with vision.commentsEntryTargetCandidate.v1. Advance-next-item must pass observe-next-item-page-state -> press-next-video-key -> capture-next-item-verification-viewport -> prepare-next-item-verification-ai-input -> verify-next-item-advanced before capture-current-video-viewport, and press-next-video-key must use text-input/press-navigation-key with pageStateRef. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
     )];
 };

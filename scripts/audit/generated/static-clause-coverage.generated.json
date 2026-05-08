@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T21:43:37.666Z",
+  "generatedAt": "2026-05-08T22:38:11.520Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -7906,6 +7906,27 @@
         },
         {
           "checkPhase": "required-shape-runtime-findings",
+          "checkFunction": "collectPrimitiveAdapterHashFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-runtime-findings.ts",
+          "targetSymbol": "collectPrimitiveAdapterHashFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-runtime-findings",
+          "checkFunction": "collectPrimitiveAdapterHashFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-runtime-findings.ts",
+          "targetSymbol": "collectPrimitiveAdapterHashFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-runtime-findings",
+          "checkFunction": "collectPrimitiveAdapterHashFindings",
+          "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-runtime-findings.ts",
+          "targetSymbol": "collectPrimitiveAdapterHashFindings",
+          "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape-runtime-findings",
           "checkFunction": "collectProofChainFindings",
           "sourceFile": "scripts/audit/domains/text-input-capability/required-shape-runtime-findings.ts",
           "targetSymbol": "collectProofChainFindings",
@@ -8378,6 +8399,13 @@
           "checkFunction": "collectOutputBoundaryFindings",
           "sourceFile": "scripts/audit/domains/visual-target-capability/run-pipeline-truth-attack.ts",
           "targetSymbol": "collectOutputBoundaryFindings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-pipeline-truth-attack",
+          "checkFunction": "collectSnippetFindings",
+          "sourceFile": "scripts/audit/domains/visual-target-capability/run-pipeline-truth-attack.ts",
+          "targetSymbol": "collectSnippetFindings",
           "checkKind": "runtime-proof"
         }
       ],

@@ -74,6 +74,14 @@ const VisualTargetScaleMappingSchema = z.object({
   targetCoordinateSpace: VisualTargetCoordinateSpaceSchema.exclude(["contact_sheet"]),
 }).strict();
 
+const VisualTargetSourceIdentityShape = {
+  missionId: limitedString(160),
+  runId: limitedString(200),
+  sessionId: limitedString(160),
+  roundId: nullableString,
+  videoVisitId: nullableString,
+} satisfies z.ZodRawShape;
+
 const VisualTargetScreenshotSourceProofSchema = z.object({
   screenshotEvidenceId: limitedString(160),
   artifactRef: limitedString(200),
@@ -87,9 +95,7 @@ const VisualTargetScreenshotSourceProofSchema = z.object({
   sourceScreenshotEvidenceId: nullableString,
   scaleMapping: VisualTargetScaleMappingSchema.nullable().default(null),
   capturedAt: z.string().datetime(),
-  sessionId: limitedString(160),
-  roundId: nullableString,
-  videoVisitId: nullableString,
+  ...VisualTargetSourceIdentityShape,
 }).strict();
 
 const VisualTargetAiSourceProofSchema = z.object({
@@ -104,9 +110,7 @@ const VisualTargetAiSourceProofSchema = z.object({
   sourceScreenshotEvidenceId: limitedString(160),
   sourceScreenshotProofRef: limitedString(200),
   capturedAt: z.string().datetime(),
-  sessionId: limitedString(160),
-  roundId: nullableString,
-  videoVisitId: nullableString,
+  ...VisualTargetSourceIdentityShape,
   confidence: confidenceNumber,
   modelRole: limitedString(120),
 }).strict();
@@ -120,9 +124,7 @@ const VisualTargetPageStateProofSchema = z.object({
   currentUrl: limitedString(500),
   currentTitle: nullableString,
   observedAt: z.string().datetime(),
-  sessionId: limitedString(160),
-  roundId: nullableString,
-  videoVisitId: nullableString,
+  ...VisualTargetSourceIdentityShape,
 }).strict();
 
 const VisualTargetOperatorApprovalProofSchema = z.object({

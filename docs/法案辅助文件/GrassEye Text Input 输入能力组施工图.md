@@ -265,6 +265,16 @@ hash(approvedText) === approvedTextHash
 inputTextHash === approvedTextHash
 ```
 
+Hash canonical detail：
+
+```txt
+Text Input 所有 proof/result hash 字段必须使用 schema-canonical SHA-256 字符串：
+sha256:<64 lowercase hex>
+
+typedTextHash 和 keySequenceHash 必须由 TextInputExecutionPort adapter 的同一 canonical hash helper 生成。
+禁止 primitive adapter 返回裸 64 位 hex，禁止在 result/proof builder 中补前缀或吞掉不合法 hash。
+```
+
 ---
 
 ## 6. Child Capability Rules
@@ -564,6 +574,7 @@ Inspector 必查：
 15. No raw text/clipboard/API key leakage.
 16. ALL active laws in registry/matrix/audit-plan/runner.
 17. Negative proof executed.
+18. TextInputExecutionPort adapter output hashes are schema-canonical `sha256:<64 hex>` by AST inspection.
 ```
 
 Negative proof minimum：
@@ -580,6 +591,7 @@ commit-input without approvedCommitRef succeeds
 paste-text persists clipboard plaintext
 runtimeProof contains raw inputText
 remove AbortSignal
+primitive adapter returns bare 64hex instead of schema-canonical sha256-prefixed hash
 add retry loop
 success without postActionVerificationHandoffRef
 add sendSuccess/pageStateVerified to result

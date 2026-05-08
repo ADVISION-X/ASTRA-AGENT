@@ -1,3 +1,5 @@
+import { Node, SyntaxKind } from "ts-morph";
+
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 import { hasCallExpression, hasCallExpressionPath } from "../_shared/ast-helpers.js";
@@ -53,11 +55,142 @@ function collectProofBuilderFindings(project: ReturnType<typeof makeProject>): F
     : [];
 }
 
+function isStringLiteralWithValue(node: Node | undefined, expected: string): boolean {
+  return Boolean(
+    node
+    && (Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node))
+    && node.getLiteralText() === expected,
+  );
+}
+
+function isIdentifierWithName(node: Node | undefined, expected: string): boolean {
+  return Boolean(node && Node.isIdentifier(node) && node.getText() === expected);
+}
+
+function isCanonicalSha256DigestCall(node: Node | undefined): boolean {
+  if (!node || !Node.isCallExpression(node)) {
+    return false;
+  }
+
+  const digestAccess = node.getExpression();
+  if (!Node.isPropertyAccessExpression(digestAccess) || digestAccess.getName() !== "digest") {
+    return false;
+  }
+  if (!isStringLiteralWithValue(node.getArguments()[0], "hex")) {
+    return false;
+  }
+
+  const updateCall = digestAccess.getExpression();
+  if (!Node.isCallExpression(updateCall)) {
+    return false;
+  }
+  const updateAccess = updateCall.getExpression();
+  if (!Node.isPropertyAccessExpression(updateAccess) || updateAccess.getName() !== "update") {
+    return false;
+  }
+  if (!isIdentifierWithName(updateCall.getArguments()[0], "text")) {
+    return false;
+  }
+
+  const createHashCall = updateAccess.getExpression();
+  if (!Node.isCallExpression(createHashCall) || !isIdentifierWithName(createHashCall.getExpression(), "createHash")) {
+    return false;
+  }
+
+  return isStringLiteralWithValue(createHashCall.getArguments()[0], "sha256");
+}
+
+function isCanonicalHashTextReturn(node: Node | undefined): boolean {
+  if (!node || !Node.isTemplateExpression(node)) {
+    return false;
+  }
+
+  const spans = node.getTemplateSpans();
+  return node.getHead().getLiteralText() === "sha256:"
+    && spans.length === 1
+    && isCanonicalSha256DigestCall(spans[0]?.getExpression());
+}
+
+function isStringOfValueKeyCall(node: Node | undefined): boolean {
+  if (!node || !Node.isCallExpression(node) || !isIdentifierWithName(node.getExpression(), "String")) {
+    return false;
+  }
+  const argument = node.getArguments()[0];
+  return isValueKeyPropertyAccess(argument);
+}
+
+function isHashTextOfValueKey(node: Node | undefined): boolean {
+  if (!node || !Node.isCallExpression(node) || !isIdentifierWithName(node.getExpression(), "hashText")) {
+    return false;
+  }
+  return isStringOfValueKeyCall(node.getArguments()[0]);
+}
+
+function isNullLiteral(node: Node | undefined): boolean {
+  return Boolean(node && node.getKind() === SyntaxKind.NullKeyword);
+}
+
+function isValueKeyPropertyAccess(node: Node | undefined): boolean {
+  return Boolean(
+    node
+    && Node.isPropertyAccessExpression(node)
+    && node.getName() === "key"
+    && isIdentifierWithName(node.getExpression(), "value"),
+  );
+}
+
+function isValueKeyNullCheck(node: Node | undefined): boolean {
+  if (!node || !Node.isBinaryExpression(node)) {
+    return false;
+  }
+  return node.getOperatorToken().getKind() === SyntaxKind.EqualsEqualsEqualsToken
+    && isValueKeyPropertyAccess(node.getLeft())
+    && isNullLiteral(node.getRight());
+}
+
+function isGovernedKeySequenceHashInitializer(node: Node | undefined): boolean {
+  if (!node || !Node.isConditionalExpression(node)) {
+    return false;
+  }
+
+  return isValueKeyNullCheck(node.getCondition())
+    && isNullLiteral(node.getWhenTrue())
+    && isHashTextOfValueKey(node.getWhenFalse());
+}
+
+function collectPrimitiveAdapterHashFindings(project: ReturnType<typeof makeProject>): Finding[] {
+  const primitiveAdapterSource = getSourceFile(project, PATHS.PRIMITIVE_ADAPTER);
+  if (!primitiveAdapterSource) {
+    return [createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.PRIMITIVE_ADAPTER, line: 1, severity: "fatal", message: "Text Input primitive adapter file is missing." })];
+  }
+
+  const hashTextReturn = primitiveAdapterSource.getFunction("hashText")?.getDescendantsOfKind(SyntaxKind.ReturnStatement)[0]?.getExpression();
+  const findings: Finding[] = [];
+  if (!isCanonicalHashTextReturn(hashTextReturn)) {
+    findings.push(createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.PRIMITIVE_ADAPTER, line: 1, severity: "fatal", message: "Text Input primitive adapter hashText must return schema-canonical sha256-prefixed hashes, not bare hex." }));
+  }
+
+  const keySequenceHashAssignments = primitiveAdapterSource.getDescendantsOfKind(SyntaxKind.PropertyAssignment)
+    .filter((property) => property.getName() === "keySequenceHash");
+  const invalidKeySequenceHash = keySequenceHashAssignments.some((property) => {
+    const initializer = property.getInitializer();
+    return initializer !== undefined
+      && !isNullLiteral(initializer)
+      && !isGovernedKeySequenceHashInitializer(initializer);
+  });
+  if (keySequenceHashAssignments.length === 0 || invalidKeySequenceHash) {
+    findings.push(createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.PRIMITIVE_ADAPTER, line: 1, severity: "fatal", message: "Text Input primitive adapter keySequenceHash must be null or hashText(String(value.key)) so result/proof hashes satisfy schema." }));
+  }
+
+  return findings;
+}
+
 export function collectBuilderFindings(project: ReturnType<typeof makeProject>): Finding[] {
   return [
     ...collectResultBuilderFindings(project),
     ...collectResultSupportFindings(project),
     ...collectProofBuilderFindings(project),
+    ...collectPrimitiveAdapterHashFindings(project),
   ];
 }
 

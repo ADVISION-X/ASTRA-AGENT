@@ -33,12 +33,9 @@ type CandidateSourceInspection = {
   failure: CandidateSourceReviewRequired | null;
 };
 
-const EMPTY_CANDIDATE_SOURCE_INSPECTION: CandidateSourceInspection = {
-  acceptedCandidate: null,
-  rejectedCandidateRef: null,
-  dataQualityFlag: null,
-  failure: null,
-};
+function matchesRequestedBinding(expected: string | null, actual: string | null): boolean {
+  return expected === null || actual === expected;
+}
 
 function createCandidateSourceBlocked(
   failureReason: VisualTargetFailureReason,
@@ -85,6 +82,36 @@ function createAcceptedCandidateSourceInspection(candidate: VisualTargetCandidat
   return { acceptedCandidate: candidate, rejectedCandidateRef: null, dataQualityFlag: null, failure: null };
 }
 
+function findCandidateObservationInspection(input: { profile: ResolvedVisualTargetProfile; candidate: VisualTargetCandidate }): CandidateSourceInspection | null {
+  return input.profile.requiredObservationKinds.includes(input.candidate.targetType)
+    ? null
+    : createRejectedCandidateSourceInspection(input.candidate.candidateRef, "candidate_observation_kind_mismatch");
+}
+
+function resolveExpectedCandidateCaptureTime(input: { request: ParsedVisualTargetAbilityInput; candidate: VisualTargetCandidate }): string {
+  return input.candidate.candidateKind === "ai_candidate" && input.request.sourceProof.ai
+    ? input.request.sourceProof.ai.capturedAt
+    : input.request.sourceProof.screenshot.capturedAt;
+}
+
+function findCandidateEvidenceBindingInspection(input: {
+  request: ParsedVisualTargetAbilityInput;
+  candidate: VisualTargetCandidate;
+}): CandidateSourceInspection | null {
+  const expectedSourceFrameRef = input.request.sourceProof.screenshot.screenshotEvidenceId;
+  if (
+    input.candidate.sourceFrameRef
+    && !matchesRequestedBinding(expectedSourceFrameRef, input.candidate.sourceFrameRef)
+  ) {
+    return createRejectedCandidateSourceInspection(input.candidate.candidateRef, "candidate_source_binding_mismatch");
+  }
+
+  const expectedCapturedAt = resolveExpectedCandidateCaptureTime(input);
+  return input.candidate.capturedAt === expectedCapturedAt
+    ? null
+    : createRejectedCandidateSourceInspection(input.candidate.candidateRef, "candidate_source_binding_mismatch");
+}
+
 function findCandidateSourceBindingInspection(input: {
   request: ParsedVisualTargetAbilityInput;
   profile: ResolvedVisualTargetProfile;
@@ -102,9 +129,7 @@ function findCandidateSourceBindingInspection(input: {
     : null;
 }
 
-function findCandidateSourceReadinessInspection(input: {
-  candidate: VisualTargetCandidate;
-}): CandidateSourceInspection | null {
+function findCandidateSourceReadinessInspection(input: { candidate: VisualTargetCandidate }): CandidateSourceInspection | null {
   const { candidate } = input;
   if (candidate.blockedReason) {
     return createRejectedCandidateSourceInspection(candidate.candidateRef, "candidate_blocked");
@@ -112,7 +137,6 @@ function findCandidateSourceReadinessInspection(input: {
   if (!candidate.isVisible) {
     return createRejectedCandidateSourceInspection(candidate.candidateRef, "candidate_invisible");
   }
-
   return null;
 }
 
@@ -125,6 +149,17 @@ function inspectCandidateSourceCandidate(input: {
   if (bindingInspection) {
     return bindingInspection;
   }
+  const observationInspection = findCandidateObservationInspection(input);
+  if (observationInspection) {
+    return observationInspection;
+  }
+  const evidenceBindingInspection = findCandidateEvidenceBindingInspection({
+    request: input.request,
+    candidate: input.candidate,
+  });
+  if (evidenceBindingInspection) {
+    return evidenceBindingInspection;
+  }
   const readinessInspection = findCandidateSourceReadinessInspection({
     candidate: input.candidate,
   });
@@ -134,9 +169,6 @@ function inspectCandidateSourceCandidate(input: {
 function resolveEmptyCandidateSourceReviewReason(dataQualityFlags: Set<VisualTargetDataQualityFlag>): VisualTargetFailureReason | null {
   if (dataQualityFlags.has("candidate_source_frame_missing")) {
     return "candidate_source_frame_missing";
-  }
-  if (dataQualityFlags.has("candidate_source_binding_mismatch")) {
-    return "candidate_source_binding_mismatch";
   }
   if (dataQualityFlags.has("candidate_invisible")) {
     return "invisible_candidate";
@@ -151,6 +183,30 @@ function createEmptyCandidateSourceFailure(
   const flags = collectVisualTargetFlags(dataQualityFlags);
   if (dataQualityFlags.has("candidate_blocked")) {
     return createCandidateSourceBlocked("blocked_candidate", "All visual target candidates were blocked by source policy.", rejectedCandidateRefs, flags);
+  }
+  if (dataQualityFlags.has("candidate_source_binding_mismatch")) {
+    return createCandidateSourceBlocked(
+      "candidate_source_binding_mismatch",
+      "Visual Target candidate proof binding diverged from the governed evidence chain.",
+      rejectedCandidateRefs,
+      flags,
+    );
+  }
+  if (dataQualityFlags.has("candidate_observation_kind_mismatch")) {
+    return createCandidateSourceBlocked(
+      "candidate_observation_kind_mismatch",
+      "Visual Target candidate observation kind is outside the governed child profile.",
+      rejectedCandidateRefs,
+      flags,
+    );
+  }
+  if (dataQualityFlags.has("candidate_source_kind_mismatch")) {
+    return createCandidateSourceBlocked(
+      "candidate_source_kind_mismatch",
+      "Visual Target candidate kind is outside the governed child profile.",
+      rejectedCandidateRefs,
+      flags,
+    );
   }
   const reviewReason = resolveEmptyCandidateSourceReviewReason(dataQualityFlags);
   if (reviewReason) {

@@ -9,10 +9,10 @@ import { runForbiddenShape } from "./forbidden-shape.js";
 import { runMuscleMemoryGovernance } from "./muscle-memory-governance.js";
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShape } from "./required-shape.js";
+import { runRoutePlanEntrySpine } from "./route-plan-entry-spine.js";
 import { runScorecardGate } from "./scorecard-gate.js";
 import { runTaskTemplateRunLimitGovernance } from "./task-template-run-limit-governance.js";
 import { runIntegrationPhaseBundle } from "../map-plugin-orchestration-integration/phase-bundle.js";
-import { runStartupPreparationEntrySpine } from "./startup-preparation-entry-spine.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF";
 
@@ -37,7 +37,7 @@ const runDirectGovernancePhases = async (project: ReturnType<typeof createMapPlu
   const forbidden = await runForbiddenShape(project);
   const taskTemplateRunLimits = await runTaskTemplateRunLimitGovernance(project);
   const boundary = runBoundaryAttack(project);
-  const startupPreparation = await runStartupPreparationEntrySpine();
+  const startupPreparation = await runRoutePlanEntrySpine();
   const muscleMemory = await runMuscleMemoryGovernance();
   return { required, authoringInput, forbidden, taskTemplateRunLimits, boundary, startupPreparation, muscleMemory };
 };

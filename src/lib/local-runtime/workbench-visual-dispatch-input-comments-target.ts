@@ -120,6 +120,12 @@ export const buildCommentsEntryVisualTargetCommand = (
     throw new Error("Visual Target comments dispatch requires a governed page-state proof summary.");
   }
 
+  const screenshotMissionId = readString(screenshotHandoff.sourceProof, "missionId");
+  const screenshotRunId = readString(screenshotHandoff.sourceProof, "runId");
+  if (!screenshotMissionId || !screenshotRunId || !aiSummary.missionId || !aiSummary.runId) {
+    throw new Error("Visual Target comments dispatch requires governed screenshot and AI proof mission/run identity.");
+  }
+
   const coordinateSpace = mapCoordinateSpace(screenshotHandoff.coordinateSpace);
   const governedAiResultRef = aiSummary.aiResultRef;
   const sourceProofRef = buildCompactRef("visual-target-source-proof", [governedAiResultRef, envelope.inputRef, "comments-entry"]);
@@ -165,6 +171,8 @@ export const buildCommentsEntryVisualTargetCommand = (
         sourceScreenshotEvidenceId,
         scaleMapping: null,
         capturedAt: aiSummary.capturedAt,
+        missionId: screenshotMissionId,
+        runId: screenshotRunId,
         sessionId: envelope.sessionId,
         roundId: envelope.roundId,
         videoVisitId: envelope.videoVisitId,
@@ -181,6 +189,8 @@ export const buildCommentsEntryVisualTargetCommand = (
         sourceScreenshotEvidenceId,
         sourceScreenshotProofRef: screenshotProofRef,
         capturedAt: aiSummary.capturedAt,
+        missionId: aiSummary.missionId,
+        runId: aiSummary.runId,
         sessionId: aiSummary.sessionId,
         roundId: aiSummary.roundId,
         videoVisitId: aiSummary.videoVisitId,
@@ -196,6 +206,8 @@ export const buildCommentsEntryVisualTargetCommand = (
         currentUrl: pageStateSummary.currentUrl,
         currentTitle: pageStateSummary.currentTitle,
         observedAt: pageStateSummary.observedAt,
+        missionId: pageStateSummary.missionId,
+        runId: pageStateSummary.runId,
         sessionId: pageStateSummary.sessionId,
         roundId: pageStateSummary.roundId,
         videoVisitId: pageStateSummary.videoVisitId,

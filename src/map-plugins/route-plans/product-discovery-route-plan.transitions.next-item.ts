@@ -65,14 +65,14 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS: RoutePlan["tran
     transitionId: `verify-next-item-advanced:${NEXT_ITEM_ADVANCED_ROUTE_LABEL}`,
     fromStepId: "verify-next-item-advanced",
     onStatus: "success",
-    toStepId: "capture-video-viewport",
+    toStepId: "capture-current-video-viewport",
     finalStatus: null,
   },
   {
     transitionId: `verify-next-item-advanced:${NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL}`,
     fromStepId: "verify-next-item-advanced",
     onStatus: "success",
-    toStepId: "capture-video-viewport",
+    toStepId: "capture-current-video-viewport",
     finalStatus: null,
   },
   {

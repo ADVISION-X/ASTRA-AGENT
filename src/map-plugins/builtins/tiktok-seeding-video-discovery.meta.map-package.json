@@ -63,73 +63,6 @@
           ]
         },
         "promptContractId": null
-      },
-      {
-        "stepId": "capture-video-viewport",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "capture-browser-viewport",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "screenshot",
-        "inputRefs": [
-          "targetUrl",
-          "targetTitle"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "screenshotEvidenceRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
-        "stepId": "prepare-ai-input",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "prepare-ai-input",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "screenshot",
-        "inputRefs": [
-          "screenshotEvidenceRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "promptInputRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
-        "stepId": "startup-preparation",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "page-preparation-judgment",
-        "stepKind": "ai",
-        "targetAbilityGroupId": "ai",
-        "inputRefs": [
-          "promptInputRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "aiResultRef",
-            "pagePreparationAiResultRef"
-          ]
-        },
-        "promptContractId": "vision.pagePreparation.v1"
-      },
-      {
-        "stepId": "judge-seeding-video",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "product-presence-judgment",
-        "stepKind": "ai",
-        "targetAbilityGroupId": "ai",
-        "inputRefs": [
-          "promptInputRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "aiResultRef",
-            "productPresenceAiResultRef"
-          ]
-        },
-        "promptContractId": "vision.productPresence.v1"
       }
     ],
     "transitions": [
@@ -137,68 +70,12 @@
         "transitionId": "open-tiktok-feed:success",
         "fromStepId": "open-tiktok-feed",
         "onStatus": "success",
-        "toStepId": "capture-video-viewport",
+        "toStepId": "capture-startup-video-viewport",
         "finalStatus": null
       },
       {
         "transitionId": "open-tiktok-feed:failed",
         "fromStepId": "open-tiktok-feed",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "capture-video-viewport:success",
-        "fromStepId": "capture-video-viewport",
-        "onStatus": "success",
-        "toStepId": "prepare-ai-input",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "capture-video-viewport:failed",
-        "fromStepId": "capture-video-viewport",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "prepare-ai-input:success",
-        "fromStepId": "prepare-ai-input",
-        "onStatus": "success",
-        "toStepId": "startup-preparation",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "prepare-ai-input:failed",
-        "fromStepId": "prepare-ai-input",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "startup-preparation:startup-ready-for-seeding-judgment",
-        "fromStepId": "startup-preparation",
-        "onStatus": "success",
-        "toStepId": "judge-seeding-video",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "startup-preparation:startup-fail-closed",
-        "fromStepId": "startup-preparation",
-        "onStatus": "success",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "startup-preparation:failed",
-        "fromStepId": "startup-preparation",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "judge-seeding-video:failed",
-        "fromStepId": "judge-seeding-video",
         "onStatus": "failed",
         "toStepId": null,
         "finalStatus": "failed"

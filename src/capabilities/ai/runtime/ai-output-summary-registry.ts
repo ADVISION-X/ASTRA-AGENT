@@ -24,6 +24,8 @@ type AiOutputSummaryBase = {
   aiInputHash: string;
   outputPayloadHash: string;
   capturedAt: string;
+  missionId: string | null;
+  runId: string | null;
   sessionId: string;
   roundId: string | null;
   videoVisitId: string | null;
@@ -94,6 +96,8 @@ const buildSummaryBase = (input: {
   aiInputHash: input.result.runtimeProof.inputPayloadHash,
   outputPayloadHash: buildOutputPayloadHash(input.output),
   capturedAt: input.result.createdAt,
+  missionId: input.result.runtimeProof.missionId,
+  runId: input.result.runtimeProof.runId,
   sessionId: input.result.runtimeProof.sessionId,
   roundId: input.result.runtimeProof.roundId,
   videoVisitId: input.result.runtimeProof.videoVisitId,

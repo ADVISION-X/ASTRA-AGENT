@@ -30,16 +30,9 @@ type CreateFileMutation = {
 };
 
 type NegativeProofMutation = ReplaceMutation | CreateFileMutation;
-type NegativeProofMutationGroup = {
-  name: string;
-  mutations: NegativeProofMutation[];
-  skipBuild: boolean;
-};
+type NegativeProofMutationGroup = { name: string; mutations: NegativeProofMutation[]; skipBuild: boolean };
 
-const hasErrorCode = (error: unknown, code: string): boolean => typeof error === "object"
-  && error !== null
-  && "code" in error
-  && error.code === code;
+const hasErrorCode = (error: unknown, code: string): boolean => typeof error === "object" && error !== null && "code" in error && error.code === code;
 
 const VISUAL_TARGET_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
   {
@@ -144,6 +137,14 @@ const VISUAL_TARGET_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     oldText: "    ...chain,\n    sessionId: input.trace.sessionId,",
     newText: "    ...chain,\n    runId: buildStableVisualTargetRef(\"visual-target-run\", [input.trace.sessionId, input.trace.childCapabilityId, input.trace.roundId, input.trace.videoVisitId]),\n    sessionId: input.trace.sessionId,",
     expectedNeedle: "Runtime proof must not fabricate runId from local stable refs.",
+  },
+  {
+    kind: "replace",
+    name: "remove-required-observation-gate",
+    file: "src/capabilities/visual-target/runtime/candidate-source-gate.ts",
+    oldText: '  return input.profile.requiredObservationKinds.includes(input.candidate.targetType)\n    ? null\n    : createRejectedCandidateSourceInspection(input.candidate.candidateRef, "candidate_observation_kind_mismatch");',
+    newText: "  return null;",
+    expectedNeedle: "Candidate source gate must enforce requiredObservationKinds against candidate targetType.",
   },
   {
     kind: "create-file",
@@ -279,23 +280,12 @@ async function mutateGroupAndVerify(group: NegativeProofMutationGroup): Promise<
 }
 
 function createPassResult(summary: string): { findings: Finding[]; phase: InspectorPhase } {
-  return {
-    findings: [],
-    phase: createPhase("negative-proof-harness", "PASS", true, summary),
-  };
+  return { findings: [], phase: createPhase("negative-proof-harness", "PASS", true, summary) };
 }
 
 function createFatalResult(message: string, summary: string): { findings: Finding[]; phase: InspectorPhase } {
   return {
-    findings: [
-      createFinding({
-        lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-008-V2",
-        file: INSPECTOR_ENTRY,
-        line: 1,
-        severity: "fatal",
-        message,
-      }),
-    ],
+    findings: [createFinding({ lawId: "GRASSEYE-VISUAL-TARGET-CAPABILITY-008-V2", file: INSPECTOR_ENTRY, line: 1, severity: "fatal", message })],
     phase: createPhase("negative-proof-harness", "FAKE ENFORCEMENT", false, summary),
   };
 }

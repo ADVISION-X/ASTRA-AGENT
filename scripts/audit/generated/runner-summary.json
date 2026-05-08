@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T19:38:55.136Z",
+  "generatedAt": "2026-05-08T22:36:54.710Z",
   "phase": "phase-05-final-delivery-debug",
   "passed": true,
   "totals": {
@@ -320,6 +320,12 @@
           "classification": "PASS",
           "passed": true,
           "summary": "Orchestration owner-local negative-proof harness exists and can be executed by the inspector."
+        },
+        {
+          "name": "run-limit-governance",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Orchestration consumes positive run limits without restoring a fixed upper cap."
         },
         {
           "name": "mission-loop-event-semantics",
@@ -1312,6 +1318,12 @@
           "summary": "Anti-escape checks passed."
         },
         {
+          "name": "app-run-limit-settings-governance",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "App-owned run-limit settings remain positive-only, uncapped, and free of launcher-side clamp logic."
+        },
+        {
           "name": "commander-startup-readiness-gate",
           "classification": "PASS",
           "passed": true,
@@ -1360,16 +1372,22 @@
           "summary": "Map package builtins remain declarative JSON and the package layer has no executable escape surfaces."
         },
         {
+          "name": "task-template-run-limit-governance",
+          "classification": "PASS",
+          "passed": true,
+          "summary": "Map packages no longer own run-limit defaults or maxima; task-template run limits are app-owned only."
+        },
+        {
           "name": "boundary-attack",
           "classification": "PASS",
           "passed": true,
           "summary": "Orchestration and Commander consume governed map packages instead of preserving static parallel map truth."
         },
         {
-          "name": "startup-preparation-entry-spine",
+          "name": "route-plan-entry-spine",
           "classification": "PASS",
           "passed": true,
-          "summary": "Seeding builtin maps remain weak entry-spine maps: startup AI is map-owned handoff, while frame sampling and post-judgment muscle-memory chains are Route Plan / ability-owned."
+          "summary": "Seeding routePlanBoundMap packages stay at the open-entry spine while Route Plan owns startup and recurring AI judgment chains."
         },
         {
           "name": "muscle-memory-governance",

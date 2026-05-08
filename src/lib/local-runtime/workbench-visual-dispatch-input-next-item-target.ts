@@ -94,6 +94,12 @@ export const buildNextItemTargetVisualTargetCommand = (
     throw new Error("Visual Target next-item dispatch requires a governed page-state proof summary.");
   }
 
+  const screenshotMissionId = readString(screenshotHandoff.sourceProof, "missionId");
+  const screenshotRunId = readString(screenshotHandoff.sourceProof, "runId");
+  if (!screenshotMissionId || !screenshotRunId || !aiSummary.missionId || !aiSummary.runId) {
+    throw new Error("Visual Target next-item dispatch requires governed screenshot and AI proof mission/run identity.");
+  }
+
   const coordinateSpace = mapCoordinateSpace(screenshotHandoff.coordinateSpace);
   const governedAiResultRef = aiSummary.aiResultRef;
   const sourceProofRef = buildCompactRef("visual-target-source-proof", [governedAiResultRef, envelope.inputRef, "next-item"]);
@@ -142,6 +148,8 @@ export const buildNextItemTargetVisualTargetCommand = (
         sourceScreenshotEvidenceId,
         scaleMapping: null,
         capturedAt: readString(screenshotHandoff.sourceProof, "stepId") ? aiSummary.capturedAt : aiSummary.capturedAt,
+        missionId: screenshotMissionId,
+        runId: screenshotRunId,
         sessionId: envelope.sessionId,
         roundId: envelope.roundId,
         videoVisitId: envelope.videoVisitId,
@@ -158,6 +166,8 @@ export const buildNextItemTargetVisualTargetCommand = (
         sourceScreenshotEvidenceId,
         sourceScreenshotProofRef: screenshotProofRef,
         capturedAt: aiSummary.capturedAt,
+        missionId: aiSummary.missionId,
+        runId: aiSummary.runId,
         sessionId: aiSummary.sessionId,
         roundId: aiSummary.roundId,
         videoVisitId: aiSummary.videoVisitId,
@@ -173,6 +183,8 @@ export const buildNextItemTargetVisualTargetCommand = (
         currentUrl: pageStateSummary.currentUrl,
         currentTitle: pageStateSummary.currentTitle,
         observedAt: pageStateSummary.observedAt,
+        missionId: pageStateSummary.missionId,
+        runId: pageStateSummary.runId,
         sessionId: pageStateSummary.sessionId,
         roundId: pageStateSummary.roundId,
         videoVisitId: pageStateSummary.videoVisitId,

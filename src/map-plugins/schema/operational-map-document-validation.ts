@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { findRoutePlanById } from "../route-plans/index.js";
-import { STARTUP_PREPARATION_ROUTE_LABELS } from "../shared/startup-preparation.constants.js";
 
 type StepValue = {
   stepId: string;
@@ -29,20 +28,10 @@ const addIssue = (context: z.RefinementCtx, path: string, message: string): void
   context.addIssue({ code: z.ZodIssueCode.custom, message, path: [path] });
 };
 
-const STARTUP_PREPARATION_PROMPT_CONTRACT_ID = "vision.pagePreparation.v1";
-
-const isStartupPreparationTransitionId = (transitionId: string): boolean =>
-  STARTUP_PREPARATION_ROUTE_LABELS.some((routeLabel) => transitionId.endsWith(`:${routeLabel}`));
-
 const ALLOWED_ROUTE_PLAN_TRANSITION_OVERRIDES = new Set<string>();
 
 const isAllowedRoutePlanTransitionOverride = (transition: TransitionValue): boolean =>
   ALLOWED_ROUTE_PLAN_TRANSITION_OVERRIDES.has(transition.transitionId);
-
-const collectStartupPreparationStepIds = (value: OperationalMapValue): string[] =>
-  value.steps
-    .filter((step) => step.targetAbilityGroupId === "ai" && step.promptContractId === STARTUP_PREPARATION_PROMPT_CONTRACT_ID)
-    .map((step) => step.stepId);
 
 const collectStepIds = (value: OperationalMapValue, context: z.RefinementCtx): Set<string> => {
   const stepIds = new Set<string>();
@@ -94,11 +83,6 @@ const validateRoutePlanBoundMap = (
   routePlan: NonNullable<ReturnType<typeof findRoutePlanById>>,
   context: z.RefinementCtx,
 ): void => {
-  const startupPreparationStepIds = collectStartupPreparationStepIds(value);
-  if (startupPreparationStepIds.length > 1) {
-    addIssue(context, "steps", "routePlanBoundMap may declare at most one startup preparation AI step.");
-  }
-
   const mapStepIds = new Set(value.steps.map((step) => step.stepId));
   const routePlanStepIds = new Set(routePlan.steps.map((step) => step.stepId));
   const duplicatedStepIds = [...routePlanStepIds].filter((stepId) => mapStepIds.has(stepId));
@@ -128,13 +112,16 @@ const validateRoutePlanBoundMap = (
   const aiStepIds = value.steps
     .filter((step) => step.targetAbilityGroupId === "ai")
     .map((step) => step.stepId);
+  if (aiStepIds.length > 0) {
+    addIssue(context, "steps", `routePlanBoundMap must not declare AI judgment steps: ${aiStepIds.join(", ")}.`);
+  }
+
   const localAiSuccessTransitions = value.transitions
     .filter((transition) => {
       if (!aiStepIds.includes(transition.fromStepId) || transition.onStatus !== "success") {
         return false;
       }
-      return (!startupPreparationStepIds.includes(transition.fromStepId) || !isStartupPreparationTransitionId(transition.transitionId))
-        && !isAllowedRoutePlanTransitionOverride(transition);
+      return !isAllowedRoutePlanTransitionOverride(transition);
     })
     .map((transition) => transition.transitionId);
   if (localAiSuccessTransitions.length > 0) {
@@ -142,13 +129,13 @@ const validateRoutePlanBoundMap = (
   }
 
   const routePlanPromptContractIds = new Set(routePlan.promptContractIds);
-  const hasBoundAiPrompt = value.steps.some((step) =>
+  const hasBoundAiPrompt = routePlan.steps.some((step) =>
     step.targetAbilityGroupId === "ai"
     && typeof step.promptContractId === "string"
     && routePlanPromptContractIds.has(step.promptContractId)
   );
   if (!hasBoundAiPrompt) {
-    addIssue(context, "steps", "routePlanBoundMap must bind an AI step to a Prompt Contract owned by its Route Plan.");
+    addIssue(context, "routePlanId", "routePlanBoundMap routePlanId must resolve to a Route Plan that binds governed AI prompt contracts.");
   }
 };
 

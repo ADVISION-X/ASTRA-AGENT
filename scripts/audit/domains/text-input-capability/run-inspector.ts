@@ -3,8 +3,10 @@ import { hasBlockingFindings } from "../../core/result.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector, runWithStandaloneHeartbeat } from "../../core/runtime.js";
 
 const main = async (): Promise<void> => {
-  process.stdout.write("[AUDIT] building artifacts...\n");
-  await runWithStandaloneHeartbeat("build-audit-artifacts", buildAuditArtifacts());
+  if (!process.argv.includes("--skip-build")) {
+    process.stdout.write("[AUDIT] building artifacts...\n");
+    await runWithStandaloneHeartbeat("build-audit-artifacts", buildAuditArtifacts());
+  }
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);
   const inspector = await loadInspector("scripts/audit/domains/text-input-capability/inspector.ts");

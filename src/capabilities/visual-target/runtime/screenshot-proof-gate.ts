@@ -14,6 +14,10 @@ type ScreenshotProofReviewRequired = VisualTargetGateReviewRequired<"review_requ
 
 const ALLOWED_COORDINATE_AUTHORITIES = ["evidence_original", "ai_input_non_executable", "region_crop", "optimized_equivalent"] as const;
 
+function matchesRequestedBinding(expected: string | null, actual: string | null): boolean {
+  return expected === null || actual === expected;
+}
+
 function createScreenshotBlocked(
   failureReason: VisualTargetFailureReason,
   statusMessage: string,
@@ -79,13 +83,19 @@ function findScreenshotBindingConflict(input: {
   screenshotHash: string;
 }): ScreenshotProofBlocked | null {
   const screenshotProof = input.request.sourceProof.screenshot;
+  if (screenshotProof.missionId !== input.request.missionId) {
+    return createScreenshotBlocked("screenshot_binding_mismatch", "Screenshot proof missionId must match Visual Target missionId.", input.screenshotHash, []);
+  }
+  if (screenshotProof.runId !== input.request.runId) {
+    return createScreenshotBlocked("screenshot_binding_mismatch", "Screenshot proof runId must match Visual Target runId.", input.screenshotHash, []);
+  }
   if (screenshotProof.sessionId !== input.request.sessionId) {
     return createScreenshotBlocked("screenshot_binding_mismatch", "Screenshot proof sessionId must match Visual Target sessionId.", input.screenshotHash, []);
   }
-  if (input.request.roundId && screenshotProof.roundId && input.request.roundId !== screenshotProof.roundId) {
+  if (!matchesRequestedBinding(input.request.roundId, screenshotProof.roundId)) {
     return createScreenshotBlocked("screenshot_binding_mismatch", "Screenshot proof roundId conflicts with Visual Target roundId.", input.screenshotHash, []);
   }
-  if (input.request.videoVisitId && screenshotProof.videoVisitId && input.request.videoVisitId !== screenshotProof.videoVisitId) {
+  if (!matchesRequestedBinding(input.request.videoVisitId, screenshotProof.videoVisitId)) {
     return createScreenshotBlocked("screenshot_binding_mismatch", "Screenshot proof videoVisitId conflicts with Visual Target videoVisitId.", input.screenshotHash, []);
   }
   return null;

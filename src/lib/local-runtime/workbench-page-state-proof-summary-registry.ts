@@ -12,6 +12,8 @@ export type WorkbenchPageStateProofSummary = {
   currentUrl: string;
   currentTitle: string | null;
   observedAt: string;
+  missionId: string;
+  runId: string;
   sessionId: string;
   roundId: string | null;
   videoVisitId: string | null;
@@ -42,9 +44,11 @@ const buildSummary = (input: {
   const pageStateHash = readString(runtimeProof, "snapshotHash") ?? readString(runtimeProof, "inputPayloadHash");
   const currentUrl = readString(runtimeProof, "currentUrl");
   const observedAt = readString(runtimeProof, "endedAt") ?? readString(runtimeProof, "startedAt");
+  const missionId = readString(runtimeProof, "missionId");
+  const runId = readString(runtimeProof, "runId");
   const sessionId = readString(runtimeProof, "sessionId");
 
-  if (!pageStateProofRef || !pageStateChildCapabilityId || !pageStateFingerprint || !pageStateHash || !currentUrl || !observedAt || !sessionId) {
+  if (!pageStateProofRef || !pageStateChildCapabilityId || !pageStateFingerprint || !pageStateHash || !currentUrl || !observedAt || !missionId || !runId || !sessionId) {
     return null;
   }
 
@@ -58,6 +62,8 @@ const buildSummary = (input: {
     currentUrl,
     currentTitle: readString(runtimeProof, "currentTitle"),
     observedAt,
+    missionId,
+    runId,
     sessionId,
     roundId: readString(runtimeProof, "roundId"),
     videoVisitId: readString(runtimeProof, "videoVisitId"),
