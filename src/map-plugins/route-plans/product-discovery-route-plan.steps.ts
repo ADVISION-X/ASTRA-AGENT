@@ -169,7 +169,7 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS: RoutePlan["steps"] = [
     targetAbilityGroupId: "ai",
     inputRefs: ["promptInputRef", "nextItemVerificationPromptInputRef", "abilityResultRef"],
     outputRefPolicy: { storeAs: ["aiResultRef", "nextItemVerificationResultRef"] },
-    promptContractId: "vision.pagePreparation.v1",
+    promptContractId: "vision.nextItemAdvanced.v1",
   },
   {
     stepId: "finalize-mission",

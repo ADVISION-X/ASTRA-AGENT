@@ -13,6 +13,7 @@ const BUILTIN_PROMPT_CONTRACT_FILES = [
   "map.authoring.v1.prompt-contract.json",
   "ai.schema_validation_only.internal.prompt-contract.json",
   "vision.pagePreparation.v1.prompt-contract.json",
+  "vision.nextItemAdvanced.v1.prompt-contract.json",
   "vision.productPresence.v1.prompt-contract.json",
   "vision.nextItemTargetCandidate.v1.prompt-contract.json",
   "vision.commentsEntryTargetCandidate.v1.prompt-contract.json",

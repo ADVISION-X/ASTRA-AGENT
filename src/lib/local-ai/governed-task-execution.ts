@@ -70,6 +70,8 @@ export const executeGovernedTask = (request: LocalAiTaskRequest, roleConfig: Loc
   switch (request.taskType) {
     case "vision.pagePreparation":
       throw new Error("vision.pagePreparation forbids governed fallback execution.");
+    case "vision.nextItemAdvanced":
+      throw new Error("vision.nextItemAdvanced forbids governed fallback execution.");
     case "vision.productPresence":
       throw new Error("vision.productPresence forbids governed heuristic execution; only model-backed AI may decide product presence.");
     case "vision.nextItemTargetCandidate":

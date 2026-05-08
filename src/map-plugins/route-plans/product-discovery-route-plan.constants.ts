@@ -4,6 +4,10 @@ export const PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL = "read-comments-and-save-ev
 
 export const PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL = "skip-current-video";
 
+export const NEXT_ITEM_ADVANCED_ROUTE_LABEL = "next-item-advanced";
+
+export const NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL = "next-item-not-advanced";
+
 export const PRODUCT_DISCOVERY_ROUTE_LABELS = [
   "read-comments",
   "save-evidence",

@@ -1,12 +1,10 @@
 import type { RoutePlan } from "./route-plan.schema.js";
 import {
+  NEXT_ITEM_ADVANCED_ROUTE_LABEL,
+  NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
   PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
   PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
 } from "./product-discovery-route-plan.constants.js";
-import {
-  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
-  STARTUP_PREPARATION_READY_ROUTE_LABEL,
-} from "../shared/startup-preparation.constants.js";
 
 export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] = [
   {
@@ -262,14 +260,14 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     finalStatus: "failed",
   },
   {
-    transitionId: `verify-next-item-advanced:${STARTUP_PREPARATION_READY_ROUTE_LABEL}`,
+    transitionId: `verify-next-item-advanced:${NEXT_ITEM_ADVANCED_ROUTE_LABEL}`,
     fromStepId: "verify-next-item-advanced",
     onStatus: "success",
     toStepId: "capture-video-viewport",
     finalStatus: null,
   },
   {
-    transitionId: `verify-next-item-advanced:${STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL}`,
+    transitionId: `verify-next-item-advanced:${NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL}`,
     fromStepId: "verify-next-item-advanced",
     onStatus: "success",
     toStepId: null,

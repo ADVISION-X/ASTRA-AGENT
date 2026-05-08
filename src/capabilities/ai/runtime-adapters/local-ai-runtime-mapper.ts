@@ -9,6 +9,7 @@ import {
 import {
   CommentSignalTaskRequestSchema,
   CommentsEntryTargetCandidateTaskRequestSchema,
+  NextItemAdvancedTaskRequestSchema,
   NextItemTargetCandidateTaskRequestSchema,
   OcrTaskRequestSchema,
   PagePreparationTaskRequestSchema,
@@ -19,6 +20,7 @@ import {
   type LocalAiTaskType,
 } from "../../../types/local-ai.js";
 import { VisionPagePreparationRequestInputSchema } from "../../../types/vision-page-preparation.js";
+import { VisionNextItemAdvancedRequestInputSchema } from "../../../types/vision-next-item-advanced.js";
 import { VisionCommentsEntryTargetCandidateRequestInputSchema } from "../../../types/vision-comments-entry-target-candidate.js";
 import { VisionNextItemTargetCandidateRequestInputSchema } from "../../../types/vision-next-item-target-candidate.js";
 import { VisionProductPresenceRequestInputSchema } from "../../../types/vision-product-presence.js";
@@ -30,6 +32,7 @@ import type { AiRuntimeHealth, AiTaskType, ParsedAiAbilityInput } from "../contr
 import { parseExtractedJson } from "../shared/ai-json-extract.js";
 const AI_TASK_BY_LEGACY: Record<LocalAiTaskType, AiTaskType> = {
   "vision.pagePreparation": "page_preparation_judgment",
+  "vision.nextItemAdvanced": "page_preparation_judgment",
   "vision.productPresence": "product_presence_judgment",
   "vision.nextItemTargetCandidate": "visual_target_candidate_analysis",
   "vision.commentsEntryTargetCandidate": "visual_target_candidate_analysis",
@@ -102,15 +105,25 @@ function buildPagePreparationTaskRequest(
   input: PagePreparationBridgeInput,
   promptContract: PromptContractCatalogEntry,
 ): LocalAiTaskRequest {
-  return PagePreparationTaskRequestSchema.parse({
+  const typedInput = AiPagePreparationRequestInputSchema.parse(input.input);
+  const requestBase = {
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
-    taskType: "vision.pagePreparation",
     modelRole: promptContract.modelRole,
     promptVersion: promptContract.promptVersion,
     schemaVersion: promptContract.schemaVersion,
     evidenceRefs: input.inputRefs,
-    input: VisionPagePreparationRequestInputSchema.parse(AiPagePreparationRequestInputSchema.parse(input.input)),
-  });
+  };
+  return promptContract.legacyTaskType === "vision.nextItemAdvanced"
+    ? NextItemAdvancedTaskRequestSchema.parse({
+      ...requestBase,
+      taskType: "vision.nextItemAdvanced",
+      input: VisionNextItemAdvancedRequestInputSchema.parse(typedInput),
+    })
+    : PagePreparationTaskRequestSchema.parse({
+      ...requestBase,
+      taskType: "vision.pagePreparation",
+      input: VisionPagePreparationRequestInputSchema.parse(typedInput),
+    });
 }
 function buildOcrTaskRequest(input: OcrBridgeInput, promptContract: PromptContractCatalogEntry): LocalAiTaskRequest {
   return OcrTaskRequestSchema.parse({
@@ -224,7 +237,10 @@ function toVisualTargetCandidateTaskRequest(input: VisualTargetCandidateBridgeIn
   return resolveLocalAiPromptRequest(localTaskType, (promptContract) => buildVisualTargetCandidateTaskRequest(input, promptContract));
 }
 function toPagePreparationTaskRequest(input: PagePreparationBridgeInput): LocalAiTaskRequestResolution {
-  return resolveLocalAiPromptRequest("vision.pagePreparation", (promptContract) => buildPagePreparationTaskRequest(input, promptContract));
+  const localTaskType = input.promptContractId === "vision.nextItemAdvanced.v1"
+    ? "vision.nextItemAdvanced"
+    : "vision.pagePreparation";
+  return resolveLocalAiPromptRequest(localTaskType, (promptContract) => buildPagePreparationTaskRequest(input, promptContract));
 }
 function toOcrTaskRequest(input: OcrBridgeInput): LocalAiTaskRequestResolution {
   return resolveLocalAiPromptRequest("comments.ocr_cleanup", (promptContract) => buildOcrTaskRequest(input, promptContract));

@@ -73,7 +73,7 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN: RoutePlan = RoutePlanSchema.parse({
       description: "Require AI-owned next-item candidate analysis, let Visual Target normalize one governed candidate proof, execute the mechanical advance, and return to visible-state capture with post-click AI verification required for semantic new-item truth.",
     },
   ],
-  promptContractIds: ["vision.productPresence.v1", "vision.commentsEntryTargetCandidate.v1", "vision.nextItemTargetCandidate.v1", "comments.intent_analysis.v1", "vision.pagePreparation.v1"],
+  promptContractIds: ["vision.productPresence.v1", "vision.commentsEntryTargetCandidate.v1", "vision.nextItemTargetCandidate.v1", "vision.nextItemAdvanced.v1", "comments.intent_analysis.v1", "vision.pagePreparation.v1"],
   outcomeOptions: PRODUCT_DISCOVERY_OUTCOME_OPTIONS,
   selectedPositiveRouteLabel: PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
   selectedNegativeRouteLabel: PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,

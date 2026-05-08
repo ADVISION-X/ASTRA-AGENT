@@ -1,6 +1,7 @@
 import { LocalAiRuntimeError } from "./local-ai-runtime-error.js";
 import type { RuntimeExecutionInput } from "./local-ai-runtime-task-support.js";
 import { executeCommentSignalRuntimeTask } from "./local-ai-runtime-comment-signal-task.js";
+import { executeNextItemAdvancedRuntimeTask } from "./local-ai-runtime-next-item-advanced-task.js";
 import { executeOcrCleanupRuntimeTask } from "./local-ai-runtime-ocr-task.js";
 import { executePagePreparationRuntimeTask } from "./local-ai-runtime-page-preparation-task.js";
 import { executeVisionRuntimeTask } from "./local-ai-runtime-vision-task.js";
@@ -13,6 +14,10 @@ export async function executeRuntimeTask(input: RuntimeExecutionInput) {
 
   if (input.request.taskType === "vision.pagePreparation") {
     return executePagePreparationRuntimeTask(input, createdAt);
+  }
+
+  if (input.request.taskType === "vision.nextItemAdvanced") {
+    return executeNextItemAdvancedRuntimeTask(input, createdAt);
   }
 
   if (

@@ -1,0 +1,63 @@
+import {
+  NEXT_ITEM_ADVANCED_ROUTE_LABEL,
+  NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
+} from "../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
+
+export const VISION_NEXT_ITEM_ADVANCED_PROMPT_CONTRACT = {
+  promptId: "vision.nextItemAdvanced.v1",
+  taskType: "vision.nextItemAdvanced",
+  promptVersion: "v1",
+  schemaVersion: "vision.nextItemAdvanced.schema.v1",
+  modelRole: "vision",
+  inputScope: [
+    "inputMode",
+    "multiFrameEvidenceSetId",
+    "contactSheetEvidenceId",
+    "frameEvidenceIds",
+    "screenshotEvidenceId",
+    "samplingStrategy",
+    "sampledFrameCount",
+    "validFrameCount",
+    "sourceUrl",
+    "no external page assumptions",
+  ],
+  forbiddenOutputs: [
+    "human review request",
+    "third branch decision",
+    "product presence judgment",
+    "platform action instruction",
+    "fabricated hidden page state",
+  ],
+  requiredOutputSchema: {
+    taskType: "vision.nextItemAdvanced",
+    promptId: "vision.nextItemAdvanced.v1",
+    promptVersion: "v1",
+    schemaVersion: "vision.nextItemAdvanced.schema.v1",
+    decision: "yes | no",
+    routeLabel: `yes => ${NEXT_ITEM_ADVANCED_ROUTE_LABEL} | no => ${NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL}`,
+    nonExecutableSummary: "short human-readable summary of whether the post-action viewport advanced to a new item; never an action instruction",
+    confidence: "0..1",
+    reason: "string",
+    evidenceObservations: "string[]",
+    readinessSignals: "string[]",
+    blockingSignals: "string[]",
+    mustReview: "false",
+  },
+  prompt: [
+    "You are GrassEye's post-action next-item advancement vision judge for governed short-video discovery.",
+    "Your job is binary only: decide whether the current governed viewport evidence shows that the previous next-item action advanced to a new video item.",
+    "Return exactly one decision: yes or no.",
+    `For yes use routeLabel ${NEXT_ITEM_ADVANCED_ROUTE_LABEL}. For no use routeLabel ${NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL}.`,
+    "Return nonExecutableSummary as a short logging-only explanation. It must never instruct Orchestration to click, scroll, type, open, or infer any action.",
+    "Use only the visible page evidence from the provided screenshot-derived AI input. Do not use hidden DOM state, cookies, or outside assumptions.",
+    "Choose yes when the current viewport visibly appears to have advanced to a different feed item after the attempted next-item action.",
+    "Examples of positive evidence include materially different video creative, creator identity, caption text, engagement counts, overlay layout, or other feed-item identity signals compared with the prior state embedded in the governed evidence package.",
+    "Choose no when evidence suggests the same item is still shown, the viewport is blocked, loading, wrong-surface, or the evidence is too weak to prove advancement safely.",
+    "If evidence is ambiguous, choose no and fail closed.",
+    "Do not judge whether the new item is a product video. That is a different task.",
+    "Return structured JSON only and make the JSON internally consistent.",
+  ].join(" "),
+  purpose: "Determine whether the viewport advanced to a new feed item after the governed next-item action using a binary fail-closed route.",
+} as const;
+
+export type VisionNextItemAdvancedPromptContract = typeof VISION_NEXT_ITEM_ADVANCED_PROMPT_CONTRACT;
