@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T13:42:06.553Z",
+  "generatedAt": "2026-05-08T14:22:04.090Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -6058,6 +6058,13 @@
           "sourceFile": "scripts/audit/domains/post-action-verification-capability/required-shape.ts",
           "targetSymbol": "collectResultBuilderFindings",
           "checkKind": "required-shape"
+        },
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectResultBuilderFindings",
+          "sourceFile": "scripts/audit/domains/post-action-verification-capability/required-shape.ts",
+          "targetSymbol": "collectResultBuilderFindings",
+          "checkKind": "required-shape"
         }
       ],
       "blockers": [
@@ -6090,6 +6097,13 @@
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
+        {
+          "checkPhase": "required-shape",
+          "checkFunction": "collectProofBuilderFindings",
+          "sourceFile": "scripts/audit/domains/post-action-verification-capability/required-shape.ts",
+          "targetSymbol": "collectProofBuilderFindings",
+          "checkKind": "required-shape"
+        },
         {
           "checkPhase": "required-shape",
           "checkFunction": "collectProofBuilderFindings",

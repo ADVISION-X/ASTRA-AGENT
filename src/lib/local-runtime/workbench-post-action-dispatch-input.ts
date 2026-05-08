@@ -14,11 +14,11 @@ type SupportedPostActionChildCapabilityId =
 
 type PostActionInputPolicy = {
   childCapabilityId: SupportedPostActionChildCapabilityId;
-  outcomeType: "page_opened" | "comments_panel_opened" | "comments_panel_closed" | "not_interested_result" | "target_state_changed";
+  outcomeType: "page_opened" | "comments_panel_opened" | "comments_panel_closed" | "not_interested_applied" | "target_state_changed";
   sourceAbilityGroupId: "open" | "mouse-click" | "mouse-scroll";
   sourceChildCapabilityId: "open-tiktok" | "open-facebook" | "click-browser-coordinate" | "scroll-browser-viewport";
   sourceActionType: string;
-  verificationMode: "observation_only" | "visual_evidence" | "before_after_comparison";
+  verificationMode: "strict" | "evidence-weighted" | "review-on-ambiguous";
   requireAfterEvidence: boolean;
   requireBeforeAfterComparison: boolean;
   requiresVisualEvidence: boolean;
@@ -58,7 +58,7 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, PostActionInputPolic
     sourceAbilityGroupId: "open",
     sourceChildCapabilityId: "open-tiktok",
     sourceActionType: "open_page",
-    verificationMode: "observation_only",
+    verificationMode: "evidence-weighted",
     requireAfterEvidence: false,
     requireBeforeAfterComparison: false,
     requiresVisualEvidence: false,
@@ -70,7 +70,7 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, PostActionInputPolic
     sourceAbilityGroupId: "mouse-click",
     sourceChildCapabilityId: "click-browser-coordinate",
     sourceActionType: "open_comments",
-    verificationMode: "visual_evidence",
+    verificationMode: "strict",
     requireAfterEvidence: true,
     requireBeforeAfterComparison: false,
     requiresVisualEvidence: true,
@@ -82,7 +82,7 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, PostActionInputPolic
     sourceAbilityGroupId: "mouse-click",
     sourceChildCapabilityId: "click-browser-coordinate",
     sourceActionType: "close_comments",
-    verificationMode: "visual_evidence",
+    verificationMode: "strict",
     requireAfterEvidence: true,
     requireBeforeAfterComparison: false,
     requiresVisualEvidence: true,
@@ -90,11 +90,11 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, PostActionInputPolic
   },
   "observe-not-interested-attempt": {
     childCapabilityId: "observe-not-interested-attempt",
-    outcomeType: "not_interested_result",
+    outcomeType: "not_interested_applied",
     sourceAbilityGroupId: "mouse-click",
     sourceChildCapabilityId: "click-browser-coordinate",
     sourceActionType: "not_interested",
-    verificationMode: "before_after_comparison",
+    verificationMode: "review-on-ambiguous",
     requireAfterEvidence: true,
     requireBeforeAfterComparison: true,
     requiresVisualEvidence: false,
@@ -108,7 +108,7 @@ const DEFAULT_POST_ACTION_POLICY: PostActionInputPolicy = {
   sourceAbilityGroupId: "mouse-click",
   sourceChildCapabilityId: "click-browser-coordinate",
   sourceActionType: "click_target_state_change",
-  verificationMode: "before_after_comparison",
+  verificationMode: "review-on-ambiguous",
   requireAfterEvidence: true,
   requireBeforeAfterComparison: true,
   requiresVisualEvidence: false,
@@ -132,6 +132,14 @@ const resolveSourceProofRef = (
 const readSummaryString = (summary: AbilityResultProofSummary | null, key: string): string | null => {
   const value = summary?.[key];
   return typeof value === "string" && value.length > 0 ? value : null;
+};
+
+const resolveActionStatus = (sourceSummary: AbilityResultProofSummary | null) => {
+  const status = readSummaryString(sourceSummary, "actionStatus") ?? readSummaryString(sourceSummary, "status");
+  if (status === "dispatched" || status === "failed" || status === "review_required") {
+    return status;
+  }
+  return "completed" as const;
 };
 
 const buildPageStateObservation = (
@@ -184,7 +192,7 @@ const buildActionProof = (input: {
   sourceAbilityGroupId: input.policy.sourceAbilityGroupId,
   sourceChildCapabilityId: input.policy.sourceChildCapabilityId,
   actionType: input.policy.sourceActionType,
-  actionStatus: "success" as const,
+  actionStatus: resolveActionStatus(input.sourceSummary ?? null),
   primitiveExecutionRef: input.policy.executionRefField === "primitiveExecutionRef" ? input.sourceProofRef : null,
   navigationAttemptRef: null,
   scrollExecutionRef: input.policy.executionRefField === "scrollExecutionRef"
@@ -222,6 +230,11 @@ const buildVerificationPolicy = (policy: PostActionInputPolicy) => ({
   requireAfterEvidence: policy.requireAfterEvidence,
   requireBeforeAfterComparison: policy.requireBeforeAfterComparison,
   allowSelfReportedSuccess: false,
+});
+
+const buildConfidencePolicy = (policy: PostActionInputPolicy) => ({
+  minimumConfidence: policy.requireBeforeAfterComparison ? 0.75 : policy.requiresVisualEvidence ? 0.8 : 0.55,
+  allowReviewRequired: policy.verificationMode === "review-on-ambiguous",
 });
 
 const buildPostActionChainFields = (envelope: AbilityCommandEnvelope) => ({
@@ -266,6 +279,7 @@ export const buildPostActionVerificationInput = async (
       observations: [buildPageStateObservation(runtime, envelope, sourceProofRef, inputPayload.summary)],
     },
     verificationPolicy: buildVerificationPolicy(policy),
+    confidencePolicy: buildConfidencePolicy(policy),
     inputRef: envelope.inputRef,
     idempotencyKey: envelope.idempotencyKey,
   }));

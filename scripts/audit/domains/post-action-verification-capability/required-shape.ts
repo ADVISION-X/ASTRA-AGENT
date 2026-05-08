@@ -33,7 +33,7 @@ function collectSchemaFindings(project: Project): Finding[] {
   const findings = childIds.sort().join(",") !== [...CHILDREN].sort().join(",")
     ? [createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Schema child ids must match the frozen child registry." })]
     : [];
-  for (const snippet of ["missionId: requiredString", "runId: requiredString", "stepId: requiredString", "activationSnapshotRef: requiredString", "capabilityCallId: requiredString", "nerveBusEnvelopeId: requiredString", "idempotencyKey: requiredString"]) {
+  for (const snippet of ["missionId: requiredString", "runId: requiredString", "stepId: requiredString", "activationSnapshotRef: requiredString", "capabilityCallId: requiredString", "nerveBusEnvelopeId: requiredString", "confidencePolicy: PostActionConfidencePolicySchema", "verificationDecision: PostActionVerificationDecisionSchema", "idempotencyKey: requiredString"]) {
     if (!schemaText.includes(snippet)) {
       findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Post Action Verification input schema must keep the full mission/map/step chain fields machine-required." }));
       break;
@@ -117,6 +117,9 @@ function collectProofBuilderFindings(project: Project): Finding[] {
   if (!hasCallExpression(proofBuilderSource, "buildPostActionHash")) {
     findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Proof builder must derive governed hashes for request, evidence, and observation payloads." }));
   }
+  if (!proofBuilderText.includes("verificationDecision:") || !proofBuilderText.includes("gateDecisions:")) {
+    findings.push(createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Proof builder must persist verificationDecision and gateDecisions in runtime proof." }));
+  }
   if (!hasRequiredProofBuilderChainFields(proofBuilderText) || hasFabricatedProofBuilderFields(proofBuilderText)) {
     findings.push(createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Proof builder must preserve real mission/run chain fields and must not fabricate runId or missionId." }));
   }
@@ -136,6 +139,9 @@ function collectResultBuilderFindings(project: Project): Finding[] {
     || !resultBuilderText.includes("runId: \"invalid:post-action-run\"")
     || !hasCallExpression(resultBuilderSource, "buildPostActionRuntimeProof")) {
     findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must preserve mission/run/step/map chain parity from the governed request." }));
+  }
+  if (!resultBuilderText.includes("verificationDecision:") || !resultBuilderText.includes("actionResultVerifiedRef")) {
+    findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must emit verificationDecision and actionResultVerifiedRef for governed verified outcomes." }));
   }
 
   return findings;

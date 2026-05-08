@@ -35,6 +35,15 @@ function createFixtureEnvelope(): Parameters<typeof buildPostActionVerificationI
   } as Parameters<typeof buildPostActionVerificationInput>[1];
 }
 
+function createDefaultVerificationEnvelope(): Parameters<typeof buildPostActionVerificationInput>[1] {
+  return {
+    ...createFixtureEnvelope(),
+    commandName: "verify-action-result",
+    stepId: "verify-action-result",
+    capabilityCallId: "mission-1:verify-action-result:1:ability",
+  } as Parameters<typeof buildPostActionVerificationInput>[1];
+}
+
 function createFixturePayload(): Parameters<typeof buildPostActionVerificationInput>[2] {
   return {
     documentType: "orchestration.ability_dispatch",
@@ -59,12 +68,15 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
   const abilityGroup = createPostActionRuntime().postActionVerificationAbilityGroup;
 
   assertCondition(input.runId === "run-1", "Builder must preserve runId from the governed envelope.");
+  assertCondition(input.confidencePolicy.minimumConfidence === 0.55, "Builder must emit the governed default confidence policy for observation-weighted verification.");
   assertCondition(input.expectedOutcome.expectedUrlHost === "www.tiktok.com", "Builder must align observe-page-open-attempt expectedUrlHost with the canonical platform host.");
   assertCondition(pageStateObservation?.kind === "page_state", "Builder must emit a page_state observation for observe-page-open-attempt.");
   assertCondition(pageStateObservation?.source.sourceProofRef === input.actionProof.sourceRuntimeProofRef, "Builder must bind page-state observation back to the governed source proof ref.");
 
   const verificationResult = await abilityGroup.execute(input);
   assertCondition(verificationResult.status === "success" && verificationResult.output !== null, "observe-page-open-attempt fixture must reach governed success for a ready TikTok feed URL.");
+  assertCondition(verificationResult.verificationDecision === "verified", "Governed success must emit verificationDecision=verified.");
+  assertCondition(verificationResult.runtimeProof.verificationDecision === verificationResult.verificationDecision, "Runtime proof must preserve verificationDecision parity.");
 
   const invalidInputResult = await abilityGroup.execute({
     ...input,
@@ -74,4 +86,17 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
   assertCondition(invalidInputResult.runId !== null, "Invalid-input fallback result must not emit runId=null.");
   assertCondition(invalidInputResult.runtimeProof.runId !== null, "Invalid-input fallback proof must not emit runId=null.");
   assertCondition(invalidInputResult.runId === invalidInputResult.runtimeProof.runId, "Invalid-input fallback result/proof runId must remain consistent.");
+
+  const defaultVerificationInput = await buildPostActionVerificationInput(runtime, createDefaultVerificationEnvelope(), createFixturePayload());
+  const defaultVerificationResult = await abilityGroup.execute(defaultVerificationInput);
+  assertCondition(defaultVerificationResult.status === "failed", "Generic verify-action-result must fail when before/after evidence is required but missing.");
+
+  const lowConfidenceResult = await abilityGroup.execute({
+    ...input,
+    confidencePolicy: {
+      minimumConfidence: 0.99,
+      allowReviewRequired: true,
+    },
+  });
+  assertCondition(lowConfidenceResult.status === "review_required", "Confidence policy gate must downgrade low-confidence verified assessments to review_required.");
 }

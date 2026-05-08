@@ -21,6 +21,8 @@ async function executePostActionVerificationChildCapability(input: {
       request: input.callInput,
       context: input.context,
       status: "failed",
+      verificationDecision: "failed",
+      confidence: 0,
       failureReason: "unknown_child_capability",
       statusMessage: `Post Action Verification child capability is not registered for ${input.childCapabilityId}.`,
     });
@@ -37,6 +39,8 @@ async function executePostActionVerificationChildCapability(input: {
       request: input.callInput,
       context: input.context,
       status: "failed",
+      verificationDecision: "failed",
+      confidence: 0,
       failureReason: "child_execution_failed",
       statusMessage: error instanceof Error ? error.message : "Post Action Verification child execution failed.",
     });

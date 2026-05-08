@@ -5,8 +5,8 @@ import { findEffectiveOperationalStep } from "./route-plan-resolver.js";
 import { buildAbilityDispatchResult, buildAiDispatchRequest } from "./step-dispatch-request-builders.js";
 import { buildFinalizeStepResult } from "./step-dispatch-review.js";
 import {
+  allowsPostClickObservationAbilityGroup,
   ensurePostActionVerificationDispatchGate,
-  requiresPostActionVerificationAbilityGroup,
 } from "./orchestration-post-action-verification.js";
 import {
   buildAbilityOutputSchemaRef,
@@ -55,7 +55,7 @@ async function sendAbilityDispatch(input: AbilityDispatchInput, targetAbilityGro
       targetAbilityGroupId,
       childCapabilityId: input.step.childCapabilityId,
       expectedOutputSchemaRef: buildAbilityOutputSchemaRef(targetAbilityGroupId, input.step.childCapabilityId),
-      postClickObservation: requiresPostActionVerificationAbilityGroup(targetAbilityGroupId),
+      postClickObservation: allowsPostClickObservationAbilityGroup(targetAbilityGroupId),
       payloadRefs: input.state.payloadRefs,
       sequenceNo: input.sequenceNo,
       idempotencyKey: input.idempotencyKey,

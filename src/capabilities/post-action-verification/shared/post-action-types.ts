@@ -15,7 +15,7 @@ export const POST_ACTION_EXPECTED_OUTCOME_TYPES = [
   "page_opened",
   "comments_panel_opened",
   "comments_panel_closed",
-  "not_interested_result",
+  "not_interested_applied",
   "target_state_changed",
 ] as const;
 

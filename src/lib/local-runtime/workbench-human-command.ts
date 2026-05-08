@@ -1,6 +1,8 @@
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import {
   recordCommandAccepted,
+  recordMissionBackgroundFailed,
+  recordMissionBackgroundStalled,
   recordMissionActivationSnapshotFrozen,
   recordOrchestrationStartReceived,
 } from "./workbench-human-command-debug-events.js";
@@ -43,6 +45,47 @@ const logHumanCommandDebugFailure = (error: unknown) => {
 
 const recordHumanCommandDebug = (write: Promise<void>) => {
   void write.catch(logHumanCommandDebugFailure);
+};
+
+const watchBackgroundMissionStart = (
+  runtime: WorkbenchRuntime,
+  input: {
+    envelope: HumanCommandEnvelope;
+    selectedMapId: string | null;
+    taskTemplateId: string | null;
+    missionStartPromise: Promise<unknown>;
+  },
+) => {
+  void input.missionStartPromise.catch((error) => {
+    logBackgroundMissionFailure(error);
+    recordHumanCommandDebug(recordMissionBackgroundFailed(runtime, {
+      envelope: input.envelope,
+      selectedMapId: input.selectedMapId,
+      taskTemplateId: input.taskTemplateId,
+      error,
+    }));
+  });
+
+  setTimeout(() => {
+    void runtime.orchestrationAbilityGroup.getMissionState(input.envelope.missionId)
+      .then((state) => {
+        if (state.status === "idle" || state.missionId !== input.envelope.missionId) {
+          recordHumanCommandDebug(recordMissionBackgroundStalled(runtime, {
+            envelope: input.envelope,
+            selectedMapId: input.selectedMapId,
+            taskTemplateId: input.taskTemplateId,
+          }));
+        }
+      })
+      .catch((error) => {
+        recordHumanCommandDebug(recordMissionBackgroundFailed(runtime, {
+          envelope: input.envelope,
+          selectedMapId: input.selectedMapId,
+          taskTemplateId: input.taskTemplateId,
+          error,
+        }));
+      });
+  }, 1_000);
 };
 
 const buildHumanCommandResultEnvelope = (input: {
@@ -159,7 +202,12 @@ const handleStartMission = async (
     initialPayload: buildStartMissionInitialPayload(payload, parsedSelectedMapId),
   });
   const missionStartPromise = startMission();
-  void missionStartPromise.catch(logBackgroundMissionFailure);
+  watchBackgroundMissionStart(runtime, {
+    envelope,
+    selectedMapId: parsedSelectedMapId,
+    taskTemplateId,
+    missionStartPromise,
+  });
   return buildHumanCommandResultEnvelope({
     envelope,
     status: "success",

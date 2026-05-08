@@ -1,8 +1,8 @@
 export const POST_ACTION_ACTION_STATUSES = [
-  "success",
+  "dispatched",
+  "completed",
   "failed",
   "review_required",
-  "blocked",
 ] as const;
 
 export const POST_ACTION_VERIFICATION_CLOCK_KIND = "post-action-verification-clock";

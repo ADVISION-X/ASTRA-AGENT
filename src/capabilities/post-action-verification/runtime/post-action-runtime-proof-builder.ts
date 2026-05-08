@@ -5,6 +5,8 @@ import type { ParsedPostActionVerificationAbilityInput, PostActionVerificationAb
 type PostActionRuntimeProofInput = {
   request: ParsedPostActionVerificationAbilityInput | null;
   status: PostActionVerificationAbilityResult["status"];
+  verificationDecision: PostActionVerificationAbilityResult["verificationDecision"];
+  confidence: number;
   failureReason: PostActionVerificationAbilityResult["failureReason"];
   reviewRequiredReason: string | null;
   observationRefs: string[];
@@ -16,6 +18,9 @@ type PostActionRuntimeProofInput = {
   receivedShapeHash: string | null;
   processingMode: "observation_packaging" | "invalid_input_failure";
   observationFingerprint: string | null;
+  gateDecisions: string[];
+  verificationDecisionTrace: string[];
+  dataQualityFlags: string[];
   startedAt: { isoTimestamp: string; monotonicMs: number };
   endedAt: { isoTimestamp: string; monotonicMs: number };
 };
@@ -101,10 +106,14 @@ function buildPostActionRuntimeOutcome(input: PostActionRuntimeProofInput) {
     endedAt: input.endedAt.isoTimestamp,
     durationMs: Math.max(0, Math.round(input.endedAt.monotonicMs - input.startedAt.monotonicMs)),
     status: input.status,
+    verificationDecision: input.verificationDecision,
+    confidence: input.confidence,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,
+    gateDecisions: input.gateDecisions,
+    verificationDecisionTrace: input.verificationDecisionTrace,
     processingMode: input.processingMode,
-    dataQualityFlags: input.status === "success" ? [] : ["insufficient_signal"],
+    dataQualityFlags: input.dataQualityFlags,
     clock: {
       portKind: "post-action-verification-clock" as const,
       startedMonotonicMs: input.startedAt.monotonicMs,

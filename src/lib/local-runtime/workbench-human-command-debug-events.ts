@@ -111,3 +111,61 @@ export const recordCommandAccepted = (
     `selectedMapId=${input.selectedMapId ?? "MISSING"}`,
   ],
 });
+
+export const recordMissionBackgroundFailed = (
+  runtime: WorkbenchRuntime,
+  input: {
+    envelope: HumanCommandEnvelope;
+    selectedMapId: string | null;
+    taskTemplateId: string | null;
+    error: unknown;
+  },
+) => {
+  const failureReason = input.error instanceof Error ? input.error.message : String(input.error);
+  return runtime.recordCommanderDebugEvent({
+    eventType: "MISSION_BACKGROUND_FAILED",
+    status: "failed",
+    traceId: input.envelope.traceId,
+    spanId: `${input.envelope.envelopeId}:mission-background-failed`,
+    attemptId: input.envelope.attemptId,
+    missionId: input.envelope.missionId,
+    runId: input.envelope.runId,
+    mapId: input.selectedMapId,
+    taskTemplateId: input.taskTemplateId,
+    reason: "Background mission execution failed after the command acceptance receipt was returned.",
+    failureReason,
+    actionableMessage: "Inspect this failure before treating COMMAND_ACCEPTED as mission execution.",
+    ownerResponsible: "Orchestration / Mission Loop",
+    refs: [
+      `commandEnvelopeRef=${input.envelope.envelopeId}`,
+      `selectedMapId=${input.selectedMapId ?? "MISSING"}`,
+    ],
+  });
+};
+
+export const recordMissionBackgroundStalled = (
+  runtime: WorkbenchRuntime,
+  input: {
+    envelope: HumanCommandEnvelope;
+    selectedMapId: string | null;
+    taskTemplateId: string | null;
+  },
+) => runtime.recordCommanderDebugEvent({
+  eventType: "MISSION_BACKGROUND_STALLED",
+  status: "failed",
+  traceId: input.envelope.traceId,
+  spanId: `${input.envelope.envelopeId}:mission-background-stalled`,
+  attemptId: input.envelope.attemptId,
+  missionId: input.envelope.missionId,
+  runId: input.envelope.runId,
+  mapId: input.selectedMapId,
+  taskTemplateId: input.taskTemplateId,
+  reason: "Mission command was accepted, but no active mission state became visible before the startup probe deadline.",
+  failureReason: "mission_loop_did_not_publish_initial_state",
+  actionableMessage: "Repair start-mission background execution so MAP_STEP_SELECTED appears after MISSION_ACTIVATION_SNAPSHOT_FROZEN.",
+  ownerResponsible: "Orchestration / Mission Loop",
+  refs: [
+    `commandEnvelopeRef=${input.envelope.envelopeId}`,
+    `selectedMapId=${input.selectedMapId ?? "MISSING"}`,
+  ],
+});

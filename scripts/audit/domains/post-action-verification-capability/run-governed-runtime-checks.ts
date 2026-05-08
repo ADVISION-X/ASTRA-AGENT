@@ -64,8 +64,8 @@ export async function runGovernedRuntimeChecks(project: Project): Promise<{ find
   const governedFixtures = createRuntimePhase(
     "governed-runtime-fixtures",
     governedFixtureFindings,
-    "Governed PAV fixtures prove builder/schema parity, invalid-input fallback integrity, and observation-only page-open verification success.",
-    "Governed PAV fixtures still expose builder drift, invalid-input fallback regression, or broken observation-only page-open verification.",
+    "Governed PAV fixtures prove builder/schema parity, confidence-policy propagation, invalid-input fallback integrity, generic before/after gate enforcement, and observation-only page-open verification success.",
+    "Governed PAV fixtures still expose builder drift, confidence-policy regression, invalid-input fallback regression, broken before/after gate enforcement, or broken observation-only page-open verification.",
   );
 
   return {
