@@ -119,6 +119,7 @@ function createAiRequestDispatcher(nerveBus: OrchestrationNerveBusTransportSurfa
       payloadRefs: {
         ...input.payloadRefs,
         aiResultRef: transport.responseEnvelope.outputRef ?? transport.responseEnvelope.diagnosticPayloadRef ?? null,
+        sourceAiResultRef: transport.responseEnvelope.outputRef ?? transport.responseEnvelope.diagnosticPayloadRef ?? null,
       },
     };
   };

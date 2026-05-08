@@ -29,6 +29,18 @@ const readObject = (value: JsonObject | null | undefined, key: string): JsonObje
   return isObject(candidate) ? candidate : null;
 };
 
+const readBoolean = (value: JsonObject | null | undefined, key: string): boolean | null => {
+  const candidate = value?.[key];
+  return typeof candidate === "boolean" ? candidate : null;
+};
+
+const readStringArray = (value: JsonObject | null | undefined, key: string): string | null => {
+  const candidate = value?.[key];
+  return Array.isArray(candidate)
+    ? candidate.filter((entry): entry is string => typeof entry === "string" && entry.length > 0).join(",")
+    : null;
+};
+
 const readFirstObjectInArray = (value: JsonObject | null | undefined, key: string): JsonObject | null => {
   const candidate = value?.[key];
   return Array.isArray(candidate) && isObject(candidate[0]) ? candidate[0] : null;
@@ -251,12 +263,48 @@ function buildGeometryGuardProofSummary(input: {
     sourceRef: readString(runtimeProof, "sourceRef"),
     sourceScreenshotEvidenceRef: readString(resultRecord, "sourceScreenshotEvidenceRef") ?? readString(runtimeProof, "sourceScreenshotEvidenceRef"),
     sourceTargetRef: readString(resultRecord, "sourceTargetRef") ?? readString(runtimeProof, "sourceTargetRef"),
+    sourceAiResultRef: readString(resultRecord, "sourceAiResultRef") ?? readString(runtimeProof, "sourceAiResultRef"),
     sourceVisualTargetResultRef: readString(resultRecord, "sourceVisualTargetResultRef") ?? readString(runtimeProof, "sourceVisualTargetResultRef"),
+    riskLevel: readString(resultRecord, "riskLevel") ?? readString(runtimeProof, "riskLevel"),
+    requiresPostClickAiVerification: readBoolean(resultRecord, "requiresPostClickAiVerification") ?? readBoolean(runtimeProof, "requiresPostClickAiVerification"),
+    fallbackReason: readString(resultRecord, "fallbackReason") ?? readString(runtimeProof, "fallbackReason"),
+    targetSemanticOwner: readString(resultRecord, "targetSemanticOwner") ?? readString(runtimeProof, "targetSemanticOwner"),
+    actionableMessage: readString(resultRecord, "actionableMessage") ?? readString(runtimeProof, "actionableMessage"),
+    dataQualityFlags: readStringArray(resultRecord, "dataQualityFlags") ?? readStringArray(runtimeProof, "dataQualityFlags"),
     normalizedCoordinateSpace: readString(resultRecord, "normalizedCoordinateSpace")
       ?? readString(output, "normalizedCoordinateSpace")
       ?? readString(runtimeProof, "normalizedCoordinateSpace"),
     normalizedClickPointX: readNumber(normalizedClickPoint, "x"),
     normalizedClickPointY: readNumber(normalizedClickPoint, "y"),
+  };
+}
+
+function buildVisualTargetProofSummary(input: {
+  result: WorkbenchAbilityExecutionResult;
+}): Record<string, string | number | boolean | null> {
+  if (input.result.abilityGroupId !== "visual-target" || input.result.status !== "success" || !isObject(input.result.output) || !isObject(input.result.runtimeProof)) {
+    return {};
+  }
+
+  const output = input.result.output;
+  const runtimeProof = input.result.runtimeProof;
+  const visualOutput = readObject(output, "output");
+  const boundingBox = readObject(visualOutput, "boundingBox") ?? readObject(runtimeProof, "boundingBox");
+  const clickPoint = readObject(visualOutput, "candidateClickPoint") ?? readObject(runtimeProof, "clickPoint");
+  return {
+    visualTargetRef: readString(output, "outputRef") ?? readString(runtimeProof, "outputRef"),
+    sourceTargetRef: readString(visualOutput, "targetId") ?? readString(runtimeProof, "targetId"),
+    sourceAiResultRef: readString(visualOutput, "sourceAiResultRef") ?? readString(runtimeProof, "sourceAiResultRef"),
+    sourceVisualTargetResultRef: readString(output, "outputRef") ?? readString(runtimeProof, "outputRef"),
+    sourceScreenshotEvidenceRef: readString(visualOutput, "sourceScreenshotEvidenceId") ?? readString(runtimeProof, "sourceScreenshotEvidenceId"),
+    sourceGeometryHandoffRef: readString(visualOutput, "geometryGuardHandoffRef") ?? readString(runtimeProof, "geometryGuardHandoffRef"),
+    normalizedCoordinateSpace: readString(visualOutput, "coordinateSpace") ?? readString(runtimeProof, "coordinateSpace"),
+    sourceBoundsX: readNumber(boundingBox, "x"),
+    sourceBoundsY: readNumber(boundingBox, "y"),
+    sourceBoundsWidth: readNumber(boundingBox, "width"),
+    sourceBoundsHeight: readNumber(boundingBox, "height"),
+    normalizedClickPointX: readNumber(clickPoint, "x"),
+    normalizedClickPointY: readNumber(clickPoint, "y"),
   };
 }
 
@@ -290,6 +338,7 @@ function buildAbilityResultProofSummary(input: {
 }): Record<string, string | number | boolean | null> {
   const summary = {
     ...buildPrepareAiInputProofSummary(input),
+    ...buildVisualTargetProofSummary(input),
     ...buildGeometryGuardProofSummary(input),
     ...buildMouseClickProofSummary(input),
     ...buildMouseScrollProofSummary(input),

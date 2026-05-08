@@ -27,8 +27,18 @@ export const MuscleSegmentSchema = z.object({
   allowedAbilityGroups: z.array(z.string().min(1)).default([]),
   aiRequired: z.boolean(),
   semanticOwner: z.enum(["ai", "none"]),
+  requiresTargetCandidateRef: z.boolean().optional(),
+  requiresPostActionAiVerification: z.boolean().optional(),
+  fallbackPolicy: z.enum(["forbidden", "fallback-only-with-ai-verification"]).optional(),
   description: z.string().min(1),
 }).strict().superRefine((value, context) => {
+  const targetCandidateRefs = [
+    "nextItemTargetCandidateRef",
+    "aiTargetCandidateRef",
+    "targetCandidateRef",
+    "sourceAiResultRef",
+    "sourceVisualTargetResultRef",
+  ];
   if (value.allowedAbilityGroups.includes("map-plugin-package")) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
@@ -48,6 +58,43 @@ export const MuscleSegmentSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["semanticOwner"],
       message: "Segments that require semantic judgment must declare semanticOwner=ai.",
+    });
+  }
+  if (value.coreMuscle === "advance-next-item") {
+    if (value.requiresTargetCandidateRef !== true) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["requiresTargetCandidateRef"],
+        message: "Advance Next Item segments must require governed target candidate refs.",
+      });
+    }
+    if (value.requiresPostActionAiVerification !== true) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["requiresPostActionAiVerification"],
+        message: "Advance Next Item segments must require post-action AI verification.",
+      });
+    }
+    if (!value.fallbackPolicy) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["fallbackPolicy"],
+        message: "Advance Next Item segments must declare an explicit fallback policy.",
+      });
+    }
+  }
+  if (value.fallbackPolicy === "fallback-only-with-ai-verification" && value.requiresPostActionAiVerification !== true) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["fallbackPolicy"],
+      message: "Fallback-only muscle segments must require post-action AI verification.",
+    });
+  }
+  if (value.requiresTargetCandidateRef === true && !targetCandidateRefs.some((ref) => value.consumesRefs.includes(ref))) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["consumesRefs"],
+      message: "Segments that require target candidates must consume nextItemTargetCandidateRef, aiTargetCandidateRef, targetCandidateRef, sourceAiResultRef, or sourceVisualTargetResultRef.",
     });
   }
 });

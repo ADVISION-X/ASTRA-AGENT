@@ -119,7 +119,11 @@ const buildGeometryGuardProof = (summary: AbilityResultProofSummary | null) => {
     normalizedClickPoint,
     sourceScreenshotEvidenceRef: readSummaryString(summary, "sourceScreenshotEvidenceRef"),
     sourceTargetRef: requireSummaryString(summary, "sourceTargetRef"),
+    sourceAiResultRef: readSummaryString(summary, "sourceAiResultRef"),
     sourceVisualTargetResultRef: readSummaryString(summary, "sourceVisualTargetResultRef"),
+    riskLevel: readSummaryString(summary, "riskLevel"),
+    requiresPostClickAiVerification: summary?.requiresPostClickAiVerification === true,
+    dataQualityFlags: readSummaryString(summary, "dataQualityFlags"),
   };
 };
 
@@ -192,6 +196,9 @@ export const buildMouseClickCommand = async (
       sourceScreenshotEvidenceRef: geometryGuardProof.sourceScreenshotEvidenceRef,
       sourceTargetRef: geometryGuardProof.sourceTargetRef,
       sourceVisualTargetResultRef: geometryGuardProof.sourceVisualTargetResultRef,
+      riskLevel: geometryGuardProof.riskLevel,
+      requiresPostClickAiVerification: geometryGuardProof.requiresPostClickAiVerification,
+      dataQualityFlags: geometryGuardProof.dataQualityFlags,
       inputRef: requireSummaryString(geometrySummary, "geometryGuardInputRef"),
       outputRef: geometryGuardProof.outputRef,
       runtimeProofRef: geometryGuardProof.runtimeProofRef,

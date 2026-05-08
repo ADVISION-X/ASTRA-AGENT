@@ -7,10 +7,17 @@ import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { listRoutePlans } from "../../../../src/map-plugins/route-plans/index.js";
 import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
 import { MAP_PLUGIN_LAWS } from "./constants.js";
+import { collectNonAiNextSemanticFindings, collectPreviousVideoOwnerFindings } from "./muscle-memory-governance-next-semantic.js";
 
 const ROUTE_PLAN_ROOT = "src/map-plugins/route-plans";
 const ROUTE_PLAN_SCHEMA_PATH = `${ROUTE_PLAN_ROOT}/route-plan.schema.ts`;
 const PRODUCT_DISCOVERY_ROUTE_PLAN_PATH = `${ROUTE_PLAN_ROOT}/product-discovery-route-plan.v1.ts`;
+const WORKBENCH_VISUAL_DISPATCH_PATH = "src/lib/local-runtime/workbench-visual-dispatch-input.ts";
+const WORKBENCH_NEXT_ITEM_DISPATCH_PATH = "src/lib/local-runtime/workbench-visual-dispatch-input-next-item.ts";
+const LOOP_GUARD_PATH = "src/capabilities/orchestration/runtime/loop-guard.ts";
+const LOOP_GUARD_PROOF_PATH = "src/capabilities/orchestration/runtime/orchestration-loop-proof-builders.ts";
+const PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH = `${ROUTE_PLAN_ROOT}/product-discovery-route-plan.steps.ts`;
+const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH = `${ROUTE_PLAN_ROOT}/product-discovery-route-plan.transitions.ts`;
 const MACOS_LOCAL_PROGRAM_OPEN_SMOKE_PATH = "src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json";
 const CORE_MUSCLES = new Set(["visible-state", "target-action", "evidence-analysis", "advance-next-item"]);
 const PLATFORM_SPECIFIC_MUSCLE_TOKENS = [
@@ -215,6 +222,62 @@ async function collectProductDiscoveryRequiredFindings(): Promise<Finding[]> {
     : [];
 }
 
+async function collectAdvanceNextItemRuntimeFindings(): Promise<Finding[]> {
+  const findings: Finding[] = [];
+  const routePlanText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH);
+  const routePlanStepsText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH);
+  const routePlanTransitionsText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH);
+  const routePlanRuntimeText = `${routePlanText}\n${routePlanStepsText}\n${routePlanTransitionsText}`;
+  const visualDispatchText = await readRepoFile(WORKBENCH_VISUAL_DISPATCH_PATH);
+  const nextItemDispatchText = await readRepoFile(WORKBENCH_NEXT_ITEM_DISPATCH_PATH);
+  const visualRuntimeText = `${visualDispatchText}\n${nextItemDispatchText}`;
+  const loopGuardText = await readRepoFile(LOOP_GUARD_PATH);
+  const loopGuardProofText = await readRepoFile(LOOP_GUARD_PROOF_PATH);
+  const normalizeNextBlock = routePlanRuntimeText.match(/stepId: "normalize-next-video-arrow"[\s\S]*?promptContractId: null,\n  }/)?.[0] ?? "";
+
+  if (normalizeNextBlock.includes('inputRefs: ["screenshotEvidenceRef"]')) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "normalize-next-video-arrow must not consume only screenshotEvidenceRef; it needs AI target/source evidence for Advance Next Item."));
+  }
+  if (!routePlanRuntimeText.includes('"sourceAiResultRef"') || !routePlanRuntimeText.includes('"sourceTargetRef"')) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "click-next-video-arrow must preserve sourceAiResultRef and sourceTargetRef evidence chain."));
+  }
+  if (!routePlanText.includes("requiresTargetCandidateRef: true") || !routePlanText.includes("requiresPostActionAiVerification: true")) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH, "Advance Next Item muscle must require a target candidate ref and post-action AI verification."));
+  }
+  if (!routePlanText.includes('fallbackPolicy: "fallback-only-with-ai-verification"')) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH, "Advance Next Item deterministic geometry fallback must be policy-marked fallback-only-with-ai-verification."));
+  }
+  if (routePlanTransitionsText.includes('fromStepId: "click-next-video-arrow",\n    onStatus: "success",\n    toStepId: "capture-video-viewport"')) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH, "click-next-video-arrow:success must not jump directly to capture-video-viewport; it must pass through next-item verification."));
+  }
+  if (!routePlanRuntimeText.includes('stepId: "verify-next-item-advanced"') || !routePlanRuntimeText.includes('toStepId: "verify-next-item-advanced"')) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Route Plan must include verify-next-item-advanced or an equivalent post-click verification step."));
+  }
+  if (visualRuntimeText.includes('dataQualityFlags: ["deterministic_next_video_arrow_geometry"]')) {
+    findings.push(toFinding(WORKBENCH_NEXT_ITEM_DISPATCH_PATH, "Deterministic next-video geometry must not be emitted as normal-quality target truth."));
+  }
+  if (visualRuntimeText.includes('return buildDeterministicNextVideoArrowCommand(runtime, envelope, inputPayload);')
+    && !visualRuntimeText.includes("deterministic_next_video_arrow_geometry_fallback")) {
+    findings.push(toFinding(WORKBENCH_NEXT_ITEM_DISPATCH_PATH, "Deterministic next-video geometry may only appear as explicit fallback with fallback data-quality flag."));
+  }
+  if (visualRuntimeText.includes("buildDeterministicNextVideoArrowCommand")) {
+    findings.push(toFinding(WORKBENCH_NEXT_ITEM_DISPATCH_PATH, "Deterministic next-video helper must be named fallback-only, not normal command."));
+  }
+  if (!visualRuntimeText.includes('riskLevel: "high"') || !visualRuntimeText.includes("requiresPostClickAiVerification: true") || !visualRuntimeText.includes('fallbackReason: "missing_governed_next_item_target_candidate"')) {
+    findings.push(toFinding(WORKBENCH_NEXT_ITEM_DISPATCH_PATH, "Deterministic next-video fallback must be high risk and require post-click AI verification."));
+  }
+  if (!visualRuntimeText.includes("GRASSEYE_ALLOW_NEXT_VIDEO_DETERMINISTIC_FALLBACK")) {
+    findings.push(toFinding(WORKBENCH_NEXT_ITEM_DISPATCH_PATH, "Deterministic next-video fallback must be gated by explicit runtime policy."));
+  }
+  if (!loopGuardText.includes("completed_by_run_limit") || !loopGuardText.includes("blocked_by_loop_guard")) {
+    findings.push(toFinding(LOOP_GUARD_PATH, "Loop guard must distinguish run-limit completion from blocked loop-guard failures."));
+  }
+  if (loopGuardProofText.includes('failureReason: input.failureReason ?? "loop_guard_triggered"')) {
+    findings.push(toFinding(LOOP_GUARD_PROOF_PATH, "Loop guard proof must not collapse completed_by_run_limit/blocked_by_loop_guard into generic loop_guard_triggered."));
+  }
+  return findings;
+}
+
 async function collectCoreMuscleSchemaFindings(): Promise<Finding[]> {
   const text = await readRepoFile(ROUTE_PLAN_SCHEMA_PATH);
   const declaredCoreMuscles = [...text.matchAll(/"([a-z-]+)"/g)]
@@ -237,6 +300,9 @@ export async function runMuscleMemoryGovernance(): Promise<{ findings: Finding[]
     ...await collectMacSmokeFindings(),
     ...await collectAbilitySemanticFindings(),
     ...await collectProductDiscoveryRequiredFindings(),
+    ...await collectAdvanceNextItemRuntimeFindings(),
+    ...await collectPreviousVideoOwnerFindings(),
+    ...await collectNonAiNextSemanticFindings(),
   ];
   return {
     findings,

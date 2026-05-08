@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T01:42:05.900Z",
+  "generatedAt": "2026-05-08T02:40:09.203Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -857,7 +857,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages must pass import, quarantine, validation, automation gate, activation, active registry, and rollback lifecycle before runtime consumption.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 184
+      "line": 185
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-003-V2",
@@ -868,7 +868,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map package schema must contain complete governance metadata and must not depend on runtime truth as package authority.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 303
+      "line": 304
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-004-V2",
@@ -879,7 +879,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages must never carry executable payloads, runtime code, prompt text, shell scripts, dynamic imports, handlers, or direct ability control.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 410
+      "line": 411
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-005-V2",
@@ -890,7 +890,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map packages may reference prompt contracts but must not own prompt content or create prompt double-truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 531
+      "line": 532
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-006-V2",
@@ -901,7 +901,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "AI-generated map packages must be authored against governed catalogs and remain draft/quarantine until all gates and automation gate pass.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 603
+      "line": 604
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-007-V2",
@@ -912,7 +912,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "capability catalog is a generated read model used for authoring and validation; it must not become runtime truth or a second ability registry.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 755
+      "line": 756
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-008-V2",
@@ -923,7 +923,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "branch condition DSL must be schema-declared, closed, non-executable, and able to reference declared outputSchemaRef fields.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 832
+      "line": 833
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-009-V2",
@@ -934,7 +934,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "ordinary and developer map surfaces must stay separate, and Commander must not activate or mutate maps without governed validation/automation-gate path.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 931
+      "line": 932
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-010-V2",
@@ -945,7 +945,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map activation, validation, automation gate, prompt binding, and authoring must produce Forensics-compatible proof records.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1029
+      "line": 1030
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-011-V2",
@@ -956,7 +956,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "user-facing map explanation must translate route data into understandable task flow without exposing runtime internals in ordinary mode.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1130
+      "line": 1131
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-012-V2",
@@ -967,7 +967,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map-plugin-package enforcement must close through owner-local AST/schema/reference inspector, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1200
+      "line": 1201
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-013-V2",
@@ -978,7 +978,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "advanced AI map generation must receive a complete Map Authoring Input Package; missing catalogs or policies must block generation.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1378
+      "line": 1379
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-014-V2",
@@ -989,7 +989,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "capability catalog must be detailed enough for advanced AI to generate maps without inventing abilities.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1499
+      "line": 1500
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-015-V2",
@@ -1000,7 +1000,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "prompt contract and output schema catalogs must define every AI step and branchable field used by maps.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1605
+      "line": 1606
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-016-V2",
@@ -1011,7 +1011,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "safety, automation gate, evidence, PAV, Forensics, privacy, secret, rate-limit, and platform policies must be first-class inputs to map authoring.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1701
+      "line": 1702
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-018-V2",
@@ -1022,7 +1022,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "GrassEye Muscle Memory is the reusable visible-surface instinct layer, constrained to four first-level muscles and separated from Map, AI, Ability Group, and Surface Profile authority.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1797
+      "line": 1798
     },
     {
       "lawId": "GRASSEYE-MAP-PLUGIN-017-V2",
@@ -1033,7 +1033,7 @@
       "evidenceMode": "law+inspector+negative-proof",
       "summary": "map-plugin-package enforcement must prove Map Authoring Input Package completeness, generated-map safety, and lifecycle boundaries in addition to existing map package governance.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1854
+      "line": 1855
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2",

@@ -78,6 +78,11 @@ function buildGeometryProofDecisionFields(input: Parameters<typeof buildGeometry
     boundsDecision: input.boundsDecision,
     scaleDecision: input.scaleDecision,
     transformDecision: input.transformDecision,
+    riskLevel: input.request.riskLevel,
+    requiresPostClickAiVerification: input.request.requiresPostClickAiVerification,
+    fallbackReason: input.request.fallbackReason,
+    targetSemanticOwner: input.request.targetSemanticOwner,
+    actionableMessage: input.request.actionableMessage,
     dataQualityFlags: input.dataQualityFlags,
   };
 }

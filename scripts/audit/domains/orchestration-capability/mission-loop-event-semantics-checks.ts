@@ -115,7 +115,7 @@ const collectLoopStateFindings = (input: {
   const findings: Finding[] = [];
   const guardsRoundIncrementByInitialStep = input.roundBoundaryText.includes("nextStepId === input.initialStepId")
     && input.roundBoundaryText.includes("currentStepId !== input.initialStepId");
-  const guardsClickNextVideoCaptureBoundary = input.roundBoundaryText.includes("click-next-video-arrow")
+  const guardsClickNextVideoCaptureBoundary = input.roundBoundaryText.includes("verify-next-item-advanced")
     && input.roundBoundaryText.includes("capture-video-viewport");
   const usesPerStepRoundIncrement = input.transitionStateText.includes("currentRoundIndex: input.state.currentRoundIndex + 1");
   const recorderText = input.stepTraceRecorderSource.getFullText();
@@ -136,7 +136,7 @@ const collectLoopStateFindings = (input: {
     findings.push(createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success path must persist lastRuntimeProofRef and runtimeProofRefs before Commander reads mission state." }));
   }
   if (!guardsRoundIncrementByInitialStep || !guardsClickNextVideoCaptureBoundary || usesPerStepRoundIncrement) {
-    findings.push(createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success state must increment currentRoundIndex only at governed round boundaries: map initial-step return or click-next-video-arrow returning to capture-video-viewport. Non-AI video-change PAV is forbidden." }));
+    findings.push(createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success state must increment currentRoundIndex only at governed round boundaries: map initial-step return or verify-next-item-advanced returning to capture-video-viewport." }));
   }
 
   return findings;

@@ -59,6 +59,11 @@ const GeometryGuardBaseInputSchema = z.object({
     clickSafetyMarginPx: 4,
     roundingPolicy: "nearest_pixel",
   }),
+  riskLevel: z.enum(["low", "medium", "high"]).nullable().optional().default(null),
+  requiresPostClickAiVerification: z.boolean().optional().default(false),
+  fallbackReason: nullableString,
+  targetSemanticOwner: z.enum(["ai", "visual-target", "profile", "missing"]).nullable().optional().default(null),
+  actionableMessage: nullableString,
   dataQualityFlags: z.array(z.string().min(1)).default([]),
   idempotencyKey: nullableString,
 });

@@ -55,7 +55,7 @@ Route Plan 是调度肌肉记忆的唯一来源。
 
 匹配链路：
 
-`observe-comments-button -> normalize-comments-target -> click-comments-button -> verify-comments-open -> capture-comments-panel -> analyze-comment-intent -> persist-seeding-candidate-record -> normalize-next-video-arrow -> click-next-video-arrow -> capture-video-viewport`
+`observe-comments-button -> normalize-comments-target -> click-comments-button -> verify-comments-open -> capture-comments-panel -> analyze-comment-intent -> persist-seeding-candidate-record -> normalize-next-video-arrow -> click-next-video-arrow -> capture-next-item-verification-viewport -> prepare-next-item-verification-ai-input -> verify-next-item-advanced -> capture-video-viewport`
 
 `product_no` 默认输出：
 
@@ -63,11 +63,21 @@ Route Plan 是调度肌肉记忆的唯一来源。
 
 匹配链路：
 
-`normalize-next-video-arrow -> click-next-video-arrow -> capture-video-viewport`
+`normalize-next-video-arrow -> click-next-video-arrow -> capture-next-item-verification-viewport -> prepare-next-item-verification-ai-input -> verify-next-item-advanced -> capture-video-viewport`
 
 补充说明：
 
 - `click-next-video-arrow` 是当前 product_no 的肌肉记忆意图名；Route Plan 不为平台特化分叉第二条动作链路。
+
+## Advance Next Item Muscle FINAL
+
+- `normalize-next-video-arrow` 不得只靠 `screenshotEvidenceRef` + deterministic viewport geometry。
+- Next-item target identity must come from AI target candidate, governed visual target result, or a fallback policy explicitly marked high-risk.
+- deterministic next-arrow geometry is fallback-only, never normal path.
+- fallback must require post-click AI verification.
+- `click-next-video-arrow` mechanical success does not equal next-item semantic success.
+- `click-next-video-arrow:success` must be followed by visible-state capture and verification before the next round is treated as advanced.
+- loop guard block must not be finalized as normal completed unless reason is run limit reached.
 
 ## 地图与肌肉记忆边界 FINAL
 

@@ -78,6 +78,11 @@ const GeometryGuardRuntimeProofFieldSchemas = {
   boundsDecision: GeometryGuardCheckDecisionSchema,
   scaleDecision: GeometryGuardCheckDecisionSchema,
   transformDecision: GeometryGuardCheckDecisionSchema,
+  riskLevel: z.enum(["low", "medium", "high"]).nullable().default(null),
+  requiresPostClickAiVerification: z.boolean().default(false),
+  fallbackReason: nullableString,
+  targetSemanticOwner: z.enum(["ai", "visual-target", "profile", "missing"]).nullable().default(null),
+  actionableMessage: nullableString,
   dataQualityFlags: z.array(z.string().min(1)).default([]),
 };
 

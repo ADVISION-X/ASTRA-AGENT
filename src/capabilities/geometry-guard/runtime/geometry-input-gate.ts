@@ -275,6 +275,11 @@ export function coerceGeometryGuardFailureInput(rawInput: unknown): ParsedGeomet
     ...buildFailureSourceFields(record),
     ...buildFailureGeometryFields(record),
     safetyPolicy: createDefaultFailureSafetyPolicy(),
+    riskLevel: null,
+    requiresPostClickAiVerification: false,
+    fallbackReason: null,
+    targetSemanticOwner: null,
+    actionableMessage: null,
     dataQualityFlags: [],
   };
 }

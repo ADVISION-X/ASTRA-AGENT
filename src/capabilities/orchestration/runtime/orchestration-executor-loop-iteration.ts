@@ -62,14 +62,14 @@ async function handleDispatchGateFailure(
   await recordPreconditionCheck(input, step, {
     status: "failed",
     reason: `Dispatch gate rejected step "${details.currentStepId}".`,
-    failureReason: details.dispatchGateReason,
+    failureReason: `failed_precondition: ${details.dispatchGateReason}`,
   });
   const outcome = await buildDispatchGateFailureOutcome(input, {
     currentStepId: details.currentStepId,
     stateRevisionBefore: details.stateRevisionBefore,
     stateHashBefore: details.stateHashBefore,
     proofContext: details.currentProofContext,
-    dispatchGateReason: details.dispatchGateReason,
+    dispatchGateReason: `failed_precondition: ${details.dispatchGateReason}`,
     endedAt: details.endedAt,
   });
   await recordTerminalOutcome(input, step, outcome);
@@ -79,12 +79,12 @@ async function handleDispatchGateFailure(
 async function handleLoopGuardStop(
   input: RunMissionLoopIterationInput,
   step: OperationalStep,
-  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; currentProofContext: OrchestrationLoopProofContext; loopGuardDecision: "stop_failed" | "stop_completed"; nextHopCount: number; endedAt: string; },
+  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; currentProofContext: OrchestrationLoopProofContext; loopGuardDecision: "stop_failed" | "stop_completed"; loopGuardReason: "completed_by_run_limit" | "completed_by_time_limit" | "blocked_by_loop_guard"; nextHopCount: number; endedAt: string; },
 ): Promise<MissionLoopIterationOutcome> {
   await recordPreconditionCheck(input, step, {
     status: "failed",
-    reason: `Loop guard prevented step "${details.currentStepId}" from dispatching.`,
-    ...(details.loopGuardDecision === "stop_failed" ? { failureReason: "loop_guard_triggered" } : {}),
+    reason: `Loop guard prevented step "${details.currentStepId}" from dispatching: ${details.loopGuardReason}.`,
+    ...(details.loopGuardDecision === "stop_failed" ? { failureReason: details.loopGuardReason } : {}),
   });
   const outcome = await buildLoopGuardFailureOutcome(input, {
     currentStepId: details.currentStepId,
@@ -92,9 +92,10 @@ async function handleLoopGuardStop(
     stateHashBefore: details.stateHashBefore,
     proofContext: details.currentProofContext,
     loopGuardDecision: details.loopGuardDecision,
+    loopGuardReason: details.loopGuardReason,
     nextHopCount: details.nextHopCount,
     endedAt: details.endedAt,
-    failureReason: details.loopGuardDecision === "stop_failed" ? "loop_guard_triggered" : null,
+    failureReason: details.loopGuardDecision === "stop_failed" ? details.loopGuardReason : null,
     reviewRequiredReason: null,
   });
   await recordTerminalOutcome(input, step, outcome);

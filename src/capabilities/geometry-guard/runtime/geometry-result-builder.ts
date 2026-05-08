@@ -225,6 +225,11 @@ function buildGeometryCorePayload(
     coordinateSpaceDecision: decisionState.coordinateSpaceDecision,
     executionSpaceDecision: decisionState.executionSpaceDecision,
     outputBoundaryDecision: decisionState.outputBoundaryDecision,
+    riskLevel: input.request.riskLevel,
+    requiresPostClickAiVerification: input.request.requiresPostClickAiVerification,
+    fallbackReason: input.request.fallbackReason,
+    targetSemanticOwner: input.request.targetSemanticOwner,
+    actionableMessage: input.request.actionableMessage,
   };
 }
 

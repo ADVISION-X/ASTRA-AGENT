@@ -74,6 +74,7 @@ type PreparedMissionLoopIteration =
     currentStepId: string;
     endedAt: string;
     loopGuardDecision: "stop_failed" | "stop_completed";
+    loopGuardReason: "completed_by_run_limit" | "completed_by_time_limit" | "blocked_by_loop_guard";
     nextHopCount: number;
     stateHashBefore: string | null;
     stateRevisionBefore: number;
@@ -138,7 +139,7 @@ const buildDispatchGateFailureOutcome = async (
 
 const buildLoopGuardFailureOutcome = async (
   input: RunMissionLoopIterationInput,
-  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; proofContext: OrchestrationLoopProofContext; loopGuardDecision: "stop_failed" | "stop_completed"; nextHopCount: number; failureReason: string | null; reviewRequiredReason: string | null; endedAt: string; },
+  details: { currentStepId: string; stateRevisionBefore: number; stateHashBefore: string | null; proofContext: OrchestrationLoopProofContext; loopGuardDecision: "stop_failed" | "stop_completed"; loopGuardReason: "completed_by_run_limit" | "completed_by_time_limit" | "blocked_by_loop_guard"; nextHopCount: number; failureReason: string | null; reviewRequiredReason: string | null; endedAt: string; },
 ): Promise<MissionLoopIterationOutcome> => {
   const nextStatus = details.loopGuardDecision === "stop_failed"
     ? "failed"
@@ -146,11 +147,11 @@ const buildLoopGuardFailureOutcome = async (
   const state = toMissionControlState(input.state, details.endedAt, {
     hopCount: details.nextHopCount,
     status: nextStatus,
-    failureReason: details.loopGuardDecision === "stop_failed" ? (details.failureReason ?? "loop_guard_triggered") : null,
+    failureReason: details.loopGuardDecision === "stop_failed" ? (details.failureReason ?? details.loopGuardReason) : null,
     reviewRequiredReason: null,
     endedAt: details.endedAt,
   });
-  const proof = buildLoopGuardFailureProof({ context: details.proofContext, currentStepId: details.currentStepId, stateRevisionBefore: details.stateRevisionBefore, stateRevisionAfter: state.stateRevision, stateHashBefore: details.stateHashBefore, stateHashAfter: state.stateHash ?? null, startedAt: details.endedAt, endedAt: details.endedAt, state, loopDecision: details.loopGuardDecision, failureReason: state.failureReason, reviewRequiredReason: state.reviewRequiredReason });
+  const proof = buildLoopGuardFailureProof({ context: details.proofContext, currentStepId: details.currentStepId, stateRevisionBefore: details.stateRevisionBefore, stateRevisionAfter: state.stateRevision, stateHashBefore: details.stateHashBefore, stateHashAfter: state.stateHash ?? null, startedAt: details.endedAt, endedAt: details.endedAt, state, loopDecision: details.loopGuardDecision, failureReason: state.failureReason ?? details.loopGuardReason, reviewRequiredReason: state.reviewRequiredReason });
   const runtimeProofId = getRuntimeProofId(proof);
   const persistedState = toMissionControlState(state, details.endedAt, { lastRuntimeProofRef: runtimeProofId, runtimeProofRefs: [...state.runtimeProofRefs, runtimeProofId] });
   const result = buildMissionExecutionResult({ missionState: persistedState, currentStepResult: input.lastResult, runtimeProof: proof, failureReason: state.failureReason, reviewRequiredReason: null });
@@ -210,10 +211,10 @@ function shouldAdvanceMissionRound(input: {
 
   const returnedToInitialStep = input.nextStepId === input.initialStepId
     && input.currentStepId !== input.initialStepId;
-  const clickNextVideoReturnedToCapture = input.currentStepId === "click-next-video-arrow"
+  const verifiedNextItemReturnedToCapture = input.currentStepId === "verify-next-item-advanced"
     && input.nextStepId === "capture-video-viewport";
 
-  return returnedToInitialStep || clickNextVideoReturnedToCapture
+  return returnedToInitialStep || verifiedNextItemReturnedToCapture
     ? input.currentRoundIndex + 1
     : input.currentRoundIndex;
 }
@@ -275,6 +276,7 @@ const prepareResolvedMissionLoopIteration = async (
       currentStepId: context.currentStepId,
       endedAt: input.context.clock.now().isoTimestamp,
       loopGuardDecision: loopGuard.loopDecision,
+      loopGuardReason: loopGuard.reason,
       nextHopCount: loopGuard.nextHopCount,
       stateHashBefore: context.stateHashBefore,
       stateRevisionBefore: context.stateRevisionBefore,

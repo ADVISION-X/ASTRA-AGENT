@@ -1,5 +1,6 @@
 import { AUTHORING_INPUT_PACKAGE_MUTATIONS } from "./authoring-input-package-negative-proof.js";
 import { MAP_PLUGIN_PATHS } from "./constants.js";
+import { ROUTE_PLAN_NEGATIVE_PROOF_MUTATIONS, ROUTE_PLAN_REQUIRED_MUTATION_NAMES } from "./negative-proof-mutations-route-plan.js";
 
 const { LAW_FILE: MAP_PLUGIN_LAW_FILE } = MAP_PLUGIN_PATHS;
 
@@ -22,14 +23,11 @@ export const REQUIRED_MUTATION_NAMES = [
   "seeding map frame-specific ref leakage mutation",
   "seeding map facebook sampling exception reintroduced mutation",
   "seeding map owns product success action chain mutation",
-  "platform-specific muscle mutation",
-  "mac muscle mutation",
   "profile becomes second map mutation",
   "map owns muscle segment mutation",
-  "route plan semantic judgment mutation",
   "ability group semantic judgment mutation",
   "mac smoke workflow creep mutation",
-  "fifth core muscle mutation",
+  ...ROUTE_PLAN_REQUIRED_MUTATION_NAMES,
 ] as const;
 
 export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
@@ -59,18 +57,6 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     replace: '      {\n        "transitionId": "judge-seeding-video:success",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "success",\n        "toStepId": "observe-comments-button",\n        "finalStatus": null\n      },\n      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
   },
   {
-    name: "platform-specific muscle mutation",
-    file: "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
-    search: '      coreMuscle: "visible-state",\n',
-    replace: '      coreMuscle: "tiktok-muscle",\n',
-  },
-  {
-    name: "mac muscle mutation",
-    file: "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
-    search: '      coreMuscle: "target-action",\n',
-    replace: '      coreMuscle: "mac-muscle",\n',
-  },
-  {
     name: "profile becomes second map mutation",
     file: "src/capabilities/open/shared/open-target-profile.ts",
     search: 'export const OPEN_ABILITY_GROUP_ID = "open" as const;\n',
@@ -81,12 +67,6 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
     search: '  "dependencies": {\n',
     replace: '  "muscleSegments": [\n    {\n      "segmentId": "map-owned-target-action",\n      "coreMuscle": "target-action"\n    }\n  ],\n  "dependencies": {\n',
-  },
-  {
-    name: "route plan semantic judgment mutation",
-    file: "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
-    search: '      stepId: "observe-comments-button",\n',
-    replace: '      stepId: "observe-comments-button",\n      semanticDecision: "product_yes",\n',
   },
   {
     name: "ability group semantic judgment mutation",
@@ -100,12 +80,7 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     search: '      {\n        "stepId": "write-open-handoff-runtime-event",\n',
     replace: '      {\n        "stepId": "click-local-program-button",\n        "capabilityId": "orchestration",\n        "childCapabilityId": "click-browser-coordinate",\n        "stepKind": "ability",\n        "targetAbilityGroupId": "mouse-click",\n        "inputRefs": [\n          "abilityResultRef"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "abilityResultRef"\n          ]\n        },\n        "promptContractId": null\n      },\n      {\n        "stepId": "write-open-handoff-runtime-event",\n',
   },
-  {
-    name: "fifth core muscle mutation",
-    file: "src/map-plugins/route-plans/route-plan.schema.ts",
-    search: '  "advance-next-item",\n]);\n',
-    replace: '  "advance-next-item",\n  "workflow-control",\n]);\n',
-  },
+  ...ROUTE_PLAN_NEGATIVE_PROOF_MUTATIONS,
   {
     name: "delete binary outcome policy from authoring input package mutation",
     file: "src/map-plugins/authoring/map-authoring-input-package.schema.ts",
@@ -219,18 +194,6 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
     search: '"outputSchemaRef": "ai.product_presence_judgment.v1"',
     replace: '"outputSchemaRef": "ai.mismatched_schema.v1"',
-  },
-  {
-    name: "missing geometry proof mutation",
-    file: "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
-    search: 'inputRefs: ["geometryProofRef"],',
-    replace: 'inputRefs: [],',
-  },
-  {
-    name: "facebook non-product click path skips geometry mutation",
-    file: "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
-    search: '      transitionId: "normalize-next-video-arrow:success",\n      fromStepId: "normalize-next-video-arrow",\n      onStatus: "success",\n      toStepId: "click-next-video-arrow",',
-    replace: '      transitionId: "normalize-next-video-arrow:success",\n      fromStepId: "normalize-next-video-arrow",\n      onStatus: "success",\n      toStepId: "capture-video-viewport",',
   },
   {
     name: "seeding map duplicates route plan-owned step mutation",
