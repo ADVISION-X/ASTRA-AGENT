@@ -59,8 +59,8 @@ const MUTATIONS: Mutation[] = [
   {
     name: "mouse-click-final-action-log mutation",
     file: "src/capabilities/mouse-click/runtime/mouse-click-result-builder.ts",
-    search: "    postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,",
-    replace: "    postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,\n    actionLogRef: input.seed.attemptRef,",
+    search: "    postClickObservationRef: verification.postClickObservationRef,",
+    replace: "    postClickObservationRef: verification.postClickObservationRef,\n    actionLogRef: input.seed.attemptRef,",
   },
   {
     name: "platform-business-verb-child mutation",
@@ -99,10 +99,10 @@ const MUTATIONS: Mutation[] = [
     replace: "    runId: buildStableMouseClickRef(\"mouse-click-run\", [input.attemptRef, input.childCapabilityId]),\n",
   },
   {
-    name: "success without PAV handoff mutation",
+    name: "success without post-click observation mutation",
     file: "src/capabilities/mouse-click/runtime/mouse-click-result-builder.ts",
-    search: "    postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,\n    dataQualityFlags: input.dataQualityFlags,\n    runtimeProof,",
-    replace: "    postActionVerificationHandoffRef: null,\n    dataQualityFlags: input.dataQualityFlags,\n    runtimeProof,",
+    search: "    postClickObservationRef: verification.postClickObservationRef,\n    dataQualityFlags: input.dataQualityFlags,\n    runtimeProof,",
+    replace: "    postClickObservationRef: null,\n    dataQualityFlags: input.dataQualityFlags,\n    runtimeProof,",
   },
   {
     name: "timeout race removal mutation",

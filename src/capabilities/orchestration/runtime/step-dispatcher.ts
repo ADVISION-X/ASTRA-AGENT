@@ -18,7 +18,6 @@ import {
   type StepDispatchResult,
 } from "./step-dispatch-shared.js";
 import { dispatchWithTimeout } from "./step-dispatch-timeout-gate.js";
-import { ensurePostActionVerificationDispatchGate } from "./orchestration-post-action-verification.js";
 
 function validateAbilityDispatch(input: AbilityDispatchInput): string | null {
   if (!input.step.targetAbilityGroupId || input.step.targetAbilityGroupId === "ai") {
@@ -28,15 +27,15 @@ function validateAbilityDispatch(input: AbilityDispatchInput): string | null {
   return null;
 }
 
-const PRODUCTION_POST_ACTION_VERIFICATION_GROUPS = new Set([
+const PRODUCTION_POST_CLICK_OBSERVATION_GROUPS = new Set([
   "open",
   "mouse-click",
   "mouse-scroll",
   "text-input",
 ]);
 
-function requiresProductionPostActionVerification(targetAbilityGroupId: string): boolean {
-  return PRODUCTION_POST_ACTION_VERIFICATION_GROUPS.has(targetAbilityGroupId);
+function allowsPostClickObservation(targetAbilityGroupId: string): boolean {
+  return PRODUCTION_POST_CLICK_OBSERVATION_GROUPS.has(targetAbilityGroupId);
 }
 
 async function sendAbilityDispatch(input: AbilityDispatchInput, targetAbilityGroupId: AbilityDispatchTarget) {
@@ -63,7 +62,7 @@ async function sendAbilityDispatch(input: AbilityDispatchInput, targetAbilityGro
       targetAbilityGroupId,
       childCapabilityId: input.step.childCapabilityId,
       expectedOutputSchemaRef: buildAbilityOutputSchemaRef(targetAbilityGroupId, input.step.childCapabilityId),
-      postActionVerificationRequired: requiresProductionPostActionVerification(targetAbilityGroupId),
+      postClickObservation: allowsPostClickObservation(targetAbilityGroupId),
       payloadRefs: input.state.payloadRefs,
       sequenceNo: input.sequenceNo,
       idempotencyKey: input.idempotencyKey,
@@ -78,11 +77,6 @@ async function dispatchAbilityStep(input: AbilityDispatchInput): Promise<StepDis
   if (failureReason) {
     return { dispatched: false, failureReason };
   }
-  const postActionVerificationReason = ensurePostActionVerificationDispatchGate(input.map, input.step.stepId);
-  if (postActionVerificationReason) {
-    return { dispatched: false, failureReason: postActionVerificationReason };
-  }
-
   const timeoutResult = await sendAbilityDispatch(input, input.step.targetAbilityGroupId as AbilityDispatchTarget);
   if (timeoutResult.timedOut) {
     return { dispatched: false, failureReason: `Ability dispatch timed out after ${resolveStepTimeoutMs(input.step)}ms for step "${input.step.stepId}".` };

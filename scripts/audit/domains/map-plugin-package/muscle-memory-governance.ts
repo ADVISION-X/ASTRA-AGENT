@@ -241,11 +241,11 @@ async function collectAdvanceNextItemRuntimeFindings(): Promise<Finding[]> {
   if (!routePlanRuntimeText.includes('"sourceAiResultRef"') || !routePlanRuntimeText.includes('"sourceTargetRef"')) {
     findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "click-next-video-arrow must preserve sourceAiResultRef and sourceTargetRef evidence chain."));
   }
-  if (!routePlanText.includes("requiresTargetCandidateRef: true") || !routePlanText.includes("requiresPostActionAiVerification: true")) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH, "Advance Next Item muscle must require a target candidate ref and post-action AI verification."));
+  if (!routePlanText.includes("requiresTargetCandidateRef: true") || !routePlanText.includes("postClickObservation: true")) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH, "Advance Next Item muscle must require a target candidate ref and mark post-click observation as a non-blocking quality signal."));
   }
-  if (!routePlanText.includes('fallbackPolicy: "fallback-only-with-ai-verification"')) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH, "Advance Next Item deterministic geometry fallback must be policy-marked fallback-only-with-ai-verification."));
+  if (!routePlanText.includes('fallbackPolicy: "fallback-only-with-post-click-observation"')) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH, "Advance Next Item deterministic geometry fallback must be policy-marked fallback-only-with-post-click-observation."));
   }
   if (routePlanTransitionsText.includes('fromStepId: "click-next-video-arrow",\n    onStatus: "success",\n    toStepId: "capture-video-viewport"')) {
     findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH, "click-next-video-arrow:success must not jump directly to capture-video-viewport; it must pass through next-item verification."));
@@ -257,7 +257,7 @@ async function collectAdvanceNextItemRuntimeFindings(): Promise<Finding[]> {
     findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Product-yes must be governed by the comments-entry AI candidate chain and bind vision.commentsEntryTargetCandidate.v1."));
   }
   if (!routePlanRuntimeText.includes('stepId: "verify-next-item-advanced"') || !routePlanRuntimeText.includes('toStepId: "verify-next-item-advanced"')) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Route Plan must include verify-next-item-advanced or an equivalent post-click verification step."));
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Route Plan must include verify-next-item-advanced so AI judges whether a new video is visible after click."));
   }
   if (!routePlanRuntimeText.includes('promptContractId: "vision.nextItemAdvanced.v1"')
     || !routePlanTransitionsText.includes("NEXT_ITEM_ADVANCED_ROUTE_LABEL")

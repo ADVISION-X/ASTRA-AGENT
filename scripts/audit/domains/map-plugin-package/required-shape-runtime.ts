@@ -23,7 +23,6 @@ const PHASE_05_REQUIRED_ABILITY_SURFACE = [
   "mouse-click",
   "text-input",
   "mouse-scroll",
-  "post-action-verification",
   "forensics-persistence",
 ] as const;
 const PHASE_05_REQUIRED_CONTROL_SURFACE = ["commander-console", "orchestration", "nerve-bus"] as const;

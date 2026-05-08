@@ -20,7 +20,7 @@ export type MouseScrollPrimitiveInput = {
   repeatTotal: number;
   targetLabel: string;
   timeoutMs: number;
-  postActionVerificationRequired: true;
+  postClickObservation: true;
   operatorApprovalRef: string | null;
   abortSignal?: AbortSignal;
 };

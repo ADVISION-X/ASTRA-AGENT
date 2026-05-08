@@ -34,8 +34,8 @@ const resolveReason = (value: JsonRecord, decision: "yes" | "no") => {
     return value.reason;
   }
   return decision === "yes"
-    ? "visible post-action viewport evidence indicates the feed advanced to a new item"
-    : "visible post-action viewport evidence does not safely prove advancement to a new item";
+    ? "visible post-click viewport evidence indicates the feed advanced to a new item"
+    : "visible post-click viewport evidence does not safely prove advancement to a new item";
 };
 
 export function parseNextItemAdvancedRuntimeOutput(

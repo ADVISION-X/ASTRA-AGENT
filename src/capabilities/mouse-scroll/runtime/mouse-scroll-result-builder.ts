@@ -58,7 +58,7 @@ type BuildMouseScrollResultInput = {
   dataQualityFlags: string[];
 };
 
-const buildPostActionVerificationHandoffRef = (input: BuildMouseScrollResultInput) => {
+const buildPostClickObservationRef = (input: BuildMouseScrollResultInput) => {
   return input.status === "success" && input.scrollExecutionRef !== null
     ? buildStableMouseScrollRef("mouse-scroll-post-action-handoff", [input.scrollExecutionRef])
     : null;
@@ -66,7 +66,7 @@ const buildPostActionVerificationHandoffRef = (input: BuildMouseScrollResultInpu
 
 const buildMouseScrollOutput = (
   input: BuildMouseScrollResultInput,
-  postActionVerificationHandoffRef: string | null,
+  postClickObservationRef: string | null,
 ) => {
   return input.status === "success" && input.scrollExecutionRef !== null && input.executableAnchor !== null && input.executableDelta !== null
     ? {
@@ -78,8 +78,8 @@ const buildMouseScrollOutput = (
         direction: input.seed.direction,
         magnitude: input.seed.magnitude,
         repeat: input.seed.repeat,
-        postActionVerificationRequired: true as const,
-        postActionVerificationHandoffRef,
+        postClickObservation: true as const,
+        postClickObservationRef,
       }
     : null;
 };
@@ -122,7 +122,7 @@ const buildMouseScrollRuntimeProofSourceFields = (input: BuildMouseScrollResultI
 
 const buildMouseScrollRuntimeProofPrimitiveFields = (
   input: BuildMouseScrollResultInput,
-  postActionVerificationHandoffRef: string | null,
+  postClickObservationRef: string | null,
 ) => ({
   primitiveExecutionRefs: input.primitiveExecutionRefs,
   primitiveCallId: input.primitiveCallId,
@@ -135,8 +135,8 @@ const buildMouseScrollRuntimeProofPrimitiveFields = (
   timeoutDecision: input.timeoutDecision,
   abortDecision: input.abortDecision,
   circuitBreakerState: input.circuitBreakerState,
-  postActionVerificationRequired: input.status === "success",
-  postActionVerificationHandoffRef,
+  postClickObservation: input.status === "success",
+  postClickObservationRef,
   startedAt: input.startedAt,
   endedAt: input.endedAt,
   durationMs: input.durationMs,
@@ -160,11 +160,11 @@ const buildMouseScrollRuntimeProofDecisionFields = (input: BuildMouseScrollResul
 const buildMouseScrollRuntimeProofForResult = (
   input: BuildMouseScrollResultInput,
   outputRef: string,
-  postActionVerificationHandoffRef: string | null,
+  postClickObservationRef: string | null,
 ) => {
   return buildMouseScrollRuntimeProof({
     ...buildMouseScrollRuntimeProofSourceFields(input, outputRef),
-    ...buildMouseScrollRuntimeProofPrimitiveFields(input, postActionVerificationHandoffRef),
+    ...buildMouseScrollRuntimeProofPrimitiveFields(input, postClickObservationRef),
     ...buildMouseScrollRuntimeProofDecisionFields(input),
   });
 };
@@ -194,9 +194,9 @@ const parseMouseScrollResult = (
 
 export function buildMouseScrollResult(input: BuildMouseScrollResultInput) {
   const outputRef = buildStableMouseScrollRef("mouse-scroll-output", [input.seed.attemptRef, input.status]);
-  const postActionVerificationHandoffRef = buildPostActionVerificationHandoffRef(input);
-  const output = buildMouseScrollOutput(input, postActionVerificationHandoffRef);
-  const runtimeProof = buildMouseScrollRuntimeProofForResult(input, outputRef, postActionVerificationHandoffRef);
+  const postClickObservationRef = buildPostClickObservationRef(input);
+  const output = buildMouseScrollOutput(input, postClickObservationRef);
+  const runtimeProof = buildMouseScrollRuntimeProofForResult(input, outputRef, postClickObservationRef);
 
   return parseMouseScrollResult(input, output, runtimeProof);
 }

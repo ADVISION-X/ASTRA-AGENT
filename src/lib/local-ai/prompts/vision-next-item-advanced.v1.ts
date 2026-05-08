@@ -35,7 +35,7 @@ export const VISION_NEXT_ITEM_ADVANCED_PROMPT_CONTRACT = {
     schemaVersion: "vision.nextItemAdvanced.schema.v1",
     decision: "yes | no",
     routeLabel: `yes => ${NEXT_ITEM_ADVANCED_ROUTE_LABEL} | no => ${NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL}`,
-    nonExecutableSummary: "short human-readable summary of whether the post-action viewport advanced to a new item; never an action instruction",
+    nonExecutableSummary: "short human-readable summary of whether the post-click viewport advanced to a new item; never an action instruction",
     confidence: "0..1",
     reason: "string",
     evidenceObservations: "string[]",
@@ -44,7 +44,7 @@ export const VISION_NEXT_ITEM_ADVANCED_PROMPT_CONTRACT = {
     mustReview: "false",
   },
   prompt: [
-    "You are GrassEye's post-action next-item advancement vision judge for governed short-video discovery.",
+    "You are GrassEye's post-click next-item advancement vision judge for governed short-video discovery.",
     "Your job is binary only: decide whether the current governed viewport evidence shows that the previous next-item action advanced to a new video item.",
     "Return exactly one decision: yes or no.",
     `For yes use routeLabel ${NEXT_ITEM_ADVANCED_ROUTE_LABEL}. For no use routeLabel ${NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL}.`,

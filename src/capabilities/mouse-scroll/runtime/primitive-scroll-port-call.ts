@@ -27,7 +27,7 @@ export async function runPrimitivePortCall(input: {
     repeatTotal: input.input.repeat,
     targetLabel: input.input.targetLabel,
     timeoutMs: input.input.timeoutMs,
-    postActionVerificationRequired: true,
+    postClickObservation: true,
     operatorApprovalRef: input.input.operatorApprovalRef,
     abortSignal: input.abortController.signal,
   });

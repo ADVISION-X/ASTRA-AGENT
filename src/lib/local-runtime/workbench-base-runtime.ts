@@ -27,7 +27,7 @@ export const createWorkbenchBaseRuntime = (
   const structuredLogBus = createStructuredLogRuntime();
   const persistence = createPersistenceRuntime(dataDir, structuredLogBus);
   const browser = createBrowserRuntime(normalizedOptions, dataDir);
-  const partialRuntime = { options: normalizedOptions, structuredLogBus, ...persistence, ...browser } as Omit<WorkbenchBaseRuntime, "aiAbilityGroup" | "openAbilityGroup" | "mouseClickAbilityGroup" | "textInputAbilityGroup" | "mouseScrollAbilityGroup" | "pageStateAbilityGroup" | "postActionVerificationAbilityGroup" | "screenshotAbilityGroup" | "visualTargetAbilityGroup" | "geometryGuardAbilityGroup">;
+  const partialRuntime = { options: normalizedOptions, structuredLogBus, ...persistence, ...browser } as Omit<WorkbenchBaseRuntime, "aiAbilityGroup" | "openAbilityGroup" | "mouseClickAbilityGroup" | "textInputAbilityGroup" | "mouseScrollAbilityGroup" | "pageStateAbilityGroup" | "screenshotAbilityGroup" | "visualTargetAbilityGroup" | "geometryGuardAbilityGroup">;
   const actions = {
     ...createMouseClickRuntime(partialRuntime),
     ...createTextInputRuntime(partialRuntime),

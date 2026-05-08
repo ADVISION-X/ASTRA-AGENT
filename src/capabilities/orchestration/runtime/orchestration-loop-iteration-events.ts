@@ -4,7 +4,6 @@ import {
   buildStepDispatchFailureEvent,
   collectLastResultRefs,
   getTerminalEventType,
-  resolveActionRef,
 } from "./orchestration-loop-iteration-event-shared.js";
 import type {
   ActionLogRecord,
@@ -66,35 +65,12 @@ function buildStepResultEventDetails(lastResult: StepResultRecord, input: LoopIt
     capabilityCallId: input.stepDispatchCallId,
     outputRefs: [...collectLastResultRefs(lastResult), ...(lastResult.envelopeId ? [`resultEnvelopeRef=${lastResult.envelopeId}`] : [])],
     proofSummary: lastResult.branchFieldValues,
-    ownerResponsible: step.targetAbilityGroupId === "post-action-verification"
-      ? "Orchestration / Post-action Verification"
-      : `Orchestration / ${step.targetAbilityGroupId ?? "orchestration"}`,
-    postActionVerificationRef: actionLog?.postActionVerificationRef ?? null,
+    ownerResponsible: `Orchestration / ${step.targetAbilityGroupId ?? "orchestration"}`,
   };
 }
 
-async function recordPostActionVerificationStarted(input: LoopIterationEventInput, step: OperationalStep): Promise<void> {
-  if (step.targetAbilityGroupId !== "post-action-verification") {
-    return;
-  }
-
-  await recordMissionRuntimeEvent({
-    context: input.context,
-    state: input.state,
-    mapRecord: input.mapRecord,
-    step,
-    eventType: "POST_ACTION_VERIFICATION_STARTED",
-    status: "started",
-    reason: `Dispatching post-action verification step "${step.stepId}" through governed transport.`,
-    actionableMessage: "Wait for the governed verification result before evaluating the next transition.",
-    ownerResponsible: "Orchestration / Post-action Verification",
-    capabilityCallId: input.stepDispatchCallId,
-    actionRef: resolveActionRef(input.state),
-  });
-}
-
 async function recordCapabilityCallStarted(input: LoopIterationEventInput, step: OperationalStep): Promise<void> {
-  if (!step.targetAbilityGroupId || step.targetAbilityGroupId === "post-action-verification") {
+  if (!step.targetAbilityGroupId) {
     return;
   }
 
@@ -126,7 +102,6 @@ export async function recordDispatchStarted(input: LoopIterationEventInput, step
     capabilityCallId: input.stepDispatchCallId,
   });
   await recordCapabilityCallStarted(input, step);
-  await recordPostActionVerificationStarted(input, step);
 }
 
 export async function recordStepDispatchFailure(
@@ -180,7 +155,6 @@ export async function recordStepResult(
     proofSummary: eventDetails.proofSummary,
     actionLogRefs: eventDetails.actionLogRefs,
     actionRef: eventDetails.actionRef,
-    postActionVerificationRef: eventDetails.postActionVerificationRef,
   });
 }
 

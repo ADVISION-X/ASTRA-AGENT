@@ -18,7 +18,6 @@ import {
 import { buildOpenAbilityInput } from "./workbench-open-dispatch-input.js";
 import { buildPageStateDispatchInput } from "./workbench-page-state-dispatch-input.js";
 import { recordPageStateProofSummary } from "./workbench-page-state-proof-summary-registry.js";
-import { buildPostActionVerificationInput } from "./workbench-post-action-dispatch-input.js";
 
 const throwIfAborted = (signal: AbortSignal) => {
   if (signal.aborted) {
@@ -68,8 +67,6 @@ const executeRuntimeAbilityCommand = async (
   inputPayload: NerveBusPayloadDocument,
 ): Promise<WorkbenchAbilityExecutionResult> => {
   switch (envelope.to) {
-    case "post-action-verification":
-      return runtime.postActionVerificationAbilityGroup.execute(await buildPostActionVerificationInput(runtime, envelope, inputPayload));
     case "forensics-persistence":
       switch (envelope.commandName) {
         case "write-structured-runtime-event":
@@ -97,7 +94,6 @@ const ABILITY_COMMAND_EXECUTORS = {
   "mouse-click": executePointerAbilityCommand,
   "text-input": executePointerAbilityCommand,
   "mouse-scroll": executePointerAbilityCommand,
-  "post-action-verification": executeRuntimeAbilityCommand,
   "forensics-persistence": executeRuntimeAbilityCommand,
   "page-state": executeRuntimeAbilityCommand,
 } as const;

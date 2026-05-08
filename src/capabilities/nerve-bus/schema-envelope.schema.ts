@@ -92,7 +92,7 @@ export const AbilityCommandEnvelopeSchema = NerveBusEnvelopeBaseCoreSchema.exten
   commandName: TargetChildCapabilityIdSchema,
   capabilityInputRef: InputRefSchema,
   expectedOutputSchemaRef: OutputSchemaRefSchema,
-  postActionVerificationRequired: z.boolean().default(false),
+  postClickObservation: z.boolean().default(false),
 }).strict().superRefine((value, context) => {
   validateNerveBusEnvelopeBase(value, context);
   if (value.to !== value.targetAbilityGroupId) {

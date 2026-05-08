@@ -47,7 +47,7 @@ export const NERVE_BUS_CHANNEL_REGISTRY = Object.freeze({
     childCapabilityId: "orchestration-to-ability",
     channelId: "orchestration-to-ability",
     allowedFrom: ["orchestration"],
-    allowedTo: ["open", "screenshot", "visual-target", "geometry-guard", "mouse-click", "text-input", "mouse-scroll", "post-action-verification", "forensics-persistence", "page-state"],
+    allowedTo: ["open", "screenshot", "visual-target", "geometry-guard", "mouse-click", "text-input", "mouse-scroll", "forensics-persistence", "page-state"],
     envelopeSchema: ORCHESTRATION_TO_ABILITY_CHILD.inputSchema,
     resultSchema: AbilityResultEnvelopeSchema,
     requiresPayloadRef: true,
@@ -62,7 +62,7 @@ export const NERVE_BUS_CHANNEL_REGISTRY = Object.freeze({
   "ability-to-orchestration": Object.freeze({
     childCapabilityId: "ability-to-orchestration",
     channelId: "ability-to-orchestration",
-    allowedFrom: ["open", "screenshot", "visual-target", "geometry-guard", "mouse-click", "text-input", "mouse-scroll", "post-action-verification", "forensics-persistence", "page-state"],
+    allowedFrom: ["open", "screenshot", "visual-target", "geometry-guard", "mouse-click", "text-input", "mouse-scroll", "forensics-persistence", "page-state"],
     allowedTo: ["orchestration"],
     envelopeSchema: ABILITY_TO_ORCHESTRATION_CHILD.inputSchema,
     resultSchema: AbilityResultEnvelopeSchema,

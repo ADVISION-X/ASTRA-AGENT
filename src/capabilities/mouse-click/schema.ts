@@ -172,7 +172,7 @@ const ClickDesktopCoordinateInputSchema = MouseClickBaseInputSchema.extend({
 }).strict();
 
 export const MOUSE_CLICK_SCHEMA_VALIDATION_MARKERS = [
-  "success proof requires post-action verification handoff",
+  "mouse click success is primitive execution proof only",
   "retryCount must stay 0 for every Mouse Click attempt",
   "maxRetry must stay 0 for every Mouse Click attempt",
   "failed and review_required require output=null",
@@ -265,8 +265,8 @@ const MouseClickRuntimeProofSchema = z.object({
   primitivePortKind: z.string().min(1),
   primitiveStartedAt: nullableString,
   primitiveEndedAt: nullableString,
-  postActionVerificationRequired: z.boolean(),
-  postActionVerificationHandoffRef: nullableString,
+  postClickObservation: z.boolean(),
+  postClickObservationRef: nullableString,
   verificationRefPolicy: z.literal(MOUSE_CLICK_VERIFICATION_REF_POLICY),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
@@ -286,8 +286,8 @@ const MouseClickSuccessOutputSchema = z.object({
   coordinateSpace: MouseClickCoordinateSpaceSchema,
   button: MouseClickButtonSchema,
   clickCount: MouseClickCountSchema,
-  postActionVerificationRequired: z.literal(true),
-  postActionVerificationHandoffRef: z.string().min(1),
+  postClickObservation: z.boolean(),
+  postClickObservationRef: nullableString,
 }).strict();
 
 const MouseClickBaseResultSchema = z.object({
@@ -322,7 +322,7 @@ const MouseClickBaseResultSchema = z.object({
   timeoutDecision: MouseClickTimeoutDecisionSchema,
   abortDecision: MouseClickAbortDecisionSchema,
   idempotencyDecision: MouseClickIdempotencyDecisionSchema.nullable().default(null),
-  postActionVerificationHandoffRef: nullableString,
+  postClickObservationRef: nullableString,
   dataQualityFlags: z.array(z.string().min(1)).default([]),
   runtimeProof: MouseClickRuntimeProofSchema,
 }).strict();

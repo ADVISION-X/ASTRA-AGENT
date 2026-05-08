@@ -223,7 +223,7 @@ function buildMouseScrollProofSummary(input: {
   const runtimeProof = input.result.runtimeProof;
   return {
     scrollExecutionRef: readString(output, "scrollExecutionRef") ?? readString(runtimeProof, "scrollExecutionRef"),
-    postActionVerificationHandoffRef: readString(output, "postActionVerificationHandoffRef") ?? readString(runtimeProof, "postActionVerificationHandoffRef"),
+    postClickObservationRef: readString(output, "postClickObservationRef") ?? readString(runtimeProof, "postClickObservationRef"),
     sourceEvidenceRef: readString(runtimeProof, "sourceEvidenceRef"),
     sourceTargetRef: readString(runtimeProof, "sourceTargetRef"),
     sourceCoordinateProofRef: readString(runtimeProof, "sourceCoordinateProofRef"),
@@ -330,7 +330,7 @@ function buildMouseClickProofSummary(input: {
   return {
     actionExecutionRef: readString(output, "actionExecutionRef") ?? readString(runtimeProof, "actionExecutionRef"),
     primitiveExecutionRef: readString(output, "primitiveExecutionRef") ?? readString(runtimeProof, "primitiveExecutionRef"),
-    postActionVerificationHandoffRef: readString(output, "postActionVerificationHandoffRef") ?? readString(runtimeProof, "postActionVerificationHandoffRef"),
+    postClickObservationRef: readString(output, "postClickObservationRef") ?? readString(runtimeProof, "postClickObservationRef"),
     sourceEvidenceRef: readString(runtimeProof, "sourceEvidenceRef"),
     sourceTargetRef: readString(runtimeProof, "sourceTargetRef"),
     sourceCoordinateProofRef: readString(runtimeProof, "sourceCoordinateProofRef"),

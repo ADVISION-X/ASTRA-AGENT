@@ -7,4 +7,4 @@ export {
   recordTerminalOutcome,
   recordTransitionEvaluation,
 } from "./orchestration-loop-iteration-events.js";
-export { recordPostActionVerificationActionLog } from "./orchestration-step-trace-recorder.js";
+export { recordActionObservationLog } from "./orchestration-step-trace-recorder.js";

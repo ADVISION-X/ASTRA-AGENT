@@ -14,7 +14,6 @@ const GOVERNED_ABILITY_GROUP_IDS = [
   "mouse-click",
   "text-input",
   "mouse-scroll",
-  "post-action-verification",
   "forensics-persistence",
   "page-state",
 ] as const;
@@ -27,7 +26,6 @@ const ABILITY_TARGET_IDS = [
   "mouse-click",
   "text-input",
   "mouse-scroll",
-  "post-action-verification",
   "forensics-persistence",
   "page-state",
 ] as const;

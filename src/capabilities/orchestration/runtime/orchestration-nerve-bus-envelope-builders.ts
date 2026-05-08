@@ -104,7 +104,7 @@ function buildAbilityEnvelopeFields(input: SendAbilityInput, capabilityCallId: s
     commandName: input.childCapabilityId,
     capabilityInputRef: inputRef,
     expectedOutputSchemaRef: input.expectedOutputSchemaRef,
-    postActionVerificationRequired: input.postActionVerificationRequired,
+    postClickObservation: input.postClickObservation,
   };
 }
 

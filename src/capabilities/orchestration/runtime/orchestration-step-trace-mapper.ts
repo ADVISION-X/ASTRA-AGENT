@@ -8,7 +8,6 @@ import type { OperationalStep } from "./step-dispatch-shared.js";
 const STEP_BY_STEP_ID: Record<string, RoundLifecycleStep> = {
   "normalize-comments-target": "open_comments",
   "click-comments-button": "open_comments",
-  "verify-comments-open": "open_comments",
   "capture-comments-panel": "screenshot_comments",
   "normalize-next-video-arrow": "click_next_video",
   "click-next-video-arrow": "click_next_video",
@@ -26,10 +25,6 @@ const STEP_BY_CHILD_CAPABILITY: Record<string, RoundLifecycleStep> = {
   "product-presence-judgment": "ask_ai_product_presence",
   "comment-intent-analysis": "summarize_comment_signals",
   "write-evidence-record": "create_pending_candidate",
-};
-
-const VERIFIED_ACTION_STEP_BY_CHILD_CAPABILITY: Record<string, RoundLifecycleStep> = {
-  "observe-comments-panel-open-attempt": "open_comments",
 };
 
 const FALLBACK_STEP_BY_KIND: Partial<Record<OperationalStep["stepKind"], RoundLifecycleStep>> = {
@@ -81,10 +76,6 @@ function resolveFallbackRuntimeStep(step: OperationalStep): RoundLifecycleStep {
     return stepKindFallback;
   }
 
-  if (step.targetAbilityGroupId === "post-action-verification") {
-    return VERIFIED_ACTION_STEP_BY_CHILD_CAPABILITY[step.childCapabilityId] ?? "task_start";
-  }
-
   return FALLBACK_STEP_BY_TARGET_ABILITY[step.targetAbilityGroupId ?? ""] ?? "task_start";
 }
 
@@ -94,14 +85,6 @@ export function resolveRuntimeStepForOperationalStep(step: OperationalStep): Rou
     ?? STEP_BY_CHILD_CAPABILITY[step.childCapabilityId]
     ?? resolveFallbackRuntimeStep(step)
   );
-}
-
-export function resolveVerifiedActionStep(step: OperationalStep): RoundLifecycleStep | null {
-  if (step.targetAbilityGroupId !== "post-action-verification") {
-    return null;
-  }
-
-  return VERIFIED_ACTION_STEP_BY_CHILD_CAPABILITY[step.childCapabilityId] ?? null;
 }
 
 export function resolveRuntimeActionPurpose(step: RoundLifecycleStep): EvidencePacketActionPurpose {

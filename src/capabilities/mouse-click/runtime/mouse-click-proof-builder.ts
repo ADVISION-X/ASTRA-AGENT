@@ -90,8 +90,8 @@ function buildProofPrimitive(input: Parameters<typeof buildMouseClickRuntimeProo
 
 function buildProofOutcome(input: Parameters<typeof buildMouseClickRuntimeProof>[0]) {
   return {
-    postActionVerificationRequired: input.postActionVerificationRequired,
-    postActionVerificationHandoffRef: input.postActionVerificationHandoffRef,
+    postClickObservation: input.postClickObservation,
+    postClickObservationRef: input.postClickObservationRef,
     verificationRefPolicy: MOUSE_CLICK_PROOF.VERIFICATION_REF_POLICY,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
@@ -170,8 +170,8 @@ export function buildMouseClickRuntimeProof(input: {
   primitivePortKind: string;
   primitiveStartedAt: string | null;
   primitiveEndedAt: string | null;
-  postActionVerificationRequired: boolean;
-  postActionVerificationHandoffRef: string | null;
+  postClickObservation: boolean;
+  postClickObservationRef: string | null;
   startedAt: string;
   endedAt: string;
   durationMs: number;

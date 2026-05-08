@@ -231,8 +231,8 @@ const MouseScrollRuntimeProofSchema = z.object({
   primitivePortKind: z.string().min(1),
   primitiveStartedAt: z.string().datetime().nullable().default(null),
   primitiveEndedAt: z.string().datetime().nullable().default(null),
-  postActionVerificationRequired: z.boolean(),
-  postActionVerificationHandoffRef: nullableString,
+  postClickObservation: z.boolean(),
+  postClickObservationRef: nullableString,
   verificationRefPolicy: z.literal(MOUSE_SCROLL_VERIFICATION_REF_POLICY),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
@@ -263,9 +263,6 @@ const MouseScrollRuntimeProofSchema = z.object({
     if (value.primitiveExecutionRefs.length === 0) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires primitiveExecutionRefs", path: ["primitiveExecutionRefs"] });
     }
-    if (!value.postActionVerificationRequired || value.postActionVerificationHandoffRef === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires post-action verification handoff", path: ["postActionVerificationHandoffRef"] });
-    }
   }
 });
 
@@ -278,8 +275,8 @@ const MouseScrollSuccessOutputSchema = z.object({
   direction: MouseScrollDirectionSchema,
   magnitude: MouseScrollMagnitudeSchema,
   repeat: positiveInt,
-  postActionVerificationRequired: z.literal(true),
-  postActionVerificationHandoffRef: z.string().min(1),
+  postClickObservation: z.boolean(),
+  postClickObservationRef: nullableString,
 }).strict();
 
 const MouseScrollBaseResultSchema = z.object({

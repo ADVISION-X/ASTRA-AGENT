@@ -28,8 +28,8 @@ export const MuscleSegmentSchema = z.object({
   aiRequired: z.boolean(),
   semanticOwner: z.enum(["ai", "none"]),
   requiresTargetCandidateRef: z.boolean().optional(),
-  requiresPostActionAiVerification: z.boolean().optional(),
-  fallbackPolicy: z.enum(["forbidden", "fallback-only-with-ai-verification"]).optional(),
+  postClickObservation: z.boolean().optional(),
+  fallbackPolicy: z.enum(["forbidden", "fallback-only-with-post-click-observation"]).optional(),
   description: z.string().min(1),
 }).strict().superRefine((value, context) => {
   const targetCandidateRefs = [
@@ -68,13 +68,6 @@ export const MuscleSegmentSchema = z.object({
         message: "Advance Next Item segments must require governed target candidate refs.",
       });
     }
-    if (value.requiresPostActionAiVerification !== true) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["requiresPostActionAiVerification"],
-        message: "Advance Next Item segments must require post-action AI verification.",
-      });
-    }
     if (!value.fallbackPolicy) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -83,11 +76,11 @@ export const MuscleSegmentSchema = z.object({
       });
     }
   }
-  if (value.fallbackPolicy === "fallback-only-with-ai-verification" && value.requiresPostActionAiVerification !== true) {
+  if (value.fallbackPolicy === "fallback-only-with-post-click-observation" && value.postClickObservation !== true) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["fallbackPolicy"],
-      message: "Fallback-only muscle segments must require post-action AI verification.",
+      message: "Fallback-only muscle segments must declare postClickObservation as a non-blocking quality signal.",
     });
   }
   if (value.requiresTargetCandidateRef === true && !targetCandidateRefs.some((ref) => value.consumesRefs.includes(ref))) {

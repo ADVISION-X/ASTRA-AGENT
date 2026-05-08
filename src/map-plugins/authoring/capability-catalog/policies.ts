@@ -76,7 +76,7 @@ const ABILITY_GROUP_POLICIES: Record<string, AbilityGroupPolicy> = {
     requiresPostActionVerification: true,
     requiresAutomationGate: false,
     sensitiveOperation: true,
-    forbiddenResponsibilities: ["invent geometry", "skip post-action verification", "read page state"],
+    forbiddenResponsibilities: ["invent geometry", "skip post-click observation", "read page state"],
   },
   "text-input": {
     supportedTargets: ["browser-input", "desktop-input"],

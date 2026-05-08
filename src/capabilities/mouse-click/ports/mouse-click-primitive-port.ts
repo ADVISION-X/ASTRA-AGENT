@@ -20,7 +20,7 @@ export type MouseClickPrimitiveInput = {
   clickCount: MouseClickCount;
   targetLabel: string;
   timeoutMs: number;
-  postActionVerificationRequired: true;
+  postClickObservation: true;
   operatorApprovalRef: string | null;
   abortSignal?: AbortSignal;
 };

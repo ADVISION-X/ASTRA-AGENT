@@ -615,7 +615,7 @@
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "invent geometry",
-        "skip post-action verification",
+        "skip post-click observation",
         "read page state"
       ]
     },
@@ -639,7 +639,7 @@
       "sensitiveOperation": true,
       "forbiddenResponsibilities": [
         "invent geometry",
-        "skip post-action verification",
+        "skip post-click observation",
         "read page state"
       ]
     },

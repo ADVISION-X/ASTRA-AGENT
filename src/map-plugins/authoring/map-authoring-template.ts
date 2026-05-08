@@ -116,7 +116,7 @@ function buildOutputRequirementLines(): string[] {
     "- If the governed catalogs do not support the requested flow, set needsCapabilityExpansion=true.",
     "- 自动化地图，严厉禁止加入任何人工审查的动作，必须自动化完成。",
     "- Automation maps must not include request-human-review, human-review, manual-review, operator-review, review_required terminal routing, or any step that waits for a person.",
-    "- Any step that sends, publishes, submits, deletes, buys, confirms, or otherwise mutates user data must be handled by automated policy gates, automated post-action verification, automated blocking, or automated failed termination; never by human review routing.",
+    "- Any step that sends, publishes, submits, deletes, buys, confirms, or otherwise mutates user data must be handled by automated policy gates, automated post-click observation, automated blocking, or automated failed termination; never by human review routing.",
     "- Any text-input send, publish, commit, submit, or confirm action must be automatically gated or blocked by governed policy; do not require explicit automated gate inside the automation map.",
     "- Do not emit fields named rawPrompt, systemPrompt, userPrompt, promptText, executablePromptLogic, handler, script, exec, import, require, or shell.",
     "- Use only capability, prompt-contract, and output-schema entries contained in this input package for map route construction.",

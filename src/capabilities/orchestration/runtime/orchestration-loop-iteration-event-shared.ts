@@ -17,7 +17,6 @@ type StepResultRecord = {
 type ActionLogRecord = {
   actionLogId: string;
   actionRef: string;
-  postActionVerificationRef: string;
 } | null;
 
 type RuntimeProofLike = {
@@ -115,14 +114,6 @@ function resolveActionRef(state: MissionState): string | null {
 }
 
 function buildStepDispatchFailureEvent(step: OperationalStep) {
-  if (step.targetAbilityGroupId === "post-action-verification") {
-    return {
-      eventType: "POST_ACTION_VERIFICATION_FAILED" as const,
-      ownerResponsible: "Orchestration / Post-action Verification",
-      reason: `Post-action verification step "${step.stepId}" failed before a governed result was returned.`,
-    };
-  }
-
   return {
     eventType: "CAPABILITY_CALL_FAILED" as const,
     ownerResponsible: `Orchestration / ${step.targetAbilityGroupId ?? "orchestration"}`,
@@ -131,14 +122,6 @@ function buildStepDispatchFailureEvent(step: OperationalStep) {
 }
 
 function buildCapabilityEventType(step: OperationalStep, status: StepResultRecord["status"]) {
-  if (step.targetAbilityGroupId === "post-action-verification") {
-    if (status === "review_required") {
-      return "POST_ACTION_VERIFICATION_REVIEW_REQUIRED" as const;
-    }
-
-    return status === "success" ? "POST_ACTION_VERIFICATION_PASSED" : "POST_ACTION_VERIFICATION_FAILED";
-  }
-
   if (status === "review_required") {
     return "CAPABILITY_CALL_REVIEW_REQUIRED" as const;
   }

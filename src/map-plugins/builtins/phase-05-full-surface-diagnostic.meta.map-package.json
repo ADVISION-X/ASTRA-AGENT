@@ -49,7 +49,7 @@
     "mapKind": "genericDiagnosticMap",
     "mapId": "phase05.full-surface.diagnostic.v1",
     "displayName": "Phase 05 Full Surface Diagnostic",
-    "humanGoal": "Exercise local-only diagnostics for map, command, orchestration, transport, AI, visual, geometry, click, text input, scroll, PAV, page state, screenshot, open, and Forensics proof surfaces.",
+    "humanGoal": "Exercise local-only diagnostics for map, command, orchestration, transport, AI, visual, geometry, click, text input, scroll, post-click observation, page state, screenshot, open, and Forensics proof surfaces.",
     "initialStepId": "open-local-workbench-diagnostic",
     "steps": [
       {
@@ -189,22 +189,6 @@
         "promptContractId": null
       },
       {
-        "stepId": "verify-click-noop",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "verify-action-result",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "post-action-verification",
-        "inputRefs": [
-          "abilityResultRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "abilityResultRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
         "stepId": "text-input-local-sandbox-dry-run",
         "capabilityId": "orchestration",
         "childCapabilityId": "type-text",
@@ -223,22 +207,6 @@
         "promptContractId": null
       },
       {
-        "stepId": "verify-text-input-dry-run",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "verify-action-result",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "post-action-verification",
-        "inputRefs": [
-          "abilityResultRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "abilityResultRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
         "stepId": "mouse-scroll-local-sandbox",
         "capabilityId": "orchestration",
         "childCapabilityId": "scroll-browser-viewport",
@@ -247,22 +215,6 @@
         "inputRefs": [
           "visualTargetRef",
           "geometryProofRef"
-        ],
-        "outputRefPolicy": {
-          "storeAs": [
-            "abilityResultRef"
-          ]
-        },
-        "promptContractId": null
-      },
-      {
-        "stepId": "verify-scroll-result",
-        "capabilityId": "orchestration",
-        "childCapabilityId": "observe-target-state-transition",
-        "stepKind": "ability",
-        "targetAbilityGroupId": "post-action-verification",
-        "inputRefs": [
-          "abilityResultRef"
         ],
         "outputRefPolicy": {
           "storeAs": [
@@ -358,13 +310,6 @@
         "transitionId": "mouse-click-local-sandbox-noop:success",
         "fromStepId": "mouse-click-local-sandbox-noop",
         "onStatus": "success",
-        "toStepId": "verify-click-noop",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-click-noop:success",
-        "fromStepId": "verify-click-noop",
-        "onStatus": "success",
         "toStepId": "text-input-local-sandbox-dry-run",
         "finalStatus": null
       },
@@ -372,26 +317,12 @@
         "transitionId": "text-input-local-sandbox-dry-run:success",
         "fromStepId": "text-input-local-sandbox-dry-run",
         "onStatus": "success",
-        "toStepId": "verify-text-input-dry-run",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-text-input-dry-run:success",
-        "fromStepId": "verify-text-input-dry-run",
-        "onStatus": "success",
         "toStepId": "mouse-scroll-local-sandbox",
         "finalStatus": null
       },
       {
         "transitionId": "mouse-scroll-local-sandbox:success",
         "fromStepId": "mouse-scroll-local-sandbox",
-        "onStatus": "success",
-        "toStepId": "verify-scroll-result",
-        "finalStatus": null
-      },
-      {
-        "transitionId": "verify-scroll-result:success",
-        "fromStepId": "verify-scroll-result",
         "onStatus": "success",
         "toStepId": "persist-diagnostic-evidence-record",
         "finalStatus": null
@@ -460,13 +391,6 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "verify-click-noop:failed",
-        "fromStepId": "verify-click-noop",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "text-input-local-sandbox-dry-run:failed",
         "fromStepId": "text-input-local-sandbox-dry-run",
         "onStatus": "failed",
@@ -474,22 +398,8 @@
         "finalStatus": "failed"
       },
       {
-        "transitionId": "verify-text-input-dry-run:failed",
-        "fromStepId": "verify-text-input-dry-run",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
         "transitionId": "mouse-scroll-local-sandbox:failed",
         "fromStepId": "mouse-scroll-local-sandbox",
-        "onStatus": "failed",
-        "toStepId": null,
-        "finalStatus": "failed"
-      },
-      {
-        "transitionId": "verify-scroll-result:failed",
-        "fromStepId": "verify-scroll-result",
         "onStatus": "failed",
         "toStepId": null,
         "finalStatus": "failed"
@@ -543,7 +453,6 @@
       "mouse-click",
       "text-input",
       "mouse-scroll",
-      "post-action-verification",
       "forensics-persistence"
     ],
     "requiredChildCapabilities": [
@@ -557,8 +466,6 @@
       "click-browser-coordinate",
       "type-text",
       "scroll-browser-viewport",
-      "verify-action-result",
-      "observe-target-state-transition",
       "write-evidence-record",
       "finalize-mission"
     ],
@@ -586,7 +493,6 @@
       "mouse-click",
       "text-input",
       "mouse-scroll",
-      "post-action-verification",
       "forensics-persistence"
     ],
     "requiresPromptRegistry": [

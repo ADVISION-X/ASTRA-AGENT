@@ -51,7 +51,7 @@ export interface OrchestrationNerveBusPort {
     targetAbilityGroupId: AbilityDispatchTarget;
     childCapabilityId: string;
     expectedOutputSchemaRef: string;
-    postActionVerificationRequired: boolean;
+    postClickObservation: boolean;
     payloadRefs: OrchestrationDispatchPayload;
     sequenceNo: number;
     idempotencyKey: string;

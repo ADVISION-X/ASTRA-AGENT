@@ -69,8 +69,8 @@ type BuildMouseScrollRuntimeProofInput = {
   timeoutDecision: string;
   abortDecision: string;
   circuitBreakerState: string;
-  postActionVerificationRequired: boolean;
-  postActionVerificationHandoffRef: string | null;
+  postClickObservation: boolean;
+  postClickObservationRef: string | null;
   startedAt: string;
   endedAt: string;
   durationMs: number;
@@ -145,8 +145,8 @@ const buildMouseScrollProofPrimitiveFields = (input: BuildMouseScrollRuntimeProo
   primitivePortKind: input.primitivePortKind,
   primitiveStartedAt: input.primitiveStartedAt,
   primitiveEndedAt: input.primitiveEndedAt,
-  postActionVerificationRequired: input.postActionVerificationRequired,
-  postActionVerificationHandoffRef: input.postActionVerificationHandoffRef,
+  postClickObservation: input.postClickObservation,
+  postClickObservationRef: input.postClickObservationRef,
   verificationRefPolicy: MOUSE_SCROLL_PROOF.VERIFICATION_REF_POLICY,
   startedAt: input.startedAt,
   endedAt: input.endedAt,

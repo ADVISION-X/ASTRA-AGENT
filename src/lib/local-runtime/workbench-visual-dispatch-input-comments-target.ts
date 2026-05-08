@@ -117,7 +117,7 @@ export const buildCommentsEntryVisualTargetCommand = (
   }
 
   const coordinateSpace = mapCoordinateSpace(screenshotHandoff.coordinateSpace);
-  const governedAiResultRef = aiTargetCandidateRef;
+  const governedAiResultRef = aiSummary.aiResultRef;
   const sourceProofRef = buildCompactRef("visual-target-source-proof", [governedAiResultRef, envelope.inputRef, "comments-entry"]);
   const aiInputArtifactRef = aiSummary.aiInputArtifactRef
     ?? payloadValueToString(payload.promptInputRef)

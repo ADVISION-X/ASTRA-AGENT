@@ -3,15 +3,7 @@ import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-stor
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import type { OperationalStep } from "./step-dispatch-shared.js";
 import {
-  resolveVerifiedActionStep,
-} from "./orchestration-step-trace-mapper.js";
-import {
-  buildStructuredActionLog,
-  buildStructuredActionLogWriteInput,
   buildStructuredRuntimeEvent,
-  resolveActionRef,
-  resolvePostActionVerificationRef,
-  type ActionLogInput,
   type RuntimeEventInput,
   type StepResultRecord,
 } from "./orchestration-step-trace-payloads.js";
@@ -19,7 +11,6 @@ import {
 type PersistedActionLogRecord = {
   actionLogId: string;
   actionRef: string;
-  postActionVerificationRef: string;
 };
 
 const RUNTIME_EVENT_WRITE_TIMEOUT_MS = 250;
@@ -152,37 +143,6 @@ export async function recordMissionRuntimeEvent(input: RuntimeEventInput): Promi
   });
 }
 
-export async function recordPostActionVerificationActionLog(input: ActionLogInput): Promise<PersistedActionLogRecord | null> {
-  const runtimeStep = resolveVerifiedActionStep(input.step);
-  if (!runtimeStep) {
-    return null;
-  }
-
-  const actionRef = resolveActionRef(input.state, input.stepResult);
-  const postActionVerificationRef = resolvePostActionVerificationRef(input.stepResult);
-  if (!actionRef || !postActionVerificationRef) {
-    return null;
-  }
-
-  const structuredActionLog = buildStructuredActionLog(input, runtimeStep);
-  const mapChain = resolveMapChain(input.state, input.mapRecord);
-  const result = await input.context.forensics.writeStructuredActionLog(
-    buildStructuredActionLogWriteInput({
-      actionRef,
-      postActionVerificationRef,
-      actionLogInput: input,
-      mapChain,
-      structuredActionLog,
-    }),
-  );
-
-  if (result.status === "failed") {
-    return null;
-  }
-
-  return {
-    actionLogId: structuredActionLog.actionLogId,
-    actionRef,
-    postActionVerificationRef,
-  };
+export async function recordActionObservationLog(): Promise<PersistedActionLogRecord | null> {
+  return null;
 }

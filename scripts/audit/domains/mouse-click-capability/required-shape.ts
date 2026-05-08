@@ -27,7 +27,7 @@ const REQUIRED_INPUT_BLOCK_SNIPPETS = [
   "activationSnapshotRef: z.string().min(1),\n  capabilityCallId: z.string().min(1),\n  nerveBusEnvelopeId: z.string().min(1),\n  requestedBy: z.string().min(1),",
   "inputRef: z.string().min(1),\n  sourceRef: z.string().min(1),\n  sourceCoordinateProofRef: z.string().min(1),",
 ] as const;
-const RESULT_BUILDER_HANDOFF_BLOCK = "idempotencyDecision: input.idempotencyDecision,\n    postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,\n    dataQualityFlags: input.dataQualityFlags,\n    runtimeProof,";
+const RESULT_BUILDER_HANDOFF_BLOCK = "idempotencyDecision: input.idempotencyDecision,\n    postClickObservationRef: verification.postClickObservationRef,\n    dataQualityFlags: input.dataQualityFlags,\n    runtimeProof,";
 
 function collectMissingRequiredFileFindings(filePaths: string[]): Finding[] {
   return filePaths.map((filePath) => createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2", file: filePath, line: 1, severity: "fatal", message: "Mouse Click required production file is missing." }));
@@ -78,8 +78,8 @@ function collectSchemaSnippetFindings(schemaText: string): Finding[] {
 
 function collectSchemaGuardFindings(schemaSource: ReturnType<typeof getSourceFile>, schemaText: string): Finding[] {
   const findings: Finding[] = [];
-  if (!schemaText.includes("success proof requires post-action verification handoff")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-008-V2", file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Mouse Click schema must block success without post-action verification handoff." }));
+  if (!schemaText.includes("mouse click success is primitive execution proof only")) {
+    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-008-V2", file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Mouse Click schema must keep success scoped to primitive execution proof only." }));
   }
   if (!schemaText.includes("retryCount must stay 0") || !schemaText.includes("maxRetry must stay 0")) {
     findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-007-V2", file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Mouse Click schema must hard-block retryCount/maxRetry drift." }));
@@ -136,7 +136,7 @@ function collectResultBuilderFindings(resultBuilderSource: ReturnType<typeof get
     findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve diagnosticPayloadRef for non-success outcomes." }));
   }
   if (!resultBuilderText.includes(RESULT_BUILDER_HANDOFF_BLOCK)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve the top-level postActionVerificationHandoffRef handoff block." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve the top-level postClickObservationRef quality-signal block." }));
   }
   return findings;
 }

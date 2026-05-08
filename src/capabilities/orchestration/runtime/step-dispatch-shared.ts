@@ -216,7 +216,6 @@ const PRODUCTION_STEP_TIMEOUT_MS_BY_ABILITY: Partial<Record<Exclude<OperationalS
   "mouse-click": 60_000,
   "mouse-scroll": 60_000,
   "text-input": 60_000,
-  "post-action-verification": 60_000,
   "page-state": 60_000,
   "forensics-persistence": 60_000,
 } as const;

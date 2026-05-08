@@ -232,7 +232,6 @@
       "visual-target",
       "geometry-guard",
       "mouse-click",
-      "post-action-verification",
       "forensics-persistence"
     ],
     "requiredChildCapabilities": [
@@ -244,7 +243,6 @@
       "observe-comments-button",
       "normalize-coordinate-geometry",
       "click-browser-coordinate",
-      "observe-comments-panel-open-attempt",
       "capture-region",
       "comment-intent-analysis",
       "write-evidence-record"
@@ -273,7 +271,6 @@
       "geometry-guard",
       "mouse-click",
       "mouse-scroll",
-      "post-action-verification",
       "forensics-persistence"
     ],
     "requiresPromptRegistry": [

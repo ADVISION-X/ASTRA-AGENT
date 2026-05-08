@@ -4,11 +4,11 @@ import { buildStableMouseClickRef } from "../shared/mouse-click-types.js";
 import { buildMouseClickRuntimeProof } from "./mouse-click-proof-builder.js";
 
 function buildVerificationState(input: Parameters<typeof buildMouseClickResult>[0]) {
-  const postActionVerificationRequired = input.status === "success";
-  const postActionVerificationHandoffRef = postActionVerificationRequired && input.actionExecutionRef && input.primitiveExecutionRef
-    ? buildStableMouseClickRef("mouse-click-post-action-verification", [input.actionExecutionRef, input.primitiveExecutionRef])
+  const postClickObservation = input.status === "success";
+  const postClickObservationRef = postClickObservation && input.actionExecutionRef && input.primitiveExecutionRef
+    ? buildStableMouseClickRef("mouse-click-post-click-observation", [input.actionExecutionRef, input.primitiveExecutionRef])
     : null;
-  return { postActionVerificationRequired, postActionVerificationHandoffRef };
+  return { postClickObservation, postClickObservationRef };
 }
 
 function buildSuccessOutput(input: Parameters<typeof buildMouseClickResult>[0], verification: ReturnType<typeof buildVerificationState>) {
@@ -21,8 +21,8 @@ function buildSuccessOutput(input: Parameters<typeof buildMouseClickResult>[0], 
         coordinateSpace: input.seed.coordinateSpace,
         button: input.seed.button,
         clickCount: input.seed.clickCount,
-        postActionVerificationRequired: true as const,
-        postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,
+        postClickObservation: true as const,
+        postClickObservationRef: verification.postClickObservationRef,
       }
     : null;
 }
@@ -74,8 +74,8 @@ function buildRuntimeProofOutcome(input: Parameters<typeof buildMouseClickResult
     primitivePortKind: input.primitivePortKind,
     primitiveStartedAt: input.primitiveStartedAt,
     primitiveEndedAt: input.primitiveEndedAt,
-    postActionVerificationRequired: verification.postActionVerificationRequired,
-    postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,
+    postClickObservation: verification.postClickObservation,
+    postClickObservationRef: verification.postClickObservationRef,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
     durationMs: input.durationMs,
@@ -159,7 +159,7 @@ export function buildMouseClickResult(input: {
     sourceVisualTargetResultRef: input.seed.sourceVisualTargetResultRef, geometryDecision: input.geometryDecision, safetyDecision: input.safetyDecision,
     primitiveDecision: input.primitiveDecision, timeoutDecision: input.timeoutDecision, abortDecision: input.abortDecision,
     idempotencyDecision: input.idempotencyDecision,
-    postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,
+    postClickObservationRef: verification.postClickObservationRef,
     dataQualityFlags: input.dataQualityFlags,
     runtimeProof,
   });

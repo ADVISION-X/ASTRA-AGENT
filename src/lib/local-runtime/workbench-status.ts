@@ -73,7 +73,6 @@ const CAPABILITY_ROSTER = [
   { abilityGroupId: "mouse-click", displayName: "Mouse Click", currentStrength: "governed", purpose: "Governed click execution" },
   { abilityGroupId: "text-input", displayName: "Text Input", currentStrength: "governed", purpose: "Governed approved-text writing" },
   { abilityGroupId: "mouse-scroll", displayName: "Mouse Scroll", currentStrength: "governed", purpose: "Governed scroll execution" },
-  { abilityGroupId: "post-action-verification", displayName: "Post-action Verification", currentStrength: "governed", purpose: "Action-result verification after platform operations" },
   { abilityGroupId: "forensics-persistence", displayName: "Forensics Persistence", currentStrength: "governed", purpose: "Evidence, ledger, and runtime proof persistence" },
   { abilityGroupId: "page-state", displayName: "Page State", currentStrength: "governed", purpose: "Page readiness and safety-state truth" },
 ] as const;

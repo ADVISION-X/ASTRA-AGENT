@@ -155,7 +155,6 @@ export type WorkbenchBaseRuntime = {
   textInputAbilityGroup: WorkbenchExecuteAbilityGroup;
   mouseScrollAbilityGroup: WorkbenchExecuteAbilityGroup;
   pageStateAbilityGroup: WorkbenchExecuteAbilityGroup;
-  postActionVerificationAbilityGroup: WorkbenchExecuteAbilityGroup;
   screenshotAbilityGroup: WorkbenchExecuteAbilityGroup;
   visualTargetAbilityGroup: WorkbenchExecuteAbilityGroup;
   geometryGuardAbilityGroup: WorkbenchExecuteAbilityGroup;

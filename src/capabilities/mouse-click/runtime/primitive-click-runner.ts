@@ -57,7 +57,7 @@ const runPrimitivePortCall = async (
       clickCount: input.clickCount,
       targetLabel: input.targetLabel,
       timeoutMs: input.timeoutMs,
-      postActionVerificationRequired: true,
+      postClickObservation: true,
       operatorApprovalRef: input.operatorApprovalRef,
       abortSignal: abortController.signal,
     }),
