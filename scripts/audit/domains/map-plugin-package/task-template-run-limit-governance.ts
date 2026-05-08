@@ -14,6 +14,7 @@ const FORBIDDEN_SOURCE_FILES = [
   "src/map-plugins/registry/active-map-registry.ts",
   "src/map-plugins/authoring/map-authoring-ai-output.schema.ts",
   "src/map-plugins/authoring/map-authoring-draft-normalizer.ts",
+  "src/capabilities/ai/shared/ai-map-authoring-fallback.ts",
 ] as const;
 
 function getTaskTemplateRecord(raw: unknown): Record<string, unknown> | null {
