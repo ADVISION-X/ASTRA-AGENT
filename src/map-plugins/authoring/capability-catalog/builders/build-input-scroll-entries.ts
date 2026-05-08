@@ -10,6 +10,14 @@ const buildTextInputEntries = (): CapabilityCatalogEntry[] =>
       abilityGroupId: "text-input",
       childCapabilityId,
       description: `Execute governed text-input behavior for ${humanize(childCapabilityId)}.`,
+      ...(childCapabilityId === "press-navigation-key"
+        ? {
+          metadata: {
+            targetKind: "feed_surface",
+            requiresGeometryProof: false,
+          },
+        }
+        : {}),
     }),
   );
 

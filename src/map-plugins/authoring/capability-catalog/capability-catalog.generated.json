@@ -1372,6 +1372,30 @@
     },
     {
       "abilityGroupId": "text-input",
+      "childCapabilityId": "press-navigation-key",
+      "description": "Execute governed text-input behavior for press navigation key.",
+      "inputSchemaRef": "text-input.press-navigation-key.input",
+      "outputSchemaRef": "text-input.press-navigation-key.output",
+      "platformId": null,
+      "targetKind": "feed_surface",
+      "supportedTargets": [
+        "browser-input",
+        "desktop-input"
+      ],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": true,
+      "requiresAutomationGate": true,
+      "sensitiveOperation": true,
+      "forbiddenResponsibilities": [
+        "invent credentials",
+        "click targets",
+        "decide map branching"
+      ]
+    },
+    {
+      "abilityGroupId": "text-input",
       "childCapabilityId": "replace-input",
       "description": "Execute governed text-input behavior for replace input.",
       "inputSchemaRef": "text-input.replace-input.input",

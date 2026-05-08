@@ -1,5 +1,6 @@
 import type { VisualTargetAbilityResult } from "../contract.js";
 import * as executionGates from "./visual-target-execution-gates.js";
+import { validateCandidateConfidence, validateCandidateStructure } from "./candidate-readiness-gate.js";
 import * as selectionGates from "./visual-target-selection-gates.js";
 import {
   addDataQualityFlags,
@@ -155,8 +156,45 @@ function runTargetTypeStage(state: VisualTargetExecutionState): VisualTargetAbil
 }
 
 function runSelectionStage(state: VisualTargetExecutionState): VisualTargetAbilityResult | null {
-  const selectionGate = selectionGates.selectTargetCandidate({
+  const structureGate = validateCandidateStructure({
     candidates: state.targetTypeCandidates,
+    profile: state.profile,
+  });
+  addDataQualityFlags(state.dataQualityFlags, structureGate.dataQualityFlags);
+  addRejectedCandidateRefs(state.rejectedCandidateRefs, structureGate.rejectedCandidateRefs);
+  if (!structureGate.ok) {
+    state.decisions.selectionDecision = structureGate.status === "review_required" ? "review_required" : "no_candidate";
+    return finalizeVisualTargetExecution({
+      state,
+      output: null,
+      status: structureGate.status,
+      failureReason: structureGate.failureReason,
+      reviewRequiredReason: structureGate.reviewRequiredReason,
+      statusMessage: structureGate.statusMessage,
+    });
+  }
+
+  const confidenceGate = validateCandidateConfidence({
+    candidates: structureGate.candidates,
+    profile: state.profile,
+  });
+  addDataQualityFlags(state.dataQualityFlags, confidenceGate.dataQualityFlags);
+  addRejectedCandidateRefs(state.rejectedCandidateRefs, confidenceGate.rejectedCandidateRefs);
+  if (!confidenceGate.ok) {
+    state.decisions.selectionDecision = "review_required";
+    return finalizeVisualTargetExecution({
+      state,
+      output: null,
+      status: confidenceGate.status,
+      failureReason: confidenceGate.failureReason,
+      reviewRequiredReason: confidenceGate.reviewRequiredReason,
+      statusMessage: confidenceGate.statusMessage,
+    });
+  }
+
+  const selectionGate = selectionGates.selectTargetCandidate({
+    candidates: confidenceGate.candidates,
+    profile: state.profile,
   });
   state.decisions.selectionDecision = selectionGate.decision;
   state.telemetry.candidateScoreTrace = selectionGate.candidateScoreTrace;

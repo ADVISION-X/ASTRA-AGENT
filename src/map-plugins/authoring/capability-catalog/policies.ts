@@ -13,6 +13,7 @@ type EntryMetadata = {
   platformId?: string;
   targetKind?: string;
   requiresPostOpenWindowHandoff?: boolean;
+  requiresGeometryProof?: boolean;
   forbiddenResponsibilities?: string[];
 };
 type BuildEntryInput = {
@@ -144,9 +145,9 @@ const buildTargetMetadata = (
   forbiddenResponsibilities: metadata?.forbiddenResponsibilities ?? policy.forbiddenResponsibilities,
 });
 
-const buildPolicyFlags = (policy: AbilityGroupPolicy) => ({
+const buildPolicyFlags = (policy: AbilityGroupPolicy, metadata?: EntryMetadata) => ({
   routableByMap: policy.routableByMap,
-  requiresGeometryProof: policy.requiresGeometryProof,
+  requiresGeometryProof: metadata?.requiresGeometryProof ?? policy.requiresGeometryProof,
   requiresPostActionVerification: policy.requiresPostActionVerification,
   requiresAutomationGate: policy.requiresAutomationGate,
   sensitiveOperation: policy.sensitiveOperation,
@@ -173,7 +174,7 @@ const createCapabilityCatalogEntry = (input: {
   description: input.description,
   ...buildSchemaRefs(input.abilityGroupId, input.childCapabilityId),
   ...buildTargetMetadata(input.policy, input.supportedTargets, input.metadata),
-  ...buildPolicyFlags(input.policy),
+  ...buildPolicyFlags(input.policy, input.metadata),
 });
 
 export const buildEntry = (input: BuildEntryInput): CapabilityCatalogEntry =>

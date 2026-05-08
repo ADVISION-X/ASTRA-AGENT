@@ -69,7 +69,7 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN: RoutePlan = RoutePlanSchema.parse({
       semanticOwner: "ai",
       requiresTargetCandidateRef: false,
       postClickObservation: true,
-      fallbackPolicy: "post-action-observation-required",
+      fallbackPolicy: "fallback-only-with-post-click-observation",
       description: "Use one governed navigation-key step to advance the feed mechanically, then keep post-action screenshot and AI verification as the only semantic truth for whether the next item really changed.",
     },
   ],

@@ -30,6 +30,8 @@ export type VisualTargetChildProfile = {
   targetType: VisualTargetType;
   targetNature: "action" | "region" | "metric";
   requireClickPoint: boolean;
+  minimumScore: number;
+  selectionWindow: number;
   allowOperatorManual: boolean;
   allowedPageStateChildCapabilityIds: readonly string[];
   allowedCandidateKinds: readonly VisualTargetCandidateKind[];
@@ -48,6 +50,12 @@ const DEFAULT_SOURCE_ABILITY_GROUPS = ["orchestration", "page-state", "mouse-scr
 const FEED_SURFACE_PAGE_STATE_CHILD_IDS = ["observe-feed-surface", "observe-video-surface"] as const;
 const COMMENT_PANEL_PAGE_STATE_CHILD_IDS = ["observe-comment-panel-surface"] as const;
 const MODAL_SURFACE_PAGE_STATE_CHILD_IDS = ["observe-modal-overlay-surface"] as const;
+const ACTION_MINIMUM_CONFIDENCE = 0.82;
+const REGION_MINIMUM_CONFIDENCE = 0.7;
+const METRIC_MINIMUM_CONFIDENCE = 0.65;
+const ACTION_SELECTION_MARGIN = 0.12;
+const REGION_SELECTION_MARGIN = 0.1;
+const METRIC_SELECTION_MARGIN = 0.08;
 
 export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId, VisualTargetChildProfile> = {
   "observe-like-button": {
@@ -55,6 +63,8 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     targetType: "like_button",
     targetNature: "action",
     requireClickPoint: true,
+    minimumScore: ACTION_MINIMUM_CONFIDENCE,
+    selectionWindow: ACTION_SELECTION_MARGIN,
     allowOperatorManual: false,
     allowedPageStateChildCapabilityIds: FEED_SURFACE_PAGE_STATE_CHILD_IDS,
     allowedCandidateKinds: ACTION_CANDIDATE_KINDS,
@@ -68,6 +78,8 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     targetType: "save_button",
     targetNature: "action",
     requireClickPoint: true,
+    minimumScore: ACTION_MINIMUM_CONFIDENCE,
+    selectionWindow: ACTION_SELECTION_MARGIN,
     allowOperatorManual: false,
     allowedPageStateChildCapabilityIds: FEED_SURFACE_PAGE_STATE_CHILD_IDS,
     allowedCandidateKinds: ACTION_CANDIDATE_KINDS,
@@ -81,6 +93,8 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     targetType: "comments_button",
     targetNature: "action",
     requireClickPoint: true,
+    minimumScore: ACTION_MINIMUM_CONFIDENCE,
+    selectionWindow: ACTION_SELECTION_MARGIN,
     allowOperatorManual: false,
     allowedPageStateChildCapabilityIds: FEED_SURFACE_PAGE_STATE_CHILD_IDS,
     allowedCandidateKinds: ACTION_CANDIDATE_KINDS,
@@ -94,6 +108,8 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     targetType: "next_item_target_candidate",
     targetNature: "action",
     requireClickPoint: true,
+    minimumScore: ACTION_MINIMUM_CONFIDENCE,
+    selectionWindow: ACTION_SELECTION_MARGIN,
     allowOperatorManual: false,
     allowedPageStateChildCapabilityIds: FEED_SURFACE_PAGE_STATE_CHILD_IDS,
     allowedCandidateKinds: ACTION_CANDIDATE_KINDS,
@@ -107,6 +123,8 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     targetType: "comments_panel",
     targetNature: "region",
     requireClickPoint: false,
+    minimumScore: REGION_MINIMUM_CONFIDENCE,
+    selectionWindow: REGION_SELECTION_MARGIN,
     allowOperatorManual: false,
     allowedPageStateChildCapabilityIds: COMMENT_PANEL_PAGE_STATE_CHILD_IDS,
     allowedCandidateKinds: ACTION_CANDIDATE_KINDS,
@@ -120,6 +138,8 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     targetType: "close_comments_button",
     targetNature: "action",
     requireClickPoint: true,
+    minimumScore: ACTION_MINIMUM_CONFIDENCE,
+    selectionWindow: ACTION_SELECTION_MARGIN,
     allowOperatorManual: false,
     allowedPageStateChildCapabilityIds: COMMENT_PANEL_PAGE_STATE_CHILD_IDS,
     allowedCandidateKinds: ACTION_CANDIDATE_KINDS,
@@ -133,6 +153,8 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     targetType: "not_interested_button",
     targetNature: "action",
     requireClickPoint: true,
+    minimumScore: ACTION_MINIMUM_CONFIDENCE,
+    selectionWindow: ACTION_SELECTION_MARGIN,
     allowOperatorManual: false,
     allowedPageStateChildCapabilityIds: [...FEED_SURFACE_PAGE_STATE_CHILD_IDS, ...MODAL_SURFACE_PAGE_STATE_CHILD_IDS],
     allowedCandidateKinds: ACTION_CANDIDATE_KINDS,
@@ -146,6 +168,8 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     targetType: "next_video_region",
     targetNature: "region",
     requireClickPoint: false,
+    minimumScore: REGION_MINIMUM_CONFIDENCE,
+    selectionWindow: REGION_SELECTION_MARGIN,
     allowOperatorManual: false,
     allowedPageStateChildCapabilityIds: FEED_SURFACE_PAGE_STATE_CHILD_IDS,
     allowedCandidateKinds: ACTION_CANDIDATE_KINDS,
@@ -159,6 +183,8 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     targetType: "metric_like_count",
     targetNature: "metric",
     requireClickPoint: false,
+    minimumScore: METRIC_MINIMUM_CONFIDENCE,
+    selectionWindow: METRIC_SELECTION_MARGIN,
     allowOperatorManual: false,
     allowedPageStateChildCapabilityIds: [...FEED_SURFACE_PAGE_STATE_CHILD_IDS, ...COMMENT_PANEL_PAGE_STATE_CHILD_IDS],
     allowedCandidateKinds: METRIC_CANDIDATE_KINDS,
@@ -172,6 +198,8 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     targetType: "metric_comment_count",
     targetNature: "metric",
     requireClickPoint: false,
+    minimumScore: METRIC_MINIMUM_CONFIDENCE,
+    selectionWindow: METRIC_SELECTION_MARGIN,
     allowOperatorManual: false,
     allowedPageStateChildCapabilityIds: [...FEED_SURFACE_PAGE_STATE_CHILD_IDS, ...COMMENT_PANEL_PAGE_STATE_CHILD_IDS],
     allowedCandidateKinds: METRIC_CANDIDATE_KINDS,

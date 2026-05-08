@@ -77,7 +77,10 @@ const buildProducedOutputRefs = (abilityGroupId: string): string[] => {
   return PRODUCED_OUTPUT_REFS_BY_ABILITY_GROUP[abilityGroupId] ?? ["runtimeProofRef"];
 };
 
-const buildRequiredInputRefs = (abilityGroupId: string): string[] => {
+const buildRequiredInputRefs = (abilityGroupId: string, childCapabilityId: string): string[] => {
+  if (abilityGroupId === "text-input" && childCapabilityId === "press-navigation-key") {
+    return ["targetProofRef", "focusProofRef"];
+  }
   return REQUIRED_INPUT_REFS_BY_ABILITY_GROUP[abilityGroupId] ?? [];
 };
 
@@ -107,6 +110,9 @@ const includeProofRequirements = (condition: boolean, refs: string[]): string[] 
 };
 
 const buildProofRequirements = (abilityGroupId: string, childCapabilityId: string): string[] => {
+  if (abilityGroupId === "text-input" && childCapabilityId === "press-navigation-key") {
+    return ["runtimeProofRef", "targetProofRef", "focusProofRef"];
+  }
   return [
     "runtimeProofRef",
     ...includeProofRequirements(GEOMETRY_PROOF_GROUPS.has(abilityGroupId), ["geometryProofRef"]),
@@ -133,12 +139,12 @@ const buildCapabilityChild = (
     description: entry.description,
     inputSchemaRef: entry.inputSchemaRef,
     outputSchemaRef: entry.outputSchemaRef,
-    requiredInputRefs: buildRequiredInputRefs(entry.abilityGroupId),
+    requiredInputRefs: buildRequiredInputRefs(entry.abilityGroupId, entry.childCapabilityId),
     producedOutputRefs: buildProducedOutputRefs(entry.abilityGroupId),
     requiresGeometryProof: entry.requiresGeometryProof,
     requiresTargetProof: entry.abilityGroupId === "mouse-click" || entry.abilityGroupId === "text-input",
     requiresFocusProof: entry.abilityGroupId === "text-input",
-    requiresApprovedText: entry.abilityGroupId === "text-input",
+    requiresApprovedText: entry.abilityGroupId === "text-input" && entry.childCapabilityId !== "press-navigation-key",
     requiresPostActionVerification: entry.requiresPostActionVerification,
     requiresAutomationGate: entry.requiresAutomationGate || ["submit", "delete", "purchase"].includes(sideEffectLevel),
     sensitiveOperation: entry.sensitiveOperation,

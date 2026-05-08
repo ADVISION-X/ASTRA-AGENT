@@ -91,10 +91,6 @@ const buildNavigationKeyPurpose = (
 };
 
 const buildNavigationKeyValue = (envelope: AbilityCommandEnvelope) => {
-  if (envelope.stepId === "press-previous-video-key") {
-    return "ArrowUp";
-  }
-
   return "ArrowDown";
 };
 

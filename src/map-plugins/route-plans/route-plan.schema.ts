@@ -61,11 +61,19 @@ export const MuscleSegmentSchema = z.object({
     });
   }
   if (value.coreMuscle === "advance-next-item") {
-    if (value.requiresTargetCandidateRef !== true) {
+    const usesNavigationKey = value.allowedAbilityGroups.includes("text-input");
+    if (!usesNavigationKey && value.requiresTargetCandidateRef !== true) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["requiresTargetCandidateRef"],
         message: "Advance Next Item segments must require governed target candidate refs.",
+      });
+    }
+    if (usesNavigationKey && value.requiresTargetCandidateRef !== false) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["requiresTargetCandidateRef"],
+        message: "Advance Next Item segments that use governed navigation-key input must explicitly disable target candidate refs.",
       });
     }
     if (!value.fallbackPolicy) {

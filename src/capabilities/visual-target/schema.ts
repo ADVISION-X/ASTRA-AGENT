@@ -361,7 +361,7 @@ const VisualTargetResultSchema = z.union([
 const VisualTargetCandidateScoreTraceSchema = z.object({
   candidateRef: limitedString(160),
   rawConfidence: confidenceNumber,
-  freshnessPenalty: z.number().min(0),
+  stalePenalty: z.number().min(0),
   dataQualityPenalty: z.number().min(0),
   sourcePenalty: z.number().min(0),
   finalScore: finiteNumber,

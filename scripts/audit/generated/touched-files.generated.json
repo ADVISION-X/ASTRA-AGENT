@@ -1,22 +1,28 @@
 {
-  "generatedAt": "2026-05-08T20:47:56.880Z",
+  "generatedAt": "2026-05-08T21:43:14.148Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/commander-console-capability/run-app-run-limit-settings-governance-checks.ts",
+    "scripts/audit/domains/map-plugin-package/muscle-memory-governance.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
-    "scripts/audit/generated/domain-summaries/page-state-capability.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
-    "src/capabilities/commander-console/shared/commander-schema-foundation.ts",
-    "src/lib/local-app-shell/app-run-limit-settings-client.ts",
-    "src/lib/local-app-shell/modules/RunLimitMiniForm.ts",
-    "src/lib/local-app-shell/modules/TaskTemplateLauncher.ts",
-    "src/lib/local-app-shell/modules/command/TaskTemplateLauncher.ts",
-    "src/lib/local-app-shell/pages/AiProviderSettingsPage.ts",
-    "src/lib/local-app-shell/view-model/policy-sections.ts"
+    "src/capabilities/visual-target/runtime/target-selection-gate.ts",
+    "src/capabilities/visual-target/runtime/target-type-policy-gate.ts",
+    "src/capabilities/visual-target/runtime/visual-target-execution-stage-runners.ts",
+    "src/capabilities/visual-target/runtime/visual-target-output-boundary-gate.ts",
+    "src/capabilities/visual-target/schema.ts",
+    "src/capabilities/visual-target/shared/visual-target-policy.ts",
+    "src/lib/browser/text-input-primitive-port.ts",
+    "src/lib/local-runtime/workbench-text-input-dispatch-input.ts",
+    "src/map-plugins/authoring/capability-catalog/builders/build-input-scroll-entries.ts",
+    "src/map-plugins/authoring/capability-catalog/capability-catalog.generated.json",
+    "src/map-plugins/authoring/capability-catalog/policies.ts",
+    "src/map-plugins/authoring/map-authoring-capability-catalog.ts",
+    "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
+    "src/map-plugins/route-plans/route-plan.schema.ts"
   ]
 }

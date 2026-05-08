@@ -1,4 +1,4 @@
-import type { ParsedVisualTargetAbilityInput, VisualTargetDataQualityFlag, VisualTargetFailureReason } from "../contract.js";
+import type { ParsedVisualTargetAbilityInput, VisualTargetDataQualityFlag } from "../contract.js";
 import type { VisualTargetResolvedCandidate } from "./visual-target-child-contract.js";
 import type { ResolvedVisualTargetProfile } from "./visual-target-input-gate.js";
 import {
@@ -39,47 +39,18 @@ function allowTargetTypeCandidate(
     dataQualityFlags.add("candidate_coordinate_non_executable");
     return false;
   }
-  if (input.profile.requireClickPoint && !candidate.executableClickPoint) {
-    rejectedCandidateRefs.push(candidate.candidateRef);
-    dataQualityFlags.add("candidate_missing_click_point");
-    return false;
-  }
-  if (!input.profile.requireClickPoint && candidate.executableClickPoint) {
-    rejectedCandidateRefs.push(candidate.candidateRef);
-    dataQualityFlags.add("candidate_click_point_forbidden");
-    return false;
-  }
   return true;
 }
 
 function createEmptyTargetTypeFailure(
   rejectedCandidateRefs: string[],
   dataQualityFlags: Set<VisualTargetDataQualityFlag>,
-): TargetTypeBlocked | TargetTypeReviewRequired {
-  const flags = collectVisualTargetFlags(dataQualityFlags);
-  const reviewRequired = dataQualityFlags.has("candidate_missing_click_point") || dataQualityFlags.has("candidate_click_point_forbidden");
-  const failureReason = dataQualityFlags.has("candidate_missing_click_point")
-    ? "click_point_missing"
-    : dataQualityFlags.has("candidate_click_point_forbidden")
-      ? "non_action_click_point_forbidden"
-      : "target_type_mismatch";
-
-  if (reviewRequired) {
-    return createVisualTargetGateReviewRequired({
-      decision: "review_required",
-      failureReason,
-      statusMessage: "Visual Target target-type policy rejected every candidate.",
-      reviewRequiredReason: "Visual Target requires review because candidate shape does not match target-type policy.",
-      dataQualityFlags: flags,
-      extra: { rejectedCandidateRefs },
-    });
-  }
-
+): TargetTypeBlocked {
   return createVisualTargetGateBlocked({
     decision: "block",
-    failureReason,
+    failureReason: "target_type_mismatch",
     statusMessage: "Visual Target target-type policy rejected every candidate.",
-    dataQualityFlags: flags,
+    dataQualityFlags: collectVisualTargetFlags(dataQualityFlags),
     extra: { rejectedCandidateRefs },
   });
 }
