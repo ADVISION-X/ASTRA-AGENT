@@ -472,10 +472,11 @@ const findBinaryProductPresenceContractViolations = (project: Project): Finding[
   if (!requestBuilderText.includes("taskType === PRODUCT_PRESENCE_TASK_TYPE")
     || !requestBuilderText.includes("minimumConfidence: null")
     || !requestBuilderText.includes("reviewOnLowConfidence: false")
-    || !requestBuilderText.includes("PRODUCT_PRESENCE_FRAME_COUNT")
-    || !requestBuilderText.includes("fixed_3_6")
+    || !requestBuilderText.includes("route_plan_or_ability_owned_sampling")
+    || requestBuilderText.includes("PRODUCT_PRESENCE_FRAME_COUNT")
+    || requestBuilderText.includes("promptInputRefFrame3s")
     || requestBuilderText.includes('isProductPresence ? "multi_image" : "single_frame_fallback"')) {
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: WORKBENCH_AI_REQUEST_BUILDER_PATH, line: 1, severity: "fatal", message: "Workbench product-presence AI request must disable low-confidence human handoff and preserve binary autonomous routing." }));
+    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: WORKBENCH_AI_REQUEST_BUILDER_PATH, line: 1, severity: "fatal", message: "Workbench product-presence AI request must disable low-confidence human handoff, preserve binary autonomous routing, and keep frame sampling ownership out of map-carried refs." }));
   }
   if (!governedTaskText.includes("vision.productPresence forbids governed heuristic execution") || governedTaskText.includes("resolveVisionDecision") || governedTaskText.includes("resolveVisionClassification") || governedTaskText.includes("single-frame fallback reduced trust")) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-002-V1", file: GOVERNED_TASK_EXECUTION_PATH, line: 1, severity: "fatal", message: "Product-presence cannot have governed heuristic fallback execution; only model-backed AI may decide product presence." }));

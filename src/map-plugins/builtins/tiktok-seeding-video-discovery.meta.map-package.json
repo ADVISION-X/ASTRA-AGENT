@@ -20,7 +20,7 @@
   "taskTemplate": {
     "taskTemplateId": "tiktok-seeding-video-discovery",
     "displayName": "TikTok 种草视频挖掘",
-    "description": "Open TikTok feed, judge product-seeding video evidence, capture visible comments, summarize comment intent, scroll to the next video, and persist governed evidence.",
+    "description": "Open TikTok feed, judge product-seeding video evidence, capture visible comments, summarize comment intent, continue discovery through the governed Route Plan, and persist governed evidence.",
     "recommended": true,
     "taskCategory": "product-discovery",
     "version": "1.0.0",
@@ -230,7 +230,6 @@
       "visual-target",
       "geometry-guard",
       "mouse-click",
-      "mouse-scroll",
       "post-action-verification",
       "forensics-persistence"
     ],
@@ -246,8 +245,6 @@
       "observe-comments-panel-open-attempt",
       "capture-region",
       "comment-intent-analysis",
-      "observe-next-video-region",
-      "scroll-browser-viewport",
       "write-evidence-record"
     ],
     "requiredPromptContracts": [

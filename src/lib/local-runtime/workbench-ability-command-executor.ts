@@ -20,7 +20,7 @@ const throwIfAborted = (signal: AbortSignal) => {
   }
 };
 
-const executeVisualAbilityCommand = (
+const executeVisualAbilityCommand = async (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
@@ -33,7 +33,7 @@ const executeVisualAbilityCommand = (
     case "visual-target":
       return runtime.visualTargetAbilityGroup.execute(buildVisualTargetCommand(envelope, inputPayload));
     case "geometry-guard":
-      return runtime.geometryGuardAbilityGroup.execute(buildGeometryGuardCommand(envelope, inputPayload));
+      return runtime.geometryGuardAbilityGroup.execute(await buildGeometryGuardCommand(runtime, envelope, inputPayload));
   }
 
   throw new Error(`Unsupported visual ability target: ${envelope.to}`);
@@ -46,7 +46,7 @@ const executePointerAbilityCommand = async (
 ): Promise<WorkbenchAbilityExecutionResult> => {
   switch (envelope.to) {
     case "mouse-click":
-      return runtime.mouseClickAbilityGroup.execute(buildMouseClickCommand(envelope, inputPayload));
+      return runtime.mouseClickAbilityGroup.execute(await buildMouseClickCommand(runtime, envelope, inputPayload));
     case "text-input":
       return runtime.textInputAbilityGroup.execute(buildTextInputCommand(envelope, inputPayload));
     case "mouse-scroll":

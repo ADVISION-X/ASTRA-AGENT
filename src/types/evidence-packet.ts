@@ -93,7 +93,7 @@ const RoundLifecycleStepSchema = z.enum([
   "finalize_failed_or_review_record",
   "decide_negative_action",
   "click_not_interested",
-  "scroll_next_video",
+  "click_next_video",
   "record_skip_reason",
   "record_round_complete",
   "review_required",

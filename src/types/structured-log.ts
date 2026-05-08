@@ -237,7 +237,7 @@ const LiveProofLogSequence = [
   "identify_current_video_completed",
   "screenshot_video_area_completed",
   "branch_decision_completed",
-  "scroll_next_video_completed",
+  "click_next_video_completed",
   "next_video_wait_started",
 ] as const;
 

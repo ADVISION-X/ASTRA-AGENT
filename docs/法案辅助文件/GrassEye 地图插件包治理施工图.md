@@ -40,7 +40,10 @@ map-plugins 是“路线图系统”。
 
 - 生产自动化地图必须是 `routePlanBoundMap`。
 - `routePlanBoundMap` 只能声明入口脊柱、AI 交付、Prompt Contract 引用、输入/输出 refs、`routePlanId`；入口脊柱允许一个 AI“准备工作”步骤与其 fail-closed 本地 transition。
+- Production `routePlanBoundMap` allowed entry spine: open target, capture startup viewport/evidence, prepare startup AI input, startup-preparation AI, product-judgment AI handoff, fail-closed transition, and `routePlanId`.
+- Production `routePlanBoundMap` forbidden internals: frame-specific capture steps, frame-specific prepare steps, frame-specific refs, comment chain, click chain, PAV chain, evidence persistence chain, and next-video advance chain.
 - Route Plan 是肌肉记忆唯一来源，独占 `routeLabel -> 步骤链 -> 能力组/子能力`。
+- 地图只负责把任务带到 AI 判断点；AI 输出受控 `routeLabel` 后，Route Plan 独占后续肌肉记忆与能力调度。
 - `genericDiagnosticMap` 只能用于隔离诊断，可以写诊断步骤和 transitions，但不得绑定 Route Plan，也不得进入生产自动化主链。
 - 地图禁止写任何约束逻辑、判断逻辑、超时策略、重试策略、证据保留策略、后动作验证策略、人工审核动作。
 - 一个地图 + 对应 Prompt Contract，才是完整地图。
@@ -301,6 +304,33 @@ routePlanId: required
 AI handoff step: promptContractId + inputRefs/outputRefPolicy only
 promptBindings: required
 ```
+
+Production `routePlanBoundMap` allowed entry spine:
+
+```yaml
+open target: allowed
+capture startup viewport/evidence: allowed
+prepare startup AI input: allowed
+startup-preparation AI: allowed
+product-judgment AI handoff: allowed
+fail-closed transition: allowed
+routePlanId: required
+```
+
+Production `routePlanBoundMap` forbidden internals:
+
+```yaml
+frame-specific capture steps: forbidden
+frame-specific prepare steps: forbidden
+frame-specific refs: forbidden
+comment chain: forbidden
+click chain: forbidden
+PAV chain: forbidden
+evidence persistence chain: forbidden
+next-video advance chain: forbidden
+```
+
+Operational Map Step Model 如果用于生产 map，只能表达入口交接，不得表达肌肉动作链。`genericDiagnosticMap` 可以诊断，但不得绑定 Route Plan，不得进入生产主链。
 
 Production `routePlanBoundMap` must not declare action, observation, review, branch, or finalization step chains; Route Plan is the only owner of `routeLabel -> step chain -> abilityGroup/childCapability`.
 

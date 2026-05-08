@@ -210,10 +210,10 @@ function shouldAdvanceMissionRound(input: {
 
   const returnedToInitialStep = input.nextStepId === input.initialStepId
     && input.currentStepId !== input.initialStepId;
-  const scrollNextVideoReturnedToCapture = input.currentStepId === "scroll-next-video"
+  const clickNextVideoReturnedToCapture = input.currentStepId === "click-next-video-arrow"
     && input.nextStepId === "capture-video-viewport";
 
-  return returnedToInitialStep || scrollNextVideoReturnedToCapture
+  return returnedToInitialStep || clickNextVideoReturnedToCapture
     ? input.currentRoundIndex + 1
     : input.currentRoundIndex;
 }

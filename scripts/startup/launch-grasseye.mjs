@@ -2,7 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assessDependencyState, installDependencies } from "./lib/dependency-check.mjs";
-import { probeCommanderConsolePage, waitForHealth } from "./lib/health-check.mjs";
+import { waitForCommanderConsolePage } from "./lib/health-check.mjs";
 import { ensureLocalAiRuntimeReady } from "./lib/local-ai-runtime-readiness.mjs";
 import { ensureMapPackageReadiness } from "./lib/map-package-readiness.mjs";
 import { openCommanderConsole } from "./lib/open-commander-console.mjs";
@@ -16,7 +16,6 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..",
 const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
 const port = Number(process.env.GRASSEYE_PORT ?? 4173);
 const baseUrl = `http://${host}:${port}`;
-const healthUrl = `${baseUrl}/api/runtime/health`;
 const terminalLogger = createTerminalStructuredLogger();
 const startupRunId = new Date().toISOString();
 const {
@@ -114,11 +113,10 @@ async function startService(root, localAiReadiness) {
 
 async function verifyAppHealth(serviceHandle) {
   const healthStart = Date.now();
-  logEvent("APP", "app_shell", "APP_SHELL_HEALTH_CHECK_STARTED", "started", `waiting for health at ${healthUrl}`);
-  const healthReport = await waitForHealth({ url: healthUrl, serviceProcess: serviceHandle.child });
-  const pageReport = await probeCommanderConsolePage({ url: baseUrl });
+  logEvent("APP", "app_shell", "APP_SHELL_HEALTH_CHECK_STARTED", "started", `probing Commander Console shell at ${baseUrl}`);
+  const pageReport = await waitForCommanderConsolePage({ url: baseUrl, serviceProcess: serviceHandle.child });
   logPass("APP", "app_shell", "APP_SHELL_HEALTH_PASSED", "passed", `Commander Console reachable at ${baseUrl}`, {
-    refs: [`components=${Array.isArray(healthReport.components) ? healthReport.components.length : 0}`, `contentType=${pageReport.contentType}`],
+    refs: [`shellTopology=${pageReport.shellTopology}`, `contentType=${pageReport.contentType}`],
     durationMs: Date.now() - healthStart,
   });
 }

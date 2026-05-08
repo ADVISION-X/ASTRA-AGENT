@@ -33,7 +33,7 @@ GrassEye must expose one canonical startup script and one user-facing startup co
 Required direction:
 - scripts/startup/launch-grasseye.mjs is the canonical startup entrypoint.
 - package.json exposes exactly one user-facing startup command: grasseye:start.
-- startup may check dependencies, clear startup ports, start the local app service, wait for health, open Commander Console, and supervise child-process shutdown.
+- startup may check dependencies, clear startup ports, start the local app service, probe the Commander Console shell, open Commander Console, and supervise child-process shutdown.
 - startup must surface clear failureReason when bootstrap fails.
 
 ### 禁止
@@ -62,7 +62,7 @@ summary: Startup opens Commander Console but does not own Commander Console trut
 
 ### 法条
 
-Startup may open the Commander Console URL after health passes, but Commander Console remains the only owner of human command entry and console read models.
+Startup may open the Commander Console URL after the Commander Console shell probe passes, but Commander Console remains the only owner of human command entry and console read models.
 
 Required direction:
 - startup may open only the Commander Console local URL.
@@ -185,7 +185,7 @@ Required direction:
 	- LOCAL_AI_MODEL_UNHEALTHY
 	- LOCAL_AI_READINESS_TIMEOUT
 	- UPDATE_PREFLIGHT_FAILED
-- Commander Console may open only after App Shell health passes.
+- Commander Console may open only after the Commander Console shell probe passes.
 - mission runtime must remain unavailable when local AI readiness fails.
 - startup terminal structured logs must include phase, component, eventType, status, message, refs, durationMs, and failureReason.
 - startup must not invoke AI business inference, AI judgement, mission flow, or fake/mock/heuristic AI fallback as success.

@@ -34,11 +34,7 @@ const STARTUP_PREPARATION_PROMPT_CONTRACT_ID = "vision.pagePreparation.v1";
 const isStartupPreparationTransitionId = (transitionId: string): boolean =>
   STARTUP_PREPARATION_ROUTE_LABELS.some((routeLabel) => transitionId.endsWith(`:${routeLabel}`));
 
-const ALLOWED_ROUTE_PLAN_TRANSITION_OVERRIDES = new Set([
-  "judge-seeding-video:read-comments-and-save-evidence",
-  "judge-seeding-video:skip-current-video",
-  "scroll-next-video:success",
-]);
+const ALLOWED_ROUTE_PLAN_TRANSITION_OVERRIDES = new Set<string>();
 
 const isAllowedRoutePlanTransitionOverride = (transition: TransitionValue): boolean =>
   ALLOWED_ROUTE_PLAN_TRANSITION_OVERRIDES.has(transition.transitionId);

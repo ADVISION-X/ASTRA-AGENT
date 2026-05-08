@@ -59,7 +59,7 @@
 漂移信号：
 
 - 重新把第一问默认输入退回单帧 opening screenshot。
-- 为了表面命名统一，把首帧改成 `capture-video-frame-3s` / `prepare-ai-input-frame-3s`，从而打断 `scroll-next-video:success -> capture-video-viewport` 的 Route Plan 回环。
+- 为了表面命名统一，把首帧改成 `capture-video-frame-3s` / `prepare-ai-input-frame-3s`，从而打断 `click-next-video-arrow:success -> capture-video-viewport` 的 Route Plan 回环。
 - product_presence_judgment 出现 single_frame_fallback。
 - 三次独立 AI 调用冒充一个 multi-frame 任务。
 - fake frame、伪造 validFrameCount 或隐藏 fallbackReason。

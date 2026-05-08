@@ -56,7 +56,7 @@ Startup Entrypoint 不是：
 7. 执行 local AI health probe 与 ai_capability_readiness_gate。
 8. 检查并清理 canonical localhost 端口。
 9. 启动本地应用服务进程。
-10. 等待健康接口 PASS。
+10. 等待 Commander Console shell probe PASS。
 11. 打开 Commander Console 本地 URL。
 12. 标记 mission runtime available。
 13. 启动终端结构化日志转播并进入等待人工命令状态。
@@ -77,7 +77,7 @@ grasseye:start
 → local_ai_runtime_presence_check
 → ai_capability_readiness_gate
 → app_server start
-→ app_shell health
+→ Commander Console shell probe
 ```
 
 ### 禁止链路
@@ -86,7 +86,7 @@ grasseye:start
 update_preflight_check passed
 → app_server start
 → readBuiltin throws raw ZodError
-→ app shell health fails without packageFile / ownerResponsible / actionableMessage
+→ Commander Console shell probe之前才暴露 map package readiness 失败
 ```
 
 ### readiness 输出必备字段
@@ -127,7 +127,7 @@ remove ownerResponsible/actionableMessage from startup map package readiness pat
 
 ### READY 标准
 
-Startup READY 只有在 map package readiness gate、local AI gate、app shell health 都通过后才能输出 mission_runtime_available。
+Startup READY 只有在 map package readiness gate、local AI gate、Commander Console shell probe 都通过后才能输出 mission_runtime_available。
 
 ### hard failure bundle
 

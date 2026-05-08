@@ -135,27 +135,27 @@ const assertPlatformBinding = (platformTarget, browserSession, browseRuntimeSnap
 
 const assertScrollRuntimeProof = (structuredActionLogs, structuredRuntimeEvents) => {
   const hasFinalizeStep = structuredActionLogs.some((entry) => ["finalize_browse_ledger", "finalize_evidence_packet", "finalize_failed_or_review_record"].includes(entry.step));
-  const scrollRuntimeEvents = structuredRuntimeEvents.filter((entry) => entry.step === "scroll_next_video");
-  assert(scrollRuntimeEvents.length > 0, "structured runtime proof must include scroll_next_video runtime events");
+  const scrollRuntimeEvents = structuredRuntimeEvents.filter((entry) => entry.step === "click_next_video");
+  assert(scrollRuntimeEvents.length > 0, "structured runtime proof must include click_next_video runtime events");
 
   const successfulScrollEvents = scrollRuntimeEvents.filter((entry) => entry.status === "success" && entry.videoVisitId);
   if (successfulScrollEvents.length === 0) {
     const guardedScrollFailure = scrollRuntimeEvents.some((entry) => entry.status === "review_required" || entry.status === "failed" || entry.eventType === "step_timeout");
     assert(hasFinalizeStep || guardedScrollFailure, "browse live proof must either finalize the round or stop through a governed review_required/failed scroll runtime event");
-    assert(guardedScrollFailure, "scroll_next_video must either succeed or terminate through a governed failed/review_required runtime event");
+    assert(guardedScrollFailure, "click_next_video must either succeed or terminate through a governed failed/review_required runtime event");
     return;
   }
 
   assert(hasFinalizeStep, "structured proof log must include a finalize step after a settled round");
-  const scrollIndexes = structuredActionLogs.map((entry, index) => (entry.step === "scroll_next_video" ? index : -1)).filter((index) => index >= 0);
-  assert(scrollIndexes.length > 0, "structured proof log must include scroll_next_video after a successful scroll");
+  const scrollIndexes = structuredActionLogs.map((entry, index) => (entry.step === "click_next_video" ? index : -1)).filter((index) => index >= 0);
+  assert(scrollIndexes.length > 0, "structured proof log must include click_next_video after a successful next-video click");
   assert(
     scrollIndexes.some((scrollIndex) => structuredActionLogs.some((entry, index) => index > scrollIndex && entry.step === "wait_video_stable")),
-    "structured proof log must reach next wait_video_stable after scroll_next_video succeeds",
+    "structured proof log must reach next wait_video_stable after click_next_video succeeds",
   );
   assert(
     successfulScrollEvents.some((scrollEvent) => structuredRuntimeEvents.some((entry) => entry.createdAt > scrollEvent.createdAt && entry.step === "identify_current_video" && entry.status === "success" && entry.videoVisitId && entry.videoVisitId !== scrollEvent.videoVisitId)),
-    "structured runtime proof must identify a different videoVisitId after scroll_next_video succeeds",
+    "structured runtime proof must identify a different videoVisitId after click_next_video succeeds",
   );
 };
 

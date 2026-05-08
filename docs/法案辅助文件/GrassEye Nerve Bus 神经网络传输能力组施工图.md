@@ -144,7 +144,7 @@ tiktok-to-orchestration
 ability-to-ability
 ai-to-ability
 commander-to-ability
-scroll-next-video
+click-next-video-arrow
 product-video-detection
 capability-check.ts
 verify-*.ts as release gate

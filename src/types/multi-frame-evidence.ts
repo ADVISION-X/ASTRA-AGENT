@@ -13,6 +13,7 @@ const MultiFrameSamplingStrategySchema = z.enum([
   "fixed_3_6",
   "fixed_3_6_10",
   "adaptive_short_video",
+  "route_plan_or_ability_owned_sampling",
   "single_frame_fallback",
 ]);
 

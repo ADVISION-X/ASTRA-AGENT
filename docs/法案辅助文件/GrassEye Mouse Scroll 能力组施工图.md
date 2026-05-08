@@ -19,7 +19,7 @@ mustNotCreate:
   - geometry remap owner
   - post-action verification owner
   - final action-log owner
-  - scroll-next-video child
+  - next-video advance owner
   - scroll-until-found child
 ```
 
@@ -65,7 +65,7 @@ DOM/BOM 查询
 评论采集
 ```
 
-真实平台 `scroll-next-video` 的 primitive adapter 必须采用：
+真实平台的 next-video advance 不属于 Mouse Scroll；Mouse Scroll primitive adapter 只允许承接受控滚动，并采用：
 
 ```txt
 ACTION AND THEN observation handoff
@@ -418,7 +418,7 @@ repeat 每次 primitive 都必须有 perIterationPrimitiveProof
 ```txt
 隐藏循环直到找到某物
 scroll-until-found
-scroll-next-video 子能力
+next-video advance 子能力
 repeat 无上限
 默认猜 direction/magnitude
 fallback magnitude
@@ -775,7 +775,7 @@ have contract/schema/implementation
 ```txt
 scroll-one-page
 scroll-two-pages
-scroll-next-video
+next-video advance
 scroll-until-found
 vertical-wheel-scroll
 horizontal-wheel-scroll
@@ -955,7 +955,7 @@ Mouse Scroll imports BrowserController
 platform adapter directly scrolls browser
 retry/fallback appears
 scroll-until-found appears
-scroll-next-video appears as child
+next-video advance appears as Mouse Scroll child
 verify script becomes release gate
 ```
 

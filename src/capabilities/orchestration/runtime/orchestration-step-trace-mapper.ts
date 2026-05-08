@@ -10,9 +10,8 @@ const STEP_BY_STEP_ID: Record<string, RoundLifecycleStep> = {
   "click-comments-button": "open_comments",
   "verify-comments-open": "open_comments",
   "capture-comments-panel": "screenshot_comments",
-  "observe-next-video-region": "scroll_next_video",
-  "normalize-next-video-region": "scroll_next_video",
-  "scroll-next-video": "scroll_next_video",
+  "normalize-next-video-arrow": "click_next_video",
+  "click-next-video-arrow": "click_next_video",
   "persist-seeding-candidate-record": "create_pending_candidate",
 };
 
@@ -69,7 +68,7 @@ const ACTION_PURPOSE_BY_STEP: Record<RoundLifecycleStep, EvidencePacketActionPur
   finalize_failed_or_review_record: "finalize_failed_or_review_record",
   decide_negative_action: "reduce_non_product_recommendations",
   click_not_interested: "reduce_non_product_recommendations",
-  scroll_next_video: "continue_discovery",
+  click_next_video: "continue_discovery",
   record_skip_reason: "runtime_support",
   record_round_complete: "runtime_support",
   review_required: "finalize_failed_or_review_record",

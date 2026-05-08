@@ -108,33 +108,30 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
 
   const routePlan = findRoutePlanById(record.mapPackage.operationalMap.routePlanId);
   const steps = routePlan ? [...record.mapPackage.operationalMap.steps, ...routePlan.steps] : record.mapPackage.operationalMap.steps;
-  const isFacebook = requestedPlatformId === "facebook-web";
   const mapStepIds = new Set(record.mapPackage.operationalMap.steps.map((step) => step.stepId));
   const routePlanOwnedStepIds = new Set((routePlan?.steps ?? []).map((step) => step.stepId));
   const routePlanTransitionIds = new Set((routePlan?.transitions ?? []).map((transition) => transition.transitionId));
   const capture = steps.find((step) => step.stepId === "capture-video-viewport");
-  const prepare = steps.find((step) => step.stepId === (isFacebook ? "prepare-ai-input-frame-3s" : "prepare-ai-input"));
-  const startupPrepare = steps.find((step) => step.stepId === (isFacebook ? "prepare-startup-ai-input" : "prepare-ai-input"));
+  const prepare = steps.find((step) => step.stepId === "prepare-ai-input");
   const startupPreparation = steps.find((step) => step.stepId === "startup-preparation");
-  const captureFrame6s = steps.find((step) => step.stepId === "capture-video-frame-6s");
-  const prepareFrame6s = steps.find((step) => step.stepId === "prepare-ai-input-frame-6s");
   const judge = steps.find((step) => step.stepId === "judge-seeding-video");
-  const detectNext = steps.find((step) => step.stepId === "observe-next-video-region");
-  const normalizeNext = steps.find((step) => step.stepId === "normalize-next-video-region");
-  const scrollNext = steps.find((step) => step.stepId === "scroll-next-video");
+  const normalizeNext = steps.find((step) => step.stepId === "normalize-next-video-arrow");
+  const clickNext = steps.find((step) => step.stepId === "click-next-video-arrow");
   const promptBinding = record.mapPackage.promptBindings.bindings.find((binding) => binding.stepId === "judge-seeding-video");
   const transitions = routePlan ? [...record.mapPackage.operationalMap.transitions, ...routePlan.transitions] : record.mapPackage.operationalMap.transitions;
   const mapTransitions = record.mapPackage.operationalMap.transitions;
   const routePlanTransitions = routePlan?.transitions ?? [];
   const judgeTransitions = transitions.filter((transition) => transition.fromStepId === "judge-seeding-video");
   const dependencies = record.mapPackage.dependencies;
+  const requiredAbilityGroups = dependencies?.requiredAbilityGroups ?? [];
+  const requiredChildCapabilities = dependencies?.requiredChildCapabilities ?? [];
   const hasForbiddenHumanReviewHandoff =
     steps.some((step) => step.stepId === "request-human-review" || step.childCapabilityId === "request-human-review")
     || transitions.some((transition) =>
       transition.fromStepId === "request-human-review"
       || transition.toStepId === "request-human-review",
     )
-    || dependencies.requiredChildCapabilities.includes("request-human-review");
+    || requiredChildCapabilities.includes("request-human-review");
   const hasForbiddenVideoChangePav =
     steps.some((step) => step.stepId.includes("verify-video-changed") || step.childCapabilityId === "verify-video-changed-after-scroll")
     || transitions.some((transition) =>
@@ -142,7 +139,7 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
       || transition.fromStepId.includes("verify-video-changed")
       || (transition.toStepId ?? "").includes("verify-video-changed"),
     )
-    || dependencies.requiredChildCapabilities.includes("verify-video-changed-after-scroll");
+    || requiredChildCapabilities.includes("verify-video-changed-after-scroll");
   const duplicatesRoutePlanOwnedSteps = [...routePlanOwnedStepIds].some((stepId) => mapStepIds.has(stepId));
   const duplicatesRoutePlanOwnedTransitions = mapTransitions.some((transition) =>
     routePlanTransitionIds.has(transition.transitionId)
@@ -158,57 +155,62 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
   ) && routePlanTransitions.some((transition) =>
     transition.transitionId === "judge-seeding-video:skip-current-video"
     && transition.onStatus === "success"
-    && transition.toStepId === "observe-next-video-region"
+    && transition.toStepId === "normalize-next-video-arrow"
   );
   const hasForbiddenUncertainBranch = judgeTransitions.some((transition) =>
     transition.transitionId.includes("uncertain")
     || transition.toStepId === "request-human-review"
   );
-  const hasAutomaticNonProductScrollPath =
+  const usesLegacyNextVideoScrollPath =
+    requiredAbilityGroups.includes("mouse-scroll")
+    || requiredChildCapabilities.includes("observe-next-video-region")
+    || requiredChildCapabilities.includes("scroll-browser-viewport");
+  const hasForbiddenMapSamplingInternals =
+    record.text.includes("capture-video-frame-3s")
+    || record.text.includes("capture-video-frame-6s")
+    || record.text.includes("capture-video-frame-10s")
+    || record.text.includes("prepare-ai-input-frame-3s")
+    || record.text.includes("prepare-ai-input-frame-6s")
+    || record.text.includes("prepare-ai-input-frame-10s")
+    || record.text.includes("screenshotEvidenceRefFrame3s")
+    || record.text.includes("screenshotEvidenceRefFrame6s")
+    || record.text.includes("screenshotEvidenceRefFrame10s")
+    || record.text.includes("promptInputRefFrame3s")
+    || record.text.includes("promptInputRefFrame6s")
+    || record.text.includes("promptInputRefFrame10s");
+  const hasAutomaticNonProductClickPath =
     record.mapPackage.operationalMap.routePlanId === "product-discovery-route-plan.v1"
     && record.mapPackage.operationalMap.mapKind === "routePlanBoundMap"
-    && routePlanTransitions.some((transition) => transition.fromStepId === "judge-seeding-video" && transition.onStatus === "success" && transition.toStepId === "observe-next-video-region")
-    && routePlanTransitions.some((transition) => transition.fromStepId === "observe-next-video-region" && transition.onStatus === "success" && transition.toStepId === "normalize-next-video-region")
-    && routePlanTransitions.some((transition) => transition.fromStepId === "normalize-next-video-region" && transition.onStatus === "success" && transition.toStepId === "scroll-next-video")
-    && routePlanTransitions.some((transition) => transition.fromStepId === "scroll-next-video" && transition.onStatus === "success" && transition.toStepId === "capture-video-viewport")
-    && detectNext?.targetAbilityGroupId === "visual-target"
-    && detectNext.childCapabilityId === "observe-next-video-region"
+    && routePlanTransitions.some((transition) => transition.fromStepId === "judge-seeding-video" && transition.onStatus === "success" && transition.toStepId === "normalize-next-video-arrow")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "normalize-next-video-arrow" && transition.onStatus === "success" && transition.toStepId === "click-next-video-arrow")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "click-next-video-arrow" && transition.onStatus === "success" && transition.toStepId === "capture-video-viewport")
     && normalizeNext?.targetAbilityGroupId === "geometry-guard"
     && normalizeNext.childCapabilityId === "normalize-coordinate-geometry"
-    && scrollNext?.targetAbilityGroupId === "mouse-scroll"
-    && scrollNext.childCapabilityId === "scroll-browser-viewport"
-    && scrollNext.inputRefs.includes("visualTargetRef")
-    && scrollNext.inputRefs.includes("geometryProofRef")
-    && !hasForbiddenVideoChangePav;
+    && normalizeNext.inputRefs.includes("screenshotEvidenceRef")
+    && !normalizeNext.inputRefs.includes("visualTargetRef")
+    && clickNext?.targetAbilityGroupId === "mouse-click"
+    && clickNext.childCapabilityId === "click-browser-coordinate"
+    && clickNext.inputRefs.includes("geometryProofRef")
+    && !clickNext.inputRefs.includes("visualTargetRef")
+    && !hasForbiddenVideoChangePav
+    && !usesLegacyNextVideoScrollPath;
   const hasChain = capture?.outputRefPolicy.storeAs.includes("screenshotEvidenceRef") === true
-    && (!isFacebook || capture?.outputRefPolicy.storeAs.includes("screenshotEvidenceRefFrame3s") === true)
-    && prepare?.inputRefs.includes(isFacebook ? "screenshotEvidenceRefFrame3s" : "screenshotEvidenceRef") === true
-    && (isFacebook
-      ? prepare?.outputRefPolicy.storeAs.includes("promptInputRefFrame3s") === true
-      : prepare?.outputRefPolicy.storeAs.includes("promptInputRef") === true)
-    && startupPrepare?.inputRefs.includes(isFacebook ? "screenshotEvidenceRefFrame3s" : "screenshotEvidenceRef") === true
-    && startupPrepare?.outputRefPolicy.storeAs.includes("promptInputRef") === true
+    && prepare?.inputRefs.includes("screenshotEvidenceRef") === true
+    && prepare?.outputRefPolicy.storeAs.includes("promptInputRef") === true
     && startupPreparation?.inputRefs.includes("promptInputRef") === true
     && judge?.stepKind === "ai"
-    && (isFacebook
-      ? judge?.inputRefs.includes("promptInputRefFrame3s") === true && judge.inputRefs.includes("promptInputRefFrame6s")
-      : judge?.inputRefs.includes("promptInputRef") === true)
+    && judge?.inputRefs.includes("promptInputRef") === true
     && judge?.promptContractId === "vision.productPresence.v1"
-    && (isFacebook
-      ? promptBinding?.requiredInputRefs.includes("promptInputRefFrame3s") === true && promptBinding?.requiredInputRefs.includes("promptInputRefFrame6s") === true
-      : promptBinding?.requiredInputRefs.includes("promptInputRef") === true)
-    && (!isFacebook
-      || (captureFrame6s?.outputRefPolicy.storeAs.includes("screenshotEvidenceRefFrame6s") === true
-        && prepareFrame6s?.inputRefs.includes("screenshotEvidenceRefFrame6s") === true
-        && prepareFrame6s?.outputRefPolicy.storeAs.includes("promptInputRefFrame6s") === true))
+    && promptBinding?.requiredInputRefs.includes("promptInputRef") === true
     && promptBinding?.outputSchemaRef === "ai.product_presence_judgment.v1"
+    && !hasForbiddenMapSamplingInternals
     && !hasForbiddenUncertainBranch
     && !hasForbiddenHumanReviewHandoff
     && !duplicatesRoutePlanOwnedSteps
     && !duplicatesRoutePlanOwnedTransitions
     && !mapOwnsAiSuccessRouting
     && routePlanOwnsProductYesNoRouting
-    && hasAutomaticNonProductScrollPath;
+    && hasAutomaticNonProductClickPath;
 
   return hasChain
     ? []
@@ -217,7 +219,7 @@ const inspectSeedingVideoAiInputChain = (record: Awaited<ReturnType<typeof loadB
       file: record.file,
       line: 1,
       severity: "fatal",
-      message: "Seeding video map packages must be routePlanBoundMap, wire governed screenshot evidence into the product-presence prompt, and keep product yes/no route labels closed through the bound Route Plan. Facebook must keep capture-video-viewport/prepare-ai-input as the first-frame anchors, store promptInputRefFrame3s + promptInputRefFrame6s, collect capture-video-frame-6s/prepare-ai-input-frame-6s, and return scroll-next-video to capture-video-viewport. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
+      message: "Seeding video map packages must be weak routePlanBoundMap entry spines: startup/product AI handoffs may use promptInputRef, but frame-specific sampling refs/steps and post-judgment action chains belong to Route Plan or ability owners. TikTok and Facebook must share the same weak map boundary; click-next-video-arrow returns to capture-video-viewport through the bound Route Plan only. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
     })];
 };
 

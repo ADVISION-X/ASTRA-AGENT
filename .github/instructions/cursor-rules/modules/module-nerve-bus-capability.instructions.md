@@ -319,7 +319,7 @@ Required:
 FORBIDDEN:
 - `facebook-to-orchestration`
 - `tiktok-to-orchestration`
-- `scroll-next-video`
+- `click-next-video-arrow`
 - `product-video-detection`
 - `map-authoring-direct-runtime`
 - `ability-to-ability`

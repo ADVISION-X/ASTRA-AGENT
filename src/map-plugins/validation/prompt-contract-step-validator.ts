@@ -167,10 +167,7 @@ const bindingSatisfiesContractInputRef = (state: ResolvedPromptStepState, inputR
   if (state.binding.requiredInputRefs.includes(inputRef)) {
     return true;
   }
-  return state.promptContract.taskType === "product_presence_judgment"
-    && inputRef === "promptInputRef"
-    && state.binding.requiredInputRefs.includes("promptInputRefFrame3s")
-    && state.binding.requiredInputRefs.includes("promptInputRefFrame6s");
+  return false;
 };
 
 const validateRequiredInputRefs = (state: ResolvedPromptStepState): MapPackageValidationIssue[] => {

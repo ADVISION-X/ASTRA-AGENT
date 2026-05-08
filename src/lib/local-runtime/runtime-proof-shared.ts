@@ -28,7 +28,7 @@ const RUNTIME_STEP_TO_SKILL_ID: Partial<Record<RoundLifecycleStep, string>> = {
   finalize_failed_or_review_record: "write_data_quality_flags",
   decide_negative_action: "branch_product_no",
   click_not_interested: "click_not_interested",
-  scroll_next_video: "scroll_next_video",
+  click_next_video: "click_next_video",
   record_skip_reason: "write_data_quality_flags",
   record_round_complete: "update_runtime_snapshot",
   review_required: "update_runtime_snapshot",
@@ -62,7 +62,7 @@ const COMPLETED_EVENT_TYPES: Partial<Record<RoundLifecycleStep, string>> = {
 };
 
 const ENTERED_EVENT_TYPES: Partial<Record<RoundLifecycleStep, string>> = {
-  scroll_next_video: "scroll_next_video_started",
+  click_next_video: "click_next_video_started",
   wait_video_stable: "next_video_wait_started",
 };
 

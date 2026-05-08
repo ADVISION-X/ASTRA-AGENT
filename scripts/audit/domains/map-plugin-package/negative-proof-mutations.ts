@@ -14,14 +14,42 @@ export const REQUIRED_MUTATION_NAMES = [
   "macos local smoke missing open-local-program mutation",
   "phase05 diagnostic success path uses review terminal mutation",
   "phase05 diagnostic ai reverted to product presence mutation",
-  "facebook non-product scroll path skips geometry mutation",
+  "facebook non-product click path skips geometry mutation",
   "delete binary outcome policy from authoring input package mutation",
   "delete routeLabel prompt requirement mutation",
   "orchestration reintroduces product decision alias mutation",
+  "seeding map frame-specific step leakage mutation",
+  "seeding map frame-specific ref leakage mutation",
+  "seeding map facebook sampling exception reintroduced mutation",
+  "seeding map owns product success action chain mutation",
 ] as const;
 
 export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   ...AUTHORING_INPUT_PACKAGE_MUTATIONS,
+  {
+    name: "seeding map frame-specific step leakage mutation",
+    file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
+    search: '      {\n        "stepId": "judge-seeding-video",\n        "capabilityId": "orchestration",\n',
+    replace: '      {\n        "stepId": "prepare-ai-input-frame-3s",\n        "capabilityId": "orchestration",\n        "childCapabilityId": "prepare-ai-input",\n        "stepKind": "ability",\n        "targetAbilityGroupId": "screenshot",\n        "inputRefs": [\n          "screenshotEvidenceRefFrame3s"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "promptInputRefFrame3s"\n          ]\n        },\n        "promptContractId": null\n      },\n      {\n        "stepId": "judge-seeding-video",\n        "capabilityId": "orchestration",\n',
+  },
+  {
+    name: "seeding map frame-specific ref leakage mutation",
+    file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
+    search: '        "inputRefs": [\n          "promptInputRef"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "aiResultRef"\n          ]\n        },\n        "promptContractId": "vision.productPresence.v1"\n',
+    replace: '        "inputRefs": [\n          "promptInputRefFrame3s",\n          "promptInputRefFrame6s"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "aiResultRef"\n          ]\n        },\n        "promptContractId": "vision.productPresence.v1"\n',
+  },
+  {
+    name: "seeding map facebook sampling exception reintroduced mutation",
+    file: "scripts/audit/domains/map-plugin-package/startup-preparation-entry-spine.ts",
+    search: 'const PRODUCT_JUDGMENT_OUTPUT_SCHEMA_REF = "ai.product_presence_judgment.v1";\n',
+    replace: 'const PRODUCT_JUDGMENT_OUTPUT_SCHEMA_REF = "ai.product_presence_judgment.v1";\nconst FACEBOOK_STARTUP_PREPARE_STEP_ID = "prepare-startup-ai-input";\n',
+  },
+  {
+    name: "seeding map owns product success action chain mutation",
+    file: "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
+    search: '      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
+    replace: '      {\n        "transitionId": "judge-seeding-video:success",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "success",\n        "toStepId": "observe-comments-button",\n        "finalStatus": null\n      },\n      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
+  },
   {
     name: "delete binary outcome policy from authoring input package mutation",
     file: "src/map-plugins/authoring/map-authoring-input-package.schema.ts",
@@ -139,20 +167,20 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   {
     name: "missing geometry proof mutation",
     file: "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
-    search: 'inputRefs: ["visualTargetRef", "geometryProofRef"],',
-    replace: 'inputRefs: ["visualTargetRef"],',
+    search: 'inputRefs: ["geometryProofRef"],',
+    replace: 'inputRefs: [],',
   },
   {
-    name: "facebook non-product scroll path skips geometry mutation",
+    name: "facebook non-product click path skips geometry mutation",
     file: "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
-    search: '      transitionId: "observe-next-video-region:success",\n      fromStepId: "observe-next-video-region",\n      onStatus: "success",\n      toStepId: "normalize-next-video-region",',
-    replace: '      transitionId: "observe-next-video-region:success",\n      fromStepId: "observe-next-video-region",\n      onStatus: "success",\n      toStepId: "scroll-next-video",',
+    search: '      transitionId: "normalize-next-video-arrow:success",\n      fromStepId: "normalize-next-video-arrow",\n      onStatus: "success",\n      toStepId: "click-next-video-arrow",',
+    replace: '      transitionId: "normalize-next-video-arrow:success",\n      fromStepId: "normalize-next-video-arrow",\n      onStatus: "success",\n      toStepId: "capture-video-viewport",',
   },
   {
     name: "seeding map duplicates route plan-owned step mutation",
     file: "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
     search: '      {\n        "stepId": "judge-seeding-video",\n        "capabilityId": "orchestration",',
-    replace: '      {\n        "stepId": "observe-next-video-region",\n        "capabilityId": "orchestration",\n        "childCapabilityId": "observe-next-video-region",\n        "stepKind": "ability",\n        "targetAbilityGroupId": "visual-target",\n        "inputRefs": [\n          "screenshotEvidenceRef"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "visualTargetRef"\n          ]\n        },\n        "promptContractId": null\n      },\n      {\n        "stepId": "judge-seeding-video",\n        "capabilityId": "orchestration",',
+    replace: '      {\n        "stepId": "normalize-next-video-arrow",\n        "capabilityId": "orchestration",\n        "childCapabilityId": "normalize-coordinate-geometry",\n        "stepKind": "ability",\n        "targetAbilityGroupId": "geometry-guard",\n        "inputRefs": [\n          "screenshotEvidenceRef"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "geometryProofRef"\n          ]\n        },\n        "promptContractId": null\n      },\n      {\n        "stepId": "judge-seeding-video",\n        "capabilityId": "orchestration",',
   },
   {
     name: "seeding map removes route plan id mutation",
@@ -170,7 +198,7 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     name: "seeding map owns ai success route mutation",
     file: "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
     search: '      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
-    replace: '      {\n        "transitionId": "judge-seeding-video:success",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "success",\n        "toStepId": "observe-next-video-region",\n        "finalStatus": null\n      },\n      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
+    replace: '      {\n        "transitionId": "judge-seeding-video:success",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "success",\n        "toStepId": "normalize-next-video-arrow",\n        "finalStatus": null\n      },\n      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
   },
   {
     name: "startup preparation spine bypass mutation",

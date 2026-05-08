@@ -22,20 +22,6 @@ const ACCEPTED_SHELL_MARKER_SETS = [
   },
 ];
 
-export async function probeHealth({
-  url = "http://127.0.0.1:4173/api/runtime/health",
-}) {
-  const response = await fetch(url, {
-    headers: { accept: "application/json" },
-  });
-
-  if (!response.ok) {
-    throw new Error(`health endpoint returned HTTP ${response.status}`);
-  }
-
-  return await response.json();
-}
-
 function assertCommanderConsoleResponse(response) {
   if (!response.ok) {
     throw new Error(`Commander Console returned HTTP ${response.status}`);
@@ -86,35 +72,22 @@ export async function probeCommanderConsolePage({
   };
 }
 
-function getFailingComponents(report) {
-  if (!Array.isArray(report?.components)) {
-    return [];
-  }
-
-  return report.components.filter((component) => component?.ok !== true);
-}
-
-export async function waitForHealth({
-  url = "http://127.0.0.1:4173/api/runtime/health",
+export async function waitForCommanderConsolePage({
+  url = "http://127.0.0.1:4173/",
   timeoutMs = 30000,
   intervalMs = 500,
   serviceProcess,
 }) {
   const deadline = Date.now() + timeoutMs;
-  let lastFailure = "health endpoint not ready";
+  let lastFailure = "Commander Console shell not ready";
 
   while (Date.now() < deadline) {
     if (serviceProcess && serviceProcess.exitCode !== null) {
-      throw new Error(`Local service exited before health check passed with code ${serviceProcess.exitCode}.`);
+      throw new Error(`Local service exited before Commander Console shell probe passed with code ${serviceProcess.exitCode}.`);
     }
 
     try {
-      const report = await probeHealth({ url });
-      const failingComponents = getFailingComponents(report);
-      if (failingComponents.length === 0) {
-        return report;
-      }
-      lastFailure = `components not ready: ${failingComponents.map((component) => `${component.name}:${component.detail}`).join("; ")}`;
+      return await probeCommanderConsolePage({ url });
     } catch (error) {
       lastFailure = error instanceof Error ? error.message : String(error);
     }
@@ -122,5 +95,5 @@ export async function waitForHealth({
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 
-  throw new Error(`Timed out waiting for health check at ${url}: ${lastFailure}`);
+  throw new Error(`Timed out waiting for Commander Console shell probe at ${url}: ${lastFailure}`);
 }

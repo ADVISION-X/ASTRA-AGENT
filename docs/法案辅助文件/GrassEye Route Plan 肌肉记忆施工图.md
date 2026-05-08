@@ -55,7 +55,7 @@ Route Plan 是调度肌肉记忆的唯一来源。
 
 匹配链路：
 
-`observe-comments-button -> normalize-comments-target -> click-comments-button -> verify-comments-open -> capture-comments-panel -> analyze-comment-intent -> persist-seeding-candidate-record -> observe-next-video-region -> normalize-next-video-region -> scroll-next-video -> capture-video-viewport`
+`observe-comments-button -> normalize-comments-target -> click-comments-button -> verify-comments-open -> capture-comments-panel -> analyze-comment-intent -> persist-seeding-candidate-record -> normalize-next-video-arrow -> click-next-video-arrow -> capture-video-viewport`
 
 `product_no` 默认输出：
 
@@ -63,8 +63,31 @@ Route Plan 是调度肌肉记忆的唯一来源。
 
 匹配链路：
 
-`observe-next-video-region -> normalize-next-video-region -> scroll-next-video -> capture-video-viewport`
+`normalize-next-video-arrow -> click-next-video-arrow -> capture-video-viewport`
 
 补充说明：
 
-- `scroll-next-video` 是肌肉记忆意图名；Route Plan 不为平台特化分叉第二条动作链路。
+- `click-next-video-arrow` 是当前 product_no 的肌肉记忆意图名；Route Plan 不为平台特化分叉第二条动作链路。
+
+## 地图与肌肉记忆边界 FINAL
+
+地图不是脚本。
+
+地图不是采样流程。
+
+地图不是动作链。
+
+生产 `routePlanBoundMap` 只负责把任务带到 AI 判断/交接点，并绑定 `routePlanId`。Route Plan 才是肌肉记忆唯一来源。
+
+3s/6s 多帧采样属于 Route Plan、Screenshot ability、Video Evidence ability 的肌肉，不属于地图。`product-discovery-route-plan.v1` 及其后续 Route Plan 扩展负责沉淀：
+
+- product video evidence sampling
+- comments opening chain
+- comments capture chain
+- comments AI analysis chain
+- evidence persistence chain
+- next video scroll chain
+
+地图中出现 `capture-video-frame-6s`、`prepare-ai-input-frame-3s`、`prepare-ai-input-frame-6s`、`promptInputRefFrame3s`、`promptInputRefFrame6s`、`screenshotEvidenceRefFrame3s`、`screenshotEvidenceRefFrame6s` 等 frame-specific 词，即视为边界泄漏。
+
+TikTok 和 Facebook 两个平台必须共享同一类弱地图边界。不得为了 Facebook 单独把采样细节写进地图。

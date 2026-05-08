@@ -54,7 +54,7 @@ export const PATHS = {
   PRIMITIVE_ADAPTER: "src/lib/browser/mouse-scroll-primitive-port.ts",
   CURRENT_CHROME_BROWSER_CONTROLLER: "src/lib/browser/current-chrome-browser-controller.ts",
   CURRENT_CHROME_BROWSER_CONTROLLER_PRIMITIVES: "src/lib/browser/current-chrome-browser-controller-primitives.ts",
-  WORKBENCH_ACTION_DISPATCH_INPUT: "src/lib/local-runtime/workbench-action-dispatch-inputs.ts",
+  WORKBENCH_ACTION_DISPATCH_INPUT: "src/lib/local-runtime/workbench-pointer-dispatch-input.ts",
 } as const;
 
 export const REQUIRED_FILES = [

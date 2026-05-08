@@ -132,8 +132,8 @@ const MUTATIONS: Mutation[] = [
   {
     name: "scroll next-video round boundary removal mutation",
     file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts",
-    search: "  const scrollNextVideoReturnedToCapture = input.currentStepId === \"scroll-next-video\"\n    && input.nextStepId === \"capture-video-viewport\";\n\n  return returnedToInitialStep || scrollNextVideoReturnedToCapture\n",
-    replace: "  const scrollNextVideoReturnedToCapture = false;\n\n  return returnedToInitialStep || scrollNextVideoReturnedToCapture\n",
+    search: "  const clickNextVideoReturnedToCapture = input.currentStepId === \"click-next-video-arrow\"\n    && input.nextStepId === \"capture-video-viewport\";\n\n  return returnedToInitialStep || clickNextVideoReturnedToCapture\n",
+    replace: "  const clickNextVideoReturnedToCapture = false;\n\n  return returnedToInitialStep || clickNextVideoReturnedToCapture\n",
   },
   {
     name: "post-action verification started event removal mutation",

@@ -333,8 +333,8 @@ function inspectRoundAndVideoVisitChain(project: ReturnType<typeof createAuditPr
   if (!sharedText.includes("video-visit") || !sharedText.includes("state.currentRoundIndex")) {
     findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: STEP_DISPATCH_SHARED_PATH, line: 1, message: "Orchestration dispatch chain must derive videoVisitId from mission identity and currentRoundIndex." }));
   }
-  if (!loopSupportText.includes("shouldAdvanceMissionRound") || !loopSupportText.includes("scroll-next-video") || !loopSupportText.includes("capture-video-viewport")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts", line: 1, message: "Mission round advancement must treat scroll-next-video returning to capture-video-viewport as a round boundary; non-AI video-change PAV must not be required." }));
+  if (!loopSupportText.includes("shouldAdvanceMissionRound") || !loopSupportText.includes("click-next-video-arrow") || !loopSupportText.includes("capture-video-viewport")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts", line: 1, message: "Mission round advancement must treat click-next-video-arrow returning to capture-video-viewport as a round boundary; non-AI video-change PAV must not be required." }));
   }
 
   return {
@@ -342,7 +342,7 @@ function inspectRoundAndVideoVisitChain(project: ReturnType<typeof createAuditPr
     phase: createRuntimePhase(
       "round-video-visit-chain",
       findings,
-      "Orchestration binds non-null per-round videoVisitId and advances rounds after verified next-video scroll.",
+      "Orchestration binds non-null per-round videoVisitId and advances rounds after governed next-video click return.",
       "Orchestration can still dispatch no-video loops or fail to advance rounds after verified next-video scroll.",
     ),
   };

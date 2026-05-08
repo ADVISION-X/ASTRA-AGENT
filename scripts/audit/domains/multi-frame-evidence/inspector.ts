@@ -14,6 +14,7 @@ const RESULT_HELPER_PATH = "src/lib/local-ai/vision-task-result.ts";
 const EVIDENCE_PACKET_TYPES_PATH = "src/types/evidence-packet.ts";
 const AGENT_SERVICE_PATH = "src/lib/local-runtime/runtime-executor.ts";
 const WORKBENCH_AI_REQUEST_BUILDER_PATH = "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts";
+const TIKTOK_SEEDING_MAP_PATH = "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json";
 const FACEBOOK_SEEDING_MAP_PATH = "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json";
 
 function hasMultiFramePackagingSchema(multiFrameTypes: ReturnType<typeof getSourceFileOrThrow>): boolean {
@@ -55,16 +56,32 @@ async function collectProductPresenceTwoFrameFindings(): Promise<Finding[]> {
     findings.push(createFinding({ lawId: LAW_ID, file: WORKBENCH_AI_REQUEST_BUILDER_PATH, line: 1, severity: "fatal", message: "Product-presence AI request builder must require exactly two prepared frame inputs and use fixed_3_6 sampling; single-frame fallback is not allowed for product video judgment." }));
   }
 
-  const mapText = await readFile(pathFromRepoRoot(FACEBOOK_SEEDING_MAP_PATH), "utf8");
-  if (
-    !mapText.includes('"stepId": "capture-video-viewport"')
-    || !mapText.includes('"stepId": "prepare-ai-input"')
-    || !mapText.includes('"stepId": "capture-video-frame-6s"')
-    || !mapText.includes('"stepId": "prepare-ai-input-frame-6s"')
-    || !mapText.includes("promptInputRefFrame3s")
-    || !mapText.includes("promptInputRefFrame6s")
-  ) {
-    findings.push(createFinding({ lawId: LAW_ID, file: FACEBOOK_SEEDING_MAP_PATH, line: 1, severity: "fatal", message: "Facebook seeding-video discovery must keep Route Plan-compatible first-frame anchors and feed product-presence AI with the 3s and 6s prepared frame refs." }));
+  const dualFrameMaps = [
+    {
+      file: TIKTOK_SEEDING_MAP_PATH,
+      label: "TikTok seeding-video discovery",
+      startupPrepareStepId: '"stepId": "prepare-ai-input"',
+    },
+    {
+      file: FACEBOOK_SEEDING_MAP_PATH,
+      label: "Facebook seeding-video discovery",
+      startupPrepareStepId: '"stepId": "prepare-startup-ai-input"',
+    },
+  ] as const;
+
+  for (const dualFrameMap of dualFrameMaps) {
+    const mapText = await readFile(pathFromRepoRoot(dualFrameMap.file), "utf8");
+    if (
+      !mapText.includes('"stepId": "capture-video-viewport"')
+      || !mapText.includes(dualFrameMap.startupPrepareStepId)
+      || !mapText.includes('"stepId": "prepare-ai-input-frame-3s"')
+      || !mapText.includes('"stepId": "capture-video-frame-6s"')
+      || !mapText.includes('"stepId": "prepare-ai-input-frame-6s"')
+      || !mapText.includes("promptInputRefFrame3s")
+      || !mapText.includes("promptInputRefFrame6s")
+    ) {
+      findings.push(createFinding({ lawId: LAW_ID, file: dualFrameMap.file, line: 1, severity: "fatal", message: `${dualFrameMap.label} must keep Route Plan-compatible first-frame anchors and feed product-presence AI with the governed 3s and 6s prepared frame refs.` }));
+    }
   }
 
   return findings;

@@ -21,7 +21,7 @@ Core doctrine:
 - Mouse Scroll only consumes Geometry Guard `allow` with normalized executable anchor/region.
 - Mouse Scroll executes governed primitive scroll through `MouseScrollPrimitivePort`.
 - Mouse Scroll success means primitive scroll accepted/executed only; it is not page-state truth and not “next video changed” truth.
-- Real-platform scroll-next-video primitive adapters must execute the scroll and hand off governed observation refs only; browser-native URL or identity evidence may be captured as raw observations but must not become local next-video-changed truth.
+- Real-platform next-video advance must not be implemented inside Mouse Scroll; product_no continuation must route through Geometry Guard + Mouse Click, and Mouse Scroll may only hand off governed scroll observation refs.
 - Post-action Verification verifies what happened after the scroll.
 - Forensics persists final action logs; Mouse Scroll emits runtime proof and scrollExecutionRef only.
 - No Geometry Guard allow, no scroll.
@@ -31,7 +31,7 @@ Core doctrine:
 - No chain fields, no production-ready scroll result.
 - No hidden scroll-until-found loop.
 - No retry/fallback inside Mouse Scroll.
-- No fixed debug wait as scroll-next-video success strategy.
+- No fixed debug wait as next-video advance strategy inside Mouse Scroll.
 - No active Mouse Scroll law without inspector + runner + negative proof.
 
 ---
@@ -385,7 +385,7 @@ Required:
 - `repeat` is input only.
 - repeat max is policy-bound.
 - Magnitude constants may be defined only in `shared/scroll-magnitude.ts`.
-- `scroll-next-video` is Orchestration intent, not Mouse Scroll child.
+- next-video advance is Orchestration intent routed through Geometry Guard + Mouse Click, not Mouse Scroll child.
 - `scroll-until-found` is forbidden.
 - No hidden loop may continue until visual/page-state condition changes.
 
@@ -812,7 +812,7 @@ Required:
 FORBIDDEN:
 - scroll-one-page child.
 - scroll-two-pages child.
-- scroll-next-video child.
+- next-video advance child inside Mouse Scroll.
 - scroll-until-found child.
 - vertical-wheel-scroll child.
 - horizontal-wheel-scroll child.

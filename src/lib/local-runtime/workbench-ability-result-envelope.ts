@@ -213,12 +213,85 @@ function buildMouseScrollProofSummary(input: {
   };
 }
 
+function buildGeometryGuardProofSummary(input: {
+  result: WorkbenchAbilityExecutionResult;
+}): Record<string, string | number | boolean | null> {
+  if (input.result.abilityGroupId !== "geometry-guard" || input.result.status !== "success" || !isObject(input.result.runtimeProof)) {
+    return {};
+  }
+
+  const resultRecord = input.result as unknown as JsonObject;
+  const output = isObject(input.result.output) ? input.result.output : null;
+  const runtimeProof = input.result.runtimeProof;
+  const normalizedClickPoint = readObject(resultRecord, "normalizedClickPoint")
+    ?? readObject(output, "normalizedClickPoint")
+    ?? readObject(runtimeProof, "clickPointAfter");
+  return {
+    geometryGuardChildCapabilityId: input.result.childCapabilityId ?? readString(runtimeProof, "childCapabilityId"),
+    geometryGuardRef: readString(resultRecord, "geometryGuardRef"),
+    geometryGuardInputRef: readString(runtimeProof, "inputRef"),
+    geometryGuardOutputRef: readString(resultRecord, "outputRef") ?? readString(runtimeProof, "outputRef"),
+    geometryGuardProofRef: readString(runtimeProof, "proofId"),
+    geometryGuardRuntimeProofRef: readString(runtimeProof, "proofId"),
+    missionId: readString(runtimeProof, "missionId") ?? readString(resultRecord, "missionId"),
+    runId: readString(runtimeProof, "runId") ?? readString(resultRecord, "runId"),
+    sessionId: readString(runtimeProof, "sessionId") ?? readString(resultRecord, "sessionId"),
+    roundId: readString(runtimeProof, "roundId") ?? readString(resultRecord, "roundId"),
+    videoVisitId: readString(runtimeProof, "videoVisitId") ?? readString(resultRecord, "videoVisitId"),
+    stepId: readString(runtimeProof, "stepId") ?? readString(resultRecord, "stepId"),
+    mapPackageId: readString(runtimeProof, "mapPackageId") ?? readString(resultRecord, "mapPackageId"),
+    mapPackageVersion: readString(runtimeProof, "mapPackageVersion") ?? readString(resultRecord, "mapPackageVersion"),
+    selectedMapId: readString(runtimeProof, "selectedMapId") ?? readString(resultRecord, "selectedMapId"),
+    selectedMapVersion: readString(runtimeProof, "selectedMapVersion") ?? readString(resultRecord, "selectedMapVersion"),
+    activationSnapshotRef: readString(runtimeProof, "activationSnapshotRef") ?? readString(resultRecord, "activationSnapshotRef"),
+    capabilityCallId: readString(runtimeProof, "capabilityCallId") ?? readString(resultRecord, "capabilityCallId"),
+    nerveBusEnvelopeId: readString(runtimeProof, "nerveBusEnvelopeId") ?? readString(resultRecord, "nerveBusEnvelopeId"),
+    sourceAbilityGroupId: readString(runtimeProof, "sourceAbilityGroupId"),
+    sourceChildCapabilityId: readString(runtimeProof, "sourceChildCapabilityId"),
+    sourceRef: readString(runtimeProof, "sourceRef"),
+    sourceScreenshotEvidenceRef: readString(resultRecord, "sourceScreenshotEvidenceRef") ?? readString(runtimeProof, "sourceScreenshotEvidenceRef"),
+    sourceTargetRef: readString(resultRecord, "sourceTargetRef") ?? readString(runtimeProof, "sourceTargetRef"),
+    sourceVisualTargetResultRef: readString(resultRecord, "sourceVisualTargetResultRef") ?? readString(runtimeProof, "sourceVisualTargetResultRef"),
+    normalizedCoordinateSpace: readString(resultRecord, "normalizedCoordinateSpace")
+      ?? readString(output, "normalizedCoordinateSpace")
+      ?? readString(runtimeProof, "normalizedCoordinateSpace"),
+    normalizedClickPointX: readNumber(normalizedClickPoint, "x"),
+    normalizedClickPointY: readNumber(normalizedClickPoint, "y"),
+  };
+}
+
+function buildMouseClickProofSummary(input: {
+  result: WorkbenchAbilityExecutionResult;
+}): Record<string, string | number | boolean | null> {
+  if (input.result.abilityGroupId !== "mouse-click" || input.result.status !== "success" || !isObject(input.result.output) || !isObject(input.result.runtimeProof)) {
+    return {};
+  }
+
+  const output = input.result.output;
+  const runtimeProof = input.result.runtimeProof;
+  return {
+    actionExecutionRef: readString(output, "actionExecutionRef") ?? readString(runtimeProof, "actionExecutionRef"),
+    primitiveExecutionRef: readString(output, "primitiveExecutionRef") ?? readString(runtimeProof, "primitiveExecutionRef"),
+    postActionVerificationHandoffRef: readString(output, "postActionVerificationHandoffRef") ?? readString(runtimeProof, "postActionVerificationHandoffRef"),
+    sourceEvidenceRef: readString(runtimeProof, "sourceEvidenceRef"),
+    sourceTargetRef: readString(runtimeProof, "sourceTargetRef"),
+    sourceCoordinateProofRef: readString(runtimeProof, "sourceCoordinateProofRef"),
+    primitiveStartedAt: readString(runtimeProof, "primitiveStartedAt"),
+    primitiveEndedAt: readString(runtimeProof, "primitiveEndedAt"),
+    startedAt: readString(runtimeProof, "startedAt"),
+    endedAt: readString(runtimeProof, "endedAt"),
+    durationMs: readNumber(runtimeProof, "durationMs"),
+  };
+}
+
 function buildAbilityResultProofSummary(input: {
   outputRef: string;
   result: WorkbenchAbilityExecutionResult;
 }): Record<string, string | number | boolean | null> {
   const summary = {
     ...buildPrepareAiInputProofSummary(input),
+    ...buildGeometryGuardProofSummary(input),
+    ...buildMouseClickProofSummary(input),
     ...buildMouseScrollProofSummary(input),
   };
   if (Object.keys(summary).length > 0) {

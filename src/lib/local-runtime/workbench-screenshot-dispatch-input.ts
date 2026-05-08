@@ -4,9 +4,6 @@ import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./work
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
 import { resolveScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
 
-const STARTUP_PREPARATION_AI_INPUT_MAX_WIDTH = 512;
-const PRODUCT_PRESENCE_AI_INPUT_MAX_WIDTH = 768;
-
 function resolveTransportTimeoutMs(envelope: AbilityCommandEnvelope) {
   const startedAt = Date.parse(envelope.createdAt);
   const expiresAt = Date.parse(envelope.expiresAt);
@@ -40,7 +37,6 @@ function buildScreenshotCommonFields(envelope: AbilityCommandEnvelope, inputPayl
     inputRef: envelope.inputRef,
     idempotencyKey: envelope.idempotencyKey,
     timeoutMs: resolveTransportTimeoutMs(envelope),
-    sampleDelayMs: envelope.stepId.endsWith("frame-3s") ? 3_000 : envelope.stepId.endsWith("frame-6s") ? 3_000 : null,
   };
 }
 
@@ -119,25 +115,12 @@ function buildCaptureBrowserViewportCommand(
   };
 }
 
-function resolvePrepareAiInputMaxWidth(stepId: string): number | null {
-  if (stepId === "prepare-startup-ai-input") {
-    return STARTUP_PREPARATION_AI_INPUT_MAX_WIDTH;
-  }
-  if (stepId === "prepare-ai-input-frame-3s" || stepId === "prepare-ai-input-frame-6s") {
-    return PRODUCT_PRESENCE_AI_INPUT_MAX_WIDTH;
-  }
-  return null;
-}
-
 function buildPrepareAiInputCommand(
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
   payload: Record<string, string | number | boolean | null>,
 ) {
-  const maxAiWidth = resolvePrepareAiInputMaxWidth(envelope.stepId);
   const source = resolveScreenshotSourceHandoff([
-    payloadValueToString(payload.screenshotEvidenceRefFrame3s),
-    payloadValueToString(payload.screenshotEvidenceRefFrame6s),
     payloadValueToString(payload.screenshotEvidenceRef),
     payloadValueToString(payload.abilityResultRef),
     envelope.inputRef,
@@ -146,7 +129,6 @@ function buildPrepareAiInputCommand(
   return {
     ...buildScreenshotCommonFields(envelope, inputPayload),
     childCapabilityId: "prepare-ai-input",
-    ...(maxAiWidth ? { maxAiWidth } : {}),
     ...(source ? { source } : {}),
   };
 }

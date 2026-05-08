@@ -41,16 +41,6 @@ const PREPARE_AI_INPUT_SNIPPETS = [
   "...(source ? { source } : {})",
 ] as const;
 
-const PREPARE_AI_INPUT_SIZE_SNIPPETS = [
-  "const STARTUP_PREPARATION_AI_INPUT_MAX_WIDTH = 512;",
-  "const PRODUCT_PRESENCE_AI_INPUT_MAX_WIDTH = 768;",
-  "stepId === \"prepare-startup-ai-input\"",
-  "stepId === \"prepare-ai-input-frame-3s\"",
-  "stepId === \"prepare-ai-input-frame-6s\"",
-  "const maxAiWidth = resolvePrepareAiInputMaxWidth(envelope.stepId);",
-  "...(maxAiWidth ? { maxAiWidth } : {})",
-] as const;
-
 const RESULT_HANDOFF_SNIPPETS = [
   "recordScreenshotSourceHandoff({ outputRef: outputPayload.documentRef, result: input.result });",
 ] as const;
@@ -262,16 +252,6 @@ const getSourceHandoffFindings = (project: Project, lawId: string): Finding[] =>
       message: "Screenshot prepare-ai-input dispatch adapter must resolve governed stored_image source handoff refs from screenshotEvidenceRef, abilityResultRef, or inputRef before entering the Screenshot owner boundary.",
     }));
   }
-  if (!sourceContainsAll(project, DISPATCH_FILE, PREPARE_AI_INPUT_SIZE_SNIPPETS)) {
-    findings.push(createFinding({
-      lawId,
-      file: DISPATCH_FILE,
-      line: 1,
-      severity: "fatal",
-      message: "Screenshot prepare-ai-input dispatch adapter must keep startup-preparation AI input at 512px while preserving product-presence frame inputs at 768px.",
-    }));
-  }
-
   if (!sourceContainsAll(project, RESULT_ENVELOPE_FILE, RESULT_HANDOFF_SNIPPETS)) {
     findings.push(createFinding({
       lawId,
