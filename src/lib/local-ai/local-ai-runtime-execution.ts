@@ -15,7 +15,11 @@ export async function executeRuntimeTask(input: RuntimeExecutionInput) {
     return executePagePreparationRuntimeTask(input, createdAt);
   }
 
-  if (input.request.taskType === "vision.productPresence" || input.request.taskType === "vision.nextItemTargetCandidate") {
+  if (
+    input.request.taskType === "vision.productPresence"
+    || input.request.taskType === "vision.nextItemTargetCandidate"
+    || input.request.taskType === "vision.commentsEntryTargetCandidate"
+  ) {
     return executeVisionRuntimeTask(input, createdAt);
   }
 

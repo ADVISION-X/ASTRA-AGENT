@@ -113,10 +113,10 @@ const VisualTargetAiSourceProofSchema = z.object({
 
 const VisualTargetPageStateProofSchema = z.object({
   pageStateProofRef: limitedString(200),
-  pageStateType: limitedString(120),
+  pageStateChildCapabilityId: limitedString(120),
   pageStateFingerprint: limitedString(200),
   pageStateHash: limitedString(128),
-  decision: z.enum(["allow", "review_required", "block"]),
+  pageStateStatus: z.enum(["success", "review_required", "failed"]),
   currentUrl: limitedString(500),
   currentTitle: nullableString,
   observedAt: z.string().datetime(),

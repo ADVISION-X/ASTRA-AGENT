@@ -37,13 +37,13 @@ function createPageStateReview(statusMessage: string, reviewRequiredReason: stri
 
 function resolvePageStateConflict(input: {
   request: ParsedVisualTargetAbilityInput;
-  allowedPageStateTypes: readonly string[];
+  allowedPageStateChildCapabilityIds: readonly string[];
 }): PageStateBlocked | PageStateReviewRequired | null {
   const pageStateProof = input.request.sourceProof.pageState;
-  if (pageStateProof.decision === "block") {
+  if (pageStateProof.pageStateStatus === "failed") {
     return createPageStateBlocked("page_state_blocked", "Page State blocked governed target selection for the current page.");
   }
-  if (pageStateProof.decision === "review_required") {
+  if (pageStateProof.pageStateStatus === "review_required") {
     return createPageStateReview(
       "Page State requires review before Visual Target can return success.",
       "Visual Target cannot resolve target success while Page State is review_required.",
@@ -52,9 +52,9 @@ function resolvePageStateConflict(input: {
   if (pageStateProof.sessionId !== input.request.sessionId) {
     return createPageStateBlocked("page_state_blocked", "Page State proof session binding must match the Visual Target request.");
   }
-  if (!input.allowedPageStateTypes.includes(pageStateProof.pageStateType)) {
+  if (!input.allowedPageStateChildCapabilityIds.includes(pageStateProof.pageStateChildCapabilityId)) {
     return createPageStateReview(
-      `Page State ${pageStateProof.pageStateType} is not valid for ${input.request.childCapabilityId}.`,
+      `Page State ${pageStateProof.pageStateChildCapabilityId} is not valid for ${input.request.childCapabilityId}.`,
       "Visual Target detected a page-state conflict for the requested child capability.",
     );
   }
@@ -65,7 +65,7 @@ function resolvePageStateConflict(input: {
 
 export function validatePageStateConsistency(input: {
   request: ParsedVisualTargetAbilityInput;
-  allowedPageStateTypes: readonly string[];
+  allowedPageStateChildCapabilityIds: readonly string[];
 }): PageStateAllow | PageStateBlocked | PageStateReviewRequired {
   const failure = resolvePageStateConflict(input);
   if (failure) {

@@ -15,6 +15,7 @@ const BUILTIN_PROMPT_CONTRACT_FILES = [
   "vision.pagePreparation.v1.prompt-contract.json",
   "vision.productPresence.v1.prompt-contract.json",
   "vision.nextItemTargetCandidate.v1.prompt-contract.json",
+  "vision.commentsEntryTargetCandidate.v1.prompt-contract.json",
   "comments.ocr_cleanup.v1.prompt-contract.json",
   "comments.intent_analysis.v1.prompt-contract.json",
   "product.signal_summary.v1.prompt-contract.json",
@@ -105,7 +106,6 @@ function findDuplicate(values: string[], label: string): string | null {
 function buildPromptContractCatalog(): PromptContractCatalog {
   const contracts = BUILTIN_PROMPT_CONTRACT_FILES.map((fileName) => readBuiltinPromptContract(fileName));
   const duplicateMessage = findDuplicate(contracts.map((contract) => contract.promptContractId), "promptContractId")
-    ?? findDuplicate(contracts.map((contract) => contract.taskType), "taskType")
     ?? findDuplicate(
       contracts.flatMap((contract) => contract.legacyTaskType ? [contract.legacyTaskType] : []),
       "legacyTaskType",
@@ -125,11 +125,18 @@ function buildPromptContractCatalog(): PromptContractCatalog {
     };
   }
 
+  const byTaskType = new Map<AiTaskType, PromptContractCatalogEntry>();
+  for (const contract of contracts) {
+    if (!byTaskType.has(contract.taskType)) {
+      byTaskType.set(contract.taskType, contract);
+    }
+  }
+
   return {
     ok: true,
     contracts,
     byId: new Map(contracts.map((contract) => [contract.promptContractId, contract])),
-    byTaskType: new Map(contracts.map((contract) => [contract.taskType, contract])),
+    byTaskType,
   };
 }
 

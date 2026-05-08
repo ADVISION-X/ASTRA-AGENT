@@ -1,7 +1,10 @@
 import {
+  CommentsEntryTargetCandidateTaskResultSchema,
   NextItemTargetCandidateTaskResultSchema,
   VisionTaskResultSchema,
 } from "../../types/local-ai.js";
+import { parseCommentsEntryTargetCandidateRuntimeOutput } from "./local-ai-runtime-comments-entry-target-candidate.js";
+import { buildCommentsEntryTargetCandidatePromptParts } from "./local-ai-runtime-comments-entry-target-candidate-prompt.js";
 import { parseNextItemTargetCandidateRuntimeOutput } from "./local-ai-runtime-target-candidate.js";
 import { buildNextItemTargetCandidatePromptParts } from "./local-ai-runtime-target-candidate-prompt.js";
 import { parseVisionRuntimeOutput } from "./local-ai-runtime-vision.js";
@@ -16,12 +19,15 @@ import {
 
 type VisionProductPresenceRequest = Extract<RuntimeExecutionInput["request"], { taskType: "vision.productPresence" }>;
 type NextItemTargetCandidateRequest = Extract<RuntimeExecutionInput["request"], { taskType: "vision.nextItemTargetCandidate" }>;
-type SupportedVisionRequest = VisionProductPresenceRequest | NextItemTargetCandidateRequest;
+type CommentsEntryTargetCandidateRequest = Extract<RuntimeExecutionInput["request"], { taskType: "vision.commentsEntryTargetCandidate" }>;
+type SupportedVisionRequest = VisionProductPresenceRequest | NextItemTargetCandidateRequest | CommentsEntryTargetCandidateRequest;
 
 function resolveVisionRequestArtifacts(request: SupportedVisionRequest) {
   const imagePaths = request.evidenceRefs.map((ref) => ref.filePath).filter((filePath): filePath is string => typeof filePath === "string" && filePath.length > 0);
   const promptParts = request.taskType === "vision.nextItemTargetCandidate"
     ? buildNextItemTargetCandidatePromptParts(request)
+    : request.taskType === "vision.commentsEntryTargetCandidate"
+      ? buildCommentsEntryTargetCandidatePromptParts(request)
     : buildVisionPromptParts(request);
   return {
     imagePaths,
@@ -30,6 +36,8 @@ function resolveVisionRequestArtifacts(request: SupportedVisionRequest) {
     promptFullText: isFullAiIoDebugEnabled() ? promptParts.fullPrompt : undefined,
     promptContractId: request.taskType === "vision.nextItemTargetCandidate"
       ? "vision.nextItemTargetCandidate.v1"
+      : request.taskType === "vision.commentsEntryTargetCandidate"
+        ? "vision.commentsEntryTargetCandidate.v1"
       : "vision.productPresence.v1",
     sourceScreenshotEvidenceId: typeof request.input.screenshotEvidenceId === "string" ? request.input.screenshotEvidenceId : undefined,
     aiInputArtifactRef: request.input.contactSheetEvidenceId ?? request.input.multiFrameEvidenceSetId ?? request.evidenceRefs[0]?.id,
@@ -66,6 +74,26 @@ function buildVisionDebugStartPayload(input: RuntimeExecutionInput, artifacts: R
 function buildVisionTaskResult(input: RuntimeExecutionInput, createdAt: string, payload: unknown) {
   if (input.request.taskType === "vision.nextItemTargetCandidate") {
     return NextItemTargetCandidateTaskResultSchema.parse({
+      id: input.request.id,
+      taskType: input.request.taskType,
+      modelRole: input.request.modelRole,
+      provider: "local",
+      runtime: input.roleConfig.runtime,
+      model: input.roleConfig.model,
+      implementationStatus: "model_backed",
+      promptVersion: input.request.promptVersion,
+      schemaVersion: input.request.schemaVersion,
+      evidenceRefs: input.request.evidenceRefs,
+      confidence: typeof payload === "object" && payload !== null && typeof (payload as { confidence?: unknown }).confidence === "number"
+        ? (payload as { confidence: number }).confidence
+        : 0,
+      createdAt,
+      result: payload,
+    });
+  }
+
+  if (input.request.taskType === "vision.commentsEntryTargetCandidate") {
+    return CommentsEntryTargetCandidateTaskResultSchema.parse({
       id: input.request.id,
       taskType: input.request.taskType,
       modelRole: input.request.modelRole,
@@ -123,8 +151,10 @@ export async function executeVisionRuntimeTask(input: RuntimeExecutionInput, cre
     ...(input.signal ? { signal: input.signal } : {}),
     ...(input.debugHook ? { debugHook: input.debugHook } : {}),
   });
-  if (request.taskType === "vision.nextItemTargetCandidate") {
-    const visionOutput = parseNextItemTargetCandidateRuntimeOutput(responseText, request);
+  if (request.taskType === "vision.nextItemTargetCandidate" || request.taskType === "vision.commentsEntryTargetCandidate") {
+    const visionOutput = request.taskType === "vision.commentsEntryTargetCandidate"
+      ? parseCommentsEntryTargetCandidateRuntimeOutput(responseText, request)
+      : parseNextItemTargetCandidateRuntimeOutput(responseText, request);
     await input.debugHook?.({
       eventType: "local_ai_output_normalized",
       detail: `taskType=${request.taskType}; adjusted=${String(visionOutput.adjusted)}; normalizedTargetCandidates=${visionOutput.normalizedCandidateCount}`,

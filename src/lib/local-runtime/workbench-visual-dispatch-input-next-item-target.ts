@@ -181,10 +181,10 @@ export const buildNextItemTargetVisualTargetCommand = (
       },
       pageState: {
         pageStateProofRef: pageStateSummary.pageStateProofRef,
-        pageStateType: pageStateSummary.pageStateType,
+        pageStateChildCapabilityId: pageStateSummary.pageStateChildCapabilityId,
         pageStateFingerprint: pageStateSummary.pageStateFingerprint,
         pageStateHash: pageStateSummary.pageStateHash,
-        decision: pageStateSummary.decision,
+        pageStateStatus: pageStateSummary.pageStateStatus,
         currentUrl: pageStateSummary.currentUrl,
         currentTitle: pageStateSummary.currentTitle,
         observedAt: pageStateSummary.observedAt,

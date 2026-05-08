@@ -8,6 +8,7 @@ import {
 } from "../schema.js";
 import {
   CommentSignalTaskRequestSchema,
+  CommentsEntryTargetCandidateTaskRequestSchema,
   NextItemTargetCandidateTaskRequestSchema,
   OcrTaskRequestSchema,
   PagePreparationTaskRequestSchema,
@@ -18,6 +19,7 @@ import {
   type LocalAiTaskType,
 } from "../../../types/local-ai.js";
 import { VisionPagePreparationRequestInputSchema } from "../../../types/vision-page-preparation.js";
+import { VisionCommentsEntryTargetCandidateRequestInputSchema } from "../../../types/vision-comments-entry-target-candidate.js";
 import { VisionNextItemTargetCandidateRequestInputSchema } from "../../../types/vision-next-item-target-candidate.js";
 import { VisionProductPresenceRequestInputSchema } from "../../../types/vision-product-presence.js";
 import {
@@ -31,6 +33,7 @@ const AI_TASK_BY_LEGACY: Record<LocalAiTaskType, AiTaskType> = {
   "vision.pagePreparation": "page_preparation_judgment",
   "vision.productPresence": "product_presence_judgment",
   "vision.nextItemTargetCandidate": "visual_target_candidate_analysis",
+  "vision.commentsEntryTargetCandidate": "visual_target_candidate_analysis",
   "comments.ocr_cleanup": "ocr_cleanup",
   "comments.intent_analysis": "comment_signal_summary",
   "product.signal_summary": "product_signal_summary",
@@ -82,15 +85,25 @@ function buildVisualTargetCandidateTaskRequest(
   input: VisualTargetCandidateBridgeInput,
   promptContract: PromptContractCatalogEntry,
 ): LocalAiTaskRequest {
-  return NextItemTargetCandidateTaskRequestSchema.parse({
+  const typedInput = AiVisionRequestInputSchema.parse(input.input);
+  const requestBase = {
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
-    taskType: "vision.nextItemTargetCandidate",
     modelRole: promptContract.modelRole,
     promptVersion: promptContract.promptVersion,
     schemaVersion: promptContract.schemaVersion,
     evidenceRefs: input.inputRefs,
-    input: VisionNextItemTargetCandidateRequestInputSchema.parse(AiVisionRequestInputSchema.parse(input.input)),
-  });
+  };
+  return promptContract.legacyTaskType === "vision.commentsEntryTargetCandidate"
+    ? CommentsEntryTargetCandidateTaskRequestSchema.parse({
+      ...requestBase,
+      taskType: "vision.commentsEntryTargetCandidate",
+      input: VisionCommentsEntryTargetCandidateRequestInputSchema.parse(typedInput),
+    })
+    : NextItemTargetCandidateTaskRequestSchema.parse({
+      ...requestBase,
+      taskType: "vision.nextItemTargetCandidate",
+      input: VisionNextItemTargetCandidateRequestInputSchema.parse(typedInput),
+    });
 }
 
 function buildPagePreparationTaskRequest(
@@ -222,7 +235,10 @@ function toVisionTaskRequest(input: VisionBridgeInput): LocalAiTaskRequestResolu
 }
 
 function toVisualTargetCandidateTaskRequest(input: VisualTargetCandidateBridgeInput): LocalAiTaskRequestResolution {
-  return resolveLocalAiPromptRequest("vision.nextItemTargetCandidate", (promptContract) => buildVisualTargetCandidateTaskRequest(input, promptContract));
+  const localTaskType = input.promptContractId === "vision.commentsEntryTargetCandidate.v1"
+    ? "vision.commentsEntryTargetCandidate"
+    : "vision.nextItemTargetCandidate";
+  return resolveLocalAiPromptRequest(localTaskType, (promptContract) => buildVisualTargetCandidateTaskRequest(input, promptContract));
 }
 
 function toPagePreparationTaskRequest(input: PagePreparationBridgeInput): LocalAiTaskRequestResolution {

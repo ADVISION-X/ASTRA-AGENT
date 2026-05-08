@@ -69,7 +69,7 @@ function runAiStage(state: VisualTargetExecutionState): VisualTargetAbilityResul
 function runPageStateStage(state: VisualTargetExecutionState): VisualTargetAbilityResult | null {
   const pageStateGate = executionGates.validatePageStateConsistency({
     request: state.input.request,
-    allowedPageStateTypes: state.profile.allowedPageStateTypes,
+    allowedPageStateChildCapabilityIds: state.profile.allowedPageStateChildCapabilityIds,
   });
   state.decisions.pageStateDecision = pageStateGate.decision;
   addDataQualityFlags(state.dataQualityFlags, pageStateGate.dataQualityFlags);

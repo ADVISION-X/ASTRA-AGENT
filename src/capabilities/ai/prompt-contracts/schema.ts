@@ -37,6 +37,7 @@ export const PromptContractCatalogLegacyTaskTypeSchema = z.enum([
   "vision.pagePreparation",
   "vision.productPresence",
   "vision.nextItemTargetCandidate",
+  "vision.commentsEntryTargetCandidate",
   "comments.ocr_cleanup",
   "comments.intent_analysis",
   "product.signal_summary",
