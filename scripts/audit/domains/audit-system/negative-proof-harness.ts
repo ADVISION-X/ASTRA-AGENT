@@ -51,7 +51,7 @@ const MUTATIONS: Mutation[] = [
   },
   {
     name: "phase gate audit-system removal mutation",
-    file: "scripts/audit/phase-gates/phase-04-full-enforcement.json",
+    file: "scripts/audit/phase-gates/phase-05-final-delivery-debug.json",
     search: "\"audit-system\",",
     replace: "\"agent-runtime\",",
     expectedNeedle: "Current phase gate must keep audit-system active.",
@@ -60,7 +60,7 @@ const MUTATIONS: Mutation[] = [
   {
     name: "generated artifact hand-edit mutation",
     file: "scripts/audit/generated/audit-plan.generated.json",
-    search: "  \"phase\": \"phase-04-full-enforcement\",",
+    search: "  \"phase\": \"phase-05-final-delivery-debug\",",
     replace: "  \"phase\": \"phase-04-hand-edited\",",
     expectedNeedle: "Generated artifact content drifted away from the rebuild output; generated files must not be hand-edited.",
     skipBuild: true,

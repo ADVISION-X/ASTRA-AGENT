@@ -1,6 +1,6 @@
 ---
 name: "GrassEye Index"
-description: "Use when routing GrassEye phase-four full enforcement work to the correct module law, checking always-loaded governance files, or reviewing narrow path triggers."
+description: "Use when routing GrassEye phase-five final-delivery debugging work to the correct module law, checking always-loaded governance files, or reviewing narrow path triggers."
 applyTo: ".github/instructions/cursor-rules/**"
 ---
 
@@ -10,6 +10,7 @@ Role: locate active GrassEye laws for the current repository only.
 Boundary: this file routes; it does not define business rules or replace a module owner.
 Excludes: module law content, implementation plans, future inactive capabilities, and duplicated kernel text.
 Authority: this file is authoritative only for GrassEye law routing.
+Current routing phase: phase-five final-delivery debugging.
 
 ---
 

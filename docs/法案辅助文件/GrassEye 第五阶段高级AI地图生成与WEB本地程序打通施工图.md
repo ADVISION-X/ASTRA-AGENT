@@ -1,6 +1,6 @@
 # GrassEye 第五阶段高级AI地图生成与WEB本地程序打通施工图
 
-status: future-draft / inactive until `.github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md` upgrades Current phase to phase-five.
+status: active / current delivery authority under phase-five final-delivery debugging.
 
 ## 1. 施工边界
 

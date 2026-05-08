@@ -233,7 +233,7 @@ const loadStandardPackageBlueprintState = async () => {
     readTextFile(pathFromRepoRoot(STANDARD_PACKAGE_BLUEPRINT_FILE)),
     readJsonFile<AuditPlan>(pathFromRepoRoot("scripts/audit/generated/audit-plan.generated.json")),
     readJsonFile<EnforcementMatrix>(pathFromRepoRoot("scripts/audit/generated/enforcement-matrix.generated.json")),
-    readJsonFile<PhaseGate>(pathFromRepoRoot("scripts/audit/phase-gates/phase-04-full-enforcement.json")),
+    readJsonFile<PhaseGate>(pathFromRepoRoot("scripts/audit/phase-gates/phase-05-final-delivery-debug.json")),
   ]);
   const lines = content.split(/\r?\n/);
 

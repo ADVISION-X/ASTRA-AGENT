@@ -58,6 +58,17 @@ export function parseVisualTargetAbilityInput(input: unknown) {
   return VisualTargetAbilityInputSchema.safeParse(input);
 }
 
+export function formatVisualTargetParseIssues(input: unknown): string {
+  const parsed = VisualTargetAbilityInputSchema.safeParse(input);
+  if (parsed.success) {
+    return "Visual Target rejected invalid input schema.";
+  }
+
+  return parsed.error.issues
+    .map((issue) => `${issue.path.join(".") || "root"}:${issue.message}`)
+    .join(" | ");
+}
+
 export function resolveVisualTargetExecutionProfile(input: {
   request: ParsedVisualTargetAbilityInput;
   profilePort: VisualTargetProfilePort | null;

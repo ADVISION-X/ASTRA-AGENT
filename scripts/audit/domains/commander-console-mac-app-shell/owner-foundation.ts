@@ -9,7 +9,7 @@ const CAPABILITY_DOMAIN = "commander-console-mac-app-shell";
 const INSPECTOR_ID = "commander-console-mac-app-shell-owner";
 const INSPECTOR_ENTRY = "scripts/audit/domains/commander-console-mac-app-shell/inspector.ts";
 const MANIFEST_PATH = "scripts/audit/domains/commander-console-mac-app-shell/manifest.json";
-const PHASE_GATE_PATH = "scripts/audit/phase-gates/phase-04-full-enforcement.json";
+const PHASE_GATE_PATH = "scripts/audit/phase-gates/phase-05-final-delivery-debug.json";
 
 const createMissingManifestResult = (): { findings: Finding[]; phases: InspectorPhase[] } => ({
   findings: [createFinding({

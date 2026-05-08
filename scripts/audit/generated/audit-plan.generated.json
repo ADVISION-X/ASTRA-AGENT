@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-08T18:46:20.382Z",
-  "phase": "phase-04-full-enforcement",
-  "phaseGateFile": "scripts/audit/phase-gates/phase-04-full-enforcement.json",
+  "generatedAt": "2026-05-08T19:02:43.665Z",
+  "phase": "phase-05-final-delivery-debug",
+  "phaseGateFile": "scripts/audit/phase-gates/phase-05-final-delivery-debug.json",
   "owners": [
     {
       "capabilityDomain": "map-plugin-package",

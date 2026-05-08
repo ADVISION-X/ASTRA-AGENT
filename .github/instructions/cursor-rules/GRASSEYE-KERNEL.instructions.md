@@ -1,6 +1,6 @@
 ---
 name: "GrassEye Kernel"
-description: "Use when defining or reviewing GrassEye phase-four full enforcement governance, authority order, canonical paths, active ability groups, and active system boundaries. Phase-five files are future-draft unless this Kernel explicitly upgrades current phase."
+description: "Use when defining or reviewing GrassEye phase-five final-delivery debugging governance, authority order, canonical paths, active ability groups, and active system boundaries."
 applyTo: ".github/instructions/cursor-rules/**"
 ---
 
@@ -12,7 +12,7 @@ applyTo: ".github/instructions/cursor-rules/**"
 - 中文定位: 草眼 Agent / 种草产品挖掘系统
 - System nature: local-first visual agent for product discovery research
 - Product form: macOS local desktop workbench with a localhost operator console during the current implementation window
-- Current phase: phase-four full-law enforcement and full active-domain monitoring
+- Current phase: phase-five final-delivery debugging and final-delivery active-domain monitoring
 - Core mission: discover evidence-backed product opportunities from social video feeds through governed ability groups, local AI, local browser execution, and automated Forensics proof
 
 ## Fixed Formula

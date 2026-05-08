@@ -142,7 +142,7 @@ const loadBlueprintGovernanceState = async () => {
     readTextFile(pathFromRepoRoot(RUN_INSPECTOR_FILE)),
     readJsonFile<AuditPlan>(pathFromRepoRoot("scripts/audit/generated/audit-plan.generated.json")),
     readJsonFile<EnforcementMatrix>(pathFromRepoRoot("scripts/audit/generated/enforcement-matrix.generated.json")),
-    readJsonFile<PhaseGate>(pathFromRepoRoot("scripts/audit/phase-gates/phase-04-full-enforcement.json")),
+    readJsonFile<PhaseGate>(pathFromRepoRoot("scripts/audit/phase-gates/phase-05-final-delivery-debug.json")),
   ]);
 
   const blueprintLines = blueprintContent.split(/\r?\n/);
@@ -256,7 +256,7 @@ const collectGeneratedMetadataAndRunnerFindings = (input: {
   if (!input.syncSection.includes("- 不得手写 generated 文件伪造通过。")
     || !input.auditPlan.generatedAt
     || !input.enforcementMatrix.generatedAt
-    || input.auditPlan.phaseGateFile !== "scripts/audit/phase-gates/phase-04-full-enforcement.json") {
+    || input.auditPlan.phaseGateFile !== "scripts/audit/phase-gates/phase-05-final-delivery-debug.json") {
     findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-004", file: "scripts/audit/generated/audit-plan.generated.json", message: "Index blueprint generated artifacts must keep machine-owned metadata and phase-gate binding." }));
   }
   if (!input.syncSection.includes("- 不得让 runner 执行不在冻结基线中的独立 owner。")) {

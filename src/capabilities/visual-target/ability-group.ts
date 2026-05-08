@@ -6,7 +6,7 @@ import type {
 import { VisualTargetAbilityResultSchema } from "./schema.js";
 import { createVisualTargetCapabilityRegistry, listVisualTargetChildren } from "./registry.js";
 import { dispatchParsedVisualTargetFailure, dispatchVisualTargetInvalidInputFailure } from "./runtime/visual-target-dispatch-failure.js";
-import { parseVisualTargetAbilityInput } from "./runtime/visual-target-input-gate.js";
+import { formatVisualTargetParseIssues, parseVisualTargetAbilityInput } from "./runtime/visual-target-input-gate.js";
 import type { VisualTargetRuntimeContext } from "./runtime/visual-target-runtime-context.js";
 
 type CreateVisualTargetAbilityGroupInput = {
@@ -55,7 +55,7 @@ async function executeVisualTargetAbilityGroupInput(
     return dispatchVisualTargetInvalidInputFailure({
       rawInput: inputValue,
       clock: context.clock,
-      parseError: parsed.error.message,
+      parseError: formatVisualTargetParseIssues(inputValue),
       statusMessage: "Visual Target rejected invalid input schema.",
     });
   }

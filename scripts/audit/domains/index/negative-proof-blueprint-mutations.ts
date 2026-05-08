@@ -166,7 +166,7 @@ export const indexBlueprintAndGovernanceMutations: Mutation[] = [
   {
     name: "index generated-sync metadata mutation",
     file: "scripts/audit/generated/audit-plan.generated.json",
-    search: '  "phaseGateFile": "scripts/audit/phase-gates/phase-04-full-enforcement.json",',
+    search: '  "phaseGateFile": "scripts/audit/phase-gates/phase-05-final-delivery-debug.json",',
     replace: '  "phaseGateFile": "scripts/audit/phase-gates/phase-00-handwritten.json",',
     expectedNeedle: "Index blueprint generated artifacts must keep machine-owned metadata and phase-gate binding.",
   },

@@ -159,7 +159,7 @@ const collectGeneratedArtifactSourceFindings = (state: GeneratedSyncState): Find
 };
 
 const collectGeneratedArtifactMetadataFindings = (state: GeneratedSyncState): Finding[] => {
-  return !state.auditPlan.generatedAt || !state.enforcementMatrix.generatedAt || state.auditPlan.phaseGateFile !== "scripts/audit/phase-gates/phase-04-full-enforcement.json"
+  return !state.auditPlan.generatedAt || !state.enforcementMatrix.generatedAt || state.auditPlan.phaseGateFile !== "scripts/audit/phase-gates/phase-05-final-delivery-debug.json"
     ? [createRequirementFinding({
         requirementId: "K01-BLUEPRINT-01-SECTION-009-REQ-004",
         file: "scripts/audit/generated/audit-plan.generated.json",

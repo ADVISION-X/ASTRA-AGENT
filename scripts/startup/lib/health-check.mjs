@@ -22,6 +22,54 @@ const ACCEPTED_SHELL_MARKER_SETS = [
   },
 ];
 
+function assertHealthResponse(response) {
+  if (!response.ok) {
+    throw new Error(`Runtime health returned HTTP ${response.status}`);
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    throw new Error(`Runtime health returned unexpected content-type: ${contentType || "unknown"}`);
+  }
+}
+
+export async function probeHealth({
+  url = "http://127.0.0.1:4173/api/runtime/health",
+}) {
+  const response = await fetch(url, {
+    headers: { accept: "application/json" },
+  });
+
+  assertHealthResponse(response);
+  return response.json();
+}
+
+export async function waitForHealth({
+  url = "http://127.0.0.1:4173/api/runtime/health",
+  timeoutMs = 30000,
+  intervalMs = 500,
+  serviceProcess,
+}) {
+  const deadline = Date.now() + timeoutMs;
+  let lastFailure = "Runtime health not ready";
+
+  while (Date.now() < deadline) {
+    if (serviceProcess && serviceProcess.exitCode !== null) {
+      throw new Error(`Local service exited before runtime health probe passed with code ${serviceProcess.exitCode}.`);
+    }
+
+    try {
+      return await probeHealth({ url });
+    } catch (error) {
+      lastFailure = error instanceof Error ? error.message : String(error);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  throw new Error(`Timed out waiting for runtime health probe at ${url}: ${lastFailure}`);
+}
+
 function assertCommanderConsoleResponse(response) {
   if (!response.ok) {
     throw new Error(`Commander Console returned HTTP ${response.status}`);

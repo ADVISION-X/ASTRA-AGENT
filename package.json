@@ -2,7 +2,7 @@
   "name": "grasseye-local-workbench",
   "version": "0.1.0",
   "private": true,
-  "description": "GrassEye phase-four full-enforcement local workbench",
+  "description": "GrassEye phase-five final-delivery debugging local workbench",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -49,6 +49,8 @@
     "acceptance:local-ai-health": "npm run build && node scripts/acceptance/local-ai-health.mjs",
     "acceptance:browse-live-proof": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/browse-live-proof.mjs",
     "acceptance:delivery-smoke": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/delivery-smoke.mjs",
+    "acceptance:final-delivery": "npm run build && node scripts/acceptance/final-delivery.mjs",
+    "acceptance:phase5": "npm run ci:full && npm run acceptance:browse-live-proof && npm run acceptance:delivery-smoke && npm run acceptance:final-delivery",
     "acceptance:phase3": "npm run ci:full && npm run acceptance:browse-live-proof && npm run acceptance:delivery-smoke",
     "ci:full": "node --import tsx scripts/audit/ci-full.ts",
     "lint": "npm run typecheck"
