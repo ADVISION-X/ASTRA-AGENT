@@ -46,6 +46,48 @@
     },
     {
       "abilityGroupId": "ai",
+      "childCapabilityId": "comments-entry-target-candidate-analysis",
+      "description": "Execute governed AI child comments entry target candidate analysis for governed tasks.",
+      "inputSchemaRef": "ai.comments-entry-target-candidate-analysis.input",
+      "outputSchemaRef": "ai.comments-entry-target-candidate-analysis.output",
+      "platformId": null,
+      "targetKind": null,
+      "supportedTargets": [],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresAutomationGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "execute browser actions",
+        "invent prompt text",
+        "read credentials or cookies"
+      ]
+    },
+    {
+      "abilityGroupId": "ai",
+      "childCapabilityId": "next-item-target-candidate-analysis",
+      "description": "Execute governed AI child next item target candidate analysis for governed tasks.",
+      "inputSchemaRef": "ai.next-item-target-candidate-analysis.input",
+      "outputSchemaRef": "ai.next-item-target-candidate-analysis.output",
+      "platformId": null,
+      "targetKind": null,
+      "supportedTargets": [],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresAutomationGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "execute browser actions",
+        "invent prompt text",
+        "read credentials or cookies"
+      ]
+    },
+    {
+      "abilityGroupId": "ai",
       "childCapabilityId": "page-preparation-judgment",
       "description": "Execute governed AI child page preparation judgment for governed tasks.",
       "inputSchemaRef": "ai.page-preparation-judgment.input",
@@ -1507,6 +1549,31 @@
       "description": "Resolve a governed visual target for observe metric like count.",
       "inputSchemaRef": "visual-target.observe-metric-like-count.input",
       "outputSchemaRef": "visual-target.observe-metric-like-count.output",
+      "platformId": null,
+      "targetKind": null,
+      "supportedTargets": [
+        "browser-viewport",
+        "desktop-screen",
+        "source-image"
+      ],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresAutomationGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "click targets",
+        "mutate platform state",
+        "decide mission branching"
+      ]
+    },
+    {
+      "abilityGroupId": "visual-target",
+      "childCapabilityId": "observe-next-item-target-candidate",
+      "description": "Resolve a governed visual target for observe next item target candidate.",
+      "inputSchemaRef": "visual-target.observe-next-item-target-candidate.input",
+      "outputSchemaRef": "visual-target.observe-next-item-target-candidate.output",
       "platformId": null,
       "targetKind": null,
       "supportedTargets": [

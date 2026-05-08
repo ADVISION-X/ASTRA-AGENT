@@ -14,7 +14,7 @@ import {
 
 type AiOutputSchemaDescriptor = {
   schemaVersion: string;
-  schema: z.ZodObject<z.ZodRawShape>;
+  schema: z.ZodTypeAny;
 };
 
 const AI_OUTPUT_SCHEMA_BY_TASK_TYPE: Record<string, AiOutputSchemaDescriptor> = {

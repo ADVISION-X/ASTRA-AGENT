@@ -1,8 +1,10 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
+import { DEFAULT_CLICK_SAFETY_MARGIN_PX } from "../../capabilities/geometry-guard/shared/geometry-policy.js";
 import { resolveAbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { payloadValueToString } from "./workbench-payload.js";
+import { resolveScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
 import {
   resolvePayloadRef,
   toDispatchPayload,
@@ -17,6 +19,80 @@ const NEXT_VIDEO_DETERMINISTIC_FALLBACK_POLICY_ENV = "GRASSEYE_ALLOW_NEXT_VIDEO_
 
 const clamp = (value: number, minimum: number, maximum: number) => {
   return Math.min(Math.max(value, minimum), maximum);
+};
+
+const clampViewportGeometry = (input: {
+  bbox: { x: number; y: number; width: number; height: number };
+  clickPoint: { x: number; y: number };
+  viewportWidth: number;
+  viewportHeight: number;
+}) => {
+  const minimumSafeDimension = DEFAULT_CLICK_SAFETY_MARGIN_PX * 2 + 1;
+  const width = clamp(Math.max(input.bbox.width, minimumSafeDimension), 1, Math.max(input.viewportWidth, 1));
+  const height = clamp(Math.max(input.bbox.height, minimumSafeDimension), 1, Math.max(input.viewportHeight, 1));
+  const x = clamp(input.bbox.x, 0, Math.max(input.viewportWidth - width, 0));
+  const y = clamp(input.bbox.y, 0, Math.max(input.viewportHeight - height, 0));
+  const safeInsetX = Math.min(DEFAULT_CLICK_SAFETY_MARGIN_PX, Math.floor(width / 2));
+  const safeInsetY = Math.min(DEFAULT_CLICK_SAFETY_MARGIN_PX, Math.floor(height / 2));
+
+  return {
+    bbox: {
+      x,
+      y,
+      width,
+      height,
+    },
+    clickPoint: {
+      x: clamp(input.clickPoint.x, x + safeInsetX, x + width - safeInsetX),
+      y: clamp(input.clickPoint.y, y + safeInsetY, y + height - safeInsetY),
+    },
+  };
+};
+
+const shouldProjectSourceGeometryToViewport = (input: {
+  bbox: { x: number; y: number; width: number; height: number };
+  clickPoint: { x: number; y: number };
+  viewportWidth: number;
+  viewportHeight: number;
+  coordinateSpace: string | null;
+}) => {
+  if (input.coordinateSpace && input.coordinateSpace !== "browserViewport") {
+    return true;
+  }
+
+  return input.bbox.x < 0
+    || input.bbox.y < 0
+    || input.bbox.x + input.bbox.width > input.viewportWidth
+    || input.bbox.y + input.bbox.height > input.viewportHeight
+    || input.clickPoint.x < 0
+    || input.clickPoint.y < 0
+    || input.clickPoint.x > input.viewportWidth
+    || input.clickPoint.y > input.viewportHeight;
+};
+
+const projectSourceGeometryToViewport = (input: {
+  bbox: { x: number; y: number; width: number; height: number };
+  clickPoint: { x: number; y: number };
+  sourceWidth: number;
+  sourceHeight: number;
+  viewportWidth: number;
+  viewportHeight: number;
+}) => {
+  const scaleX = input.viewportWidth / Math.max(input.sourceWidth, 1);
+  const scaleY = input.viewportHeight / Math.max(input.sourceHeight, 1);
+
+  return {
+    bbox: {
+      x: Math.round(input.bbox.x * scaleX),
+      y: Math.round(input.bbox.y * scaleY),
+      width: Math.max(1, Math.round(input.bbox.width * scaleX)),
+      height: Math.max(1, Math.round(input.bbox.height * scaleY)),
+    },
+    clickPoint: {
+      x: Math.round(input.clickPoint.x * scaleX),
+      y: Math.round(input.clickPoint.y * scaleY),
+    },
+  };
 };
 
 const buildNextVideoArrowGeometry = (input: {
@@ -157,6 +233,7 @@ const buildStructuredNextItemGeometryCommand = async (
   const bboxHeight = readSummaryNumber(summary, "sourceBoundsHeight");
   const clickX = readSummaryNumber(summary, "normalizedClickPointX");
   const clickY = readSummaryNumber(summary, "normalizedClickPointY");
+  const normalizedCoordinateSpace = readSummaryString(summary, "normalizedCoordinateSpace");
   const sourceVisualTargetResultRef = payloadValueToString(payload.sourceVisualTargetResultRef)
     ?? payloadValueToString(payload.visualTargetRef)
     ?? readSummaryString(summary, "sourceVisualTargetResultRef");
@@ -168,6 +245,44 @@ const buildStructuredNextItemGeometryCommand = async (
   const sourceTargetRef = readSummaryString(summary, "sourceTargetRef") ?? targetCandidateRef;
   const sourceScreenshotEvidenceRef = readSummaryString(summary, "sourceScreenshotEvidenceRef")
     ?? resolvePayloadRef(payload, ["screenshotEvidenceRef", "sourceEvidenceRef"], `${envelope.inputRef}:next-video-arrow-screenshot`);
+  const rawGeometry = {
+    bbox: { x: bboxX, y: bboxY, width: bboxWidth, height: bboxHeight },
+    clickPoint: { x: clickX, y: clickY },
+  };
+  const screenshotHandoff = resolveScreenshotSourceHandoff([
+    sourceScreenshotEvidenceRef,
+    payloadValueToString(payload.screenshotEvidenceRef),
+    payloadValueToString(payload.sourceEvidenceRef),
+  ]);
+  const sourceWidth = readSummaryNumber(screenshotHandoff?.sourceProof ?? null, "sourceWidth");
+  const sourceHeight = readSummaryNumber(screenshotHandoff?.sourceProof ?? null, "sourceHeight");
+  const shouldProjectGeometry = sourceWidth !== null
+    && sourceHeight !== null
+    && shouldProjectSourceGeometryToViewport({
+      ...rawGeometry,
+      viewportWidth: geometry.viewportWidth,
+      viewportHeight: geometry.viewportHeight,
+      coordinateSpace: normalizedCoordinateSpace,
+    });
+  const projectedGeometry = shouldProjectGeometry
+    ? projectSourceGeometryToViewport({
+      ...rawGeometry,
+      sourceWidth,
+      sourceHeight,
+      viewportWidth: geometry.viewportWidth,
+      viewportHeight: geometry.viewportHeight,
+    })
+    : rawGeometry;
+  const executableGeometry = clampViewportGeometry({
+    bbox: projectedGeometry.bbox,
+    clickPoint: projectedGeometry.clickPoint,
+    viewportWidth: geometry.viewportWidth,
+    viewportHeight: geometry.viewportHeight,
+  });
+  const dataQualityFlags = [
+    "governed_next_item_target_candidate_geometry",
+    ...(shouldProjectGeometry ? ["governed_next_item_geometry_projected_from_source_screenshot"] : []),
+  ];
 
   return JSON.parse(JSON.stringify({
     abilityGroupId: "geometry-guard",
@@ -199,15 +314,15 @@ const buildStructuredNextItemGeometryCommand = async (
     sourceGeometryHandoffRef: readSummaryString(summary, "sourceGeometryHandoffRef"),
     sourceCoordinateSpace: "browserViewport",
     requestedExecutionSpace: "browserViewport",
-    bbox: { x: bboxX, y: bboxY, width: bboxWidth, height: bboxHeight },
-    clickPoint: { x: clickX, y: clickY },
+    bbox: executableGeometry.bbox,
+    clickPoint: executableGeometry.clickPoint,
     viewportSize: {
       width: geometry.viewportWidth,
       height: geometry.viewportHeight,
     },
     deviceScaleFactor: geometry.scaleFactor,
     targetSemanticOwner: "visual-target",
-    dataQualityFlags: ["governed_next_item_target_candidate_geometry"],
+    dataQualityFlags,
     idempotencyKey: envelope.idempotencyKey,
   }));
 };

@@ -27,6 +27,9 @@ type TargetNegativeProofPhase = (typeof TARGET_NEGATIVE_PROOF_PHASES)[number];
 
 const AI_ONLY_PAGE_STATE_FILES = [
   "src/lib/local-runtime/workbench-page-state-dispatch-input.ts",
+  "src/lib/local-runtime/workbench-page-state-proof-summary-registry.ts",
+  "src/lib/local-runtime/workbench-visual-dispatch-input-next-item-target.ts",
+  "src/lib/local-runtime/workbench-visual-dispatch-input-comments-target.ts",
   "src/capabilities/page-state/schema.ts",
   "src/capabilities/page-state/shared/page-state-profile.ts",
 ] as const;
@@ -41,6 +44,10 @@ const AI_ONLY_PAGE_STATE_FORBIDDEN = [
   "safety_wall",
   "captcha-marker",
   "feed-shell-marker",
+  "pageStateType",
+  "platform_feed",
+  'decision: "allow"',
+  'decision="allow"',
   "Current URL matches",
   "Runtime session URL and platform profile indicate feed readiness",
 ] as const;

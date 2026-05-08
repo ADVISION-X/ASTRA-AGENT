@@ -250,8 +250,22 @@ async function collectAdvanceNextItemRuntimeFindings(): Promise<Finding[]> {
   if (routePlanTransitionsText.includes('fromStepId: "click-next-video-arrow",\n    onStatus: "success",\n    toStepId: "capture-video-viewport"')) {
     findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH, "click-next-video-arrow:success must not jump directly to capture-video-viewport; it must pass through next-item verification."));
   }
+  if (!routePlanRuntimeText.includes('stepId: "observe-comments-entry-page-state"')
+    || !routePlanRuntimeText.includes('stepId: "analyze-comments-entry-target-candidate"')
+    || !routePlanRuntimeText.includes('stepId: "locate-comments-entry-target"')
+    || !routePlanRuntimeText.includes('promptContractId: "vision.commentsEntryTargetCandidate.v1"')) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Product-yes must be governed by the comments-entry AI candidate chain and bind vision.commentsEntryTargetCandidate.v1."));
+  }
   if (!routePlanRuntimeText.includes('stepId: "verify-next-item-advanced"') || !routePlanRuntimeText.includes('toStepId: "verify-next-item-advanced"')) {
     findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Route Plan must include verify-next-item-advanced or an equivalent post-click verification step."));
+  }
+  if (!routePlanRuntimeText.includes('promptContractId: "vision.nextItemAdvanced.v1"')
+    || !routePlanTransitionsText.includes("NEXT_ITEM_ADVANCED_ROUTE_LABEL")
+    || !routePlanTransitionsText.includes("NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL")) {
+    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH, "verify-next-item-advanced must use the dedicated vision.nextItemAdvanced.v1 contract and dedicated next-item route labels."));
+  }
+  if (!visualRuntimeText.includes("buildCommentsEntryVisualTargetCommand") || visualRuntimeText.includes("Math.round(geometry.viewportWidth / 2)") || visualRuntimeText.includes("Math.round(geometry.viewportHeight / 2)")) {
+    findings.push(toFinding(WORKBENCH_VISUAL_DISPATCH_PATH, "Comments-entry visual dispatch must consume governed AI candidate geometry and must not fall back to center-screen geometry."));
   }
   if (visualRuntimeText.includes('dataQualityFlags: ["deterministic_next_video_arrow_geometry"]')) {
     findings.push(toFinding(WORKBENCH_NEXT_ITEM_DISPATCH_PATH, "Deterministic next-video geometry must not be emitted as normal-quality target truth."));

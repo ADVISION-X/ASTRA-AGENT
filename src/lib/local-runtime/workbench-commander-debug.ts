@@ -1,6 +1,7 @@
 import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 import { StructuredRuntimeEventSchema } from "../../types/structured-log.js";
 import { createId } from "./ids.js";
+import { shouldDurablyPersistCommanderDebugEvent } from "./workbench-debug-persistence-policy.js";
 import type { WorkbenchBaseRuntime } from "./workbench-contract.js";
 
 const buildCommanderMapChain = (input: {
@@ -169,6 +170,11 @@ export const recordCommanderDebugEvent = async (
   },
 ): Promise<void> => {
   const structuredRuntimeEvent = buildCommanderDebugStructuredRuntimeEvent(runtime, input);
+  if (!shouldDurablyPersistCommanderDebugEvent(input.eventType)) {
+    runtime.structuredLogBus.emitRuntimeEvent(structuredRuntimeEvent);
+    return;
+  }
+
   const mapChain = buildCommanderMapChain({ mapId: input.mapId, taskTemplateId: input.taskTemplateId });
   await runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent({
     abilityGroupId: "forensics-persistence",

@@ -1,7 +1,7 @@
 import {
   NEXT_ITEM_ADVANCED_ROUTE_LABEL,
   NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
-} from "../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
+} from "../../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
 
 export const VISION_NEXT_ITEM_ADVANCED_PROMPT_CONTRACT = {
   promptId: "vision.nextItemAdvanced.v1",

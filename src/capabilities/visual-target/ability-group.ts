@@ -13,6 +13,19 @@ type CreateVisualTargetAbilityGroupInput = {
   runtimeContext: VisualTargetRuntimeContext;
 };
 
+function emitVisualTargetInputProbe(input: {
+  stage: string;
+  details: Record<string, unknown>;
+}): void {
+  if (process.env.GRASSEYE_VISUAL_TARGET_INPUT_PROBE !== "1") {
+    return;
+  }
+
+  console.log(
+    `[grasseye:visual-target-input-probe] stage=${input.stage}; details=${JSON.stringify(input.details)}`,
+  );
+}
+
 export function createVisualTargetAbilityGroup(input: CreateVisualTargetAbilityGroupInput): VisualTargetAbilityGroup {
   const registry = createVisualTargetCapabilityRegistry();
   const context = input.runtimeContext;
@@ -30,6 +43,15 @@ async function executeVisualTargetAbilityGroupInput(
 ): Promise<VisualTargetAbilityResult> {
   const parsed = parseVisualTargetAbilityInput(inputValue);
   if (!parsed.success) {
+    emitVisualTargetInputProbe({
+      stage: "ability_input_parse_failed",
+      details: {
+        childCapabilityId: typeof inputValue === "object" && inputValue !== null && "childCapabilityId" in inputValue
+          ? (inputValue as { childCapabilityId?: unknown }).childCapabilityId
+          : null,
+        issues: parsed.error.issues,
+      },
+    });
     return dispatchVisualTargetInvalidInputFailure({
       rawInput: inputValue,
       clock: context.clock,

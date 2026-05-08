@@ -33,6 +33,37 @@ const normalizeConfidence = (value: unknown, fallback: number) => {
   return Math.min(Math.max(candidate, 0), 1);
 };
 
+const isPointInsideBox = (input: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  clickX: number;
+  clickY: number;
+}) => (
+  input.clickX >= input.x
+  && input.clickX <= input.x + input.width
+  && input.clickY >= input.y
+  && input.clickY <= input.y + input.height
+);
+
+const isLikelyTemplatePlaceholderCandidate = (input: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  clickX: number;
+  clickY: number;
+}) => {
+  if (input.x > 2 || input.y > 2 || input.width > 12 || input.height > 12) {
+    return false;
+  }
+
+  const centerX = input.x + (input.width / 2);
+  const centerY = input.y + (input.height / 2);
+  return Math.abs(input.clickX - centerX) <= 2 && Math.abs(input.clickY - centerY) <= 2;
+};
+
 const parseRuntimeJsonOutput = (text: string): unknown => {
   const extractedJson = extractFirstJsonObject(text);
   try {
@@ -58,6 +89,14 @@ const normalizeCandidate = (entry: unknown, index: number): VisionNextItemTarget
   const clickY = point ? toFiniteNumber(point.y) : null;
 
   if (x === null || y === null || width === null || height === null || clickX === null || clickY === null || width <= 0 || height <= 0) {
+    return null;
+  }
+
+  if (!isPointInsideBox({ x, y, width, height, clickX, clickY })) {
+    return null;
+  }
+
+  if (isLikelyTemplatePlaceholderCandidate({ x, y, width, height, clickX, clickY })) {
     return null;
   }
 
@@ -105,7 +144,6 @@ const normalizeRuntimeOutput = (value: unknown, request: NextItemTargetCandidate
       || value.promptVersion !== "v1"
       || value.schemaVersion !== "vision.nextItemTargetCandidate.schema.v1",
     normalized: {
-      ...value,
       taskType: "vision.nextItemTargetCandidate",
       promptId: "vision.nextItemTargetCandidate.v1",
       promptVersion: "v1",

@@ -43,6 +43,13 @@ export {
   type AiInputProofSummary,
 } from "./shared/ai-input-proof-registry.js";
 export {
+  recordAiOutputSummaryAlias,
+  resolveAiCommentSignalOutputSummary,
+  resolveAiPagePreparationOutputSummary,
+  resolveAiProductPresenceOutputSummary,
   resolveAiVisualTargetCandidateOutputSummary,
+  type AiCommentSignalOutputSummary,
+  type AiPagePreparationOutputSummary,
+  type AiProductPresenceOutputSummary,
   type AiVisualTargetCandidateOutputSummary,
 } from "./runtime/ai-output-summary-registry.js";

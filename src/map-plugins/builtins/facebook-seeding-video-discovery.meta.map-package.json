@@ -116,7 +116,8 @@
         ],
         "outputRefPolicy": {
           "storeAs": [
-            "aiResultRef"
+            "aiResultRef",
+            "pagePreparationAiResultRef"
           ]
         },
         "promptContractId": "vision.pagePreparation.v1"
@@ -132,7 +133,8 @@
         ],
         "outputRefPolicy": {
           "storeAs": [
-            "aiResultRef"
+            "aiResultRef",
+            "productPresenceAiResultRef"
           ]
         },
         "promptContractId": "vision.productPresence.v1"

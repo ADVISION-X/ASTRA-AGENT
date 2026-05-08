@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 import {
+  findAiOutputSchemaField,
+  listAiOutputSchemaFieldNames,
   requireAiOutputSchemaDescriptor,
 } from "../../capabilities/ai/output-schema-catalog-port.js";
 import {
@@ -115,9 +117,12 @@ const buildPromptContractCatalogEntry = (entry: PromptContractCatalogEntry) => (
   branchableOutputFields: entry.allowedBranchFields,
 });
 
-const buildFieldTypes = (schema: z.ZodObject<z.ZodRawShape>): Record<string, string> => {
+const buildFieldTypes = (schema: z.ZodTypeAny): Record<string, string> => {
   return Object.fromEntries(
-    Object.entries(schema.shape).map(([fieldName, fieldSchema]) => [fieldName, describeFieldType(fieldSchema)]),
+    listAiOutputSchemaFieldNames(schema)
+      .map((fieldName) => [fieldName, findAiOutputSchemaField(schema, fieldName)])
+      .filter((entry): entry is [string, z.ZodTypeAny] => entry[1] !== null)
+      .map(([fieldName, fieldSchema]) => [fieldName, describeFieldType(fieldSchema)]),
   );
 };
 
@@ -126,7 +131,7 @@ const buildOutputSchemaCatalogEntry = (
 ): MapAuthoringOutputSchemaCatalogEntry | null => {
   const descriptor = requireAiOutputSchemaDescriptor(entry.taskType);
 
-  const declaredFields = Object.keys(descriptor.schema.shape);
+  const declaredFields = listAiOutputSchemaFieldNames(descriptor.schema);
   return {
     outputSchemaRef: entry.outputSchemaRef,
     schemaVersion: descriptor.schemaVersion,
@@ -134,7 +139,7 @@ const buildOutputSchemaCatalogEntry = (
     branchableFields: entry.allowedBranchFields,
     fieldTypes: buildFieldTypes(descriptor.schema),
     requiredFields: declaredFields.filter((fieldName) => {
-      const fieldSchema = descriptor.schema.shape[fieldName as keyof typeof descriptor.schema.shape];
+      const fieldSchema = findAiOutputSchemaField(descriptor.schema, fieldName);
       return fieldSchema ? isRequiredField(fieldSchema) : false;
     }),
     reviewFields: declaredFields.filter((fieldName) => fieldName.toLowerCase().includes("review") || fieldName === "requiredClarifications"),
@@ -189,7 +194,7 @@ export const buildMapAuthoringOutputSchemaDescriptor = (): MapAuthoringInputPack
   return {
     schemaRef: MAP_AUTHORING_OUTPUT_FORMAT_VERSION,
     schemaVersion: MAP_AUTHORING_OUTPUT_FORMAT_VERSION,
-    requiredTopLevelFields: Object.keys(descriptor.schema.shape),
+    requiredTopLevelFields: listAiOutputSchemaFieldNames(descriptor.schema),
     draftStatusValues: ["draft_ready", "needs_clarification"],
     forbiddenFields: ["activationGateStatus", "validationReportRef", "automationGateRef", "activationSnapshotRef", "rawPrompt", "systemPrompt", "userPrompt"],
   };

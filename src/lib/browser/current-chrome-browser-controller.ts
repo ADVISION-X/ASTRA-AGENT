@@ -1,3 +1,6 @@
+import { appendFile, mkdir } from "node:fs/promises";
+import path from "node:path";
+
 import type { LocalBrowserSessionConfig } from "../../types/local-browser-session.js";
 import { createInitialLocalBrowserSessionState } from "./local-browser-session.js";
 import type {
@@ -32,6 +35,44 @@ type CurrentChromeBrowserControllerOptions = {
   screenshotDir: string;
   headlessRequested?: boolean;
 };
+
+async function writeMouseClickProbeLog(input: {
+  probeFilePath: string;
+  stage: string;
+  details: Record<string, unknown>;
+}) {
+  if (
+    process.env.GRASSEYE_VISUAL_TARGET_INPUT_PROBE !== "1"
+    && process.env.GRASSEYE_MOUSE_CLICK_PROBE !== "1"
+  ) {
+    return;
+  }
+
+  const line = JSON.stringify({
+    loggedAt: new Date().toISOString(),
+    stage: input.stage,
+    details: input.details,
+  });
+
+  await mkdir(path.dirname(input.probeFilePath), { recursive: true });
+  await appendFile(input.probeFilePath, `${line}\n`, "utf8");
+}
+
+function logMouseClickProbe(input: {
+  stage: string;
+  details: Record<string, unknown>;
+}) {
+  if (
+    process.env.GRASSEYE_VISUAL_TARGET_INPUT_PROBE !== "1"
+    && process.env.GRASSEYE_MOUSE_CLICK_PROBE !== "1"
+  ) {
+    return;
+  }
+
+  console.log(
+    `[grasseye:mouse-click-probe] stage=${input.stage}; details=${JSON.stringify(input.details)}`,
+  );
+}
 
 export class CurrentChromeBrowserController implements BrowserController {
   private snapshot: BrowserStateSnapshot;
@@ -135,6 +176,33 @@ export class CurrentChromeBrowserController implements BrowserController {
     const coordinateSpace = input.coordinateSpace ?? "browserViewport";
     const clickX = coordinateSpace === "desktopScreen" ? input.point.x : geometry.windowX + input.point.x;
     const clickY = coordinateSpace === "desktopScreen" ? input.point.y : geometry.windowY + input.point.y;
+    const probeDetails = {
+      targetLabel: input.targetLabel,
+      coordinateSpace,
+      inputPoint: input.point,
+      computedDesktopPoint: {
+        x: Math.round(clickX),
+        y: Math.round(clickY),
+      },
+      geometry: {
+        windowX: geometry.windowX,
+        windowY: geometry.windowY,
+        viewportWidth: geometry.viewportWidth,
+        viewportHeight: geometry.viewportHeight,
+        visibleContentBounds: geometry.visibleContentBounds,
+        currentUrl: geometry.currentUrl,
+        pageTitle: geometry.pageTitle,
+      },
+    };
+    logMouseClickProbe({
+      stage: "browser-click",
+      details: probeDetails,
+    });
+    await writeMouseClickProbeLog({
+      probeFilePath: path.join(this.options.screenshotDir, "..", "mouse-click-probe.log"),
+      stage: "browser-click",
+      details: probeDetails,
+    });
     await clickAt(Math.round(clickX), Math.round(clickY), input.button ?? "left", input.clickCount ?? 1);
     await this.refreshSnapshot();
     return this.createActionResult({ message: `clicked ${input.targetLabel}`, fallbackUsed: input.fallbackUsed ?? false });

@@ -4,7 +4,7 @@ import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { hasCallExpression, hasCallExpressionPath, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
 import { getTypeAliasPropertyNames, getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
-import { findAiOutputSchemaDescriptorBySchemaVersion } from "../../../../src/capabilities/ai/output-schema-catalog-port.js";
+import { findAiOutputSchemaDescriptorBySchemaVersion, listAiOutputSchemaFieldNames } from "../../../../src/capabilities/ai/output-schema-catalog-port.js";
 import { getSource } from "./audit-project.js";
 import { missingFiles } from "./audit-files.js";
 import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
@@ -233,7 +233,7 @@ const inspectPromptTemplateRequiredOutputSchema = (project: Project): Finding[] 
     return [createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file: VISION_PROMPT_TEMPLATE_PATH, line: 1, severity: "fatal", message: `Runtime output schema ${VISION_PROMPT_OUTPUT_SCHEMA_REF} is missing from the AI schema catalog.` })];
   }
 
-  const allowedFields = new Set(Object.keys(runtimeSchema.schema.shape));
+  const allowedFields = new Set(listAiOutputSchemaFieldNames(runtimeSchema.schema));
   const forbiddenPresent = initializer.getProperties()
     .filter((property) => Node.isPropertyAssignment(property))
     .map((property) => property.getName())

@@ -12,6 +12,7 @@ import {
 } from "../../types/vision-product-presence.js";
 import { VisionNextItemTargetCandidatePayloadSchema } from "../../types/vision-next-item-target-candidate.js";
 import { VisionCommentsEntryTargetCandidatePayloadSchema } from "../../types/vision-comments-entry-target-candidate.js";
+import { VisionNextItemAdvancedPayloadSchema } from "../../types/vision-next-item-advanced.js";
 import {
   DEFAULT_AI_COST_POLICY,
   DEFAULT_AI_DATA_POLICY,
@@ -220,12 +221,20 @@ const AiVisualTargetCandidateOutputSchema = z.union([
   }).strict(),
 ]);
 
-const AiPagePreparationOutputSchema = VisionPagePreparationPayloadSchema.omit({
-  taskType: true,
-  promptId: true,
-  promptVersion: true,
-  schemaVersion: true,
-}).strict();
+const AiPagePreparationOutputSchema = z.union([
+  VisionPagePreparationPayloadSchema.omit({
+    taskType: true,
+    promptId: true,
+    promptVersion: true,
+    schemaVersion: true,
+  }).strict(),
+  VisionNextItemAdvancedPayloadSchema.omit({
+    taskType: true,
+    promptId: true,
+    promptVersion: true,
+    schemaVersion: true,
+  }).strict(),
+]);
 
 const AiBaseInputSchema = z.object({
   abilityGroupId: AiAbilityGroupIdSchema.default(AI_ABILITY_GROUP_ID),

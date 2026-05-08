@@ -105,7 +105,6 @@ const normalizeRuntimeOutput = (value: unknown, request: CommentsEntryTargetCand
       || value.promptVersion !== "v1"
       || value.schemaVersion !== "vision.commentsEntryTargetCandidate.schema.v1",
     normalized: {
-      ...value,
       taskType: "vision.commentsEntryTargetCandidate",
       promptId: "vision.commentsEntryTargetCandidate.v1",
       promptVersion: "v1",

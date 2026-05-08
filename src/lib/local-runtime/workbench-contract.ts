@@ -84,6 +84,13 @@ type WorkbenchAiAbilityGroup = {
 type WorkbenchForensicsAbilityGroup = {
   writeStructuredRuntimeEvent(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
   writeStructuredActionLog(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
+  writeImageEvidence(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
+  writeOcrEvidence(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
+  writeAiResultRecord(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
+  finalizeBrowseLedger(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
+  finalizeEvidencePacket(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
+  finalizeFailedRecord(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
+  updateRuntimeSnapshot(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
 };
 
 type WorkbenchMissionStatus = "idle" | "pending" | "running" | "paused" | "review_required" | "failed" | "completed" | "stopped";

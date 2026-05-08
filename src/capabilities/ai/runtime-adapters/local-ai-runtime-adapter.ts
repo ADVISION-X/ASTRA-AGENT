@@ -73,6 +73,16 @@ function recordCircuitFailure(state: LocalAiRuntimeState, nowMs: number) {
   }
 }
 
+function emitLocalAiRuntimeProbe(stage: string, context: LocalAiExecutionContext) {
+  if (process.env.GRASSEYE_AI_RUNTIME_PROBE !== "1") {
+    return;
+  }
+
+  process.stdout.write(
+    `[grasseye:ai-runtime-probe] stage=${stage}; taskType=${context.request.taskType}; stepId=${context.request.stepId}; runtimeCallId=${context.identity.runtimeCallId}\n`,
+  );
+}
+
 export function createLocalAiRuntimePort(options: runtimeDebug.LocalAiRuntimePortOptions = {}): AiRuntimePort {
   const gateway = new LocalAiGateway();
   const state = createLocalAiRuntimeState();
@@ -218,10 +228,18 @@ async function handleProtectedSuccess(
   protectedResult: ProtectedGatewayResult<LocalAiTaskResult> & { ok: true },
 ): Promise<AiRuntimeExecutionOutput> {
   recordCircuitSuccess(state);
+  emitLocalAiRuntimeProbe("handle_protected_success_enter", context);
   const runtimeOutputValue = runtimeMapper.coerceRuntimeOutput(protectedResult.result.result);
-  const modelHealthAfter = runtimeMapper.describeHealth(runtimeMapper.toAiRuntimeHealth(await gateway.getRuntimeHealth()));
+  emitLocalAiRuntimeProbe("after_coerce_runtime_output", context);
+  emitLocalAiRuntimeProbe("before_gateway_runtime_health", context);
+  const runtimeHealth = await gateway.getRuntimeHealth();
+  emitLocalAiRuntimeProbe("after_gateway_runtime_health", context);
+  const modelHealthAfter = runtimeMapper.describeHealth(runtimeMapper.toAiRuntimeHealth(runtimeHealth));
+  emitLocalAiRuntimeProbe("before_emit_runtime_success", context);
   await context.debugSession.emitRuntimeSuccess(runtimeOutputValue, protectedResult.gatewayDurationMs);
+  emitLocalAiRuntimeProbe("after_emit_runtime_success", context);
   const rawOutputHash = context.debugSession.state.rawResponseText ? hashValue(context.debugSession.state.rawResponseText) : hashValue(runtimeOutputValue);
+  emitLocalAiRuntimeProbe("before_build_success_output", context);
   return runtimeOutput.buildLocalAiSuccessOutput({
     modelName: protectedResult.result.model,
     modelRole: protectedResult.result.modelRole,

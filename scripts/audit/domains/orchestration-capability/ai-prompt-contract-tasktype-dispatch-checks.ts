@@ -28,7 +28,10 @@ function createTaskTypePhase(findings: Finding[]) {
 function hasUnifiedVisionImageCollectionRoute(aiRequestText: string): boolean {
   return aiRequestText.includes("buildVisionImageCollectionInputPayload")
     && aiRequestText.includes("const PRODUCT_PRESENCE_TASK_TYPE = \"product_presence_judgment\";")
-    && aiRequestText.includes("envelope.taskType === PAGE_PREPARATION_TASK_TYPE || envelope.taskType === PRODUCT_PRESENCE_TASK_TYPE")
+    && aiRequestText.includes("const VISUAL_TARGET_CANDIDATE_TASK_TYPE = \"visual_target_candidate_analysis\";")
+    && aiRequestText.includes("envelope.taskType === PAGE_PREPARATION_TASK_TYPE")
+    && aiRequestText.includes("envelope.taskType === PRODUCT_PRESENCE_TASK_TYPE")
+    && aiRequestText.includes("envelope.taskType === VISUAL_TARGET_CANDIDATE_TASK_TYPE")
     && aiRequestText.includes("buildWorkbenchAiInputPayload({ ...envelope, taskType }, inputPayload)");
 }
 
@@ -55,7 +58,7 @@ export async function inspectAiPromptContractTaskTypeDispatch() {
   const hasProductPresenceImageCollectionRoute = hasUnifiedVisionImageCollectionRoute(aiRequestText);
   const hasImageCollectionModality = hasImageCollectionModalityForWorkbenchVisionTasks(aiRequestText);
   if (!hasResolvedTransportedTaskType || !hasProductPresenceImageCollectionRoute || !hasImageCollectionModality) {
-    findings.push(createTaskTypeFinding({ file: AI_REQUEST_BUILDER_PATH, message: "Workbench AI request builder must resolve transported taskType and build the product presence image_collection payload for product_presence_judgment." }));
+    findings.push(createTaskTypeFinding({ file: AI_REQUEST_BUILDER_PATH, message: "Workbench AI request builder must resolve transported taskType and build the governed image_collection payload for page_preparation_judgment, product_presence_judgment, and visual_target_candidate_analysis." }));
   }
 
   return { findings, phase: createTaskTypePhase(findings) };

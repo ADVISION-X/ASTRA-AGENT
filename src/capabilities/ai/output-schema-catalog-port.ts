@@ -1,6 +1,8 @@
 import { AI_OUTPUT_SCHEMA_BY_TASK_TYPE, type AiOutputSchemaDescriptor } from "./shared/ai-output-schema-catalog.js";
+import { findAiOutputSchemaField, listAiOutputSchemaFieldNames } from "./shared/ai-output-schema-shape.js";
 
 export type { AiOutputSchemaDescriptor };
+export { findAiOutputSchemaField, listAiOutputSchemaFieldNames };
 
 export const findAiOutputSchemaDescriptor = (
   taskType: string,

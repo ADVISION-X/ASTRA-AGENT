@@ -24,9 +24,7 @@ import { VisionNextItemAdvancedRequestInputSchema } from "../../../types/vision-
 import { VisionCommentsEntryTargetCandidateRequestInputSchema } from "../../../types/vision-comments-entry-target-candidate.js";
 import { VisionNextItemTargetCandidateRequestInputSchema } from "../../../types/vision-next-item-target-candidate.js";
 import { VisionProductPresenceRequestInputSchema } from "../../../types/vision-product-presence.js";
-import {
-  resolvePromptContractCatalogEntryByLocalTaskType,
-} from "../prompt-contracts/local-ai-task-contracts.js";
+import { resolvePromptContractCatalogEntryByLocalTaskType } from "../prompt-contracts/local-ai-task-contracts.js";
 import type { PromptContractCatalogEntry } from "../prompt-contracts/schema.js";
 import type { AiRuntimeHealth, AiTaskType, ParsedAiAbilityInput } from "../contract.js";
 import { parseExtractedJson } from "../shared/ai-json-extract.js";
@@ -41,10 +39,7 @@ const AI_TASK_BY_LEGACY: Record<LocalAiTaskType, AiTaskType> = {
   "product.signal_summary": "product_signal_summary",
 };
 type PagePreparationBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "page_preparation_judgment" }>;
-type VisionBridgeInput = Extract<
-  ParsedAiAbilityInput,
-  { taskType: "product_presence_judgment" | "visual_observation" }
->;
+type VisionBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "product_presence_judgment" | "visual_observation" }>;
 type VisualTargetCandidateBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "visual_target_candidate_analysis" }>;
 type OcrBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "ocr_cleanup" }>;
 type CommentSignalBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "comment_signal_summary" }>;
@@ -58,11 +53,7 @@ type LocalAiTaskRequestResolution =
       failureReason: "legacy_task_mapping_missing" | "prompt_catalog_integrity_failed" | "task_type_mismatch";
       message: string;
     };
-function rejectLocalAiTaskRequest(
-  input: LocalAiTaskRequestResolution & { ok: false },
-): LocalAiTaskRequestResolution {
-  return input;
-}
+function rejectLocalAiTaskRequest(input: LocalAiTaskRequestResolution & { ok: false }): LocalAiTaskRequestResolution { return input; }
 function resolveLegacyPromptContract(taskType: LocalAiTaskType) {
   return resolvePromptContractCatalogEntryByLocalTaskType(taskType);
 }
@@ -207,7 +198,6 @@ function coerceRuntimeOutput(value: unknown): unknown {
   if (typeof value !== "string") {
     return value;
   }
-
   const parsed = parseExtractedJson(value);
   return parsed.ok ? parsed.value : value;
 }
@@ -224,7 +214,6 @@ function resolveLocalAiPromptRequest(
       message: promptContract.message,
     });
   }
-
   return { ok: true, request: buildRequest(promptContract.contract) };
 }
 function toVisionTaskRequest(input: VisionBridgeInput): LocalAiTaskRequestResolution {
@@ -268,7 +257,6 @@ function toProductSignalTaskRequest(input: ProductSignalBridgeInput): LocalAiTas
       message: productPresencePromptContract.message,
     });
   }
-
   return {
     ok: true,
     request: buildProductSignalTaskRequest(input, promptContract.contract, productPresencePromptContract.contract),

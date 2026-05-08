@@ -23,6 +23,13 @@ const applyStepOutputRefPolicy = (
   }
 
   const nextPayloadRefs = { ...payloadRefs };
+  if (
+    step.stepId === "prepare-next-item-verification-ai-input"
+    && payloadRefs.promptInputRef
+    && payloadRefs.promptInputRef !== outputRef
+  ) {
+    nextPayloadRefs.previousPromptInputRef = payloadRefs.promptInputRef;
+  }
   for (const key of step.outputRefPolicy.storeAs) {
     if (key === "requestedPlatformId") {
       continue;
@@ -93,6 +100,25 @@ const resolveDispatchChain = (state: MissionState, stepId: string): { ok: true; 
   };
 };
 
+const buildAiInputRefsForStep = (input: {
+  state: MissionState;
+  step: AiStep;
+  aiInputRefs: string[];
+}) => {
+  if (input.step.promptContractId !== "vision.nextItemAdvanced.v1") {
+    return Array.from(new Set(input.aiInputRefs));
+  }
+
+  const previousPromptInputRef = resolvePayloadRefValue(input.state.payloadRefs, "previousPromptInputRef");
+  const nextItemVerificationPromptInputRef = resolvePayloadRefValue(input.state.payloadRefs, "nextItemVerificationPromptInputRef");
+
+  return Array.from(new Set([
+    previousPromptInputRef,
+    nextItemVerificationPromptInputRef,
+    ...input.aiInputRefs,
+  ].filter((value): value is string => typeof value === "string" && value.length > 0)));
+};
+
 const buildAbilityOutputSchemaRef = (targetAbilityGroupId: string, childCapabilityId: string) => `${targetAbilityGroupId}.${childCapabilityId}.output`;
 
 const resolvePayloadRefValue = (payloadRefs: MissionState["payloadRefs"], key: string): string | null => {
@@ -155,7 +181,7 @@ const resolveRequiredAiInputRefs = (input: {
   const aiInputRefs = input.requiredInputRefs.map((key) => resolvePayloadRefValue(input.state.payloadRefs, key));
   return aiInputRefs.some((value) => value === null)
     ? { ok: false as const, failureReason: `AI step "${input.step.stepId}" is missing required aiInputRefs from payloadRefs.` }
-    : { ok: true as const, aiInputRefs: aiInputRefs as string[] };
+    : { ok: true as const, aiInputRefs: buildAiInputRefsForStep({ state: input.state, step: input.step, aiInputRefs: aiInputRefs as string[] }) };
 };
 
 const buildAiDispatchRequirements = (input: {

@@ -9,7 +9,12 @@ import {
   buildTextInputCommand,
   buildVisualTargetCommand,
 } from "./workbench-action-dispatch-inputs.js";
-import { buildForensicsRuntimeEventInput } from "./workbench-forensics-dispatch-input.js";
+import {
+  buildForensicsBrowseLedgerInput,
+  buildForensicsEvidencePacketInput,
+  buildForensicsEvidenceRecordInput,
+  buildForensicsRuntimeEventInput,
+} from "./workbench-forensics-dispatch-input.js";
 import { buildOpenAbilityInput } from "./workbench-open-dispatch-input.js";
 import { buildPageStateDispatchInput } from "./workbench-page-state-dispatch-input.js";
 import { recordPageStateProofSummary } from "./workbench-page-state-proof-summary-registry.js";
@@ -66,7 +71,17 @@ const executeRuntimeAbilityCommand = async (
     case "post-action-verification":
       return runtime.postActionVerificationAbilityGroup.execute(await buildPostActionVerificationInput(runtime, envelope, inputPayload));
     case "forensics-persistence":
-      return runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent(buildForensicsRuntimeEventInput(envelope));
+      switch (envelope.commandName) {
+        case "write-structured-runtime-event":
+          return runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent(buildForensicsRuntimeEventInput(envelope));
+        case "write-evidence-record":
+          return runtime.forensicsPersistenceAbilityGroup.writeImageEvidence(buildForensicsEvidenceRecordInput(envelope, inputPayload));
+        case "finalize-evidence-packet":
+          return runtime.forensicsPersistenceAbilityGroup.finalizeEvidencePacket(buildForensicsEvidencePacketInput(envelope, inputPayload));
+        case "finalize-browse-ledger":
+          return runtime.forensicsPersistenceAbilityGroup.finalizeBrowseLedger(buildForensicsBrowseLedgerInput(envelope, inputPayload));
+      }
+      throw new Error(`Unsupported forensics child capability: ${envelope.commandName}`);
     case "page-state":
       return runtime.pageStateAbilityGroup.execute(await buildPageStateDispatchInput(runtime, envelope, inputPayload));
   }

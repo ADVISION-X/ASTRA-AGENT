@@ -10,6 +10,16 @@ import { resolveVisualTargetChain } from "./visual-target-chain.js";
 import type { VisualTargetFailureTrace } from "./visual-target-input-gate.js";
 import { buildVisualTargetRuntimeProof, type VisualTargetRuntimeDecisionTrace, type VisualTargetRuntimeTelemetry } from "./visual-target-proof-builder.js";
 
+const MAX_STATUS_MESSAGE_LENGTH = 500;
+
+function clampStatusMessage(statusMessage: string): string {
+  if (statusMessage.length <= MAX_STATUS_MESSAGE_LENGTH) {
+    return statusMessage;
+  }
+
+  return `${statusMessage.slice(0, MAX_STATUS_MESSAGE_LENGTH - 3).trimEnd()}...`;
+}
+
 function resolveVisualTargetRefs(input: {
   trace: VisualTargetFailureTrace;
   status: "success" | "failed" | "review_required";
@@ -52,6 +62,7 @@ function buildVisualTargetResultPayload(input: {
   runtimeProof: ReturnType<typeof buildVisualTargetRuntimeProof>;
 }) {
   const chain = resolveVisualTargetChain(input.result.request, input.result.trace);
+  const statusMessage = clampStatusMessage(input.result.statusMessage);
   return {
     abilityGroupId: "visual-target",
     childCapabilityId: input.result.trace.childCapabilityId,
@@ -69,7 +80,7 @@ function buildVisualTargetResultPayload(input: {
     output: input.result.output,
     failureReason: input.result.failureReason,
     reviewRequiredReason: input.result.reviewRequiredReason,
-    statusMessage: input.result.statusMessage,
+    statusMessage,
     debugLogRef: input.refs.debugLogRef,
     diagnosticPayloadRef: input.refs.diagnosticPayloadRef,
     dataQualityFlags: input.result.dataQualityFlags,

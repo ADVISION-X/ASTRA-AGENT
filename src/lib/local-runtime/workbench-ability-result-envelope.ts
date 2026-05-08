@@ -183,6 +183,16 @@ function buildPrepareAiInputProofSummary(input: {
     preparedImageWidth,
     preparedImageHeight,
     coordinateSpace,
+      preparedInputSourceCoordinateSpace: readString(scaleMapping, "sourceCoordinateSpace"),
+      preparedInputTargetCoordinateSpace: readString(scaleMapping, "targetCoordinateSpace"),
+      preparedInputSourceWidth: readNumber(scaleMapping, "sourceWidth"),
+      preparedInputSourceHeight: readNumber(scaleMapping, "sourceHeight"),
+      preparedInputTargetWidth: readNumber(scaleMapping, "targetWidth"),
+      preparedInputTargetHeight: readNumber(scaleMapping, "targetHeight"),
+      preparedInputCropOffsetX: readNumber(scaleMapping, "cropOffsetX"),
+      preparedInputCropOffsetY: readNumber(scaleMapping, "cropOffsetY"),
+      preparedInputScaleX: readNumber(scaleMapping, "scaleX"),
+      preparedInputScaleY: readNumber(scaleMapping, "scaleY"),
   };
 
   if (aiInputArtifactRef && aiInputStorageRef && sourceScreenshotEvidenceId && sourceStorageRef && preparedImageHash && preparedImageWidth && preparedImageHeight && coordinateSpace === "ai_input_pixels") {

@@ -31,6 +31,9 @@ const readNumber = (value: JsonRecord, key: string): number | null => {
 const buildHash = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
+const buildCompactRef = (prefix: string, value: unknown) =>
+  `${prefix}:${buildHash(value).slice(0, 24)}`;
+
 const mapCoordinateSpace = (value: string | null) => {
   if (value === "desktop_screen_pixels") {
     return "desktop_screen";
@@ -48,7 +51,7 @@ const resolveAiTargetCandidateRef = (payload: DispatchPayloadRecord) =>
   ?? payloadValueToString(payload.targetCandidateRef);
 
 const buildCommentsCandidates = (input: {
-  aiResultRef: string;
+  governedAiResultRef: string;
   capturedAt: string;
   sourceFrameRef: string;
   sourceProofRef: string;
@@ -56,7 +59,7 @@ const buildCommentsCandidates = (input: {
 }) => input.targetCandidates
   .filter((candidate) => candidate.targetType === "comments_button")
   .map((candidate) => ({
-    candidateRef: `${input.aiResultRef}:${candidate.candidateId}`,
+    candidateRef: buildCompactRef("visual-target-candidate", [input.governedAiResultRef, candidate.candidateId, "comments-entry"]),
     candidateKind: "ai_candidate",
     targetType: "comments_button",
     boundingBox: candidate.boundingBox,
@@ -114,10 +117,11 @@ export const buildCommentsEntryVisualTargetCommand = (
   }
 
   const coordinateSpace = mapCoordinateSpace(screenshotHandoff.coordinateSpace);
-  const sourceProofRef = `${aiSummary.aiResultRef}:comments-entry-source-proof`;
+  const governedAiResultRef = aiTargetCandidateRef;
+  const sourceProofRef = buildCompactRef("visual-target-source-proof", [governedAiResultRef, envelope.inputRef, "comments-entry"]);
   const aiInputArtifactRef = aiSummary.aiInputArtifactRef
     ?? payloadValueToString(payload.promptInputRef)
-    ?? `${aiSummary.aiResultRef}:prompt-input`;
+    ?? `${governedAiResultRef}:prompt-input`;
 
   return JSON.parse(JSON.stringify({
     abilityGroupId: "visual-target",
@@ -162,7 +166,7 @@ export const buildCommentsEntryVisualTargetCommand = (
         videoVisitId: envelope.videoVisitId,
       },
       ai: {
-        aiResultRef: aiSummary.aiResultRef,
+        aiResultRef: governedAiResultRef,
         aiProofRef: aiSummary.aiProofRef,
         promptContractId: aiSummary.promptContractId,
         outputSchemaRef: aiSummary.outputSchemaRef,
@@ -195,7 +199,7 @@ export const buildCommentsEntryVisualTargetCommand = (
       operatorApproval: null,
     },
     candidates: buildCommentsCandidates({
-      aiResultRef: aiSummary.aiResultRef,
+      governedAiResultRef,
       capturedAt: aiSummary.capturedAt,
       sourceFrameRef: sourceScreenshotEvidenceId,
       sourceProofRef,

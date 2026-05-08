@@ -5,6 +5,11 @@ import {
   type WorkbenchAiDebugEvent,
   type WorkbenchAiDebugRuntime,
 } from "./workbench-ai-debug-support.js";
+import {
+  buildAiDebugDurableRuntimeEvent,
+  isAiDebugDurableEnabled,
+  shouldDurablyPersistAiDebugEvent,
+} from "./workbench-debug-persistence-policy.js";
 import { getActiveMapChain } from "./workbench-map-chain-support.js";
 
 type WorkbenchAiDebugForensicsRuntime = WorkbenchAiDebugRuntime & {
@@ -54,6 +59,12 @@ export const recordWorkbenchAiDebugEvent = async (
   const artifactRefs = buildAiDebugArtifactRefs(input);
   const structuredRuntimeEvent = buildAiStructuredRuntimeEvent(runtime, input, artifactRefs);
   runtime.structuredLogBus?.emitRuntimeEvent(structuredRuntimeEvent);
+  if (!shouldDurablyPersistAiDebugEvent(input.eventType)) {
+    return;
+  }
+
+  const durableEvent = buildAiDebugDurableRuntimeEvent(structuredRuntimeEvent);
+  const durableFullDebug = isAiDebugDurableEnabled();
   await runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent({
     abilityGroupId: "forensics-persistence",
     childCapabilityId: "write-structured-runtime-event",
@@ -73,19 +84,19 @@ export const recordWorkbenchAiDebugEvent = async (
     selectedMapVersion: chain.selectedMapVersion,
     activationSnapshotRef: chain.activationSnapshotRef,
     capabilityCallId: chain.capabilityCallId,
-    inputRefs: [...new Set([...(chain.inputRef ? [chain.inputRef] : []), ...input.refs])],
-    outputRefs: input.rawResponseRef ? [input.rawResponseRef] : [],
+    inputRefs: durableFullDebug ? [...new Set([...(chain.inputRef ? [chain.inputRef] : []), ...input.refs])] : [],
+    outputRefs: durableFullDebug && input.rawResponseRef ? [input.rawResponseRef] : [],
     sourceRecordRefs: [],
     parentRefs: [],
-    artifactRefs,
+    artifactRefs: durableFullDebug ? artifactRefs : [],
     promptContractId: input.promptContractId,
     promptContractVersion: input.promptVersion,
     persistencePolicy: {
       mode: "append",
-      allowPartialRefs: !isCriticalAiRuntimeProof(input.eventType),
-      allowExternalArtifactRef: isCriticalAiRuntimeProof(input.eventType),
+      allowPartialRefs: durableFullDebug ? !isCriticalAiRuntimeProof(input.eventType) : true,
+      allowExternalArtifactRef: durableFullDebug && isCriticalAiRuntimeProof(input.eventType),
     },
-    dataQualityFlags: input.parserErrors,
-    payload: { structuredRuntimeEvent },
+    dataQualityFlags: durableFullDebug ? input.parserErrors : [],
+    payload: { structuredRuntimeEvent: durableEvent },
   });
 };

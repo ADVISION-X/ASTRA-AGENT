@@ -4,6 +4,7 @@ import type {
 } from "../../capabilities/nerve-bus/contract.js";
 
 import type { WorkbenchRuntime } from "./workbench-contract.js";
+import { recordAiOutputSummaryAlias } from "../../capabilities/ai/index.js";
 import {
   buildMirroredEnvelopeBase,
   buildPayloadDocument,
@@ -28,6 +29,7 @@ type AiRuntimeProofRecord = {
   qualityDecisionReason?: string | null;
   outputBoundaryDecision?: string | null;
   dataQualityFlags?: string[];
+  outputRefs?: unknown;
 };
 
 const PAGE_PREPARATION_TASK_TYPE = "page_preparation_judgment";
@@ -41,9 +43,18 @@ const readString = (value: unknown): string | null => typeof value === "string" 
 
 const readNumber = (value: unknown): number | null => typeof value === "number" && Number.isFinite(value) ? value : null;
 
+const readStringArray = (value: unknown): string[] => Array.isArray(value)
+  ? value.filter((entry): entry is string => typeof entry === "string" && entry.length > 0)
+  : [];
+
 const readRuntimeProof = (value: unknown): AiRuntimeProofRecord | null => isRecord(value) && isRecord(value.runtimeProof)
   ? value.runtimeProof
   : null;
+
+const resolveAuthoritativeAiOutputRef = (aiResult: unknown): string | null => {
+  const runtimeProof = readRuntimeProof(aiResult);
+  return readStringArray(runtimeProof?.outputRefs)[0] ?? null;
+};
 
 const buildAiDiagnosticFields = (aiResult: unknown) => {
   const result = isRecord(aiResult) ? aiResult : {};
@@ -210,6 +221,10 @@ const buildWorkbenchAiResponse = (input: {
     isProductVideo: resolvedDecision.isProductVideo,
     mustReview: resolvedDecision.mustReview,
     diagnostics,
+  });
+  recordAiOutputSummaryAlias({
+    aliasRef: resolvedDecision.status === "success" ? outputPayload.documentRef : null,
+    sourceRef: resolveAuthoritativeAiOutputRef(input.aiResult),
   });
 
   return {

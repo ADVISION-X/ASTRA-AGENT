@@ -41,6 +41,14 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
   const prepare = steps.find((step) => step.stepId === "prepare-ai-input");
   const startupPreparation = steps.find((step) => step.stepId === "startup-preparation");
   const judge = steps.find((step) => step.stepId === "judge-seeding-video");
+  const observeCommentsState = steps.find((step) => step.stepId === "observe-comments-entry-page-state");
+  const analyzeComments = steps.find((step) => step.stepId === "analyze-comments-entry-target-candidate");
+  const locateComments = steps.find((step) => step.stepId === "locate-comments-entry-target");
+  const normalizeComments = steps.find((step) => step.stepId === "normalize-comments-target");
+  const clickComments = steps.find((step) => step.stepId === "click-comments-button");
+  const writeSeedingEvidence = steps.find((step) => step.stepId === "write-seeding-evidence-record");
+  const finalizeSeedingPacket = steps.find((step) => step.stepId === "finalize-seeding-evidence-packet");
+  const finalizeSeedingBrowseLedger = steps.find((step) => step.stepId === "finalize-seeding-browse-ledger");
   const analyzeNext = steps.find((step) => step.stepId === "analyze-next-item-target-candidate");
   const locateNext = steps.find((step) => step.stepId === "locate-next-item-target");
   const normalizeNext = steps.find((step) => step.stepId === "normalize-next-video-arrow");
@@ -83,12 +91,56 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
   const routePlanOwnsProductYesNoRouting = routePlanTransitions.some((transition) =>
     transition.transitionId === "judge-seeding-video:read-comments-and-save-evidence"
     && transition.onStatus === "success"
-    && transition.toStepId === "observe-comments-button"
+    && transition.toStepId === "observe-comments-entry-page-state"
   ) && routePlanTransitions.some((transition) =>
     transition.transitionId === "judge-seeding-video:skip-current-video"
     && transition.onStatus === "success"
     && transition.toStepId === "observe-next-item-page-state"
   );
+  const hasGovernedPositiveCommentsPath =
+    routePlanTransitions.some((transition) => transition.fromStepId === "judge-seeding-video" && transition.onStatus === "success" && transition.toStepId === "observe-comments-entry-page-state")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "observe-comments-entry-page-state" && transition.onStatus === "success" && transition.toStepId === "analyze-comments-entry-target-candidate")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "analyze-comments-entry-target-candidate" && transition.onStatus === "success" && transition.toStepId === "locate-comments-entry-target")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "locate-comments-entry-target" && transition.onStatus === "success" && transition.toStepId === "normalize-comments-target")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "normalize-comments-target" && transition.onStatus === "success" && transition.toStepId === "click-comments-button")
+    && observeCommentsState?.targetAbilityGroupId === "page-state"
+    && observeCommentsState.childCapabilityId === "observe-video-surface"
+    && observeCommentsState.inputRefs.includes("screenshotEvidenceRef")
+    && observeCommentsState.inputRefs.includes("targetUrl")
+    && observeCommentsState.outputRefPolicy.storeAs.includes("pageStateRef")
+    && analyzeComments?.stepKind === "ai"
+    && analyzeComments.promptContractId === "vision.commentsEntryTargetCandidate.v1"
+    && analyzeComments.inputRefs.includes("promptInputRef")
+    && analyzeComments.inputRefs.includes("screenshotEvidenceRef")
+    && analyzeComments.outputRefPolicy.storeAs.includes("aiTargetCandidateRef")
+    && analyzeComments.outputRefPolicy.storeAs.includes("sourceAiResultRef")
+    && locateComments?.targetAbilityGroupId === "visual-target"
+    && locateComments.childCapabilityId === "observe-comments-button"
+    && locateComments.inputRefs.includes("aiTargetCandidateRef")
+    && locateComments.inputRefs.includes("pageStateRef")
+    && locateComments.inputRefs.includes("screenshotEvidenceRef")
+    && locateComments.outputRefPolicy.storeAs.includes("visualTargetRef")
+    && normalizeComments?.targetAbilityGroupId === "geometry-guard"
+    && normalizeComments.childCapabilityId === "normalize-coordinate-geometry"
+    && normalizeComments.inputRefs.includes("visualTargetRef")
+    && clickComments?.targetAbilityGroupId === "mouse-click"
+    && clickComments.childCapabilityId === "click-browser-coordinate"
+    && clickComments.inputRefs.includes("visualTargetRef")
+    && clickComments.inputRefs.includes("geometryProofRef")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "analyze-comment-intent" && transition.onStatus === "success" && transition.toStepId === "write-seeding-evidence-record")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "write-seeding-evidence-record" && transition.onStatus === "success" && transition.toStepId === "finalize-seeding-evidence-packet")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "finalize-seeding-evidence-packet" && transition.onStatus === "success" && transition.toStepId === "finalize-seeding-browse-ledger")
+    && writeSeedingEvidence?.targetAbilityGroupId === "forensics-persistence"
+    && writeSeedingEvidence.childCapabilityId === "write-evidence-record"
+    && writeSeedingEvidence.inputRefs.includes("commentsEvidenceRef")
+    && finalizeSeedingPacket?.targetAbilityGroupId === "forensics-persistence"
+    && finalizeSeedingPacket.childCapabilityId === "finalize-evidence-packet"
+    && finalizeSeedingPacket.inputRefs.includes("productPresenceAiResultRef")
+    && finalizeSeedingPacket.inputRefs.includes("commentIntentAiResultRef")
+    && finalizeSeedingBrowseLedger?.targetAbilityGroupId === "forensics-persistence"
+    && finalizeSeedingBrowseLedger.childCapabilityId === "finalize-browse-ledger"
+    && finalizeSeedingBrowseLedger.inputRefs.includes("productPresenceAiResultRef")
+    && finalizeSeedingBrowseLedger.inputRefs.includes("evidencePacketRecordRef");
   const hasForbiddenUncertainBranch = judgeTransitions.some((transition) =>
     transition.transitionId.includes("uncertain")
     || transition.toStepId === "request-human-review"
@@ -102,7 +154,7 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
     record.mapPackage.operationalMap.routePlanId === "product-discovery-route-plan.v1"
     && record.mapPackage.operationalMap.mapKind === "routePlanBoundMap"
     && routePlanTransitions.some((transition) => transition.fromStepId === "judge-seeding-video" && transition.onStatus === "success" && transition.toStepId === "observe-next-item-page-state")
-    && routePlanTransitions.some((transition) => transition.fromStepId === "persist-seeding-candidate-record" && transition.onStatus === "success" && transition.toStepId === "observe-next-item-page-state")
+    && routePlanTransitions.some((transition) => transition.fromStepId === "finalize-seeding-browse-ledger" && transition.onStatus === "success" && transition.toStepId === "observe-next-item-page-state")
     && routePlanTransitions.some((transition) => transition.fromStepId === "observe-next-item-page-state" && transition.onStatus === "success" && transition.toStepId === "analyze-next-item-target-candidate")
     && routePlanTransitions.some((transition) => transition.fromStepId === "analyze-next-item-target-candidate" && transition.onStatus === "success" && transition.toStepId === "locate-next-item-target")
     && routePlanTransitions.some((transition) => transition.fromStepId === "locate-next-item-target" && transition.onStatus === "success" && transition.toStepId === "normalize-next-video-arrow")
@@ -131,7 +183,7 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
     && clickNext.inputRefs.includes("geometryProofRef")
     && clickNext.inputRefs.includes("sourceTargetRef")
     && verifyNext?.stepKind === "ai"
-    && verifyNext.promptContractId === "vision.pagePreparation.v1"
+    && verifyNext.promptContractId === "vision.nextItemAdvanced.v1"
     && !hasForbiddenVideoChangePav
     && !usesLegacyNextVideoScrollPath;
   const hasChain = capture?.outputRefPolicy.storeAs.includes("screenshotEvidenceRef") === true
@@ -151,12 +203,13 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
     && !duplicatesRoutePlanOwnedTransitions
     && !mapOwnsAiSuccessRouting
     && routePlanOwnsProductYesNoRouting
+    && hasGovernedPositiveCommentsPath
     && hasAutomaticNonProductClickPath;
 
   return hasChain
     ? []
     : [createPromptContractFinding(
       record,
-      "Seeding video map packages must be weak routePlanBoundMap entry spines: startup/product AI handoffs may use promptInputRef, but frame-specific sampling refs/steps and post-judgment action chains belong to Route Plan or ability owners. ProductPresence must stay binary route-only and must not leak next-item target candidate ownership. Advance-next-item must pass observe-next-item-page-state -> analyze-next-item-target-candidate -> locate-next-item-target -> normalize-next-video-arrow, and click-next-video-arrow must pass through post-click visible-state verification before capture-video-viewport. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
+      "Seeding video map packages must be weak routePlanBoundMap entry spines: startup/product AI handoffs may use promptInputRef, but frame-specific sampling refs/steps and post-judgment action chains belong to Route Plan or ability owners. ProductPresence must stay binary route-only and must not leak target candidate ownership. Product-yes must pass observe-comments-entry-page-state -> analyze-comments-entry-target-candidate -> locate-comments-entry-target -> normalize-comments-target -> click-comments-button -> write-seeding-evidence-record -> finalize-seeding-evidence-packet -> finalize-seeding-browse-ledger with vision.commentsEntryTargetCandidate.v1. Advance-next-item must pass observe-next-item-page-state -> analyze-next-item-target-candidate -> locate-next-item-target -> normalize-next-video-arrow, and verify-next-item-advanced must use vision.nextItemAdvanced.v1 before capture-video-viewport. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
     )];
 };
