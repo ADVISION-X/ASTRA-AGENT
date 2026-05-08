@@ -12,6 +12,7 @@ type PropertyBinding = {
 
 const DISPATCH_FILE = "src/lib/local-runtime/workbench-screenshot-dispatch-input.ts";
 const RESULT_ENVELOPE_FILE = "src/lib/local-runtime/workbench-ability-result-envelope.ts";
+const RESULT_PROOF_SUMMARY_FILE = "src/lib/local-runtime/workbench-ability-result-proof-summary.ts";
 const HANDOFF_FILE = "src/lib/local-runtime/workbench-screenshot-source-handoff.ts";
 const AI_INPUT_PROOF_REGISTRY_FILE = "src/capabilities/ai/shared/ai-input-proof-registry.ts";
 const COMMON_BINDINGS: PropertyBinding[] = [
@@ -278,10 +279,11 @@ const getSourceHandoffFindings = (project: Project, lawId: string): Finding[] =>
 const getTerminalProofSummaryFindings = (project: Project, lawId: string): Finding[] => {
   const registrySource = getSourceFileOrThrow(project, AI_INPUT_PROOF_REGISTRY_FILE);
   const hasTerminalProofSummary =
-    functionHasFields(project, RESULT_ENVELOPE_FILE, "buildScreenshotProofSummary", SCREENSHOT_PROOF_SUMMARY_FIELDS)
-    && functionHasFields(project, RESULT_ENVELOPE_FILE, "buildPrepareAiInputProofSummary", PREPARE_AI_PROOF_SUMMARY_FIELDS)
-    && hasCallExpressionNamed(project, RESULT_ENVELOPE_FILE, "recordAbilityResultProofSummary")
-    && hasCallExpressionNamed(project, RESULT_ENVELOPE_FILE, "recordAiInputProofSummary")
+    functionHasFields(project, RESULT_PROOF_SUMMARY_FILE, "buildScreenshotProofSummary", SCREENSHOT_PROOF_SUMMARY_FIELDS)
+    && functionHasFields(project, RESULT_PROOF_SUMMARY_FILE, "buildPrepareAiInputProofSummary", PREPARE_AI_PROOF_SUMMARY_FIELDS)
+    && hasCallExpressionNamed(project, RESULT_PROOF_SUMMARY_FILE, "recordAbilityResultProofSummary")
+    && hasCallExpressionNamed(project, RESULT_PROOF_SUMMARY_FILE, "recordAiInputProofSummary")
+    && hasCallExpressionNamed(project, RESULT_ENVELOPE_FILE, "buildAbilityResultProofSummary")
     && Boolean(registrySource.getTypeAlias("AiInputProofSummary"))
     && Boolean(registrySource.getFunction("recordAiInputProofSummary"));
 
@@ -289,7 +291,7 @@ const getTerminalProofSummaryFindings = (project: Project, lawId: string): Findi
     ? []
     : [createFinding({
       lawId,
-      file: RESULT_ENVELOPE_FILE,
+      file: RESULT_PROOF_SUMMARY_FILE,
       line: 1,
       severity: "fatal",
       message: "Screenshot success and prepare-ai-input success must project terminal-auditable artifact, hash, dimension, promptInputRef, and aiInputArtifactRef proof fields without raw image payloads.",

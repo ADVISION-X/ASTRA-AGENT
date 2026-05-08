@@ -1,320 +1,416 @@
-继续完成后，当前兼容性质检结论是：**FAIL，不建议继续往功能调试层推进。**
-现在不是普通代码问题，而是**法案源、执法生成物、runner summary、phase gate、docs 状态之间存在互相打架**。
+## 文档状态
 
-我先说明覆盖边界：GitHub 工具无法直接给我完整目录树，所以我不能假装“物理上逐文件全量读完”。但我已经读取了当前最高权威链路：Kernel、Index、冻结基线、执法系统施工图、phase gate、generated audit-plan/conflicts/runner-summary、runner、build-audit-artifacts、CI-FULL、PAV 法案、AI 法案、阶段验收/第五阶段文档，并用搜索补扫了 modules、docs、inspector、registry、phase 相关文件。
+- status: archived / historical debugging analysis only
+- 本文形成于 phase-four 向 phase-five 切换前后的分析阶段，含有 phase-04 storage / authority 样本，不是当前 phase-five final-delivery debugging authority。
+- 当前 authority 以 Kernel / Index / active phase gate / generated runner-summary 为准。
 
-## 总结结论
+结论很明确：**现在不是“卡死在启动”，也不是“AI 没起来”，更不是 Commander / Nerve Bus / Open / Forensics 主链崩了。**
 
-当前系统最大的矛盾不是“某个 inspector 没写好”，而是：
+真正卡死点是：
 
-**执法系统自己已经发现 blocking conflict，但最终 summary 仍然显示 PASS。**
+```txt
+Orchestration 跑到地图步骤：
+locate-next-item-target
 
-这会导致你现在看到的任何 PASS 都不能直接相信。
+调用能力组：
+visual-target
 
----
+子能力：
+observe-next-item-target-candidate
 
-## P0-01：`audit-conflicts` 已有阻断冲突，但 `runner-summary` 仍然 PASS
-
-`audit-conflicts.generated.json` 明确记录了 8 个 duplicate active lawId，全部集中在 `module-post-action-verification-capability.instructions.md`，包括 `GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2` 到 `008-V2` 的重复声明。
-
-但是 `runner-summary.json` 却显示：
-
-* `passed: true`
-* `inspectors: 1`
-* `blocking: 0`
-* 只跑了 `page-state-capability-owner`
-
-这和当前 audit-plan 的 20 个 owner 完全不一致。
-
-更严重的是，当前 `audit-plan.generated.json` 已经是 `phase-04-full-enforcement`，并列出了大量 owner，包括 map、debug-loop、capability governance、AI、orchestration、commander、PAV、forensics、audit-system 等，不可能只跑 1 个 page-state inspector 就代表全局 PASS。
-
-**判断：P0。**
-当前 `runner-summary.json` 是 stale summary 或局部 summary，不能作为全仓执法通过依据。
-
-**修复方向：**
-
-1. 先删除或标记旧 `runner-summary.json` 不可信。
-2. 修复 PAV duplicate lawId。
-3. 重新运行 `npm run audit:build`。
-4. 再运行 `npm run audit`。
-5. 只有 `audit-conflicts = []` 且 runner-summary 覆盖完整 audit-plan owners，才允许显示 PASS。
-
----
-
-## P0-02：PAV 法案文件被重复拼接，造成 lawId 重复
-
-`module-post-action-verification-capability.instructions.md` 不是单纯某几行重复，而是出现了完整法案段落重复拼接。文件前半部分已经定义了 PAV FINAL、001-V2 到 008-V2、Final Readiness Gate；后面又重新出现 front matter、标题、Global Baseline、001-V2 等内容。
-
-这正好对应 `audit-conflicts.generated.json` 里的 8 个 duplicate active lawId。
-
-**判断：P0。**
-这是当前最直接的 blocking 根因。
-
-**修复方向：**
-
-只保留一套 PAV FINAL 法案。删除第二段重复拼接内容。然后重新生成：
-
-```bash
-npm run audit:build
-npm run audit:post-action-verification
-npm run audit
+失败原因：
+input_schema_invalid:
+sourceProof.ai.aiResultRef:String must contain at most 200 character(s)
 ```
 
+日志里最后的硬失败就是 `CAPABILITY_CALL_FAILED`，随后 Orchestration 进入 `MISSION_FAILED`，失败都指向同一个原因：`sourceProof.ai.aiResultRef` 超过 200 字符。
+
 ---
 
-## P0-03：执法施工图说可显式开启 production mutation negative proof，但 runner 永久禁用
+# 一、按故事主链看，现在跑到了哪里
 
-执法系统施工图明确写了：默认 law-compliance audit 可以跳过全量 production mutation negative proof；但如果需要执行生产突变证明，应显式设置 `GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1` 或运行对应 owner 的局部证明命令。
+按照 GrassEye 故事情节：
 
-但 `runner.ts` 现在的逻辑是：
+```txt
+人类提出任务
+→ Commander 接单
+→ Nerve Bus 传递
+→ Orchestration 读地图
+→ Open 打开页面
+→ Screenshot / AI / Page State 形成证据
+→ Visual Target 根据 AI 证据定位目标
+→ Geometry Guard 校准
+→ Mouse Scroll / Click 执行动作
+→ Forensics 记忆落账
+```
+
+你的日志已经跑过了前半段：
+
+```txt
+启动成功
+AI readiness 成功
+map package readiness 成功
+Commander Console 打开成功
+human command validated
+mission preflight passed
+command accepted
+open-facebook-reels success
+capture-video-viewport success
+AI page_preparation_judgment 成功
+```
+
+也就是说，**身体已经启动，神经已经通，地图已经选中，打开页面也成功了。**
+
+卡在更后面：
+
+```txt
+AI 已经给出下一条视频/下一目标的候选判断
+Orchestration 准备让 Visual Target 定位“下一条/下一目标”
+Visual Target 收到输入
+Visual Target schema gate 拒绝输入
+Mission 失败
+```
+
+这和故事情节里的定位完全吻合：Visual Target 是“眼睛定位肌肉”，它不是大脑；AI 是大脑，但 AI 的判断结果必须以受治理 proof/ref 交给 Visual Target。故事情节里也明确：能力组是固定身体，AI 是大脑但不是皇帝，Nerve Bus 是神经，Forensics 是记忆。
+
+---
+
+# 二、根因不是 Visual Target schema 错
+
+仓库里 `visual-target/schema.ts` 明确规定：
 
 ```ts
-if (process.env[RUN_NEGATIVE_PROOF_ENV] === "1") {
-  process.stdout.write("[AUDIT] production mutation negative proof is permanently disabled; ignoring GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1.\n");
+const limitedString = (max: number) => z.string().min(1).max(max);
+
+const VisualTargetAiSourceProofSchema = z.object({
+  aiResultRef: limitedString(200),
+  aiProofRef: limitedString(200),
+  ...
+})
+```
+
+所以 `sourceProof.ai.aiResultRef` 最多 200 字符是 Visual Target 的输入契约。
+
+这个限制是合理的。
+
+为什么合理？因为 Visual Target 不能吃一整串长上下文链，它只应该拿到**短 ref / proof ref / hash ref**，然后根据 ref 去证明 AI 判断来源。否则 Visual Target 就会变成“半个 Forensics + 半个 Orchestration + 半个 AI”，这违反大道至简。
+
+所以不要第一反应去把 `limitedString(200)` 改成 500、1000、2000。那是把问题扩大，不是解决问题。
+
+---
+
+# 三、真正根因：本地 runtime 把长 AI outputRef 当成 aiResultRef 塞给 Visual Target
+
+关键文件是：
+
+```txt
+src/lib/local-runtime/workbench-visual-dispatch-input-next-item-target.ts
+```
+
+这里构造 next-item 的 Visual Target 输入。
+
+代码里：
+
+```ts
+const aiTargetCandidateRef = resolveAiTargetCandidateRef(payload);
+const aiSummary = resolveAiVisualTargetCandidateOutputSummary(aiTargetCandidateRef);
+...
+const governedAiResultRef = aiSummary.aiResultRef;
+...
+sourceProof: {
+  ai: {
+    aiResultRef: governedAiResultRef,
+    aiProofRef: aiSummary.aiProofRef,
+    ...
+  }
 }
 ```
 
-然后无条件给所有 heavy proof 设置 skip。
+也就是说，它把 `aiSummary.aiResultRef` 直接写进了 `sourceProof.ai.aiResultRef`。
 
-这就形成了明确冲突：
-
-| 文件        | 口径           |
-| --------- | ------------ |
-| 执法施工图     | 默认跳过，但允许显式开启 |
-| runner.ts | 即使显式开启也永久忽略  |
-
-**判断：P0。**
-这会让“需要时可自证”的机制失效，尤其是你现在处于最后调试阶段，必须能做真实突变证明。
-
-**修复方向：**
-
-保留默认 skip，但改成：
-
-* 默认：skip heavy negative proof；
-* 当 `GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1`：不设置全局 skip；
-* 或者 runner 仍默认 skip，但必须保留 per-owner proof 命令可真实执行，且不得输出“permanently disabled”。
-
----
-
-## P0-04：冻结基线 / Kernel / phase gate 对 `debug-loop-boundary` 的身份存在模糊冲突
-
-Kernel 明确当前 active ability groups 是 14 个，foundation laws 是 5 个，support governance domain 只有 `map-plugin-package`，local development tooling 是 `debug-loop-controller`。
-
-冻结基线也同样定义为：
-
-* 14 个 active ability groups
-* 5 个 foundation laws
-* 1 个 support governance domain
-* 本地开发工具：debug-loop-controller
-  并强调后续 generated registry、matrix、audit-plan、phase-gate、manifest、inspector 必须以冻结基线为唯一源头。
-
-但是当前 phase gate 里出现了 `debug-loop-boundary`，并进入 `activeLawDomains`。
-同时 generated audit-plan 也把 `debug-loop-boundary` 作为 owner 计划执行。
-
-`debug-loop-boundary` 自己的法案又说它不是 14 个 active ability group，不是 production runtime owner，只能作为 governance/audit owner 存在。
-
-这里不是说 `debug-loop-boundary` 一定要删，而是当前身份没闭合：
-
-* 它不是 active ability group；
-* 它不是 support governance domain；
-* 它不是 foundation law；
-* 但它进入了 phase gate 和 audit-plan；
-* 冻结基线又说 phase-gate 必须以冻结基线为唯一源头。
-
-**判断：P0/P1 之间，偏 P0。**
-因为这会导致“额外治理域是否可进 current phase gate”没有唯一规则。
-
-**修复方向：**
-
-二选一：
-
-1. **把 debug-loop-boundary 正式加入 Kernel / 冻结基线的 support governance domains**，例如变成：
-   `support governance domains: map-plugin-package, debug-loop-boundary`
-2. **或者从 phase gate / audit-plan 中移除 debug-loop-boundary**，只保留独立命令 `npm run audit:debug-loop-boundary`，不参与 full-enforcement 默认主链。
-
-我更建议第 1 个，因为你现在已经给它建立了完整 manifest、law、inspector、negative-proof 边界。
-
----
-
-## P0-05：AI 是唯一解释/判断权威，但部分执行层仍有“字符串匹配 routeLabel”的非 AI 逻辑边界风险
-
-AI 法案明确说：AI 是视觉、页面、blocker、readiness、target identity、comment understanding、product/business、routeLabel interpretation 的唯一 owner；非 AI 能力组只能做打开、截图、包装 raw observation、传输、schema 校验、坐标校验、机械动作、机械后验证和证据持久化。
-
-`transition-evaluator.ts` 里 Orchestration 会读取 `branchFieldValues.routeLabel`，然后把 routeLabel 与 transitionId 后缀做 normalize 后匹配。
-
-这部分不一定违法，因为 Orchestration 可以根据 AI 返回的结构化 routeLabel 做流程选择；但风险在于：
-
-* Orchestration 不能解释 routeLabel 的语义；
-* 只能做机械匹配；
-* transitionId 命名本身不能暗含非 AI 语义判断；
-* 如果未来有人用 transition suffix 设计复杂语义，就会变成非 AI 参与判断。
-
-**判断：P1。**
-当前看像“机械路由”，但需要 inspector 锁死，防止它演变成非 AI 判断。
-
-**修复方向：**
-
-在 Orchestration inspector 增加规则：
-
-* 允许：`routeLabel === transition suffix` 的机械匹配；
-* 禁止：Orchestration 根据 `routeLabel` 内容做业务含义判断；
-* 禁止：非 AI 根据 page/video/comment/product 语义生成 routeLabel；
-* routeLabel 必须来自 AI result 或明确 AI-owned contract。
-
----
-
-## P1-01：阶段文档存在历史 verify 体系残留，容易误导当前 phase-four 执法链
-
-第三阶段验收报告里大量记录 `verify:*` 命令作为阶段通过依据，例如 `verify:coordinate`、`verify:delivery`、`verify:evidence-packet`、`verify:browse-flow`、`verify:phase3` 等。
-
-但当前 Kernel 和执法施工图都明确：不要把 verify scripts 当 enforcement truth；当前唯一执法链是：
+再看 AI summary 的来源：
 
 ```txt
-law file -> owner manifest -> generated registry / matrix / audit plan -> owner inspector -> audit runner -> runner summary
+src/capabilities/ai/runtime/ai-output-summary-registry.ts
 ```
 
-执法施工图也明确禁止 scripts/verify 作为能力验收、禁止 verify-* 命令作为 inspector 替代。
+这里 `buildSummaryBase()` 直接把 `input.outputRef` 保存成：
 
-**判断：P1。**
-第三阶段文档可以归档保留，但必须标注历史验收记录，不能参与当前 phase-four 质量结论。
-
-**修复方向：**
-
-在 phase-03 acceptance report 顶部加醒目标记：
-
-```md
-status: archived / historical acceptance only
-not current enforcement truth
-current enforcement truth = scripts/audit generated artifacts + owner inspectors + audit runner
+```ts
+aiResultRef: input.outputRef
 ```
 
----
+也就是说，AI 的 `aiResultRef` 不是一个压缩后的短 ref，而是原始 outputRef。
 
-## P1-02：第五阶段文档状态正确，但必须防止被 Codex / AI 当成当前任务依据
-
-第五阶段文档顶部已经写得比较清楚：`future-draft / inactive until Kernel upgrades Current phase to phase-five`。
-
-Kernel 当前仍是 phase-four full-law enforcement。
-
-所以这里目前不是冲突，但它属于**高风险误读源**：如果 Codex 在调试时读到第五阶段内容，可能提前引入高级 AI 生成地图、本地程序/iPhone Mirroring 等内容，造成 phase 越权。
-
-**判断：P1。**
-
-**修复方向：**
-
-所有 future-draft 文档统一加 front matter：
-
-```md
-status: future-draft
-activationCondition: Kernel Current phase upgrades to phase-five
-mustNotAffectCurrentAudit: true
-```
-
-并让 capability-group-governance inspector 检查 future-draft 不得进入 current phase audit-plan。
-
----
-
-## P1-03：静态覆盖进度文件与当前 runner/generated 状态不同步
-
-`docs/audit/static-clause-enforcement-progress.json` 显示：
-
-* `globalStatus: in_progress`
-* `unresolvedTotal: 57`
-* `completedLawIds: []`
-* `lastValidatedAt: null`
-* 指向 `scripts/audit/generated/runner-summary.json` 和 `static-clause-coverage.generated.json`。
-
-但 runner-summary 显示 PASS。
-
-这会产生两个口径：
-
-| 文件                     | 状态                        |
-| ---------------------- | ------------------------- |
-| static-clause progress | in_progress，57 unresolved |
-| runner-summary         | PASS，blocking 0           |
-
-**判断：P1。**
-这会误导调试判断：到底是系统通过了，还是静态法条覆盖还没完成？
-
-**修复方向：**
-
-让 static progress 不再作为人工状态文件长期漂移。它要么：
-
-1. 由 `audit:build` 自动生成；
-2. 要么标记为历史记录；
-3. 要么 runner-summary 必须包含 static coverage 状态。
-
----
-
-## 目前最优修复顺序
-
-不要先改业务代码。先按这个顺序清理执法真相：
-
-### 第一步：修 PAV 重复法案
-
-删除 PAV 文件中第二套重复拼接的 law block。
-
-### 第二步：重建生成物
-
-```bash
-npm run audit:build
-```
-
-目标：
+而你这次运行里的 outputRef / command chain 非常长，里面包含：
 
 ```txt
-scripts/audit/generated/audit-conflicts.generated.json -> conflicts: []
+commander_command_xxx
+selectedMapId
+runId
+videoVisitId
+step
+capability
+payload
+...
 ```
 
-### 第三步：修 runner-summary 不可信问题
+最终导致：
 
-重新执行：
-
-```bash
-npm run audit
+```txt
+sourceProof.ai.aiResultRef > 200 chars
 ```
 
-目标：
-
-* runner-summary generatedAt 晚于 audit-plan / audit-conflicts；
-* inspectors 数量必须接近 audit-plan owners 数量；
-* 不能再出现只跑 1 个 inspector 却全局 PASS。
-
-### 第四步：修 negative proof 显式开关冲突
-
-把 `runner.ts` 的“permanently disabled; ignoring”改掉。默认跳过可以，但显式开启必须有效。
-
-### 第五步：确定 debug-loop-boundary 身份
-
-建议把它加入冻结基线和 Kernel 的 support governance domains，而不是悬空在 phase gate 里。
+然后 Visual Target schema gate 正确拒绝。
 
 ---
 
-## 给 Codex 的最短修复提示词
+# 四、按大道至简判断：这里是“ref 设计错位”，不是业务流程错
+
+这个问题本质不是 Facebook、不是真浏览器、不是 AI 模型、不是坐标识别。
+
+它是一个非常典型的治理错位：
 
 ```txt
-只修治理兼容性，不改业务功能。
+长链路追踪 ID
+被当成短 proof ref 使用
+```
 
-目标：
-1. 修复 PAV 法案重复拼接，消除 duplicate active lawId。
-2. 重新生成 audit artifacts，确保 audit-conflicts.generated.json conflicts=[]。
-3. 修复 runner-summary stale/局部 PASS 问题：runner-summary 必须来自当前 audit-plan 的完整执行结果，不能只跑 1 个 owner 仍显示全局 PASS。
-4. 修复 runner.ts negative proof 口径冲突：默认可跳过 heavy production mutation proof，但 GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1 或 owner 局部 proof 命令必须可真实执行，不得 permanently disabled。
-5. 明确 debug-loop-boundary 身份：要么加入 Kernel/冻结基线 support governance domains，要么从 phase gate 默认主链移除；不要悬空。
-6. phase-03 verify 文档只可作为 historical acceptance，不得作为当前 phase-four enforcement truth。
+大道至简下，应该是：
+
+```txt
+长链路上下文 → 留在 Forensics / Nerve Bus / Orchestration proof
+短稳定 ref → 传给 Visual Target / Geometry Guard / Mouse Click
+```
+
+现在变成了：
+
+```txt
+AI outputRef 很长
+→ AI summary 原样记录为 aiResultRef
+→ Visual Target 输入原样承接
+→ Visual Target schema 拦截
+```
+
+所以卡死根因可以一句话定义：
+
+```txt
+AI → Visual Target 的 proof handoff 没有做 compact ref / alias ref 收敛，导致 Orchestration 本地 runtime 把超长 AI outputRef 作为 aiResultRef 注入 Visual Target input，触发 Visual Target schema 200 字符上限。
+```
+
+---
+
+# 五、owner 归属判断
+
+按法案系统，不能乱归责。
+
+## 直接触发失败的 owner
+
+```txt
+visual-target
+```
+
+因为 schema gate 是 Visual Target 拒绝的。
+
+## 真正应该修的 owner
+
+```txt
+AI + Orchestration local runtime adapter + Visual Target handoff boundary
+```
+
+更精确地说：
+
+```txt
+AI summary registry 负责生成/保存 AI proof ref
+local-runtime visual dispatch builder 负责把 AI proof handoff 成 Visual Target input
+Visual Target 负责拒绝不合法输入
+```
+
+Visual Target 拒绝是对的；错在上游给了它不合规输入。
+
+---
+
+# 六、不要这样修
+
+这几个修法都不符合大道至简：
+
+```txt
+1. 不要把 Visual Target aiResultRef max(200) 改大。
+2. 不要让 Visual Target 自己截断 aiResultRef。
+3. 不要让 Visual Target 接受长 command chain。
+4. 不要让 Orchestration 绕过 schema。
+5. 不要在 map 里补一堆临时 transition。
+6. 不要让 Forensics 替 Visual Target 填字段。
+```
+
+尤其不能“简单把 200 改成 1000”。这会掩盖问题，并且把 ref 预算纪律打穿。
+
+---
+
+# 七、正确修法：在 AI summary / handoff 层生成 compact ref
+
+最干净的修复是：
+
+## 方案 A：AI summary registry 生成短 ref
+
+在：
+
+```txt
+src/capabilities/ai/runtime/ai-output-summary-registry.ts
+```
+
+新增一个稳定短 ref，例如：
+
+```ts
+compactAiResultRef = `ai-result:${sha256(outputRef).slice(0, 24)}`
+```
+
+然后 summary 里同时保留：
+
+```ts
+aiResultRef: compactAiResultRef
+rawOutputRef / outputRef: 原始长 ref
+```
+
+Visual Target 只吃：
+
+```txt
+aiResultRef = ai-result:xxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Forensics / debug / trace 仍保留原始长 outputRef。
+
+这是最符合大道至简的：**短 ref 传递，长证据归档。**
+
+---
+
+## 方案 B：在 `workbench-visual-dispatch-input-next-item-target.ts` 做 handoff alias
+
+这里已经有：
+
+```ts
+const buildCompactRef = (prefix: string, value: unknown) =>
+  `${prefix}:${buildHash(value).slice(0, 24)}`;
+```
+
+所以也可以在这里把：
+
+```ts
+const governedAiResultRef = aiSummary.aiResultRef;
+```
+
+改成：
+
+```ts
+const governedAiResultRef =
+  aiSummary.aiResultRef.length <= 200
+    ? aiSummary.aiResultRef
+    : buildCompactRef("ai-result", aiSummary.aiResultRef);
+```
+
+但这个方案要注意：不能只截短，还要保留映射关系，否则 Forensics 追不回原始 AI 输出。
+
+所以更完整应是：
+
+```txt
+compactAiResultRef
+→ originalAiResultRef
+→ aiProofRef
+→ outputPayloadHash
+```
+
+这个映射要进 AI summary registry 或 Forensics proof，而不是丢失。
+
+---
+
+# 八、顺手发现一个次级漂移：Forensics 存储路径还带 phase-04
+
+日志里多次出现：
+
+```txt
+storageRef=/Users/nexgen/Library/Application Support/GrassEye/local-data/phase-04-full-enforcement/state.json
+```
+
+但当前仓库主权威已经是：
+
+```txt
+phase-05-final-delivery-debug
+```
+
+Kernel 也已经声明当前 phase 是 phase-five final-delivery debugging。
+
+这个不是本次 mission fail 的直接原因，但它是一个治理漂移：
+
+```txt
+运行数据目录 / Forensics storage namespace 仍残留 phase-04
+```
+
+建议列为 P1，不要和当前 P0 混修。当前 P0 是 `aiResultRef` 过长。
+
+---
+
+# 九、最终判断
+
+现在系统卡在这里：
+
+```txt
+地图运行到 locate-next-item-target
+→ Orchestration 调 Visual Target
+→ Visual Target 输入 schema 拦截
+→ sourceProof.ai.aiResultRef 超过 200
+→ Mission Failed
+```
+
+根因不是：
+
+```txt
+AI 模型没启动
+Commander 接单失败
+Nerve Bus 失败
+Open 失败
+Forensics 写账失败
+Facebook 页面打不开
+```
+
+根因是：
+
+```txt
+AI proof handoff 的 ref 设计没有收敛；
+长 outputRef 被当成短 aiResultRef 传给 Visual Target。
+```
+
+一句话修复纲领：
+
+```txt
+不要放宽 Visual Target schema；
+要在 AI summary / local runtime handoff 边界生成 compact governed AI result ref，并保留 original outputRef → compact ref 的 Forensics 可追溯映射。
+```
+
+---
+
+# 十、给 Codex 的最短修复提示词
+
+```txt
+当前 phase-05 runtime 卡死在 locate-next-item-target。日志失败为：
+Visual Target rejected invalid input schema:
+sourceProof.ai.aiResultRef:String must contain at most 200 character(s).
+
+不要放宽 Visual Target schema，不要把 max(200) 改大。
+根因是 AI → Visual Target handoff 把超长 AI outputRef 当成 aiResultRef 传入。
+
+请修复：
+1. 在 AI output summary 或 next-item visual dispatch handoff 层生成稳定 compact aiResultRef，例如 ai-result:<sha256(originalRef).slice(0,24)>。
+2. Visual Target input 只接收 compact aiResultRef。
+3. original long outputRef 必须保留在 proof/Forensics/summary 映射里，保证可追溯。
+4. 修复文件优先：
+   - src/capabilities/ai/runtime/ai-output-summary-registry.ts
+   - src/lib/local-runtime/workbench-visual-dispatch-input-next-item-target.ts
+5. 不得让 Visual Target 自己截断，不得绕过 schema，不得扩大 schema 字段上限。
+6. 补 inspector/negative proof：构造超长 AI outputRef 时，runtime 必须传 compact ref，Visual Target schema 必须 PASS；删除 compact handoff 后 audit:visual-target 必须 FAIL。
 7. 修复后运行：
-npm run audit:build
-npm run audit
-npm run ci:full
-
-验收标准：
-audit-conflicts=[]
-runner-summary generatedAt 最新
-runner-summary inspectors 覆盖 current audit-plan owners
-ci:full 不靠 stale summary 通过
-不新增 owner
-不恢复 deleted owner
-不手改 generated 假 PASS
+   npm run audit:visual-target
+   npm run grasseye:start
+   再用 Facebook map 重跑，确认 mission 不再因 aiResultRef length failed。
 ```
 
-最终判断：**当前系统不能以 PASS 作为可信结论；先修执法链真相，再继续调业务。**
+当前第一刀就砍这里，别分散。

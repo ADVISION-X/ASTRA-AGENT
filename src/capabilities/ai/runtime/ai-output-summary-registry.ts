@@ -14,6 +14,7 @@ import type {
 
 type AiOutputSummaryBase = {
   aiResultRef: string;
+  rawAiResultRef: string;
   aiProofRef: string;
   promptContractId: string;
   promptContractVersion: string;
@@ -68,13 +69,22 @@ const summaries = new Map<string, RecordedAiOutputSummary>();
 const buildOutputPayloadHash = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
+const buildCompactAiResultRef = (outputRef: string) =>
+  `ai-result:${createHash("sha256").update(outputRef).digest("hex").slice(0, 24)}`;
+
+const storeAiOutputSummary = (summary: RecordedAiOutputSummary) => {
+  summaries.set(summary.rawAiResultRef, summary);
+  summaries.set(summary.aiResultRef, summary);
+};
+
 const buildSummaryBase = (input: {
   outputRef: string;
   request: ParsedAiAbilityInput;
   result: AiAbilityResult;
   output: unknown;
 }): AiOutputSummaryBase => ({
-  aiResultRef: input.outputRef,
+  aiResultRef: buildCompactAiResultRef(input.outputRef),
+  rawAiResultRef: input.outputRef,
   aiProofRef: input.result.runtimeProof.proofId,
   promptContractId: input.result.runtimeProof.promptContractId,
   promptContractVersion: input.result.runtimeProof.promptContractVersion,
@@ -139,7 +149,7 @@ export function recordAiOutputSummary(input: {
   }
 
   if (isSuccessfulVisualTargetCandidateAnalysis(input.request, input.result)) {
-    summaries.set(input.outputRef, {
+    storeAiOutputSummary({
       ...buildSummaryBase({ outputRef: input.outputRef, request: input.request, result: input.result, output: input.result.output }),
       taskType: "visual_target_candidate_analysis",
       targetCandidates: input.result.output.targetCandidates,
@@ -149,7 +159,7 @@ export function recordAiOutputSummary(input: {
 
   if (isSuccessfulPagePreparationJudgment(input.request, input.result)) {
     const typedRequest = input.request as Extract<ParsedAiAbilityInput, { taskType: "page_preparation_judgment" }>;
-    summaries.set(input.outputRef, {
+    storeAiOutputSummary({
       ...buildSummaryBase({ outputRef: input.outputRef, request: input.request, result: input.result, output: input.result.output }),
       taskType: "page_preparation_judgment",
       input: typedRequest.input,
@@ -160,7 +170,7 @@ export function recordAiOutputSummary(input: {
 
   if (isSuccessfulProductPresenceJudgment(input.request, input.result)) {
     const typedRequest = input.request as Extract<ParsedAiAbilityInput, { taskType: "product_presence_judgment" }>;
-    summaries.set(input.outputRef, {
+    storeAiOutputSummary({
       ...buildSummaryBase({ outputRef: input.outputRef, request: input.request, result: input.result, output: input.result.output }),
       taskType: "product_presence_judgment",
       input: typedRequest.input,
@@ -171,7 +181,7 @@ export function recordAiOutputSummary(input: {
 
   if (isSuccessfulCommentSignalSummary(input.request, input.result)) {
     const typedRequest = input.request as Extract<ParsedAiAbilityInput, { taskType: "comment_signal_summary" }>;
-    summaries.set(input.outputRef, {
+    storeAiOutputSummary({
       ...buildSummaryBase({ outputRef: input.outputRef, request: input.request, result: input.result, output: input.result.output }),
       taskType: "comment_signal_summary",
       input: typedRequest.input,

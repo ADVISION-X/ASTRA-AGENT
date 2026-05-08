@@ -3,7 +3,7 @@
 ## 文档状态
 
 - status: archived / historical acceptance only
-- 该文档不是当前 phase-four enforcement truth。
+- 该文档不是当前 phase-five final-delivery debugging authority。
 - 当前 enforcement truth = law file -> generated registry / matrix / audit plan -> owner inspector -> audit runner -> runner summary，再加现存 `acceptance:*` 脚本。
 - 文中出现的 `verify:*` 名称均为历史阶段标签；它们不是当前完成条件，且多数已不再存在于 package scripts 中。
 
