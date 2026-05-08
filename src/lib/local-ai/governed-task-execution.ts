@@ -72,6 +72,8 @@ export const executeGovernedTask = (request: LocalAiTaskRequest, roleConfig: Loc
       throw new Error("vision.pagePreparation forbids governed fallback execution.");
     case "vision.productPresence":
       throw new Error("vision.productPresence forbids governed heuristic execution; only model-backed AI may decide product presence.");
+    case "vision.nextItemTargetCandidate":
+      throw new Error("vision.nextItemTargetCandidate forbids governed heuristic execution; only model-backed AI may propose next-item candidates.");
     case "comments.ocr_cleanup":
       return executeOcrTask(request, roleConfig, createdAt);
     case "comments.intent_analysis":

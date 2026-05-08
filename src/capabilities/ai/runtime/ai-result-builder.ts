@@ -4,6 +4,7 @@ import type { ResolvedAiPromptContract } from "../ports/ai-prompt-registry-port.
 import { AiResultSchema } from "../schema.js";
 import { buildStableAiRef } from "../shared/ai-types.js";
 import { buildAiRuntimeProof } from "./ai-proof-builder.js";
+import { recordAiOutputSummary } from "./ai-output-summary-registry.js";
 
 function resolveAiOutputRef(input: {
   request: ParsedAiAbilityInput;
@@ -100,7 +101,7 @@ export function buildAiResult(input: {
 }) {
   const outputRef = resolveAiOutputRef(input);
 
-  return AiResultSchema.parse({
+  const result = AiResultSchema.parse({
     status: input.status,
     abilityGroupId: "ai",
     childCapabilityId: input.childContract.childCapabilityId,
@@ -126,4 +127,7 @@ export function buildAiResult(input: {
     schemaVersion: input.promptContract.schemaVersion,
     createdAt: input.createdAt,
   });
+
+  recordAiOutputSummary({ outputRef, request: input.request, result });
+  return result;
 }

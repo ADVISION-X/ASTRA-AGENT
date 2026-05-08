@@ -158,6 +158,8 @@ export {
   AiHealthReportSchema,
 } from "./schema-runtime.schema.js";
 
+export { AiVisualTargetCandidateOutputSchema } from "./schema-core.schema.js";
+
 export function parseAiInput(input: unknown) {
   return AiInputSchema.safeParse(input);
 }

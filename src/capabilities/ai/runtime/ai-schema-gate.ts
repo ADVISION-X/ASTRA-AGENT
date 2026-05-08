@@ -9,13 +9,14 @@ import {
   AiProductSignalSummaryOutputSchema,
   AiSchemaValidationOnlyOutputSchema,
   AiVisualOutputSchema,
+  AiVisualTargetCandidateOutputSchema,
 } from "../schema.js";
 
 const SCHEMA_BY_TASK_TYPE = {
   page_preparation_judgment: { schemaId: "ai.page_preparation_judgment.v1", schema: AiPagePreparationOutputSchema },
   product_presence_judgment: { schemaId: "ai.product_presence_judgment.v1", schema: AiVisualOutputSchema },
   visual_observation: { schemaId: "ai.visual_observation.v1", schema: AiVisualOutputSchema },
-  visual_target_candidate_analysis: { schemaId: "ai.visual_target_candidate_analysis.v1", schema: AiVisualOutputSchema },
+  visual_target_candidate_analysis: { schemaId: "ai.visual_target_candidate_analysis.v1", schema: AiVisualTargetCandidateOutputSchema },
   ocr_cleanup: { schemaId: "ai.ocr_cleanup.v1", schema: AiOcrCleanupOutputSchema },
   comment_signal_summary: { schemaId: "ai.comment_signal_summary.v1", schema: AiCommentSignalSummaryOutputSchema },
   product_signal_summary: { schemaId: "ai.product_signal_summary.v1", schema: AiProductSignalSummaryOutputSchema },

@@ -9,6 +9,7 @@ import type {
   AiProductSignalSummaryOutput,
   AiSchemaValidationOnlyOutput,
   AiVisualOutput,
+  AiVisualTargetCandidateOutput,
 } from "../contract.js";
 import type { MapAuthoringFallbackOutput } from "./ai-map-authoring-fallback.js";
 import { buildMapAuthoringFallback } from "./ai-map-authoring-fallback.js";
@@ -58,12 +59,34 @@ function buildVisualFallback(reason: string): AiVisualOutput {
   };
 }
 
+function buildVisualTargetCandidateFallback(reason: string): AiVisualTargetCandidateOutput {
+  return {
+    inputMode: "single_frame_fallback",
+    multiFrameEvidenceSetId: null,
+    contactSheetEvidenceId: null,
+    frameEvidenceIds: [],
+    screenshotEvidenceId: null,
+    sampledFrameCount: 1,
+    validFrameCount: 0,
+    expectedFrameCount: 1,
+    fallbackReason: reason,
+    missingFrames: [],
+    targetCandidates: [],
+    nonExecutableSummary: "当前截图中未识别到可治理的下一项候选目标。",
+    confidence: 0,
+    evidenceObservations: [],
+    reason,
+    uncertainty: [reason],
+    mustReview: false,
+  };
+}
+
 function buildFallbackByTaskType(reason: string) {
   return {
     page_preparation_judgment: buildPagePreparationFallback(reason),
     product_presence_judgment: buildVisualFallback(reason),
     visual_observation: buildVisualFallback(reason),
-    visual_target_candidate_analysis: buildVisualFallback(reason),
+    visual_target_candidate_analysis: buildVisualTargetCandidateFallback(reason),
     ocr_cleanup: { cleanedComments: [], uncertainText: [reason], confidence: 0 },
     comment_signal_summary: { purchaseIntent: "low", painPoints: [], complaints: [], demandTerms: [], confidence: 0 },
     product_signal_summary: { category: "unknown", useCase: "unknown", sellingPoints: [], painPoints: [], purchaseIntent: "low", risk: "high", score: 0, rationale: reason },
@@ -73,6 +96,6 @@ function buildFallbackByTaskType(reason: string) {
   } as const;
 }
 
-export function buildNonAuthoritativeOutput(taskType: AiAbilityInput["taskType"], reason: string): AiPagePreparationOutput | AiVisualOutput | AiOcrCleanupOutput | AiCommentSignalSummaryOutput | AiProductSignalSummaryOutput | AiEvidencePacketAnalysisOutput | MapAuthoringFallbackOutput | AiSchemaValidationOnlyOutput {
+export function buildNonAuthoritativeOutput(taskType: AiAbilityInput["taskType"], reason: string): AiPagePreparationOutput | AiVisualOutput | AiVisualTargetCandidateOutput | AiOcrCleanupOutput | AiCommentSignalSummaryOutput | AiProductSignalSummaryOutput | AiEvidencePacketAnalysisOutput | MapAuthoringFallbackOutput | AiSchemaValidationOnlyOutput {
   return buildFallbackByTaskType(reason)[taskType];
 }

@@ -1,4 +1,9 @@
-import { VisionTaskResultSchema } from "../../types/local-ai.js";
+import {
+  NextItemTargetCandidateTaskResultSchema,
+  VisionTaskResultSchema,
+} from "../../types/local-ai.js";
+import { parseNextItemTargetCandidateRuntimeOutput } from "./local-ai-runtime-target-candidate.js";
+import { buildNextItemTargetCandidatePromptParts } from "./local-ai-runtime-target-candidate-prompt.js";
 import { parseVisionRuntimeOutput } from "./local-ai-runtime-vision.js";
 import { buildVisionPromptParts } from "./local-ai-runtime-vision-prompt.js";
 import {
@@ -9,26 +14,35 @@ import {
   type RuntimeExecutionInput,
 } from "./local-ai-runtime-task-support.js";
 
-function resolveVisionRequestArtifacts(request: Extract<RuntimeExecutionInput["request"], { taskType: "vision.productPresence" }>) {
+type VisionProductPresenceRequest = Extract<RuntimeExecutionInput["request"], { taskType: "vision.productPresence" }>;
+type NextItemTargetCandidateRequest = Extract<RuntimeExecutionInput["request"], { taskType: "vision.nextItemTargetCandidate" }>;
+type SupportedVisionRequest = VisionProductPresenceRequest | NextItemTargetCandidateRequest;
+
+function resolveVisionRequestArtifacts(request: SupportedVisionRequest) {
   const imagePaths = request.evidenceRefs.map((ref) => ref.filePath).filter((filePath): filePath is string => typeof filePath === "string" && filePath.length > 0);
-  const promptParts = buildVisionPromptParts(request);
+  const promptParts = request.taskType === "vision.nextItemTargetCandidate"
+    ? buildNextItemTargetCandidatePromptParts(request)
+    : buildVisionPromptParts(request);
   return {
     imagePaths,
     promptParts,
     prompt: promptParts.fullPrompt,
     promptFullText: isFullAiIoDebugEnabled() ? promptParts.fullPrompt : undefined,
+    promptContractId: request.taskType === "vision.nextItemTargetCandidate"
+      ? "vision.nextItemTargetCandidate.v1"
+      : "vision.productPresence.v1",
     sourceScreenshotEvidenceId: typeof request.input.screenshotEvidenceId === "string" ? request.input.screenshotEvidenceId : undefined,
     aiInputArtifactRef: request.input.contactSheetEvidenceId ?? request.input.multiFrameEvidenceSetId ?? request.evidenceRefs[0]?.id,
   };
 }
 
 function buildVisionDebugStartPayload(input: RuntimeExecutionInput, artifacts: ReturnType<typeof resolveVisionRequestArtifacts>) {
-  const request = input.request as Extract<typeof input.request, { taskType: "vision.productPresence" }>;
+  const request = input.request as SupportedVisionRequest;
   return {
     eventType: "local_ai_runtime_request_started" as const,
     detail: `taskType=${request.taskType}; model=${input.roleConfig.model}; timeoutMs=60000; promptLength=${artifacts.prompt.length}; imageCount=${artifacts.imagePaths.length}`,
     taskType: request.taskType,
-    promptContractId: "vision.productPresence.v1",
+    promptContractId: artifacts.promptContractId,
     promptVersion: request.promptVersion,
     outputSchemaRef: request.schemaVersion,
     modelName: input.roleConfig.model,
@@ -49,7 +63,27 @@ function buildVisionDebugStartPayload(input: RuntimeExecutionInput, artifacts: R
   };
 }
 
-function buildVisionTaskResult(input: RuntimeExecutionInput, createdAt: string, payload: ReturnType<typeof parseVisionRuntimeOutput>["payload"]) {
+function buildVisionTaskResult(input: RuntimeExecutionInput, createdAt: string, payload: unknown) {
+  if (input.request.taskType === "vision.nextItemTargetCandidate") {
+    return NextItemTargetCandidateTaskResultSchema.parse({
+      id: input.request.id,
+      taskType: input.request.taskType,
+      modelRole: input.request.modelRole,
+      provider: "local",
+      runtime: input.roleConfig.runtime,
+      model: input.roleConfig.model,
+      implementationStatus: "model_backed",
+      promptVersion: input.request.promptVersion,
+      schemaVersion: input.request.schemaVersion,
+      evidenceRefs: input.request.evidenceRefs,
+      confidence: typeof payload === "object" && payload !== null && typeof (payload as { confidence?: unknown }).confidence === "number"
+        ? (payload as { confidence: number }).confidence
+        : 0,
+      createdAt,
+      result: payload,
+    });
+  }
+
   return VisionTaskResultSchema.parse({
     id: input.request.id,
     taskType: input.request.taskType,
@@ -61,14 +95,22 @@ function buildVisionTaskResult(input: RuntimeExecutionInput, createdAt: string, 
     promptVersion: input.request.promptVersion,
     schemaVersion: input.request.schemaVersion,
     evidenceRefs: input.request.evidenceRefs,
-    confidence: payload.confidence,
+    confidence: (payload as { confidence: number }).confidence,
     createdAt,
     result: payload,
   });
 }
 
+function buildNextItemParsedDecision(payload: { targetCandidates: unknown[] }) {
+  return `target_candidates:${payload.targetCandidates.length}`;
+}
+
+function buildProductPresenceParsedDecision(payload: { isProductVideo: boolean | null }) {
+  return payload.isProductVideo === true ? "product_yes" : payload.isProductVideo === false ? "product_no" : "product_uncertain";
+}
+
 export async function executeVisionRuntimeTask(input: RuntimeExecutionInput, createdAt: string) {
-  const request = input.request as Extract<typeof input.request, { taskType: "vision.productPresence" }>;
+  const request = input.request as SupportedVisionRequest;
   const artifacts = resolveVisionRequestArtifacts(request);
 
   await input.debugHook?.(buildVisionDebugStartPayload(input, artifacts));
@@ -81,6 +123,28 @@ export async function executeVisionRuntimeTask(input: RuntimeExecutionInput, cre
     ...(input.signal ? { signal: input.signal } : {}),
     ...(input.debugHook ? { debugHook: input.debugHook } : {}),
   });
+  if (request.taskType === "vision.nextItemTargetCandidate") {
+    const visionOutput = parseNextItemTargetCandidateRuntimeOutput(responseText, request);
+    await input.debugHook?.({
+      eventType: "local_ai_output_normalized",
+      detail: `taskType=${request.taskType}; adjusted=${String(visionOutput.adjusted)}; normalizedTargetCandidates=${visionOutput.normalizedCandidateCount}`,
+      taskType: request.taskType,
+      rawResponsePreview: buildPromptPreview(responseText),
+      rawResponseText: responseText,
+      parsedJson: visionOutput.payload,
+      parsedDecision: buildNextItemParsedDecision(visionOutput.payload),
+    });
+    const payload = visionOutput.payload;
+    await input.debugHook?.({
+      eventType: "local_ai_output_parsed",
+      detail: `taskType=${request.taskType}; confidence=${payload.confidence}; targetCandidates=${payload.targetCandidates.length}; reason=${buildPromptPreview(payload.reason)}`,
+      taskType: request.taskType,
+      parsedJson: payload,
+      parsedDecision: buildNextItemParsedDecision(payload),
+    });
+    return buildVisionTaskResult(input, createdAt, payload);
+  }
+
   const visionOutput = parseVisionRuntimeOutput(responseText, request);
   await input.debugHook?.({
     eventType: "local_ai_output_normalized",
@@ -89,7 +153,7 @@ export async function executeVisionRuntimeTask(input: RuntimeExecutionInput, cre
     rawResponsePreview: buildPromptPreview(responseText),
     rawResponseText: responseText,
     parsedJson: visionOutput.payload,
-    parsedDecision: visionOutput.payload.isProductVideo === true ? "product_yes" : visionOutput.payload.isProductVideo === false ? "product_no" : "product_uncertain",
+    parsedDecision: buildProductPresenceParsedDecision(visionOutput.payload),
   });
   const payload = visionOutput.payload;
   await input.debugHook?.({
@@ -97,7 +161,7 @@ export async function executeVisionRuntimeTask(input: RuntimeExecutionInput, cre
     detail: `taskType=${request.taskType}; confidence=${payload.confidence}; isProductVideo=${String(payload.isProductVideo)}; reason=${buildPromptPreview(payload.reason)}`,
     taskType: request.taskType,
     parsedJson: payload,
-    parsedDecision: payload.isProductVideo === true ? "product_yes" : payload.isProductVideo === false ? "product_no" : "product_uncertain",
+    parsedDecision: buildProductPresenceParsedDecision(payload),
   });
 
   return buildVisionTaskResult(input, createdAt, payload);

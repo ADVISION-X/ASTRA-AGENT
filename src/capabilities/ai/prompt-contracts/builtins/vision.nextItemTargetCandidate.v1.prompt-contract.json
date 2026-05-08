@@ -1,0 +1,99 @@
+{
+  "promptContractId": "vision.nextItemTargetCandidate.v1",
+  "promptId": "vision.nextItemTargetCandidate.v1",
+  "taskType": "visual_target_candidate_analysis",
+  "legacyTaskType": "vision.nextItemTargetCandidate",
+  "modelRole": "vision",
+  "promptVersion": "v1",
+  "schemaVersion": "vision.nextItemTargetCandidate.schema.v1",
+  "inputContract": "image_collection.ai_input",
+  "requiredInputRefs": [
+    "promptInputRef",
+    "screenshotEvidenceRef"
+  ],
+  "outputSchemaRef": "ai.visual_target_candidate_analysis.v1",
+  "allowedBranchFields": [],
+  "systemPromptTemplateRef": "src/lib/local-ai/prompts/vision-next-item-target-candidate.v1.ts",
+  "userPromptTemplateRef": "src/lib/local-ai/prompts/vision-next-item-target-candidate.v1.ts",
+  "purpose": "Extract governed next-item target candidates from the current viewport evidence so Visual Target can normalize one non-executable advance target.",
+  "forbiddenOutputs": [
+    "product presence judgment",
+    "routeLabel",
+    "click instruction",
+    "scroll instruction",
+    "dispatch_action",
+    "human review request",
+    "fabricated off-screen target",
+    "browser action execution decision"
+  ],
+  "prohibitedActions": [
+    "click",
+    "scroll",
+    "type",
+    "open_page",
+    "dispatch_action"
+  ],
+  "restrictedDataAccess": [
+    "cookies",
+    "credentials",
+    "hidden_token"
+  ],
+  "confidencePolicy": {
+    "minConfidence": 0,
+    "belowMin": "failed"
+  },
+  "reviewPolicy": {
+    "requiredWhen": []
+  },
+  "failurePolicy": {
+    "badJson": "failed",
+    "schemaMismatch": "failed",
+    "timeout": "failed",
+    "modelUnavailable": "failed"
+  },
+  "debugPolicy": {
+    "rawOutputRetention": "ref",
+    "includePromptHash": true
+  },
+  "promptHash": "sha256:bb1f125792a52aabff325b34f13c344fab203bff35c5462822eab3b79aa064b2",
+  "sensitiveOperation": false,
+  "promptContractHash": "sha256:bb1f125792a52aabff325b34f13c344fab203bff35c5462822eab3b79aa064b2",
+  "dataPolicy": {
+    "candidateOwnership": "ai_candidate_generation_only",
+    "candidateExecutionAuthority": "visual_target_and_geometry_guard_only",
+    "humanReviewForTargetCandidate": false
+  },
+  "outputSchema": {
+    "taskType": "vision.nextItemTargetCandidate",
+    "promptId": "vision.nextItemTargetCandidate.v1",
+    "promptVersion": "v1",
+    "schemaVersion": "vision.nextItemTargetCandidate.schema.v1",
+    "targetCandidates": [
+      {
+        "candidateId": "string",
+        "targetType": "next_item_target_candidate",
+        "coordinateSpace": "browser_viewport | source_image",
+        "boundingBox": {
+          "x": "number >= 0",
+          "y": "number >= 0",
+          "width": "number > 0",
+          "height": "number > 0"
+        },
+        "clickPoint": {
+          "x": "number >= 0",
+          "y": "number >= 0"
+        },
+        "confidence": "number 0..1",
+        "visibleText": "string | null",
+        "evidenceObservations": "string[]",
+        "uncertainty": "string[]"
+      }
+    ],
+    "nonExecutableSummary": "short human-readable summary for logging only; not an action instruction",
+    "confidence": "number 0..1",
+    "evidenceObservations": "string[] based only on visible current-frame evidence",
+    "reason": "one precise sentence explaining why these candidates match the next item target",
+    "uncertainty": "string[]",
+    "mustReview": false
+  }
+}

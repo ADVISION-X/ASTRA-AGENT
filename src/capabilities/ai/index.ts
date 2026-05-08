@@ -42,3 +42,7 @@ export {
   resolveAiInputProofSummary,
   type AiInputProofSummary,
 } from "./shared/ai-input-proof-registry.js";
+export {
+  resolveAiVisualTargetCandidateOutputSummary,
+  type AiVisualTargetCandidateOutputSummary,
+} from "./runtime/ai-output-summary-registry.js";

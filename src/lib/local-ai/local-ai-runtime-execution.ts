@@ -15,7 +15,7 @@ export async function executeRuntimeTask(input: RuntimeExecutionInput) {
     return executePagePreparationRuntimeTask(input, createdAt);
   }
 
-  if (input.request.taskType === "vision.productPresence") {
+  if (input.request.taskType === "vision.productPresence" || input.request.taskType === "vision.nextItemTargetCandidate") {
     return executeVisionRuntimeTask(input, createdAt);
   }
 

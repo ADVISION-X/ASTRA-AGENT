@@ -27,6 +27,7 @@ import {
   AiSchemaValidationStatusSchema,
   AiTaskTypeSchema,
   AiVisualOutputSchema,
+  AiVisualTargetCandidateOutputSchema,
 } from "./schema-core.schema.js";
 import { AiForbiddenActionOutputFieldSchema } from "./schema-runtime-output-boundary.schema.js";
 import {
@@ -232,7 +233,7 @@ const VisualObservationResultSchema = z.union([
 ]);
 
 const VisualTargetCandidateAnalysisResultSchema = z.union([
-  createAiSuccessResultSchema("visual_target_candidate_analysis", AiVisualOutputSchema),
+  createAiSuccessResultSchema("visual_target_candidate_analysis", AiVisualTargetCandidateOutputSchema),
   createAiFailedResultSchema("visual_target_candidate_analysis"),
   createAiReviewRequiredResultSchema("visual_target_candidate_analysis"),
 ]);

@@ -10,6 +10,7 @@ import {
   VisionProductPresencePayloadSchema,
   VisionProductPresenceRequestInputSchema,
 } from "../../types/vision-product-presence.js";
+import { VisionNextItemTargetCandidatePayloadSchema } from "../../types/vision-next-item-target-candidate.js";
 import {
   DEFAULT_AI_COST_POLICY,
   DEFAULT_AI_DATA_POLICY,
@@ -203,6 +204,13 @@ const AiVisualOutputSchema = VisionProductPresencePayloadSchema.omit({
   schemaVersion: true,
 }).strict();
 
+const AiVisualTargetCandidateOutputSchema = VisionNextItemTargetCandidatePayloadSchema.omit({
+  taskType: true,
+  promptId: true,
+  promptVersion: true,
+  schemaVersion: true,
+}).strict();
+
 const AiPagePreparationOutputSchema = VisionPagePreparationPayloadSchema.omit({
   taskType: true,
   promptId: true,
@@ -355,6 +363,7 @@ export {
   AiSchemaValidationOnlyInputSchema,
   AiSchemaValidationOnlyOutputSchema,
   AiVisualOutputSchema,
+  AiVisualTargetCandidateOutputSchema,
   AiBaseInputSchema,
   ProductPresenceJudgmentInputSchema,
   VisualObservationInputSchema,

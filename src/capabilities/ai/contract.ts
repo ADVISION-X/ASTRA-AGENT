@@ -38,6 +38,7 @@ import {
   AiSchemaValidationOnlyInputSchema,
   AiSchemaValidationOnlyOutputSchema,
   AiVisualOutputSchema,
+  AiVisualTargetCandidateOutputSchema,
   CommentSignalSummaryInputSchema,
   CommentSignalSummaryResultSchema,
   EvidencePacketAnalysisInputSchema,
@@ -105,6 +106,7 @@ type SchemaValidationOnlyInput = z.output<typeof SchemaValidationOnlyInputSchema
 
 type AiPagePreparationOutput = z.output<typeof AiPagePreparationOutputSchema>;
 type AiVisualOutput = z.output<typeof AiVisualOutputSchema>;
+type AiVisualTargetCandidateOutput = z.output<typeof AiVisualTargetCandidateOutputSchema>;
 type AiOcrCleanupInput = z.output<typeof AiOcrCleanupInputSchema>;
 type AiOcrCleanupOutput = z.output<typeof OcrCleanupResultSchema>["output"];
 type AiCommentSignalSummaryInput = z.output<typeof AiCommentSignalSummaryInputSchema>;
@@ -238,6 +240,7 @@ export type {
   SchemaValidationOnlyInput,
   AiPagePreparationOutput,
   AiVisualOutput,
+  AiVisualTargetCandidateOutput,
   AiOcrCleanupInput,
   AiOcrCleanupOutput,
   AiCommentSignalSummaryInput,

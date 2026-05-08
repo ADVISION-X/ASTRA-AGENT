@@ -8,6 +8,7 @@ import {
 } from "../schema.js";
 import {
   CommentSignalTaskRequestSchema,
+  NextItemTargetCandidateTaskRequestSchema,
   OcrTaskRequestSchema,
   PagePreparationTaskRequestSchema,
   ProductSignalTaskRequestSchema,
@@ -17,6 +18,7 @@ import {
   type LocalAiTaskType,
 } from "../../../types/local-ai.js";
 import { VisionPagePreparationRequestInputSchema } from "../../../types/vision-page-preparation.js";
+import { VisionNextItemTargetCandidateRequestInputSchema } from "../../../types/vision-next-item-target-candidate.js";
 import { VisionProductPresenceRequestInputSchema } from "../../../types/vision-product-presence.js";
 import {
   resolvePromptContractCatalogEntryByLocalTaskType,
@@ -28,6 +30,7 @@ import { parseExtractedJson } from "../shared/ai-json-extract.js";
 const AI_TASK_BY_LEGACY: Record<LocalAiTaskType, AiTaskType> = {
   "vision.pagePreparation": "page_preparation_judgment",
   "vision.productPresence": "product_presence_judgment",
+  "vision.nextItemTargetCandidate": "visual_target_candidate_analysis",
   "comments.ocr_cleanup": "ocr_cleanup",
   "comments.intent_analysis": "comment_signal_summary",
   "product.signal_summary": "product_signal_summary",
@@ -36,8 +39,9 @@ const AI_TASK_BY_LEGACY: Record<LocalAiTaskType, AiTaskType> = {
 type PagePreparationBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "page_preparation_judgment" }>;
 type VisionBridgeInput = Extract<
   ParsedAiAbilityInput,
-  { taskType: "product_presence_judgment" | "visual_observation" | "visual_target_candidate_analysis" }
+  { taskType: "product_presence_judgment" | "visual_observation" }
 >;
+type VisualTargetCandidateBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "visual_target_candidate_analysis" }>;
 
 type OcrBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "ocr_cleanup" }>;
 type CommentSignalBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "comment_signal_summary" }>;
@@ -71,6 +75,21 @@ function buildVisionTaskRequest(input: VisionBridgeInput, promptContract: Prompt
     schemaVersion: promptContract.schemaVersion,
     evidenceRefs: input.inputRefs,
     input: VisionProductPresenceRequestInputSchema.parse(AiVisionRequestInputSchema.parse(input.input)),
+  });
+}
+
+function buildVisualTargetCandidateTaskRequest(
+  input: VisualTargetCandidateBridgeInput,
+  promptContract: PromptContractCatalogEntry,
+): LocalAiTaskRequest {
+  return NextItemTargetCandidateTaskRequestSchema.parse({
+    id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
+    taskType: "vision.nextItemTargetCandidate",
+    modelRole: promptContract.modelRole,
+    promptVersion: promptContract.promptVersion,
+    schemaVersion: promptContract.schemaVersion,
+    evidenceRefs: input.inputRefs,
+    input: VisionNextItemTargetCandidateRequestInputSchema.parse(AiVisionRequestInputSchema.parse(input.input)),
   });
 }
 
@@ -202,6 +221,10 @@ function toVisionTaskRequest(input: VisionBridgeInput): LocalAiTaskRequestResolu
   return resolveLocalAiPromptRequest("vision.productPresence", (promptContract) => buildVisionTaskRequest(input, promptContract));
 }
 
+function toVisualTargetCandidateTaskRequest(input: VisualTargetCandidateBridgeInput): LocalAiTaskRequestResolution {
+  return resolveLocalAiPromptRequest("vision.nextItemTargetCandidate", (promptContract) => buildVisualTargetCandidateTaskRequest(input, promptContract));
+}
+
 function toPagePreparationTaskRequest(input: PagePreparationBridgeInput): LocalAiTaskRequestResolution {
   return resolveLocalAiPromptRequest("vision.pagePreparation", (promptContract) => buildPagePreparationTaskRequest(input, promptContract));
 }
@@ -247,8 +270,9 @@ function toLocalAiTaskRequest(input: ParsedAiAbilityInput): LocalAiTaskRequestRe
       return toPagePreparationTaskRequest(input);
     case "product_presence_judgment":
     case "visual_observation":
-    case "visual_target_candidate_analysis":
       return toVisionTaskRequest(input);
+    case "visual_target_candidate_analysis":
+      return toVisualTargetCandidateTaskRequest(input);
     case "ocr_cleanup":
       return toOcrTaskRequest(input);
     case "comment_signal_summary":
