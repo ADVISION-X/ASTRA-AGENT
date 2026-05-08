@@ -12,6 +12,7 @@ import type {
 } from "./workbench-runtime-report-types.js";
 import type { StructuredLogBus } from "./structured-log-bus.js";
 import type { WorkbenchNerveBusAbilityGroup as NerveBusAbilityGroup } from "./workbench-nerve-bus-types.js";
+import type { PostActionVerificationAbilityGroup } from "./workbench-post-action-types.js";
 import type {
   MapLabActivationResult,
   MapLabAutomationGateResult,
@@ -158,6 +159,7 @@ export type WorkbenchBaseRuntime = {
   screenshotAbilityGroup: WorkbenchExecuteAbilityGroup;
   visualTargetAbilityGroup: WorkbenchExecuteAbilityGroup;
   geometryGuardAbilityGroup: WorkbenchExecuteAbilityGroup;
+  postActionVerificationAbilityGroup: PostActionVerificationAbilityGroup;
 };
 
 export type WorkbenchRuntime = WorkbenchBaseRuntime & {

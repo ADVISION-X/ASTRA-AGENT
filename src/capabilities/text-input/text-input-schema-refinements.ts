@@ -56,7 +56,7 @@ type RuntimeProofValidationValue = {
   outputRef: string | null;
   actionExecutionRef: string | null;
   primitiveExecutionRef: string | null;
-  postClickObservationRef: string | null;
+  postActionVerificationHandoffRef: string | null;
   actionKind: string | null;
   targetKind: string | null;
   approvedTextSourceRef: string | null;
@@ -116,6 +116,9 @@ function validateSuccessRuntimeProofCore(value: RuntimeProofValidationValue, con
   }
   if (value.primitiveExecutionRef === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires primitiveExecutionRef", path: ["primitiveExecutionRef"] });
+  }
+  if (value.postActionVerificationHandoffRef === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires postActionVerificationHandoffRef", path: ["postActionVerificationHandoffRef"] });
   }
   if (value.actionKind === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires actionKind", path: ["actionKind"] });

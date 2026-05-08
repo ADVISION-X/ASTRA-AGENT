@@ -32,12 +32,12 @@ export function buildTextInputCandidateOutput(input: {
   typedTextHash: string | null;
   keySequenceHash: string | null;
   status: "success" | "failed" | "review_required";
-}, postClickObservationRef: string | null) {
+}, postActionVerificationHandoffRef: string | null) {
   if (
     input.status !== "success"
     || !input.actionExecutionRef
     || !input.primitiveExecutionRef
-    || postClickObservationRef === null
+    || postActionVerificationHandoffRef === null
     || input.seed.childCapabilityId === null
   ) {
     return null;
@@ -58,8 +58,8 @@ export function buildTextInputCandidateOutput(input: {
     keySequenceHash: input.keySequenceHash,
     textLength: input.seed.inputText?.length ?? input.seed.approvedText?.length ?? 0,
     key: input.seed.key,
-    postClickObservation: true as const,
-    postClickObservationRef,
+    postActionVerificationRequired: true as const,
+    postActionVerificationHandoffRef,
   };
 }
 
@@ -198,7 +198,7 @@ export function buildTextInputRuntimeProofLifecycleInput(input: {
   failureReason: string | null;
   reviewRequiredReason: string | null;
   dataQualityFlags: string[];
-  postClickObservationRef: string | null;
+  postActionVerificationHandoffRef: string | null;
   outputBoundaryStatus: "success" | "failed" | "review_required";
 }) {
   return buildTextInputRuntimeProofLifecycleFields({
@@ -209,7 +209,7 @@ export function buildTextInputRuntimeProofLifecycleInput(input: {
     primitiveEndedAt: input.primitiveEndedAt,
     maxDurationMs: input.seed.policy.maxDurationMs,
     primitiveTimeoutMs: input.seed.policy.primitiveTimeoutMs,
-    postClickObservationRef: input.postClickObservationRef,
+    postActionVerificationHandoffRef: input.postActionVerificationHandoffRef,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
     durationMs: input.durationMs,

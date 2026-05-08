@@ -16,6 +16,7 @@ const GOVERNED_ABILITY_GROUP_IDS = [
   "mouse-scroll",
   "forensics-persistence",
   "page-state",
+  "post-action-verification",
 ] as const;
 
 const ABILITY_TARGET_IDS = [
@@ -28,6 +29,7 @@ const ABILITY_TARGET_IDS = [
   "mouse-scroll",
   "forensics-persistence",
   "page-state",
+  "post-action-verification",
 ] as const;
 
 const FORWARD_CHANNEL_IDS = [

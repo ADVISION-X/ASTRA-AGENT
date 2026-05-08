@@ -2,6 +2,7 @@ import type { MissionState } from "../contract.js";
 import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import type { OperationalStep } from "./step-dispatch-shared.js";
+import { isPostActionVerificationStep } from "./orchestration-post-action-verification.js";
 
 type StepResultRecord = {
   status: "success" | "failed" | "review_required";
@@ -114,6 +115,14 @@ function resolveActionRef(state: MissionState): string | null {
 }
 
 function buildStepDispatchFailureEvent(step: OperationalStep) {
+  if (isPostActionVerificationStep(step)) {
+    return {
+      eventType: "POST_ACTION_VERIFICATION_FAILED" as const,
+      ownerResponsible: "Orchestration / post-action-verification",
+      reason: `Governed post-action verification for step "${step.stepId}" failed before transition evaluation.`,
+    };
+  }
+
   return {
     eventType: "CAPABILITY_CALL_FAILED" as const,
     ownerResponsible: `Orchestration / ${step.targetAbilityGroupId ?? "orchestration"}`,
@@ -122,6 +131,16 @@ function buildStepDispatchFailureEvent(step: OperationalStep) {
 }
 
 function buildCapabilityEventType(step: OperationalStep, status: StepResultRecord["status"]) {
+  if (isPostActionVerificationStep(step)) {
+    if (status === "review_required") {
+      return "POST_ACTION_VERIFICATION_REVIEW_REQUIRED" as const;
+    }
+
+    return status === "success"
+      ? "POST_ACTION_VERIFICATION_PASSED" as const
+      : "POST_ACTION_VERIFICATION_FAILED" as const;
+  }
+
   if (status === "review_required") {
     return "CAPABILITY_CALL_REVIEW_REQUIRED" as const;
   }

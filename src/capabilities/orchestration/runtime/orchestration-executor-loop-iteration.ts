@@ -1,7 +1,7 @@
 import type { OperationalStep } from "./step-dispatch-shared.js";
 import {
-  recordActionObservationLog,
   recordDispatchStarted,
+  recordPostActionVerificationActionLog,
   recordPreconditionCheck,
   recordStepDispatchFailure,
   recordStepResult,
@@ -190,7 +190,15 @@ async function handleDispatchedStep(
   details: HandleDispatchedStepDetails,
 ): Promise<MissionLoopIterationOutcome> {
   try {
-  const actionLog = await recordActionObservationLog();
+  const actionLog = await recordPostActionVerificationActionLog({
+    context: input.context,
+    state: input.state,
+    mapRecord: input.mapRecord,
+    step,
+    stepResult: details.lastResult,
+    createdAt: details.endedSnapshot.isoTimestamp,
+    durationMs: details.durationMs,
+  });
   await recordStepResult(input, step, {
     lastResult: details.lastResult,
     durationMs: details.durationMs,

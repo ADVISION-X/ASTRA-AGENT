@@ -11,6 +11,7 @@ export const MAP_PLUGIN_ALLOWED_ABILITY_GROUP_IDS = [
   "mouse-scroll",
   "forensics-persistence",
   "page-state",
+  "post-action-verification",
 ] as const;
 
 export const MapPluginAllowedAbilityGroupIdSchema = z.enum(MAP_PLUGIN_ALLOWED_ABILITY_GROUP_IDS);

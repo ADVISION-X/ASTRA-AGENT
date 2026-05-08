@@ -17,6 +17,7 @@ import {
 } from "./workbench-forensics-dispatch-input.js";
 import { buildOpenAbilityInput } from "./workbench-open-dispatch-input.js";
 import { buildPageStateDispatchInput } from "./workbench-page-state-dispatch-input.js";
+import { buildPostActionVerificationInput } from "./workbench-post-action-dispatch-input.js";
 import { recordPageStateProofSummary } from "./workbench-page-state-proof-summary-registry.js";
 
 const throwIfAborted = (signal: AbortSignal) => {
@@ -81,6 +82,8 @@ const executeRuntimeAbilityCommand = async (
       throw new Error(`Unsupported forensics child capability: ${envelope.commandName}`);
     case "page-state":
       return runtime.pageStateAbilityGroup.execute(await buildPageStateDispatchInput(runtime, envelope, inputPayload));
+    case "post-action-verification":
+      return runtime.postActionVerificationAbilityGroup.execute(await buildPostActionVerificationInput(runtime, envelope, inputPayload));
   }
 
   throw new Error(`Unsupported runtime ability target: ${envelope.to}`);
@@ -96,6 +99,7 @@ const ABILITY_COMMAND_EXECUTORS = {
   "mouse-scroll": executePointerAbilityCommand,
   "forensics-persistence": executeRuntimeAbilityCommand,
   "page-state": executeRuntimeAbilityCommand,
+  "post-action-verification": executeRuntimeAbilityCommand,
 } as const;
 
 export const executeAbilityCommand = async (

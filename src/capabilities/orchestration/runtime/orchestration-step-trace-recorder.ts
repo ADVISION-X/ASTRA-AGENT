@@ -2,11 +2,18 @@ import type { MissionState } from "../contract.js";
 import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import type { OperationalStep } from "./step-dispatch-shared.js";
+import { resolveRuntimeStepForOperationalStep } from "./orchestration-step-trace-mapper.js";
 import {
+  buildStructuredActionLog,
+  buildStructuredActionLogWriteInput,
   buildStructuredRuntimeEvent,
+  resolveActionRef,
+  resolvePostActionVerificationRef,
+  type ActionLogInput,
   type RuntimeEventInput,
   type StepResultRecord,
 } from "./orchestration-step-trace-payloads.js";
+import { isPostActionVerificationStep } from "./orchestration-post-action-verification.js";
 
 type PersistedActionLogRecord = {
   actionLogId: string;
@@ -143,6 +150,31 @@ export async function recordMissionRuntimeEvent(input: RuntimeEventInput): Promi
   });
 }
 
-export async function recordActionObservationLog(): Promise<PersistedActionLogRecord | null> {
-  return null;
+export async function recordPostActionVerificationActionLog(input: ActionLogInput): Promise<PersistedActionLogRecord | null> {
+  if (!isPostActionVerificationStep(input.step)) {
+    return null;
+  }
+
+  const actionRef = resolveActionRef(input.state, input.stepResult);
+  const postActionVerificationRef = resolvePostActionVerificationRef(input.stepResult);
+  if (!actionRef || !postActionVerificationRef) {
+    return null;
+  }
+
+  const mapChain = resolveMapChain(input.state, input.mapRecord);
+  const structuredActionLog = buildStructuredActionLog(input, resolveRuntimeStepForOperationalStep(input.step));
+  try {
+    await input.context.forensics.writeStructuredActionLog(
+      buildStructuredActionLogWriteInput({
+        actionRef,
+        postActionVerificationRef,
+        actionLogInput: input,
+        mapChain,
+        structuredActionLog,
+      }),
+    );
+    return { actionLogId: structuredActionLog.actionLogId, actionRef };
+  } catch {
+    return null;
+  }
 }

@@ -335,8 +335,8 @@ const TextInputRuntimeProofSchema = z.object({
   primitiveEndedAt: nullableString,
   maxDurationMs: nonNegativeInt,
   primitiveTimeoutMs: nonNegativeInt,
-  postClickObservation: z.literal(true),
-  postClickObservationRef: nullableString,
+  postActionVerificationRequired: z.literal(true),
+  postActionVerificationHandoffRef: nullableString,
   verificationRefPolicy: z.literal(TEXT_INPUT_VERIFICATION_REF_POLICY),
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime(),
@@ -367,8 +367,8 @@ const TextInputSuccessOutputSchema = z.object({
   keySequenceHash: hashString.nullable().default(null),
   textLength: nonNegativeInt,
   key: z.union([TextInputKeySchema, TextInputCommitKeySchema]).nullable().default(null),
-  postClickObservation: z.boolean(),
-  postClickObservationRef: nullableString,
+  postActionVerificationRequired: z.literal(true),
+  postActionVerificationHandoffRef: z.string().min(1),
 }).strict();
 
 const TextInputAbilityResultSchema = z.object({

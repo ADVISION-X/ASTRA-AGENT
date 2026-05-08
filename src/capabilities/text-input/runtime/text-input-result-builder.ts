@@ -32,7 +32,7 @@ function buildRuntimeProofForResult(input: Parameters<typeof buildTextInputResul
     reviewRequiredReason: string | null;
     dataQualityFlags: string[];
   };
-  postClickObservationRef: string | null;
+  postActionVerificationHandoffRef: string | null;
 }) {
   return buildTextInputRuntimeProof({
     ...buildTextInputRuntimeProofIdentityInput(input, params.outputRef, params.diagnosticPayloadRef, params.debugBundle),
@@ -44,7 +44,7 @@ function buildRuntimeProofForResult(input: Parameters<typeof buildTextInputResul
     }),
     ...buildTextInputRuntimeProofLifecycleInput({
       ...input,
-      postClickObservationRef: params.postClickObservationRef,
+      postActionVerificationHandoffRef: params.postActionVerificationHandoffRef,
       outputBoundaryStatus: params.outputBoundary.status,
       dataQualityFlags: params.outputBoundary.dataQualityFlags,
       failureReason: params.outputBoundary.failureReason,
@@ -88,8 +88,8 @@ export function buildTextInputResult(input: {
   clock: { startedMonotonicMs: number; endedMonotonicMs: number };
   dataQualityFlags: string[];
 }) {
-  const postClickObservationRef = buildPostClickObservationRef(input);
-  const candidateOutput = buildTextInputCandidateOutput(input, postClickObservationRef);
+  const postActionVerificationHandoffRef = buildPostActionVerificationHandoffRef(input);
+  const candidateOutput = buildTextInputCandidateOutput(input, postActionVerificationHandoffRef);
 
   const outputBoundary = validateTextInputOutputBoundary({
     requestedStatus: input.status,
@@ -112,19 +112,19 @@ export function buildTextInputResult(input: {
     diagnosticPayloadRef,
     debugBundle,
     outputBoundary,
-    postClickObservationRef,
+    postActionVerificationHandoffRef,
   });
 
   return TextInputAbilityResultSchema.parse(buildTextInputAbilityResultPayload(input, outputBoundary, { debugBundle, diagnosticPayloadRef }, runtimeProof));
 }
 
-function buildPostClickObservationRef(input: {
+function buildPostActionVerificationHandoffRef(input: {
   status: "success" | "failed" | "review_required";
   actionExecutionRef: string | null;
   primitiveExecutionRef: string | null;
 }): string | null {
   return input.status === "success" && input.actionExecutionRef && input.primitiveExecutionRef
-    ? buildStableTextInputRef("text-input-post-click-observation", [input.actionExecutionRef, input.primitiveExecutionRef])
+    ? buildStableTextInputRef("text-input-post-action-verification-handoff", [input.actionExecutionRef, input.primitiveExecutionRef])
     : null;
 }
 

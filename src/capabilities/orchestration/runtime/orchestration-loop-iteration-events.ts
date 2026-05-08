@@ -12,6 +12,7 @@ import type {
   StepResultRecord,
 } from "./orchestration-loop-iteration-event-shared.js";
 import type { OperationalStep } from "./step-dispatch-shared.js";
+import { isPostActionVerificationStep } from "./orchestration-post-action-verification.js";
 
 export async function recordStepSelected(input: LoopIterationEventInput, step: OperationalStep, currentStepId: string): Promise<void> {
   await recordMissionRuntimeEvent({
@@ -88,6 +89,21 @@ async function recordCapabilityCallStarted(input: LoopIterationEventInput, step:
   });
 }
 
+async function recordPostActionVerificationStarted(input: LoopIterationEventInput, step: OperationalStep): Promise<void> {
+  await recordMissionRuntimeEvent({
+    context: input.context,
+    state: input.state,
+    mapRecord: input.mapRecord,
+    step,
+    eventType: "POST_ACTION_VERIFICATION_STARTED",
+    status: "started",
+    reason: `Governed post-action verification step "${step.stepId}" entered verification execution.`,
+    actionableMessage: "Wait for the governed post-action verification result before evaluating transitions.",
+    ownerResponsible: "Orchestration / post-action-verification",
+    capabilityCallId: input.stepDispatchCallId,
+  });
+}
+
 export async function recordDispatchStarted(input: LoopIterationEventInput, step: OperationalStep): Promise<void> {
   await recordMissionRuntimeEvent({
     context: input.context,
@@ -101,6 +117,11 @@ export async function recordDispatchStarted(input: LoopIterationEventInput, step
     ownerResponsible: "Orchestration / Nerve Bus",
     capabilityCallId: input.stepDispatchCallId,
   });
+  if (isPostActionVerificationStep(step)) {
+    await recordPostActionVerificationStarted(input, step);
+    return;
+  }
+
   await recordCapabilityCallStarted(input, step);
 }
 

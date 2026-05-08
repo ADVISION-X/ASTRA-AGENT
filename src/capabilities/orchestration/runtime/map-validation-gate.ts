@@ -1,5 +1,6 @@
 import type { OperationalMap } from "../contract.js";
 import { OperationalMapSchema } from "../schema.js";
+import { ensurePostActionVerificationPolicy } from "./orchestration-post-action-verification.js";
 
 const FORBIDDEN_OWNER_VALUES = ["local-ai-decision"];
 
@@ -142,6 +143,11 @@ export function validateOperationalMapGate(map: OperationalMap): MapValidationRe
   const forbiddenReason = validateOperationalMapStructure(parsed);
   if (forbiddenReason) {
     return { valid: false, failureReason: forbiddenReason };
+  }
+
+  const postActionVerificationReason = ensurePostActionVerificationPolicy(parsed);
+  if (postActionVerificationReason) {
+    return { valid: false, failureReason: postActionVerificationReason };
   }
 
   return { valid: true, map: parsed };

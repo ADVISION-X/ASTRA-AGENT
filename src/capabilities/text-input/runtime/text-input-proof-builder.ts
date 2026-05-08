@@ -76,7 +76,7 @@ export function buildTextInputRuntimeProof(input: {
   primitiveEndedAt: string | null;
   maxDurationMs: number;
   primitiveTimeoutMs: number;
-  postClickObservationRef: string | null;
+  postActionVerificationHandoffRef: string | null;
   startedAt: string;
   endedAt: string;
   durationMs: number;
@@ -187,7 +187,7 @@ export function buildTextInputRuntimeProofPolicyFields(input: Pick<TextInputRunt
   };
 }
 
-export function buildTextInputRuntimeProofLifecycleFields(input: Pick<TextInputRuntimeProofInput, "primitiveDecision" | "primitivePortKind" | "replaceWriteMode" | "primitiveStartedAt" | "primitiveEndedAt" | "maxDurationMs" | "primitiveTimeoutMs" | "postClickObservationRef" | "startedAt" | "endedAt" | "durationMs" | "status" | "failureReason" | "reviewRequiredReason" | "dataQualityFlags">) {
+export function buildTextInputRuntimeProofLifecycleFields(input: Pick<TextInputRuntimeProofInput, "primitiveDecision" | "primitivePortKind" | "replaceWriteMode" | "primitiveStartedAt" | "primitiveEndedAt" | "maxDurationMs" | "primitiveTimeoutMs" | "postActionVerificationHandoffRef" | "startedAt" | "endedAt" | "durationMs" | "status" | "failureReason" | "reviewRequiredReason" | "dataQualityFlags">) {
   return {
     primitiveDecision: input.primitiveDecision,
     primitivePortKind: input.primitivePortKind,
@@ -196,8 +196,8 @@ export function buildTextInputRuntimeProofLifecycleFields(input: Pick<TextInputR
     primitiveEndedAt: input.primitiveEndedAt,
     maxDurationMs: input.maxDurationMs,
     primitiveTimeoutMs: input.primitiveTimeoutMs,
-    postClickObservation: true,
-    postClickObservationRef: input.postClickObservationRef,
+    postActionVerificationRequired: true,
+    postActionVerificationHandoffRef: input.postActionVerificationHandoffRef,
     verificationRefPolicy: "target_proof_ref+focus_proof_ref+approved_text_ref+action_execution_ref",
     startedAt: input.startedAt,
     endedAt: input.endedAt,
