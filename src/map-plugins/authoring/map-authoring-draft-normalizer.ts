@@ -123,8 +123,6 @@ function buildDraftTaskTemplate(input: {
     recommended: input.output.draftPackage.recommended,
     taskCategory: input.output.draftPackage.taskCategory,
     version: MAP_AUTHORING_PACKAGE_VERSION,
-    defaultRunLimit: input.output.draftPackage.defaultRunLimit,
-    maxAllowedRunLimit: input.output.draftPackage.maxAllowedRunLimit,
     safetyLevel: input.output.draftPackage.safetyLevel,
     userVisibleCapabilities: input.output.draftPackage.userVisibleCapabilities,
     availabilityPolicy: "draft",

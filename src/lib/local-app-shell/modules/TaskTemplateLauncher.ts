@@ -79,7 +79,7 @@ const renderTemplateCardSummary = (input: {
   template: TaskTemplateViewModel;
   t: Localize;
 }): string =>
-  `${escapeHtml(localizeSafetyLevel(input.viewModel, input.template.safetyLevel))} · ${escapeHtml(input.t(`默认 ${input.template.defaultRunLimit.maxMinutes} 分钟 / ${input.template.defaultRunLimit.maxRounds} 条`, `${input.template.defaultRunLimit.maxMinutes} min / ${input.template.defaultRunLimit.maxRounds} items`))}`;
+  `${escapeHtml(localizeSafetyLevel(input.viewModel, input.template.safetyLevel))} · ${escapeHtml(input.template.taskCategory)}`;
 
 const renderTaskTemplateList = (
   viewModel: CommanderConsoleViewModel,
@@ -147,19 +147,19 @@ const renderSelectedTaskSummary = (input: {
       </div>`;
 
 const renderLaunchLimitFields = (input: {
-  selectedTaskTemplate: TaskTemplateViewModel | null | undefined;
   selectedDefaultMinutes: number;
   selectedDefaultRounds: number;
   t: Localize;
 }): string => `<div class="cc-launch-limit-grid">
         <label class="cc-field cc-launch-limit-field">
           <span>${escapeHtml(input.t("运行时长", "Run duration"))}</span>
-          <input id="cc-max-minutes" name="maxMinutes" type="number" min="1" max="${escapeHtml(String(input.selectedTaskTemplate?.maxAllowedRunLimit.maxMinutes ?? 45))}" value="${escapeHtml(String(input.selectedDefaultMinutes))}" />
+          <input id="cc-max-minutes" name="maxMinutes" type="number" min="1" value="${escapeHtml(String(input.selectedDefaultMinutes))}" />
         </label>
         <label class="cc-field cc-launch-limit-field">
           <span>${escapeHtml(input.t("最多处理", "Max items"))}</span>
-          <input id="cc-max-rounds" name="maxRounds" type="number" min="1" max="${escapeHtml(String(input.selectedTaskTemplate?.maxAllowedRunLimit.maxRounds ?? 6))}" value="${escapeHtml(String(input.selectedDefaultRounds))}" />
+          <input id="cc-max-rounds" name="maxRounds" type="number" min="1" value="${escapeHtml(String(input.selectedDefaultRounds))}" />
         </label>
+        <p class="cc-note cc-span-2" data-app-run-limit-default-note>${escapeHtml(input.t("默认值来自设置页，不由地图决定；这里可以临时改写。", "Defaults come from Settings, not from maps; you can override them here for this run."))}</p>
       </div>`;
 
 const renderGoalField = (input: { selectedDefaultGoal: string; t: Localize }): string =>
@@ -201,8 +201,8 @@ export function renderTaskTemplateLauncherModule(viewModel: CommanderConsoleView
 
   const platformFilters = getPlatformFilters(viewModel);
   const selectedDefaultGoal = selectedTaskTemplate?.defaultHumanGoal ?? "";
-  const selectedDefaultMinutes = selectedTaskTemplate?.defaultRunLimit.maxMinutes ?? viewModel.commandDraft.maxMinutes;
-  const selectedDefaultRounds = selectedTaskTemplate?.defaultRunLimit.maxRounds ?? viewModel.commandDraft.maxRounds;
+  const selectedDefaultMinutes = viewModel.commandDraft.maxMinutes;
+  const selectedDefaultRounds = viewModel.commandDraft.maxRounds;
 
   return `<section class="cc-start-console" data-home-launcher>
     ${renderTaskTemplateLibrary({ viewModel, selectedTemplate, platformFilters, t })}

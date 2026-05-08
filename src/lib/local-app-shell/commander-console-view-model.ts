@@ -1,4 +1,5 @@
 import type { CommanderMissionDashboardView } from "../../capabilities/commander-console/shared/commander-view-types.js";
+import type { AppRunLimitSettings } from "../local-runtime/app-run-limit-settings-types.js";
 import type { Locale } from "../localization/dictionaries.js";
 
 import { buildCommanderTaskTemplates } from "./task-template-registry.js";
@@ -14,7 +15,11 @@ import type {
   CommanderConsoleViewModel,
 } from "./types.js";
 
-export function buildCommanderConsoleViewModel(dashboard: CommanderMissionDashboardView, locale: Locale): CommanderConsoleViewModel {
+export function buildCommanderConsoleViewModel(
+  dashboard: CommanderMissionDashboardView,
+  locale: Locale,
+  appRunLimitSettings: AppRunLimitSettings,
+): CommanderConsoleViewModel {
   const primaryPages = buildPrimaryPages(locale);
   const mapCatalog = buildMapCatalog(locale);
   const taskTemplates = buildCommanderTaskTemplates(locale);
@@ -24,6 +29,7 @@ export function buildCommanderConsoleViewModel(dashboard: CommanderMissionDashbo
     locale,
     appTitle: locale === "zh" ? "GrassEye Commander Console" : "GrassEye Commander Console",
     appSubtitle: locale === "zh" ? "一级页面 + 二级 Tab + 三级 Inspect Drawer 的本地指挥控制台" : "A local command shell with primary pages, secondary tabs, and a right inspect drawer.",
+    appRunLimitSettings,
     missionSummary: buildMissionSummary(dashboard, locale),
     badges: buildBadges(dashboard, locale, activeTaskTemplate?.displayName ?? null),
     topMetrics: buildTopMetrics(dashboard, locale, activeTaskTemplate?.displayName ?? null),
@@ -33,7 +39,7 @@ export function buildCommanderConsoleViewModel(dashboard: CommanderMissionDashbo
     availableMaps: mapCatalog,
     taskTemplates,
     preflightSummary: buildPreflightSummary(dashboard, locale),
-    commandDraft: buildCommandDraft(dashboard, activeTaskTemplate),
+    commandDraft: buildCommandDraft(dashboard, activeTaskTemplate, appRunLimitSettings),
     capabilityHealth: dashboard.health,
     reviewQueueSummary: buildReviewSummary(dashboard),
     failureRadarSummary: buildFailureRadar(dashboard, locale),
@@ -44,7 +50,7 @@ export function buildCommanderConsoleViewModel(dashboard: CommanderMissionDashbo
     runtimeProofTimeline: dashboard.runtimeProof,
     exportSummary: buildExportSummary(locale),
     safetyLocks: buildSafetyLocks(locale),
-    runLimits: buildRunLimits(locale),
+    runLimits: buildRunLimits(locale, appRunLimitSettings),
     appShellReadiness: buildAppShellReadiness(locale),
     inspectItems: buildInspectItems(dashboard, locale, mapCatalog),
     rawSnapshot: dashboard,

@@ -11,8 +11,6 @@ const MAP_AUTHORING_REVIEW_DRAFT_TEMPLATE = {
     recommended: false,
     safetyLevel: "review-first",
     userVisibleCapabilities: ["Human review required"],
-    defaultRunLimit: { maxRounds: 1, maxMinutes: 5 },
-    maxAllowedRunLimit: { maxRounds: 1, maxMinutes: 5 },
     humanGoal: "",
     allowedAbilityGroups: ["forensics-persistence"],
     initialStepId: "finalize-mission",
@@ -99,11 +97,6 @@ const MAP_AUTHORING_REVIEW_DRAFT_TEMPLATE = {
     },
     policy: {
       safetyPolicy: "review-first",
-      runLimitPolicy: {
-        defaultMaxRounds: 1,
-        maxAllowedMaxRounds: 1,
-        maxAllowedMaxMinutes: 5,
-      },
       reviewPolicy: "review-first",
       exportPolicy: "forensics only",
       debugPolicy: "developer-inspect only",

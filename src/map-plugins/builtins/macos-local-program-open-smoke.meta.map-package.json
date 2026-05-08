@@ -24,14 +24,6 @@
     "recommended": false,
     "taskCategory": "local-program-open-smoke",
     "version": "1.0.0",
-    "defaultRunLimit": {
-      "maxRounds": 1,
-      "maxMinutes": 5
-    },
-    "maxAllowedRunLimit": {
-      "maxRounds": 1,
-      "maxMinutes": 10
-    },
     "safetyLevel": "handoff-only",
     "userVisibleCapabilities": [
       "Open governed macOS app",

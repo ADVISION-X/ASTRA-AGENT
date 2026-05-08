@@ -24,14 +24,6 @@
     "recommended": true,
     "taskCategory": "product-discovery",
     "version": "1.0.0",
-    "defaultRunLimit": {
-      "maxRounds": 3,
-      "maxMinutes": 20
-    },
-    "maxAllowedRunLimit": {
-      "maxRounds": 6,
-      "maxMinutes": 45
-    },
     "safetyLevel": "guarded autopilot",
     "userVisibleCapabilities": [
       "Open Facebook Reels",

@@ -78,17 +78,38 @@ function renderPreferenceCard(t: (zh: string, en: string) => string): string {
   );
 }
 
+function renderRunLimitSettingsCard(t: (zh: string, en: string) => string): string {
+  return renderCard(
+    t("启动默认值", "Launch Defaults"),
+    t("APP 自己管，不归地图", "App-owned, never map-owned"),
+    `<form class="cc-stack" data-app-run-limit-settings-form>
+      <p class="cc-note" data-app-run-limit-settings-status>${escapeHtml(t("正在读取启动默认值。", "Loading launch defaults."))}</p>
+      <div class="cc-run-limit-grid">
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("默认运行时长", "Default duration"))}</span><input name="defaultMaxMinutes" type="number" min="1" placeholder="20" /></label>
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("默认最多处理", "Default max items"))}</span><input name="defaultMaxRounds" type="number" min="1" placeholder="3" /></label>
+      </div>
+      <div class="cc-inline-actions">
+        <button type="submit" class="cc-button cc-button-primary">${escapeHtml(t("保存默认值", "Save Defaults"))}</button>
+        <button type="button" class="cc-button" data-app-run-limit-refresh>${escapeHtml(t("刷新", "Refresh"))}</button>
+      </div>
+      <div data-app-run-limit-settings-summary>${renderEmptyState(t("正在读取默认值摘要。", "Loading defaults summary."))}</div>
+      <p class="cc-muted">${escapeHtml(t("这两个数字只决定开始页预填值。地图包不得再声明默认值、最大值或任何钳制策略；用户在开始页可以临时改成任意正整数。", "These values only seed the start page. Map packages must no longer declare defaults, maxima, or clamp policy; operators can override them with any positive integers on the start page."))}</p>
+    </form>`,
+  );
+}
+
 export function renderSettingsPage(viewModel: CommanderConsoleViewModel, _appViewModel: CommanderAppViewModel): string {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
   return joinHtml([
-    `<section class="cc-page" data-app-page="settings" data-ai-provider-settings-page>`,
+    `<section class="cc-page" data-app-page="settings" data-ai-provider-settings-page data-app-run-limit-settings-page>`,
     renderPageHeader(
       t("设置", "Settings"),
-      t("只保留用户真正需要配置的内容：AI、本地运行状态、语言和证据偏好。", "Only keep what users really configure: AI, local runtime status, language, and evidence preferences."),
+      t("只保留用户真正需要配置的内容：AI、本地运行状态、启动默认值、语言和证据偏好。", "Only keep what users really configure: AI, local runtime status, launch defaults, language, and evidence preferences."),
     ),
     `<div class="cc-page-stack">`,
     `<div class="cc-home-grid">${renderProviderSettingsCard(t)}${renderSavedAiCard(t)}</div>`,
-    `<div class="cc-home-grid">${renderLocalRuntimeCard(t)}${renderPreferenceCard(t)}</div>`,
+    `<div class="cc-home-grid">${renderRunLimitSettingsCard(t)}${renderPreferenceCard(t)}</div>`,
+    `<div class="cc-home-grid">${renderLocalRuntimeCard(t)}</div>`,
     `</div>`,
     `</section>`,
   ]);

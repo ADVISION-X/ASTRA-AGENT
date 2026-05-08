@@ -10,9 +10,10 @@ type CommanderShellLocale = Parameters<typeof buildCommanderConsoleViewModel>[1]
 export function buildCommanderShellRenderState(input: {
   dashboard: CommanderShellDashboard;
   locale: CommanderShellLocale;
+  appRunLimitSettings: Parameters<typeof buildCommanderConsoleViewModel>[2];
   initialPageId?: string | null;
 }) {
-  const viewModel = buildCommanderConsoleViewModel(input.dashboard, input.locale);
+  const viewModel = buildCommanderConsoleViewModel(input.dashboard, input.locale, input.appRunLimitSettings);
   const appViewModel = buildCommanderAppViewModel(viewModel, { initialPageId: input.initialPageId ?? null });
   const pageHtmlMap = buildCommanderAppPageHtmlMap(viewModel, appViewModel);
   const inspectHtmlMap = Object.fromEntries(viewModel.inspectItems.map((item) => [`${item.kind}:${item.id}`, renderInspectItemHtml(item)]));

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T19:41:15.441Z",
+  "generatedAt": "2026-05-08T20:22:10.133Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -1022,6 +1022,20 @@
           "checkFunction": "createAcceptanceFinding",
           "sourceFile": "scripts/audit/domains/commander-console-capability/run-commander-start-mission-acceptance-checks.ts",
           "targetSymbol": "createAcceptanceFinding",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-template-run-limit-governance-checks",
+          "checkFunction": "findings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-template-run-limit-governance-checks.ts",
+          "targetSymbol": "findings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-template-run-limit-governance-checks",
+          "checkFunction": "findings",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-template-run-limit-governance-checks.ts",
+          "targetSymbol": "findings",
           "checkKind": "runtime-proof"
         }
       ],
@@ -4575,18 +4589,39 @@
       "negativeProofPath": "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts",
       "ownerAuditScript": "audit:orchestration",
       "ownerAuditScriptDeclared": true,
-      "coverageStatus": "NOT_COVERED",
+      "coverageStatus": "NEGATIVE_PROOF_MAPPED",
       "matrixMapped": true,
       "auditPlanMapped": true,
-      "inspectorMapped": false,
+      "inspectorMapped": true,
       "negativeProofMapped": true,
       "mutationProofPresent": false,
       "ownerBindingProofPresent": false,
       "ownerAuditPassed": false,
       "globalChainPassed": false,
-      "sourceEvidence": [],
+      "sourceEvidence": [
+        {
+          "checkPhase": "run-limit-governance-checks",
+          "checkFunction": "findings",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-limit-governance-checks.ts",
+          "targetSymbol": "findings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-limit-governance-checks",
+          "checkFunction": "findings",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-limit-governance-checks.ts",
+          "targetSymbol": "findings",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-limit-governance-checks",
+          "checkFunction": "findings",
+          "sourceFile": "scripts/audit/domains/orchestration-capability/run-limit-governance-checks.ts",
+          "targetSymbol": "findings",
+          "checkKind": "runtime-proof"
+        }
+      ],
       "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
         "Production mutation proof bundle is missing.",
         "Owner-binding proof bundle is missing.",
         "Owner audit command is failing or missing fresh evidence.",

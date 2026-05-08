@@ -3,6 +3,7 @@ import { URL } from "node:url";
 
 import { renderCommanderConsolePage } from "../lib/local-app-shell/render-commander-console-page.js";
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
+import { handleAppSettingsRequest } from "./app-settings-api-handlers.js";
 import { handleCandidateRequest } from "./candidate-api-handlers.js";
 import { handleMapLabRequest } from "./map-lab-api-handlers.js";
 import { handleRuntimeReadRequest } from "./runtime-api-handlers.js";
@@ -21,7 +22,11 @@ async function handleArtifactOrRootRequest(
   }
 
   if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
-    const html = renderCommanderConsolePage(await activeWorkbench.getCommanderConsoleSnapshot(), url);
+    const [dashboard, appRunLimitSettings] = await Promise.all([
+      activeWorkbench.getCommanderConsoleSnapshot(),
+      activeWorkbench.getAppRunLimitSettings(),
+    ]);
+    const html = renderCommanderConsolePage({ dashboard, appRunLimitSettings }, url);
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     response.end(html);
     return true;
@@ -47,6 +52,10 @@ async function handleRequest(
   }
 
   if (await handleCandidateRequest(request, response, activeWorkbench, url)) {
+    return;
+  }
+
+  if (await handleAppSettingsRequest(request, response, activeWorkbench, url)) {
     return;
   }
 

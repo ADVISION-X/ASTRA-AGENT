@@ -9,14 +9,6 @@ export const TaskTemplatePackageSchema = z.object({
   recommended: z.boolean().default(false),
   taskCategory: z.string().min(1),
   version: z.string().min(1),
-  defaultRunLimit: z.object({
-    maxRounds: z.number().int().nonnegative(),
-    maxMinutes: z.number().int().nonnegative()
-  }).strict(),
-  maxAllowedRunLimit: z.object({
-    maxRounds: z.number().int().nonnegative(),
-    maxMinutes: z.number().int().nonnegative()
-  }).strict(),
   safetyLevel: z.string().min(1),
   userVisibleCapabilities: z.array(z.string().min(1)).min(1),
   availabilityPolicy: z.enum(["active", "disabled", "draft"]),

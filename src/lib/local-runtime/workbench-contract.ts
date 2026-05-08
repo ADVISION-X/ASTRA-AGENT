@@ -6,6 +6,7 @@ import type {
 import type { LocalAiStartupReadiness } from "../../types/local-ai.js";
 import type { WorkbenchEvidenceStoreService as EvidenceStoreService } from "./workbench-evidence-store-types.js";
 import type { WorkbenchLocalModelRole as LocalModelRole } from "./workbench-local-ai-role-types.js";
+import type { AppRunLimitSettings } from "./app-run-limit-settings-types.js";
 import type {
   WorkbenchMissionReadinessReport as MissionReadinessReport,
   WorkbenchRuntimeHealthReport as RuntimeHealthReport,
@@ -213,6 +214,8 @@ export type WorkbenchRuntime = WorkbenchBaseRuntime & {
   setLocalAiRoleStartupState(input: { role: LocalModelRole; enabled: boolean }): Promise<unknown>;
   deleteCandidate(candidateId: string): Promise<void>;
   exportCandidateSummaries(): Promise<unknown>;
+  getAppRunLimitSettings(): Promise<AppRunLimitSettings>;
+  saveAppRunLimitSettings(input: Pick<AppRunLimitSettings, "defaultMaxRounds" | "defaultMaxMinutes">): Promise<AppRunLimitSettings>;
   getMapLabSnapshot(): Promise<MapLabSnapshot>;
   saveMapLabProviderConfig(input: MapLabProviderConfigInput): Promise<MapLabProviderState>;
   generateMapLabDraft(input: unknown): Promise<MapLabGenerateDraftResult>;

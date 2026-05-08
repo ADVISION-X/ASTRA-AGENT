@@ -9,11 +9,6 @@ import { MapPluginMissionTerminalStatusSchema } from "../schema/operational-map-
 import { PromptBindingsSchema } from "../schema/prompt-bindings.schema.js";
 import { MapAuthoringChainSchema } from "./map-authoring-proof-chain.js";
 
-const DraftRunLimitSchema = z.object({
-  maxRounds: z.number().int().positive(),
-  maxMinutes: z.number().int().positive(),
-}).strict();
-
 export const MapAuthoringDraftPackageSchema = z.object({
   displayName: z.string().min(1),
   description: z.string().min(1),
@@ -22,8 +17,6 @@ export const MapAuthoringDraftPackageSchema = z.object({
   recommended: z.boolean().default(false),
   safetyLevel: z.string().min(1),
   userVisibleCapabilities: z.array(z.string().min(1)).min(1),
-  defaultRunLimit: DraftRunLimitSchema,
-  maxAllowedRunLimit: DraftRunLimitSchema,
   humanGoal: z.string().min(1),
   initialStepId: z.string().min(1),
   steps: z.array(MapPluginOperationalMapStepSchema).min(1),

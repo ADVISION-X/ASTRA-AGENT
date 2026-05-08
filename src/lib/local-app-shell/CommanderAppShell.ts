@@ -2,6 +2,7 @@ import { escapeHtml, safeJsonScript } from "./render-helpers.js";
 
 import { renderCommanderAppRouter } from "./CommanderAppRouter.js";
 import { buildCommanderShellRenderState } from "./commander-shell-render-state.js";
+import { appRunLimitSettingsClient } from "./app-run-limit-settings-client.js";
 import { commanderConsoleShellClient } from "./commander-console-shell-client.js";
 import { mapLabClient } from "./map-lab-client.js";
 import { renderAppFrame } from "./layout/AppFrame.js";
@@ -9,18 +10,23 @@ import { renderBottomNav } from "./layout/BottomNav.js";
 import { renderCompactStatusBar } from "./layout/CompactStatusBar.js";
 import { renderInspectModal } from "./layout/InspectModal.js";
 import { commanderConsoleStyles } from "./styles/commander-console-styles.js";
+import type { AppRunLimitSettings } from "../local-runtime/app-run-limit-settings-types.js";
+import type { CommanderMissionDashboardView } from "../../capabilities/commander-console/shared/commander-view-types.js";
 
-type CommanderAppShellInput = Parameters<typeof buildCommanderShellRenderState>[0];
-type CommanderAppShellDashboard = CommanderAppShellInput["dashboard"];
-type CommanderAppShellLocale = CommanderAppShellInput["locale"];
+type CommanderAppShellInput = {
+  dashboard: CommanderMissionDashboardView;
+  appRunLimitSettings: AppRunLimitSettings;
+};
+type CommanderAppShellLocale = Parameters<typeof buildCommanderShellRenderState>[0]["locale"];
 
-function renderCommanderAppShell(dashboard: CommanderAppShellDashboard, options: {
+function renderCommanderAppShell(input: CommanderAppShellInput, options: {
   locale: CommanderAppShellLocale;
   requestUrl: URL;
 }): string {
   const { viewModel, appViewModel, pageHtmlMap, inspectHtmlMap } = buildCommanderShellRenderState({
-    dashboard,
+    dashboard: input.dashboard,
     locale: options.locale,
+    appRunLimitSettings: input.appRunLimitSettings,
   });
 
   const appFrame = renderAppFrame({
@@ -47,6 +53,7 @@ function renderCommanderAppShell(dashboard: CommanderAppShellDashboard, options:
     <script>window.__grasseyeCommanderConsoleInspectHtml = ${safeJsonScript(inspectHtmlMap)};</script>
     <script>${commanderConsoleShellClient}</script>
     <script>${mapLabClient}</script>
+    <script>${appRunLimitSettingsClient}</script>
   </body>
 </html>`;
 }

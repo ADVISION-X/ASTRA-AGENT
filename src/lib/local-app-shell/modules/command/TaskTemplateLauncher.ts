@@ -7,12 +7,13 @@ function renderLaunchSettings(viewModel: CommanderConsoleViewModel, selectedTemp
   return `<div class="cc-launch-settings">
           <div class="cc-field">
             <label for="cc-max-minutes">${escapeHtml(localizeCommanderText(viewModel.locale, "运行时长", "Run duration"))}</label>
-            <input id="cc-max-minutes" name="maxMinutes" type="number" min="1" max="${escapeHtml(String(selectedTemplate?.maxAllowedRunLimit.maxMinutes ?? 45))}" value="${escapeHtml(String(selectedTemplate?.defaultRunLimit.maxMinutes ?? viewModel.commandDraft.maxMinutes))}" />
+            <input id="cc-max-minutes" name="maxMinutes" type="number" min="1" value="${escapeHtml(String(viewModel.commandDraft.maxMinutes))}" />
           </div>
           <div class="cc-field">
             <label for="cc-max-rounds">${escapeHtml(localizeCommanderText(viewModel.locale, "最多处理数量", "Max items"))}</label>
-            <input id="cc-max-rounds" name="maxRounds" type="number" min="1" max="${escapeHtml(String(selectedTemplate?.maxAllowedRunLimit.maxRounds ?? 6))}" value="${escapeHtml(String(selectedTemplate?.defaultRunLimit.maxRounds ?? viewModel.commandDraft.maxRounds))}" />
+            <input id="cc-max-rounds" name="maxRounds" type="number" min="1" value="${escapeHtml(String(viewModel.commandDraft.maxRounds))}" />
           </div>
+          <p class="cc-note" data-app-run-limit-default-note>${escapeHtml(localizeCommanderText(viewModel.locale, "默认值来自设置页，不由地图决定；这里可以临时改写。", "Defaults come from Settings, not from maps; you can override them here for this run."))}</p>
         </div>`;
 }
 
@@ -72,11 +73,9 @@ function renderTemplateCardHeader(
 }
 
 function renderTemplateCardMeta(viewModel: CommanderConsoleViewModel, template: CommanderConsoleViewModel["taskTemplates"][number]): string {
-  const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
   return `<div class="cc-task-template-meta">
         <span>${escapeHtml(template.taskCategory)}</span>
         <span>${escapeHtml(template.safetyLevel)}</span>
-        <span>${escapeHtml(t(`默认 ${template.defaultRunLimit.maxMinutes} 分钟 / ${template.defaultRunLimit.maxRounds} 条`, `${template.defaultRunLimit.maxMinutes} min / ${template.defaultRunLimit.maxRounds} items by default`))}</span>
       </div>`;
 }
 

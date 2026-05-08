@@ -3,23 +3,29 @@ import { escapeHtml, safeJsonScript } from "./render-helpers.js";
 import { renderCommanderAppRouter } from "./CommanderAppRouter.js";
 import { buildCommanderShellRenderState } from "./commander-shell-render-state.js";
 import { buildCommanderConsoleShellCopy } from "./commander-console.copy.js";
+import { appRunLimitSettingsClient } from "./app-run-limit-settings-client.js";
 import { commanderConsoleShellClient } from "./commander-console-shell-client.js";
 import { mapLabClient } from "./map-lab-client.js";
 import { renderMacShellFrame } from "./layout/MacShellFrame.js";
 import { renderRightInspector } from "./layout/RightInspector.js";
 import { commanderConsoleStyles } from "./styles/commander-console-styles.js";
+import type { AppRunLimitSettings } from "../local-runtime/app-run-limit-settings-types.js";
+import type { CommanderMissionDashboardView } from "../../capabilities/commander-console/shared/commander-view-types.js";
 
-type CommanderMacShellInput = Parameters<typeof buildCommanderShellRenderState>[0];
-type CommanderMacShellDashboard = CommanderMacShellInput["dashboard"];
-type CommanderMacShellLocale = CommanderMacShellInput["locale"];
+type CommanderMacShellInput = {
+  dashboard: CommanderMissionDashboardView;
+  appRunLimitSettings: AppRunLimitSettings;
+};
+type CommanderMacShellLocale = Parameters<typeof buildCommanderShellRenderState>[0]["locale"];
 
-function renderCommanderMacShell(dashboard: CommanderMacShellDashboard, options: {
+function renderCommanderMacShell(input: CommanderMacShellInput, options: {
   locale: CommanderMacShellLocale;
   requestUrl: URL;
 }): string {
   const { viewModel, appViewModel, pageHtmlMap, inspectHtmlMap } = buildCommanderShellRenderState({
-    dashboard,
+    dashboard: input.dashboard,
     locale: options.locale,
+    appRunLimitSettings: input.appRunLimitSettings,
     initialPageId: options.requestUrl.searchParams.get("page"),
   });
   const copy = buildCommanderConsoleShellCopy(options.locale);
@@ -51,6 +57,7 @@ function renderCommanderMacShell(dashboard: CommanderMacShellDashboard, options:
     <script>window.__grasseyeCommanderConsoleInspectHtml = ${safeJsonScript(inspectHtmlMap)};</script>
     <script>${commanderConsoleShellClient}</script>
     <script>${mapLabClient}</script>
+    <script>${appRunLimitSettingsClient}</script>
   </body>
 </html>`;
 }

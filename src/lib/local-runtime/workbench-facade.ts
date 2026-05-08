@@ -14,6 +14,8 @@ export type WorkbenchFacade = Pick<
   | "setLocalAiRoleStartupState"
   | "deleteCandidate"
   | "exportCandidateSummaries"
+  | "getAppRunLimitSettings"
+  | "saveAppRunLimitSettings"
   | "getMapLabSnapshot"
   | "saveMapLabProviderConfig"
   | "generateMapLabDraft"
@@ -35,6 +37,8 @@ export const createWorkbenchFacade = (runtime: WorkbenchRuntime): WorkbenchFacad
   setLocalAiRoleStartupState: (input) => runtime.setLocalAiRoleStartupState(input),
   deleteCandidate: (candidateId) => runtime.deleteCandidate(candidateId),
   exportCandidateSummaries: () => runtime.exportCandidateSummaries(),
+  getAppRunLimitSettings: () => runtime.getAppRunLimitSettings(),
+  saveAppRunLimitSettings: (input) => runtime.saveAppRunLimitSettings(input),
   getMapLabSnapshot: () => runtime.getMapLabSnapshot(),
   saveMapLabProviderConfig: (input) => runtime.saveMapLabProviderConfig(input),
   generateMapLabDraft: (input) => runtime.generateMapLabDraft(input),

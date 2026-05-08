@@ -41,8 +41,8 @@ const ORCHESTRATION_INTERNAL_OPERATION_KINDS = [
 ] as const;
 
 const ORCHESTRATION_ALLOWED_ABILITY_GROUP_IDS = OrchestrationAllowedAbilityGroupIdsSchemaSource;
-const MissionConfiguredMaxRoundsSchema = z.number().int().min(1).max(9);
-const MissionConfiguredMaxMinutesSchema = z.number().int().min(1).max(180);
+const MissionConfiguredMaxRoundsSchema = z.number().int().positive();
+const MissionConfiguredMaxMinutesSchema = z.number().int().positive();
 const OrchestrationChildCapabilityIdSchema = z.enum([
   "start-mission",
   "pause-mission",

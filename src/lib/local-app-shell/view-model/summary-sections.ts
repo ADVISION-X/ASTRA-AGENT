@@ -1,4 +1,5 @@
 import type { CommanderMissionDashboardView } from "../../../capabilities/commander-console/shared/commander-view-types.js";
+import type { AppRunLimitSettings } from "../../local-runtime/app-run-limit-settings-types.js";
 import type { Locale } from "../../localization/dictionaries.js";
 
 import { localizeCommanderText } from "../locale.js";
@@ -42,14 +43,15 @@ export function buildActiveRoundSummary(
 export function buildCommandDraft(
   dashboard: CommanderMissionDashboardView,
   activeTaskTemplate: CommanderConsoleTaskTemplate | null,
+  appRunLimitSettings: AppRunLimitSettings,
 ): CommanderConsoleViewModel["commandDraft"] {
   return {
     commandType: "start-mission",
     commandSource: "commander-console:start-form-submit",
     taskTemplateId: activeTaskTemplate?.taskTemplateId ?? null,
     humanGoal: activeTaskTemplate?.defaultHumanGoal ?? (dashboard.mission.humanGoal || ""),
-    maxRounds: activeTaskTemplate?.defaultRunLimit.maxRounds ?? 3,
-    maxMinutes: activeTaskTemplate?.defaultRunLimit.maxMinutes ?? 20,
+    maxRounds: appRunLimitSettings.defaultMaxRounds,
+    maxMinutes: appRunLimitSettings.defaultMaxMinutes,
   };
 }
 

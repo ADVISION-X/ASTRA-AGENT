@@ -143,18 +143,18 @@ export function normalizeRequestedPlatformId(value?: string): RequestedPlatformI
     : null;
 }
 
-export function normalizePositiveInteger(value: unknown, max: number): number | undefined {
-  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= max ? value : undefined;
+export function normalizePositiveInteger(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 ? value : undefined;
 }
 
-export function clampStartRunLimits(taskTemplateId: string, input: RunLimitInput): Required<RunLimitInput> {
-  const task = getLocalAppShellMapRegistry().active.listOrdinaryTaskTemplates()
-    .find((template) => template.taskTemplateId === taskTemplateId);
-  const defaultRunLimit = task?.defaultRunLimit ?? { maxRounds: 3, maxMinutes: 20 };
-  const maxAllowedRunLimit = task?.maxAllowedRunLimit ?? defaultRunLimit;
+export function resolveStartRunLimits(input: {
+  defaultMaxRounds: number;
+  defaultMaxMinutes: number;
+  draft: RunLimitInput;
+}): Required<RunLimitInput> {
   return {
-    maxRounds: Math.max(1, Math.min(input.maxRounds ?? defaultRunLimit.maxRounds, maxAllowedRunLimit.maxRounds)),
-    maxMinutes: Math.max(1, Math.min(input.maxMinutes ?? defaultRunLimit.maxMinutes, maxAllowedRunLimit.maxMinutes)),
+    maxRounds: input.draft.maxRounds ?? input.defaultMaxRounds,
+    maxMinutes: input.draft.maxMinutes ?? input.defaultMaxMinutes,
   };
 }
 

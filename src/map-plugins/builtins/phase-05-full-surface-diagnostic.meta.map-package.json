@@ -24,14 +24,6 @@
     "recommended": false,
     "taskCategory": "diagnostic",
     "version": "1.0.0",
-    "defaultRunLimit": {
-      "maxRounds": 1,
-      "maxMinutes": 10
-    },
-    "maxAllowedRunLimit": {
-      "maxRounds": 1,
-      "maxMinutes": 15
-    },
     "safetyLevel": "dry-run-diagnostic",
     "userVisibleCapabilities": [
       "Open local workbench",

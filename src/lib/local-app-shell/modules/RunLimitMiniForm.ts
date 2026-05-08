@@ -18,18 +18,18 @@ export function renderRunLimitMiniForm(viewModel: CommanderConsoleViewModel): st
   return `<section class="cc-home-section" data-run-limit-form>
     <div class="cc-section-copy">
       <p class="cc-section-title">${escapeHtml(t("运行限制", "Run Limits"))}</p>
-      <p class="cc-note">${escapeHtml(t(`默认最多运行 ${selectedTemplate.defaultRunLimit.maxMinutes} 分钟 / ${selectedTemplate.defaultRunLimit.maxRounds} 轮。`, `Default limit: ${selectedTemplate.defaultRunLimit.maxMinutes} minutes / ${selectedTemplate.defaultRunLimit.maxRounds} rounds.`))}</p>
+      <p class="cc-note" data-app-run-limit-default-note>${escapeHtml(t(`当前 APP 默认值为 ${viewModel.appRunLimitSettings.defaultMaxMinutes} 分钟 / ${viewModel.appRunLimitSettings.defaultMaxRounds} 轮。`, `Current app defaults: ${viewModel.appRunLimitSettings.defaultMaxMinutes} minutes / ${viewModel.appRunLimitSettings.defaultMaxRounds} rounds.`))}</p>
     </div>
     <details class="cc-advanced-panel">
       <summary>${escapeHtml(t("本次限制", "This Run"))}</summary>
       <div class="cc-run-limit-grid">
         <label class="cc-field">
           <span>${escapeHtml(t("最多分钟", "Max minutes"))}</span>
-          <input id="cc-max-minutes" name="maxMinutes" type="number" min="1" max="${escapeHtml(String(selectedTemplate.maxAllowedRunLimit.maxMinutes))}" value="${escapeHtml(String(selectedTemplate.defaultRunLimit.maxMinutes))}" />
+          <input id="cc-max-minutes" name="maxMinutes" type="number" min="1" value="${escapeHtml(String(viewModel.commandDraft.maxMinutes))}" />
         </label>
         <label class="cc-field">
           <span>${escapeHtml(t("最多轮次", "Max rounds"))}</span>
-          <input id="cc-max-rounds" name="maxRounds" type="number" min="1" max="${escapeHtml(String(selectedTemplate.maxAllowedRunLimit.maxRounds))}" value="${escapeHtml(String(selectedTemplate.defaultRunLimit.maxRounds))}" />
+          <input id="cc-max-rounds" name="maxRounds" type="number" min="1" value="${escapeHtml(String(viewModel.commandDraft.maxRounds))}" />
         </label>
       </div>
     </details>

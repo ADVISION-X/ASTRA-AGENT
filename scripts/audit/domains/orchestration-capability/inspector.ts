@@ -5,6 +5,7 @@ import { inspectMissionLoopEventSemantics } from "./mission-loop-event-semantics
 import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runOrchestrationGovernedRuntimeChecks } from "./run-governed-runtime-checks.js";
 import { runOrchestrationCapabilityChecks } from "./run-orchestration-capability-checks.js";
+import { runOrchestrationRunLimitGovernanceChecks } from "./run-limit-governance-checks.js";
 
 const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_ORCHESTRATION_NEGATIVE_PROOF";
 
@@ -18,9 +19,10 @@ export const orchestrationCapabilityInspector = createPendingDomainInspector({
   implementedSummary: "orchestration-capability is implemented as the canonical mission-command owner with governed maps, children, runtime, and Nerve Bus dispatch",
   extraChecks: async (context) => {
     const project = createAuditProject();
-    const [packageChecks, governedRuntimeChecks, negativeProof] = await Promise.all([
+    const [packageChecks, governedRuntimeChecks, runLimitGovernance, negativeProof] = await Promise.all([
       runOrchestrationCapabilityChecks(project),
       runOrchestrationGovernedRuntimeChecks(project),
+      Promise.resolve(runOrchestrationRunLimitGovernanceChecks(project)),
       process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
         ? Promise.resolve({
             findings: [],
@@ -41,8 +43,8 @@ export const orchestrationCapabilityInspector = createPendingDomainInspector({
     const filteredGovernedRuntimePhases = governedRuntimeChecks.phases.filter((phase) => phase.name !== "mission-loop-traceability");
 
     return {
-      findings: [...packageChecks.findings, ...filteredGovernedRuntimeFindings, ...loopSemantics.findings, ...negativeProof.findings],
-      phases: [...packageChecks.phases, ...filteredGovernedRuntimePhases, loopSemantics.phase, negativeProof.phase],
+      findings: [...packageChecks.findings, ...filteredGovernedRuntimeFindings, ...runLimitGovernance.findings, ...loopSemantics.findings, ...negativeProof.findings],
+      phases: [...packageChecks.phases, ...filteredGovernedRuntimePhases, runLimitGovernance.phase, loopSemantics.phase, negativeProof.phase],
     };
   },
 });

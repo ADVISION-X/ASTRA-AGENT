@@ -12,8 +12,6 @@ export function buildCommanderTaskTemplates(locale: Locale): CommanderConsoleTas
       version: definition.version,
       recommended: definition.recommended,
       taskCategory: definition.taskCategory,
-      defaultRunLimit: definition.defaultRunLimit,
-      maxAllowedRunLimit: definition.maxAllowedRunLimit,
       safetyLevel: definition.safetyLevel,
       userVisibleCapabilities: definition.userVisibleCapabilities,
       availability: definition.availability,

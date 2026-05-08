@@ -39,6 +39,10 @@ export const commanderConsoleShellClientSupport = `
         return safetyLevel || "";
     }
   }
+  function resolvePositiveInteger(value) {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed >= 1 ? parsed : null;
+  }
   function clearRuntimeStartError() {
     state.runtimeStartError = null;
     const banner = getRuntimeStartErrorBanner();
@@ -107,22 +111,7 @@ export const commanderConsoleShellClientSupport = `
       goalInput.dataset.currentDefaultGoal = template.defaultHumanGoal || "";
     }
     const startForm = getStartForm();
-    if (startForm instanceof HTMLFormElement) {
-      const maxRoundsInput = startForm.querySelector("#cc-max-rounds");
-      const maxMinutesInput = startForm.querySelector("#cc-max-minutes");
-      if (maxRoundsInput instanceof HTMLInputElement) {
-        maxRoundsInput.max = String(template.maxAllowedRunLimit.maxRounds);
-        const nextRounds = Math.min(Number(state.maxRounds || template.defaultRunLimit.maxRounds), template.maxAllowedRunLimit.maxRounds);
-        state.maxRounds = nextRounds;
-        maxRoundsInput.value = String(nextRounds);
-      }
-      if (maxMinutesInput instanceof HTMLInputElement) {
-        maxMinutesInput.max = String(template.maxAllowedRunLimit.maxMinutes);
-        const nextMinutes = Math.min(Number(state.maxMinutes || template.defaultRunLimit.maxMinutes), template.maxAllowedRunLimit.maxMinutes);
-        state.maxMinutes = nextMinutes;
-        maxMinutesInput.value = String(nextMinutes);
-      }
-    }
+    if (startForm instanceof HTMLFormElement) { return; }
   }
   function applyTemplateFilters() {
     const searchInput = document.querySelector("[data-template-search]");
@@ -190,10 +179,10 @@ export const commanderConsoleShellClientSupport = `
     const taskTemplateId = String(formData.get("taskTemplateId") || "").trim() || null;
     const template = taskTemplateId ? taskTemplates.get(taskTemplateId) : null;
     if (!template || template.availability !== "ready") { throw new Error(text.templateRequired); }
-    const maxRounds = Number(formData.get("maxRounds") || template.defaultRunLimit.maxRounds);
-    const maxMinutes = Number(formData.get("maxMinutes") || template.defaultRunLimit.maxMinutes);
-    state.maxRounds = Math.max(1, Math.min(maxRounds, template.maxAllowedRunLimit.maxRounds));
-    state.maxMinutes = Math.max(1, Math.min(maxMinutes, template.maxAllowedRunLimit.maxMinutes));
+    const maxRounds = resolvePositiveInteger(formData.get("maxRounds"));
+    const maxMinutes = resolvePositiveInteger(formData.get("maxMinutes"));
+    state.maxRounds = maxRounds || viewModel.appRunLimitSettings.defaultMaxRounds;
+    state.maxMinutes = maxMinutes || viewModel.appRunLimitSettings.defaultMaxMinutes;
     const humanGoal = String(formData.get("humanGoal") || template.defaultHumanGoal || "").trim();
     return {
       commandType: "start-mission",

@@ -1,4 +1,5 @@
 import type { Locale } from "../../localization/dictionaries.js";
+import type { AppRunLimitSettings } from "../../local-runtime/app-run-limit-settings-types.js";
 
 import { localizeCommanderText } from "../locale.js";
 import type { CommanderConsoleExportRequest, CommanderConsolePolicyCheck, CommanderConsoleViewModel } from "../types.js";
@@ -26,11 +27,6 @@ const SAFETY_LOCKS: PolicyDefinition[] = [
   { id: "emergency-stop-ready", zhLabel: "急停通路", enLabel: "Emergency stop path", status: "ok", zhDetail: "保留独立 emergency-stop command transport。", enDetail: "Dedicated emergency-stop command transport remains available." },
 ];
 
-const RUN_LIMITS: PolicyDefinition[] = [
-  { id: "max-rounds", zhLabel: "最大轮次", enLabel: "Max rounds", status: "ok", zhDetail: "默认 3 轮，可在起始草案中显式修改。", enDetail: "Defaults to 3 rounds and must be explicitly set in the start draft." },
-  { id: "max-minutes", zhLabel: "最大分钟数", enLabel: "Max minutes", status: "ok", zhDetail: "默认 20 分钟，用于约束本地长跑。", enDetail: "Defaults to 20 minutes to bound local execution." },
-];
-
 const APP_SHELL_READINESS: PolicyDefinition[] = [
   { id: "local-shell-only", zhLabel: "本地壳边界", enLabel: "Local shell boundary", status: "ok", zhDetail: "当前 Commander Console 仍为本地 HTTP app shell，不引入 SaaS / browser extension 形态。", enDetail: "Commander Console stays as a local HTTP app shell without SaaS or extension drift." },
   { id: "inspect-drawer-ready", zhLabel: "Inspect Drawer", enLabel: "Inspect drawer", status: "ok", zhDetail: "右侧抽屉承接深信息，主工作区不再塞满日志与原始记录。", enDetail: "The right drawer absorbs deep details so the main workspace is no longer a packed dashboard." },
@@ -40,8 +36,29 @@ export function buildSafetyLocks(locale: Locale): CommanderConsolePolicyCheck[] 
   return SAFETY_LOCKS.map((definition) => toPolicyCheck(locale, definition));
 }
 
-export function buildRunLimits(locale: Locale): CommanderConsolePolicyCheck[] {
-  return RUN_LIMITS.map((definition) => toPolicyCheck(locale, definition));
+export function buildRunLimits(locale: Locale, settings: AppRunLimitSettings): CommanderConsolePolicyCheck[] {
+  return [
+    {
+      id: "run-limit-owner",
+      label: localizeCommanderText(locale, "默认值归属", "Default owner"),
+      status: "ok",
+      detail: localizeCommanderText(
+        locale,
+        "运行时长与最多处理的默认值只归 APP 设置所有，地图包不得携带或钳制这两个字段。",
+        "Run duration and max-items defaults belong only to app settings; map packages must neither carry nor clamp them.",
+      ),
+    },
+    {
+      id: "run-limit-defaults",
+      label: localizeCommanderText(locale, "当前默认值", "Current defaults"),
+      status: "ok",
+      detail: localizeCommanderText(
+        locale,
+        `当前默认值为 ${settings.defaultMaxMinutes} 分钟 / ${settings.defaultMaxRounds} 轮；用户可在开始页任意改写。`,
+        `Current defaults are ${settings.defaultMaxMinutes} minutes / ${settings.defaultMaxRounds} rounds; operators may override them freely on the start page.`,
+      ),
+    },
+  ];
 }
 
 export function buildAppShellReadiness(locale: Locale): CommanderConsolePolicyCheck[] {

@@ -1,5 +1,6 @@
 import type { WorkbenchRuntime, GrassEyeWorkbenchOptions } from "./workbench-contract.js";
 import { createWorkbenchBaseRuntime } from "./workbench-base-runtime.js";
+import { getAppRunLimitSettings, updateAppRunLimitSettings } from "./app-run-limit-settings-support.js";
 import { createWorkbenchCommanderConsole, getCommanderConsoleSnapshot } from "./workbench-commander-console.js";
 import { recordCommanderDebugEvent } from "./workbench-commander-debug.js";
 import { createWorkbenchNerveBus } from "./workbench-nerve-bus.js";
@@ -33,6 +34,8 @@ export const createWorkbenchRuntime = (
   runtime.setLocalAiRoleStartupState = (input) => setWorkbenchLocalAiRoleStartupState(input);
   runtime.deleteCandidate = (candidateId) => runtime.evidenceStore.deleteCandidate(candidateId);
   runtime.exportCandidateSummaries = () => runtime.evidenceStore.exportCandidateSummaries();
+  runtime.getAppRunLimitSettings = () => getAppRunLimitSettings(runtime);
+  runtime.saveAppRunLimitSettings = (input) => updateAppRunLimitSettings(runtime, input);
   runtime.getMapLabSnapshot = () => getMapLabService().getSnapshot();
   runtime.saveMapLabProviderConfig = (input) => getMapLabService().saveProviderConfig(input);
   runtime.generateMapLabDraft = (input) => getMapLabService().generateDraft(input);

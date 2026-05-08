@@ -1,5 +1,6 @@
 import { AUTHORING_INPUT_PACKAGE_MUTATIONS } from "./authoring-input-package-negative-proof.js";
 import { MAP_PLUGIN_PATHS } from "./constants.js";
+import { RUN_LIMIT_NEGATIVE_PROOF_MUTATIONS, RUN_LIMIT_REQUIRED_MUTATION_NAMES } from "./negative-proof-mutations-run-limit.js";
 import { ROUTE_PLAN_NEGATIVE_PROOF_MUTATIONS, ROUTE_PLAN_REQUIRED_MUTATION_NAMES } from "./negative-proof-mutations-route-plan.js";
 
 const { LAW_FILE: MAP_PLUGIN_LAW_FILE } = MAP_PLUGIN_PATHS;
@@ -27,11 +28,13 @@ export const REQUIRED_MUTATION_NAMES = [
   "map owns muscle segment mutation",
   "ability group semantic judgment mutation",
   "mac smoke workflow creep mutation",
+  ...RUN_LIMIT_REQUIRED_MUTATION_NAMES,
   ...ROUTE_PLAN_REQUIRED_MUTATION_NAMES,
 ] as const;
 
 export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   ...AUTHORING_INPUT_PACKAGE_MUTATIONS,
+  ...RUN_LIMIT_NEGATIVE_PROOF_MUTATIONS,
   {
     name: "seeding map frame-specific step leakage mutation",
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",

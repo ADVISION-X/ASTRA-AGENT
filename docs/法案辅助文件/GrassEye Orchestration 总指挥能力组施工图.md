@@ -554,8 +554,8 @@ AI runtime chooses prompt for Orchestration
 Mission loop 必须限制：
 
 ```txt
-maxRounds
-maxMinutes
+configured maxRounds (positive integer from app/operator input; no fixed upper cap)
+configured maxMinutes (positive integer from app/operator input; no fixed upper cap)
 maxStepCount
 maxDispatchTimeoutMs
 emergencyStopLatched
@@ -817,8 +817,9 @@ verify script as release truth
 17. Result/proof/state/input parity.
 18. Children use unified runtime.
 19. No forbidden imports/legacy browse-flow.
-20. ALL active laws in registry/matrix/audit-plan/runner.
-21. negative proof executed.
+20. No fixed hard cap for configured maxRounds/maxMinutes; positive-only validation.
+21. ALL active laws in registry/matrix/audit-plan/runner.
+22. negative proof executed.
 ```
 
 ### 19.1 当前 blocker 补充

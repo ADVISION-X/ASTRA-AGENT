@@ -11,6 +11,7 @@ import { runStartupReadinessGateChecks } from "./run-startup-readiness-gate-chec
 import { runStartupExitClassificationChecks } from "./startup-exit-classification-checks.js";
 import { runStartupExitNegativeProof } from "./startup-exit-negative-proof.js";
 import { runCommanderStructureChecks } from "./run-commander-structure-checks.js";
+import { runTemplateRunLimitGovernanceChecks } from "./run-template-run-limit-governance-checks.js";
 
 const { ROOT } = commanderConsoleInspectionConstants;
 const SKIP_STARTUP_EXIT_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_COMMANDER_STARTUP_EXIT_NEGATIVE_PROOF";
@@ -123,6 +124,7 @@ const runCommanderExtraChecks = async () => {
   const structure = await runCommanderStructureChecks(project);
   const childFindings = runCommanderChildChecks(project);
   const runtime = runCommanderRuntimeChecks(project);
+  const templateRunLimits = runTemplateRunLimitGovernanceChecks(project);
   const boundary = await runCommanderBoundaryChecks(project);
   const [startupGateFindings, startupExitChecks, startupExitNegativeProof] = await Promise.all([
     runStartupReadinessGateChecks(),
@@ -133,6 +135,7 @@ const runCommanderExtraChecks = async () => {
     ...structure.findings,
     ...childFindings,
     ...runtime.findings,
+    ...templateRunLimits.findings,
     ...boundary.findings,
     ...startupGateFindings,
     ...startupExitChecks.findings,

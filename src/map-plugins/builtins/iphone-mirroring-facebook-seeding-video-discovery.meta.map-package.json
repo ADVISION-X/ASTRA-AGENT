@@ -24,14 +24,6 @@
     "recommended": false,
     "taskCategory": "local-program-visual-seeding-video-discovery",
     "version": "1.0.0",
-    "defaultRunLimit": {
-      "maxRounds": 2,
-      "maxMinutes": 20
-    },
-    "maxAllowedRunLimit": {
-      "maxRounds": 5,
-      "maxMinutes": 45
-    },
     "safetyLevel": "local-visual-readonly",
     "userVisibleCapabilities": [
       "Open iPhone Mirroring",

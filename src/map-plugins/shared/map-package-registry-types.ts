@@ -11,8 +11,6 @@ export type OrdinaryTaskTemplateFeedItem = {
   recommended: boolean;
   taskCategory: string;
   version: string;
-  defaultRunLimit: TaskTemplatePackage["defaultRunLimit"];
-  maxAllowedRunLimit: TaskTemplatePackage["maxAllowedRunLimit"];
   safetyLevel: string;
   userVisibleCapabilities: string[];
   availability: "ready" | "disabled";
@@ -62,8 +60,6 @@ export type DeveloperTaskTemplateFeedItem = TaskTemplateDeveloperBinding & {
   recommended: boolean;
   taskCategory: string;
   version: string;
-  defaultRunLimit: TaskTemplatePackage["defaultRunLimit"];
-  maxAllowedRunLimit: TaskTemplatePackage["maxAllowedRunLimit"];
   safetyLevel: string;
   userVisibleCapabilities: string[];
   availability: "ready" | "disabled";

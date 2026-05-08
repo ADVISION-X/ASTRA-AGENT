@@ -4,6 +4,7 @@ import type {
   CommanderRecordSummaryView,
   CommanderRuntimeProofTimelineEntry,
 } from "../../capabilities/commander-console/shared/commander-view-types.js";
+import type { AppRunLimitSettings } from "../local-runtime/app-run-limit-settings-types.js";
 import type { Locale } from "../localization/dictionaries.js";
 
 type CommanderConsolePrimaryPageId =
@@ -84,14 +85,6 @@ type CommanderConsoleTaskTemplate = {
   version: string;
   recommended: boolean;
   taskCategory: string;
-  defaultRunLimit: {
-    maxRounds: number;
-    maxMinutes: number;
-  };
-  maxAllowedRunLimit: {
-    maxRounds: number;
-    maxMinutes: number;
-  };
   safetyLevel: string;
   userVisibleCapabilities: string[];
   defaultHumanGoal: string;
@@ -170,6 +163,7 @@ type CommanderConsoleViewModel = {
   locale: Locale;
   appTitle: string;
   appSubtitle: string;
+  appRunLimitSettings: AppRunLimitSettings;
   missionSummary: string;
   badges: CommanderConsoleBadge[];
   topMetrics: CommanderConsoleTopMetric[];

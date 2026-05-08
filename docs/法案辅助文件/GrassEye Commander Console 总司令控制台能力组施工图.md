@@ -554,9 +554,11 @@ description
 version
 availability
 safetyLevel
-run limits
+app-owned run limits (defaults come from Settings, operator may override per run)
 start button
 ```
+
+Commander owns only the operator-facing run-limit inputs. Task templates and map packages must not provide default values, maxima, or clamp policy for these inputs.
 
 Developer/Map Manager:
 

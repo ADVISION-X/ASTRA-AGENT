@@ -4,9 +4,9 @@ import { createId } from "../local-runtime/ids.js";
 import type { GrassEyeWorkbenchHandle } from "../local-runtime/workbench-handle.js";
 import { parseTaskJsonBody } from "./task-http-helpers.js";
 import {
-  clampStartRunLimits,
   normalizePositiveInteger,
   normalizeRequestedPlatformId,
+  resolveStartRunLimits,
   resolveMissionStartBinding,
   type MissionStartBinding,
 } from "./task-start-binding.js";
@@ -33,16 +33,24 @@ const buildStartDraft = async (request: IncomingMessage): Promise<StartDraft> =>
     taskTemplateId: body.taskTemplateId?.trim() || null,
     requestedPlatformId: normalizeRequestedPlatformId(body.requestedPlatformId),
     selectedMapId: body.selectedMapId?.trim() || null,
-    maxRounds: normalizePositiveInteger(body.maxRounds, 9),
-    maxMinutes: normalizePositiveInteger(body.maxMinutes, 180),
+    maxRounds: normalizePositiveInteger(body.maxRounds),
+    maxMinutes: normalizePositiveInteger(body.maxMinutes),
     operatorNote: body.operatorNote?.trim() || null,
   };
 };
 
-const buildApproval = (draft: StartDraft, binding: Extract<MissionStartBinding, { ok: true }>): StartApproval => {
-  const runLimit = clampStartRunLimits(binding.taskTemplateId, {
-    maxRounds: draft.maxRounds,
-    maxMinutes: draft.maxMinutes,
+const buildApproval = (
+  draft: StartDraft,
+  binding: Extract<MissionStartBinding, { ok: true }>,
+  settings: Awaited<ReturnType<GrassEyeWorkbenchHandle["getAppRunLimitSettings"]>>,
+): StartApproval => {
+  const runLimit = resolveStartRunLimits({
+    defaultMaxRounds: settings.defaultMaxRounds,
+    defaultMaxMinutes: settings.defaultMaxMinutes,
+    draft: {
+      maxRounds: draft.maxRounds,
+      maxMinutes: draft.maxMinutes,
+    },
   });
   return { ...draft, ...runLimit, binding };
 };
@@ -139,7 +147,7 @@ export async function runTaskStartFlow(request: IncomingMessage, response: Serve
     return true;
   }
 
-  const approval = buildApproval(draft, binding);
+  const approval = buildApproval(draft, binding, await activeWorkbench.getAppRunLimitSettings());
   const preflight = await getApprovedTaskStartPreflight(activeWorkbench, approval);
   if (preflight.status === "blocked") {
     await sendBlockedTaskStartPreflight(response, activeWorkbench, approval, preflight);
