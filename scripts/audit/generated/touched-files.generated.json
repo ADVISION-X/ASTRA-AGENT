@@ -1,16 +1,17 @@
 {
-  "generatedAt": "2026-05-08T20:34:10.313Z",
+  "generatedAt": "2026-05-08T20:37:01.449Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/map-plugin-package/negative-proof-mutations-run-limit.ts",
-    "scripts/audit/domains/map-plugin-package/task-template-run-limit-governance.ts",
+    ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+    "scripts/audit/domains/commander-console-capability/inspector.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
-    "scripts/audit/generated/domain-summaries/page-state-capability.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
-    "scripts/audit/generated/touched-files.generated.json"
+    "scripts/audit/generated/touched-files.generated.json",
+    "src/lib/local-app-shell/pages/AiProviderSettingsPage.ts",
+    "src/lib/local-runtime/app-run-limit-settings.ts"
   ]
 }

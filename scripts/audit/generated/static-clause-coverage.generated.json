@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T20:34:12.380Z",
+  "generatedAt": "2026-05-08T20:36:58.944Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -996,6 +996,27 @@
       "ownerAuditPassed": false,
       "globalChainPassed": false,
       "sourceEvidence": [
+        {
+          "checkPhase": "run-app-run-limit-settings-governance-checks",
+          "checkFunction": "createMissingSourceFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-app-run-limit-settings-governance-checks.ts",
+          "targetSymbol": "createMissingSourceFinding",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-app-run-limit-settings-governance-checks",
+          "checkFunction": "createUpperBoundFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-app-run-limit-settings-governance-checks.ts",
+          "targetSymbol": "createUpperBoundFinding",
+          "checkKind": "runtime-proof"
+        },
+        {
+          "checkPhase": "run-app-run-limit-settings-governance-checks",
+          "checkFunction": "createPositiveOnlyFinding",
+          "sourceFile": "scripts/audit/domains/commander-console-capability/run-app-run-limit-settings-governance-checks.ts",
+          "targetSymbol": "createPositiveOnlyFinding",
+          "checkKind": "runtime-proof"
+        },
         {
           "checkPhase": "run-commander-child-checks",
           "checkFunction": "collectChildExecutionRouteFindings",

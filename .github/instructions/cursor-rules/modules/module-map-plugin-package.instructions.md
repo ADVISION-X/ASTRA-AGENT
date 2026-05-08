@@ -956,13 +956,13 @@ description
 recommended
 taskCategory
 version
-defaultRunLimit
-maxAllowedRunLimit
 safetyLevel
 userVisibleCapabilities
 availability
 defaultHumanGoal
 ```
+
+Task templates must not carry run-limit ownership fields such as `defaultRunLimit` or `maxAllowedRunLimit`. Launch defaults belong to APP settings, not to map packages.
 
 Required developer feed may include:
 

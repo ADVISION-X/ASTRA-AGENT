@@ -14,8 +14,8 @@ const AppRunLimitSettingsSchema = z.object({
 }).strict();
 
 const DEFAULT_APP_RUN_LIMIT_SETTINGS = AppRunLimitSettingsSchema.parse({
-  defaultMaxRounds: 3,
-  defaultMaxMinutes: 20,
+  defaultMaxRounds: 300,
+  defaultMaxMinutes: 480,
   updatedAt: null,
 }) satisfies AppRunLimitSettings;
 

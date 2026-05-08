@@ -11,6 +11,7 @@ import { runStartupReadinessGateChecks } from "./run-startup-readiness-gate-chec
 import { runStartupExitClassificationChecks } from "./startup-exit-classification-checks.js";
 import { runStartupExitNegativeProof } from "./startup-exit-negative-proof.js";
 import { runCommanderStructureChecks } from "./run-commander-structure-checks.js";
+import { runAppRunLimitSettingsGovernanceChecks } from "./run-app-run-limit-settings-governance-checks.js";
 import { runTemplateRunLimitGovernanceChecks } from "./run-template-run-limit-governance-checks.js";
 
 const { ROOT } = commanderConsoleInspectionConstants;
@@ -93,12 +94,14 @@ function createCommanderPhases(input: {
   antiEscapeViolation: boolean;
   startupGateViolation: boolean;
   startupExitViolation: boolean;
+  appRunLimitSettingsPhase: InspectorPhase;
 }): InspectorPhase[] {
   return [
     createRequiredPhase(input.findings),
     createForbiddenPhase(input),
     createBoundaryPhase(input.boundaryViolation),
     createAntiEscapePhase(input.antiEscapeViolation),
+    input.appRunLimitSettingsPhase,
     createStartupGatePhase(input.startupGateViolation),
     createStartupExitPhase(input.startupExitViolation),
   ];
@@ -124,6 +127,7 @@ const runCommanderExtraChecks = async () => {
   const structure = await runCommanderStructureChecks(project);
   const childFindings = runCommanderChildChecks(project);
   const runtime = runCommanderRuntimeChecks(project);
+  const appRunLimitSettings = runAppRunLimitSettingsGovernanceChecks(project);
   const templateRunLimits = runTemplateRunLimitGovernanceChecks(project);
   const boundary = await runCommanderBoundaryChecks(project);
   const [startupGateFindings, startupExitChecks, startupExitNegativeProof] = await Promise.all([
@@ -135,6 +139,7 @@ const runCommanderExtraChecks = async () => {
     ...structure.findings,
     ...childFindings,
     ...runtime.findings,
+    ...appRunLimitSettings.findings,
     ...templateRunLimits.findings,
     ...boundary.findings,
     ...startupGateFindings,
@@ -152,6 +157,7 @@ const runCommanderExtraChecks = async () => {
       childExecutorReceiptCount: runtime.childExecutorReceiptCount,
       boundaryViolation: boundary.boundaryViolation,
       antiEscapeViolation: boundary.antiEscapeViolation,
+      appRunLimitSettingsPhase: appRunLimitSettings.phase,
       startupGateViolation: startupGateFindings.length > 0,
       startupExitViolation: startupExitChecks.findings.length > 0 || startupExitNegativeProof.findings.length > 0,
     }),

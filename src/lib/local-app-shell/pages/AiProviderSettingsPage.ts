@@ -85,8 +85,8 @@ function renderRunLimitSettingsCard(t: (zh: string, en: string) => string): stri
     `<form class="cc-stack" data-app-run-limit-settings-form>
       <p class="cc-note" data-app-run-limit-settings-status>${escapeHtml(t("正在读取启动默认值。", "Loading launch defaults."))}</p>
       <div class="cc-run-limit-grid">
-        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("默认运行时长", "Default duration"))}</span><input name="defaultMaxMinutes" type="number" min="1" placeholder="20" /></label>
-        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("默认最多处理", "Default max items"))}</span><input name="defaultMaxRounds" type="number" min="1" placeholder="3" /></label>
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("默认运行时长", "Default duration"))}</span><input name="defaultMaxMinutes" type="number" min="1" placeholder="480" /></label>
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("默认最多处理", "Default max items"))}</span><input name="defaultMaxRounds" type="number" min="1" placeholder="300" /></label>
       </div>
       <div class="cc-inline-actions">
         <button type="submit" class="cc-button cc-button-primary">${escapeHtml(t("保存默认值", "Save Defaults"))}</button>
