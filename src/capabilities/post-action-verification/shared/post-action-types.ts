@@ -6,6 +6,7 @@ export const POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS = [
   "observe-comments-panel-close-attempt",
   "observe-not-interested-attempt",
   "observe-target-state-transition",
+  "verify-action-result",
 ] as const;
 
 export type PostActionVerificationChildCapabilityId = (typeof POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS)[number];

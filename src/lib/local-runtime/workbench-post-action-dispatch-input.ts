@@ -9,7 +9,8 @@ type SupportedPostActionChildCapabilityId =
   | "observe-comments-panel-open-attempt"
   | "observe-comments-panel-close-attempt"
   | "observe-not-interested-attempt"
-  | "observe-target-state-transition";
+  | "observe-target-state-transition"
+  | "verify-action-result";
 
 type PostActionInputPolicy = {
   childCapabilityId: SupportedPostActionChildCapabilityId;
@@ -102,7 +103,7 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, PostActionInputPolic
 };
 
 const DEFAULT_POST_ACTION_POLICY: PostActionInputPolicy = {
-  childCapabilityId: "observe-target-state-transition",
+  childCapabilityId: "verify-action-result",
   outcomeType: "target_state_changed",
   sourceAbilityGroupId: "mouse-click",
   sourceChildCapabilityId: "click-browser-coordinate",

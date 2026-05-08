@@ -29,6 +29,7 @@ export const CHILDREN = [
   "observe-comments-panel-close-attempt",
   "observe-not-interested-attempt",
   "observe-target-state-transition",
+  "verify-action-result",
 ] as const;
 
 export const CANONICAL_FILES = [

@@ -3,21 +3,14 @@ import { listPostActionVerificationChildren } from "../../../../capabilities/pos
 import type { CapabilityCatalogEntry } from "../schema.js";
 import { buildEntry, humanize } from "../policies.js";
 
-const MAP_PLUGIN_POST_ACTION_ALIAS_CHILDREN = ["verify-action-result"] as const;
-
 export const buildPostActionEntries = (): CapabilityCatalogEntry[] => [
   ...listPostActionVerificationChildren().map((childCapabilityId) =>
     buildEntry({
       abilityGroupId: "post-action-verification",
       childCapabilityId,
-      description: `Verify governed post-action outcome for ${humanize(childCapabilityId)}.`,
-    }),
-  ),
-  ...MAP_PLUGIN_POST_ACTION_ALIAS_CHILDREN.map((childCapabilityId) =>
-    buildEntry({
-      abilityGroupId: "post-action-verification",
-      childCapabilityId,
-      description: "Verify governed post-action result for map-routable action steps.",
+      description: childCapabilityId === "verify-action-result"
+        ? "Verify governed post-action result for map-routable action steps."
+        : `Verify governed post-action outcome for ${humanize(childCapabilityId)}.`,
     }),
   ),
 ];

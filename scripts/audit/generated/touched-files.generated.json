@@ -1,7 +1,8 @@
 {
-  "generatedAt": "2026-05-08T12:54:21.057Z",
+  "generatedAt": "2026-05-08T13:41:38.836Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
+    "scripts/audit/domains/post-action-verification-capability/config.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
@@ -10,23 +11,9 @@
     "scripts/audit/generated/runner-summary.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
     "scripts/audit/generated/touched-files.generated.json",
-    "src/capabilities/nerve-bus/schema-foundation.schema.ts",
-    "src/capabilities/orchestration/runtime/map-validation-gate.ts",
-    "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts",
-    "src/capabilities/orchestration/runtime/orchestration-loop-iteration-event-shared.ts",
-    "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events-gateway.ts",
-    "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts",
-    "src/capabilities/orchestration/runtime/orchestration-post-action-verification.ts",
-    "src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts",
-    "src/capabilities/orchestration/runtime/step-dispatcher.ts",
-    "src/capabilities/text-input/runtime/text-input-proof-builder.ts",
-    "src/capabilities/text-input/runtime/text-input-result-builder-support.ts",
-    "src/capabilities/text-input/runtime/text-input-result-builder.ts",
-    "src/capabilities/text-input/schema.ts",
-    "src/capabilities/text-input/text-input-schema-refinements.ts",
-    "src/lib/local-runtime/workbench-ability-command-executor.ts",
-    "src/lib/local-runtime/workbench-base-runtime.ts",
-    "src/lib/local-runtime/workbench-contract.ts",
-    "src/map-plugins/schema/operational-map-ability.schema.ts"
+    "src/capabilities/post-action-verification/children/post-action-observation-child.ts",
+    "src/capabilities/post-action-verification/shared/post-action-types.ts",
+    "src/lib/local-runtime/workbench-post-action-dispatch-input.ts",
+    "src/map-plugins/authoring/capability-catalog/builders/build-post-action-entries.ts"
   ]
 }
