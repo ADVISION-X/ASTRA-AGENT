@@ -1,416 +1,288 @@
-## 文档状态
+明白，完全明白。你这次的纠正是对的，我前面方案确实扩大了复杂度。
 
-- status: archived / historical debugging analysis only
-- 本文形成于 phase-four 向 phase-five 切换前后的分析阶段，含有 phase-04 storage / authority 样本，不是当前 phase-five final-delivery debugging authority。
-- 当前 authority 以 Kernel / Index / active phase gate / generated runner-summary 为准。
-
-结论很明确：**现在不是“卡死在启动”，也不是“AI 没起来”，更不是 Commander / Nerve Bus / Open / Forensics 主链崩了。**
-
-真正卡死点是：
+现在只做 **2 件事**：
 
 ```txt
-Orchestration 跑到地图步骤：
-locate-next-item-target
-
-调用能力组：
-visual-target
-
-子能力：
-observe-next-item-target-candidate
-
-失败原因：
-input_schema_invalid:
-sourceProof.ai.aiResultRef:String must contain at most 200 character(s)
+1. 定位问题：把 Visual Target / 定位子能力真正强化起来。
+2. 切换下一个视频：废弃点击箭头，改用键盘 ↑ / ↓。
 ```
 
-日志里最后的硬失败就是 `CAPABILITY_CALL_FAILED`，随后 Orchestration 进入 `MISSION_FAILED`，失败都指向同一个原因：`sourceProof.ai.aiResultRef` 超过 200 字符。
+日志和仓库都能对上：当前流程已经跑到真实平台动作链，但下一条视频现在仍然经过 `locate-next-item-target → normalize-next-video-arrow → click-next-video-arrow` 这条点击链。 仓库 Route Plan 里也确实存在 `locate-next-item-target`、`normalize-next-video-arrow`、`click-next-video-arrow`、`verify-next-item-advanced` 这些步骤。
 
 ---
 
-# 一、按故事主链看，现在跑到了哪里
+# 一、第一件事：定位能力必须独立强化
 
-按照 GrassEye 故事情节：
+你说得对：**定位是一个基础子能力，不是为“下一个视频箭头”服务的临时补丁。**
 
-```txt
-人类提出任务
-→ Commander 接单
-→ Nerve Bus 传递
-→ Orchestration 读地图
-→ Open 打开页面
-→ Screenshot / AI / Page State 形成证据
-→ Visual Target 根据 AI 证据定位目标
-→ Geometry Guard 校准
-→ Mouse Scroll / Click 执行动作
-→ Forensics 记忆落账
-```
-
-你的日志已经跑过了前半段：
+它以后会用于：
 
 ```txt
-启动成功
-AI readiness 成功
-map package readiness 成功
-Commander Console 打开成功
-human command validated
-mission preflight passed
-command accepted
-open-facebook-reels success
-capture-video-viewport success
-AI page_preparation_judgment 成功
+找评论按钮
+找关闭按钮
+找输入框
+找播放区域
+找商品区域
+找下一步可操作控件
 ```
 
-也就是说，**身体已经启动，神经已经通，地图已经选中，打开页面也成功了。**
+所以定位能力必须成为真正的“眼睛”。
 
-卡在更后面：
+当前 `observe-next-item-target-candidate` 只是把请求交给 `executeVisualTarget()`，然后 Visual Target 内部跑一组 gate。  这说明架构方向有了，但能力成熟度不够。
+
+## 定位子能力的强化原则
+
+不要复杂化，只定 4 条：
 
 ```txt
-AI 已经给出下一条视频/下一目标的候选判断
-Orchestration 准备让 Visual Target 定位“下一条/下一目标”
-Visual Target 收到输入
-Visual Target schema gate 拒绝输入
-Mission 失败
+1. Visual Target 只负责定位，不负责点击。
+2. Visual Target 必须输出 bbox + clickPoint + confidence + coordinateSpace + screenshotRef。
+3. Visual Target 不允许只输出一个裸坐标。
+4. 低置信度必须 fail-closed，不允许继续交给 Mouse Click 瞎点。
 ```
 
-这和故事情节里的定位完全吻合：Visual Target 是“眼睛定位肌肉”，它不是大脑；AI 是大脑，但 AI 的判断结果必须以受治理 proof/ref 交给 Visual Target。故事情节里也明确：能力组是固定身体，AI 是大脑但不是皇帝，Nerve Bus 是神经，Forensics 是记忆。
+也就是说，定位能力的输出应该从：
+
+```txt
+我觉得点这里
+```
+
+升级成：
+
+```txt
+我在这张截图中找到这个控件；
+它的位置是 bbox；
+建议点击点是 clickPoint；
+置信度是 confidence；
+坐标空间是 browserViewport；
+来源截图是 screenshotRef；
+质量标记是 dataQualityFlags。
+```
+
+这个不复杂，但这是能力成熟的底线。
 
 ---
 
-# 二、根因不是 Visual Target schema 错
+# 二、第二件事：下一个视频改成键盘 ↑ / ↓
 
-仓库里 `visual-target/schema.ts` 明确规定：
+这个更简单，也更符合大道至简。
 
-```ts
-const limitedString = (max: number) => z.string().min(1).max(max);
-
-const VisualTargetAiSourceProofSchema = z.object({
-  aiResultRef: limitedString(200),
-  aiProofRef: limitedString(200),
-  ...
-})
-```
-
-所以 `sourceProof.ai.aiResultRef` 最多 200 字符是 Visual Target 的输入契约。
-
-这个限制是合理的。
-
-为什么合理？因为 Visual Target 不能吃一整串长上下文链，它只应该拿到**短 ref / proof ref / hash ref**，然后根据 ref 去证明 AI 判断来源。否则 Visual Target 就会变成“半个 Forensics + 半个 Orchestration + 半个 AI”，这违反大道至简。
-
-所以不要第一反应去把 `limitedString(200)` 改成 500、1000、2000。那是把问题扩大，不是解决问题。
-
----
-
-# 三、真正根因：本地 runtime 把长 AI outputRef 当成 aiResultRef 塞给 Visual Target
-
-关键文件是：
+当前不要再用：
 
 ```txt
-src/lib/local-runtime/workbench-visual-dispatch-input-next-item-target.ts
-```
-
-这里构造 next-item 的 Visual Target 输入。
-
-代码里：
-
-```ts
-const aiTargetCandidateRef = resolveAiTargetCandidateRef(payload);
-const aiSummary = resolveAiVisualTargetCandidateOutputSummary(aiTargetCandidateRef);
-...
-const governedAiResultRef = aiSummary.aiResultRef;
-...
-sourceProof: {
-  ai: {
-    aiResultRef: governedAiResultRef,
-    aiProofRef: aiSummary.aiProofRef,
-    ...
-  }
-}
-```
-
-也就是说，它把 `aiSummary.aiResultRef` 直接写进了 `sourceProof.ai.aiResultRef`。
-
-再看 AI summary 的来源：
-
-```txt
-src/capabilities/ai/runtime/ai-output-summary-registry.ts
-```
-
-这里 `buildSummaryBase()` 直接把 `input.outputRef` 保存成：
-
-```ts
-aiResultRef: input.outputRef
-```
-
-也就是说，AI 的 `aiResultRef` 不是一个压缩后的短 ref，而是原始 outputRef。
-
-而你这次运行里的 outputRef / command chain 非常长，里面包含：
-
-```txt
-commander_command_xxx
-selectedMapId
-runId
-videoVisitId
-step
-capability
-payload
-...
-```
-
-最终导致：
-
-```txt
-sourceProof.ai.aiResultRef > 200 chars
-```
-
-然后 Visual Target schema gate 正确拒绝。
-
----
-
-# 四、按大道至简判断：这里是“ref 设计错位”，不是业务流程错
-
-这个问题本质不是 Facebook、不是真浏览器、不是 AI 模型、不是坐标识别。
-
-它是一个非常典型的治理错位：
-
-```txt
-长链路追踪 ID
-被当成短 proof ref 使用
-```
-
-大道至简下，应该是：
-
-```txt
-长链路上下文 → 留在 Forensics / Nerve Bus / Orchestration proof
-短稳定 ref → 传给 Visual Target / Geometry Guard / Mouse Click
-```
-
-现在变成了：
-
-```txt
-AI outputRef 很长
-→ AI summary 原样记录为 aiResultRef
-→ Visual Target 输入原样承接
-→ Visual Target schema 拦截
-```
-
-所以卡死根因可以一句话定义：
-
-```txt
-AI → Visual Target 的 proof handoff 没有做 compact ref / alias ref 收敛，导致 Orchestration 本地 runtime 把超长 AI outputRef 作为 aiResultRef 注入 Visual Target input，触发 Visual Target schema 200 字符上限。
-```
-
----
-
-# 五、owner 归属判断
-
-按法案系统，不能乱归责。
-
-## 直接触发失败的 owner
-
-```txt
-visual-target
-```
-
-因为 schema gate 是 Visual Target 拒绝的。
-
-## 真正应该修的 owner
-
-```txt
-AI + Orchestration local runtime adapter + Visual Target handoff boundary
-```
-
-更精确地说：
-
-```txt
-AI summary registry 负责生成/保存 AI proof ref
-local-runtime visual dispatch builder 负责把 AI proof handoff 成 Visual Target input
-Visual Target 负责拒绝不合法输入
-```
-
-Visual Target 拒绝是对的；错在上游给了它不合规输入。
-
----
-
-# 六、不要这样修
-
-这几个修法都不符合大道至简：
-
-```txt
-1. 不要把 Visual Target aiResultRef max(200) 改大。
-2. 不要让 Visual Target 自己截断 aiResultRef。
-3. 不要让 Visual Target 接受长 command chain。
-4. 不要让 Orchestration 绕过 schema。
-5. 不要在 map 里补一堆临时 transition。
-6. 不要让 Forensics 替 Visual Target 填字段。
-```
-
-尤其不能“简单把 200 改成 1000”。这会掩盖问题，并且把 ref 预算纪律打穿。
-
----
-
-# 七、正确修法：在 AI summary / handoff 层生成 compact ref
-
-最干净的修复是：
-
-## 方案 A：AI summary registry 生成短 ref
-
-在：
-
-```txt
-src/capabilities/ai/runtime/ai-output-summary-registry.ts
-```
-
-新增一个稳定短 ref，例如：
-
-```ts
-compactAiResultRef = `ai-result:${sha256(outputRef).slice(0, 24)}`
-```
-
-然后 summary 里同时保留：
-
-```ts
-aiResultRef: compactAiResultRef
-rawOutputRef / outputRef: 原始长 ref
-```
-
-Visual Target 只吃：
-
-```txt
-aiResultRef = ai-result:xxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-Forensics / debug / trace 仍保留原始长 outputRef。
-
-这是最符合大道至简的：**短 ref 传递，长证据归档。**
-
----
-
-## 方案 B：在 `workbench-visual-dispatch-input-next-item-target.ts` 做 handoff alias
-
-这里已经有：
-
-```ts
-const buildCompactRef = (prefix: string, value: unknown) =>
-  `${prefix}:${buildHash(value).slice(0, 24)}`;
-```
-
-所以也可以在这里把：
-
-```ts
-const governedAiResultRef = aiSummary.aiResultRef;
+click-next-video-arrow
 ```
 
 改成：
 
-```ts
-const governedAiResultRef =
-  aiSummary.aiResultRef.length <= 200
-    ? aiSummary.aiResultRef
-    : buildCompactRef("ai-result", aiSummary.aiResultRef);
+```txt
+press-keyboard-arrow-down
+press-keyboard-arrow-up
 ```
 
-但这个方案要注意：不能只截短，还要保留映射关系，否则 Forensics 追不回原始 AI 输出。
-
-所以更完整应是：
+对于刷视频平台来说，键盘上下键比点击箭头稳定得多：
 
 ```txt
-compactAiResultRef
-→ originalAiResultRef
-→ aiProofRef
-→ outputPayloadHash
+向下：下一条视频
+向上：上一条视频
 ```
 
-这个映射要进 AI summary registry 或 Forensics proof，而不是丢失。
+这条能力不依赖精确坐标，不需要找箭头，不怕页面按钮位置变化。
+
+## Route Plan 应该改成
+
+当前：
+
+```txt
+locate-next-item-target
+→ normalize-next-video-arrow
+→ click-next-video-arrow
+→ capture-next-item-verification-viewport
+→ verify-next-item-advanced
+```
+
+改成：
+
+```txt
+press-next-video-key
+→ capture-next-item-verification-viewport
+→ verify-next-item-advanced
+```
+
+也就是：
+
+```txt
+键盘切换
+→ 截图
+→ AI 验证是否真的进入下一条
+```
+
+保留验证，但取消定位箭头和点击箭头。
 
 ---
 
-# 八、顺手发现一个次级漂移：Forensics 存储路径还带 phase-04
+# 三、能力归属怎么放，避免新增复杂度
 
-日志里多次出现：
+仓库里现在能看到 `mouse-click` 能力组，但我没有看到现成的 keyboard 能力。`mouse-click` 目前有 `click-browser-coordinate` 这种坐标点击子能力。
+
+按大道至简，不建议为了上下键新建一个庞大的新系统。
+
+可以这样落：
 
 ```txt
-storageRef=/Users/nexgen/Library/Application Support/GrassEye/local-data/phase-04-full-enforcement/state.json
+方案 A：如果已有 text-input / input 类能力组
+→ 增加 child capability：press-keyboard-key
+
+方案 B：如果当前没有合适能力组
+→ 建一个非常小的 keyboard-control 能力组
+→ 只做 press-key，不做语义判断
 ```
 
-但当前仓库主权威已经是：
+但是如果你的法案系统严格冻结 14 个 ability groups，那就不要新增第 15 个能力组，优先挂到已有输入类能力下。
+
+子能力名建议：
 
 ```txt
-phase-05-final-delivery-debug
+press-browser-key
 ```
 
-Kernel 也已经声明当前 phase 是 phase-five final-delivery debugging。
-
-这个不是本次 mission fail 的直接原因，但它是一个治理漂移：
+输入只允许白名单：
 
 ```txt
-运行数据目录 / Forensics storage namespace 仍残留 phase-04
+ArrowDown
+ArrowUp
+Escape
+Enter
+Space
 ```
 
-建议列为 P1，不要和当前 P0 混修。当前 P0 是 `aiResultRef` 过长。
-
----
-
-# 九、最终判断
-
-现在系统卡在这里：
+现阶段只开放：
 
 ```txt
-地图运行到 locate-next-item-target
-→ Orchestration 调 Visual Target
-→ Visual Target 输入 schema 拦截
-→ sourceProof.ai.aiResultRef 超过 200
-→ Mission Failed
-```
-
-根因不是：
-
-```txt
-AI 模型没启动
-Commander 接单失败
-Nerve Bus 失败
-Open 失败
-Forensics 写账失败
-Facebook 页面打不开
-```
-
-根因是：
-
-```txt
-AI proof handoff 的 ref 设计没有收敛；
-长 outputRef 被当成短 aiResultRef 传给 Visual Target。
-```
-
-一句话修复纲领：
-
-```txt
-不要放宽 Visual Target schema；
-要在 AI summary / local runtime handoff 边界生成 compact governed AI result ref，并保留 original outputRef → compact ref 的 Forensics 可追溯映射。
+ArrowDown
+ArrowUp
 ```
 
 ---
 
-# 十、给 Codex 的最短修复提示词
+# 四、这两件事之间不能混
+
+这是关键。
 
 ```txt
-当前 phase-05 runtime 卡死在 locate-next-item-target。日志失败为：
-Visual Target rejected invalid input schema:
-sourceProof.ai.aiResultRef:String must contain at most 200 character(s).
-
-不要放宽 Visual Target schema，不要把 max(200) 改大。
-根因是 AI → Visual Target handoff 把超长 AI outputRef 当成 aiResultRef 传入。
-
-请修复：
-1. 在 AI output summary 或 next-item visual dispatch handoff 层生成稳定 compact aiResultRef，例如 ai-result:<sha256(originalRef).slice(0,24)>。
-2. Visual Target input 只接收 compact aiResultRef。
-3. original long outputRef 必须保留在 proof/Forensics/summary 映射里，保证可追溯。
-4. 修复文件优先：
-   - src/capabilities/ai/runtime/ai-output-summary-registry.ts
-   - src/lib/local-runtime/workbench-visual-dispatch-input-next-item-target.ts
-5. 不得让 Visual Target 自己截断，不得绕过 schema，不得扩大 schema 字段上限。
-6. 补 inspector/negative proof：构造超长 AI outputRef 时，runtime 必须传 compact ref，Visual Target schema 必须 PASS；删除 compact handoff 后 audit:visual-target 必须 FAIL。
-7. 修复后运行：
-   npm run audit:visual-target
-   npm run grasseye:start
-   再用 Facebook map 重跑，确认 mission 不再因 aiResultRef length failed。
+定位能力强化
+≠
+下一个视频还继续靠定位
 ```
 
-当前第一刀就砍这里，别分散。
+定位问题要解决，因为它是所有视觉操作的基础。
+
+但“下一个视频”这个动作，不应该继续拿它练手。
+
+正确关系是：
+
+```txt
+定位能力：继续强化，未来用于找按钮、控件、输入框。
+切换视频：现在改用键盘上下键，不再依赖定位。
+```
+
+这就干净了。
+
+---
+
+# 五、施工图 / 执法要防止回潮
+
+必须加三条执法，不然后面又会退回点击箭头。
+
+## 1. Route Plan 防回潮
+
+禁止：
+
+```txt
+next-item advance 主路使用 click-next-video-arrow
+```
+
+要求：
+
+```txt
+next-item advance 主路必须是 keyboard ArrowDown / ArrowUp
+```
+
+## 2. Mouse Click 防回潮
+
+禁止：
+
+```txt
+Mouse Click success = next video advanced
+```
+
+Mouse Click 只能表示：
+
+```txt
+机械点击已发生
+```
+
+不能代表业务成功。
+
+## 3. Visual Target 防裸坐标
+
+禁止 Visual Target 输出：
+
+```txt
+只有 clickPoint，没有 bbox / screenshotRef / coordinateSpace / confidence
+```
+
+否则 fail。
+
+---
+
+# 六、给 Codex 的最短提示词
+
+```txt
+当前实测结论：坐标点击下一个视频箭头非常不稳定。不要再扩大复杂方案，只解决两件事。
+
+第一件事：定位能力强化。
+Visual Target / observe-next-item-target-candidate 必须作为独立定位子能力强化。
+要求：
+1. Visual Target 只负责定位，不负责点击、不判断业务成功。
+2. 输出不得只有裸 clickPoint。
+3. 输出必须包含 bbox、clickPoint、confidence、coordinateSpace、sourceScreenshotEvidenceRef、dataQualityFlags。
+4. 低置信度、缺 bbox、缺 screenshotRef、缺 coordinateSpace 必须 fail-closed。
+5. Geometry Guard 只接收结构化定位结果，不接收裸坐标。
+
+第二件事：切换下一个视频改方案。
+废弃点击下一个视频箭头作为主路。
+Route Plan 中取消 next-item 主链里的：
+- locate-next-item-target
+- normalize-next-video-arrow
+- click-next-video-arrow
+
+改为：
+- press-next-video-key，使用 ArrowDown
+- capture-next-item-verification-viewport
+- verify-next-item-advanced
+
+要求：
+1. 新增或复用输入类能力子能力 press-browser-key。
+2. press-browser-key 只允许白名单按键，现阶段开放 ArrowDown / ArrowUp。
+3. ArrowDown = 下一条视频；ArrowUp = 上一条视频。
+4. Keyboard 子能力只执行机械按键，不判断是否进入下一条。
+5. 是否进入下一条仍由 verify-next-item-advanced 判断。
+6. 不新增地图职责，不让地图写判断逻辑。
+7. Route Plan 是肌肉记忆唯一来源。
+
+执法防复发：
+1. Route Plan 中 next-item advance 主路不得再使用 click-next-video-arrow。
+2. click-next-video-arrow 不得作为下一条视频主推进方案。
+3. Visual Target 输出缺 bbox / screenshotRef / coordinateSpace / confidence 必须 FAIL。
+4. 裸 clickPoint 进入 Geometry Guard 必须 FAIL。
+5. press-browser-key 接收非白名单按键必须 FAIL。
+6. 删除 verify-next-item-advanced 必须 FAIL。
+
+不要复杂化。
+不要引入多套推进策略。
+不要做 fallback 大系统。
+当前只做：定位能力强化 + 下一个视频改键盘上下键。
+```
+
+一句话：**定位能力继续练眼睛；切换视频不要用眼睛点箭头，直接用键盘上下键。**

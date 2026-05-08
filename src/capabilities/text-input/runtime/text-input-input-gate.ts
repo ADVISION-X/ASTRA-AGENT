@@ -48,6 +48,7 @@ function resolveChildCapabilityId(value: unknown): TextInputChildCapabilityId | 
     "clear-input",
     "replace-input",
     "press-key",
+    "press-navigation-key",
     "commit-input",
   ].includes(value)
     ? value as TextInputChildCapabilityId
@@ -55,7 +56,7 @@ function resolveChildCapabilityId(value: unknown): TextInputChildCapabilityId | 
 }
 
 function resolveTargetKind(value: unknown): TextInputTargetKind | null {
-  if (value === "textField" || value === "searchField" || value === "commentComposer" || value === "editableArea") {
+  if (value === "textField" || value === "searchField" || value === "commentComposer" || value === "editableArea" || value === "feedSurface") {
     return value;
   }
   return null;

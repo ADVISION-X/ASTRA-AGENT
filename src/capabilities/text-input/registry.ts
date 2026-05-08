@@ -4,6 +4,7 @@ import { createClearInputCapability } from "./children/clear-input/implementatio
 import { createCommitInputCapability } from "./children/commit-input/implementation.js";
 import { createPasteTextCapability } from "./children/paste-text/implementation.js";
 import { createPressKeyCapability } from "./children/press-key/implementation.js";
+import { createPressNavigationKeyCapability } from "./children/press-navigation-key/implementation.js";
 import { createReplaceInputCapability } from "./children/replace-input/implementation.js";
 import { createTypeTextCapability } from "./children/type-text/implementation.js";
 
@@ -13,6 +14,7 @@ const CHILDREN = [
   createClearInputCapability(),
   createReplaceInputCapability(),
   createPressKeyCapability(),
+  createPressNavigationKeyCapability(),
   createCommitInputCapability(),
 ] as const;
 

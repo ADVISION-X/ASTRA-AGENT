@@ -1,41 +1,15 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import type {
+  TextInputExecutionPort,
+  TextInputExecutionRequest,
+  TextInputExecutionResult,
+} from "../../capabilities/text-input/ports/text-input-execution-port.js";
+import type {
   BrowserController,
   BrowserTextInputAction,
   BrowserTextInputKey,
 } from "./browser-controller.js";
-
-type TextInputExecutionRequest = {
-  attemptRef: string;
-  actionExecutionRef: string;
-  childCapabilityId: BrowserTextInputAction;
-  targetRef: string;
-  targetKind: string;
-  targetLabel: string;
-  inputText: string | null;
-  inputTextHash: string | null;
-  key: BrowserTextInputKey | null;
-  timeoutMs: number;
-  abortSignal: AbortSignal;
-};
-
-type TextInputExecutionResult = {
-  ok: boolean;
-  primitiveExecutionRef: string | null;
-  operationRef: string | null;
-  typedTextHash: string | null;
-  keySequenceHash: string | null;
-  message: string;
-  startedAt: string | null;
-  endedAt: string | null;
-  portKind: string;
-  failureReason: "primitive_failed" | "primitive_aborted" | "primitive_timeout" | null;
-};
-
-type TextInputExecutionPort = {
-  execute(input: TextInputExecutionRequest): Promise<TextInputExecutionResult>;
-};
 
 function hashText(text: string): string {
   return createHash("sha256").update(text).digest("hex");
@@ -90,6 +64,10 @@ function buildFailureResult(value: TextInputExecutionRequest, startedAt: string,
   };
 }
 
+function resolveBrowserTextInputAction(childCapabilityId: TextInputExecutionRequest["childCapabilityId"]): BrowserTextInputAction {
+  return childCapabilityId === "press-navigation-key" ? "press-key" : childCapabilityId;
+}
+
 type CreateBrowserControllerTextInputExecutionPortInput = {
   browserController: BrowserController;
 };
@@ -117,7 +95,7 @@ export function createBrowserControllerTextInputExecutionPort(
       const startedAt = new Date().toISOString();
       return input.browserController.textInput({
         targetLabel: value.targetLabel,
-        action: value.childCapabilityId,
+        action: resolveBrowserTextInputAction(value.childCapabilityId),
         text: value.inputText,
         key: value.key,
         fallbackUsed: false,

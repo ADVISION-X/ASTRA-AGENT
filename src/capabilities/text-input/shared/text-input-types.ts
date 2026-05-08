@@ -8,6 +8,7 @@ export const TEXT_INPUT_CHILD_CAPABILITY_IDS = [
   "clear-input",
   "replace-input",
   "press-key",
+  "press-navigation-key",
   "commit-input",
 ] as const;
 
@@ -16,7 +17,10 @@ export const TEXT_INPUT_TARGET_KINDS = [
   "searchField",
   "commentComposer",
   "editableArea",
+  "feedSurface",
 ] as const;
+
+export const TEXT_INPUT_NAVIGATION_KEYS = ["ArrowUp", "ArrowDown"] as const;
 
 export const TEXT_INPUT_KEYS = [
   "Tab",

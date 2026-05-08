@@ -2,6 +2,7 @@ import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 
 const LAW_ID = "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2";
+const COMMANDER_FOUNDATION_SCHEMA_FILE = "src/capabilities/commander-console/shared/commander-schema-foundation.ts";
 const SETTINGS_SCHEMA_FILE = "src/lib/local-runtime/app-run-limit-settings.ts";
 const SETTINGS_API_FILE = "src/app/app-settings-api-handlers.ts";
 const START_BINDING_FILE = "src/lib/local-app-shell/task-start-binding.ts";
@@ -22,8 +23,30 @@ function hasUpperBound(text: string): boolean {
   return text.includes(".max(") || text.includes("<=") || text.includes("Math.min") || text.includes("Math.max");
 }
 
+function inspectCommanderFoundationSchema(project: import("ts-morph").Project): Finding[] {
+  const source = project.getSourceFile(COMMANDER_FOUNDATION_SCHEMA_FILE);
+  if (!source) {
+    return [createMissingSourceFinding(COMMANDER_FOUNDATION_SCHEMA_FILE, "commander schema foundation source")];
+  }
+
+  return ["CommanderMaxRoundsSchema", "CommanderMaxMinutesSchema"].flatMap((schemaName) => {
+    const initializerText = source.getVariableDeclaration(schemaName)?.getInitializer()?.getText() ?? "";
+    if (initializerText.length === 0) {
+      return [createPositiveOnlyFinding(COMMANDER_FOUNDATION_SCHEMA_FILE, `${schemaName} declaration`)];
+    }
+    if (hasUpperBound(initializerText)) {
+      return [createUpperBoundFinding(COMMANDER_FOUNDATION_SCHEMA_FILE, `${schemaName} declaration`)];
+    }
+    return initializerText.includes(".positive()")
+      ? []
+      : [createPositiveOnlyFinding(COMMANDER_FOUNDATION_SCHEMA_FILE, `${schemaName} declaration`)];
+  });
+}
+
 export function runAppRunLimitSettingsGovernanceChecks(project: import("ts-morph").Project) {
-  const findings: Finding[] = [];
+  const findings: Finding[] = [
+    ...inspectCommanderFoundationSchema(project),
+  ];
 
   const settingsSource = project.getSourceFile(SETTINGS_SCHEMA_FILE);
   if (!settingsSource) {

@@ -38,7 +38,7 @@ export const appRunLimitSettingsClient = `(function () {
     if (!(summaryNode instanceof HTMLElement)) { return; }
     summaryNode.innerHTML = "<dl class=\"cc-summary-list\">"
       + "<div class=\"cc-summary-row\"><dt>" + text("默认运行时长", "Default duration") + "</dt><dd>" + String(settings.defaultMaxMinutes) + "</dd></div>"
-      + "<div class=\"cc-summary-row\"><dt>" + text("默认最多处理", "Default max items") + "</dt><dd>" + String(settings.defaultMaxRounds) + "</dd></div>"
+      + "<div class=\"cc-summary-row\"><dt>" + text("默认最多处理轮次", "Default max processing rounds") + "</dt><dd>" + String(settings.defaultMaxRounds) + "</dd></div>"
       + "<div class=\"cc-summary-row\"><dt>" + text("最近更新", "Updated") + "</dt><dd>" + resolveUpdatedAt(settings) + "</dd></div>"
       + "</dl>";
   }

@@ -10,7 +10,7 @@ function renderLaunchSettings(viewModel: CommanderConsoleViewModel, selectedTemp
             <input id="cc-max-minutes" name="maxMinutes" type="number" min="1" value="${escapeHtml(String(viewModel.commandDraft.maxMinutes))}" />
           </div>
           <div class="cc-field">
-            <label for="cc-max-rounds">${escapeHtml(localizeCommanderText(viewModel.locale, "最多处理数量", "Max items"))}</label>
+            <label for="cc-max-rounds">${escapeHtml(localizeCommanderText(viewModel.locale, "最多处理轮次", "Max processing rounds"))}</label>
             <input id="cc-max-rounds" name="maxRounds" type="number" min="1" value="${escapeHtml(String(viewModel.commandDraft.maxRounds))}" />
           </div>
           <p class="cc-note" data-app-run-limit-default-note>${escapeHtml(localizeCommanderText(viewModel.locale, "默认值来自设置页，不由地图决定；这里可以临时改写。", "Defaults come from Settings, not from maps; you can override them here for this run."))}</p>
@@ -29,7 +29,7 @@ function renderLaunchCopy(viewModel: CommanderConsoleViewModel): string {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
   return `<div class="cc-launch-copy">
           <p class="cc-launch-heading">${escapeHtml(t("请选择你要让 GrassEye 做什么", "Choose what you want GrassEye to do"))}</p>
-          <p class="cc-note">${escapeHtml(t("普通用户只需要选择任务，再确认运行时长和最多处理数量。内部地图、平台和档案不进入用户侧启动流程。", "Users only choose a task, then confirm run time and max items. Internal maps, platform targets, and profiles stay out of the user launch flow."))}</p>
+          <p class="cc-note">${escapeHtml(t("普通用户只需要选择任务，再确认运行时长和最多处理轮次。内部地图、平台和档案不进入用户侧启动流程。", "Users only choose a task, then confirm run time and max processing rounds. Internal maps, platform targets, and profiles stay out of the user launch flow."))}</p>
         </div>`;
 }
 

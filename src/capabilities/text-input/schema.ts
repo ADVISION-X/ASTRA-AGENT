@@ -18,6 +18,7 @@ import {
   TEXT_INPUT_CHILD_CAPABILITY_IDS,
   TEXT_INPUT_COMMIT_KEYS,
   TEXT_INPUT_KEYS,
+  TEXT_INPUT_NAVIGATION_KEYS,
   TEXT_INPUT_TARGET_KINDS,
   buildStableTextInputRef,
 } from "./shared/text-input-types.js";
@@ -58,6 +59,7 @@ function buildDefaultTextInputPolicy() {
 const TextInputChildCapabilityIdSchema = z.enum(TEXT_INPUT_CHILD_CAPABILITY_IDS);
 const TextInputTargetKindSchema = z.enum(TEXT_INPUT_TARGET_KINDS);
 const TextInputKeySchema = z.enum(TEXT_INPUT_KEYS);
+const TextInputNavigationKeySchema = z.enum(TEXT_INPUT_NAVIGATION_KEYS);
 const TextInputCommitKeySchema = z.enum(TEXT_INPUT_COMMIT_KEYS);
 const TextInputFailureReasonSchema = z.enum(TEXT_INPUT_FAILURE_REASONS);
 const TextInputStatusSchema = z.enum(TEXT_INPUT_STATUSES);
@@ -229,6 +231,20 @@ const PressKeyAbilityInputSchema = TextInputBaseSchema.extend({
   key: TextInputKeySchema,
 }).strict();
 
+const PressNavigationKeyAbilityInputSchema = TextInputBaseSchema.extend({
+  childCapabilityId: z.literal("press-navigation-key"),
+  inputText: z.null().optional().default(null),
+  inputTextRef: z.null().optional().default(null),
+  inputTextHash: z.null().optional().default(null),
+  approvedText: z.null().optional().default(null),
+  approvedTextRef: z.null().optional().default(null),
+  approvedTextHash: z.null().optional().default(null),
+  approvedTextSourceRef: z.null().optional().default(null),
+  approvedTextApprovalRef: z.null().optional().default(null),
+  approvedCommitRef: z.null().optional().default(null),
+  key: TextInputNavigationKeySchema,
+}).strict();
+
 const CommitInputAbilityInputSchema = TextInputBaseSchema.extend({
   childCapabilityId: z.literal("commit-input"),
   inputText: z.null().optional().default(null),
@@ -249,6 +265,7 @@ const TextInputAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
   ClearInputAbilityInputSchema,
   ReplaceInputAbilityInputSchema,
   PressKeyAbilityInputSchema,
+  PressNavigationKeyAbilityInputSchema,
   CommitInputAbilityInputSchema,
 ]);
 
@@ -406,4 +423,4 @@ const TextInputAbilityResultSchema = z.object({
   validateTextInputAbilityResultRuntimeProofRequirements(value, context);
 });
 
-export { TextInputChildCapabilityIdSchema, TextInputTargetKindSchema, TextInputKeySchema, TextInputCommitKeySchema, TextInputFailureReasonSchema, TextInputStatusSchema, TextInputPolicyDecisionSchema, TextInputPrimitiveDecisionSchema, TextInputClipboardDecisionSchema, TextInputSensitiveTextDecisionSchema, TextInputRedactionDecisionSchema, TextInputKeyPolicyDecisionSchema, TextInputOutputBoundaryDecisionSchema, TextInputSourceOwnerSchema, TextInputTargetProofOwnerSchema, TextInputFocusProofOwnerSchema, TextInputMaxLengthPolicySchema, TextInputSensitiveTextPolicySchema, TextInputRedactionPolicySchema, TextInputClipboardPolicySchema, TextInputCommitPolicySchema, TextInputKeyPolicySchema, TextInputReplacePolicySchema, TextInputPolicySchema, TypeTextAbilityInputSchema, PasteTextAbilityInputSchema, ClearInputAbilityInputSchema, ReplaceInputAbilityInputSchema, PressKeyAbilityInputSchema, CommitInputAbilityInputSchema, TextInputAbilityInputSchema, TextInputClockSchema, TextInputRuntimeProofSchema, TextInputSuccessOutputSchema, TextInputAbilityResultSchema };
+export { TextInputChildCapabilityIdSchema, TextInputTargetKindSchema, TextInputKeySchema, TextInputNavigationKeySchema, TextInputCommitKeySchema, TextInputFailureReasonSchema, TextInputStatusSchema, TextInputPolicyDecisionSchema, TextInputPrimitiveDecisionSchema, TextInputClipboardDecisionSchema, TextInputSensitiveTextDecisionSchema, TextInputRedactionDecisionSchema, TextInputKeyPolicyDecisionSchema, TextInputOutputBoundaryDecisionSchema, TextInputSourceOwnerSchema, TextInputTargetProofOwnerSchema, TextInputFocusProofOwnerSchema, TextInputMaxLengthPolicySchema, TextInputSensitiveTextPolicySchema, TextInputRedactionPolicySchema, TextInputClipboardPolicySchema, TextInputCommitPolicySchema, TextInputKeyPolicySchema, TextInputReplacePolicySchema, TextInputPolicySchema, TypeTextAbilityInputSchema, PasteTextAbilityInputSchema, ClearInputAbilityInputSchema, ReplaceInputAbilityInputSchema, PressKeyAbilityInputSchema, PressNavigationKeyAbilityInputSchema, CommitInputAbilityInputSchema, TextInputAbilityInputSchema, TextInputClockSchema, TextInputRuntimeProofSchema, TextInputSuccessOutputSchema, TextInputAbilityResultSchema };

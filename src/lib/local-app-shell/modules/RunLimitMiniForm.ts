@@ -28,7 +28,7 @@ export function renderRunLimitMiniForm(viewModel: CommanderConsoleViewModel): st
           <input id="cc-max-minutes" name="maxMinutes" type="number" min="1" value="${escapeHtml(String(viewModel.commandDraft.maxMinutes))}" />
         </label>
         <label class="cc-field">
-          <span>${escapeHtml(t("最多轮次", "Max rounds"))}</span>
+          <span>${escapeHtml(t("最多处理轮次", "Max processing rounds"))}</span>
           <input id="cc-max-rounds" name="maxRounds" type="number" min="1" value="${escapeHtml(String(viewModel.commandDraft.maxRounds))}" />
         </label>
       </div>

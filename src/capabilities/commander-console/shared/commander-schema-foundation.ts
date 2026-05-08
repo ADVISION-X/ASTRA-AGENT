@@ -141,8 +141,8 @@ const CommanderReadModelSourceSchema = z.enum([
 ]);
 const CommanderGoalSchema = NonEmptyStringSchema.max(400);
 const CommanderNoteSchema = NonEmptyStringSchema.max(400);
-const CommanderMaxRoundsSchema = z.number().int().min(1).max(9);
-const CommanderMaxMinutesSchema = z.number().int().min(1).max(180);
+const CommanderMaxRoundsSchema = z.number().int().positive();
+const CommanderMaxMinutesSchema = z.number().int().positive();
 const NullableMissionIdSchema = NonEmptyStringSchema.nullable();
 const NullableSelectedMapIdSchema = NonEmptyStringSchema.nullable();
 const NullableCommanderGoalSchema = CommanderGoalSchema.nullable();

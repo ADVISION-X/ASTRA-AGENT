@@ -156,7 +156,7 @@ const renderLaunchLimitFields = (input: {
           <input id="cc-max-minutes" name="maxMinutes" type="number" min="1" value="${escapeHtml(String(input.selectedDefaultMinutes))}" />
         </label>
         <label class="cc-field cc-launch-limit-field">
-          <span>${escapeHtml(input.t("最多处理", "Max items"))}</span>
+          <span>${escapeHtml(input.t("最多处理轮次", "Max processing rounds"))}</span>
           <input id="cc-max-rounds" name="maxRounds" type="number" min="1" value="${escapeHtml(String(input.selectedDefaultRounds))}" />
         </label>
         <p class="cc-note cc-span-2" data-app-run-limit-default-note>${escapeHtml(input.t("默认值来自设置页，不由地图决定；这里可以临时改写。", "Defaults come from Settings, not from maps; you can override them here for this run."))}</p>

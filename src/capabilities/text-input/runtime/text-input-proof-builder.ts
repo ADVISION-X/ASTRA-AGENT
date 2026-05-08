@@ -5,7 +5,7 @@ export function buildTextInputRuntimeProof(input: {
   attemptRef: string;
   missionId: string | null;
   runId: string | null;
-  childCapabilityId: "type-text" | "paste-text" | "clear-input" | "replace-input" | "press-key" | "commit-input" | null;
+  childCapabilityId: "type-text" | "paste-text" | "clear-input" | "replace-input" | "press-key" | "press-navigation-key" | "commit-input" | null;
   sessionId: string | null;
   roundId: string | null;
   videoVisitId: string | null;
@@ -53,9 +53,9 @@ export function buildTextInputRuntimeProof(input: {
   geometryGuardProofRef: string | null;
   mouseClickProofRef: string | null;
   postActionFocusVerificationRef: string | null;
-  targetKind: "textField" | "searchField" | "commentComposer" | "editableArea" | null;
+  targetKind: "textField" | "searchField" | "commentComposer" | "editableArea" | "feedSurface" | null;
   targetEvidenceRefs: string[];
-  actionKind: "type-text" | "paste-text" | "clear-input" | "replace-input" | "press-key" | "commit-input" | null;
+  actionKind: "type-text" | "paste-text" | "clear-input" | "replace-input" | "press-key" | "press-navigation-key" | "commit-input" | null;
   key: "Tab" | "Escape" | "Backspace" | "Delete" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight" | "Enter" | null;
   textLength: number;
   policyDecision: "allow" | "block" | "review_required";

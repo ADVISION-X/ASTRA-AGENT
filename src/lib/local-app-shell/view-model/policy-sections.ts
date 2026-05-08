@@ -44,8 +44,8 @@ export function buildRunLimits(locale: Locale, settings: AppRunLimitSettings): C
       status: "ok",
       detail: localizeCommanderText(
         locale,
-        "运行时长与最多处理的默认值只归 APP 设置所有，地图包不得携带或钳制这两个字段。",
-        "Run duration and max-items defaults belong only to app settings; map packages must neither carry nor clamp them.",
+        "运行时长与最多处理轮次的默认值只归 APP 设置所有，地图包不得携带或钳制这两个字段。",
+        "Run duration and max processing-round defaults belong only to app settings; map packages must neither carry nor clamp them.",
       ),
     },
     {
