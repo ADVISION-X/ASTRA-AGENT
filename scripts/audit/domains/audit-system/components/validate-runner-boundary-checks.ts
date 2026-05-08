@@ -155,7 +155,8 @@ export const hasDefaultNegativeProofPolicyGate = (sourceFile: AuditSourceFile): 
   });
 
   return envDeclaration?.getInitializerIfKind(SyntaxKind.StringLiteral)?.getLiteralText() === "GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF"
-    && sourceText.includes("production mutation negative proof is permanently disabled")
+    && sourceText.includes("production mutation negative proof enabled by GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1.")
+    && sourceText.includes("production mutation negative proof skipped for law-compliance audit.")
     && requiredSkipValues.every((value) => skipValues.includes(value))
     && Boolean(applyPolicy)
     && Boolean(policyCall && buildCall && policyCall.getStart() < buildCall.getStart());

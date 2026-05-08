@@ -128,13 +128,16 @@ READY 标准：
 
 - `ci:full` 必须表达为显式 stage graph。
 - 第一层是 foundation-layer，且第一步必须是 `npm run audit:code-purity`。
-- foundation-layer 继续执行 `typecheck`、`audit:build`、capability-group-governance、type-safety、security-privacy、debug-loop-boundary、audit-system。
+- foundation-layer 继续执行 `typecheck`、`audit:build`、capability-group-governance、type-safety、security-privacy、audit-system。
 - 第二层是 map-layer，只执行 `npm run audit:map-plugin-package`。
 - 第三层是 ability-group-layer，执行当前 14 个 active ability group owner inspector。
+- debug-loop-boundary 属于 local development governance allowlist，只能保留在 enforcement matrix、phase gate allowlist 和 audit-system 子检查中，不得进入 generated audit plan 或全局 runner-summary 主链。
 - `audit` 属于 owner law-compliance 主链，必须在默认模式下跳过全量 production mutation negative proof。
 - audit-system 内嵌 code-purity 不得作为第二次重复扫描；CI-FULL 已在 foundation-layer 第一门执行 `audit:code-purity`。
 - 如需执行生产突变证明，必须显式设置 `GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1` 或运行对应 owner 的局部证明命令，并保存证据。
 - owner audit 的 timeout budget 只覆盖默认 law-compliance audit；超时属于 CI 拓扑配置缺陷，不得被解释成生产 owner 根因。
+- `scripts/audit/generated/runner-summary.json` 只能由完整 `npm run audit` 写入。
+- 单 owner inspector 运行结果不得覆盖全局 runner-summary；如需持久化，必须写入 `scripts/audit/generated/domain-summaries/<owner>.json` 或 `tmp/audit/domains/<owner>/`。
 
 禁止链路：
 

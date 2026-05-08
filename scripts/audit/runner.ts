@@ -70,7 +70,8 @@ const exitNow = (code: number): never => {
 
 const applyDefaultNegativeProofPolicy = (): void => {
 	if (process.env[RUN_NEGATIVE_PROOF_ENV] === "1") {
-		process.stdout.write("[AUDIT] production mutation negative proof is permanently disabled; ignoring GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1.\n");
+		process.stdout.write("[AUDIT] production mutation negative proof enabled by GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1.\n");
+		return;
 	}
 
 	for (const envName of DEFAULT_AUDIT_HEAVY_PROOF_SKIP_ENV) {

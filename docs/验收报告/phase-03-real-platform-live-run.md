@@ -1,5 +1,11 @@
 # GrassEye 第三阶段真实平台实测记录
 
+## 文档状态
+
+- status: archived / historical acceptance only
+- 该文档记录的是 phase-03 实测事实，不是当前 phase-four enforcement truth。
+- 文中涉及的 `verify:delivery` 为历史阶段命名；当前对应链路见 [phase-03-acceptance-report.md](docs/验收报告/phase-03-acceptance-report.md) 的 legacy verify 映射表。
+
 ## 记录时间
 
 2026-04-27

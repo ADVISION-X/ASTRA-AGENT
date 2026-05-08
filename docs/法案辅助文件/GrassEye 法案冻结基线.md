@@ -38,6 +38,10 @@
 
 1. map-plugin-package
 
+## 本地开发治理 allowlist
+
+1. debug-loop-boundary
+
 ## 本地开发工具
 
 - debug-loop-controller
@@ -81,3 +85,5 @@ structured-logging is governedBy capability-group-governance as a shared law bou
 - 不得为了 CI 恢复 deleted owner。
 - 不得手写 generated 文件伪造通过。
 - 不得让 runner 执行不在冻结基线中的独立 owner。
+- phase gate 的 activeLawDomains 不得超出本冻结基线 active law domains。
+- localDevelopmentGovernanceDomains 只能列出本冻结基线 allowlist 中的本地开发治理域，且不得进入 generated audit plan。

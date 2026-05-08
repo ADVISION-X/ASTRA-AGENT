@@ -1,3 +1,10 @@
+export type OwnerKind =
+  | "ability-group"
+  | "foundation-law"
+  | "support-governance"
+  | "local-development-governance"
+  | "standalone-audit";
+
 export interface DomainManifest {
   inspectorId: string;
   capabilityDomain: string;
@@ -18,6 +25,7 @@ export interface ResolvedDomainManifest extends DomainManifest {
 export interface EnforcementMatrixOwner {
   inspectorId: string;
   capabilityDomain: string;
+  ownerKind: OwnerKind;
   manifestPath: string;
   entry: string;
   engine: string;

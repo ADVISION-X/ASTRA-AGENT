@@ -26,6 +26,7 @@ type ManifestCollectionContext = {
   manifestsByDomain: Map<string, Awaited<ReturnType<typeof loadDomainManifests>>[number]>;
   phaseGate: PhaseGate;
   requiredPhaseDomains: string[];
+  localDevelopmentGovernanceDomains: string[];
   deletedOwnerDomains: string[];
 };
 
@@ -59,10 +60,10 @@ const collectActiveDomainConflicts = (context: ManifestCollectionContext): Audit
       conflicts.push({ kind: "MANIFEST", message: "Active law domain has no owner manifest.", capabilityDomain: lawDomain });
     }
 
-    if (!context.phaseGate.activeLawDomains.includes(lawDomain)) {
+    if (!context.requiredPhaseDomains.includes(lawDomain) && !context.localDevelopmentGovernanceDomains.includes(lawDomain)) {
       conflicts.push({
         kind: "PHASE_GATE",
-        message: "Active law domain is not enabled in the current phase gate.",
+        message: "Active law domain is outside the frozen baseline active domains and local development governance allowlist.",
         capabilityDomain: lawDomain,
         file: toRepoRelativePath(defaultPhaseGatePath),
       });
@@ -74,6 +75,7 @@ const collectActiveDomainConflicts = (context: ManifestCollectionContext): Audit
 
 const collectPhaseGateConflicts = (context: ManifestCollectionContext): AuditConflict[] => {
   const conflicts: AuditConflict[] = [];
+  const localDevelopmentGovernanceDomains = context.phaseGate.localDevelopmentGovernanceDomains ?? [];
 
   for (const activeDomain of context.phaseGate.activeLawDomains) {
     if (!context.manifestsByDomain.has(activeDomain)) {
@@ -82,6 +84,43 @@ const collectPhaseGateConflicts = (context: ManifestCollectionContext): AuditCon
 
     if (!context.lawsByDomain.has(activeDomain)) {
       conflicts.push({ kind: "PLAN", message: "Phase gate references a law domain without an active law.", capabilityDomain: activeDomain });
+    }
+
+    if (!context.requiredPhaseDomains.includes(activeDomain)) {
+      conflicts.push({
+        kind: "PHASE_GATE",
+        message: "Phase gate activeLawDomains must stay inside frozen baseline activeLawDomains.",
+        capabilityDomain: activeDomain,
+        file: toRepoRelativePath(defaultPhaseGatePath),
+      });
+    }
+
+    if (localDevelopmentGovernanceDomains.includes(activeDomain)) {
+      conflicts.push({
+        kind: "PHASE_GATE",
+        message: "A phase-gate domain must not appear in both activeLawDomains and localDevelopmentGovernanceDomains.",
+        capabilityDomain: activeDomain,
+        file: toRepoRelativePath(defaultPhaseGatePath),
+      });
+    }
+  }
+
+  for (const governanceDomain of localDevelopmentGovernanceDomains) {
+    if (!context.localDevelopmentGovernanceDomains.includes(governanceDomain)) {
+      conflicts.push({
+        kind: "PHASE_GATE",
+        message: "Phase gate localDevelopmentGovernanceDomains drifted away from the frozen baseline allowlist.",
+        capabilityDomain: governanceDomain,
+        file: toRepoRelativePath(defaultPhaseGatePath),
+      });
+    }
+
+    if (!context.manifestsByDomain.has(governanceDomain)) {
+      conflicts.push({ kind: "PLAN", message: "Phase gate local development governance domain has no manifest.", capabilityDomain: governanceDomain });
+    }
+
+    if (!context.lawsByDomain.has(governanceDomain)) {
+      conflicts.push({ kind: "PLAN", message: "Phase gate local development governance domain has no active law.", capabilityDomain: governanceDomain });
     }
   }
 
@@ -96,11 +135,31 @@ const collectPhaseGateConflicts = (context: ManifestCollectionContext): AuditCon
     }
   }
 
+  for (const governanceDomain of context.localDevelopmentGovernanceDomains) {
+    if (!localDevelopmentGovernanceDomains.includes(governanceDomain)) {
+      conflicts.push({
+        kind: "PHASE_GATE",
+        message: "Current phase gate must keep frozen local development governance allowlist domains explicit.",
+        capabilityDomain: governanceDomain,
+        file: toRepoRelativePath(defaultPhaseGatePath),
+      });
+    }
+  }
+
   for (const deletedOwnerDomain of context.deletedOwnerDomains) {
     if (context.phaseGate.activeLawDomains.includes(deletedOwnerDomain)) {
       conflicts.push({
         kind: "PHASE_GATE",
         message: "Current frozen phase gate must not reactivate a deleted owner domain.",
+        capabilityDomain: deletedOwnerDomain,
+        file: toRepoRelativePath(defaultPhaseGatePath),
+      });
+    }
+
+    if (localDevelopmentGovernanceDomains.includes(deletedOwnerDomain)) {
+      conflicts.push({
+        kind: "PHASE_GATE",
+        message: "Current phase gate must not reactivate a deleted owner domain through local development governance allowlist.",
         capabilityDomain: deletedOwnerDomain,
         file: toRepoRelativePath(defaultPhaseGatePath),
       });
@@ -198,6 +257,7 @@ const collectManifestConflicts = async (
     manifestsByDomain: new Map(manifests.map((manifest) => [manifest.capabilityDomain, manifest])),
     phaseGate,
     requiredPhaseDomains: frozenBaseline.activeLawDomains,
+    localDevelopmentGovernanceDomains: frozenBaseline.localDevelopmentGovernanceDomains,
     deletedOwnerDomains: frozenBaseline.deletedOwnerDomains,
   };
 
@@ -212,9 +272,11 @@ const collectManifestConflicts = async (
 const buildEnforcementMatrixOwners = (
   manifests: Awaited<ReturnType<typeof loadDomainManifests>>,
   lawsByDomain: Map<string, LawRecord[]>,
+  ownerKindByDomain: Awaited<ReturnType<typeof loadFrozenBaselineDomains>>["ownerKindByDomain"],
 ): EnforcementMatrixOwner[] => manifests.map((manifest) => ({
   inspectorId: manifest.inspectorId,
   capabilityDomain: manifest.capabilityDomain,
+  ownerKind: ownerKindByDomain[manifest.capabilityDomain] ?? "standalone-audit",
   manifestPath: manifest.manifestPath,
   entry: manifest.entry,
   engine: manifest.engine,
@@ -224,10 +286,16 @@ const buildEnforcementMatrixOwners = (
   readsBlueprintFiles: manifest.readsBlueprintFiles ?? [],
 }));
 
-const buildAuditPlanOwners = (owners: EnforcementMatrixOwner[], activeLawDomains: string[]) => {
+const buildAuditPlanOwners = (
+  owners: EnforcementMatrixOwner[],
+  activeLawDomains: string[],
+  requiredPhaseDomains: string[],
+) => {
   const ownerByDomain = new Map(owners.map((owner) => [owner.capabilityDomain, owner]));
-  const orderedDomains = activeLawDomains.filter((capabilityDomain) => capabilityDomain !== "audit-system");
-  if (activeLawDomains.includes("audit-system")) {
+  const orderedDomains = activeLawDomains.filter(
+    (capabilityDomain) => capabilityDomain !== "audit-system" && requiredPhaseDomains.includes(capabilityDomain),
+  );
+  if (activeLawDomains.includes("audit-system") && requiredPhaseDomains.includes("audit-system")) {
     orderedDomains.push("audit-system");
   }
 
@@ -257,6 +325,12 @@ const appendFrozenPlanConflicts = (
       auditConflicts.conflicts.push({ kind: "PLAN", message: "Generated audit plan must not reactivate a deleted owner domain.", capabilityDomain: deletedOwnerDomain, file: toRepoRelativePath(generatedArtifactPaths.auditPlan) });
     }
   }
+
+  for (const plannedDomain of plannedDomains) {
+    if (!frozenBaseline.activeLawDomains.includes(plannedDomain)) {
+      auditConflicts.conflicts.push({ kind: "PLAN", message: "Generated audit plan must not include owners outside frozen baseline activeLawDomains.", capabilityDomain: plannedDomain, file: toRepoRelativePath(generatedArtifactPaths.auditPlan) });
+    }
+  }
 };
 
 type BuiltAuditArtifacts = Omit<GeneratedArtifactsWriteInput, "touchedFilesArtifact">;
@@ -270,8 +344,8 @@ export const prepareAuditArtifactsSnapshot = async (): Promise<GeneratedArtifact
   const touchedFilesArtifact = await collectTouchedFilesArtifact({ allowStatusFallback: true });
   const manifestConflicts = await collectManifestConflicts(laws, manifests, phaseGate);
   const lawsByDomain = groupLawsByDomain(laws);
-  const owners = buildEnforcementMatrixOwners(manifests, lawsByDomain);
-  const auditPlanOwners = buildAuditPlanOwners(owners, phaseGate.activeLawDomains);
+  const owners = buildEnforcementMatrixOwners(manifests, lawsByDomain, frozenBaseline.ownerKindByDomain);
+  const auditPlanOwners = buildAuditPlanOwners(owners, phaseGate.activeLawDomains, frozenBaseline.activeLawDomains);
   const auditConflicts: AuditConflictsSnapshot = {
     generatedAt,
     conflicts: [...lawConflicts, ...manifestConflicts],

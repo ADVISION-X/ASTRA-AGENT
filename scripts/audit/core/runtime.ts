@@ -2,6 +2,7 @@ import { readJsonFile, writeJsonFile } from "./filesystem.js";
 import { getRegisteredInspector } from "./inspector-registry.js";
 import { generatedArtifactPaths } from "./generated-artifact-paths.js";
 import { defaultPhaseGatePath, repoRoot } from "./path-roots.js";
+import path from "node:path";
 import type {
   AuditConflictsSnapshot,
   AuditPlan,
@@ -41,7 +42,13 @@ const PRODUCTION_MUTATION_NEGATIVE_PROOF_SKIP_ENV = [
   "GRASSEYE_SKIP_VISUAL_TARGET_NEGATIVE_PROOF",
 ] as const;
 
+const RUN_NEGATIVE_PROOF_ENV = "GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF";
+
 const applyProductionMutationNegativeProofBan = (): void => {
+	if (process.env[RUN_NEGATIVE_PROOF_ENV] === "1") {
+		return;
+	}
+
   for (const envName of PRODUCTION_MUTATION_NEGATIVE_PROOF_SKIP_ENV) {
     process.env[envName] = "1";
   }
@@ -92,6 +99,16 @@ export const loadInspector = async (entry: string): Promise<DomainInspector> => 
 
 export const writeRunnerSummary = async (summary: RunnerSummary): Promise<void> => {
   await writeJsonFile(generatedArtifactPaths.runnerSummary, summary);
+};
+
+export const writeDomainRunnerSummary = async (
+  capabilityDomain: string,
+  summary: RunnerSummary,
+): Promise<void> => {
+  await writeJsonFile(
+    path.join(generatedArtifactPaths.domainSummariesHome, `${capabilityDomain}.json`),
+    summary,
+  );
 };
 
 const STANDALONE_HEARTBEAT_INTERVAL_MS = 5_000;

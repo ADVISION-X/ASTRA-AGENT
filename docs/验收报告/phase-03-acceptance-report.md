@@ -1,5 +1,27 @@
 # GrassEye 第三阶段验收报告
 
+## 文档状态
+
+- status: archived / historical acceptance only
+- 该文档不是当前 phase-four enforcement truth。
+- 当前 enforcement truth = law file -> generated registry / matrix / audit plan -> owner inspector -> audit runner -> runner summary，再加现存 `acceptance:*` 脚本。
+- 文中出现的 `verify:*` 名称均为历史阶段标签；它们不是当前完成条件，且多数已不再存在于 package scripts 中。
+
+## legacy verify -> current audit/acceptance 映射
+
+| 历史 verify 名称 | 当前状态 | 当前对应链路 |
+| --- | --- | --- |
+| verify:phase3 | historical only | ci:full + acceptance:phase3 |
+| verify:coordinate | removed | audit:geometry-guard + audit:mouse-click + audit:mouse-scroll |
+| verify:delivery | removed | acceptance:delivery-smoke |
+| verify:evidence-packet | removed | audit:forensics-persistence |
+| verify:browse-flow | removed | acceptance:browse-live-proof + ci:full |
+| verify:multi-frame-evidence | removed | audit:screenshot + audit:ai + audit:forensics-persistence |
+| verify:structured-logging | removed | audit:forensics-persistence |
+| verify:local-browser-session | removed | audit:open |
+| verify:visual-action-capability | removed | audit:visual-target + audit:geometry-guard + audit:mouse-click + audit:mouse-scroll |
+| verify:local-persistence-schema | removed | audit:forensics-persistence |
+
 ## 当前结论
 
 PASS（按最小可交付标准）

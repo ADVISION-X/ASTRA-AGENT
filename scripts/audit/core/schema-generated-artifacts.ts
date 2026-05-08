@@ -54,6 +54,7 @@ export interface AuditConflictsSnapshot {
 export interface PhaseGate {
   phase: string;
   activeLawDomains: string[];
+  localDevelopmentGovernanceDomains?: string[];
 }
 
 export interface GeneratedArtifacts {

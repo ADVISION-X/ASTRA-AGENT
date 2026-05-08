@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T18:13:11.223Z",
+  "generatedAt": "2026-05-08T18:46:20.382Z",
   "phase": "phase-04-full-enforcement",
   "phaseGateFile": "scripts/audit/phase-gates/phase-04-full-enforcement.json",
   "owners": [
@@ -26,21 +26,6 @@
         "GRASSEYE-MAP-PLUGIN-016-V2",
         "GRASSEYE-MAP-PLUGIN-018-V2",
         "GRASSEYE-MAP-PLUGIN-017-V2"
-      ]
-    },
-    {
-      "capabilityDomain": "debug-loop-boundary",
-      "inspectorId": "debug-loop-boundary-owner",
-      "entry": "scripts/audit/domains/debug-loop-boundary/inspector.ts",
-      "lawIds": [
-        "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1",
-        "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1",
-        "GRASSEYE-DEBUG-LOOP-BOUNDARY-003-V1",
-        "GRASSEYE-DEBUG-LOOP-BOUNDARY-004-V1",
-        "GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1",
-        "GRASSEYE-DEBUG-LOOP-BOUNDARY-006-V1",
-        "GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1",
-        "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1"
       ]
     },
     {

@@ -1,8 +1,10 @@
 {
 	"phase": "phase-04-full-enforcement",
+	"localDevelopmentGovernanceDomains": [
+		"debug-loop-boundary"
+	],
 	"activeLawDomains": [
 		"map-plugin-package",
-		"debug-loop-boundary",
 		"audit-system",
 		"capability-group-governance",
 		"type-safety",

@@ -1,7 +1,8 @@
-generatedAt: 2026-05-08T18:13:11.223Z
+generatedAt: 2026-05-08T18:46:20.382Z
 owners:
   - inspectorId: ai-capability-owner
     capabilityDomain: ai-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/ai-capability/manifest.json
     entry: scripts/audit/domains/ai-capability/inspector.ts
     engine: hybrid
@@ -40,6 +41,7 @@ owners:
       - "docs/法案辅助文件/GrassEye 多帧视频取证施工图.md"
   - inspectorId: audit-coverage-governance-owner
     capabilityDomain: audit-coverage-governance
+    ownerKind: standalone-audit
     manifestPath: scripts/audit/domains/audit-coverage-governance/manifest.json
     entry: scripts/audit/domains/audit-coverage-governance/inspector.ts
     engine: hybrid
@@ -58,6 +60,7 @@ owners:
       - "docs/法案辅助文件/GrassEye 法案冻结基线.md"
   - inspectorId: audit-system-owner
     capabilityDomain: audit-system
+    ownerKind: foundation-law
     manifestPath: scripts/audit/domains/audit-system/manifest.json
     entry: scripts/audit/domains/audit-system/inspector.ts
     engine: hybrid
@@ -92,6 +95,7 @@ owners:
       - "docs/法案辅助文件/GrassEye 代码纯洁度施工图.md"
   - inspectorId: capability-group-governance-owner
     capabilityDomain: capability-group-governance
+    ownerKind: foundation-law
     manifestPath: scripts/audit/domains/capability-group-governance/manifest.json
     entry: scripts/audit/domains/capability-group-governance/inspector.ts
     engine: law
@@ -116,6 +120,7 @@ owners:
       - "docs/法案辅助文件/GrassEye 文件路径与阶段目录施工图.md"
   - inspectorId: commander-console-capability-owner
     capabilityDomain: commander-console-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/commander-console-capability/manifest.json
     entry: scripts/audit/domains/commander-console-capability/inspector.ts
     engine: hybrid
@@ -147,6 +152,7 @@ owners:
       - "docs/法案辅助文件/GrassEye 唯一启动入口与终端结构化日志施工图.md"
   - inspectorId: debug-loop-boundary-owner
     capabilityDomain: debug-loop-boundary
+    ownerKind: local-development-governance
     manifestPath: scripts/audit/domains/debug-loop-boundary/manifest.json
     entry: scripts/audit/domains/debug-loop-boundary/inspector.ts
     engine: hybrid
@@ -170,6 +176,7 @@ owners:
       - "docs/法案辅助文件/GrassEye Debug Loop Boundary 调试程序边界施工图.md"
   - inspectorId: forensics-persistence-owner
     capabilityDomain: forensics-persistence-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/forensics-persistence-capability/manifest.json
     entry: scripts/audit/domains/forensics-persistence-capability/inspector.ts
     engine: hybrid
@@ -197,6 +204,7 @@ owners:
       - "docs/法案辅助文件/GrassEye 多帧视频取证施工图.md"
   - inspectorId: geometry-guard-capability-owner
     capabilityDomain: geometry-guard-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/geometry-guard-capability/manifest.json
     entry: scripts/audit/domains/geometry-guard-capability/inspector.ts
     engine: hybrid
@@ -220,6 +228,7 @@ owners:
       - "docs/法案辅助文件/GrassEye Geometry Guard 几何安全守卫能力组施工图.md"
   - inspectorId: index-owner
     capabilityDomain: index
+    ownerKind: standalone-audit
     manifestPath: scripts/audit/domains/index/manifest.json
     entry: scripts/audit/domains/index/inspector.ts
     engine: law
@@ -236,6 +245,7 @@ owners:
       - "docs/法案辅助文件/GrassEye_能力组标准包与执法结构统一施工图.md"
   - inspectorId: kernel-owner
     capabilityDomain: kernel
+    ownerKind: standalone-audit
     manifestPath: scripts/audit/domains/kernel/manifest.json
     entry: scripts/audit/domains/kernel/inspector.ts
     engine: law
@@ -254,6 +264,7 @@ owners:
       - "docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md"
   - inspectorId: map-plugin-package-governance
     capabilityDomain: map-plugin-package
+    ownerKind: support-governance
     manifestPath: scripts/audit/domains/map-plugin-package/manifest.json
     entry: scripts/audit/domains/map-plugin-package/inspector.ts
     engine: hybrid
@@ -297,6 +308,7 @@ owners:
       - docs/audit/map-plugin-package-scorecard.md
   - inspectorId: mouse-click-capability-owner
     capabilityDomain: mouse-click-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/mouse-click-capability/manifest.json
     entry: scripts/audit/domains/mouse-click-capability/inspector.ts
     engine: hybrid
@@ -320,6 +332,7 @@ owners:
       - "docs/法案辅助文件/GrassEye Mouse Click 能力组施工图.md"
   - inspectorId: mouse-scroll-capability-owner
     capabilityDomain: mouse-scroll-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/mouse-scroll-capability/manifest.json
     entry: scripts/audit/domains/mouse-scroll-capability/inspector.ts
     engine: hybrid
@@ -353,6 +366,7 @@ owners:
       - "docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md"
   - inspectorId: nerve-bus-capability-owner
     capabilityDomain: nerve-bus-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/nerve-bus-capability/manifest.json
     entry: scripts/audit/domains/nerve-bus-capability/inspector.ts
     engine: hybrid
@@ -377,6 +391,7 @@ owners:
       - "docs/法案辅助文件/GrassEye Nerve Bus 神经网络传输能力组施工图.md"
   - inspectorId: open-capability-owner
     capabilityDomain: open-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/open-capability/manifest.json
     entry: scripts/audit/domains/open-capability/inspector.ts
     engine: hybrid
@@ -404,6 +419,7 @@ owners:
       - "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md"
   - inspectorId: orchestration-capability-owner
     capabilityDomain: orchestration-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/orchestration-capability/manifest.json
     entry: scripts/audit/domains/orchestration-capability/inspector.ts
     engine: hybrid
@@ -428,6 +444,7 @@ owners:
       - "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md"
   - inspectorId: page-state-capability-owner
     capabilityDomain: page-state-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/page-state-capability/manifest.json
     entry: scripts/audit/domains/page-state-capability/inspector.ts
     engine: hybrid
@@ -450,6 +467,7 @@ owners:
       - "docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md"
   - inspectorId: post-action-verification-capability-owner
     capabilityDomain: post-action-verification-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/post-action-verification-capability/manifest.json
     entry: scripts/audit/domains/post-action-verification-capability/inspector.ts
     engine: hybrid
@@ -472,6 +490,7 @@ owners:
       - "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图.md"
   - inspectorId: screenshot-capability-owner
     capabilityDomain: screenshot-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/screenshot-capability/manifest.json
     entry: scripts/audit/domains/screenshot-capability/inspector.ts
     engine: hybrid
@@ -497,6 +516,7 @@ owners:
       - "docs/法案辅助文件/GrassEye 多帧视频取证施工图.md"
   - inspectorId: security-privacy-owner
     capabilityDomain: security-privacy
+    ownerKind: foundation-law
     manifestPath: scripts/audit/domains/security-privacy/manifest.json
     entry: scripts/audit/domains/security-privacy/inspector.ts
     engine: hybrid
@@ -515,6 +535,7 @@ owners:
       []
   - inspectorId: text-input-capability-owner
     capabilityDomain: text-input-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/text-input-capability/manifest.json
     entry: scripts/audit/domains/text-input-capability/inspector.ts
     engine: hybrid
@@ -539,6 +560,7 @@ owners:
       - "docs/法案辅助文件/GrassEye Text Input 输入能力组施工图.md"
   - inspectorId: type-safety-owner
     capabilityDomain: type-safety
+    ownerKind: foundation-law
     manifestPath: scripts/audit/domains/type-safety/manifest.json
     entry: scripts/audit/domains/type-safety/inspector.ts
     engine: hybrid
@@ -555,6 +577,7 @@ owners:
       []
   - inspectorId: visual-target-capability-owner
     capabilityDomain: visual-target-capability
+    ownerKind: ability-group
     manifestPath: scripts/audit/domains/visual-target-capability/manifest.json
     entry: scripts/audit/domains/visual-target-capability/inspector.ts
     engine: hybrid

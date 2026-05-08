@@ -1,9 +1,10 @@
 {
-  "generatedAt": "2026-05-08T18:13:11.223Z",
+  "generatedAt": "2026-05-08T18:46:20.382Z",
   "owners": [
     {
       "inspectorId": "ai-capability-owner",
       "capabilityDomain": "ai-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/ai-capability/manifest.json",
       "entry": "scripts/audit/domains/ai-capability/inspector.ts",
       "engine": "hybrid",
@@ -48,6 +49,7 @@
     {
       "inspectorId": "audit-coverage-governance-owner",
       "capabilityDomain": "audit-coverage-governance",
+      "ownerKind": "standalone-audit",
       "manifestPath": "scripts/audit/domains/audit-coverage-governance/manifest.json",
       "entry": "scripts/audit/domains/audit-coverage-governance/inspector.ts",
       "engine": "hybrid",
@@ -68,6 +70,7 @@
     {
       "inspectorId": "audit-system-owner",
       "capabilityDomain": "audit-system",
+      "ownerKind": "foundation-law",
       "manifestPath": "scripts/audit/domains/audit-system/manifest.json",
       "entry": "scripts/audit/domains/audit-system/inspector.ts",
       "engine": "hybrid",
@@ -108,6 +111,7 @@
     {
       "inspectorId": "capability-group-governance-owner",
       "capabilityDomain": "capability-group-governance",
+      "ownerKind": "foundation-law",
       "manifestPath": "scripts/audit/domains/capability-group-governance/manifest.json",
       "entry": "scripts/audit/domains/capability-group-governance/inspector.ts",
       "engine": "law",
@@ -138,6 +142,7 @@
     {
       "inspectorId": "commander-console-capability-owner",
       "capabilityDomain": "commander-console-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
       "entry": "scripts/audit/domains/commander-console-capability/inspector.ts",
       "engine": "hybrid",
@@ -175,6 +180,7 @@
     {
       "inspectorId": "debug-loop-boundary-owner",
       "capabilityDomain": "debug-loop-boundary",
+      "ownerKind": "local-development-governance",
       "manifestPath": "scripts/audit/domains/debug-loop-boundary/manifest.json",
       "entry": "scripts/audit/domains/debug-loop-boundary/inspector.ts",
       "engine": "hybrid",
@@ -204,6 +210,7 @@
     {
       "inspectorId": "forensics-persistence-owner",
       "capabilityDomain": "forensics-persistence-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
       "entry": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
       "engine": "hybrid",
@@ -237,6 +244,7 @@
     {
       "inspectorId": "geometry-guard-capability-owner",
       "capabilityDomain": "geometry-guard-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/geometry-guard-capability/manifest.json",
       "entry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
       "engine": "hybrid",
@@ -266,6 +274,7 @@
     {
       "inspectorId": "index-owner",
       "capabilityDomain": "index",
+      "ownerKind": "standalone-audit",
       "manifestPath": "scripts/audit/domains/index/manifest.json",
       "entry": "scripts/audit/domains/index/inspector.ts",
       "engine": "law",
@@ -286,6 +295,7 @@
     {
       "inspectorId": "kernel-owner",
       "capabilityDomain": "kernel",
+      "ownerKind": "standalone-audit",
       "manifestPath": "scripts/audit/domains/kernel/manifest.json",
       "entry": "scripts/audit/domains/kernel/inspector.ts",
       "engine": "law",
@@ -308,6 +318,7 @@
     {
       "inspectorId": "map-plugin-package-governance",
       "capabilityDomain": "map-plugin-package",
+      "ownerKind": "support-governance",
       "manifestPath": "scripts/audit/domains/map-plugin-package/manifest.json",
       "entry": "scripts/audit/domains/map-plugin-package/inspector.ts",
       "engine": "hybrid",
@@ -357,6 +368,7 @@
     {
       "inspectorId": "mouse-click-capability-owner",
       "capabilityDomain": "mouse-click-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
       "entry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
       "engine": "hybrid",
@@ -386,6 +398,7 @@
     {
       "inspectorId": "mouse-scroll-capability-owner",
       "capabilityDomain": "mouse-scroll-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
       "entry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
       "engine": "hybrid",
@@ -425,6 +438,7 @@
     {
       "inspectorId": "nerve-bus-capability-owner",
       "capabilityDomain": "nerve-bus-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/nerve-bus-capability/manifest.json",
       "entry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
       "engine": "hybrid",
@@ -455,6 +469,7 @@
     {
       "inspectorId": "open-capability-owner",
       "capabilityDomain": "open-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/open-capability/manifest.json",
       "entry": "scripts/audit/domains/open-capability/inspector.ts",
       "engine": "hybrid",
@@ -488,6 +503,7 @@
     {
       "inspectorId": "orchestration-capability-owner",
       "capabilityDomain": "orchestration-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
       "entry": "scripts/audit/domains/orchestration-capability/inspector.ts",
       "engine": "hybrid",
@@ -518,6 +534,7 @@
     {
       "inspectorId": "page-state-capability-owner",
       "capabilityDomain": "page-state-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/page-state-capability/manifest.json",
       "entry": "scripts/audit/domains/page-state-capability/inspector.ts",
       "engine": "hybrid",
@@ -546,6 +563,7 @@
     {
       "inspectorId": "post-action-verification-capability-owner",
       "capabilityDomain": "post-action-verification-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/post-action-verification-capability/manifest.json",
       "entry": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
       "engine": "hybrid",
@@ -574,6 +592,7 @@
     {
       "inspectorId": "screenshot-capability-owner",
       "capabilityDomain": "screenshot-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/screenshot-capability/manifest.json",
       "entry": "scripts/audit/domains/screenshot-capability/inspector.ts",
       "engine": "hybrid",
@@ -605,6 +624,7 @@
     {
       "inspectorId": "security-privacy-owner",
       "capabilityDomain": "security-privacy",
+      "ownerKind": "foundation-law",
       "manifestPath": "scripts/audit/domains/security-privacy/manifest.json",
       "entry": "scripts/audit/domains/security-privacy/inspector.ts",
       "engine": "hybrid",
@@ -627,6 +647,7 @@
     {
       "inspectorId": "text-input-capability-owner",
       "capabilityDomain": "text-input-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/text-input-capability/manifest.json",
       "entry": "scripts/audit/domains/text-input-capability/inspector.ts",
       "engine": "hybrid",
@@ -657,6 +678,7 @@
     {
       "inspectorId": "type-safety-owner",
       "capabilityDomain": "type-safety",
+      "ownerKind": "foundation-law",
       "manifestPath": "scripts/audit/domains/type-safety/manifest.json",
       "entry": "scripts/audit/domains/type-safety/inspector.ts",
       "engine": "hybrid",
@@ -677,6 +699,7 @@
     {
       "inspectorId": "visual-target-capability-owner",
       "capabilityDomain": "visual-target-capability",
+      "ownerKind": "ability-group",
       "manifestPath": "scripts/audit/domains/visual-target-capability/manifest.json",
       "entry": "scripts/audit/domains/visual-target-capability/inspector.ts",
       "engine": "hybrid",

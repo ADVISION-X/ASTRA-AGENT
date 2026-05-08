@@ -1,6 +1,6 @@
 import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import type { RunnerSummary } from "../../core/schema-runner.js";
-import { createInspectorContext, loadGeneratedArtifacts, loadInspector, runWithStandaloneHeartbeat, writeRunnerSummary } from "../../core/runtime.js";
+import { createInspectorContext, loadGeneratedArtifacts, loadInspector, runWithStandaloneHeartbeat, writeDomainRunnerSummary } from "../../core/runtime.js";
 import { hasBlockingFindings } from "../../core/result.js";
 
 const DIRECT_OWNER_AUDIT_ENV = "GRASSEYE_DIRECT_PAGE_STATE_OWNER_AUDIT";
@@ -29,7 +29,7 @@ const main = async (): Promise<void> => {
   process.env[DIRECT_OWNER_AUDIT_ENV] = "1";
   process.stdout.write("[AUDIT] starting page-state-capability...\n");
   const result = await runWithStandaloneHeartbeat("page-state-capability", inspector(context));
-  await writeRunnerSummary(buildDirectRunnerSummary(artifacts.auditPlan.phase, result));
+  await writeDomainRunnerSummary(result.capabilityDomain, buildDirectRunnerSummary(artifacts.auditPlan.phase, result));
 
   process.stdout.write(`[${result.classification}] ${result.capabilityDomain}: ${result.summary}\n`);
   for (const finding of result.findings) {
