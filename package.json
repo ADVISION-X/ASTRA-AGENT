@@ -13,6 +13,7 @@
     "internal:app-server": "node dist/src/app/server.js",
     "grasseye:start": "node scripts/startup/launch-grasseye.mjs",
     "debug:loop": "node scripts/debug-loop/run-debug-loop.mjs",
+    "debug:resource-usage": "node scripts/debug-loop/collect-runtime-resource-usage.mjs",
     "debug:scenario": "node scripts/debug-loop/scenario-runner.mjs",
     "debug:classify": "node scripts/debug-loop/failure-classifier.mjs",
     "debug:verify": "node scripts/debug-loop/verifier.mjs",

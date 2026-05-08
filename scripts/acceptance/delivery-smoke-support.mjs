@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { waitForHealth } from "../startup/lib/health-check.mjs";
 
-const ignoredDirs = new Set([".git", "dist", "node_modules", ".grasseye-data"]);
+const ignoredDirs = new Set([".git", ".venv", "dist", "node_modules", ".grasseye-data"]);
 
 export function assert(condition, message) {
   if (!condition) {

@@ -1,4 +1,61 @@
 {
-  "generatedAt": "2026-05-08T14:50:07.883Z",
-  "conflicts": []
+  "generatedAt": "2026-05-08T16:09:16.232Z",
+  "conflicts": [
+    {
+      "kind": "LAW_REGISTRY",
+      "message": "Duplicate active lawId detected.",
+      "file": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
+      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2",
+      "detail": "Already declared in .github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md."
+    },
+    {
+      "kind": "LAW_REGISTRY",
+      "message": "Duplicate active lawId detected.",
+      "file": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
+      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2",
+      "detail": "Already declared in .github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md."
+    },
+    {
+      "kind": "LAW_REGISTRY",
+      "message": "Duplicate active lawId detected.",
+      "file": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
+      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2",
+      "detail": "Already declared in .github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md."
+    },
+    {
+      "kind": "LAW_REGISTRY",
+      "message": "Duplicate active lawId detected.",
+      "file": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
+      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V2",
+      "detail": "Already declared in .github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md."
+    },
+    {
+      "kind": "LAW_REGISTRY",
+      "message": "Duplicate active lawId detected.",
+      "file": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
+      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-005-V2",
+      "detail": "Already declared in .github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md."
+    },
+    {
+      "kind": "LAW_REGISTRY",
+      "message": "Duplicate active lawId detected.",
+      "file": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
+      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-006-V2",
+      "detail": "Already declared in .github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md."
+    },
+    {
+      "kind": "LAW_REGISTRY",
+      "message": "Duplicate active lawId detected.",
+      "file": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
+      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-007-V2",
+      "detail": "Already declared in .github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md."
+    },
+    {
+      "kind": "LAW_REGISTRY",
+      "message": "Duplicate active lawId detected.",
+      "file": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
+      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2",
+      "detail": "Already declared in .github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md."
+    }
+  ]
 }

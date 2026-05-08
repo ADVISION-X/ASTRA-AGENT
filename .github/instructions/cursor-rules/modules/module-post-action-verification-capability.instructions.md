@@ -1,29 +1,28 @@
 ---
 name: "GrassEye Post-action Verification Capability"
-description: "Use when governing the independent Post-action Verification Ability Group, action-result verification truth, before/after evidence binding, observation proof, verification decision, and the boundary that prevents open/click/scroll/text-input/page-state from claiming verified outcome truth."
+description: "Use when governing the independent Post-action Verification Ability Group, post-action observation packaging, before/after evidence binding, observation proof, and the boundary that keeps final semantic judgment in AI rather than PAV."
 applyTo: ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md, src/capabilities/post-action-verification/**, docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图.md, scripts/audit/domains/post-action-verification-capability/**"
 ---
 
 # GrassEye Post-action Verification Capability FINAL
 
-Scope: governs the independent Post-action Verification Ability Group, its child verification capabilities, verification decisions, before/after evidence binding, action proof binding, observation proof binding, and verification runtime proof.
+Scope: governs the independent Post-action Verification Ability Group as the owner of post-action observation packaging, before/after evidence binding, observation proof binding, and observation-package runtime proof integrity.
 
-Boundary: this module governs only action-result verification after an action has already executed and after bounded observations/evidence have been collected. It does not capture screenshots, execute AI, detect visual targets, click, scroll, input text, open pages, own page-state truth, write final evidence packets, or decide the next mission step.
+Boundary: this module governs only the packaging of governed post-action observations after an action has already executed and after bounded observations or evidence have already been collected. It does not execute actions, capture screenshots, call AI, detect visual targets, read DOM/BOM directly, write final evidence, or decide the final semantic action outcome.
 
-Authority: this file is authoritative only for the `post-action-verification-capability` domain.
+Authority: this file is authoritative only for the post-action-verification-capability domain.
 
-Architecture phase: `Static Capability Package Architecture`.
+Architecture phase: Static Capability Package Architecture.
 
 Core doctrine:
 - Action execution success is not outcome truth.
-- Page State is current-state truth, not action-result truth.
-- Post-action Verification is the only owner of governed action-result verification.
-- Post-action Verification consumes action refs, before/after evidence refs, observation refs, expected outcome, and verification policy.
-- Post-action Verification returns verified / failed / review_required plus proof.
-- Post-action Verification does not execute actions and does not persist final evidence truth.
-- No real action can be considered verified without a Post-action Verification result. Explicit governed review is not a valid substitute for PAV in production automation.
-- No proof, no verification.
-- No before/after or bounded observation support, no verified success.
+- AI is the final semantic action-result judgment source when a mission needs semantic yes/no.
+- Post-action Verification owns only post-action observation package integrity after the action.
+- Post-action Verification consumes action refs, before/after evidence refs, governed observations, expected outcome, and verification policy.
+- Post-action Verification returns a typed observation package or a fail-closed diagnostic.
+- PAV public result and runtime-proof surfaces must not expose verificationDecision, confidence, confidencePolicy, minimumConfidence, or actionResultVerifiedRef.
+- Explicit governed review is not a valid substitute for PAV in production automation.
+- No bounded observations, no source proof, no package success.
 - No active PAV law without inspector + runner + negative proof.
 
 ---
@@ -50,9 +49,24 @@ src/capabilities/post-action-verification/
 ├── registry.ts
 ├── index.ts
 ├── ports/
+│   ├── post-action-evidence-read-port.ts
+│   └── post-action-verification-clock-port.ts
 ├── shared/
+│   ├── post-action-evidence.ts
+│   ├── post-action-observation.ts
+│   ├── post-action-policy.ts
+│   ├── post-action-proof.ts
+│   ├── post-action-result.ts
+│   ├── post-action-types.ts
+│   └── post-action-url.ts
 ├── runtime/
+│   ├── post-action-decision-gate.ts
+│   ├── post-action-result-builders.ts
+│   ├── post-action-runtime-proof-builder.ts
+│   ├── post-action-verification-executor.ts
+│   └── post-action-verification-runtime-context.ts
 └── children/
+    └── post-action-observation-child.ts
 ```
 
 Required enforcement:
@@ -66,8 +80,8 @@ scripts/audit/domains/post-action-verification-capability/
 ```
 
 Forbidden:
-- `manual-first` as active enforcement for this domain.
-- `evidenceMode: law` as sufficient evidence.
+- manual-first as active enforcement for this domain.
+- evidenceMode: law as sufficient evidence.
 - verify scripts as release truth.
 - detached inspector.
 - warning-only P0.
@@ -78,129 +92,128 @@ Forbidden:
 
 ## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2
 
-status: active  
-tier: P0  
-capabilityDomain: post-action-verification-capability  
-enforcementMode: machine-blocking  
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
 evidenceMode: law+inspector+negative-proof
 
-summary: Post-action Verification is the only owner of governed action-result truth.
+summary: PAV is the only owner of governed post-action observation-package truth, while AI remains the final semantic judgment source.
 
 ### 主题
 
-动作结果验证主权唯一
+动作后观察包主权唯一
 
 ### 法条
 
-Post-action Verification Ability Group is the only owner of governed action-result verification.
+Post-action Verification Ability Group is the only owner of governed post-action observation-package truth after an action has executed.
 
 Required direction:
-- Open, Mouse Click, Mouse Scroll, Text Input, Browser Controller, platform adapters, Page State, AI, Visual Target, Screenshot, and Orchestration must not claim verified action outcome truth.
-- Primitive action success means only: action was dispatched or attempted.
-- Page State means only: current observed page state.
-- AI / Visual Target / Screenshot / Page State observations may support verification, but may not replace Post-action Verification.
-- Orchestration may branch on PAV result; it may not fabricate PAV result.
-- Forensics may persist PAV result; it may not decide verification.
+- Open, Mouse Click, Mouse Scroll, Text Input, Browser Controller, platform adapters, Page State, Screenshot, Visual Target, AI, Orchestration, and Forensics must not fabricate post-action observation-package truth.
+- Primitive action success means only: an action attempt or primitive execution completed.
+- Page State means only: current observed page/runtime state.
+- AI observations may support PAV packaging, and AI remains the final semantic action-result judgment source when a mission needs semantic yes/no.
+- Orchestration may branch on AI judgment and on PAV package status; it may not fabricate PAV output refs, package summaries, or runtime-proof fields.
+- Forensics may persist PAV results; it may not decide semantic action outcome.
+- No post-action surface may expose verificationDecision or confidencePolicy as a valid PAV contract.
 
 ### 禁止
 
 FORBIDDEN:
-- Mouse Click treating primitiveExecutionRef/browserActionId as verified outcome.
-- Mouse Scroll treating scrollExecutionRef/browserActionId as verified outcome.
-- Open treating navigation attempt as verified page-opened result.
-- Text Input treating primitive input success as verified text accepted.
-- Page State being used as a substitute for action-result verification.
-- AI free-text output being treated as action-result truth.
-- Orchestration fabricating verificationDecision.
-- Forensics fabricating verificationDecision.
-- Any action ability returning `verified` or `verificationDecision`.
+- Mouse Click treating primitiveExecutionRef or browserActionId as final semantic outcome truth.
+- Mouse Scroll treating scrollExecutionRef or browserActionId as final semantic outcome truth.
+- Open treating navigation attempt as final semantic page-opened truth.
+- Page State being used as a substitute for semantic action-result judgment.
+- AI free-text output bypassing PAV package binding.
+- Orchestration fabricating post-action package refs or runtime-proof refs.
+- Forensics fabricating post-action package refs or runtime-proof refs.
+- PAV input, output, or runtimeProof exposing verificationDecision, confidence, confidencePolicy, minimumConfidence, or actionResultVerifiedRef.
 
 Required inspector:
-- Import graph and symbol checks for verificationDecision outside PAV.
-- Action ability schemas must not expose final verified outcome.
-- Orchestration must consume PAV result, not fabricate it.
-- Page State cannot export action-result verification truth.
+- Import-graph and symbol checks for legacy verificationDecision or confidencePolicy fields on PAV and action-result surfaces.
+- Action ability schemas must not expose final semantic outcome fields.
+- Orchestration must consume PAV package status, not fabricate it.
+- Page State cannot export PAV package truth.
 
 Required negative proof:
-- Add `verificationDecision: "verified"` to mouse-click result → FAIL.
-- Add page-state-only action success branch → FAIL.
-- Add Orchestration fabricated PAV result → FAIL.
+- Add verificationDecision to PAV output -> FAIL.
+- Add confidencePolicy to PAV input -> FAIL.
+- Add page-state-only final action-truth branch -> FAIL.
 
 ---
 
 ## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2
 
-status: active  
-tier: P0  
-capabilityDomain: post-action-verification-capability  
-enforcementMode: machine-blocking  
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
 evidenceMode: law+inspector+negative-proof
 
 summary: PAV boundary stays pure and cannot execute actions, capture evidence, call AI, or persist final evidence.
 
 ### 主题
 
-纯验证边界
+纯观察包边界
 
 ### 法条
 
-Post-action Verification consumes governed inputs and returns a verification decision. It may not execute side effects.
+Post-action Verification consumes governed inputs and returns packaging status plus package or diagnostic. It may not execute side effects.
 
 Allowed:
 - Read bounded evidence through read ports.
-- Read observation records through read ports.
-- Compare before/after refs.
-- Validate action proof.
-- Validate evidence source proof.
-- Validate expected outcome.
-- Apply confidence and verification policy.
-- Build verification proof and result.
+- Read governed observations through read ports.
+- Validate action proof refs.
+- Validate evidence bindings and source proof refs.
+- Enforce before/after and visual-evidence requirements.
+- Build result and runtime proof.
 
 Forbidden:
 - Screenshot capture.
 - AI execution.
 - Visual target detection.
 - Page-state collection.
-- Browser/DOM/BOM read.
-- Click/scroll/input/open execution.
+- Browser, DOM, or BOM reads.
+- Click, scroll, input, or open execution.
 - Comment collection.
 - Forensics final evidence write.
 - Nerve Bus dispatch.
 - Mission step advancement.
-- Product yes/no decision.
+- Final semantic product yes/no judgment.
 
 Required inspector:
-- Forbidden imports: screenshot/open/mouse/text-input/browser/page-state/ai/forensics/orchestration implementation.
-- Forbidden method symbols: click, scroll, type, openPage, captureScreenshot, executeAi, writeEvidence, dispatchEnvelope, advanceStep.
+- Forbidden imports: screenshot, open, mouse, text-input, browser, page-state, ai, forensics, orchestration implementation.
+- Forbidden symbols: click, scroll, type, openPage, captureScreenshot, executeAi, writeEvidence, dispatchEnvelope, advanceStep.
 - External private PAV path import ban.
 
 Required negative proof:
-- Add screenshot capture import → FAIL.
-- Add browser controller import → FAIL.
-- Add Forensics writer call → FAIL.
-- Add Nerve Bus dispatch → FAIL.
+- Add screenshot implementation import -> FAIL.
+- Add browser controller import -> FAIL.
+- Add AI runtime call -> FAIL.
+- Add Forensics writer call -> FAIL.
+- Add Nerve Bus dispatch -> FAIL.
 
 ---
 
 ## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2
 
-status: active  
-tier: P0  
-capabilityDomain: post-action-verification-capability  
-enforcementMode: machine-blocking  
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
 evidenceMode: law+inspector+negative-proof
 
-summary: PAV input must carry action proof, source action refs, expected outcome, before/after evidence, observations, and chain fields.
+summary: PAV input must carry complete chain fields, action proof, governed observations, and packaging policy without confidence-policy drift.
 
 ### 主题
 
-验证输入链路完整性
+输入链路完整性
 
 ### 法条
 
-PAV input must be fully traceable to the action it verifies and the map step that requested verification.
+Every PostActionVerificationAbilityInput must be fully traceable to the action it packages and the map step that requested packaging.
 
-Every `PostActionVerificationAbilityInput` must include:
+Every PostActionVerificationAbilityInput must include:
 
 ```txt
 abilityGroupId = post-action-verification
@@ -209,8 +222,8 @@ requestedBy = orchestration
 missionId
 runId
 sessionId
-roundId or visitId
-videoVisitId where available
+roundId or null
+videoVisitId or null
 stepId
 mapPackageId
 mapPackageVersion
@@ -227,12 +240,19 @@ actionProof
 beforeAfterEvidence
 observationSet
 verificationPolicy
-confidencePolicy
 inputRef
 idempotencyKey
 ```
 
-`actionProof` must include:
+Current phase-four sourceAbilityGroupId surface is limited to:
+
+```txt
+open
+mouse-click
+mouse-scroll
+```
+
+actionProof must include:
 
 ```txt
 actionProofRef
@@ -243,18 +263,21 @@ sourceAbilityGroupId
 sourceChildCapabilityId
 actionType
 actionStatus
-primitiveExecutionRef/navigationAttemptRef/scrollExecutionRef where applicable
+primitiveExecutionRef or navigationAttemptRef or scrollExecutionRef where applicable
+sessionId
+roundId or null
+videoVisitId or null
 startedAt
 endedAt
 selfReportedOnly
 ```
 
 Required direction:
-- Missing actionLogRef/actionRecordRef cannot be verified.
-- selfReportedOnly cannot produce verified.
-- forbidden action source cannot produce verified.
-- missing sourceRuntimeProofRef cannot produce verified.
-- missing chain fields cannot produce success.
+- Missing actionLogRef or actionRecordRef cannot produce package success.
+- selfReportedOnly cannot produce package success unless verificationPolicy.allowSelfReportedSuccess = true.
+- Missing sourceRuntimeProofRef cannot produce package success.
+- Missing chain fields cannot produce package success.
+- confidencePolicy and minimumConfidence are not valid PAV input concepts.
 
 ### 禁止
 
@@ -262,183 +285,221 @@ FORBIDDEN:
 - PAV input without stepId.
 - PAV input without capabilityCallId.
 - PAV input without activationSnapshotRef.
-- PAV input without actionProofRef.
-- Verified result from selfReportedOnly action.
-- Verified result without action log or action record.
-- Verified result from forbidden source ability.
+- PAV input without actionProof.
+- PAV input without verificationPolicy.
+- PAV input containing confidencePolicy or minimumConfidence.
+- Package success from selfReportedOnly action when allowSelfReportedSuccess = false.
+- Package success without action log or action record.
 
 Required inspector:
 - Schema field checks.
 - Runtime proof chain field checks.
 - Action proof gate call-order checks.
+- Legacy confidence-policy field ban.
 
 Required negative proof:
-- Remove capabilityCallId → FAIL.
-- Remove activationSnapshotRef → FAIL.
-- selfReportedOnly returns verified → FAIL.
-- missing actionLogRef returns verified → FAIL.
+- Remove capabilityCallId -> FAIL.
+- Remove activationSnapshotRef -> FAIL.
+- Remove verificationPolicy -> FAIL.
+- Add confidencePolicy -> FAIL.
+- selfReportedOnly returns success when allowSelfReportedSuccess = false -> FAIL.
 
 ---
 
 ## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V2
 
-status: active  
-tier: P0  
-capabilityDomain: post-action-verification-capability  
-enforcementMode: machine-blocking  
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
 evidenceMode: law+inspector+negative-proof
 
-summary: PAV must verify with bounded observations and evidence; before/after requirements must be enforced by policy.
+summary: PAV must fail-close on missing or invalid observation support and package only bounded observations with valid source proof.
 
 ### 主题
 
-before/after 与观察证据门禁
+观察包门禁
 
 ### 法条
 
-PAV must use bounded evidence and governed observations. Verification policy decides which evidence is required.
+PAV must package only bounded observations and evidence that remain provably bound to the governed action.
 
-Observation sources may include only governed refs from:
-- page-state
-- visual-target
-- ai
-- screenshot
-- post-action-verification runtime signal
+Allowed observation kinds:
 
-Evidence refs may include:
-- screenshot
-- page_state
-- ai_observation
-- visual_target
-- screenshot_diff
-- runtime_signal
-- action_log
-- source_runtime_proof
+```txt
+page_state
+ai_observation
+visual_target
+screenshot_diff
+video_identity
+action_completion
+runtime_signal
+```
 
-Required:
-- Every observation must have `sourceProofRef`.
-- Every evidence ref must have source ability and capturedAt.
-- before/after comparison must be required when `expectedOutcome.requiresBeforeAfterComparison = true`.
-- visual evidence must be required when `expectedOutcome.requiresVisualEvidence = true`.
-- after evidence must be required when `verificationPolicy.requireAfterEvidence = true`.
-- verified result must have supporting evidence/observation/source proof refs.
-- verified result must not rely only on runtime self-report.
-- contradictory observations must produce failed or internal review_required, not verified; Orchestration must normalize review_required to failed for production automation routing.
+Allowed evidence kinds:
+
+```txt
+page_state
+screenshot
+visual_target
+ai_observation
+runtime_signal
+screenshot_diff
+video_identity
+```
+
+Allowed observation source ability groups:
+
+```txt
+page-state
+screenshot
+visual-target
+ai
+post-action-verification
+```
+
+Allowed verificationPolicy shape:
+
+```txt
+verificationMode = visual_evidence | observation_only | before_after_comparison
+requireAfterEvidence
+requireBeforeAfterComparison
+allowSelfReportedSuccess
+```
+
+Required direction:
+- Every observation must have sourceProofRef.
+- supportingObservationRefs must be non-empty for package success.
+- supportingSourceProofRefs must be non-empty for package success.
+- Every supportingEvidenceRef must pass governed evidence binding when present.
+- requireAfterEvidence must fail-close when afterEvidence is missing.
+- requiresBeforeAfterComparison must fail-close when beforeEvidence or afterEvidence is missing.
+- requiresVisualEvidence must fail-close when visual evidence is missing.
+- Missing or invalid source proof must fail-close.
+- Packaging success means observation-package integrity passed; it does not mean semantic action outcome was finally judged.
 
 ### 禁止
 
 FORBIDDEN:
-- Verified without supporting evidence refs.
-- Verified without supporting observation refs.
-- Verified without supporting source proof refs.
-- Verified with only self-reported action completion.
-- Verified when before/after evidence required but missing.
-- Verified when observation source proof is missing.
-- Verified with contradictory evidence.
+- Package success without supportingObservationRefs.
+- Package success without supportingSourceProofRefs.
+- Package success with invalid source proof.
+- Package success with invalid evidence binding.
+- Package success with missing afterEvidence when required.
+- Package success with missing before/after evidence when required.
+- Package success with missing visual evidence when required.
 
 Required inspector:
 - Schema policy fields.
-- Evidence source gate call.
-- Observation proof binding gate call.
-- Before/after gate call.
-- Success output support refs check.
+- Observation proof-binding checks.
+- Evidence-binding checks.
+- Before/after gate checks.
+- Support-ref checks on success path.
 
 Required negative proof:
-- Remove supportingSourceProofRefs from verified output → FAIL.
-- Verify with no afterEvidence when required → FAIL.
-- Verify contradictory observations → FAIL.
+- Remove supportingSourceProofRefs from success path -> FAIL.
+- Return success with no supportingObservationRefs -> FAIL.
+- Return success with no afterEvidence when required -> FAIL.
+- Return success with invalid source proof -> FAIL.
 
 ---
 
 ## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-005-V2
 
-status: active  
-tier: P0  
-capabilityDomain: post-action-verification-capability  
-enforcementMode: machine-blocking  
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
 evidenceMode: law+inspector+negative-proof
 
-summary: PAV must return typed verification decision only: verified, failed, or review_required.
+summary: PAV result must report packaging status only: success, failed, or review_required.
 
 ### 主题
 
-验证决策唯一类型
+观察包结果模型
 
 ### 法条
 
-Post-action Verification result must use one of:
+Post-action Verification result status reports only whether the governed observation package was built successfully.
+
+Valid result statuses:
 
 ```txt
-verificationDecision: verified | failed | review_required
-status: success | failed | review_required
+success
+failed
+review_required
 ```
-
-Status mapping:
-- `verificationDecision = verified` requires `status = success`.
-- `verificationDecision = failed` requires `status = failed`.
-- `verificationDecision = review_required` requires `status = review_required`.
 
 Success requirements:
 - output exists.
-- output.actionResultVerifiedRef exists.
+- output.packageLabel exists.
+- output.observationSummary exists.
+- output.postActionObservationRef exists.
+- output.actionObservationBundleRef exists.
+- output.observationFingerprint exists.
+- output.observationRefs is non-empty.
+- output.supportingSourceProofRefs is non-empty.
 - runtimeProof exists.
 - runtimeProof.status equals result.status.
-- runtimeProof.verificationDecision equals result.verificationDecision.
-- outputBoundaryDecision = allow.
-- criticalDataQualityDecision = allow.
-- confidence >= confidencePolicy.minimumConfidence.
-- evidence/observation/source-proof support refs exist.
+- runtimeProof.processingMode = observation_packaging.
+- result does not expose verificationDecision, confidence, confidencePolicy, minimumConfidence, actionResultVerifiedRef, or verifiedByEvidenceKinds.
 
-Failure/review requirements:
+Failure or review requirements:
 - output must be null.
 - diagnosticPayloadRef must exist.
 - failureReason or reviewRequiredReason must exist.
 - runtimeProof must exist.
+- runtimeProof.processingMode must be observation_packaging or invalid_input_failure.
+
+Result meaning:
+- success means the post-action observation package was built.
+- success does not mean the action was semantically verified as successful.
 
 ### 禁止
 
 FORBIDDEN:
-- `status: persisted`.
-- `status: ok`.
-- `verificationDecision: ok`.
-- `warning-only acceptance`.
-- `no-op acceptance`.
-- `runtimeProof: null`.
-- `success` with `review_required` decision.
-- `success` with critical data quality flags.
-- `failed/review_required` exposing verified output.
+- status: persisted.
+- status: ok.
+- verificationDecision on the result surface.
+- confidence on the result surface.
+- actionResultVerifiedRef on the output surface.
+- success with output = null.
+- failed or review_required with non-null output.
+- success with empty observationRefs.
+- success with empty supportingSourceProofRefs.
 
 Required inspector:
-- Result schema superRefine checks.
-- Result builder call checks.
-- Output-boundary gate checks.
-- Decision gate checks.
+- Result schema checks.
+- Result builder checks.
+- Output-field parity checks.
+- Legacy decision or confidence surface bans.
 
 Required negative proof:
-- Return status ok → FAIL.
-- Return success with review_required → FAIL.
-- Return runtimeProof:null → FAIL.
-- Return failed with output → FAIL.
+- Return status ok -> FAIL.
+- Return verificationDecision field -> FAIL.
+- Return confidence field -> FAIL.
+- Return success with output null -> FAIL.
+- Return failed with output -> FAIL.
 
 ---
 
 ## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-006-V2
 
-status: active  
-tier: P0  
-capabilityDomain: post-action-verification-capability  
-enforcementMode: machine-blocking  
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
 evidenceMode: law+inspector+negative-proof
 
-summary: PAV runtime proof must preserve the same chain as input and result, without fabricated mission/run truth.
+summary: PAV runtime proof must preserve input and result chain parity without fabricated ids or legacy decision traces.
 
 ### 主题
 
-验证运行证明链路完整性
+运行证明链路完整性
 
 ### 法条
 
-`PostActionRuntimeProof` must preserve real upstream chain fields, not fabricated ids.
+PostActionRuntimeProof must preserve real upstream chain fields and packaging metadata, not fabricated ids or legacy decision artifacts.
 
 Required proof fields:
 
@@ -459,8 +520,9 @@ capabilityCallId
 nerveBusEnvelopeId
 abilityGroupId = post-action-verification
 childCapabilityId
+inputRef
 actionProofRef
-actionLogRef or actionRecordRef
+actionLogRef
 sourceActionRuntimeProofRef
 sourceActionResultRef
 sourceActionOutputRef
@@ -473,7 +535,6 @@ beforeEvidenceRefs
 afterEvidenceRefs
 observationRefs
 evidenceSourceRefs
-inputRef
 outputRef or diagnosticPayloadRef
 debugLogRef
 structuredRuntimeEventRef optional
@@ -483,59 +544,62 @@ expectedOutcomeHash
 beforeEvidenceHash
 afterEvidenceHash
 observationSetHash
+observationFingerprint
+receivedShapeHash
 startedAt
 endedAt
 durationMs
 status
-verificationDecision
-confidence
 failureReason
 reviewRequiredReason
-inputDecision
-actionProofDecision
-evidenceSourceDecision
-beforeAfterDecision
-policyDecision
-outputBoundaryDecision
-criticalDataQualityDecision
-observationBindingDecision
-beforeAfterPairDecision
-verificationDecisionTrace
+processingMode
 dataQualityFlags
 clock
 ```
 
-Forbidden:
-- runId generated from proofFingerprint only.
+Required direction:
+- runId and missionId must preserve upstream chain fields.
+- success proof must include outputRef.
+- failed or review proof must include diagnosticPayloadRef.
+- runtimeProof must not expose verificationDecision, confidence, confidencePolicy, minimumConfidence, outputBoundaryDecision, policyDecision, or verificationDecisionTrace.
+- processingMode is limited to observation_packaging or invalid_input_failure.
+
+### 禁止
+
+FORBIDDEN:
+- runId generated from proof fingerprint only.
 - missionId generated from sessionId.
-- missing stepId/capabilityCallId/activationSnapshotRef.
-- runtimeProof chain different from result chain.
+- missing stepId, capabilityCallId, or activationSnapshotRef.
 - success proof without outputRef.
-- failed/review proof without diagnosticPayloadRef.
+- failed or review proof without diagnosticPayloadRef.
+- runtimeProof chain different from result chain.
+- runtimeProof exposing legacy verificationDecision or confidence fields.
 
 Required inspector:
 - Schema field existence.
 - Proof builder source-of-truth check.
-- No fabricated runId/missionId pattern.
+- No fabricated runId or missionId pattern.
 - Proof/result/input chain parity.
+- Legacy decision-trace field ban.
 
 Required negative proof:
-- Set runId = proofFingerprint → FAIL.
-- Set missionId = sessionId → FAIL.
-- Remove activationSnapshotRef → FAIL.
-- Success without outputRef → FAIL.
+- Set runId = proofFingerprint -> FAIL.
+- Set missionId = sessionId -> FAIL.
+- Remove activationSnapshotRef -> FAIL.
+- Success without outputRef -> FAIL.
+- Add verificationDecisionTrace -> FAIL.
 
 ---
 
 ## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-007-V2
 
-status: active  
-tier: P0  
-capabilityDomain: post-action-verification-capability  
-enforcementMode: machine-blocking  
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
 evidenceMode: law+inspector+negative-proof
 
-summary: child capabilities must be narrow verification behaviors and must use unified executor/runtime proof path.
+summary: child capabilities must remain narrow observation providers and flow through one unified executor and proof path.
 
 ### 主题
 
@@ -543,59 +607,59 @@ summary: child capabilities must be narrow verification behaviors and must use u
 
 ### 法条
 
-Active child capabilities:
+Active child capability ids are:
 
 ```txt
-verify-page-opened
-verify-comments-panel-opened
-verify-comments-panel-closed
-verify-not-interested-result
-verify-target-state-changed
+observe-page-open-attempt
+observe-comments-panel-open-attempt
+observe-comments-panel-close-attempt
+observe-not-interested-attempt
+observe-target-state-transition
+verify-action-result
 ```
 
-Required:
-- Each child has `contract.ts`, `schema.ts`, `implementation.ts`.
-- Each child returns child assessment only, not final PAV result.
-- Each child uses only observations/evidence already provided through PAV runtime context/read port.
-- `verify-video-changed-after-scroll` is physically forbidden. Video-switch truth is AI cognition, never a PAV/DOM/hash rule.
-- Non-AI ability groups must not judge whether before/after video content changed by URL, DOM, perceptual hash, screenshot diff, thresholds, or hand-written rules.
-- Each child cannot call screenshot/AI/page-state/visual-target/open/mouse/text-input implementations.
-- Each child cannot write Forensics.
-- Each child cannot decide Orchestration next step.
-- All final result/proof construction occurs in unified runtime path.
+Required direction:
+- registry.ts must map every active childCapabilityId to the shared post-action-observation child implementation.
+- children/post-action-observation-child.ts is the shared implementation anchor for current active ids.
+- Each child returns only child observation data needed to build a package.
+- Each child uses only observations and evidence already provided through PAV runtime context or read ports.
+- verify-video-changed-after-scroll is physically forbidden. Video-switch semantic truth belongs to AI, never to PAV or hand-written DOM or hash rules.
+- Non-AI ability groups must not judge whether before or after video content changed by URL, DOM, perceptual hash, screenshot diff thresholds, or hand-written rules.
+- All final result and runtime-proof construction occurs in the unified executor and builders.
 
 ### 禁止
 
 FORBIDDEN:
-- Child implementation building `PostActionVerificationAbilityResult`.
+- Child implementation building PostActionVerificationAbilityResult.
 - Child implementation building runtimeProof.
-- Child calling foreign ability implementations.
-- Child fetching browser/DOM/BOM directly.
-- Child returning raw boolean.
-- Child returning no-op verified.
+- Child implementation calling screenshot, AI, page-state, visual-target, open, mouse, or text-input implementations.
+- Child implementation fetching browser, DOM, or BOM directly.
+- Child implementation returning raw boolean.
 
 Required inspector:
-- Child folder parity.
-- Child return type check.
+- Child id parity with shared/post-action-types.ts.
+- Registry parity with shared child implementation.
+- Child return-type checks.
 - No forbidden imports.
-- No final result builder call in child.
+- No final result or proof builder call in child code.
 
 Required negative proof:
-- Child imports screenshot implementation → FAIL.
-- Child returns boolean → FAIL.
-- Child builds final result → FAIL.
+- Child imports screenshot implementation -> FAIL.
+- Child returns boolean -> FAIL.
+- Child builds final result -> FAIL.
+- Add verify-video-changed-after-scroll -> FAIL.
 
 ---
 
 ## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2
 
-status: active  
-tier: P0  
-capabilityDomain: post-action-verification-capability  
-enforcementMode: machine-blocking  
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
 evidenceMode: law+inspector+negative-proof
 
-summary: PAV enforcement must close through owner-local AST/symbol inspector, runner, and negative proof.
+summary: PAV enforcement must close through owner-local AST and symbol inspectors, runner, and negative proof.
 
 ### 主题
 
@@ -614,16 +678,16 @@ scripts/audit/domains/post-action-verification-capability/negative-proof-harness
 
 Required:
 - Inspector must use ts-morph AST-level checks.
-- Inspector must use symbol/import-graph checks.
+- Inspector must use symbol and import-graph checks.
 - Inspector must use schema-level checks.
 - Inspector must include anti-escape checks.
-- Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
-- Negative proof must run and report fail → rollback → pass.
+- Inspector must verify active law coverage in registry, matrix, audit plan, and runner.
+- Negative proof must run and report fail -> rollback -> pass.
 - CI-FULL must be green for delivery.
 
 Forbidden:
 - verify scripts as release truth.
-- grep/regex/includes as final judgment.
+- grep, regex, or includes-only final judgment.
 - warning-only P0.
 - detached inspector.
 - empty negative proof.
@@ -631,10 +695,10 @@ Forbidden:
 - capability-check.ts under PAV root.
 
 Required negative proof:
-- Remove inspector from runner → FAIL.
-- Convert P0 finding to warning-only → FAIL.
-- Use regex-only final check → FAIL.
-- Add `capability-check.ts` → FAIL.
+- Remove inspector from runner -> FAIL.
+- Convert P0 finding to warning-only -> FAIL.
+- Use regex-only final check -> FAIL.
+- Add capability-check.ts -> FAIL.
 
 ---
 
@@ -646,22 +710,22 @@ Inspector must check:
 1. Law file uses machine-blocking + law+inspector+negative-proof.
 2. Public ability-group is thin and execute-only.
 3. Contract does not expose runtime context or child execute internals.
-4. Child registry matches schema and folders.
+4. Child registry matches schema and shared/post-action-types.ts.
 5. External modules do not import children/** or runtime/** private paths.
-6. PAV root does not import screenshot/open/click/scroll/text-input/page-state/ai/forensics/orchestration implementations.
-7. PAV does not call browser/DOM/BOM APIs.
-8. Input schema includes missionId/runId/stepId/capabilityCallId/activationSnapshotRef/nerveBusEnvelopeId.
-9. Action proof requires actionLogRef or actionRecordRef.
-10. selfReportedOnly cannot verify.
-11. Evidence/observation refs require sourceProofRef.
-12. Verified output requires evidenceRefs/observationRefs/supportingSourceProofRefs.
-13. before/after requirements are enforced.
-14. Output boundary blocks verified if critical data quality flags exist.
-15. RuntimeProof contains chain fields and no fabricated runId/missionId.
-16. Result/proof/input chain parity.
-17. Failed/review_required output is null and diagnosticPayloadRef exists.
-18. Child implementation cannot build final result/proof.
-19. ALL active PAV laws in registry/matrix/audit-plan/runner.
+6. PAV root does not import screenshot, open, click, scroll, text-input, page-state, ai, forensics, or orchestration implementations.
+7. PAV does not call browser, DOM, or BOM APIs.
+8. Input schema includes missionId, runId, stepId, capabilityCallId, activationSnapshotRef, and nerveBusEnvelopeId.
+9. Input schema contains verificationPolicy and does not contain confidencePolicy.
+10. Action proof requires actionLogRef or actionRecordRef.
+11. selfReportedOnly cannot succeed unless allowSelfReportedSuccess = true.
+12. Observation support requires sourceProofRef.
+13. Success output contains observationRefs and supportingSourceProofRefs.
+14. before/after and visual-evidence requirements are enforced.
+15. RuntimeProof contains chain fields and no fabricated runId or missionId.
+16. Result, proof, and input chain parity holds.
+17. Failed or review_required output is null and diagnosticPayloadRef exists.
+18. Child implementation cannot build final result or proof.
+19. All active PAV laws remain covered in registry, matrix, audit plan, and runner.
 20. negative-proof-harness executed.
 ```
 
@@ -669,27 +733,29 @@ Inspector must check:
 
 ## Required Negative Proof
 
-The PAV negative proof must fail → rollback → pass for:
+The PAV negative proof must fail -> rollback -> pass for:
 
 ```txt
 manual-first enforcement reintroduced
 remove capabilityCallId from input
 remove activationSnapshotRef from input
 remove nerveBusEnvelopeId from input
-selfReportedOnly returns verified
-missing actionLogRef returns verified
-verified with no supportingSourceProofRefs
-verified with missing afterEvidence when required
-success with review_required decision
-success with critical data quality flags
-runtimeProof:null
+add confidencePolicy to input
+selfReportedOnly returns success when allowSelfReportedSuccess = false
+missing actionLogRef returns success
+success with no supportingSourceProofRefs
+success with no supportingObservationRefs
+success with missing afterEvidence when required
+success with invalid source proof
+success with output = null
+runtimeProof = null
 runId built from proofFingerprint only
 missionId built from sessionId
 child imports screenshot implementation
 child builds final result
 external imports runtime private path
-page-state claims verificationDecision
-mouse-click returns verified
+page-state claims final action truth
+PAV output exposes verificationDecision
 remove negative proof invocation
 turn P0 into warning-only
 ```
@@ -701,17 +767,799 @@ turn P0 into warning-only
 PAV is READY only when:
 
 ```txt
-law/blueprint/inspector/generated/runner agree
+law, blueprint, inspector, generated artifacts, and runner agree
 all active PAV laws are machine-blocking
-PAV public contract is verification-native
-input/action/evidence chain fields complete
-verified result requires source proof support
-action primitive success cannot equal verification truth
-page-state cannot substitute verification
-runtimeProof preserves real upstream chain
-children are narrow assessment providers
+PAV public contract is observation-package native
+input, action, evidence, and observation chain fields are complete
+success output has observation and source-proof support
+action primitive success does not equal semantic action truth
+AI remains final semantic judgment source
+runtimeProof preserves real upstream chain without legacy decision fields
+children are narrow observation providers
 owner-local inspector PASS
 negative proof PASS
-ALL active law enforcement PASS
+all active law enforcement PASS
+CI-FULL PASS
+```---
+name: "GrassEye Post-action Verification Capability"
+description: "Use when governing the independent Post-action Verification Ability Group, post-action observation packaging, before/after evidence binding, observation proof, and the boundary that keeps final semantic judgment in AI rather than PAV."
+applyTo: ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md, src/capabilities/post-action-verification/**, docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图.md, scripts/audit/domains/post-action-verification-capability/**"
+---
+
+# GrassEye Post-action Verification Capability FINAL
+
+Scope: governs the independent Post-action Verification Ability Group as the owner of post-action observation packaging, before or after evidence binding, observation proof binding, and observation-package runtime proof integrity.
+
+Boundary: this module governs only the packaging of governed post-action observations after an action has already executed and after bounded observations or evidence have already been collected. It does not execute actions, capture screenshots, call AI, detect visual targets, read DOM or BOM directly, write final evidence, or decide the final semantic action outcome.
+
+Authority: this file is authoritative only for the post-action-verification-capability domain.
+
+Architecture phase: Static Capability Package Architecture.
+
+Core doctrine:
+- Action execution success is not outcome truth.
+- AI is the final semantic action-result judgment source when a mission needs semantic yes or no.
+- Post-action Verification owns only post-action observation-package integrity after the action.
+- Post-action Verification consumes action refs, before or after evidence refs, governed observations, expected outcome, and verification policy.
+- Post-action Verification returns a typed observation package or a fail-closed diagnostic.
+- PAV public result and runtime-proof surfaces must not expose verificationDecision, confidence, confidencePolicy, minimumConfidence, or actionResultVerifiedRef.
+- Explicit governed review is not a valid substitute for PAV in production automation.
+- No bounded observations, no source proof, no package success.
+- No active PAV law without inspector plus runner plus negative proof.
+
+---
+
+## Global Post-action Verification Baseline
+
+All active Post-action Verification laws in this file are:
+
+```yaml
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+```
+
+Required package:
+
+```txt
+src/capabilities/post-action-verification/
+├── ability-group.ts
+├── contract.ts
+├── schema.ts
+├── registry.ts
+├── index.ts
+├── ports/
+│   ├── post-action-evidence-read-port.ts
+│   └── post-action-verification-clock-port.ts
+├── shared/
+│   ├── post-action-evidence.ts
+│   ├── post-action-observation.ts
+│   ├── post-action-policy.ts
+│   ├── post-action-proof.ts
+│   ├── post-action-result.ts
+│   ├── post-action-types.ts
+│   └── post-action-url.ts
+├── runtime/
+│   ├── post-action-decision-gate.ts
+│   ├── post-action-result-builders.ts
+│   ├── post-action-runtime-proof-builder.ts
+│   ├── post-action-verification-executor.ts
+│   └── post-action-verification-runtime-context.ts
+└── children/
+    └── post-action-observation-child.ts
+```
+
+Required enforcement:
+
+```txt
+scripts/audit/domains/post-action-verification-capability/
+├── manifest.json
+├── inspector.ts
+├── run-inspector.ts
+└── negative-proof-harness.ts
+```
+
+Forbidden:
+- manual-first as active enforcement for this domain.
+- evidenceMode: law as sufficient evidence.
+- verify scripts as release truth.
+- detached inspector.
+- warning-only P0.
+- generated fake PASS.
+- empty negative proof.
+
+---
+
+## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2
+
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: PAV is the only owner of governed post-action observation-package truth, while AI remains the final semantic judgment source.
+
+### 主题
+
+动作后观察包主权唯一
+
+### 法条
+
+Post-action Verification Ability Group is the only owner of governed post-action observation-package truth after an action has executed.
+
+Required direction:
+- Open, Mouse Click, Mouse Scroll, Text Input, Browser Controller, platform adapters, Page State, Screenshot, Visual Target, AI, Orchestration, and Forensics must not fabricate post-action observation-package truth.
+- Primitive action success means only: an action attempt or primitive execution completed.
+- Page State means only: current observed page or runtime state.
+- AI observations may support PAV packaging, and AI remains the final semantic action-result judgment source when a mission needs semantic yes or no.
+- Orchestration may branch on AI judgment and on PAV package status; it may not fabricate PAV output refs, package summaries, or runtime-proof fields.
+- Forensics may persist PAV results; it may not decide semantic action outcome.
+- No post-action surface may expose verificationDecision or confidencePolicy as a valid PAV contract.
+
+### 禁止
+
+FORBIDDEN:
+- Mouse Click treating primitiveExecutionRef or browserActionId as final semantic outcome truth.
+- Mouse Scroll treating scrollExecutionRef or browserActionId as final semantic outcome truth.
+- Open treating navigation attempt as final semantic page-opened truth.
+- Page State being used as a substitute for semantic action-result judgment.
+- AI free-text output bypassing PAV package binding.
+- Orchestration fabricating post-action package refs or runtime-proof refs.
+- Forensics fabricating post-action package refs or runtime-proof refs.
+- PAV input, output, or runtimeProof exposing verificationDecision, confidence, confidencePolicy, minimumConfidence, or actionResultVerifiedRef.
+
+Required inspector:
+- Import-graph and symbol checks for legacy verificationDecision or confidencePolicy fields on PAV and action-result surfaces.
+- Action ability schemas must not expose final semantic outcome fields.
+- Orchestration must consume PAV package status, not fabricate it.
+- Page State cannot export PAV package truth.
+
+Required negative proof:
+- Add verificationDecision to PAV output -> FAIL.
+- Add confidencePolicy to PAV input -> FAIL.
+- Add page-state-only final action-truth branch -> FAIL.
+
+---
+
+## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2
+
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: PAV boundary stays pure and cannot execute actions, capture evidence, call AI, or persist final evidence.
+
+### 主题
+
+纯观察包边界
+
+### 法条
+
+Post-action Verification consumes governed inputs and returns packaging status plus package or diagnostic. It may not execute side effects.
+
+Allowed:
+- Read bounded evidence through read ports.
+- Read governed observations through read ports.
+- Validate action proof refs.
+- Validate evidence bindings and source proof refs.
+- Enforce before or after and visual-evidence requirements.
+- Build result and runtime proof.
+
+Forbidden:
+- Screenshot capture.
+- AI execution.
+- Visual target detection.
+- Page-state collection.
+- Browser, DOM, or BOM reads.
+- Click, scroll, input, or open execution.
+- Comment collection.
+- Forensics final evidence write.
+- Nerve Bus dispatch.
+- Mission step advancement.
+- Final semantic product yes or no judgment.
+
+Required inspector:
+- Forbidden imports: screenshot, open, mouse, text-input, browser, page-state, ai, forensics, orchestration implementation.
+- Forbidden symbols: click, scroll, type, openPage, captureScreenshot, executeAi, writeEvidence, dispatchEnvelope, advanceStep.
+- External private PAV path import ban.
+
+Required negative proof:
+- Add screenshot implementation import -> FAIL.
+- Add browser controller import -> FAIL.
+- Add AI runtime call -> FAIL.
+- Add Forensics writer call -> FAIL.
+- Add Nerve Bus dispatch -> FAIL.
+
+---
+
+## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2
+
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: PAV input must carry complete chain fields, action proof, governed observations, and packaging policy without confidence-policy drift.
+
+### 主题
+
+输入链路完整性
+
+### 法条
+
+Every PostActionVerificationAbilityInput must be fully traceable to the action it packages and the map step that requested packaging.
+
+Every PostActionVerificationAbilityInput must include:
+
+```txt
+abilityGroupId = post-action-verification
+childCapabilityId
+requestedBy = orchestration
+missionId
+runId
+sessionId
+roundId or null
+videoVisitId or null
+stepId
+mapPackageId
+mapPackageVersion
+selectedMapId
+selectedMapVersion
+activationSnapshotRef
+capabilityCallId
+nerveBusEnvelopeId
+sourceAbilityGroupId
+sourceChildCapabilityId
+sourceActionType
+expectedOutcome
+actionProof
+beforeAfterEvidence
+observationSet
+verificationPolicy
+inputRef
+idempotencyKey
+```
+
+Current phase-four sourceAbilityGroupId surface is limited to:
+
+```txt
+open
+mouse-click
+mouse-scroll
+```
+
+actionProof must include:
+
+```txt
+actionProofRef
+actionLogRef or actionRecordRef
+sourceRuntimeProofRef
+sourceActionResultRef or sourceActionOutputRef
+sourceAbilityGroupId
+sourceChildCapabilityId
+actionType
+actionStatus
+primitiveExecutionRef or navigationAttemptRef or scrollExecutionRef where applicable
+sessionId
+roundId or null
+videoVisitId or null
+startedAt
+endedAt
+selfReportedOnly
+```
+
+Required direction:
+- Missing actionLogRef or actionRecordRef cannot produce package success.
+- selfReportedOnly cannot produce package success unless verificationPolicy.allowSelfReportedSuccess = true.
+- Missing sourceRuntimeProofRef cannot produce package success.
+- Missing chain fields cannot produce package success.
+- confidencePolicy and minimumConfidence are not valid PAV input concepts.
+
+### 禁止
+
+FORBIDDEN:
+- PAV input without stepId.
+- PAV input without capabilityCallId.
+- PAV input without activationSnapshotRef.
+- PAV input without actionProof.
+- PAV input without verificationPolicy.
+- PAV input containing confidencePolicy or minimumConfidence.
+- Package success from selfReportedOnly action when allowSelfReportedSuccess = false.
+- Package success without action log or action record.
+
+Required inspector:
+- Schema field checks.
+- Runtime proof chain field checks.
+- Action proof gate call-order checks.
+- Legacy confidence-policy field ban.
+
+Required negative proof:
+- Remove capabilityCallId -> FAIL.
+- Remove activationSnapshotRef -> FAIL.
+- Remove verificationPolicy -> FAIL.
+- Add confidencePolicy -> FAIL.
+- selfReportedOnly returns success when allowSelfReportedSuccess = false -> FAIL.
+
+---
+
+## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V2
+
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: PAV must fail-close on missing or invalid observation support and package only bounded observations with valid source proof.
+
+### 主题
+
+观察包门禁
+
+### 法条
+
+PAV must package only bounded observations and evidence that remain provably bound to the governed action.
+
+Allowed observation kinds:
+
+```txt
+page_state
+ai_observation
+visual_target
+screenshot_diff
+video_identity
+action_completion
+runtime_signal
+```
+
+Allowed evidence kinds:
+
+```txt
+page_state
+screenshot
+visual_target
+ai_observation
+runtime_signal
+screenshot_diff
+video_identity
+```
+
+Allowed observation source ability groups:
+
+```txt
+page-state
+screenshot
+visual-target
+ai
+post-action-verification
+```
+
+Allowed verificationPolicy shape:
+
+```txt
+verificationMode = visual_evidence | observation_only | before_after_comparison
+requireAfterEvidence
+requireBeforeAfterComparison
+allowSelfReportedSuccess
+```
+
+Required direction:
+- Every observation must have sourceProofRef.
+- supportingObservationRefs must be non-empty for package success.
+- supportingSourceProofRefs must be non-empty for package success.
+- Every supportingEvidenceRef must pass governed evidence binding when present.
+- requireAfterEvidence must fail-close when afterEvidence is missing.
+- requiresBeforeAfterComparison must fail-close when beforeEvidence or afterEvidence is missing.
+- requiresVisualEvidence must fail-close when visual evidence is missing.
+- Missing or invalid source proof must fail-close.
+- Packaging success means observation-package integrity passed; it does not mean semantic action outcome was finally judged.
+
+### 禁止
+
+FORBIDDEN:
+- Package success without supportingObservationRefs.
+- Package success without supportingSourceProofRefs.
+- Package success with invalid source proof.
+- Package success with invalid evidence binding.
+- Package success with missing afterEvidence when required.
+- Package success with missing before or after evidence when required.
+- Package success with missing visual evidence when required.
+
+Required inspector:
+- Schema policy fields.
+- Observation proof-binding checks.
+- Evidence-binding checks.
+- Before or after gate checks.
+- Support-ref checks on success path.
+
+Required negative proof:
+- Remove supportingSourceProofRefs from success path -> FAIL.
+- Return success with no supportingObservationRefs -> FAIL.
+- Return success with no afterEvidence when required -> FAIL.
+- Return success with invalid source proof -> FAIL.
+
+---
+
+## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-005-V2
+
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: PAV result must report packaging status only: success, failed, or review_required.
+
+### 主题
+
+观察包结果模型
+
+### 法条
+
+Post-action Verification result status reports only whether the governed observation package was built successfully.
+
+Valid result statuses:
+
+```txt
+success
+failed
+review_required
+```
+
+Success requirements:
+- output exists.
+- output.packageLabel exists.
+- output.observationSummary exists.
+- output.postActionObservationRef exists.
+- output.actionObservationBundleRef exists.
+- output.observationFingerprint exists.
+- output.observationRefs is non-empty.
+- output.supportingSourceProofRefs is non-empty.
+- runtimeProof exists.
+- runtimeProof.status equals result.status.
+- runtimeProof.processingMode = observation_packaging.
+- result does not expose verificationDecision, confidence, confidencePolicy, minimumConfidence, actionResultVerifiedRef, or verifiedByEvidenceKinds.
+
+Failure or review requirements:
+- output must be null.
+- diagnosticPayloadRef must exist.
+- failureReason or reviewRequiredReason must exist.
+- runtimeProof must exist.
+- runtimeProof.processingMode must be observation_packaging or invalid_input_failure.
+
+Result meaning:
+- success means the post-action observation package was built.
+- success does not mean the action was semantically verified as successful.
+
+### 禁止
+
+FORBIDDEN:
+- status: persisted.
+- status: ok.
+- verificationDecision on the result surface.
+- confidence on the result surface.
+- actionResultVerifiedRef on the output surface.
+- success with output = null.
+- failed or review_required with non-null output.
+- success with empty observationRefs.
+- success with empty supportingSourceProofRefs.
+
+Required inspector:
+- Result schema checks.
+- Result builder checks.
+- Output-field parity checks.
+- Legacy decision or confidence surface bans.
+
+Required negative proof:
+- Return status ok -> FAIL.
+- Return verificationDecision field -> FAIL.
+- Return confidence field -> FAIL.
+- Return success with output null -> FAIL.
+- Return failed with output -> FAIL.
+
+---
+
+## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-006-V2
+
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: PAV runtime proof must preserve input and result chain parity without fabricated ids or legacy decision traces.
+
+### 主题
+
+运行证明链路完整性
+
+### 法条
+
+PostActionRuntimeProof must preserve real upstream chain fields and packaging metadata, not fabricated ids or legacy decision artifacts.
+
+Required proof fields:
+
+```txt
+proofId
+missionId
+runId
+sessionId
+roundId
+videoVisitId
+stepId
+mapPackageId
+mapPackageVersion
+selectedMapId
+selectedMapVersion
+activationSnapshotRef
+capabilityCallId
+nerveBusEnvelopeId
+abilityGroupId = post-action-verification
+childCapabilityId
+inputRef
+actionProofRef
+actionLogRef
+sourceActionRuntimeProofRef
+sourceActionResultRef
+sourceActionOutputRef
+sourceActionAbilityGroupId
+sourceActionChildCapabilityId
+actionType
+actionStatus
+expectedOutcomeType
+beforeEvidenceRefs
+afterEvidenceRefs
+observationRefs
+evidenceSourceRefs
+outputRef or diagnosticPayloadRef
+debugLogRef
+structuredRuntimeEventRef optional
+inputPayloadHash
+actionProofHash
+expectedOutcomeHash
+beforeEvidenceHash
+afterEvidenceHash
+observationSetHash
+observationFingerprint
+receivedShapeHash
+startedAt
+endedAt
+durationMs
+status
+failureReason
+reviewRequiredReason
+processingMode
+dataQualityFlags
+clock
+```
+
+Required direction:
+- runId and missionId must preserve upstream chain fields.
+- success proof must include outputRef.
+- failed or review proof must include diagnosticPayloadRef.
+- runtimeProof must not expose verificationDecision, confidence, confidencePolicy, minimumConfidence, outputBoundaryDecision, policyDecision, or verificationDecisionTrace.
+- processingMode is limited to observation_packaging or invalid_input_failure.
+
+### 禁止
+
+FORBIDDEN:
+- runId generated from proof fingerprint only.
+- missionId generated from sessionId.
+- missing stepId, capabilityCallId, or activationSnapshotRef.
+- success proof without outputRef.
+- failed or review proof without diagnosticPayloadRef.
+- runtimeProof chain different from result chain.
+- runtimeProof exposing legacy verificationDecision or confidence fields.
+
+Required inspector:
+- Schema field existence.
+- Proof builder source-of-truth check.
+- No fabricated runId or missionId pattern.
+- Proof, result, and input chain parity.
+- Legacy decision-trace field ban.
+
+Required negative proof:
+- Set runId = proofFingerprint -> FAIL.
+- Set missionId = sessionId -> FAIL.
+- Remove activationSnapshotRef -> FAIL.
+- Success without outputRef -> FAIL.
+- Add verificationDecisionTrace -> FAIL.
+
+---
+
+## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-007-V2
+
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: child capabilities must remain narrow observation providers and flow through one unified executor and proof path.
+
+### 主题
+
+子能力窄职责与统一执行链
+
+### 法条
+
+Active child capability ids are:
+
+```txt
+observe-page-open-attempt
+observe-comments-panel-open-attempt
+observe-comments-panel-close-attempt
+observe-not-interested-attempt
+observe-target-state-transition
+verify-action-result
+```
+
+Required direction:
+- registry.ts must map every active childCapabilityId to the shared post-action-observation child implementation.
+- children/post-action-observation-child.ts is the shared implementation anchor for current active ids.
+- Each child returns only child observation data needed to build a package.
+- Each child uses only observations and evidence already provided through PAV runtime context or read ports.
+- verify-video-changed-after-scroll is physically forbidden. Video-switch semantic truth belongs to AI, never to PAV or hand-written DOM or hash rules.
+- Non-AI ability groups must not judge whether before or after video content changed by URL, DOM, perceptual hash, screenshot diff thresholds, or hand-written rules.
+- All final result and runtime-proof construction occurs in the unified executor and builders.
+
+### 禁止
+
+FORBIDDEN:
+- Child implementation building PostActionVerificationAbilityResult.
+- Child implementation building runtimeProof.
+- Child implementation calling screenshot, AI, page-state, visual-target, open, mouse, or text-input implementations.
+- Child implementation fetching browser, DOM, or BOM directly.
+- Child implementation returning raw boolean.
+
+Required inspector:
+- Child id parity with shared/post-action-types.ts.
+- Registry parity with shared child implementation.
+- Child return-type checks.
+- No forbidden imports.
+- No final result or proof builder call in child code.
+
+Required negative proof:
+- Child imports screenshot implementation -> FAIL.
+- Child returns boolean -> FAIL.
+- Child builds final result -> FAIL.
+- Add verify-video-changed-after-scroll -> FAIL.
+
+---
+
+## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2
+
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
+evidenceMode: law+inspector+negative-proof
+
+summary: PAV enforcement must close through owner-local AST and symbol inspectors, runner, and negative proof.
+
+### 主题
+
+PAV 执法唯一入口
+
+### 法条
+
+PAV enforcement must close through:
+
+```txt
+scripts/audit/domains/post-action-verification-capability/manifest.json
+scripts/audit/domains/post-action-verification-capability/inspector.ts
+scripts/audit/domains/post-action-verification-capability/run-inspector.ts
+scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts
+```
+
+Required:
+- Inspector must use ts-morph AST-level checks.
+- Inspector must use symbol and import-graph checks.
+- Inspector must use schema-level checks.
+- Inspector must include anti-escape checks.
+- Inspector must verify active law coverage in registry, matrix, audit plan, and runner.
+- Negative proof must run and report fail, rollback, and pass.
+- CI-FULL must be green for delivery.
+
+Forbidden:
+- verify scripts as release truth.
+- grep, regex, or includes-only final judgment.
+- warning-only P0.
+- detached inspector.
+- empty negative proof.
+- generated fake PASS.
+- capability-check.ts under PAV root.
+
+Required negative proof:
+- Remove inspector from runner -> FAIL.
+- Convert P0 finding to warning-only -> FAIL.
+- Use regex-only final check -> FAIL.
+- Add capability-check.ts -> FAIL.
+
+---
+
+## Required Enforcement Checklist
+
+Inspector must check:
+
+```txt
+1. Law file uses machine-blocking + law+inspector+negative-proof.
+2. Public ability-group is thin and execute-only.
+3. Contract does not expose runtime context or child execute internals.
+4. Child registry matches schema and shared/post-action-types.ts.
+5. External modules do not import children/** or runtime/** private paths.
+6. PAV root does not import screenshot, open, click, scroll, text-input, page-state, ai, forensics, or orchestration implementations.
+7. PAV does not call browser, DOM, or BOM APIs.
+8. Input schema includes missionId, runId, stepId, capabilityCallId, activationSnapshotRef, and nerveBusEnvelopeId.
+9. Input schema contains verificationPolicy and does not contain confidencePolicy.
+10. Action proof requires actionLogRef or actionRecordRef.
+11. selfReportedOnly cannot succeed unless allowSelfReportedSuccess = true.
+12. Observation support requires sourceProofRef.
+13. Success output contains observationRefs and supportingSourceProofRefs.
+14. before or after and visual-evidence requirements are enforced.
+15. RuntimeProof contains chain fields and no fabricated runId or missionId.
+16. Result, proof, and input chain parity holds.
+17. Failed or review_required output is null and diagnosticPayloadRef exists.
+18. Child implementation cannot build final result or proof.
+19. All active PAV laws remain covered in registry, matrix, audit plan, and runner.
+20. negative-proof-harness executed.
+```
+
+---
+
+## Required Negative Proof
+
+The PAV negative proof must fail, rollback, and pass for:
+
+```txt
+manual-first enforcement reintroduced
+remove capabilityCallId from input
+remove activationSnapshotRef from input
+remove nerveBusEnvelopeId from input
+add confidencePolicy to input
+selfReportedOnly returns success when allowSelfReportedSuccess = false
+missing actionLogRef returns success
+success with no supportingSourceProofRefs
+success with no supportingObservationRefs
+success with missing afterEvidence when required
+success with invalid source proof
+success with output = null
+runtimeProof = null
+runId built from proofFingerprint only
+missionId built from sessionId
+child imports screenshot implementation
+child builds final result
+external imports runtime private path
+page-state claims final action truth
+PAV output exposes verificationDecision
+remove negative proof invocation
+turn P0 into warning-only
+```
+
+---
+
+## Final Readiness Gate
+
+PAV is READY only when:
+
+```txt
+law, blueprint, inspector, generated artifacts, and runner agree
+all active PAV laws are machine-blocking
+PAV public contract is observation-package native
+input, action, evidence, and observation chain fields are complete
+success output has observation and source-proof support
+action primitive success does not equal semantic action truth
+AI remains final semantic judgment source
+runtimeProof preserves real upstream chain without legacy decision fields
+children are narrow observation providers
+owner-local inspector PASS
+negative proof PASS
+all active law enforcement PASS
 CI-FULL PASS
 ```

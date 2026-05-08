@@ -3,6 +3,7 @@ import type { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { LocalAiModelRoleSchema } from "../types/local-ai.js";
+import { getRuntimeResourceUsageSnapshot } from "./runtime-resource-usage.js";
 
 async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
@@ -31,6 +32,14 @@ async function handleRuntimeReportRequest(response: ServerResponse, activeWorkbe
   }
   if (url.pathname === "/api/runtime/snapshot") {
     writeJson(response, 200, await activeWorkbench.getCommanderConsoleSnapshot());
+    return true;
+  }
+  if (url.pathname === "/api/runtime/resource-usage") {
+    const requestedLimit = Number.parseInt(url.searchParams.get("limit") ?? "12", 10);
+    writeJson(response, 200, await getRuntimeResourceUsageSnapshot({
+      limit: Number.isFinite(requestedLimit) ? requestedLimit : 12,
+      modeInfo: activeWorkbench.getModeInfo(),
+    }));
     return true;
   }
   return false;

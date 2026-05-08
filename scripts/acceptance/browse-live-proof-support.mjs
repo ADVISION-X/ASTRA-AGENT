@@ -1,7 +1,7 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 
-const ignoredDirs = new Set([".git", "dist", "node_modules", ".grasseye-data"]);
+const ignoredDirs = new Set([".git", ".venv", "dist", "node_modules", ".grasseye-data"]);
 const REAL_PLATFORM_TARGETS = new Set(["tiktok-web", "facebook-web"]);
 
 export function requireRealPlatformTarget() {
