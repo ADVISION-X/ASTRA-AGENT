@@ -14,10 +14,12 @@ export const VISUAL_TARGET_ALLOWED_AI_PROMPT_CONTRACT_IDS = [
   "local-vision.target-detection.v1",
   "local-ocr.ui-target.v1",
   "visual-target.candidate-extraction.v1",
+  "vision.nextItemTargetCandidate.v1",
 ] as const;
 
 export const VISUAL_TARGET_ALLOWED_AI_OUTPUT_SCHEMA_REFS = [
   "visual-target-candidates.schema.v1",
+  "ai.visual_target_candidate_analysis.v1",
 ] as const;
 
 export type VisualTargetGeometryHandoffPolicy = "required" | "optional" | "forbidden";
@@ -82,6 +84,19 @@ export const VISUAL_TARGET_CHILD_PROFILES: Record<VisualTargetChildCapabilityId,
     geometryGuardHandoffPolicy: "required",
     allowedSourceAbilityGroups: DEFAULT_SOURCE_ABILITY_GROUPS,
     requiredObservationKinds: ["comments_button"],
+  },
+  "observe-next-item-target-candidate": {
+    childCapabilityId: "observe-next-item-target-candidate",
+    targetType: "next_item_target_candidate",
+    targetNature: "action",
+    requireClickPoint: true,
+    allowOperatorManual: false,
+    allowedPageStateTypes: ["platform_feed"],
+    allowedCandidateKinds: ACTION_CANDIDATE_KINDS,
+    allowedCoordinateSpaces: ACTION_COORDINATE_SPACES,
+    geometryGuardHandoffPolicy: "required",
+    allowedSourceAbilityGroups: DEFAULT_SOURCE_ABILITY_GROUPS,
+    requiredObservationKinds: ["next_item_target_candidate"],
   },
   "observe-comments-panel": {
     childCapabilityId: "observe-comments-panel",

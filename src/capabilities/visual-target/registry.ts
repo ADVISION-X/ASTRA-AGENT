@@ -5,6 +5,7 @@ import { createObserveCommentsPanelCapability } from "./children/observe-comment
 import { createObserveLikeButtonCapability } from "./children/observe-like-button/implementation.js";
 import { createObserveMetricCommentCountCapability } from "./children/observe-metric-comment-count/implementation.js";
 import { createObserveMetricLikeCountCapability } from "./children/observe-metric-like-count/implementation.js";
+import { createObserveNextItemTargetCandidateCapability } from "./children/observe-next-item-target-candidate/implementation.js";
 import { createObserveNextVideoRegionCapability } from "./children/observe-next-video-region/implementation.js";
 import { createObserveNotInterestedButtonCapability } from "./children/observe-not-interested-button/implementation.js";
 import { createObserveSaveButtonCapability } from "./children/observe-save-button/implementation.js";
@@ -14,6 +15,7 @@ const CHILDREN = [
   createObserveLikeButtonCapability(),
   createObserveSaveButtonCapability(),
   createObserveCommentsButtonCapability(),
+  createObserveNextItemTargetCandidateCapability(),
   createObserveCommentsPanelCapability(),
   createObserveCloseCommentsButtonCapability(),
   createObserveNotInterestedButtonCapability(),

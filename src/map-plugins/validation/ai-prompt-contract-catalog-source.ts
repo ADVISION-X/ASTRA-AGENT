@@ -3,6 +3,7 @@ import { findAiPromptContractCatalogEntry } from "../../capabilities/ai/public-c
 export type MapPluginAiTaskType =
   | "page_preparation_judgment"
   | "product_presence_judgment"
+  | "visual_target_candidate_analysis"
   | "ocr_cleanup"
   | "comment_signal_summary"
   | "product_signal_summary"

@@ -7,11 +7,17 @@ import {
   toDispatchPayload,
 } from "./workbench-action-dispatch-shared.js";
 import { buildAdvanceNextItemGeometryGuardCommand } from "./workbench-visual-dispatch-input-next-item.js";
+import { buildNextItemTargetVisualTargetCommand } from "./workbench-visual-dispatch-input-next-item-target.js";
 
 export const buildVisualTargetCommand = (
+  runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
 ) => {
+  if (envelope.commandName === "observe-next-item-target-candidate") {
+    return buildNextItemTargetVisualTargetCommand(runtime, envelope, inputPayload);
+  }
+
   const payload = toDispatchPayload(inputPayload);
   const isCommentsButton = envelope.commandName === "observe-comments-button";
   const targetType = isCommentsButton ? "comments_button" : "next_video_region";

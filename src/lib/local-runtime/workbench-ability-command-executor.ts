@@ -31,7 +31,7 @@ const executeVisualAbilityCommand = async (
     case "screenshot":
       return runtime.screenshotAbilityGroup.execute(buildScreenshotCommand(envelope, inputPayload));
     case "visual-target":
-      return runtime.visualTargetAbilityGroup.execute(buildVisualTargetCommand(envelope, inputPayload));
+      return runtime.visualTargetAbilityGroup.execute(buildVisualTargetCommand(runtime, envelope, inputPayload));
     case "geometry-guard":
       return runtime.geometryGuardAbilityGroup.execute(await buildGeometryGuardCommand(runtime, envelope, inputPayload));
   }

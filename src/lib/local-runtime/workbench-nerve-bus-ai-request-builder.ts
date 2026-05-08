@@ -16,6 +16,7 @@ type WorkbenchAiExecuteInput = Parameters<import("./workbench-contract.js").Work
 
 const PAGE_PREPARATION_TASK_TYPE = "page_preparation_judgment";
 const PRODUCT_PRESENCE_TASK_TYPE = "product_presence_judgment";
+const VISUAL_TARGET_CANDIDATE_TASK_TYPE = "visual_target_candidate_analysis";
 const SUPPORTED_WORKBENCH_AI_TASK_TYPES = [
   "page_preparation_judgment",
   "product_presence_judgment",
@@ -121,7 +122,9 @@ const buildWorkbenchAiInputPayload = (
 ) => {
   return envelope.taskType === "schema_validation_only"
     ? buildSchemaValidationInputPayload(envelope, inputPayload)
-    : envelope.taskType === PAGE_PREPARATION_TASK_TYPE || envelope.taskType === PRODUCT_PRESENCE_TASK_TYPE
+    : envelope.taskType === PAGE_PREPARATION_TASK_TYPE
+      || envelope.taskType === PRODUCT_PRESENCE_TASK_TYPE
+      || envelope.taskType === VISUAL_TARGET_CANDIDATE_TASK_TYPE
     ? buildVisionImageCollectionInputPayload(envelope, inputPayload)
     : buildDefaultAiInputPayload(inputPayload);
 };
