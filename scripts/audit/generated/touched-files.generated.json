@@ -1,35 +1,5 @@
 {
-  "generatedAt": "2026-05-08T01:41:24.209Z",
+  "generatedAt": "2026-05-08T01:42:05.957Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
-  "touchedFiles": [
-    ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye /345/244/232/345/270/247/350/247/206/351/242/221/345/217/226/350/257/201/346/226/275/345/267/245/345/233/276.md\"",
-    "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-    "scripts/audit/domains/map-plugin-package/constants.ts",
-    "scripts/audit/domains/map-plugin-package/inspector.ts",
-    "scripts/audit/domains/map-plugin-package/manifest.json",
-    "scripts/audit/domains/map-plugin-package/negative-proof-mutations.ts",
-    "scripts/audit/domains/map-plugin-package/required-shape.ts",
-    "scripts/audit/domains/multi-frame-evidence/inspector.ts",
-    "scripts/audit/generated/audit-conflicts.generated.json",
-    "scripts/audit/generated/audit-plan.generated.json",
-    "scripts/audit/generated/enforcement-matrix.generated.json",
-    "scripts/audit/generated/enforcement-matrix.generated.yaml",
-    "scripts/audit/generated/law-registry.generated.json",
-    "scripts/audit/generated/runner-summary.json",
-    "scripts/audit/generated/static-clause-coverage.generated.json",
-    "scripts/audit/generated/touched-files.generated.json",
-    "src/capabilities/nerve-bus/registry.ts",
-    "src/lib/browser/current-chrome-browser-controller.ts",
-    "src/lib/local-app-shell/task-start-dispatch-result.ts",
-    "src/lib/local-app-shell/task-start-flow.ts",
-    "src/lib/local-app-shell/task-start-support.ts",
-    "src/lib/local-runtime/workbench-ai-ability-group.ts",
-    "src/lib/local-runtime/workbench-ai-debug-support.ts",
-    "src/lib/storage/evidence-store/evidence-store-evidence-records.ts",
-    "src/lib/storage/evidence-store/evidence-store-state.ts",
-    "src/map-plugins/route-plans/index.ts",
-    "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
-    "src/map-plugins/route-plans/route-plan.schema.ts"
-  ]
+  "touchedFiles": []
 }

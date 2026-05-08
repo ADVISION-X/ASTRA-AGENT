@@ -22,6 +22,7 @@ export const DEFAULT_MOUSE_CLICK_SAFETY_POLICY = {
 export const ALLOWED_MOUSE_CLICK_PURPOSE_PREFIXES = [
   "activate",
   "click",
+  "click_next_video",
   "confirm",
   "dismiss",
   "expand",
