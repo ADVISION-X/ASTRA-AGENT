@@ -1,11 +1,5 @@
 export const POST_ACTION_VERIFICATION_MODES = [
-  "strict",
-  "evidence-weighted",
-  "review-on-ambiguous",
-] as const;
-
-export const POST_ACTION_VERIFICATION_DECISIONS = [
-  "verified",
-  "failed",
-  "review_required",
+  "visual_evidence",
+  "observation_only",
+  "before_after_comparison",
 ] as const;

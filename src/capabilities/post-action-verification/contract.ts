@@ -12,9 +12,7 @@ import {
   PostActionVerificationAbilityInputSchema,
   PostActionVerificationAbilityResultSchema,
   PostActionVerificationChildCapabilityIdSchema,
-  PostActionVerificationDecisionSchema,
   PostActionVerificationPolicySchema,
-  PostActionConfidencePolicySchema,
   PostActionVerificationStatusSchema,
   PostActionFailureReasonSchema,
 } from "./schema.js";
@@ -24,14 +22,12 @@ export { POST_ACTION_VERIFICATION_ABILITY_GROUP_ID, POST_ACTION_VERIFICATION_CHI
 
 type PostActionVerificationChildCapabilityId = z.output<typeof PostActionVerificationChildCapabilityIdSchema>;
 type PostActionVerificationStatus = z.output<typeof PostActionVerificationStatusSchema>;
-type PostActionVerificationDecision = z.output<typeof PostActionVerificationDecisionSchema>;
 type PostActionFailureReason = z.output<typeof PostActionFailureReasonSchema>;
 type PostActionActionProof = z.input<typeof PostActionActionProofSchema>;
 type PostActionEvidenceRef = z.input<typeof PostActionEvidenceRefSchema>;
 type PostActionExpectedOutcome = z.input<typeof PostActionExpectedOutcomeSchema>;
 type PostActionObservation = z.input<typeof PostActionObservationSchema>;
 type PostActionVerificationPolicy = z.input<typeof PostActionVerificationPolicySchema>;
-type PostActionConfidencePolicy = z.input<typeof PostActionConfidencePolicySchema>;
 type PostActionVerificationOutput = z.output<typeof PostActionVerificationOutputSchema>;
 type PostActionRuntimeProof = z.output<typeof PostActionRuntimeProofSchema>;
 type PostActionVerificationAbilityInput = z.input<typeof PostActionVerificationAbilityInputSchema>;
@@ -49,4 +45,4 @@ interface PostActionVerificationAbilityGroup {
 }
 
 
-export type { PostActionVerificationChildCapabilityId, PostActionVerificationStatus, PostActionVerificationDecision, PostActionFailureReason, PostActionActionProof, PostActionEvidenceRef, PostActionExpectedOutcome, PostActionObservation, PostActionVerificationPolicy, PostActionConfidencePolicy, PostActionVerificationOutput, PostActionRuntimeProof, PostActionVerificationAbilityInput, ParsedPostActionVerificationAbilityInput, PostActionVerificationAbilityResult, CreatePostActionVerificationAbilityGroupInput, PostActionVerificationAbilityGroup };
+export type { PostActionVerificationChildCapabilityId, PostActionVerificationStatus, PostActionFailureReason, PostActionActionProof, PostActionEvidenceRef, PostActionExpectedOutcome, PostActionObservation, PostActionVerificationPolicy, PostActionVerificationOutput, PostActionRuntimeProof, PostActionVerificationAbilityInput, ParsedPostActionVerificationAbilityInput, PostActionVerificationAbilityResult, CreatePostActionVerificationAbilityGroupInput, PostActionVerificationAbilityGroup };

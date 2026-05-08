@@ -18,7 +18,7 @@ type PostActionInputPolicy = {
   sourceAbilityGroupId: "open" | "mouse-click" | "mouse-scroll";
   sourceChildCapabilityId: "open-tiktok" | "open-facebook" | "click-browser-coordinate" | "scroll-browser-viewport";
   sourceActionType: string;
-  verificationMode: "strict" | "evidence-weighted" | "review-on-ambiguous";
+  verificationMode: "observation_only" | "visual_evidence" | "before_after_comparison";
   requireAfterEvidence: boolean;
   requireBeforeAfterComparison: boolean;
   requiresVisualEvidence: boolean;
@@ -58,7 +58,7 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, PostActionInputPolic
     sourceAbilityGroupId: "open",
     sourceChildCapabilityId: "open-tiktok",
     sourceActionType: "open_page",
-    verificationMode: "evidence-weighted",
+    verificationMode: "observation_only",
     requireAfterEvidence: false,
     requireBeforeAfterComparison: false,
     requiresVisualEvidence: false,
@@ -70,7 +70,7 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, PostActionInputPolic
     sourceAbilityGroupId: "mouse-click",
     sourceChildCapabilityId: "click-browser-coordinate",
     sourceActionType: "open_comments",
-    verificationMode: "strict",
+    verificationMode: "visual_evidence",
     requireAfterEvidence: true,
     requireBeforeAfterComparison: false,
     requiresVisualEvidence: true,
@@ -82,7 +82,7 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, PostActionInputPolic
     sourceAbilityGroupId: "mouse-click",
     sourceChildCapabilityId: "click-browser-coordinate",
     sourceActionType: "close_comments",
-    verificationMode: "strict",
+    verificationMode: "visual_evidence",
     requireAfterEvidence: true,
     requireBeforeAfterComparison: false,
     requiresVisualEvidence: true,
@@ -94,7 +94,7 @@ const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, PostActionInputPolic
     sourceAbilityGroupId: "mouse-click",
     sourceChildCapabilityId: "click-browser-coordinate",
     sourceActionType: "not_interested",
-    verificationMode: "review-on-ambiguous",
+    verificationMode: "before_after_comparison",
     requireAfterEvidence: true,
     requireBeforeAfterComparison: true,
     requiresVisualEvidence: false,
@@ -108,7 +108,7 @@ const DEFAULT_POST_ACTION_POLICY: PostActionInputPolicy = {
   sourceAbilityGroupId: "mouse-click",
   sourceChildCapabilityId: "click-browser-coordinate",
   sourceActionType: "click_target_state_change",
-  verificationMode: "review-on-ambiguous",
+  verificationMode: "before_after_comparison",
   requireAfterEvidence: true,
   requireBeforeAfterComparison: true,
   requiresVisualEvidence: false,
@@ -232,11 +232,6 @@ const buildVerificationPolicy = (policy: PostActionInputPolicy) => ({
   allowSelfReportedSuccess: false,
 });
 
-const buildConfidencePolicy = (policy: PostActionInputPolicy) => ({
-  minimumConfidence: policy.requireBeforeAfterComparison ? 0.75 : policy.requiresVisualEvidence ? 0.8 : 0.55,
-  allowReviewRequired: policy.verificationMode === "review-on-ambiguous",
-});
-
 const buildPostActionChainFields = (envelope: AbilityCommandEnvelope) => ({
   missionId: envelope.missionId,
   runId: envelope.runId,
@@ -279,7 +274,6 @@ export const buildPostActionVerificationInput = async (
       observations: [buildPageStateObservation(runtime, envelope, sourceProofRef, inputPayload.summary)],
     },
     verificationPolicy: buildVerificationPolicy(policy),
-    confidencePolicy: buildConfidencePolicy(policy),
     inputRef: envelope.inputRef,
     idempotencyKey: envelope.idempotencyKey,
   }));

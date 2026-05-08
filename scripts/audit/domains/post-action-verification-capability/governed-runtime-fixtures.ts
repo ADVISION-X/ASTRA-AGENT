@@ -68,15 +68,18 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
   const abilityGroup = createPostActionRuntime().postActionVerificationAbilityGroup;
 
   assertCondition(input.runId === "run-1", "Builder must preserve runId from the governed envelope.");
-  assertCondition(input.confidencePolicy.minimumConfidence === 0.55, "Builder must emit the governed default confidence policy for observation-weighted verification.");
+  assertCondition(!("confidencePolicy" in input), "Builder must not emit cognition-owned confidencePolicy into the PAV request.");
   assertCondition(input.expectedOutcome.expectedUrlHost === "www.tiktok.com", "Builder must align observe-page-open-attempt expectedUrlHost with the canonical platform host.");
   assertCondition(pageStateObservation?.kind === "page_state", "Builder must emit a page_state observation for observe-page-open-attempt.");
   assertCondition(pageStateObservation?.source.sourceProofRef === input.actionProof.sourceRuntimeProofRef, "Builder must bind page-state observation back to the governed source proof ref.");
 
   const verificationResult = await abilityGroup.execute(input);
   assertCondition(verificationResult.status === "success" && verificationResult.output !== null, "observe-page-open-attempt fixture must reach governed success for a ready TikTok feed URL.");
-  assertCondition(verificationResult.verificationDecision === "verified", "Governed success must emit verificationDecision=verified.");
-  assertCondition(verificationResult.runtimeProof.verificationDecision === verificationResult.verificationDecision, "Runtime proof must preserve verificationDecision parity.");
+  const successOutput = verificationResult.output;
+  assertCondition(!("verificationDecision" in verificationResult), "PAV result must not emit final verificationDecision.");
+  assertCondition(!("verificationDecision" in verificationResult.runtimeProof), "PAV runtime proof must not emit final verificationDecision.");
+  assertCondition(successOutput !== null && successOutput.postActionObservationRef.length > 0, "Governed success must emit postActionObservationRef.");
+  assertCondition(successOutput !== null && successOutput.actionObservationBundleRef.length > 0, "Governed success must emit actionObservationBundleRef.");
 
   const invalidInputResult = await abilityGroup.execute({
     ...input,
@@ -90,13 +93,4 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
   const defaultVerificationInput = await buildPostActionVerificationInput(runtime, createDefaultVerificationEnvelope(), createFixturePayload());
   const defaultVerificationResult = await abilityGroup.execute(defaultVerificationInput);
   assertCondition(defaultVerificationResult.status === "failed", "Generic verify-action-result must fail when before/after evidence is required but missing.");
-
-  const lowConfidenceResult = await abilityGroup.execute({
-    ...input,
-    confidencePolicy: {
-      minimumConfidence: 0.99,
-      allowReviewRequired: true,
-    },
-  });
-  assertCondition(lowConfidenceResult.status === "review_required", "Confidence policy gate must downgrade low-confidence verified assessments to review_required.");
 }

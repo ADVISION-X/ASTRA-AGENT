@@ -47,25 +47,31 @@ const recordHumanCommandDebug = (write: Promise<void>) => {
   void write.catch(logHumanCommandDebugFailure);
 };
 
+const createBackgroundMissionFailureHandler = (
+  runtime: WorkbenchRuntime,
+  input: {
+    envelope: HumanCommandEnvelope;
+    selectedMapId: string | null;
+    taskTemplateId: string | null;
+  },
+) => (error: unknown) => {
+  logBackgroundMissionFailure(error);
+  recordHumanCommandDebug(recordMissionBackgroundFailed(runtime, {
+    envelope: input.envelope,
+    selectedMapId: input.selectedMapId,
+    taskTemplateId: input.taskTemplateId,
+    error,
+  }));
+};
+
 const watchBackgroundMissionStart = (
   runtime: WorkbenchRuntime,
   input: {
     envelope: HumanCommandEnvelope;
     selectedMapId: string | null;
     taskTemplateId: string | null;
-    missionStartPromise: Promise<unknown>;
   },
 ) => {
-  void input.missionStartPromise.catch((error) => {
-    logBackgroundMissionFailure(error);
-    recordHumanCommandDebug(recordMissionBackgroundFailed(runtime, {
-      envelope: input.envelope,
-      selectedMapId: input.selectedMapId,
-      taskTemplateId: input.taskTemplateId,
-      error,
-    }));
-  });
-
   setTimeout(() => {
     void runtime.orchestrationAbilityGroup.getMissionState(input.envelope.missionId)
       .then((state) => {
@@ -201,13 +207,14 @@ const handleStartMission = async (
     maxMinutes: payloadValueToInteger(payload.maxMinutes),
     initialPayload: buildStartMissionInitialPayload(payload, parsedSelectedMapId),
   });
-  const missionStartPromise = startMission();
-  watchBackgroundMissionStart(runtime, {
+  const backgroundMissionInput = {
     envelope,
     selectedMapId: parsedSelectedMapId,
     taskTemplateId,
-    missionStartPromise,
-  });
+  };
+  const missionStartPromise = startMission();
+  void missionStartPromise.catch(createBackgroundMissionFailureHandler(runtime, backgroundMissionInput));
+  watchBackgroundMissionStart(runtime, backgroundMissionInput);
   return buildHumanCommandResultEnvelope({
     envelope,
     status: "success",

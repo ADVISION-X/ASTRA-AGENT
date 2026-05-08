@@ -179,7 +179,7 @@ export async function runNegativeProofHarness(): Promise<{ findings: Finding[]; 
     }
     await writeOwnerBindingBundle(records);
 
-    return createPassResult("Post Action Verification negative-proof harness rejects baseline drift, child-boundary escape, local-runtime builder drift, observation-only boundary regressions, runtime-path leakage, external verificationDecision fabrication, and owner-boundary regression mutations.");
+    return createPassResult("Post Action Verification negative-proof harness rejects baseline drift, child-boundary escape, local-runtime builder drift, observation-bundle integrity regressions, runtime-path leakage, external bundle-ref fabrication, and owner-boundary regression mutations.");
   } catch (error) {
     return createFatalResult(
       error instanceof Error ? error.message : "Post Action Verification negative-proof harness failed.",

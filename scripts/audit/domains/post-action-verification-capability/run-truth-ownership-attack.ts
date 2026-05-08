@@ -15,7 +15,7 @@ const EXTERNAL_VERIFICATION_OWNER_ROOTS = [
   "src/capabilities/orchestration/",
   "src/capabilities/forensics-persistence/",
 ] as const;
-const EXTERNAL_VERIFICATION_TOKENS = ["verificationDecision", "actionVerified", "verifiedOutcome"] as const;
+const EXTERNAL_BUNDLE_TOKENS = ["postActionObservationRef", "actionObservationBundleRef"] as const;
 
 function collectExternalTruthFindings(project: Project): Finding[] {
   return project.getSourceFiles().flatMap((sourceFile) => {
@@ -25,8 +25,8 @@ function collectExternalTruthFindings(project: Project): Finding[] {
     }
 
     const sourceText = sourceFile.getFullText();
-    return EXTERNAL_VERIFICATION_TOKENS.some((token) => sourceText.includes(token))
-      ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: repoPath, line: 1, severity: "fatal", message: "External action owners must not fabricate or expose verificationDecision outside Post Action Verification." })]
+    return EXTERNAL_BUNDLE_TOKENS.some((token) => sourceText.includes(token))
+      ? [createFinding({ lawId: LAW_IDS.PUBLIC, file: repoPath, line: 1, severity: "fatal", message: "External action owners must not fabricate or expose PAV observation-bundle refs outside Post Action Verification." })]
       : [];
   });
 }
@@ -41,8 +41,8 @@ export function runTruthOwnershipAttack(project: Project = createPostActionAudit
       passed ? "PASS" : "CODE VIOLATION",
       passed,
       passed
-        ? "Post Action Verification remains the only owner of verificationDecision truth."
-        : "Post Action Verification truth leaked into external action, page-state, orchestration, or forensics owners.",
+        ? "Post Action Verification remains the only owner of post-action observation-bundle refs."
+        : "Post Action Verification bundle refs leaked into external action, page-state, orchestration, or forensics owners.",
     ),
   };
 }

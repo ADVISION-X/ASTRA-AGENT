@@ -66,12 +66,6 @@ export const POST_ACTION_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     newText: "  nerveBusEnvelopeId: nullableString,",
   },
   {
-    name: "input-schema-missing-confidence-policy",
-    file: "src/capabilities/post-action-verification/schema.ts",
-    oldText: "  confidencePolicy: PostActionConfidencePolicySchema,",
-    newText: "  confidencePolicy: PostActionConfidencePolicySchema.optional(),",
-  },
-  {
     name: "local-runtime-builder-drops-run-id",
     file: "src/lib/local-runtime/workbench-post-action-dispatch-input.ts",
     oldText: "  runId: envelope.runId,",
@@ -90,7 +84,7 @@ export const POST_ACTION_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     newText: "  if (childObservation.supportingObservationRefs.length <= 1) {",
   },
   {
-    name: "decision-gate-skips-before-after-check",
+    name: "bundle-gate-skips-before-after-check",
     file: "src/capabilities/post-action-verification/runtime/post-action-decision-gate.ts",
     oldText: "  if (requiresBeforeAfterComparison(input.request) && (!hasBeforeEvidence || !hasAfterEvidence)) {",
     newText: "  if (false && requiresBeforeAfterComparison(input.request) && (!hasBeforeEvidence || !hasAfterEvidence)) {",
@@ -102,22 +96,22 @@ export const POST_ACTION_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     newText: "import { createPostActionVerificationAbilityGroup } from \"../../capabilities/post-action-verification/index.js\";\nimport type { PostActionVerificationRuntimeContext } from \"../../capabilities/post-action-verification/runtime/post-action-verification-runtime-context.js\";",
   },
   {
-    name: "page-state-claims-verification-decision",
+    name: "page-state-claims-post-action-observation-ref",
     file: "src/capabilities/page-state/shared/page-state-result.ts",
     oldText: "export type { PageStateClassificationOutcome } from \"./page-state-types.js\";",
-    newText: "export type { PageStateClassificationOutcome } from \"./page-state-types.js\";\nconst verificationDecision = \"verified\";",
+    newText: "export type { PageStateClassificationOutcome } from \"./page-state-types.js\";\nconst postActionObservationRef = \"bundle:page-state\";",
   },
   {
-    name: "mouse-click-returns-verified",
+    name: "mouse-click-returns-post-action-observation-ref",
     file: "src/capabilities/mouse-click/runtime/mouse-click-result-builder.ts",
     oldText: "    runtimeProof,",
-    newText: "    runtimeProof,\n    verificationDecision: \"verified\",",
+    newText: "    runtimeProof,\n    postActionObservationRef: \"bundle:mouse-click\",",
   },
   {
-    name: "orchestration-fabricates-verification-decision",
+    name: "orchestration-fabricates-action-observation-bundle-ref",
     file: "src/capabilities/orchestration/ability-group.ts",
     oldText: "import { createOrchestrationRuntimeContext } from \"./runtime/orchestration-runtime-context.js\";",
-    newText: "import { createOrchestrationRuntimeContext } from \"./runtime/orchestration-runtime-context.js\";\nconst verificationDecision = \"verified\";",
+    newText: "import { createOrchestrationRuntimeContext } from \"./runtime/orchestration-runtime-context.js\";\nconst actionObservationBundleRef = \"bundle:orchestration\";",
   },
   {
     name: "proof-builder-fabricates-run-id",
@@ -136,12 +130,6 @@ export const POST_ACTION_NEGATIVE_PROOF_MUTATIONS: NegativeProofMutation[] = [
     file: "src/capabilities/post-action-verification/runtime/post-action-result-builders.ts",
     oldText: "    runId: request.runId,",
     newText: "    runId: request.sessionId,",
-  },
-  {
-    name: "successful-result-review-decision",
-    file: "src/capabilities/post-action-verification/runtime/post-action-result-builders.ts",
-    oldText: "    verificationDecision: input.childObservation.verificationDecision,",
-    newText: "    verificationDecision: \"review_required\",",
   },
   {
     name: "child-imports-screenshot-implementation",
@@ -185,12 +173,6 @@ export const MUTATION_LAW_COVERAGE: Record<string, {
       [LAW_IDS.SCHEMA]: "The mutation removes a machine-required chain field from the public input schema, proving Post Action Verification must keep the governed mission/run/activation chain machine-required.",
     },
   },
-  "input-schema-missing-confidence-policy": {
-    coveredLawIds: [LAW_IDS.SCHEMA],
-    coverageReasonByLawId: {
-      [LAW_IDS.SCHEMA]: "The mutation removes confidencePolicy from the governed input schema, proving PAV inputs must carry machine-required confidence policy and cannot silently fall back to ad hoc verification thresholds.",
-    },
-  },
   "external-imports-runtime-path": {
     coveredLawIds: [LAW_IDS.SHAPE],
     coverageReasonByLawId: {
@@ -203,23 +185,35 @@ export const MUTATION_LAW_COVERAGE: Record<string, {
       [LAW_IDS.RESULT]: "The mutation removes the governed request runId from the final result builder, proving Post Action Verification results must preserve mission/run chain parity from the governed request.",
     },
   },
-  "successful-result-review-decision": {
-    coveredLawIds: [LAW_IDS.RESULT],
-    coverageReasonByLawId: {
-      [LAW_IDS.RESULT]: "The mutation lets a success result emit review_required as verificationDecision, proving successful PAV outcomes must preserve verified decision truth and cannot fabricate ambiguous success envelopes.",
-    },
-  },
   "proof-builder-fabricates-run-id": {
     coveredLawIds: [LAW_IDS.PROOF],
     coverageReasonByLawId: {
       [LAW_IDS.PROOF]: "The mutation fabricates the runtime proof runId, proving Post Action Verification proof output must preserve real mission/run chain fields instead of inventing identity values.",
     },
   },
-  "decision-gate-skips-before-after-check": {
+  "bundle-gate-skips-before-after-check": {
     coveredLawIds: [LAW_IDS.PROOF, LAW_IDS.RESULT],
     coverageReasonByLawId: {
-      [LAW_IDS.PROOF]: "The mutation bypasses the before/after gate, proving runtime proof must reflect governed gate decisions instead of silently verifying missing before/after evidence.",
-      [LAW_IDS.RESULT]: "The mutation bypasses before/after enforcement, proving verified results must not be emitted when policy requires before/after evidence and the chain is missing.",
+      [LAW_IDS.PROOF]: "The mutation bypasses the before/after bundle gate, proving runtime proof must retain governed evidence-integrity output instead of silently packaging missing before/after evidence.",
+      [LAW_IDS.RESULT]: "The mutation bypasses before/after enforcement, proving success results must not be emitted when policy requires before/after evidence and the chain is missing.",
+    },
+  },
+  "page-state-claims-post-action-observation-ref": {
+    coveredLawIds: [LAW_IDS.PUBLIC],
+    coverageReasonByLawId: {
+      [LAW_IDS.PUBLIC]: "The mutation makes Page State fabricate a post-action observation ref, proving external observation owners must not claim PAV bundle ownership.",
+    },
+  },
+  "mouse-click-returns-post-action-observation-ref": {
+    coveredLawIds: [LAW_IDS.PUBLIC],
+    coverageReasonByLawId: {
+      [LAW_IDS.PUBLIC]: "The mutation makes Mouse Click expose a PAV observation ref, proving primitive action owners must not fabricate PAV bundle outputs.",
+    },
+  },
+  "orchestration-fabricates-action-observation-bundle-ref": {
+    coveredLawIds: [LAW_IDS.PUBLIC],
+    coverageReasonByLawId: {
+      [LAW_IDS.PUBLIC]: "The mutation makes Orchestration fabricate an observation-bundle ref, proving orchestration may consume PAV bundles but may not fabricate them.",
     },
   },
   "child-imports-screenshot-implementation": {

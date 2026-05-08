@@ -73,21 +73,15 @@ export function createPostActionFailureResult(input: {
   request: ParsedPostActionVerificationAbilityInput;
   context: PostActionVerificationRuntimeContext;
   status: "failed" | "review_required";
-  verificationDecision: PostActionVerificationAbilityResult["verificationDecision"];
-  confidence: number;
   failureReason: PostActionVerificationAbilityResult["failureReason"];
   statusMessage: string;
   reviewRequiredReason?: string | null;
   dataQualityFlags?: string[];
-  gateDecisions?: string[];
-  verificationDecisionTrace?: string[];
 }): PostActionVerificationAbilityResult {
   const artifacts = buildFailureArtifacts(input.request, input.context);
   const runtimeProof = buildPostActionRuntimeProof({
     request: input.request,
     status: input.status,
-    verificationDecision: input.verificationDecision,
-    confidence: input.confidence,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason ?? null,
     observationRefs: artifacts.observationRefs,
@@ -99,8 +93,6 @@ export function createPostActionFailureResult(input: {
     receivedShapeHash: null,
     processingMode: "observation_packaging",
     observationFingerprint: buildPostActionObservationFingerprint(input.request, artifacts.observationRefs),
-    gateDecisions: input.gateDecisions ?? [],
-    verificationDecisionTrace: input.verificationDecisionTrace ?? [],
     dataQualityFlags: input.dataQualityFlags ?? [],
     startedAt: artifacts.startedAt,
     endedAt: artifacts.endedAt,
@@ -109,7 +101,6 @@ export function createPostActionFailureResult(input: {
   return PostActionVerificationAbilityResultSchema.parse({
     ...buildPostActionRequestFields(input.request),
     status: input.status,
-    verificationDecision: input.verificationDecision,
     abilityGroupId: "post-action-verification",
     output: null,
     failureReason: input.failureReason,
@@ -143,8 +134,6 @@ export function createInvalidPostActionInputResult(input: {
   const runtimeProof = buildPostActionRuntimeProof({
     request: null,
     status: "failed",
-    verificationDecision: "failed",
-    confidence: 0,
     failureReason: "input_schema_invalid",
     reviewRequiredReason: null,
     observationRefs: [],
@@ -156,8 +145,6 @@ export function createInvalidPostActionInputResult(input: {
     receivedShapeHash,
     processingMode: "invalid_input_failure",
     observationFingerprint: null,
-    gateDecisions: ["input_schema_gate:failed"],
-    verificationDecisionTrace: ["invalid_input_schema_rejected"],
     dataQualityFlags: ["output_boundary_violation"],
     startedAt,
     endedAt,
@@ -166,7 +153,6 @@ export function createInvalidPostActionInputResult(input: {
   return PostActionVerificationAbilityResultSchema.parse({
     ...buildEmptyPostActionRequestFields(),
     status: "failed",
-    verificationDecision: "failed",
     abilityGroupId: "post-action-verification",
     output: null,
     failureReason: "input_schema_invalid",
@@ -188,16 +174,11 @@ function buildSuccessfulPostActionOutput(input: {
   return {
     packageLabel: input.childObservation.packageLabel,
     observationSummary: input.childObservation.observationSummary,
-    observedOutcome: input.childObservation.observedOutcome,
-    verificationDecision: input.childObservation.verificationDecision,
-    confidence: input.childObservation.confidence,
     evidenceRefs: input.childObservation.supportingEvidenceRefs,
     observationRefs: input.childObservation.supportingObservationRefs,
-    actionResultObservationRef: `${input.request.inputRef}:action-observation`,
-    actionResultVerifiedRef: `${input.request.inputRef}:verified-action-result`,
+    postActionObservationRef: `${input.request.inputRef}:post-action-observation`,
+    actionObservationBundleRef: `${input.request.inputRef}:action-observation-bundle`,
     observationFingerprint: input.observationFingerprint,
-    confidenceSource: input.childObservation.confidenceSource,
-    verifiedByEvidenceKinds: input.childObservation.verifiedByEvidenceKinds,
     supportingSourceProofRefs: input.childObservation.supportingSourceProofRefs,
   };
 }
@@ -205,8 +186,6 @@ function buildSuccessfulPostActionOutput(input: {
 export function createSuccessfulPostActionResult(input: {
   request: ParsedPostActionVerificationAbilityInput;
   childObservation: PostActionChildObservation;
-  gateDecisions: string[];
-  verificationDecisionTrace: string[];
   startedAt: { isoTimestamp: string; monotonicMs: number };
   endedAt: { isoTimestamp: string; monotonicMs: number };
 }): PostActionVerificationAbilityResult {
@@ -215,8 +194,6 @@ export function createSuccessfulPostActionResult(input: {
   const runtimeProof = buildPostActionRuntimeProof({
     request: input.request,
     status: "success",
-    verificationDecision: input.childObservation.verificationDecision,
-    confidence: input.childObservation.confidence,
     failureReason: null,
     reviewRequiredReason: null,
     observationRefs: input.childObservation.supportingObservationRefs,
@@ -228,8 +205,6 @@ export function createSuccessfulPostActionResult(input: {
     receivedShapeHash: null,
     processingMode: "observation_packaging",
     observationFingerprint,
-    gateDecisions: input.gateDecisions,
-    verificationDecisionTrace: input.verificationDecisionTrace,
     dataQualityFlags: input.childObservation.dataQualityFlags,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
@@ -238,7 +213,6 @@ export function createSuccessfulPostActionResult(input: {
   return PostActionVerificationAbilityResultSchema.parse({
     ...buildPostActionRequestFields(input.request),
     status: "success",
-    verificationDecision: input.childObservation.verificationDecision,
     abilityGroupId: "post-action-verification",
     output: buildSuccessfulPostActionOutput({
       request: input.request,
