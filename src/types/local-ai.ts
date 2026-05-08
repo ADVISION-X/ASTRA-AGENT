@@ -17,7 +17,6 @@ import {
   VisionCommentsEntryTargetCandidatePayloadSchema,
   VisionCommentsEntryTargetCandidateRequestInputSchema,
 } from "./vision-comments-entry-target-candidate.js";
-
 const LocalAiTaskTypeSchema = z.enum([
   "vision.pagePreparation",
   "vision.productPresence",
@@ -27,14 +26,12 @@ const LocalAiTaskTypeSchema = z.enum([
   "comments.intent_analysis",
   "product.signal_summary"
 ]);
-
 const LocalAiModelRoleSchema = z.enum([
   "vision",
   "ocr",
   "commentUnderstanding",
   "productSignal"
 ]);
-
 const LocalAiRuntimeSchema = z.enum([
   "ollama",
   "llama.cpp",
@@ -43,7 +40,6 @@ const LocalAiRuntimeSchema = z.enum([
   "local-ocr",
   "local-wrapper"
 ]);
-
 const LocalAiImplementationStatusSchema = z.enum([
   "configured-not-connected",
   "governed-heuristic",
@@ -51,7 +47,6 @@ const LocalAiImplementationStatusSchema = z.enum([
   "model_backed",
   "local_ai_unavailable"
 ]);
-
 const LocalAiOverallStatusSchema = z.enum(["ready", "degraded", "unavailable"]);
 const LocalAiDependencyStatusSchema = z.enum(["ready", "missing", "unreachable", "unavailable"]);
 const LocalAiInvocationStatusSchema = z.enum([
@@ -70,13 +65,11 @@ const LocalAiStartupFailureReasonSchema = z.enum([
   "LOCAL_AI_NOT_READY"
 ]);
 const LocalAiStartupRoleHealthSchema = z.enum(["ready", "missing", "unhealthy"]);
-
 const OcrCleanupPayloadSchema = z.object({
   cleanedComments: z.array(z.string().min(1)),
   uncertainText: z.array(z.string().min(1)),
   confidence: z.number().min(0).max(1)
 });
-
 const CommentSignalPayloadSchema = z.object({
   purchaseIntent: z.enum(["low", "medium", "high"]),
   painPoints: z.array(z.string().min(1)),
@@ -84,7 +77,6 @@ const CommentSignalPayloadSchema = z.object({
   demandTerms: z.array(z.string().min(1)),
   confidence: z.number().min(0).max(1)
 });
-
 const ProductSignalPayloadSchema = z.object({
   category: z.string().min(1),
   useCase: z.string().min(1),
@@ -95,7 +87,6 @@ const ProductSignalPayloadSchema = z.object({
   score: z.number().min(0).max(1),
   rationale: z.string().min(1)
 });
-
 const PagePreparationTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("vision.pagePreparation"),
@@ -105,7 +96,6 @@ const PagePreparationTaskRequestSchema = z.object({
   evidenceRefs: z.array(EvidenceRefSchema).min(1),
   input: VisionPagePreparationRequestInputSchema,
 });
-
 const VisionTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("vision.productPresence"),
@@ -115,7 +105,6 @@ const VisionTaskRequestSchema = z.object({
   evidenceRefs: z.array(EvidenceRefSchema).min(1),
   input: VisionProductPresenceRequestInputSchema,
 });
-
 const NextItemTargetCandidateTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("vision.nextItemTargetCandidate"),
@@ -125,7 +114,6 @@ const NextItemTargetCandidateTaskRequestSchema = z.object({
   evidenceRefs: z.array(EvidenceRefSchema).min(1),
   input: VisionNextItemTargetCandidateRequestInputSchema,
 });
-
 const CommentsEntryTargetCandidateTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("vision.commentsEntryTargetCandidate"),
@@ -135,7 +123,6 @@ const CommentsEntryTargetCandidateTaskRequestSchema = z.object({
   evidenceRefs: z.array(EvidenceRefSchema).min(1),
   input: VisionCommentsEntryTargetCandidateRequestInputSchema,
 });
-
 const OcrTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("comments.ocr_cleanup"),
@@ -147,7 +134,6 @@ const OcrTaskRequestSchema = z.object({
     rawCommentBlocks: z.array(z.string())
   })
 });
-
 const CommentSignalTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("comments.intent_analysis"),
@@ -159,7 +145,6 @@ const CommentSignalTaskRequestSchema = z.object({
     cleanedComments: z.array(z.string().min(1)).min(1)
   })
 });
-
 const ProductSignalTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("product.signal_summary"),
@@ -173,7 +158,6 @@ const ProductSignalTaskRequestSchema = z.object({
     commentSignals: CommentSignalPayloadSchema
   })
 });
-
 const LocalAiTaskRequestSchema = z.discriminatedUnion("taskType", [
   PagePreparationTaskRequestSchema,
   VisionTaskRequestSchema,
@@ -183,7 +167,6 @@ const LocalAiTaskRequestSchema = z.discriminatedUnion("taskType", [
   CommentSignalTaskRequestSchema,
   ProductSignalTaskRequestSchema
 ]);
-
 const LocalAiResultBaseSchema = z.object({
   id: z.string().min(1),
   taskType: LocalAiTaskTypeSchema,
@@ -198,49 +181,41 @@ const LocalAiResultBaseSchema = z.object({
   confidence: z.number().min(0).max(1),
   createdAt: z.string().datetime()
 });
-
 const PagePreparationTaskResultSchema = LocalAiResultBaseSchema.extend({
   taskType: z.literal("vision.pagePreparation"),
   modelRole: z.literal("vision"),
   result: VisionPagePreparationPayloadSchema
 });
-
 const VisionTaskResultSchema = LocalAiResultBaseSchema.extend({
   taskType: z.literal("vision.productPresence"),
   modelRole: z.literal("vision"),
   result: VisionProductPresencePayloadSchema
 });
-
 const NextItemTargetCandidateTaskResultSchema = LocalAiResultBaseSchema.extend({
   taskType: z.literal("vision.nextItemTargetCandidate"),
   modelRole: z.literal("vision"),
   result: VisionNextItemTargetCandidatePayloadSchema
 });
-
 const CommentsEntryTargetCandidateTaskResultSchema = LocalAiResultBaseSchema.extend({
   taskType: z.literal("vision.commentsEntryTargetCandidate"),
   modelRole: z.literal("vision"),
   result: VisionCommentsEntryTargetCandidatePayloadSchema
 });
-
 const OcrTaskResultSchema = LocalAiResultBaseSchema.extend({
   taskType: z.literal("comments.ocr_cleanup"),
   modelRole: z.literal("ocr"),
   result: OcrCleanupPayloadSchema
 });
-
 const CommentSignalTaskResultSchema = LocalAiResultBaseSchema.extend({
   taskType: z.literal("comments.intent_analysis"),
   modelRole: z.literal("commentUnderstanding"),
   result: CommentSignalPayloadSchema
 });
-
 const ProductSignalTaskResultSchema = LocalAiResultBaseSchema.extend({
   taskType: z.literal("product.signal_summary"),
   modelRole: z.literal("productSignal"),
   result: ProductSignalPayloadSchema
 });
-
 const LocalAiTaskResultSchema = z.discriminatedUnion("taskType", [
   PagePreparationTaskResultSchema,
   VisionTaskResultSchema,
@@ -250,7 +225,6 @@ const LocalAiTaskResultSchema = z.discriminatedUnion("taskType", [
   CommentSignalTaskResultSchema,
   ProductSignalTaskResultSchema
 ]);
-
 const LocalAiHealthSchema = z.object({
   overallStatus: LocalAiOverallStatusSchema,
   implementationStatus: LocalAiImplementationStatusSchema,
@@ -272,7 +246,6 @@ const LocalAiHealthSchema = z.object({
   lastFailureReason: z.string().min(1).nullable().default(null),
   lastInvocationStatus: LocalAiInvocationStatusSchema.nullable().default(null),
 });
-
 const LocalAiStartupRoleReadinessSchema = z.object({
   modelRole: LocalAiModelRoleSchema,
   modelName: z.string().min(1),
@@ -281,7 +254,6 @@ const LocalAiStartupRoleReadinessSchema = z.object({
   health: LocalAiStartupRoleHealthSchema,
   failureReason: LocalAiStartupFailureReasonSchema.nullable().default(null),
 });
-
 const LocalAiStartupReadinessSchema = z.object({
   component: z.literal("local-ai-runtime"),
   status: z.enum(["ready", "failed", "degraded"]),
@@ -293,7 +265,6 @@ const LocalAiStartupReadinessSchema = z.object({
   developmentOnly: z.boolean().default(false),
   checkedAt: z.string().datetime(),
 });
-
 type LocalAiTaskType = z.infer<typeof LocalAiTaskTypeSchema>;
 type LocalAiModelRole = z.infer<typeof LocalAiModelRoleSchema>;
 type LocalAiRuntime = z.infer<typeof LocalAiRuntimeSchema>;

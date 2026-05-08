@@ -28,7 +28,6 @@ import {
 import type { PromptContractCatalogEntry } from "../prompt-contracts/schema.js";
 import type { AiRuntimeHealth, AiTaskType, ParsedAiAbilityInput } from "../contract.js";
 import { parseExtractedJson } from "../shared/ai-json-extract.js";
-
 const AI_TASK_BY_LEGACY: Record<LocalAiTaskType, AiTaskType> = {
   "vision.pagePreparation": "page_preparation_judgment",
   "vision.productPresence": "product_presence_judgment",
@@ -38,14 +37,12 @@ const AI_TASK_BY_LEGACY: Record<LocalAiTaskType, AiTaskType> = {
   "comments.intent_analysis": "comment_signal_summary",
   "product.signal_summary": "product_signal_summary",
 };
-
 type PagePreparationBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "page_preparation_judgment" }>;
 type VisionBridgeInput = Extract<
   ParsedAiAbilityInput,
   { taskType: "product_presence_judgment" | "visual_observation" }
 >;
 type VisualTargetCandidateBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "visual_target_candidate_analysis" }>;
-
 type OcrBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "ocr_cleanup" }>;
 type CommentSignalBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "comment_signal_summary" }>;
 type ProductSignalBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "product_signal_summary" }>;
@@ -58,17 +55,14 @@ type LocalAiTaskRequestResolution =
       failureReason: "legacy_task_mapping_missing" | "prompt_catalog_integrity_failed" | "task_type_mismatch";
       message: string;
     };
-
 function rejectLocalAiTaskRequest(
   input: LocalAiTaskRequestResolution & { ok: false },
 ): LocalAiTaskRequestResolution {
   return input;
 }
-
 function resolveLegacyPromptContract(taskType: LocalAiTaskType) {
   return resolvePromptContractCatalogEntryByLocalTaskType(taskType);
 }
-
 function buildVisionTaskRequest(input: VisionBridgeInput, promptContract: PromptContractCatalogEntry): LocalAiTaskRequest {
   return VisionTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
@@ -80,7 +74,6 @@ function buildVisionTaskRequest(input: VisionBridgeInput, promptContract: Prompt
     input: VisionProductPresenceRequestInputSchema.parse(AiVisionRequestInputSchema.parse(input.input)),
   });
 }
-
 function buildVisualTargetCandidateTaskRequest(
   input: VisualTargetCandidateBridgeInput,
   promptContract: PromptContractCatalogEntry,
@@ -105,7 +98,6 @@ function buildVisualTargetCandidateTaskRequest(
       input: VisionNextItemTargetCandidateRequestInputSchema.parse(typedInput),
     });
 }
-
 function buildPagePreparationTaskRequest(
   input: PagePreparationBridgeInput,
   promptContract: PromptContractCatalogEntry,
@@ -120,7 +112,6 @@ function buildPagePreparationTaskRequest(
     input: VisionPagePreparationRequestInputSchema.parse(AiPagePreparationRequestInputSchema.parse(input.input)),
   });
 }
-
 function buildOcrTaskRequest(input: OcrBridgeInput, promptContract: PromptContractCatalogEntry): LocalAiTaskRequest {
   return OcrTaskRequestSchema.parse({
     id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
@@ -132,7 +123,6 @@ function buildOcrTaskRequest(input: OcrBridgeInput, promptContract: PromptContra
     input: AiOcrCleanupInputSchema.parse(input.input),
   });
 }
-
 function buildCommentSignalTaskRequest(
   input: CommentSignalBridgeInput,
   promptContract: PromptContractCatalogEntry,
@@ -147,7 +137,6 @@ function buildCommentSignalTaskRequest(
     input: AiCommentSignalSummaryInputSchema.parse(input.input),
   });
 }
-
 function buildProductSignalTaskRequest(
   input: ProductSignalBridgeInput,
   promptContract: PromptContractCatalogEntry,
@@ -174,7 +163,6 @@ function buildProductSignalTaskRequest(
     },
   });
 }
-
 function describeHealth(health: AiRuntimeHealth): string {
   return JSON.stringify({
     overallStatus: health.overallStatus,
@@ -183,7 +171,6 @@ function describeHealth(health: AiRuntimeHealth): string {
     lastInvocationStatus: health.lastInvocationStatus,
   });
 }
-
 function toAiRuntimeHealth(health: LocalAiHealth): AiRuntimeHealth {
   return AiRuntimeHealthSchema.parse({
     overallStatus: health.overallStatus,
@@ -203,7 +190,6 @@ function toAiRuntimeHealth(health: LocalAiHealth): AiRuntimeHealth {
     lastInvocationStatus: health.lastInvocationStatus,
   });
 }
-
 function coerceRuntimeOutput(value: unknown): unknown {
   if (typeof value !== "string") {
     return value;
@@ -212,7 +198,6 @@ function coerceRuntimeOutput(value: unknown): unknown {
   const parsed = parseExtractedJson(value);
   return parsed.ok ? parsed.value : value;
 }
-
 function resolveLocalAiPromptRequest(
   taskType: LocalAiTaskType,
   buildRequest: (promptContract: PromptContractCatalogEntry) => LocalAiTaskRequest,
@@ -229,30 +214,24 @@ function resolveLocalAiPromptRequest(
 
   return { ok: true, request: buildRequest(promptContract.contract) };
 }
-
 function toVisionTaskRequest(input: VisionBridgeInput): LocalAiTaskRequestResolution {
   return resolveLocalAiPromptRequest("vision.productPresence", (promptContract) => buildVisionTaskRequest(input, promptContract));
 }
-
 function toVisualTargetCandidateTaskRequest(input: VisualTargetCandidateBridgeInput): LocalAiTaskRequestResolution {
   const localTaskType = input.promptContractId === "vision.commentsEntryTargetCandidate.v1"
     ? "vision.commentsEntryTargetCandidate"
     : "vision.nextItemTargetCandidate";
   return resolveLocalAiPromptRequest(localTaskType, (promptContract) => buildVisualTargetCandidateTaskRequest(input, promptContract));
 }
-
 function toPagePreparationTaskRequest(input: PagePreparationBridgeInput): LocalAiTaskRequestResolution {
   return resolveLocalAiPromptRequest("vision.pagePreparation", (promptContract) => buildPagePreparationTaskRequest(input, promptContract));
 }
-
 function toOcrTaskRequest(input: OcrBridgeInput): LocalAiTaskRequestResolution {
   return resolveLocalAiPromptRequest("comments.ocr_cleanup", (promptContract) => buildOcrTaskRequest(input, promptContract));
 }
-
 function toCommentSignalTaskRequest(input: CommentSignalBridgeInput): LocalAiTaskRequestResolution {
   return resolveLocalAiPromptRequest("comments.intent_analysis", (promptContract) => buildCommentSignalTaskRequest(input, promptContract));
 }
-
 function toProductSignalTaskRequest(input: ProductSignalBridgeInput): LocalAiTaskRequestResolution {
   const promptContract = resolveLegacyPromptContract("product.signal_summary");
   if (!promptContract.ok) {
