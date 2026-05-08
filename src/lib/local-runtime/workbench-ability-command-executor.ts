@@ -12,6 +12,7 @@ import {
 import { buildForensicsRuntimeEventInput } from "./workbench-forensics-dispatch-input.js";
 import { buildOpenAbilityInput } from "./workbench-open-dispatch-input.js";
 import { buildPageStateDispatchInput } from "./workbench-page-state-dispatch-input.js";
+import { recordPageStateProofSummary } from "./workbench-page-state-proof-summary-registry.js";
 import { buildPostActionVerificationInput } from "./workbench-post-action-dispatch-input.js";
 
 const throwIfAborted = (signal: AbortSignal) => {
@@ -94,6 +95,12 @@ export const executeAbilityCommand = async (
 ): Promise<WorkbenchAbilityExecutionResult> => {
   throwIfAborted(signal);
   const result = await ABILITY_COMMAND_EXECUTORS[envelope.to](runtime, envelope, inputPayload);
+  if (envelope.to === "page-state") {
+    recordPageStateProofSummary({
+      outputRef: `${envelope.commandId}:result:payload`,
+      result,
+    });
+  }
   throwIfAborted(signal);
   return result;
 };

@@ -10,6 +10,7 @@ import {
   toDispatchPayload,
   type DispatchPayloadRecord,
 } from "./workbench-action-dispatch-shared.js";
+import { resolvePageStateProofSummary } from "./workbench-page-state-proof-summary-registry.js";
 import { resolveScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
 
 type JsonRecord = Record<string, unknown>;
@@ -46,43 +47,10 @@ const resolveAiTargetCandidateRef = (payload: DispatchPayloadRecord) =>
   ?? payloadValueToString(payload.aiResultRef)
   ?? payloadValueToString(payload.targetCandidateRef);
 
-const buildPageStateProof = (input: {
-  runtime: WorkbenchRuntime;
-  envelope: AbilityCommandEnvelope;
-  payload: DispatchPayloadRecord;
-  screenshotProofRef: string;
-}) => {
-  const session = input.runtime.browserController.getSessionState();
-  const currentUrl = session.currentUrl ?? payloadValueToString(input.payload.targetUrl) ?? "about:blank";
-  const currentTitle = session.currentTitle ?? payloadValueToString(input.payload.targetTitle);
-  const observedAt = new Date().toISOString();
-  const pageStateProofRef = `${input.screenshotProofRef}:page-state`;
-  const fingerprintSeed = {
-    currentTitle,
-    currentUrl,
-    pageStateProofRef,
-    pageStateType: "platform_feed",
-    sessionId: input.envelope.sessionId,
-  };
-
-  return {
-    pageStateProofRef,
-    pageStateType: "platform_feed",
-    pageStateFingerprint: buildHash(fingerprintSeed),
-    pageStateHash: buildHash({ currentTitle, currentUrl, pageStateType: "platform_feed" }),
-    decision: "allow",
-    currentUrl,
-    currentTitle: currentTitle ?? null,
-    observedAt,
-    sessionId: input.envelope.sessionId,
-    roundId: input.envelope.roundId,
-    videoVisitId: input.envelope.videoVisitId,
-  };
-};
-
 const buildNextItemCandidates = (input: {
   aiResultRef: string;
   capturedAt: string;
+  sourceFrameRef: string;
   sourceProofRef: string;
   targetCandidates: NonNullable<ReturnType<typeof resolveAiVisualTargetCandidateOutputSummary>>["targetCandidates"];
 }) => input.targetCandidates.map((candidate) => ({
@@ -95,7 +63,7 @@ const buildNextItemCandidates = (input: {
   coordinateSpace: candidate.coordinateSpace,
   sourceProofRef: input.sourceProofRef,
   capturedAt: input.capturedAt,
-  sourceFrameRef: null,
+  sourceFrameRef: input.sourceFrameRef,
   detectionMethod: "ai_visual_target_candidate_analysis",
   visibleText: candidate.visibleText,
   uncertainty: candidate.uncertainty,
@@ -137,6 +105,11 @@ export const buildNextItemTargetVisualTargetCommand = (
 
   if (!artifactHash || imageWidth === null || imageHeight === null || !screenshotProofRef) {
     throw new Error("Visual Target next-item dispatch screenshot proof is incomplete; image hash, dimensions, and proofRef are mandatory.");
+  }
+
+  const pageStateSummary = resolvePageStateProofSummary(payloadValueToString(payload.pageStateRef));
+  if (!pageStateSummary) {
+    throw new Error("Visual Target next-item dispatch requires a governed page-state proof summary.");
   }
 
   const coordinateSpace = mapCoordinateSpace(screenshotHandoff.coordinateSpace);
@@ -206,12 +179,25 @@ export const buildNextItemTargetVisualTargetCommand = (
         confidence: aiSummary.confidence,
         modelRole: aiSummary.modelRole,
       },
-      pageState: buildPageStateProof({ runtime, envelope, payload, screenshotProofRef }),
+      pageState: {
+        pageStateProofRef: pageStateSummary.pageStateProofRef,
+        pageStateType: pageStateSummary.pageStateType,
+        pageStateFingerprint: pageStateSummary.pageStateFingerprint,
+        pageStateHash: pageStateSummary.pageStateHash,
+        decision: pageStateSummary.decision,
+        currentUrl: pageStateSummary.currentUrl,
+        currentTitle: pageStateSummary.currentTitle,
+        observedAt: pageStateSummary.observedAt,
+        sessionId: pageStateSummary.sessionId,
+        roundId: pageStateSummary.roundId,
+        videoVisitId: pageStateSummary.videoVisitId,
+      },
       operatorApproval: null,
     },
     candidates: buildNextItemCandidates({
       aiResultRef: aiSummary.aiResultRef,
       capturedAt: aiSummary.capturedAt,
+      sourceFrameRef: sourceScreenshotEvidenceId,
       sourceProofRef,
       targetCandidates: aiSummary.targetCandidates,
     }),

@@ -138,12 +138,12 @@ const resolveWorkbenchAiProviderPolicy = (taskType: SupportedWorkbenchAiTaskType
     : { requireLocalOnly: true, allowPaidProvider: false, providerAllowlist: ["local-vision-ai"], operatorApprovalRef: null };
 
 const resolveWorkbenchAiQualityPolicy = (taskType: SupportedWorkbenchAiTaskType) =>
-  taskType === PAGE_PREPARATION_TASK_TYPE || taskType === PRODUCT_PRESENCE_TASK_TYPE
+  taskType === PAGE_PREPARATION_TASK_TYPE || taskType === PRODUCT_PRESENCE_TASK_TYPE || taskType === VISUAL_TARGET_CANDIDATE_TASK_TYPE
     ? { minimumConfidence: null, requireSchemaValidation: true }
     : { minimumConfidence: 0.6, requireSchemaValidation: true };
 
 const resolveWorkbenchAiSafetyPolicy = (taskType: SupportedWorkbenchAiTaskType) =>
-  taskType === PAGE_PREPARATION_TASK_TYPE || taskType === PRODUCT_PRESENCE_TASK_TYPE
+  taskType === PAGE_PREPARATION_TASK_TYPE || taskType === PRODUCT_PRESENCE_TASK_TYPE || taskType === VISUAL_TARGET_CANDIDATE_TASK_TYPE
     ? { reviewOnLowConfidence: false, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true }
     : { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true };
 

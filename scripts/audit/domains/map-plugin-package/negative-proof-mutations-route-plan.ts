@@ -11,6 +11,8 @@ export const ROUTE_PLAN_REQUIRED_MUTATION_NAMES = [
   "route plan semantic judgment mutation",
   "fifth core muscle mutation",
   "next arrow deterministic normal path mutation",
+  "locate next item target removal mutation",
+  "locate next item target missing candidate output mutation",
   "normalize next arrow screenshot-only input mutation",
   "click next arrow missing source chain mutation",
   "click success direct capture mutation",
@@ -51,6 +53,18 @@ export const ROUTE_PLAN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
     file: "src/lib/local-runtime/workbench-visual-dispatch-input-next-item.ts",
     search: '      "deterministic_next_video_arrow_geometry_fallback",\n',
     replace: '      "deterministic_next_video_arrow_geometry",\n',
+  },
+  {
+    name: "locate next item target removal mutation",
+    file: "src/map-plugins/route-plans/product-discovery-route-plan.steps.ts",
+    search: '    stepId: "locate-next-item-target",\n',
+    replace: '    stepId: "locate-next-item-target-removed",\n',
+  },
+  {
+    name: "locate next item target missing candidate output mutation",
+    file: "src/map-plugins/route-plans/product-discovery-route-plan.steps.ts",
+    search: '    outputRefPolicy: { storeAs: ["visualTargetRef", "nextItemTargetCandidateRef"] },\n',
+    replace: '    outputRefPolicy: { storeAs: ["visualTargetRef"] },\n',
   },
   {
     name: "normalize next arrow screenshot-only input mutation",

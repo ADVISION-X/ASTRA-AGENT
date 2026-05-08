@@ -36,6 +36,7 @@ const Sha256HashSchema = z.string().regex(/^sha256:[a-f0-9]{64}$/u);
 export const PromptContractCatalogLegacyTaskTypeSchema = z.enum([
   "vision.pagePreparation",
   "vision.productPresence",
+  "vision.nextItemTargetCandidate",
   "comments.ocr_cleanup",
   "comments.intent_analysis",
   "product.signal_summary",

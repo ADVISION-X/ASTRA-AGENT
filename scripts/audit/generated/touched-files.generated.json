@@ -1,13 +1,24 @@
 {
-  "generatedAt": "2026-05-08T02:40:47.334Z",
+  "generatedAt": "2026-05-08T03:11:17.890Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
+    "scripts/audit/domains/map-plugin-package/negative-proof-mutations-route-plan.ts",
+    "scripts/audit/domains/map-plugin-package/required-shape-seeding-video.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",
     "scripts/audit/generated/audit-plan.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.json",
     "scripts/audit/generated/enforcement-matrix.generated.yaml",
     "scripts/audit/generated/law-registry.generated.json",
     "scripts/audit/generated/static-clause-coverage.generated.json",
-    "scripts/audit/generated/touched-files.generated.json"
+    "scripts/audit/generated/touched-files.generated.json",
+    "src/capabilities/ai/prompt-contracts/schema.ts",
+    "src/capabilities/visual-target/children/observe-next-item-target-candidate/implementation.ts",
+    "src/capabilities/visual-target/children/observe-next-item-target-candidate/schema.ts",
+    "src/lib/local-runtime/workbench-ability-command-executor.ts",
+    "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts",
+    "src/lib/local-runtime/workbench-visual-dispatch-input-next-item-target.ts",
+    "src/map-plugins/route-plans/product-discovery-route-plan.steps.ts",
+    "src/map-plugins/route-plans/product-discovery-route-plan.transitions.ts",
+    "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts"
   ]
 }

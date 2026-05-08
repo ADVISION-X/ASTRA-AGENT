@@ -3,6 +3,10 @@ import {
   PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
   PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
 } from "./product-discovery-route-plan.constants.js";
+import {
+  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
+  STARTUP_PREPARATION_READY_ROUTE_LABEL,
+} from "../shared/startup-preparation.constants.js";
 
 export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] = [
   {
@@ -16,7 +20,7 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     transitionId: `judge-seeding-video:${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}`,
     fromStepId: "judge-seeding-video",
     onStatus: "success",
-    toStepId: "analyze-next-item-target-candidate",
+    toStepId: "observe-next-item-page-state",
     finalStatus: null,
   },
   {
@@ -121,12 +125,26 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     transitionId: "persist-seeding-candidate-record:success",
     fromStepId: "persist-seeding-candidate-record",
     onStatus: "success",
-    toStepId: "analyze-next-item-target-candidate",
+    toStepId: "observe-next-item-page-state",
     finalStatus: null,
   },
   {
     transitionId: "persist-seeding-candidate-record:failed",
     fromStepId: "persist-seeding-candidate-record",
+    onStatus: "failed",
+    toStepId: null,
+    finalStatus: "failed",
+  },
+  {
+    transitionId: "observe-next-item-page-state:success",
+    fromStepId: "observe-next-item-page-state",
+    onStatus: "success",
+    toStepId: "analyze-next-item-target-candidate",
+    finalStatus: null,
+  },
+  {
+    transitionId: "observe-next-item-page-state:failed",
+    fromStepId: "observe-next-item-page-state",
     onStatus: "failed",
     toStepId: null,
     finalStatus: "failed",
@@ -216,11 +234,18 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     finalStatus: "failed",
   },
   {
-    transitionId: "verify-next-item-advanced:success",
+    transitionId: `verify-next-item-advanced:${STARTUP_PREPARATION_READY_ROUTE_LABEL}`,
     fromStepId: "verify-next-item-advanced",
     onStatus: "success",
     toStepId: "capture-video-viewport",
     finalStatus: null,
+  },
+  {
+    transitionId: `verify-next-item-advanced:${STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL}`,
+    fromStepId: "verify-next-item-advanced",
+    onStatus: "success",
+    toStepId: null,
+    finalStatus: "failed",
   },
   {
     transitionId: "verify-next-item-advanced:failed",
