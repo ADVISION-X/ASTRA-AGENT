@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T17:45:43.881Z",
+  "generatedAt": "2026-05-08T18:13:11.223Z",
   "phase": "phase-04-full-enforcement",
   "phaseGateFile": "scripts/audit/phase-gates/phase-04-full-enforcement.json",
   "owners": [
@@ -171,14 +171,6 @@
       "inspectorId": "post-action-verification-capability-owner",
       "entry": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
       "lawIds": [
-        "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2",
-        "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2",
-        "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2",
-        "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V2",
-        "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-005-V2",
-        "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-006-V2",
-        "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-007-V2",
-        "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2",
         "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2",
         "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2",
         "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2",

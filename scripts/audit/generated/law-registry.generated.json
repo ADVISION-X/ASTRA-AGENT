@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T17:45:43.881Z",
+  "generatedAt": "2026-05-08T18:13:11.223Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -1716,94 +1716,6 @@
       "summary": "PAV enforcement must close through owner-local AST and symbol inspectors, runner, and negative proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
       "line": 654
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "PAV is the only owner of governed post-action observation-package truth, while AI remains the final semantic judgment source.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 875
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "PAV boundary stays pure and cannot execute actions, capture evidence, call AI, or persist final evidence.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 927
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "PAV input must carry complete chain fields, action proof, governed observations, and packaging policy without confidence-policy drift.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 980
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "PAV must fail-close on missing or invalid observation support and package only bounded observations with valid source proof.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 1091
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-005-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "PAV result must report packaging status only: success, failed, or review_required.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 1189
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-006-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "PAV runtime proof must preserve input and result chain parity without fabricated ids or legacy decision traces.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 1268
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-007-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "child capabilities must remain narrow observation providers and flow through one unified executor and proof path.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 1376
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "PAV enforcement must close through owner-local AST and symbol inspectors, runner, and negative proof.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 1436
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-001-V2",

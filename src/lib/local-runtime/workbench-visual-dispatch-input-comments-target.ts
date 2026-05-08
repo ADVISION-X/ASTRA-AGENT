@@ -12,6 +12,10 @@ import {
 } from "./workbench-action-dispatch-shared.js";
 import { resolvePageStateProofSummary } from "./workbench-page-state-proof-summary-registry.js";
 import { resolveScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
+import {
+  normalizeCandidateTextList,
+  normalizeCandidateTextValue,
+} from "./workbench-visual-dispatch-input-candidate-normalization.js";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -70,8 +74,8 @@ const buildCommentsCandidates = (input: {
     capturedAt: input.capturedAt,
     sourceFrameRef: input.sourceFrameRef,
     detectionMethod: "ai_visual_target_candidate_analysis",
-    visibleText: candidate.visibleText,
-    uncertainty: candidate.uncertainty,
+    visibleText: normalizeCandidateTextValue(candidate.visibleText),
+    uncertainty: normalizeCandidateTextList(candidate.uncertainty),
     blockedReason: null,
     isVisible: true,
     scaleMapping: null,

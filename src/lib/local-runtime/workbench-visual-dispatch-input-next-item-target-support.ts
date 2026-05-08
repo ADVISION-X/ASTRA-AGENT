@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 
 import type { AiVisualTargetCandidateOutputSummary } from "../../capabilities/ai/index.js";
+import {
+  normalizeCandidateTextList,
+  normalizeCandidateTextValue,
+} from "./workbench-visual-dispatch-input-candidate-normalization.js";
 
 type VisualTargetCandidate = AiVisualTargetCandidateOutputSummary["targetCandidates"] extends readonly (infer TCandidate)[]
   ? TCandidate
@@ -228,8 +232,8 @@ export const buildNextItemVisualCandidates = (input: {
     capturedAt: input.capturedAt,
     sourceFrameRef: input.sourceFrameRef,
     detectionMethod: "ai_visual_target_candidate_analysis",
-    visibleText: candidate.visibleText,
-    uncertainty: candidate.uncertainty,
+    visibleText: normalizeCandidateTextValue(candidate.visibleText),
+    uncertainty: normalizeCandidateTextList(candidate.uncertainty),
     blockedReason: null,
     isVisible: true,
     scaleMapping: input.aiInputScaleMapping,
