@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T21:11:02.169Z",
+  "generatedAt": "2026-05-09T21:47:57.927Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -1814,7 +1814,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot coordinate spaces and scale mapping must be explicit, lossless where claimed and non-executable until downstream governance.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 301
+      "line": 308
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-005-V2",
@@ -1825,7 +1825,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot runtime must use one fixed gate pipeline and fail closed on privacy, source, session, timeout, artifact and output-boundary violations.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 374
+      "line": 381
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-006-V2",
@@ -1836,7 +1836,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot result and owner evidence must preserve real chain, artifact refs, hashes, source refs, scale mapping, gate decisions and parity.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 445
+      "line": 452
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-007-V2",
@@ -1847,7 +1847,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot child capabilities are narrow capture/transform bindings and must use unified Screenshot runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 609
+      "line": 616
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-008-V2",
@@ -1858,7 +1858,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 667
+      "line": 674
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-ARTIFACT-LIFECYCLE-V1",
@@ -1869,7 +1869,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot artifacts are transient runtime materials by default and must carry lifecycle manifest, retention, TTL, quota, physical burn-after-handoff cleanup and non-self-promotion truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 757
+      "line": 764
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-001-V1",

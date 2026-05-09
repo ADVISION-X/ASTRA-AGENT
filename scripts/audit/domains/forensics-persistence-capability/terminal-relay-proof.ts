@@ -63,10 +63,13 @@ const variableInitializerReferencesIdentifier = (
 };
 
 const hasTerminalPayloadRefsRelay = (sourceFile: import("ts-morph").SourceFile): boolean => {
-  const functionNode = sourceFile.getFunction("createRuntimePayloadRelay");
-  return !!functionNode
-    && functionHasPropertyAccessPath(sourceFile, "createRuntimePayloadRelay", ["payload", "refs"])
-    && variableInitializerReferencesIdentifier(functionNode, "refs", "payloadRefs");
+  const resolverNode = sourceFile.getFunction("resolvePayloadRefs");
+  const relayBuilderNode = sourceFile.getFunction("buildRuntimeRelayEvent");
+  return !!resolverNode
+    && !!relayBuilderNode
+    && functionHasPropertyAccessPath(sourceFile, "resolvePayloadRefs", ["payload", "refs"])
+    && variableInitializerReferencesIdentifier(resolverNode, "payloadRefs", "payload")
+    && relayBuilderNode.getText().includes("refs: resolvePayloadRefs(payload)");
 };
 
 const hasTerminalDedupeResolverShape = (dedupeResolver: import("ts-morph").FunctionDeclaration): boolean => (
@@ -107,7 +110,7 @@ export const collectTerminalRelayFinding = (project: import("ts-morph").Project)
   const payloadSource = getSourceFileOrThrow(project, STRUCTURED_LOG_PAYLOAD_PATH);
   const payloadFields = ["runId", "ownerResponsible", "actionableMessage"].every((fieldName) => hasObjectProperty(payloadSource, fieldName));
   const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "selectedMapId", "activationSnapshotRef"].every((fieldName) => hasObjectProperty(terminalSource, fieldName));
-  const terminalDiagnosticFields = functionHasStringLiterals(terminalSource, "renderEvent", [
+  const terminalDiagnosticFields = [
     "capabilityCallId",
     "childCapabilityId",
     "implementationStatus",
@@ -116,7 +119,7 @@ export const collectTerminalRelayFinding = (project: import("ts-morph").Project)
     "diagnosticPayloadRef",
     "promptContractId",
     "outputSchemaRef",
-  ]);
+  ].every((fieldName) => hasObjectProperty(terminalSource, fieldName));
 
   return payloadFields && terminalFields && terminalDiagnosticFields && hasTerminalPayloadRefsRelay(terminalSource) && hasBoundedAiDebugTerminalDedupe(localTerminalSource)
     ? []

@@ -262,10 +262,11 @@ roundId
 videoVisitId
 stepId
 capabilityCallId
-activationSnapshotRef
 pageStateProofRef where applicable
 browserSessionRef where applicable
 ```
+
+Stored image `sourceProof` must match `ScreenshotSourceProofSchema` exactly. Outer governed runtime chain fields such as `missionId`, `runId`, `mapPackageId`, `mapPackageVersion`, `selectedMapId`, `selectedMapVersion`, `activationSnapshotRef`, `nerveBusEnvelopeId`, `idempotencyKey`, and `timeoutMs` belong to `ScreenshotAbilityInput`, runtime proof, Orchestration structured runtime events, and Forensics proof chain. They must not be copied into `source.sourceProof`.
 
 Required:
 - Missing `stepId`, `capabilityCallId`, `activationSnapshotRef`, `nerveBusEnvelopeId`, `mapPackageVersion`, or `selectedMapVersion` must fail/review_required; never success.
@@ -273,12 +274,15 @@ Required:
 - Missing `idempotencyKey` cannot success.
 - Missing timeout policy cannot success.
 - Stored image / crop / optimize / prepare-ai-input must have sourceProof.
+- Stored image source handoff must keep `sourceProof` inside the strict Screenshot public source-proof contract.
 - Browser viewport capture must have browser session proof unless the child law explicitly allows desktop/local diagnostic mode.
 - Desktop capture must require privacy policy approval unless lawfully allowed as local diagnostic.
 
 Forbidden:
 - nullable mission/run/step fields in valid execution success.
 - sourceProof without sourceScreenshotEvidenceId for transformed artifacts.
+- sourceProof carrying outer governed runtime chain fields such as missionId/runId/map ids/activation/envelope/idempotency/timeout.
+- widening `ScreenshotSourceProofSchema`, using passthrough, or filtering inside prepare-ai-input to hide adapter pollution.
 - fabricated mission/run/step ids.
 - silent first-capture without page-state/browser proof unless policy explicitly returns review_required.
 - success without idempotencyKey.
@@ -289,12 +293,15 @@ Required inspector:
 - Source-proof requirement by child.
 - Privacy policy gate presence.
 - Timeout/idempotency field requirement.
+- Stored image source handoff pollution check: `buildSourceProof` must not emit outer governed runtime chain fields.
 
 Required real-code-inspection:
 - Remove `activationSnapshotRef` from input → FAIL.
 - Remove `capabilityCallId` from input → FAIL.
 - Remove `nerveBusEnvelopeId` from input → FAIL.
 - prepare-ai-input without sourceProof returns success → FAIL.
+- Add `missionId` or `runId` to stored_image `sourceProof` builder → FAIL.
+- Widen `ScreenshotSourceProofSchema` to hide source handoff pollution → FAIL.
 
 ---
 

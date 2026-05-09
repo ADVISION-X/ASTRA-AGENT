@@ -1,5 +1,35 @@
 const FAIL_STATUSES = new Set(["failed", "review_required", "error"]);
 const PASS_STATUSES = new Set(["success", "passed", "ready"]);
+const STANDARD_META_KEYS = [
+  "ownerResponsible",
+  "actionableMessage",
+  "traceId",
+  "runId",
+  "packageFile",
+  "selectedMapId",
+  "requestedPlatformId",
+  "activationSnapshotRef",
+  "capabilityCallId",
+  "childCapabilityId",
+  "implementationStatus",
+  "errorKind",
+  "runtimeCallId",
+  "diagnosticPayloadRef",
+  "promptContractId",
+  "outputSchemaRef",
+  "jointStage",
+];
+const FAILURE_DEBUG_META_KEYS = [
+  "missingInputRefKeys",
+  "lastSuccessfulResultRef",
+  "screenshotEvidenceRef",
+  "aiResultRef",
+  "visualTargetResultRef",
+  "geometryGuardResultRef",
+  "clickResultRef",
+  "postActionVerificationResultRef",
+  "commentsEvidenceRef",
+];
 
 function normalizeText(value) {
   if (value === null || value === undefined) {
@@ -19,53 +49,50 @@ function formatMetaValue(value) {
   return /\s/.test(text) ? JSON.stringify(text) : text;
 }
 
-function renderEvent(event) {
-  const phase = normalizeText(event.phase) ?? "STARTUP";
-  const level = normalizeText(event.level) ?? "EVENT";
-  const body = [
+function pushMeta(meta, key, value) {
+  if (Array.isArray(value)) {
+    if (value.length > 0) {
+      meta.push(`${key}=${formatMetaValue(value.join(","))}`);
+    }
+    return;
+  }
+
+  if (value) {
+    meta.push(`${key}=${formatMetaValue(value)}`);
+  }
+}
+
+function appendNamedMeta(meta, event, keys) {
+  for (const key of keys) {
+    pushMeta(meta, key, event[key]);
+  }
+}
+
+function buildEventBody(event) {
+  return [
     normalizeText(event.component),
     normalizeText(event.eventType),
     normalizeText(event.status),
     normalizeText(event.message),
   ].filter(Boolean);
+}
+
+function buildEventMeta(event) {
   const meta = [];
-
-  if (event.failureReason) {
-    meta.push(`failureReason=${formatMetaValue(event.failureReason)}`);
-  }
-
-  for (const key of [
-    "ownerResponsible",
-    "actionableMessage",
-    "traceId",
-    "runId",
-    "packageFile",
-    "selectedMapId",
-    "requestedPlatformId",
-    "activationSnapshotRef",
-    "capabilityCallId",
-    "childCapabilityId",
-    "implementationStatus",
-    "errorKind",
-    "runtimeCallId",
-    "diagnosticPayloadRef",
-    "promptContractId",
-    "outputSchemaRef",
-  ]) {
-    if (event[key]) {
-      meta.push(`${key}=${formatMetaValue(event[key])}`);
-    }
-  }
-
-  if (Array.isArray(event.refs) && event.refs.length > 0) {
-    meta.push(`refs=${formatMetaValue(event.refs.join(","))}`);
-  }
-
+  pushMeta(meta, "failureReason", event.failureReason);
+  appendNamedMeta(meta, event, STANDARD_META_KEYS);
+  pushMeta(meta, "refs", Array.isArray(event.refs) ? event.refs : []);
+  appendNamedMeta(meta, event, FAILURE_DEBUG_META_KEYS);
   if (typeof event.durationMs === "number") {
     meta.push(`durationMs=${event.durationMs}`);
   }
+  return meta;
+}
 
-  return [`[GRASSEYE][${phase.toUpperCase()}][${level.toUpperCase()}]`, ...body, ...meta].join(" ");
+function renderEvent(event) {
+  const phase = normalizeText(event.phase) ?? "STARTUP";
+  const level = normalizeText(event.level) ?? "EVENT";
+  return [`[GRASSEYE][${phase.toUpperCase()}][${level.toUpperCase()}]`, ...buildEventBody(event), ...buildEventMeta(event)].join(" ");
 }
 
 function resolveLevel(status) {
@@ -109,39 +136,76 @@ function createEmitter() {
   };
 }
 
+function isFailureDebugStatus(status) {
+  return status === "failed" || status === "review_required";
+}
+
+function resolveFailureSnapshot(payload) {
+  return payload.failureSnapshot && typeof payload.failureSnapshot === "object" ? payload.failureSnapshot : {};
+}
+
+function resolvePayloadRefs(payload) {
+  const payloadRefs = Array.isArray(payload.refs) ? payload.refs.filter(Boolean) : [];
+  return payloadRefs.length > 0
+    ? payloadRefs
+    : [payload.sessionId, payload.roundId, payload.videoVisitId, payload.step].filter(Boolean);
+}
+
+function buildFailureDebugProjection(payload, status) {
+  if (!isFailureDebugStatus(status)) {
+    return {};
+  }
+
+  const failureSnapshot = resolveFailureSnapshot(payload);
+  return {
+    jointStage: payload.jointStage ?? null,
+    missingInputRefKeys: Array.isArray(payload.missingInputRefKeys) ? payload.missingInputRefKeys : [],
+    lastSuccessfulResultRef: failureSnapshot.lastSuccessfulResultRef ?? null,
+    screenshotEvidenceRef: failureSnapshot.screenshotEvidenceRef ?? null,
+    aiResultRef: failureSnapshot.aiResultRef ?? null,
+    visualTargetResultRef: failureSnapshot.visualTargetResultRef ?? null,
+    geometryGuardResultRef: failureSnapshot.geometryGuardResultRef ?? null,
+    clickResultRef: failureSnapshot.clickResultRef ?? null,
+    postActionVerificationResultRef: failureSnapshot.postActionVerificationResultRef ?? null,
+    commentsEvidenceRef: failureSnapshot.commentsEvidenceRef ?? null,
+  };
+}
+
+function buildRuntimeRelayEvent(phase, payload) {
+  const status = payload.status ?? payload.result ?? "emitted";
+  return {
+    timestamp: payload.createdAt ?? new Date().toISOString(),
+    level: resolveLevel(payload.status ?? payload.result),
+    phase,
+    component: payload.skillCategory ?? payload.skillId ?? phase.toLowerCase(),
+    eventType: payload.eventType ?? payload.actionType ?? `${phase.toLowerCase()}_event`,
+    status,
+    message: payload.reason ?? payload.actionPurpose ?? payload.eventType ?? payload.actionType ?? "structured log emitted",
+    failureReason: payload.failureReason ?? payload.reviewRequiredReason ?? null,
+    ownerResponsible: payload.ownerResponsible ?? null,
+    actionableMessage: payload.actionableMessage ?? null,
+    traceId: payload.traceId ?? null,
+    runId: payload.runId ?? payload.sessionId ?? null,
+    selectedMapId: payload.mapId ?? payload.selectedMapId ?? null,
+    requestedPlatformId: payload.requestedPlatformId ?? null,
+    activationSnapshotRef: payload.activationSnapshotRef ?? null,
+    capabilityCallId: payload.capabilityCallId ?? null,
+    childCapabilityId: payload.childCapabilityId ?? null,
+    implementationStatus: payload.implementationStatus ?? null,
+    errorKind: payload.errorKind ?? null,
+    runtimeCallId: payload.runtimeCallId ?? null,
+    diagnosticPayloadRef: payload.diagnosticPayloadRef ?? null,
+    promptContractId: payload.promptContractId ?? null,
+    outputSchemaRef: payload.outputSchemaRef ?? null,
+    ...buildFailureDebugProjection(payload, status),
+    refs: resolvePayloadRefs(payload),
+    durationMs: typeof payload.durationMs === "number" ? payload.durationMs : null,
+  };
+}
+
 function createRuntimePayloadRelay(emit) {
   return (phase, payload) => {
-    const payloadRefs = Array.isArray(payload.refs) ? payload.refs.filter(Boolean) : [];
-    const refs = payloadRefs.length > 0
-      ? payloadRefs
-      : [payload.sessionId, payload.roundId, payload.videoVisitId, payload.step].filter(Boolean);
-    emit({
-      timestamp: payload.createdAt ?? new Date().toISOString(),
-      level: resolveLevel(payload.status ?? payload.result),
-      phase,
-      component: payload.skillCategory ?? payload.skillId ?? phase.toLowerCase(),
-      eventType: payload.eventType ?? payload.actionType ?? `${phase.toLowerCase()}_event`,
-      status: payload.status ?? payload.result ?? "emitted",
-      message: payload.reason ?? payload.actionPurpose ?? payload.eventType ?? payload.actionType ?? "structured log emitted",
-      failureReason: payload.failureReason ?? payload.reviewRequiredReason ?? null,
-      ownerResponsible: payload.ownerResponsible ?? null,
-      actionableMessage: payload.actionableMessage ?? null,
-      traceId: payload.traceId ?? null,
-      runId: payload.runId ?? payload.sessionId ?? null,
-      selectedMapId: payload.mapId ?? payload.selectedMapId ?? null,
-      requestedPlatformId: payload.requestedPlatformId ?? null,
-      activationSnapshotRef: payload.activationSnapshotRef ?? null,
-      capabilityCallId: payload.capabilityCallId ?? null,
-      childCapabilityId: payload.childCapabilityId ?? null,
-      implementationStatus: payload.implementationStatus ?? null,
-      errorKind: payload.errorKind ?? null,
-      runtimeCallId: payload.runtimeCallId ?? null,
-      diagnosticPayloadRef: payload.diagnosticPayloadRef ?? null,
-      promptContractId: payload.promptContractId ?? null,
-      outputSchemaRef: payload.outputSchemaRef ?? null,
-      refs,
-      durationMs: typeof payload.durationMs === "number" ? payload.durationMs : null,
-    });
+    emit(buildRuntimeRelayEvent(phase, payload));
   };
 }
 

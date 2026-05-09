@@ -37,8 +37,6 @@ function buildSourceProof(input: {
     coordinateSpace: readString(input.output, "coordinateSpace"),
     sourceWidth: input.output.width ?? null,
     sourceHeight: input.output.height ?? null,
-    missionId: readString(input.runtimeProof, "missionId"),
-    runId: readString(input.runtimeProof, "runId"),
     sessionId: readString(input.runtimeProof, "sessionId"),
     roundId: input.runtimeProof.roundId ?? null,
     videoVisitId: input.runtimeProof.videoVisitId ?? null,

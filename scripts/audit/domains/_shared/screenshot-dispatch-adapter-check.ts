@@ -4,6 +4,7 @@ import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 import { getSourceFileOrThrow } from "./ast-helpers.js";
 import { getFunctionLike } from "./ast-schema-queries.js";
+import { getSourceProofPollutionFindings } from "./screenshot-source-proof-pollution-check.js";
 
 type PropertyBinding = {
   name: string;
@@ -281,7 +282,10 @@ const getSourceHandoffFindings = (project: Project, lawId: string): Finding[] =>
     }));
   }
 
-  return findings;
+  return [
+    ...findings,
+    ...getSourceProofPollutionFindings(project, lawId, HANDOFF_FILE),
+  ];
 };
 
 const hasPrepareAiInputTerminalProofSummary = (project: Project): boolean => {

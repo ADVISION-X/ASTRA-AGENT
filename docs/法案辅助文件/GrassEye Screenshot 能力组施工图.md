@@ -1028,6 +1028,10 @@ source candidates 必须包括 screenshotEvidenceRef、abilityResultRef、inputR
 prepare-ai-input command 必须只在 resolved source 存在时携带 source
 ability result envelope 必须记录 screenshot source handoff
 handoff helper 必须保留 sourceArtifactRef、sourceProof、sha256、storageRef
+stored_image sourceProof 必须精确匹配 ScreenshotSourceProofSchema
+sourceProof 不得携带外层 governed runtime chain 字段
+missionId/runId/mapPackageId/selectedMapId/activationSnapshotRef/nerveBusEnvelopeId/idempotencyKey 属于 ability input/runtime proof，不属于 sourceProof
+不得放宽 sourceProof schema 来掩盖 adapter 污染
 screenshot-execution-phases 必须调用 burnEphemeralScreenshotFile
 screenshot-ephemeral-file-cleanup 必须物理 rm outputFilePath
 ephemeral cleanup bypass real-code-inspection 必须 FAIL
@@ -1039,6 +1043,8 @@ real-code-inspection 应覆盖：
 删除 screenshotEvidenceRef source candidate 必须 FAIL
 删除 ability result source handoff recording 必须 FAIL
 删除 artifact hash handoff 字段必须 FAIL
+在 buildSourceProof 重新加入 missionId/runId 必须 FAIL
+把 ScreenshotSourceProofSchema 改成 passthrough 必须 FAIL
 re-inspect 后 inspector 必须 PASS
 ```
 
