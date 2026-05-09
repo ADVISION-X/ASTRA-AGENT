@@ -1,42 +1,27 @@
 {
-  "generatedAt": "2026-05-09T19:18:15.154Z",
+  "generatedAt": "2026-05-09T19:43:22.798Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Geometry Guard /345/207/240/344/275/225/345/256/211/345/205/250/345/256/210/345/215/253/350/203/275/345/212/233/347/273/204/346/226/275/345/267/245/345/233/276.md\"",
-    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Mouse Click /350/203/275/345/212/233/347/273/204/346/226/275/345/267/245/345/233/276.md\"",
-    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Post-action Verification /345/212/250/344/275/234/345/220/216/351/252/214/350/257/201/350/203/275/345/212/233/347/273/204/346/226/275/345/267/245/345/233/276.md\"",
     "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Route Plan /350/202/214/350/202/211/350/256/260/345/277/206/346/226/275/345/267/245/345/233/276.md\"",
-    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Visual Target /350/247/206/350/247/211/347/233/256/346/240/207/345/256/232/344/275/215/350/203/275/345/212/233/347/273/204/346/226/275/345/267/245/345/233/276.md\"",
-    "scripts/audit/domains/code-purity/components/purity-stage-streams.ts",
-    "scripts/audit/domains/geometry-guard-capability/manifest.json",
-    "scripts/audit/domains/geometry-guard-capability/run-geometry-guard-checks.ts",
+    "scripts/audit/domains/capability-group-governance/run-owner-runtime-proof-checks.ts",
+    "scripts/audit/domains/geometry-guard-capability/run-joint-result-contract-check.ts",
+    "scripts/audit/domains/map-plugin-package/constants.ts",
+    "scripts/audit/domains/map-plugin-package/inspector.ts",
     "scripts/audit/domains/map-plugin-package/muscle-memory-governance-route-plan-metadata.ts",
-    "scripts/audit/domains/mouse-click-capability/inspector.ts",
-    "scripts/audit/domains/mouse-click-capability/manifest.json",
-    "scripts/audit/domains/nerve-bus-capability/inspector.ts",
-    "scripts/audit/domains/nerve-bus-capability/manifest.json",
-    "scripts/audit/domains/post-action-verification-capability/inspector.ts",
-    "scripts/audit/domains/post-action-verification-capability/manifest.json",
-    "scripts/audit/domains/visual-target-capability/inspection-constants.ts",
-    "scripts/audit/domains/visual-target-capability/inspection-phase-suite.ts",
-    "scripts/audit/domains/visual-target-capability/manifest.json",
-    "src/capabilities/post-action-verification/post-action-result-schema-refinements.ts",
-    "src/capabilities/post-action-verification/runtime/post-action-result-builders.ts",
-    "src/capabilities/post-action-verification/schema.ts",
-    "src/capabilities/visual-target/schema-validation-helpers.ts",
-    "src/lib/local-runtime/workbench-forensics-finalization-browse-ledger.ts",
-    "src/lib/local-runtime/workbench-forensics-finalization-evidence-packet-builder.ts",
+    "scripts/audit/domains/map-plugin-package/run-inspector.ts",
+    "scripts/audit/domains/mouse-click-capability/run-joint-result-contract-check.ts",
+    "scripts/audit/domains/post-action-verification-capability/governed-runtime-fixtures.ts",
+    "scripts/audit/domains/post-action-verification-capability/run-joint-result-contract-check.ts",
+    "scripts/audit/domains/visual-target-capability/run-joint-result-contract-check.ts",
+    "src/app/runtime-resource-usage.ts",
+    "src/capabilities/ai/runtime/ai-executor.ts",
+    "src/capabilities/ai/runtime/ai-output-summary-recorders.ts",
+    "src/capabilities/post-action-verification/runtime/post-action-success-result.ts",
+    "src/lib/local-runtime/workbench-forensics-dispatch-types.ts",
     "src/lib/local-runtime/workbench-forensics-finalization-evidence-packet-support.ts",
-    "src/lib/local-runtime/workbench-pointer-dispatch-click-command.ts",
-    "src/lib/local-runtime/workbench-post-action-dispatch-input.ts",
-    "src/lib/local-runtime/workbench-visual-dispatch-input-comments-target.ts",
-    "src/lib/local-runtime/workbench-visual-dispatch-input-next-item-target.ts",
-    "src/lib/local-runtime/workbench-visual-dispatch-input-next-item.ts",
-    "src/lib/local-runtime/workbench-visual-dispatch-input.ts",
-    "src/map-plugins/authoring/map-authoring-capability-catalog.ts",
-    "src/map-plugins/route-plans/product-discovery-route-plan.steps.ts",
-    "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
-    "src/map-plugins/validation/map-capability-registry-validator.ts"
+    "src/lib/local-runtime/workbench-nerve-bus-ai-input-proof-support.ts",
+    "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts",
+    "src/lib/local-runtime/workbench-post-action-runtime.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -49,7 +34,7 @@
   "disasterFileInventory": [
     {
       "file": "src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json",
-      "lines": 980,
+      "lines": 982,
       "fileType": "json map/prompt contract",
       "overLimitBy": 0,
       "primaryRole": "contract",
@@ -64,7 +49,7 @@
     },
     {
       "file": "src/map-plugins/builtins/iphone-mirroring-tiktok-seeding-video-discovery.meta.map-package.json",
-      "lines": 980,
+      "lines": 982,
       "fileType": "json map/prompt contract",
       "overLimitBy": 0,
       "primaryRole": "contract",
@@ -80,13 +65,98 @@
   ],
   "ownerMixingInventory": [],
   "oversizedTouchedFileInventory": [],
-  "functionOverLimitInventory": [],
+  "functionOverLimitInventory": [
+    {
+      "file": "scripts/audit/domains/_shared/zod-schema-fields.ts",
+      "lines": 99,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "getZodShapePropertyNamesFromNode"
+      ],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/geometry-guard-capability/run-joint-result-contract-check.ts",
+      "lines": 127,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "collectMissingFieldFindings"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/mouse-click-capability/run-joint-result-contract-check.ts",
+      "lines": 106,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "collectMissingFieldFindings"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/post-action-verification-capability/run-joint-result-contract-check.ts",
+      "lines": 120,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "collectMissingFieldFindings"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    }
+  ],
   "classObjectOverLimitInventory": [],
-  "importExportOverLimitInventory": [],
+  "importExportOverLimitInventory": [
+    {
+      "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
+      "lines": 147,
+      "fileType": "audit inspector",
+      "overLimitBy": 0,
+      "primaryRole": "inspector",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 15,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+    }
+  ],
   "remediationQueue": [
     {
       "file": "src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json",
-      "lines": 980,
+      "lines": 982,
       "fileType": "json map/prompt contract",
       "overLimitBy": 0,
       "primaryRole": "contract",
@@ -101,7 +171,7 @@
     },
     {
       "file": "src/map-plugins/builtins/iphone-mirroring-tiktok-seeding-video-discovery.meta.map-package.json",
-      "lines": 980,
+      "lines": 982,
       "fileType": "json map/prompt contract",
       "overLimitBy": 0,
       "primaryRole": "contract",
@@ -113,12 +183,95 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
+      "lines": 147,
+      "fileType": "audit inspector",
+      "overLimitBy": 0,
+      "primaryRole": "inspector",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 15,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/geometry-guard-capability/run-joint-result-contract-check.ts",
+      "lines": 127,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "collectMissingFieldFindings"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/post-action-verification-capability/run-joint-result-contract-check.ts",
+      "lines": 120,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "collectMissingFieldFindings"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/mouse-click-capability/run-joint-result-contract-check.ts",
+      "lines": 106,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "collectMissingFieldFindings"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/_shared/zod-schema-fields.ts",
+      "lines": 99,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "getZodShapePropertyNamesFromNode"
+      ],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [
     {
       "file": "src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json",
-      "lines": 980,
+      "lines": 982,
       "fileType": "json map/prompt contract",
       "overLimitBy": 0,
       "primaryRole": "contract",
@@ -133,7 +286,7 @@
     },
     {
       "file": "src/map-plugins/builtins/iphone-mirroring-tiktok-seeding-video-discovery.meta.map-package.json",
-      "lines": 980,
+      "lines": 982,
       "fileType": "json map/prompt contract",
       "overLimitBy": 0,
       "primaryRole": "contract",
@@ -145,6 +298,55 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
+      "lines": 147,
+      "fileType": "audit inspector",
+      "overLimitBy": 0,
+      "primaryRole": "inspector",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 15,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/geometry-guard-capability/run-joint-result-contract-check.ts",
+      "lines": 127,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "collectMissingFieldFindings"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/post-action-verification-capability/run-joint-result-contract-check.ts",
+      "lines": 120,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "collectMissingFieldFindings"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
     }
   ]
 }

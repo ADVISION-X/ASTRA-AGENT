@@ -1,0 +1,1 @@
+[PASS] map-plugin-package: Map package governance passes direct parsed-data, boundary, and integration enforcement.

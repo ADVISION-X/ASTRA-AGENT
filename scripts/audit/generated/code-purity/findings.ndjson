@@ -1,0 +1,5 @@
+{"lawId":"GRASSEYE-CODE-PURITY-003-V1","file":"scripts/audit/domains/_shared/zod-schema-fields.ts","line":72,"severity":"error","message":"Function getZodShapePropertyNamesFromNode exceeds code-purity function limits."}
+{"lawId":"GRASSEYE-CODE-PURITY-003-V1","file":"scripts/audit/domains/geometry-guard-capability/run-joint-result-contract-check.ts","line":81,"severity":"error","message":"Function collectMissingFieldFindings exceeds code-purity function limits."}
+{"lawId":"GRASSEYE-CODE-PURITY-006-V1","file":"scripts/audit/domains/map-plugin-package/inspector.ts","line":1,"severity":"error","message":"Import or export structure exceeds code-purity limits."}
+{"lawId":"GRASSEYE-CODE-PURITY-003-V1","file":"scripts/audit/domains/mouse-click-capability/run-joint-result-contract-check.ts","line":67,"severity":"error","message":"Function collectMissingFieldFindings exceeds code-purity function limits."}
+{"lawId":"GRASSEYE-CODE-PURITY-003-V1","file":"scripts/audit/domains/post-action-verification-capability/run-joint-result-contract-check.ts","line":77,"severity":"error","message":"Function collectMissingFieldFindings exceeds code-purity function limits."}

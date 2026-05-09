@@ -1,9 +1,25 @@
-import { runOwnerInspector } from "../../core/owner-audit-runner.js";
+import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
+import { hasBlockingFindings } from "../../core/result.js";
 
-void runOwnerInspector({
-  capabilityDomain: "map-plugin-package",
-  inspectorEntry: "scripts/audit/domains/map-plugin-package/inspector.ts",
-}).catch((error) => {
+const INSPECTOR_ENTRY = "scripts/audit/domains/map-plugin-package/inspector.ts";
+
+const main = async (): Promise<void> => {
+  const artifacts = await loadGeneratedArtifacts();
+  const context = await createInspectorContext(artifacts);
+  const inspector = await loadInspector("scripts/audit/domains/map-plugin-package/inspector.ts");
+  const result = await inspector(context);
+
+  process.stdout.write(`[${result.classification}] ${result.capabilityDomain}: ${result.summary}\n`);
+  for (const finding of result.findings) {
+    process.stdout.write(`- ${finding.severity.toUpperCase()} ${finding.file}:${finding.line} ${finding.message}\n`);
+  }
+
+  if (!result.passed || hasBlockingFindings(result.findings)) {
+    process.exitCode = 1;
+  }
+};
+
+void main().catch((error) => {
   process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
   process.exitCode = 1;
 });

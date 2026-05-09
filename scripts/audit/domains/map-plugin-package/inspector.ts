@@ -2,8 +2,17 @@ import { createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { DomainInspector } from "../../core/schema.js";
 import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
 import { createMapPluginAuditProject } from "./audit-project.js";
-import { runDirectPhaseBundle } from "./direct-phase-bundle.js";
-import { runSupplementalPhaseBundle } from "./supplemental-phase-bundle.js";
+import { runIntegrationPhaseBundle } from "../map-plugin-orchestration-integration/phase-bundle.js";
+import { runAntiEscape } from "./anti-escape.js";
+import { runAuthoringInputPackage } from "./authoring-input-package.js";
+import { runBoundaryAttack } from "./boundary-attack.js";
+import { runForbiddenShape } from "./forbidden-shape.js";
+import { runMuscleMemoryGovernance } from "./muscle-memory-governance.js";
+import { runRequiredShape } from "./required-shape.js";
+import { runRoutePlanEntrySpine } from "./route-plan-entry-spine.js";
+import { runScorecardGate } from "./scorecard-gate.js";
+import { runStartupPreparationEntrySpine } from "./startup-preparation-entry-spine.js";
+import { runTaskTemplateRunLimitGovernance } from "./task-template-run-limit-governance.js";
 
 const buildFoundationPhase = (foundationFindings: Awaited<ReturnType<typeof runDomainOwnerInspection>>["findings"]) =>
   foundationFindings.length === 0
@@ -33,10 +42,43 @@ const inspectFoundation = async (context: Parameters<DomainInspector>[0]) => {
   };
 };
 
+const runDirectGovernancePhases = async (project: ReturnType<typeof createMapPluginAuditProject>) => {
+  const required = await runRequiredShape(project);
+  const authoringInput = await runAuthoringInputPackage(project);
+  const forbidden = await runForbiddenShape(project);
+  const taskTemplateRunLimits = await runTaskTemplateRunLimitGovernance(project);
+  const boundary = runBoundaryAttack(project);
+  const routePlanEntry = await runRoutePlanEntrySpine();
+  const startupPreparation = await runStartupPreparationEntrySpine();
+  const muscleMemory = await runMuscleMemoryGovernance();
+
+  return {
+    required,
+    authoringInput,
+    forbidden,
+    taskTemplateRunLimits,
+    boundary,
+    routePlanEntry,
+    startupPreparation,
+    muscleMemory,
+  };
+};
+
+const runSupplementalGovernancePhases = async (
+  project: ReturnType<typeof createMapPluginAuditProject>,
+  context: Parameters<DomainInspector>[0],
+) => {
+  const antiEscape = await runAntiEscape(project, context);
+  const scorecard = await runScorecardGate();
+  const integrationPhases = await runIntegrationPhaseBundle();
+
+  return { antiEscape, scorecard, integrationPhases };
+};
+
 const collectFindings = (input: {
   foundationFindings: Awaited<ReturnType<typeof inspectFoundation>>["findings"];
-  directPhases: Awaited<ReturnType<typeof runDirectPhaseBundle>>;
-  supplementalPhases: Awaited<ReturnType<typeof runSupplementalPhaseBundle>>;
+  directPhases: Awaited<ReturnType<typeof runDirectGovernancePhases>>;
+  supplementalPhases: Awaited<ReturnType<typeof runSupplementalGovernancePhases>>;
 }) => [
   ...input.foundationFindings,
   ...input.directPhases.required.findings,
@@ -56,8 +98,8 @@ const collectFindings = (input: {
 
 const collectPhases = (input: {
   foundationPhase: Awaited<ReturnType<typeof inspectFoundation>>["phase"];
-  directPhases: Awaited<ReturnType<typeof runDirectPhaseBundle>>;
-  supplementalPhases: Awaited<ReturnType<typeof runSupplementalPhaseBundle>>;
+  directPhases: Awaited<ReturnType<typeof runDirectGovernancePhases>>;
+  supplementalPhases: Awaited<ReturnType<typeof runSupplementalGovernancePhases>>;
 }) => [
   input.foundationPhase,
   input.directPhases.required.phase,
@@ -78,8 +120,8 @@ const collectPhases = (input: {
 const inspector: DomainInspector = async (context) => {
   const foundation = await inspectFoundation(context);
   const project = createMapPluginAuditProject();
-  const directPhases = await runDirectPhaseBundle(project);
-  const supplementalPhases = await runSupplementalPhaseBundle(project, context);
+  const directPhases = await runDirectGovernancePhases(project);
+  const supplementalPhases = await runSupplementalGovernancePhases(project, context);
   const findings = collectFindings({
     foundationFindings: foundation.findings,
     directPhases,

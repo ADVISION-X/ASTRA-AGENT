@@ -126,15 +126,16 @@ const resolveEvidencePacketEvidenceState = (envelope: WorkbenchForensicsEnvelope
   const videoVisitId = requireString(envelope.videoVisitId, "videoVisitId");
   const videoProof = isRecord(summaries.videoHandoff.sourceProof) ? summaries.videoHandoff.sourceProof : null;
   const commentsProof = isRecord(summaries.commentsHandoff.sourceProof) ? summaries.commentsHandoff.sourceProof : null;
+  const clickSummary = isRecord(summaries.clickSummary) ? summaries.clickSummary : null;
   const videoEvidenceId = readString(videoProof, "sourceScreenshotEvidenceId") ?? request.screenshotEvidenceRef;
   const commentsEvidenceId = readString(commentsProof, "sourceScreenshotEvidenceId") ?? request.commentsEvidenceRef;
   const rawCommentBlocks = summaries.commentCleanupSummary?.input.rawCommentBlocks ?? [];
   const cleanedComments = summaries.commentCleanupSummary?.output.cleanedComments ?? [];
   const uncertainText = summaries.commentCleanupSummary?.output.uncertainText ?? [];
   const hasVisibleComments = cleanedComments.length > 0;
-  const packetCapturedAt = summaries.commentCleanupSummary?.capturedAt ?? summaries.clickSummary?.endedAt ?? summaries.productPresenceSummary.capturedAt;
+  const packetCapturedAt = summaries.commentCleanupSummary?.capturedAt ?? readString(clickSummary, "endedAt") ?? summaries.productPresenceSummary.capturedAt;
   const commentFailureReason = hasVisibleComments ? null : summaries.commentCleanupSummary ? "no_visible_comments_extracted" : "comment_cleanup_unavailable";
-  const actionLogId = summaries.clickHandoff?.actionExecutionRef ?? summaries.clickSummary?.actionExecutionRef ?? request.clickResultRef;
+  const actionLogId = summaries.clickHandoff?.actionExecutionRef ?? readString(clickSummary, "actionExecutionRef") ?? request.clickResultRef;
   const roundOutcome = hasVisibleComments ? "candidate_created" : "comments_unavailable_candidate_created";
   return {
     ids: { roundId, videoVisitId, packetId: `${envelope.sessionId}:${roundId}:${videoVisitId}:packet`, roundLogId: `${envelope.sessionId}:${roundId}:${videoVisitId}:round-log:evidence-packet`, actionLogId, videoEvidenceId, commentsEvidenceId },

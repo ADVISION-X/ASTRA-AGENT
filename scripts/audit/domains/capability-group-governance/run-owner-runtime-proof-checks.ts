@@ -82,7 +82,8 @@ const inspectRuntimeProofMinimums = (project: ReturnType<typeof getAuditProject>
   const findings: Finding[] = [];
 
   for (const target of RUNTIME_PROOF_TARGETS) {
-    const sourceFile = project.getSourceFile(pathFromRepoRoot(target.file));
+    const absolutePath = pathFromRepoRoot(target.file);
+    const sourceFile = project.getSourceFile(absolutePath) ?? project.addSourceFileAtPathIfExists(absolutePath);
     if (!sourceFile) {
       findings.push(createFinding({ lawId: LAW_ID_004, file: target.file, line: 1, severity: "error", message: "Runtime proof target file is missing from source truth." }));
       continue;

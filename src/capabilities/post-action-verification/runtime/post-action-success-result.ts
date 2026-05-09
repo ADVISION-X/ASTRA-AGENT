@@ -28,7 +28,25 @@ type SuccessfulResultPayloadInput = {
   outputRef: string;
   refs: RuntimeRefs;
   request: ParsedPostActionVerificationAbilityInput;
-  requestFields: Record<string, unknown>;
+  requestFields: Pick<
+    PostActionVerificationAbilityResult,
+    | "childCapabilityId"
+    | "missionId"
+    | "runId"
+    | "sessionId"
+    | "roundId"
+    | "videoVisitId"
+    | "stepId"
+    | "mapPackageId"
+    | "mapPackageVersion"
+    | "selectedMapId"
+    | "selectedMapVersion"
+    | "activationSnapshotRef"
+    | "capabilityCallId"
+    | "nerveBusEnvelopeId"
+    | "actionProofRef"
+    | "expectedOutcome"
+  >;
   runtimeProof: ReturnType<typeof buildSuccessfulRuntimeProof>;
 };
 

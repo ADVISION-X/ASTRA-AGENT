@@ -8,6 +8,8 @@ import { isThinAbilityGroup } from "./escape-rules.js";
 import { CHILDREN, LAW_IDS, PATHS } from "./config.js";
 import { getSource, missingCanonicalFiles } from "./project-access.js";
 
+const SUCCESS_RESULT_PATH = "src/capabilities/post-action-verification/runtime/post-action-success-result.ts";
+
 async function collectMissingFileFindings(findings: Finding[]): Promise<void> {
   for (const file of await missingCanonicalFiles()) {
     findings.push(createFinding({ lawId: LAW_IDS.SHAPE, file, line: 1, severity: "fatal", message: "Required post-action-verification canonical file is missing." }));
@@ -141,7 +143,10 @@ function collectResultBuilderFindings(project: Project): Finding[] {
     findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must preserve mission/run/step/map chain parity from the governed request." }));
   }
   if (!resultBuilderText.includes("postActionObservationRef") || !resultBuilderText.includes("actionObservationBundleRef")) {
-    findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must emit neutral post-action observation bundle refs for governed success outcomes." }));
+    const successResultText = getSource(project, SUCCESS_RESULT_PATH).getFullText();
+    if (!successResultText.includes("postActionObservationRef") || !successResultText.includes("actionObservationBundleRef")) {
+      findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must emit neutral post-action observation bundle refs for governed success outcomes." }));
+    }
   }
 
   return findings;

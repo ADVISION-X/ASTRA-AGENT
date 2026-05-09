@@ -18,6 +18,31 @@ type RawProcessSnapshot = {
   tags: string[];
 };
 
+type PsLineTextFields = {
+  pidText: string;
+  ppidText: string;
+  cpuPercentText: string;
+  rssKbText: string;
+  vszKbText: string;
+  elapsed: string;
+  state: string;
+  command: string;
+};
+
+const hasCompletePsLineTextFieldTuple = (
+  values: readonly [
+    string | undefined,
+    string | undefined,
+    string | undefined,
+    string | undefined,
+    string | undefined,
+    string | undefined,
+    string | undefined,
+    string | undefined,
+  ],
+): values is readonly [string, string, string, string, string, string, string, string] =>
+  values.every((value) => value !== undefined);
+
 function normalizeLimit(limit: number | undefined): number {
   if (!Number.isFinite(limit)) {
     return DEFAULT_PROCESS_LIMIT;
@@ -44,33 +69,32 @@ function buildTags(command: string, pid: number): string[] {
   return RUNTIME_RESOURCE_USAGE_TAG_RULES.flatMap((rule) => (rule.matches(normalizedCommand, pid) ? [rule.tag] : []));
 }
 
-function parsePsLineParts(match: RegExpMatchArray) {
-  const pidText = match[1];
-  const ppidText = match[2];
-  const cpuPercentText = match[3];
-  const rssKbText = match[4];
-  const vszKbText = match[5];
-  const elapsed = match[6];
-  const state = match[7];
-  const command = match[8];
-  if (
-    pidText === undefined
-    || ppidText === undefined
-    || cpuPercentText === undefined
-    || rssKbText === undefined
-    || vszKbText === undefined
-    || elapsed === undefined
-    || state === undefined
-    || command === undefined
-  ) {
+function extractPsLineTextFields(match: RegExpMatchArray): PsLineTextFields | null {
+  const values = [match[1], match[2], match[3], match[4], match[5], match[6], match[7], match[8]] as const;
+  if (!hasCompletePsLineTextFieldTuple(values)) {
     return null;
   }
 
-  const parsedPid = Number.parseInt(pidText, 10);
-  const parsedPpid = Number.parseInt(ppidText, 10);
-  const parsedCpuPercent = Number.parseFloat(cpuPercentText);
-  const parsedRssKb = Number.parseInt(rssKbText, 10);
-  const parsedVszKb = Number.parseInt(vszKbText, 10);
+  const [pidText, ppidText, cpuPercentText, rssKbText, vszKbText, elapsed, state, command] = values;
+
+  return {
+    pidText,
+    ppidText,
+    cpuPercentText,
+    rssKbText,
+    vszKbText,
+    elapsed,
+    state,
+    command,
+  };
+}
+
+function parsePsLineNumericFields(fields: PsLineTextFields) {
+  const parsedPid = Number.parseInt(fields.pidText, 10);
+  const parsedPpid = Number.parseInt(fields.ppidText, 10);
+  const parsedCpuPercent = Number.parseFloat(fields.cpuPercentText);
+  const parsedRssKb = Number.parseInt(fields.rssKbText, 10);
+  const parsedVszKb = Number.parseInt(fields.vszKbText, 10);
 
   if (![parsedPid, parsedPpid, parsedCpuPercent, parsedRssKb, parsedVszKb].every(Number.isFinite)) {
     return null;
@@ -82,9 +106,25 @@ function parsePsLineParts(match: RegExpMatchArray) {
     cpuPercent: parsedCpuPercent,
     rssKb: parsedRssKb,
     vszKb: parsedVszKb,
-    elapsed,
-    state,
-    command,
+  };
+}
+
+function parsePsLineParts(match: RegExpMatchArray) {
+  const textFields = extractPsLineTextFields(match);
+  if (!textFields) {
+    return null;
+  }
+
+  const numericFields = parsePsLineNumericFields(textFields);
+  if (!numericFields) {
+    return null;
+  }
+
+  return {
+    ...numericFields,
+    elapsed: textFields.elapsed,
+    state: textFields.state,
+    command: textFields.command,
   };
 }
 

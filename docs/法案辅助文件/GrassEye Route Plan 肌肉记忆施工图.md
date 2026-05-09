@@ -597,7 +597,7 @@ afterEvidenceRefs
 observationRefs
 supportingSourceProofRefs
 observationFingerprint
-packageStatus = success | failed | review_required
+packageStatus = built | failed | review_required
 runtimeProof
 ```
 

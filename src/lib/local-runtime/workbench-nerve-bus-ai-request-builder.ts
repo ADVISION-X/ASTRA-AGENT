@@ -1,7 +1,6 @@
 import type {
   AiRequestDispatchInput,
 } from "../../capabilities/nerve-bus/contract.js";
-import { resolveAiInputProofSummary } from "../../capabilities/ai/index.js";
 import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 
 import {
@@ -11,6 +10,7 @@ import {
 import {
   buildWorkbenchAiInputRefs,
   ensureWorkbenchAiInputProof,
+  resolveWorkbenchAiInputProofSummary,
 } from "./workbench-nerve-bus-ai-input-proof-support.js";
 
 type WorkbenchAiRequestEnvelope = AiRequestDispatchInput["envelope"];
@@ -64,7 +64,7 @@ const buildVisionImageCollectionInputPayload = (
 ) => {
   const payload = payloadDocumentToObject(inputPayload);
   const preparedInputRef = payloadValueToString(payload.promptInputRef) ?? envelope.aiInputRefs[0] ?? null;
-  const proof = resolveAiInputProofSummary(preparedInputRef) ?? null;
+  const proof = resolveWorkbenchAiInputProofSummary(preparedInputRef) ?? null;
   const screenshotEvidenceId = proof?.sourceScreenshotEvidenceId ?? payloadValueToString(payload.screenshotEvidenceRef) ?? preparedInputRef;
   const aiInputRefs = envelope.aiInputRefs.length > 0 ? envelope.aiInputRefs : (preparedInputRef ? [preparedInputRef] : []);
   const inputMode = aiInputRefs.length > 1 ? "multi_image" : "single_frame_fallback";

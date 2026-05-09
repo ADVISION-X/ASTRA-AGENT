@@ -5,11 +5,19 @@ import type {
   AiPagePreparationOutput,
   AiVisualOutput,
   AiVisualTargetCandidateOutput,
+  CommentSignalSummaryInput,
+  OcrCleanupInput,
+  PagePreparationJudgmentInput,
   ParsedAiAbilityInput,
+  ProductPresenceJudgmentInput,
+  VisualTargetCandidateAnalysisInput,
 } from "../contract.js";
 import { aliasAiOutputSummary, buildSummaryBase, storeAiOutputSummary } from "./ai-output-summary-store.js";
 
-type SuccessfulAiResult<TOutput> = AiAbilityResult & { status: "success"; output: TOutput };
+type SuccessfulSummaryInput<TRequest extends ParsedAiAbilityInput, TOutput> = RecordableAiOutputSummaryInput & {
+  request: TRequest;
+  result: AiAbilityResult & { status: "success"; output: TOutput };
+};
 
 type RecordAiOutputSummaryInput = {
   outputRef: string | null;
@@ -24,52 +32,47 @@ type RecordableAiOutputSummaryInput = {
 };
 
 const isSuccessfulVisualTargetCandidateAnalysis = (
-  request: ParsedAiAbilityInput,
-  result: AiAbilityResult,
-): result is AiAbilityResult & { status: "success"; output: AiVisualTargetCandidateOutput } => {
-  return request.taskType === "visual_target_candidate_analysis"
-    && result.status === "success"
-    && result.output !== null;
+  input: RecordableAiOutputSummaryInput,
+): input is SuccessfulSummaryInput<VisualTargetCandidateAnalysisInput, AiVisualTargetCandidateOutput> => {
+  return input.request.taskType === "visual_target_candidate_analysis"
+    && input.result.status === "success"
+    && input.result.output !== null;
 };
 
 const isSuccessfulPagePreparationJudgment = (
-  request: ParsedAiAbilityInput,
-  result: AiAbilityResult,
-): result is SuccessfulAiResult<AiPagePreparationOutput> => {
-  return request.taskType === "page_preparation_judgment"
-    && result.status === "success"
-    && result.output !== null;
+  input: RecordableAiOutputSummaryInput,
+): input is SuccessfulSummaryInput<PagePreparationJudgmentInput, AiPagePreparationOutput> => {
+  return input.request.taskType === "page_preparation_judgment"
+    && input.result.status === "success"
+    && input.result.output !== null;
 };
 
 const isSuccessfulOcrCleanup = (
-  request: ParsedAiAbilityInput,
-  result: AiAbilityResult,
-): result is SuccessfulAiResult<AiOcrCleanupOutput> => {
-  return request.taskType === "ocr_cleanup"
-    && result.status === "success"
-    && result.output !== null;
+  input: RecordableAiOutputSummaryInput,
+): input is SuccessfulSummaryInput<OcrCleanupInput, AiOcrCleanupOutput> => {
+  return input.request.taskType === "ocr_cleanup"
+    && input.result.status === "success"
+    && input.result.output !== null;
 };
 
 const isSuccessfulProductPresenceJudgment = (
-  request: ParsedAiAbilityInput,
-  result: AiAbilityResult,
-): result is SuccessfulAiResult<AiVisualOutput> => {
-  return request.taskType === "product_presence_judgment"
-    && result.status === "success"
-    && result.output !== null;
+  input: RecordableAiOutputSummaryInput,
+): input is SuccessfulSummaryInput<ProductPresenceJudgmentInput, AiVisualOutput> => {
+  return input.request.taskType === "product_presence_judgment"
+    && input.result.status === "success"
+    && input.result.output !== null;
 };
 
 const isSuccessfulCommentSignalSummary = (
-  request: ParsedAiAbilityInput,
-  result: AiAbilityResult,
-): result is SuccessfulAiResult<AiCommentSignalSummaryOutput> => {
-  return request.taskType === "comment_signal_summary"
-    && result.status === "success"
-    && result.output !== null;
+  input: RecordableAiOutputSummaryInput,
+): input is SuccessfulSummaryInput<CommentSignalSummaryInput, AiCommentSignalSummaryOutput> => {
+  return input.request.taskType === "comment_signal_summary"
+    && input.result.status === "success"
+    && input.result.output !== null;
 };
 
 const recordVisualTargetCandidateSummary = (input: RecordableAiOutputSummaryInput): boolean => {
-  if (!isSuccessfulVisualTargetCandidateAnalysis(input.request, input.result)) {
+  if (!isSuccessfulVisualTargetCandidateAnalysis(input)) {
     return false;
   }
   storeAiOutputSummary({
@@ -81,7 +84,7 @@ const recordVisualTargetCandidateSummary = (input: RecordableAiOutputSummaryInpu
 };
 
 const recordPagePreparationSummary = (input: RecordableAiOutputSummaryInput): boolean => {
-  if (!isSuccessfulPagePreparationJudgment(input.request, input.result)) {
+  if (!isSuccessfulPagePreparationJudgment(input)) {
     return false;
   }
   storeAiOutputSummary({
@@ -94,7 +97,7 @@ const recordPagePreparationSummary = (input: RecordableAiOutputSummaryInput): bo
 };
 
 const recordOcrCleanupSummary = (input: RecordableAiOutputSummaryInput): boolean => {
-  if (!isSuccessfulOcrCleanup(input.request, input.result)) {
+  if (!isSuccessfulOcrCleanup(input)) {
     return false;
   }
   storeAiOutputSummary({
@@ -107,7 +110,7 @@ const recordOcrCleanupSummary = (input: RecordableAiOutputSummaryInput): boolean
 };
 
 const recordProductPresenceSummary = (input: RecordableAiOutputSummaryInput): boolean => {
-  if (!isSuccessfulProductPresenceJudgment(input.request, input.result)) {
+  if (!isSuccessfulProductPresenceJudgment(input)) {
     return false;
   }
   storeAiOutputSummary({
@@ -120,7 +123,7 @@ const recordProductPresenceSummary = (input: RecordableAiOutputSummaryInput): bo
 };
 
 const recordCommentSignalSummary = (input: RecordableAiOutputSummaryInput): boolean => {
-  if (!isSuccessfulCommentSignalSummary(input.request, input.result)) {
+  if (!isSuccessfulCommentSignalSummary(input)) {
     return false;
   }
   storeAiOutputSummary({

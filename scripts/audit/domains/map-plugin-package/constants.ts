@@ -39,5 +39,5 @@ export const MAP_PLUGIN_ENFORCEMENT_BASELINE = {
 	activeLawIds: Object.values(MAP_PLUGIN_LAWS),
 	requiredTier: "P0",
 	requiredEnforcementMode: "machine-blocking",
-	requiredEvidenceMode: "law+inspector",
+	requiredEvidenceMode: "law+blueprint+real-code-inspection",
 } as const;

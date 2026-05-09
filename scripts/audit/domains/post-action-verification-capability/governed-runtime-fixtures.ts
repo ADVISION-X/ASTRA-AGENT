@@ -1,15 +1,95 @@
 import { createPostActionRuntime } from "../../../../src/lib/local-runtime/workbench-post-action-runtime.js";
 import { buildPostActionVerificationInput } from "../../../../src/lib/local-runtime/workbench-post-action-dispatch-input.js";
 
+const buildFixtureActionResult = (message: string) => ({
+  browserActionId: `fixture:${message}`,
+  ok: true,
+  message,
+  createdAt: "2026-05-05T00:00:00.000Z",
+  fallbackUsed: false,
+});
+
+const buildFixtureGeometrySnapshot = (currentUrl: string, currentTitle: string) => ({
+  windowX: 0,
+  windowY: 0,
+  viewportWidth: 1440,
+  viewportHeight: 900,
+  screenshotWidth: 1440,
+  screenshotHeight: 900,
+  scaleFactor: 1,
+  currentUrl,
+  pageTitle: currentTitle,
+  visibleContentBounds: {
+    x: 0,
+    y: 0,
+    width: 1440,
+    height: 900,
+  },
+  capturedAt: "2026-05-05T00:00:00.000Z",
+});
+
+const buildFixtureSessionState = (
+  currentUrl: string,
+  currentTitle: string,
+  loginState: "logged_in" | "login_required",
+) => ({
+  browserMode: "fixture" as const,
+  browserProfileRef: "fixture-profile",
+  browserExecutablePath: null,
+  profileStatus: loginState,
+  profileDirectory: "/tmp/grasseye-fixture-profile",
+  profileProvisioning: "managed_default" as const,
+  profileVerificationStatus: "operator_verified" as const,
+  profileVerificationReason: null,
+  currentUrl,
+  lastLoginCheckAt: null,
+  loginRequiredReason: loginState === "login_required" ? "fixture_login_required" : null,
+  currentTitle,
+  loginState,
+  reviewRequiredReason: null,
+  open: true,
+  browserExecutable: null,
+});
+
+const buildFixtureScreenshotResult = (currentUrl: string, currentTitle: string) => ({
+  browserActionId: "fixture:screenshot",
+  pageUrl: currentUrl,
+  pageTitle: currentTitle,
+  regionLabel: "fixture-region",
+  regionType: "full_page",
+  width: 1440,
+  height: 900,
+  viewportWidth: 1440,
+  viewportHeight: 900,
+  sourceFilePath: "/tmp/grasseye-fixture.png",
+  createdAt: "2026-05-05T00:00:00.000Z",
+});
+
+const buildFixtureBrowserActionHandlers = (currentUrl: string, currentTitle: string) => ({
+  open: async () => buildFixtureActionResult("open"),
+  scroll: async () => buildFixtureActionResult("scroll"),
+  click: async () => buildFixtureActionResult("click"),
+  textInput: async () => buildFixtureActionResult("text-input"),
+  screenshotRegion: async () => buildFixtureScreenshotResult(currentUrl, currentTitle),
+  wait: async () => buildFixtureActionResult("wait"),
+  close: async () => buildFixtureActionResult("close"),
+});
+
+const buildFixtureBrowserController = (
+  currentUrl: string,
+  currentTitle: string,
+  loginState: "logged_in" | "login_required",
+) => ({
+  getHealth: () => ({ ok: true, detail: "fixture_browser_ready" }),
+  getSessionState: () => buildFixtureSessionState(currentUrl, currentTitle, loginState),
+  getGeometrySnapshot: async () => buildFixtureGeometrySnapshot(currentUrl, currentTitle),
+  ...buildFixtureBrowserActionHandlers(currentUrl, currentTitle),
+});
+
 function createFixtureRuntime(currentUrl: string, loginState: "logged_in" | "login_required"): Parameters<typeof buildPostActionVerificationInput>[0] {
+  const currentTitle = "For You";
   return {
-    browserController: {
-      getSessionState: () => ({
-        currentUrl,
-        currentTitle: "For You",
-        loginState,
-      }),
-    },
+    browserController: buildFixtureBrowserController(currentUrl, currentTitle, loginState),
   };
 }
 

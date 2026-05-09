@@ -12,7 +12,25 @@ type RoutePlanStep = RoutePlan["steps"][number];
 
 const PRODUCT_DISCOVERY_ROUTE_PLAN_ID = "product-discovery-route-plan.v1";
 const COMMENTS_CHAIN_FORBIDDEN_REFS = ["visualTargetRef", "geometryProofRef", "commentsClickActionRef", "commentsOpenVerificationRef"] as const;
-const COMMENTS_CHAIN_FORBIDDEN_FIELDS = ["bbox", "clickPoint", "normalizedClickPoint"] as const;
+const COMMENTS_CHAIN_FORBIDDEN_FIELDS = [
+  "bbox",
+  "clickPoint",
+  "normalizedClickPoint",
+  "sourceBoundsX",
+  "sourceBoundsY",
+  "sourceBoundsWidth",
+  "sourceBoundsHeight",
+  "normalizedClickPointX",
+  "normalizedClickPointY",
+] as const;
+const COMMENTS_CHAIN_REQUIRED_ORDER = [
+  "analyze-comments-entry-target-candidate",
+  "observe-comments-button",
+  "normalize-comments-target",
+  "click-comments-button",
+  "verify-comments-open",
+  "capture-comments-panel",
+] as const;
 const COMMENTS_CHAIN_STEP_RULES = [
   { stepId: "analyze-comments-entry-target-candidate", inputRefs: ["promptInputRef", "screenshotEvidenceRef"], outputRefs: ["aiResultRef"] },
   { stepId: "observe-comments-button", inputRefs: ["screenshotEvidenceRef", "aiResultRef", "pageStateRef"], outputRefs: ["visualTargetResultRef"] },
@@ -85,6 +103,31 @@ const collectCommentsStepContractFindings = (routePlan: RoutePlan): Finding[] =>
   });
 };
 
+const collectCommentsTransitionOrderFindings = (routePlan: RoutePlan): Finding[] => {
+  const transitions = routePlan.transitions ?? [];
+  const requiredFindings = COMMENTS_CHAIN_REQUIRED_ORDER.slice(0, -1).flatMap((fromStepId, index) => {
+    const toStepId = COMMENTS_CHAIN_REQUIRED_ORDER[index + 1]!;
+    const hasTransition = transitions.some((transition) =>
+      transition.fromStepId === fromStepId
+      && transition.toStepId === toStepId
+      && transition.onStatus === "success"
+    );
+    return hasTransition
+      ? []
+      : [toFinding(ROUTE_PLAN_ROOT, "Product-discovery comments opening muscle must keep the canonical success transition order.", `${routePlan.routePlanId}:${fromStepId}->${toStepId}`)];
+  });
+  const forbiddenClickToCapture = transitions.find((transition) =>
+    transition.fromStepId === "click-comments-button"
+    && transition.toStepId === "capture-comments-panel"
+  );
+  return forbiddenClickToCapture
+    ? [
+        ...requiredFindings,
+        toFinding(ROUTE_PLAN_ROOT, "Mouse Click success must pass through verify-comments-open before capture-comments-panel.", `${routePlan.routePlanId}:${forbiddenClickToCapture.transitionId}`),
+      ]
+    : requiredFindings;
+};
+
 const collectRoutePlanKindFindings = (routePlan: RoutePlan): Finding[] =>
   routePlan.routePlanKind !== "muscle-memory"
     ? [toFinding(ROUTE_PLAN_ROOT, "Route Plan must declare routePlanKind=muscle-memory.", routePlan.routePlanId)]
@@ -140,6 +183,7 @@ export const collectRoutePlanMetadataFindings = (): Finding[] =>
       ? [
           ...collectCommentsStepLegacyRefFindings(routePlan),
           ...collectCommentsStepContractFindings(routePlan),
+          ...collectCommentsTransitionOrderFindings(routePlan),
         ]
       : []),
   ]);

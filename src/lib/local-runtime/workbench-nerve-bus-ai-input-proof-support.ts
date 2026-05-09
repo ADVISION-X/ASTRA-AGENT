@@ -84,6 +84,9 @@ function ensureSingleWorkbenchAiInputProof(promptInputRef: string): void {
   });
 }
 
+export const resolveWorkbenchAiInputProofSummary = (promptInputRef: string | null | undefined) =>
+  resolveAiInputProofSummary(promptInputRef);
+
 export function ensureWorkbenchAiInputProof(
   envelope: WorkbenchAiProofEnvelope,
   inputPayload: WorkbenchAiProofPayload,
@@ -102,7 +105,7 @@ export function buildWorkbenchAiInputRefs(
   inputPayload: WorkbenchAiProofPayload,
 ) {
   return envelope.aiInputRefs.map((ref) => {
-    const proof = resolveAiInputProofSummary(ref);
+    const proof = resolveWorkbenchAiInputProofSummary(ref);
     return {
       id: ref,
       kind: "video-screenshot" as const,

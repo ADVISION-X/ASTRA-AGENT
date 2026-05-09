@@ -1,4 +1,5 @@
 import type { AiAbilityResult, AiChildContract, AiExecutionContext, ParsedAiAbilityInput } from "../contract.js";
+import type { ResolvedAiPromptContract } from "../ports/ai-prompt-registry-port.js";
 import {
   buildAiExecutionPlan,
   resolveAiPreRuntimeResult,
@@ -53,7 +54,11 @@ const resolvePromptContract = (input: ExecuteAiChildInput) => {
     : { ok: true as const, contract: promptResolution.contract };
 };
 
-const prepareExecutionPlan = async (input: ExecuteAiChildInput, request: ReturnType<typeof runAiExecutorInputGate> extends { ok: true; request: infer T } ? T : never, promptContract: ReturnType<AiExecutionContext["promptRegistry"]["resolvePromptContract"]> extends { ok: true; contract: infer T } ? T : never) => {
+const prepareExecutionPlan = async (
+  input: ExecuteAiChildInput,
+  request: ParsedAiAbilityInput,
+  promptContract: ResolvedAiPromptContract,
+) => {
   const plan = buildAiExecutionPlan({
     request,
     childContract: input.childContract,

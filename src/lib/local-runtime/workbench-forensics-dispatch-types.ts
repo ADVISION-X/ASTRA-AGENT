@@ -10,7 +10,7 @@ export type WorkbenchForensicsEnvelope = {
   commandName: string;
   mapId: string | null;
   missionId: string;
-  payloadRef: string;
+  payloadRef: string[];
   roundId: string | null;
   runId: string;
   selectedMapId: string | null;
