@@ -90,6 +90,50 @@ Forbidden:
 - generated fake PASS.
 - empty real-code-inspection.
 
+## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-RESULT-CONTRACT-V1
+
+status: active
+tier: P0
+capabilityDomain: post-action-verification-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: Post Verify Result Contract is the canonical observation-package result boundary after Mouse Click Result and before any final semantic AI judgment.
+
+### 主题
+
+Post Verify Result Contract
+
+### 法条
+
+PAV success means governed post-action observation package was built.
+PAV success does not mean semantic action success.
+PAV must output canonical Post Action Verification Result.
+PAV must not expose verificationDecision, confidence, finalActionTruth, or businessTruth.
+AI remains final semantic yes/no source when needed.
+
+Required:
+- PAV success must expose `postActionVerificationResultRef`, `sourceActionResultRef`, `sourceActionRuntimeProofRef`, `sourceActionAbilityGroupId`, `sourceActionChildCapabilityId`, `beforeEvidenceRefs`, `afterEvidenceRefs`, `observationRefs`, `supportingSourceProofRefs`, `observationFingerprint`, and `packageStatus`.
+- Mouse Click initiated verification must enter through Mouse Click Result public handoff fields.
+- downstream orchestration and map layers may branch on package status or AI routeLabel, not on fabricated semantic truth fields.
+
+### 禁止
+
+FORBIDDEN:
+- PAV exposing `verificationDecision`, `confidence`, `confidencePolicy`, `minimumConfidence`, `actionResultVerifiedRef`, `finalActionTruth`, or `businessTruth`.
+- PAV treating observation-package success as commercial or semantic success.
+- PAV calling AI directly to fabricate final semantic truth.
+
+Required inspector:
+- Required-shape check for observation refs, supporting source proof refs, and canonical package fields.
+- Forbidden-field check for verification or confidence truth leakage on result and runtime proof.
+- Handoff check ensuring mouse-click initiated verification uses MouseClickResult public contract.
+
+Required real-code-inspection:
+- Add verificationDecision to PAV result -> FAIL.
+- Remove observationRefs from success result -> FAIL.
+- Add direct AI semantic call inside PAV runtime -> FAIL.
+
 ---
 
 ## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2

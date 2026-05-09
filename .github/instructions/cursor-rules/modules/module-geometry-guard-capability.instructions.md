@@ -99,6 +99,52 @@ Forbidden:
 - empty/missing real-code-inspection.
 - compatibility/legacy visual-action geometry chain.
 
+## Law GRASSEYE-GEOMETRY-GUARD-CAPABILITY-RESULT-CONTRACT-V1
+
+status: active
+tier: P0
+capabilityDomain: geometry-guard-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: Geometry Guard Result Contract is the only executable-coordinate bridge from Visual Target Result into Mouse Click Result and Mouse Scroll Result.
+
+### 主题
+
+Geometry Guard Result Contract
+
+### 法条
+
+Geometry Guard input consumes Visual Target Result public geometry handoff only.
+Geometry Guard allow result must output canonical GeometryGuardResult.
+GeometryGuardResult is the only executable coordinate authority for Mouse Click and Mouse Scroll.
+Mouse Click may consume only GeometryGuardResult public contract.
+Mouse Click must not consume raw Visual Target bbox/clickPoint.
+Mouse Click must not remap aiInput/contactSheet/imageEvidence coordinates.
+Geometry Guard Result is the only public executable bridge from Visual Target Result into Mouse Click Result.
+
+Required:
+- allow success must expose `geometryGuardRef`, `geometryGuardProofRef`, `geometryGuardOutputRef`, `geometryGuardRuntimeProofRef`, `normalizedCoordinateSpace`, `normalizedClickPoint`, and `normalizedBbox`.
+- allow success must preserve `sourceVisualTargetResultRef`, `sourceTargetRef`, `sourceScreenshotEvidenceRef`, `sourceAiResultRef`, and `sourcePageStateProofRef` lineage.
+- downstream click and scroll consumers must read GeometryGuardResult public output instead of rebuilding executable geometry from proof-summary scatter fields.
+
+### 禁止
+
+FORBIDDEN:
+- Geometry Guard allow result omitting normalized executable coordinate fields.
+- Mouse Click or Mouse Scroll consuming raw Visual Target bbox/clickPoint.
+- Geometry Guard silently clamping coordinates or guessing deviceScaleFactor to manufacture allow truth.
+
+Required inspector:
+- Required-shape check for GeometryGuardResult allow fields and lineage refs.
+- Downstream-consumption check that click/scroll workbench paths read GeometryGuardResult contract only.
+- Forbidden remap check for aiInput/contactSheet/imageEvidence coordinate reuse in click/scroll paths.
+
+Required real-code-inspection:
+- Remove normalizedClickPoint from allow result -> FAIL.
+- Add Mouse Click path that reads Visual Target bbox directly -> FAIL.
+- Add scale remap in Mouse Click from imageEvidence/contactSheet coordinates -> FAIL.
+
 ---
 
 ## Law GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3

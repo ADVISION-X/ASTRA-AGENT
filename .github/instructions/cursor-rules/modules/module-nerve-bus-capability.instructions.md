@@ -94,6 +94,48 @@ Forbidden:
 - AI bypassing Nerve Bus to call abilities.
 - Nerve Bus inventing platform/map/review defaults.
 
+## Law GRASSEYE-NERVE-BUS-CAPABILITY-RESULT-CONTRACT-BOUNDARY-V1
+
+status: active
+tier: P0
+capabilityDomain: nerve-bus-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: Nerve Bus transports ResultEnvelope only and must not define or inspect Muscle Joint Result Contracts.
+
+### 主题
+
+Muscle Joint Result Contract 运输边界
+
+### 法条
+
+Nerve Bus must not define, inspect, interpret, transform, or validate Muscle Joint Result Contracts.
+Nerve Bus only transports ResultEnvelope.
+Nerve Bus may transport AI Candidate Result, Visual Target Result, Geometry Guard Result, Mouse Click Result, and Post Action Verification Result only as governed result envelopes and result refs.
+Nerve Bus must not own handoff truth, must not parse handoff payloads, and must not branch on Target/Coordinate/Click/PAV internal result fields.
+
+Required:
+- Nerve Bus transport layers may preserve outputRef, resultId, status, failureReason, and other generic envelope metadata only.
+- Muscle Joint Result Contracts must remain owned by their ability groups and consumed downstream through owner-local public contracts.
+
+### 禁止
+
+FORBIDDEN:
+- Nerve Bus introducing any new handoff-specific owner layer, registry layer, or runtime layer.
+- Nerve Bus parsing `geometryGuardHandoff`, `normalizedClickPoint`, `postActionVerificationHandoffRef`, or other owner-local handoff fields.
+- Nerve Bus transforming result payloads to add or validate muscle-joint contract fields.
+
+Required inspector:
+- Forbidden-shape check for muscle-joint handoff field parsing inside Nerve Bus runtime and audit transport code.
+- Boundary check for branching on Target/Coordinate/Click/PAV result fields.
+- Transport-result check ensuring Nerve Bus stays on ResultEnvelope and outputRef only.
+
+Required real-code-inspection:
+- Add Nerve Bus code that reads geometryGuardHandoff -> FAIL.
+- Add Nerve Bus branch on normalizedClickPoint or postActionVerificationHandoffRef -> FAIL.
+- Add Nerve Bus-local result-contract side system -> FAIL.
+
 ---
 
 ## Law GRASSEYE-NERVE-BUS-CAPABILITY-001-V2

@@ -90,6 +90,51 @@ Forbidden:
 - platform-action click owner.
 - BrowserController in public contract.
 
+## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-RESULT-CONTRACT-V1
+
+status: active
+tier: P0
+capabilityDomain: mouse-click-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: Mouse Click Result Contract is the canonical primitive-execution bridge from Geometry Guard Result into Post Action Verification Result.
+
+### 主题
+
+Mouse Click Result Contract
+
+### 法条
+
+Mouse Click success means primitive click execution only.
+Mouse Click success must output canonical MouseClickResult.
+MouseClickResult must include postActionVerificationRequired=true.
+MouseClickResult must include postActionVerificationHandoffRef.
+Mouse Click Result is the only public bridge from Geometry Guard Result into Post Action Verification Result.
+Mouse Click must not claim page state, comments panel opened, verificationDecision, or final action truth.
+
+Required:
+- success output must expose `clickResultRef`, `actionExecutionRef`, `primitiveExecutionRef`, `geometryGuardRef`, `geometryGuardProofRef`, `sourceCoordinateProofRef`, `sourceTargetRef`, `normalizedClickPoint`, `coordinateSpace`, `button`, and `clickCount`.
+- success output must preserve Geometry Guard lineage refs needed by Post Action Verification.
+- downstream PAV consumers must enter through `postActionVerificationHandoffRef` or `clickResultRef` public contract rather than proof-summary scatter fields.
+
+### 禁止
+
+FORBIDDEN:
+- Mouse Click result exposing `verificationDecision`, `actionResultVerifiedRef`, `pageStateVerified`, `finalActionLogRef`, `fallbackUsed`, or retry success fields.
+- Mouse Click claiming comments panel opened or final business truth.
+- Mouse Click consuming raw Visual Target bbox/clickPoint or AI candidate geometry.
+
+Required inspector:
+- Required-shape check for MouseClickResult success fields and `postActionVerificationHandoffRef`.
+- Forbidden-field check for verification or final-action truth fields.
+- Downstream handoff check ensuring PAV input builders resolve MouseClickResult public handoff.
+
+Required real-code-inspection:
+- Remove postActionVerificationHandoffRef from success output -> FAIL.
+- Add `verificationDecision` to MouseClickResult -> FAIL.
+- Add Mouse Click path that consumes raw Visual Target clickPoint -> FAIL.
+
 ---
 
 ## Law GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2

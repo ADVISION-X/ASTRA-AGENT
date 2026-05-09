@@ -93,6 +93,54 @@ Forbidden:
 - empty or missing real-code-inspection.
 - legacy visual-action compatibility universe.
 
+## Law GRASSEYE-VISUAL-TARGET-CAPABILITY-RESULT-CONTRACT-V1
+
+status: active
+tier: P0
+capabilityDomain: visual-target-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: Visual Target Result Contract is the canonical non-executable action-target result boundary between AI Candidate Result and Geometry Guard Result.
+
+### 主题
+
+Visual Target Result Contract
+
+### 法条
+
+AI Candidate Result may propose comments-button candidates, but action-target success must be shaped only as Visual Target Result.
+
+Visual Target action target success must output canonical VisualTargetResult.
+VisualTargetResult is non-executable.
+VisualTargetResult must include geometryGuardHandoffRequired=true.
+VisualTargetResult must include geometryGuardHandoffRef.
+VisualTargetResult must include geometryGuardHandoff.
+Visual Target Result is the only public bridge from AI Candidate Result into Geometry Guard Result.
+Geometry Guard alone owns executable geometry safety truth.
+
+Required:
+- action-target success must bind AI Candidate Result, screenshot evidence, and page-state proof into one public VisualTargetResult.
+- downstream runtime, Route Plan, and Geometry Guard consumers must read VisualTargetResult public output rather than proof-summary scatter fields.
+- geometryGuardHandoff must carry only non-executable target geometry and lineage refs.
+
+### 禁止
+
+FORBIDDEN:
+- Visual Target exposing `safeToClick`, `canClick`, `clickAllowed`, `executionAllowed`, or `geometryVerified`.
+- Visual Target claiming executable coordinate truth.
+- Visual Target bypassing its public result contract through hidden runtime-local geometry fields.
+
+Required inspector:
+- Required-shape check for `geometryGuardHandoffRequired`, `geometryGuardHandoffRef`, and `geometryGuardHandoff` on success output.
+- Forbidden-field check for click-safety or executability fields on VisualTargetResult.
+- Public-contract consumption check for downstream Geometry Guard handoff readers.
+
+Required real-code-inspection:
+- Remove geometryGuardHandoff from action success output -> FAIL.
+- Add `safeToClick` to VisualTargetResult -> FAIL.
+- Add runtime consumer that reads proof-summary bbox/clickPoint instead of VisualTargetResult -> FAIL.
+
 ---
 
 ## Law GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2
