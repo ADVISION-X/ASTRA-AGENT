@@ -5,6 +5,7 @@ import { VISUAL_TARGET_FAILURE_REASONS } from "./shared/visual-target-failure.js
 import { VISUAL_TARGET_EXECUTION_BOUNDARY, VISUAL_TARGET_GEOMETRY_HANDOFF_KIND } from "./shared/visual-target-geometry-handoff.js";
 import { VISUAL_TARGET_CHAIN_FIELD_NAMES, VisualTargetChainInputShape, VisualTargetChainResultShape } from "./shared/visual-target-governance.js";
 import { VISUAL_TARGET_CLOCK_KIND, VISUAL_TARGET_GEOMETRY_HANDOFF_POLICY, VISUAL_TARGET_NON_EXECUTABLE_COORDINATE_POLICY } from "./shared/visual-target-proof.js";
+import { validateVisualTargetAbilityResult, validateVisualTargetRuntimeProof } from "./schema-validation-helpers.js";
 import {
   VISUAL_TARGET_AI_DECISIONS,
   VISUAL_TARGET_AMBIGUITY_DECISIONS,
@@ -370,14 +371,6 @@ const VisualTargetCandidateScoreTraceSchema = z.object({
   tieBreakKey: limitedString(200),
 }).strict();
 
-const addChainFieldRequirementIssues = (record: Record<string, unknown>, context: z.RefinementCtx, scope: "runtimeProof" | "result"): void => {
-  for (const fieldName of VISUAL_TARGET_CHAIN_FIELD_NAMES) {
-    if (record[fieldName] == null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: `${fieldName} is required in ${scope}`, path: [fieldName] });
-    }
-  }
-};
-
 const VisualTargetRuntimeProofBaseSchema = z.object({
   proofId: limitedString(200),
   runId: limitedString(200),
@@ -455,19 +448,6 @@ const VisualTargetRuntimeProofBaseSchema = z.object({
     endedMonotonicMs: finiteNumber,
   }).strict(),
 }).strict();
-
-const validateVisualTargetRuntimeProof = (value: z.infer<typeof VisualTargetRuntimeProofBaseSchema>, context: z.RefinementCtx): void => {
-  if (value.startedAt > value.endedAt) context.addIssue({ code: z.ZodIssueCode.custom, message: "startedAt must not be after endedAt", path: ["startedAt"] });
-  if (!(value.status === "failed" && value.failureReason === "input_schema_invalid")) {
-    addChainFieldRequirementIssues(value as Record<string, unknown>, context, "runtimeProof");
-  }
-  validateVisualTargetRuntimeProofRefs(value, context);
-};
-const validateVisualTargetRuntimeProofRefs = (value: z.infer<typeof VisualTargetRuntimeProofBaseSchema>, context: z.RefinementCtx): void => {
-  if (value.status === "success" && value.outputRef === null) context.addIssue({ code: z.ZodIssueCode.custom, message: "success proof requires outputRef", path: ["outputRef"] });
-  if (value.status !== "success" && value.outputRef !== null) context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success proof must keep outputRef null", path: ["outputRef"] });
-  if (value.status !== "success" && value.diagnosticPayloadRef === null) context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success proof must keep diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
-};
 const VisualTargetRuntimeProofSchema = VisualTargetRuntimeProofBaseSchema.superRefine(validateVisualTargetRuntimeProof);
 const VisualTargetAbilityResultProofShape = { runtimeProof: VisualTargetRuntimeProofSchema };
 const VisualTargetAbilityResultSchemaBase = z.union([
@@ -477,24 +457,5 @@ const VisualTargetAbilityResultSchemaBase = z.union([
   VisualTargetNonSuccessResultSchema.extend(VisualTargetAbilityResultProofShape).strict(),
   VisualTargetInvalidInputFailureResultSchema.extend(VisualTargetAbilityResultProofShape).strict(),
 ]);
-const validateVisualTargetAbilityResultChainParity = (
-  resultRecord: Record<string, unknown>,
-  proofRecord: Record<string, unknown>,
-  isInvalidInputFailure: boolean,
-  context: z.RefinementCtx,
-): void => {
-  for (const fieldName of VISUAL_TARGET_CHAIN_FIELD_NAMES) {
-    if (!isInvalidInputFailure && resultRecord[fieldName] == null) context.addIssue({ code: z.ZodIssueCode.custom, message: `${fieldName} is required in result`, path: [fieldName] });
-    if (resultRecord[fieldName] !== proofRecord[fieldName]) context.addIssue({ code: z.ZodIssueCode.custom, message: `runtimeProof.${fieldName} must equal result.${fieldName}`, path: ["runtimeProof", fieldName] });
-  }
-};
-const validateVisualTargetAbilityResult = (value: z.infer<typeof VisualTargetAbilityResultSchemaBase>, context: z.RefinementCtx): void => {
-  const isInvalidInputFailure = value.status === "failed" && value.failureReason === "input_schema_invalid";
-  const resultRecord = value as Record<string, unknown>, proofRecord = value.runtimeProof as Record<string, unknown>;
-  if (value.runtimeProof.status !== value.status) context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
-  validateVisualTargetAbilityResultChainParity(resultRecord, proofRecord, isInvalidInputFailure, context);
-  if (value.status === "success" && value.output === null) context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires output", path: ["output"] });
-  if (value.status !== "success" && value.output !== null) context.addIssue({ code: z.ZodIssueCode.custom, message: "failed/review_required result must keep output null", path: ["output"] });
-};
 const VisualTargetAbilityResultSchema = VisualTargetAbilityResultSchemaBase.superRefine(validateVisualTargetAbilityResult);
 export { VisualTargetChildCapabilityIdSchema, VisualTargetStatusSchema, VisualTargetTypeSchema, VisualTargetNatureSchema, VisualTargetCandidateKindSchema, VisualTargetCoordinateSpaceSchema, VisualTargetFailureReasonSchema, VisualTargetDataQualityFlagSchema, VisualTargetPayloadBudgetDecisionSchema, VisualTargetOutputBoundaryDecisionSchema, VisualTargetSourceBindingDecisionSchema, VisualTargetCriticalDataQualityDecisionSchema, VisualTargetGeometryHandoffDecisionSchema, VisualBoundingBoxSchema, VisualClickPointSchema, VisualTargetScaleMappingSchema, VisualTargetScreenshotSourceProofSchema, VisualTargetAiSourceProofSchema, VisualTargetPageStateProofSchema, VisualTargetOperatorApprovalProofSchema, VisualTargetSourceProofSchema, VisualTargetCandidateSchema, VisualTargetAbilityInputSchema, VisualTargetGeometryGuardHandoffSchema, VisualTargetActionOutputSchema, VisualTargetRegionOutputSchema, VisualTargetMetricOutputSchema, VisualTargetOutputSchema, VisualTargetActionSuccessResultSchema, VisualTargetRegionSuccessResultSchema, VisualTargetMetricSuccessResultSchema, VisualTargetNonSuccessResultSchema, VisualTargetInvalidInputFailureResultSchema, VisualTargetResultSchema, VisualTargetCandidateScoreTraceSchema, VisualTargetRuntimeProofSchema, VisualTargetAbilityResultSchema };

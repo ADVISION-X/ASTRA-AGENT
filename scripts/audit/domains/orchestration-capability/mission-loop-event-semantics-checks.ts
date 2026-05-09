@@ -105,42 +105,68 @@ const collectRuntimeEventCoverageFindings = (input: {
   return findings;
 };
 
+const collectPostActionVerificationActionLogFinding = (
+  loopIterationSource: ReturnType<typeof getSourceFileOrThrow>,
+): Finding[] => !hasCallExpressionPath(loopIterationSource, ["recordPostActionVerificationActionLog"])
+  ? [createFatalFinding({ file: LOOP_ITERATION_PATH, message: "Mission loop must record governed action logs when post-action verification closes an action step." })]
+  : [];
+
+const collectVideoVisitTraceFindings = (
+  stepTraceRecorderSource: ReturnType<typeof getSourceFileOrThrow>,
+): Finding[] => {
+  const recorderText = stepTraceRecorderSource.getFullText();
+  return recorderText.includes("videoVisitId: null") || !recorderText.includes("resolveVideoVisitId") || !recorderText.includes("video-visit") || !recorderText.includes("state.currentRoundIndex")
+    ? [createFatalFinding({ file: STEP_TRACE_RECORDER_PATH, message: "Mission-loop structured runtime events must bind videoVisitId from missionId and currentRoundIndex; null/no-video trace records hide same-video loops from Forensics and audit." })]
+    : [];
+};
+
+const collectForensicsPersistenceFindings = (
+  stepTraceRecorderSource: ReturnType<typeof getSourceFileOrThrow>,
+): Finding[] => {
+  const findings: Finding[] = [];
+  if (!hasCallExpressionPath(stepTraceRecorderSource, ["input", "context", "forensics", "writeStructuredRuntimeEvent"])) {
+    findings.push(createFatalFinding({ file: STEP_TRACE_RECORDER_PATH, message: "Step trace recorder must persist structured runtime events through the governed Forensics writer." }));
+  }
+  if (!hasCallExpressionPath(stepTraceRecorderSource, ["input", "context", "forensics", "writeStructuredActionLog"])) {
+    findings.push(createFatalFinding({ file: STEP_TRACE_RECORDER_PATH, message: "Step trace recorder must persist structured action logs through the governed Forensics writer." }));
+  }
+  return findings;
+};
+
+const collectTransitionRoundBoundaryFinding = (input: {
+  loopIterationSupportSource: ReturnType<typeof getSourceFileOrThrow>;
+  transitionStateText: string;
+  roundBoundaryText: string;
+}): Finding[] => {
+  const guardsRoundIncrementByInitialStep = input.roundBoundaryText.includes("nextStepId === input.initialStepId")
+    && input.roundBoundaryText.includes("currentStepId !== input.initialStepId");
+  const guardsClickNextVideoCaptureBoundary = input.roundBoundaryText.includes("verify-next-item-advanced")
+    && input.roundBoundaryText.includes("capture-video-viewport");
+  const usesPerStepRoundIncrement = input.transitionStateText.includes("currentRoundIndex: input.state.currentRoundIndex + 1");
+
+  return !hasSuccessProofClosure(input.loopIterationSupportSource)
+    ? [createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success path must persist lastRuntimeProofRef and runtimeProofRefs before Commander reads mission state." })]
+    : !guardsRoundIncrementByInitialStep || !guardsClickNextVideoCaptureBoundary || usesPerStepRoundIncrement
+      ? [createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success state must increment currentRoundIndex only at governed round boundaries: map initial-step return or verify-next-item-advanced returning to capture-video-viewport." })]
+      : [];
+};
+
 const collectLoopStateFindings = (input: {
   loopIterationSource: ReturnType<typeof getSourceFileOrThrow>;
   loopIterationSupportSource: ReturnType<typeof getSourceFileOrThrow>;
   stepTraceRecorderSource: ReturnType<typeof getSourceFileOrThrow>;
   transitionStateText: string;
   roundBoundaryText: string;
-}): Finding[] => {
-  const findings: Finding[] = [];
-  const guardsRoundIncrementByInitialStep = input.roundBoundaryText.includes("nextStepId === input.initialStepId")
-    && input.roundBoundaryText.includes("currentStepId !== input.initialStepId");
-  const guardsClickNextVideoCaptureBoundary = input.roundBoundaryText.includes("verify-next-item-advanced")
-    && input.roundBoundaryText.includes("capture-video-viewport");
-  const usesPerStepRoundIncrement = input.transitionStateText.includes("currentRoundIndex: input.state.currentRoundIndex + 1");
-  const recorderText = input.stepTraceRecorderSource.getFullText();
-
-  if (!hasCallExpressionPath(input.loopIterationSource, ["recordPostActionVerificationActionLog"])) {
-    findings.push(createFatalFinding({ file: LOOP_ITERATION_PATH, message: "Mission loop must record governed action logs when post-action verification closes an action step." }));
-  }
-  if (recorderText.includes("videoVisitId: null") || !recorderText.includes("resolveVideoVisitId") || !recorderText.includes("video-visit") || !recorderText.includes("state.currentRoundIndex")) {
-    findings.push(createFatalFinding({ file: STEP_TRACE_RECORDER_PATH, message: "Mission-loop structured runtime events must bind videoVisitId from missionId and currentRoundIndex; null/no-video trace records hide same-video loops from Forensics and audit." }));
-  }
-  if (!hasCallExpressionPath(input.stepTraceRecorderSource, ["input", "context", "forensics", "writeStructuredRuntimeEvent"])) {
-    findings.push(createFatalFinding({ file: STEP_TRACE_RECORDER_PATH, message: "Step trace recorder must persist structured runtime events through the governed Forensics writer." }));
-  }
-  if (!hasCallExpressionPath(input.stepTraceRecorderSource, ["input", "context", "forensics", "writeStructuredActionLog"])) {
-    findings.push(createFatalFinding({ file: STEP_TRACE_RECORDER_PATH, message: "Step trace recorder must persist structured action logs through the governed Forensics writer." }));
-  }
-  if (!hasSuccessProofClosure(input.loopIterationSupportSource)) {
-    findings.push(createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success path must persist lastRuntimeProofRef and runtimeProofRefs before Commander reads mission state." }));
-  }
-  if (!guardsRoundIncrementByInitialStep || !guardsClickNextVideoCaptureBoundary || usesPerStepRoundIncrement) {
-    findings.push(createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success state must increment currentRoundIndex only at governed round boundaries: map initial-step return or verify-next-item-advanced returning to capture-video-viewport." }));
-  }
-
-  return findings;
-};
+}): Finding[] => [
+  ...collectPostActionVerificationActionLogFinding(input.loopIterationSource),
+  ...collectVideoVisitTraceFindings(input.stepTraceRecorderSource),
+  ...collectForensicsPersistenceFindings(input.stepTraceRecorderSource),
+  ...collectTransitionRoundBoundaryFinding({
+    loopIterationSupportSource: input.loopIterationSupportSource,
+    transitionStateText: input.transitionStateText,
+    roundBoundaryText: input.roundBoundaryText,
+  }),
+];
 
 const collectCapabilityCallIdStabilityFindings = (input: {
   loopIterationSource: ReturnType<typeof getSourceFileOrThrow>;

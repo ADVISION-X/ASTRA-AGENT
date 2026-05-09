@@ -51,93 +51,130 @@ const buildSuccessfulGateResult = (input: { childObservation: PostActionChildObs
   dataQualityFlags: input.childObservation.dataQualityFlags,
 });
 
+const buildObservationBundleFailure = (input: {
+  childObservation: PostActionChildObservation;
+  dataQualityFlags: string[];
+  flag: string;
+  failureReason: PostActionFailureReason;
+}) => buildFailedGateResult({
+  childObservation: input.childObservation,
+  failureReason: input.failureReason,
+  reviewRequiredReason: null,
+  dataQualityFlags: [...input.dataQualityFlags, input.flag],
+});
+
+const evaluateObservationSupportGate = (input: {
+  childObservation: PostActionChildObservation;
+  dataQualityFlags: string[];
+}) => input.childObservation.supportingObservationRefs.length === 0
+  ? buildObservationBundleFailure({
+    childObservation: input.childObservation,
+    dataQualityFlags: input.dataQualityFlags,
+    flag: "missing_observation",
+    failureReason: "missing_observation_support",
+  })
+  : null;
+
+const evaluateSourceProofGate = (input: {
+  request: ParsedPostActionVerificationAbilityInput;
+  context: PostActionVerificationRuntimeContext;
+  childObservation: PostActionChildObservation;
+  dataQualityFlags: string[];
+}) => {
+  if (input.childObservation.supportingSourceProofRefs.length === 0) {
+    return buildObservationBundleFailure({
+      childObservation: input.childObservation,
+      dataQualityFlags: input.dataQualityFlags,
+      flag: "missing_source_proof",
+      failureReason: "insufficient_evidence",
+    });
+  }
+
+  return !input.childObservation.supportingSourceProofRefs.every((ref) => input.context.evidenceReadPort.verifyProofRef(input.request, ref))
+    ? buildObservationBundleFailure({
+      childObservation: input.childObservation,
+      dataQualityFlags: input.dataQualityFlags,
+      flag: "invalid_source_proof",
+      failureReason: "insufficient_evidence",
+    })
+    : null;
+};
+
+const evaluateEvidenceBindingGate = (input: {
+  request: ParsedPostActionVerificationAbilityInput;
+  context: PostActionVerificationRuntimeContext;
+  childObservation: PostActionChildObservation;
+  dataQualityFlags: string[];
+}) => !input.childObservation.supportingEvidenceRefs.every((ref) => input.context.evidenceReadPort.verifyEvidenceBinding(input.request, ref))
+  ? buildObservationBundleFailure({
+    childObservation: input.childObservation,
+    dataQualityFlags: input.dataQualityFlags,
+    flag: "invalid_evidence_binding",
+    failureReason: "insufficient_evidence",
+  })
+  : null;
+
+const evaluateEvidencePolicyGate = (input: {
+  request: ParsedPostActionVerificationAbilityInput;
+  childObservation: PostActionChildObservation;
+  dataQualityFlags: string[];
+}) => {
+  const hasBeforeEvidence = input.request.beforeAfterEvidence.beforeEvidence !== null;
+  const hasAfterEvidence = input.request.beforeAfterEvidence.afterEvidence !== null;
+
+  if (input.request.actionProof.selfReportedOnly && !input.request.verificationPolicy.allowSelfReportedSuccess) {
+    return buildObservationBundleFailure({
+      childObservation: input.childObservation,
+      dataQualityFlags: input.dataQualityFlags,
+      flag: "self_reported_only",
+      failureReason: "insufficient_evidence",
+    });
+  }
+  if (input.request.verificationPolicy.requireAfterEvidence && !hasAfterEvidence) {
+    return buildObservationBundleFailure({
+      childObservation: input.childObservation,
+      dataQualityFlags: input.dataQualityFlags,
+      flag: "missing_after_evidence",
+      failureReason: "insufficient_evidence",
+    });
+  }
+  return requiresBeforeAfterComparison(input.request) && (!hasBeforeEvidence || !hasAfterEvidence)
+    ? buildObservationBundleFailure({
+      childObservation: input.childObservation,
+      dataQualityFlags: input.dataQualityFlags,
+      flag: "missing_before_after_evidence",
+      failureReason: "insufficient_evidence",
+    })
+    : null;
+};
+
+const evaluateVisualEvidenceGate = (input: {
+  request: ParsedPostActionVerificationAbilityInput;
+  childObservation: PostActionChildObservation;
+  dataQualityFlags: string[];
+}) => input.request.expectedOutcome.requiresVisualEvidence && !hasVisualEvidence(input.request)
+  ? buildObservationBundleFailure({
+    childObservation: input.childObservation,
+    dataQualityFlags: input.dataQualityFlags,
+    flag: "missing_visual_evidence",
+    failureReason: "insufficient_evidence",
+  })
+  : null;
+
 export function evaluatePostActionObservationBundleGate(input: {
   request: ParsedPostActionVerificationAbilityInput;
   context: PostActionVerificationRuntimeContext;
   childObservation: PostActionChildObservation;
 }): PostActionObservationBundleGateResult {
   const dataQualityFlags = [...input.childObservation.dataQualityFlags];
-  const hasBeforeEvidence = input.request.beforeAfterEvidence.beforeEvidence !== null;
-  const hasAfterEvidence = input.request.beforeAfterEvidence.afterEvidence !== null;
+  const failedGate = evaluateObservationSupportGate({ childObservation: input.childObservation, dataQualityFlags })
+    ?? evaluateSourceProofGate({ ...input, dataQualityFlags })
+    ?? evaluateEvidenceBindingGate({ ...input, dataQualityFlags })
+    ?? evaluateEvidencePolicyGate({ request: input.request, childObservation: input.childObservation, dataQualityFlags })
+    ?? evaluateVisualEvidenceGate({ request: input.request, childObservation: input.childObservation, dataQualityFlags });
 
-  if (input.childObservation.supportingObservationRefs.length === 0) {
-    dataQualityFlags.push("missing_observation");
-    return buildFailedGateResult({
-      childObservation: input.childObservation,
-      failureReason: "missing_observation_support",
-      reviewRequiredReason: null,
-      dataQualityFlags,
-    });
-  }
-
-  if (input.childObservation.supportingSourceProofRefs.length === 0) {
-    dataQualityFlags.push("missing_source_proof");
-    return buildFailedGateResult({
-      childObservation: input.childObservation,
-      failureReason: "insufficient_evidence",
-      reviewRequiredReason: null,
-      dataQualityFlags,
-    });
-  }
-
-  if (!input.childObservation.supportingSourceProofRefs.every((ref) => input.context.evidenceReadPort.verifyProofRef(input.request, ref))) {
-    dataQualityFlags.push("invalid_source_proof");
-    return buildFailedGateResult({
-      childObservation: input.childObservation,
-      failureReason: "insufficient_evidence",
-      reviewRequiredReason: null,
-      dataQualityFlags,
-    });
-  }
-
-  if (!input.childObservation.supportingEvidenceRefs.every((ref) => input.context.evidenceReadPort.verifyEvidenceBinding(input.request, ref))) {
-    dataQualityFlags.push("invalid_evidence_binding");
-    return buildFailedGateResult({
-      childObservation: input.childObservation,
-      failureReason: "insufficient_evidence",
-      reviewRequiredReason: null,
-      dataQualityFlags,
-    });
-  }
-
-  if (input.request.actionProof.selfReportedOnly && !input.request.verificationPolicy.allowSelfReportedSuccess) {
-    dataQualityFlags.push("self_reported_only");
-    return buildFailedGateResult({
-      childObservation: input.childObservation,
-      failureReason: "insufficient_evidence",
-      reviewRequiredReason: null,
-      dataQualityFlags,
-    });
-  }
-
-  if (input.request.verificationPolicy.requireAfterEvidence && !hasAfterEvidence) {
-    dataQualityFlags.push("missing_after_evidence");
-    return buildFailedGateResult({
-      childObservation: input.childObservation,
-      failureReason: "insufficient_evidence",
-      reviewRequiredReason: null,
-      dataQualityFlags,
-    });
-  }
-
-  if (requiresBeforeAfterComparison(input.request) && (!hasBeforeEvidence || !hasAfterEvidence)) {
-    dataQualityFlags.push("missing_before_after_evidence");
-    return buildFailedGateResult({
-      childObservation: input.childObservation,
-      failureReason: "insufficient_evidence",
-      reviewRequiredReason: null,
-      dataQualityFlags,
-    });
-  }
-
-  if (input.request.expectedOutcome.requiresVisualEvidence && !hasVisualEvidence(input.request)) {
-    dataQualityFlags.push("missing_visual_evidence");
-    return buildFailedGateResult({
-      childObservation: input.childObservation,
-      failureReason: "insufficient_evidence",
-      reviewRequiredReason: null,
-      dataQualityFlags,
-    });
+  if (failedGate) {
+    return failedGate;
   }
 
   return buildSuccessfulGateResult({ childObservation: input.childObservation });

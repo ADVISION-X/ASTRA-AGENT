@@ -10,7 +10,7 @@ function createFixtureRuntime(currentUrl: string, loginState: "logged_in" | "log
         loginState,
       }),
     },
-  } as unknown as Parameters<typeof buildPostActionVerificationInput>[0];
+  };
 }
 
 function createFixtureEnvelope(): Parameters<typeof buildPostActionVerificationInput>[1] {

@@ -39,8 +39,14 @@ function logRuntimeEventFallback(input: RuntimeEventInput, reason: string): void
   const failureReason = input.failureReason ? ` failureReason=${JSON.stringify(input.failureReason)}` : "";
   const reviewRequiredReason = input.reviewRequiredReason ? ` reviewRequiredReason=${JSON.stringify(input.reviewRequiredReason)}` : "";
   const durationMs = input.durationMs === null || input.durationMs === undefined ? "" : ` durationMs=${input.durationMs}`;
-  console.log(
+  console.warn(
     `[GRASSEYE][RUNTIME][${level}] runtime ${input.eventType} ${input.status} ${input.reason}${failureReason}${reviewRequiredReason}${durationMs} ownerResponsible="${input.ownerResponsible}" actionableMessage="${input.actionableMessage}" stepId=${input.step.stepId} childCapabilityId=${input.step.childCapabilityId} degradedForensics="${reason}"`,
+  );
+}
+
+function warnStructuredActionLogWriteIssue(input: ActionLogInput, error: unknown): void {
+  console.warn(
+    `[GRASSEYE][RUNTIME][WARN] orchestration structured action log write degraded for step="${input.step.stepId}" childCapabilityId="${input.step.childCapabilityId}": ${describeRuntimeEventWriteError(error)}`,
   );
 }
 
@@ -174,7 +180,8 @@ export async function recordPostActionVerificationActionLog(input: ActionLogInpu
       }),
     );
     return { actionLogId: structuredActionLog.actionLogId, actionRef };
-  } catch {
+  } catch (error) {
+    warnStructuredActionLogWriteIssue(input, error);
     return null;
   }
 }

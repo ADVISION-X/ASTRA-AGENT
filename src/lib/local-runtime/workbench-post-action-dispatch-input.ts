@@ -12,6 +12,8 @@ type SupportedPostActionChildCapabilityId =
   | "observe-target-state-transition"
   | "verify-action-result";
 
+type PostActionDispatchRuntime = Pick<WorkbenchRuntime, "browserController">;
+
 type PostActionInputPolicy = {
   childCapabilityId: SupportedPostActionChildCapabilityId;
   outcomeType: "page_opened" | "comments_panel_opened" | "comments_panel_closed" | "not_interested_applied" | "target_state_changed";
@@ -143,7 +145,7 @@ const resolveActionStatus = (sourceSummary: AbilityResultProofSummary | null) =>
 };
 
 const buildPageStateObservation = (
-  runtime: WorkbenchRuntime,
+  runtime: PostActionDispatchRuntime,
   envelope: AbilityCommandEnvelope,
   sourceProofRef: string,
   summary: string,
@@ -249,7 +251,7 @@ const buildPostActionChainFields = (envelope: AbilityCommandEnvelope) => ({
 });
 
 export const buildPostActionVerificationInput = async (
-  runtime: WorkbenchRuntime,
+  runtime: PostActionDispatchRuntime,
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
 ) => {

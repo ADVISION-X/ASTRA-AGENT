@@ -10,7 +10,6 @@ import {
 } from "./orchestration-post-action-verification.js";
 import {
   buildAbilityOutputSchemaRef,
-  resolveAiDispatchRequirements,
   resolveDispatchChain,
   resolveStepTimeoutMs,
   type AbilityDispatchInput,
@@ -21,6 +20,7 @@ import {
   type OperationalStep,
   type StepDispatchResult,
 } from "./step-dispatch-shared.js";
+import { resolveAiDispatchRequirements } from "./step-dispatch-ai-requirements.js";
 import { dispatchWithTimeout } from "./step-dispatch-timeout-gate.js";
 
 function validateAbilityDispatch(input: AbilityDispatchInput): string | null {

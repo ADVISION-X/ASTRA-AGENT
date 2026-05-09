@@ -10,6 +10,7 @@ import type {
   StoredForensicsRecord,
 } from "../schema.js";
 import { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID, ForensicsRuntimeProofSchema } from "../schema.js";
+import { resolveForensicsPersistenceStatus } from "./forensics-status.js";
 
 function buildProofId(seed: string): string {
   return `forensics-proof:${createHash("sha256").update(seed).digest("hex").slice(0, 16)}`;
@@ -54,6 +55,48 @@ const buildProofReferenceFields = (input: {
   integrityHash: input.storedRecord?.envelope.integrityHash ?? null,
 });
 
+const buildForensicsProofPayload = (input: {
+  request: ForensicsAbilityInput;
+  policyDecision: ForensicsPolicyDecision;
+  integrityDecision: ForensicsIntegrityDecision;
+  storedRecord: StoredForensicsRecord | null;
+  startedAt: string;
+  endedAt: string;
+  failureReason: ForensicsFailure | null;
+  reviewRequiredReason: string | null;
+  status: "success" | "failed" | "review_required";
+  recordId: string;
+  durationMs: number;
+}) => ({
+  proofId: buildProofId(`${input.recordId}:${input.endedAt}`),
+  ...buildProofChainFields(input.request, input.status),
+  abilityGroupId: FORENSICS_PERSISTENCE_ABILITY_GROUP_ID,
+  childCapabilityId: input.request.childCapabilityId,
+  sourceAbilityGroupId: input.request.sourceAbilityGroupId,
+  sourceChildCapabilityId: input.request.sourceChildCapabilityId,
+  operationType: input.request.childCapabilityId,
+  recordType: input.request.recordType,
+  recordId: input.recordId,
+  idempotencyKey: input.policyDecision.idempotencyKey,
+  startedAt: input.startedAt,
+  endedAt: input.endedAt,
+  durationMs: input.durationMs,
+  status: input.status,
+  storageOperation: input.policyDecision.storageOperation,
+  ...buildProofReferenceFields(input),
+  promptContractId: input.request.promptContractId ?? null,
+  promptContractVersion: input.request.promptContractVersion ?? null,
+  promptCatalogVersion: input.request.promptCatalogVersion ?? null,
+  actionRef: input.request.actionRef ?? null,
+  postActionVerificationRef: input.request.postActionVerificationRef ?? null,
+  decisionRef: input.request.decisionRef ?? null,
+  policyDecision: input.policyDecision,
+  integrityDecision: input.integrityDecision,
+  failureReason: input.failureReason,
+  reviewRequiredReason: input.reviewRequiredReason,
+  dataQualityFlags: input.request.dataQualityFlags,
+});
+
 export function buildForensicsProof(input: {
   request: ForensicsAbilityInput;
   policyDecision: ForensicsPolicyDecision;
@@ -67,41 +110,12 @@ export function buildForensicsProof(input: {
 }): ForensicsRuntimeProof {
   const durationMs = Math.max(0, new Date(input.endedAt).getTime() - new Date(input.startedAt).getTime());
   const recordId = input.storedRecord?.recordRef.recordId ?? `${input.request.recordType}:${input.policyDecision.idempotencyKey}`;
-  const status = input.failureReason
-    ? "failed"
-    : input.storedRecord?.storageRef
-      ? "success"
-      : input.reviewRequiredReason || input.integrityDecision.status === "review_required"
-        ? "review_required"
-        : "success";
+  const status = resolveForensicsPersistenceStatus(input);
 
-  return ForensicsRuntimeProofSchema.parse({
-    proofId: buildProofId(`${recordId}:${input.endedAt}`),
-    ...buildProofChainFields(input.request, status),
-    abilityGroupId: FORENSICS_PERSISTENCE_ABILITY_GROUP_ID,
-    childCapabilityId: input.request.childCapabilityId,
-    sourceAbilityGroupId: input.request.sourceAbilityGroupId,
-    sourceChildCapabilityId: input.request.sourceChildCapabilityId,
-    operationType: input.request.childCapabilityId,
-    recordType: input.request.recordType,
-    recordId,
-    idempotencyKey: input.policyDecision.idempotencyKey,
-    startedAt: input.startedAt,
-    endedAt: input.endedAt,
-    durationMs,
+  return ForensicsRuntimeProofSchema.parse(buildForensicsProofPayload({
+    ...input,
     status,
-    storageOperation: input.policyDecision.storageOperation,
-    ...buildProofReferenceFields(input),
-    promptContractId: input.request.promptContractId ?? null,
-    promptContractVersion: input.request.promptContractVersion ?? null,
-    promptCatalogVersion: input.request.promptCatalogVersion ?? null,
-    actionRef: input.request.actionRef ?? null,
-    postActionVerificationRef: input.request.postActionVerificationRef ?? null,
-    decisionRef: input.request.decisionRef ?? null,
-    policyDecision: input.policyDecision,
-    integrityDecision: input.integrityDecision,
-    failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason,
-    dataQualityFlags: input.request.dataQualityFlags,
-  });
+    recordId,
+    durationMs,
+  }));
 }

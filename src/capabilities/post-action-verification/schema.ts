@@ -397,25 +397,25 @@ const validateRuntimeProofChain = (
   }
 };
 
-const validatePostActionVerificationAbilityResultShape = (
+const validateSuccessfulPostActionVerificationResultShape = (
   value: PostActionVerificationAbilityResultValue,
   context: z.RefinementCtx,
 ): void => {
-  if (value.status === "success") {
-    if (value.output === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires output", path: ["output"] });
-    }
-    if (value.diagnosticPayloadRef !== null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success result must not expose diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
-    }
-    if (value.output !== null) {
-      if (value.output.supportingSourceProofRefs.length === 0) {
-        context.addIssue({ code: z.ZodIssueCode.custom, message: "success output requires supportingSourceProofRefs", path: ["output", "supportingSourceProofRefs"] });
-      }
-    }
-    return;
+  if (value.output === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires output", path: ["output"] });
   }
+  if (value.diagnosticPayloadRef !== null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success result must not expose diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
+  }
+  if (value.output !== null && value.output.supportingSourceProofRefs.length === 0) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success output requires supportingSourceProofRefs", path: ["output", "supportingSourceProofRefs"] });
+  }
+};
 
+const validateUnsuccessfulPostActionVerificationResultShape = (
+  value: PostActionVerificationAbilityResultValue,
+  context: z.RefinementCtx,
+): void => {
   if (value.output !== null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "failed/review_required result must not expose output", path: ["output"] });
   }
@@ -428,6 +428,18 @@ const validatePostActionVerificationAbilityResultShape = (
   if (value.status === "review_required" && value.reviewRequiredReason === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "review_required result requires reviewRequiredReason", path: ["reviewRequiredReason"] });
   }
+};
+
+const validatePostActionVerificationAbilityResultShape = (
+  value: PostActionVerificationAbilityResultValue,
+  context: z.RefinementCtx,
+): void => {
+  if (value.status === "success") {
+    validateSuccessfulPostActionVerificationResultShape(value, context);
+    return;
+  }
+
+  validateUnsuccessfulPostActionVerificationResultShape(value, context);
 };
 
 const validatePostActionVerificationAbilityResultGovernedFields = (

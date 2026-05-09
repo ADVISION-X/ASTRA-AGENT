@@ -1,18 +1,16 @@
 import { z } from "zod";
 
-import { EvidenceRefSchema } from "../../types/evidence.js";
 import {
+  EvidenceRefSchema,
+  VisionCommentsEntryTargetCandidatePayloadSchema,
+  VisionNextItemAdvancedPayloadSchema,
+  VisionNextItemTargetCandidatePayloadSchema,
   VisionPagePreparationPayloadSchema,
   VisionPagePreparationRequestInputSchema,
-} from "../../types/vision-page-preparation.js";
-import {
   VisionProductPresenceMissingFrameSchema,
   VisionProductPresencePayloadSchema,
   VisionProductPresenceRequestInputSchema,
-} from "../../types/vision-product-presence.js";
-import { VisionNextItemTargetCandidatePayloadSchema } from "../../types/vision-next-item-target-candidate.js";
-import { VisionCommentsEntryTargetCandidatePayloadSchema } from "../../types/vision-comments-entry-target-candidate.js";
-import { VisionNextItemAdvancedPayloadSchema } from "../../types/vision-next-item-advanced.js";
+} from "../../types/ai-schema-foundation-bridge.js";
 import {
   DEFAULT_AI_COST_POLICY,
   DEFAULT_AI_DATA_POLICY,

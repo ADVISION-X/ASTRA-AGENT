@@ -21,7 +21,7 @@ function emitVisualTargetInputProbe(input: {
     return;
   }
 
-  console.log(
+  console.warn(
     `[grasseye:visual-target-input-probe] stage=${input.stage}; details=${JSON.stringify(input.details)}`,
   );
 }

@@ -39,6 +39,20 @@ const createRegistryBootstrapError = (message: string): Finding =>
   createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: `${ROOT}/registry/active-map-registry.ts`, line: 1, severity: "fatal", message });
 
 type ActiveRegistryRecord = NonNullable<ReturnType<ReturnType<typeof createMapPluginRegistry>["active"]["getActiveOperationalMapRecordByTaskTemplateId"]>>;
+type BuiltinMapPackage = ReturnType<typeof loadBuiltinMapPackages>[number];
+type DiagnosticStep = BuiltinMapPackage["operationalMap"]["steps"][number];
+
+type Phase05DiagnosticState = {
+  hasDeterministicDiagnosticAi: boolean;
+  hasDryRunTextInputGate: boolean;
+  hasNoExecutablePayload: boolean;
+  missingAbilitySurface: string[];
+  missingControlSurface: string[];
+  missingSuccessPathSurface: string[];
+  successPathFinalStatus: string | null;
+  successPathPersistsEvidence: boolean;
+  successPathUsesHumanReviewTerminal: boolean;
+};
 
 const collectRegistryFeedFindings = (registry: ReturnType<typeof createMapPluginRegistry>): Finding[] => {
   const activePackages = registry.active.listActivePackages();
@@ -167,84 +181,152 @@ export const inspectMapAuthoringCapabilityCatalogGate = (): Finding[] => {
   }
 };
 
-export const inspectPhase05DiagnosticMapSurface = (): Finding[] => {
-  const diagnosticPackage = loadBuiltinMapPackages().find((mapPackage) => mapPackage.manifest.packageId === PHASE_05_DIAGNOSTIC_PACKAGE_ID);
-  if (!diagnosticPackage) {
-    return [createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 full-surface diagnostic map must be present as a governed builtin map package." })];
-  }
+const createPhase05DiagnosticFinding = (lawId: string, message: string, detail?: string): Finding =>
+  createFinding({ lawId, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message, detail });
 
+const findPhase05DiagnosticPackage = (): BuiltinMapPackage | null =>
+  loadBuiltinMapPackages().find((mapPackage) => mapPackage.manifest.packageId === PHASE_05_DIAGNOSTIC_PACKAGE_ID) ?? null;
+
+const collectMissingAbilitySurface = (steps: DiagnosticStep[]): string[] => {
+  const abilitySurface = new Set(
+    steps.map((step) => step.targetAbilityGroupId).filter((value): value is string => Boolean(value)),
+  );
+  return PHASE_05_REQUIRED_ABILITY_SURFACE.filter((abilityGroupId) => !abilitySurface.has(abilityGroupId));
+};
+
+const collectMissingControlSurface = (diagnosticPackage: BuiltinMapPackage): string[] => {
   const map = diagnosticPackage.operationalMap;
-  const abilitySurface = new Set(map.steps.map((step) => step.targetAbilityGroupId).filter((value) => Boolean(value)));
-  const missingAbilitySurface = PHASE_05_REQUIRED_ABILITY_SURFACE.filter((abilityGroupId) => !abilitySurface.has(abilityGroupId));
-  const textInputStep = map.steps.find((step) => step.targetAbilityGroupId === "text-input");
-  const hasDryRunTextInputGate = Boolean(textInputStep) && /dry-run|sandbox|local/.test([
+  return PHASE_05_REQUIRED_CONTROL_SURFACE.filter((surface) => {
+    if (surface === "commander-console") {
+      return diagnosticPackage.taskTemplate.taskTemplateId !== "phase-05-full-surface-diagnostic-map";
+    }
+    if (surface === "orchestration") {
+      return !map.steps.every((step) => step.capabilityId === "orchestration");
+    }
+    return !map.steps.some((step) => step.stepKind === "ability" || step.stepKind === "ai");
+  });
+};
+
+const hasDryRunTextInputGate = (diagnosticPackage: BuiltinMapPackage): boolean => {
+  const textInputStep = diagnosticPackage.operationalMap.steps.find((step) => step.targetAbilityGroupId === "text-input");
+  return Boolean(textInputStep) && /dry-run|sandbox|local/.test([
     diagnosticPackage.taskTemplate.safetyLevel,
     textInputStep?.stepId ?? "",
     textInputStep?.childCapabilityId ?? "",
   ].join(" "));
-  const hasNoExecutablePayload = !hasForbiddenExecutableKey(diagnosticPackage);
-  const hasControlSurface = PHASE_05_REQUIRED_CONTROL_SURFACE.every((surface) => {
-    if (surface === "commander-console") return diagnosticPackage.taskTemplate.taskTemplateId === "phase-05-full-surface-diagnostic-map";
-    if (surface === "orchestration") return map.steps.every((step) => step.capabilityId === "orchestration");
-    return map.steps.some((step) => step.stepKind === "ability" || step.stepKind === "ai");
-  });
+};
+
+const traceSuccessPath = (diagnosticPackage: BuiltinMapPackage): { finalStatus: string | null; steps: DiagnosticStep[]; stepIds: string[] } => {
+  const map = diagnosticPackage.operationalMap;
   const stepsById = new Map(map.steps.map((step) => [step.stepId, step]));
-  const successPathStepIds: string[] = [];
+  const stepIds: string[] = [];
   let currentStepId: string | null = map.initialStepId;
-  let successPathFinalStatus: string | null = null;
+  let finalStatus: string | null = null;
+
   for (let hop = 0; currentStepId && hop <= map.steps.length; hop += 1) {
     const step = stepsById.get(currentStepId);
     if (!step) break;
-    successPathStepIds.push(step.stepId);
+    stepIds.push(step.stepId);
     const transition = map.transitions.find((item) => item.fromStepId === step.stepId && item.onStatus === "success");
     if (!transition) break;
-    successPathFinalStatus = transition.finalStatus;
+    finalStatus = transition.finalStatus;
     currentStepId = transition.toStepId;
   }
-  const successPathSteps = successPathStepIds.map((stepId) => stepsById.get(stepId)).filter((step): step is NonNullable<typeof step> => Boolean(step));
-  const successPathSurface = new Set(successPathSteps.map((step) => step.targetAbilityGroupId).filter((value) => Boolean(value)));
-  const missingSuccessPathSurface = PHASE_05_REQUIRED_ABILITY_SURFACE.filter((abilityGroupId) => !successPathSurface.has(abilityGroupId));
+
+  return {
+    finalStatus,
+    stepIds,
+    steps: stepIds.map((stepId) => stepsById.get(stepId)).filter((step): step is DiagnosticStep => Boolean(step)),
+  };
+};
+
+const hasDeterministicDiagnosticAi = (diagnosticPackage: BuiltinMapPackage, successPathSteps: DiagnosticStep[]): boolean => {
   const diagnosticAiStep = successPathSteps.find((step) => step.targetAbilityGroupId === "ai");
-  const successPathPersistsEvidence = successPathStepIds.includes("persist-diagnostic-evidence-record");
-  const successPathUsesHumanReviewTerminal = successPathStepIds.includes("request-human-review") || successPathFinalStatus === "review_required";
-  const hasDeterministicDiagnosticAi = diagnosticAiStep?.childCapabilityId === "schema-validation-only"
+  return diagnosticAiStep?.childCapabilityId === "schema-validation-only"
     && diagnosticAiStep.promptContractId === "ai.schema_validation_only.internal"
     && diagnosticPackage.promptBindings.bindings.some((binding) =>
       binding.stepId === diagnosticAiStep.stepId
       && binding.promptContractId === "ai.schema_validation_only.internal",
     );
+};
 
+const inspectPhase05DiagnosticState = (diagnosticPackage: BuiltinMapPackage): Phase05DiagnosticState => {
+  const successPath = traceSuccessPath(diagnosticPackage);
+  return {
+    hasDeterministicDiagnosticAi: hasDeterministicDiagnosticAi(diagnosticPackage, successPath.steps),
+    hasDryRunTextInputGate: hasDryRunTextInputGate(diagnosticPackage),
+    hasNoExecutablePayload: !hasForbiddenExecutableKey(diagnosticPackage),
+    missingAbilitySurface: collectMissingAbilitySurface(diagnosticPackage.operationalMap.steps),
+    missingControlSurface: collectMissingControlSurface(diagnosticPackage),
+    missingSuccessPathSurface: collectMissingAbilitySurface(successPath.steps),
+    successPathFinalStatus: successPath.finalStatus,
+    successPathPersistsEvidence: successPath.stepIds.includes("persist-diagnostic-evidence-record"),
+    successPathUsesHumanReviewTerminal: successPath.stepIds.includes("request-human-review") || successPath.finalStatus === "review_required",
+  };
+};
+
+const collectPhase05SurfaceFindings = (state: Phase05DiagnosticState): Finding[] => {
+  if (state.missingAbilitySurface.length === 0 && state.missingControlSurface.length === 0) {
+    return [];
+  }
+
+  return [
+    createPhase05DiagnosticFinding(
+      MAP_PLUGIN_LAWS.LIFECYCLE,
+      "Phase-05 diagnostic map must cover the full governed evidence surface without adding owners.",
+      [...state.missingAbilitySurface, ...state.missingControlSurface].join(", "),
+    ),
+  ];
+};
+
+const collectPhase05SafetyFindings = (diagnosticPackage: BuiltinMapPackage, state: Phase05DiagnosticState): Finding[] => {
   const findings: Finding[] = [];
-  if (missingAbilitySurface.length > 0 || !hasControlSurface) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic map must cover the full governed evidence surface without adding owners.", detail: [...missingAbilitySurface, ...PHASE_05_REQUIRED_CONTROL_SURFACE.filter((surface) => !hasControlSurface)].join(", ") }));
+  if (!state.hasDryRunTextInputGate) {
+    findings.push(createPhase05DiagnosticFinding(MAP_PLUGIN_LAWS.NO_CODE, "Phase-05 diagnostic text-input coverage must be local sandbox dry-run/review-gated only."));
   }
-  if (!hasDryRunTextInputGate) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic text-input coverage must be local sandbox dry-run/review-gated only." }));
-  }
-  if (!hasNoExecutablePayload) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic map package must not contain executable payloads, handlers, shell commands, or raw prompts." }));
+  if (!state.hasNoExecutablePayload) {
+    findings.push(createPhase05DiagnosticFinding(MAP_PLUGIN_LAWS.NO_CODE, "Phase-05 diagnostic map package must not contain executable payloads, handlers, shell commands, or raw prompts."));
   }
   if (diagnosticPackage.manifest.activationGateStatus !== "gate_passed" || diagnosticPackage.taskTemplate.availabilityPolicy !== "active") {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic map must be gate-passed and active so acceptance cannot confuse a dormant draft package with a runnable diagnostic." }));
+    findings.push(createPhase05DiagnosticFinding(MAP_PLUGIN_LAWS.LIFECYCLE, "Phase-05 diagnostic map must be gate-passed and active so acceptance cannot confuse a dormant draft package with a runnable diagnostic."));
   }
-  if (missingSuccessPathSurface.length > 0 || !successPathPersistsEvidence || successPathFinalStatus !== "completed" || successPathUsesHumanReviewTerminal) {
-    findings.push(createFinding({
-      lawId: MAP_PLUGIN_LAWS.LIFECYCLE,
-      file: PHASE_05_DIAGNOSTIC_MAP_PATH,
-      line: 1,
-      severity: "fatal",
-      message: "Phase-05 diagnostic map primary success path must visit every required ability surface, persist evidence, and finish completed instead of using human review as the success terminal.",
-      detail: [
-        missingSuccessPathSurface.length > 0 ? `missingSuccessPathSurface=${missingSuccessPathSurface.join(",")}` : null,
-        !successPathPersistsEvidence ? "persist-diagnostic-evidence-record not reached" : null,
-        successPathFinalStatus !== "completed" ? `finalStatus=${successPathFinalStatus ?? "MISSING"}` : null,
-        successPathUsesHumanReviewTerminal ? "success path reaches request-human-review/review_required" : null,
-      ].filter(Boolean).join("; "),
-    }));
+  return findings;
+};
+
+const buildSuccessPathDetail = (state: Phase05DiagnosticState): string =>
+  [
+    state.missingSuccessPathSurface.length > 0 ? `missingSuccessPathSurface=${state.missingSuccessPathSurface.join(",")}` : null,
+    !state.successPathPersistsEvidence ? "persist-diagnostic-evidence-record not reached" : null,
+    state.successPathFinalStatus !== "completed" ? `finalStatus=${state.successPathFinalStatus ?? "MISSING"}` : null,
+    state.successPathUsesHumanReviewTerminal ? "success path reaches request-human-review/review_required" : null,
+  ].filter(Boolean).join("; ");
+
+const collectPhase05SuccessPathFindings = (state: Phase05DiagnosticState): Finding[] => {
+  const findings: Finding[] = [];
+  if (
+    state.missingSuccessPathSurface.length > 0
+    || !state.successPathPersistsEvidence
+    || state.successPathFinalStatus !== "completed"
+    || state.successPathUsesHumanReviewTerminal
+  ) {
+    findings.push(createPhase05DiagnosticFinding(MAP_PLUGIN_LAWS.LIFECYCLE, "Phase-05 diagnostic map primary success path must visit every required ability surface, persist evidence, and finish completed instead of using human review as the success terminal.", buildSuccessPathDetail(state)));
   }
-  if (!hasDeterministicDiagnosticAi) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message: "Phase-05 diagnostic AI step must use deterministic schema-validation-only with diagnostic-no-early-review, not product-presence business judgment." }));
+  if (!state.hasDeterministicDiagnosticAi) {
+    findings.push(createPhase05DiagnosticFinding(MAP_PLUGIN_LAWS.PROMPT_CONTRACT, "Phase-05 diagnostic AI step must use deterministic schema-validation-only with diagnostic-no-early-review, not product-presence business judgment."));
+  }
+  return findings;
+};
+
+export const inspectPhase05DiagnosticMapSurface = (): Finding[] => {
+  const diagnosticPackage = findPhase05DiagnosticPackage();
+  if (!diagnosticPackage) {
+    return [createPhase05DiagnosticFinding(MAP_PLUGIN_LAWS.LIFECYCLE, "Phase-05 full-surface diagnostic map must be present as a governed builtin map package.")];
   }
 
-  return findings;
+  const state = inspectPhase05DiagnosticState(diagnosticPackage);
+  return [
+    ...collectPhase05SurfaceFindings(state),
+    ...collectPhase05SafetyFindings(diagnosticPackage, state),
+    ...collectPhase05SuccessPathFindings(state),
+  ];
 };

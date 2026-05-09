@@ -8,8 +8,52 @@ import {
   finalizeVisualTargetExecution,
   type VisualTargetExecutionState,
 } from "./visual-target-execution-state.js";
+import type { VisualTargetResolvedCandidate } from "./visual-target-child-contract.js";
 
 export type VisualTargetStageRunner = (state: VisualTargetExecutionState) => VisualTargetAbilityResult | null;
+
+type SelectionFailureGate = {
+  status: VisualTargetAbilityResult["status"];
+  failureReason: VisualTargetAbilityResult["failureReason"];
+  reviewRequiredReason: VisualTargetAbilityResult["reviewRequiredReason"];
+  statusMessage: VisualTargetAbilityResult["statusMessage"];
+};
+
+function finalizeSelectionFailure(
+  state: VisualTargetExecutionState,
+  decision: VisualTargetExecutionState["decisions"]["selectionDecision"],
+  gate: SelectionFailureGate,
+): VisualTargetAbilityResult {
+  state.decisions.selectionDecision = decision;
+  return finalizeVisualTargetExecution({
+    state,
+    output: null,
+    status: gate.status,
+    failureReason: gate.failureReason,
+    reviewRequiredReason: gate.reviewRequiredReason,
+    statusMessage: gate.statusMessage,
+  });
+}
+
+function resolveSelectionCandidates(state: VisualTargetExecutionState): VisualTargetResolvedCandidate[] | VisualTargetAbilityResult {
+  const structureGate = validateCandidateStructure({
+    candidates: state.targetTypeCandidates,
+    profile: state.profile,
+  });
+  addDataQualityFlags(state.dataQualityFlags, structureGate.dataQualityFlags);
+  addRejectedCandidateRefs(state.rejectedCandidateRefs, structureGate.rejectedCandidateRefs);
+  if (!structureGate.ok) {
+    return finalizeSelectionFailure(state, structureGate.status === "review_required" ? "review_required" : "no_candidate", structureGate);
+  }
+
+  const confidenceGate = validateCandidateConfidence({
+    candidates: structureGate.candidates,
+    profile: state.profile,
+  });
+  addDataQualityFlags(state.dataQualityFlags, confidenceGate.dataQualityFlags);
+  addRejectedCandidateRefs(state.rejectedCandidateRefs, confidenceGate.rejectedCandidateRefs);
+  return confidenceGate.ok ? confidenceGate.candidates : finalizeSelectionFailure(state, "review_required", confidenceGate);
+}
 
 function runPayloadBudgetStage(state: VisualTargetExecutionState): VisualTargetAbilityResult | null {
   const payloadGate = executionGates.validateVisualTargetPayloadBudget({ request: state.input.request });
@@ -156,44 +200,13 @@ function runTargetTypeStage(state: VisualTargetExecutionState): VisualTargetAbil
 }
 
 function runSelectionStage(state: VisualTargetExecutionState): VisualTargetAbilityResult | null {
-  const structureGate = validateCandidateStructure({
-    candidates: state.targetTypeCandidates,
-    profile: state.profile,
-  });
-  addDataQualityFlags(state.dataQualityFlags, structureGate.dataQualityFlags);
-  addRejectedCandidateRefs(state.rejectedCandidateRefs, structureGate.rejectedCandidateRefs);
-  if (!structureGate.ok) {
-    state.decisions.selectionDecision = structureGate.status === "review_required" ? "review_required" : "no_candidate";
-    return finalizeVisualTargetExecution({
-      state,
-      output: null,
-      status: structureGate.status,
-      failureReason: structureGate.failureReason,
-      reviewRequiredReason: structureGate.reviewRequiredReason,
-      statusMessage: structureGate.statusMessage,
-    });
-  }
-
-  const confidenceGate = validateCandidateConfidence({
-    candidates: structureGate.candidates,
-    profile: state.profile,
-  });
-  addDataQualityFlags(state.dataQualityFlags, confidenceGate.dataQualityFlags);
-  addRejectedCandidateRefs(state.rejectedCandidateRefs, confidenceGate.rejectedCandidateRefs);
-  if (!confidenceGate.ok) {
-    state.decisions.selectionDecision = "review_required";
-    return finalizeVisualTargetExecution({
-      state,
-      output: null,
-      status: confidenceGate.status,
-      failureReason: confidenceGate.failureReason,
-      reviewRequiredReason: confidenceGate.reviewRequiredReason,
-      statusMessage: confidenceGate.statusMessage,
-    });
+  const selectionCandidates = resolveSelectionCandidates(state);
+  if (!Array.isArray(selectionCandidates)) {
+    return selectionCandidates;
   }
 
   const selectionGate = selectionGates.selectTargetCandidate({
-    candidates: confidenceGate.candidates,
+    candidates: selectionCandidates,
     profile: state.profile,
   });
   state.decisions.selectionDecision = selectionGate.decision;

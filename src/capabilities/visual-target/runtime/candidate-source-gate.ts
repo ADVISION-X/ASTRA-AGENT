@@ -176,38 +176,35 @@ function resolveEmptyCandidateSourceReviewReason(dataQualityFlags: Set<VisualTar
   return dataQualityFlags.has("operator_manual_review_required") ? "operator_approval_required" : null;
 }
 
+function resolveEmptyCandidateSourceBlocked(
+  rejectedCandidateRefs: string[],
+  dataQualityFlags: Set<VisualTargetDataQualityFlag>,
+  flags: VisualTargetDataQualityFlag[],
+): CandidateSourceBlocked | null {
+  if (dataQualityFlags.has("candidate_blocked")) {
+    return createCandidateSourceBlocked("blocked_candidate", "All visual target candidates were blocked by source policy.", rejectedCandidateRefs, flags);
+  }
+  if (dataQualityFlags.has("candidate_source_binding_mismatch")) {
+    return createCandidateSourceBlocked("candidate_source_binding_mismatch", "Visual Target candidate proof binding diverged from the governed evidence chain.", rejectedCandidateRefs, flags);
+  }
+  if (dataQualityFlags.has("candidate_observation_kind_mismatch")) {
+    return createCandidateSourceBlocked("candidate_observation_kind_mismatch", "Visual Target candidate observation kind is outside the governed child profile.", rejectedCandidateRefs, flags);
+  }
+  return dataQualityFlags.has("candidate_source_kind_mismatch")
+    ? createCandidateSourceBlocked("candidate_source_kind_mismatch", "Visual Target candidate kind is outside the governed child profile.", rejectedCandidateRefs, flags)
+    : null;
+}
+
 function createEmptyCandidateSourceFailure(
   rejectedCandidateRefs: string[],
   dataQualityFlags: Set<VisualTargetDataQualityFlag>,
 ): CandidateSourceBlocked | CandidateSourceReviewRequired {
   const flags = collectVisualTargetFlags(dataQualityFlags);
-  if (dataQualityFlags.has("candidate_blocked")) {
-    return createCandidateSourceBlocked("blocked_candidate", "All visual target candidates were blocked by source policy.", rejectedCandidateRefs, flags);
+  const blockedFailure = resolveEmptyCandidateSourceBlocked(rejectedCandidateRefs, dataQualityFlags, flags);
+  if (blockedFailure) {
+    return blockedFailure;
   }
-  if (dataQualityFlags.has("candidate_source_binding_mismatch")) {
-    return createCandidateSourceBlocked(
-      "candidate_source_binding_mismatch",
-      "Visual Target candidate proof binding diverged from the governed evidence chain.",
-      rejectedCandidateRefs,
-      flags,
-    );
-  }
-  if (dataQualityFlags.has("candidate_observation_kind_mismatch")) {
-    return createCandidateSourceBlocked(
-      "candidate_observation_kind_mismatch",
-      "Visual Target candidate observation kind is outside the governed child profile.",
-      rejectedCandidateRefs,
-      flags,
-    );
-  }
-  if (dataQualityFlags.has("candidate_source_kind_mismatch")) {
-    return createCandidateSourceBlocked(
-      "candidate_source_kind_mismatch",
-      "Visual Target candidate kind is outside the governed child profile.",
-      rejectedCandidateRefs,
-      flags,
-    );
-  }
+
   const reviewReason = resolveEmptyCandidateSourceReviewReason(dataQualityFlags);
   if (reviewReason) {
     return createCandidateSourceReview({

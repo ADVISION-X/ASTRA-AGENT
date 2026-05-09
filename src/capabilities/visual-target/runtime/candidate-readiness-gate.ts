@@ -51,6 +51,34 @@ function createStructureFailure(
   });
 }
 
+const rejectCandidate = (
+  candidate: VisualTargetResolvedCandidate,
+  rejectedCandidateRefs: string[],
+  dataQualityFlags: Set<VisualTargetDataQualityFlag>,
+  flag: VisualTargetDataQualityFlag,
+) => {
+  rejectedCandidateRefs.push(candidate.candidateRef);
+  dataQualityFlags.add(flag);
+  return false;
+};
+
+const isStructurallyValidCandidate = (input: {
+  candidate: VisualTargetResolvedCandidate;
+  profile: ResolvedVisualTargetProfile;
+  rejectedCandidateRefs: string[];
+  dataQualityFlags: Set<VisualTargetDataQualityFlag>;
+}) => {
+  if (input.candidate.executableBoundingBox.width <= 0 || input.candidate.executableBoundingBox.height <= 0) {
+    return rejectCandidate(input.candidate, input.rejectedCandidateRefs, input.dataQualityFlags, "candidate_bbox_out_of_bounds");
+  }
+  if (input.profile.requireClickPoint && !input.candidate.executableClickPoint) {
+    return rejectCandidate(input.candidate, input.rejectedCandidateRefs, input.dataQualityFlags, "candidate_missing_click_point");
+  }
+  return !input.profile.requireClickPoint && input.candidate.executableClickPoint
+    ? rejectCandidate(input.candidate, input.rejectedCandidateRefs, input.dataQualityFlags, "candidate_click_point_forbidden")
+    : true;
+};
+
 export function validateCandidateStructure(input: {
   candidates: VisualTargetResolvedCandidate[];
   profile: ResolvedVisualTargetProfile;
@@ -58,24 +86,12 @@ export function validateCandidateStructure(input: {
   const rejectedCandidateRefs: string[] = [];
   const dataQualityFlags = new Set<VisualTargetDataQualityFlag>();
 
-  const candidates = input.candidates.filter((candidate) => {
-    if (candidate.executableBoundingBox.width <= 0 || candidate.executableBoundingBox.height <= 0) {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      dataQualityFlags.add("candidate_bbox_out_of_bounds");
-      return false;
-    }
-    if (input.profile.requireClickPoint && !candidate.executableClickPoint) {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      dataQualityFlags.add("candidate_missing_click_point");
-      return false;
-    }
-    if (!input.profile.requireClickPoint && candidate.executableClickPoint) {
-      rejectedCandidateRefs.push(candidate.candidateRef);
-      dataQualityFlags.add("candidate_click_point_forbidden");
-      return false;
-    }
-    return true;
-  });
+  const candidates = input.candidates.filter((candidate) => isStructurallyValidCandidate({
+    candidate,
+    profile: input.profile,
+    rejectedCandidateRefs,
+    dataQualityFlags,
+  }));
 
   if (candidates.length === 0) {
     return createStructureFailure(rejectedCandidateRefs, dataQualityFlags);

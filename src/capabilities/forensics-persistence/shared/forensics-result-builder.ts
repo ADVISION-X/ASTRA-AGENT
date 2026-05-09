@@ -14,6 +14,7 @@ import {
   ForensicsResultSchema,
 } from "../schema.js";
 import { buildForensicsProof } from "./forensics-proof-builder.js";
+import { resolveForensicsPersistenceStatus } from "./forensics-status.js";
 
 const buildForensicsOutput = (input: {
   storedRecord: StoredForensicsRecord | null;
@@ -39,19 +40,6 @@ const buildForensicsRecordRef = (input: {
   storageRef: null,
 });
 
-const resolveForensicsResultStatus = (input: {
-  failureReason: ForensicsFailure | null;
-  reviewRequiredReason: string | null;
-  integrityDecision: ForensicsIntegrityDecision;
-  storedRecord: StoredForensicsRecord | null;
-}) => input.failureReason
-  ? "failed"
-  : input.storedRecord?.storageRef
-    ? "success"
-  : input.reviewRequiredReason || input.integrityDecision.status === "review_required"
-    ? "review_required"
-    : "success";
-
 export function buildForensicsResult(input: {
   request: ForensicsAbilityInput;
   policyDecision: ForensicsPolicyDecision;
@@ -65,7 +53,7 @@ export function buildForensicsResult(input: {
 }): ForensicsResult {
   const output = buildForensicsOutput({ storedRecord: input.storedRecord, policyDecision: input.policyDecision });
   const recordRef = buildForensicsRecordRef({ request: input.request, policyDecision: input.policyDecision, storedRecord: input.storedRecord });
-  const status = resolveForensicsResultStatus({
+  const status = resolveForensicsPersistenceStatus({
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,
     integrityDecision: input.integrityDecision,

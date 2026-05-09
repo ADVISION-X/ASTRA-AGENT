@@ -43,61 +43,84 @@ function createPageStateReview(statusMessage: string, reviewRequiredReason: stri
   });
 }
 
+function createPageStateBindingMismatch(statusMessage: string): PageStateBlocked {
+  return createPageStateBlocked("page_state_binding_mismatch", statusMessage);
+}
+
+function findPageStateStatusConflict(pageStateProof: ParsedVisualTargetAbilityInput["sourceProof"]["pageState"]): PageStateBlocked | PageStateReviewRequired | null {
+  if (pageStateProof.pageStateStatus === "failed") {
+    return createPageStateBlocked("page_state_blocked", "Page State blocked governed target selection for the current page.");
+  }
+  return pageStateProof.pageStateStatus === "review_required"
+    ? createPageStateReview(
+      "Page State requires review before Visual Target can return success.",
+      "Visual Target cannot resolve target success while Page State is review_required.",
+    )
+    : null;
+}
+
+function findPageStateRequestBindingConflict(request: ParsedVisualTargetAbilityInput): PageStateBlocked | null {
+  const pageStateProof = request.sourceProof.pageState;
+  if (pageStateProof.missionId !== request.missionId) {
+    return createPageStateBindingMismatch("Page State proof missionId must match the Visual Target request.");
+  }
+  if (pageStateProof.runId !== request.runId) {
+    return createPageStateBindingMismatch("Page State proof runId must match the Visual Target request.");
+  }
+  if (pageStateProof.sessionId !== request.sessionId) {
+    return createPageStateBlocked("page_state_blocked", "Page State proof session binding must match the Visual Target request.");
+  }
+  if (!matchesRequestedBinding(request.roundId, pageStateProof.roundId)) {
+    return createPageStateBindingMismatch("Page State proof roundId must match the Visual Target request.");
+  }
+  return !matchesRequestedBinding(request.videoVisitId, pageStateProof.videoVisitId)
+    ? createPageStateBindingMismatch("Page State proof videoVisitId must match the Visual Target request.")
+    : null;
+}
+
+function findPageStateSharedBindingConflict(label: string, left: string | null, right: string | null): PageStateBlocked | null {
+  return hasSharedBindingConflict(left, right)
+    ? createPageStateBindingMismatch(`Page State proof ${label} must stay aligned with governed evidence.`)
+    : null;
+}
+
+function findPageStateEvidenceBindingConflict(request: ParsedVisualTargetAbilityInput): PageStateBlocked | null {
+  const pageStateProof = request.sourceProof.pageState;
+  const screenshotProof = request.sourceProof.screenshot;
+  const sharedBindingConflicts = [
+    findPageStateSharedBindingConflict("roundId", screenshotProof.roundId, pageStateProof.roundId),
+    findPageStateSharedBindingConflict("videoVisitId", screenshotProof.videoVisitId, pageStateProof.videoVisitId),
+    findPageStateSharedBindingConflict("missionId", screenshotProof.missionId, pageStateProof.missionId),
+    findPageStateSharedBindingConflict("runId", screenshotProof.runId, pageStateProof.runId),
+    request.sourceProof.ai ? findPageStateSharedBindingConflict("roundId", request.sourceProof.ai.roundId, pageStateProof.roundId) : null,
+    request.sourceProof.ai ? findPageStateSharedBindingConflict("videoVisitId", request.sourceProof.ai.videoVisitId, pageStateProof.videoVisitId) : null,
+    request.sourceProof.ai ? findPageStateSharedBindingConflict("missionId", request.sourceProof.ai.missionId, pageStateProof.missionId) : null,
+    request.sourceProof.ai ? findPageStateSharedBindingConflict("runId", request.sourceProof.ai.runId, pageStateProof.runId) : null,
+  ];
+
+  return sharedBindingConflicts.find((conflict) => conflict !== null) ?? null;
+}
+
 function resolvePageStateConflict(input: {
   request: ParsedVisualTargetAbilityInput;
   allowedPageStateChildCapabilityIds: readonly string[];
 }): PageStateBlocked | PageStateReviewRequired | null {
   const pageStateProof = input.request.sourceProof.pageState;
-  const screenshotProof = input.request.sourceProof.screenshot;
-  const aiProof = input.request.sourceProof.ai;
-  if (pageStateProof.pageStateStatus === "failed") {
-    return createPageStateBlocked("page_state_blocked", "Page State blocked governed target selection for the current page.");
+  const statusConflict = findPageStateStatusConflict(pageStateProof);
+  if (statusConflict) {
+    return statusConflict;
   }
-  if (pageStateProof.pageStateStatus === "review_required") {
-    return createPageStateReview(
-      "Page State requires review before Visual Target can return success.",
-      "Visual Target cannot resolve target success while Page State is review_required.",
-    );
+
+  const requestBindingConflict = findPageStateRequestBindingConflict(input.request);
+  if (requestBindingConflict) {
+    return requestBindingConflict;
   }
-  if (pageStateProof.missionId !== input.request.missionId) {
-    return createPageStateBlocked("page_state_binding_mismatch", "Page State proof missionId must match the Visual Target request.");
+
+  const evidenceBindingConflict = findPageStateEvidenceBindingConflict(input.request);
+  if (evidenceBindingConflict) {
+    return evidenceBindingConflict;
   }
-  if (pageStateProof.runId !== input.request.runId) {
-    return createPageStateBlocked("page_state_binding_mismatch", "Page State proof runId must match the Visual Target request.");
-  }
-  if (pageStateProof.sessionId !== input.request.sessionId) {
-    return createPageStateBlocked("page_state_blocked", "Page State proof session binding must match the Visual Target request.");
-  }
-  if (!matchesRequestedBinding(input.request.roundId, pageStateProof.roundId)) {
-    return createPageStateBlocked("page_state_binding_mismatch", "Page State proof roundId must match the Visual Target request.");
-  }
-  if (!matchesRequestedBinding(input.request.videoVisitId, pageStateProof.videoVisitId)) {
-    return createPageStateBlocked("page_state_binding_mismatch", "Page State proof videoVisitId must match the Visual Target request.");
-  }
-  if (hasSharedBindingConflict(screenshotProof.roundId, pageStateProof.roundId)) {
-    return createPageStateBlocked("page_state_binding_mismatch", "Page State proof roundId must stay aligned with screenshot proof.");
-  }
-  if (hasSharedBindingConflict(screenshotProof.videoVisitId, pageStateProof.videoVisitId)) {
-    return createPageStateBlocked("page_state_binding_mismatch", "Page State proof videoVisitId must stay aligned with screenshot proof.");
-  }
-  if (hasSharedBindingConflict(screenshotProof.missionId, pageStateProof.missionId)) {
-    return createPageStateBlocked("page_state_binding_mismatch", "Page State proof missionId must stay aligned with screenshot proof.");
-  }
-  if (hasSharedBindingConflict(screenshotProof.runId, pageStateProof.runId)) {
-    return createPageStateBlocked("page_state_binding_mismatch", "Page State proof runId must stay aligned with screenshot proof.");
-  }
-  if (aiProof && hasSharedBindingConflict(aiProof.roundId, pageStateProof.roundId)) {
-    return createPageStateBlocked("page_state_binding_mismatch", "Page State proof roundId must stay aligned with AI proof.");
-  }
-  if (aiProof && hasSharedBindingConflict(aiProof.videoVisitId, pageStateProof.videoVisitId)) {
-    return createPageStateBlocked("page_state_binding_mismatch", "Page State proof videoVisitId must stay aligned with AI proof.");
-  }
-  if (aiProof && hasSharedBindingConflict(aiProof.missionId, pageStateProof.missionId)) {
-    return createPageStateBlocked("page_state_binding_mismatch", "Page State proof missionId must stay aligned with AI proof.");
-  }
-  if (aiProof && hasSharedBindingConflict(aiProof.runId, pageStateProof.runId)) {
-    return createPageStateBlocked("page_state_binding_mismatch", "Page State proof runId must stay aligned with AI proof.");
-  }
+
   if (!input.allowedPageStateChildCapabilityIds.includes(pageStateProof.pageStateChildCapabilityId)) {
     return createPageStateReview(
       `Page State ${pageStateProof.pageStateChildCapabilityId} is not valid for ${input.request.childCapabilityId}.`,

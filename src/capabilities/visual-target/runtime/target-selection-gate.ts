@@ -18,35 +18,43 @@ export type VisualTargetCandidateScoreTrace = {
   tieBreakKey: string;
 };
 
+function resolveCandidateDataQualityPenalty(flag: VisualTargetDataQualityFlag): number {
+  switch (flag) {
+    case "candidate_coordinate_requires_mapping":
+      return 0.05;
+    case "candidate_mapping_unverified":
+      return 0.1;
+    case "candidate_source_frame_missing":
+      return 0.08;
+    case "low_confidence":
+    case "ai_confidence_low":
+      return 0.2;
+    default:
+      return 0;
+  }
+}
+
+function resolveCandidateDataQualityTotal(flags: readonly VisualTargetDataQualityFlag[]): number {
+  return flags.reduce((total, flag) => total + resolveCandidateDataQualityPenalty(flag), 0);
+}
+
+function resolveCandidateSourcePenalty(coordinateSpace: VisualTargetResolvedCandidate["originalCoordinateSpace"]): number {
+  switch (coordinateSpace) {
+    case "desktop_screen":
+      return 0.03;
+    case "source_image":
+      return 0.08;
+    case "ai_input":
+      return 0.12;
+    default:
+      return 0;
+  }
+}
+
 function buildCandidateTrace(candidate: VisualTargetResolvedCandidate, index: number): VisualTargetCandidateScoreTrace {
   const stalePenalty = candidate.dataQualityFlags.includes("stale_candidate") ? 0.12 : 0;
-  const dataQualityPenalty = candidate.dataQualityFlags.reduce((total, flag) => {
-    switch (flag) {
-      case "candidate_coordinate_requires_mapping":
-        return total + 0.05;
-      case "candidate_mapping_unverified":
-        return total + 0.1;
-      case "candidate_source_frame_missing":
-        return total + 0.08;
-      case "low_confidence":
-      case "ai_confidence_low":
-        return total + 0.2;
-      default:
-        return total;
-    }
-  }, 0);
-  const sourcePenalty = (() => {
-    switch (candidate.originalCoordinateSpace) {
-      case "desktop_screen":
-        return 0.03;
-      case "source_image":
-        return 0.08;
-      case "ai_input":
-        return 0.12;
-      default:
-        return 0;
-    }
-  })();
+  const dataQualityPenalty = resolveCandidateDataQualityTotal(candidate.dataQualityFlags);
+  const sourcePenalty = resolveCandidateSourcePenalty(candidate.originalCoordinateSpace);
   const finalScore = Math.max(0, candidate.confidence - stalePenalty - dataQualityPenalty - sourcePenalty);
 
   return {

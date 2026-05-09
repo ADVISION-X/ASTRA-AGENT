@@ -116,6 +116,148 @@ const collectSnippetFindings = (input: {
     : [createViolation({ lawId: config.ACTIVE_LAW_IDS[4], file: input.filePath, message: snippet.message })]);
 };
 
+const collectScreenshotBindingFindings = (sourceFile: import("ts-morph").SourceFile) => collectSnippetFindings({
+  sourceFile,
+  filePath: SCREENSHOT_PATH,
+  snippets: [
+    {
+      needle: 'screenshotProof.missionId !== input.request.missionId',
+      message: 'Screenshot proof gate must enforce request missionId alignment.',
+    },
+    {
+      needle: 'screenshotProof.runId !== input.request.runId',
+      message: 'Screenshot proof gate must enforce request runId alignment.',
+    },
+  ],
+});
+
+const collectCandidateSourceBindingFindings = (sourceFile: import("ts-morph").SourceFile) => collectSnippetFindings({
+  sourceFile,
+  filePath: CANDIDATE_SOURCE_PATH,
+  snippets: [
+    {
+      needle: 'requiredObservationKinds.includes(input.candidate.targetType)',
+      message: 'Candidate source gate must enforce requiredObservationKinds against candidate targetType.',
+    },
+    {
+      needle: '"candidate_source_binding_mismatch"',
+      message: 'Candidate source gate must fail closed when candidate proof binding diverges from governed evidence.',
+    },
+  ],
+});
+
+const collectAiBindingGateFindings = (sourceFile: import("ts-morph").SourceFile) => collectSnippetFindings({
+  sourceFile,
+  filePath: AI_BINDING_PATH,
+  snippets: [
+    {
+      needle: 'aiProof.missionId !== input.request.missionId',
+      message: 'AI proof binding must enforce request missionId alignment.',
+    },
+    {
+      needle: 'aiProof.runId !== input.request.runId',
+      message: 'AI proof binding must enforce request runId alignment.',
+    },
+    {
+      needle: 'matchesRequestedBinding(input.request.roundId, aiProof.roundId)',
+      message: 'AI proof binding must enforce request roundId alignment.',
+    },
+    {
+      needle: 'matchesRequestedBinding(input.request.videoVisitId, aiProof.videoVisitId)',
+      message: 'AI proof binding must enforce request videoVisitId alignment.',
+    },
+    {
+      needle: 'hasSharedBindingConflict(screenshotProof.missionId, aiProof.missionId)',
+      message: 'AI proof binding must enforce screenshot and AI missionId alignment.',
+    },
+    {
+      needle: 'hasSharedBindingConflict(screenshotProof.runId, aiProof.runId)',
+      message: 'AI proof binding must enforce screenshot and AI runId alignment.',
+    },
+    {
+      needle: 'hasSharedBindingConflict(screenshotProof.roundId, aiProof.roundId)',
+      message: 'AI proof binding must enforce screenshot and AI roundId alignment.',
+    },
+  ],
+});
+
+const collectPageStateBindingFindings = (sourceFile: import("ts-morph").SourceFile) => collectSnippetFindings({
+  sourceFile,
+  filePath: PAGE_STATE_PATH,
+  snippets: [
+    {
+      needle: 'pageStateProof.missionId !== input.request.missionId',
+      message: 'Page State gate must enforce request missionId alignment.',
+    },
+    {
+      needle: 'pageStateProof.runId !== input.request.runId',
+      message: 'Page State gate must enforce request runId alignment.',
+    },
+    {
+      needle: 'matchesRequestedBinding(input.request.roundId, pageStateProof.roundId)',
+      message: 'Page State gate must enforce request roundId alignment.',
+    },
+    {
+      needle: 'matchesRequestedBinding(input.request.videoVisitId, pageStateProof.videoVisitId)',
+      message: 'Page State gate must enforce request videoVisitId alignment.',
+    },
+    {
+      needle: 'hasSharedBindingConflict(screenshotProof.missionId, pageStateProof.missionId)',
+      message: 'Page State gate must enforce screenshot and Page State missionId alignment.',
+    },
+    {
+      needle: 'hasSharedBindingConflict(screenshotProof.runId, pageStateProof.runId)',
+      message: 'Page State gate must enforce screenshot and Page State runId alignment.',
+    },
+    {
+      needle: 'hasSharedBindingConflict(screenshotProof.roundId, pageStateProof.roundId)',
+      message: 'Page State gate must enforce screenshot and Page State roundId alignment.',
+    },
+    {
+      needle: 'hasSharedBindingConflict(aiProof.missionId, pageStateProof.missionId)',
+      message: 'Page State gate must enforce AI and Page State missionId alignment.',
+    },
+    {
+      needle: 'hasSharedBindingConflict(aiProof.runId, pageStateProof.runId)',
+      message: 'Page State gate must enforce AI and Page State runId alignment.',
+    },
+  ],
+});
+
+const collectCoordinateSpaceBindingFindings = (sourceFile: import("ts-morph").SourceFile) => collectSnippetFindings({
+  sourceFile,
+  filePath: COORDINATE_SPACE_PATH,
+  snippets: [
+    {
+      needle: 'isPointInsideBoundingBox(input.acceptedCandidate.executableClickPoint, input.acceptedCandidate.executableBoundingBox)',
+      message: 'Coordinate space gate must keep clickPoint-inside-bbox enforcement after executable mapping.',
+    },
+    {
+      needle: 'candidate_bbox_out_of_bounds',
+      message: 'Coordinate space gate must fail closed when executable bbox or clickPoint leaves governed bounds.',
+    },
+  ],
+});
+
+const collectTargetSelectionBindingFindings = (sourceFile: import("ts-morph").SourceFile) => collectSnippetFindings({
+  sourceFile,
+  filePath: TARGET_SELECTION_PATH,
+  snippets: [
+    {
+      needle: 'candidate.confidence - stalePenalty - dataQualityPenalty - sourcePenalty',
+      message: 'Target selection must keep score-based ranking instead of regressing to raw input order.',
+    },
+    {
+      needle: 'right.finalScore !== left.finalScore',
+      message: 'Target selection ranking must stay ordered by governed finalScore.',
+    },
+    {
+      needle: 'scoreGap < input.profile.selectionWindow',
+      message: 'Target selection must keep governed selectionWindow ambiguity handling.',
+    },
+  ],
+});
+
 const collectBindingGateFindings = (input: {
   screenshot: import("ts-morph").SourceFile;
   candidateSource: import("ts-morph").SourceFile;
@@ -123,146 +265,14 @@ const collectBindingGateFindings = (input: {
   pageState: import("ts-morph").SourceFile;
   coordinateSpace: import("ts-morph").SourceFile;
   targetSelection: import("ts-morph").SourceFile;
-}) => {
-  return [
-    ...collectSnippetFindings({
-      sourceFile: input.screenshot,
-      filePath: SCREENSHOT_PATH,
-      snippets: [
-        {
-          needle: 'screenshotProof.missionId !== input.request.missionId',
-          message: 'Screenshot proof gate must enforce request missionId alignment.',
-        },
-        {
-          needle: 'screenshotProof.runId !== input.request.runId',
-          message: 'Screenshot proof gate must enforce request runId alignment.',
-        },
-      ],
-    }),
-    ...collectSnippetFindings({
-      sourceFile: input.candidateSource,
-      filePath: CANDIDATE_SOURCE_PATH,
-      snippets: [
-        {
-          needle: 'requiredObservationKinds.includes(input.candidate.targetType)',
-          message: 'Candidate source gate must enforce requiredObservationKinds against candidate targetType.',
-        },
-        {
-          needle: '"candidate_source_binding_mismatch"',
-          message: 'Candidate source gate must fail closed when candidate proof binding diverges from governed evidence.',
-        },
-      ],
-    }),
-    ...collectSnippetFindings({
-      sourceFile: input.aiBinding,
-      filePath: AI_BINDING_PATH,
-      snippets: [
-        {
-          needle: 'aiProof.missionId !== input.request.missionId',
-          message: 'AI proof binding must enforce request missionId alignment.',
-        },
-        {
-          needle: 'aiProof.runId !== input.request.runId',
-          message: 'AI proof binding must enforce request runId alignment.',
-        },
-        {
-          needle: 'matchesRequestedBinding(input.request.roundId, aiProof.roundId)',
-          message: 'AI proof binding must enforce request roundId alignment.',
-        },
-        {
-          needle: 'matchesRequestedBinding(input.request.videoVisitId, aiProof.videoVisitId)',
-          message: 'AI proof binding must enforce request videoVisitId alignment.',
-        },
-        {
-          needle: 'hasSharedBindingConflict(screenshotProof.missionId, aiProof.missionId)',
-          message: 'AI proof binding must enforce screenshot and AI missionId alignment.',
-        },
-        {
-          needle: 'hasSharedBindingConflict(screenshotProof.runId, aiProof.runId)',
-          message: 'AI proof binding must enforce screenshot and AI runId alignment.',
-        },
-        {
-          needle: 'hasSharedBindingConflict(screenshotProof.roundId, aiProof.roundId)',
-          message: 'AI proof binding must enforce screenshot and AI roundId alignment.',
-        },
-      ],
-    }),
-    ...collectSnippetFindings({
-      sourceFile: input.pageState,
-      filePath: PAGE_STATE_PATH,
-      snippets: [
-        {
-          needle: 'pageStateProof.missionId !== input.request.missionId',
-          message: 'Page State gate must enforce request missionId alignment.',
-        },
-        {
-          needle: 'pageStateProof.runId !== input.request.runId',
-          message: 'Page State gate must enforce request runId alignment.',
-        },
-        {
-          needle: 'matchesRequestedBinding(input.request.roundId, pageStateProof.roundId)',
-          message: 'Page State gate must enforce request roundId alignment.',
-        },
-        {
-          needle: 'matchesRequestedBinding(input.request.videoVisitId, pageStateProof.videoVisitId)',
-          message: 'Page State gate must enforce request videoVisitId alignment.',
-        },
-        {
-          needle: 'hasSharedBindingConflict(screenshotProof.missionId, pageStateProof.missionId)',
-          message: 'Page State gate must enforce screenshot and Page State missionId alignment.',
-        },
-        {
-          needle: 'hasSharedBindingConflict(screenshotProof.runId, pageStateProof.runId)',
-          message: 'Page State gate must enforce screenshot and Page State runId alignment.',
-        },
-        {
-          needle: 'hasSharedBindingConflict(screenshotProof.roundId, pageStateProof.roundId)',
-          message: 'Page State gate must enforce screenshot and Page State roundId alignment.',
-        },
-        {
-          needle: 'hasSharedBindingConflict(aiProof.missionId, pageStateProof.missionId)',
-          message: 'Page State gate must enforce AI and Page State missionId alignment.',
-        },
-        {
-          needle: 'hasSharedBindingConflict(aiProof.runId, pageStateProof.runId)',
-          message: 'Page State gate must enforce AI and Page State runId alignment.',
-        },
-      ],
-    }),
-    ...collectSnippetFindings({
-      sourceFile: input.coordinateSpace,
-      filePath: COORDINATE_SPACE_PATH,
-      snippets: [
-        {
-          needle: 'isPointInsideBoundingBox(input.acceptedCandidate.executableClickPoint, input.acceptedCandidate.executableBoundingBox)',
-          message: 'Coordinate space gate must keep clickPoint-inside-bbox enforcement after executable mapping.',
-        },
-        {
-          needle: 'candidate_bbox_out_of_bounds',
-          message: 'Coordinate space gate must fail closed when executable bbox or clickPoint leaves governed bounds.',
-        },
-      ],
-    }),
-    ...collectSnippetFindings({
-      sourceFile: input.targetSelection,
-      filePath: TARGET_SELECTION_PATH,
-      snippets: [
-        {
-          needle: 'candidate.confidence - stalePenalty - dataQualityPenalty - sourcePenalty',
-          message: 'Target selection must keep score-based ranking instead of regressing to raw input order.',
-        },
-        {
-          needle: 'right.finalScore !== left.finalScore',
-          message: 'Target selection ranking must stay ordered by governed finalScore.',
-        },
-        {
-          needle: 'scoreGap < input.profile.selectionWindow',
-          message: 'Target selection must keep governed selectionWindow ambiguity handling.',
-        },
-      ],
-    }),
-  ];
-};
+}): ReturnType<typeof collectSnippetFindings> => [
+  ...collectScreenshotBindingFindings(input.screenshot),
+  ...collectCandidateSourceBindingFindings(input.candidateSource),
+  ...collectAiBindingGateFindings(input.aiBinding),
+  ...collectPageStateBindingFindings(input.pageState),
+  ...collectCoordinateSpaceBindingFindings(input.coordinateSpace),
+  ...collectTargetSelectionBindingFindings(input.targetSelection),
+];
 
 export async function runPipelineTruthAttack(project: Project): Promise<AttackOutcome> {
   const stageRunnerSource = getSourceFileOrThrow(project, STAGE_RUNNER_PATH);

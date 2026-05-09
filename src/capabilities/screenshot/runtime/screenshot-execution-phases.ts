@@ -1,27 +1,10 @@
 import type { ScreenshotAbilityInput, ScreenshotAbilityResult, ScreenshotFailure, ScreenshotRuntimeProof, ScreenshotSourceProof } from "../contract.js";
-import { runRegionProofGate } from "./region-proof-gate.js";
-import { runCaptureRunner } from "./capture-runner.js";
-import { runImageProcessingRunner } from "./image-processing-runner.js";
-import { runArtifactStorageGate } from "./artifact-storage-gate.js";
-import { burnEphemeralScreenshotFile } from "./screenshot-ephemeral-file-cleanup.js";
-import { executeScreenshotExecutionSuccess } from "./screenshot-execution-success.js";
-import { createScreenshotFailure } from "../shared/screenshot-failure.js";
-import {
-  buildScreenshotArtifactStorageFailure,
-  buildScreenshotCaptureExecutionFailure,
-  buildScreenshotOutputMetadataFailure,
-  buildScreenshotRegionValidationFailure,
-} from "./screenshot-execution-failure-builders.js";
-import {
-  resolveScreenshotCaptureAndImagePhaseFailure,
-  resolveScreenshotCaptureRun,
-  resolveScreenshotImageRun,
-  resolveScreenshotOutputMetadata,
-} from "./screenshot-execution-phase-helpers.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 import type { ScreenshotChildRegistryEntry, ScreenshotExecutionPlan } from "./screenshot-child-contract.js";
 import type { ScreenshotExecutionScope } from "./screenshot-execution-failure.js";
 import type { ScreenshotClockStart } from "./screenshot-clock.js";
+import { screenshotExecutionRuntimeSupport } from "./screenshot-execution-runtime-support.js";
+import { screenshotExecutionPhaseSupport } from "./screenshot-execution-phase-support.js";
 
 type ScreenshotDecision = ScreenshotRuntimeProof["privacyDecision"];
 
@@ -57,12 +40,12 @@ async function executeScreenshotRegionGatePhase(input: {
   scope: ScreenshotExecutionScope;
   clockStart: ScreenshotClockStart;
 }): Promise<{ regionGate: { failure: ScreenshotFailure | null; decision: ScreenshotDecision } } | ScreenshotAbilityResult> {
-  const regionGate = runRegionProofGate({
+  const regionGate = screenshotExecutionRuntimeSupport.runRegionProofGate({
     sourceProof: input.gates.sourceGate.sourceProof,
     region: input.plan.kind === "image-processing" && "region" in input.plan ? input.plan.region : null,
   });
   if (regionGate.failure || regionGate.decision.status === "failed") {
-    return await buildScreenshotRegionValidationFailure({
+    return await screenshotExecutionPhaseSupport.buildScreenshotRegionValidationFailure({
       request: input.request,
       context: input.context,
       scope: input.scope,
@@ -85,8 +68,8 @@ async function executeScreenshotCaptureAndImagePhase(input: {
   scope: ScreenshotExecutionScope;
   clockStart: ScreenshotClockStart;
   registryEntry: ScreenshotChildRegistryEntry;
-}): Promise<{ captureRun: Awaited<ReturnType<typeof runCaptureRunner>> | null; imageRun: Awaited<ReturnType<typeof runImageProcessingRunner>> | null; } | ScreenshotAbilityResult> {
-  const captureRun = await resolveScreenshotCaptureRun({
+}): Promise<{ captureRun: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runCaptureRunner>> | null; imageRun: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runImageProcessingRunner>> | null; } | ScreenshotAbilityResult> {
+  const captureRun = await screenshotExecutionPhaseSupport.resolveScreenshotCaptureRun({
     plan: input.plan,
     context: input.context,
     scope: input.scope,
@@ -94,13 +77,13 @@ async function executeScreenshotCaptureAndImagePhase(input: {
     clockStart: input.clockStart,
     registryEntry: input.registryEntry,
   });
-  const imageRun = await resolveScreenshotImageRun({
+  const imageRun = await screenshotExecutionPhaseSupport.resolveScreenshotImageRun({
     plan: input.plan,
     context: input.context,
     request: input.request,
     registryEntry: input.registryEntry,
   });
-  const failure = await resolveScreenshotCaptureAndImagePhaseFailure({
+  const failure = await screenshotExecutionPhaseSupport.resolveScreenshotCaptureAndImagePhaseFailure({
     request: input.request,
     context: input.context,
     scope: input.scope,
@@ -122,15 +105,15 @@ async function executeScreenshotCaptureAndImagePhase(input: {
 
 function validateAndExtractScreenshotMetadata(input: {
   plan: ScreenshotExecutionPlan;
-  captureRun: Awaited<ReturnType<typeof runCaptureRunner>> | null;
-  imageRun: Awaited<ReturnType<typeof runImageProcessingRunner>> | null;
+  captureRun: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runCaptureRunner>> | null;
+  imageRun: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runImageProcessingRunner>> | null;
   request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   scope: ScreenshotExecutionScope;
   clockStart: ScreenshotClockStart;
   gates: ScreenshotExecutionGates;
 }): Promise<ScreenshotAbilityResult | { outputFilePath: string; outputWidth: number; outputHeight: number; mimeType: string; createdAt: string }> {
-  return resolveScreenshotOutputMetadata({
+  return screenshotExecutionPhaseSupport.resolveScreenshotOutputMetadata({
     plan: input.plan,
     captureRun: input.captureRun,
     imageRun: input.imageRun,
@@ -142,7 +125,7 @@ function validateAndExtractScreenshotMetadata(input: {
   }).then((metadataResolution) => (metadataResolution.ok ? metadataResolution.metadata : metadataResolution.failure));
 }
 
-function hasArtifactStorageGateRefs(artifactGate: Awaited<ReturnType<typeof runArtifactStorageGate>>) {
+function hasArtifactStorageGateRefs(artifactGate: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runArtifactStorageGate>>) {
   return !artifactGate.artifactRef
     || !artifactGate.artifactLifecycleManifestRef
     || !artifactGate.outputHash
@@ -151,11 +134,11 @@ function hasArtifactStorageGateRefs(artifactGate: Awaited<ReturnType<typeof runA
     || !artifactGate.promotionStatus;
 }
 
-function hasArtifactStorageGateMetrics(artifactGate: Awaited<ReturnType<typeof runArtifactStorageGate>>) {
+function hasArtifactStorageGateMetrics(artifactGate: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runArtifactStorageGate>>) {
   return artifactGate.byteSize === null || artifactGate.cleanupEligible === null;
 }
 
-function hasArtifactStorageGateFailure(artifactGate: Awaited<ReturnType<typeof runArtifactStorageGate>>) {
+function hasArtifactStorageGateFailure(artifactGate: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runArtifactStorageGate>>) {
   return artifactGate.failure
     || artifactGate.decision.status !== "passed"
     || hasArtifactStorageGateRefs(artifactGate)
@@ -164,9 +147,9 @@ function hasArtifactStorageGateFailure(artifactGate: Awaited<ReturnType<typeof r
 
 async function buildArtifactStorageFailureResult(
   input: Parameters<typeof executeScreenshotArtifactStoragePhase>[0],
-  artifactGate: Awaited<ReturnType<typeof runArtifactStorageGate>>,
+  artifactGate: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runArtifactStorageGate>>,
 ) {
-  return buildScreenshotArtifactStorageFailure({
+  return screenshotExecutionPhaseSupport.buildScreenshotArtifactStorageFailure({
     request: input.request,
     context: input.context,
     scope: input.scope,
@@ -183,9 +166,9 @@ async function buildArtifactStorageFailureResult(
 
 function buildArtifactStorageSuccessResult(
   input: Parameters<typeof executeScreenshotArtifactStoragePhase>[0],
-  artifactGate: Awaited<ReturnType<typeof runArtifactStorageGate>>,
+  artifactGate: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runArtifactStorageGate>>,
 ) {
-  return executeScreenshotExecutionSuccess({
+  return screenshotExecutionRuntimeSupport.executeScreenshotExecutionSuccess({
     request: input.request,
     context: input.context,
     registryEntry: input.registryEntry,
@@ -202,8 +185,8 @@ function buildArtifactStorageSuccessResult(
 
 async function executeScreenshotArtifactStoragePhase(input: {
   plan: ScreenshotExecutionPlan;
-  captureRun: Awaited<ReturnType<typeof runCaptureRunner>> | null;
-  imageRun: Awaited<ReturnType<typeof runImageProcessingRunner>> | null;
+  captureRun: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runCaptureRunner>> | null;
+  imageRun: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runImageProcessingRunner>> | null;
   request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   scope: ScreenshotExecutionScope;
@@ -212,7 +195,7 @@ async function executeScreenshotArtifactStoragePhase(input: {
   metadata: { outputFilePath: string; outputWidth: number; outputHeight: number; mimeType: string; createdAt: string };
   registryEntry: ScreenshotChildRegistryEntry;
 }) {
-  const artifactGate = await runArtifactStorageGate({
+  const artifactGate = await screenshotExecutionRuntimeSupport.runArtifactStorageGate({
     request: input.request,
     context: input.context,
     childCapabilityId: input.request.childCapabilityId,
@@ -224,7 +207,7 @@ async function executeScreenshotArtifactStoragePhase(input: {
     mimeType: input.metadata.mimeType,
     createdAt: input.metadata.createdAt,
   });
-  const ephemeralCleanup = await burnEphemeralScreenshotFile({
+  const ephemeralCleanup = await screenshotExecutionRuntimeSupport.burnEphemeralScreenshotFile({
     outputFilePath: input.metadata.outputFilePath,
     retainedArtifactStorageRef: artifactGate.artifactRef?.storageRef ?? null,
   });
@@ -232,7 +215,7 @@ async function executeScreenshotArtifactStoragePhase(input: {
     return await buildArtifactStorageFailureResult(input, {
       ...artifactGate,
       decision: { status: "failed", reason: "ephemeral_cleanup_failed" },
-      failure: createScreenshotFailure({
+      failure: screenshotExecutionRuntimeSupport.createScreenshotFailure({
         code: "artifact_lifecycle_invalid",
         message: "Screenshot ephemeral work file cleanup failed after artifact handoff.",
         detail: ephemeralCleanup.reason,

@@ -3,7 +3,6 @@ import {
   AiCommentSignalSummaryInputSchema,
   AiOcrCleanupInputSchema,
   AiProductSignalSummaryInputSchema,
-  AiRuntimeHealthSchema,
   AiVisionRequestInputSchema,
 } from "../schema.js";
 import {
@@ -18,26 +17,15 @@ import {
   type LocalAiHealth,
   type LocalAiTaskRequest,
   type LocalAiTaskType,
-} from "../../../types/local-ai.js";
-import { VisionPagePreparationRequestInputSchema } from "../../../types/vision-page-preparation.js";
-import { VisionNextItemAdvancedRequestInputSchema } from "../../../types/vision-next-item-advanced.js";
-import { VisionCommentsEntryTargetCandidateRequestInputSchema } from "../../../types/vision-comments-entry-target-candidate.js";
-import { VisionNextItemTargetCandidateRequestInputSchema } from "../../../types/vision-next-item-target-candidate.js";
-import { VisionProductPresenceRequestInputSchema } from "../../../types/vision-product-presence.js";
+  VisionCommentsEntryTargetCandidateRequestInputSchema,
+  VisionNextItemAdvancedRequestInputSchema,
+  VisionNextItemTargetCandidateRequestInputSchema,
+  VisionPagePreparationRequestInputSchema,
+  VisionProductPresenceRequestInputSchema,
+} from "../../../types/local-ai-runtime-request-bridge.js";
 import { resolvePromptContractCatalogEntryByLocalTaskType } from "../prompt-contracts/local-ai-task-contracts.js";
 import type { PromptContractCatalogEntry } from "../prompt-contracts/schema.js";
-import type { AiRuntimeHealth, AiTaskType, ParsedAiAbilityInput } from "../contract.js";
-import { parseExtractedJson } from "../shared/ai-json-extract.js";
-const AI_TASK_BY_LEGACY: Record<LocalAiTaskType, AiTaskType> = {
-  "vision.pagePreparation": "page_preparation_judgment",
-  "vision.nextItemAdvanced": "page_preparation_judgment",
-  "vision.productPresence": "product_presence_judgment",
-  "vision.nextItemTargetCandidate": "visual_target_candidate_analysis",
-  "vision.commentsEntryTargetCandidate": "visual_target_candidate_analysis",
-  "comments.ocr_cleanup": "ocr_cleanup",
-  "comments.intent_analysis": "comment_signal_summary",
-  "product.signal_summary": "product_signal_summary",
-};
+import type { ParsedAiAbilityInput } from "../contract.js";
 type PagePreparationBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "page_preparation_judgment" }>;
 type VisionBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "product_presence_judgment" | "visual_observation" }>;
 type VisualTargetCandidateBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "visual_target_candidate_analysis" }>;
@@ -167,40 +155,6 @@ function buildProductSignalTaskRequest(
     },
   });
 }
-function describeHealth(health: AiRuntimeHealth): string {
-  return JSON.stringify({
-    overallStatus: health.overallStatus,
-    implementationStatus: health.implementationStatus,
-    dependencies: health.dependencies,
-    lastInvocationStatus: health.lastInvocationStatus,
-  });
-}
-function toAiRuntimeHealth(health: LocalAiHealth): AiRuntimeHealth {
-  return AiRuntimeHealthSchema.parse({
-    overallStatus: health.overallStatus,
-    implementationStatus: health.implementationStatus,
-    dependencies: {
-      gateway: health.ollamaStatus,
-      vision: health.visionModelStatus,
-      text: health.textModelStatus,
-      ocr: health.ocrStatus,
-    },
-    configuredModels: health.configuredModels,
-    availableModels: health.availableModels,
-    lastCheckedAt: health.lastCheckedAt,
-    failureReason: health.failureReason,
-    lastTaskType: health.lastTaskType ? AI_TASK_BY_LEGACY[health.lastTaskType] : null,
-    lastFailureReason: health.lastFailureReason,
-    lastInvocationStatus: health.lastInvocationStatus,
-  });
-}
-function coerceRuntimeOutput(value: unknown): unknown {
-  if (typeof value !== "string") {
-    return value;
-  }
-  const parsed = parseExtractedJson(value);
-  return parsed.ok ? parsed.value : value;
-}
 function resolveLocalAiPromptRequest(
   taskType: LocalAiTaskType,
   buildRequest: (promptContract: PromptContractCatalogEntry) => LocalAiTaskRequest,
@@ -263,7 +217,7 @@ function toProductSignalTaskRequest(input: ProductSignalBridgeInput): LocalAiTas
   };
 }
 
-function toLocalAiTaskRequest(input: ParsedAiAbilityInput): LocalAiTaskRequestResolution {
+function resolveVisionTaskRequest(input: ParsedAiAbilityInput): LocalAiTaskRequestResolution | null {
   switch (input.taskType) {
     case "page_preparation_judgment":
       return toPagePreparationTaskRequest(input);
@@ -272,12 +226,33 @@ function toLocalAiTaskRequest(input: ParsedAiAbilityInput): LocalAiTaskRequestRe
       return toVisionTaskRequest(input);
     case "visual_target_candidate_analysis":
       return toVisualTargetCandidateTaskRequest(input);
+    default:
+      return null;
+  }
+}
+
+function resolveTextTaskRequest(input: ParsedAiAbilityInput): LocalAiTaskRequestResolution | null {
+  switch (input.taskType) {
     case "ocr_cleanup":
       return toOcrTaskRequest(input);
     case "comment_signal_summary":
       return toCommentSignalTaskRequest(input);
     case "product_signal_summary":
       return toProductSignalTaskRequest(input);
+    default:
+      return null;
+  }
+}
+
+function toLocalAiTaskRequest(input: ParsedAiAbilityInput): LocalAiTaskRequestResolution {
+  const visionRequest = resolveVisionTaskRequest(input);
+  if (visionRequest) {
+    return visionRequest;
+  }
+
+  const textRequest = resolveTextTaskRequest(input);
+  if (textRequest) {
+    return textRequest;
   }
 
   return rejectLocalAiTaskRequest({
@@ -289,8 +264,11 @@ function toLocalAiTaskRequest(input: ParsedAiAbilityInput): LocalAiTaskRequestRe
 }
 
 export {
+  toLocalAiTaskRequest,
+};
+
+export {
   describeHealth,
   toAiRuntimeHealth,
   coerceRuntimeOutput,
-  toLocalAiTaskRequest,
-};
+} from "./local-ai-runtime-health-output-mapper.js";

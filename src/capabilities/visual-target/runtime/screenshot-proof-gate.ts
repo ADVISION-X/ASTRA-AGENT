@@ -78,27 +78,34 @@ function findScreenshotReviewRequirement(input: {
   return null;
 }
 
+function findScreenshotBindingMismatch(input: {
+  request: ParsedVisualTargetAbilityInput;
+}): string | null {
+  const screenshotProof = input.request.sourceProof.screenshot;
+  const bindingChecks = [
+    { expected: input.request.missionId, actual: screenshotProof.missionId, message: "Screenshot proof missionId must match Visual Target missionId." },
+    { expected: input.request.runId, actual: screenshotProof.runId, message: "Screenshot proof runId must match Visual Target runId." },
+    { expected: input.request.sessionId, actual: screenshotProof.sessionId, message: "Screenshot proof sessionId must match Visual Target sessionId." },
+    { expected: input.request.roundId, actual: screenshotProof.roundId, message: "Screenshot proof roundId conflicts with Visual Target roundId." },
+    { expected: input.request.videoVisitId, actual: screenshotProof.videoVisitId, message: "Screenshot proof videoVisitId conflicts with Visual Target videoVisitId." },
+  ];
+
+  for (const check of bindingChecks) {
+    if (!matchesRequestedBinding(check.expected, check.actual)) {
+      return check.message;
+    }
+  }
+  return null;
+}
+
 function findScreenshotBindingConflict(input: {
   request: ParsedVisualTargetAbilityInput;
   screenshotHash: string;
 }): ScreenshotProofBlocked | null {
-  const screenshotProof = input.request.sourceProof.screenshot;
-  if (screenshotProof.missionId !== input.request.missionId) {
-    return createScreenshotBlocked("screenshot_binding_mismatch", "Screenshot proof missionId must match Visual Target missionId.", input.screenshotHash, []);
-  }
-  if (screenshotProof.runId !== input.request.runId) {
-    return createScreenshotBlocked("screenshot_binding_mismatch", "Screenshot proof runId must match Visual Target runId.", input.screenshotHash, []);
-  }
-  if (screenshotProof.sessionId !== input.request.sessionId) {
-    return createScreenshotBlocked("screenshot_binding_mismatch", "Screenshot proof sessionId must match Visual Target sessionId.", input.screenshotHash, []);
-  }
-  if (!matchesRequestedBinding(input.request.roundId, screenshotProof.roundId)) {
-    return createScreenshotBlocked("screenshot_binding_mismatch", "Screenshot proof roundId conflicts with Visual Target roundId.", input.screenshotHash, []);
-  }
-  if (!matchesRequestedBinding(input.request.videoVisitId, screenshotProof.videoVisitId)) {
-    return createScreenshotBlocked("screenshot_binding_mismatch", "Screenshot proof videoVisitId conflicts with Visual Target videoVisitId.", input.screenshotHash, []);
-  }
-  return null;
+  const mismatchMessage = findScreenshotBindingMismatch({ request: input.request });
+  return mismatchMessage
+    ? createScreenshotBlocked("screenshot_binding_mismatch", mismatchMessage, input.screenshotHash, [])
+    : null;
 }
 
 export function validateScreenshotProof(input: {
