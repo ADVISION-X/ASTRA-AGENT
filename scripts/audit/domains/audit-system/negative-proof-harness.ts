@@ -45,9 +45,9 @@ const MUTATIONS: Mutation[] = [
   {
     name: "negative-proof wiring validator removed mutation",
     file: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
-    search: "    validateNegativeProofWiring(context),",
-    replace: "    validateOwnedLawExecution(context),",
-    expectedNeedle: "Audit-system inspector must execute validateNegativeProofWiring inside its Promise.all owner chain.",
+    search: "  results.push(await validateNegativeProofWiring(context));",
+    replace: "  results.push(await validateOwnedLawExecution(context));",
+    expectedNeedle: "Audit-system inspector must execute validateNegativeProofWiring inside its governed owner chain.",
     skipBuild: true,
   },
   {
@@ -69,9 +69,9 @@ const MUTATIONS: Mutation[] = [
   {
     name: "static-clause-coverage phase removed mutation",
     file: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
-    search: "    validateStaticClauseCoverage(context),",
-    replace: "    validateGeneratedArtifacts(context),",
-    expectedNeedle: "Audit-system inspector must execute validateStaticClauseCoverage inside its Promise.all owner chain.",
+    search: "  results.push(await validateStaticClauseCoverage(context));",
+    replace: "  results.push(await validateGeneratedArtifacts(context));",
+    expectedNeedle: "Audit-system inspector must execute validateStaticClauseCoverage inside its governed owner chain.",
     skipBuild: true,
   },
   {

@@ -10,6 +10,5 @@ export const CODE_PURITY_SCAN_SCOPE = [
 	"src/map-plugins/**/*.{json,jsonc,ts,tsx}",
 	"src/**/prompt-contracts/**/*.{json,jsonc,ts,tsx}",
 	"src/capabilities/**/prompt-contracts/**/*.{json,jsonc,ts,tsx}",
-	"scripts/audit/generated/**/*.json",
 ] as const;
 export const DISASTER_LINE_THRESHOLD = 800;

@@ -1,4 +1,4 @@
-import { Project, type SourceFile } from "ts-morph";
+import { Node, Project, type SourceFile } from "ts-morph";
 
 import { fileExists, listFilesRecursive } from "../../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../../core/paths.js";
@@ -21,6 +21,8 @@ const REQUIRED_COMPONENT_EXPORTS = [
 ] as const;
 
 const SKIP_CODE_PURITY_ENV = "GRASSEYE_SKIP_AUDIT_SYSTEM_CODE_PURITY";
+const EXCLUDED_SOURCE_PREFIXES = ["scripts/audit/generated/"] as const;
+const EXCLUDED_SOURCE_SUFFIXES = [".generated.json", ".generated.jsonc"] as const;
 
 const createSkippedCodePurityResult = (): { findings: Finding[]; phases: InspectorPhase[] } => ({
   findings: [],
@@ -40,17 +42,24 @@ const debug = (message: string): void => {
   }
 };
 
+const isExcludedSourcePath = (relativePath: string): boolean =>
+  EXCLUDED_SOURCE_PREFIXES.some((prefix) => relativePath.startsWith(prefix))
+  || EXCLUDED_SOURCE_SUFFIXES.some((suffix) => relativePath.endsWith(suffix));
+
 const createPurityProject = (): Project =>
   new Project({
     tsConfigFilePath: pathFromRepoRoot("tsconfig.json"),
-    skipAddingFilesFromTsConfig: false,
+    skipAddingFilesFromTsConfig: true,
     compilerOptions: {
       allowJs: true,
     },
   });
 
 const filterActiveRelativePaths = (relativePaths: string[]): string[] =>
-  relativePaths.filter((relativePath) => ACTIVE_ROOTS.some((root) => relativePath === root || relativePath.startsWith(`${root}/`))).sort((left, right) => left.localeCompare(right));
+  relativePaths
+    .filter((relativePath) => ACTIVE_ROOTS.some((root) => relativePath === root || relativePath.startsWith(`${root}/`)))
+    .filter((relativePath) => !isExcludedSourcePath(relativePath))
+    .sort((left, right) => left.localeCompare(right));
 
 const getActiveRelativePaths = async (): Promise<string[]> => {
   const discovered = new Set<string>(ACTIVE_FILES);
@@ -84,7 +93,6 @@ const collectSourceFiles = async (): Promise<{
   touchedPaths: Set<string>;
   touchedBaselineSource: string;
   project: Project;
-  sourceFiles: SourceFile[];
 }> => {
   const touchedSnapshot = await collectTouchedFilesArtifact();
   const relativePaths = await getActiveRelativePaths();
@@ -92,20 +100,53 @@ const collectSourceFiles = async (): Promise<{
   debug(`activeRoots=${ACTIVE_ROOTS.join(",")}`);
   debug(`scannedCandidates=${relativePaths.length}`);
   const project = createPurityProject();
-  const sourceFiles = relativePaths
-    .map((relativePath) => project.addSourceFileAtPathIfExists(pathFromRepoRoot(relativePath)))
-    .filter((sourceFile): sourceFile is SourceFile => Boolean(sourceFile));
-  return { relativePaths, touchedPaths, touchedBaselineSource: touchedSnapshot.touchedBaselineSource, project, sourceFiles };
+  return { relativePaths, touchedPaths, touchedBaselineSource: touchedSnapshot.touchedBaselineSource, project };
 };
 
 const inspectSourceFiles = (sourceFiles: SourceFile[], touchedPaths: Set<string>, reportDraft: ReturnType<typeof createEmptyPurityReport>): Finding[] =>
   sourceFiles.flatMap((sourceFile) => inspectPurityMetrics(sourceFile, toRepoRelativePath(sourceFile.getFilePath()), touchedPaths, reportDraft));
 
+const inspectSourcePaths = (project: Project, relativePaths: string[], touchedPaths: Set<string>, reportDraft: ReturnType<typeof createEmptyPurityReport>): Finding[] => {
+  const findings: Finding[] = [];
+  for (const relativePath of relativePaths) {
+    const sourceFile = project.addSourceFileAtPathIfExists(pathFromRepoRoot(relativePath));
+    if (!sourceFile) {
+      continue;
+    }
+
+    findings.push(...inspectSourceFiles([sourceFile], touchedPaths, reportDraft));
+    sourceFile.forget();
+  }
+  return findings;
+};
+
+const hasNamedExportSyntax = (sourceFile: SourceFile, exportName: string): boolean => {
+  if (sourceFile.getFunctions().some((statement) => statement.getName() === exportName && statement.hasExportKeyword())) {
+    return true;
+  }
+
+  if (
+    sourceFile.getVariableStatements().some((statement) =>
+      statement.hasExportKeyword() && statement.getDeclarations().some((declaration) => declaration.getName() === exportName),
+    )
+  ) {
+    return true;
+  }
+
+  return sourceFile.getExportDeclarations().some((declaration) =>
+    declaration.getNamedExports().some((namedExport) => namedExport.getName() === exportName)
+    || declaration.getNamedExports().some((namedExport) => namedExport.getAliasNode()?.getText() === exportName),
+  ) || sourceFile.getStatements().some((statement) =>
+    Node.isClassDeclaration(statement) && statement.getName() === exportName && statement.hasExportKeyword(),
+  );
+};
+
 const inspectRequiredComponentExports = (project: Project): Finding[] =>
   REQUIRED_COMPONENT_EXPORTS.flatMap((requirement) => {
     const sourceFile = project.addSourceFileAtPathIfExists(pathFromRepoRoot(requirement.relativePath));
-    const exportedDeclarations = sourceFile?.getExportedDeclarations().get(requirement.exportName);
-    return exportedDeclarations && exportedDeclarations.length > 0
+    const hasRequiredExport = sourceFile ? hasNamedExportSyntax(sourceFile, requirement.exportName) : false;
+    sourceFile?.forget();
+    return hasRequiredExport
       ? []
       : [createFinding({
         lawId: requirement.lawId,
@@ -175,8 +216,8 @@ const runNegativeProofPhase = async (): Promise<{ findings: Finding[]; phase: In
   return runCodePurityNegativeProof();
 };
 
-const createInspectorPhases = (sourceFiles: SourceFile[], findings: Finding[], negativeProofPhase: InspectorPhase): InspectorPhase[] => [
-  createPhase("scope-activation", "PASS", true, `code-purity scans ${sourceFiles.length} active files under ${BLUEPRINT_PATH}`),
+const createInspectorPhases = (sourceFileCount: number, findings: Finding[], negativeProofPhase: InspectorPhase): InspectorPhase[] => [
+  createPhase("scope-activation", "PASS", true, `code-purity scans ${sourceFileCount} active files under ${BLUEPRINT_PATH}`),
   ...LAW_PHASE_SUMMARIES.map((summary) => createPhaseForLaw(summary.lawId, findings)),
   negativeProofPhase,
 ];
@@ -187,12 +228,12 @@ export const inspectCodePurity = async (context: InspectorContext): Promise<{ fi
   }
 
   const reportDraft = createEmptyPurityReport();
-  const { touchedPaths, touchedBaselineSource, project, sourceFiles } = await collectSourceFiles();
+  const { relativePaths, touchedPaths, touchedBaselineSource, project } = await collectSourceFiles();
   reportDraft.touchedBaselineSource = touchedBaselineSource;
   reportDraft.touchedFiles = [...touchedPaths].sort((left, right) => left.localeCompare(right));
   reportDraft.scanScope = [...CODE_PURITY_SCAN_SCOPE];
 
-  if (sourceFiles.length === 0) {
+  if (relativePaths.length === 0) {
     return {
       findings: [],
       phases: [
@@ -202,7 +243,7 @@ export const inspectCodePurity = async (context: InspectorContext): Promise<{ fi
   }
 
   const findings = [
-    ...inspectSourceFiles(sourceFiles, touchedPaths, reportDraft),
+    ...inspectSourcePaths(project, relativePaths, touchedPaths, reportDraft),
     ...inspectRequiredComponentExports(project),
     ...inspectLawCoverage(context),
     ...(await inspectReportOutputs(reportDraft)),
@@ -213,5 +254,5 @@ export const inspectCodePurity = async (context: InspectorContext): Promise<{ fi
 
   debug(`findings=${findings.length}`);
 
-  return { findings, phases: createInspectorPhases(sourceFiles, findings, negativeProof.phase) };
+  return { findings, phases: createInspectorPhases(relativePaths.length, findings, negativeProof.phase) };
 };

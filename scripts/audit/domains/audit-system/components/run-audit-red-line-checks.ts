@@ -13,12 +13,13 @@ type AuditCheckResult = {
 
 export const runAuditRedLineChecks = async (
   context: InspectorContext,
-): Promise<AuditCheckResult[]> =>
-  Promise.all([
-    validateNoTestArtifacts(context),
-    validateOwnedLawExecution(context),
-    validateNoSimulatedProductionPaths(context),
-    validateNegativeProofWiring(context),
-    validateNegativeProofRuntimeTopology(context),
-    inspectCodePurity(context),
-  ]);
+): Promise<AuditCheckResult[]> => {
+  const results: AuditCheckResult[] = [];
+  results.push(await validateNoTestArtifacts(context));
+  results.push(await validateOwnedLawExecution(context));
+  results.push(await validateNoSimulatedProductionPaths(context));
+  results.push(await validateNegativeProofWiring(context));
+  results.push(await validateNegativeProofRuntimeTopology(context));
+  results.push(await inspectCodePurity(context));
+  return results;
+};

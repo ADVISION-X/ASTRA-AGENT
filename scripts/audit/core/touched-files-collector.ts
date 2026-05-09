@@ -6,8 +6,15 @@ import { pathFromRepoRoot } from "./paths.js";
 import type { TouchedFilesArtifact, TouchedFilesBaselineSource } from "./touched-files.js";
 
 const repoRoot = pathFromRepoRoot(".");
+const IGNORED_TOUCHED_FILE_PREFIXES = ["tmp/", ".debug-loop/", "dist/", "node_modules/", "scripts/audit/generated/"] as const;
 
 const normalizePath = (value: string): string => value.trim().replace(/\\/g, "/");
+
+const shouldKeepTouchedFile = (filePath: string): boolean =>
+  filePath.length > 0 && !IGNORED_TOUCHED_FILE_PREFIXES.some((prefix) => filePath.startsWith(prefix));
+
+const sanitizeTouchedFiles = (filePaths: string[]): string[] =>
+  [...new Set(filePaths.map((filePath) => normalizePath(filePath)).filter((filePath) => shouldKeepTouchedFile(filePath)))].sort((left, right) => left.localeCompare(right));
 
 const runGitLines = (args: string[]) => {
   const result = spawnSync("git", args, { cwd: repoRoot, encoding: "utf8" });
@@ -54,7 +61,7 @@ const buildArtifact = (input: {
 }): TouchedFilesArtifact => ({
   generatedAt: new Date().toISOString(),
   touchedBaselineSource: input.source,
-  touchedFiles: input.touchedFiles,
+  touchedFiles: sanitizeTouchedFiles(input.touchedFiles),
   ...(input.touchedBaseRef ? { touchedBaseRef: input.touchedBaseRef } : {}),
 });
 

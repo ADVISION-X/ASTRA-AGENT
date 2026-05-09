@@ -106,23 +106,18 @@ const collectImportValidationFindings = (
   ];
 };
 
-const getMatchingPromiseAllCalls = (
-  promiseAllItems: import("ts-morph").Node[],
+const getMatchingExecutionCalls = (
+  sourceFile: SourceFile,
   importedLocalName: string,
 ): CallExpression[] =>
-  promiseAllItems.filter((element): element is import("ts-morph").CallExpression => {
-    if (!Node.isCallExpression(element)) {
-      return false;
-    }
-
-    const expression = element.getExpression();
+  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => {
+    const expression = callExpression.getExpression();
     return Node.isIdentifier(expression) && expression.getText() === importedLocalName;
   });
 
-const collectPromiseAllExecutionFindings = (
+const collectExecutionFindings = (
   relativePath: string,
   requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number],
-  promiseAllCall: CallExpression | undefined,
   matchingCalls: CallExpression[],
 ): Finding[] => {
   if (matchingCalls.length > 0) {
@@ -133,9 +128,9 @@ const collectPromiseAllExecutionFindings = (
     createFinding({
       lawId: getRequiredLawId(requiredCall.importName),
       file: relativePath,
-      line: promiseAllCall ? getNodeLine(promiseAllCall) : 1,
+      line: 1,
       severity: "error",
-      message: `Audit-system inspector must execute ${requiredCall.importName} inside its Promise.all owner chain.`,
+      message: `Audit-system inspector must execute ${requiredCall.importName} inside its governed owner chain.`,
     }),
   ];
 };
@@ -176,7 +171,6 @@ const collectPromiseReturnFindings = (
   relativePath: string,
   requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number],
   matchingCalls: CallExpression[],
-  promiseAllCall: CallExpression | undefined,
 ): Finding[] => {
   if (matchingCalls.every((callExpression) => returnsPromiseLike(callExpression))) {
     return [];
@@ -186,7 +180,7 @@ const collectPromiseReturnFindings = (
     createFinding({
       lawId: getRequiredLawId(requiredCall.importName),
       file: relativePath,
-      line: matchingCalls[0] ? getNodeLine(matchingCalls[0]) : promiseAllCall ? getNodeLine(promiseAllCall) : 1,
+      line: matchingCalls[0] ? getNodeLine(matchingCalls[0]) : 1,
       severity: "error",
       message: `Audit-system inspector must await promise-returning enforcement checks for ${requiredCall.importName}.`,
     }),
@@ -214,19 +208,17 @@ const collectResolvedCallFindings = (input: {
   sourceFile: SourceFile;
   relativePath: string;
   requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number];
-  promiseAllCall: CallExpression | undefined;
-  promiseAllItems: import("ts-morph").Node[];
   resolvedImport: { importSpecifier: ImportSpecifier; importedLocalName: string };
 }) => {
-  const matchingCalls = getMatchingPromiseAllCalls(input.promiseAllItems, input.resolvedImport.importedLocalName);
-  const promiseAllFindings = collectPromiseAllExecutionFindings(input.relativePath, input.requiredCall, input.promiseAllCall, matchingCalls);
-  if (promiseAllFindings.length > 0) {
-    return promiseAllFindings;
+  const matchingCalls = getMatchingExecutionCalls(input.sourceFile, input.resolvedImport.importedLocalName);
+  const executionFindings = collectExecutionFindings(input.relativePath, input.requiredCall, matchingCalls);
+  if (executionFindings.length > 0) {
+    return executionFindings;
   }
 
   return [
     ...collectReferenceFindings(input.sourceFile, input.relativePath, input.requiredCall, input.resolvedImport.importSpecifier),
-    ...collectPromiseReturnFindings(input.relativePath, input.requiredCall, matchingCalls, input.promiseAllCall),
+    ...collectPromiseReturnFindings(input.relativePath, input.requiredCall, matchingCalls),
   ];
 };
 
@@ -234,8 +226,6 @@ const collectRequiredCallFindings = (input: {
   sourceFile: SourceFile;
   relativePath: string;
   requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number];
-  promiseAllCall: CallExpression | undefined;
-  promiseAllItems: import("ts-morph").Node[];
 }) => {
   const resolvedImport = resolveRequiredCallImport(input.sourceFile, input.relativePath, input.requiredCall);
   if ("findings" in resolvedImport) {
@@ -246,8 +236,6 @@ const collectRequiredCallFindings = (input: {
     sourceFile: input.sourceFile,
     relativePath: input.relativePath,
     requiredCall: input.requiredCall,
-    promiseAllCall: input.promiseAllCall,
-    promiseAllItems: input.promiseAllItems,
     resolvedImport,
   });
 };
@@ -271,19 +259,7 @@ export const validateOwnedLawExecution = async (
   for (const requiredCall of REQUIRED_INSPECTOR_CALLS) {
     const sourceFile = getSourceFileOrThrow(project, requiredCall.targetFile);
     const relativePath = toRelativeSourcePath(sourceFile);
-    const promiseAllCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
-      const expression = callExpression.getExpression();
-      return Node.isPropertyAccessExpression(expression)
-        && Node.isIdentifier(expression.getExpression())
-        && expression.getExpression().getText() === "Promise"
-        && expression.getName() === "all";
-    });
-    const promiseAllArgument = promiseAllCall?.getArguments()[0];
-    const promiseAllItems = promiseAllArgument && Node.isArrayLiteralExpression(promiseAllArgument)
-      ? promiseAllArgument.getElements()
-      : [];
-
-    findings.push(...collectRequiredCallFindings({ sourceFile, relativePath, requiredCall, promiseAllCall, promiseAllItems }));
+    findings.push(...collectRequiredCallFindings({ sourceFile, relativePath, requiredCall }));
   }
 
   return {

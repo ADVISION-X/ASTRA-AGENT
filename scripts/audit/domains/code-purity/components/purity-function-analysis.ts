@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type CatchClause, type Node as MorphNode, type ParameterDeclaration, type SourceFile, type Type } from "ts-morph";
+import { Node, SyntaxKind, type CatchClause, type Node as MorphNode, type ParameterDeclaration, type SourceFile, type TypeNode } from "ts-morph";
 
 import { FUNCTION_DECISION_KINDS } from "./purity-ast-kinds.js";
 import type { PurityFunctionNode } from "./purity-types.js";
@@ -97,23 +97,33 @@ export const getFunctionMetrics = (functionNode: PurityFunctionNode) => {
   return { maxDepth, complexity, cognitive };
 };
 
-const isBooleanLikeType = (type: Type): boolean => {
-  if (type.isBoolean() || type.isBooleanLiteral()) {
-    return true;
-  }
-
-  if (!type.isUnion()) {
+const isBooleanLikeTypeNode = (typeNode: TypeNode | undefined): boolean => {
+  if (!typeNode) {
     return false;
   }
 
-  return type.getUnionTypes().every((member) =>
-    member.isBoolean() || member.isBooleanLiteral() || member.getText() === "undefined",
+  if (
+    typeNode.getKind() === SyntaxKind.BooleanKeyword
+    || typeNode.getKind() === SyntaxKind.TrueKeyword
+    || typeNode.getKind() === SyntaxKind.FalseKeyword
+  ) {
+    return true;
+  }
+
+  if (!Node.isUnionTypeNode(typeNode)) {
+    return false;
+  }
+
+  return typeNode.getTypeNodes().every((member) =>
+    member.getKind() === SyntaxKind.BooleanKeyword
+    || member.getKind() === SyntaxKind.TrueKeyword
+    || member.getKind() === SyntaxKind.FalseKeyword
+    || member.getKind() === SyntaxKind.UndefinedKeyword,
   );
 };
 
 const isBooleanLikeParameter = (parameter: ParameterDeclaration): boolean => {
-  const typeNode = parameter.getTypeNode();
-  if (typeNode?.getKind() === SyntaxKind.BooleanKeyword) {
+  if (isBooleanLikeTypeNode(parameter.getTypeNode())) {
     return true;
   }
 
@@ -122,7 +132,7 @@ const isBooleanLikeParameter = (parameter: ParameterDeclaration): boolean => {
     return true;
   }
 
-  return isBooleanLikeType(parameter.getType());
+  return false;
 };
 
 export const getBooleanLikeParameterCount = (functionNode: PurityFunctionNode): number =>

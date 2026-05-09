@@ -15,14 +15,15 @@ type AuditCheckResult = {
 
 export const runAuditGovernanceChecks = async (
   context: InspectorContext,
-): Promise<AuditCheckResult[]> =>
-  Promise.all([
-    validateLawHome(context),
-    validateManifestOwnership(context),
-    validateGeneratedArtifacts(context),
-    validateCiFullTopology(context),
-    validateStaticClauseCoverage(context),
-    validateRequiredPhaseDomains(context),
-    validateRunnerBoundary(context),
-    validateOwnerEvidence(context),
-  ]);
+): Promise<AuditCheckResult[]> => {
+  const results: AuditCheckResult[] = [];
+  results.push(await validateLawHome(context));
+  results.push(await validateManifestOwnership(context));
+  results.push(await validateGeneratedArtifacts(context));
+  results.push(await validateCiFullTopology(context));
+  results.push(await validateStaticClauseCoverage(context));
+  results.push(await validateRequiredPhaseDomains(context));
+  results.push(await validateRunnerBoundary(context));
+  results.push(await validateOwnerEvidence(context));
+  return results;
+};

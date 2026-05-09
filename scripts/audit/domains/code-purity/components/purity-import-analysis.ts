@@ -1,47 +1,49 @@
-import { type ImportDeclaration, type SourceFile } from "ts-morph";
+import path from "node:path";
+import { existsSync } from "node:fs";
 
-import { toRelativeSourcePath } from "../../../core/ts-morph.js";
+import { type SourceFile } from "ts-morph";
+
 import { hasSpecifierFakePathToken, isProductionFakePath } from "./purity-path-rules.js";
 
-const resolveMissingModuleSpecifierSourceFile = (_error: unknown): SourceFile | undefined => undefined;
+const SOURCE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".json", ".jsonc"] as const;
 
-const getImportDeclarationSourcePaths = (importDeclaration: ImportDeclaration): string[] => {
-  const paths = new Set<string>();
-  let moduleSpecifierSourceFile: SourceFile | undefined;
-  try {
-    moduleSpecifierSourceFile = importDeclaration.getModuleSpecifierSourceFile() ?? undefined;
-  } catch (error) {
-    moduleSpecifierSourceFile = resolveMissingModuleSpecifierSourceFile(error);
-  }
-  if (moduleSpecifierSourceFile) {
-    paths.add(toRelativeSourcePath(moduleSpecifierSourceFile));
-  }
+const normalizeRelativePath = (value: string): string => value.replace(/\\/g, "/").replace(/^\.\//, "");
 
-  const importNodes = [
-    importDeclaration.getDefaultImport(),
-    importDeclaration.getNamespaceImport(),
-    ...importDeclaration.getNamedImports().map((namedImport) => namedImport.getNameNode()),
-  ].filter((node): node is NonNullable<typeof node> => Boolean(node));
+const stripRuntimeExtension = (value: string): string =>
+  value.replace(/\.(?:js|jsx|mjs)$/u, "");
 
-  for (const importNode of importNodes) {
-    const symbol = importNode.getSymbol();
-    const targetSymbol = symbol?.getAliasedSymbol() ?? symbol;
-    if (!targetSymbol) {
-      continue;
-    }
+const firstExistingRelativePath = (relativePaths: string[]): string[] => {
+  const existingPath = relativePaths.find((relativePath) => existsSync(path.join(process.cwd(), relativePath)));
+  return existingPath ? [existingPath] : [];
+};
 
-    for (const declaration of targetSymbol.getDeclarations()) {
-      paths.add(toRelativeSourcePath(declaration.getSourceFile()));
-    }
+const buildCandidateRelativePaths = (sourceFile: SourceFile, specifier: string): string[] => {
+  if (!specifier.startsWith(".") && !specifier.startsWith("src/") && !specifier.startsWith("scripts/")) {
+    return [];
   }
 
-  return [...paths];
+  const sourceRelativePath = normalizeRelativePath(path.relative(process.cwd(), sourceFile.getFilePath()));
+  const sourceDirectory = path.posix.dirname(sourceRelativePath);
+  const basePath = normalizeRelativePath(
+    specifier.startsWith(".")
+      ? path.posix.normalize(path.posix.join(sourceDirectory, specifier))
+      : specifier,
+  );
+  const extension = path.posix.extname(basePath);
+  if (SOURCE_EXTENSIONS.includes(extension as (typeof SOURCE_EXTENSIONS)[number])) {
+    return firstExistingRelativePath([basePath, ...SOURCE_EXTENSIONS.map((candidateExtension) => `${stripRuntimeExtension(basePath)}${candidateExtension}`)]);
+  }
+
+  return firstExistingRelativePath([
+    ...SOURCE_EXTENSIONS.map((candidateExtension) => `${basePath}${candidateExtension}`),
+    ...SOURCE_EXTENSIONS.map((candidateExtension) => `${basePath}/index${candidateExtension}`),
+  ]);
 };
 
 export const getImportedSourcePaths = (sourceFile: SourceFile): string[] => {
   const paths = new Set<string>();
   for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    for (const importedPath of getImportDeclarationSourcePaths(importDeclaration)) {
+    for (const importedPath of buildCandidateRelativePaths(sourceFile, importDeclaration.getModuleSpecifierValue())) {
       paths.add(importedPath);
     }
   }

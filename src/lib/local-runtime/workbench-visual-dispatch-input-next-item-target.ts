@@ -13,6 +13,7 @@ import {
 } from "./workbench-action-dispatch-shared.js";
 import { resolvePageStateProofSummary } from "./workbench-page-state-proof-summary-registry.js";
 import { resolveScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
+import { requireVisualDispatchMissionRunBinding } from "./workbench-visual-dispatch-mission-run-binding.js";
 import {
   buildAiInputScaleMapping,
   buildNextItemVisualCandidates,
@@ -94,11 +95,23 @@ export const buildNextItemTargetVisualTargetCommand = (
     throw new Error("Visual Target next-item dispatch requires a governed page-state proof summary.");
   }
 
-  const screenshotMissionId = readString(screenshotHandoff.sourceProof, "missionId");
-  const screenshotRunId = readString(screenshotHandoff.sourceProof, "runId");
-  if (!screenshotMissionId || !screenshotRunId || !aiSummary.missionId || !aiSummary.runId) {
-    throw new Error("Visual Target next-item dispatch requires governed screenshot and AI proof mission/run identity.");
-  }
+  const { screenshotMissionId, screenshotRunId, aiMissionId, aiRunId } = requireVisualDispatchMissionRunBinding({
+    dispatchLabel: "next-item dispatch",
+    requestMissionId: envelope.missionId,
+    requestRunId: envelope.runId,
+    screenshot: {
+      missionId: readString(screenshotHandoff.sourceProof, "missionId"),
+      runId: readString(screenshotHandoff.sourceProof, "runId"),
+    },
+    ai: {
+      missionId: aiSummary.missionId,
+      runId: aiSummary.runId,
+    },
+    pageState: {
+      missionId: pageStateSummary.missionId,
+      runId: pageStateSummary.runId,
+    },
+  });
 
   const coordinateSpace = mapCoordinateSpace(screenshotHandoff.coordinateSpace);
   const governedAiResultRef = aiSummary.aiResultRef;
@@ -166,8 +179,8 @@ export const buildNextItemTargetVisualTargetCommand = (
         sourceScreenshotEvidenceId,
         sourceScreenshotProofRef: screenshotProofRef,
         capturedAt: aiSummary.capturedAt,
-        missionId: aiSummary.missionId,
-        runId: aiSummary.runId,
+        missionId: aiMissionId,
+        runId: aiRunId,
         sessionId: aiSummary.sessionId,
         roundId: aiSummary.roundId,
         videoVisitId: aiSummary.videoVisitId,

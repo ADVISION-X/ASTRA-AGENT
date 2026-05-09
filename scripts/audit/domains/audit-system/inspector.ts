@@ -20,13 +20,14 @@ const createSkippedNegativeProofResult = () => {
 };
 
 const runAuditSystemParts = (context: InspectorContext) => {
-  return Promise.all([
-    runAuditGovernanceChecks(context),
-    runAuditRedLineChecks(context),
-    process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
-      ? Promise.resolve(createSkippedNegativeProofResult())
-      : runNegativeProofHarness(),
-  ]);
+  return (async () => {
+    const governanceParts = await runAuditGovernanceChecks(context);
+    const redLineParts = await runAuditRedLineChecks(context);
+    const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
+      ? createSkippedNegativeProofResult()
+      : await runNegativeProofHarness();
+    return [governanceParts, redLineParts, negativeProof] as const;
+  })();
 };
 
 const collectAuditSystemFindings = (
