@@ -8,6 +8,7 @@ export type CiFullLayerStatus = "PASS" | "FAIL" | "SKIPPED";
 export type CiFullStepSummary = {
   checkId: string;
   layer: CiFullLayerLabel;
+  runId: string;
   command: string;
   producer: string;
   allowedConsumers: string[];
@@ -21,12 +22,14 @@ export type CiFullStepSummary = {
 
 export type CiFullLayerSummary = {
   label: CiFullLayerLabel;
+  runId: string;
   status: CiFullLayerStatus;
   steps: CiFullStepSummary[];
 };
 
 export type CiFullSummary = {
   generatedAt: string;
+  runId: string;
   status: "PASS" | "FAIL";
   layers: CiFullLayerSummary[];
 };

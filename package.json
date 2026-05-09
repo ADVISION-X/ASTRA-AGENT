@@ -54,6 +54,7 @@
     "acceptance:delivery-smoke": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/delivery-smoke.mjs",
     "acceptance:phase3": "npm run ci:full && npm run acceptance:browse-live-proof && npm run acceptance:delivery-smoke",
     "ci:full": "node --import tsx scripts/audit/ci-full.ts",
+    "ci:full:closure": "node --import tsx scripts/audit/ci-full-closure.ts",
     "ci:proof": "GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1 node --import tsx scripts/audit/runner.ts",
     "lint": "npm run typecheck"
   },

@@ -14,20 +14,6 @@ const REQUIRED_INSPECTOR_CALLS = [
   },
   {
     lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
-    localName: "validateCiFullEvidence",
-    targetFile: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
-    importPath: "./validate-ci-full-evidence.js",
-    importName: "validateCiFullEvidence",
-  },
-  {
-    lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
-    localName: "validateCheckOwnership",
-    targetFile: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
-    importPath: "./validate-check-ownership.js",
-    importName: "validateCheckOwnership",
-  },
-  {
-    lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
     localName: "validateRequiredPhaseDomains",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
     importPath: "./validate-required-phase-domains.js",

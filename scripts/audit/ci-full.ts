@@ -1,9 +1,11 @@
+import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 
 import { readProcessTreeRssMB } from "./core/owner-audit-runner.js";
 import { CI_FULL_LAYER_EXECUTION, CI_FULL_LAYER_ORDER, getCiFullOwnership, getCiFullOwnersByLayer, type CiFullCheckOwner, type CiFullLayerLabel } from "./core/ci-full-check-ownership.js";
+import { runCiFullClosure } from "./core/ci-full-closure-runner.js";
 import { buildCiFullCommand, getCiFullLayerStatus, type CiFullLayerSummary, type CiFullSummary, type CiFullStepSummary, writeCiFullSummary } from "./core/ci-full-summary.js";
-import { ABILITY_GROUP_SAFE_CONCURRENCY } from "./core/ci-full-timeouts.js";
+import { ABILITY_GROUP_SAFE_MAX_CONCURRENCY } from "./core/ci-full-timeouts.js";
 
 type CiStep = {
   checkId: string;
@@ -136,9 +138,9 @@ const startStageMemoryGuard = (stageLabel: string): (() => Promise<void>) => {
 };
 
 const resolveAbilityGroupConcurrency = (): number => {
-  const configuredValue = readPositiveIntegerEnv(MAX_CONCURRENCY_ENV) ?? ABILITY_GROUP_SAFE_CONCURRENCY;
-  if (configuredValue > ABILITY_GROUP_SAFE_CONCURRENCY) {
-    throw new Error(`[CI FULL CONFIG] ${MAX_CONCURRENCY_ENV} must not exceed ${ABILITY_GROUP_SAFE_CONCURRENCY} on the memory-safe topology.`);
+  const configuredValue = readPositiveIntegerEnv(MAX_CONCURRENCY_ENV) ?? ABILITY_GROUP_SAFE_MAX_CONCURRENCY;
+  if (configuredValue > ABILITY_GROUP_SAFE_MAX_CONCURRENCY) {
+    throw new Error(`[CI FULL CONFIG] ${MAX_CONCURRENCY_ENV} must not exceed ${ABILITY_GROUP_SAFE_MAX_CONCURRENCY} on the memory-safe topology.`);
   }
   return configuredValue;
 };
@@ -166,9 +168,10 @@ const exitNow = (code: number): never => {
   process.exit(code);
 };
 
-const createSkippedStepSummary = (step: CiStep, stageLabel: CiFullLayerLabel): CiFullStepSummary => ({
+const createSkippedStepSummary = (step: CiStep, stageLabel: CiFullLayerLabel, runId: string): CiFullStepSummary => ({
   checkId: step.checkId,
   layer: stageLabel,
+  runId,
   command: buildCiFullCommand(step.args),
   producer: step.ownership.producer,
   allowedConsumers: [...step.ownership.allowedConsumers],
@@ -180,7 +183,7 @@ const createSkippedStepSummary = (step: CiStep, stageLabel: CiFullLayerLabel): C
   artifactPaths: [...step.ownership.artifactPaths],
 });
 
-const runCiStep = async (step: CiStep, stageLabel: CiFullLayerLabel): Promise<CiFullStepSummary> => {
+const runCiStep = async (step: CiStep, stageLabel: CiFullLayerLabel, runId: string): Promise<CiFullStepSummary> => {
   assertStageResourceHealthy();
   process.stdout.write(`[CI FULL] ${stageLabel} starting ${step.checkId}...\n`);
   await logMemorySnapshot(`before ${stageLabel}/${step.checkId}`);
@@ -279,6 +282,7 @@ const runCiStep = async (step: CiStep, stageLabel: CiFullLayerLabel): Promise<Ci
   return {
     checkId: step.checkId,
     layer: stageLabel,
+    runId,
     command: buildCiFullCommand(step.args),
     producer: step.ownership.producer,
     allowedConsumers: [...step.ownership.allowedConsumers],
@@ -291,17 +295,17 @@ const runCiStep = async (step: CiStep, stageLabel: CiFullLayerLabel): Promise<Ci
   };
 };
 
-const runSerialStage = async (stage: CiStage): Promise<StageRunResult> => {
+const runSerialStage = async (stage: CiStage, runId: string): Promise<StageRunResult> => {
   const stepSummaries: CiFullStepSummary[] = [];
   let stageFailed = false;
 
   for (const step of stage.steps) {
     if (stageFailed) {
-      stepSummaries.push(createSkippedStepSummary(step, stage.label));
+      stepSummaries.push(createSkippedStepSummary(step, stage.label, runId));
       continue;
     }
 
-    const summary = await runCiStep(step, stage.label);
+    const summary = await runCiStep(step, stage.label, runId);
     stepSummaries.push(summary);
     if (summary.status !== "PASS") {
       stageFailed = true;
@@ -311,6 +315,7 @@ const runSerialStage = async (stage: CiStage): Promise<StageRunResult> => {
   return {
     summary: {
       label: stage.label,
+      runId,
       status: getCiFullLayerStatus(stepSummaries),
       steps: stepSummaries,
     },
@@ -318,7 +323,7 @@ const runSerialStage = async (stage: CiStage): Promise<StageRunResult> => {
   };
 };
 
-const runBoundedStage = async (stage: CiStage, maxConcurrency: number): Promise<StageRunResult> => {
+const runBoundedStage = async (stage: CiStage, maxConcurrency: number, runId: string): Promise<StageRunResult> => {
   const pendingSteps = [...stage.steps];
   const stepSummaries = new Map<string, CiFullStepSummary>();
   let stopRequested = false;
@@ -335,7 +340,7 @@ const runBoundedStage = async (stage: CiStage, maxConcurrency: number): Promise<
         return;
       }
 
-      const summary = await runCiStep(step, stage.label);
+      const summary = await runCiStep(step, stage.label, runId);
       stepSummaries.set(step.checkId, summary);
       if (summary.status !== "PASS") {
         stopRequested = true;
@@ -346,14 +351,15 @@ const runBoundedStage = async (stage: CiStage, maxConcurrency: number): Promise<
   await Promise.all(workers);
 
   for (const step of pendingSteps) {
-    stepSummaries.set(step.checkId, createSkippedStepSummary(step, stage.label));
+    stepSummaries.set(step.checkId, createSkippedStepSummary(step, stage.label, runId));
   }
 
-  const orderedStepSummaries = stage.steps.map((step) => stepSummaries.get(step.checkId) ?? createSkippedStepSummary(step, stage.label));
+  const orderedStepSummaries = stage.steps.map((step) => stepSummaries.get(step.checkId) ?? createSkippedStepSummary(step, stage.label, runId));
 
   return {
     summary: {
       label: stage.label,
+      runId,
       status: getCiFullLayerStatus(orderedStepSummaries),
       steps: orderedStepSummaries,
     },
@@ -361,7 +367,7 @@ const runBoundedStage = async (stage: CiStage, maxConcurrency: number): Promise<
   };
 };
 
-const runCiStage = async (stage: CiStage): Promise<StageRunResult> => {
+const runCiStage = async (stage: CiStage, runId: string): Promise<StageRunResult> => {
   const maxConcurrency = stage.executionMode === "bounded" ? resolveAbilityGroupConcurrency() : 1;
   process.stdout.write(`[CI FULL] stage ${stage.label} starting (${stage.executionMode}${stage.executionMode === "bounded" ? ` maxConcurrency=${maxConcurrency}` : ""}).\n`);
   await logMemorySnapshot(`before stage ${stage.label}`);
@@ -370,38 +376,41 @@ const runCiStage = async (stage: CiStage): Promise<StageRunResult> => {
 
   try {
     const result = stage.executionMode === "serial"
-      ? await runSerialStage(stage)
-      : await runBoundedStage(stage, maxConcurrency);
+      ? await runSerialStage(stage, runId)
+      : await runBoundedStage(stage, maxConcurrency, runId);
     return result;
   } finally {
     await stopMemoryGuard();
   }
 };
 
-const createSkippedStageSummary = (stage: CiStage): CiFullLayerSummary => ({
+const createSkippedStageSummary = (stage: CiStage, runId: string): CiFullLayerSummary => ({
   label: stage.label,
+  runId,
   status: "SKIPPED",
-  steps: stage.steps.map((step) => createSkippedStepSummary(step, stage.label)),
+  steps: stage.steps.map((step) => createSkippedStepSummary(step, stage.label, runId)),
 });
 
-const buildCiFullSummary = (layers: CiFullLayerSummary[]): CiFullSummary => ({
+const buildCiFullSummary = (runId: string, layers: CiFullLayerSummary[]): CiFullSummary => ({
   generatedAt: new Date().toISOString(),
+  runId,
   status: layers.every((layer) => layer.status === "PASS") ? "PASS" : "FAIL",
   layers,
 });
 
 const main = async (): Promise<void> => {
+  const runId = randomUUID();
   const layerSummaries: CiFullLayerSummary[] = [];
   let encounteredFailure = false;
 
   try {
     for (const stage of CI_STAGES) {
       if (encounteredFailure) {
-        layerSummaries.push(createSkippedStageSummary(stage));
+        layerSummaries.push(createSkippedStageSummary(stage, runId));
         continue;
       }
 
-      const result = await runCiStage(stage);
+      const result = await runCiStage(stage, runId);
       layerSummaries.push(result.summary);
       if (!result.passed) {
         encounteredFailure = true;
@@ -411,14 +420,23 @@ const main = async (): Promise<void> => {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`[CI FULL ERROR] ${message}\n`);
     while (layerSummaries.length < CI_STAGES.length) {
-      layerSummaries.push(createSkippedStageSummary(CI_STAGES[layerSummaries.length]));
+      layerSummaries.push(createSkippedStageSummary(CI_STAGES[layerSummaries.length], runId));
     }
   }
 
-  const summary = buildCiFullSummary(layerSummaries);
+  const summary = buildCiFullSummary(runId, layerSummaries);
   await writeCiFullSummary(summary);
 
-  if (summary.status === "PASS") {
+  let closurePassed = false;
+  try {
+    await runCiFullClosure(summary.runId);
+    closurePassed = true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`[CI FULL FAIL] ${message}\n`);
+  }
+
+  if (summary.status === "PASS" && closurePassed) {
     process.stdout.write("[CI FULL PASS] foundation, map, and 14 ability-group audits all passed.\n");
     exitNow(0);
   }

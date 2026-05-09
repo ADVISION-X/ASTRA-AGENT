@@ -5,8 +5,12 @@ import { CI_FULL_CHECK_OWNERS, CI_FULL_SUMMARY_CONSUMER, CI_FULL_LAYER_ORDER } f
 import { buildCiFullCommand, readCiFullSummary } from "../../../core/ci-full-summary.js";
 
 const LAW_ID = "GRASSEYE-AUDIT-SYSTEM-003-V1";
+const CLOSURE_MODE_ENV = "GRASSEYE_CI_FULL_CLOSURE";
+const RUN_ID_ENV = "GRASSEYE_CI_FULL_RUN_ID";
 
 const VALID_CONSUMERS = new Set([...CI_FULL_CHECK_OWNERS.map((owner) => owner.checkId), CI_FULL_SUMMARY_CONSUMER]);
+
+const getExpectedRunId = (): string | undefined => process.env[RUN_ID_ENV]?.trim();
 
 const createOwnershipFinding = (message: string): Finding =>
   createFinding({
@@ -78,11 +82,20 @@ const compareArrayValues = (left: unknown, right: readonly string[]): boolean =>
 const validateSummaryAgainstMatrix = async (): Promise<Finding[]> => {
   const findings: Finding[] = [];
   let summary: Awaited<ReturnType<typeof readCiFullSummary>>;
+  const expectedRunId = getExpectedRunId();
+
+  if (process.env[CLOSURE_MODE_ENV] !== "1" || !expectedRunId) {
+    return [createOwnershipFinding("ci-full summary closure validation must run with GRASSEYE_CI_FULL_CLOSURE=1 and GRASSEYE_CI_FULL_RUN_ID.")];
+  }
 
   try {
     summary = await readCiFullSummary();
   } catch {
     return [createOwnershipFinding("ci-full summary is required to validate check ownership.")];
+  }
+
+  if (summary.runId !== expectedRunId) {
+    findings.push(createOwnershipFinding("ci-full summary runId must match the current closure runId."));
   }
 
   if (summary.layers.length !== CI_FULL_LAYER_ORDER.length) {
@@ -98,6 +111,10 @@ const validateSummaryAgainstMatrix = async (): Promise<Finding[]> => {
 
     if (layer.label !== layerLabel) {
       findings.push(createOwnershipFinding("ci-full summary layer order must match the governed matrix order."));
+    }
+
+    if (layer.runId !== summary.runId) {
+      findings.push(createOwnershipFinding(`ci-full summary layer ${layerLabel} must retain the summary runId.`));
     }
 
     const expectedOwners = CI_FULL_CHECK_OWNERS.filter((owner) => owner.layer === layerLabel);
@@ -120,6 +137,10 @@ const validateSummaryAgainstMatrix = async (): Promise<Finding[]> => {
 
       if (step.layer !== ownership.layer) {
         findings.push(createOwnershipFinding(`ci-full summary step ${step.checkId} must retain its matrix layer.`));
+      }
+
+      if (step.runId !== summary.runId) {
+        findings.push(createOwnershipFinding(`ci-full summary step ${step.checkId} must retain the summary runId.`));
       }
 
       if (step.command !== buildCiFullCommand(ownership.args)) {

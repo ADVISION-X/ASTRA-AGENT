@@ -6,8 +6,12 @@ import { CI_FULL_LAYER_ORDER } from "../../../core/ci-full-check-ownership.js";
 import { getCiFullLayerStatus, readCiFullSummary, type CiFullSummary } from "../../../core/ci-full-summary.js";
 
 const LAW_ID = "GRASSEYE-AUDIT-SYSTEM-002-V1";
+const CLOSURE_MODE_ENV = "GRASSEYE_CI_FULL_CLOSURE";
+const RUN_ID_ENV = "GRASSEYE_CI_FULL_RUN_ID";
 
 type CiFullStepSummary = CiFullSummary["layers"][number]["steps"][number];
+
+const getExpectedRunId = (): string | undefined => process.env[RUN_ID_ENV]?.trim();
 
 const createSummaryFinding = (message: string): Finding =>
   createFinding({
@@ -21,7 +25,7 @@ const createSummaryFinding = (message: string): Finding =>
 const isValidStatus = (value: string): value is CiFullStepSummary["status"] =>
   value === "PASS" || value === "FAIL" || value === "SKIPPED";
 
-const validateStepShape = (step: CiFullStepSummary): Finding[] => {
+const validateStepShape = (step: CiFullStepSummary, summaryRunId: string): Finding[] => {
   const findings: Finding[] = [];
 
   if (typeof step.checkId !== "string" || step.checkId.trim().length === 0) {
@@ -30,6 +34,14 @@ const validateStepShape = (step: CiFullStepSummary): Finding[] => {
 
   if (typeof step.layer !== "string" || step.layer.trim().length === 0) {
     findings.push(createSummaryFinding("ci-full summary step must include a layer label."));
+  }
+
+  if (typeof step.runId !== "string" || step.runId.trim().length === 0) {
+    findings.push(createSummaryFinding("ci-full summary step must include runId."));
+  }
+
+  if (step.runId !== summaryRunId) {
+    findings.push(createSummaryFinding(`ci-full summary step ${step.checkId} must retain the current ci-full runId.`));
   }
 
   if (typeof step.command !== "string" || step.command.trim().length === 0) {
@@ -78,6 +90,10 @@ const validateLayerShape = (summary: CiFullSummary): Finding[] => {
     findings.push(createSummaryFinding("ci-full summary must include generatedAt."));
   }
 
+  if (typeof summary.runId !== "string" || summary.runId.trim().length === 0) {
+    findings.push(createSummaryFinding("ci-full summary must include runId."));
+  }
+
   if (summary.layers.length !== CI_FULL_LAYER_ORDER.length) {
     findings.push(createSummaryFinding("ci-full summary must contain exactly the three governed layers."));
   }
@@ -89,8 +105,16 @@ const validateLayerShape = (summary: CiFullSummary): Finding[] => {
       return;
     }
 
+    if (typeof layer.runId !== "string" || layer.runId.trim().length === 0) {
+      findings.push(createSummaryFinding(`ci-full summary layer ${label} must include runId.`));
+    }
+
     if (layer.label !== label) {
       findings.push(createSummaryFinding(`ci-full summary layer order must be foundation-layer, map-layer, then ability-group-layer.`));
+    }
+
+    if (layer.runId !== summary.runId) {
+      findings.push(createSummaryFinding(`ci-full summary layer ${label} must retain the summary runId.`));
     }
 
     if (layer.status !== "PASS" && layer.status !== "FAIL" && layer.status !== "SKIPPED") {
@@ -101,7 +125,7 @@ const validateLayerShape = (summary: CiFullSummary): Finding[] => {
       findings.push(createSummaryFinding(`ci-full summary layer ${label} must record at least one step.`));
     }
 
-    findings.push(...layer.steps.flatMap(validateStepShape));
+    findings.push(...layer.steps.flatMap((step) => validateStepShape(step, summary.runId)));
 
     const computedLayerStatus = getCiFullLayerStatus(layer.steps);
     if (layer.status !== computedLayerStatus) {
@@ -134,6 +158,12 @@ const createCiFullEvidencePhase = (findings: Finding[]): InspectorPhase =>
 export const validateCiFullEvidence = async (
   _context: InspectorContext,
 ): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
+  const expectedRunId = getExpectedRunId();
+  if (process.env[CLOSURE_MODE_ENV] !== "1" || !expectedRunId) {
+    const findings = [createSummaryFinding("ci-full summary closure validation must run with GRASSEYE_CI_FULL_CLOSURE=1 and GRASSEYE_CI_FULL_RUN_ID.")];
+    return { findings, phases: [createCiFullEvidencePhase(findings)] };
+  }
+
   if (!(await fileExists(generatedArtifactPaths.ciFullSummary))) {
     const findings = [createSummaryFinding("ci-full summary artifact is missing.")];
     return { findings, phases: [createCiFullEvidencePhase(findings)] };
@@ -144,6 +174,11 @@ export const validateCiFullEvidence = async (
     summary = await readCiFullSummary();
   } catch {
     const findings = [createSummaryFinding("ci-full summary artifact is unreadable or malformed JSON.")];
+    return { findings, phases: [createCiFullEvidencePhase(findings)] };
+  }
+
+  if (summary.runId !== expectedRunId) {
+    const findings = [createSummaryFinding("ci-full summary runId must match the current closure runId.")];
     return { findings, phases: [createCiFullEvidencePhase(findings)] };
   }
 

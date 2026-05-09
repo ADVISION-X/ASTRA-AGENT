@@ -7,7 +7,7 @@ import {
   CODE_PURITY_SCAN_SUMMARY,
 } from "../domains/code-purity/components/purity-stage-paths.js";
 import {
-  ABILITY_GROUP_SAFE_CONCURRENCY,
+  ABILITY_GROUP_SAFE_MAX_CONCURRENCY,
   CODE_PURITY_TIMEOUT_MS,
   OWNER_STEP_TIMEOUT_MS,
   QUICK_STEP_TIMEOUT_MS,
@@ -22,7 +22,7 @@ export const CI_FULL_LAYER_ORDER = ["foundation-layer", "map-layer", "ability-gr
 export const CI_FULL_LAYER_EXECUTION = {
   "foundation-layer": { executionMode: "serial" as const },
   "map-layer": { executionMode: "serial" as const },
-  "ability-group-layer": { executionMode: "bounded" as const, maxConcurrency: ABILITY_GROUP_SAFE_CONCURRENCY },
+  "ability-group-layer": { executionMode: "bounded" as const, maxConcurrency: ABILITY_GROUP_SAFE_MAX_CONCURRENCY },
 } as const;
 
 export type CiFullCheckOwner = {

@@ -3,6 +3,8 @@ import { Node, SyntaxKind, type ObjectLiteralExpression, type SourceFile } from 
 import { createAuditSystemFinding, createAuditSystemPhase } from "./audit-system-component-support.js";
 import type { AuditSystemInspectionContext, AuditSystemInspectionResult } from "./audit-system-ts-morph-support.js";
 import { getAuditProject, getNodeLine, getSourceFileOrThrow, toRelativeSourcePath } from "./audit-system-ts-morph-support.js";
+import { CI_FULL_LAYER_EXECUTION, CI_FULL_LAYER_ORDER, getCiFullOwnersByLayer } from "../../../core/ci-full-check-ownership.js";
+import { ABILITY_GROUP_SAFE_MAX_CONCURRENCY, CODE_PURITY_TIMEOUT_MS, OWNER_STEP_TIMEOUT_MS, QUICK_STEP_TIMEOUT_MS } from "../../../core/ci-full-timeouts.js";
 
 type CiTopologyFinding = ReturnType<typeof createAuditSystemFinding>;
 
@@ -19,12 +21,12 @@ type CiStageShape = {
 type CiStepShape = {
   label: string;
   args: string[];
+  timeoutMs: number;
   mutatesProduction: boolean;
 };
 
 const CI_FULL_PATH = "scripts/audit/ci-full.ts";
-const OWNER_AUDIT_TIMEOUT_MINIMUM_MS = 180_000;
-const ABILITY_GROUP_SAFE_MAX_CONCURRENCY = 2;
+const QUICK_STEP_CHECK_IDS = new Set(["audit-build", "typecheck", "type-safety", "security-privacy"]);
 const REQUIRED_ABILITY_GROUP_SCRIPTS = [
   "run audit:commander-console",
   "run audit:orchestration",
@@ -100,13 +102,49 @@ const getObjectArrayProperty = (objectLiteral: ObjectLiteralExpression, property
   return initializer.getElements().filter(Node.isObjectLiteralExpression);
 };
 
+const hasCallExpressionNamed = (sourceFile: SourceFile, callName: string): boolean =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === callName;
+  });
+
 const getCiStagesDeclaration = (sourceFile: SourceFile) => {
   return sourceFile.getVariableDeclaration("CI_STAGES");
+};
+
+const buildMatrixStages = (sourceFile: SourceFile): CiStageShape[] => {
+  const stageLine = getNodeLine(getCiStagesDeclaration(sourceFile) ?? sourceFile);
+
+  return CI_FULL_LAYER_ORDER.map((label) => ({
+    label,
+    executionMode: CI_FULL_LAYER_EXECUTION[label].executionMode,
+    ...(CI_FULL_LAYER_EXECUTION[label].executionMode === "bounded"
+      ? { maxConcurrency: CI_FULL_LAYER_EXECUTION[label].maxConcurrency }
+      : {}),
+    line: stageLine,
+    steps: getCiFullOwnersByLayer(label).map((owner) => ({
+      label: owner.checkId,
+      args: owner.args,
+      timeoutMs: owner.timeoutMs,
+      mutatesProduction: false,
+    })),
+  }));
 };
 
 const collectCiStages = (sourceFile: SourceFile): CiStageShape[] => {
   const initializer = getCiStagesDeclaration(sourceFile)?.getInitializer();
   if (!Node.isArrayLiteralExpression(initializer)) {
+    if (Node.isCallExpression(initializer)) {
+      const expression = initializer.getExpression();
+      if (Node.isPropertyAccessExpression(expression)
+        && expression.getExpression().getText() === "CI_FULL_LAYER_ORDER"
+        && expression.getName() === "map"
+        && hasCallExpressionNamed(sourceFile, "getCiFullOwnership")
+        && hasCallExpressionNamed(sourceFile, "getCiFullOwnersByLayer")) {
+        return buildMatrixStages(sourceFile);
+      }
+    }
+
     return [];
   }
 
@@ -120,6 +158,7 @@ const collectCiStages = (sourceFile: SourceFile): CiStageShape[] => {
       steps: getObjectArrayProperty(stageObject, "steps").map((stepObject) => ({
         label: getStringProperty(stepObject, "label") ?? "",
         args: getStringArrayProperty(stepObject, "args"),
+        timeoutMs: getNumericProperty(sourceFile, stepObject, "timeoutMs") ?? 0,
         mutatesProduction: getBooleanProperty(stepObject, "mutatesProduction") ?? false,
       })),
     };
@@ -183,6 +222,55 @@ const hasAbilityGroupLayer = (stages: CiStageShape[]): boolean => {
   return Boolean(isMemorySafeExecution)
     && abilityLayer?.steps.length === REQUIRED_ABILITY_GROUP_SCRIPTS.length
     && REQUIRED_ABILITY_GROUP_SCRIPTS.every((script) => actual.has(script));
+};
+
+const collectMatrixWiringFindings = (sourceFile: SourceFile, relativePath: string): CiTopologyFinding[] => {
+  const initializer = getCiStagesDeclaration(sourceFile)?.getInitializer();
+  if (!Node.isCallExpression(initializer)) {
+    return [createTopologyFinding({
+      relativePath,
+      line: getNodeLine(getCiStagesDeclaration(sourceFile) ?? sourceFile),
+      message: "CI full must derive CI_STAGES from CI_FULL_LAYER_ORDER.map and getCiFullOwnersByLayer.",
+    })];
+  }
+
+  const expression = initializer.getExpression();
+  if (!Node.isPropertyAccessExpression(expression)
+    || expression.getExpression().getText() !== "CI_FULL_LAYER_ORDER"
+    || expression.getName() !== "map"
+    || !hasCallExpressionNamed(sourceFile, "getCiFullOwnership")
+    || !hasCallExpressionNamed(sourceFile, "getCiFullOwnersByLayer")) {
+    return [createTopologyFinding({
+      relativePath,
+      line: getNodeLine(initializer),
+      message: "CI full must derive CI_STAGES from CI_FULL_LAYER_ORDER.map, getCiFullOwnersByLayer, and getCiFullOwnership.",
+    })];
+  }
+
+  return [];
+};
+
+const collectClosureWiringFindings = (sourceFile: SourceFile, relativePath: string): CiTopologyFinding[] => {
+  const callExpressions = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
+  const summaryWriteLine = callExpressions.find((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === "writeCiFullSummary";
+  })?.getStartLineNumber();
+
+  const closureCallLine = callExpressions.find((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === "runCiFullClosure";
+  })?.getStartLineNumber();
+
+  if (summaryWriteLine !== undefined && closureCallLine !== undefined && closureCallLine > summaryWriteLine) {
+    return [];
+  }
+
+  return [createTopologyFinding({
+    relativePath,
+    line: summaryWriteLine ?? closureCallLine ?? 1,
+    message: "CI full must write the summary before invoking the closure validator.",
+  })];
 };
 
 const isolatesMutatingAuditStage = (stages: CiStageShape[]): boolean => {
@@ -257,11 +345,32 @@ const collectStageGraphFindings = (stages: CiStageShape[], relativePath: string)
   return findings;
 };
 
-const collectTimeoutFindings = (sourceFile: SourceFile, relativePath: string): CiTopologyFinding[] => {
-  const ownerAuditTimeoutMs = resolveNumericConstant(sourceFile, "OWNER_STEP_TIMEOUT_MS");
-  return ownerAuditTimeoutMs !== undefined && ownerAuditTimeoutMs >= OWNER_AUDIT_TIMEOUT_MINIMUM_MS
-    ? []
-    : [createTopologyFinding({ relativePath, line: 1, message: "CI full owner audit timeout must cover the default law-compliance audit budget." })];
+const getExpectedTimeoutMs = (checkId: string): number => {
+  if (checkId === "code-purity") {
+    return CODE_PURITY_TIMEOUT_MS;
+  }
+
+  return QUICK_STEP_CHECK_IDS.has(checkId) ? QUICK_STEP_TIMEOUT_MS : OWNER_STEP_TIMEOUT_MS;
+};
+
+const collectTimeoutFindings = (stages: CiStageShape[], relativePath: string): CiTopologyFinding[] => {
+  const findings: CiTopologyFinding[] = [];
+
+  for (const stage of stages) {
+    for (const step of stage.steps) {
+      if (step.timeoutMs === getExpectedTimeoutMs(step.label)) {
+        continue;
+      }
+
+      findings.push(createTopologyFinding({
+        relativePath,
+        line: stage.line,
+        message: `CI full step ${step.label} must retain its governed timeout budget.`,
+      }));
+    }
+  }
+
+  return findings;
 };
 
 const collectResourceGuardFindings = (sourceFile: SourceFile, relativePath: string): CiTopologyFinding[] => {
@@ -284,8 +393,8 @@ const createTopologyPhases = (findings: CiTopologyFinding[]) => [
     findings.length === 0 ? "PASS" : "SCRIPT OVERREACH",
     findings.length === 0,
     findings.length === 0
-      ? "CI full runs foundation first with audit:build then code-purity, then map, then the 14 ability groups."
-      : "CI full has layer order, timeout, script graph, redundant coverage, or mutation-isolation drift.",
+      ? "CI full runs matrix-derived foundation, map, and ability-group stages, then writes and closes summary evidence."
+      : "CI full has layer order, timeout, closure order, script graph, redundant coverage, or mutation-isolation drift.",
   ),
 ];
 
@@ -298,9 +407,11 @@ export const validateCiFullTopology = async (
   const stages = collectCiStages(sourceFile);
   const findings = [
     ...collectRuntimeShapeFindings(sourceFile, relativePath),
+    ...collectMatrixWiringFindings(sourceFile, relativePath),
+    ...collectClosureWiringFindings(sourceFile, relativePath),
     ...collectLayerOrderFindings(stages, relativePath),
     ...collectStageGraphFindings(stages, relativePath),
-    ...collectTimeoutFindings(sourceFile, relativePath),
+    ...collectTimeoutFindings(stages, relativePath),
     ...collectResourceGuardFindings(sourceFile, relativePath),
   ];
 
