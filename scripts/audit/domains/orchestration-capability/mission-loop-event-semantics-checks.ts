@@ -26,7 +26,9 @@ type PhaseResult = {
 };
 
 const createFatalFinding = (input: { file: string; message: string }): Finding => createFinding({
-  lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3",
+  lawId: input.message.includes("Mission Step Trace") || input.message.includes("joint")
+    ? "GRASSEYE-ORCHESTRATION-CAPABILITY-011-V1"
+    : "GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3",
   file: input.file,
   line: 1,
   severity: "fatal",

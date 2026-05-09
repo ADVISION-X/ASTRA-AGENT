@@ -13,7 +13,8 @@ export function makeProject(): Project {
 }
 
 export function getSourceFile(project: Project, repoRelativePath: string): SourceFile | null {
-  return project.getSourceFile(pathFromRepoRoot(repoRelativePath)) ?? null;
+  const absolutePath = pathFromRepoRoot(repoRelativePath);
+  return project.getSourceFile(absolutePath) ?? project.addSourceFileAtPathIfExists(absolutePath) ?? null;
 }
 
 export async function missingRequiredFiles(): Promise<string[]> {
@@ -27,6 +28,7 @@ export async function missingRequiredFiles(): Promise<string[]> {
 }
 
 export function getTextInputSourceFiles(project: Project): SourceFile[] {
+  project.addSourceFilesAtPaths(pathFromRepoRoot(`${PATHS.ROOT}/**/*.ts`));
   return project.getSourceFiles().filter((sourceFile) => toRepoRelativePath(sourceFile.getFilePath()).startsWith(`${PATHS.ROOT}/`));
 }
 

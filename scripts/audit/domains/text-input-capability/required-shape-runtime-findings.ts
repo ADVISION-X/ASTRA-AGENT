@@ -93,20 +93,24 @@ function isCreateHashSha256Call(node: Node | undefined): boolean {
   return Boolean(node && Node.isCallExpression(node) && isIdentifierWithName(node.getExpression(), "createHash") && isStringLiteralWithValue(node.getArguments()[0], "sha256"));
 }
 
+function isUpdateCreateHashSha256Call(node: Node | undefined): boolean {
+  if (!node || !Node.isCallExpression(node) || !isUpdateTextCall(node)) {
+    return false;
+  }
+
+  const updateExpression = node.getExpression();
+  return Node.isPropertyAccessExpression(updateExpression)
+    && isCreateHashSha256Call(updateExpression.getExpression());
+}
+
 function isCanonicalSha256DigestCall(node: Node | undefined): boolean {
   if (!node || !Node.isCallExpression(node) || !isDigestHexCall(node)) {
     return false;
   }
 
   const expression = node.getExpression();
-  if (!Node.isPropertyAccessExpression(expression)) {
-    return false;
-  }
-
-  const updateCall = expression.getExpression();
-  return Node.isCallExpression(updateCall)
-    && isUpdateTextCall(updateCall)
-    && isCreateHashSha256Call(updateCall.getExpression());
+  return Node.isPropertyAccessExpression(expression)
+    && isUpdateCreateHashSha256Call(expression.getExpression());
 }
 
 function isCanonicalHashTextReturn(node: Node | undefined): boolean {

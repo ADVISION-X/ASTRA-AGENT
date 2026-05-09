@@ -6,67 +6,18 @@ import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-stor
 import type { ForensicsStructuredActionLogInput } from "../../forensics-persistence/contract.js";
 import {
   StructuredActionLogSchema,
-  StructuredRuntimeEventSchema,
   type StructuredActionLog,
-  type StructuredRuntimeEvent,
 } from "../../../types/structured-log.js";
 import {
   resolveRuntimeActionPurpose,
   resolveRuntimeStepForOperationalStep,
 } from "./orchestration-step-trace-mapper.js";
 import type { OperationalStep } from "./step-dispatch-shared.js";
-
-export type RuntimeEventInput = {
-  context: { forensics: OrchestrationForensicsPort };
-  state: MissionState;
-  mapRecord: ActiveOperationalMapRecord | null;
-  step: OperationalStep;
-  eventType: string;
-  status: "started" | "success" | "failed" | "review_required";
-  reason?: string | null;
-  failureReason?: string | null;
-  reviewRequiredReason?: string | null;
-  actionableMessage?: string | null;
-  ownerResponsible?: string | null;
-  decision?: string | null;
-  durationMs?: number | null;
-  capabilityCallId?: string | null;
-  refs?: string[];
-  inputRefs?: string[];
-  outputRefs?: string[];
-  proofRefs?: string[];
-  actionLogRefs?: string[];
-  actionRef?: string | null;
-  postActionVerificationRef?: string | null;
-  createdAt?: string;
-  proofSummary?: RuntimeEventProofSummary;
-};
-
-type RuntimeEventProofSummary = Partial<Pick<
-  StructuredRuntimeEvent,
-  | "screenshotEvidenceId"
-  | "artifactRef"
-  | "artifactStorageRef"
-  | "outputHash"
-  | "artifactHash"
-  | "byteSize"
-  | "width"
-  | "height"
-  | "coordinateSpace"
-  | "runtimeProofRef"
-  | "promptInputRef"
-  | "aiInputArtifactRef"
-  | "aiInputStorageRef"
-  | "sourceScreenshotEvidenceId"
-  | "sourceStorageRef"
-  | "preparedImageHash"
-  | "preparedImageWidth"
-  | "preparedImageHeight"
->>;
+export { buildStructuredRuntimeEvent, type RuntimeEventInput } from "./orchestration-runtime-event-payload.js";
 
 export type StepResultRecord = {
   status: "success" | "failed" | "review_required";
-  childCapabilityId: string;
+  childCapabilityId?: string;
   envelopeId?: string | null;
   resultRef?: string | null;
   outputRef?: string | null;
@@ -107,74 +58,6 @@ const resolvePayloadRefValue = (payloadRefs: MissionState["payloadRefs"], key: s
   const payloadKey = key as keyof MissionState["payloadRefs"];
   const value = payloadRefs[payloadKey];
   return typeof value === "string" && value.length > 0 ? value : null;
-};
-
-const buildRuntimeEventIdentity = (input: RuntimeEventInput) => {
-  const sessionId = resolveSessionId(input.state);
-  const runId = resolveRunId(input.state);
-  const roundId = resolveRoundId(input.state);
-  const step = resolveRuntimeStepForOperationalStep(input.step);
-
-  return {
-    sessionId,
-    runId,
-    roundId,
-    step,
-    missionId: input.state.missionId ?? null,
-    mapId: input.state.mapId ?? null,
-    traceId: runId,
-    attemptId: `${sessionId}:${input.step.stepId}:${input.state.sequenceNo}`,
-  };
-};
-
-const toEvidenceRef = (id: string, summary: string) => ({ id, kind: "ai-result" as const, summary });
-
-const buildRuntimeEventRefs = (input: RuntimeEventInput) => ({
-  refs: input.refs ?? [],
-  inputRefs: (input.inputRefs ?? []).map((id) => toEvidenceRef(id, "input")),
-  outputRefs: (input.outputRefs ?? []).map((id) => toEvidenceRef(id, "output")),
-  evidenceRefs: [],
-  proofRefs: input.proofRefs ?? [],
-  artifactRefs: [],
-  actionLogRefs: input.actionLogRefs ?? [],
-  dataQualityFlags: [],
-});
-
-export const buildStructuredRuntimeEvent = (input: RuntimeEventInput) => {
-  const identity = buildRuntimeEventIdentity(input);
-
-  return StructuredRuntimeEventSchema.parse({
-    eventId: randomUUID(),
-    eventType: input.eventType,
-    level: "INFO",
-    phase: "mission-loop",
-    component: "orchestration",
-    owner: "Orchestration",
-    abilityGroupId: "orchestration",
-    childCapabilityId: input.step.childCapabilityId,
-    videoVisitId: resolveVideoVisitId(input.state),
-    stepId: input.step.stepId,
-    taskTemplateId: null,
-    spanId: input.capabilityCallId ?? null,
-    activationSnapshotRef: input.state.activationSnapshotRef ?? null,
-    capabilityCallId: input.capabilityCallId ?? null,
-    actionRef: input.actionRef ?? null,
-    postActionVerificationRef: input.postActionVerificationRef ?? null,
-    previousStep: null,
-    nextStep: null,
-    status: input.status,
-    reason: input.reason ?? null,
-    failureReason: input.failureReason ?? null,
-    reviewRequiredReason: input.reviewRequiredReason ?? null,
-    actionableMessage: input.actionableMessage ?? null,
-    ownerResponsible: input.ownerResponsible ?? "Orchestration",
-    decision: input.decision ?? null,
-    createdAt: input.createdAt ?? new Date().toISOString(),
-    durationMs: input.durationMs ?? null,
-    ...(input.proofSummary ?? {}),
-    ...identity,
-    ...buildRuntimeEventRefs(input),
-  });
 };
 
 export const resolveActionRef = (state: MissionState, stepResult: StepResultRecord): string | null => {

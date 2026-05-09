@@ -908,6 +908,105 @@ turn P0 into warning-only
 
 ---
 
+## Law GRASSEYE-ORCHESTRATION-CAPABILITY-011-V1
+
+status: active  
+tier: P0  
+capabilityDomain: orchestration-capability  
+enforcementMode: machine-blocking  
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: Orchestration must produce Mission Step Trace, Joint Chain Checkpoint, and Failure Snapshot for every governed mission execution before real-platform debugging.
+
+### 主题
+
+Mission debug observability before real platform debugging
+
+### 法条
+
+Orchestration must leave governed debug evidence for every mission step, every comments-opening muscle joint, and every failed/review_required runtime path.
+
+Required:
+- Every Route Plan step must emit Mission Step Trace.
+- Every Mission Step Trace must include:
+  - stepId
+  - targetAbilityGroupId
+  - childCapabilityId
+  - status
+  - expectedInputRefKeys
+  - resolvedInputRefKeys
+  - resolvedInputRefs
+  - missingInputRefKeys
+  - outputRefAliases
+  - producedOutputRefs
+  - failureReason
+  - reviewRequiredReason
+  - startedAt
+  - endedAt
+  - durationMs
+- Comment-opening muscle must emit Joint Chain Checkpoint:
+  - aiCandidateResult
+  - visualTargetResult
+  - geometryGuardResult
+  - mouseClickResult
+  - postVerifyResult
+  - commentsPanelCapture
+- Every failed/review_required step must emit Failure Snapshot:
+  - failedStepId
+  - failedJointStage
+  - failureReason
+  - lastSuccessfulStepId
+  - lastSuccessfulResultRef
+  - screenshotEvidenceRef
+  - aiResultRef
+  - visualTargetResultRef
+  - geometryGuardResultRef
+  - clickResultRef
+  - postActionVerificationResultRef
+  - commentsEvidenceRef
+- `recordMissionRuntimeEvent` must attach `jointStage`, `expectedInputRefKeys`, `resolvedInputRefKeys`, `missingInputRefKeys`, `outputRefAliases`, `producedOutputRefs`, and `jointCheckpoint` to structured runtime events.
+- Failure paths must attach `failureSnapshot`.
+- Forensics write degradation console fallback must still print the failure snapshot summary and key refs.
+
+Forbidden:
+- Runtime logs that only say `task_start`.
+- Failed step without `failureSnapshot`.
+- Review-required step without `failureSnapshot`.
+- Missing input refs hidden only inside generic `failureReason`.
+- Joint chain failure without `jointStage`.
+- Console fallback that drops failure snapshot.
+- Nerve Bus interpreting `jointStage`.
+- Nerve Bus importing joint debug helpers.
+- Forensics deciding failure meaning.
+- Route Plan generating or interpreting Failure Snapshot.
+- Route Plan generating or interpreting Joint Chain Checkpoint.
+- Commander debug events replacing Mission Step Trace.
+
+Required inspector:
+- StructuredRuntimeEventSchema contains joint debug fields.
+- StructuredRuntimeEventSchema field presence check covers `targetAbilityGroupId`, `jointStage`, `missingInputRefKeys`, and `failureSnapshot`.
+- `recordMissionRuntimeEvent` emits Mission Step Trace fields through owner-local joint trace helpers.
+- Failure and review_required paths emit `failureSnapshot`.
+- Console fallback prints `jointStage`, `missingInputRefKeys`, `lastSuccessfulResultRef`, and key joint refs.
+- Nerve Bus does not parse or import joint trace helpers.
+- Forensics does not branch on `jointStage`.
+- Route Plan does not construct or interpret debug truth.
+
+Required real-code-inspection:
+- Remove `jointStage` from StructuredRuntimeEventSchema → FAIL.
+- Remove `missingInputRefKeys` from StructuredRuntimeEventSchema → FAIL.
+- Remove `failureSnapshot` from StructuredRuntimeEventSchema → FAIL.
+- Remove `targetAbilityGroupId` from StructuredRuntimeEventSchema → FAIL.
+- Remove `resolveJointStage` usage from `recordMissionRuntimeEvent` → FAIL.
+- Remove `failureSnapshot` from failed path → FAIL.
+- Console fallback hides `lastSuccessfulResultRef` → FAIL.
+- Nerve Bus imports `orchestration-step-trace-fields.ts` → FAIL.
+- Forensics decides `jointStage` → FAIL.
+- Route Plan constructs `failureSnapshot` → FAIL.
+- Route Plan constructs `jointCheckpoint` → FAIL.
+
+---
+
 ## Final Readiness Gate
 
 Orchestration is READY only when:

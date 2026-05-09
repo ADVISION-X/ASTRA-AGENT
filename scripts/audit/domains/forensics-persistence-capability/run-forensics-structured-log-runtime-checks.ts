@@ -141,37 +141,53 @@ const hasForensicsWriteProofRefs = (sourceFile: import("ts-morph").SourceFile): 
   ];
 
   return functionHasLiteralFragments(sourceFile, "emitForensicsRecordWriteRequested", requestedRefs)
-    && functionHasLiteralFragments(sourceFile, "emitForensicsRecordWritten", writtenRefs);
+    && (
+      functionHasLiteralFragments(sourceFile, "emitForensicsRecordWritten", writtenRefs)
+      || functionHasLiteralFragments(sourceFile, "buildForensicsRecordWrittenRefs", writtenRefs)
+    );
 };
 
-const hasNoFailedWriteSilenceGate = (sourceFile: import("ts-morph").SourceFile): boolean => {
-  const emitWritten = sourceFile.getFunction("emitForensicsRecordWritten");
-  if (!emitWritten) {
-    return false;
-  }
+const getFunctionText = (
+  sourceFile: import("ts-morph").SourceFile,
+  functionName: string,
+): string => sourceFile.getFunction(functionName)?.getText() ?? "";
 
-  const bodyText = emitWritten.getText();
-  return !bodyText.includes('result.status === "failed")')
-    && bodyText.includes('result.status === "review_required" || result.status === "failed"')
-    && bodyText.includes('result.status === "failed" ? "failed"');
+const hasNoFailedWriteSilenceGate = (sourceFile: import("ts-morph").SourceFile): boolean => {
+  const sourceText = sourceFile.getFullText();
+  const eventTypeResolverText = getFunctionText(sourceFile, "resolveForensicsRecordWrittenEventType");
+  const dedupeResolverText = getFunctionText(sourceFile, "resolveForensicsRecordWrittenDedupeDecision");
+  return !sourceText.includes('result.status === "failed")')
+    && eventTypeResolverText.includes('result.status === "review_required" || result.status === "failed"')
+    && dedupeResolverText.includes('result.status === "failed"');
 };
 
 const hasReviewRequiredWriteSemantics = (sourceFile: import("ts-morph").SourceFile): boolean => {
-  const emitWritten = sourceFile.getFunction("emitForensicsRecordWritten");
-  const bodyText = emitWritten?.getText() ?? "";
-  return bodyText.includes('result.status === "review_required" || result.status === "failed"')
-    && bodyText.includes("FORENSICS_RECORD_WRITE_REVIEW_REQUIRED")
-    && bodyText.includes('status = reviewRequired ? "review_required" : "success"')
-    && bodyText.includes('result.status === "failed" ? "failed"')
-    && bodyText.includes('durabilityMode=${result.storageRef ? "durable" : "memory_only"}');
+  const eventTypeResolverText = getFunctionText(sourceFile, "resolveForensicsRecordWrittenEventType");
+  const statusResolverText = getFunctionText(sourceFile, "resolveForensicsRecordWrittenStatus");
+  const dedupeResolverText = getFunctionText(sourceFile, "resolveForensicsRecordWrittenDedupeDecision");
+  const writtenRefsText = getFunctionText(sourceFile, "buildForensicsRecordWrittenRefs");
+  return eventTypeResolverText.includes('result.status === "review_required" || result.status === "failed"')
+    && eventTypeResolverText.includes("FORENSICS_RECORD_WRITE_REVIEW_REQUIRED")
+    && statusResolverText.includes('result.status === "review_required" || result.status === "failed"')
+    && statusResolverText.includes('"review_required"')
+    && statusResolverText.includes('"success"')
+    && dedupeResolverText.includes('result.status === "failed"')
+    && dedupeResolverText.includes('"failed"')
+    && writtenRefsText.includes('durabilityMode=${result.storageRef ? "durable" : "memory_only"}');
 };
 
 const hasDurableSuccessResultSemantics = (project: import("ts-morph").Project): boolean => {
   const resultBuilderSource = getSourceFileOrThrow(project, "src/capabilities/forensics-persistence/shared/forensics-result-builder.ts");
-  const resolver = resultBuilderSource.getVariableDeclaration("resolveForensicsResultStatus");
+  const statusSource = getSourceFileOrThrow(project, "src/capabilities/forensics-persistence/shared/forensics-status.ts");
+  const legacyResolver = resultBuilderSource.getVariableDeclaration("resolveForensicsResultStatus");
+  const currentResolver = statusSource.getFunction("resolveForensicsPersistenceStatus");
   const resultBuilderText = resultBuilderSource.getFullText();
-  return !!resolver
-    && resolver.getText().includes("storedRecord?.storageRef")
+  const hasResolver = (
+    !!legacyResolver && legacyResolver.getText().includes("storedRecord?.storageRef")
+  ) || (
+    !!currentResolver && currentResolver.getText().includes("input.storedRecord?.storageRef")
+  );
+  return hasResolver
     && resultBuilderText.includes('status === "review_required" ? input.reviewRequiredReason : null');
 };
 

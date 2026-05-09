@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T20:09:39.289Z",
+  "generatedAt": "2026-05-09T21:11:02.293Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -17,7 +17,7 @@
     "forensics-persistence-capability",
     "page-state-capability"
   ],
-  "totalActiveLaws": 135,
+  "totalActiveLaws": 136,
   "globalChain": {
     "observed": false,
     "passed": false,
@@ -1744,6 +1744,25 @@
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-010-V3",
+      "capabilityDomain": "orchestration-capability",
+      "abilityGroupId": "orchestration",
+      "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/orchestration-capability/inspector.ts",
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-011-V1",
       "capabilityDomain": "orchestration-capability",
       "abilityGroupId": "orchestration",
       "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",

@@ -151,12 +151,14 @@ function collectWorkbenchDispatchFindings(project: ReturnType<typeof makeProject
     return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.WORKBENCH_ACTION_DISPATCH_INPUT, line: 1, severity: "fatal", message: "Workbench mouse-scroll dispatch input builder is missing." })];
   }
 
-  const builder = source.getVariableDeclaration("buildMouseScrollCommand");
+  const builder = source.getVariableDeclaration("buildMouseScrollCommand")
+    ?? source.getExportedDeclarations().get("buildMouseScrollCommand")?.find(Node.isVariableDeclaration)
+    ?? null;
   if (!builder) {
     return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.WORKBENCH_ACTION_DISPATCH_INPUT, line: 1, severity: "fatal", message: "Workbench must expose buildMouseScrollCommand for governed mouse-scroll dispatch." })];
   }
 
-  const builderNode = builder.getInitializerOrThrow();
+  const builderNode = builder.getSourceFile();
   const findings: Finding[] = [];
   const boundsFinding = buildMouseScrollViewportBoundsFinding(builderNode, builder.getStartLineNumber());
   const anchorFinding = buildMouseScrollViewportAnchorFinding(builderNode, builder.getStartLineNumber());

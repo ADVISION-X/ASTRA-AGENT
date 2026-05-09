@@ -1094,3 +1094,114 @@ Orchestration 根据 AI free text 推进流程
 
 - Orchestration must preserve AI rejection diagnostics from the Nerve Bus AI response envelope. `CAPABILITY_CALL_REVIEW_REQUIRED` / `CAPABILITY_CALL_FAILED` for AI should expose or reference `qualityDecisionReason`, `schemaDecision`, `schemaValidationStatus`, `schemaIssueCount`, `outputBoundaryDecision`, `confidence`, `minimumConfidence`, `dataQualityFlags`, `parsedDecision`, `runtimeCallId`, `rawOutputRef/rawOutputHash`, and `diagnosticPayloadRef`.
 - The AI request envelope `capabilityCallId` must remain the Orchestration step invocation id. AI runtime internals use `runtimeCallId` and must not overwrite step lifecycle identity.
+
+## 26. Mission Debug Observability 调试观测层
+
+本节定义统一关节接口进入真实平台调试前的 P0 证据观测层。
+
+```txt
+Mission Step Trace = 每一步脚印。
+Joint Chain Checkpoint = 评论按钮肌肉链断点仪表。
+Failure Snapshot = 失败现场最小证据包。
+```
+
+这三者不是新 owner。不是新能力组。不是新执行链。不是 dashboard。不是商业判断。它们属于 Orchestration 运行记录，并通过 Forensics public contract 持久化。
+
+它只包含：
+
+```txt
+1. Mission Step Trace
+2. Joint Chain Checkpoint
+3. Failure Snapshot
+```
+
+它不是：
+
+```txt
+new owner
+new ability group
+new execution chain
+dashboard
+retry system
+auto repair system
+business judgment system
+```
+
+归属边界：
+
+```txt
+Orchestration 负责生成 trace / checkpoint / snapshot。
+Forensics 只负责保存。
+Nerve Bus 只负责运输，不理解 jointStage。
+Route Plan 只定义步骤，不负责解释日志。
+Commander Console 可以读取最近 runtime event，但不得替代 Mission Step Trace。
+```
+
+Mission Step Trace 每个 Route Plan step 必须包含：
+
+```txt
+stepId
+targetAbilityGroupId
+childCapabilityId
+status
+expectedInputRefKeys
+resolvedInputRefKeys
+resolvedInputRefs
+missingInputRefKeys
+outputRefAliases
+producedOutputRefs
+failureReason
+reviewRequiredReason
+startedAt
+endedAt
+durationMs
+```
+
+评论按钮链 Joint Chain Checkpoint 必须包含：
+
+```txt
+aiCandidateResult: exists | missing | not_applicable
+visualTargetResult: exists | missing | not_applicable
+geometryGuardResult: exists | missing | not_applicable
+mouseClickResult: exists | missing | not_applicable
+postVerifyResult: exists | missing | not_applicable
+commentsPanelCapture: exists | missing | not_applicable
+```
+
+Failure Snapshot 必须在 failed/review_required 路径包含：
+
+```txt
+failedStepId
+failedJointStage
+failureReason
+lastSuccessfulStepId
+lastSuccessfulResultRef
+screenshotEvidenceRef
+aiResultRef
+visualTargetResultRef
+geometryGuardResultRef
+clickResultRef
+postActionVerificationResultRef
+commentsEvidenceRef
+```
+
+Failure Snapshot 只从 MissionState、payloadRefs、当前 step、failureReason 读取。
+
+```txt
+不新增状态机
+不新增数据库模型
+不做判断
+```
+
+禁止：
+
+```txt
+运行日志只写 task_start
+failed/review_required 没有 failureSnapshot
+missing inputRefs 只藏在 generic failureReason
+joint failure 没有 jointStage
+Forensics 降级 console fallback 丢失 failure snapshot 摘要
+Nerve Bus 解释 jointStage
+Forensics 判断 jointStage 含义
+Route Plan 生成 failureSnapshot
+```

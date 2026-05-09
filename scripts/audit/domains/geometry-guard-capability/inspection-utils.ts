@@ -9,7 +9,8 @@ import { geometryGuardInspectionConfig } from "./inspection-constants.js";
 const { FORBIDDEN_IDENTIFIERS, FORBIDDEN_IMPORT_SEGMENTS, REQUIRED_CHILDREN, ROOT } = geometryGuardInspectionConfig;
 
 const getSourceFile = (project: ReturnType<typeof createAuditProject>, repoRelativePath: string): SourceFile | null => {
-  return project.getSourceFile(pathFromRepoRoot(repoRelativePath)) ?? null;
+  const absolutePath = pathFromRepoRoot(repoRelativePath);
+  return project.getSourceFile(absolutePath) ?? project.addSourceFileAtPathIfExists(absolutePath) ?? null;
 };
 
 const getStringLiterals = (sourceFile: SourceFile): Set<string> => {
@@ -65,6 +66,7 @@ const hasExportStar = (sourceFile: SourceFile): boolean => {
 };
 
 const collectGeometryFiles = (project: ReturnType<typeof createAuditProject>): SourceFile[] => {
+  project.addSourceFilesAtPaths(pathFromRepoRoot(`${ROOT}/**/*.ts`));
   return project.getSourceFiles().filter((sourceFile) => toRepoRelativePath(sourceFile.getFilePath()).startsWith(`${ROOT}/`));
 };
 

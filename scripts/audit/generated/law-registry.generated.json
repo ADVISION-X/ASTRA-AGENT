@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T20:09:39.151Z",
+  "generatedAt": "2026-05-09T21:11:02.169Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -1573,6 +1573,17 @@
       "summary": "Orchestration enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
       "line": 817
+    },
+    {
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-011-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "orchestration-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Orchestration must produce Mission Step Trace, Joint Chain Checkpoint and Failure Snapshot for every governed mission execution before real-platform debugging.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
+      "line": 911
     },
     {
       "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-001-V2",

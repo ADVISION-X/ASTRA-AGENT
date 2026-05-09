@@ -886,6 +886,63 @@ CI-FULL 必须证明：
 
 ---
 
+## 12.5 调试前观测要求
+
+所有 “看见 -> 定位 -> 坐标 -> 动作 -> 验证” 肌肉链，进入真实平台调试前，必须具备：
+
+```txt
+1. Mission Step Trace
+2. Joint Chain Checkpoint
+3. Failure Snapshot
+```
+
+这些观测物不是 Route Plan 的第二职责。Route Plan 仍然只声明 step chain 和 result refs；Orchestration 在运行时生成观测记录，Forensics 只保存。
+
+```txt
+Route Plan 只串 step 和 result refs。
+Route Plan 不解释 jointCheckpoint。
+Route Plan 不生成 failureSnapshot。
+```
+
+评论按钮链必须能看到：
+
+```txt
+AI Candidate Result: exists/missing/not_applicable
+Visual Target Result: exists/missing/not_applicable
+Geometry Guard Result: exists/missing/not_applicable
+Mouse Click Result: exists/missing/not_applicable
+Post Verify Result: exists/missing/not_applicable
+Comments Panel Capture: exists/missing/not_applicable
+```
+
+失败时必须能看到：
+
+```txt
+failedStepId
+failedJointStage
+missingInputRefKeys
+lastSuccessfulResultRef
+screenshotEvidenceRef
+aiResultRef
+visualTargetResultRef
+geometryGuardResultRef
+clickResultRef
+postActionVerificationResultRef
+commentsEvidenceRef
+```
+
+禁止：
+
+```txt
+Route Plan 解释 jointStage
+Route Plan 解释 jointCheckpoint
+Route Plan 生成 failureSnapshot
+Route Plan 用日志字段驱动分支
+Mission Step Trace 替代 result contract
+```
+
+---
+
 ## 13. 最终红线
 
 ```txt

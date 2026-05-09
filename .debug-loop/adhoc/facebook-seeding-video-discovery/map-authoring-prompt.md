@@ -1,45 +1,106 @@
 You are GrassEye Map Authoring Agent.
-Input Package ID: map-authoring-input:debug-loop:facebook-seeding-video-discovery:ec131450eb9f
+Input Package ID: map-authoring-input:debug-loop:facebook-seeding-video-discovery:ca57749b1ba5
 Prompt Contract ID: map-authoring-from-user-requirement-v1
 Task Type: map_authoring
 Output Schema Ref: ai.map_authoring.v1
 Language Requirement: Use simplified Chinese for human-readable fields in the output package.
-Facts Source: the complete Map Authoring Input Package JSON below is the only capability, prompt-contract, output-schema, platform, and policy truth.
+Facts Source: the complete Map Authoring Input Package JSON below is the only capability, prompt-contract, output-schema, and platform truth for map route construction.
 Static Governance Rules:
 - Do not invent unsupported ability groups or childCapabilityIds.
 - Do not invent unsupported promptContractId, requiredInputRefs, outputSchemaRef, or branch fields.
 - Do not inline rawPrompt, systemPrompt, userPrompt, executablePromptLogic, handler, script, exec, shell, import, or require fields into generated packages.
 - Every AI step must bind promptContractId, requiredInputRefs, and outputSchemaRef from the governed prompt contract catalog.
-- AI-generated maps stay draft-only until quarantine validation succeeds and a human approval reference exists.
-- Never emit approvalStatus=approved, availabilityPolicy=active, validationReportRef, humanApprovalRef, activationSnapshotRef, or activation proof refs.
+- AI-generated maps stay draft-only until quarantine validation succeeds and a automation gate reference exists.
+- Never emit activationGateStatus=gate_passed, availabilityPolicy=active, validationReportRef, automationGateRef, activationSnapshotRef, or activation proof refs.
 - If the request is unclear, return requiredClarifications and draftStatus=needs_clarification instead of inventing missing policy.
 - If the governed catalogs do not support the requested flow, set needsCapabilityExpansion=true.
 - Mutating actions such as send, publish, submit, delete, buy, or confirm must be guarded by explicit review flow.
 - Never request credentials, cookies, hidden tokens, or anti-abuse bypass instructions.
 Complete Map Authoring Input Package JSON:
 {
-  "inputPackageId": "map-authoring-input:debug-loop:facebook-seeding-video-discovery:ec131450eb9f",
+  "inputPackageId": "map-authoring-input:debug-loop:facebook-seeding-video-discovery:ca57749b1ba5",
   "inputPackageVersion": "map-authoring-input-package.v1",
-  "generatedAt": "2026-05-07T16:25:34.982Z",
+  "generatedAt": "2026-05-09T21:13:22.089Z",
   "requesterRef": "debug-loop:facebook-seeding-video-discovery",
   "userRequirement": {
-    "goal": "Open Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, summarize comment signals with comments.intent_analysis.v1, persist evidence refs, and stop or review on gated states.",
+    "goal": "Open Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, extract visible comments with comments.ocr_cleanup.v1, persist evidence refs, and stop or review on gated states.",
     "targetPlatform": "facebook-web",
     "allowedAutomationScope": [
       "observe_and_prepare_draft_only"
     ],
     "mustAskBefore": [],
-    "failureHandlingPreference": "review_required",
+    "failureHandlingPreference": "failed",
     "evidencePreference": "refs_and_hashes_only",
+    "binaryOutcomePolicy": {
+      "positiveDecision": "product_yes",
+      "negativeDecision": "product_no",
+      "positiveOutcomeOptions": [
+        {
+          "optionId": "read_comments",
+          "label": "1. 读取评论",
+          "routeLabel": "read-comments",
+          "description": "产品成立时进入评论读取链路。"
+        },
+        {
+          "optionId": "save_evidence",
+          "label": "2. 保存证据",
+          "routeLabel": "save-evidence",
+          "description": "产品成立时保留当前视频的选品证据。"
+        },
+        {
+          "optionId": "read_comments_and_save_evidence",
+          "label": "3. 读取评论并保存证据",
+          "routeLabel": "read-comments-and-save-evidence",
+          "description": "产品成立时读取评论并保留当前视频的选品证据。"
+        },
+        {
+          "optionId": "finish_current_video",
+          "label": "4. 结束当前视频",
+          "routeLabel": "finish-current-video",
+          "description": "产品成立时结束当前视频处理。"
+        }
+      ],
+      "negativeOutcomeOptions": [
+        {
+          "optionId": "skip_current_video",
+          "label": "1. 跳过当前视频",
+          "routeLabel": "skip-current-video",
+          "description": "产品不成立时直接切换到下一个视频。"
+        },
+        {
+          "optionId": "mark_not_interested_then_continue",
+          "label": "2. 点不感兴趣后继续",
+          "routeLabel": "mark-not-interested-then-continue",
+          "description": "产品不成立时标记不感兴趣并继续浏览。"
+        },
+        {
+          "optionId": "publish_default_smile_comment_then_continue",
+          "label": "3. 发布默认笑脸评论后继续",
+          "routeLabel": "publish-default-smile-comment-then-continue",
+          "description": "产品不成立时发布默认评论再继续浏览。"
+        },
+        {
+          "optionId": "stop_task",
+          "label": "4. 直接结束任务",
+          "routeLabel": "stop-task",
+          "description": "产品不成立时结束当前任务。"
+        }
+      ],
+      "selectedPositiveOutcomeId": "read_comments_and_save_evidence",
+      "selectedNegativeOutcomeId": "skip_current_video",
+      "selectedPositiveRouteLabel": "read-comments-and-save-evidence",
+      "selectedNegativeRouteLabel": "skip-current-video",
+      "defaultedBySystem": true
+    },
     "runLimit": {
       "maxRounds": 5,
       "maxMinutes": 15
     },
-    "operatorNotes": "scenarioId: facebook-seeding-video-discovery\n\nplatformId: facebook-web\n\ngeneratedMapPath: src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json\n\nrawRequirement:\nUse a local authorized browser session to inspect public Facebook Reels, identify product-seeding video candidates, capture viewport and comment evidence, summarize visible comment intent, scroll to the next video, and persist governed evidence refs.\n\nsafeExecutableRequirement:\nOpen Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, summarize comment signals with comments.intent_analysis.v1, persist evidence refs, and stop or review on gated states.",
+    "operatorNotes": "scenarioId: facebook-seeding-video-discovery\n\nplatformId: facebook-web\n\ngeneratedMapPath: src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json\n\nrawRequirement:\nUse a local authorized browser session to inspect public Facebook Reels, identify product-seeding video candidates, capture viewport and comment evidence, extract visible comments with OCR cleanup only, scroll to the next video, and persist governed evidence refs.\n\nsafeExecutableRequirement:\nOpen Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, extract visible comments with comments.ocr_cleanup.v1, persist evidence refs, and stop or review on gated states.",
     "outputLanguage": "zh-CN"
   },
-  "userRequirementRef": "user-requirement:debug-loop:facebook-seeding-video-discovery:ec131450eb9f",
-  "sourceRequirementHash": "sha256:b16ace6a59acb14dd2eea3dc8c494527dafc9520dace392e14cf4b79ac1bdfb5",
+  "userRequirementRef": "user-requirement:debug-loop:facebook-seeding-video-discovery:ca57749b1ba5",
+  "sourceRequirementHash": "sha256:3dde58bd20d7cdeadf41ded91e00ea8df8e7198fa4fac029f581fbe543066c45",
   "targetPlatformProfileRef": "facebook-web:map-authoring-profile:v1",
   "targetPlatformProfile": {
     "platformProfileRef": "facebook-web:map-authoring-profile:v1",
@@ -70,17 +131,17 @@ Complete Map Authoring Input Package JSON:
       "unexpected_auth_wall"
     ],
     "securityCheckBehavior": [
-      "pause_and_require_review",
+      "automated_block_on_security_check",
       "do_not_continue_autonomously"
     ],
-    "humanReviewRules": [
-      "high_side_effect_requires_review",
-      "draft_activation_requires_review"
+    "automationGateRules": [
+      "high_side_effect_requires_route_plan_gate",
+      "unsupported_high_risk_action_fails_closed"
     ]
   },
   "capabilityCatalog": {
     "version": "2026-04-map-prompt-contract-v1",
-    "generatedAt": "2026-05-07T16:25:34.982Z",
+    "generatedAt": "2026-05-09T21:13:22.089Z",
     "generatedFrom": "src/map-plugins/authoring/map-authoring-input-package-builder.ts",
     "activeAbilityGroupCount": 14,
     "abilityGroups": [
@@ -116,7 +177,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": true,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "none",
             "allowedStepKinds": [
@@ -169,7 +230,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": true,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "none",
             "allowedStepKinds": [
@@ -222,7 +283,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": true,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "none",
             "allowedStepKinds": [
@@ -260,12 +321,12 @@ Complete Map Authoring Input Package JSON:
         ],
         "children": [
           {
-            "childCapabilityId": "comment-intent-analysis",
-            "childCapabilityCode": "comment-intent-analysis",
-            "displayName": "comment intent analysis",
-            "description": "Execute governed AI child comment intent analysis for governed tasks.",
-            "inputSchemaRef": "ai.comment-intent-analysis.input",
-            "outputSchemaRef": "ai.comment-intent-analysis.output",
+            "childCapabilityId": "comment-text-cleanup",
+            "childCapabilityCode": "comment-text-cleanup",
+            "displayName": "comment text cleanup",
+            "description": "Execute governed AI child comment text cleanup for governed tasks.",
+            "inputSchemaRef": "ai.comment-text-cleanup.input",
+            "outputSchemaRef": "ai.comment-text-cleanup.output",
             "requiredInputRefs": [
               "promptInputRef"
             ],
@@ -278,7 +339,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -303,12 +364,12 @@ Complete Map Authoring Input Package JSON:
             ]
           },
           {
-            "childCapabilityId": "comment-text-cleanup",
-            "childCapabilityCode": "comment-text-cleanup",
-            "displayName": "comment text cleanup",
-            "description": "Execute governed AI child comment text cleanup for governed tasks.",
-            "inputSchemaRef": "ai.comment-text-cleanup.input",
-            "outputSchemaRef": "ai.comment-text-cleanup.output",
+            "childCapabilityId": "comments-entry-target-candidate-analysis",
+            "childCapabilityCode": "comments-entry-target-candidate-analysis",
+            "displayName": "comments entry target candidate analysis",
+            "description": "Execute governed AI child comments entry target candidate analysis for governed tasks.",
+            "inputSchemaRef": "ai.comments-entry-target-candidate-analysis.input",
+            "outputSchemaRef": "ai.comments-entry-target-candidate-analysis.output",
             "requiredInputRefs": [
               "promptInputRef"
             ],
@@ -321,7 +382,93 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
+            "sensitiveOperation": false,
+            "sideEffectLevel": "read",
+            "allowedStepKinds": [
+              "ai"
+            ],
+            "supportedTargetKinds": [],
+            "forbiddenResponsibilities": [
+              "execute browser actions",
+              "invent prompt text",
+              "read credentials or cookies"
+            ],
+            "proofRequirements": [
+              "runtimeProofRef",
+              "promptContractId",
+              "outputSchemaRef",
+              "aiProofRef"
+            ],
+            "failureModes": [
+              "schema_validation_failed",
+              "provider_blocked",
+              "low_confidence_review"
+            ]
+          },
+          {
+            "childCapabilityId": "next-item-target-candidate-analysis",
+            "childCapabilityCode": "next-item-target-candidate-analysis",
+            "displayName": "next item target candidate analysis",
+            "description": "Execute governed AI child next item target candidate analysis for governed tasks.",
+            "inputSchemaRef": "ai.next-item-target-candidate-analysis.input",
+            "outputSchemaRef": "ai.next-item-target-candidate-analysis.output",
+            "requiredInputRefs": [
+              "promptInputRef"
+            ],
+            "producedOutputRefs": [
+              "aiResultRef",
+              "aiProofRef"
+            ],
+            "requiresGeometryProof": false,
+            "requiresTargetProof": false,
+            "requiresFocusProof": false,
+            "requiresApprovedText": false,
+            "requiresPostActionVerification": false,
+            "requiresAutomationGate": false,
+            "sensitiveOperation": false,
+            "sideEffectLevel": "read",
+            "allowedStepKinds": [
+              "ai"
+            ],
+            "supportedTargetKinds": [],
+            "forbiddenResponsibilities": [
+              "execute browser actions",
+              "invent prompt text",
+              "read credentials or cookies"
+            ],
+            "proofRequirements": [
+              "runtimeProofRef",
+              "promptContractId",
+              "outputSchemaRef",
+              "aiProofRef"
+            ],
+            "failureModes": [
+              "schema_validation_failed",
+              "provider_blocked",
+              "low_confidence_review"
+            ]
+          },
+          {
+            "childCapabilityId": "page-preparation-judgment",
+            "childCapabilityCode": "page-preparation-judgment",
+            "displayName": "page preparation judgment",
+            "description": "Execute governed AI child page preparation judgment for governed tasks.",
+            "inputSchemaRef": "ai.page-preparation-judgment.input",
+            "outputSchemaRef": "ai.page-preparation-judgment.output",
+            "requiredInputRefs": [
+              "promptInputRef"
+            ],
+            "producedOutputRefs": [
+              "aiResultRef",
+              "aiProofRef"
+            ],
+            "requiresGeometryProof": false,
+            "requiresTargetProof": false,
+            "requiresFocusProof": false,
+            "requiresApprovedText": false,
+            "requiresPostActionVerification": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -364,7 +511,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -407,7 +554,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -450,7 +597,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -517,7 +664,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": true,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -559,7 +706,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": true,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -606,7 +753,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": true,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -648,7 +795,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": true,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -708,7 +855,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -732,7 +879,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -754,7 +901,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -778,7 +925,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -800,7 +947,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -824,7 +971,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -846,7 +993,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -870,7 +1017,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -892,7 +1039,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -916,7 +1063,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           }
         ]
@@ -938,25 +1085,24 @@ Complete Map Authoring Input Package JSON:
         ],
         "children": [
           {
-            "childCapabilityId": "detect-close-comments-button",
-            "childCapabilityCode": "detect-close-comments-button",
-            "displayName": "detect close comments button",
-            "description": "Resolve a governed visual target for detect close comments button.",
-            "inputSchemaRef": "visual-target.detect-close-comments-button.input",
-            "outputSchemaRef": "visual-target.detect-close-comments-button.output",
+            "childCapabilityId": "observe-close-comments-button",
+            "childCapabilityCode": "observe-close-comments-button",
+            "displayName": "observe close comments button",
+            "description": "Resolve a governed visual target for observe close comments button.",
+            "inputSchemaRef": "visual-target.observe-close-comments-button.input",
+            "outputSchemaRef": "visual-target.observe-close-comments-button.output",
             "requiredInputRefs": [
               "sourceImageRef"
             ],
             "producedOutputRefs": [
-              "visualTargetRef",
-              "targetProofRef"
+              "visualTargetResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -979,29 +1125,28 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-comments-button",
-            "childCapabilityCode": "detect-comments-button",
-            "displayName": "detect comments button",
-            "description": "Resolve a governed visual target for detect comments button.",
-            "inputSchemaRef": "visual-target.detect-comments-button.input",
-            "outputSchemaRef": "visual-target.detect-comments-button.output",
+            "childCapabilityId": "observe-comments-button",
+            "childCapabilityCode": "observe-comments-button",
+            "displayName": "observe comments button",
+            "description": "Resolve a governed visual target for observe comments button.",
+            "inputSchemaRef": "visual-target.observe-comments-button.input",
+            "outputSchemaRef": "visual-target.observe-comments-button.output",
             "requiredInputRefs": [
               "sourceImageRef"
             ],
             "producedOutputRefs": [
-              "visualTargetRef",
-              "targetProofRef"
+              "visualTargetResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1024,29 +1169,28 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-comments-panel",
-            "childCapabilityCode": "detect-comments-panel",
-            "displayName": "detect comments panel",
-            "description": "Resolve a governed visual target for detect comments panel.",
-            "inputSchemaRef": "visual-target.detect-comments-panel.input",
-            "outputSchemaRef": "visual-target.detect-comments-panel.output",
+            "childCapabilityId": "observe-comments-panel",
+            "childCapabilityCode": "observe-comments-panel",
+            "displayName": "observe comments panel",
+            "description": "Resolve a governed visual target for observe comments panel.",
+            "inputSchemaRef": "visual-target.observe-comments-panel.input",
+            "outputSchemaRef": "visual-target.observe-comments-panel.output",
             "requiredInputRefs": [
               "sourceImageRef"
             ],
             "producedOutputRefs": [
-              "visualTargetRef",
-              "targetProofRef"
+              "visualTargetResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1069,29 +1213,28 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-like-button",
-            "childCapabilityCode": "detect-like-button",
-            "displayName": "detect like button",
-            "description": "Resolve a governed visual target for detect like button.",
-            "inputSchemaRef": "visual-target.detect-like-button.input",
-            "outputSchemaRef": "visual-target.detect-like-button.output",
+            "childCapabilityId": "observe-like-button",
+            "childCapabilityCode": "observe-like-button",
+            "displayName": "observe like button",
+            "description": "Resolve a governed visual target for observe like button.",
+            "inputSchemaRef": "visual-target.observe-like-button.input",
+            "outputSchemaRef": "visual-target.observe-like-button.output",
             "requiredInputRefs": [
               "sourceImageRef"
             ],
             "producedOutputRefs": [
-              "visualTargetRef",
-              "targetProofRef"
+              "visualTargetResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1114,29 +1257,28 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-metric-comment-count",
-            "childCapabilityCode": "detect-metric-comment-count",
-            "displayName": "detect metric comment count",
-            "description": "Resolve a governed visual target for detect metric comment count.",
-            "inputSchemaRef": "visual-target.detect-metric-comment-count.input",
-            "outputSchemaRef": "visual-target.detect-metric-comment-count.output",
+            "childCapabilityId": "observe-metric-comment-count",
+            "childCapabilityCode": "observe-metric-comment-count",
+            "displayName": "observe metric comment count",
+            "description": "Resolve a governed visual target for observe metric comment count.",
+            "inputSchemaRef": "visual-target.observe-metric-comment-count.input",
+            "outputSchemaRef": "visual-target.observe-metric-comment-count.output",
             "requiredInputRefs": [
               "sourceImageRef"
             ],
             "producedOutputRefs": [
-              "visualTargetRef",
-              "targetProofRef"
+              "visualTargetResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1159,29 +1301,28 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-metric-like-count",
-            "childCapabilityCode": "detect-metric-like-count",
-            "displayName": "detect metric like count",
-            "description": "Resolve a governed visual target for detect metric like count.",
-            "inputSchemaRef": "visual-target.detect-metric-like-count.input",
-            "outputSchemaRef": "visual-target.detect-metric-like-count.output",
+            "childCapabilityId": "observe-metric-like-count",
+            "childCapabilityCode": "observe-metric-like-count",
+            "displayName": "observe metric like count",
+            "description": "Resolve a governed visual target for observe metric like count.",
+            "inputSchemaRef": "visual-target.observe-metric-like-count.input",
+            "outputSchemaRef": "visual-target.observe-metric-like-count.output",
             "requiredInputRefs": [
               "sourceImageRef"
             ],
             "producedOutputRefs": [
-              "visualTargetRef",
-              "targetProofRef"
+              "visualTargetResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1204,29 +1345,28 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-next-video-region",
-            "childCapabilityCode": "detect-next-video-region",
-            "displayName": "detect next video region",
-            "description": "Resolve a governed visual target for detect next video region.",
-            "inputSchemaRef": "visual-target.detect-next-video-region.input",
-            "outputSchemaRef": "visual-target.detect-next-video-region.output",
+            "childCapabilityId": "observe-next-item-target-candidate",
+            "childCapabilityCode": "observe-next-item-target-candidate",
+            "displayName": "observe next item target candidate",
+            "description": "Resolve a governed visual target for observe next item target candidate.",
+            "inputSchemaRef": "visual-target.observe-next-item-target-candidate.input",
+            "outputSchemaRef": "visual-target.observe-next-item-target-candidate.output",
             "requiredInputRefs": [
               "sourceImageRef"
             ],
             "producedOutputRefs": [
-              "visualTargetRef",
-              "targetProofRef"
+              "visualTargetResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1249,29 +1389,28 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-not-interested-button",
-            "childCapabilityCode": "detect-not-interested-button",
-            "displayName": "detect not interested button",
-            "description": "Resolve a governed visual target for detect not interested button.",
-            "inputSchemaRef": "visual-target.detect-not-interested-button.input",
-            "outputSchemaRef": "visual-target.detect-not-interested-button.output",
+            "childCapabilityId": "observe-next-video-region",
+            "childCapabilityCode": "observe-next-video-region",
+            "displayName": "observe next video region",
+            "description": "Resolve a governed visual target for observe next video region.",
+            "inputSchemaRef": "visual-target.observe-next-video-region.input",
+            "outputSchemaRef": "visual-target.observe-next-video-region.output",
             "requiredInputRefs": [
               "sourceImageRef"
             ],
             "producedOutputRefs": [
-              "visualTargetRef",
-              "targetProofRef"
+              "visualTargetResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1294,29 +1433,28 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-save-button",
-            "childCapabilityCode": "detect-save-button",
-            "displayName": "detect save button",
-            "description": "Resolve a governed visual target for detect save button.",
-            "inputSchemaRef": "visual-target.detect-save-button.input",
-            "outputSchemaRef": "visual-target.detect-save-button.output",
+            "childCapabilityId": "observe-not-interested-button",
+            "childCapabilityCode": "observe-not-interested-button",
+            "displayName": "observe not interested button",
+            "description": "Resolve a governed visual target for observe not interested button.",
+            "inputSchemaRef": "visual-target.observe-not-interested-button.input",
+            "outputSchemaRef": "visual-target.observe-not-interested-button.output",
             "requiredInputRefs": [
               "sourceImageRef"
             ],
             "producedOutputRefs": [
-              "visualTargetRef",
-              "targetProofRef"
+              "visualTargetResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1339,7 +1477,51 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
+            ]
+          },
+          {
+            "childCapabilityId": "observe-save-button",
+            "childCapabilityCode": "observe-save-button",
+            "displayName": "observe save button",
+            "description": "Resolve a governed visual target for observe save button.",
+            "inputSchemaRef": "visual-target.observe-save-button.input",
+            "outputSchemaRef": "visual-target.observe-save-button.output",
+            "requiredInputRefs": [
+              "sourceImageRef"
+            ],
+            "producedOutputRefs": [
+              "visualTargetResultRef"
+            ],
+            "requiresGeometryProof": false,
+            "requiresTargetProof": false,
+            "requiresFocusProof": false,
+            "requiresApprovedText": false,
+            "requiresPostActionVerification": false,
+            "requiresAutomationGate": false,
+            "sensitiveOperation": false,
+            "sideEffectLevel": "read",
+            "allowedStepKinds": [
+              "observation",
+              "verification"
+            ],
+            "supportedTargetKinds": [
+              "browser-viewport",
+              "desktop-screen",
+              "source-image"
+            ],
+            "forbiddenResponsibilities": [
+              "click targets",
+              "mutate platform state",
+              "decide mission branching"
+            ],
+            "proofRequirements": [
+              "runtimeProofRef"
+            ],
+            "failureModes": [
+              "precondition_failed",
+              "timeout",
+              "failed"
             ]
           }
         ]
@@ -1368,17 +1550,17 @@ Complete Map Authoring Input Package JSON:
             "inputSchemaRef": "geometry-guard.map-ai-input-to-viewport.input",
             "outputSchemaRef": "geometry-guard.map-ai-input-to-viewport.output",
             "requiredInputRefs": [
-              "candidateGeometryRef"
+              "visualTargetResultRef"
             ],
             "producedOutputRefs": [
-              "geometryProofRef"
+              "geometryGuardResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1402,7 +1584,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -1413,17 +1595,17 @@ Complete Map Authoring Input Package JSON:
             "inputSchemaRef": "geometry-guard.map-region-to-source.input",
             "outputSchemaRef": "geometry-guard.map-region-to-source.output",
             "requiredInputRefs": [
-              "candidateGeometryRef"
+              "visualTargetResultRef"
             ],
             "producedOutputRefs": [
-              "geometryProofRef"
+              "geometryGuardResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1447,7 +1629,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -1458,17 +1640,17 @@ Complete Map Authoring Input Package JSON:
             "inputSchemaRef": "geometry-guard.normalize-coordinate-geometry.input",
             "outputSchemaRef": "geometry-guard.normalize-coordinate-geometry.output",
             "requiredInputRefs": [
-              "candidateGeometryRef"
+              "visualTargetResultRef"
             ],
             "producedOutputRefs": [
-              "geometryProofRef"
+              "geometryGuardResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1492,7 +1674,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -1503,17 +1685,17 @@ Complete Map Authoring Input Package JSON:
             "inputSchemaRef": "geometry-guard.validate-bbox-integrity.input",
             "outputSchemaRef": "geometry-guard.validate-bbox-integrity.output",
             "requiredInputRefs": [
-              "candidateGeometryRef"
+              "visualTargetResultRef"
             ],
             "producedOutputRefs": [
-              "geometryProofRef"
+              "geometryGuardResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1537,7 +1719,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -1548,17 +1730,17 @@ Complete Map Authoring Input Package JSON:
             "inputSchemaRef": "geometry-guard.validate-browser-viewport-bounds.input",
             "outputSchemaRef": "geometry-guard.validate-browser-viewport-bounds.output",
             "requiredInputRefs": [
-              "candidateGeometryRef"
+              "visualTargetResultRef"
             ],
             "producedOutputRefs": [
-              "geometryProofRef"
+              "geometryGuardResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1582,7 +1764,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -1593,17 +1775,17 @@ Complete Map Authoring Input Package JSON:
             "inputSchemaRef": "geometry-guard.validate-click-point.input",
             "outputSchemaRef": "geometry-guard.validate-click-point.output",
             "requiredInputRefs": [
-              "candidateGeometryRef"
+              "visualTargetResultRef"
             ],
             "producedOutputRefs": [
-              "geometryProofRef"
+              "geometryGuardResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1627,7 +1809,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -1638,17 +1820,17 @@ Complete Map Authoring Input Package JSON:
             "inputSchemaRef": "geometry-guard.validate-coordinate-space.input",
             "outputSchemaRef": "geometry-guard.validate-coordinate-space.output",
             "requiredInputRefs": [
-              "candidateGeometryRef"
+              "visualTargetResultRef"
             ],
             "producedOutputRefs": [
-              "geometryProofRef"
+              "geometryGuardResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1672,7 +1854,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -1683,17 +1865,17 @@ Complete Map Authoring Input Package JSON:
             "inputSchemaRef": "geometry-guard.validate-desktop-screen-bounds.input",
             "outputSchemaRef": "geometry-guard.validate-desktop-screen-bounds.output",
             "requiredInputRefs": [
-              "candidateGeometryRef"
+              "visualTargetResultRef"
             ],
             "producedOutputRefs": [
-              "geometryProofRef"
+              "geometryGuardResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1717,7 +1899,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -1728,17 +1910,17 @@ Complete Map Authoring Input Package JSON:
             "inputSchemaRef": "geometry-guard.validate-scale-mapping.input",
             "outputSchemaRef": "geometry-guard.validate-scale-mapping.output",
             "requiredInputRefs": [
-              "candidateGeometryRef"
+              "visualTargetResultRef"
             ],
             "producedOutputRefs": [
-              "geometryProofRef"
+              "geometryGuardResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -1762,7 +1944,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           }
         ]
@@ -1779,7 +1961,7 @@ Complete Map Authoring Input Package JSON:
         "outputSchemaRef": "mouse-click.group.output",
         "forbiddenResponsibilities": [
           "invent geometry",
-          "skip post-action verification",
+          "skip post-click observation",
           "read page state"
         ],
         "children": [
@@ -1791,19 +1973,17 @@ Complete Map Authoring Input Package JSON:
             "inputSchemaRef": "mouse-click.click-browser-coordinate.input",
             "outputSchemaRef": "mouse-click.click-browser-coordinate.output",
             "requiredInputRefs": [
-              "geometryProofRef",
-              "targetProofRef"
+              "geometryGuardResultRef"
             ],
             "producedOutputRefs": [
-              "actionResultRef",
-              "postActionVerificationRef"
+              "clickResultRef"
             ],
             "requiresGeometryProof": true,
             "requiresTargetProof": true,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": true,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -1815,13 +1995,12 @@ Complete Map Authoring Input Package JSON:
             ],
             "forbiddenResponsibilities": [
               "invent geometry",
-              "skip post-action verification",
+              "skip post-click observation",
               "read page state"
             ],
             "proofRequirements": [
               "runtimeProofRef",
-              "geometryProofRef",
-              "targetProofRef"
+              "geometryGuardResultRef"
             ],
             "failureModes": [
               "target_not_ready",
@@ -1837,19 +2016,17 @@ Complete Map Authoring Input Package JSON:
             "inputSchemaRef": "mouse-click.click-desktop-coordinate.input",
             "outputSchemaRef": "mouse-click.click-desktop-coordinate.output",
             "requiredInputRefs": [
-              "geometryProofRef",
-              "targetProofRef"
+              "geometryGuardResultRef"
             ],
             "producedOutputRefs": [
-              "actionResultRef",
-              "postActionVerificationRef"
+              "clickResultRef"
             ],
             "requiresGeometryProof": true,
             "requiresTargetProof": true,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": true,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -1861,13 +2038,12 @@ Complete Map Authoring Input Package JSON:
             ],
             "forbiddenResponsibilities": [
               "invent geometry",
-              "skip post-action verification",
+              "skip post-click observation",
               "read page state"
             ],
             "proofRequirements": [
               "runtimeProofRef",
-              "geometryProofRef",
-              "targetProofRef"
+              "geometryGuardResultRef"
             ],
             "failureModes": [
               "target_not_ready",
@@ -1914,7 +2090,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": true,
             "requiresApprovedText": true,
             "requiresPostActionVerification": true,
-            "requiresHumanReview": true,
+            "requiresAutomationGate": true,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -1963,7 +2139,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": true,
             "requiresApprovedText": true,
             "requiresPostActionVerification": true,
-            "requiresHumanReview": true,
+            "requiresAutomationGate": true,
             "sensitiveOperation": true,
             "sideEffectLevel": "submit",
             "allowedStepKinds": [
@@ -2012,7 +2188,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": true,
             "requiresApprovedText": true,
             "requiresPostActionVerification": true,
-            "requiresHumanReview": true,
+            "requiresAutomationGate": true,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -2061,7 +2237,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": true,
             "requiresApprovedText": true,
             "requiresPostActionVerification": true,
-            "requiresHumanReview": true,
+            "requiresAutomationGate": true,
             "sensitiveOperation": true,
             "sideEffectLevel": "submit",
             "allowedStepKinds": [
@@ -2090,6 +2266,52 @@ Complete Map Authoring Input Package JSON:
             ]
           },
           {
+            "childCapabilityId": "press-navigation-key",
+            "childCapabilityCode": "press-navigation-key",
+            "displayName": "press navigation key",
+            "description": "Execute governed text-input behavior for press navigation key.",
+            "inputSchemaRef": "text-input.press-navigation-key.input",
+            "outputSchemaRef": "text-input.press-navigation-key.output",
+            "requiredInputRefs": [
+              "targetProofRef",
+              "focusProofRef"
+            ],
+            "producedOutputRefs": [
+              "textInputResultRef",
+              "postActionVerificationRef"
+            ],
+            "requiresGeometryProof": false,
+            "requiresTargetProof": true,
+            "requiresFocusProof": true,
+            "requiresApprovedText": false,
+            "requiresPostActionVerification": true,
+            "requiresAutomationGate": true,
+            "sensitiveOperation": true,
+            "sideEffectLevel": "write",
+            "allowedStepKinds": [
+              "action"
+            ],
+            "supportedTargetKinds": [
+              "browser-input",
+              "desktop-input"
+            ],
+            "forbiddenResponsibilities": [
+              "invent credentials",
+              "click targets",
+              "decide map branching"
+            ],
+            "proofRequirements": [
+              "runtimeProofRef",
+              "targetProofRef",
+              "focusProofRef"
+            ],
+            "failureModes": [
+              "target_not_ready",
+              "post_action_verification_failed",
+              "timeout"
+            ]
+          },
+          {
             "childCapabilityId": "replace-input",
             "childCapabilityCode": "replace-input",
             "displayName": "replace input",
@@ -2110,7 +2332,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": true,
             "requiresApprovedText": true,
             "requiresPostActionVerification": true,
-            "requiresHumanReview": true,
+            "requiresAutomationGate": true,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -2159,7 +2381,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": true,
             "requiresApprovedText": true,
             "requiresPostActionVerification": true,
-            "requiresHumanReview": true,
+            "requiresAutomationGate": true,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -2225,7 +2447,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -2270,7 +2492,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -2315,7 +2537,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -2361,6 +2583,226 @@ Complete Map Authoring Input Package JSON:
         ],
         "children": [
           {
+            "childCapabilityId": "observe-comments-panel-close-attempt",
+            "childCapabilityCode": "observe-comments-panel-close-attempt",
+            "displayName": "observe comments panel close attempt",
+            "description": "Verify governed post-action outcome for observe comments panel close attempt.",
+            "inputSchemaRef": "post-action-verification.observe-comments-panel-close-attempt.input",
+            "outputSchemaRef": "post-action-verification.observe-comments-panel-close-attempt.output",
+            "requiredInputRefs": [
+              "clickResultRef"
+            ],
+            "producedOutputRefs": [
+              "postActionVerificationResultRef"
+            ],
+            "requiresGeometryProof": false,
+            "requiresTargetProof": false,
+            "requiresFocusProof": false,
+            "requiresApprovedText": false,
+            "requiresPostActionVerification": false,
+            "requiresAutomationGate": false,
+            "sensitiveOperation": false,
+            "sideEffectLevel": "read",
+            "allowedStepKinds": [
+              "observation",
+              "verification"
+            ],
+            "supportedTargetKinds": [
+              "browser-page",
+              "browser-viewport",
+              "runtime-proof"
+            ],
+            "forbiddenResponsibilities": [
+              "execute recovery actions",
+              "invent prompts",
+              "persist unrelated evidence"
+            ],
+            "proofRequirements": [
+              "runtimeProofRef"
+            ],
+            "failureModes": [
+              "precondition_failed",
+              "timeout",
+              "failed"
+            ]
+          },
+          {
+            "childCapabilityId": "observe-comments-panel-open-attempt",
+            "childCapabilityCode": "observe-comments-panel-open-attempt",
+            "displayName": "observe comments panel open attempt",
+            "description": "Verify governed post-action outcome for observe comments panel open attempt.",
+            "inputSchemaRef": "post-action-verification.observe-comments-panel-open-attempt.input",
+            "outputSchemaRef": "post-action-verification.observe-comments-panel-open-attempt.output",
+            "requiredInputRefs": [
+              "clickResultRef"
+            ],
+            "producedOutputRefs": [
+              "postActionVerificationResultRef"
+            ],
+            "requiresGeometryProof": false,
+            "requiresTargetProof": false,
+            "requiresFocusProof": false,
+            "requiresApprovedText": false,
+            "requiresPostActionVerification": false,
+            "requiresAutomationGate": false,
+            "sensitiveOperation": false,
+            "sideEffectLevel": "read",
+            "allowedStepKinds": [
+              "observation",
+              "verification"
+            ],
+            "supportedTargetKinds": [
+              "browser-page",
+              "browser-viewport",
+              "runtime-proof"
+            ],
+            "forbiddenResponsibilities": [
+              "execute recovery actions",
+              "invent prompts",
+              "persist unrelated evidence"
+            ],
+            "proofRequirements": [
+              "runtimeProofRef"
+            ],
+            "failureModes": [
+              "precondition_failed",
+              "timeout",
+              "failed"
+            ]
+          },
+          {
+            "childCapabilityId": "observe-not-interested-attempt",
+            "childCapabilityCode": "observe-not-interested-attempt",
+            "displayName": "observe not interested attempt",
+            "description": "Verify governed post-action outcome for observe not interested attempt.",
+            "inputSchemaRef": "post-action-verification.observe-not-interested-attempt.input",
+            "outputSchemaRef": "post-action-verification.observe-not-interested-attempt.output",
+            "requiredInputRefs": [
+              "clickResultRef"
+            ],
+            "producedOutputRefs": [
+              "postActionVerificationResultRef"
+            ],
+            "requiresGeometryProof": false,
+            "requiresTargetProof": false,
+            "requiresFocusProof": false,
+            "requiresApprovedText": false,
+            "requiresPostActionVerification": false,
+            "requiresAutomationGate": false,
+            "sensitiveOperation": false,
+            "sideEffectLevel": "read",
+            "allowedStepKinds": [
+              "observation",
+              "verification"
+            ],
+            "supportedTargetKinds": [
+              "browser-page",
+              "browser-viewport",
+              "runtime-proof"
+            ],
+            "forbiddenResponsibilities": [
+              "execute recovery actions",
+              "invent prompts",
+              "persist unrelated evidence"
+            ],
+            "proofRequirements": [
+              "runtimeProofRef"
+            ],
+            "failureModes": [
+              "precondition_failed",
+              "timeout",
+              "failed"
+            ]
+          },
+          {
+            "childCapabilityId": "observe-page-open-attempt",
+            "childCapabilityCode": "observe-page-open-attempt",
+            "displayName": "observe page open attempt",
+            "description": "Verify governed post-action outcome for observe page open attempt.",
+            "inputSchemaRef": "post-action-verification.observe-page-open-attempt.input",
+            "outputSchemaRef": "post-action-verification.observe-page-open-attempt.output",
+            "requiredInputRefs": [
+              "clickResultRef"
+            ],
+            "producedOutputRefs": [
+              "postActionVerificationResultRef"
+            ],
+            "requiresGeometryProof": false,
+            "requiresTargetProof": false,
+            "requiresFocusProof": false,
+            "requiresApprovedText": false,
+            "requiresPostActionVerification": false,
+            "requiresAutomationGate": false,
+            "sensitiveOperation": false,
+            "sideEffectLevel": "read",
+            "allowedStepKinds": [
+              "observation",
+              "verification"
+            ],
+            "supportedTargetKinds": [
+              "browser-page",
+              "browser-viewport",
+              "runtime-proof"
+            ],
+            "forbiddenResponsibilities": [
+              "execute recovery actions",
+              "invent prompts",
+              "persist unrelated evidence"
+            ],
+            "proofRequirements": [
+              "runtimeProofRef"
+            ],
+            "failureModes": [
+              "precondition_failed",
+              "timeout",
+              "failed"
+            ]
+          },
+          {
+            "childCapabilityId": "observe-target-state-transition",
+            "childCapabilityCode": "observe-target-state-transition",
+            "displayName": "observe target state transition",
+            "description": "Verify governed post-action outcome for observe target state transition.",
+            "inputSchemaRef": "post-action-verification.observe-target-state-transition.input",
+            "outputSchemaRef": "post-action-verification.observe-target-state-transition.output",
+            "requiredInputRefs": [
+              "clickResultRef"
+            ],
+            "producedOutputRefs": [
+              "postActionVerificationResultRef"
+            ],
+            "requiresGeometryProof": false,
+            "requiresTargetProof": false,
+            "requiresFocusProof": false,
+            "requiresApprovedText": false,
+            "requiresPostActionVerification": false,
+            "requiresAutomationGate": false,
+            "sensitiveOperation": false,
+            "sideEffectLevel": "read",
+            "allowedStepKinds": [
+              "observation",
+              "verification"
+            ],
+            "supportedTargetKinds": [
+              "browser-page",
+              "browser-viewport",
+              "runtime-proof"
+            ],
+            "forbiddenResponsibilities": [
+              "execute recovery actions",
+              "invent prompts",
+              "persist unrelated evidence"
+            ],
+            "proofRequirements": [
+              "runtimeProofRef"
+            ],
+            "failureModes": [
+              "precondition_failed",
+              "timeout",
+              "failed"
+            ]
+          },
+          {
             "childCapabilityId": "verify-action-result",
             "childCapabilityCode": "verify-action-result",
             "displayName": "verify action result",
@@ -2368,18 +2810,17 @@ Complete Map Authoring Input Package JSON:
             "inputSchemaRef": "post-action-verification.verify-action-result.input",
             "outputSchemaRef": "post-action-verification.verify-action-result.output",
             "requiredInputRefs": [
-              "preActionEvidenceRef",
-              "postActionEvidenceRef"
+              "clickResultRef"
             ],
             "producedOutputRefs": [
-              "postActionVerificationRef"
+              "postActionVerificationResultRef"
             ],
             "requiresGeometryProof": false,
             "requiresTargetProof": false,
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -2402,232 +2843,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
-            ]
-          },
-          {
-            "childCapabilityId": "verify-comments-panel-closed",
-            "childCapabilityCode": "verify-comments-panel-closed",
-            "displayName": "verify comments panel closed",
-            "description": "Verify governed post-action outcome for verify comments panel closed.",
-            "inputSchemaRef": "post-action-verification.verify-comments-panel-closed.input",
-            "outputSchemaRef": "post-action-verification.verify-comments-panel-closed.output",
-            "requiredInputRefs": [
-              "preActionEvidenceRef",
-              "postActionEvidenceRef"
-            ],
-            "producedOutputRefs": [
-              "postActionVerificationRef"
-            ],
-            "requiresGeometryProof": false,
-            "requiresTargetProof": false,
-            "requiresFocusProof": false,
-            "requiresApprovedText": false,
-            "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
-            "sensitiveOperation": false,
-            "sideEffectLevel": "read",
-            "allowedStepKinds": [
-              "observation",
-              "verification"
-            ],
-            "supportedTargetKinds": [
-              "browser-page",
-              "browser-viewport",
-              "runtime-proof"
-            ],
-            "forbiddenResponsibilities": [
-              "execute recovery actions",
-              "invent prompts",
-              "persist unrelated evidence"
-            ],
-            "proofRequirements": [
-              "runtimeProofRef"
-            ],
-            "failureModes": [
-              "precondition_failed",
-              "timeout",
-              "review_required"
-            ]
-          },
-          {
-            "childCapabilityId": "verify-comments-panel-opened",
-            "childCapabilityCode": "verify-comments-panel-opened",
-            "displayName": "verify comments panel opened",
-            "description": "Verify governed post-action outcome for verify comments panel opened.",
-            "inputSchemaRef": "post-action-verification.verify-comments-panel-opened.input",
-            "outputSchemaRef": "post-action-verification.verify-comments-panel-opened.output",
-            "requiredInputRefs": [
-              "preActionEvidenceRef",
-              "postActionEvidenceRef"
-            ],
-            "producedOutputRefs": [
-              "postActionVerificationRef"
-            ],
-            "requiresGeometryProof": false,
-            "requiresTargetProof": false,
-            "requiresFocusProof": false,
-            "requiresApprovedText": false,
-            "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
-            "sensitiveOperation": false,
-            "sideEffectLevel": "read",
-            "allowedStepKinds": [
-              "observation",
-              "verification"
-            ],
-            "supportedTargetKinds": [
-              "browser-page",
-              "browser-viewport",
-              "runtime-proof"
-            ],
-            "forbiddenResponsibilities": [
-              "execute recovery actions",
-              "invent prompts",
-              "persist unrelated evidence"
-            ],
-            "proofRequirements": [
-              "runtimeProofRef"
-            ],
-            "failureModes": [
-              "precondition_failed",
-              "timeout",
-              "review_required"
-            ]
-          },
-          {
-            "childCapabilityId": "verify-not-interested-result",
-            "childCapabilityCode": "verify-not-interested-result",
-            "displayName": "verify not interested result",
-            "description": "Verify governed post-action outcome for verify not interested result.",
-            "inputSchemaRef": "post-action-verification.verify-not-interested-result.input",
-            "outputSchemaRef": "post-action-verification.verify-not-interested-result.output",
-            "requiredInputRefs": [
-              "preActionEvidenceRef",
-              "postActionEvidenceRef"
-            ],
-            "producedOutputRefs": [
-              "postActionVerificationRef"
-            ],
-            "requiresGeometryProof": false,
-            "requiresTargetProof": false,
-            "requiresFocusProof": false,
-            "requiresApprovedText": false,
-            "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
-            "sensitiveOperation": false,
-            "sideEffectLevel": "read",
-            "allowedStepKinds": [
-              "observation",
-              "verification"
-            ],
-            "supportedTargetKinds": [
-              "browser-page",
-              "browser-viewport",
-              "runtime-proof"
-            ],
-            "forbiddenResponsibilities": [
-              "execute recovery actions",
-              "invent prompts",
-              "persist unrelated evidence"
-            ],
-            "proofRequirements": [
-              "runtimeProofRef"
-            ],
-            "failureModes": [
-              "precondition_failed",
-              "timeout",
-              "review_required"
-            ]
-          },
-          {
-            "childCapabilityId": "verify-page-opened",
-            "childCapabilityCode": "verify-page-opened",
-            "displayName": "verify page opened",
-            "description": "Verify governed post-action outcome for verify page opened.",
-            "inputSchemaRef": "post-action-verification.verify-page-opened.input",
-            "outputSchemaRef": "post-action-verification.verify-page-opened.output",
-            "requiredInputRefs": [
-              "preActionEvidenceRef",
-              "postActionEvidenceRef"
-            ],
-            "producedOutputRefs": [
-              "postActionVerificationRef"
-            ],
-            "requiresGeometryProof": false,
-            "requiresTargetProof": false,
-            "requiresFocusProof": false,
-            "requiresApprovedText": false,
-            "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
-            "sensitiveOperation": false,
-            "sideEffectLevel": "read",
-            "allowedStepKinds": [
-              "observation",
-              "verification"
-            ],
-            "supportedTargetKinds": [
-              "browser-page",
-              "browser-viewport",
-              "runtime-proof"
-            ],
-            "forbiddenResponsibilities": [
-              "execute recovery actions",
-              "invent prompts",
-              "persist unrelated evidence"
-            ],
-            "proofRequirements": [
-              "runtimeProofRef"
-            ],
-            "failureModes": [
-              "precondition_failed",
-              "timeout",
-              "review_required"
-            ]
-          },
-          {
-            "childCapabilityId": "verify-target-state-changed",
-            "childCapabilityCode": "verify-target-state-changed",
-            "displayName": "verify target state changed",
-            "description": "Verify governed post-action outcome for verify target state changed.",
-            "inputSchemaRef": "post-action-verification.verify-target-state-changed.input",
-            "outputSchemaRef": "post-action-verification.verify-target-state-changed.output",
-            "requiredInputRefs": [
-              "preActionEvidenceRef",
-              "postActionEvidenceRef"
-            ],
-            "producedOutputRefs": [
-              "postActionVerificationRef"
-            ],
-            "requiresGeometryProof": false,
-            "requiresTargetProof": false,
-            "requiresFocusProof": false,
-            "requiresApprovedText": false,
-            "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
-            "sensitiveOperation": false,
-            "sideEffectLevel": "read",
-            "allowedStepKinds": [
-              "observation",
-              "verification"
-            ],
-            "supportedTargetKinds": [
-              "browser-page",
-              "browser-viewport",
-              "runtime-proof"
-            ],
-            "forbiddenResponsibilities": [
-              "execute recovery actions",
-              "invent prompts",
-              "persist unrelated evidence"
-            ],
-            "proofRequirements": [
-              "runtimeProofRef"
-            ],
-            "failureModes": [
-              "precondition_failed",
-              "timeout",
-              "review_required"
+              "failed"
             ]
           }
         ]
@@ -2666,7 +2882,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -2689,7 +2905,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -2710,7 +2926,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -2733,7 +2949,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -2754,7 +2970,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -2777,7 +2993,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -2798,7 +3014,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -2821,7 +3037,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -2842,7 +3058,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -2865,7 +3081,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -2886,7 +3102,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -2909,7 +3125,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -2930,7 +3146,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -2953,7 +3169,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
@@ -2974,7 +3190,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": true,
             "sideEffectLevel": "write",
             "allowedStepKinds": [
@@ -2997,7 +3213,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           }
         ]
@@ -3019,12 +3235,12 @@ Complete Map Authoring Input Package JSON:
         ],
         "children": [
           {
-            "childCapabilityId": "detect-comment-panel-state",
-            "childCapabilityCode": "detect-comment-panel-state",
-            "displayName": "detect comment panel state",
-            "description": "Classify governed page state for detect comment panel state.",
-            "inputSchemaRef": "page-state.detect-comment-panel-state.input",
-            "outputSchemaRef": "page-state.detect-comment-panel-state.output",
+            "childCapabilityId": "observe-comment-panel-surface",
+            "childCapabilityCode": "observe-comment-panel-surface",
+            "displayName": "observe comment panel surface",
+            "description": "Classify governed page state for observe comment panel surface.",
+            "inputSchemaRef": "page-state.observe-comment-panel-surface.input",
+            "outputSchemaRef": "page-state.observe-comment-panel-surface.output",
             "requiredInputRefs": [
               "pageRef"
             ],
@@ -3036,7 +3252,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -3057,16 +3273,16 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-feed-ready",
-            "childCapabilityCode": "detect-feed-ready",
-            "displayName": "detect feed ready",
-            "description": "Classify governed page state for detect feed ready.",
-            "inputSchemaRef": "page-state.detect-feed-ready.input",
-            "outputSchemaRef": "page-state.detect-feed-ready.output",
+            "childCapabilityId": "observe-feed-surface",
+            "childCapabilityCode": "observe-feed-surface",
+            "displayName": "observe feed surface",
+            "description": "Classify governed page state for observe feed surface.",
+            "inputSchemaRef": "page-state.observe-feed-surface.input",
+            "outputSchemaRef": "page-state.observe-feed-surface.output",
             "requiredInputRefs": [
               "pageRef"
             ],
@@ -3078,7 +3294,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -3099,16 +3315,16 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-login-state",
-            "childCapabilityCode": "detect-login-state",
-            "displayName": "detect login state",
-            "description": "Classify governed page state for detect login state.",
-            "inputSchemaRef": "page-state.detect-login-state.input",
-            "outputSchemaRef": "page-state.detect-login-state.output",
+            "childCapabilityId": "observe-login-surface",
+            "childCapabilityCode": "observe-login-surface",
+            "displayName": "observe login surface",
+            "description": "Classify governed page state for observe login surface.",
+            "inputSchemaRef": "page-state.observe-login-surface.input",
+            "outputSchemaRef": "page-state.observe-login-surface.output",
             "requiredInputRefs": [
               "pageRef"
             ],
@@ -3120,7 +3336,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -3141,16 +3357,16 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-modal-overlay-state",
-            "childCapabilityCode": "detect-modal-overlay-state",
-            "displayName": "detect modal overlay state",
-            "description": "Classify governed page state for detect modal overlay state.",
-            "inputSchemaRef": "page-state.detect-modal-overlay-state.input",
-            "outputSchemaRef": "page-state.detect-modal-overlay-state.output",
+            "childCapabilityId": "observe-modal-overlay-surface",
+            "childCapabilityCode": "observe-modal-overlay-surface",
+            "displayName": "observe modal overlay surface",
+            "description": "Classify governed page state for observe modal overlay surface.",
+            "inputSchemaRef": "page-state.observe-modal-overlay-surface.input",
+            "outputSchemaRef": "page-state.observe-modal-overlay-surface.output",
             "requiredInputRefs": [
               "pageRef"
             ],
@@ -3162,7 +3378,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -3183,16 +3399,16 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-page-abnormality",
-            "childCapabilityCode": "detect-page-abnormality",
-            "displayName": "detect page abnormality",
-            "description": "Classify governed page state for detect page abnormality.",
-            "inputSchemaRef": "page-state.detect-page-abnormality.input",
-            "outputSchemaRef": "page-state.detect-page-abnormality.output",
+            "childCapabilityId": "observe-page-abnormality-surface",
+            "childCapabilityCode": "observe-page-abnormality-surface",
+            "displayName": "observe page abnormality surface",
+            "description": "Classify governed page state for observe page abnormality surface.",
+            "inputSchemaRef": "page-state.observe-page-abnormality-surface.input",
+            "outputSchemaRef": "page-state.observe-page-abnormality-surface.output",
             "requiredInputRefs": [
               "pageRef"
             ],
@@ -3204,7 +3420,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -3225,16 +3441,16 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-platform-page-kind",
-            "childCapabilityCode": "detect-platform-page-kind",
-            "displayName": "detect platform page kind",
-            "description": "Classify governed page state for detect platform page kind.",
-            "inputSchemaRef": "page-state.detect-platform-page-kind.input",
-            "outputSchemaRef": "page-state.detect-platform-page-kind.output",
+            "childCapabilityId": "observe-platform-surface",
+            "childCapabilityCode": "observe-platform-surface",
+            "displayName": "observe platform surface",
+            "description": "Classify governed page state for observe platform surface.",
+            "inputSchemaRef": "page-state.observe-platform-surface.input",
+            "outputSchemaRef": "page-state.observe-platform-surface.output",
             "requiredInputRefs": [
               "pageRef"
             ],
@@ -3246,7 +3462,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -3267,16 +3483,16 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-safety-page",
-            "childCapabilityCode": "detect-safety-page",
-            "displayName": "detect safety page",
-            "description": "Classify governed page state for detect safety page.",
-            "inputSchemaRef": "page-state.detect-safety-page.input",
-            "outputSchemaRef": "page-state.detect-safety-page.output",
+            "childCapabilityId": "observe-safety-surface",
+            "childCapabilityCode": "observe-safety-surface",
+            "displayName": "observe safety surface",
+            "description": "Classify governed page state for observe safety surface.",
+            "inputSchemaRef": "page-state.observe-safety-surface.input",
+            "outputSchemaRef": "page-state.observe-safety-surface.output",
             "requiredInputRefs": [
               "pageRef"
             ],
@@ -3288,7 +3504,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -3309,16 +3525,16 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           },
           {
-            "childCapabilityId": "detect-video-stable",
-            "childCapabilityCode": "detect-video-stable",
-            "displayName": "detect video stable",
-            "description": "Classify governed page state for detect video stable.",
-            "inputSchemaRef": "page-state.detect-video-stable.input",
-            "outputSchemaRef": "page-state.detect-video-stable.output",
+            "childCapabilityId": "observe-video-surface",
+            "childCapabilityCode": "observe-video-surface",
+            "displayName": "observe video surface",
+            "description": "Classify governed page state for observe video surface.",
+            "inputSchemaRef": "page-state.observe-video-surface.input",
+            "outputSchemaRef": "page-state.observe-video-surface.output",
             "requiredInputRefs": [
               "pageRef"
             ],
@@ -3330,7 +3546,7 @@ Complete Map Authoring Input Package JSON:
             "requiresFocusProof": false,
             "requiresApprovedText": false,
             "requiresPostActionVerification": false,
-            "requiresHumanReview": false,
+            "requiresAutomationGate": false,
             "sensitiveOperation": false,
             "sideEffectLevel": "read",
             "allowedStepKinds": [
@@ -3351,7 +3567,7 @@ Complete Map Authoring Input Package JSON:
             "failureModes": [
               "precondition_failed",
               "timeout",
-              "review_required"
+              "failed"
             ]
           }
         ]
@@ -3359,12 +3575,12 @@ Complete Map Authoring Input Package JSON:
     ],
     "mapRoutableChildren": [
       {
-        "childCapabilityId": "comment-intent-analysis",
-        "childCapabilityCode": "comment-intent-analysis",
-        "displayName": "comment intent analysis",
-        "description": "Execute governed AI child comment intent analysis for governed tasks.",
-        "inputSchemaRef": "ai.comment-intent-analysis.input",
-        "outputSchemaRef": "ai.comment-intent-analysis.output",
+        "childCapabilityId": "comment-text-cleanup",
+        "childCapabilityCode": "comment-text-cleanup",
+        "displayName": "comment text cleanup",
+        "description": "Execute governed AI child comment text cleanup for governed tasks.",
+        "inputSchemaRef": "ai.comment-text-cleanup.input",
+        "outputSchemaRef": "ai.comment-text-cleanup.output",
         "requiredInputRefs": [
           "promptInputRef"
         ],
@@ -3377,7 +3593,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3402,12 +3618,12 @@ Complete Map Authoring Input Package JSON:
         ]
       },
       {
-        "childCapabilityId": "comment-text-cleanup",
-        "childCapabilityCode": "comment-text-cleanup",
-        "displayName": "comment text cleanup",
-        "description": "Execute governed AI child comment text cleanup for governed tasks.",
-        "inputSchemaRef": "ai.comment-text-cleanup.input",
-        "outputSchemaRef": "ai.comment-text-cleanup.output",
+        "childCapabilityId": "comments-entry-target-candidate-analysis",
+        "childCapabilityCode": "comments-entry-target-candidate-analysis",
+        "displayName": "comments entry target candidate analysis",
+        "description": "Execute governed AI child comments entry target candidate analysis for governed tasks.",
+        "inputSchemaRef": "ai.comments-entry-target-candidate-analysis.input",
+        "outputSchemaRef": "ai.comments-entry-target-candidate-analysis.output",
         "requiredInputRefs": [
           "promptInputRef"
         ],
@@ -3420,7 +3636,93 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
+        "sensitiveOperation": false,
+        "sideEffectLevel": "read",
+        "allowedStepKinds": [
+          "ai"
+        ],
+        "supportedTargetKinds": [],
+        "forbiddenResponsibilities": [
+          "execute browser actions",
+          "invent prompt text",
+          "read credentials or cookies"
+        ],
+        "proofRequirements": [
+          "runtimeProofRef",
+          "promptContractId",
+          "outputSchemaRef",
+          "aiProofRef"
+        ],
+        "failureModes": [
+          "schema_validation_failed",
+          "provider_blocked",
+          "low_confidence_review"
+        ]
+      },
+      {
+        "childCapabilityId": "next-item-target-candidate-analysis",
+        "childCapabilityCode": "next-item-target-candidate-analysis",
+        "displayName": "next item target candidate analysis",
+        "description": "Execute governed AI child next item target candidate analysis for governed tasks.",
+        "inputSchemaRef": "ai.next-item-target-candidate-analysis.input",
+        "outputSchemaRef": "ai.next-item-target-candidate-analysis.output",
+        "requiredInputRefs": [
+          "promptInputRef"
+        ],
+        "producedOutputRefs": [
+          "aiResultRef",
+          "aiProofRef"
+        ],
+        "requiresGeometryProof": false,
+        "requiresTargetProof": false,
+        "requiresFocusProof": false,
+        "requiresApprovedText": false,
+        "requiresPostActionVerification": false,
+        "requiresAutomationGate": false,
+        "sensitiveOperation": false,
+        "sideEffectLevel": "read",
+        "allowedStepKinds": [
+          "ai"
+        ],
+        "supportedTargetKinds": [],
+        "forbiddenResponsibilities": [
+          "execute browser actions",
+          "invent prompt text",
+          "read credentials or cookies"
+        ],
+        "proofRequirements": [
+          "runtimeProofRef",
+          "promptContractId",
+          "outputSchemaRef",
+          "aiProofRef"
+        ],
+        "failureModes": [
+          "schema_validation_failed",
+          "provider_blocked",
+          "low_confidence_review"
+        ]
+      },
+      {
+        "childCapabilityId": "page-preparation-judgment",
+        "childCapabilityCode": "page-preparation-judgment",
+        "displayName": "page preparation judgment",
+        "description": "Execute governed AI child page preparation judgment for governed tasks.",
+        "inputSchemaRef": "ai.page-preparation-judgment.input",
+        "outputSchemaRef": "ai.page-preparation-judgment.output",
+        "requiredInputRefs": [
+          "promptInputRef"
+        ],
+        "producedOutputRefs": [
+          "aiResultRef",
+          "aiProofRef"
+        ],
+        "requiresGeometryProof": false,
+        "requiresTargetProof": false,
+        "requiresFocusProof": false,
+        "requiresApprovedText": false,
+        "requiresPostActionVerification": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3463,7 +3765,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3506,7 +3808,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3549,7 +3851,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3592,7 +3894,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": true,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3634,7 +3936,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": true,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3681,7 +3983,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": true,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3723,7 +4025,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": true,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3765,7 +4067,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3789,7 +4091,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -3811,7 +4113,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3835,7 +4137,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -3857,7 +4159,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3881,7 +4183,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -3903,7 +4205,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3927,7 +4229,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -3949,7 +4251,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -3973,29 +4275,28 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-close-comments-button",
-        "childCapabilityCode": "detect-close-comments-button",
-        "displayName": "detect close comments button",
-        "description": "Resolve a governed visual target for detect close comments button.",
-        "inputSchemaRef": "visual-target.detect-close-comments-button.input",
-        "outputSchemaRef": "visual-target.detect-close-comments-button.output",
+        "childCapabilityId": "observe-close-comments-button",
+        "childCapabilityCode": "observe-close-comments-button",
+        "displayName": "observe close comments button",
+        "description": "Resolve a governed visual target for observe close comments button.",
+        "inputSchemaRef": "visual-target.observe-close-comments-button.input",
+        "outputSchemaRef": "visual-target.observe-close-comments-button.output",
         "requiredInputRefs": [
           "sourceImageRef"
         ],
         "producedOutputRefs": [
-          "visualTargetRef",
-          "targetProofRef"
+          "visualTargetResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4018,29 +4319,28 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-comments-button",
-        "childCapabilityCode": "detect-comments-button",
-        "displayName": "detect comments button",
-        "description": "Resolve a governed visual target for detect comments button.",
-        "inputSchemaRef": "visual-target.detect-comments-button.input",
-        "outputSchemaRef": "visual-target.detect-comments-button.output",
+        "childCapabilityId": "observe-comments-button",
+        "childCapabilityCode": "observe-comments-button",
+        "displayName": "observe comments button",
+        "description": "Resolve a governed visual target for observe comments button.",
+        "inputSchemaRef": "visual-target.observe-comments-button.input",
+        "outputSchemaRef": "visual-target.observe-comments-button.output",
         "requiredInputRefs": [
           "sourceImageRef"
         ],
         "producedOutputRefs": [
-          "visualTargetRef",
-          "targetProofRef"
+          "visualTargetResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4063,29 +4363,28 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-comments-panel",
-        "childCapabilityCode": "detect-comments-panel",
-        "displayName": "detect comments panel",
-        "description": "Resolve a governed visual target for detect comments panel.",
-        "inputSchemaRef": "visual-target.detect-comments-panel.input",
-        "outputSchemaRef": "visual-target.detect-comments-panel.output",
+        "childCapabilityId": "observe-comments-panel",
+        "childCapabilityCode": "observe-comments-panel",
+        "displayName": "observe comments panel",
+        "description": "Resolve a governed visual target for observe comments panel.",
+        "inputSchemaRef": "visual-target.observe-comments-panel.input",
+        "outputSchemaRef": "visual-target.observe-comments-panel.output",
         "requiredInputRefs": [
           "sourceImageRef"
         ],
         "producedOutputRefs": [
-          "visualTargetRef",
-          "targetProofRef"
+          "visualTargetResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4108,29 +4407,28 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-like-button",
-        "childCapabilityCode": "detect-like-button",
-        "displayName": "detect like button",
-        "description": "Resolve a governed visual target for detect like button.",
-        "inputSchemaRef": "visual-target.detect-like-button.input",
-        "outputSchemaRef": "visual-target.detect-like-button.output",
+        "childCapabilityId": "observe-like-button",
+        "childCapabilityCode": "observe-like-button",
+        "displayName": "observe like button",
+        "description": "Resolve a governed visual target for observe like button.",
+        "inputSchemaRef": "visual-target.observe-like-button.input",
+        "outputSchemaRef": "visual-target.observe-like-button.output",
         "requiredInputRefs": [
           "sourceImageRef"
         ],
         "producedOutputRefs": [
-          "visualTargetRef",
-          "targetProofRef"
+          "visualTargetResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4153,29 +4451,28 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-metric-comment-count",
-        "childCapabilityCode": "detect-metric-comment-count",
-        "displayName": "detect metric comment count",
-        "description": "Resolve a governed visual target for detect metric comment count.",
-        "inputSchemaRef": "visual-target.detect-metric-comment-count.input",
-        "outputSchemaRef": "visual-target.detect-metric-comment-count.output",
+        "childCapabilityId": "observe-metric-comment-count",
+        "childCapabilityCode": "observe-metric-comment-count",
+        "displayName": "observe metric comment count",
+        "description": "Resolve a governed visual target for observe metric comment count.",
+        "inputSchemaRef": "visual-target.observe-metric-comment-count.input",
+        "outputSchemaRef": "visual-target.observe-metric-comment-count.output",
         "requiredInputRefs": [
           "sourceImageRef"
         ],
         "producedOutputRefs": [
-          "visualTargetRef",
-          "targetProofRef"
+          "visualTargetResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4198,29 +4495,28 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-metric-like-count",
-        "childCapabilityCode": "detect-metric-like-count",
-        "displayName": "detect metric like count",
-        "description": "Resolve a governed visual target for detect metric like count.",
-        "inputSchemaRef": "visual-target.detect-metric-like-count.input",
-        "outputSchemaRef": "visual-target.detect-metric-like-count.output",
+        "childCapabilityId": "observe-metric-like-count",
+        "childCapabilityCode": "observe-metric-like-count",
+        "displayName": "observe metric like count",
+        "description": "Resolve a governed visual target for observe metric like count.",
+        "inputSchemaRef": "visual-target.observe-metric-like-count.input",
+        "outputSchemaRef": "visual-target.observe-metric-like-count.output",
         "requiredInputRefs": [
           "sourceImageRef"
         ],
         "producedOutputRefs": [
-          "visualTargetRef",
-          "targetProofRef"
+          "visualTargetResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4243,29 +4539,28 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-next-video-region",
-        "childCapabilityCode": "detect-next-video-region",
-        "displayName": "detect next video region",
-        "description": "Resolve a governed visual target for detect next video region.",
-        "inputSchemaRef": "visual-target.detect-next-video-region.input",
-        "outputSchemaRef": "visual-target.detect-next-video-region.output",
+        "childCapabilityId": "observe-next-item-target-candidate",
+        "childCapabilityCode": "observe-next-item-target-candidate",
+        "displayName": "observe next item target candidate",
+        "description": "Resolve a governed visual target for observe next item target candidate.",
+        "inputSchemaRef": "visual-target.observe-next-item-target-candidate.input",
+        "outputSchemaRef": "visual-target.observe-next-item-target-candidate.output",
         "requiredInputRefs": [
           "sourceImageRef"
         ],
         "producedOutputRefs": [
-          "visualTargetRef",
-          "targetProofRef"
+          "visualTargetResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4288,29 +4583,28 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-not-interested-button",
-        "childCapabilityCode": "detect-not-interested-button",
-        "displayName": "detect not interested button",
-        "description": "Resolve a governed visual target for detect not interested button.",
-        "inputSchemaRef": "visual-target.detect-not-interested-button.input",
-        "outputSchemaRef": "visual-target.detect-not-interested-button.output",
+        "childCapabilityId": "observe-next-video-region",
+        "childCapabilityCode": "observe-next-video-region",
+        "displayName": "observe next video region",
+        "description": "Resolve a governed visual target for observe next video region.",
+        "inputSchemaRef": "visual-target.observe-next-video-region.input",
+        "outputSchemaRef": "visual-target.observe-next-video-region.output",
         "requiredInputRefs": [
           "sourceImageRef"
         ],
         "producedOutputRefs": [
-          "visualTargetRef",
-          "targetProofRef"
+          "visualTargetResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4333,29 +4627,28 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-save-button",
-        "childCapabilityCode": "detect-save-button",
-        "displayName": "detect save button",
-        "description": "Resolve a governed visual target for detect save button.",
-        "inputSchemaRef": "visual-target.detect-save-button.input",
-        "outputSchemaRef": "visual-target.detect-save-button.output",
+        "childCapabilityId": "observe-not-interested-button",
+        "childCapabilityCode": "observe-not-interested-button",
+        "displayName": "observe not interested button",
+        "description": "Resolve a governed visual target for observe not interested button.",
+        "inputSchemaRef": "visual-target.observe-not-interested-button.input",
+        "outputSchemaRef": "visual-target.observe-not-interested-button.output",
         "requiredInputRefs": [
           "sourceImageRef"
         ],
         "producedOutputRefs": [
-          "visualTargetRef",
-          "targetProofRef"
+          "visualTargetResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4378,7 +4671,51 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
+        ]
+      },
+      {
+        "childCapabilityId": "observe-save-button",
+        "childCapabilityCode": "observe-save-button",
+        "displayName": "observe save button",
+        "description": "Resolve a governed visual target for observe save button.",
+        "inputSchemaRef": "visual-target.observe-save-button.input",
+        "outputSchemaRef": "visual-target.observe-save-button.output",
+        "requiredInputRefs": [
+          "sourceImageRef"
+        ],
+        "producedOutputRefs": [
+          "visualTargetResultRef"
+        ],
+        "requiresGeometryProof": false,
+        "requiresTargetProof": false,
+        "requiresFocusProof": false,
+        "requiresApprovedText": false,
+        "requiresPostActionVerification": false,
+        "requiresAutomationGate": false,
+        "sensitiveOperation": false,
+        "sideEffectLevel": "read",
+        "allowedStepKinds": [
+          "observation",
+          "verification"
+        ],
+        "supportedTargetKinds": [
+          "browser-viewport",
+          "desktop-screen",
+          "source-image"
+        ],
+        "forbiddenResponsibilities": [
+          "click targets",
+          "mutate platform state",
+          "decide mission branching"
+        ],
+        "proofRequirements": [
+          "runtimeProofRef"
+        ],
+        "failureModes": [
+          "precondition_failed",
+          "timeout",
+          "failed"
         ]
       },
       {
@@ -4389,17 +4726,17 @@ Complete Map Authoring Input Package JSON:
         "inputSchemaRef": "geometry-guard.map-ai-input-to-viewport.input",
         "outputSchemaRef": "geometry-guard.map-ai-input-to-viewport.output",
         "requiredInputRefs": [
-          "candidateGeometryRef"
+          "visualTargetResultRef"
         ],
         "producedOutputRefs": [
-          "geometryProofRef"
+          "geometryGuardResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4423,7 +4760,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -4434,17 +4771,17 @@ Complete Map Authoring Input Package JSON:
         "inputSchemaRef": "geometry-guard.map-region-to-source.input",
         "outputSchemaRef": "geometry-guard.map-region-to-source.output",
         "requiredInputRefs": [
-          "candidateGeometryRef"
+          "visualTargetResultRef"
         ],
         "producedOutputRefs": [
-          "geometryProofRef"
+          "geometryGuardResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4468,7 +4805,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -4479,17 +4816,17 @@ Complete Map Authoring Input Package JSON:
         "inputSchemaRef": "geometry-guard.normalize-coordinate-geometry.input",
         "outputSchemaRef": "geometry-guard.normalize-coordinate-geometry.output",
         "requiredInputRefs": [
-          "candidateGeometryRef"
+          "visualTargetResultRef"
         ],
         "producedOutputRefs": [
-          "geometryProofRef"
+          "geometryGuardResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4513,7 +4850,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -4524,17 +4861,17 @@ Complete Map Authoring Input Package JSON:
         "inputSchemaRef": "geometry-guard.validate-bbox-integrity.input",
         "outputSchemaRef": "geometry-guard.validate-bbox-integrity.output",
         "requiredInputRefs": [
-          "candidateGeometryRef"
+          "visualTargetResultRef"
         ],
         "producedOutputRefs": [
-          "geometryProofRef"
+          "geometryGuardResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4558,7 +4895,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -4569,17 +4906,17 @@ Complete Map Authoring Input Package JSON:
         "inputSchemaRef": "geometry-guard.validate-browser-viewport-bounds.input",
         "outputSchemaRef": "geometry-guard.validate-browser-viewport-bounds.output",
         "requiredInputRefs": [
-          "candidateGeometryRef"
+          "visualTargetResultRef"
         ],
         "producedOutputRefs": [
-          "geometryProofRef"
+          "geometryGuardResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4603,7 +4940,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -4614,17 +4951,17 @@ Complete Map Authoring Input Package JSON:
         "inputSchemaRef": "geometry-guard.validate-click-point.input",
         "outputSchemaRef": "geometry-guard.validate-click-point.output",
         "requiredInputRefs": [
-          "candidateGeometryRef"
+          "visualTargetResultRef"
         ],
         "producedOutputRefs": [
-          "geometryProofRef"
+          "geometryGuardResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4648,7 +4985,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -4659,17 +4996,17 @@ Complete Map Authoring Input Package JSON:
         "inputSchemaRef": "geometry-guard.validate-coordinate-space.input",
         "outputSchemaRef": "geometry-guard.validate-coordinate-space.output",
         "requiredInputRefs": [
-          "candidateGeometryRef"
+          "visualTargetResultRef"
         ],
         "producedOutputRefs": [
-          "geometryProofRef"
+          "geometryGuardResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4693,7 +5030,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -4704,17 +5041,17 @@ Complete Map Authoring Input Package JSON:
         "inputSchemaRef": "geometry-guard.validate-desktop-screen-bounds.input",
         "outputSchemaRef": "geometry-guard.validate-desktop-screen-bounds.output",
         "requiredInputRefs": [
-          "candidateGeometryRef"
+          "visualTargetResultRef"
         ],
         "producedOutputRefs": [
-          "geometryProofRef"
+          "geometryGuardResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4738,7 +5075,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -4749,17 +5086,17 @@ Complete Map Authoring Input Package JSON:
         "inputSchemaRef": "geometry-guard.validate-scale-mapping.input",
         "outputSchemaRef": "geometry-guard.validate-scale-mapping.output",
         "requiredInputRefs": [
-          "candidateGeometryRef"
+          "visualTargetResultRef"
         ],
         "producedOutputRefs": [
-          "geometryProofRef"
+          "geometryGuardResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -4783,7 +5120,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -4794,19 +5131,17 @@ Complete Map Authoring Input Package JSON:
         "inputSchemaRef": "mouse-click.click-browser-coordinate.input",
         "outputSchemaRef": "mouse-click.click-browser-coordinate.output",
         "requiredInputRefs": [
-          "geometryProofRef",
-          "targetProofRef"
+          "geometryGuardResultRef"
         ],
         "producedOutputRefs": [
-          "actionResultRef",
-          "postActionVerificationRef"
+          "clickResultRef"
         ],
         "requiresGeometryProof": true,
         "requiresTargetProof": true,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": true,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -4818,13 +5153,12 @@ Complete Map Authoring Input Package JSON:
         ],
         "forbiddenResponsibilities": [
           "invent geometry",
-          "skip post-action verification",
+          "skip post-click observation",
           "read page state"
         ],
         "proofRequirements": [
           "runtimeProofRef",
-          "geometryProofRef",
-          "targetProofRef"
+          "geometryGuardResultRef"
         ],
         "failureModes": [
           "target_not_ready",
@@ -4840,19 +5174,17 @@ Complete Map Authoring Input Package JSON:
         "inputSchemaRef": "mouse-click.click-desktop-coordinate.input",
         "outputSchemaRef": "mouse-click.click-desktop-coordinate.output",
         "requiredInputRefs": [
-          "geometryProofRef",
-          "targetProofRef"
+          "geometryGuardResultRef"
         ],
         "producedOutputRefs": [
-          "actionResultRef",
-          "postActionVerificationRef"
+          "clickResultRef"
         ],
         "requiresGeometryProof": true,
         "requiresTargetProof": true,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": true,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -4864,13 +5196,12 @@ Complete Map Authoring Input Package JSON:
         ],
         "forbiddenResponsibilities": [
           "invent geometry",
-          "skip post-action verification",
+          "skip post-click observation",
           "read page state"
         ],
         "proofRequirements": [
           "runtimeProofRef",
-          "geometryProofRef",
-          "targetProofRef"
+          "geometryGuardResultRef"
         ],
         "failureModes": [
           "target_not_ready",
@@ -4899,7 +5230,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": true,
         "requiresApprovedText": true,
         "requiresPostActionVerification": true,
-        "requiresHumanReview": true,
+        "requiresAutomationGate": true,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -4948,7 +5279,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": true,
         "requiresApprovedText": true,
         "requiresPostActionVerification": true,
-        "requiresHumanReview": true,
+        "requiresAutomationGate": true,
         "sensitiveOperation": true,
         "sideEffectLevel": "submit",
         "allowedStepKinds": [
@@ -4997,7 +5328,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": true,
         "requiresApprovedText": true,
         "requiresPostActionVerification": true,
-        "requiresHumanReview": true,
+        "requiresAutomationGate": true,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -5046,7 +5377,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": true,
         "requiresApprovedText": true,
         "requiresPostActionVerification": true,
-        "requiresHumanReview": true,
+        "requiresAutomationGate": true,
         "sensitiveOperation": true,
         "sideEffectLevel": "submit",
         "allowedStepKinds": [
@@ -5075,6 +5406,52 @@ Complete Map Authoring Input Package JSON:
         ]
       },
       {
+        "childCapabilityId": "press-navigation-key",
+        "childCapabilityCode": "press-navigation-key",
+        "displayName": "press navigation key",
+        "description": "Execute governed text-input behavior for press navigation key.",
+        "inputSchemaRef": "text-input.press-navigation-key.input",
+        "outputSchemaRef": "text-input.press-navigation-key.output",
+        "requiredInputRefs": [
+          "targetProofRef",
+          "focusProofRef"
+        ],
+        "producedOutputRefs": [
+          "textInputResultRef",
+          "postActionVerificationRef"
+        ],
+        "requiresGeometryProof": false,
+        "requiresTargetProof": true,
+        "requiresFocusProof": true,
+        "requiresApprovedText": false,
+        "requiresPostActionVerification": true,
+        "requiresAutomationGate": true,
+        "sensitiveOperation": true,
+        "sideEffectLevel": "write",
+        "allowedStepKinds": [
+          "action"
+        ],
+        "supportedTargetKinds": [
+          "browser-input",
+          "desktop-input"
+        ],
+        "forbiddenResponsibilities": [
+          "invent credentials",
+          "click targets",
+          "decide map branching"
+        ],
+        "proofRequirements": [
+          "runtimeProofRef",
+          "targetProofRef",
+          "focusProofRef"
+        ],
+        "failureModes": [
+          "target_not_ready",
+          "post_action_verification_failed",
+          "timeout"
+        ]
+      },
+      {
         "childCapabilityId": "replace-input",
         "childCapabilityCode": "replace-input",
         "displayName": "replace input",
@@ -5095,7 +5472,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": true,
         "requiresApprovedText": true,
         "requiresPostActionVerification": true,
-        "requiresHumanReview": true,
+        "requiresAutomationGate": true,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -5144,7 +5521,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": true,
         "requiresApprovedText": true,
         "requiresPostActionVerification": true,
-        "requiresHumanReview": true,
+        "requiresAutomationGate": true,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -5191,7 +5568,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -5236,7 +5613,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -5281,7 +5658,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -5309,6 +5686,226 @@ Complete Map Authoring Input Package JSON:
         ]
       },
       {
+        "childCapabilityId": "observe-comments-panel-close-attempt",
+        "childCapabilityCode": "observe-comments-panel-close-attempt",
+        "displayName": "observe comments panel close attempt",
+        "description": "Verify governed post-action outcome for observe comments panel close attempt.",
+        "inputSchemaRef": "post-action-verification.observe-comments-panel-close-attempt.input",
+        "outputSchemaRef": "post-action-verification.observe-comments-panel-close-attempt.output",
+        "requiredInputRefs": [
+          "clickResultRef"
+        ],
+        "producedOutputRefs": [
+          "postActionVerificationResultRef"
+        ],
+        "requiresGeometryProof": false,
+        "requiresTargetProof": false,
+        "requiresFocusProof": false,
+        "requiresApprovedText": false,
+        "requiresPostActionVerification": false,
+        "requiresAutomationGate": false,
+        "sensitiveOperation": false,
+        "sideEffectLevel": "read",
+        "allowedStepKinds": [
+          "observation",
+          "verification"
+        ],
+        "supportedTargetKinds": [
+          "browser-page",
+          "browser-viewport",
+          "runtime-proof"
+        ],
+        "forbiddenResponsibilities": [
+          "execute recovery actions",
+          "invent prompts",
+          "persist unrelated evidence"
+        ],
+        "proofRequirements": [
+          "runtimeProofRef"
+        ],
+        "failureModes": [
+          "precondition_failed",
+          "timeout",
+          "failed"
+        ]
+      },
+      {
+        "childCapabilityId": "observe-comments-panel-open-attempt",
+        "childCapabilityCode": "observe-comments-panel-open-attempt",
+        "displayName": "observe comments panel open attempt",
+        "description": "Verify governed post-action outcome for observe comments panel open attempt.",
+        "inputSchemaRef": "post-action-verification.observe-comments-panel-open-attempt.input",
+        "outputSchemaRef": "post-action-verification.observe-comments-panel-open-attempt.output",
+        "requiredInputRefs": [
+          "clickResultRef"
+        ],
+        "producedOutputRefs": [
+          "postActionVerificationResultRef"
+        ],
+        "requiresGeometryProof": false,
+        "requiresTargetProof": false,
+        "requiresFocusProof": false,
+        "requiresApprovedText": false,
+        "requiresPostActionVerification": false,
+        "requiresAutomationGate": false,
+        "sensitiveOperation": false,
+        "sideEffectLevel": "read",
+        "allowedStepKinds": [
+          "observation",
+          "verification"
+        ],
+        "supportedTargetKinds": [
+          "browser-page",
+          "browser-viewport",
+          "runtime-proof"
+        ],
+        "forbiddenResponsibilities": [
+          "execute recovery actions",
+          "invent prompts",
+          "persist unrelated evidence"
+        ],
+        "proofRequirements": [
+          "runtimeProofRef"
+        ],
+        "failureModes": [
+          "precondition_failed",
+          "timeout",
+          "failed"
+        ]
+      },
+      {
+        "childCapabilityId": "observe-not-interested-attempt",
+        "childCapabilityCode": "observe-not-interested-attempt",
+        "displayName": "observe not interested attempt",
+        "description": "Verify governed post-action outcome for observe not interested attempt.",
+        "inputSchemaRef": "post-action-verification.observe-not-interested-attempt.input",
+        "outputSchemaRef": "post-action-verification.observe-not-interested-attempt.output",
+        "requiredInputRefs": [
+          "clickResultRef"
+        ],
+        "producedOutputRefs": [
+          "postActionVerificationResultRef"
+        ],
+        "requiresGeometryProof": false,
+        "requiresTargetProof": false,
+        "requiresFocusProof": false,
+        "requiresApprovedText": false,
+        "requiresPostActionVerification": false,
+        "requiresAutomationGate": false,
+        "sensitiveOperation": false,
+        "sideEffectLevel": "read",
+        "allowedStepKinds": [
+          "observation",
+          "verification"
+        ],
+        "supportedTargetKinds": [
+          "browser-page",
+          "browser-viewport",
+          "runtime-proof"
+        ],
+        "forbiddenResponsibilities": [
+          "execute recovery actions",
+          "invent prompts",
+          "persist unrelated evidence"
+        ],
+        "proofRequirements": [
+          "runtimeProofRef"
+        ],
+        "failureModes": [
+          "precondition_failed",
+          "timeout",
+          "failed"
+        ]
+      },
+      {
+        "childCapabilityId": "observe-page-open-attempt",
+        "childCapabilityCode": "observe-page-open-attempt",
+        "displayName": "observe page open attempt",
+        "description": "Verify governed post-action outcome for observe page open attempt.",
+        "inputSchemaRef": "post-action-verification.observe-page-open-attempt.input",
+        "outputSchemaRef": "post-action-verification.observe-page-open-attempt.output",
+        "requiredInputRefs": [
+          "clickResultRef"
+        ],
+        "producedOutputRefs": [
+          "postActionVerificationResultRef"
+        ],
+        "requiresGeometryProof": false,
+        "requiresTargetProof": false,
+        "requiresFocusProof": false,
+        "requiresApprovedText": false,
+        "requiresPostActionVerification": false,
+        "requiresAutomationGate": false,
+        "sensitiveOperation": false,
+        "sideEffectLevel": "read",
+        "allowedStepKinds": [
+          "observation",
+          "verification"
+        ],
+        "supportedTargetKinds": [
+          "browser-page",
+          "browser-viewport",
+          "runtime-proof"
+        ],
+        "forbiddenResponsibilities": [
+          "execute recovery actions",
+          "invent prompts",
+          "persist unrelated evidence"
+        ],
+        "proofRequirements": [
+          "runtimeProofRef"
+        ],
+        "failureModes": [
+          "precondition_failed",
+          "timeout",
+          "failed"
+        ]
+      },
+      {
+        "childCapabilityId": "observe-target-state-transition",
+        "childCapabilityCode": "observe-target-state-transition",
+        "displayName": "observe target state transition",
+        "description": "Verify governed post-action outcome for observe target state transition.",
+        "inputSchemaRef": "post-action-verification.observe-target-state-transition.input",
+        "outputSchemaRef": "post-action-verification.observe-target-state-transition.output",
+        "requiredInputRefs": [
+          "clickResultRef"
+        ],
+        "producedOutputRefs": [
+          "postActionVerificationResultRef"
+        ],
+        "requiresGeometryProof": false,
+        "requiresTargetProof": false,
+        "requiresFocusProof": false,
+        "requiresApprovedText": false,
+        "requiresPostActionVerification": false,
+        "requiresAutomationGate": false,
+        "sensitiveOperation": false,
+        "sideEffectLevel": "read",
+        "allowedStepKinds": [
+          "observation",
+          "verification"
+        ],
+        "supportedTargetKinds": [
+          "browser-page",
+          "browser-viewport",
+          "runtime-proof"
+        ],
+        "forbiddenResponsibilities": [
+          "execute recovery actions",
+          "invent prompts",
+          "persist unrelated evidence"
+        ],
+        "proofRequirements": [
+          "runtimeProofRef"
+        ],
+        "failureModes": [
+          "precondition_failed",
+          "timeout",
+          "failed"
+        ]
+      },
+      {
         "childCapabilityId": "verify-action-result",
         "childCapabilityCode": "verify-action-result",
         "displayName": "verify action result",
@@ -5316,18 +5913,17 @@ Complete Map Authoring Input Package JSON:
         "inputSchemaRef": "post-action-verification.verify-action-result.input",
         "outputSchemaRef": "post-action-verification.verify-action-result.output",
         "requiredInputRefs": [
-          "preActionEvidenceRef",
-          "postActionEvidenceRef"
+          "clickResultRef"
         ],
         "producedOutputRefs": [
-          "postActionVerificationRef"
+          "postActionVerificationResultRef"
         ],
         "requiresGeometryProof": false,
         "requiresTargetProof": false,
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -5350,232 +5946,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
-        ]
-      },
-      {
-        "childCapabilityId": "verify-comments-panel-closed",
-        "childCapabilityCode": "verify-comments-panel-closed",
-        "displayName": "verify comments panel closed",
-        "description": "Verify governed post-action outcome for verify comments panel closed.",
-        "inputSchemaRef": "post-action-verification.verify-comments-panel-closed.input",
-        "outputSchemaRef": "post-action-verification.verify-comments-panel-closed.output",
-        "requiredInputRefs": [
-          "preActionEvidenceRef",
-          "postActionEvidenceRef"
-        ],
-        "producedOutputRefs": [
-          "postActionVerificationRef"
-        ],
-        "requiresGeometryProof": false,
-        "requiresTargetProof": false,
-        "requiresFocusProof": false,
-        "requiresApprovedText": false,
-        "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
-        "sensitiveOperation": false,
-        "sideEffectLevel": "read",
-        "allowedStepKinds": [
-          "observation",
-          "verification"
-        ],
-        "supportedTargetKinds": [
-          "browser-page",
-          "browser-viewport",
-          "runtime-proof"
-        ],
-        "forbiddenResponsibilities": [
-          "execute recovery actions",
-          "invent prompts",
-          "persist unrelated evidence"
-        ],
-        "proofRequirements": [
-          "runtimeProofRef"
-        ],
-        "failureModes": [
-          "precondition_failed",
-          "timeout",
-          "review_required"
-        ]
-      },
-      {
-        "childCapabilityId": "verify-comments-panel-opened",
-        "childCapabilityCode": "verify-comments-panel-opened",
-        "displayName": "verify comments panel opened",
-        "description": "Verify governed post-action outcome for verify comments panel opened.",
-        "inputSchemaRef": "post-action-verification.verify-comments-panel-opened.input",
-        "outputSchemaRef": "post-action-verification.verify-comments-panel-opened.output",
-        "requiredInputRefs": [
-          "preActionEvidenceRef",
-          "postActionEvidenceRef"
-        ],
-        "producedOutputRefs": [
-          "postActionVerificationRef"
-        ],
-        "requiresGeometryProof": false,
-        "requiresTargetProof": false,
-        "requiresFocusProof": false,
-        "requiresApprovedText": false,
-        "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
-        "sensitiveOperation": false,
-        "sideEffectLevel": "read",
-        "allowedStepKinds": [
-          "observation",
-          "verification"
-        ],
-        "supportedTargetKinds": [
-          "browser-page",
-          "browser-viewport",
-          "runtime-proof"
-        ],
-        "forbiddenResponsibilities": [
-          "execute recovery actions",
-          "invent prompts",
-          "persist unrelated evidence"
-        ],
-        "proofRequirements": [
-          "runtimeProofRef"
-        ],
-        "failureModes": [
-          "precondition_failed",
-          "timeout",
-          "review_required"
-        ]
-      },
-      {
-        "childCapabilityId": "verify-not-interested-result",
-        "childCapabilityCode": "verify-not-interested-result",
-        "displayName": "verify not interested result",
-        "description": "Verify governed post-action outcome for verify not interested result.",
-        "inputSchemaRef": "post-action-verification.verify-not-interested-result.input",
-        "outputSchemaRef": "post-action-verification.verify-not-interested-result.output",
-        "requiredInputRefs": [
-          "preActionEvidenceRef",
-          "postActionEvidenceRef"
-        ],
-        "producedOutputRefs": [
-          "postActionVerificationRef"
-        ],
-        "requiresGeometryProof": false,
-        "requiresTargetProof": false,
-        "requiresFocusProof": false,
-        "requiresApprovedText": false,
-        "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
-        "sensitiveOperation": false,
-        "sideEffectLevel": "read",
-        "allowedStepKinds": [
-          "observation",
-          "verification"
-        ],
-        "supportedTargetKinds": [
-          "browser-page",
-          "browser-viewport",
-          "runtime-proof"
-        ],
-        "forbiddenResponsibilities": [
-          "execute recovery actions",
-          "invent prompts",
-          "persist unrelated evidence"
-        ],
-        "proofRequirements": [
-          "runtimeProofRef"
-        ],
-        "failureModes": [
-          "precondition_failed",
-          "timeout",
-          "review_required"
-        ]
-      },
-      {
-        "childCapabilityId": "verify-page-opened",
-        "childCapabilityCode": "verify-page-opened",
-        "displayName": "verify page opened",
-        "description": "Verify governed post-action outcome for verify page opened.",
-        "inputSchemaRef": "post-action-verification.verify-page-opened.input",
-        "outputSchemaRef": "post-action-verification.verify-page-opened.output",
-        "requiredInputRefs": [
-          "preActionEvidenceRef",
-          "postActionEvidenceRef"
-        ],
-        "producedOutputRefs": [
-          "postActionVerificationRef"
-        ],
-        "requiresGeometryProof": false,
-        "requiresTargetProof": false,
-        "requiresFocusProof": false,
-        "requiresApprovedText": false,
-        "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
-        "sensitiveOperation": false,
-        "sideEffectLevel": "read",
-        "allowedStepKinds": [
-          "observation",
-          "verification"
-        ],
-        "supportedTargetKinds": [
-          "browser-page",
-          "browser-viewport",
-          "runtime-proof"
-        ],
-        "forbiddenResponsibilities": [
-          "execute recovery actions",
-          "invent prompts",
-          "persist unrelated evidence"
-        ],
-        "proofRequirements": [
-          "runtimeProofRef"
-        ],
-        "failureModes": [
-          "precondition_failed",
-          "timeout",
-          "review_required"
-        ]
-      },
-      {
-        "childCapabilityId": "verify-target-state-changed",
-        "childCapabilityCode": "verify-target-state-changed",
-        "displayName": "verify target state changed",
-        "description": "Verify governed post-action outcome for verify target state changed.",
-        "inputSchemaRef": "post-action-verification.verify-target-state-changed.input",
-        "outputSchemaRef": "post-action-verification.verify-target-state-changed.output",
-        "requiredInputRefs": [
-          "preActionEvidenceRef",
-          "postActionEvidenceRef"
-        ],
-        "producedOutputRefs": [
-          "postActionVerificationRef"
-        ],
-        "requiresGeometryProof": false,
-        "requiresTargetProof": false,
-        "requiresFocusProof": false,
-        "requiresApprovedText": false,
-        "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
-        "sensitiveOperation": false,
-        "sideEffectLevel": "read",
-        "allowedStepKinds": [
-          "observation",
-          "verification"
-        ],
-        "supportedTargetKinds": [
-          "browser-page",
-          "browser-viewport",
-          "runtime-proof"
-        ],
-        "forbiddenResponsibilities": [
-          "execute recovery actions",
-          "invent prompts",
-          "persist unrelated evidence"
-        ],
-        "proofRequirements": [
-          "runtimeProofRef"
-        ],
-        "failureModes": [
-          "precondition_failed",
-          "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -5596,7 +5967,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -5619,7 +5990,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -5640,7 +6011,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -5663,7 +6034,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -5684,7 +6055,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -5707,7 +6078,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -5728,7 +6099,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -5751,7 +6122,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -5772,7 +6143,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -5795,7 +6166,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -5816,7 +6187,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -5839,7 +6210,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -5860,7 +6231,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -5883,7 +6254,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
@@ -5904,7 +6275,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": true,
         "sideEffectLevel": "write",
         "allowedStepKinds": [
@@ -5927,16 +6298,16 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-comment-panel-state",
-        "childCapabilityCode": "detect-comment-panel-state",
-        "displayName": "detect comment panel state",
-        "description": "Classify governed page state for detect comment panel state.",
-        "inputSchemaRef": "page-state.detect-comment-panel-state.input",
-        "outputSchemaRef": "page-state.detect-comment-panel-state.output",
+        "childCapabilityId": "observe-comment-panel-surface",
+        "childCapabilityCode": "observe-comment-panel-surface",
+        "displayName": "observe comment panel surface",
+        "description": "Classify governed page state for observe comment panel surface.",
+        "inputSchemaRef": "page-state.observe-comment-panel-surface.input",
+        "outputSchemaRef": "page-state.observe-comment-panel-surface.output",
         "requiredInputRefs": [
           "pageRef"
         ],
@@ -5948,7 +6319,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -5969,16 +6340,16 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-feed-ready",
-        "childCapabilityCode": "detect-feed-ready",
-        "displayName": "detect feed ready",
-        "description": "Classify governed page state for detect feed ready.",
-        "inputSchemaRef": "page-state.detect-feed-ready.input",
-        "outputSchemaRef": "page-state.detect-feed-ready.output",
+        "childCapabilityId": "observe-feed-surface",
+        "childCapabilityCode": "observe-feed-surface",
+        "displayName": "observe feed surface",
+        "description": "Classify governed page state for observe feed surface.",
+        "inputSchemaRef": "page-state.observe-feed-surface.input",
+        "outputSchemaRef": "page-state.observe-feed-surface.output",
         "requiredInputRefs": [
           "pageRef"
         ],
@@ -5990,7 +6361,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -6011,16 +6382,16 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-login-state",
-        "childCapabilityCode": "detect-login-state",
-        "displayName": "detect login state",
-        "description": "Classify governed page state for detect login state.",
-        "inputSchemaRef": "page-state.detect-login-state.input",
-        "outputSchemaRef": "page-state.detect-login-state.output",
+        "childCapabilityId": "observe-login-surface",
+        "childCapabilityCode": "observe-login-surface",
+        "displayName": "observe login surface",
+        "description": "Classify governed page state for observe login surface.",
+        "inputSchemaRef": "page-state.observe-login-surface.input",
+        "outputSchemaRef": "page-state.observe-login-surface.output",
         "requiredInputRefs": [
           "pageRef"
         ],
@@ -6032,7 +6403,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -6053,16 +6424,16 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-modal-overlay-state",
-        "childCapabilityCode": "detect-modal-overlay-state",
-        "displayName": "detect modal overlay state",
-        "description": "Classify governed page state for detect modal overlay state.",
-        "inputSchemaRef": "page-state.detect-modal-overlay-state.input",
-        "outputSchemaRef": "page-state.detect-modal-overlay-state.output",
+        "childCapabilityId": "observe-modal-overlay-surface",
+        "childCapabilityCode": "observe-modal-overlay-surface",
+        "displayName": "observe modal overlay surface",
+        "description": "Classify governed page state for observe modal overlay surface.",
+        "inputSchemaRef": "page-state.observe-modal-overlay-surface.input",
+        "outputSchemaRef": "page-state.observe-modal-overlay-surface.output",
         "requiredInputRefs": [
           "pageRef"
         ],
@@ -6074,7 +6445,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -6095,16 +6466,16 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-page-abnormality",
-        "childCapabilityCode": "detect-page-abnormality",
-        "displayName": "detect page abnormality",
-        "description": "Classify governed page state for detect page abnormality.",
-        "inputSchemaRef": "page-state.detect-page-abnormality.input",
-        "outputSchemaRef": "page-state.detect-page-abnormality.output",
+        "childCapabilityId": "observe-page-abnormality-surface",
+        "childCapabilityCode": "observe-page-abnormality-surface",
+        "displayName": "observe page abnormality surface",
+        "description": "Classify governed page state for observe page abnormality surface.",
+        "inputSchemaRef": "page-state.observe-page-abnormality-surface.input",
+        "outputSchemaRef": "page-state.observe-page-abnormality-surface.output",
         "requiredInputRefs": [
           "pageRef"
         ],
@@ -6116,7 +6487,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -6137,16 +6508,16 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-platform-page-kind",
-        "childCapabilityCode": "detect-platform-page-kind",
-        "displayName": "detect platform page kind",
-        "description": "Classify governed page state for detect platform page kind.",
-        "inputSchemaRef": "page-state.detect-platform-page-kind.input",
-        "outputSchemaRef": "page-state.detect-platform-page-kind.output",
+        "childCapabilityId": "observe-platform-surface",
+        "childCapabilityCode": "observe-platform-surface",
+        "displayName": "observe platform surface",
+        "description": "Classify governed page state for observe platform surface.",
+        "inputSchemaRef": "page-state.observe-platform-surface.input",
+        "outputSchemaRef": "page-state.observe-platform-surface.output",
         "requiredInputRefs": [
           "pageRef"
         ],
@@ -6158,7 +6529,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -6179,16 +6550,16 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-safety-page",
-        "childCapabilityCode": "detect-safety-page",
-        "displayName": "detect safety page",
-        "description": "Classify governed page state for detect safety page.",
-        "inputSchemaRef": "page-state.detect-safety-page.input",
-        "outputSchemaRef": "page-state.detect-safety-page.output",
+        "childCapabilityId": "observe-safety-surface",
+        "childCapabilityCode": "observe-safety-surface",
+        "displayName": "observe safety surface",
+        "description": "Classify governed page state for observe safety surface.",
+        "inputSchemaRef": "page-state.observe-safety-surface.input",
+        "outputSchemaRef": "page-state.observe-safety-surface.output",
         "requiredInputRefs": [
           "pageRef"
         ],
@@ -6200,7 +6571,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -6221,16 +6592,16 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       },
       {
-        "childCapabilityId": "detect-video-stable",
-        "childCapabilityCode": "detect-video-stable",
-        "displayName": "detect video stable",
-        "description": "Classify governed page state for detect video stable.",
-        "inputSchemaRef": "page-state.detect-video-stable.input",
-        "outputSchemaRef": "page-state.detect-video-stable.output",
+        "childCapabilityId": "observe-video-surface",
+        "childCapabilityCode": "observe-video-surface",
+        "displayName": "observe video surface",
+        "description": "Classify governed page state for observe video surface.",
+        "inputSchemaRef": "page-state.observe-video-surface.input",
+        "outputSchemaRef": "page-state.observe-video-surface.output",
         "requiredInputRefs": [
           "pageRef"
         ],
@@ -6242,7 +6613,7 @@ Complete Map Authoring Input Package JSON:
         "requiresFocusProof": false,
         "requiresApprovedText": false,
         "requiresPostActionVerification": false,
-        "requiresHumanReview": false,
+        "requiresAutomationGate": false,
         "sensitiveOperation": false,
         "sideEffectLevel": "read",
         "allowedStepKinds": [
@@ -6263,7 +6634,7 @@ Complete Map Authoring Input Package JSON:
         "failureModes": [
           "precondition_failed",
           "timeout",
-          "review_required"
+          "failed"
         ]
       }
     ],
@@ -6310,21 +6681,11 @@ Complete Map Authoring Input Package JSON:
             "evidence_packet_analysis"
           ]
         },
-        "reviewPolicy": {
-          "policyRef": "policy://prompt-contract/ai.evidence_packet_analysis.disabled/review",
-          "summary": "Declares when review is required.",
+        "binaryDecisionPolicy": {
+          "policyRef": "policy://prompt-contract/ai.evidence_packet_analysis.disabled/binary-decision",
+          "summary": "Declares branchable AI output semantics without map-side constraint logic.",
           "rules": [
-            "disabled_by_policy"
-          ]
-        },
-        "failurePolicy": {
-          "policyRef": "policy://prompt-contract/ai.evidence_packet_analysis.disabled/failure",
-          "summary": "Declares how prompt execution failures are handled.",
-          "rules": [
-            "badJson:failed",
-            "schemaMismatch:failed",
-            "timeout:failed",
-            "modelUnavailable:failed"
+            "no_branchable_output"
           ]
         },
         "redactionPolicy": {
@@ -6352,13 +6713,13 @@ Complete Map Authoring Input Package JSON:
       {
         "promptContractId": "map-authoring-from-user-requirement-v1",
         "promptContractVersion": "map-authoring-from-user-requirement-v1",
-        "promptHash": "sha256:680bfeb2d1185d2ecad4c550f327d94a3f81f1ecc7030c08cfdbb4d98adbda56",
+        "promptHash": "sha256:12988c02a8a98033a54137c160cb0c14e9b172c82a79f90725b4dd18d8ee8585",
         "displayName": "map-authoring-from-user-requirement-v1",
         "description": "Draft a governed GrassEye map package candidate from Commander operator requirements.",
         "inputSchemaRef": "structured_record.map_authoring_input_package",
         "outputSchemaRef": "ai.map_authoring.v1",
-        "promptContractHash": "sha256:680bfeb2d1185d2ecad4c550f327d94a3f81f1ecc7030c08cfdbb4d98adbda56",
-        "systemPromptTemplateHash": "sha256:eaaf8d6581d5474488a67f19c4b37968385bd99256dff5458d35b3719ed1246e",
+        "promptContractHash": "sha256:12988c02a8a98033a54137c160cb0c14e9b172c82a79f90725b4dd18d8ee8585",
+        "systemPromptTemplateHash": "sha256:e7bd8f853074b5a699ded94f6979993671c23c4f638c655030ab201242133fc0",
         "userPromptTemplateHash": "sha256:03b247ed24f9b2a1899b6f802af88a16dcd67f594062e5341e9589e41a4482bb",
         "allowedInputRefs": [
           "mapAuthoringInputPackageRef"
@@ -6380,23 +6741,11 @@ Complete Map Authoring Input Package JSON:
             "map_authoring"
           ]
         },
-        "reviewPolicy": {
-          "policyRef": "policy://prompt-contract/map-authoring-from-user-requirement-v1/review",
-          "summary": "Declares when review is required.",
+        "binaryDecisionPolicy": {
+          "policyRef": "policy://prompt-contract/map-authoring-from-user-requirement-v1/binary-decision",
+          "summary": "Declares branchable AI output semantics without map-side constraint logic.",
           "rules": [
-            "low_confidence",
-            "schema_mismatch",
-            "prompt_contract_failure"
-          ]
-        },
-        "failurePolicy": {
-          "policyRef": "policy://prompt-contract/map-authoring-from-user-requirement-v1/failure",
-          "summary": "Declares how prompt execution failures are handled.",
-          "rules": [
-            "badJson:review_required",
-            "schemaMismatch:review_required",
-            "timeout:failed",
-            "modelUnavailable:failed"
+            "no_branchable_output"
           ]
         },
         "redactionPolicy": {
@@ -6423,8 +6772,8 @@ Complete Map Authoring Input Package JSON:
           "import",
           "require",
           "active=true",
-          "approvalStatus=approved",
-          "humanApprovalRef",
+          "activationGateStatus=gate_passed",
+          "automationGateRef",
           "validationReportRef",
           "activationSnapshotRef",
           "unknown abilityGroupId",
@@ -6468,21 +6817,11 @@ Complete Map Authoring Input Package JSON:
             "schema_validation_only"
           ]
         },
-        "reviewPolicy": {
-          "policyRef": "policy://prompt-contract/ai.schema_validation_only.internal/review",
-          "summary": "Declares when review is required.",
+        "binaryDecisionPolicy": {
+          "policyRef": "policy://prompt-contract/ai.schema_validation_only.internal/binary-decision",
+          "summary": "Declares branchable AI output semantics without map-side constraint logic.",
           "rules": [
-            "schema_mismatch"
-          ]
-        },
-        "failurePolicy": {
-          "policyRef": "policy://prompt-contract/ai.schema_validation_only.internal/failure",
-          "summary": "Declares how prompt execution failures are handled.",
-          "rules": [
-            "badJson:failed",
-            "schemaMismatch:failed",
-            "timeout:failed",
-            "modelUnavailable:failed"
+            "no_branchable_output"
           ]
         },
         "redactionPolicy": {
@@ -6508,14 +6847,146 @@ Complete Map Authoring Input Package JSON:
         "branchableOutputFields": []
       },
       {
+        "promptContractId": "vision.pagePreparation.v1",
+        "promptContractVersion": "v1",
+        "promptHash": "sha256:af477f4a337ddb208a46221d20e41d0ed339a7f51d38e21f0132c349eb9c35d4",
+        "displayName": "vision.pagePreparation.v1",
+        "description": "Autonomously decide whether startup page preparation is ready for downstream seeding-video judgment using binary yes/no routing.",
+        "inputSchemaRef": "image_collection.ai_input",
+        "outputSchemaRef": "ai.page_preparation_judgment.v1",
+        "promptContractHash": "sha256:af477f4a337ddb208a46221d20e41d0ed339a7f51d38e21f0132c349eb9c35d4",
+        "allowedInputRefs": [
+          "promptInputRef"
+        ],
+        "dataPolicy": {
+          "policyRef": "policy://prompt-contract/vision.pagePreparation.v1/data",
+          "summary": "Controls restricted data access for prompt execution.",
+          "rules": [
+            "cookies",
+            "credentials",
+            "hidden_token"
+          ]
+        },
+        "providerPolicy": {
+          "policyRef": "policy://prompt-contract/vision.pagePreparation.v1/provider",
+          "summary": "Constrains provider routing for the governed prompt contract.",
+          "rules": [
+            "vision",
+            "page_preparation_judgment"
+          ]
+        },
+        "binaryDecisionPolicy": {
+          "policyRef": "policy://prompt-contract/vision.pagePreparation.v1/binary-decision",
+          "summary": "Declares branchable AI output semantics without map-side constraint logic.",
+          "rules": [
+            "branchable_fields:decision,routeLabel",
+            "no_human_review_branch"
+          ]
+        },
+        "redactionPolicy": {
+          "policyRef": "policy://prompt-contract/vision.pagePreparation.v1/redaction",
+          "summary": "Controls redaction and raw-output retention.",
+          "rules": [
+            "raw_output_retention:ref"
+          ]
+        },
+        "forensicsPolicy": {
+          "policyRef": "policy://prompt-contract/vision.pagePreparation.v1/forensics",
+          "summary": "Requires prompt contract refs and hashes in proof records.",
+          "rules": [
+            "record_prompt_contract_ref",
+            "record_prompt_hash",
+            "record_output_schema_ref"
+          ]
+        },
+        "forbiddenOutputs": [
+          "human review request",
+          "third branch decision",
+          "platform action instruction",
+          "product presence judgment",
+          "free-text route inference",
+          "fake page state proof"
+        ],
+        "branchableOutputFields": [
+          "decision",
+          "routeLabel"
+        ]
+      },
+      {
+        "promptContractId": "vision.nextItemAdvanced.v1",
+        "promptContractVersion": "v1",
+        "promptHash": "sha256:ca6d632f46b8f63b39b00f24cf2ed44d38dec6c231d07df0c33fa9bb310c8aa0",
+        "displayName": "vision.nextItemAdvanced.v1",
+        "description": "Autonomously decide whether the current post-click viewport evidence shows that GrassEye advanced to a new video item using binary yes/no routing.",
+        "inputSchemaRef": "image_collection.ai_input",
+        "outputSchemaRef": "ai.page_preparation_judgment.v1",
+        "promptContractHash": "sha256:ca6d632f46b8f63b39b00f24cf2ed44d38dec6c231d07df0c33fa9bb310c8aa0",
+        "allowedInputRefs": [
+          "promptInputRef"
+        ],
+        "dataPolicy": {
+          "policyRef": "policy://prompt-contract/vision.nextItemAdvanced.v1/data",
+          "summary": "Controls restricted data access for prompt execution.",
+          "rules": [
+            "cookies",
+            "credentials",
+            "hidden_token"
+          ]
+        },
+        "providerPolicy": {
+          "policyRef": "policy://prompt-contract/vision.nextItemAdvanced.v1/provider",
+          "summary": "Constrains provider routing for the governed prompt contract.",
+          "rules": [
+            "vision",
+            "page_preparation_judgment"
+          ]
+        },
+        "binaryDecisionPolicy": {
+          "policyRef": "policy://prompt-contract/vision.nextItemAdvanced.v1/binary-decision",
+          "summary": "Declares branchable AI output semantics without map-side constraint logic.",
+          "rules": [
+            "branchable_fields:decision,routeLabel",
+            "no_human_review_branch"
+          ]
+        },
+        "redactionPolicy": {
+          "policyRef": "policy://prompt-contract/vision.nextItemAdvanced.v1/redaction",
+          "summary": "Controls redaction and raw-output retention.",
+          "rules": [
+            "raw_output_retention:ref"
+          ]
+        },
+        "forensicsPolicy": {
+          "policyRef": "policy://prompt-contract/vision.nextItemAdvanced.v1/forensics",
+          "summary": "Requires prompt contract refs and hashes in proof records.",
+          "rules": [
+            "record_prompt_contract_ref",
+            "record_prompt_hash",
+            "record_output_schema_ref"
+          ]
+        },
+        "forbiddenOutputs": [
+          "human review request",
+          "third branch decision",
+          "platform action instruction",
+          "product presence judgment",
+          "free-text route inference",
+          "fake next-item proof"
+        ],
+        "branchableOutputFields": [
+          "decision",
+          "routeLabel"
+        ]
+      },
+      {
         "promptContractId": "vision.productPresence.v1",
         "promptContractVersion": "v1",
-        "promptHash": "sha256:10f2779fb184ea753d152dff2dea573fb7d9bb2b6d52f4abf1ea77718514c041",
+        "promptHash": "sha256:740271d78404419aac86379c95f5bf60610b8d22a434a96f3ae232d2d9b1a334",
         "displayName": "vision.productPresence.v1",
         "description": "Autonomously classify whether sampled short-video frames visibly prove product-presenting content for binary downstream routing.",
         "inputSchemaRef": "image_collection.ai_input",
         "outputSchemaRef": "ai.product_presence_judgment.v1",
-        "promptContractHash": "sha256:10f2779fb184ea753d152dff2dea573fb7d9bb2b6d52f4abf1ea77718514c041",
+        "promptContractHash": "sha256:740271d78404419aac86379c95f5bf60610b8d22a434a96f3ae232d2d9b1a334",
         "allowedInputRefs": [
           "promptInputRef"
         ],
@@ -6536,21 +7007,12 @@ Complete Map Authoring Input Package JSON:
             "product_presence_judgment"
           ]
         },
-        "reviewPolicy": {
-          "policyRef": "policy://prompt-contract/vision.productPresence.v1/review",
-          "summary": "Declares when review is required.",
+        "binaryDecisionPolicy": {
+          "policyRef": "policy://prompt-contract/vision.productPresence.v1/binary-decision",
+          "summary": "Declares branchable AI output semantics without map-side constraint logic.",
           "rules": [
-            "no_human_review_required_route_to_failed"
-          ]
-        },
-        "failurePolicy": {
-          "policyRef": "policy://prompt-contract/vision.productPresence.v1/failure",
-          "summary": "Declares how prompt execution failures are handled.",
-          "rules": [
-            "badJson:failed",
-            "schemaMismatch:failed",
-            "timeout:failed",
-            "modelUnavailable:failed"
+            "branchable_fields:decision,routeLabel",
+            "no_human_review_branch"
           ]
         },
         "redactionPolicy": {
@@ -6583,8 +7045,139 @@ Complete Map Authoring Input Package JSON:
           "null decision"
         ],
         "branchableOutputFields": [
-          "decision"
+          "decision",
+          "routeLabel"
         ]
+      },
+      {
+        "promptContractId": "vision.nextItemTargetCandidate.v1",
+        "promptContractVersion": "v1",
+        "promptHash": "sha256:bb1f125792a52aabff325b34f13c344fab203bff35c5462822eab3b79aa064b2",
+        "displayName": "vision.nextItemTargetCandidate.v1",
+        "description": "Extract governed next-item target candidates from the current viewport evidence so Visual Target can normalize one non-executable advance target.",
+        "inputSchemaRef": "image_collection.ai_input",
+        "outputSchemaRef": "ai.visual_target_candidate_analysis.v1",
+        "promptContractHash": "sha256:bb1f125792a52aabff325b34f13c344fab203bff35c5462822eab3b79aa064b2",
+        "allowedInputRefs": [
+          "promptInputRef",
+          "screenshotEvidenceRef"
+        ],
+        "dataPolicy": {
+          "policyRef": "policy://prompt-contract/vision.nextItemTargetCandidate.v1/data",
+          "summary": "Controls restricted data access for prompt execution.",
+          "rules": [
+            "cookies",
+            "credentials",
+            "hidden_token"
+          ]
+        },
+        "providerPolicy": {
+          "policyRef": "policy://prompt-contract/vision.nextItemTargetCandidate.v1/provider",
+          "summary": "Constrains provider routing for the governed prompt contract.",
+          "rules": [
+            "vision",
+            "visual_target_candidate_analysis"
+          ]
+        },
+        "binaryDecisionPolicy": {
+          "policyRef": "policy://prompt-contract/vision.nextItemTargetCandidate.v1/binary-decision",
+          "summary": "Declares branchable AI output semantics without map-side constraint logic.",
+          "rules": [
+            "no_branchable_output"
+          ]
+        },
+        "redactionPolicy": {
+          "policyRef": "policy://prompt-contract/vision.nextItemTargetCandidate.v1/redaction",
+          "summary": "Controls redaction and raw-output retention.",
+          "rules": [
+            "raw_output_retention:ref"
+          ]
+        },
+        "forensicsPolicy": {
+          "policyRef": "policy://prompt-contract/vision.nextItemTargetCandidate.v1/forensics",
+          "summary": "Requires prompt contract refs and hashes in proof records.",
+          "rules": [
+            "record_prompt_contract_ref",
+            "record_prompt_hash",
+            "record_output_schema_ref"
+          ]
+        },
+        "forbiddenOutputs": [
+          "product presence judgment",
+          "routeLabel",
+          "click instruction",
+          "scroll instruction",
+          "dispatch_action",
+          "human review request",
+          "fabricated off-screen target",
+          "browser action execution decision"
+        ],
+        "branchableOutputFields": []
+      },
+      {
+        "promptContractId": "vision.commentsEntryTargetCandidate.v1",
+        "promptContractVersion": "v1",
+        "promptHash": "sha256:f5da6b52965ba8df8e4385d70c265ce18d37fb7381940c28bc5ea661fcfb3da0",
+        "displayName": "vision.commentsEntryTargetCandidate.v1",
+        "description": "Extract governed comments-entry target candidates from the current viewport evidence so Visual Target can normalize one non-executable comments-button target.",
+        "inputSchemaRef": "image_collection.ai_input",
+        "outputSchemaRef": "ai.visual_target_candidate_analysis.v1",
+        "promptContractHash": "sha256:f5da6b52965ba8df8e4385d70c265ce18d37fb7381940c28bc5ea661fcfb3da0",
+        "allowedInputRefs": [
+          "promptInputRef",
+          "screenshotEvidenceRef"
+        ],
+        "dataPolicy": {
+          "policyRef": "policy://prompt-contract/vision.commentsEntryTargetCandidate.v1/data",
+          "summary": "Controls restricted data access for prompt execution.",
+          "rules": [
+            "cookies",
+            "credentials",
+            "hidden_token"
+          ]
+        },
+        "providerPolicy": {
+          "policyRef": "policy://prompt-contract/vision.commentsEntryTargetCandidate.v1/provider",
+          "summary": "Constrains provider routing for the governed prompt contract.",
+          "rules": [
+            "vision",
+            "visual_target_candidate_analysis"
+          ]
+        },
+        "binaryDecisionPolicy": {
+          "policyRef": "policy://prompt-contract/vision.commentsEntryTargetCandidate.v1/binary-decision",
+          "summary": "Declares branchable AI output semantics without map-side constraint logic.",
+          "rules": [
+            "no_branchable_output"
+          ]
+        },
+        "redactionPolicy": {
+          "policyRef": "policy://prompt-contract/vision.commentsEntryTargetCandidate.v1/redaction",
+          "summary": "Controls redaction and raw-output retention.",
+          "rules": [
+            "raw_output_retention:ref"
+          ]
+        },
+        "forensicsPolicy": {
+          "policyRef": "policy://prompt-contract/vision.commentsEntryTargetCandidate.v1/forensics",
+          "summary": "Requires prompt contract refs and hashes in proof records.",
+          "rules": [
+            "record_prompt_contract_ref",
+            "record_prompt_hash",
+            "record_output_schema_ref"
+          ]
+        },
+        "forbiddenOutputs": [
+          "comments intent judgment",
+          "routeLabel",
+          "click instruction",
+          "scroll instruction",
+          "dispatch_action",
+          "human review request",
+          "fabricated off-screen target",
+          "browser action execution decision"
+        ],
+        "branchableOutputFields": []
       },
       {
         "promptContractId": "comments.ocr_cleanup.v1",
@@ -6615,21 +7208,11 @@ Complete Map Authoring Input Package JSON:
             "ocr_cleanup"
           ]
         },
-        "reviewPolicy": {
-          "policyRef": "policy://prompt-contract/comments.ocr_cleanup.v1/review",
-          "summary": "Declares when review is required.",
+        "binaryDecisionPolicy": {
+          "policyRef": "policy://prompt-contract/comments.ocr_cleanup.v1/binary-decision",
+          "summary": "Declares branchable AI output semantics without map-side constraint logic.",
           "rules": [
-            "low_confidence"
-          ]
-        },
-        "failurePolicy": {
-          "policyRef": "policy://prompt-contract/comments.ocr_cleanup.v1/failure",
-          "summary": "Declares how prompt execution failures are handled.",
-          "rules": [
-            "badJson:review_required",
-            "schemaMismatch:review_required",
-            "timeout:failed",
-            "modelUnavailable:failed"
+            "no_branchable_output"
           ]
         },
         "redactionPolicy": {
@@ -6651,74 +7234,6 @@ Complete Map Authoring Input Package JSON:
         "forbiddenOutputs": [
           "编造评论",
           "补写不存在文本"
-        ],
-        "branchableOutputFields": []
-      },
-      {
-        "promptContractId": "comments.intent_analysis.v1",
-        "promptContractVersion": "comments.intent_analysis.v1",
-        "promptHash": "sha256:46d8dc42c2d58f27c2caedd682047347ce8817284ca2ced6b9eab01afe8f5627",
-        "displayName": "comments.intent_analysis.v1",
-        "description": "Summarize comment signals into purchase intent, pain points, complaints, and demand terms.",
-        "inputSchemaRef": "structured_record.cleaned_comments",
-        "outputSchemaRef": "ai.comment_signal_summary.v1",
-        "promptContractHash": "sha256:46d8dc42c2d58f27c2caedd682047347ce8817284ca2ced6b9eab01afe8f5627",
-        "allowedInputRefs": [
-          "commentsEvidenceRef"
-        ],
-        "dataPolicy": {
-          "policyRef": "policy://prompt-contract/comments.intent_analysis.v1/data",
-          "summary": "Controls restricted data access for prompt execution.",
-          "rules": [
-            "cookies",
-            "credentials",
-            "hidden_token"
-          ]
-        },
-        "providerPolicy": {
-          "policyRef": "policy://prompt-contract/comments.intent_analysis.v1/provider",
-          "summary": "Constrains provider routing for the governed prompt contract.",
-          "rules": [
-            "commentUnderstanding",
-            "comment_signal_summary"
-          ]
-        },
-        "reviewPolicy": {
-          "policyRef": "policy://prompt-contract/comments.intent_analysis.v1/review",
-          "summary": "Declares when review is required.",
-          "rules": [
-            "low_confidence"
-          ]
-        },
-        "failurePolicy": {
-          "policyRef": "policy://prompt-contract/comments.intent_analysis.v1/failure",
-          "summary": "Declares how prompt execution failures are handled.",
-          "rules": [
-            "badJson:review_required",
-            "schemaMismatch:review_required",
-            "timeout:failed",
-            "modelUnavailable:failed"
-          ]
-        },
-        "redactionPolicy": {
-          "policyRef": "policy://prompt-contract/comments.intent_analysis.v1/redaction",
-          "summary": "Controls redaction and raw-output retention.",
-          "rules": [
-            "raw_output_retention:ref"
-          ]
-        },
-        "forensicsPolicy": {
-          "policyRef": "policy://prompt-contract/comments.intent_analysis.v1/forensics",
-          "summary": "Requires prompt contract refs and hashes in proof records.",
-          "rules": [
-            "record_prompt_contract_ref",
-            "record_prompt_hash",
-            "record_output_schema_ref"
-          ]
-        },
-        "forbiddenOutputs": [
-          "个人画像",
-          "跨评论追踪"
         ],
         "branchableOutputFields": []
       },
@@ -6751,21 +7266,11 @@ Complete Map Authoring Input Package JSON:
             "product_signal_summary"
           ]
         },
-        "reviewPolicy": {
-          "policyRef": "policy://prompt-contract/product.signal_summary.v1/review",
-          "summary": "Declares when review is required.",
+        "binaryDecisionPolicy": {
+          "policyRef": "policy://prompt-contract/product.signal_summary.v1/binary-decision",
+          "summary": "Declares branchable AI output semantics without map-side constraint logic.",
           "rules": [
-            "low_confidence"
-          ]
-        },
-        "failurePolicy": {
-          "policyRef": "policy://prompt-contract/product.signal_summary.v1/failure",
-          "summary": "Declares how prompt execution failures are handled.",
-          "rules": [
-            "badJson:review_required",
-            "schemaMismatch:review_required",
-            "timeout:failed",
-            "modelUnavailable:failed"
+            "no_branchable_output"
           ]
         },
         "redactionPolicy": {
@@ -6820,7 +7325,7 @@ Complete Map Authoring Input Package JSON:
           "rawPrompt",
           "systemPrompt",
           "userPrompt",
-          "approvalStatus",
+          "activationGateStatus",
           "activationSnapshotRef"
         ],
         "exampleOutput": null
@@ -6865,7 +7370,7 @@ Complete Map Authoring Input Package JSON:
           "rawPrompt",
           "systemPrompt",
           "userPrompt",
-          "approvalStatus",
+          "activationGateStatus",
           "activationSnapshotRef"
         ],
         "exampleOutput": null
@@ -6891,7 +7396,58 @@ Complete Map Authoring Input Package JSON:
           "rawPrompt",
           "systemPrompt",
           "userPrompt",
-          "approvalStatus",
+          "activationGateStatus",
+          "activationSnapshotRef"
+        ],
+        "exampleOutput": null
+      },
+      {
+        "outputSchemaRef": "ai.page_preparation_judgment.v1",
+        "schemaVersion": "ai.page_preparation_judgment.v1",
+        "declaredFields": [
+          "decision",
+          "routeLabel",
+          "nonExecutableSummary",
+          "confidence",
+          "reason",
+          "evidenceObservations",
+          "readinessSignals",
+          "blockingSignals",
+          "mustReview"
+        ],
+        "branchableFields": [
+          "decision",
+          "routeLabel"
+        ],
+        "fieldTypes": {
+          "decision": "enum<yes|no>",
+          "routeLabel": "enum<startup-ready-for-seeding-judgment|startup-fail-closed>",
+          "nonExecutableSummary": "string",
+          "confidence": "number",
+          "reason": "string",
+          "evidenceObservations": "array<string>",
+          "readinessSignals": "array<string>",
+          "blockingSignals": "array<string>",
+          "mustReview": "literal"
+        },
+        "requiredFields": [
+          "decision",
+          "routeLabel",
+          "nonExecutableSummary",
+          "confidence",
+          "reason"
+        ],
+        "reviewFields": [
+          "mustReview"
+        ],
+        "confidenceFields": [
+          "confidence"
+        ],
+        "forbiddenFields": [
+          "rawPrompt",
+          "systemPrompt",
+          "userPrompt",
+          "activationGateStatus",
           "activationSnapshotRef"
         ],
         "exampleOutput": null
@@ -6912,18 +7468,20 @@ Complete Map Authoring Input Package JSON:
           "missingFrames",
           "isProductVideo",
           "decision",
+          "routeLabel",
+          "nonExecutableSummary",
           "confidence",
           "visibleProductTypes",
           "evidenceObservations",
           "reason",
           "frameLevelObservations",
           "aggregateReason",
-          "suggestedNextAction",
           "uncertainty",
           "mustReview"
         ],
         "branchableFields": [
-          "decision"
+          "decision",
+          "routeLabel"
         ],
         "fieldTypes": {
           "inputMode": "enum<multi_frame_contact_sheet|multi_image|single_frame_fallback>",
@@ -6938,13 +7496,14 @@ Complete Map Authoring Input Package JSON:
           "missingFrames": "array<object>",
           "isProductVideo": "boolean",
           "decision": "enum<product_yes|product_no>",
+          "routeLabel": "enum<read-comments|save-evidence|read-comments-and-save-evidence|finish-current-video|skip-current-video|mark-not-interested-then-continue|publish-default-smile-comment-then-continue|stop-task>",
+          "nonExecutableSummary": "string",
           "confidence": "number",
           "visibleProductTypes": "array<string>",
           "evidenceObservations": "array<string>",
           "reason": "string",
           "frameLevelObservations": "array<object>",
           "aggregateReason": "string",
-          "suggestedNextAction": "enum<collect_metrics_like_marker_open_comments|scroll_next|click_not_interested_or_scroll_next>",
           "uncertainty": "array<string>",
           "mustReview": "boolean"
         },
@@ -6953,12 +7512,13 @@ Complete Map Authoring Input Package JSON:
           "sampledFrameCount",
           "validFrameCount",
           "isProductVideo",
+          "routeLabel",
+          "nonExecutableSummary",
           "confidence",
           "visibleProductTypes",
           "evidenceObservations",
           "reason",
           "aggregateReason",
-          "suggestedNextAction",
           "uncertainty",
           "mustReview"
         ],
@@ -6972,7 +7532,74 @@ Complete Map Authoring Input Package JSON:
           "rawPrompt",
           "systemPrompt",
           "userPrompt",
-          "approvalStatus",
+          "activationGateStatus",
+          "activationSnapshotRef"
+        ],
+        "exampleOutput": null
+      },
+      {
+        "outputSchemaRef": "ai.visual_target_candidate_analysis.v1",
+        "schemaVersion": "ai.visual_target_candidate_analysis.v1",
+        "declaredFields": [
+          "inputMode",
+          "multiFrameEvidenceSetId",
+          "contactSheetEvidenceId",
+          "frameEvidenceIds",
+          "screenshotEvidenceId",
+          "sampledFrameCount",
+          "validFrameCount",
+          "expectedFrameCount",
+          "fallbackReason",
+          "missingFrames",
+          "targetCandidates",
+          "nonExecutableSummary",
+          "confidence",
+          "evidenceObservations",
+          "reason",
+          "uncertainty",
+          "mustReview"
+        ],
+        "branchableFields": [],
+        "fieldTypes": {
+          "inputMode": "enum<multi_frame_contact_sheet|multi_image|single_frame_fallback>",
+          "multiFrameEvidenceSetId": "string",
+          "contactSheetEvidenceId": "string",
+          "frameEvidenceIds": "array<string>",
+          "screenshotEvidenceId": "string",
+          "sampledFrameCount": "number",
+          "validFrameCount": "number",
+          "expectedFrameCount": "number",
+          "fallbackReason": "string",
+          "missingFrames": "array<object>",
+          "targetCandidates": "array<object>",
+          "nonExecutableSummary": "string",
+          "confidence": "number",
+          "evidenceObservations": "array<string>",
+          "reason": "string",
+          "uncertainty": "array<string>",
+          "mustReview": "boolean"
+        },
+        "requiredFields": [
+          "inputMode",
+          "sampledFrameCount",
+          "validFrameCount",
+          "targetCandidates",
+          "nonExecutableSummary",
+          "confidence",
+          "reason",
+          "mustReview"
+        ],
+        "reviewFields": [
+          "mustReview"
+        ],
+        "confidenceFields": [
+          "confidence"
+        ],
+        "forbiddenFields": [
+          "rawPrompt",
+          "systemPrompt",
+          "userPrompt",
+          "activationGateStatus",
           "activationSnapshotRef"
         ],
         "exampleOutput": null
@@ -7004,45 +7631,7 @@ Complete Map Authoring Input Package JSON:
           "rawPrompt",
           "systemPrompt",
           "userPrompt",
-          "approvalStatus",
-          "activationSnapshotRef"
-        ],
-        "exampleOutput": null
-      },
-      {
-        "outputSchemaRef": "ai.comment_signal_summary.v1",
-        "schemaVersion": "ai.comment_signal_summary.v1",
-        "declaredFields": [
-          "purchaseIntent",
-          "painPoints",
-          "complaints",
-          "demandTerms",
-          "confidence"
-        ],
-        "branchableFields": [],
-        "fieldTypes": {
-          "purchaseIntent": "enum<low|medium|high>",
-          "painPoints": "array<string>",
-          "complaints": "array<string>",
-          "demandTerms": "array<string>",
-          "confidence": "number"
-        },
-        "requiredFields": [
-          "purchaseIntent",
-          "painPoints",
-          "complaints",
-          "demandTerms",
-          "confidence"
-        ],
-        "reviewFields": [],
-        "confidenceFields": [
-          "confidence"
-        ],
-        "forbiddenFields": [
-          "rawPrompt",
-          "systemPrompt",
-          "userPrompt",
-          "approvalStatus",
+          "activationGateStatus",
           "activationSnapshotRef"
         ],
         "exampleOutput": null
@@ -7089,7 +7678,7 @@ Complete Map Authoring Input Package JSON:
           "rawPrompt",
           "systemPrompt",
           "userPrompt",
-          "approvalStatus",
+          "activationGateStatus",
           "activationSnapshotRef"
         ],
         "exampleOutput": null
@@ -7105,7 +7694,6 @@ Complete Map Authoring Input Package JSON:
       "operationalMap",
       "dependencies",
       "compatibility",
-      "policy",
       "promptBindings",
       "changelog",
       "signature"
@@ -7116,7 +7704,7 @@ Complete Map Authoring Input Package JSON:
       "packageVersion",
       "mapId",
       "taskTemplateId",
-      "approvalStatus",
+      "activationGateStatus",
       "aiGenerated"
     ],
     "requiredStepFields": [
@@ -7125,18 +7713,17 @@ Complete Map Authoring Input Package JSON:
       "stepKind",
       "targetAbilityGroupId",
       "inputRefs",
-      "outputRefPolicy",
-      "proofPolicy"
+      "outputRefPolicy"
     ],
     "draftOnlyFields": [
-      "approvalStatus=draft",
+      "activationGateStatus=draft",
       "availabilityPolicy=draft",
       "validationReportRef=null",
-      "humanApprovalRef=null"
+      "automationGateRef=null"
     ],
     "activationFields": [
       "validationReportRef",
-      "humanApprovalRef",
+      "automationGateRef",
       "activationProofRef",
       "activationSnapshotRef",
       "mapPackageHash",
@@ -7152,7 +7739,18 @@ Complete Map Authoring Input Package JSON:
       "timeoutPolicy",
       "timeoutMs",
       "maxDurationMs",
-      "primitiveTimeoutMs"
+      "primitiveTimeoutMs",
+      "policy",
+      "proofPolicy",
+      "successCondition",
+      "failureBranch",
+      "reviewBranch",
+      "postActionVerification",
+      "condition",
+      "allowedAbilityGroups",
+      "failureBranches",
+      "reviewBranches",
+      "sequencePolicy"
     ]
   },
   "mapAuthoringOutputSchema": {
@@ -7174,9 +7772,9 @@ Complete Map Authoring Input Package JSON:
       "needs_clarification"
     ],
     "forbiddenFields": [
-      "approvalStatus",
+      "activationGateStatus",
       "validationReportRef",
-      "humanApprovalRef",
+      "automationGateRef",
       "activationSnapshotRef",
       "rawPrompt",
       "systemPrompt",
@@ -7185,21 +7783,21 @@ Complete Map Authoring Input Package JSON:
   },
   "safetyPolicy": {
     "policyRef": "policy://map-authoring/safety/v1",
-    "summary": "Declares the no-code and review-gated safety baseline for map authoring.",
+    "summary": "Declares the no-code and automated-gated safety baseline for map authoring.",
     "rules": [
       "no_code_generation",
       "no_runtime_activation",
-      "review_high_risk_operations"
+      "automated_gate_high_risk_operations"
     ]
   },
-  "humanApprovalPolicy": {
-    "policyRef": "policy://map-authoring/human-approval/v1",
-    "summary": "Declares operations that require explicit human approval.",
+  "automationGatePolicy": {
+    "policyRef": "policy://map-authoring/automation-gate/v1",
+    "summary": "Declares operations that require Route Plan-owned automated gates or fail-closed blocking.",
     "rules": [
-      "send_message_requires_approval",
-      "submit_requires_approval",
-      "purchase_requires_approval",
-      "activate_ai_generated_map_requires_approval"
+      "send_message_requires_route_plan_gate",
+      "submit_requires_route_plan_gate",
+      "purchase_requires_route_plan_gate",
+      "unsupported_high_risk_action_fails_closed"
     ]
   },
   "evidencePolicy": {
@@ -7212,12 +7810,12 @@ Complete Map Authoring Input Package JSON:
     ]
   },
   "pavPolicy": {
-    "policyRef": "policy://map-authoring/pav/v1",
-    "summary": "Requires action steps to hand off to post-action verification when mandated by catalogs.",
+    "policyRef": "policy://map-authoring/post-click-observation/v1",
+    "summary": "Treats post-click observation as a non-blocking quality signal; AI remains the only semantic judge.",
     "rules": [
-      "action_steps_require_pav_when_catalog_says_so",
-      "mouse_click_requires_pav",
-      "text_input_requires_pav"
+      "post_click_observation_is_quality_signal",
+      "mouse_click_success_is_primitive_execution_only",
+      "text_input_success_is_primitive_execution_only"
     ]
   },
   "forensicsPolicy": {
@@ -7249,9 +7847,9 @@ Complete Map Authoring Input Package JSON:
   },
   "rateLimitPolicy": {
     "policyRef": "policy://map-authoring/rate-limit/v1",
-    "summary": "Bulk or repeated operations must respect platform rate limits and review gates.",
+    "summary": "Bulk or repeated operations must respect platform rate limits and automated gates.",
     "rules": [
-      "bulk_actions_require_review",
+      "bulk_actions_require_route_plan_gate",
       "respect_platform_rate_limit",
       "pause_on_limit_exceeded"
     ]
@@ -7278,14 +7876,24 @@ Output Requirements:
 - Return draft sections only. Do not emit manifest, activation, approval, validation report, rollback, signature, or runtime state fields.
 - The local normalizer will add immutable governance metadata such as manifest refs, package ids, and activation gates.
 - authoringChain may only echo the governed contract values above. Never invent authoringRunId, userRequirementRef, sourceRequirementHash, providerPolicyRef, promptHash, or authoringProofRef.
-- Do not emit approvalStatus=approved, availabilityPolicy=active, humanApprovalRef, validationReportRef, activationSnapshotRef, importProofRef, quarantineProofRef, or activationProofRef.
+- Do not emit activationGateStatus=gate_passed, availabilityPolicy=active, automationGateRef, validationReportRef, activationSnapshotRef, importProofRef, quarantineProofRef, or activationProofRef.
 - Every AI step must have a prompt binding with promptContractId, requiredInputRefs, and outputSchemaRef.
+- Production automation maps must be routePlanBoundMap: declare only entry spine, AI handoff, Prompt Contract refs, input/output refs, and routePlanId.
+- Route Plan is the only muscle-memory source for routeLabel -> step chain -> ability group/child capability. The map must not duplicate Route Plan-owned steps, transitions, route labels, or AI success routing.
+- Production routePlanBoundMap must not use Branch DSL, schemaFieldRef routing, action chains, review routes, or map-owned branching; only Route Plan routeLabel matching is allowed.
+- genericDiagnosticMap is only for isolated diagnostics and must not bind Route Plan or enter production automation execution.
+- 地图禁止出现任何约束逻辑；一个地图 + 对应 Prompt Contract，才是完整地图。
+- UserRequirement.binaryOutcomePolicy is mandatory source truth: product_yes must use selectedPositiveRouteLabel and product_no must use selectedNegativeRouteLabel.
+- Runtime Prompt Contracts for binary product decisions must require AI to output decision plus routeLabel. Orchestration may only match the routeLabel mechanically; it must not infer next actions from product_yes/product_no.
+- AI output must not include nextIntent, suggestedNextAction, actionIntent, or action_intent. Non-routing explanation must use reason or nonExecutableSummary only, and only routeLabel may be used for branching.
+- Map transitions must not expose or own route labels; selected/default binary options in the Prompt Contract decide which routeLabel AI returns, and Route Plan owns the matching action chain.
+- Do not emit map constraint fields: policy, proofPolicy, successCondition, failureBranch, reviewBranch, postActionVerification, transition.condition, allowedAbilityGroups, failureBranches, reviewBranches, or sequencePolicy.
 - Do not invent abilityGroupId, childCapabilityId, promptContractId, requiredInputRefs, outputSchemaRef, or branch fields that are not declared by the governed catalogs.
 - If the request is ambiguous or under-specified, populate requiredClarifications and set draftStatus=needs_clarification.
 - If the governed catalogs do not support the requested flow, set needsCapabilityExpansion=true.
 - 自动化地图，严厉禁止加入任何人工审查的动作，必须自动化完成。
 - Automation maps must not include request-human-review, human-review, manual-review, operator-review, review_required terminal routing, or any step that waits for a person.
-- Any step that sends, publishes, submits, deletes, buys, confirms, or otherwise mutates user data must be handled by automated policy gates, automated post-action verification, automated blocking, or automated failed termination; never by human review routing.
-- Any text-input send, publish, commit, submit, or confirm action must be automatically gated or blocked by governed policy; do not require explicit human confirmation inside the automation map.
+- Any step that sends, publishes, submits, deletes, buys, confirms, or otherwise mutates user data must be handled by automated policy gates, automated post-click observation, automated blocking, or automated failed termination; never by human review routing.
+- Any text-input send, publish, commit, submit, or confirm action must be automatically gated or blocked by governed policy; do not require explicit automated gate inside the automation map.
 - Do not emit fields named rawPrompt, systemPrompt, userPrompt, promptText, executablePromptLogic, handler, script, exec, import, require, or shell.
-- Use only capability, prompt-contract, output-schema, and policy entries contained in this input package.
+- Use only capability, prompt-contract, and output-schema entries contained in this input package for map route construction.

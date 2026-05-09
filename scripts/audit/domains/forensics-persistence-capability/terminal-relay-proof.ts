@@ -82,7 +82,13 @@ const hasTerminalDedupeListenerShape = (
 ): boolean => (
   sourceText.includes("MAX_TERMINAL_DEDUPE_KEYS")
   && listener.getText().includes("mirroredRuntimeDedupeKeys")
-  && listener.getText().includes('eventType.startsWith("AI_")')
+  && (
+    listener.getText().includes('eventType.startsWith("AI_")')
+    || (
+      sourceText.includes('eventType.startsWith("AI_")')
+      && listener.getText().includes("shouldSkipStructuredTerminalLogEntry(logEntry, level, mirroredRuntimeDedupeKeys)")
+    )
+  )
 );
 
 const hasBoundedAiDebugTerminalDedupe = (sourceFile: import("ts-morph").SourceFile): boolean => {

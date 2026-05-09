@@ -7,7 +7,9 @@ import { createAuditProject, getSourceFileOrThrow } from "../_shared/ast-helpers
 import { CANONICAL_FILES, CHILDREN, PATHS } from "./config.js";
 
 export function createScreenshotAuditProject(): Project {
-  return createAuditProject();
+  const project = createAuditProject();
+  project.addSourceFilesAtPaths(pathFromRepoRoot(`${PATHS.ROOT}/**/*.ts`));
+  return project;
 }
 
 export function getSource(project: Project, repoRelativePath: string): SourceFile {

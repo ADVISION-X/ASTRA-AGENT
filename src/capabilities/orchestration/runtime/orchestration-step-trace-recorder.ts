@@ -11,9 +11,14 @@ import {
   resolvePostActionVerificationRef,
   type ActionLogInput,
   type RuntimeEventInput,
-  type StepResultRecord,
 } from "./orchestration-step-trace-payloads.js";
 import { isPostActionVerificationStep } from "./orchestration-post-action-verification.js";
+import {
+  buildJointCheckpoint,
+  resolveJointStage,
+  resolveStepInputTrace,
+  resolveStepOutputTrace,
+} from "./orchestration-step-trace-fields.js";
 
 type PersistedActionLogRecord = {
   actionLogId: string;
@@ -39,8 +44,12 @@ function logRuntimeEventFallback(input: RuntimeEventInput, reason: string): void
   const failureReason = input.failureReason ? ` failureReason=${JSON.stringify(input.failureReason)}` : "";
   const reviewRequiredReason = input.reviewRequiredReason ? ` reviewRequiredReason=${JSON.stringify(input.reviewRequiredReason)}` : "";
   const durationMs = input.durationMs === null || input.durationMs === undefined ? "" : ` durationMs=${input.durationMs}`;
+  const failureSnapshot = input.failureSnapshot;
+  const snapshotRefs = failureSnapshot
+    ? ` failedStepId=${JSON.stringify(failureSnapshot.failedStepId)} failedJointStage=${JSON.stringify(failureSnapshot.failedJointStage)} lastSuccessfulStepId=${JSON.stringify(failureSnapshot.lastSuccessfulStepId)} lastSuccessfulResultRef=${JSON.stringify(failureSnapshot.lastSuccessfulResultRef)} screenshotEvidenceRef=${JSON.stringify(failureSnapshot.screenshotEvidenceRef)} aiResultRef=${JSON.stringify(failureSnapshot.aiResultRef)} visualTargetResultRef=${JSON.stringify(failureSnapshot.visualTargetResultRef)} geometryGuardResultRef=${JSON.stringify(failureSnapshot.geometryGuardResultRef)} clickResultRef=${JSON.stringify(failureSnapshot.clickResultRef)} postActionVerificationResultRef=${JSON.stringify(failureSnapshot.postActionVerificationResultRef)} commentsEvidenceRef=${JSON.stringify(failureSnapshot.commentsEvidenceRef)}`
+    : "";
   console.warn(
-    `[GRASSEYE][RUNTIME][${level}] runtime ${input.eventType} ${input.status} ${input.reason}${failureReason}${reviewRequiredReason}${durationMs} ownerResponsible="${input.ownerResponsible}" actionableMessage="${input.actionableMessage}" stepId=${input.step.stepId} childCapabilityId=${input.step.childCapabilityId} degradedForensics="${reason}"`,
+    `[GRASSEYE][RUNTIME][${level}] runtime ${input.eventType} ${input.status} ${input.reason}${failureReason}${reviewRequiredReason}${durationMs} ownerResponsible="${input.ownerResponsible}" actionableMessage="${input.actionableMessage}" stepId=${input.step.stepId} childCapabilityId=${input.step.childCapabilityId} jointStage=${input.jointStage ?? "none"} missingInputRefKeys=${JSON.stringify(input.missingInputRefKeys ?? [])}${snapshotRefs} degradedForensics="${reason}"`,
   );
 }
 
@@ -92,24 +101,6 @@ function resolveVideoVisitId(state: MissionState): string | null {
     : null;
 }
 
-function resolvePayloadRefValue(payloadRefs: MissionState["payloadRefs"], key: string): string | null {
-  const payloadKey = key as keyof MissionState["payloadRefs"];
-  const value = payloadRefs[payloadKey];
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function collectStepInputRefs(step: OperationalStep, state: MissionState): string[] {
-  return [...new Set(step.inputRefs.map((key) => resolvePayloadRefValue(state.payloadRefs, key)).filter((value): value is string => Boolean(value)))];
-}
-
-function collectResultOutputRefs(stepResult?: StepResultRecord | null, outputRefs?: string[]): string[] {
-  return [
-    ...(outputRefs ?? []),
-    ...(stepResult?.resultRef ? [stepResult.resultRef] : []),
-    ...(stepResult?.outputRef ? [stepResult.outputRef] : []),
-  ];
-}
-
 function resolveMapChain(state: MissionState, mapRecord: ActiveOperationalMapRecord | null) {
   return {
     mapPackageId: state.mapPackageId ?? mapRecord?.packageId ?? null,
@@ -120,36 +111,57 @@ function resolveMapChain(state: MissionState, mapRecord: ActiveOperationalMapRec
   };
 }
 
-export async function recordMissionRuntimeEvent(input: RuntimeEventInput): Promise<void> {
-  const structuredRuntimeEvent = buildStructuredRuntimeEvent(input);
-  const mapChain = resolveMapChain(input.state, input.mapRecord);
+function enrichRuntimeEventInput(input: RuntimeEventInput): RuntimeEventInput {
+  const inputTrace = resolveStepInputTrace(input.step, input.state);
+  const outputTrace = resolveStepOutputTrace(input.step, input.stepResult ?? null);
+  const checkpointState = input.stepResult
+    ? { ...input.state, payloadRefs: input.stepResult.payloadRefs }
+    : input.state;
+  return {
+    ...input,
+    expectedInputRefKeys: input.expectedInputRefKeys ?? inputTrace.expectedInputRefKeys,
+    inputRefs: input.inputRefs ?? inputTrace.resolvedInputRefs,
+    resolvedInputRefKeys: input.resolvedInputRefKeys ?? inputTrace.resolvedInputRefKeys,
+    missingInputRefKeys: input.missingInputRefKeys ?? inputTrace.missingInputRefKeys,
+    outputRefAliases: input.outputRefAliases ?? outputTrace.outputRefAliases,
+    outputRefs: input.outputRefs ?? outputTrace.producedOutputRefs,
+    producedOutputRefs: input.producedOutputRefs ?? outputTrace.producedOutputRefs,
+    jointStage: input.jointStage ?? resolveJointStage(input.step),
+    jointCheckpoint: input.jointCheckpoint ?? buildJointCheckpoint(checkpointState),
+  };
+}
 
-  await writeStructuredRuntimeEventWithoutBlockingLoop(input, {
+export async function recordMissionRuntimeEvent(input: RuntimeEventInput): Promise<void> {
+  const eventInput = enrichRuntimeEventInput(input);
+  const structuredRuntimeEvent = buildStructuredRuntimeEvent(eventInput);
+  const mapChain = resolveMapChain(eventInput.state, eventInput.mapRecord);
+
+  await writeStructuredRuntimeEventWithoutBlockingLoop(eventInput, {
     abilityGroupId: "forensics-persistence",
     childCapabilityId: "write-structured-runtime-event",
     recordType: "structured_runtime_event",
     requestedBy: "orchestration",
     sourceAbilityGroupId: "orchestration",
-    sourceChildCapabilityId: input.step.childCapabilityId,
-    missionId: input.state.missionId ?? null,
-    runId: resolveRunId(input.state),
-    sessionId: resolveSessionId(input.state),
-    roundId: resolveRoundId(input.state),
-    videoVisitId: resolveVideoVisitId(input.state),
-    stepId: input.step.stepId,
+    sourceChildCapabilityId: eventInput.step.childCapabilityId,
+    missionId: eventInput.state.missionId ?? null,
+    runId: resolveRunId(eventInput.state),
+    sessionId: resolveSessionId(eventInput.state),
+    roundId: resolveRoundId(eventInput.state),
+    videoVisitId: resolveVideoVisitId(eventInput.state),
+    stepId: eventInput.step.stepId,
     mapPackageId: mapChain.mapPackageId,
     mapPackageVersion: mapChain.mapPackageVersion,
     selectedMapId: mapChain.selectedMapId,
     selectedMapVersion: mapChain.selectedMapVersion,
     activationSnapshotRef: mapChain.activationSnapshotRef,
-    capabilityCallId: input.capabilityCallId ?? null,
-    inputRefs: [...new Set([...(input.inputRefs ?? []), ...collectStepInputRefs(input.step, input.state)])],
-    outputRefs: [...new Set(input.outputRefs ?? [])],
+    capabilityCallId: eventInput.capabilityCallId ?? null,
+    inputRefs: [...new Set(eventInput.inputRefs ?? [])],
+    outputRefs: [...new Set(eventInput.outputRefs ?? [])],
     sourceRecordRefs: [],
     parentRefs: [],
     artifactRefs: [],
-    actionRef: input.actionRef ?? null,
-    postActionVerificationRef: input.postActionVerificationRef ?? null,
+    actionRef: eventInput.actionRef ?? null,
+    postActionVerificationRef: eventInput.postActionVerificationRef ?? null,
     persistencePolicy: { mode: "append", allowPartialRefs: true },
     dataQualityFlags: [],
     payload: { structuredRuntimeEvent },

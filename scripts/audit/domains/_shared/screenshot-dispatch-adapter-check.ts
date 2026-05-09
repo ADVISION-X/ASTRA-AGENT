@@ -13,6 +13,7 @@ type PropertyBinding = {
 const DISPATCH_FILE = "src/lib/local-runtime/workbench-screenshot-dispatch-input.ts";
 const RESULT_ENVELOPE_FILE = "src/lib/local-runtime/workbench-ability-result-envelope.ts";
 const RESULT_PROOF_SUMMARY_FILE = "src/lib/local-runtime/workbench-ability-result-proof-summary.ts";
+const RESULT_PREPARE_AI_PROOF_SUMMARY_FILE = "src/lib/local-runtime/workbench-ability-result-proof-summary-prepare-ai-input.ts";
 const HANDOFF_FILE = "src/lib/local-runtime/workbench-screenshot-source-handoff.ts";
 const AI_INPUT_PROOF_REGISTRY_FILE = "src/capabilities/ai/shared/ai-input-proof-registry.ts";
 const COMMON_BINDINGS: PropertyBinding[] = [
@@ -283,26 +284,38 @@ const getSourceHandoffFindings = (project: Project, lawId: string): Finding[] =>
   return findings;
 };
 
-const getTerminalProofSummaryFindings = (project: Project, lawId: string): Finding[] => {
-  const registrySource = getSourceFileOrThrow(project, AI_INPUT_PROOF_REGISTRY_FILE);
-  const hasTerminalProofSummary =
-    functionHasFields(project, RESULT_PROOF_SUMMARY_FILE, "buildScreenshotProofSummary", SCREENSHOT_PROOF_SUMMARY_FIELDS)
-    && functionHasFields(project, RESULT_PROOF_SUMMARY_FILE, "buildPrepareAiInputProofSummary", PREPARE_AI_PROOF_SUMMARY_FIELDS)
-    && hasCallExpressionNamed(project, RESULT_PROOF_SUMMARY_FILE, "recordAbilityResultProofSummary")
-    && hasCallExpressionNamed(project, RESULT_PROOF_SUMMARY_FILE, "recordAiInputProofSummary")
-    && hasCallExpressionNamed(project, RESULT_ENVELOPE_FILE, "buildAbilityResultProofSummary")
-    && Boolean(registrySource.getTypeAlias("AiInputProofSummary"))
-    && Boolean(registrySource.getFunction("recordAiInputProofSummary"));
+const hasPrepareAiInputTerminalProofSummary = (project: Project): boolean => {
+  return functionHasFields(project, RESULT_PREPARE_AI_PROOF_SUMMARY_FILE, "buildPrepareAiInputProofSummarySummary", PREPARE_AI_PROOF_SUMMARY_FIELDS)
+    && hasCallExpressionNamed(project, RESULT_PREPARE_AI_PROOF_SUMMARY_FILE, "recordAiInputProofSummary")
+    && hasCallExpressionNamed(project, RESULT_PROOF_SUMMARY_FILE, "buildPrepareAiInputProofSummary");
+};
 
-  return hasTerminalProofSummary
-    ? []
-    : [createFinding({
-      lawId,
-      file: RESULT_PROOF_SUMMARY_FILE,
-      line: 1,
-      severity: "fatal",
-      message: "Screenshot success and prepare-ai-input success must project terminal-auditable artifact, hash, dimension, promptInputRef, and aiInputArtifactRef proof fields without raw image payloads.",
-    })];
+const hasAiInputProofRegistryShape = (project: Project): boolean => {
+  const registrySource = getSourceFileOrThrow(project, AI_INPUT_PROOF_REGISTRY_FILE);
+  return Boolean(registrySource.getTypeAlias("AiInputProofSummary"))
+    && Boolean(registrySource.getFunction("recordAiInputProofSummary"));
+};
+
+const hasTerminalProofSummaryProjection = (project: Project): boolean => {
+  return functionHasFields(project, RESULT_PROOF_SUMMARY_FILE, "buildScreenshotProofSummary", SCREENSHOT_PROOF_SUMMARY_FIELDS)
+    && hasPrepareAiInputTerminalProofSummary(project)
+    && hasCallExpressionNamed(project, RESULT_PROOF_SUMMARY_FILE, "recordAbilityResultProofSummary")
+    && hasCallExpressionNamed(project, RESULT_ENVELOPE_FILE, "buildAbilityResultProofSummary")
+    && hasAiInputProofRegistryShape(project);
+};
+
+const createTerminalProofSummaryFinding = (lawId: string): Finding => {
+  return createFinding({
+    lawId,
+    file: RESULT_PROOF_SUMMARY_FILE,
+    line: 1,
+    severity: "fatal",
+    message: "Screenshot success and prepare-ai-input success must project terminal-auditable artifact, hash, dimension, promptInputRef, and aiInputArtifactRef proof fields without raw image payloads.",
+  });
+};
+
+const getTerminalProofSummaryFindings = (project: Project, lawId: string): Finding[] => {
+  return hasTerminalProofSummaryProjection(project) ? [] : [createTerminalProofSummaryFinding(lawId)];
 };
 
 export function inspectScreenshotDispatchAdapter(project: Project, lawId: string): Finding[] {

@@ -27,7 +27,14 @@ const REQUIRED_INPUT_BLOCK_SNIPPETS = [
   "activationSnapshotRef: z.string().min(1),\n  capabilityCallId: z.string().min(1),\n  nerveBusEnvelopeId: z.string().min(1),\n  requestedBy: z.string().min(1),",
   "inputRef: z.string().min(1),\n  sourceRef: z.string().min(1),\n  sourceCoordinateProofRef: z.string().min(1),",
 ] as const;
-const RESULT_BUILDER_HANDOFF_BLOCK = "idempotencyDecision: input.idempotencyDecision,\n    postClickObservationRef: verification.postClickObservationRef,\n    dataQualityFlags: input.dataQualityFlags,\n    runtimeProof,";
+const RESULT_BUILDER_HANDOFF_SNIPPETS = [
+  "idempotencyDecision: input.idempotencyDecision",
+  "postClickObservationRef: verification.postClickObservationRef",
+  "postActionVerificationRequired: verification.postActionVerificationRequired",
+  "postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef",
+  "dataQualityFlags: input.dataQualityFlags",
+  "runtimeProof",
+] as const;
 
 function collectMissingRequiredFileFindings(filePaths: string[]): Finding[] {
   return filePaths.map((filePath) => createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2", file: filePath, line: 1, severity: "fatal", message: "Mouse Click required production file is missing." }));
@@ -135,7 +142,7 @@ function collectResultBuilderFindings(resultBuilderSource: ReturnType<typeof get
   if (!resultBuilderText.includes("diagnosticPayloadRef")) {
     findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve diagnosticPayloadRef for non-success outcomes." }));
   }
-  if (!resultBuilderText.includes(RESULT_BUILDER_HANDOFF_BLOCK)) {
+  if (!RESULT_BUILDER_HANDOFF_SNIPPETS.every((snippet) => resultBuilderText.includes(snippet))) {
     findings.push(createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2", file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Mouse Click result builder must preserve the top-level postClickObservationRef quality-signal block." }));
   }
   return findings;

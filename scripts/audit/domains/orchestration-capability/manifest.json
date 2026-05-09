@@ -17,12 +17,14 @@
     "GRASSEYE-ORCHESTRATION-CAPABILITY-007-V3",
     "GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3",
     "GRASSEYE-ORCHESTRATION-CAPABILITY-009-V3",
-    "GRASSEYE-ORCHESTRATION-CAPABILITY-010-V3"
+    "GRASSEYE-ORCHESTRATION-CAPABILITY-010-V3",
+    "GRASSEYE-ORCHESTRATION-CAPABILITY-011-V1"
   ],
   "readsLawFiles": [
     ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md"
   ],
   "readsBlueprintFiles": [
-    "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md"
+    "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md",
+    "docs/法案辅助文件/GrassEye Route Plan 肌肉记忆施工图.md"
   ]
 }

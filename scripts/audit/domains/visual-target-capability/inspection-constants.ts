@@ -9,6 +9,7 @@ export const visualTargetInspectionConstants = {
     "GRASSEYE-VISUAL-TARGET-CAPABILITY-006-V2",
     "GRASSEYE-VISUAL-TARGET-CAPABILITY-007-V2",
     "GRASSEYE-VISUAL-TARGET-CAPABILITY-008-V2",
+    "GRASSEYE-VISUAL-TARGET-CAPABILITY-RESULT-CONTRACT-V1",
   ] as const,
   INSPECTOR_ID: "visual-target-capability-owner",
   INSPECTOR_ENTRY: "scripts/audit/domains/visual-target-capability/inspector.ts",

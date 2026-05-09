@@ -13,6 +13,10 @@ import type {
 } from "./orchestration-loop-iteration-event-shared.js";
 import type { OperationalStep } from "./step-dispatch-shared.js";
 import { isPostActionVerificationStep } from "./orchestration-post-action-verification.js";
+import { buildFailureSnapshot } from "./orchestration-failure-snapshot.js";
+
+const buildMissionFailureSnapshot = (state: LoopIterationEventInput["state"], step: OperationalStep, failureReason?: string | null) =>
+  buildFailureSnapshot({ state, step, failureReason: failureReason ?? null });
 
 export async function recordStepSelected(input: LoopIterationEventInput, step: OperationalStep, currentStepId: string): Promise<void> {
   await recordMissionRuntimeEvent({
@@ -53,6 +57,9 @@ export async function recordPreconditionCheck(
       : "Repair the blocking step gate before retrying this mission step.",
     ownerResponsible: "Orchestration",
     capabilityCallId: input.stepDispatchCallId,
+    failureSnapshot: details.status === "failed"
+      ? buildMissionFailureSnapshot(input.state, step, details.failureReason ?? null)
+      : null,
   });
 }
 
@@ -145,6 +152,7 @@ export async function recordStepDispatchFailure(
     ownerResponsible: failureEvent.ownerResponsible,
     capabilityCallId: input.stepDispatchCallId,
     proofRefs: [proofId],
+    failureSnapshot: buildMissionFailureSnapshot(input.state, step, failureReason),
   });
 }
 
@@ -173,9 +181,14 @@ export async function recordStepResult(
     durationMs: details.durationMs,
     capabilityCallId: eventDetails.capabilityCallId,
     outputRefs: eventDetails.outputRefs,
+    producedOutputRefs: collectLastResultRefs(details.lastResult),
     proofSummary: eventDetails.proofSummary,
     actionLogRefs: eventDetails.actionLogRefs,
     actionRef: eventDetails.actionRef,
+    stepResult: details.lastResult,
+    failureSnapshot: details.lastResult.status === "success"
+      ? null
+      : buildMissionFailureSnapshot(input.state, step, details.lastResult.failureReason ?? details.lastResult.reviewRequiredReason ?? null),
   });
 }
 
@@ -207,7 +220,34 @@ export async function recordTransitionEvaluation(
     decision: details.decision,
     capabilityCallId: details.capabilityCallId,
     proofRefs: [details.proofId],
+    failureSnapshot: details.status === "failed"
+      ? buildMissionFailureSnapshot(input.state, step, details.failureReason ?? null)
+      : null,
   });
+}
+
+function resolveTerminalRuntimeStatus(status: LoopTerminalOutcome["state"]["status"]) {
+  return status === "review_required"
+    ? "review_required" as const
+    : status === "failed"
+      ? "failed" as const
+      : "success" as const;
+}
+
+function resolveTerminalActionableMessage(status: LoopTerminalOutcome["state"]["status"]): string {
+  if (status === "failed") {
+    return "Inspect the mission runtime proof and blocking step outcome before retrying.";
+  }
+  if (status === "review_required") {
+    return "Open Commander review flow and resolve the governed review requirement.";
+  }
+  return "Read the mission proof timeline and persisted records for the completed mission.";
+}
+
+function buildTerminalFailureSnapshot(outcome: LoopTerminalOutcome, step: OperationalStep) {
+  return outcome.state.status === "failed" || outcome.state.status === "review_required"
+    ? buildMissionFailureSnapshot(outcome.state, step, outcome.state.failureReason ?? outcome.state.reviewRequiredReason ?? null)
+    : null;
 }
 
 export async function recordTerminalOutcome(
@@ -226,22 +266,16 @@ export async function recordTerminalOutcome(
     mapRecord: input.mapRecord,
     step,
     eventType,
-    status: outcome.state.status === "review_required"
-      ? "review_required"
-      : outcome.state.status === "failed"
-        ? "failed"
-        : "success",
+    status: resolveTerminalRuntimeStatus(outcome.state.status),
     reason: `Mission reached terminal status "${outcome.state.status}" after step "${step.stepId}".`,
     failureReason: outcome.state.failureReason ?? null,
     reviewRequiredReason: outcome.state.reviewRequiredReason ?? null,
-    actionableMessage: outcome.state.status === "failed"
-      ? "Inspect the mission runtime proof and blocking step outcome before retrying."
-      : outcome.state.status === "review_required"
-        ? "Open Commander review flow and resolve the governed review requirement."
-        : "Read the mission proof timeline and persisted records for the completed mission.",
+    actionableMessage: resolveTerminalActionableMessage(outcome.state.status),
     ownerResponsible: "Orchestration",
     capabilityCallId: input.stepDispatchCallId,
     proofRefs: [outcome.lastProof.proofId],
     outputRefs: outcome.lastResult?.envelopeId ? [`resultEnvelopeRef=${outcome.lastResult.envelopeId}`] : [],
+    stepResult: outcome.lastResult,
+    failureSnapshot: buildTerminalFailureSnapshot(outcome, step),
   });
 }
