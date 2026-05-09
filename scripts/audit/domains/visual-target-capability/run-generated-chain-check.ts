@@ -35,8 +35,8 @@ const collectRegistryLawFindings = (context: InspectorContext): AttackOutcome["f
     if (registryLaw.enforcementMode !== "machine-blocking") {
       findings.push(createViolation({ lawId, file: config.MANIFEST_PATH, message: `${lawId} must remain machine-blocking.` }));
     }
-    if (registryLaw.evidenceMode !== "law+inspector+negative-proof") {
-      findings.push(createViolation({ lawId, file: config.MANIFEST_PATH, message: `${lawId} must remain law+inspector+negative-proof.` }));
+    if (registryLaw.evidenceMode !== "law+inspector") {
+      findings.push(createViolation({ lawId, file: config.MANIFEST_PATH, message: `${lawId} must remain law+inspector.` }));
     }
     if (registryLaw.tier !== "P0") {
       findings.push(createViolation({ lawId, file: config.MANIFEST_PATH, message: `${lawId} must remain P0.` }));

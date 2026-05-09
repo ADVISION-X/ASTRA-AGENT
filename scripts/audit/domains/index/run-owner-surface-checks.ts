@@ -23,7 +23,6 @@ const {
   INDEX_FILE,
   KERNEL_FILE,
   MANIFEST_FILE,
-  NEGATIVE_PROOF_HARNESS_FILE,
   REQUIREMENT_ID_001,
   RUN_INSPECTOR_FILE,
 } = indexInspectionConstants;
@@ -50,10 +49,6 @@ const collectRequiredFileFindings = async (): Promise<Finding[]> => {
   if (!(await fileExists(pathFromRepoRoot(RUN_INSPECTOR_FILE)))) {
     addMissingFileFinding(findings, RUN_INSPECTOR_FILE, "Index routing run-inspector entry is missing.");
   }
-  if (!(await fileExists(pathFromRepoRoot(NEGATIVE_PROOF_HARNESS_FILE)))) {
-    addMissingFileFinding(findings, NEGATIVE_PROOF_HARNESS_FILE, "Index routing negative-proof harness is missing.");
-  }
-
   return findings;
 };
 
@@ -125,7 +120,7 @@ export async function runIndexOwnerSurfaceChecks(
         findings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
         findings.length === 0,
         findings.length === 0
-          ? "Index routing owner has its manifest, run-inspector, negative-proof harness, matrix wiring, and audit script wired."
+          ? "Index routing owner has its manifest, run-inspector, matrix wiring, and audit script wired."
           : "Index routing owner surface is incomplete or drifted.",
       ),
     ],

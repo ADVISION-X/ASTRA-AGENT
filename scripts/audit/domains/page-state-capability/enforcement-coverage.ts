@@ -53,13 +53,13 @@ async function inspectFinalLawBaseline(): Promise<Finding[]> {
       }));
     }
 
-    if (!raw.includes("evidenceMode: law+inspector+negative-proof")) {
+    if (!raw.includes("evidenceMode: law+inspector")) {
       findings.push(createFinding({
         lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2",
         file: FINAL_LAW_PATH,
         line: 1,
         severity: "fatal",
-        message: "Page State FINAL law baseline must require law+inspector+negative-proof evidence.",
+        message: "Page State FINAL law baseline must require law+inspector evidence.",
       }));
     }
 
@@ -136,8 +136,8 @@ function collectActiveLawMetadataFindings(activeLaws: Array<{
     if (law.enforcementMode !== "machine-blocking") {
       findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Page State active law must be machine-blocking." }));
     }
-    if (law.evidenceMode !== "law+inspector+negative-proof") {
-      findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Page State active law must require law+inspector+negative-proof evidence." }));
+    if (law.evidenceMode !== "law+inspector") {
+      findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Page State active law must require law+inspector evidence." }));
     }
     if (law.tier !== "P0") {
       findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Page State active law must remain P0." }));

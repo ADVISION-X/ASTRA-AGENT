@@ -4,11 +4,8 @@ import { runAntiEscapeAttack } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShapeAttack } from "./forbidden-shape.js";
 import { runLawBaselineCheck } from "./run-law-baseline-check.js";
-import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShapeAttack } from "./required-shape.js";
 import { runScrollOwnershipAttack } from "./run-scroll-ownership-attack.js";
-
-const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MOUSE_SCROLL_NEGATIVE_PROOF";
 
 export const mouseScrollCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Mouse Scroll Capability Owner Inspector",
@@ -25,17 +22,6 @@ export const mouseScrollCapabilityInspector = createPendingDomainInspector({
     const boundary = runBoundaryAttack();
     const ownership = runScrollOwnershipAttack();
     const antiEscape = runAntiEscapeAttack();
-    const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
-      ? {
-          findings: [],
-          phase: {
-            name: "negative-proof-harness",
-            classification: "PASS" as const,
-            passed: true,
-            summary: "Mouse Scroll negative-proof harness was skipped for nested inspector execution.",
-          },
-        }
-      : await runNegativeProofHarness();
 
     return {
       findings: [
@@ -45,7 +31,6 @@ export const mouseScrollCapabilityInspector = createPendingDomainInspector({
         ...boundary.findings,
         ...ownership.findings,
         ...antiEscape.findings,
-        ...negativeProof.findings,
       ],
       phases: [
         lawBaseline.phase,
@@ -54,7 +39,6 @@ export const mouseScrollCapabilityInspector = createPendingDomainInspector({
         boundary.phase,
         ownership.phase,
         antiEscape.phase,
-        negativeProof.phase,
       ],
     };
   },

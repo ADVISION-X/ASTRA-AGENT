@@ -1,6 +1,5 @@
 const AI_ROOT = "src/capabilities/ai";
 const INSPECTOR_ENTRY = "scripts/audit/domains/ai-capability/inspector.ts";
-const NEGATIVE_PROOF_HARNESS = "scripts/audit/domains/ai-capability/negative-proof-harness.ts";
 
 const REQUIRED_FILES = [
   `${AI_ROOT}/ability-group.ts`,
@@ -50,7 +49,6 @@ const REQUIRED_FILES = [
   `${AI_ROOT}/shared/ai-failure.ts`,
   `${AI_ROOT}/shared/ai-json-extract.ts`,
   `${AI_ROOT}/shared/ai-output.ts`,
-  NEGATIVE_PROOF_HARNESS,
 ] as const;
 
 const CHILD_IDS = [
@@ -128,7 +126,6 @@ const REQUIRED_ADAPTER_TOKENS = [
 export const aiInspectionConstants = {
   AI_ROOT,
   INSPECTOR_ENTRY,
-  NEGATIVE_PROOF_HARNESS,
   REQUIRED_FILES,
   CHILD_IDS,
   FORBIDDEN_FILES,

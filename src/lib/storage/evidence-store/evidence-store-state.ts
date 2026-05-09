@@ -43,28 +43,23 @@ const PERSISTED_LOG_TOKEN_MIGRATIONS = new Map<string, string>([
   ["scroll_next_video_completed", "click_next_video_completed"],
 ]);
 
-function migratePersistedLogTokens(value: unknown): { normalized: unknown; migrated: boolean } {
-  if (typeof value === "string") {
-    const replacement = PERSISTED_LOG_TOKEN_MIGRATIONS.get(value);
-    return replacement
-      ? { normalized: replacement, migrated: true }
-      : { normalized: value, migrated: false };
-  }
+const migratePersistedLogTokenString = (value: string): { normalized: unknown; migrated: boolean } => {
+  const replacement = PERSISTED_LOG_TOKEN_MIGRATIONS.get(value);
+  return replacement ? { normalized: replacement, migrated: true } : { normalized: value, migrated: false };
+};
 
-  if (Array.isArray(value)) {
-    let migrated = false;
-    const normalized = value.map((entry) => {
-      const result = migratePersistedLogTokens(entry);
-      migrated ||= result.migrated;
-      return result.normalized;
-    });
-    return migrated ? { normalized, migrated: true } : { normalized: value, migrated: false };
-  }
+const migratePersistedLogTokenArray = (value: unknown[]): { normalized: unknown; migrated: boolean } => {
+  let migrated = false;
+  const normalized = value.map((entry) => {
+    const result = migratePersistedLogTokens(entry);
+    migrated ||= result.migrated;
+    return result.normalized;
+  });
 
-  if (typeof value !== "object" || value === null) {
-    return { normalized: value, migrated: false };
-  }
+  return migrated ? { normalized, migrated: true } : { normalized: value, migrated: false };
+};
 
+const migratePersistedLogTokenObject = (value: Record<string, unknown>): { normalized: unknown; migrated: boolean } => {
   let migrated = false;
   const normalizedEntries = Object.entries(value).map(([key, entryValue]) => {
     const result = migratePersistedLogTokens(entryValue);
@@ -72,14 +67,25 @@ function migratePersistedLogTokens(value: unknown): { normalized: unknown; migra
     return [key, result.normalized] as const;
   });
 
-  if (!migrated) {
+  return migrated
+    ? { normalized: Object.fromEntries(normalizedEntries), migrated: true }
+    : { normalized: value, migrated: false };
+};
+
+function migratePersistedLogTokens(value: unknown): { normalized: unknown; migrated: boolean } {
+  if (typeof value === "string") {
+    return migratePersistedLogTokenString(value);
+  }
+
+  if (Array.isArray(value)) {
+    return migratePersistedLogTokenArray(value);
+  }
+
+  if (typeof value !== "object" || value === null) {
     return { normalized: value, migrated: false };
   }
 
-  return {
-    normalized: Object.fromEntries(normalizedEntries),
-    migrated: true,
-  };
+  return migratePersistedLogTokenObject(value as Record<string, unknown>);
 }
 
 export function normalizePersistedState(value: unknown): { normalized: unknown; migrated: boolean } {

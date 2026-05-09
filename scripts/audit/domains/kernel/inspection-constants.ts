@@ -21,8 +21,6 @@ const PROMPT_CONTRACT_GOVERNANCE_BLUEPRINT_FILE = "docs/法案辅助文件/Grass
 const MANIFEST_FILE = "scripts/audit/domains/kernel/manifest.json";
 const INSPECTOR_ENTRY = "scripts/audit/domains/kernel/inspector.ts";
 const RUN_INSPECTOR_FILE = "scripts/audit/domains/kernel/run-inspector.ts";
-const NEGATIVE_PROOF_HARNESS_FILE = "scripts/audit/domains/kernel/negative-proof-harness.ts";
-const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_KERNEL_NEGATIVE_PROOF";
 const CAPABILITY_ROOT = "src/capabilities";
 const AI_PROMPT_CONTRACT_ROOT = "src/capabilities/ai/prompt-contracts";
 const MAP_PLUGIN_ROOT = "src/map-plugins";
@@ -129,8 +127,6 @@ export const kernelInspectionConstants = {
   MANIFEST_FILE,
   INSPECTOR_ENTRY,
   RUN_INSPECTOR_FILE,
-  NEGATIVE_PROOF_HARNESS_FILE,
-  SKIP_NEGATIVE_PROOF_ENV,
   CAPABILITY_ROOT,
   AI_PROMPT_CONTRACT_ROOT,
   MAP_PLUGIN_ROOT,

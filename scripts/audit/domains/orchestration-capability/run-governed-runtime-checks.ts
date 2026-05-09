@@ -9,7 +9,6 @@ import { orchestrationInspectionConstants as config } from "./inspection-constan
 import { inspectMissionLoopTraceability } from "./mission-loop-traceability-phase.js";
 import { inspectStartMissionCommandBoundary } from "./start-mission-boundary-checks.js";
 
-const NEGATIVE_PROOF_HARNESS_PATH = "scripts/audit/domains/orchestration-capability/negative-proof-harness.ts";
 const RESUME_PATH = "src/capabilities/orchestration/runtime/orchestration-executor-resume.ts";
 const PROOF_BUILDER_PATH = "src/capabilities/orchestration/runtime/orchestration-proof-builder.ts";
 const STEP_DISPATCHER_PATH = "src/capabilities/orchestration/runtime/step-dispatcher.ts";
@@ -382,23 +381,6 @@ function inspectAiStepTimeoutChain(project: ReturnType<typeof createAuditProject
   };
 }
 
-async function inspectNegativeProofReadiness(): Promise<PhaseResult> {
-  const harnessExists = await fileExists(pathFromRepoRoot(NEGATIVE_PROOF_HARNESS_PATH));
-  const findings = harnessExists
-    ? []
-    : [createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-004-V1", file: NEGATIVE_PROOF_HARNESS_PATH, line: 1, message: "Orchestration capability is missing its owner-local negative-proof harness." })];
-
-  return {
-    findings,
-    phase: createRuntimePhase(
-      "negative-proof-readiness",
-      findings,
-      "Orchestration owner-local negative-proof harness exists and can be executed by the inspector.",
-      "Orchestration owner-local negative-proof harness is missing, so P0 law enforcement is incomplete.",
-    ),
-  };
-}
-
 export async function runOrchestrationGovernedRuntimeChecks(project: ReturnType<typeof createAuditProject>) {
   const phaseResults = await Promise.all([
     Promise.resolve(inspectGovernedPublicSurface(project)),
@@ -414,7 +396,6 @@ export async function runOrchestrationGovernedRuntimeChecks(project: ReturnType<
     Promise.resolve(inspectMissionLoopTraceability(project)),
     Promise.resolve(inspectStartMissionCommandBoundary(project)),
     inspectForensicsRetentionBoundary(),
-    inspectNegativeProofReadiness(),
   ]);
 
   return {

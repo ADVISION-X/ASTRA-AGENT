@@ -19,7 +19,7 @@ export async function runLawBaselineCheck(): Promise<{ findings: Finding[]; phas
     findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: LAW_FILE, line: 1, severity: "fatal", message: "Text Input active laws must remain P0." }));
   }
   if (content.includes("evidenceMode: law\n") || content.includes("evidenceMode: law\r\n")) {
-    findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: LAW_FILE, line: 1, severity: "fatal", message: "Text Input active laws must keep law+inspector+negative-proof evidence mode." }));
+    findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: LAW_FILE, line: 1, severity: "fatal", message: "Text Input active laws must keep law+inspector evidence mode." }));
   }
 
   return {
@@ -29,7 +29,7 @@ export async function runLawBaselineCheck(): Promise<{ findings: Finding[]; phas
       findings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
       findings.length === 0,
       findings.length === 0
-        ? "Text Input active laws remain machine-blocking, P0, and negative-proof backed."
+        ? "Text Input active laws remain machine-blocking, P0, and inspector backed."
         : "Text Input law baseline drifted away from the active enforcement contract.",
     ),
   };

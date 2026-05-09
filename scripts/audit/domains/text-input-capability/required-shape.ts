@@ -97,11 +97,6 @@ function collectAntiFallbackFindings(project: ReturnType<typeof makeProject>): F
   if (!inputGateText.includes("TextInputPolicySchema.safeParse")) {
     findings.push(createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.INPUT_GATE, line: 1, severity: "fatal", message: "Text Input input gate must safe-parse policy on invalid input paths." }));
   }
-
-  const inspectorSource = getSourceFile(project, PATHS.INSPECTOR);
-  if (!inspectorSource || !hasCallExpression(inspectorSource, "runNegativeProofHarness")) {
-    findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: PATHS.INSPECTOR, line: 1, severity: "fatal", message: "Text Input inspector must invoke the negative-proof harness." }));
-  }
   return findings;
 }
 

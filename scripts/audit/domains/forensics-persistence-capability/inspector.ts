@@ -5,13 +5,11 @@ import { createPendingDomainInspector } from "../_shared/create-pending-domain-i
 import { forensicsPersistenceInspectionConstants } from "./inspection-constants.js";
 import { runForensicsP0Checks } from "./run-forensics-p0-checks.js";
 import { runForensicsStructuredLoggingChecks } from "./run-forensics-structured-logging-checks.js";
-import { runNegativeProofHarness } from "./negative-proof-harness.js";
 
 const {
   INSPECTOR_PATH,
   LAW_ENFORCEMENT,
   ROOT,
-  SKIP_NEGATIVE_PROOF_ENV,
   STORAGE_ADAPTER_PATH,
   STRUCTURED_LOGGING_LAW_IDS,
 } = forensicsPersistenceInspectionConstants;
@@ -40,37 +38,25 @@ const createStructuredLoggingPhase = (findings: Finding[]): InspectorPhase => {
   );
 };
 
-const createForensicsPhases = (p0Phases: InspectorPhase[], findings: Finding[], negativeProofPhase: InspectorPhase): InspectorPhase[] => {
+const createForensicsPhases = (p0Phases: InspectorPhase[], findings: Finding[]): InspectorPhase[] => {
   return [
     ...p0Phases,
     createAntiEscapePhase(findings),
     createStructuredLoggingPhase(findings),
-    negativeProofPhase,
   ];
-};
-
-const runConfiguredNegativeProof = async (): Promise<{ findings: Finding[]; phase: InspectorPhase }> => {
-  return process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
-    ? {
-        findings: [],
-        phase: createPhase("negative-proof-harness", "PASS", true, "Forensics negative-proof harness was skipped for nested inspector execution."),
-      }
-    : runNegativeProofHarness();
 };
 
 const runForensicsExtraChecks = async (context: import("../../core/schema.js").InspectorContext) => {
   const p0Checks = await runForensicsP0Checks(context);
   const project = p0Checks.project;
-  const negativeProof = await runConfiguredNegativeProof();
   const findings = [
     ...p0Checks.findings,
     ...runForensicsStructuredLoggingChecks(project),
-    ...negativeProof.findings,
   ];
 
   return {
     findings,
-    phases: createForensicsPhases(p0Checks.phases, findings, negativeProof.phase),
+    phases: createForensicsPhases(p0Checks.phases, findings),
   };
 };
 

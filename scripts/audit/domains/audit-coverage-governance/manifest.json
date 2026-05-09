@@ -4,7 +4,7 @@
   "owner": true,
   "entry": "scripts/audit/domains/audit-coverage-governance/inspector.ts",
   "engine": "hybrid",
-  "supportsEvidenceModes": ["law", "blueprint", "fs", "generated-artifact", "negative-proof"],
+  "supportsEvidenceModes": ["law", "blueprint", "fs", "generated-artifact"],
   "allowedLawIds": [],
   "readsLawFiles": [],
   "readsBlueprintFiles": [

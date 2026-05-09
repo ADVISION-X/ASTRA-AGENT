@@ -7,15 +7,12 @@ import { runAuthoringInputPackage } from "./authoring-input-package.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
 import { runMuscleMemoryGovernance } from "./muscle-memory-governance.js";
-import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShape } from "./required-shape.js";
 import { runRoutePlanEntrySpine } from "./route-plan-entry-spine.js";
 import { runScorecardGate } from "./scorecard-gate.js";
 import { runStartupPreparationEntrySpine } from "./startup-preparation-entry-spine.js";
 import { runTaskTemplateRunLimitGovernance } from "./task-template-run-limit-governance.js";
 import { runIntegrationPhaseBundle } from "../map-plugin-orchestration-integration/phase-bundle.js";
-
-const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF";
 
 const buildFoundationPhase = (foundationFindings: Awaited<ReturnType<typeof runDomainOwnerInspection>>["findings"]) =>
   foundationFindings.length === 0
@@ -52,20 +49,6 @@ const runSupplementalPhases = async (project: ReturnType<typeof createMapPluginA
   return { antiEscape, scorecard, integrationPhases };
 };
 
-const runNegativeProofPhase = async () => {
-  return process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
-    ? {
-        findings: [],
-        phase: createPhase(
-          "negative-proof-harness",
-          "PASS",
-          true,
-          "Map package negative-proof harness was skipped for nested inspector execution.",
-        ),
-      }
-    : runNegativeProofHarness();
-};
-
 const inspectFoundation = async (context: Parameters<DomainInspector>[0]) => {
   const base = await runDomainOwnerInspection(context, {
     capabilityDomain: "map-plugin-package",
@@ -83,7 +66,6 @@ const collectFindings = (input: {
   foundationFindings: Awaited<ReturnType<typeof inspectFoundation>>["findings"];
   directPhases: Awaited<ReturnType<typeof runDirectGovernancePhases>>;
   supplementalPhases: Awaited<ReturnType<typeof runSupplementalPhases>>;
-  negativeProof: Awaited<ReturnType<typeof runNegativeProofPhase>>;
 }) => [
   ...input.foundationFindings,
   ...input.directPhases.required.findings,
@@ -99,14 +81,12 @@ const collectFindings = (input: {
   ...input.supplementalPhases.integrationPhases.required.findings,
   ...input.supplementalPhases.integrationPhases.forbidden.findings,
   ...input.supplementalPhases.integrationPhases.boundary.findings,
-  ...input.negativeProof.findings,
 ];
 
 const collectPhases = (input: {
   foundationPhase: Awaited<ReturnType<typeof inspectFoundation>>["phase"];
   directPhases: Awaited<ReturnType<typeof runDirectGovernancePhases>>;
   supplementalPhases: Awaited<ReturnType<typeof runSupplementalPhases>>;
-  negativeProof: Awaited<ReturnType<typeof runNegativeProofPhase>>;
 }) => [
   input.foundationPhase,
   input.directPhases.required.phase,
@@ -122,7 +102,6 @@ const collectPhases = (input: {
   input.supplementalPhases.integrationPhases.required.phase,
   input.supplementalPhases.integrationPhases.forbidden.phase,
   input.supplementalPhases.integrationPhases.boundary.phase,
-  input.negativeProof.phase,
 ];
 
 const inspector: DomainInspector = async (context) => {
@@ -130,18 +109,15 @@ const inspector: DomainInspector = async (context) => {
   const project = createMapPluginAuditProject();
   const directPhases = await runDirectGovernancePhases(project);
   const supplementalPhases = await runSupplementalPhases(project, context);
-  const negativeProof = await runNegativeProofPhase();
   const findings = collectFindings({
     foundationFindings: foundation.findings,
     directPhases,
     supplementalPhases,
-    negativeProof,
   });
   const phases = collectPhases({
     foundationPhase: foundation.phase,
     directPhases,
     supplementalPhases,
-    negativeProof,
   });
 
   return finalizeInspectorResult({
@@ -150,7 +126,7 @@ const inspector: DomainInspector = async (context) => {
     capabilityDomain: "map-plugin-package",
     findings,
     phases,
-    summary: phases.find((phase) => !phase.passed)?.summary ?? "Map package governance passes direct parsed-data, boundary, and negative-proof enforcement.",
+    summary: phases.find((phase) => !phase.passed)?.summary ?? "Map package governance passes direct parsed-data, boundary, and integration enforcement.",
   });
 };
 

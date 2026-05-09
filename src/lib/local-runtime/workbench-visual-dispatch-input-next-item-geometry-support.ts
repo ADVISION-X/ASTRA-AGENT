@@ -22,12 +22,7 @@ export const clampViewportGeometry = (input: {
   const safeInsetY = Math.min(DEFAULT_LOCAL_RUNTIME_CLICK_SAFETY_MARGIN_PX, Math.floor(height / 2));
 
   return {
-    bbox: {
-      x,
-      y,
-      width,
-      height,
-    },
+    bbox: { x, y, width, height },
     clickPoint: {
       x: clamp(input.clickPoint.x, x + safeInsetX, x + width - safeInsetX),
       y: clamp(input.clickPoint.y, y + safeInsetY, y + height - safeInsetY),
@@ -35,26 +30,29 @@ export const clampViewportGeometry = (input: {
   };
 };
 
+const isSourceGeometryOutsideViewport = (input: {
+  bbox: { x: number; y: number; width: number; height: number };
+  clickPoint: { x: number; y: number };
+  viewportWidth: number;
+  viewportHeight: number;
+}) => input.bbox.x < 0
+  || input.bbox.y < 0
+  || input.bbox.x + input.bbox.width > input.viewportWidth
+  || input.bbox.y + input.bbox.height > input.viewportHeight
+  || input.clickPoint.x < 0
+  || input.clickPoint.y < 0
+  || input.clickPoint.x > input.viewportWidth
+  || input.clickPoint.y > input.viewportHeight;
+
 export const shouldProjectSourceGeometryToViewport = (input: {
   bbox: { x: number; y: number; width: number; height: number };
   clickPoint: { x: number; y: number };
   viewportWidth: number;
   viewportHeight: number;
   coordinateSpace: string | null;
-}) => {
-  if (input.coordinateSpace && input.coordinateSpace !== "browserViewport") {
-    return true;
-  }
-
-  return input.bbox.x < 0
-    || input.bbox.y < 0
-    || input.bbox.x + input.bbox.width > input.viewportWidth
-    || input.bbox.y + input.bbox.height > input.viewportHeight
-    || input.clickPoint.x < 0
-    || input.clickPoint.y < 0
-    || input.clickPoint.x > input.viewportWidth
-    || input.clickPoint.y > input.viewportHeight;
-};
+}) => input.coordinateSpace !== null && input.coordinateSpace !== "browserViewport"
+  ? true
+  : isSourceGeometryOutsideViewport(input);
 
 export const projectSourceGeometryToViewport = (input: {
   bbox: { x: number; y: number; width: number; height: number };

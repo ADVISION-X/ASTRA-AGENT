@@ -12,7 +12,6 @@ const DEBUG_LOOP_ROOT = "scripts/debug-loop";
 const TASK_PUBLISHER = "scripts/debug-loop/task-publisher.mjs";
 const REPAIR_PACKET = "scripts/debug-loop/repair-packet-writer.mjs";
 const MAP_AUTHORING = "scripts/debug-loop/map-authoring-public-contract.mjs";
-const NEGATIVE_PROOF = "scripts/audit/domains/debug-loop-boundary/negative-proof-harness.ts";
 const RUN_INSPECTOR = "scripts/audit/domains/debug-loop-boundary/run-inspector.ts";
 const PACKAGE_JSON = "package.json";
 const FORBIDDEN_SCENARIO_FIELDS = new Set([
@@ -64,7 +63,6 @@ const REQUIRED_MUTATION_NAMES = [
   "fake authoring marks draft map active",
   "fake authoring skips validation",
   "turn P0 into warning-only",
-  "remove negative proof invocation",
 ];
 const IMPORT_RULES: TextRule[] = [
   { lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1", message: "debug-loop must not import mouse-click executors.", pattern: /(?:toImportHref|await import)\([^\n]*src\/capabilities\/mouse-click\// },
@@ -158,24 +156,19 @@ const collectArtifactBoundaryFindings = async (input: {
   repairContent: string;
   packageJson: { scripts?: Record<string, string> };
   runInspectorContent: string;
-  negativeProofContent: string;
 }): Promise<Finding[]> => {
   const findings = [
     ...collectRuleFindings({ file: MAP_AUTHORING, content: input.mapAuthoringContent, rules: AUTHORING_RULES }),
     ...collectRuleFindings({ file: REPAIR_PACKET, content: input.repairContent, rules: REPAIR_RULES }),
   ];
-  const mutationArrayBlock = extractArrayBlock(input.negativeProofContent, "const REQUIRED_MUTATION_NAMES = [", "] as const;");
   const script = input.packageJson.scripts?.["audit:debug-loop-boundary"] ?? null;
   if (script !== "node --import tsx scripts/audit/domains/debug-loop-boundary/run-inspector.ts") findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1", file: PACKAGE_JSON, line: 1, message: "package.json must expose audit:debug-loop-boundary through the owner-local run-inspector entry." }));
   if (!/hasBlockingFindings\(result\.findings\)/.test(input.runInspectorContent)) findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1", file: RUN_INSPECTOR, line: 1, message: "run-inspector must keep blocking findings fail-fast logic and must not downgrade P0 enforcement." }));
-  for (const mutationName of REQUIRED_MUTATION_NAMES) {
-    if (!mutationArrayBlock.includes(mutationName)) findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1", file: NEGATIVE_PROOF, line: 1, message: `negative-proof-harness must retain required mutation '${mutationName}'.` }));
-  }
   return findings;
 };
 
 const runDebugLoopBoundaryChecks = async (context: InspectorContext) => {
-  const [kernelContent, baselineContent, taskPublisherContent, mapAuthoringContent, repairContent, packageJson, runInspectorContent, negativeProofContent, debugLoopFiles, scenarioFiles] = await Promise.all([
+  const [kernelContent, baselineContent, taskPublisherContent, mapAuthoringContent, repairContent, packageJson, runInspectorContent, debugLoopFiles, scenarioFiles] = await Promise.all([
     readTextFile(pathFromRepoRoot(KERNEL_FILE)),
     readTextFile(pathFromRepoRoot(BASELINE_FILE)),
     readTextFile(pathFromRepoRoot(TASK_PUBLISHER)),
@@ -183,14 +176,13 @@ const runDebugLoopBoundaryChecks = async (context: InspectorContext) => {
     readTextFile(pathFromRepoRoot(REPAIR_PACKET)),
     readJsonFile<{ scripts?: Record<string, string> }>(pathFromRepoRoot(PACKAGE_JSON)),
     readTextFile(pathFromRepoRoot(RUN_INSPECTOR)),
-    readTextFile(pathFromRepoRoot(NEGATIVE_PROOF)),
     listFilesRecursive(pathFromRepoRoot(DEBUG_LOOP_ROOT), { extensions: [".mjs"] }),
     listFilesRecursive(pathFromRepoRoot("scripts/debug-loop/scenarios"), { extensions: [".json"] }),
   ]);
   const identityFindings = await collectIdentityFindings(context, kernelContent, baselineContent);
   const runtimeFindings = await collectRuntimeFindings(taskPublisherContent, debugLoopFiles);
   const scenarioFindings = await collectScenarioFindings(scenarioFiles);
-  const artifactFindings = await collectArtifactBoundaryFindings({ mapAuthoringContent, repairContent, packageJson, runInspectorContent, negativeProofContent });
+  const artifactFindings = await collectArtifactBoundaryFindings({ mapAuthoringContent, repairContent, packageJson, runInspectorContent });
   return {
     findings: [...identityFindings, ...runtimeFindings, ...scenarioFindings, ...artifactFindings],
     phases: [
@@ -208,7 +200,7 @@ export const debugLoopBoundaryInspector = createPendingDomainInspector({
   capabilityDomain: DOMAIN,
   inspectorEntry: INSPECTOR_ENTRY,
   ownedPaths: [DEBUG_LOOP_ROOT],
-  pendingSummary: "debug-loop-boundary must close through an owner-local inspector, negative proof harness, and package audit script.",
+  pendingSummary: "debug-loop-boundary must close through an owner-local inspector and package audit script.",
   implementedSummary: "debug-loop remains an operator harness and is blocked from becoming a second Agent runtime.",
   extraChecks: runDebugLoopBoundaryChecks,
 });

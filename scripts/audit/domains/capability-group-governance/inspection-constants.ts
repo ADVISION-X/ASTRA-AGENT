@@ -9,8 +9,6 @@ const LAW_ID_010 = "GRASSEYE-CAPABILITY-GROUP-010-V1";
 const KERNEL_FILE = ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md";
 const INDEX_FILE = ".github/instructions/cursor-rules/grasseye-index.instructions.md";
 const INSPECTOR_ENTRY = "scripts/audit/domains/capability-group-governance/inspector.ts";
-const NEGATIVE_PROOF_HARNESS_FILE = "scripts/audit/domains/capability-group-governance/negative-proof-harness.ts";
-const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_CAPABILITY_GROUP_GOVERNANCE_NEGATIVE_PROOF";
 
 const RETIRED_ROOTS = ["src/features/local-data", "src/features/platform-action"] as const;
 const GOVERNED_SURFACES = ["src/capabilities/", "src/lib/local-runtime/"] as const;
@@ -163,8 +161,6 @@ export const capabilityGroupGovernanceConstants = {
   KERNEL_FILE,
   INDEX_FILE,
   INSPECTOR_ENTRY,
-  NEGATIVE_PROOF_HARNESS_FILE,
-  SKIP_NEGATIVE_PROOF_ENV,
   RETIRED_ROOTS,
   GOVERNED_SURFACES,
   CONTRACT_SUFFIX,

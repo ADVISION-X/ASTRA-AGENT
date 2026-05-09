@@ -4,7 +4,6 @@ import { runCommanderChildChecks } from "./run-commander-child-checks.js";
 import { runCommanderRuntimeChecks } from "./run-commander-runtime-checks.js";
 import { runCommanderStructureChecks } from "./run-commander-structure-checks.js";
 import { runStartupExitClassificationChecks } from "./startup-exit-classification-checks.js";
-import { runStartupExitNegativeProof } from "./startup-exit-negative-proof.js";
 import { runStartupReadinessGateChecks } from "./run-startup-readiness-gate-checks.js";
 import { runTemplateRunLimitGovernanceChecks } from "./run-template-run-limit-governance-checks.js";
 
@@ -15,7 +14,6 @@ export {
   runCommanderRuntimeChecks,
   runCommanderStructureChecks,
   runStartupExitClassificationChecks,
-  runStartupExitNegativeProof,
   runStartupReadinessGateChecks,
   runTemplateRunLimitGovernanceChecks,
 };

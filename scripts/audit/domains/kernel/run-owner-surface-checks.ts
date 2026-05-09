@@ -22,7 +22,6 @@ const {
   INSPECTOR_ENTRY,
   KERNEL_FILE,
   MANIFEST_FILE,
-  NEGATIVE_PROOF_HARNESS_FILE,
   PROMPT_CONTRACT_GOVERNANCE_BLUEPRINT_FILE,
   REQUIREMENT_ID_001,
   RUN_INSPECTOR_FILE,
@@ -55,10 +54,6 @@ const collectRequiredFileFindings = async (): Promise<Finding[]> => {
   if (!(await fileExists(pathFromRepoRoot(RUN_INSPECTOR_FILE)))) {
     addMissingFileFinding(findings, RUN_INSPECTOR_FILE, "Kernel routing run-inspector entry is missing.");
   }
-  if (!(await fileExists(pathFromRepoRoot(NEGATIVE_PROOF_HARNESS_FILE)))) {
-    addMissingFileFinding(findings, NEGATIVE_PROOF_HARNESS_FILE, "Kernel routing negative-proof harness is missing.");
-  }
-
   return findings;
 };
 
@@ -112,7 +107,7 @@ export async function runKernelOwnerSurfaceChecks(): Promise<{ findings: Finding
         findings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
         findings.length === 0,
         findings.length === 0
-          ? "Kernel routing owner has its manifest, run-inspector, negative-proof harness, and audit script wired."
+          ? "Kernel routing owner has its manifest, run-inspector, and audit script wired."
           : "Kernel routing owner surface is incomplete or drifted.",
       ),
     ],

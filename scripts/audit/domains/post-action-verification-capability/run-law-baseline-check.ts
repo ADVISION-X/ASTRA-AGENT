@@ -19,7 +19,7 @@ export async function runLawBaselineCheck(): Promise<{ findings: Finding[]; phas
     findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: LAW_FILE, line: 1, severity: "fatal", message: "Post Action Verification active laws must remain P0." }));
   }
   if (content.includes("evidenceMode: law\n") || content.includes("evidenceMode: law\r\n")) {
-    findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: LAW_FILE, line: 1, severity: "fatal", message: "Post Action Verification active laws must keep law+inspector+negative-proof evidence mode." }));
+    findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: LAW_FILE, line: 1, severity: "fatal", message: "Post Action Verification active laws must keep law+inspector evidence mode." }));
   }
   if (content.includes("No action can be considered verified without a Post-action Verification result or explicit governed review.")) {
     findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: LAW_FILE, line: 1, severity: "fatal", message: "PAV law must not allow explicit governed review as a substitute for verifying real actions." }));
@@ -35,7 +35,7 @@ export async function runLawBaselineCheck(): Promise<{ findings: Finding[]; phas
       findings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
       findings.length === 0,
       findings.length === 0
-        ? "Post Action Verification active laws remain machine-blocking, P0, and negative-proof backed."
+        ? "Post Action Verification active laws remain machine-blocking, P0, and inspector backed."
         : "Post Action Verification law baseline drifted away from the active enforcement contract.",
     ),
   };

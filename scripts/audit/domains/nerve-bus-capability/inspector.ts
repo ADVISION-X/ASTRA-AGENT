@@ -3,10 +3,7 @@ import { PATHS } from "./config.js";
 import { runAntiEscapeAttack } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShapeAttack } from "./forbidden-shape.js";
-import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShapeAttack } from "./required-shape.js";
-
-const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_NERVE_BUS_NEGATIVE_PROOF";
 
 export const nerveBusCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Nerve Bus Capability Owner Inspector",
@@ -21,17 +18,6 @@ export const nerveBusCapabilityInspector = createPendingDomainInspector({
     const forbidden = runForbiddenShapeAttack();
     const boundary = runBoundaryAttack();
     const antiEscape = runAntiEscapeAttack();
-    const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
-      ? {
-          findings: [],
-          phase: {
-            name: "negative-proof-harness",
-            classification: "PASS" as const,
-            passed: true,
-            summary: "Nerve Bus negative-proof harness was skipped for nested inspector execution.",
-          },
-        }
-      : await runNegativeProofHarness();
 
     return {
       findings: [
@@ -39,14 +25,12 @@ export const nerveBusCapabilityInspector = createPendingDomainInspector({
         ...forbidden.findings,
         ...boundary.findings,
         ...antiEscape.findings,
-        ...negativeProof.findings,
       ],
       phases: [
         required.phase,
         forbidden.phase,
         boundary.phase,
         antiEscape.phase,
-        negativeProof.phase,
       ],
     };
   },

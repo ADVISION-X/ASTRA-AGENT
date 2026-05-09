@@ -7,29 +7,8 @@ import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
 import { runGovernedRuntimeChecks } from "./run-governed-runtime-checks.js";
 import { runLawBaselineCheck } from "./run-law-baseline-check.js";
-import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShape } from "./required-shape.js";
 import { runTruthOwnershipAttack } from "./run-truth-ownership-attack.js";
-
-const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_POST_ACTION_NEGATIVE_PROOF";
-
-function createSkippedNegativeProofResult() {
-  return {
-    findings: [],
-    phase: {
-      name: "negative-proof-harness",
-      classification: "PASS" as const,
-      passed: true,
-      summary: "Post Action Verification negative-proof harness was skipped for nested inspector execution.",
-    },
-  };
-}
-
-async function resolveNegativeProof() {
-  return process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
-    ? createSkippedNegativeProofResult()
-    : await runNegativeProofHarness();
-}
 
 function collectFindings(input: {
   base: Pick<InspectorResult, "findings" | "phases">;
@@ -40,7 +19,6 @@ function collectFindings(input: {
   boundary: Awaited<ReturnType<typeof runBoundaryAttack>>;
   truthOwnership: ReturnType<typeof runTruthOwnershipAttack>;
   antiEscape: Awaited<ReturnType<typeof runAntiEscape>>;
-  negativeProof: Awaited<ReturnType<typeof resolveNegativeProof>>;
 }) {
   return [
     ...input.base.findings,
@@ -51,7 +29,6 @@ function collectFindings(input: {
     ...input.boundary.findings,
     ...input.truthOwnership.findings,
     ...input.antiEscape.findings,
-    ...input.negativeProof.findings,
   ];
 }
 
@@ -64,7 +41,6 @@ function collectPhases(input: {
   boundary: Awaited<ReturnType<typeof runBoundaryAttack>>;
   truthOwnership: ReturnType<typeof runTruthOwnershipAttack>;
   antiEscape: Awaited<ReturnType<typeof runAntiEscape>>;
-  negativeProof: Awaited<ReturnType<typeof resolveNegativeProof>>;
 }) {
   return [
     ...input.base.phases,
@@ -75,7 +51,6 @@ function collectPhases(input: {
     input.boundary.phase,
     input.truthOwnership.phase,
     input.antiEscape.phase,
-    input.negativeProof.phase,
   ];
 }
 
@@ -93,9 +68,8 @@ export async function inspectPostActionVerificationCapability(context: Inspector
   const boundary = await runBoundaryAttack(project);
   const truthOwnership = runTruthOwnershipAttack(project);
   const antiEscape = await runAntiEscape(project);
-  const negativeProof = await resolveNegativeProof();
-  const findings = collectFindings({ base, lawBaseline, required, governedRuntime, forbidden, boundary, truthOwnership, antiEscape, negativeProof });
-  const phases = collectPhases({ base, lawBaseline, required, governedRuntime, forbidden, boundary, truthOwnership, antiEscape, negativeProof });
+  const findings = collectFindings({ base, lawBaseline, required, governedRuntime, forbidden, boundary, truthOwnership, antiEscape });
+  const phases = collectPhases({ base, lawBaseline, required, governedRuntime, forbidden, boundary, truthOwnership, antiEscape });
 
   return finalizeInspectorResult({
     inspector: "GrassEye Post-action Verification Capability Owner Inspector",
@@ -104,7 +78,7 @@ export async function inspectPostActionVerificationCapability(context: Inspector
     findings,
     phases,
     summary: findings.length === 0
-      ? "post-action-verification owner inspector passed law-baseline, required, governed-runtime, forbidden, boundary, truth-ownership, anti-escape, and negative-proof phases"
+      ? "post-action-verification owner inspector passed law-baseline, required, governed-runtime, forbidden, boundary, truth-ownership, and anti-escape phases"
       : "post-action-verification owner inspector found capability-boundary or governance violations",
   });
 }

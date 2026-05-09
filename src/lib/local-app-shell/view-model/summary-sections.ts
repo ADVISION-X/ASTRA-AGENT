@@ -1,6 +1,5 @@
-import type { CommanderMissionDashboardView } from "../../../capabilities/commander-console/shared/commander-view-types.js";
-import type { AppRunLimitSettings } from "../../local-runtime/app-run-limit-settings-types.js";
-import type { Locale } from "../../localization/dictionaries.js";
+import type { CommanderMissionDashboardView } from "../commander-console-dashboard.types.js";
+import type { AppRunLimitSettings, Locale } from "../types.js";
 
 import { localizeCommanderText } from "../locale.js";
 import type { CommanderConsoleTaskTemplate, CommanderConsoleViewModel } from "../types.js";

@@ -3,6 +3,13 @@ import type { Finding, InspectorContext, InspectorPhase } from "../../../core/sc
 
 const collectManifestOwnershipFindings = (context: InspectorContext): Finding[] => {
   const findings: Finding[] = [];
+  const lawIdsByDomain = new Map<string, Set<string>>();
+
+  for (const law of context.lawRegistry.laws) {
+    const lawIds = lawIdsByDomain.get(law.capabilityDomain) ?? new Set<string>();
+    lawIds.add(law.lawId);
+    lawIdsByDomain.set(law.capabilityDomain, lawIds);
+  }
 
   for (const law of context.lawRegistry.laws) {
     const manifest = context.manifestsByDomain.get(law.capabilityDomain);
@@ -41,6 +48,49 @@ const collectManifestOwnershipFindings = (context: InspectorContext): Finding[] 
           message: "Manifest readsLawFiles does not include the owned law file.",
         }),
       );
+    }
+  }
+
+  for (const owner of context.auditPlan.owners) {
+    const manifest = context.manifestsByDomain.get(owner.capabilityDomain);
+    if (!manifest) {
+      findings.push(
+        createFinding({
+          lawId: owner.lawIds[0] ?? "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          file: owner.entry,
+          line: 1,
+          severity: "fatal",
+          message: "Audit plan owner has no matching manifest owner.",
+        }),
+      );
+      continue;
+    }
+
+    if (manifest.inspectorId !== owner.inspectorId || manifest.entry !== owner.entry) {
+      findings.push(
+        createFinding({
+          lawId: owner.lawIds[0] ?? "GRASSEYE-AUDIT-SYSTEM-001-V1",
+          file: manifest.manifestPath,
+          line: 1,
+          severity: "error",
+          message: "Audit plan owner does not map to the manifest owner entry.",
+        }),
+      );
+    }
+
+    const domainLawIds = lawIdsByDomain.get(owner.capabilityDomain) ?? new Set<string>();
+    for (const lawId of owner.lawIds) {
+      if (!domainLawIds.has(lawId)) {
+        findings.push(
+          createFinding({
+            lawId,
+            file: owner.entry,
+            line: 1,
+            severity: "error",
+            message: "Audit plan owner lawIds must map to real active laws for the same capabilityDomain.",
+          }),
+        );
+      }
     }
   }
 

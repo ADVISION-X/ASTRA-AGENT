@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T14:16:27.574Z",
+  "generatedAt": "2026-05-09T14:51:13.153Z",
   "owners": [
     {
       "inspectorId": "ai-capability-owner",
@@ -57,8 +57,7 @@
         "law",
         "blueprint",
         "fs",
-        "generated-artifact",
-        "negative-proof"
+        "generated-artifact"
       ],
       "lawIds": [],
       "readsLawFiles": [],

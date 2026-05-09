@@ -11,7 +11,6 @@ export const capabilityGroupGovernanceInspector = createPendingDomainInspector({
     ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md",
     "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md",
     "docs/法案辅助文件/GrassEye 文件路径与阶段目录施工图.md",
-    "scripts/audit/domains/capability-group-governance/negative-proof-harness.ts",
   ],
   pendingSummary: "capability-group-governance owner surface is missing law or blueprint truth",
   implementedSummary: "capability-group-governance owner surface enforces constitutional boundaries and topology checks",

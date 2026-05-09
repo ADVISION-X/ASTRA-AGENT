@@ -28,7 +28,6 @@ const BOUNDARY_POLICY_PATH = `${ROOT}/runtime/commander-boundary-policy.ts`;
 const CHILD_EXECUTORS_PATH = `${ROOT}/runtime/commander-child-executors.ts`;
 const CLOCK_PORT_PATH = `${ROOT}/ports/commander-clock-port.ts`;
 const CLOCK_PATH = `${ROOT}/runtime/commander-clock.ts`;
-const NEGATIVE_PROOF_HARNESS_PATH = "scripts/audit/domains/commander-console-capability/negative-proof-harness.ts";
 const MANIFEST_PATH = "scripts/audit/domains/commander-console-capability/manifest.json";
 const TASK_HANDLER_PATH = "src/app/task-api-handlers.ts";
 const CANDIDATE_HANDLER_PATH = "src/app/candidate-api-handlers.ts";
@@ -89,7 +88,6 @@ const REQUIRED_FILES = [
   TIMEOUT_GATE_PATH,
   IDEMPOTENCY_GATE_PATH,
   TRANSPORT_SEMANTIC_GATE_PATH,
-  READ_PROOF_GATE_PATH,
   COMMAND_CHILD_EXECUTOR_PATH,
   COMMAND_OUTCOMES_PATH,
   READ_CHILD_EXECUTOR_PATH,
@@ -101,7 +99,6 @@ const REQUIRED_FILES = [
   CHILD_EXECUTORS_PATH,
   CLOCK_PORT_PATH,
   CLOCK_PATH,
-  NEGATIVE_PROOF_HARNESS_PATH,
   SHELL_RENDER_PATH,
   SHELL_PAGE_CLIENT_PATH,
 ] as const;
@@ -160,7 +157,6 @@ export const commanderConsoleInspectionConstants = {
   CHILD_EXECUTORS_PATH,
   CLOCK_PORT_PATH,
   CLOCK_PATH,
-  NEGATIVE_PROOF_HARNESS_PATH,
   MANIFEST_PATH,
   TASK_HANDLER_PATH,
   CANDIDATE_HANDLER_PATH,

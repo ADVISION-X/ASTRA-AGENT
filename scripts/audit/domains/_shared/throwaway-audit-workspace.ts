@@ -25,7 +25,7 @@ export async function createThrowawayAuditWorkspace(input: {
   workspaceName: string;
   relativePaths: readonly string[];
 }): Promise<{ workspaceRoot: string; cleanup: () => Promise<void> }> {
-  const parentDir = pathFromRepoRoot("tmp/audit-negative-proof-workspaces");
+  const parentDir = pathFromRepoRoot("tmp/audit-mutation-workspaces");
   await mkdir(parentDir, { recursive: true });
 
   const workspaceRoot = await mkdtemp(path.join(parentDir, `${input.workspaceName}-`));

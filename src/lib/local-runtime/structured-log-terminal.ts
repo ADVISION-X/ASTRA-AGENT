@@ -140,6 +140,30 @@ function resolveTerminalPrefix(logEntry: StructuredLogEntry): "grasseye:event" |
   return logEntry.entry.status === "review_required" ? "grasseye:review" : "grasseye:event";
 }
 
+function shouldSkipMirroredRuntimeEvent(
+  entry: StructuredRuntimeEvent,
+  mirroredRuntimeDedupeKeys: Set<string>,
+): boolean {
+  const dedupeKey = resolveTerminalDedupeKey(entry);
+  if (!dedupeKey) {
+    return false;
+  }
+
+  if (mirroredRuntimeDedupeKeys.has(dedupeKey)) {
+    return true;
+  }
+
+  mirroredRuntimeDedupeKeys.add(dedupeKey);
+  if (mirroredRuntimeDedupeKeys.size > MAX_TERMINAL_DEDUPE_KEYS) {
+    const firstKey = mirroredRuntimeDedupeKeys.values().next().value;
+    if (firstKey) {
+      mirroredRuntimeDedupeKeys.delete(firstKey);
+    }
+  }
+
+  return false;
+}
+
 function shouldSkipStructuredTerminalLogEntry(
   logEntry: StructuredLogEntry,
   level: StructuredLogLevel,
@@ -149,23 +173,9 @@ function shouldSkipStructuredTerminalLogEntry(
     return true;
   }
 
-  if (logEntry.kind === "event" && logEntry.entry.eventType.startsWith("AI_")) {
-    const dedupeKey = resolveTerminalDedupeKey(logEntry.entry);
-    if (dedupeKey && mirroredRuntimeDedupeKeys.has(dedupeKey)) {
-      return true;
-    }
-    if (dedupeKey) {
-      mirroredRuntimeDedupeKeys.add(dedupeKey);
-      if (mirroredRuntimeDedupeKeys.size > MAX_TERMINAL_DEDUPE_KEYS) {
-        const firstKey = mirroredRuntimeDedupeKeys.values().next().value;
-        if (firstKey) {
-          mirroredRuntimeDedupeKeys.delete(firstKey);
-        }
-      }
-    }
-  }
-
-  return false;
+  return logEntry.kind === "event" && logEntry.entry.eventType.startsWith("AI_")
+    ? shouldSkipMirroredRuntimeEvent(logEntry.entry, mirroredRuntimeDedupeKeys)
+    : false;
 }
 
 function buildStructuredTerminalPayload(logEntry: StructuredLogEntry, level: StructuredLogLevel) {

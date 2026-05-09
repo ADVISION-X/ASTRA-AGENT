@@ -107,7 +107,7 @@ export const auditCoverageGovernanceInspector: DomainInspector = async (context)
     capabilityDomain: CAPABILITY_DOMAIN,
     findings: [...base.findings, ...findings],
     phases: [...base.phases, ...buildCoveragePhases(summary)],
-    summary: `Audit coverage governance ${summary.finalVerdict}: ${summary.staticCovered}/${summary.totalRequirements} static covered, ${summary.negativeProofCovered}/${summary.totalRequirements} negative-proof mapped.`,
+    summary: `Audit coverage governance ${summary.finalVerdict}: ${summary.staticCovered}/${summary.totalRequirements} static covered, coverage mapped.`,
   });
 };
 

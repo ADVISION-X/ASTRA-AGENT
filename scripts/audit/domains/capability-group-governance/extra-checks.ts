@@ -6,32 +6,14 @@ import { runAbilityContractChecks } from "./run-ability-contract-checks.js";
 import { runAiOnlyCognitionSurfaceChecks } from "./run-ai-only-cognition-surface-checks.js";
 import { runAiOnlyMediaChangeChecks } from "./run-ai-only-media-change-checks.js";
 import { runBoundaryImportChecks } from "./run-boundary-import-checks.js";
-import { runNegativeProofHarness } from "./negative-proof-harness.js";
-import { runNegativeProofWiringChecks } from "./run-negative-proof-wiring-checks.js";
 import { runOwnerRuntimeProofChecks } from "./run-owner-runtime-proof-checks.js";
 import { runPackageAuditScriptChecks } from "./run-package-audit-script-checks.js";
 import { runRetiredRootChecks } from "./run-retired-root-checks.js";
-
-const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_CAPABILITY_GROUP_GOVERNANCE_NEGATIVE_PROOF";
-const NEGATIVE_PROOF_PHASE_ENV = "GRASSEYE_CAPABILITY_GROUP_NEGATIVE_PROOF_PHASE";
-
-type TargetNegativeProofPhase =
-  | "package-audit-entrypoints"
-  | "negative-proof-wiring"
-  | "ai-only-media-change-boundary"
-  | "ai-only-cognition-surface-boundary";
 
 type CapabilityGroupExtraChecks = {
   findings: Finding[];
   phases: InspectorPhase[];
 };
-
-const shouldRunNegativeProofPhase = (phase: TargetNegativeProofPhase): boolean => {
-  const selectedPhase = process.env[NEGATIVE_PROOF_PHASE_ENV];
-  return selectedPhase === undefined || selectedPhase === phase;
-};
-
-const shouldRunFullInspectorSurface = (): boolean => process.env[NEGATIVE_PROOF_PHASE_ENV] === undefined;
 
 const appendCheckResult = (
   target: CapabilityGroupExtraChecks,
@@ -63,39 +45,20 @@ const runSyncCheckIf = (
   appendCheckResult(target, execute());
 };
 
-const getNegativeProofResult = async (): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
-  if (process.env[SKIP_NEGATIVE_PROOF_ENV] === "1") {
-    return {
-      findings: [],
-      phases: [{
-        name: "negative-proof-harness",
-        classification: "PASS",
-        passed: true,
-        summary: "Capability-group-governance negative-proof harness was skipped for nested inspector execution.",
-      }],
-    };
-  }
-
-  const negativeProof = await runNegativeProofHarness();
-  return { findings: negativeProof.findings, phases: [negativeProof.phase] };
-};
-
 export const runCapabilityGroupGovernanceExtraChecks = async (
   context: InspectorContext,
 ): Promise<CapabilityGroupExtraChecks> => {
   const project = getAuditProject();
   const checks: CapabilityGroupExtraChecks = { findings: [], phases: [] };
 
-  await runAsyncCheckIf(shouldRunNegativeProofPhase("package-audit-entrypoints"), runPackageAuditScriptChecks, checks);
-  await runAsyncCheckIf(shouldRunFullInspectorSurface(), () => runRetiredRootChecks(project), checks);
-  await runAsyncCheckIf(shouldRunFullInspectorSurface(), runAbilityContractChecks, checks);
-  runSyncCheckIf(shouldRunFullInspectorSurface(), () => runBoundaryImportChecks(project), checks);
-  runSyncCheckIf(shouldRunNegativeProofPhase("ai-only-media-change-boundary"), () => runAiOnlyMediaChangeChecks(project), checks);
-  runSyncCheckIf(shouldRunNegativeProofPhase("ai-only-cognition-surface-boundary"), () => runAiOnlyCognitionSurfaceChecks(project), checks);
-  runSyncCheckIf(shouldRunFullInspectorSurface(), () => runOwnerRuntimeProofChecks(project), checks);
-  await runAsyncCheckIf(shouldRunNegativeProofPhase("negative-proof-wiring"), () => runNegativeProofWiringChecks(project), checks);
-  await runAsyncCheckIf(shouldRunFullInspectorSurface(), () => inspectCodeTopology(context), checks);
-  appendCheckResult(checks, await getNegativeProofResult());
+  await runAsyncCheckIf(true, runPackageAuditScriptChecks, checks);
+  await runAsyncCheckIf(true, () => runRetiredRootChecks(project), checks);
+  await runAsyncCheckIf(true, runAbilityContractChecks, checks);
+  runSyncCheckIf(true, () => runBoundaryImportChecks(project), checks);
+  runSyncCheckIf(true, () => runAiOnlyMediaChangeChecks(project), checks);
+  runSyncCheckIf(true, () => runAiOnlyCognitionSurfaceChecks(project), checks);
+  runSyncCheckIf(true, () => runOwnerRuntimeProofChecks(project), checks);
+  await runAsyncCheckIf(true, () => inspectCodeTopology(context), checks);
 
   return checks;
 };

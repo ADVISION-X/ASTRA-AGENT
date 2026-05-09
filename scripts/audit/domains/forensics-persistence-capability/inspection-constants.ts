@@ -55,7 +55,6 @@ export const forensicsPersistenceInspectionConstants = {
   TERMINAL_STRUCTURED_LOG_PATH: "scripts/startup/lib/terminal-structured-log.mjs",
   STRUCTURED_LOG_PAYLOAD_PATH: "src/lib/local-runtime/structured-log-payload.ts",
   INSPECTOR_PATH: "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
-  SKIP_NEGATIVE_PROOF_ENV: "GRASSEYE_SKIP_FORENSICS_NEGATIVE_PROOF",
   LEGACY_LOCAL_DATA_ROOT: "src/features/local-data",
   LEGACY_STORAGE_PORT_PATH: `${ROOT}/storage-ports.ts`,
   REQUIRED_CHILDREN: [

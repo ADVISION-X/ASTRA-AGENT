@@ -15,34 +15,23 @@ export const requireVisualDispatchMissionRunBinding = (input: {
   ai: MissionRunBinding;
   pageState: { missionId: string; runId: string };
 }) => {
-  if (
-    !input.screenshot.missionId
-    || !input.screenshot.runId
-    || !input.ai.missionId
-    || !input.ai.runId
-    || !input.pageState.missionId
-    || !input.pageState.runId
-  ) {
+  const bindings = [
+    { sourceLabel: "screenshot", missionId: input.screenshot.missionId, runId: input.screenshot.runId },
+    { sourceLabel: "AI", missionId: input.ai.missionId, runId: input.ai.runId },
+    { sourceLabel: "page-state", missionId: input.pageState.missionId, runId: input.pageState.runId },
+  ] as const;
+
+  if (bindings.some((binding) => !binding.missionId || !binding.runId)) {
     failBinding(input.dispatchLabel, "requires governed screenshot, AI, and page-state mission/run identity.");
   }
 
-  if (input.screenshot.missionId !== input.requestMissionId) {
-    failBinding(input.dispatchLabel, "missionId mismatch between request and screenshot proof.");
-  }
-  if (input.screenshot.runId !== input.requestRunId) {
-    failBinding(input.dispatchLabel, "runId mismatch between request and screenshot proof.");
-  }
-  if (input.ai.missionId !== input.requestMissionId) {
-    failBinding(input.dispatchLabel, "missionId mismatch between request and AI proof.");
-  }
-  if (input.ai.runId !== input.requestRunId) {
-    failBinding(input.dispatchLabel, "runId mismatch between request and AI proof.");
-  }
-  if (input.pageState.missionId !== input.requestMissionId) {
-    failBinding(input.dispatchLabel, "missionId mismatch between request and page-state proof.");
-  }
-  if (input.pageState.runId !== input.requestRunId) {
-    failBinding(input.dispatchLabel, "runId mismatch between request and page-state proof.");
+  for (const binding of bindings) {
+    if (binding.missionId !== input.requestMissionId) {
+      failBinding(input.dispatchLabel, `missionId mismatch between request and ${binding.sourceLabel} proof.`);
+    }
+    if (binding.runId !== input.requestRunId) {
+      failBinding(input.dispatchLabel, `runId mismatch between request and ${binding.sourceLabel} proof.`);
+    }
   }
 
   return {

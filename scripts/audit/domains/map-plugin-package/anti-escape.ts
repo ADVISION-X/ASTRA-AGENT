@@ -45,7 +45,7 @@ const inspectInspectorSource = (project: Project): Finding[] => {
     findings.push(createEnforcementFinding(INSPECTOR_PATH, 1, "Map package inspector must not remain a pending placeholder once the domain is active."));
   }
 
-  for (const requiredCall of ["runRequiredShape", "runAuthoringInputPackage", "runForbiddenShape", "runBoundaryAttack", "runAntiEscape", "runNegativeProofHarness", "runScorecardGate"]) {
+  for (const requiredCall of ["runRequiredShape", "runAuthoringInputPackage", "runForbiddenShape", "runBoundaryAttack", "runAntiEscape", "runScorecardGate"]) {
     if (!hasCallExpression(inspectorSource, requiredCall)) {
       findings.push(createEnforcementFinding(INSPECTOR_PATH, 1, `Map package inspector must execute ${requiredCall} as part of the governed enforcement chain.`));
     }

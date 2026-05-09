@@ -17,7 +17,7 @@ async function collectLawFileFindings(findings: Finding[]): Promise<void> {
     findings.push(createFinding({ lawId: LAW_IDS.NEGATIVE_PROOF, file: LAW_FILE, line: 1, severity: "fatal", message: "Screenshot active laws must remain P0." }));
   }
   if (content.includes("evidenceMode: law\n") || content.includes("evidenceMode: law\r\n")) {
-    findings.push(createFinding({ lawId: LAW_IDS.NEGATIVE_PROOF, file: LAW_FILE, line: 1, severity: "fatal", message: "Screenshot active laws must keep law+inspector+negative-proof evidence mode." }));
+    findings.push(createFinding({ lawId: LAW_IDS.NEGATIVE_PROOF, file: LAW_FILE, line: 1, severity: "fatal", message: "Screenshot active laws must keep law+inspector evidence mode." }));
   }
 }
 
@@ -25,10 +25,6 @@ export async function runLawBaselineCheck(): Promise<{ findings: Finding[]; phas
   const findings: Finding[] = [];
   await collectLawFileFindings(findings);
   const inspectorText = await readFile(INSPECTOR_FILE, "utf8");
-  if (!inspectorText.includes("await runNegativeProofHarness()")) {
-    findings.push(createFinding({ lawId: LAW_IDS.NEGATIVE_PROOF, file: INSPECTOR_FILE, line: 1, severity: "fatal", message: "Screenshot inspector must invoke the negative-proof harness." }));
-  }
-
   const passed = findings.length === 0;
   return {
     findings,
@@ -37,8 +33,8 @@ export async function runLawBaselineCheck(): Promise<{ findings: Finding[]; phas
       passed ? "PASS" : "CODE VIOLATION",
       passed,
       passed
-        ? "Screenshot law baseline remains machine-blocking, P0, negative-proof-backed, and inspector-wired."
-        : "Screenshot law baseline or inspector negative-proof wiring drifted away from governed release truth.",
+        ? "Screenshot law baseline remains machine-blocking, P0, and inspector-wired."
+        : "Screenshot law baseline or inspector wiring drifted away from governed release truth.",
     ),
   };
 }

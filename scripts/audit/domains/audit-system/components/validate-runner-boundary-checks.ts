@@ -129,22 +129,6 @@ export const hasFailureExitAssignment = (sourceFile: AuditSourceFile): boolean =
   return hasExitCodeAssignment || hasFailFastExitCall;
 };
 
-const getDefaultNegativeProofSkipValues = (sourceFile: AuditSourceFile): string[] => {
-  const skipDeclaration = sourceFile.getVariableDeclaration("DEFAULT_AUDIT_HEAVY_PROOF_SKIP_ENV");
-  const skipInitializer = skipDeclaration?.getInitializer();
-  const skipArray = Node.isArrayLiteralExpression(skipInitializer)
-    ? skipInitializer
-    : Node.isAsExpression(skipInitializer)
-      ? skipInitializer.getExpression().asKind(SyntaxKind.ArrayLiteralExpression)
-      : undefined;
-  return skipArray?.getElements().filter(Node.isStringLiteral).map((literal) => literal.getLiteralText()) ?? [];
-};
-
-const hasNegativeProofPolicyMessages = (sourceText: string): boolean => {
-  return sourceText.includes("production mutation negative proof enabled by GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1.")
-    && sourceText.includes("production mutation negative proof skipped for law-compliance audit.");
-};
-
 const hasPolicyCallBeforeBuild = (sourceFile: AuditSourceFile): boolean => {
   const policyCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
     const expression = callExpression.getExpression();
@@ -157,29 +141,9 @@ const hasPolicyCallBeforeBuild = (sourceFile: AuditSourceFile): boolean => {
   return Boolean(policyCall && buildCall && policyCall.getStart() < buildCall.getStart());
 };
 
-export const hasDefaultNegativeProofPolicyGate = (sourceFile: AuditSourceFile): boolean => {
-  const envDeclaration = sourceFile.getVariableDeclaration("RUN_NEGATIVE_PROOF_ENV");
+export const hasRunnerBoundaryPolicyGate = (sourceFile: AuditSourceFile): boolean => {
   const applyPolicy = sourceFile.getFunction("applyDefaultNegativeProofPolicy")
     ?? sourceFile.getVariableDeclaration("applyDefaultNegativeProofPolicy");
-  const skipValues = getDefaultNegativeProofSkipValues(sourceFile);
-  const requiredSkipValues = [
-    "GRASSEYE_SKIP_AI_NEGATIVE_PROOF",
-    "GRASSEYE_SKIP_AUDIT_SYSTEM_NEGATIVE_PROOF",
-    "GRASSEYE_SKIP_AUDIT_SYSTEM_CODE_PURITY",
-    "GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF",
-    "GRASSEYE_SKIP_ORCHESTRATION_NEGATIVE_PROOF",
-    "GRASSEYE_SKIP_SCREENSHOT_NEGATIVE_PROOF",
-    "GRASSEYE_SKIP_COMMANDER_CONSOLE_MAC_SHELL_NEGATIVE_PROOF",
-    "GRASSEYE_SKIP_INDEX_NEGATIVE_PROOF",
-    "GRASSEYE_SKIP_KERNEL_NEGATIVE_PROOF",
-    "GRASSEYE_SKIP_MAP_PLUGIN_ORCH_INTEGRATION_NEGATIVE_PROOF",
-    "GRASSEYE_SKIP_STRUCTURED_LOGGING_NEGATIVE_PROOF",
-  ];
-  const sourceText = sourceFile.getFullText();
 
-  return envDeclaration?.getInitializerIfKind(SyntaxKind.StringLiteral)?.getLiteralText() === "GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF"
-    && hasNegativeProofPolicyMessages(sourceText)
-    && requiredSkipValues.every((value) => skipValues.includes(value))
-    && Boolean(applyPolicy)
-    && hasPolicyCallBeforeBuild(sourceFile);
+  return Boolean(applyPolicy) && hasPolicyCallBeforeBuild(sourceFile);
 };

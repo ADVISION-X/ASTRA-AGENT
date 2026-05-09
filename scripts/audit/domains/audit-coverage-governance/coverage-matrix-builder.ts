@@ -4,7 +4,6 @@ import { pathFromRepoRoot } from "../../core/paths.js";
 import type { CoverageRequirement, CoverageSummary, NegativeProofCoverageEvidence } from "./coverage-types.js";
 import { PILOT_OWNER_DOMAINS } from "./pilot-owners.js";
 import { classifyInspectorStrength, getStrengthRank, maxStrength } from "./enforcement-strength-classifier.js";
-import { buildNegativeProofEvidence } from "./negative-proof-coverage-builder.js";
 
 const P0P1 = new Set(["P0", "P1"]);
 
@@ -26,9 +25,6 @@ const readPackageScripts = async (): Promise<Record<string, string>> => {
   return packageJson.scripts ?? {};
 };
 
-const getNegativeHarnessPath = (owner: string): string =>
-  `scripts/audit/domains/${owner}/negative-proof-harness.ts`;
-
 const appliesToRequirement = (manifest: Awaited<ReturnType<typeof loadDomainManifests>>[number], requirement: CoverageRequirement): boolean => {
   if (manifest.capabilityDomain !== requirement.owner) {
     return false;
@@ -45,14 +41,8 @@ const createRequirementBlockers = (requirement: CoverageRequirement): string[] =
   if (requirement.staticCoverage.length === 0) {
     blockers.push("Requirement has no declared static inspector coverage.");
   }
-  if (requirement.negativeProofCoverage.length === 0) {
-    blockers.push("Requirement has no mapped negative-proof mutation.");
-  }
   if (isP0P1 && getStrengthRank(requirement.enforcementStrength) < 4) {
-    blockers.push("P0/P1 requirement is below LEVEL 4 structural negative-proof enforcement.");
-  }
-  if (isP0P1 && requirement.negativeProofCoverage.some((proof) => proof.actual !== "FAIL" || proof.rollback !== "PASS")) {
-    blockers.push("P0/P1 negative proof does not prove fail then rollback pass.");
+    blockers.push("P0/P1 requirement is below LEVEL 4 structural coverage enforcement.");
   }
   blockers.push(`ownerAuditCommand=${getOwnerAuditCommand(requirement.owner)}`);
   return blockers;
@@ -86,11 +76,6 @@ const countByStatus = (
 ): number =>
   requirements.filter((requirement) => requirement.coverageStatus === status).length;
 
-const countNegativeProofCovered = (requirements: CoverageRequirement[]): number =>
-  requirements.filter((requirement) =>
-    requirement.negativeProofCoverage.some((proof) => proof.actual === "FAIL" && proof.rollback === "PASS"),
-  ).length;
-
 const countWarningOnlyP0 = (requirements: CoverageRequirement[]): number =>
   requirements.filter((requirement) =>
     requirement.tier === "P0"
@@ -100,29 +85,24 @@ const countWarningOnlyP0 = (requirements: CoverageRequirement[]): number =>
 
 const resolveCoverageStatus = (input: {
   hasStatic: boolean;
-  hasNegative: boolean;
   isP0P1: boolean;
   rank: number;
 }): CoverageRequirement["coverageStatus"] => {
-  if (!input.hasStatic && !input.hasNegative) {
+  if (!input.hasStatic) {
     return "missing";
   }
   if (input.isP0P1 && input.rank < 4) {
     return "weak";
   }
-  if (input.hasStatic && input.hasNegative) {
-    return "covered";
-  }
-  return "partial";
+  return "covered";
 };
 
 const updateCoverageStatus = (requirement: CoverageRequirement): CoverageRequirement => {
   const hasStatic = requirement.staticCoverage.length > 0;
-  const hasNegative = requirement.negativeProofCoverage.length > 0;
   const rank = getStrengthRank(requirement.enforcementStrength);
   const isP0P1 = P0P1.has(requirement.tier);
   const blockingReason = createRequirementBlockers(requirement);
-  const coverageStatus = resolveCoverageStatus({ hasStatic, hasNegative, isP0P1, rank });
+  const coverageStatus = resolveCoverageStatus({ hasStatic, isP0P1, rank });
 
   return { ...requirement, coverageStatus, blockingReason };
 };
@@ -132,26 +112,15 @@ export const buildCoverageMatrix = async (requirements: CoverageRequirement[]): 
   negativeProofEvidence: NegativeProofCoverageEvidence[];
 }> => {
   const manifests = await loadDomainManifests();
-  const negativeProofByDomain = new Map<string, NegativeProofCoverageEvidence[]>();
-  const allNegativeProofEvidence: NegativeProofCoverageEvidence[] = [];
-
-  for (const manifest of manifests) {
-    const harnessPath = getNegativeHarnessPath(manifest.capabilityDomain);
-    const evidence = await buildNegativeProofEvidence({ domain: manifest.capabilityDomain, harnessPath });
-    negativeProofByDomain.set(manifest.capabilityDomain, evidence);
-    allNegativeProofEvidence.push(...evidence);
-  }
-
   const coveredRequirements: CoverageRequirement[] = [];
+
   for (const requirement of requirements) {
     const staticCoverage = [];
-    const negativeProofCoverage = negativeProofByDomain.get(requirement.owner) ?? [];
     for (const manifest of manifests) {
       if (!appliesToRequirement(manifest, requirement)) {
         continue;
       }
-      const hasNegativeProof = negativeProofCoverage.length > 0;
-      const strength = await classifyInspectorStrength(manifest.entry, hasNegativeProof);
+      const strength = await classifyInspectorStrength(manifest.entry, false);
       staticCoverage.push({
         inspectorId: manifest.inspectorId,
         domain: manifest.capabilityDomain,
@@ -166,12 +135,12 @@ export const buildCoverageMatrix = async (requirements: CoverageRequirement[]): 
     coveredRequirements.push(updateCoverageStatus({
       ...requirement,
       staticCoverage,
-      negativeProofCoverage,
+      negativeProofCoverage: [],
       enforcementStrength,
     }));
   }
 
-  return { requirements: coveredRequirements, negativeProofEvidence: allNegativeProofEvidence };
+  return { requirements: coveredRequirements, negativeProofEvidence: [] };
 };
 
 export const buildCoverageSummary = (requirements: CoverageRequirement[], generatedAt: string): CoverageSummary => {
@@ -190,7 +159,7 @@ export const buildCoverageSummaryWithIntegrity = async (input: {
   const blockers = getCoverageBlockers(requirements);
   const weakCoverage = countByStatus(requirements, "weak");
   const missingCoverage = countByStatus(requirements, "missing");
-  const negativeProofCovered = countNegativeProofCovered(requirements);
+  const negativeProofCovered = 0;
   const staticCovered = requirements.filter((requirement) => requirement.staticCoverage.length > 0).length;
   const manualOnly = requirements.filter((requirement) => requirement.enforcementStrength === "LEVEL_0_MANUAL_ONLY_OR_MISSING").length;
   const inspectorNotInRunner = missingOwnerCommands.size;

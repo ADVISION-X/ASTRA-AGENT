@@ -6,6 +6,46 @@ const DEFAULT_BASE_URL = "http://127.0.0.1:4173";
 const DEFAULT_INTERVAL_MS = 2000;
 const DEFAULT_LIMIT = 12;
 
+function parsePositiveInteger(value, minimum) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed >= minimum ? parsed : null;
+}
+
+function applyResourceUsageFlag(options, flag, value) {
+  if (flag === "--base-url" && value) {
+    options.baseUrl = value;
+    return;
+  }
+
+  if (flag === "--interval-ms" && value) {
+    const parsed = parsePositiveInteger(value, 1);
+    if (parsed !== null) {
+      options.intervalMs = parsed;
+    }
+    return;
+  }
+
+  if (flag === "--limit" && value) {
+    const parsed = parsePositiveInteger(value, 1);
+    if (parsed !== null) {
+      options.limit = parsed;
+    }
+    return;
+  }
+
+  if (flag === "--samples" && value) {
+    const parsed = parsePositiveInteger(value, 0);
+    if (parsed !== null) {
+      options.samples = parsed;
+    }
+    return;
+  }
+
+  if (flag === "--output" && value) {
+    options.output = path.resolve(process.cwd(), value);
+  }
+}
+
 function parseArgs(argv) {
   const options = {
     baseUrl: DEFAULT_BASE_URL,
@@ -20,26 +60,7 @@ function parseArgs(argv) {
       continue;
     }
     const [flag, value = ""] = rawArg.split("=", 2);
-    if (flag === "--base-url" && value) {
-      options.baseUrl = value;
-    } else if (flag === "--interval-ms" && value) {
-      const parsed = Number.parseInt(value, 10);
-      if (Number.isFinite(parsed) && parsed > 0) {
-        options.intervalMs = parsed;
-      }
-    } else if (flag === "--limit" && value) {
-      const parsed = Number.parseInt(value, 10);
-      if (Number.isFinite(parsed) && parsed > 0) {
-        options.limit = parsed;
-      }
-    } else if (flag === "--samples" && value) {
-      const parsed = Number.parseInt(value, 10);
-      if (Number.isFinite(parsed) && parsed >= 0) {
-        options.samples = parsed;
-      }
-    } else if (flag === "--output" && value) {
-      options.output = path.resolve(process.cwd(), value);
-    }
+    applyResourceUsageFlag(options, flag, value);
   }
 
   return options;

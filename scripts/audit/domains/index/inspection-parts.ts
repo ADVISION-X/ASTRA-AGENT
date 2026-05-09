@@ -11,7 +11,7 @@ import { runIndexOwnerSurfaceChecks } from "./run-owner-surface-checks.js";
 import { runStandardPackageBlueprintChecks } from "./run-standard-package-blueprint-checks.js";
 import { runStandardPackagePrincipleChecks } from "./run-standard-package-principle-checks.js";
 
-export async function collectIndexInspectionWithoutNegativeProof(context: InspectorContext) {
+export async function collectIndexInspection(context: InspectorContext) {
   const ownerSurface = await runIndexOwnerSurfaceChecks(context);
   const routingChecks = await runIndexRoutingChecks();
   const abilityGroupExpansionBlueprintChecks = await runAbilityGroupExpansionBlueprintChecks();

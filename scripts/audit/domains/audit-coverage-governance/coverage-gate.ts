@@ -62,7 +62,7 @@ export const writeCoverageArtifacts = async (input: {
       generatedAt: input.generatedAt,
       requirements: input.requirements.map(toStaticMatrixRecord),
     }),
-    writeJsonFile(generatedPath("negative-proof-coverage.generated.json"), {
+    writeJsonFile(generatedPath("coverage-evidence.generated.json"), {
       generatedAt: input.generatedAt,
       negativeProofs: input.negativeProofEvidence,
       requirements: input.requirements.map(toNegativeMatrixRecord),

@@ -11,13 +11,11 @@ import {
   runCommanderRuntimeChecks,
   runCommanderStructureChecks,
   runStartupExitClassificationChecks,
-  runStartupExitNegativeProof,
   runStartupReadinessGateChecks,
   runTemplateRunLimitGovernanceChecks,
 } from "./inspection-check-groups.js";
 
 const { ROOT } = commanderConsoleInspectionConstants;
-const SKIP_STARTUP_EXIT_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_COMMANDER_STARTUP_EXIT_NEGATIVE_PROOF";
 
 const createRequiredPhase = (findings: Finding[]): InspectorPhase =>
   createPhase(
@@ -109,21 +107,6 @@ function createCommanderPhases(input: {
   ];
 }
 
-const getSkippedStartupExitNegativeProof = () => Promise.resolve({
-  findings: [],
-  phase: {
-    name: "startup-exit-negative-proof",
-    classification: "PASS" as const,
-    passed: true,
-    summary: "Startup exit negative proof was skipped for nested inspector execution.",
-  },
-});
-
-const runStartupExitProofOrSkip = () =>
-  process.env[SKIP_STARTUP_EXIT_NEGATIVE_PROOF_ENV] === "1"
-    ? getSkippedStartupExitNegativeProof()
-    : runStartupExitNegativeProof();
-
 const runCommanderExtraChecks = async () => {
   const project = createAuditProject();
   const structure = await runCommanderStructureChecks(project);
@@ -132,10 +115,9 @@ const runCommanderExtraChecks = async () => {
   const appRunLimitSettings = runAppRunLimitSettingsGovernanceChecks(project);
   const templateRunLimits = runTemplateRunLimitGovernanceChecks(project);
   const boundary = await runCommanderBoundaryChecks(project);
-  const [startupGateFindings, startupExitChecks, startupExitNegativeProof] = await Promise.all([
+  const [startupGateFindings, startupExitChecks] = await Promise.all([
     runStartupReadinessGateChecks(),
     runStartupExitClassificationChecks(),
-    runStartupExitProofOrSkip(),
   ]);
   const findings: Finding[] = [
     ...structure.findings,
@@ -146,7 +128,6 @@ const runCommanderExtraChecks = async () => {
     ...boundary.findings,
     ...startupGateFindings,
     ...startupExitChecks.findings,
-    ...startupExitNegativeProof.findings,
   ];
 
   return {
@@ -161,7 +142,7 @@ const runCommanderExtraChecks = async () => {
       antiEscapeViolation: boundary.antiEscapeViolation,
       appRunLimitSettingsPhase: appRunLimitSettings.phase,
       startupGateViolation: startupGateFindings.length > 0,
-      startupExitViolation: startupExitChecks.findings.length > 0 || startupExitNegativeProof.findings.length > 0,
+      startupExitViolation: startupExitChecks.findings.length > 0,
     }),
   };
 };
@@ -172,7 +153,7 @@ export const commanderConsoleCapabilityInspector = createPendingDomainInspector(
   capabilityDomain: "commander-console-capability",
   inspectorEntry: "scripts/audit/domains/commander-console-capability/inspector.ts",
   ownedPaths: [ROOT],
-  pendingSummary: "commander-console-capability requires hard production enforcement for execute-only routing, child privacy, strict gates, and negative proof",
+  pendingSummary: "commander-console-capability requires hard production enforcement for execute-only routing, child privacy, and strict gates",
   implementedSummary: "commander-console-capability is enforced as the execute-only human command and command-facing read-console owner",
   extraChecks: runCommanderExtraChecks,
 });

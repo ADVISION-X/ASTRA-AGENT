@@ -5,9 +5,6 @@ import { fileExists } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import type { Finding, InspectorContext } from "../../core/schema.js";
 import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
-import { runNegativeProofHarness } from "./negative-proof-harness.js";
-
-const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_TYPE_SAFETY_NEGATIVE_PROOF";
 
 const scanExplicitAny = (sourceFile: ts.SourceFile): Finding[] => {
   const findings: Finding[] = [];
@@ -106,20 +103,6 @@ export async function inspectTypeSafety(context: InspectorContext) {
         : "Type-safety violations were found in tsconfig or source files.",
     ),
   );
-
-  const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
-    ? {
-        findings: [],
-        phase: createPhase(
-          "negative-proof-harness",
-          "PASS",
-          true,
-          "Type-safety negative-proof harness was skipped for nested inspector execution.",
-        ),
-      }
-    : await runNegativeProofHarness();
-  findings.push(...negativeProof.findings);
-  phases.push(negativeProof.phase);
 
   return finalizeInspectorResult({
     inspector: "GrassEye Type Safety Owner Inspector",

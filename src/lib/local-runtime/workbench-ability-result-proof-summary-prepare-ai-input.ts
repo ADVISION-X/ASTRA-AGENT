@@ -77,6 +77,8 @@ type PrepareAiInputProofSummaryDerived = {
   } | null;
 };
 
+type PrepareAiInputProofSummaryRecordInput = NonNullable<PrepareAiInputProofSummaryDerived["recordInput"]>;
+
 const buildPrepareAiInputProofSummarySummary = (
   input: {
     outputRef: string;
@@ -106,29 +108,71 @@ const buildPrepareAiInputProofSummarySummary = (
   preparedInputScaleY: readNumber(fields.scaleMapping, "scaleY"),
 });
 
+const hasPrepareAiInputProofSummaryRecordInput = (
+  fields: PrepareAiInputProofSummaryFields,
+): fields is PrepareAiInputProofSummaryFields & {
+  aiInputArtifactRef: string;
+  aiInputStorageRef: string;
+  sourceScreenshotEvidenceId: string;
+  sourceStorageRef: string;
+  preparedImageHash: string;
+  preparedImageWidth: number;
+  preparedImageHeight: number;
+  coordinateSpace: "ai_input_pixels";
+} => {
+  const {
+    aiInputArtifactRef,
+    aiInputStorageRef,
+    sourceScreenshotEvidenceId,
+    sourceStorageRef,
+    preparedImageHash,
+    preparedImageWidth,
+    preparedImageHeight,
+    coordinateSpace,
+  } = fields;
+
+  return Boolean(aiInputArtifactRef && aiInputStorageRef && sourceScreenshotEvidenceId && sourceStorageRef && preparedImageHash && preparedImageWidth && preparedImageHeight && coordinateSpace === "ai_input_pixels");
+};
+
+const buildPrepareAiInputProofSummaryRecordInputFields = (
+  input: {
+    outputRef: string;
+  },
+  fields: PrepareAiInputProofSummaryFields,
+): PrepareAiInputProofSummaryRecordInput | null => {
+  if (!hasPrepareAiInputProofSummaryRecordInput(fields)) {
+    return null;
+  }
+
+  const {
+    aiInputArtifactRef,
+    aiInputStorageRef,
+    sourceScreenshotEvidenceId,
+    sourceStorageRef,
+    preparedImageHash,
+    preparedImageWidth,
+    preparedImageHeight,
+  } = fields;
+
+  return {
+    promptInputRef: input.outputRef,
+    aiInputArtifactRef,
+    aiInputStorageRef,
+    sourceScreenshotEvidenceId,
+    sourceStorageRef,
+    preparedImageHash,
+    preparedImageWidth,
+    preparedImageHeight,
+    coordinateSpace: "ai_input_pixels" as const,
+  };
+};
+
 const resolvePrepareAiInputProofSummaryRecordInput = (
   input: {
     outputRef: string;
   },
   fields: PrepareAiInputProofSummaryFields,
-): PrepareAiInputProofSummaryDerived["recordInput"] => {
-  const shouldRecord = Boolean(fields.aiInputArtifactRef && fields.aiInputStorageRef && fields.sourceScreenshotEvidenceId && fields.sourceStorageRef && fields.preparedImageHash && fields.preparedImageWidth && fields.preparedImageHeight && fields.coordinateSpace === "ai_input_pixels");
-  if (!shouldRecord || !fields.aiInputArtifactRef || !fields.aiInputStorageRef || !fields.sourceScreenshotEvidenceId || !fields.sourceStorageRef || !fields.preparedImageHash || !fields.preparedImageWidth || !fields.preparedImageHeight || fields.coordinateSpace !== "ai_input_pixels") {
-    return null;
-  }
-
-  return {
-    promptInputRef: input.outputRef,
-    aiInputArtifactRef: fields.aiInputArtifactRef,
-    aiInputStorageRef: fields.aiInputStorageRef,
-    sourceScreenshotEvidenceId: fields.sourceScreenshotEvidenceId,
-    sourceStorageRef: fields.sourceStorageRef,
-    preparedImageHash: fields.preparedImageHash,
-    preparedImageWidth: fields.preparedImageWidth,
-    preparedImageHeight: fields.preparedImageHeight,
-    coordinateSpace: "ai_input_pixels" as const,
-  };
-};
+): PrepareAiInputProofSummaryDerived["recordInput"] => buildPrepareAiInputProofSummaryRecordInputFields(input, fields);
 
 const resolvePrepareAiInputProofSummarySources = (input: {
   result: WorkbenchAbilityExecutionResult;

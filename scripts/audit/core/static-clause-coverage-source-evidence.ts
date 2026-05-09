@@ -8,7 +8,7 @@ const inferCheckKind = (filePath: string): SourceEvidence["checkKind"] => {
   if (filePath.includes("required-shape")) return "required-shape";
   if (filePath.includes("forbidden-shape") || filePath.includes("runtime")) return "forbidden-shape";
   if (filePath.includes("boundary")) return "boundary-attack";
-  if (filePath.includes("anti-escape") || filePath.includes("negative-proof")) return "anti-escape";
+  if (filePath.includes("anti-escape")) return "anti-escape";
   return "runtime-proof";
 };
 

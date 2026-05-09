@@ -110,7 +110,7 @@ export const visualTargetInspectionConstants = {
   REQUIRED_CONTRACT_EXPORTS: ["VISUAL_TARGET_ABILITY_GROUP_ID", "VisualTargetSchema", "VisualTargetAbilityInput", "ParsedVisualTargetAbilityInput", "VisualTargetAbilityResult", "VisualTargetAbilityGroup", "VisualTargetChildCapability", "SuccessfulVisualTarget"] as const,
   REQUIRED_INDEX_EXPORTS: ["createVisualTargetAbilityGroup", "createVisualTargetAbilityGroupWithSystemClock", "listVisualTargetChildren", "isSuccessfulVisualTarget", "VisualTargetSchema"] as const,
   FORBIDDEN_INDEX_EXPORTS: ["createSystemVisualTargetClock", "createVisualTargetRuntimeContext"] as const,
-  REQUIRED_INSPECTOR_FUNCTIONS: ["runRequiredShapeAttack", "runForbiddenShapeAttack", "runBoundaryAttack", "runAntiEscapeAttack", "runGeneratedChainCheck", "runManifestCheck", "runPipelineTruthAttack", "runRunnerFailPowerCheck", "runNegativeProofHarness"] as const,
+  REQUIRED_INSPECTOR_FUNCTIONS: ["runRequiredShapeAttack", "runForbiddenShapeAttack", "runBoundaryAttack", "runAntiEscapeAttack", "runGeneratedChainCheck", "runManifestCheck", "runPipelineTruthAttack", "runRunnerFailPowerCheck"] as const,
   ALLOWED_EXTERNAL_IMPORT_SUFFIXES: ["/index.js", "/contract.js"] as const,
 } as const;
 

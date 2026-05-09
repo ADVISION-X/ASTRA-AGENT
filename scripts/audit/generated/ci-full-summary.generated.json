@@ -1,29 +1,22 @@
 {
-  "generatedAt": "2026-05-09T13:46:49.472Z",
-  "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
+  "generatedAt": "2026-05-09T14:51:54.230Z",
+  "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
   "status": "FAIL",
   "layers": [
     {
       "label": "foundation-layer",
-      "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
+      "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
       "status": "FAIL",
       "steps": [
         {
-          "checkId": "audit-build",
+          "name": "audit-build",
           "layer": "foundation-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:build",
-          "producer": "audit:build",
-          "allowedConsumers": [
-            "code-purity",
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/build-audit-artifacts-cli.ts",
           "status": "PASS",
           "exitCode": 0,
-          "durationMs": 851,
-          "memoryPeakMb": 391.8,
+          "durationMs": 472,
+          "memoryPeakMb": 380,
           "artifactPaths": [
             "/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/generated/law-registry.generated.json",
             "/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/generated/enforcement-matrix.generated.json",
@@ -35,39 +28,26 @@
           ]
         },
         {
-          "checkId": "code-purity",
+          "name": "code-purity",
           "layer": "foundation-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:code-purity",
-          "producer": "audit:code-purity",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/code-purity/run-inspector.ts",
           "status": "FAIL",
           "exitCode": 1,
-          "durationMs": 46015,
-          "memoryPeakMb": 2319.4,
+          "durationMs": 40959,
+          "memoryPeakMb": 2011.5,
           "artifactPaths": [
             "scripts/audit/generated/code-purity/findings.ndjson",
             "scripts/audit/generated/code-purity/inventory.ndjson",
             "scripts/audit/generated/code-purity/scan-summary.generated.json",
-            "scripts/audit/generated/code-purity-report.generated.json",
-            "scripts/audit/generated/code-purity/negative-proof.generated.json"
+            "scripts/audit/generated/code-purity-report.generated.json"
           ]
         },
         {
-          "checkId": "typecheck",
+          "name": "typecheck",
           "layer": "foundation-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
           "command": "npm run typecheck",
-          "producer": "typecheck",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -75,16 +55,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "capability-group-governance",
+          "name": "capability-group-governance",
           "layer": "foundation-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:capability-group-governance",
-          "producer": "audit:capability-group-governance",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/capability-group-governance/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -92,16 +66,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "type-safety",
+          "name": "type-safety",
           "layer": "foundation-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:type-safety",
-          "producer": "audit:type-safety",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/type-safety/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -109,16 +77,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "security-privacy",
+          "name": "security-privacy",
           "layer": "foundation-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:security-privacy",
-          "producer": "audit:security-privacy",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/security-privacy/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -126,15 +88,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "audit-system",
+          "name": "audit-system",
           "layer": "foundation-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:audit-system",
-          "producer": "audit:audit-system",
-          "allowedConsumers": [
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/audit-system/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -145,20 +102,14 @@
     },
     {
       "label": "map-layer",
-      "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
+      "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
       "status": "SKIPPED",
       "steps": [
         {
-          "checkId": "map-plugin-package",
+          "name": "map-plugin-package",
           "layer": "map-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:map-plugin-package",
-          "producer": "audit:map-plugin-package",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/map-plugin-package/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -169,20 +120,14 @@
     },
     {
       "label": "ability-group-layer",
-      "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
+      "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
       "status": "SKIPPED",
       "steps": [
         {
-          "checkId": "commander-console",
+          "name": "commander-console",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:commander-console",
-          "producer": "audit:commander-console",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -190,16 +135,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "orchestration",
+          "name": "orchestration",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:orchestration",
-          "producer": "audit:orchestration",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/orchestration-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -207,16 +146,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "nerve-bus",
+          "name": "nerve-bus",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:nerve-bus",
-          "producer": "audit:nerve-bus",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/nerve-bus-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -224,16 +157,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "ai",
+          "name": "ai",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:ai",
-          "producer": "audit:ai",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/ai-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -241,16 +168,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "open",
+          "name": "open",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:open",
-          "producer": "audit:open",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/open-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -258,16 +179,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "screenshot",
+          "name": "screenshot",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:screenshot",
-          "producer": "audit:screenshot",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/screenshot-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -275,16 +190,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "visual-target",
+          "name": "visual-target",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:visual-target",
-          "producer": "audit:visual-target",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/visual-target-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -292,16 +201,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "geometry-guard",
+          "name": "geometry-guard",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:geometry-guard",
-          "producer": "audit:geometry-guard",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/geometry-guard-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -309,16 +212,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "mouse-click",
+          "name": "mouse-click",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:mouse-click",
-          "producer": "audit:mouse-click",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/mouse-click-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -326,16 +223,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "text-input",
+          "name": "text-input",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:text-input-capability",
-          "producer": "audit:text-input-capability",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/text-input-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -343,16 +234,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "mouse-scroll",
+          "name": "mouse-scroll",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:mouse-scroll",
-          "producer": "audit:mouse-scroll",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/mouse-scroll-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -360,16 +245,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "post-action-verification",
+          "name": "post-action-verification",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:post-action-verification",
-          "producer": "audit:post-action-verification",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/post-action-verification-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -377,16 +256,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "forensics-persistence",
+          "name": "forensics-persistence",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:forensics-persistence",
-          "producer": "audit:forensics-persistence",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/forensics-persistence-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,
@@ -394,16 +267,10 @@
           "artifactPaths": []
         },
         {
-          "checkId": "page-state",
+          "name": "page-state",
           "layer": "ability-group-layer",
-          "runId": "18486a3f-d6c3-402b-b40f-59ea0a12ebef",
-          "command": "npm run audit:page-state",
-          "producer": "audit:page-state",
-          "allowedConsumers": [
-            "audit-system",
-            "ci-full-summary"
-          ],
-          "exclusive": true,
+          "runId": "a8fb38a6-3068-4b2f-8c55-4cf68ce9a45e",
+          "command": "node --import tsx scripts/audit/domains/page-state-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
           "durationMs": 0,

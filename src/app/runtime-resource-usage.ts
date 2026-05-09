@@ -31,29 +31,38 @@ function toMb(kb: number): number {
 
 function buildTags(command: string, pid: number): string[] {
   const normalizedCommand = command.toLowerCase();
-  const tags: string[] = [];
+  return [
+    pid === process.pid ? "workbench-server" : null,
+    normalizedCommand.includes("ollama runner") ? "ollama-runner" : null,
+    !normalizedCommand.includes("ollama runner") && normalizedCommand.includes("ollama") ? "ollama" : null,
+    normalizedCommand.includes("google chrome helper") || normalizedCommand.includes("google chrome") ? "chrome" : null,
+    normalizedCommand.includes("dist/src/app/server.js") ? "grasseye-app-server" : null,
+    normalizedCommand.includes("tsx src/app/server.ts") ? "grasseye-dev-server" : null,
+    normalizedCommand.includes("esbuild") ? "esbuild" : null,
+  ].filter((tag): tag is string => tag !== null);
+}
 
-  if (pid === process.pid) {
-    tags.push("workbench-server");
+function parsePsLineParts(match: RegExpMatchArray) {
+  const parsedPid = Number.parseInt(match[1], 10);
+  const parsedPpid = Number.parseInt(match[2], 10);
+  const parsedCpuPercent = Number.parseFloat(match[3]);
+  const parsedRssKb = Number.parseInt(match[4], 10);
+  const parsedVszKb = Number.parseInt(match[5], 10);
+
+  if (![parsedPid, parsedPpid, parsedCpuPercent, parsedRssKb, parsedVszKb].every(Number.isFinite)) {
+    return null;
   }
-  if (normalizedCommand.includes("ollama runner")) {
-    tags.push("ollama-runner");
-  } else if (normalizedCommand.includes("ollama")) {
-    tags.push("ollama");
-  }
-  if (normalizedCommand.includes("google chrome helper") || normalizedCommand.includes("google chrome")) {
-    tags.push("chrome");
-  }
-  if (normalizedCommand.includes("dist/src/app/server.js")) {
-    tags.push("grasseye-app-server");
-  }
-  if (normalizedCommand.includes("tsx src/app/server.ts")) {
-    tags.push("grasseye-dev-server");
-  }
-  if (normalizedCommand.includes("esbuild")) {
-    tags.push("esbuild");
-  }
-  return tags;
+
+  return {
+    pid: parsedPid,
+    ppid: parsedPpid,
+    cpuPercent: parsedCpuPercent,
+    rssKb: parsedRssKb,
+    vszKb: parsedVszKb,
+    elapsed: match[6],
+    state: match[7],
+    command: match[8],
+  };
 }
 
 function parsePsLine(line: string): RawProcessSnapshot | null {
@@ -67,38 +76,14 @@ function parsePsLine(line: string): RawProcessSnapshot | null {
     return null;
   }
 
-  const pid = match[1];
-  const ppid = match[2];
-  const cpuPercent = match[3];
-  const rssKb = match[4];
-  const vszKb = match[5];
-  const elapsed = match[6];
-  const state = match[7];
-  const command = match[8];
-  if (!pid || !ppid || !cpuPercent || !rssKb || !vszKb || !elapsed || !state || !command) {
-    return null;
-  }
-
-  const parsedPid = Number.parseInt(pid, 10);
-  const parsedPpid = Number.parseInt(ppid, 10);
-  const parsedCpuPercent = Number.parseFloat(cpuPercent);
-  const parsedRssKb = Number.parseInt(rssKb, 10);
-  const parsedVszKb = Number.parseInt(vszKb, 10);
-
-  if (![parsedPid, parsedPpid, parsedCpuPercent, parsedRssKb, parsedVszKb].every(Number.isFinite)) {
+  const parsed = parsePsLineParts(match);
+  if (!parsed) {
     return null;
   }
 
   return {
-    pid: parsedPid,
-    ppid: parsedPpid,
-    cpuPercent: parsedCpuPercent,
-    rssKb: parsedRssKb,
-    vszKb: parsedVszKb,
-    elapsed,
-    state,
-    command,
-    tags: buildTags(command, parsedPid),
+    ...parsed,
+    tags: buildTags(parsed.command, parsed.pid),
   };
 }
 
@@ -140,50 +125,60 @@ function serializeProcess(processSnapshot: RawProcessSnapshot) {
   };
 }
 
+function buildResourceUsageCollections(processes: RawProcessSnapshot[], processLimit: number) {
+  const byRssThenCpu = [...processes].sort((left, right) => right.rssKb - left.rssKb || right.cpuPercent - left.cpuPercent);
+  return {
+    interestingProcesses: processes
+      .filter((processSnapshot) => processSnapshot.tags.length > 0)
+      .sort((left, right) => right.rssKb - left.rssKb || right.cpuPercent - left.cpuPercent)
+      .slice(0, processLimit)
+      .map(serializeProcess),
+    topByRss: byRssThenCpu.slice(0, processLimit).map(serializeProcess),
+    topByCpu: [...processes]
+      .sort((left, right) => right.cpuPercent - left.cpuPercent || right.rssKb - left.rssKb)
+      .slice(0, processLimit)
+      .map(serializeProcess),
+  };
+}
+
+function buildResourceUsageHost() {
+  return {
+    platform: process.platform,
+    arch: process.arch,
+    nodeVersion: process.version,
+    pid: process.pid,
+    ppid: process.ppid,
+    uptimeSeconds: Math.round(process.uptime()),
+    loadAverage: os.loadavg(),
+    totalMemoryBytes: os.totalmem(),
+    freeMemoryBytes: os.freemem(),
+    cpuCount: os.cpus().length,
+  };
+}
+
+function buildResourceUsageNodeProcess(nodeMemoryUsage: NodeJS.MemoryUsage) {
+  return {
+    rssBytes: nodeMemoryUsage.rss,
+    heapTotalBytes: nodeMemoryUsage.heapTotal,
+    heapUsedBytes: nodeMemoryUsage.heapUsed,
+    externalBytes: nodeMemoryUsage.external,
+    arrayBuffersBytes: nodeMemoryUsage.arrayBuffers,
+  };
+}
+
 export async function getRuntimeResourceUsageSnapshot(input?: { limit?: number; modeInfo?: unknown }) {
   const processLimit = normalizeLimit(input?.limit);
   const [{ processes, collectionError }] = await Promise.all([listProcessSnapshots()]);
   const nodeMemoryUsage = process.memoryUsage();
-  const interestingProcesses = processes
-    .filter((processSnapshot) => processSnapshot.tags.length > 0)
-    .sort((left, right) => right.rssKb - left.rssKb || right.cpuPercent - left.cpuPercent)
-    .slice(0, processLimit)
-    .map(serializeProcess);
-  const topByRss = [...processes]
-    .sort((left, right) => right.rssKb - left.rssKb || right.cpuPercent - left.cpuPercent)
-    .slice(0, processLimit)
-    .map(serializeProcess);
-  const topByCpu = [...processes]
-    .sort((left, right) => right.cpuPercent - left.cpuPercent || right.rssKb - left.rssKb)
-    .slice(0, processLimit)
-    .map(serializeProcess);
+  const collections = buildResourceUsageCollections(processes, processLimit);
 
   return {
     capturedAt: new Date().toISOString(),
     processLimit,
     modeInfo: input?.modeInfo ?? null,
-    host: {
-      platform: process.platform,
-      arch: process.arch,
-      nodeVersion: process.version,
-      pid: process.pid,
-      ppid: process.ppid,
-      uptimeSeconds: Math.round(process.uptime()),
-      loadAverage: os.loadavg(),
-      totalMemoryBytes: os.totalmem(),
-      freeMemoryBytes: os.freemem(),
-      cpuCount: os.cpus().length,
-    },
-    nodeProcess: {
-      rssBytes: nodeMemoryUsage.rss,
-      heapTotalBytes: nodeMemoryUsage.heapTotal,
-      heapUsedBytes: nodeMemoryUsage.heapUsed,
-      externalBytes: nodeMemoryUsage.external,
-      arrayBuffersBytes: nodeMemoryUsage.arrayBuffers,
-    },
+    host: buildResourceUsageHost(),
+    nodeProcess: buildResourceUsageNodeProcess(nodeMemoryUsage),
     processCollectionError: collectionError,
-    interestingProcesses,
-    topByRss,
-    topByCpu,
+    ...collections,
   };
 }

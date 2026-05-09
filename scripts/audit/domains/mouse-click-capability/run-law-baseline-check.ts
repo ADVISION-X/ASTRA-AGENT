@@ -18,7 +18,7 @@ export async function runLawBaselineCheck(): Promise<{ findings: Finding[]; phas
     findings.push(createFinding({ lawId: LAW_ID, file: LAW_FILE, line: 1, severity: "fatal", message: "Mouse Click active laws must remain P0." }));
   }
   if (content.includes("evidenceMode: law\n") || content.includes("evidenceMode: law\r\n")) {
-    findings.push(createFinding({ lawId: LAW_ID, file: LAW_FILE, line: 1, severity: "fatal", message: "Mouse Click active laws must keep law+inspector+negative-proof evidence mode." }));
+    findings.push(createFinding({ lawId: LAW_ID, file: LAW_FILE, line: 1, severity: "fatal", message: "Mouse Click active laws must keep law+inspector evidence mode." }));
   }
 
   return {
@@ -28,7 +28,7 @@ export async function runLawBaselineCheck(): Promise<{ findings: Finding[]; phas
       findings.length === 0 ? "PASS" : "LAW-SCRIPT DRIFT",
       findings.length === 0,
       findings.length === 0
-        ? "Mouse Click active laws remain machine-blocking, P0, and negative-proof backed."
+        ? "Mouse Click active laws remain machine-blocking, P0, and inspector backed."
         : "Mouse Click law baseline drifted away from the active enforcement contract.",
     ),
   };

@@ -1,18 +1,15 @@
 import { readJsonFile, writeJsonFile } from "./filesystem.js";
 import { generatedArtifactPaths } from "./generated-artifact-paths.js";
-import type { CiFullLayerLabel } from "./ci-full-check-ownership.js";
+import type { CiFullLayerLabel } from "./ci-full-plan.js";
 
 export type CiFullStepStatus = "PASS" | "FAIL" | "SKIPPED";
 export type CiFullLayerStatus = "PASS" | "FAIL" | "SKIPPED";
 
 export type CiFullStepSummary = {
-  checkId: string;
+  name: string;
   layer: CiFullLayerLabel;
   runId: string;
   command: string;
-  producer: string;
-  allowedConsumers: string[];
-  exclusive: true;
   status: CiFullStepStatus;
   exitCode: number | null;
   durationMs: number;
@@ -34,7 +31,7 @@ export type CiFullSummary = {
   layers: CiFullLayerSummary[];
 };
 
-export const buildCiFullCommand = (args: string[]): string => `npm ${args.join(" ")}`;
+export const buildCiFullCommand = (command: readonly string[]): string => command.join(" ");
 
 export const writeCiFullSummary = async (summary: CiFullSummary): Promise<void> => {
   await writeJsonFile(generatedArtifactPaths.ciFullSummary, summary);

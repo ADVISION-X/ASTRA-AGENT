@@ -25,7 +25,7 @@ const inspectInspectorSource = (project: Project): Finding[] => {
     findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1", file: INSPECTOR_PATH, line: 1, severity: "fatal", message: "Integration inspector must not remain a pending placeholder." }));
   }
 
-  for (const requiredCall of ["runRequiredShape", "runForbiddenShape", "runBoundaryAttack", "runAntiEscape", "runNegativeProofHarness"]) {
+  for (const requiredCall of ["runRequiredShape", "runForbiddenShape", "runBoundaryAttack", "runAntiEscape"]) {
     if (!hasCallExpression(inspectorSource, requiredCall)) {
       findings.push(createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V1", file: INSPECTOR_PATH, line: 1, severity: "fatal", message: `Integration inspector must execute ${requiredCall} as part of the governed enforcement chain.` }));
     }

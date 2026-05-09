@@ -44,39 +44,60 @@ type PageStateProofSummaryFields = {
   videoVisitId: string | null;
 };
 
-const resolvePageStateProofSummaryFields = (input: {
+type PageStateProofSummaryRequiredFields = {
+  pageStateProofRef: string;
+  pageStateChildCapabilityId: string;
+  pageStateFingerprint: string;
+  pageStateHash: string;
+  currentUrl: string;
+  observedAt: string;
+  missionId: string;
+  runId: string;
+  sessionId: string;
+};
+
+const resolvePageStateProofSummaryRequiredValues = (runtimeProof: JsonObject): PageStateProofSummaryRequiredFields | null => {
+  const requiredValues = {
+    pageStateProofRef: readString(runtimeProof, "proofId"),
+    pageStateChildCapabilityId: readString(runtimeProof, "childCapabilityId"),
+    pageStateFingerprint: readString(runtimeProof, "observationFingerprint"),
+    pageStateHash: readString(runtimeProof, "snapshotHash") ?? readString(runtimeProof, "inputPayloadHash"),
+    currentUrl: readString(runtimeProof, "currentUrl"),
+    observedAt: readString(runtimeProof, "endedAt") ?? readString(runtimeProof, "startedAt"),
+    missionId: readString(runtimeProof, "missionId"),
+    runId: readString(runtimeProof, "runId"),
+    sessionId: readString(runtimeProof, "sessionId"),
+  };
+
+  if (!requiredValues.pageStateProofRef || !requiredValues.pageStateChildCapabilityId || !requiredValues.pageStateFingerprint || !requiredValues.pageStateHash || !requiredValues.currentUrl || !requiredValues.observedAt || !requiredValues.missionId || !requiredValues.runId || !requiredValues.sessionId) {
+    return null;
+  }
+
+  return requiredValues;
+};
+
+const resolvePageStateProofSummaryRequiredFields = (input: {
   result: WorkbenchAbilityExecutionResult;
-}): PageStateProofSummaryFields | null => {
+}): PageStateProofSummaryRequiredFields | null => {
   if (input.result.abilityGroupId !== "page-state" || !isObject(input.result.runtimeProof)) {
     return null;
   }
 
-  const runtimeProof = input.result.runtimeProof;
-  const pageStateProofRef = readString(runtimeProof, "proofId");
-  const pageStateChildCapabilityId = readString(runtimeProof, "childCapabilityId");
-  const pageStateFingerprint = readString(runtimeProof, "observationFingerprint");
-  const pageStateHash = readString(runtimeProof, "snapshotHash") ?? readString(runtimeProof, "inputPayloadHash");
-  const currentUrl = readString(runtimeProof, "currentUrl");
-  const observedAt = readString(runtimeProof, "endedAt") ?? readString(runtimeProof, "startedAt");
-  const missionId = readString(runtimeProof, "missionId");
-  const runId = readString(runtimeProof, "runId");
-  const sessionId = readString(runtimeProof, "sessionId");
+  return resolvePageStateProofSummaryRequiredValues(input.result.runtimeProof);
+};
 
-  if (!pageStateProofRef || !pageStateChildCapabilityId || !pageStateFingerprint || !pageStateHash || !currentUrl || !observedAt || !missionId || !runId || !sessionId) {
+const resolvePageStateProofSummaryFields = (input: {
+  result: WorkbenchAbilityExecutionResult;
+}): PageStateProofSummaryFields | null => {
+  const requiredFields = resolvePageStateProofSummaryRequiredFields(input);
+  if (!requiredFields) {
     return null;
   }
 
+  const runtimeProof = input.result.runtimeProof;
   return {
-    pageStateProofRef,
-    pageStateChildCapabilityId,
-    pageStateFingerprint,
-    pageStateHash,
-    currentUrl,
+    ...requiredFields,
     currentTitle: readString(runtimeProof, "currentTitle"),
-    observedAt,
-    missionId,
-    runId,
-    sessionId,
     roundId: readString(runtimeProof, "roundId"),
     videoVisitId: readString(runtimeProof, "videoVisitId"),
   };

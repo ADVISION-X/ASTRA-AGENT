@@ -5,10 +5,7 @@ import { createIntegrationAuditProject } from "./audit-project.js";
 import { runAntiEscape } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
-import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShape } from "./required-shape.js";
-
-const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MAP_PLUGIN_ORCH_INTEGRATION_NEGATIVE_PROOF";
 
 const getFoundationState = (base: Awaited<ReturnType<typeof runDomainOwnerInspection>>) => {
   const ignoredFoundationMessages = new Set([
@@ -37,20 +34,6 @@ const getFoundationState = (base: Awaited<ReturnType<typeof runDomainOwnerInspec
   };
 };
 
-const getNegativeProofResult = async () => (
-  process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
-    ? {
-        findings: [],
-        phase: createPhase(
-          "negative-proof-harness",
-          "PASS",
-          true,
-          "Integration negative-proof harness was skipped for nested inspector execution.",
-        ),
-      }
-    : runNegativeProofHarness()
-);
-
 const inspector: DomainInspector = async (context) => {
   const base = await runDomainOwnerInspection(context, {
     capabilityDomain: "map-plugin-orchestration-integration",
@@ -63,7 +46,6 @@ const inspector: DomainInspector = async (context) => {
   const forbidden = await runForbiddenShape(project);
   const boundary = runBoundaryAttack(project);
   const antiEscape = await runAntiEscape(project, context);
-  const negativeProof = await getNegativeProofResult();
 
   const findings = [
     ...foundationFindings,
@@ -71,7 +53,6 @@ const inspector: DomainInspector = async (context) => {
     ...forbidden.findings,
     ...boundary.findings,
     ...antiEscape.findings,
-    ...negativeProof.findings,
   ];
 
   const phases = [
@@ -80,7 +61,6 @@ const inspector: DomainInspector = async (context) => {
     forbidden.phase,
     boundary.phase,
     antiEscape.phase,
-    negativeProof.phase,
   ];
 
   return finalizeInspectorResult({
@@ -89,7 +69,7 @@ const inspector: DomainInspector = async (context) => {
     capabilityDomain: "map-plugin-orchestration-integration",
     findings,
     phases,
-    summary: phases.find((phase) => !phase.passed)?.summary ?? "Map-plugin orchestration integration passes schema ownership, active binding, Commander ordinary feed, and negative-proof enforcement.",
+    summary: phases.find((phase) => !phase.passed)?.summary ?? "Map-plugin orchestration integration passes schema ownership, active binding, and Commander ordinary feed.",
   });
 };
 

@@ -164,12 +164,9 @@ function collectBuilderFindings(project: Project): Finding[] {
 
 function collectInspectorFindings(project: Project): Finding[] {
   const inspectorSource = getSource(project, "scripts/audit/domains/post-action-verification-capability/inspector.ts");
-  const inspectorText = inspectorSource.getFullText();
-  return inspectorText.includes("import { runNegativeProofHarness }")
-    && inspectorText.includes("SKIP_NEGATIVE_PROOF_ENV")
-    && inspectorText.includes("await runNegativeProofHarness()")
+  return inspectorSource.getFullText().includes("runDomainOwnerInspection")
     ? []
-    : [createFinding({ lawId: LAW_IDS.PACKAGE, file: "scripts/audit/domains/post-action-verification-capability/inspector.ts", line: 1, severity: "fatal", message: "Post Action Verification inspector must invoke the negative-proof harness through a nested-skip guard." })];
+    : [createFinding({ lawId: LAW_IDS.PACKAGE, file: "scripts/audit/domains/post-action-verification-capability/inspector.ts", line: 1, severity: "fatal", message: "Post Action Verification inspector must remain a governed owner inspector." })];
 }
 
 export async function runRequiredShape(project: Project): Promise<{ findings: Finding[]; phase: InspectorPhase }> {

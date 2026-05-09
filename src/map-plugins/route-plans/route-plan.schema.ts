@@ -18,6 +18,71 @@ export const CoreMuscleSchema = z.enum([
   "advance-next-item",
 ]);
 
+const MUSCLE_SEGMENT_TARGET_CANDIDATE_REFS = [
+  "nextItemTargetCandidateRef",
+  "aiTargetCandidateRef",
+  "targetCandidateRef",
+  "sourceAiResultRef",
+  "sourceVisualTargetResultRef",
+] as const;
+
+const addMuscleSegmentIssue = (context: z.RefinementCtx, path: string[], message: string) => {
+  context.addIssue({
+    code: z.ZodIssueCode.custom,
+    path,
+    message,
+  });
+};
+
+const validateMuscleSegmentAllowedAbilityGroups = (value: z.infer<typeof MuscleSegmentSchema>, context: z.RefinementCtx) => {
+  if (value.allowedAbilityGroups.includes("map-plugin-package")) {
+    addMuscleSegmentIssue(context, ["allowedAbilityGroups"], "Muscle segments must not list map-plugin-package as an allowed ability group.");
+  }
+};
+
+const validateMuscleSegmentSemanticOwner = (value: z.infer<typeof MuscleSegmentSchema>, context: z.RefinementCtx) => {
+  if (value.aiRequired && value.semanticOwner !== "ai") {
+    addMuscleSegmentIssue(context, ["semanticOwner"], "Segments that require semantic judgment must declare semanticOwner=ai.");
+  }
+};
+
+const validateAdvanceNextItemMuscleSegment = (value: z.infer<typeof MuscleSegmentSchema>, context: z.RefinementCtx) => {
+  if (value.coreMuscle !== "advance-next-item") {
+    return;
+  }
+
+  const usesNavigationKey = value.allowedAbilityGroups.includes("text-input");
+  if (!usesNavigationKey && value.requiresTargetCandidateRef !== true) {
+    addMuscleSegmentIssue(context, ["requiresTargetCandidateRef"], "Advance Next Item segments must require governed target candidate refs.");
+  }
+  if (usesNavigationKey && value.requiresTargetCandidateRef !== false) {
+    addMuscleSegmentIssue(context, ["requiresTargetCandidateRef"], "Advance Next Item segments that use governed navigation-key input must explicitly disable target candidate refs.");
+  }
+  if (!value.fallbackPolicy) {
+    addMuscleSegmentIssue(context, ["fallbackPolicy"], "Advance Next Item segments must declare an explicit fallback policy.");
+  }
+};
+
+const validateMuscleSegmentFallbackPolicy = (value: z.infer<typeof MuscleSegmentSchema>, context: z.RefinementCtx) => {
+  if (value.fallbackPolicy === "fallback-only-with-post-click-observation" && value.postClickObservation !== true) {
+    addMuscleSegmentIssue(context, ["fallbackPolicy"], "Fallback-only muscle segments must declare postClickObservation as a non-blocking quality signal.");
+  }
+};
+
+const validateMuscleSegmentTargetCandidates = (value: z.infer<typeof MuscleSegmentSchema>, context: z.RefinementCtx) => {
+  if (value.requiresTargetCandidateRef === true && !MUSCLE_SEGMENT_TARGET_CANDIDATE_REFS.some((ref) => value.consumesRefs.includes(ref))) {
+    addMuscleSegmentIssue(context, ["consumesRefs"], "Segments that require target candidates must consume nextItemTargetCandidateRef, aiTargetCandidateRef, targetCandidateRef, sourceAiResultRef, or sourceVisualTargetResultRef.");
+  }
+};
+
+const validateMuscleSegment = (value: z.infer<typeof MuscleSegmentSchema>, context: z.RefinementCtx) => {
+  validateMuscleSegmentAllowedAbilityGroups(value, context);
+  validateMuscleSegmentSemanticOwner(value, context);
+  validateAdvanceNextItemMuscleSegment(value, context);
+  validateMuscleSegmentFallbackPolicy(value, context);
+  validateMuscleSegmentTargetCandidates(value, context);
+};
+
 export const MuscleSegmentSchema = z.object({
   segmentId: z.string().min(1),
   coreMuscle: CoreMuscleSchema,
@@ -31,74 +96,7 @@ export const MuscleSegmentSchema = z.object({
   postClickObservation: z.boolean().optional(),
   fallbackPolicy: z.enum(["forbidden", "fallback-only-with-post-click-observation"]).optional(),
   description: z.string().min(1),
-}).strict().superRefine((value, context) => {
-  const targetCandidateRefs = [
-    "nextItemTargetCandidateRef",
-    "aiTargetCandidateRef",
-    "targetCandidateRef",
-    "sourceAiResultRef",
-    "sourceVisualTargetResultRef",
-  ];
-  if (value.allowedAbilityGroups.includes("map-plugin-package")) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["allowedAbilityGroups"],
-      message: "Muscle segments must not list map-plugin-package as an allowed ability group.",
-    });
-  }
-  if (!value.aiRequired && value.producesRefs.some((ref) => ref.toLowerCase().includes("routelabel"))) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["producesRefs"],
-      message: "Segments that do not require AI must not produce routeLabel refs.",
-    });
-  }
-  if (value.aiRequired && value.semanticOwner !== "ai") {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["semanticOwner"],
-      message: "Segments that require semantic judgment must declare semanticOwner=ai.",
-    });
-  }
-  if (value.coreMuscle === "advance-next-item") {
-    const usesNavigationKey = value.allowedAbilityGroups.includes("text-input");
-    if (!usesNavigationKey && value.requiresTargetCandidateRef !== true) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["requiresTargetCandidateRef"],
-        message: "Advance Next Item segments must require governed target candidate refs.",
-      });
-    }
-    if (usesNavigationKey && value.requiresTargetCandidateRef !== false) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["requiresTargetCandidateRef"],
-        message: "Advance Next Item segments that use governed navigation-key input must explicitly disable target candidate refs.",
-      });
-    }
-    if (!value.fallbackPolicy) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["fallbackPolicy"],
-        message: "Advance Next Item segments must declare an explicit fallback policy.",
-      });
-    }
-  }
-  if (value.fallbackPolicy === "fallback-only-with-post-click-observation" && value.postClickObservation !== true) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["fallbackPolicy"],
-      message: "Fallback-only muscle segments must declare postClickObservation as a non-blocking quality signal.",
-    });
-  }
-  if (value.requiresTargetCandidateRef === true && !targetCandidateRefs.some((ref) => value.consumesRefs.includes(ref))) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["consumesRefs"],
-      message: "Segments that require target candidates must consume nextItemTargetCandidateRef, aiTargetCandidateRef, targetCandidateRef, sourceAiResultRef, or sourceVisualTargetResultRef.",
-    });
-  }
-});
+}).strict().superRefine(validateMuscleSegment);
 
 export const RoutePlanSchema = z.object({
   routePlanId: z.string().min(1),

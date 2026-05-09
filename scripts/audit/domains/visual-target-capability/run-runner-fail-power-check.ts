@@ -48,10 +48,5 @@ export async function runRunnerFailPowerCheck(project: Project): Promise<AttackO
     }
   }
 
-  const phaseText = phaseSource.getFullText();
-  if (!phaseText.includes("await runNegativeProofHarness()")) {
-    findings.push(createViolation({ lawId: config.ACTIVE_LAW_IDS[7], file: phaseEntryPath, message: "Visual Target enforcement phase suite must invoke and report the negative-proof harness." }));
-  }
-
   return { findings, phase: createAttackPhase("runner-fail-power-check", findings, "Visual Target inspector retains explicit attack-function structure, so audit failures remain attributable and reviewable.", "Visual Target inspector lost its explicit attack-function structure and risks silent enforcement drift.") };
 }

@@ -1,6 +1,7 @@
 import { StructuredRuntimeEventSchema } from "../../types/structured-log.js";
 
 import { createId } from "./ids.js";
+import { resolveAiDebugReason } from "./workbench-ai-debug-support-reason.js";
 
 export type WorkbenchAiDebugEvent = {
   eventType: "AI_INPUT_REQUEST_DEBUG" | "AI_PROMPT_REQUEST_DEBUG" | "AI_REQUEST_DEBUG" | "AI_RAW_RESPONSE_DEBUG" | "AI_NORMALIZED_RESPONSE_DEBUG" | "AI_RESPONSE_DEBUG" | "AI_ERROR_DEBUG" | "AI_INPUT_DEBUG_REJECTED";
@@ -149,31 +150,6 @@ export const splitTraceId = (traceId: string | null): { missionId: string | null
   };
 };
 
-const getAiDebugReason = (input: WorkbenchAiDebugEvent): string | null => {
-  if (input.eventType === "AI_INPUT_REQUEST_DEBUG") {
-    return `AI input request parsed for ${input.taskType}.`;
-  }
-  if (input.eventType === "AI_PROMPT_REQUEST_DEBUG") {
-    return `AI prompt request prepared for ${input.taskType}.`;
-  }
-  if (input.eventType === "AI_REQUEST_DEBUG") {
-    return `AI model request started for ${input.taskType}.`;
-  }
-  if (input.eventType === "AI_INPUT_DEBUG_REJECTED") {
-    return `AI input debug rejected for ${input.taskType}.`;
-  }
-  if (input.eventType === "AI_RESPONSE_DEBUG") {
-    return `AI response captured for ${input.taskType}.`;
-  }
-  if (input.eventType === "AI_RAW_RESPONSE_DEBUG") {
-    return `Raw AI response captured for ${input.taskType}.`;
-  }
-  if (input.eventType === "AI_NORMALIZED_RESPONSE_DEBUG") {
-    return `Normalized AI response captured for ${input.taskType}.`;
-  }
-  return input.failureReason;
-};
-
 const buildAiDebugTraceFields = (input: WorkbenchAiDebugEvent, step: string, trace: { missionId: string | null; mapId: string | null }) => ({
   eventId: createId("event"),
   eventType: input.eventType,
@@ -207,7 +183,7 @@ const buildAiDebugStatusFields = (runtime: WorkbenchAiDebugRuntime, input: Workb
   previousStep: null,
   nextStep: null,
   status: input.status,
-  reason: getAiDebugReason(input),
+  reason: resolveAiDebugReason(input),
   failureReason: input.failureReason,
   reviewRequiredReason: input.status === "review_required" ? input.failureReason : null,
   actionableMessage: input.actionableMessage,

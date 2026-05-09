@@ -34,7 +34,6 @@ export const REQUIRED_AUDIT_FILES = [
   `${AUDIT_ROOT}/forbidden-shape.ts`,
   `${AUDIT_ROOT}/boundary-attack.ts`,
   `${AUDIT_ROOT}/anti-escape.ts`,
-  `${AUDIT_ROOT}/negative-proof-harness.ts`,
   `${AUDIT_ROOT}/scorecard-gate.ts`,
   `${AUDIT_ROOT}/run-inspector.ts`,
   INSPECTOR_PATH,

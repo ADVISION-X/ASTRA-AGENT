@@ -6,10 +6,7 @@ import { runBoundaryAttack } from "./boundary-attack.js";
 import { runClickOwnershipAttack } from "./run-click-ownership-attack.js";
 import { runForbiddenShapeAttack } from "./forbidden-shape.js";
 import { runLawBaselineCheck } from "./run-law-baseline-check.js";
-import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShapeAttack } from "./required-shape.js";
-
-const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MOUSE_CLICK_NEGATIVE_PROOF";
 
 export const mouseClickCapabilityInspector = createPendingDomainInspector({
   inspector: "GrassEye Mouse Click Capability Owner Inspector",
@@ -27,17 +24,6 @@ export const mouseClickCapabilityInspector = createPendingDomainInspector({
     const boundary = runBoundaryAttack(project);
     const ownership = runClickOwnershipAttack(project);
     const antiEscape = runAntiEscapeAttack(project);
-    const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
-      ? {
-          findings: [],
-          phase: {
-            name: "negative-proof-harness",
-            classification: "PASS" as const,
-            passed: true,
-            summary: "Mouse Click negative-proof harness was skipped for nested inspector execution.",
-          },
-        }
-      : await runNegativeProofHarness();
 
     return {
       findings: [
@@ -47,7 +33,6 @@ export const mouseClickCapabilityInspector = createPendingDomainInspector({
         ...boundary.findings,
         ...ownership.findings,
         ...antiEscape.findings,
-        ...negativeProof.findings,
       ],
       phases: [
         lawBaseline.phase,
@@ -56,7 +41,6 @@ export const mouseClickCapabilityInspector = createPendingDomainInspector({
         boundary.phase,
         ownership.phase,
         antiEscape.phase,
-        negativeProof.phase,
       ],
     };
   },

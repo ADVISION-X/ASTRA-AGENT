@@ -57,7 +57,6 @@ export const openInspectionConstants = {
   MAP_CAPABILITY_CATALOG_OPEN_BUILDER_PATH: "src/map-plugins/authoring/capability-catalog/builders/build-ai-open-entries.ts",
   IDEMPOTENCY_PATH: `${OPEN_ROOT}/runtime/open-idempotency.ts`,
   MANIFEST_PATH: "scripts/audit/domains/open-capability/manifest.json",
-  NEGATIVE_PROOF_HARNESS_PATH: "scripts/audit/domains/open-capability/negative-proof-harness.ts",
   INSPECTOR_ENTRY: "scripts/audit/domains/open-capability/inspector.ts",
   RUN_INSPECTOR_PATH: "scripts/audit/domains/open-capability/run-inspector.ts",
   WORKBENCH_PATH: "src/lib/local-runtime/workbench-open-runtime.ts",
@@ -324,7 +323,6 @@ export const OPEN_REQUIRED_FILES = [
   openInspectionConstants.CLOCK_PORT_PATH,
   openInspectionConstants.LOCAL_PROGRAM_PORT_PATH,
   openInspectionConstants.MANIFEST_PATH,
-  openInspectionConstants.NEGATIVE_PROOF_HARNESS_PATH,
   openInspectionConstants.RUN_INSPECTOR_PATH,
   ...openInspectionConstants.CHILDREN.flatMap((child) => [
     `${openInspectionConstants.OPEN_ROOT}/children/${child}/contract.ts`,

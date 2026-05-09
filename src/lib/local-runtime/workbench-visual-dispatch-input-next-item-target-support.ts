@@ -128,46 +128,54 @@ const mapPreparedInputCoordinateSpace = (value: string | null) => {
       : null;
 };
 
-export const buildAiInputScaleMapping = (summary: Record<string, unknown> | null) => {
-  const sourceCoordinateSpace = mapPreparedInputCoordinateSpace(
-    readSummaryString(summary, "preparedInputSourceCoordinateSpace"),
-  );
-  const targetCoordinateSpace = readSummaryString(summary, "preparedInputTargetCoordinateSpace");
-  const sourceScreenshotEvidenceId = readSummaryString(summary, "sourceScreenshotEvidenceId");
-  const sourceWidth = readSummaryNumber(summary, "preparedInputSourceWidth");
-  const sourceHeight = readSummaryNumber(summary, "preparedInputSourceHeight");
-  const targetWidth = readSummaryNumber(summary, "preparedInputTargetWidth");
-  const targetHeight = readSummaryNumber(summary, "preparedInputTargetHeight");
-  const cropOffsetX = readSummaryNumber(summary, "preparedInputCropOffsetX");
-  const cropOffsetY = readSummaryNumber(summary, "preparedInputCropOffsetY");
+type AiInputScaleMapping = {
+  sourceScreenshotEvidenceId: string;
+  sourceCoordinateSpace: "desktop_screen" | "browser_viewport" | "source_image";
+  targetCoordinateSpace: "ai_input";
+  sourceWidth: number;
+  sourceHeight: number;
+  targetWidth: number;
+  targetHeight: number;
+  cropOffsetX: number;
+  cropOffsetY: number;
+  scaleX: number;
+  scaleY: number;
+};
 
-  if (
-    !sourceCoordinateSpace
-    || targetCoordinateSpace !== "ai_input_pixels"
-    || !sourceScreenshotEvidenceId
-    || sourceWidth === null
-    || sourceHeight === null
-    || targetWidth === null
-    || targetHeight === null
-    || cropOffsetX === null
-    || cropOffsetY === null
-  ) {
+const resolveAiInputScaleMappingFields = (summary: Record<string, unknown> | null): AiInputScaleMapping | null => {
+  const requiredValues = {
+    sourceCoordinateSpace: mapPreparedInputCoordinateSpace(readSummaryString(summary, "preparedInputSourceCoordinateSpace")),
+    targetCoordinateSpace: readSummaryString(summary, "preparedInputTargetCoordinateSpace"),
+    sourceScreenshotEvidenceId: readSummaryString(summary, "sourceScreenshotEvidenceId"),
+    sourceWidth: readSummaryNumber(summary, "preparedInputSourceWidth"),
+    sourceHeight: readSummaryNumber(summary, "preparedInputSourceHeight"),
+    targetWidth: readSummaryNumber(summary, "preparedInputTargetWidth"),
+    targetHeight: readSummaryNumber(summary, "preparedInputTargetHeight"),
+    cropOffsetX: readSummaryNumber(summary, "preparedInputCropOffsetX"),
+    cropOffsetY: readSummaryNumber(summary, "preparedInputCropOffsetY"),
+  };
+
+  if (!requiredValues.sourceCoordinateSpace || requiredValues.targetCoordinateSpace !== "ai_input_pixels" || !requiredValues.sourceScreenshotEvidenceId || requiredValues.sourceWidth === null || requiredValues.sourceHeight === null || requiredValues.targetWidth === null || requiredValues.targetHeight === null || requiredValues.cropOffsetX === null || requiredValues.cropOffsetY === null) {
     return null;
   }
 
   return {
-    sourceScreenshotEvidenceId,
-    sourceCoordinateSpace,
-    targetCoordinateSpace: "ai_input" as const,
-    sourceWidth,
-    sourceHeight,
-    targetWidth,
-    targetHeight,
-    cropOffsetX,
-    cropOffsetY,
-    scaleX: sourceWidth / targetWidth,
-    scaleY: sourceHeight / targetHeight,
+    sourceScreenshotEvidenceId: requiredValues.sourceScreenshotEvidenceId,
+    sourceCoordinateSpace: requiredValues.sourceCoordinateSpace,
+    targetCoordinateSpace: "ai_input",
+    sourceWidth: requiredValues.sourceWidth,
+    sourceHeight: requiredValues.sourceHeight,
+    targetWidth: requiredValues.targetWidth,
+    targetHeight: requiredValues.targetHeight,
+    cropOffsetX: requiredValues.cropOffsetX,
+    cropOffsetY: requiredValues.cropOffsetY,
+    scaleX: requiredValues.sourceWidth / requiredValues.targetWidth,
+    scaleY: requiredValues.sourceHeight / requiredValues.targetHeight,
   };
+};
+
+export const buildAiInputScaleMapping = (summary: Record<string, unknown> | null) => {
+  return resolveAiInputScaleMappingFields(summary);
 };
 
 const clampToRange = (value: number, minimum: number, maximum: number) =>

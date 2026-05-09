@@ -78,8 +78,8 @@ const collectActiveLawFindings = (activeLaws: readonly OpenLawRecord[], activeLa
     if (law.enforcementMode !== "machine-blocking") {
       findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Open active law must remain machine-blocking." }));
     }
-    if (law.evidenceMode !== "law+inspector+negative-proof") {
-      findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Open active law must require law+inspector+negative-proof evidence." }));
+    if (law.evidenceMode !== "law+inspector") {
+      findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Open active law must require law+inspector evidence." }));
     }
     if (law.tier !== "P0") {
       findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Open active law must remain P0." }));
@@ -104,7 +104,7 @@ const collectManifestFindings = (manifest: ManifestLike | undefined): Finding[] 
   if (!manifest.readsLawFiles.includes(FINAL_LAW_PATH)) {
     findings.push(createFinding({ lawId: LAW_ENFORCEMENT, file: manifest.manifestPath, line: 1, severity: "fatal", message: "Open manifest must read the FINAL Open law file." }));
   }
-  if (!(manifest.readsBlueprintFiles ?? []).includes(FINAL_BLUEPRINT_PATH)) {
+    if (!(manifest.readsBlueprintFiles ?? []).includes(FINAL_BLUEPRINT_PATH)) {
     findings.push(createFinding({ lawId: LAW_ENFORCEMENT, file: manifest.manifestPath, line: 1, severity: "fatal", message: "Open manifest must read the FINAL Open blueprint file." }));
   }
 

@@ -28,7 +28,7 @@ type OwnerAuditRunResult = {
 const execFileAsync = promisify(execFile);
 const BUILD_ARTIFACTS_ENV = "GRASSEYE_OWNER_BUILD_ARTIFACTS";
 const MAX_RSS_ENV = "GRASSEYE_OWNER_AUDIT_MAX_RSS_MB";
-const DEFAULT_MAX_RSS_MB = 6_000;
+const DEFAULT_MAX_RSS_MB = 4_500;
 const RESOURCE_SAMPLE_INTERVAL_MS = 1_000;
 
 const readPositiveIntegerEnv = (name: string): number | undefined => {
@@ -96,7 +96,7 @@ const assertGeneratedArtifactsExist = async (): Promise<void> => {
   ];
   for (const artifactPath of required) {
     if (!(await fileExists(artifactPath))) {
-      throw new Error("Owner audit requires generated artifacts. Run `npm run audit:build` first, or set GRASSEYE_OWNER_BUILD_ARTIFACTS=1 for an explicit standalone rebuild.");
+      throw new Error("Owner audit requires generated artifacts. Run ci:full first, or set GRASSEYE_OWNER_BUILD_ARTIFACTS=1 for an explicit standalone rebuild.");
     }
   }
 };

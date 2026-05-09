@@ -14,8 +14,6 @@ const MANIFEST_FILE = "scripts/audit/domains/index/manifest.json";
 const INSPECTOR_ENTRY = "scripts/audit/domains/index/inspector.ts";
 const RUN_INSPECTOR_FILE = "scripts/audit/domains/index/run-inspector.ts";
 const NESTED_RUN_INSPECTOR_FILE = "scripts/audit/domains/index/run-inspector-nested.ts";
-const NEGATIVE_PROOF_HARNESS_FILE = "scripts/audit/domains/index/negative-proof-harness.ts";
-const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_INDEX_NEGATIVE_PROOF";
 
 export const indexInspectionConstants = {
   REQUIREMENT_ID_001,
@@ -33,6 +31,4 @@ export const indexInspectionConstants = {
   INSPECTOR_ENTRY,
   RUN_INSPECTOR_FILE,
   NESTED_RUN_INSPECTOR_FILE,
-  NEGATIVE_PROOF_HARNESS_FILE,
-  SKIP_NEGATIVE_PROOF_ENV,
 } as const;
