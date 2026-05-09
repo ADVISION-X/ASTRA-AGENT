@@ -69,19 +69,30 @@ const hasTerminalPayloadRefsRelay = (sourceFile: import("ts-morph").SourceFile):
     && variableInitializerReferencesIdentifier(functionNode, "refs", "payloadRefs");
 };
 
+const hasTerminalDedupeResolverShape = (dedupeResolver: import("ts-morph").FunctionDeclaration): boolean => (
+  dedupeResolver.getText().includes("runtimeCallId")
+  && dedupeResolver.getText().includes("eventType")
+  && dedupeResolver.getText().includes("implementationStatus")
+  && dedupeResolver.getText().includes("diagnosticPayloadRef")
+);
+
+const hasTerminalDedupeListenerShape = (
+  listener: import("ts-morph").FunctionDeclaration,
+  sourceText: string,
+): boolean => (
+  sourceText.includes("MAX_TERMINAL_DEDUPE_KEYS")
+  && listener.getText().includes("mirroredRuntimeDedupeKeys")
+  && listener.getText().includes('eventType.startsWith("AI_")')
+);
+
 const hasBoundedAiDebugTerminalDedupe = (sourceFile: import("ts-morph").SourceFile): boolean => {
   const listener = sourceFile.getFunction("createStructuredTerminalLogListener");
   const dedupeResolver = sourceFile.getFunction("resolveTerminalDedupeKey");
-  const sourceText = sourceFile.getFullText();
-  return !!listener
-    && !!dedupeResolver
-    && dedupeResolver.getText().includes("runtimeCallId")
-    && dedupeResolver.getText().includes("eventType")
-    && dedupeResolver.getText().includes("implementationStatus")
-    && dedupeResolver.getText().includes("diagnosticPayloadRef")
-    && sourceText.includes("MAX_TERMINAL_DEDUPE_KEYS")
-    && listener.getText().includes("mirroredRuntimeDedupeKeys")
-    && listener.getText().includes('eventType.startsWith("AI_")');
+  if (!listener || !dedupeResolver) {
+    return false;
+  }
+
+  return hasTerminalDedupeResolverShape(dedupeResolver) && hasTerminalDedupeListenerShape(listener, sourceFile.getFullText());
 };
 
 export const collectTerminalRelayFinding = (project: import("ts-morph").Project): Finding[] => {

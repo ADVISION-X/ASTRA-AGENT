@@ -35,8 +35,8 @@ export const ROUTE_PLAN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   {
     name: "route plan semantic judgment mutation",
     file: "src/map-plugins/route-plans/product-discovery-route-plan.steps.ts",
-    search: '    stepId: "observe-comments-button",\n',
-    replace: '    stepId: "observe-comments-button",\n    semanticDecision: "product_yes",\n',
+    search: '    stepId: "observe-comments-entry-page-state",\n',
+    replace: '    stepId: "observe-comments-entry-page-state",\n    semanticDecision: "product_yes",\n',
   },
   {
     name: "fifth core muscle mutation",
@@ -64,7 +64,7 @@ export const ROUTE_PLAN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   },
   {
     name: "press next video key success direct capture mutation",
-    file: "src/map-plugins/route-plans/product-discovery-route-plan.transitions.ts",
+    file: "src/map-plugins/route-plans/product-discovery-route-plan.transitions.next-item.ts",
     search: '    transitionId: "press-next-video-key:success",\n    fromStepId: "press-next-video-key",\n    onStatus: "success",\n    toStepId: "capture-next-item-verification-viewport",',
     replace: '    transitionId: "press-next-video-key:success",\n    fromStepId: "press-next-video-key",\n    onStatus: "success",\n    toStepId: "capture-current-video-viewport",',
   },

@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { access, readFile, unlink, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
+import { withNestedNegativeProofEnv } from "../../core/nested-negative-proof.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
@@ -170,10 +171,10 @@ function runInspectorProcess(skipBuild = true): { status: number | null; stdout:
     {
       cwd: pathFromRepoRoot("."),
       encoding: "utf8",
-      env: {
+      env: withNestedNegativeProofEnv({
         ...process.env,
         [SKIP_NEGATIVE_PROOF_ENV]: "1",
-      },
+      }),
     },
   );
 

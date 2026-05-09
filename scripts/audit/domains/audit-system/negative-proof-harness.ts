@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
+import { withNestedNegativeProofEnv } from "../../core/nested-negative-proof.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
 import { writeStaticClauseCoverageProof } from "./write-static-clause-coverage-proof.js";
 
@@ -163,14 +164,14 @@ function runInspectorProcess(skipBuild = false): InspectorProcessResult {
     {
       cwd: pathFromRepoRoot("."),
       encoding: "utf8",
-      env: {
+      env: withNestedNegativeProofEnv({
         ...process.env,
         [SKIP_NEGATIVE_PROOF_ENV]: "1",
         [SKIP_CODE_PURITY_NEGATIVE_PROOF_ENV]: "1",
         [SKIP_AUDIT_SYSTEM_CODE_PURITY_ENV]: "1",
         [NEGATIVE_PROOF_PHASE_ENV]: "static-clause-coverage",
         TSX_DISABLE_CACHE: "1",
-      },
+      }),
     },
   );
 

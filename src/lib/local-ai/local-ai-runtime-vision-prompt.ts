@@ -25,39 +25,37 @@ export const resolveExpectedFrameLabels = (request: VisionProductPresenceRequest
   return ["adaptive_first", "adaptive_mid", "adaptive_late"];
 };
 
-const buildVisionOutputTemplate = (request: VisionProductPresenceRequest) => ({
-  taskType: "vision.productPresence",
-  promptId: "vision.productPresence.v1",
-  promptVersion: "v1",
-  schemaVersion: "vision.productPresence.schema.v1",
-  inputMode: request.input.inputMode,
-  multiFrameEvidenceSetId: request.input.multiFrameEvidenceSetId,
-  contactSheetEvidenceId: request.input.contactSheetEvidenceId,
-  frameEvidenceIds: request.input.frameEvidenceIds,
-  screenshotEvidenceId: request.input.screenshotEvidenceId,
-  sampledFrameCount: request.input.sampledFrameCount,
-  validFrameCount: request.input.validFrameCount,
-  expectedFrameCount: request.input.expectedFrameCount,
-  fallbackReason: request.input.fallbackReason,
-  missingFrames: request.input.missingFrames,
-  isProductVideo: null,
-  decision: "product_no",
-  routeLabel: PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
-  nonExecutableSummary: "当前证据未证明产品展示，选择非产品路线标签。",
-  confidence: 0.24,
-  visibleProductTypes: [],
-  evidenceObservations: ["describe only what is visibly present in the sampled frames"],
-  reason: "one sentence explaining the product-presence decision",
-  frameLevelObservations: [{
-    frameLabel: resolveExpectedFrameLabels(request)[0] ?? "adaptive_first",
-    hasVisibleProduct: null,
-    visibleProductTypes: [],
-    observations: ["one short frame-level observation"],
-  }],
-  aggregateReason: "one sentence summarizing all sampled frames together",
-  uncertainty: [],
-  mustReview: false,
-});
+const buildVisionOutputFieldGuide = (request: VisionProductPresenceRequest): string[] => {
+  const firstFrameLabel = resolveExpectedFrameLabels(request)[0] ?? "adaptive_first";
+  return [
+    'taskType = "vision.productPresence"',
+    'promptId = "vision.productPresence.v1"',
+    'promptVersion = "v1"',
+    'schemaVersion = "vision.productPresence.schema.v1"',
+    `inputMode = ${JSON.stringify(request.input.inputMode)}`,
+    `multiFrameEvidenceSetId = ${JSON.stringify(request.input.multiFrameEvidenceSetId)}`,
+    `contactSheetEvidenceId = ${JSON.stringify(request.input.contactSheetEvidenceId)}`,
+    `frameEvidenceIds = ${JSON.stringify(request.input.frameEvidenceIds)}`,
+    `screenshotEvidenceId = ${JSON.stringify(request.input.screenshotEvidenceId)}`,
+    `sampledFrameCount = ${String(request.input.sampledFrameCount)}`,
+    `validFrameCount = ${String(request.input.validFrameCount)}`,
+    `expectedFrameCount = ${String(request.input.expectedFrameCount)}`,
+    `fallbackReason = ${JSON.stringify(request.input.fallbackReason)}`,
+    `missingFrames = ${JSON.stringify(request.input.missingFrames)}`,
+    'isProductVideo = true when the visible frame shows a concrete product presentation; otherwise false',
+    'decision = "product_yes" when isProductVideo=true, otherwise "product_no"',
+    `routeLabel = ${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL} when decision=product_yes, otherwise ${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}`,
+    'nonExecutableSummary = one short grounded Chinese sentence describing what is visibly shown',
+    'confidence = one grounded JSON number from 0 to 1',
+    'visibleProductTypes = concrete visible product/category names, or [] when none are visible',
+    'evidenceObservations = 1 to 3 short grounded observations from the visible frame only',
+    'reason = one grounded Chinese sentence explaining the decision',
+    `frameLevelObservations = array with one object for ${firstFrameLabel} using grounded observations`,
+    'aggregateReason = one grounded Chinese sentence summarizing the visible evidence',
+    'uncertainty = [] unless a specific visible limitation matters',
+    'mustReview = false',
+  ];
+};
 
 export const buildVisionPromptParts = (request: VisionProductPresenceRequest): VisionPromptParts => {
   const contract = VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT;
@@ -76,9 +74,10 @@ export const buildVisionPromptParts = (request: VisionProductPresenceRequest): V
     "If a concrete product is clearly being demonstrated, displayed, used, unboxed, compared, worn, held, installed, assembled, or shown for sale, return decision=product_yes, isProductVideo=true, and list the visible product types.",
     `If the sampled evidence does not visibly show that kind of product presentation, return decision=product_no, isProductVideo=false, routeLabel=${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}, and explain the missing visual proof.`,
     "nonExecutableSummary is logging-only. confidence must be a JSON number from 0 to 1. mustReview must stay false. uncertainty may explain a no decision but must never become a third branch.",
-    "Never copy placeholders into confidence, evidenceObservations, reason, aggregateReason, uncertainty, or frameLevelObservations.",
+    "Do not echo schema instructions, placeholder wording, or translated template text. Every output string must be grounded in the visible image content.",
     `Evidence metadata: ${JSON.stringify(evidenceMetadata)}`,
-    `Return JSON structurally similar to this template: ${JSON.stringify(buildVisionOutputTemplate(request))}`,
+    "Return one JSON object with exactly these fields and grounded values:",
+    ...buildVisionOutputFieldGuide(request),
   ].join("\n\n");
 
   return {

@@ -5,7 +5,10 @@ import { createAuditProject, getSourceFileOrThrow } from "../_shared/ast-helpers
 import { scanFilesForPatterns } from "../_shared/scan-for-patterns.js";
 import { resolveEvidenceStorePath } from "./evidence-store-source.js";
 import { hasLocalSecurityBoundary } from "./local-security-boundary-gate.js";
+import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { SENSITIVE_PATTERNS } from "./sensitive-pattern-rules.js";
+
+const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_SECURITY_PRIVACY_NEGATIVE_PROOF";
 
 const createLocalBoundaryPhase = (passed: boolean) =>
   createPhase(
@@ -35,12 +38,24 @@ export const runSecurityPrivacyExtraChecks = async () => {
   const evidenceStoreSource = getSourceFileOrThrow(project, evidenceStorePath);
   const findings = await scanFilesForPatterns(sourceFiles, SENSITIVE_PATTERNS);
   const localBoundaryPassed = hasLocalSecurityBoundary(serverSource, evidenceStoreSource);
+  const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV] === "1"
+    ? {
+        findings: [],
+        phase: createPhase(
+          "negative-proof-harness",
+          "PASS",
+          true,
+          "Security privacy negative-proof harness was skipped for nested inspector execution.",
+        ),
+      }
+    : await runNegativeProofHarness();
 
   return {
-    findings,
+    findings: [...findings, ...negativeProof.findings],
     phases: [
       createLocalBoundaryPhase(localBoundaryPassed),
       createSensitiveSurfacePhase(findings.length),
+      negativeProof.phase,
     ],
   };
 };

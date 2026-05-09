@@ -4,15 +4,17 @@ import { createAuditProject } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
 
 import { commanderConsoleInspectionConstants } from "./inspection-constants.js";
-import { runCommanderBoundaryChecks } from "./run-commander-boundary-checks.js";
-import { runCommanderChildChecks } from "./run-commander-child-checks.js";
-import { runCommanderRuntimeChecks } from "./run-commander-runtime-checks.js";
-import { runStartupReadinessGateChecks } from "./run-startup-readiness-gate-checks.js";
-import { runStartupExitClassificationChecks } from "./startup-exit-classification-checks.js";
-import { runStartupExitNegativeProof } from "./startup-exit-negative-proof.js";
-import { runCommanderStructureChecks } from "./run-commander-structure-checks.js";
-import { runAppRunLimitSettingsGovernanceChecks } from "./run-app-run-limit-settings-governance-checks.js";
-import { runTemplateRunLimitGovernanceChecks } from "./run-template-run-limit-governance-checks.js";
+import {
+  runAppRunLimitSettingsGovernanceChecks,
+  runCommanderBoundaryChecks,
+  runCommanderChildChecks,
+  runCommanderRuntimeChecks,
+  runCommanderStructureChecks,
+  runStartupExitClassificationChecks,
+  runStartupExitNegativeProof,
+  runStartupReadinessGateChecks,
+  runTemplateRunLimitGovernanceChecks,
+} from "./inspection-check-groups.js";
 
 const { ROOT } = commanderConsoleInspectionConstants;
 const SKIP_STARTUP_EXIT_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_COMMANDER_STARTUP_EXIT_NEGATIVE_PROOF";

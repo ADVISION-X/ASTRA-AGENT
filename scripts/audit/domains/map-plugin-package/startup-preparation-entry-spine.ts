@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import { loadBuiltinMapPackages } from "../../../../src/map-plugins/builtins/index.js";
+import { findRoutePlanById } from "../../../../src/map-plugins/route-plans/index.js";
 import {
   STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
   STARTUP_PREPARATION_READY_ROUTE_LABEL,
@@ -80,6 +81,7 @@ type MapPackage = ReturnType<typeof loadBuiltinMapPackages>[number];
 type MapStep = MapPackage["operationalMap"]["steps"][number];
 type MapTransition = MapPackage["operationalMap"]["transitions"][number];
 type PromptBinding = MapPackage["promptBindings"]["bindings"][number];
+type RoutePlan = NonNullable<ReturnType<typeof findRoutePlanById>>;
 
 const toMapFile = (packageId: string) => `${ROOT}/builtins/${packageId.replace("builtin.", "")}.meta.map-package.json`;
 
@@ -177,9 +179,9 @@ const collectAllowedStepFindings = (mapPackage: MapPackage, file: string): Findi
       })],
   );
 
-const collectStartupPreparationFindings = (mapPackage: MapPackage, file: string): Finding[] => {
+const collectStartupPreparationFindings = (mapPackage: MapPackage, routePlan: RoutePlan | null, file: string): Finding[] => {
   const findings: Finding[] = [];
-  const startupStep = mapPackage.operationalMap.steps.find((step) => step.stepId === "startup-preparation");
+  const startupStep = routePlan?.steps.find((step) => step.stepId === "startup-preparation");
   if (!startupStep) {
     findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "Seeding map must declare startup-preparation AI handoff step." }));
   } else if (
@@ -201,7 +203,7 @@ const collectStartupPreparationFindings = (mapPackage: MapPackage, file: string)
     findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "Seeding map promptBindings must bind startup-preparation to promptInputRef and ai.page_preparation_judgment.v1." }));
   }
 
-  const transitions = mapPackage.operationalMap.transitions;
+  const transitions = routePlan?.transitions ?? [];
   const requiredTransitions = [
     {
       transitionId: `startup-preparation:${STARTUP_PREPARATION_READY_ROUTE_LABEL}`,
@@ -240,9 +242,9 @@ const collectStartupPreparationFindings = (mapPackage: MapPackage, file: string)
   return findings;
 };
 
-const collectProductJudgmentHandoffFindings = (mapPackage: MapPackage, file: string): Finding[] => {
+const collectProductJudgmentHandoffFindings = (mapPackage: MapPackage, routePlan: RoutePlan | null, file: string): Finding[] => {
   const findings: Finding[] = [];
-  const judgeStep = mapPackage.operationalMap.steps.find((step) => step.stepId === "judge-seeding-video");
+  const judgeStep = routePlan?.steps.find((step) => step.stepId === "judge-seeding-video");
   if (!judgeStep) {
     findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "Seeding map must declare judge-seeding-video as the AI product judgment handoff." }));
   } else if (
@@ -277,17 +279,6 @@ const collectProductJudgmentHandoffFindings = (mapPackage: MapPackage, file: str
       message: "Map must not own judge-seeding-video success routing; Route Plan owns product routeLabel action chains.",
       detail: forbiddenSuccessTransitions.map((transition) => transition.transitionId).join(", "),
     }));
-  }
-
-  const invalidJudgeFailure = !hasTransition(mapPackage.operationalMap.transitions, {
-    transitionId: "judge-seeding-video:failed",
-    fromStepId: "judge-seeding-video",
-    onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
-  });
-  if (invalidJudgeFailure) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file, line: 1, severity: "fatal", message: "Map may keep only judge-seeding-video:failed as a local product-judgment terminal transition." }));
   }
 
   return findings;
@@ -329,11 +320,12 @@ const inspectSeedingStartupPreparation = (packageId: string): Finding[] => {
   }
 
   const file = toMapFile(packageId);
+  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
   const findings: Finding[] = [
     ...collectAllowedStepFindings(mapPackage, file),
     ...collectForbiddenFrameFindings(mapPackage, file),
-    ...collectStartupPreparationFindings(mapPackage, file),
-    ...collectProductJudgmentHandoffFindings(mapPackage, file),
+    ...collectStartupPreparationFindings(mapPackage, routePlan, file),
+    ...collectProductJudgmentHandoffFindings(mapPackage, routePlan, file),
     ...collectRoutePlanBoundaryFindings(mapPackage, file),
   ];
 

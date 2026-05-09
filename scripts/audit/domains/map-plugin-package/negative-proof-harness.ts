@@ -7,6 +7,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
+import { withNestedNegativeProofEnv } from "../../core/nested-negative-proof.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState, type AuditFileState } from "../_shared/read-audit-file-state.js";
 import { MAP_PLUGIN_LAWS } from "./constants.js";
 import { MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS as MUTATIONS, type Mutation } from "./negative-proof-mutations.js";
@@ -90,7 +91,7 @@ const summarizeInspectorFailure = (result: InspectorRunResult): string => {
     .join(" | ");
 };
 
-const buildInspectorEnv = () => ({
+const buildInspectorEnv = () => withNestedNegativeProofEnv({
   ...process.env,
   [SKIP_NEGATIVE_PROOF_ENV]: "1",
   NODE_DISABLE_COMPILE_CACHE: "1",

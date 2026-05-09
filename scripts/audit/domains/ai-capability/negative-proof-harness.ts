@@ -7,7 +7,8 @@ import { pathFromRepoRoot } from "../../core/paths.js";
 import type { Finding, InspectorPhase, InspectorResult } from "../../core/schema.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
 import { writeProductionMutationProof } from "../_shared/production-mutation-proof-writer.js";
-import { MUTATIONS, MUTATION_LAW_COVERAGE, SKIP_NEGATIVE_PROOF_ENV, type Mutation } from "./negative-proof-definitions.js";
+import { MUTATIONS, SKIP_NEGATIVE_PROOF_ENV, type Mutation } from "./negative-proof-definitions.js";
+import { MUTATION_LAW_COVERAGE } from "./negative-proof-law-coverage.js";
 
 type InspectorRun = {
   passed: boolean;

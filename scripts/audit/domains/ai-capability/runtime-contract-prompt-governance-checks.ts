@@ -101,6 +101,23 @@ const findRuntimeMapperPromptViolations = (sourceFile: SourceFile): Finding[] =>
   return [createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006A-V1", file: `${AI_ROOT}/runtime-adapters/local-ai-runtime-mapper.ts`, line: 1, severity: "fatal", message: "Local AI runtime mapper must use governed typed prompt resolution and must not call throw-based legacy prompt helpers." })];
 };
 
+const hasRetiredCommentCommercialPrompt = (promptRegistryText: string): boolean => {
+  return existsSync(pathFromRepoRoot(LEGACY_COMMENT_INTENT_PROMPT_PATH))
+    || promptRegistryText.includes("comments.intent_analysis.v1.prompt-contract.json");
+};
+
+const rejectsCommentCommercialRuntimeExecution = (localRuntimeText: string): boolean => {
+  return localRuntimeText.includes("comments.intent_analysis is not allowed")
+    && !localRuntimeText.includes("executeCommentSignalRuntimeTask");
+};
+
+const rejectsCommentCommercialFallbackSynthesis = (governedTaskText: string): boolean => {
+  return governedTaskText.includes("comments.intent_analysis is not allowed")
+    && governedTaskText.includes("product.signal_summary is not allowed")
+    && !governedTaskText.includes("purchaseIntent =")
+    && !governedTaskText.includes("candidate generated from evidence-backed vision and comment signals");
+};
+
 const findCommentCommercialBoundaryViolations = (project: Project): Finding[] => {
   const promptRegistryCatalogSource = getSourceOrThrow(project, `${AI_ROOT}/prompt-contracts/registry.ts`);
   const localRuntimeExecutionSource = getSourceOrThrow(project, "src/lib/local-ai/local-ai-runtime-execution.ts");
@@ -110,18 +127,13 @@ const findCommentCommercialBoundaryViolations = (project: Project): Finding[] =>
   const localRuntimeText = localRuntimeExecutionSource.getFullText();
   const governedTaskText = governedTaskSource.getFullText();
 
-  if (existsSync(pathFromRepoRoot(LEGACY_COMMENT_INTENT_PROMPT_PATH)) || promptRegistryText.includes("comments.intent_analysis.v1.prompt-contract.json")) {
+  if (hasRetiredCommentCommercialPrompt(promptRegistryText)) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006A-V1", file: `${AI_ROOT}/prompt-contracts/registry.ts`, line: 1, severity: "fatal", message: "Local AI prompt governance must not retain comments.intent_analysis commercial-analysis contracts once comments evidence is evidence-only." }));
   }
-  if (!localRuntimeText.includes("comments.intent_analysis is not allowed") || localRuntimeText.includes("executeCommentSignalRuntimeTask")) {
+  if (!rejectsCommentCommercialRuntimeExecution(localRuntimeText)) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006A-V1", file: "src/lib/local-ai/local-ai-runtime-execution.ts", line: 1, severity: "fatal", message: "Local AI runtime must hard-reject comments.intent_analysis instead of executing local commercial comment analysis." }));
   }
-  if (
-    !governedTaskText.includes("comments.intent_analysis is not allowed")
-    || !governedTaskText.includes("product.signal_summary is not allowed")
-    || governedTaskText.includes("purchaseIntent =")
-    || governedTaskText.includes("candidate generated from evidence-backed vision and comment signals")
-  ) {
+  if (!rejectsCommentCommercialFallbackSynthesis(governedTaskText)) {
     findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-006A-V1", file: "src/lib/local-ai/governed-task-execution.ts", line: 1, severity: "fatal", message: "Governed local AI fallback must not synthesize purchase intent, pain points, demand terms, or downstream commercial conclusions." }));
   }
 

@@ -1,6 +1,7 @@
 import { readJsonFile, writeJsonFile } from "./filesystem.js";
 import { getRegisteredInspector } from "./inspector-registry.js";
 import { generatedArtifactPaths } from "./generated-artifact-paths.js";
+import { shouldBypassDefaultNegativeProofSkips } from "./nested-negative-proof.js";
 import { defaultPhaseGatePath, repoRoot } from "./path-roots.js";
 import path from "node:path";
 import type {
@@ -48,6 +49,13 @@ const applyProductionMutationNegativeProofBan = (): void => {
 	if (process.env[RUN_NEGATIVE_PROOF_ENV] === "1") {
 		return;
 	}
+
+  if (shouldBypassDefaultNegativeProofSkips()) {
+    for (const envName of PRODUCTION_MUTATION_NEGATIVE_PROOF_SKIP_ENV) {
+      delete process.env[envName];
+    }
+    return;
+  }
 
   for (const envName of PRODUCTION_MUTATION_NEGATIVE_PROOF_SKIP_ENV) {
     process.env[envName] = "1";

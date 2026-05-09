@@ -30,38 +30,50 @@ export const getBuildBeforeLoadViolationLine = (sourceFile: AuditSourceFile): nu
   return undefined;
 };
 
+const loadsInspectorFromPlanLoop = (planLoop: import("ts-morph").ForOfStatement | undefined): boolean => {
+  const planLoopCalls = planLoop?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
+  return planLoopCalls.some((callExpression) => {
+    const expression = callExpression.getExpression();
+    if (!Node.isIdentifier(expression) || expression.getText() !== "loadInspector") {
+      return false;
+    }
+
+    const entryArgument = callExpression.getArguments()[0];
+    const entryPath = getExpressionPath(entryArgument && Node.isExpression(entryArgument) ? entryArgument : undefined);
+    return entryPath.length === 2 && entryPath[0] === "planOwner" && entryPath[1] === "entry";
+  });
+};
+
+const hasIndexedPlanOwnerBinding = (sourceFile: AuditSourceFile): boolean => {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.VariableDeclaration).some((declaration) =>
+    declaration.getName() === "planOwner"
+    && declaration.getInitializer()?.getText() === "artifacts.auditPlan.owners[i]",
+  );
+};
+
+const loadsInspectorFromIndexedPlanOwner = (sourceFile: AuditSourceFile): boolean => {
+  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+    const expression = callExpression.getExpression();
+    if (!Node.isIdentifier(expression) || expression.getText() !== "loadInspector") {
+      return false;
+    }
+
+    const entryArgument = callExpression.getArguments()[0];
+    const entryPath = getExpressionPath(entryArgument && Node.isExpression(entryArgument) ? entryArgument : undefined);
+    return entryPath.length === 2 && entryPath[0] === "planOwner" && entryPath[1] === "entry";
+  });
+};
+
 export const getPlanDrivenInspectorViolationLine = (sourceFile: AuditSourceFile): number | undefined => {
   const planLoop = sourceFile.getDescendantsOfKind(SyntaxKind.ForOfStatement).find((statement) => {
     const expressionPath = getExpressionPath(statement.getExpression());
     return expressionPath.length === 3 && expressionPath[0] === "artifacts" && expressionPath[1] === "auditPlan" && expressionPath[2] === "owners";
   });
-  const planLoopCalls = planLoop?.getDescendantsOfKind(SyntaxKind.CallExpression) ?? [];
-  const loadsInspectorFromPlan = planLoopCalls.some((callExpression) => {
-    const expression = callExpression.getExpression();
-    if (!Node.isIdentifier(expression) || expression.getText() !== "loadInspector") {
-      return false;
-    }
+  const loadsInspectorFromPlan = loadsInspectorFromPlanLoop(planLoop);
+  const planOwnerFromGeneratedPlan = hasIndexedPlanOwnerBinding(sourceFile);
+  const loadsInspectorFromPlanOwner = loadsInspectorFromIndexedPlanOwner(sourceFile);
 
-    const entryArgument = callExpression.getArguments()[0];
-    const entryPath = getExpressionPath(entryArgument && Node.isExpression(entryArgument) ? entryArgument : undefined);
-    return entryPath.length === 2 && entryPath[0] === "planOwner" && entryPath[1] === "entry";
-  });
-  const planOwnerFromGeneratedPlan = sourceFile.getDescendantsOfKind(SyntaxKind.VariableDeclaration).some((declaration) =>
-    declaration.getName() === "planOwner"
-    && declaration.getInitializer()?.getText() === "artifacts.auditPlan.owners[i]"
-  );
-  const loadsInspectorFromIndexedPlanOwner = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
-    const expression = callExpression.getExpression();
-    if (!Node.isIdentifier(expression) || expression.getText() !== "loadInspector") {
-      return false;
-    }
-
-    const entryArgument = callExpression.getArguments()[0];
-    const entryPath = getExpressionPath(entryArgument && Node.isExpression(entryArgument) ? entryArgument : undefined);
-    return entryPath.length === 2 && entryPath[0] === "planOwner" && entryPath[1] === "entry";
-  });
-
-  if ((!planLoop || !loadsInspectorFromPlan) && !(planOwnerFromGeneratedPlan && loadsInspectorFromIndexedPlanOwner)) {
+  if ((!planLoop || !loadsInspectorFromPlan) && !(planOwnerFromGeneratedPlan && loadsInspectorFromPlanOwner)) {
     return getNodeLine(planLoop ?? sourceFile);
   }
 
@@ -117,20 +129,39 @@ export const hasFailureExitAssignment = (sourceFile: AuditSourceFile): boolean =
   return hasExitCodeAssignment || hasFailFastExitCall;
 };
 
-export const hasDefaultNegativeProofPolicyGate = (sourceFile: AuditSourceFile): boolean => {
-  const envDeclaration = sourceFile.getVariableDeclaration("RUN_NEGATIVE_PROOF_ENV");
+const getDefaultNegativeProofSkipValues = (sourceFile: AuditSourceFile): string[] => {
   const skipDeclaration = sourceFile.getVariableDeclaration("DEFAULT_AUDIT_HEAVY_PROOF_SKIP_ENV");
-  const applyPolicy = sourceFile.getFunction("applyDefaultNegativeProofPolicy")
-    ?? sourceFile.getVariableDeclaration("applyDefaultNegativeProofPolicy");
   const skipInitializer = skipDeclaration?.getInitializer();
   const skipArray = Node.isArrayLiteralExpression(skipInitializer)
     ? skipInitializer
     : Node.isAsExpression(skipInitializer)
       ? skipInitializer.getExpression().asKind(SyntaxKind.ArrayLiteralExpression)
       : undefined;
-  const skipValues = skipArray?.getElements()
-    .filter(Node.isStringLiteral)
-    .map((literal) => literal.getLiteralText()) ?? [];
+  return skipArray?.getElements().filter(Node.isStringLiteral).map((literal) => literal.getLiteralText()) ?? [];
+};
+
+const hasNegativeProofPolicyMessages = (sourceText: string): boolean => {
+  return sourceText.includes("production mutation negative proof enabled by GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1.")
+    && sourceText.includes("production mutation negative proof skipped for law-compliance audit.");
+};
+
+const hasPolicyCallBeforeBuild = (sourceFile: AuditSourceFile): boolean => {
+  const policyCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === "applyDefaultNegativeProofPolicy";
+  });
+  const buildCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === "buildAuditArtifacts";
+  });
+  return Boolean(policyCall && buildCall && policyCall.getStart() < buildCall.getStart());
+};
+
+export const hasDefaultNegativeProofPolicyGate = (sourceFile: AuditSourceFile): boolean => {
+  const envDeclaration = sourceFile.getVariableDeclaration("RUN_NEGATIVE_PROOF_ENV");
+  const applyPolicy = sourceFile.getFunction("applyDefaultNegativeProofPolicy")
+    ?? sourceFile.getVariableDeclaration("applyDefaultNegativeProofPolicy");
+  const skipValues = getDefaultNegativeProofSkipValues(sourceFile);
   const requiredSkipValues = [
     "GRASSEYE_SKIP_AI_NEGATIVE_PROOF",
     "GRASSEYE_SKIP_AUDIT_SYSTEM_NEGATIVE_PROOF",
@@ -145,19 +176,10 @@ export const hasDefaultNegativeProofPolicyGate = (sourceFile: AuditSourceFile): 
     "GRASSEYE_SKIP_STRUCTURED_LOGGING_NEGATIVE_PROOF",
   ];
   const sourceText = sourceFile.getFullText();
-  const policyCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
-    const expression = callExpression.getExpression();
-    return Node.isIdentifier(expression) && expression.getText() === "applyDefaultNegativeProofPolicy";
-  });
-  const buildCall = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
-    const expression = callExpression.getExpression();
-    return Node.isIdentifier(expression) && expression.getText() === "buildAuditArtifacts";
-  });
 
   return envDeclaration?.getInitializerIfKind(SyntaxKind.StringLiteral)?.getLiteralText() === "GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF"
-    && sourceText.includes("production mutation negative proof enabled by GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1.")
-    && sourceText.includes("production mutation negative proof skipped for law-compliance audit.")
+    && hasNegativeProofPolicyMessages(sourceText)
     && requiredSkipValues.every((value) => skipValues.includes(value))
     && Boolean(applyPolicy)
-    && Boolean(policyCall && buildCall && policyCall.getStart() < buildCall.getStart());
+    && hasPolicyCallBeforeBuild(sourceFile);
 };

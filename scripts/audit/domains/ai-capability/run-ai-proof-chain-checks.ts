@@ -85,6 +85,25 @@ const AI_INPUT_DEBUG_FILE = `${AI_ROOT}/runtime/ai-execution-input-debug.ts`;
 const AI_INPUT_DEBUG_REJECTED_FILE = `${AI_ROOT}/runtime/ai-execution-input-debug-rejected.ts`;
 const AI_INPUT_PROOF_REGISTRY_FILE = `${AI_ROOT}/shared/ai-input-proof-registry.ts`;
 
+type AiInputProofDebugSources = {
+  requestDebugSource: SourceFile;
+  inputDebugSource: SourceFile;
+  rejectedDebugSource: SourceFile;
+  inputGateSource: SourceFile;
+  executorSource: SourceFile;
+  registrySource: SourceFile;
+  workbenchRequestSource: SourceFile;
+};
+
+type AiProofChainSources = AiInputProofDebugSources & {
+  chainFieldSource: SourceFile;
+  inputSchemaSource: SourceFile;
+  runtimeSchemaSource: SourceFile;
+  proofBuilderSource: SourceFile;
+  idempotencySource: SourceFile;
+  aiDebugSupportSource: SourceFile;
+};
+
 function hasAiDebugTraceStepSafeAssignment(sourceFile: SourceFile): boolean {
   // buildAiDebugTraceFields is a const arrow function.
   const callable = getNamedCallable(sourceFile, "buildAiDebugTraceFields");
@@ -114,81 +133,122 @@ function hasPropertyUsingText(sourceFile: SourceFile, callableName: string, prop
   ) ?? false;
 }
 
-function hasAiInputProofDebugChain(input: {
-  requestDebugSource: SourceFile;
-  inputDebugSource: SourceFile;
-  rejectedDebugSource: SourceFile;
-  inputGateSource: SourceFile;
-  executorSource: SourceFile;
-  registrySource: SourceFile;
-  workbenchRequestSource: SourceFile;
-}): boolean {
+const hasRequestDebugInputProofFields = (input: AiInputProofDebugSources): boolean => {
   return hasImportModuleSpecifier(input.requestDebugSource, "ai-input-proof-registry")
-    && hasImportModuleSpecifier(input.inputDebugSource, "ai-input-proof-registry")
     && hasCallExpressionNamed(input.requestDebugSource, "resolveAiInputProofSummary")
-    && hasCallExpressionNamed(input.inputDebugSource, "resolveAiInputProofSummary")
     && hasPropertyUsingText(input.requestDebugSource, "buildRequestDebugOutput", "sourceScreenshotEvidenceId", "firstProof?.sourceScreenshotEvidenceId")
     && hasPropertyUsingText(input.requestDebugSource, "buildRequestDebugOutput", "aiInputArtifactRef", "firstProof?.aiInputArtifactRef")
     && hasPropertyUsingText(input.requestDebugSource, "buildRequestDebugOutput", "imageInputs", "proofs.map")
     && hasPropertyUsingText(input.requestDebugSource, "buildRequestDebugOutput", "filePath", "proof.aiInputStorageRef")
+    && hasStringLiteral(input.requestDebugSource, "AI_PROMPT_REQUEST_DEBUG");
+};
+
+const hasInputDebugProofFields = (input: AiInputProofDebugSources): boolean => {
+  return hasImportModuleSpecifier(input.inputDebugSource, "ai-input-proof-registry")
+    && hasCallExpressionNamed(input.inputDebugSource, "resolveAiInputProofSummary")
     && hasPropertyUsingText(input.inputDebugSource, "buildInputDebugOutput", "sourceScreenshotEvidenceId", "firstProof?.sourceScreenshotEvidenceId")
     && hasPropertyUsingText(input.inputDebugSource, "buildInputDebugOutput", "aiInputArtifactRef", "firstProof?.aiInputArtifactRef")
     && hasPropertyUsingText(input.inputDebugSource, "buildInputDebugOutput", "imageInputs", "proofs.map")
     && hasPropertyUsingText(input.inputDebugSource, "buildInputDebugOutput", "filePath", "proof.aiInputStorageRef")
-    && hasPropertyUsingText(input.workbenchRequestSource, "buildWorkbenchAiInputRefs", "filePath", "proof.aiInputStorageRef")
-    && hasCallExpressionNamed(input.workbenchRequestSource, "ensureSingleWorkbenchAiInputProof")
-    && hasStringLiteral(input.inputDebugSource, "AI_INPUT_REQUEST_DEBUG")
-    && hasStringLiteral(input.requestDebugSource, "AI_PROMPT_REQUEST_DEBUG")
-    && hasImportModuleSpecifier(input.inputGateSource, "ai-input-proof-registry")
+    && hasStringLiteral(input.inputDebugSource, "AI_INPUT_REQUEST_DEBUG");
+};
+
+const hasWorkbenchInputProofFields = (input: AiInputProofDebugSources): boolean => {
+  return hasPropertyUsingText(input.workbenchRequestSource, "buildWorkbenchAiInputRefs", "filePath", "proof.aiInputStorageRef")
+    && hasCallExpressionNamed(input.workbenchRequestSource, "ensureSingleWorkbenchAiInputProof");
+};
+
+const hasGateAndRejectedInputProofFields = (input: AiInputProofDebugSources): boolean => {
+  return hasImportModuleSpecifier(input.inputGateSource, "ai-input-proof-registry")
     && hasCallExpressionNamed(input.inputGateSource, "resolveAiInputProofSummary")
     && hasStringLiteral(input.inputGateSource, "ai_input_ref_missing")
     && hasStringLiteral(input.inputGateSource, "ai_input_artifact_missing")
     && hasImportModuleSpecifier(input.executorSource, "ai-execution-input-debug-rejected")
     && hasCallExpressionNamed(input.executorSource, "buildRejectedInputDebug")
-    && hasStringLiteral(input.rejectedDebugSource, "AI_INPUT_DEBUG_REJECTED")
-    && Boolean(input.registrySource.getTypeAlias("AiInputProofSummary"))
-    && input.registrySource.getTypeAlias("AiInputProofSummary")?.getText().includes("aiInputStorageRef") === true
-    && Boolean(input.registrySource.getFunction("recordAiInputProofSummary"))
-    && Boolean(input.registrySource.getFunction("resolveAiInputProofSummary"));
+    && hasStringLiteral(input.rejectedDebugSource, "AI_INPUT_DEBUG_REJECTED");
+};
+
+const hasRegistryInputProofSummaryShape = (registrySource: SourceFile): boolean => {
+  const proofSummaryAlias = registrySource.getTypeAlias("AiInputProofSummary");
+  return Boolean(proofSummaryAlias)
+    && proofSummaryAlias?.getText().includes("aiInputStorageRef") === true
+    && Boolean(registrySource.getFunction("recordAiInputProofSummary"))
+    && Boolean(registrySource.getFunction("resolveAiInputProofSummary"));
+};
+
+function hasAiInputProofDebugChain(input: AiInputProofDebugSources): boolean {
+  return hasRequestDebugInputProofFields(input)
+    && hasInputDebugProofFields(input)
+    && hasWorkbenchInputProofFields(input)
+    && hasGateAndRejectedInputProofFields(input)
+    && hasRegistryInputProofSummaryShape(input.registrySource);
 }
 
-export function findProofChainViolations(project: Project): Finding[] {
-  const chainFieldSource = getSourceOrThrow(project, `${AI_ROOT}/schema-chain-fields.ts`);
-  const inputSchemaSource = getSourceOrThrow(project, `${AI_ROOT}/schema-core.schema.ts`);
-  const runtimeSchemaSource = getSourceOrThrow(project, `${AI_ROOT}/schema-runtime.schema.ts`);
-  const workbenchRequestSource = getSourceOrThrow(project, WORKBENCH_AI_REQUEST_BUILDER_FILE);
-  const proofBuilderSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-proof-builder.ts`);
-  const idempotencySource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-idempotency.ts`);
-  const aiDebugSupportSource = getSourceOrThrow(project, WORKBENCH_AI_DEBUG_SUPPORT_FILE);
-  const requestDebugSource = getSourceOrThrow(project, AI_REQUEST_DEBUG_FILE);
-  const inputDebugSource = getSourceOrThrow(project, AI_INPUT_DEBUG_FILE);
-  const rejectedDebugSource = getSourceOrThrow(project, AI_INPUT_DEBUG_REJECTED_FILE);
-  const inputGateSource = getSourceOrThrow(project, AI_INPUT_GATE_FILE);
-  const executorSource = getSourceOrThrow(project, AI_EXECUTOR_FILE);
-  const registrySource = getSourceOrThrow(project, AI_INPUT_PROOF_REGISTRY_FILE);
+const createProofChainFinding = (file: string, message: string): Finding => createFinding({
+  lawId: "GRASSEYE-AI-CAPABILITY-007A-V1",
+  file,
+  line: 1,
+  severity: "fatal",
+  message,
+});
+
+const loadProofChainSources = (project: Project): AiProofChainSources => ({
+  chainFieldSource: getSourceOrThrow(project, `${AI_ROOT}/schema-chain-fields.ts`),
+  inputSchemaSource: getSourceOrThrow(project, `${AI_ROOT}/schema-core.schema.ts`),
+  runtimeSchemaSource: getSourceOrThrow(project, `${AI_ROOT}/schema-runtime.schema.ts`),
+  workbenchRequestSource: getSourceOrThrow(project, WORKBENCH_AI_REQUEST_BUILDER_FILE),
+  proofBuilderSource: getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-proof-builder.ts`),
+  idempotencySource: getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-idempotency.ts`),
+  aiDebugSupportSource: getSourceOrThrow(project, WORKBENCH_AI_DEBUG_SUPPORT_FILE),
+  requestDebugSource: getSourceOrThrow(project, AI_REQUEST_DEBUG_FILE),
+  inputDebugSource: getSourceOrThrow(project, AI_INPUT_DEBUG_FILE),
+  rejectedDebugSource: getSourceOrThrow(project, AI_INPUT_DEBUG_REJECTED_FILE),
+  inputGateSource: getSourceOrThrow(project, AI_INPUT_GATE_FILE),
+  executorSource: getSourceOrThrow(project, AI_EXECUTOR_FILE),
+  registrySource: getSourceOrThrow(project, AI_INPUT_PROOF_REGISTRY_FILE),
+});
+
+const getSchemaContractFindings = (sources: AiProofChainSources): Finding[] => {
   const findings: Finding[] = [];
-
-  if (!hasChainFieldSchemaContract(chainFieldSource)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: `${AI_ROOT}/schema-chain-fields.ts`, line: 1, severity: "fatal", message: "AI chain field schema must define step, envelope, activation, map, and prompt proof fields as governed required fields." }));
+  if (!hasChainFieldSchemaContract(sources.chainFieldSource)) {
+    findings.push(createProofChainFinding(`${AI_ROOT}/schema-chain-fields.ts`, "AI chain field schema must define step, envelope, activation, map, and prompt proof fields as governed required fields."));
   }
-  if (!hasImportModuleSpecifier(inputSchemaSource, "schema-chain-fields") || !hasImportModuleSpecifier(runtimeSchemaSource, "schema-chain-fields")) {
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: `${AI_ROOT}/schema-core.schema.ts`, line: 1, severity: "fatal", message: "AI input and runtime proof schemas must import the governed chain-field schema helper." }));
+  if (!hasImportModuleSpecifier(sources.inputSchemaSource, "schema-chain-fields") || !hasImportModuleSpecifier(sources.runtimeSchemaSource, "schema-chain-fields")) {
+    findings.push(createProofChainFinding(`${AI_ROOT}/schema-core.schema.ts`, "AI input and runtime proof schemas must import the governed chain-field schema helper."));
   }
-  if (!hasWorkbenchChainFields(workbenchRequestSource)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: WORKBENCH_AI_REQUEST_BUILDER_FILE, line: 1, severity: "fatal", message: "Workbench AI requests must inject step, capability call, envelope, map activation, and prompt catalog chain fields from Nerve Bus and active map registry context." }));
-  }
-  if (!hasProofBuilderChainFields(proofBuilderSource)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: `${AI_ROOT}/runtime/ai-proof-builder.ts`, line: 1, severity: "fatal", message: "AI runtime proof must carry capabilityCallId, nerveBusEnvelopeId, activationSnapshotRef, promptContractVersion, and promptCatalogVersion from governed request context." }));
-  }
-  if (!hasIdempotencyChainFields(idempotencySource)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: `${AI_ROOT}/runtime/ai-idempotency.ts`, line: 1, severity: "fatal", message: "AI runtime call identity must hash step and activation chain fields, not just task and payload input." }));
-  }
-  if (!hasAiDebugTraceStepSafeAssignment(aiDebugSupportSource)) {
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: WORKBENCH_AI_DEBUG_SUPPORT_FILE, line: 1, severity: "fatal", message: "AI debug trace builder must use the computed RoundLifecycleStep-safe step value for the structured-event step field; using input.stepId directly causes StructuredRuntimeEventSchema Zod parse failures for orchestration step IDs and silently suppresses AI_REQUEST_DEBUG." }));
-  }
-  if (!hasAiInputProofDebugChain({ requestDebugSource, inputDebugSource, rejectedDebugSource, inputGateSource, executorSource, registrySource, workbenchRequestSource })) {
-    findings.push(createFinding({ lawId: "GRASSEYE-AI-CAPABILITY-007A-V1", file: AI_REQUEST_DEBUG_FILE, line: 1, severity: "fatal", message: "AI request debug must resolve promptInputRef through the governed AI input proof registry, emit sourceScreenshotEvidenceId and aiInputArtifactRef, and reject missing prompt/artifact proof with AI_INPUT_DEBUG_REJECTED before runtime success." }));
-  }
-
   return findings;
+};
+
+const getRuntimeChainFindings = (sources: AiProofChainSources): Finding[] => {
+  const findings: Finding[] = [];
+  if (!hasWorkbenchChainFields(sources.workbenchRequestSource)) {
+    findings.push(createProofChainFinding(WORKBENCH_AI_REQUEST_BUILDER_FILE, "Workbench AI requests must inject step, capability call, envelope, map activation, and prompt catalog chain fields from Nerve Bus and active map registry context."));
+  }
+  if (!hasProofBuilderChainFields(sources.proofBuilderSource)) {
+    findings.push(createProofChainFinding(`${AI_ROOT}/runtime/ai-proof-builder.ts`, "AI runtime proof must carry capabilityCallId, nerveBusEnvelopeId, activationSnapshotRef, promptContractVersion, and promptCatalogVersion from governed request context."));
+  }
+  if (!hasIdempotencyChainFields(sources.idempotencySource)) {
+    findings.push(createProofChainFinding(`${AI_ROOT}/runtime/ai-idempotency.ts`, "AI runtime call identity must hash step and activation chain fields, not just task and payload input."));
+  }
+  return findings;
+};
+
+const getDebugProofChainFindings = (sources: AiProofChainSources): Finding[] => {
+  const findings: Finding[] = [];
+  if (!hasAiDebugTraceStepSafeAssignment(sources.aiDebugSupportSource)) {
+    findings.push(createProofChainFinding(WORKBENCH_AI_DEBUG_SUPPORT_FILE, "AI debug trace builder must use the computed RoundLifecycleStep-safe step value for the structured-event step field; using input.stepId directly causes StructuredRuntimeEventSchema Zod parse failures for orchestration step IDs and silently suppresses AI_REQUEST_DEBUG."));
+  }
+  if (!hasAiInputProofDebugChain(sources)) {
+    findings.push(createProofChainFinding(AI_REQUEST_DEBUG_FILE, "AI request debug must resolve promptInputRef through the governed AI input proof registry, emit sourceScreenshotEvidenceId and aiInputArtifactRef, and reject missing prompt/artifact proof with AI_INPUT_DEBUG_REJECTED before runtime success."));
+  }
+  return findings;
+};
+
+export function findProofChainViolations(project: Project): Finding[] {
+  const sources = loadProofChainSources(project);
+  return [
+    ...getSchemaContractFindings(sources),
+    ...getRuntimeChainFindings(sources),
+    ...getDebugProofChainFindings(sources),
+  ];
 }

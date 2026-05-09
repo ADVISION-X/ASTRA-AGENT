@@ -120,6 +120,45 @@ const collectLiteralFinding = (
   return [];
 };
 
+const collectTargetSurfaceFindings = (
+  relativePath: string,
+  sourceFile: ReturnType<ReturnType<typeof getAuditProject>["getSourceFiles"]>[number],
+): Finding[] => ([
+  ...collectPathFinding(relativePath),
+  ...collectIdentifierFinding(relativePath, sourceFile),
+  ...collectLiteralFinding(relativePath, sourceFile),
+]);
+
+const collectProductPresenceDecisionFindings = (project: ReturnType<typeof getAuditProject>): Finding[] => {
+  const productDecisionSource = project.getSourceFile(PRODUCT_PRESENCE_DECISION_PATH);
+  const productDecisionText = productDecisionSource?.getFullText() ?? "";
+  if (
+    !productDecisionText.includes("PRODUCT_PRESENCE_MIN_CONFIDENCE")
+    && !productDecisionText.includes("lowConfidence")
+    && !productDecisionText.includes("input.confidence <")
+    && !productDecisionText.includes("confidence <")
+  ) {
+    return [];
+  }
+
+  return [createFinding({
+    lawId: LAW_ID_010,
+    file: PRODUCT_PRESENCE_DECISION_PATH,
+    line: 1,
+    severity: "fatal",
+    message: "Product-presence routing code must not judge low confidence or product truth; only AI output may decide product_yes/product_no.",
+  })];
+};
+
+const createAiOnlyCognitionSurfacePhase = (findingCount: number): InspectorPhase => createPhase(
+  "ai-only-cognition-surface-boundary",
+  findingCount === 0 ? "PASS" : "CODE VIOLATION",
+  findingCount === 0,
+  findingCount === 0
+    ? "Non-AI cognition purge targets no longer publish banned cognition-labelled surfaces, including visual-target threshold or detect policy remnants."
+    : "Non-AI cognition purge targets still publish banned cognition-labelled surfaces.",
+);
+
 export function runAiOnlyCognitionSurfaceChecks(project: ReturnType<typeof getAuditProject>): { findings: Finding[]; phases: InspectorPhase[] } {
   const findings: Finding[] = [];
 
@@ -129,39 +168,13 @@ export function runAiOnlyCognitionSurfaceChecks(project: ReturnType<typeof getAu
       continue;
     }
 
-    findings.push(...collectPathFinding(relativePath));
-    findings.push(...collectIdentifierFinding(relativePath, sourceFile));
-    findings.push(...collectLiteralFinding(relativePath, sourceFile));
+    findings.push(...collectTargetSurfaceFindings(relativePath, sourceFile));
   }
 
-  const productDecisionSource = project.getSourceFile(PRODUCT_PRESENCE_DECISION_PATH);
-  const productDecisionText = productDecisionSource?.getFullText() ?? "";
-  if (
-    productDecisionText.includes("PRODUCT_PRESENCE_MIN_CONFIDENCE")
-    || productDecisionText.includes("lowConfidence")
-    || productDecisionText.includes("input.confidence <")
-    || productDecisionText.includes("confidence <")
-  ) {
-    findings.push(createFinding({
-      lawId: LAW_ID_010,
-      file: PRODUCT_PRESENCE_DECISION_PATH,
-      line: 1,
-      severity: "fatal",
-      message: "Product-presence routing code must not judge low confidence or product truth; only AI output may decide product_yes/product_no.",
-    }));
-  }
+  findings.push(...collectProductPresenceDecisionFindings(project));
 
   return {
     findings,
-    phases: [
-      createPhase(
-        "ai-only-cognition-surface-boundary",
-        findings.length === 0 ? "PASS" : "CODE VIOLATION",
-        findings.length === 0,
-        findings.length === 0
-          ? "Non-AI cognition purge targets no longer publish banned cognition-labelled surfaces, including visual-target threshold or detect policy remnants."
-          : "Non-AI cognition purge targets still publish banned cognition-labelled surfaces.",
-      ),
-    ],
+    phases: [createAiOnlyCognitionSurfacePhase(findings.length)],
   };
 }

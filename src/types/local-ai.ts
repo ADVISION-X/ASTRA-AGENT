@@ -112,7 +112,7 @@ const CommentSignalTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("comments.intent_analysis"),
   modelRole: z.literal("commentUnderstanding"),
-  promptVersion: z.literal("comments.intent_analysis.v1"),
+  promptVersion: z.literal("comments.disabled_by_policy.v1"),
   schemaVersion: z.literal("comment-signal.v1"),
   evidenceRefs: z.array(EvidenceRefSchema).min(1),
   input: z.object({

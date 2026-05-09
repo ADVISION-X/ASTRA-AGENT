@@ -38,7 +38,7 @@
       "runtime": "ollama",
       "model": "qwen2.5:3b",
       "executionMode": "local-only",
-      "promptVersion": "comments.intent_analysis.v1",
+      "promptVersion": "comments.disabled_by_policy.v1",
       "schemaVersion": "comment-signal.v1",
       "failureBehavior": "operatorReview",
       "requiredForPhase": "phase-04",

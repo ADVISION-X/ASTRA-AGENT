@@ -23,6 +23,14 @@ function hasUpperBound(text: string): boolean {
   return text.includes(".max(") || text.includes("<=") || text.includes("Math.min") || text.includes("Math.max");
 }
 
+function hasTaskStartBindingUpperBound(normalizerText: string, resolverText: string): boolean {
+  return hasUpperBound(normalizerText) || hasUpperBound(resolverText);
+}
+
+function hasTaskStartBindingDefaultResolution(resolverText: string): boolean {
+  return resolverText.includes("?? input.defaultMaxRounds") && resolverText.includes("?? input.defaultMaxMinutes");
+}
+
 function inspectCommanderFoundationSchema(project: import("ts-morph").Project): Finding[] {
   const source = project.getSourceFile(COMMANDER_FOUNDATION_SCHEMA_FILE);
   if (!source) {
@@ -43,65 +51,80 @@ function inspectCommanderFoundationSchema(project: import("ts-morph").Project): 
   });
 }
 
+function inspectAppRunLimitSettingsSchema(project: import("ts-morph").Project): Finding[] {
+  const settingsSource = project.getSourceFile(SETTINGS_SCHEMA_FILE);
+  if (!settingsSource) {
+    return [createMissingSourceFinding(SETTINGS_SCHEMA_FILE, "app run-limit settings source")];
+  }
+
+  const schemaText = settingsSource.getVariableDeclaration("AppRunLimitSettingsSchema")?.getInitializer()?.getText() ?? "";
+  if (schemaText.length === 0) {
+    return [createPositiveOnlyFinding(SETTINGS_SCHEMA_FILE, "App run-limit settings schema")];
+  }
+
+  const findings: Finding[] = [];
+  if (hasUpperBound(schemaText)) {
+    findings.push(createUpperBoundFinding(SETTINGS_SCHEMA_FILE, "App run-limit settings schema"));
+  }
+  if ((schemaText.match(/\.positive\(\)/g) ?? []).length < 2) {
+    findings.push(createPositiveOnlyFinding(SETTINGS_SCHEMA_FILE, "App run-limit settings schema"));
+  }
+  return findings;
+}
+
+function inspectAppRunLimitSettingsApi(project: import("ts-morph").Project): Finding[] {
+  const apiSource = project.getSourceFile(SETTINGS_API_FILE);
+  if (!apiSource) {
+    return [createMissingSourceFinding(SETTINGS_API_FILE, "app run-limit settings API source")];
+  }
+
+  const normalizerText = apiSource.getFunction("normalizePositiveInteger")?.getText() ?? "";
+  if (normalizerText.length === 0) {
+    return [createPositiveOnlyFinding(SETTINGS_API_FILE, "App run-limit settings API normalizer")];
+  }
+
+  const findings: Finding[] = [];
+  if (hasUpperBound(normalizerText)) {
+    findings.push(createUpperBoundFinding(SETTINGS_API_FILE, "App run-limit settings API normalizer"));
+  }
+  if (!normalizerText.includes("value >= 1")) {
+    findings.push(createPositiveOnlyFinding(SETTINGS_API_FILE, "App run-limit settings API normalizer"));
+  }
+  return findings;
+}
+
+function inspectTaskStartBinding(project: import("ts-morph").Project): Finding[] {
+  const bindingSource = project.getSourceFile(START_BINDING_FILE);
+  if (!bindingSource) {
+    return [createMissingSourceFinding(START_BINDING_FILE, "task start binding source")];
+  }
+
+  const normalizerText = bindingSource.getFunction("normalizePositiveInteger")?.getText() ?? "";
+  const resolverText = bindingSource.getFunction("resolveStartRunLimits")?.getText() ?? "";
+  if (normalizerText.length === 0 || resolverText.length === 0) {
+    return [createPositiveOnlyFinding(START_BINDING_FILE, "Task start run-limit normalization")];
+  }
+
+  const findings: Finding[] = [];
+  if (hasTaskStartBindingUpperBound(normalizerText, resolverText)) {
+    findings.push(createUpperBoundFinding(START_BINDING_FILE, "Task start run-limit normalization"));
+  }
+  if (!normalizerText.includes("value >= 1")) {
+    findings.push(createPositiveOnlyFinding(START_BINDING_FILE, "Task start run-limit normalization"));
+  }
+  if (!hasTaskStartBindingDefaultResolution(resolverText)) {
+    findings.push(createPositiveOnlyFinding(START_BINDING_FILE, "Task start run-limit resolution"));
+  }
+  return findings;
+}
+
 export function runAppRunLimitSettingsGovernanceChecks(project: import("ts-morph").Project) {
   const findings: Finding[] = [
     ...inspectCommanderFoundationSchema(project),
+    ...inspectAppRunLimitSettingsSchema(project),
+    ...inspectAppRunLimitSettingsApi(project),
+    ...inspectTaskStartBinding(project),
   ];
-
-  const settingsSource = project.getSourceFile(SETTINGS_SCHEMA_FILE);
-  if (!settingsSource) {
-    findings.push(createMissingSourceFinding(SETTINGS_SCHEMA_FILE, "app run-limit settings source"));
-  } else {
-    const schemaText = settingsSource.getVariableDeclaration("AppRunLimitSettingsSchema")?.getInitializer()?.getText() ?? "";
-    if (schemaText.length === 0) {
-      findings.push(createPositiveOnlyFinding(SETTINGS_SCHEMA_FILE, "App run-limit settings schema"));
-    } else {
-      if (hasUpperBound(schemaText)) {
-        findings.push(createUpperBoundFinding(SETTINGS_SCHEMA_FILE, "App run-limit settings schema"));
-      }
-      if ((schemaText.match(/\.positive\(\)/g) ?? []).length < 2) {
-        findings.push(createPositiveOnlyFinding(SETTINGS_SCHEMA_FILE, "App run-limit settings schema"));
-      }
-    }
-  }
-
-  const apiSource = project.getSourceFile(SETTINGS_API_FILE);
-  if (!apiSource) {
-    findings.push(createMissingSourceFinding(SETTINGS_API_FILE, "app run-limit settings API source"));
-  } else {
-    const normalizerText = apiSource.getFunction("normalizePositiveInteger")?.getText() ?? "";
-    if (normalizerText.length === 0) {
-      findings.push(createPositiveOnlyFinding(SETTINGS_API_FILE, "App run-limit settings API normalizer"));
-    } else {
-      if (hasUpperBound(normalizerText)) {
-        findings.push(createUpperBoundFinding(SETTINGS_API_FILE, "App run-limit settings API normalizer"));
-      }
-      if (!normalizerText.includes("value >= 1")) {
-        findings.push(createPositiveOnlyFinding(SETTINGS_API_FILE, "App run-limit settings API normalizer"));
-      }
-    }
-  }
-
-  const bindingSource = project.getSourceFile(START_BINDING_FILE);
-  if (!bindingSource) {
-    findings.push(createMissingSourceFinding(START_BINDING_FILE, "task start binding source"));
-  } else {
-    const normalizerText = bindingSource.getFunction("normalizePositiveInteger")?.getText() ?? "";
-    const resolverText = bindingSource.getFunction("resolveStartRunLimits")?.getText() ?? "";
-    if (normalizerText.length === 0 || resolverText.length === 0) {
-      findings.push(createPositiveOnlyFinding(START_BINDING_FILE, "Task start run-limit normalization"));
-    } else {
-      if (hasUpperBound(normalizerText) || hasUpperBound(resolverText)) {
-        findings.push(createUpperBoundFinding(START_BINDING_FILE, "Task start run-limit normalization"));
-      }
-      if (!normalizerText.includes("value >= 1")) {
-        findings.push(createPositiveOnlyFinding(START_BINDING_FILE, "Task start run-limit normalization"));
-      }
-      if (!resolverText.includes("?? input.defaultMaxRounds") || !resolverText.includes("?? input.defaultMaxMinutes")) {
-        findings.push(createPositiveOnlyFinding(START_BINDING_FILE, "Task start run-limit resolution"));
-      }
-    }
-  }
 
   const passed = findings.length === 0;
   return {

@@ -190,6 +190,37 @@ const getCommonBindingFindings = (commonFields: ObjectLiteralExpression, lawId: 
       message: "Screenshot local-runtime dispatch adapter must preserve governed chain fields, inputRef, idempotencyKey, and timeoutMs before entering the Screenshot owner boundary.",
     })];
 
+const hasViewportSourceBindings = (captureBrowserViewport: ObjectLiteralExpression): boolean => {
+  const sourceLiteral = getObjectPropertyLiteral(captureBrowserViewport, "source");
+  return sourceLiteral !== null
+    && hasBinding(sourceLiteral, { name: "kind", initializer: '"browser_viewport"' })
+    && hasBinding(sourceLiteral, { name: "pageUrl", initializer: "payloadValueToString(payload.targetUrl)" })
+    && hasBinding(sourceLiteral, { name: "pageTitle", initializer: "payloadValueToString(payload.targetTitle)" })
+    && hasBinding(sourceLiteral, { name: "browserSessionRef", initializer: "null" });
+};
+
+const hasViewportPageStateProofHandoff = (
+  project: Project,
+  captureBrowserViewport: ObjectLiteralExpression,
+): boolean => {
+  const pageStateProofProperty = captureBrowserViewport.getProperty("pageStateProof");
+  const hasDirectPageStateProofBinding = hasBinding(captureBrowserViewport, {
+    name: "pageStateProof",
+    initializer: "buildScreenshotPageStateProof(envelope, payload)",
+  });
+  const hasShorthandPageStateProofBinding = Boolean(pageStateProofProperty && Node.isShorthandPropertyAssignment(pageStateProofProperty));
+  const captureViewportFunctionText = getNormalizedFunctionText(project, DISPATCH_FILE, "buildCaptureBrowserViewportCommand");
+  return (hasDirectPageStateProofBinding || hasShorthandPageStateProofBinding)
+    && captureViewportFunctionText.includes(normalize("const pageStateProof = buildScreenshotPageStateProof(envelope, payload);"));
+};
+
+const hasBootstrapCapturePolicyException = (project: Project): boolean => {
+  const bootstrapCapturePolicyFunctionText = getNormalizedFunctionText(project, DISPATCH_FILE, "buildBootstrapCapturePolicy");
+  return bootstrapCapturePolicyFunctionText.includes(normalize("payloadValueToString(input.payload.sourceEvidenceRef)"))
+    && bootstrapCapturePolicyFunctionText.includes(normalize("allowFirstCaptureWithoutPageStateProof: true"))
+    && bootstrapCapturePolicyFunctionText.includes(normalize("if (input.pageStateProof) { return undefined; }"));
+};
+
 const getViewportDispatchFindings = (project: Project, captureBrowserViewport: ObjectLiteralExpression | null, lawId: string): Finding[] => {
   const findings: Finding[] = [];
   if (!captureBrowserViewport) {
@@ -202,33 +233,9 @@ const getViewportDispatchFindings = (project: Project, captureBrowserViewport: O
     })];
   }
 
-  const sourceLiteral = getObjectPropertyLiteral(captureBrowserViewport, "source");
-  const hasViewportSource = sourceLiteral !== null
-    && hasBinding(sourceLiteral, { name: "kind", initializer: '"browser_viewport"' })
-    && hasBinding(sourceLiteral, { name: "pageUrl", initializer: "payloadValueToString(payload.targetUrl)" })
-    && hasBinding(sourceLiteral, { name: "pageTitle", initializer: "payloadValueToString(payload.targetTitle)" })
-    && hasBinding(sourceLiteral, { name: "browserSessionRef", initializer: "null" });
-  const pageStateProofProperty = captureBrowserViewport.getProperty("pageStateProof");
-  const hasDirectPageStateProofBinding = hasBinding(captureBrowserViewport, {
-    name: "pageStateProof",
-    initializer: "buildScreenshotPageStateProof(envelope, payload)",
-  });
-  const hasShorthandPageStateProofBinding = Boolean(pageStateProofProperty && Node.isShorthandPropertyAssignment(pageStateProofProperty));
-  const captureViewportFunctionText = getNormalizedFunctionText(
-    project,
-    DISPATCH_FILE,
-    "buildCaptureBrowserViewportCommand",
-  );
-  const bootstrapCapturePolicyFunctionText = getNormalizedFunctionText(
-    project,
-    DISPATCH_FILE,
-    "buildBootstrapCapturePolicy",
-  );
-  const hasPageStateProofHandoff = (hasDirectPageStateProofBinding || hasShorthandPageStateProofBinding)
-    && captureViewportFunctionText.includes(normalize("const pageStateProof = buildScreenshotPageStateProof(envelope, payload);"));
-  const hasBootstrapCaptureException = bootstrapCapturePolicyFunctionText.includes(normalize("payloadValueToString(input.payload.sourceEvidenceRef)"))
-    && bootstrapCapturePolicyFunctionText.includes(normalize("allowFirstCaptureWithoutPageStateProof: true"))
-    && bootstrapCapturePolicyFunctionText.includes(normalize("if (input.pageStateProof) { return undefined; }"));
+  const hasViewportSource = hasViewportSourceBindings(captureBrowserViewport);
+  const hasPageStateProofHandoff = hasViewportPageStateProofHandoff(project, captureBrowserViewport);
+  const hasBootstrapCaptureException = hasBootstrapCapturePolicyException(project);
 
   if (!hasViewportSource || !hasPageStateProofHandoff || !hasBootstrapCaptureException) {
     findings.push(createFinding({

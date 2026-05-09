@@ -101,6 +101,55 @@ const resolveFrozenBaselineSection = (line: string): FrozenBaselineSection | und
   return line.startsWith("## ") ? FROZEN_BASELINE_SECTION_BY_HEADING[line] ?? null : undefined;
 };
 
+const pushActiveDomain = (input: {
+  section: FrozenBaselineSection;
+  activeLawDomains: string[];
+  localDevelopmentGovernanceDomains: string[];
+  ownerKindByDomain: Record<string, OwnerKind>;
+}, mapped: string): void => {
+  if (input.section === "local-development-governance-domains") {
+    if (!input.localDevelopmentGovernanceDomains.includes(mapped)) {
+      input.localDevelopmentGovernanceDomains.push(mapped);
+    }
+  } else if (!input.activeLawDomains.includes(mapped)) {
+    input.activeLawDomains.push(mapped);
+  }
+
+  const ownerKind = input.section ? OWNER_KIND_BY_SECTION[input.section] : undefined;
+  if (ownerKind) {
+    input.ownerKindByDomain[mapped] = ownerKind;
+  }
+};
+
+const collectNumberedFrozenBaselineDomain = (input: {
+  line: string;
+  section: FrozenBaselineSection;
+  activeLawDomains: string[];
+  localDevelopmentGovernanceDomains: string[];
+  ownerKindByDomain: Record<string, OwnerKind>;
+}): boolean => {
+  const numberedValue = readNumberedListValue(input.line);
+  const activeDomainMap = input.section ? ACTIVE_DOMAIN_MAP_BY_SECTION[input.section] : undefined;
+  const mapped = numberedValue && activeDomainMap ? activeDomainMap[numberedValue] : undefined;
+  if (!mapped) {
+    return false;
+  }
+
+  pushActiveDomain(input, mapped);
+  return true;
+};
+
+const collectDeletedFrozenBaselineDomain = (input: {
+  line: string;
+  section: FrozenBaselineSection;
+  deletedOwnerDomains: string[];
+}): void => {
+  const bulletedValue = input.section === "deleted-active-owners" ? readBulletedListValue(input.line) : null;
+  if (bulletedValue) {
+    pushMappedValue(input.deletedOwnerDomains, bulletedValue, DELETED_OWNER_DOMAIN_MAP);
+  }
+};
+
 const collectFrozenBaselineDomain = (input: {
   line: string;
   section: FrozenBaselineSection;
@@ -109,31 +158,11 @@ const collectFrozenBaselineDomain = (input: {
   deletedOwnerDomains: string[];
   ownerKindByDomain: Record<string, OwnerKind>;
 }): void => {
-  const numberedValue = readNumberedListValue(input.line);
-  const activeDomainMap = input.section ? ACTIVE_DOMAIN_MAP_BY_SECTION[input.section] : undefined;
-  if (numberedValue && activeDomainMap) {
-    const mapped = activeDomainMap[numberedValue];
-    if (!mapped) {
-      return;
-    }
-    if (input.section === "local-development-governance-domains") {
-      if (!input.localDevelopmentGovernanceDomains.includes(mapped)) {
-        input.localDevelopmentGovernanceDomains.push(mapped);
-      }
-    } else if (!input.activeLawDomains.includes(mapped)) {
-      input.activeLawDomains.push(mapped);
-    }
-    const ownerKind = input.section ? OWNER_KIND_BY_SECTION[input.section] : undefined;
-    if (ownerKind) {
-      input.ownerKindByDomain[mapped] = ownerKind;
-    }
+  if (collectNumberedFrozenBaselineDomain(input)) {
     return;
   }
 
-  const bulletedValue = input.section === "deleted-active-owners" ? readBulletedListValue(input.line) : null;
-  if (bulletedValue) {
-    pushMappedValue(input.deletedOwnerDomains, bulletedValue, DELETED_OWNER_DOMAIN_MAP);
-  }
+  collectDeletedFrozenBaselineDomain(input);
 };
 
 const collectFrozenBaselineDomains = (content: string): Pick<Awaited<ReturnType<typeof loadFrozenBaselineDomains>>, "activeLawDomains" | "localDevelopmentGovernanceDomains" | "deletedOwnerDomains" | "ownerKindByDomain"> => {

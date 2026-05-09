@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
 
+import { withNestedNegativeProofEnv } from "../../core/nested-negative-proof.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
@@ -51,11 +52,11 @@ function runInspectorProcess(input: {
     {
       cwd: pathFromRepoRoot("."),
       encoding: "utf8",
-      env: {
+      env: withNestedNegativeProofEnv({
         ...process.env,
         [SKIP_NEGATIVE_PROOF_ENV]: "1",
         ...(input.phase ? { GRASSEYE_TEXT_INPUT_NEGATIVE_PROOF_PHASE: input.phase } : {}),
-      },
+      }),
     },
   );
 

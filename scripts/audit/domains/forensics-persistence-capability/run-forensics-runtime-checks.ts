@@ -31,19 +31,29 @@ const {
   sourceHasCallPath,
 } = forensicsPersistenceInspectionUtils;
 
+const hasExecutorCorePipeline = (executorSource: import("ts-morph").SourceFile): boolean => (
+  sourceHasCallPath(executorSource, ["evaluateForensicsPolicy"])
+  && sourceHasCallPath(executorSource, ["evaluateForensicsIntegrity"])
+  && sourceHasCallPath(executorSource, ["buildForensicsEnvelope"])
+  && sourceHasCallPath(executorSource, ["writeForensicsEnvelope"])
+  && sourceHasCallPath(executorSource, ["persistForensicsArtifacts"])
+  && hasExecutorOutputSchemaParse(executorSource)
+);
+
+const hasExecutorProofPipeline = (
+  resultBuilderSource: import("ts-morph").SourceFile,
+  proofBuilderSource: import("ts-morph").SourceFile,
+): boolean => (
+  sourceHasCallPath(resultBuilderSource, ["buildForensicsProof"])
+  && proofBuilderSource.getFunctionOrThrow("buildForensicsProof").getText().includes("storedRecord?.storageRef")
+);
+
 const collectExecutorFindings = (project: import("ts-morph").Project): Finding[] => {
   const executorPath = `${RUNTIME_ROOT}/forensics-executor.ts`;
   const executorSource = getSourceFileOrThrow(project, executorPath);
   const resultBuilderSource = getSourceFileOrThrow(project, `${RUNTIME_ROOT}/forensics-result-builder.ts`);
   const proofBuilderSource = getSourceFileOrThrow(project, `${RUNTIME_ROOT}/forensics-proof-builder.ts`);
-  const executorValid = sourceHasCallPath(executorSource, ["evaluateForensicsPolicy"])
-    && sourceHasCallPath(executorSource, ["evaluateForensicsIntegrity"])
-    && sourceHasCallPath(executorSource, ["buildForensicsEnvelope"])
-    && sourceHasCallPath(executorSource, ["writeForensicsEnvelope"])
-    && sourceHasCallPath(executorSource, ["persistForensicsArtifacts"])
-    && sourceHasCallPath(resultBuilderSource, ["buildForensicsProof"])
-    && proofBuilderSource.getFunctionOrThrow("buildForensicsProof").getText().includes("storedRecord?.storageRef")
-    && hasExecutorOutputSchemaParse(executorSource);
+  const executorValid = hasExecutorCorePipeline(executorSource) && hasExecutorProofPipeline(resultBuilderSource, proofBuilderSource);
 
   return executorValid
     ? []
@@ -104,20 +114,27 @@ const hasStructuredStorageRefs = (project: import("ts-morph").Project): boolean 
     && sourceHasCallPath(actionStorageSource, ["buildEvidenceStoreStorageRef"]);
 };
 
-const hasDurableStateStoreWriteProbe = (project: import("ts-morph").Project): boolean => {
-  const jsonStateStoreSource = getSourceFileOrThrow(project, "src/lib/storage/json-state-store.ts");
-  const evidenceStoreSource = getSourceFileOrThrow(project, "src/lib/storage/evidence-store/evidence-store-service.ts");
+const hasJsonStateStoreWriteFlow = (jsonStateStoreSource: import("ts-morph").SourceFile): boolean => {
   const jsonStateStoreText = jsonStateStoreSource.getFullText();
-  const evidenceStoreText = evidenceStoreSource.getFullText();
   return sourceHasCallPath(jsonStateStoreSource, ["mkdir"])
     && sourceHasCallPath(jsonStateStoreSource, ["writeFile"])
     && sourceHasCallPath(jsonStateStoreSource, ["rename"])
-    && jsonStateStoreText.includes("ENOENT")
-    && sourceHasCallPath(evidenceStoreSource, ["internals.init"])
+    && jsonStateStoreText.includes("ENOENT");
+};
+
+const hasEvidenceStoreWriteProbeFlow = (evidenceStoreSource: import("ts-morph").SourceFile): boolean => {
+  const evidenceStoreText = evidenceStoreSource.getFullText();
+  return sourceHasCallPath(evidenceStoreSource, ["internals.init"])
     && sourceHasCallPath(evidenceStoreSource, ["internals.listState"])
     && sourceHasCallPath(evidenceStoreSource, ["internals.stateStore.write"])
     && evidenceStoreText.includes("durable_write_probe=passed")
     && evidenceStoreText.includes("forensics_storage_write_failed");
+};
+
+const hasDurableStateStoreWriteProbe = (project: import("ts-morph").Project): boolean => {
+  const jsonStateStoreSource = getSourceFileOrThrow(project, "src/lib/storage/json-state-store.ts");
+  const evidenceStoreSource = getSourceFileOrThrow(project, "src/lib/storage/evidence-store/evidence-store-service.ts");
+  return hasJsonStateStoreWriteFlow(jsonStateStoreSource) && hasEvidenceStoreWriteProbeFlow(evidenceStoreSource);
 };
 
 const collectDurabilityFindings = (project: import("ts-morph").Project): Finding[] => {
@@ -157,6 +174,23 @@ const collectStorageFindings = (project: import("ts-morph").Project): Finding[] 
   return [...findings, ...collectDurabilityFindings(project)];
 };
 
+const hasCommentEvidencePacketSchemaShape = (schemaText: string): boolean => (
+  schemaText.includes("rawCommentBlocks")
+  && schemaText.includes("cleanedComments")
+  && schemaText.includes("uncertainText")
+  && schemaText.includes("advancedAIAnalysisPlaceholder")
+  && !schemaText.includes("const EvidencePacketCommentSignalsSchema")
+);
+
+const hasCommentEvidencePacketFinalizationShape = (finalizationText: string): boolean => (
+  finalizationText.includes("commentScreenshotEvidenceIds")
+  && finalizationText.includes("rawCommentBlocks")
+  && finalizationText.includes("comments_unavailable_candidate_created")
+  && finalizationText.includes("advancedAIAnalysisPlaceholder")
+  && !finalizationText.includes("commentSignals:")
+  && !finalizationText.includes("commentIntentAiResultRef")
+);
+
 const collectCommentEvidencePacketFindings = (project: import("ts-morph").Project): Finding[] => {
   const schemaSource = getSourceFileOrThrow(project, EVIDENCE_PACKET_SCHEMA_PATH);
   const finalizationSource = getSourceFileOrThrow(project, WORKBENCH_FINALIZATION_PATH);
@@ -164,24 +198,11 @@ const collectCommentEvidencePacketFindings = (project: import("ts-morph").Projec
   const finalizationText = finalizationSource.getFullText();
   const findings: Finding[] = [];
 
-  if (
-    !schemaText.includes("rawCommentBlocks")
-    || !schemaText.includes("cleanedComments")
-    || !schemaText.includes("uncertainText")
-    || !schemaText.includes("advancedAIAnalysisPlaceholder")
-    || schemaText.includes("const EvidencePacketCommentSignalsSchema")
-  ) {
+  if (!hasCommentEvidencePacketSchemaShape(schemaText)) {
     findings.push(createFinding({ lawId: LAW_RUNTIME, file: EVIDENCE_PACKET_SCHEMA_PATH, line: 1, severity: "fatal", message: "Evidence packet schema must preserve raw comment evidence, OCR cleanup text, and downstream-analysis placeholder fields without local commercial commentSignals." }));
   }
 
-  if (
-    !finalizationText.includes("commentScreenshotEvidenceIds")
-    || !finalizationText.includes("rawCommentBlocks")
-    || !finalizationText.includes("comments_unavailable_candidate_created")
-    || !finalizationText.includes("advancedAIAnalysisPlaceholder")
-    || finalizationText.includes("commentSignals:")
-    || finalizationText.includes("commentIntentAiResultRef")
-  ) {
+  if (!hasCommentEvidencePacketFinalizationShape(finalizationText)) {
     findings.push(createFinding({ lawId: LAW_RUNTIME, file: WORKBENCH_FINALIZATION_PATH, line: 1, severity: "fatal", message: "Evidence packet finalization must keep comment screenshot refs, raw OCR evidence, comments-unavailable fallback, and advanced-analysis placeholder while rejecting local commercial comment analysis fields." }));
   }
 

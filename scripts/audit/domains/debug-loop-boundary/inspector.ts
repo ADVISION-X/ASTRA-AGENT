@@ -2,8 +2,9 @@ import type { Finding, InspectorContext } from "../../core/schema.js";
 import { listFilesRecursive, readJsonFile, readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
+import { collectIdentityFindings } from "./identity-findings.js";
 import { collectDebugLoopImportGraphFindings } from "./import-graph-check.js";
-import { buildFinding, collectRuleFindings, createCheckPhase, extractArrayBlock, extractBlock, extractSection, requirePattern, type TextRule } from "./inspection-utils.js";
+import { buildFinding, collectRuleFindings, createCheckPhase, extractArrayBlock, extractBlock, requirePattern, type TextRule } from "./inspection-utils.js";
 
 const DOMAIN = "debug-loop-boundary";
 const INSPECTOR_ENTRY = "scripts/audit/domains/debug-loop-boundary/inspector.ts";
@@ -14,8 +15,6 @@ const MAP_AUTHORING = "scripts/debug-loop/map-authoring-public-contract.mjs";
 const NEGATIVE_PROOF = "scripts/audit/domains/debug-loop-boundary/negative-proof-harness.ts";
 const RUN_INSPECTOR = "scripts/audit/domains/debug-loop-boundary/run-inspector.ts";
 const PACKAGE_JSON = "package.json";
-const KERNEL_FILE = ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md";
-const BASELINE_FILE = "docs/法案辅助文件/GrassEye 法案冻结基线.md";
 const FORBIDDEN_SCENARIO_FIELDS = new Set([
   "openApp",
   "shellCommand",
@@ -110,26 +109,6 @@ const REPAIR_RULES: TextRule[] = [
   { lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1", message: "repair packets must not include executable patch scripts.", pattern: /executablePatchScript|autoApplyPatch|auto apply patch/i },
   { lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1", message: "repair packets must not target production source or generated artifacts.", pattern: /(?:src\/|scripts\/audit\/generated\/)/ },
 ];
-const collectIdentityFindings = async (context: InspectorContext, kernelContent: string, baselineContent: string): Promise<Finding[]> => {
-  const findings: Finding[] = [];
-  const kernelGroups = extractSection(kernelContent, "## Active Ability Groups");
-  const kernelTooling = extractSection(kernelContent, "## Local Development Tooling");
-  const baselineGroups = extractSection(baselineContent, "## 14 个 active ability groups");
-  const baselineTooling = extractSection(baselineContent, "## 本地开发工具");
-  const debugLoopOwnerPattern = /debug-loop-controller|debug-loop-boundary|^debug-loop$/im;
-  const phaseGateGovernanceDomains = context.phaseGate.localDevelopmentGovernanceDomains ?? [];
-  const debugLoopOwner = context.matrixOwnersByDomain.get(DOMAIN);
-  if (!phaseGateGovernanceDomains.includes(DOMAIN)) findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1", file: "scripts/audit/phase-gates/phase-05-final-delivery-debug.json", line: 1, message: "debug-loop-boundary must stay in localDevelopmentGovernanceDomains during phase-five final delivery debugging." }));
-  if (context.phaseGate.activeLawDomains.includes(DOMAIN)) findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1", file: "scripts/audit/phase-gates/phase-05-final-delivery-debug.json", line: 1, message: "debug-loop-boundary must not re-enter activeLawDomains in the current phase gate." }));
-  if (!debugLoopOwner) findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1", file: "scripts/audit/generated/enforcement-matrix.generated.json", line: 1, message: "debug-loop-boundary must remain present in the enforcement matrix as a local-development-governance owner." }));
-  if (debugLoopOwner && debugLoopOwner.ownerKind !== "local-development-governance") findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1", file: "scripts/audit/generated/enforcement-matrix.generated.json", line: 1, message: "debug-loop-boundary must be classified as local-development-governance in the enforcement matrix." }));
-  if (context.auditPlan.owners.some((owner) => owner.capabilityDomain === DOMAIN)) findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1", file: "scripts/audit/generated/audit-plan.generated.json", line: 1, message: "debug-loop-boundary must stay out of the generated audit plan main chain." }));
-  if (debugLoopOwnerPattern.test(kernelGroups)) findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1", file: KERNEL_FILE, line: 1, message: "Kernel active ability groups must not include debug-loop." }));
-  if (!/debug-loop-controller/.test(kernelTooling)) findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1", file: KERNEL_FILE, line: 1, message: "Kernel local development tooling must keep debug-loop-controller only as tooling." }));
-  if (debugLoopOwnerPattern.test(baselineGroups)) findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1", file: BASELINE_FILE, line: 1, message: "Frozen baseline active ability groups must not include debug-loop." }));
-  if (!/debug-loop-controller/.test(baselineTooling)) findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1", file: BASELINE_FILE, line: 1, message: "Frozen baseline local development tooling must keep debug-loop-controller only as tooling." }));
-  return findings;
-};
 
 const collectRuntimeFindings = async (taskPublisherContent: string, debugLoopFiles: string[]): Promise<Finding[]> => {
   const findings: Finding[] = [];

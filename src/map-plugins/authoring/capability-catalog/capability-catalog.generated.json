@@ -4,27 +4,6 @@
   "entries": [
     {
       "abilityGroupId": "ai",
-      "childCapabilityId": "comment-intent-analysis",
-      "description": "Execute governed AI child comment intent analysis for governed tasks.",
-      "inputSchemaRef": "ai.comment-intent-analysis.input",
-      "outputSchemaRef": "ai.comment-intent-analysis.output",
-      "platformId": null,
-      "targetKind": null,
-      "supportedTargets": [],
-      "routableByMap": true,
-      "requiresPostOpenWindowHandoff": false,
-      "requiresGeometryProof": false,
-      "requiresPostActionVerification": false,
-      "requiresAutomationGate": false,
-      "sensitiveOperation": false,
-      "forbiddenResponsibilities": [
-        "execute browser actions",
-        "invent prompt text",
-        "read credentials or cookies"
-      ]
-    },
-    {
-      "abilityGroupId": "ai",
       "childCapabilityId": "comment-text-cleanup",
       "description": "Execute governed AI child comment text cleanup for governed tasks.",
       "inputSchemaRef": "ai.comment-text-cleanup.input",

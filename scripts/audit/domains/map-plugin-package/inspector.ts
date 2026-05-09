@@ -11,6 +11,7 @@ import { runNegativeProofHarness } from "./negative-proof-harness.js";
 import { runRequiredShape } from "./required-shape.js";
 import { runRoutePlanEntrySpine } from "./route-plan-entry-spine.js";
 import { runScorecardGate } from "./scorecard-gate.js";
+import { runStartupPreparationEntrySpine } from "./startup-preparation-entry-spine.js";
 import { runTaskTemplateRunLimitGovernance } from "./task-template-run-limit-governance.js";
 import { runIntegrationPhaseBundle } from "../map-plugin-orchestration-integration/phase-bundle.js";
 
@@ -37,9 +38,10 @@ const runDirectGovernancePhases = async (project: ReturnType<typeof createMapPlu
   const forbidden = await runForbiddenShape(project);
   const taskTemplateRunLimits = await runTaskTemplateRunLimitGovernance(project);
   const boundary = runBoundaryAttack(project);
-  const startupPreparation = await runRoutePlanEntrySpine();
+  const routePlanEntry = await runRoutePlanEntrySpine();
+  const startupPreparation = await runStartupPreparationEntrySpine();
   const muscleMemory = await runMuscleMemoryGovernance();
-  return { required, authoringInput, forbidden, taskTemplateRunLimits, boundary, startupPreparation, muscleMemory };
+  return { required, authoringInput, forbidden, taskTemplateRunLimits, boundary, routePlanEntry, startupPreparation, muscleMemory };
 };
 
 const runSupplementalPhases = async (project: ReturnType<typeof createMapPluginAuditProject>, context: Parameters<DomainInspector>[0]) => {
@@ -89,6 +91,7 @@ const collectFindings = (input: {
   ...input.directPhases.forbidden.findings,
   ...input.directPhases.taskTemplateRunLimits.findings,
   ...input.directPhases.boundary.findings,
+  ...input.directPhases.routePlanEntry.findings,
   ...input.directPhases.startupPreparation.findings,
   ...input.directPhases.muscleMemory.findings,
   ...input.supplementalPhases.antiEscape.findings,
@@ -111,6 +114,7 @@ const collectPhases = (input: {
   input.directPhases.forbidden.phase,
   input.directPhases.taskTemplateRunLimits.phase,
   input.directPhases.boundary.phase,
+  input.directPhases.routePlanEntry.phase,
   input.directPhases.startupPreparation.phase,
   input.directPhases.muscleMemory.phase,
   input.supplementalPhases.antiEscape.phase,

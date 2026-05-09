@@ -6,7 +6,7 @@
   "browserHeadless": false,
   "requiresAuth": true,
   "entryMode": "commander-public-contract",
-  "humanGoal": "Inspect Facebook Reels, identify product-seeding video candidates, capture public evidence, summarize visible comment signals, and persist governed evidence records.",
+  "humanGoal": "Inspect Facebook Reels, identify product-seeding video candidates, capture public evidence, extract visible comments, and persist governed evidence records.",
   "operatorNote": "Never publish, message, submit forms, or modify user data. Login walls, captchas, and security checks require review.",
   "targetUrl": "https://www.facebook.com/reel/",
   "targetTitle": "Facebook Reels",
@@ -22,8 +22,8 @@
     "allowAutoAuthoring": false,
     "allowDraftExecution": false,
     "authoringContext": {
-      "rawRequirement": "Use a local authorized browser session to inspect public Facebook Reels, identify product-seeding video candidates, capture viewport and comment evidence, summarize visible comment intent, scroll to the next video, and persist governed evidence refs.",
-      "safeExecutableRequirement": "Open Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, summarize comment signals with comments.intent_analysis.v1, persist evidence refs, and stop or review on gated states.",
+      "rawRequirement": "Use a local authorized browser session to inspect public Facebook Reels, identify product-seeding video candidates, capture viewport and comment evidence, extract visible comments with OCR cleanup only, scroll to the next video, and persist governed evidence refs.",
+      "safeExecutableRequirement": "Open Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, extract visible comments with comments.ocr_cleanup.v1, persist evidence refs, and stop or review on gated states.",
       "generatedMapPath": "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json"
     }
   },

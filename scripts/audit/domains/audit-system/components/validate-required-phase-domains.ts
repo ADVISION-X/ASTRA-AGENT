@@ -110,24 +110,29 @@ const collectUnexpectedActiveDomainFindings = (
     }));
 };
 
-const collectLocalDevelopmentGovernanceFindings = (
-  context: InspectorContext,
+const collectMissingGovernanceAllowlistFindings = (
+  phaseGateGovernanceDomains: readonly string[],
   frozenBaseline: Awaited<ReturnType<typeof loadFrozenBaselineDomains>>,
 ): Finding[] => {
-  const findings: Finding[] = [];
-  const phaseGateGovernanceDomains = context.phaseGate.localDevelopmentGovernanceDomains ?? [];
-
-  for (const capabilityDomain of frozenBaseline.localDevelopmentGovernanceDomains) {
-    if (!phaseGateGovernanceDomains.includes(capabilityDomain)) {
-      findings.push(createFinding({
+  return frozenBaseline.localDevelopmentGovernanceDomains.flatMap((capabilityDomain) =>
+    phaseGateGovernanceDomains.includes(capabilityDomain)
+      ? []
+      : [createFinding({
         lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
         file: toRepoRelativePath(defaultPhaseGatePath),
         line: 1,
         severity: "fatal",
         message: `Current phase gate must keep local development governance domain ${capabilityDomain} explicit in localDevelopmentGovernanceDomains.`,
-      }));
-    }
-  }
+      })],
+  );
+};
+
+const collectUnexpectedGovernanceAllowlistFindings = (
+  context: InspectorContext,
+  phaseGateGovernanceDomains: readonly string[],
+  frozenBaseline: Awaited<ReturnType<typeof loadFrozenBaselineDomains>>,
+): Finding[] => {
+  const findings: Finding[] = [];
 
   for (const capabilityDomain of phaseGateGovernanceDomains) {
     if (!frozenBaseline.localDevelopmentGovernanceDomains.includes(capabilityDomain)) {
@@ -150,6 +155,12 @@ const collectLocalDevelopmentGovernanceFindings = (
       }));
     }
   }
+
+  return findings;
+};
+
+const collectGovernanceMatrixOwnerKindFindings = (context: InspectorContext): Finding[] => {
+  const findings: Finding[] = [];
 
   for (const [capabilityDomain, owner] of context.matrixOwnersByDomain.entries()) {
     const inAuditPlan = context.auditPlan.owners.some((planOwner) => planOwner.capabilityDomain === capabilityDomain);
@@ -175,6 +186,19 @@ const collectLocalDevelopmentGovernanceFindings = (
   }
 
   return findings;
+};
+
+const collectLocalDevelopmentGovernanceFindings = (
+  context: InspectorContext,
+  frozenBaseline: Awaited<ReturnType<typeof loadFrozenBaselineDomains>>,
+): Finding[] => {
+  const phaseGateGovernanceDomains = context.phaseGate.localDevelopmentGovernanceDomains ?? [];
+
+  return [
+    ...collectMissingGovernanceAllowlistFindings(phaseGateGovernanceDomains, frozenBaseline),
+    ...collectUnexpectedGovernanceAllowlistFindings(context, phaseGateGovernanceDomains, frozenBaseline),
+    ...collectGovernanceMatrixOwnerKindFindings(context),
+  ];
 };
 
 export const validateRequiredPhaseDomains = async (

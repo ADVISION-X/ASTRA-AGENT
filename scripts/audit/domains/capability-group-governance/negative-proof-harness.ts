@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 
+import { withNestedNegativeProofEnv } from "../../core/nested-negative-proof.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import {
@@ -108,12 +109,12 @@ function runInspectorProcess(input: {
     {
       cwd: input.workspaceRoot,
       encoding: "utf8",
-      env: {
+      env: withNestedNegativeProofEnv({
         ...process.env,
         [SKIP_NEGATIVE_PROOF_ENV]: "1",
         ...(input.phase ? { [NEGATIVE_PROOF_PHASE_ENV]: input.phase } : {}),
         TSX_DISABLE_CACHE: "1",
-      },
+      }),
     },
   );
 

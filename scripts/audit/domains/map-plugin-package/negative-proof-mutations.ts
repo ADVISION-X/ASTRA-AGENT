@@ -38,14 +38,14 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   {
     name: "seeding map frame-specific step leakage mutation",
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
-    search: '      {\n        "stepId": "judge-seeding-video",\n        "capabilityId": "orchestration",\n',
-    replace: '      {\n        "stepId": "prepare-ai-input-frame-3s",\n        "capabilityId": "orchestration",\n        "childCapabilityId": "prepare-ai-input",\n        "stepKind": "ability",\n        "targetAbilityGroupId": "screenshot",\n        "inputRefs": [\n          "screenshotEvidenceRefFrame3s"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "promptInputRefFrame3s"\n          ]\n        },\n        "promptContractId": null\n      },\n      {\n        "stepId": "judge-seeding-video",\n        "capabilityId": "orchestration",\n',
+    search: '        "promptContractId": null\n      }\n    ],\n',
+    replace: '        "promptContractId": null\n      },\n      {\n        "stepId": "prepare-ai-input-frame-3s",\n        "capabilityId": "orchestration",\n        "childCapabilityId": "prepare-ai-input",\n        "stepKind": "ability",\n        "targetAbilityGroupId": "screenshot",\n        "inputRefs": [\n          "screenshotEvidenceRefFrame3s"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "promptInputRefFrame3s"\n          ]\n        },\n        "promptContractId": null\n      }\n    ],\n',
   },
   {
     name: "seeding map frame-specific ref leakage mutation",
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
-    search: '        "inputRefs": [\n          "promptInputRef"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "aiResultRef"\n          ]\n        },\n        "promptContractId": "vision.productPresence.v1"\n',
-    replace: '        "inputRefs": [\n          "promptInputRefFrame3s",\n          "promptInputRefFrame6s"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "aiResultRef"\n          ]\n        },\n        "promptContractId": "vision.productPresence.v1"\n',
+    search: '      {\n        "stepId": "judge-seeding-video",\n        "promptContractId": "vision.productPresence.v1",\n        "requiredInputRefs": [\n          "promptInputRef"\n        ],\n        "outputSchemaRef": "ai.product_presence_judgment.v1"\n      }\n',
+    replace: '      {\n        "stepId": "judge-seeding-video",\n        "promptContractId": "vision.productPresence.v1",\n        "requiredInputRefs": [\n          "promptInputRefFrame3s",\n          "promptInputRefFrame6s"\n        ],\n        "outputSchemaRef": "ai.product_presence_judgment.v1"\n      }\n',
   },
   {
     name: "seeding map facebook sampling exception reintroduced mutation",
@@ -56,8 +56,8 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   {
     name: "seeding map owns product success action chain mutation",
     file: "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
-    search: '      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
-    replace: '      {\n        "transitionId": "judge-seeding-video:success",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "success",\n        "toStepId": "observe-comments-button",\n        "finalStatus": null\n      },\n      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
+    search: '      {\n        "transitionId": "open-facebook-reels:failed",\n        "fromStepId": "open-facebook-reels",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
+    replace: '      {\n        "transitionId": "judge-seeding-video:read-comments-and-save-evidence",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "success",\n        "toStepId": "observe-comments-entry-page-state",\n        "finalStatus": null\n      },\n      {\n        "transitionId": "open-facebook-reels:failed",\n        "fromStepId": "open-facebook-reels",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
   },
   {
     name: "profile becomes second map mutation",
@@ -159,32 +159,32 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   {
     name: "map package eval string mutation",
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
-    search: '  "changelog": "Initial governed TikTok seeding-video discovery meta map. Replaces legacy builtin maps and exercises only map-routable capability groups while relying on Commander, Orchestration, and Nerve Bus through the governed runtime chain.",\n',
+    search: '  "changelog": "Initial governed TikTok seeding-video discovery meta map. Replaces legacy builtin maps and exercises only map-routable capability groups while relying on Commander, Orchestration, and Nerve Bus through the governed runtime chain. Startup preparation emits AI-owned yes/no routeLabel before product judgment; product-discovery-route-plan.v1 remains the single muscle-memory source for post-judgment action chains.",\n',
     replace: '  "changelog": "eval(1)",\n',
   },
   {
     name: "map step successCondition forbidden mutation",
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
-    search: '      "promptContractId": "vision.productPresence.v1"\n',
-    replace: '      "promptContractId": "vision.productPresence.v1",\n      "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }\n',
+    search: '        "promptContractId": null\n      }\n',
+    replace: '        "promptContractId": null,\n        "successCondition": { "conditionType": "comparison", "leftRef": "status", "operator": "equals", "rightValue": "success" }\n      }\n',
   },
   {
     name: "map transition condition forbidden mutation",
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
-    search: '      "onStatus": "success",\n      "toStepId": "judge-seeding-video",\n',
-    replace: '      "onStatus": "success",\n      "condition": { "conditionType": "comparison", "leftRef": "schemaFieldRef:decision", "operator": "equals", "rightValue": "product_yes" },\n      "toStepId": "judge-seeding-video",\n',
+    search: '        "onStatus": "success",\n        "toStepId": "capture-startup-video-viewport",\n',
+    replace: '        "onStatus": "success",\n        "condition": { "conditionType": "comparison", "leftRef": "schemaFieldRef:decision", "operator": "equals", "rightValue": "product_yes" },\n        "toStepId": "capture-startup-video-viewport",\n',
   },
   {
     name: "delete promptContractId mutation",
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
-    search: ', "promptContractId": "vision.productPresence.v1"',
+    search: '        "promptContractId": "vision.productPresence.v1",\n',
     replace: "",
   },
   {
     name: "delete prompt binding mutation",
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
-    search: '      {\n        "stepId": "judge-seeding-video",\n        "promptContractId": "vision.productPresence.v1",\n        "requiredInputRefs": [\n          "promptInputRef"\n        ],\n        "outputSchemaRef": "ai.product_presence_judgment.v1"\n      },\n',
-    replace: "",
+    search: '      {\n        "stepId": "startup-preparation",\n        "promptContractId": "vision.pagePreparation.v1",\n        "requiredInputRefs": [\n          "promptInputRef"\n        ],\n        "outputSchemaRef": "ai.page_preparation_judgment.v1"\n      },\n      {\n        "stepId": "judge-seeding-video",\n        "promptContractId": "vision.productPresence.v1",\n        "requiredInputRefs": [\n          "promptInputRef"\n        ],\n        "outputSchemaRef": "ai.product_presence_judgment.v1"\n      }\n',
+    replace: '      {\n        "stepId": "startup-preparation",\n        "promptContractId": "vision.pagePreparation.v1",\n        "requiredInputRefs": [\n          "promptInputRef"\n        ],\n        "outputSchemaRef": "ai.page_preparation_judgment.v1"\n      }\n',
   },
   {
     name: "unknown promptContractId mutation",
@@ -201,8 +201,8 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   {
     name: "seeding map duplicates route plan-owned step mutation",
     file: "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
-    search: '      {\n        "stepId": "judge-seeding-video",\n        "capabilityId": "orchestration",',
-    replace: '      {\n        "stepId": "press-next-video-key",\n        "capabilityId": "orchestration",\n        "childCapabilityId": "press-navigation-key",\n        "stepKind": "ability",\n        "targetAbilityGroupId": "text-input",\n        "inputRefs": [\n          "pageStateRef",\n          "screenshotEvidenceRef"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "abilityResultRef"\n          ]\n        },\n        "promptContractId": null\n      },\n      {\n        "stepId": "judge-seeding-video",\n        "capabilityId": "orchestration",',
+    search: '        "promptContractId": null\n      }\n    ],\n',
+    replace: '        "promptContractId": null\n      },\n      {\n        "stepId": "observe-comments-entry-page-state",\n        "capabilityId": "orchestration",\n        "childCapabilityId": "observe-video-surface",\n        "stepKind": "ability",\n        "targetAbilityGroupId": "page-state",\n        "inputRefs": [\n          "screenshotEvidenceRef",\n          "targetUrl",\n          "targetTitle"\n        ],\n        "outputRefPolicy": {\n          "storeAs": [\n            "pageStateRef"\n          ]\n        },\n        "promptContractId": null\n      }\n    ],\n',
   },
   {
     name: "seeding map removes route plan id mutation",
@@ -219,14 +219,14 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   {
     name: "seeding map owns ai success route mutation",
     file: "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
-    search: '      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
-    replace: '      {\n        "transitionId": "judge-seeding-video:success",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "success",\n        "toStepId": "press-next-video-key",\n        "finalStatus": null\n      },\n      {\n        "transitionId": "judge-seeding-video:failed",\n        "fromStepId": "judge-seeding-video",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
+    search: '      {\n        "transitionId": "open-facebook-reels:failed",\n        "fromStepId": "open-facebook-reels",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
+    replace: '      {\n        "transitionId": "startup-preparation:page_ready",\n        "fromStepId": "startup-preparation",\n        "onStatus": "success",\n        "toStepId": "judge-seeding-video",\n        "finalStatus": null\n      },\n      {\n        "transitionId": "open-facebook-reels:failed",\n        "fromStepId": "open-facebook-reels",\n        "onStatus": "failed",\n        "toStepId": null,\n        "finalStatus": "failed"\n      }\n',
   },
   {
     name: "startup preparation spine bypass mutation",
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
-    search: '      {\n        "transitionId": "prepare-ai-input:success",\n        "fromStepId": "prepare-ai-input",\n        "onStatus": "success",\n        "toStepId": "startup-preparation",\n        "finalStatus": null\n      },\n',
-    replace: '      {\n        "transitionId": "prepare-ai-input:success",\n        "fromStepId": "prepare-ai-input",\n        "onStatus": "success",\n        "toStepId": "judge-seeding-video",\n        "finalStatus": null\n      },\n',
+    search: '      {\n        "transitionId": "open-tiktok-feed:success",\n        "fromStepId": "open-tiktok-feed",\n        "onStatus": "success",\n        "toStepId": "capture-startup-video-viewport",\n        "finalStatus": null\n      },\n',
+    replace: '      {\n        "transitionId": "open-tiktok-feed:success",\n        "fromStepId": "open-tiktok-feed",\n        "onStatus": "success",\n        "toStepId": "judge-seeding-video",\n        "finalStatus": null\n      },\n',
   },
   {
     name: "activation snapshot proof mutation",
@@ -249,7 +249,7 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   {
     name: "missing capability child mutation",
     file: "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
-    search: '"childCapabilityId": "detect-feed-ready"',
+    search: '"childCapabilityId": "open-tiktok"',
     replace: '"childCapabilityId": "missing-capability-child"',
   },
   {
@@ -315,8 +315,8 @@ export const MAP_PLUGIN_NEGATIVE_PROOF_MUTATIONS: Mutation[] = [
   {
     name: "phase05 diagnostic success path uses review terminal mutation",
     file: "src/map-plugins/builtins/phase-05-full-surface-diagnostic.meta.map-package.json",
-    search: '"transitionId": "persist-diagnostic-evidence-record:success",\n      "fromStepId": "persist-diagnostic-evidence-record",\n      "onStatus": "success",\n      "toStepId": "finalize-diagnostic-mission",\n      "finalStatus": null',
-    replace: '"transitionId": "persist-diagnostic-evidence-record:success",\n      "fromStepId": "persist-diagnostic-evidence-record",\n      "onStatus": "success",\n      "toStepId": "request-human-review",\n      "finalStatus": null',
+    search: '        "transitionId": "persist-diagnostic-evidence-record:success",\n        "fromStepId": "persist-diagnostic-evidence-record",\n        "onStatus": "success",\n        "toStepId": "finalize-diagnostic-mission",\n        "finalStatus": null',
+    replace: '        "transitionId": "persist-diagnostic-evidence-record:success",\n        "fromStepId": "persist-diagnostic-evidence-record",\n        "onStatus": "success",\n        "toStepId": "request-human-review",\n        "finalStatus": null',
   },
   {
     name: "phase05 diagnostic ai reverted to product presence mutation",

@@ -111,7 +111,6 @@ const PayloadRefBundleSchema = z.object({
   productPresenceAiResultRef: z.string().min(1).nullable().optional().default(null),
   commentCleanupAiResultRef: z.string().min(1).nullable().optional().default(null),
   aiResultRef: z.string().min(1).nullable().optional().default(null),
-  commentIntentAiResultRef: z.string().min(1).nullable().optional().default(null),
   abilityResultRef: z.string().min(1).nullable().optional().default(null),
   commentsClickActionRef: z.string().min(1).nullable().optional().default(null),
   commentsOpenVerificationRef: z.string().min(1).nullable().optional().default(null),

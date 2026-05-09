@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T23:34:42.300Z",
+  "generatedAt": "2026-05-09T07:30:31.010Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -182,41 +182,6 @@
         },
         {
           "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "collectRuntimeDebugShapeFindings",
-          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "collectRuntimeDebugShapeFindings",
-          "checkKind": "forbidden-shape"
-        },
-        {
-          "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "collectRuntimeDebugShapeFindings",
-          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "collectRuntimeDebugShapeFindings",
-          "checkKind": "forbidden-shape"
-        },
-        {
-          "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "collectRuntimeDebugEmitterFindings",
-          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "collectRuntimeDebugEmitterFindings",
-          "checkKind": "forbidden-shape"
-        },
-        {
-          "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "collectRuntimeDebugEmitterFindings",
-          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "collectRuntimeDebugEmitterFindings",
-          "checkKind": "forbidden-shape"
-        },
-        {
-          "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "collectRuntimeDebugEmitterFindings",
-          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "collectRuntimeDebugEmitterFindings",
-          "checkKind": "forbidden-shape"
-        },
-        {
-          "checkPhase": "run-ai-runtime-contract-checks",
           "checkFunction": "findFakeLiteralViolations",
           "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
           "targetSymbol": "findFakeLiteralViolations",
@@ -244,31 +209,17 @@
           "checkKind": "forbidden-shape"
         },
         {
-          "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "findBinaryProductPresenceContractViolations",
-          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "findBinaryProductPresenceContractViolations",
+          "checkPhase": "runtime-contract-binary-product-presence-checks",
+          "checkFunction": "createBinaryProductPresenceFinding",
+          "sourceFile": "scripts/audit/domains/ai-capability/runtime-contract-binary-product-presence-checks.ts",
+          "targetSymbol": "createBinaryProductPresenceFinding",
           "checkKind": "forbidden-shape"
         },
         {
-          "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "findBinaryProductPresenceContractViolations",
-          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "findBinaryProductPresenceContractViolations",
-          "checkKind": "forbidden-shape"
-        },
-        {
-          "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "findBinaryProductPresenceContractViolations",
-          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "findBinaryProductPresenceContractViolations",
-          "checkKind": "forbidden-shape"
-        },
-        {
-          "checkPhase": "run-ai-runtime-contract-checks",
-          "checkFunction": "findBinaryProductPresenceContractViolations",
-          "sourceFile": "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
-          "targetSymbol": "findBinaryProductPresenceContractViolations",
+          "checkPhase": "runtime-contract-debug-transparency-checks",
+          "checkFunction": "createAiDebugFinding",
+          "sourceFile": "scripts/audit/domains/ai-capability/runtime-contract-debug-transparency-checks.ts",
+          "targetSymbol": "createAiDebugFinding",
           "checkKind": "forbidden-shape"
         },
         {

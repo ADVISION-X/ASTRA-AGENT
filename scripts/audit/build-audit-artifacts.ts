@@ -8,6 +8,7 @@ import {
 } from "./core/paths.js";
 import { generatedArtifactPaths } from "./core/generated-artifact-paths.js";
 import { defaultPhaseGatePath } from "./core/path-roots.js";
+import { collectPhaseGateConflicts, type PhaseGateConflictContext } from "./core/phase-gate-conflicts.js";
 import type {
   AuditConflict,
   AuditConflictsSnapshot,
@@ -21,14 +22,7 @@ import { readJsonFile } from "./core/filesystem.js";
 import { loadFrozenBaselineDomains } from "./core/frozen-baseline.js";
 import { writeGeneratedArtifacts, type GeneratedArtifactsWriteInput } from "./core/artifact-writers.js";
 
-type ManifestCollectionContext = {
-  lawsByDomain: Map<string, LawRecord[]>;
-  manifestsByDomain: Map<string, Awaited<ReturnType<typeof loadDomainManifests>>[number]>;
-  phaseGate: PhaseGate;
-  requiredPhaseDomains: string[];
-  localDevelopmentGovernanceDomains: string[];
-  deletedOwnerDomains: string[];
-};
+type ManifestCollectionContext = PhaseGateConflictContext;
 
 const groupLawsByDomain = (laws: LawRecord[]): Map<string, LawRecord[]> => {
   const lawsByDomain = new Map<string, LawRecord[]>();
@@ -65,102 +59,6 @@ const collectActiveDomainConflicts = (context: ManifestCollectionContext): Audit
         kind: "PHASE_GATE",
         message: "Active law domain is outside the frozen baseline active domains and local development governance allowlist.",
         capabilityDomain: lawDomain,
-        file: toRepoRelativePath(defaultPhaseGatePath),
-      });
-    }
-  }
-
-  return conflicts;
-};
-
-const collectPhaseGateConflicts = (context: ManifestCollectionContext): AuditConflict[] => {
-  const conflicts: AuditConflict[] = [];
-  const localDevelopmentGovernanceDomains = context.phaseGate.localDevelopmentGovernanceDomains ?? [];
-
-  for (const activeDomain of context.phaseGate.activeLawDomains) {
-    if (!context.manifestsByDomain.has(activeDomain)) {
-      conflicts.push({ kind: "PLAN", message: "Phase gate references a law domain without a manifest.", capabilityDomain: activeDomain });
-    }
-
-    if (!context.lawsByDomain.has(activeDomain)) {
-      conflicts.push({ kind: "PLAN", message: "Phase gate references a law domain without an active law.", capabilityDomain: activeDomain });
-    }
-
-    if (!context.requiredPhaseDomains.includes(activeDomain)) {
-      conflicts.push({
-        kind: "PHASE_GATE",
-        message: "Phase gate activeLawDomains must stay inside frozen baseline activeLawDomains.",
-        capabilityDomain: activeDomain,
-        file: toRepoRelativePath(defaultPhaseGatePath),
-      });
-    }
-
-    if (localDevelopmentGovernanceDomains.includes(activeDomain)) {
-      conflicts.push({
-        kind: "PHASE_GATE",
-        message: "A phase-gate domain must not appear in both activeLawDomains and localDevelopmentGovernanceDomains.",
-        capabilityDomain: activeDomain,
-        file: toRepoRelativePath(defaultPhaseGatePath),
-      });
-    }
-  }
-
-  for (const governanceDomain of localDevelopmentGovernanceDomains) {
-    if (!context.localDevelopmentGovernanceDomains.includes(governanceDomain)) {
-      conflicts.push({
-        kind: "PHASE_GATE",
-        message: "Phase gate localDevelopmentGovernanceDomains drifted away from the frozen baseline allowlist.",
-        capabilityDomain: governanceDomain,
-        file: toRepoRelativePath(defaultPhaseGatePath),
-      });
-    }
-
-    if (!context.manifestsByDomain.has(governanceDomain)) {
-      conflicts.push({ kind: "PLAN", message: "Phase gate local development governance domain has no manifest.", capabilityDomain: governanceDomain });
-    }
-
-    if (!context.lawsByDomain.has(governanceDomain)) {
-      conflicts.push({ kind: "PLAN", message: "Phase gate local development governance domain has no active law.", capabilityDomain: governanceDomain });
-    }
-  }
-
-  for (const requiredDomain of context.requiredPhaseDomains) {
-    if (!context.phaseGate.activeLawDomains.includes(requiredDomain)) {
-      conflicts.push({
-        kind: "PHASE_GATE",
-        message: "Current frozen phase gate is missing a required law domain.",
-        capabilityDomain: requiredDomain,
-        file: toRepoRelativePath(defaultPhaseGatePath),
-      });
-    }
-  }
-
-  for (const governanceDomain of context.localDevelopmentGovernanceDomains) {
-    if (!localDevelopmentGovernanceDomains.includes(governanceDomain)) {
-      conflicts.push({
-        kind: "PHASE_GATE",
-        message: "Current phase gate must keep frozen local development governance allowlist domains explicit.",
-        capabilityDomain: governanceDomain,
-        file: toRepoRelativePath(defaultPhaseGatePath),
-      });
-    }
-  }
-
-  for (const deletedOwnerDomain of context.deletedOwnerDomains) {
-    if (context.phaseGate.activeLawDomains.includes(deletedOwnerDomain)) {
-      conflicts.push({
-        kind: "PHASE_GATE",
-        message: "Current frozen phase gate must not reactivate a deleted owner domain.",
-        capabilityDomain: deletedOwnerDomain,
-        file: toRepoRelativePath(defaultPhaseGatePath),
-      });
-    }
-
-    if (localDevelopmentGovernanceDomains.includes(deletedOwnerDomain)) {
-      conflicts.push({
-        kind: "PHASE_GATE",
-        message: "Current phase gate must not reactivate a deleted owner domain through local development governance allowlist.",
-        capabilityDomain: deletedOwnerDomain,
         file: toRepoRelativePath(defaultPhaseGatePath),
       });
     }

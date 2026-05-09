@@ -25,7 +25,6 @@ const STEP_BY_CHILD_CAPABILITY: Record<string, RoundLifecycleStep> = {
   "prepare-ai-input": "record_video_evidence",
   "press-navigation-key": "click_next_video",
   "product-presence-judgment": "ask_ai_product_presence",
-  "comment-intent-analysis": "summarize_comment_signals",
   "write-evidence-record": "create_pending_candidate",
 };
 

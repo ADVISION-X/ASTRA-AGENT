@@ -25,7 +25,6 @@ export const MapPluginPayloadRefKeySchema = z.enum([
   "productPresenceAiResultRef",
   "commentCleanupAiResultRef",
   "aiResultRef",
-  "commentIntentAiResultRef",
   "abilityResultRef",
   "commentsClickActionRef",
   "commentsOpenVerificationRef",
