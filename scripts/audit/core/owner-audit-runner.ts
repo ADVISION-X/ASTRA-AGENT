@@ -12,7 +12,6 @@ import { createInspectorContext, loadGeneratedArtifacts, loadInspector, runWithS
 type OwnerRunnerInput = {
   capabilityDomain: string;
   inspectorEntry: string;
-  skipNegativeProofEnv?: string;
 };
 
 type ResourceSnapshot = {
@@ -122,19 +121,7 @@ export const runOwnerInspector = async (input: OwnerRunnerInput): Promise<OwnerA
     artifacts = await loadGeneratedArtifacts();
     const context = await createInspectorContext(artifacts);
     const inspector = await loadInspector(input.inspectorEntry);
-    const previousSkip = input.skipNegativeProofEnv ? process.env[input.skipNegativeProofEnv] : undefined;
-    try {
-      if (input.skipNegativeProofEnv) {
-        process.env[input.skipNegativeProofEnv] = "1";
-      }
-      result = await runWithStandaloneHeartbeat(input.capabilityDomain, inspector(context));
-    } finally {
-      if (input.skipNegativeProofEnv && previousSkip === undefined) {
-        delete process.env[input.skipNegativeProofEnv];
-      } else if (input.skipNegativeProofEnv && previousSkip !== undefined) {
-        process.env[input.skipNegativeProofEnv] = previousSkip;
-      }
-    }
+    result = await runWithStandaloneHeartbeat(input.capabilityDomain, inspector(context));
 
     await logResourceSnapshot(input.capabilityDomain, "inspector:done", startedAtMs);
     process.stdout.write(`[${result.classification}] ${result.capabilityDomain}: ${result.summary}\n`);

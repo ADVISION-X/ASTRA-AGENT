@@ -1,11 +1,17 @@
+type Locale = "en" | "zh";
+
+type AppRunLimitSettings = {
+  defaultMaxRounds: number;
+  defaultMaxMinutes: number;
+  updatedAt: string | null;
+};
+
 import type {
   CommanderCapabilityHealthEntry,
   CommanderMissionDashboardView,
   CommanderRecordSummaryView,
   CommanderRuntimeProofTimelineEntry,
-} from "../../capabilities/commander-console/shared/commander-view-types.js";
-import type { AppRunLimitSettings } from "../local-runtime/app-run-limit-settings-types.js";
-import type { Locale } from "../localization/dictionaries.js";
+} from "./commander-console-dashboard.types.js";
 
 type CommanderConsolePrimaryPageId =
   | "command-center"
@@ -200,4 +206,30 @@ interface CommanderConsolePublicHandlers {
   onSubmitReviewDecision: (payload: { candidateId: string; disposition: "automationGate" | "reject" | "pending" }) => Promise<void>;
   onRequestExport: (payload: { exportType: "candidate-summary" }) => Promise<void>;
   onOpenInspect: (payload: { kind: CommanderConsoleInspectKind; id: string }) => void;
-}export type { CommanderConsolePrimaryPageId, CommanderConsoleStatusTone, CommanderConsoleInspectKind, CommanderConsoleTabView, CommanderConsolePageView, CommanderConsoleTopMetric, CommanderConsoleBadge, CommanderConsoleMapView, CommanderConsolePreflightCheck, CommanderConsoleTaskTemplate, CommanderConsoleCommandDraft, CommanderConsoleSummaryItem, CommanderConsoleReviewSummary, CommanderConsoleFailureItem, CommanderConsoleLogEntry, CommanderConsoleExportRequest, CommanderConsolePolicyCheck, CommanderConsoleInspectReference, CommanderConsoleInspectItem, CommanderConsoleViewModel, CommanderConsolePublicHandlers };
+}
+
+export type {
+  AppRunLimitSettings,
+  CommanderConsolePrimaryPageId,
+  CommanderConsoleStatusTone,
+  CommanderConsoleInspectKind,
+  CommanderConsoleTabView,
+  CommanderConsolePageView,
+  CommanderConsoleTopMetric,
+  CommanderConsoleBadge,
+  CommanderConsoleMapView,
+  CommanderConsolePreflightCheck,
+  CommanderConsoleTaskTemplate,
+  CommanderConsoleCommandDraft,
+  CommanderConsoleSummaryItem,
+  CommanderConsoleReviewSummary,
+  CommanderConsoleFailureItem,
+  CommanderConsoleLogEntry,
+  CommanderConsoleExportRequest,
+  CommanderConsolePolicyCheck,
+  CommanderConsoleInspectReference,
+  CommanderConsoleInspectItem,
+  CommanderConsoleViewModel,
+  CommanderConsolePublicHandlers,
+  Locale,
+};

@@ -1,45 +1,10 @@
 {
-  "generatedAt": "2026-05-09T14:21:54.368Z",
+  "generatedAt": "2026-05-09T14:26:44.577Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
     "package.json",
-    "scripts/audit/ci-full-closure.ts",
-    "scripts/audit/core/ci-full-check-ownership.ts",
     "scripts/audit/core/owner-audit-runner.ts",
-    "scripts/audit/core/runtime.ts",
-    "scripts/audit/core/static-clause-coverage-artifact.ts",
-    "scripts/audit/core/static-clause-coverage-record-builder.ts",
-    "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
-    "scripts/audit/domains/audit-system/components/validate-code-purity-topology.ts",
-    "scripts/audit/domains/audit-system/components/validate-negative-proof-runtime-topology.ts",
-    "scripts/audit/domains/audit-system/components/validate-negative-proof-wiring.ts",
-    "scripts/audit/domains/audit-system/components/validate-owned-law-execution.ts",
-    "scripts/audit/domains/audit-system/components/validate-owner-audit-resource-topology.ts",
-    "scripts/audit/domains/audit-system/components/validate-static-clause-coverage.ts",
-    "scripts/audit/domains/audit-system/inspector.ts",
-    "scripts/audit/domains/audit-system/negative-proof-harness.ts",
-    "scripts/audit/domains/audit-system/run-inspector.ts",
-    "scripts/audit/domains/audit-system/run-negative-proof.ts",
-    "scripts/audit/domains/audit-system/write-static-clause-coverage-proof.ts",
-    "scripts/audit/domains/code-purity/components/inspect-code-purity.ts",
-    "scripts/audit/domains/code-purity/components/purity-negative-proof.ts",
-    "scripts/audit/domains/code-purity/components/purity-stage-paths.ts",
-    "scripts/audit/domains/code-purity/components/purity-stage-results.ts",
-    "scripts/audit/domains/code-purity/components/purity-stage-types.ts",
-    "scripts/audit/domains/code-purity/negative-proof-sandbox.ts",
-    "scripts/audit/domains/code-purity/run-inspector.ts",
-    "scripts/audit/domains/code-purity/run-negative-proof.ts",
-    "scripts/audit/runner.ts",
-    "scripts/audit/static-clause-coverage-gate-report.ts",
-    "src/lib/local-ai/local-ai-runtime-target-candidate.ts",
-    "src/lib/local-ai/local-ai-runtime-vision-prompt.ts",
-    "src/lib/local-ai/local-ai-runtime-vision-task.ts",
-    "src/lib/local-app-shell/CommanderAppShell.ts",
-    "src/lib/local-runtime/structured-log-terminal.ts",
-    "src/lib/local-runtime/workbench-ability-command-executor.ts",
-    "src/lib/local-runtime/workbench-ability-result-proof-summary.ts",
-    "src/lib/local-runtime/workbench-ai-debug-recorder.ts",
-    "src/lib/local-runtime/workbench-commander-console.ts"
+    "src/lib/local-app-shell/types.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -311,21 +276,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/lib/local-app-shell/types.ts",
-      "lines": 204,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "schema",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 3,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
       "file": "src/lib/local-app-shell/view-model/summary-sections.ts",
       "lines": 69,
       "fileType": "ordinary implementation",
@@ -499,21 +449,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/lib/local-app-shell/types.ts",
-      "lines": 204,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "schema",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 3,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
       "file": "src/lib/local-app-shell/view-model/summary-sections.ts",
       "lines": 69,
       "fileType": "ordinary implementation",
@@ -585,12 +520,11 @@
     },
     {
       "file": "scripts/audit/core/owner-audit-runner.ts",
-      "lines": 183,
+      "lines": 170,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "runner",
       "functionsOverLimit": [
-        "runOwnerInspector",
         "readProcessTreeRssMB"
       ],
       "classMembers": 0,
@@ -2062,21 +1996,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/lib/local-app-shell/types.ts",
-      "lines": 204,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "schema",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 3,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 3,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
       "file": "src/lib/local-ai/local-ai-runtime-page-preparation.ts",
       "lines": 142,
       "fileType": "ordinary implementation",
@@ -2855,24 +2774,6 @@
       "recommendedSplit": "Split app/api handler by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/core/owner-audit-runner.ts",
-      "lines": 183,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "runner",
-      "functionsOverLimit": [
-        "runOwnerInspector",
-        "readProcessTreeRssMB"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "src/map-plugins/schema/operational-map-document-validation.ts",
       "lines": 181,
       "fileType": "ordinary implementation",
@@ -2888,6 +2789,23 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/core/owner-audit-runner.ts",
+      "lines": 170,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "runner",
+      "functionsOverLimit": [
+        "readProcessTreeRssMB"
+      ],
+      "classMembers": 0,
+      "importCount": 9,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
       "file": "src/capabilities/orchestration/runtime/orchestration-loop-iteration-event-shared.ts",

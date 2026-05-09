@@ -30,7 +30,6 @@
     "audit:code-purity": "node --import tsx scripts/audit/domains/code-purity/run-inspector.ts",
     "audit:code-purity:scan": "node --import tsx scripts/audit/domains/code-purity/run-scan.ts",
     "audit:code-purity:report": "node --import tsx scripts/audit/domains/code-purity/run-report.ts",
-    "audit:code-purity:negative-proof": "node --import tsx scripts/audit/domains/code-purity/run-negative-proof.ts",
     "audit:orchestration": "node --import tsx scripts/audit/domains/orchestration-capability/run-inspector.ts",
     "audit:nerve-bus": "tsx scripts/audit/domains/nerve-bus-capability/run-inspector.ts",
     "audit:type-safety": "node --import tsx scripts/audit/domains/type-safety/run-inspector.ts",

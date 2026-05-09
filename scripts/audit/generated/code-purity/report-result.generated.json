@@ -60,14 +60,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-003-V1",
       "file": "scripts/audit/core/owner-audit-runner.ts",
-      "line": 114,
-      "severity": "error",
-      "message": "Function runOwnerInspector exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "scripts/audit/core/owner-audit-runner.ts",
-      "line": 160,
+      "line": 147,
       "severity": "error",
       "message": "Function readProcessTreeRssMB exceeds code-purity function limits."
     },
@@ -705,13 +698,6 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-005-V1",
       "file": "src/lib/local-app-shell/commander-console-view-model.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "File crosses too many real owner boundaries or cross-owner imports."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-005-V1",
-      "file": "src/lib/local-app-shell/types.ts",
       "line": 1,
       "severity": "error",
       "message": "File crosses too many real owner boundaries or cross-owner imports."
