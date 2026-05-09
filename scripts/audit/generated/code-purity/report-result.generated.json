@@ -697,13 +697,6 @@
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-005-V1",
-      "file": "src/lib/local-app-shell/commander-console-view-model.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "File crosses too many real owner boundaries or cross-owner imports."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-005-V1",
       "file": "src/lib/local-app-shell/view-model/summary-sections.ts",
       "line": 1,
       "severity": "error",

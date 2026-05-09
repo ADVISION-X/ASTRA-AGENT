@@ -96,7 +96,6 @@
 {"lawId":"GRASSEYE-CODE-PURITY-005-V1","file":"src/lib/local-ai/local-ai-runtime-next-item-advanced.ts","line":1,"severity":"error","message":"File crosses too many real owner boundaries or cross-owner imports."}
 {"lawId":"GRASSEYE-CODE-PURITY-005-V1","file":"src/lib/local-ai/local-ai-runtime-page-preparation.ts","line":1,"severity":"error","message":"File crosses too many real owner boundaries or cross-owner imports."}
 {"lawId":"GRASSEYE-CODE-PURITY-003-V1","file":"src/lib/local-ai/local-ai-runtime-target-candidate-normalization.ts","line":86,"severity":"error","message":"Function resolveCandidateGeometry exceeds code-purity function limits."}
-{"lawId":"GRASSEYE-CODE-PURITY-005-V1","file":"src/lib/local-app-shell/commander-console-view-model.ts","line":1,"severity":"error","message":"File crosses too many real owner boundaries or cross-owner imports."}
 {"lawId":"GRASSEYE-CODE-PURITY-005-V1","file":"src/lib/local-app-shell/view-model/summary-sections.ts","line":1,"severity":"error","message":"File crosses too many real owner boundaries or cross-owner imports."}
 {"lawId":"GRASSEYE-CODE-PURITY-003-V1","file":"src/lib/local-runtime/structured-log-terminal.ts","line":143,"severity":"error","message":"Function shouldSkipStructuredTerminalLogEntry exceeds code-purity function limits."}
 {"lawId":"GRASSEYE-CODE-PURITY-003-V1","file":"src/lib/local-runtime/workbench-ability-result-proof-summary-prepare-ai-input.ts","line":109,"severity":"error","message":"Function resolvePrepareAiInputProofSummaryRecordInput exceeds code-purity function limits."}

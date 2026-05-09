@@ -29,10 +29,24 @@ const readString = (value: JsonObject | null | undefined, key: string): string |
   return typeof candidate === "string" && candidate.length > 0 ? candidate : null;
 };
 
-const buildSummary = (input: {
-  outputRef: string;
+type PageStateProofSummaryFields = {
+  pageStateProofRef: string;
+  pageStateChildCapabilityId: string;
+  pageStateFingerprint: string;
+  pageStateHash: string;
+  currentUrl: string;
+  currentTitle: string | null;
+  observedAt: string;
+  missionId: string;
+  runId: string;
+  sessionId: string;
+  roundId: string | null;
+  videoVisitId: string | null;
+};
+
+const resolvePageStateProofSummaryFields = (input: {
   result: WorkbenchAbilityExecutionResult;
-}): WorkbenchPageStateProofSummary | null => {
+}): PageStateProofSummaryFields | null => {
   if (input.result.abilityGroupId !== "page-state" || !isObject(input.result.runtimeProof)) {
     return null;
   }
@@ -53,10 +67,8 @@ const buildSummary = (input: {
   }
 
   return {
-    outputRef: input.outputRef,
     pageStateProofRef,
     pageStateChildCapabilityId,
-    pageStateStatus: input.result.status,
     pageStateFingerprint,
     pageStateHash,
     currentUrl,
@@ -67,6 +79,33 @@ const buildSummary = (input: {
     sessionId,
     roundId: readString(runtimeProof, "roundId"),
     videoVisitId: readString(runtimeProof, "videoVisitId"),
+  };
+};
+
+const buildSummary = (input: {
+  outputRef: string;
+  result: WorkbenchAbilityExecutionResult;
+}): WorkbenchPageStateProofSummary | null => {
+  const fields = resolvePageStateProofSummaryFields({ result: input.result });
+  if (!fields) {
+    return null;
+  }
+
+  return {
+    outputRef: input.outputRef,
+    pageStateProofRef: fields.pageStateProofRef,
+    pageStateChildCapabilityId: fields.pageStateChildCapabilityId,
+    pageStateStatus: input.result.status,
+    pageStateFingerprint: fields.pageStateFingerprint,
+    pageStateHash: fields.pageStateHash,
+    currentUrl: fields.currentUrl,
+    currentTitle: fields.currentTitle,
+    observedAt: fields.observedAt,
+    missionId: fields.missionId,
+    runId: fields.runId,
+    sessionId: fields.sessionId,
+    roundId: fields.roundId,
+    videoVisitId: fields.videoVisitId,
   };
 };
 

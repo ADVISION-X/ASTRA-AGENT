@@ -1,11 +1,7 @@
 {
-  "generatedAt": "2026-05-09T14:26:44.167Z",
+  "generatedAt": "2026-05-09T14:28:07.792Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
-  "touchedFiles": [
-    "package.json",
-    "scripts/audit/core/owner-audit-runner.ts",
-    "src/lib/local-app-shell/types.ts"
-  ],
+  "touchedFiles": [],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
     "scripts/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -14,5 +10,5 @@
     "src/capabilities/**/prompt-contracts/**/*.{json,jsonc,ts,tsx}"
   ],
   "scannedFileCount": 2018,
-  "findingsCount": 127
+  "findingsCount": 126
 }

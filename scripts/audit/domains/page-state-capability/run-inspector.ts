@@ -4,7 +4,6 @@ import type { RunnerSummary } from "../../core/schema-runner.js";
 import { writeDomainRunnerSummary } from "../../core/runtime.js";
 
 const DIRECT_OWNER_AUDIT_ENV = "GRASSEYE_DIRECT_PAGE_STATE_OWNER_AUDIT";
-const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_PAGE_STATE_NEGATIVE_PROOF";
 
 const buildDirectRunnerSummary = (phase: string, result: Awaited<ReturnType<typeof runOwnerInspector>>["result"]): RunnerSummary => ({
   generatedAt: new Date().toISOString(),
@@ -26,8 +25,6 @@ const main = async (): Promise<void> => {
     const outcome = await runOwnerInspector({
       capabilityDomain: "page-state-capability",
       inspectorEntry: "scripts/audit/domains/page-state-capability/inspector.ts",
-      negativeProofScript: "scripts/audit/domains/page-state-capability/run-negative-proof.ts",
-      skipNegativeProofEnv: SKIP_NEGATIVE_PROOF_ENV,
     });
     await writeDomainRunnerSummary(outcome.result.capabilityDomain, buildDirectRunnerSummary(outcome.artifacts.auditPlan.phase, outcome.result));
 

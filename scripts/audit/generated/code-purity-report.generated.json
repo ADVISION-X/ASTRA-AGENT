@@ -1,11 +1,7 @@
 {
-  "generatedAt": "2026-05-09T14:26:44.577Z",
+  "generatedAt": "2026-05-09T14:28:08.240Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
-  "touchedFiles": [
-    "package.json",
-    "scripts/audit/core/owner-audit-runner.ts",
-    "src/lib/local-app-shell/types.ts"
-  ],
+  "touchedFiles": [],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
     "scripts/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -261,21 +257,6 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/lib/local-app-shell/commander-console-view-model.ts",
-      "lines": 58,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 12,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 3,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
       "file": "src/lib/local-app-shell/view-model/summary-sections.ts",
       "lines": 69,
       "fileType": "ordinary implementation",
@@ -429,21 +410,6 @@
       "importCount": 5,
       "crossOwnerImports": 3,
       "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/lib/local-app-shell/commander-console-view-model.ts",
-      "lines": 58,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 12,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 3,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
@@ -2036,21 +2002,6 @@
       "importCount": 5,
       "crossOwnerImports": 3,
       "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/lib/local-app-shell/commander-console-view-model.ts",
-      "lines": 58,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 12,
-      "crossOwnerImports": 3,
-      "ownerBoundaries": 3,
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
