@@ -4,8 +4,10 @@ import { findRoutePlanById } from "../../../../src/map-plugins/route-plans/index
 import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
 import { MAP_PLUGIN_LAWS } from "./constants.js";
 import {
+  hasCaptureCommentsPanelStep,
   hasCommentsCleanupStep,
   hasCommentsClickStep,
+  hasCommentsOpenVerificationStep,
   hasCommentsObservationPageStateStep,
   hasCommentsPersistenceSteps,
   hasCommentsTargetCandidateSteps,
@@ -16,6 +18,8 @@ type MapPackage = NonNullable<BuiltinPackageRecord["mapPackage"]>;
 type MapStep = MapPackage["operationalMap"]["steps"][number];
 type MapTransition = MapPackage["operationalMap"]["transitions"][number];
 type PromptBinding = MapPackage["promptBindings"]["bindings"][number];
+type InputRefKey = MapStep["inputRefs"][number];
+type OutputRefKey = MapStep["outputRefPolicy"]["storeAs"][number];
 
 type SeedingVideoContext = {
   mapPackage: MapPackage;
@@ -63,10 +67,15 @@ const createPromptContractFinding = (record: BuiltinPackageRecord, message: stri
 const isApplicableSeedingVideoRecord = (
   record: BuiltinPackageRecord,
 ): record is BuiltinPackageRecord & { mapPackage: MapPackage } => {
-  const requestedPlatformId = record.mapPackage?.taskTemplate.requestedPlatformId;
-  return Boolean(record.mapPackage)
+  const mapPackage = record.mapPackage;
+  if (!mapPackage) {
+    return false;
+  }
+
+  const requestedPlatformId = mapPackage.taskTemplate.requestedPlatformId;
+  return true
     && SUPPORTED_SEEDING_VIDEO_PLATFORMS.some((platformId) => platformId === requestedPlatformId)
-    && record.mapPackage.manifest.packageId.includes("seeding-video-discovery");
+    && mapPackage.manifest.packageId.includes("seeding-video-discovery");
 };
 
 const buildSeedingVideoContext = (record: BuiltinPackageRecord): SeedingVideoContext | null => {
@@ -74,33 +83,34 @@ const buildSeedingVideoContext = (record: BuiltinPackageRecord): SeedingVideoCon
     return null;
   }
 
-  const routePlan = findRoutePlanById(record.mapPackage.operationalMap.routePlanId);
+  const mapPackage = record.mapPackage;
+  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
   const routePlanTransitions = routePlan?.transitions ?? [];
   return {
-    mapPackage: record.mapPackage,
-    mapStepIds: new Set(record.mapPackage.operationalMap.steps.map((step) => step.stepId)),
-    promptBinding: record.mapPackage.promptBindings.bindings.find((binding) => binding.stepId === "judge-seeding-video"),
+    mapPackage,
+    mapStepIds: new Set(mapPackage.operationalMap.steps.map((step) => step.stepId)),
+    promptBinding: mapPackage.promptBindings.bindings.find((binding) => binding.stepId === "judge-seeding-video"),
     record,
-    requiredCapabilities: record.mapPackage.dependencies?.requiredCapabilities ?? [],
-    requiredChildCapabilities: record.mapPackage.dependencies?.requiredChildCapabilities ?? [],
+    requiredCapabilities: mapPackage.dependencies?.requiredCapabilities ?? [],
+    requiredChildCapabilities: mapPackage.dependencies?.requiredChildCapabilities ?? [],
     routePlanOwnedStepIds: new Set((routePlan?.steps ?? []).map((step) => step.stepId)),
     routePlanTransitionIds: new Set(routePlanTransitions.map((transition) => transition.transitionId)),
     routePlanTransitions,
-    steps: routePlan ? [...record.mapPackage.operationalMap.steps, ...routePlan.steps] : record.mapPackage.operationalMap.steps,
-    transitions: routePlan ? [...record.mapPackage.operationalMap.transitions, ...routePlanTransitions] : record.mapPackage.operationalMap.transitions,
+    steps: routePlan ? [...mapPackage.operationalMap.steps, ...routePlan.steps] : mapPackage.operationalMap.steps,
+    transitions: routePlan ? [...mapPackage.operationalMap.transitions, ...routePlanTransitions] : mapPackage.operationalMap.transitions,
   };
 };
 
 const getStep = (context: SeedingVideoContext, stepId: string): MapStep | undefined =>
   context.steps.find((step) => step.stepId === stepId);
 
-const hasInputRefs = (step: MapStep | undefined, refs: readonly string[]): boolean =>
+const hasInputRefs = (step: MapStep | undefined, refs: readonly InputRefKey[]): boolean =>
   refs.every((ref) => step?.inputRefs.includes(ref) === true);
 
-const hasOutputRef = (step: MapStep | undefined, ref: string): boolean =>
+const hasOutputRef = (step: MapStep | undefined, ref: OutputRefKey): boolean =>
   step?.outputRefPolicy.storeAs.includes(ref) === true;
 
-const hasOutputRefs = (step: MapStep | undefined, refs: readonly string[]): boolean =>
+const hasOutputRefs = (step: MapStep | undefined, refs: readonly OutputRefKey[]): boolean =>
   refs.every((ref) => hasOutputRef(step, ref));
 
 const hasTransition = (transitions: readonly MapTransition[], query: TransitionQuery): boolean =>
@@ -164,7 +174,9 @@ const hasCommentsObservationTransitions = (context: SeedingVideoContext): boolea
   && hasTransition(context.routePlanTransitions, { fromStepId: "observe-comments-entry-page-state", toStepId: "analyze-comments-entry-target-candidate" })
   && hasTransition(context.routePlanTransitions, { fromStepId: "analyze-comments-entry-target-candidate", toStepId: "locate-comments-entry-target" })
   && hasTransition(context.routePlanTransitions, { fromStepId: "locate-comments-entry-target", toStepId: "normalize-comments-target" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "normalize-comments-target", toStepId: "click-comments-button" });
+  && hasTransition(context.routePlanTransitions, { fromStepId: "normalize-comments-target", toStepId: "click-comments-button" })
+  && hasTransition(context.routePlanTransitions, { fromStepId: "click-comments-button", toStepId: "verify-comments-open" })
+  && hasTransition(context.routePlanTransitions, { fromStepId: "verify-comments-open", toStepId: "capture-comments-panel" });
 
 const hasCommentsObservationChain = (context: SeedingVideoContext): boolean => {
   const observeCommentsState = getStep(context, "observe-comments-entry-page-state");
@@ -172,10 +184,12 @@ const hasCommentsObservationChain = (context: SeedingVideoContext): boolean => {
   const locateComments = getStep(context, "locate-comments-entry-target");
   const normalizeComments = getStep(context, "normalize-comments-target");
   const clickComments = getStep(context, "click-comments-button");
+  const verifyCommentsOpen = getStep(context, "verify-comments-open");
   return hasCommentsObservationTransitions(context)
     && hasCommentsObservationPageStateStep(observeCommentsState)
     && hasCommentsTargetCandidateSteps({ analyzeComments, locateComments, normalizeComments })
-    && hasCommentsClickStep(clickComments);
+    && hasCommentsClickStep(clickComments)
+    && hasCommentsOpenVerificationStep(verifyCommentsOpen);
 };
 
 const hasCommentsEvidenceTransitions = (context: SeedingVideoContext): boolean =>
@@ -190,11 +204,13 @@ const hasCommentsEvidenceTransitions = (context: SeedingVideoContext): boolean =
   && hasTransition(context.routePlanTransitions, { fromStepId: "finalize-seeding-evidence-packet", toStepId: "finalize-seeding-browse-ledger" });
 
 const hasCommentsEvidenceChain = (context: SeedingVideoContext): boolean => {
+  const captureCommentsPanel = getStep(context, "capture-comments-panel");
   const extractVisibleComments = getStep(context, "extract-visible-comments");
   const writeSeedingEvidence = getStep(context, "write-seeding-evidence-record");
   const finalizeSeedingPacket = getStep(context, "finalize-seeding-evidence-packet");
   const finalizeSeedingBrowseLedger = getStep(context, "finalize-seeding-browse-ledger");
   return hasCommentsEvidenceTransitions(context)
+    && hasCaptureCommentsPanelStep(captureCommentsPanel)
     && hasCommentsCleanupStep(extractVisibleComments)
     && hasCommentsPersistenceSteps({ writeSeedingEvidence, finalizeSeedingPacket, finalizeSeedingBrowseLedger });
 };

@@ -19,6 +19,8 @@ Core doctrine:
 - Visual Target says: “this looks like the target.”
 - Geometry Guard says: “this coordinate is / is not safe for execution space.”
 - Mouse Click / Mouse Scroll execute only Geometry Guard approved executable geometry.
+- Geometry Guard public success contract must expose geometryGuardRef, geometryGuardProofRef, geometryGuardOutputRef, and geometryGuardRuntimeProofRef for downstream consumption.
+- Downstream click/scroll paths must consume GeometryGuardResult public contract only; rebuilding click inputs from proof-summary scatter fields is forbidden.
 - Geometry Guard must not plan actions, choose targets, execute actions, verify action results, or own browser state.
 - `aiInput` and `contactSheet` coordinates are never directly executable.
 - `regionCrop` must map back to governed source evidence before executable normalization.

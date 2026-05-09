@@ -37,6 +37,8 @@ type VisionNextItemAdvancedPayload = z.infer<typeof VisionNextItemAdvancedPayloa
 type VisionNextItemAdvancedResult = VisionNextItemAdvancedPayload;
 
 export {
+  NEXT_ITEM_ADVANCED_ROUTE_LABEL,
+  NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
   VisionNextItemAdvancedPromptIdSchema,
   VisionNextItemAdvancedTaskTypeSchema,
   VisionNextItemAdvancedPromptVersionSchema,

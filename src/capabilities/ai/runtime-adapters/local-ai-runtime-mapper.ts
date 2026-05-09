@@ -17,12 +17,14 @@ import {
   type LocalAiHealth,
   type LocalAiTaskRequest,
   type LocalAiTaskType,
-  VisionCommentsEntryTargetCandidateRequestInputSchema,
+} from "../../../types/local-ai.js";
+import { VisionCommentsEntryTargetCandidateRequestInputSchema } from "../shared/ai-comments-target-schemas.js";
+import {
   VisionNextItemAdvancedRequestInputSchema,
   VisionNextItemTargetCandidateRequestInputSchema,
-  VisionPagePreparationRequestInputSchema,
-  VisionProductPresenceRequestInputSchema,
-} from "../../../types/local-ai-runtime-request-bridge.js";
+} from "../shared/ai-next-item-schemas.js";
+import { VisionPagePreparationRequestInputSchema } from "../shared/ai-page-preparation-schemas.js";
+import { VisionProductPresenceRequestInputSchema } from "../shared/ai-evidence-vision-schemas.js";
 import { resolvePromptContractCatalogEntryByLocalTaskType } from "../prompt-contracts/local-ai-task-contracts.js";
 import type { PromptContractCatalogEntry } from "../prompt-contracts/schema.js";
 import type { ParsedAiAbilityInput } from "../contract.js";

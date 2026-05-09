@@ -20,6 +20,8 @@ Core doctrine:
 - Mouse Click only consumes Geometry Guard `allow` with normalized executable coordinates.
 - Mouse Click executes one governed primitive click through `MouseClickPrimitivePort`.
 - Mouse Click success means primitive click accepted/executed only; it is not action-result truth.
+- Mouse Click public success contract must expose clickResultRef and preserve Geometry Guard lineage refs needed by downstream Post-action Verification.
+- Mouse Click success must emit postActionVerificationHandoffRef and must not require Nerve Bus, Route Plan, or proof-summary layers to reconstruct that handoff.
 - Post-action Verification verifies what happened after the click.
 - Forensics persists final action logs; Mouse Click emits owner evidence and actionExecutionRef only.
 - No Geometry Guard allow, no click.

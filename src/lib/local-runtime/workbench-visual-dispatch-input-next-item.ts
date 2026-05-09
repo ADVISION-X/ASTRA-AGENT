@@ -1,8 +1,8 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
-import { resolveAbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { payloadValueToString } from "./workbench-payload.js";
+import { resolveVisualTargetGeometryHandoff } from "./workbench-muscle-joint-contract-resolvers.js";
 import { resolveScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
 import {
   buildNextVideoArrowGeometry,
@@ -92,18 +92,15 @@ const buildDeterministicNextVideoArrowFallbackCommand = async (
 
 const resolveNextItemTargetCandidateRef = (payload: DispatchPayloadRecord): string | null =>
   payloadValueToString(payload.nextItemTargetCandidateRef)
+  ?? payloadValueToString(payload.visualTargetResultRef)
+  ?? payloadValueToString(payload.visualTargetRef)
   ?? payloadValueToString(payload.aiTargetCandidateRef)
   ?? payloadValueToString(payload.targetCandidateRef)
   ?? payloadValueToString(payload.sourceVisualTargetResultRef);
 
-const readSummaryNumber = (summary: Record<string, unknown> | null, key: string): number | null => {
-  const value = summary?.[key];
+const readProofNumber = (proof: Record<string, unknown> | null | undefined, key: string): number | null => {
+  const value = proof?.[key];
   return typeof value === "number" && Number.isFinite(value) ? value : null;
-};
-
-const readSummaryString = (summary: Record<string, unknown> | null, key: string): string | null => {
-  const value = summary?.[key];
-  return typeof value === "string" && value.length > 0 ? value : null;
 };
 
 const buildStructuredNextItemGeometryCommand = async (
@@ -114,36 +111,31 @@ const buildStructuredNextItemGeometryCommand = async (
 ) => {
   const payload = toDispatchPayload(inputPayload);
   const geometry = await runtime.browserController.getGeometrySnapshot();
-  const summary = resolveAbilityResultProofSummary(targetCandidateRef);
-  const bboxX = readSummaryNumber(summary, "sourceBoundsX");
-  const bboxY = readSummaryNumber(summary, "sourceBoundsY");
-  const bboxWidth = readSummaryNumber(summary, "sourceBoundsWidth");
-  const bboxHeight = readSummaryNumber(summary, "sourceBoundsHeight");
-  const clickX = readSummaryNumber(summary, "normalizedClickPointX");
-  const clickY = readSummaryNumber(summary, "normalizedClickPointY");
-  const normalizedCoordinateSpace = readSummaryString(summary, "normalizedCoordinateSpace");
+  const handoff = resolveVisualTargetGeometryHandoff(targetCandidateRef);
+  const normalizedCoordinateSpace = handoff?.coordinateSpace ?? null;
   const sourceVisualTargetResultRef = payloadValueToString(payload.sourceVisualTargetResultRef)
+    ?? payloadValueToString(payload.visualTargetResultRef)
     ?? payloadValueToString(payload.visualTargetRef)
-    ?? readSummaryString(summary, "sourceVisualTargetResultRef");
+    ?? handoff?.sourceVisualTargetResultRef;
 
-  if (!sourceVisualTargetResultRef || bboxX === null || bboxY === null || bboxWidth === null || bboxHeight === null || clickX === null || clickY === null) {
+  if (!handoff || !sourceVisualTargetResultRef) {
     throw new Error("normalize-next-video-arrow received a target candidate ref but lacks structured Visual Target geometry proof; deterministic geometry is fallback-only and cannot replace candidate validation.");
   }
 
-  const sourceTargetRef = readSummaryString(summary, "sourceTargetRef") ?? targetCandidateRef;
-  const sourceScreenshotEvidenceRef = readSummaryString(summary, "sourceScreenshotEvidenceRef")
+  const sourceTargetRef = handoff.sourceTargetRef;
+  const sourceScreenshotEvidenceRef = handoff.sourceScreenshotEvidenceRef
     ?? resolvePayloadRef(payload, ["screenshotEvidenceRef", "sourceEvidenceRef"], `${envelope.inputRef}:next-video-arrow-screenshot`);
   const rawGeometry = {
-    bbox: { x: bboxX, y: bboxY, width: bboxWidth, height: bboxHeight },
-    clickPoint: { x: clickX, y: clickY },
+    bbox: handoff.bbox,
+    clickPoint: handoff.clickPoint,
   };
   const screenshotHandoff = resolveScreenshotSourceHandoff([
     sourceScreenshotEvidenceRef,
     payloadValueToString(payload.screenshotEvidenceRef),
     payloadValueToString(payload.sourceEvidenceRef),
   ]);
-  const sourceWidth = readSummaryNumber(screenshotHandoff?.sourceProof ?? null, "sourceWidth");
-  const sourceHeight = readSummaryNumber(screenshotHandoff?.sourceProof ?? null, "sourceHeight");
+  const sourceWidth = readProofNumber(screenshotHandoff?.sourceProof ?? null, "sourceWidth");
+  const sourceHeight = readProofNumber(screenshotHandoff?.sourceProof ?? null, "sourceHeight");
   const shouldProjectGeometry = sourceWidth !== null
     && sourceHeight !== null
     && shouldProjectSourceGeometryToViewport({
@@ -196,11 +188,11 @@ const buildStructuredNextItemGeometryCommand = async (
     sourceRef: sourceTargetRef,
     sourceScreenshotEvidenceRef,
     sourceTargetRef,
-    sourceAiResultRef: payloadValueToString(payload.sourceAiResultRef) ?? readSummaryString(summary, "sourceAiResultRef"),
-    sourcePageStateProofRef: null,
+    sourceAiResultRef: payloadValueToString(payload.sourceAiResultRef) ?? handoff.sourceAiResultRef,
+    sourcePageStateProofRef: handoff.sourcePageStateProofRef,
     sourceVisualTargetResultRef,
-    sourceGeometryHandoffRef: readSummaryString(summary, "sourceGeometryHandoffRef"),
-    sourceCoordinateSpace: "browserViewport",
+    sourceGeometryHandoffRef: handoff.handoffRef,
+    sourceCoordinateSpace: handoff.coordinateSpace,
     requestedExecutionSpace: "browserViewport",
     bbox: executableGeometry.bbox,
     clickPoint: executableGeometry.clickPoint,

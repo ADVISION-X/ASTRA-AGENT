@@ -185,7 +185,16 @@ const buildWorkbenchAiResponseEnvelope = (input: {
   };
 };
 
-const buildWorkbenchAiResponse = (input: {
+type WorkbenchAiResponseArtifacts = {
+  aiTaskType: string;
+  confidence: number | null;
+  failureReason: string | null;
+  diagnostics: ReturnType<typeof buildAiDiagnosticFields>;
+  resolvedDecision: ReturnType<typeof resolveWorkbenchAiDecision>;
+  outputPayload: ReturnType<typeof buildAiOutputPayload>;
+};
+
+const resolveWorkbenchAiResponseArtifacts = (input: {
   envelope: WorkbenchAiRequestEnvelope;
   aiResult: {
     status: "success" | "failed" | "review_required";
@@ -195,7 +204,7 @@ const buildWorkbenchAiResponse = (input: {
     failureReason?: string | { code?: string; message?: string; detail?: string | null } | null;
     reviewRequiredReason?: string | null;
   };
-}): WorkbenchAiHandledResult => {
+}): WorkbenchAiResponseArtifacts => {
   const aiTaskType = input.aiResult.taskType ?? input.envelope.taskType;
   const confidence = input.aiResult.confidence ?? null;
   const failureReason = describeFailureReason(input.aiResult.failureReason);
@@ -208,36 +217,58 @@ const buildWorkbenchAiResponse = (input: {
     reviewRequiredReason: input.aiResult.reviewRequiredReason,
     output: input.aiResult.output,
   });
-  const outputPayload = buildAiOutputPayload({
-    envelope: input.envelope,
-    status: resolvedDecision.status,
+
+  return {
     aiTaskType,
-    decision: resolvedDecision.decision,
-    routeLabel: resolvedDecision.routeLabel,
-    nonExecutableSummary: resolvedDecision.nonExecutableSummary,
     confidence,
     failureReason,
-    reviewRequiredReason: resolvedDecision.reviewRequiredReason,
-    isProductVideo: resolvedDecision.isProductVideo,
-    mustReview: resolvedDecision.mustReview,
     diagnostics,
-  });
+    resolvedDecision,
+    outputPayload: buildAiOutputPayload({
+      envelope: input.envelope,
+      status: resolvedDecision.status,
+      aiTaskType,
+      decision: resolvedDecision.decision,
+      routeLabel: resolvedDecision.routeLabel,
+      nonExecutableSummary: resolvedDecision.nonExecutableSummary,
+      confidence,
+      failureReason,
+      reviewRequiredReason: resolvedDecision.reviewRequiredReason,
+      isProductVideo: resolvedDecision.isProductVideo,
+      mustReview: resolvedDecision.mustReview,
+      diagnostics,
+    }),
+  };
+};
+
+const buildWorkbenchAiResponse = (input: {
+  envelope: WorkbenchAiRequestEnvelope;
+  aiResult: {
+    status: "success" | "failed" | "review_required";
+    taskType?: string | null;
+    confidence?: number | null;
+    output?: unknown;
+    failureReason?: string | { code?: string; message?: string; detail?: string | null } | null;
+    reviewRequiredReason?: string | null;
+  };
+}): WorkbenchAiHandledResult => {
+  const response = resolveWorkbenchAiResponseArtifacts(input);
   recordAiOutputSummaryAlias({
-    aliasRef: resolvedDecision.status === "success" ? outputPayload.documentRef : null,
+    aliasRef: response.resolvedDecision.status === "success" ? response.outputPayload.documentRef : null,
     sourceRef: resolveAuthoritativeAiOutputRef(input.aiResult),
   });
 
   return {
     envelope: buildWorkbenchAiResponseEnvelope({
       envelope: input.envelope,
-      aiTaskType,
-      confidence,
-      failureReason,
-      resolvedDecision,
-      outputPayload,
-      diagnostics,
+      aiTaskType: response.aiTaskType,
+      confidence: response.confidence,
+      failureReason: response.failureReason,
+      resolvedDecision: response.resolvedDecision,
+      outputPayload: response.outputPayload,
+      diagnostics: response.diagnostics,
     }),
-    outputPayload,
+    outputPayload: response.outputPayload,
   };
 };
 

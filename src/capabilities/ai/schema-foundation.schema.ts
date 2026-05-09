@@ -2,15 +2,24 @@ import { z } from "zod";
 
 import {
   EvidenceRefSchema,
-  VisionCommentsEntryTargetCandidatePayloadSchema,
-  VisionNextItemAdvancedPayloadSchema,
-  VisionNextItemTargetCandidatePayloadSchema,
-  VisionPagePreparationPayloadSchema,
-  VisionPagePreparationRequestInputSchema,
   VisionProductPresenceMissingFrameSchema,
   VisionProductPresencePayloadSchema,
   VisionProductPresenceRequestInputSchema,
-} from "../../types/ai-schema-foundation-bridge.js";
+} from "./shared/ai-evidence-vision-schemas.js";
+import { VisionCommentsEntryTargetCandidatePayloadSchema } from "./shared/ai-comments-target-schemas.js";
+import {
+  VisionNextItemAdvancedPayloadSchema,
+  VisionNextItemTargetCandidatePayloadSchema,
+} from "./shared/ai-next-item-schemas.js";
+import {
+  VisionPagePreparationPayloadSchema,
+  VisionPagePreparationRequestInputSchema,
+} from "./shared/ai-page-preparation-schemas.js";
+import {
+  VisionProductPresenceMissingFrameSchema,
+  VisionProductPresencePayloadSchema,
+  VisionProductPresenceRequestInputSchema,
+} from "./shared/ai-evidence-vision-schemas.js";
 import {
   DEFAULT_AI_COST_POLICY,
   DEFAULT_AI_DATA_POLICY,

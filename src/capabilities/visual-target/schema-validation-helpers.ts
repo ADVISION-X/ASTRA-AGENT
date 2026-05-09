@@ -16,6 +16,7 @@ type VisualTargetRuntimeProofLike = ChainRecord & {
 type VisualTargetAbilityResultLike = ChainRecord & {
   status: string;
   output: unknown;
+  visualTargetResultRef: string | null;
   failureReason: string | null;
   runtimeProof: VisualTargetRuntimeProofLike;
 };
@@ -74,11 +75,25 @@ export function validateVisualTargetAbilityResult(value: VisualTargetAbilityResu
   if (value.runtimeProof.status !== value.status) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
   }
+  if (value.visualTargetResultRef !== value.runtimeProof.outputRef) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "visualTargetResultRef must equal runtimeProof.outputRef", path: ["visualTargetResultRef"] });
+  }
   validateVisualTargetAbilityResultChainParity(resultRecord, proofRecord, isInvalidInputFailure, context);
   if (value.status === "success" && value.output === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires output", path: ["output"] });
   }
   if (value.status !== "success" && value.output !== null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "failed/review_required result must keep output null", path: ["output"] });
+  }
+  if (value.status === "success" && value.output && typeof value.output === "object" && value.output !== null && "geometryGuardHandoff" in (value.output as Record<string, unknown>)) {
+    const actionOutput = value.output as Record<string, unknown>;
+    const handoff = actionOutput.geometryGuardHandoff;
+    if (typeof handoff !== "object" || handoff === null || Array.isArray(handoff)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "success action output requires geometryGuardHandoff object", path: ["output", "geometryGuardHandoff"] });
+      return;
+    }
+    if ((handoff as Record<string, unknown>).sourceVisualTargetResultRef !== value.visualTargetResultRef) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "geometryGuardHandoff.sourceVisualTargetResultRef must equal visualTargetResultRef", path: ["output", "geometryGuardHandoff", "sourceVisualTargetResultRef"] });
+    }
   }
 }

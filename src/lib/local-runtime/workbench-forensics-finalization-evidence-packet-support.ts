@@ -6,7 +6,8 @@ import {
 import { resolveAbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
 import { payloadDocumentToObject } from "./workbench-payload.js";
 import { resolveScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
-import { isRecord, readString, requireString, resolvePayloadString, type WorkbenchForensicsEnvelope } from "./workbench-forensics-dispatch-support.js";
+import { isRecord, readString, requireString, resolvePayloadString } from "./workbench-forensics-dispatch-values.js";
+import type { WorkbenchForensicsEnvelope } from "./workbench-forensics-dispatch-types.js";
 
 type ScreenshotHandoff = NonNullable<ReturnType<typeof resolveScreenshotSourceHandoff>>;
 type ProductPresenceSummary = NonNullable<ReturnType<typeof resolveAiProductPresenceOutputSummary>>;

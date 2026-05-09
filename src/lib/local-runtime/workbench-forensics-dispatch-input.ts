@@ -1,5 +1,6 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
+import { getActiveMapChain } from "./workbench-map-chain-support.js";
 import { payloadDocumentToObject } from "./workbench-payload.js";
 import { buildForensicsStructuredRuntimeEvent } from "./workbench-forensics-runtime-event-support.js";
 import { resolveScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
@@ -9,15 +10,19 @@ import {
 } from "./workbench-forensics-finalization-dispatch.js";
 import {
   buildForensicsBaseInput,
+} from "./workbench-forensics-dispatch-builders.js";
+import {
   isRecord,
   readNumber,
   readString,
   requirePositiveInt,
   requireString,
   resolvePayloadString,
+} from "./workbench-forensics-dispatch-values.js";
+import {
   type WorkbenchForensicsImageEvidenceInput,
   type WorkbenchForensicsRuntimeEventInput,
-} from "./workbench-forensics-dispatch-support.js";
+} from "./workbench-forensics-dispatch-types.js";
 
 export const buildForensicsRuntimeEventInput = (
   envelope: AbilityCommandEnvelope,

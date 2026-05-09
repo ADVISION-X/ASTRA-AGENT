@@ -19,7 +19,9 @@ Core doctrine:
 - AI is the final semantic action-result judgment source when a mission needs semantic yes/no.
 - Post-action Verification owns only post-action observation package integrity after the action.
 - Post-action Verification consumes action refs, before/after evidence refs, governed observations, expected outcome, and verification policy.
+- Mouse Click initiated verification must enter PAV through postActionVerificationHandoffRef / clickResultRef public contract, not through proof-summary scatter fields.
 - Post-action Verification returns a typed observation package or a fail-closed diagnostic.
+- Post-action Verification public result must expose postActionVerificationResultRef, source action refs, evidence refs, observation refs, observationFingerprint, and packageStatus only as packaging truth.
 - PAV public result and runtime-proof surfaces must not expose verificationDecision, confidence, confidencePolicy, minimumConfidence, or actionResultVerifiedRef.
 - Explicit governed review is not a valid substitute for PAV in production automation.
 - No bounded observations, no source proof, no package success.

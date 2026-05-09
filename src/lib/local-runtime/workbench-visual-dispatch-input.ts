@@ -1,8 +1,8 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
-import { resolveAbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { payloadValueToString } from "./workbench-payload.js";
+import { resolveVisualTargetGeometryHandoff } from "./workbench-muscle-joint-contract-resolvers.js";
 import {
   resolvePayloadRef,
   toDispatchPayload,
@@ -11,16 +11,6 @@ import { buildCommentsEntryVisualTargetCommand } from "./workbench-visual-dispat
 import { buildAdvanceNextItemGeometryGuardCommand } from "./workbench-visual-dispatch-input-next-item.js";
 import { buildNextItemTargetVisualTargetCommand } from "./workbench-visual-dispatch-input-next-item-target.js";
 
-const readSummaryNumber = (summary: Record<string, unknown> | null, key: string): number | null => {
-  const value = summary?.[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-};
-
-const readSummaryString = (summary: Record<string, unknown> | null, key: string): string | null => {
-  const value = summary?.[key];
-  return typeof value === "string" && value.length > 0 ? value : null;
-};
-
 const buildStructuredVisualTargetGeometryGuardCommand = async (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
@@ -28,24 +18,19 @@ const buildStructuredVisualTargetGeometryGuardCommand = async (
 ) => {
   const payload = toDispatchPayload(inputPayload);
   const geometry = await runtime.browserController.getGeometrySnapshot();
-  const visualTargetRef = payloadValueToString(payload.visualTargetRef)
+  const visualTargetRef = payloadValueToString(payload.visualTargetResultRef)
+    ?? payloadValueToString(payload.visualTargetRef)
     ?? payloadValueToString(payload.sourceVisualTargetResultRef)
     ?? payloadValueToString(payload.sourceTargetRef);
-  const summary = visualTargetRef ? resolveAbilityResultProofSummary(visualTargetRef) : null;
-  const bboxX = readSummaryNumber(summary, "sourceBoundsX");
-  const bboxY = readSummaryNumber(summary, "sourceBoundsY");
-  const bboxWidth = readSummaryNumber(summary, "sourceBoundsWidth");
-  const bboxHeight = readSummaryNumber(summary, "sourceBoundsHeight");
-  const clickX = readSummaryNumber(summary, "normalizedClickPointX");
-  const clickY = readSummaryNumber(summary, "normalizedClickPointY");
-  const sourceVisualTargetResultRef = readSummaryString(summary, "sourceVisualTargetResultRef") ?? visualTargetRef;
+  const handoff = visualTargetRef ? resolveVisualTargetGeometryHandoff(visualTargetRef) : null;
+  const sourceVisualTargetResultRef = handoff?.sourceVisualTargetResultRef ?? visualTargetRef;
 
-  if (!sourceVisualTargetResultRef || bboxX === null || bboxY === null || bboxWidth === null || bboxHeight === null || clickX === null || clickY === null) {
+  if (!handoff || !sourceVisualTargetResultRef) {
     throw new Error(`Geometry Guard dispatch for ${envelope.stepId} requires structured Visual Target geometry proof; center-screen fallback is forbidden.`);
   }
 
-  const sourceTargetRef = readSummaryString(summary, "sourceTargetRef") ?? sourceVisualTargetResultRef;
-  const sourceScreenshotEvidenceRef = readSummaryString(summary, "sourceScreenshotEvidenceRef")
+  const sourceTargetRef = handoff.sourceTargetRef;
+  const sourceScreenshotEvidenceRef = handoff.sourceScreenshotEvidenceRef
     ?? resolvePayloadRef(payload, ["screenshotEvidenceRef", "sourceEvidenceRef"], `${envelope.inputRef}:screenshot`);
 
   return JSON.parse(JSON.stringify({
@@ -69,19 +54,19 @@ const buildStructuredVisualTargetGeometryGuardCommand = async (
     requestedBy: "orchestration",
     purpose: inputPayload.summary,
     sourceAbilityGroupId: "visual-target",
-    sourceChildCapabilityId: readSummaryString(summary, "childCapabilityId") ?? "observe-comments-button",
+    sourceChildCapabilityId: "observe-comments-button",
     inputRef: envelope.inputRef,
     sourceRef: sourceTargetRef,
     sourceScreenshotEvidenceRef,
     sourceTargetRef,
-    sourceAiResultRef: readSummaryString(summary, "sourceAiResultRef"),
-    sourcePageStateProofRef: readSummaryString(summary, "sourcePageStateProofRef"),
+    sourceAiResultRef: handoff.sourceAiResultRef,
+    sourcePageStateProofRef: handoff.sourcePageStateProofRef,
     sourceVisualTargetResultRef,
-    sourceGeometryHandoffRef: readSummaryString(summary, "sourceGeometryHandoffRef"),
-    sourceCoordinateSpace: "browserViewport",
+    sourceGeometryHandoffRef: handoff.handoffRef,
+    sourceCoordinateSpace: handoff.coordinateSpace,
     requestedExecutionSpace: "browserViewport",
-    bbox: { x: bboxX, y: bboxY, width: bboxWidth, height: bboxHeight },
-    clickPoint: { x: clickX, y: clickY },
+    bbox: handoff.bbox,
+    clickPoint: handoff.clickPoint,
     viewportSize: {
       width: geometry.viewportWidth,
       height: geometry.viewportHeight,

@@ -19,6 +19,8 @@ Core doctrine:
 - Visual Target consumes governed candidates and evidence; it does not create screenshots or ask AI.
 - Visual Target may normalize bbox/clickPoint candidates into governed target results.
 - Visual Target may produce non-executable coordinate handoff for Geometry Guard.
+- Visual Target public success contract must expose visualTargetResultRef equal to its public output ref.
+- Visual Target geometry handoff must be carried inside VisualTargetResult public output, and downstream consumers must read that contract instead of proof-summary scatter fields.
 - Visual Target must not claim geometry safety, action executability, click success, page-state truth, or business truth.
 - Contact-sheet and AI-input coordinates are never executable truth.
 - Geometry Guard decides whether a target can be acted on.

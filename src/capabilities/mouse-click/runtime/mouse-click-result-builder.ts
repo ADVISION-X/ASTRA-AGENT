@@ -3,26 +3,41 @@ import { MouseClickAbilityResultSchema } from "../schema.js";
 import { buildStableMouseClickRef } from "../shared/mouse-click-types.js";
 import { buildMouseClickRuntimeProof } from "./mouse-click-proof-builder.js";
 
-function buildVerificationState(input: Parameters<typeof buildMouseClickResult>[0]) {
+function buildVerificationState(input: Parameters<typeof buildMouseClickResult>[0], outputRef: string) {
   const postClickObservation = input.status === "success";
   const postClickObservationRef = postClickObservation && input.actionExecutionRef && input.primitiveExecutionRef
     ? buildStableMouseClickRef("mouse-click-post-click-observation", [input.actionExecutionRef, input.primitiveExecutionRef])
     : null;
-  return { postClickObservation, postClickObservationRef };
+  const postActionVerificationHandoffRef = postClickObservation && input.actionExecutionRef && input.primitiveExecutionRef
+    ? buildStableMouseClickRef("mouse-click-post-action-verification-handoff", [outputRef, input.actionExecutionRef, input.primitiveExecutionRef])
+    : null;
+  return { postClickObservation, postClickObservationRef, postActionVerificationRequired: postClickObservation, postActionVerificationHandoffRef };
 }
 
-function buildSuccessOutput(input: Parameters<typeof buildMouseClickResult>[0], verification: ReturnType<typeof buildVerificationState>) {
+function buildSuccessOutput(
+  input: Parameters<typeof buildMouseClickResult>[0],
+  outputRef: string,
+  verification: ReturnType<typeof buildVerificationState>,
+) {
   return input.status === "success" && input.actionExecutionRef && input.primitiveExecutionRef && input.executableCoordinate
     ? {
+        clickResultRef: outputRef,
         attemptRef: input.seed.attemptRef,
         actionExecutionRef: input.actionExecutionRef,
         primitiveExecutionRef: input.primitiveExecutionRef,
+        geometryGuardRef: input.seed.geometryGuardRef,
+        geometryGuardProofRef: input.seed.geometryGuardProofRef,
+        sourceCoordinateProofRef: input.seed.sourceCoordinateProofRef,
+        sourceTargetRef: input.seed.sourceTargetRef,
+        sourceVisualTargetResultRef: input.seed.sourceVisualTargetResultRef,
         normalizedClickPoint: input.executableCoordinate,
         coordinateSpace: input.seed.coordinateSpace,
         button: input.seed.button,
         clickCount: input.seed.clickCount,
         postClickObservation: true as const,
         postClickObservationRef: verification.postClickObservationRef,
+        postActionVerificationRequired: true as const,
+        postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,
       }
     : null;
 }
@@ -76,6 +91,8 @@ function buildRuntimeProofOutcome(input: Parameters<typeof buildMouseClickResult
     primitiveEndedAt: input.primitiveEndedAt,
     postClickObservation: verification.postClickObservation,
     postClickObservationRef: verification.postClickObservationRef,
+    postActionVerificationRequired: verification.postActionVerificationRequired,
+    postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
     durationMs: input.durationMs,
@@ -144,7 +161,8 @@ export function buildMouseClickResult(input: {
   dataQualityFlags: string[];
 }) {
   const outputRef = buildStableMouseClickRef("mouse-click-output", [input.seed.attemptRef, input.status]);
-  const verification = buildVerificationState(input), output = buildSuccessOutput(input, verification);
+  const verification = buildVerificationState(input, outputRef);
+  const output = buildSuccessOutput(input, outputRef, verification);
   const diagnosticPayloadRef = buildDiagnosticPayloadRef(input);
   const runtimeProof = buildMouseClickRuntimeProof(buildRuntimeProofInput(input, outputRef, diagnosticPayloadRef, verification));
 
@@ -154,12 +172,16 @@ export function buildMouseClickResult(input: {
     videoVisitId: input.seed.videoVisitId, stepId: input.seed.stepId, mapPackageId: input.seed.mapPackageId,
     mapPackageVersion: input.seed.mapPackageVersion, selectedMapId: input.seed.selectedMapId, selectedMapVersion: input.seed.selectedMapVersion,
     activationSnapshotRef: input.seed.activationSnapshotRef, capabilityCallId: input.seed.capabilityCallId, nerveBusEnvelopeId: input.seed.nerveBusEnvelopeId,
+    clickResultRef: outputRef,
     attemptRef: input.seed.attemptRef, diagnosticPayloadRef, output, failureReason: input.failureReason, reviewRequiredReason: input.reviewRequiredReason,
-    statusMessage: input.statusMessage, policyDecision: input.policyDecision, geometryGuardProofRef: input.seed.geometryGuardProofRef,
+    statusMessage: input.statusMessage, geometryGuardRef: input.seed.geometryGuardRef, policyDecision: input.policyDecision, geometryGuardProofRef: input.seed.geometryGuardProofRef,
+    sourceCoordinateProofRef: input.seed.sourceCoordinateProofRef, sourceTargetRef: input.seed.sourceTargetRef,
     sourceVisualTargetResultRef: input.seed.sourceVisualTargetResultRef, geometryDecision: input.geometryDecision, safetyDecision: input.safetyDecision,
     primitiveDecision: input.primitiveDecision, timeoutDecision: input.timeoutDecision, abortDecision: input.abortDecision,
     idempotencyDecision: input.idempotencyDecision,
     postClickObservationRef: verification.postClickObservationRef,
+    postActionVerificationRequired: verification.postActionVerificationRequired,
+    postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef,
     dataQualityFlags: input.dataQualityFlags,
     runtimeProof,
   });

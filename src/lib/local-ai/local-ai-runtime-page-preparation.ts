@@ -1,9 +1,9 @@
 import type { LocalAiTaskRequest } from "../../types/local-ai.js";
-import { VisionPagePreparationPayloadSchema } from "../../types/vision-page-preparation.js";
 import {
   STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
   STARTUP_PREPARATION_READY_ROUTE_LABEL,
-} from "../../map-plugins/shared/startup-preparation.constants.js";
+  VisionPagePreparationPayloadSchema,
+} from "../../types/vision-page-preparation.js";
 import { LocalAiRuntimeError } from "./local-ai-runtime-error.js";
 import { parseRuntimeJsonOutput } from "./local-ai-runtime-task-support.js";
 

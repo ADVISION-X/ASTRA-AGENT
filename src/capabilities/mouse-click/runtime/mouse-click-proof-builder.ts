@@ -92,6 +92,8 @@ function buildProofOutcome(input: Parameters<typeof buildMouseClickRuntimeProof>
   return {
     postClickObservation: input.postClickObservation,
     postClickObservationRef: input.postClickObservationRef,
+    postActionVerificationRequired: input.postActionVerificationRequired,
+    postActionVerificationHandoffRef: input.postActionVerificationHandoffRef,
     verificationRefPolicy: MOUSE_CLICK_PROOF.VERIFICATION_REF_POLICY,
     startedAt: input.startedAt,
     endedAt: input.endedAt,
@@ -172,6 +174,8 @@ export function buildMouseClickRuntimeProof(input: {
   primitiveEndedAt: string | null;
   postClickObservation: boolean;
   postClickObservationRef: string | null;
+  postActionVerificationRequired: boolean;
+  postActionVerificationHandoffRef: string | null;
   startedAt: string;
   endedAt: string;
   durationMs: number;

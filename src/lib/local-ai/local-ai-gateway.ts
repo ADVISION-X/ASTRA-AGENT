@@ -1,4 +1,4 @@
-import { getModelRoleConfig, loadLocalAiModelConfig, type LocalAiModelConfig } from "./model-config.js";
+import { getModelRoleConfig, loadLocalAiModelConfig, type LocalAiModelConfig, type LocalModelRoleConfig } from "./model-config.js";
 import { getPromptContract, getRequiredModelRole, listPromptContracts } from "./prompt-registry.js";
 import { executeRuntimeTask } from "./local-ai-runtime-execution.js";
 import { LocalAiRuntimeError } from "./local-ai-runtime-error.js";
@@ -45,6 +45,49 @@ export class LocalAiGateway {
       lastFailureReason: this.lastFailureReason,
       lastInvocationStatus: this.lastInvocationStatus,
     };
+  }
+
+  private recordInvocationSuccess(): void {
+    this.lastInvocationStatus = "success";
+    this.lastFailureReason = null;
+  }
+
+  private recordInvocationFailure(error: unknown): void {
+    if (error instanceof LocalAiRuntimeError) {
+      this.lastFailureReason = error.message;
+      this.lastInvocationStatus = getInvocationStatusFromRuntimeError(error);
+    }
+  }
+
+  private assertExecutionModeAllowed(request: LocalAiTaskRequest, executionMode?: LocalAiExecutionMode): void {
+    if ((request.taskType === "vision.pagePreparation" || request.taskType === "vision.nextItemAdvanced") && executionMode && executionMode !== "real-platform") {
+      throw new LocalAiRuntimeError(
+        "disabled_by_policy",
+        `${request.taskType} requires real-platform AI execution and forbids governed fallback modes.`,
+      );
+    }
+  }
+
+  private executeGovernedMode(request: LocalAiTaskRequest, roleConfig: LocalModelRoleConfig): LocalAiTaskResult {
+    this.recordInvocationSuccess();
+    return executeGovernedTask(request, roleConfig, new Date().toISOString());
+  }
+
+  private async executePlatformMode(
+    request: LocalAiTaskRequest,
+    roleConfig: LocalModelRoleConfig,
+    options?: { executionMode?: LocalAiExecutionMode; debugHook?: LocalAiDebugHook; signal?: AbortSignal },
+  ): Promise<LocalAiTaskResult> {
+    const result = await executeRuntimeTask({
+      request,
+      roleConfig,
+      ollamaAdapter: this.ollamaAdapter,
+      ocrAdapter: this.ocrAdapter,
+      ...(options?.signal ? { signal: options.signal } : {}),
+      ...(options?.debugHook ? { debugHook: options.debugHook } : {}),
+    });
+    this.recordInvocationSuccess();
+    return result;
   }
 
   async getHealth(): Promise<{ ok: boolean; detail: string; health: LocalAiHealth }> {
@@ -96,37 +139,14 @@ export class LocalAiGateway {
     const request = LocalAiTaskRequestSchema.parse(requestInput);
     const roleConfig = await this.resolveGovernedRoleConfig(request);
     this.lastTaskType = request.taskType;
-
-    if ((request.taskType === "vision.pagePreparation" || request.taskType === "vision.nextItemAdvanced") && options?.executionMode && options.executionMode !== "real-platform") {
-      throw new LocalAiRuntimeError(
-        "disabled_by_policy",
-        `${request.taskType} requires real-platform AI execution and forbids governed fallback modes.`,
-      );
-    }
-
-    if (options?.executionMode && options.executionMode !== "real-platform") {
-      this.lastInvocationStatus = "success";
-      this.lastFailureReason = null;
-      return executeGovernedTask(request, roleConfig, new Date().toISOString());
-    }
+    this.assertExecutionModeAllowed(request, options?.executionMode);
 
     try {
-      const result = await executeRuntimeTask({
-        request,
-        roleConfig,
-        ollamaAdapter: this.ollamaAdapter,
-        ocrAdapter: this.ocrAdapter,
-        ...(options?.signal ? { signal: options.signal } : {}),
-        ...(options?.debugHook ? { debugHook: options.debugHook } : {}),
-      });
-      this.lastInvocationStatus = "success";
-      this.lastFailureReason = null;
-      return result;
+      return options?.executionMode && options.executionMode !== "real-platform"
+        ? this.executeGovernedMode(request, roleConfig)
+        : this.executePlatformMode(request, roleConfig, options);
     } catch (error) {
-      if (error instanceof LocalAiRuntimeError) {
-        this.lastFailureReason = error.message;
-        this.lastInvocationStatus = getInvocationStatusFromRuntimeError(error);
-      }
+      this.recordInvocationFailure(error);
       throw error;
     }
   }

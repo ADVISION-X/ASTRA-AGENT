@@ -2,108 +2,10 @@
   "findings": [
     {
       "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-ai/local-ai-gateway.ts",
-      "line": 95,
+      "file": "src/capabilities/visual-target/schema-validation-helpers.ts",
+      "line": 70,
       "severity": "error",
-      "message": "Function execute exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-ai/local-ai-runtime-comments-entry-target-candidate.ts",
-      "line": 46,
-      "severity": "error",
-      "message": "Function normalizeCandidate exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-ai/local-ai-runtime-comments-entry-target-candidate.ts",
-      "line": 82,
-      "severity": "error",
-      "message": "Function normalizeRuntimeOutput exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-ai/local-ai-runtime-execution.ts",
-      "line": 8,
-      "severity": "error",
-      "message": "Function executeRuntimeTask exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-005-V1",
-      "file": "src/lib/local-ai/local-ai-runtime-next-item-advanced.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "File crosses too many real owner boundaries or cross-owner imports."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-005-V1",
-      "file": "src/lib/local-ai/local-ai-runtime-page-preparation.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "File crosses too many real owner boundaries or cross-owner imports."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-ai/local-ai-runtime-target-candidate-normalization.ts",
-      "line": 86,
-      "severity": "error",
-      "message": "Function resolveCandidateGeometry exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-006-V1",
-      "file": "src/lib/local-runtime/workbench-base-runtime.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "Import or export structure exceeds code-purity limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-006-V1",
-      "file": "src/lib/local-runtime/workbench-forensics-dispatch-support.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "Import or export structure exceeds code-purity limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts",
-      "line": 161,
-      "severity": "error",
-      "message": "Function ensureSingleWorkbenchAiInputProof exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-005-V1",
-      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "File crosses too many real owner boundaries or cross-owner imports."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts",
-      "line": 188,
-      "severity": "error",
-      "message": "Function buildWorkbenchAiResponse exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-runtime/workbench-page-state-proof-summary-registry.ts",
-      "line": 59,
-      "severity": "error",
-      "message": "Function resolvePageStateProofSummaryRequiredValues exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-runtime/workbench-pointer-dispatch-input.ts",
-      "line": 84,
-      "severity": "error",
-      "message": "Function buildMouseClickCommand exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-runtime/workbench-pointer-dispatch-input.ts",
-      "line": 177,
-      "severity": "error",
-      "message": "Function buildMouseScrollCommand exceeds code-purity function limits."
+      "message": "Function validateVisualTargetAbilityResult exceeds code-purity function limits."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -111,13 +13,6 @@
       "line": 86,
       "severity": "error",
       "message": "Function buildCommentsEntryVisualTargetCommand exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-runtime/workbench-visual-dispatch-input-next-item-target-support.ts",
-      "line": 145,
-      "severity": "error",
-      "message": "Function resolveAiInputScaleMappingFields exceeds code-purity function limits."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -153,41 +48,6 @@
       "line": 24,
       "severity": "error",
       "message": "Function buildStructuredVisualTargetGeometryGuardCommand exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/map-plugins/schema/operational-map-document-validation.ts",
-      "line": 81,
-      "severity": "error",
-      "message": "Function validateRoutePlanBoundMap exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-009-V1",
-      "file": "src/types/ai-schema-foundation-bridge.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "Compatibility bridge or legacy duplicate path naming is forbidden in active source truth."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-014-V1",
-      "file": "src/types/ai-schema-foundation-bridge.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "Physical remediation must remove bridge-style files instead of preserving duplicate paths."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-009-V1",
-      "file": "src/types/local-ai-runtime-request-bridge.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "Compatibility bridge or legacy duplicate path naming is forbidden in active source truth."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-014-V1",
-      "file": "src/types/local-ai-runtime-request-bridge.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "Physical remediation must remove bridge-style files instead of preserving duplicate paths."
     }
   ]
 }

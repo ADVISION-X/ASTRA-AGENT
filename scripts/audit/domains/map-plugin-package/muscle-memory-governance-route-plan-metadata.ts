@@ -31,11 +31,15 @@ const collectSegmentMetadataFindings = (routePlanId: string, segment: RoutePlanS
   ...(segment.allowedAbilityGroups.includes("map-plugin-package")
     ? [toFinding(ROUTE_PLAN_ROOT, "Muscle segments must not list map-plugin-package as an allowed ability group.", `${routePlanId}:${segment.segmentId}`)]
     : []),
-  ...(!segment.aiRequired && segment.producesRefs.some((ref) => ref.toLowerCase().includes("routelabel"))
+  ...(!segment.aiRequired && segment.producesRefs.some((ref: string) => ref.toLowerCase().includes("routelabel"))
     ? [toFinding(ROUTE_PLAN_ROOT, "Non-AI muscle segments must not produce routeLabel refs.", `${routePlanId}:${segment.segmentId}`)]
     : []),
   ...(segment.aiRequired && segment.semanticOwner !== "ai"
     ? [toFinding(ROUTE_PLAN_ROOT, "Semantic muscle segments must declare semanticOwner=ai.", `${routePlanId}:${segment.segmentId}`)]
+    : []),
+  ...(segment.segmentId === "target-action.comments-entry"
+    && !["visualTargetResultRef", "geometryGuardResultRef", "clickResultRef", "postActionVerificationResultRef"].every((ref) => segment.producesRefs.includes(ref))
+    ? [toFinding(ROUTE_PLAN_ROOT, "Comments-entry muscle segment must publish canonical result refs for visual-target, geometry-guard, mouse-click, and post-action-verification.", `${routePlanId}:${segment.segmentId}`)]
     : []),
 ];
 

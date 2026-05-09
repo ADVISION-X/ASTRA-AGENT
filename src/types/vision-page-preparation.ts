@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { STARTUP_PREPARATION_ROUTE_LABELS } from "../map-plugins/shared/startup-preparation.constants.js";
+import {
+  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
+  STARTUP_PREPARATION_READY_ROUTE_LABEL,
+  STARTUP_PREPARATION_ROUTE_LABELS,
+} from "../map-plugins/shared/startup-preparation.constants.js";
 import { VisionProductPresenceRequestInputSchema } from "./vision-product-presence.js";
 
 const VisionPagePreparationPromptIdSchema = z.literal("vision.pagePreparation.v1");
@@ -34,6 +38,8 @@ type VisionPagePreparationPayload = z.infer<typeof VisionPagePreparationPayloadS
 type VisionPagePreparationResult = VisionPagePreparationPayload;
 
 export {
+  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
+  STARTUP_PREPARATION_READY_ROUTE_LABEL,
   VisionPagePreparationPromptIdSchema,
   VisionPagePreparationTaskTypeSchema,
   VisionPagePreparationPromptVersionSchema,

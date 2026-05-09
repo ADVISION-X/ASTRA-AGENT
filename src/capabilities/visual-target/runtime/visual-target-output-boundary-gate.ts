@@ -93,9 +93,16 @@ function buildCommonOutput(input: {
 }
 
 function buildActionOutput(input: {
+  request: ParsedVisualTargetAbilityInput;
   commonOutput: VisualTargetCommonOutput;
+  outputFlags: VisualTargetDataQualityFlag[];
   selectedCandidate: VisualTargetResolvedCandidate;
 }): VisualTargetOutput {
+  const visualTargetResultRef = buildStableVisualTargetRef("visual-target-output", [
+    input.request.inputRef,
+    input.commonOutput.targetId,
+    input.commonOutput.sourceCandidateRef,
+  ]);
   const geometryGuardHandoffRef = buildStableVisualTargetRef("visual-target-geometry-handoff", [input.commonOutput.targetId, input.commonOutput.sourceCandidateRef]);
   const clickPoint = input.selectedCandidate.executableClickPoint!;
   return {
@@ -111,12 +118,21 @@ function buildActionOutput(input: {
       handoffRef: geometryGuardHandoffRef,
       handoffKind: "geometry-guard-public-contract-only",
       executionBoundary: "not-executable-until-geometry-guard",
+      sourceVisualTargetResultRef: visualTargetResultRef,
+      sourceTargetRef: input.commonOutput.targetId,
+      sourceScreenshotEvidenceRef: input.commonOutput.sourceScreenshotEvidenceId,
+      sourceAiResultRef: input.commonOutput.sourceAiResultRef,
+      sourcePageStateProofRef: input.commonOutput.sourcePageStateProofRef,
       sourceScreenshotEvidenceId: input.commonOutput.sourceScreenshotEvidenceId,
       sourceScreenshotProofRef: input.commonOutput.sourceScreenshotProofRef,
       coordinateSpace: input.commonOutput.coordinateSpace,
       originalCandidateCoordinateSpace: input.commonOutput.originalCandidateCoordinateSpace,
-      boundingBox: input.commonOutput.boundingBox,
+      bbox: input.commonOutput.boundingBox,
       clickPoint,
+      targetType: input.request.targetType,
+      targetNature: input.request.targetNature,
+      confidence: input.commonOutput.confidence,
+      dataQualityFlags: input.outputFlags,
       scaleMapping: input.selectedCandidate.geometryScaleMapping,
     },
     parsedValue: null,
@@ -178,7 +194,12 @@ function createAllowedOutputBoundaryResult(input: {
     }
     return createVisualTargetGateSuccess("allow", input.outputFlags, {
       criticalDataQualityDecision: "clear",
-      output: buildActionOutput({ commonOutput: input.commonOutput, selectedCandidate: input.selectedCandidate }),
+      output: buildActionOutput({
+        request: input.request,
+        commonOutput: input.commonOutput,
+        outputFlags: input.outputFlags,
+        selectedCandidate: input.selectedCandidate,
+      }),
     });
   }
   return input.request.targetNature === "region"

@@ -1,14 +1,16 @@
 import type {
   AiRequestDispatchInput,
 } from "../../capabilities/nerve-bus/contract.js";
-import { recordAiInputProofSummary, resolveAiInputProofSummary } from "../../capabilities/ai/index.js";
-import { resolveAbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
 import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 
 import {
   payloadDocumentToObject,
   payloadValueToString,
 } from "./workbench-payload.js";
+import {
+  buildWorkbenchAiInputRefs,
+  ensureWorkbenchAiInputProof,
+} from "./workbench-nerve-bus-ai-input-proof-support.js";
 
 type WorkbenchAiRequestEnvelope = AiRequestDispatchInput["envelope"];
 type WorkbenchAiPayloadDocument = AiRequestDispatchInput["inputPayload"];
@@ -42,19 +44,6 @@ const resolveAiTaskType = (envelope: WorkbenchAiRequestEnvelope): (typeof SUPPOR
   }
   throw new Error(`Workbench AI request has unsupported taskType: ${taskType}`);
 };
-
-const buildWorkbenchAiInputRefs = (
-  envelope: WorkbenchAiRequestEnvelope,
-  inputPayload: WorkbenchAiPayloadDocument,
-) => envelope.aiInputRefs.map((ref) => {
-  const proof = resolveAiInputProofSummary(ref);
-  return {
-    id: ref,
-    kind: "video-screenshot" as const,
-    summary: inputPayload.summary,
-    ...(proof?.aiInputStorageRef ? { filePath: proof.aiInputStorageRef } : {}),
-  };
-});
 
 const requireChainField = (value: string | null | undefined): string => {
   if (!value) {
@@ -146,52 +135,6 @@ const resolveWorkbenchAiSafetyPolicy = (taskType: SupportedWorkbenchAiTaskType) 
   taskType === PAGE_PREPARATION_TASK_TYPE || taskType === PRODUCT_PRESENCE_TASK_TYPE || taskType === VISUAL_TARGET_CANDIDATE_TASK_TYPE
     ? { reviewOnLowConfidence: false, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true }
     : { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true };
-
-const collectAiInputProofRefs = (
-  envelope: WorkbenchAiRequestEnvelope,
-  inputPayload: WorkbenchAiPayloadDocument,
-): string[] => {
-  const payload = payloadDocumentToObject(inputPayload);
-  return [
-    ...envelope.aiInputRefs,
-    payloadValueToString(payload.promptInputRef),
-  ].filter((ref): ref is string => typeof ref === "string" && ref.length > 0);
-};
-
-function ensureSingleWorkbenchAiInputProof(promptInputRef: string): void {
-  if (!promptInputRef || resolveAiInputProofSummary(promptInputRef)) {
-    return;
-  }
-
-  const summary = resolveAbilityResultProofSummary(promptInputRef);
-  const aiInputArtifactRef = payloadValueToString(summary?.aiInputArtifactRef);
-  const aiInputStorageRef = payloadValueToString(summary?.aiInputStorageRef) ?? payloadValueToString(summary?.artifactStorageRef);
-  const sourceScreenshotEvidenceId = payloadValueToString(summary?.sourceScreenshotEvidenceId);
-  const sourceStorageRef = payloadValueToString(summary?.sourceStorageRef);
-  const preparedImageHash = payloadValueToString(summary?.preparedImageHash);
-  const preparedImageWidth = typeof summary?.preparedImageWidth === "number" ? summary.preparedImageWidth : null;
-  const preparedImageHeight = typeof summary?.preparedImageHeight === "number" ? summary.preparedImageHeight : null;
-  const coordinateSpace = summary?.coordinateSpace === "ai_input_pixels" ? summary.coordinateSpace : null;
-  if (aiInputArtifactRef && aiInputStorageRef && sourceScreenshotEvidenceId && sourceStorageRef && preparedImageHash && preparedImageWidth && preparedImageHeight && coordinateSpace) {
-    recordAiInputProofSummary({
-      promptInputRef,
-      aiInputArtifactRef,
-      aiInputStorageRef,
-      sourceScreenshotEvidenceId,
-      sourceStorageRef,
-      preparedImageHash,
-      preparedImageWidth,
-      preparedImageHeight,
-      coordinateSpace,
-    });
-  }
-}
-
-function ensureWorkbenchAiInputProof(envelope: WorkbenchAiRequestEnvelope, inputPayload: WorkbenchAiPayloadDocument): void {
-  for (const promptInputRef of new Set(collectAiInputProofRefs(envelope, inputPayload))) {
-    ensureSingleWorkbenchAiInputProof(promptInputRef);
-  }
-}
 
 export const throwIfAborted = (signal: AbortSignal) => {
   if (signal.aborted) {

@@ -5,6 +5,7 @@ import type {
 import type { WorkbenchNerveBusHandledResult as NerveBusHandledResult } from "./workbench-nerve-bus-types.js";
 import type { WorkbenchAbilityExecutionResult } from "./workbench-contract.js";
 import { buildAbilityResultProofSummary } from "./workbench-ability-result-proof-summary.js";
+import { recordAbilityResultContractSnapshot } from "../../capabilities/orchestration/index.js";
 import { buildMirroredEnvelopeBase, buildPayloadDocument } from "./workbench-payload.js";
 import { recordScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
 
@@ -116,6 +117,15 @@ export const buildAbilityCommandResultEnvelope = (input: {
   const failureDetail = resolveAbilityFailureDetail({ result: input.result, failureReason });
   const summary = buildAbilityResultSummary({ envelope: input.envelope, result: input.result, failureDetail });
   const outputPayload = buildAbilityResultPayload({ envelope: input.envelope, result: input.result, summary, failureReason, failureDetail });
+  recordAbilityResultContractSnapshot(outputPayload.documentRef, {
+    abilityGroupId: input.result.abilityGroupId,
+    childCapabilityId: input.result.childCapabilityId ?? input.envelope.commandName,
+    status: input.result.status,
+    output: input.result.output ?? null,
+    runtimeProof: input.result.runtimeProof ?? null,
+    failureReason: input.result.failureReason ?? null,
+    reviewRequiredReason: input.result.reviewRequiredReason ?? null,
+  });
   recordScreenshotSourceHandoff({ outputRef: outputPayload.documentRef, result: input.result });
 
   return {

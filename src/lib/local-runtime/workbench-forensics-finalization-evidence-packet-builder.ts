@@ -4,13 +4,17 @@ import {
   buildForensicsBaseInput,
   buildRoundStructuralDecision,
   buildVideoFrames,
+} from "./workbench-forensics-dispatch-builders.js";
+import {
   isRecord,
   readNumber,
   readString,
   requirePositiveInt,
+} from "./workbench-forensics-dispatch-values.js";
+import {
   type WorkbenchForensicsEnvelope,
   type WorkbenchForensicsEvidencePacketInput,
-} from "./workbench-forensics-dispatch-support.js";
+} from "./workbench-forensics-dispatch-types.js";
 import { payloadDocumentToObject } from "./workbench-payload.js";
 import { resolveEvidencePacketContext, type EvidencePacketContext } from "./workbench-forensics-finalization-evidence-packet-support.js";
 

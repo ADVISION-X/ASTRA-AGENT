@@ -3,6 +3,8 @@ import type { loadBuiltinPackageRecords } from "./builtin-package-records.js";
 type BuiltinPackageRecord = Awaited<ReturnType<typeof loadBuiltinPackageRecords>>[number];
 type MapPackage = NonNullable<BuiltinPackageRecord["mapPackage"]>;
 type MapStep = MapPackage["operationalMap"]["steps"][number];
+type InputRefKey = MapStep["inputRefs"][number];
+type OutputRefKey = MapStep["outputRefPolicy"]["storeAs"][number];
 
 type CommentsTargetCandidateInput = {
   analyzeComments: MapStep | undefined;
@@ -16,13 +18,13 @@ type CommentsPersistenceInput = {
   writeSeedingEvidence: MapStep | undefined;
 };
 
-const hasInputRefs = (step: MapStep | undefined, refs: readonly string[]): boolean =>
+const hasInputRefs = (step: MapStep | undefined, refs: readonly InputRefKey[]): boolean =>
   refs.every((ref) => step?.inputRefs.includes(ref) === true);
 
-const hasOutputRef = (step: MapStep | undefined, ref: string): boolean =>
+const hasOutputRef = (step: MapStep | undefined, ref: OutputRefKey): boolean =>
   step?.outputRefPolicy.storeAs.includes(ref) === true;
 
-const hasOutputRefs = (step: MapStep | undefined, refs: readonly string[]): boolean =>
+const hasOutputRefs = (step: MapStep | undefined, refs: readonly OutputRefKey[]): boolean =>
   refs.every((ref) => hasOutputRef(step, ref));
 
 export const hasCommentsObservationPageStateStep = (observeCommentsState: MapStep | undefined): boolean =>
@@ -43,10 +45,11 @@ const hasLocateAndNormalizeSteps = (
 ): boolean => locateComments?.targetAbilityGroupId === "visual-target"
   && locateComments.childCapabilityId === "observe-comments-button"
   && hasInputRefs(locateComments, ["aiTargetCandidateRef", "pageStateRef", "screenshotEvidenceRef"])
-  && hasOutputRef(locateComments, "visualTargetRef")
+  && hasOutputRefs(locateComments, ["visualTargetRef", "visualTargetResultRef"])
   && normalizeComments?.targetAbilityGroupId === "geometry-guard"
   && normalizeComments.childCapabilityId === "normalize-coordinate-geometry"
-  && hasInputRefs(normalizeComments, ["visualTargetRef"]);
+  && hasInputRefs(normalizeComments, ["visualTargetRef", "visualTargetResultRef"])
+  && hasOutputRefs(normalizeComments, ["geometryProofRef", "geometryGuardResultRef"]);
 
 export const hasCommentsTargetCandidateSteps = (input: CommentsTargetCandidateInput): boolean =>
   hasAnalyzeCommentsStep(input.analyzeComments)
@@ -55,7 +58,20 @@ export const hasCommentsTargetCandidateSteps = (input: CommentsTargetCandidateIn
 export const hasCommentsClickStep = (clickComments: MapStep | undefined): boolean =>
   clickComments?.targetAbilityGroupId === "mouse-click"
   && clickComments.childCapabilityId === "click-browser-coordinate"
-  && hasInputRefs(clickComments, ["visualTargetRef", "geometryProofRef"]);
+  && hasInputRefs(clickComments, ["visualTargetRef", "visualTargetResultRef", "geometryProofRef", "geometryGuardResultRef"])
+  && hasOutputRefs(clickComments, ["commentsClickActionRef", "clickResultRef"]);
+
+export const hasCommentsOpenVerificationStep = (verifyCommentsOpen: MapStep | undefined): boolean =>
+  verifyCommentsOpen?.targetAbilityGroupId === "post-action-verification"
+  && verifyCommentsOpen.childCapabilityId === "observe-comments-panel-open-attempt"
+  && hasInputRefs(verifyCommentsOpen, ["clickResultRef"])
+  && hasOutputRefs(verifyCommentsOpen, ["commentsOpenVerificationRef", "postActionVerificationResultRef"]);
+
+export const hasCaptureCommentsPanelStep = (captureCommentsPanel: MapStep | undefined): boolean =>
+  captureCommentsPanel?.targetAbilityGroupId === "screenshot"
+  && captureCommentsPanel.childCapabilityId === "capture-region"
+  && hasInputRefs(captureCommentsPanel, ["visualTargetResultRef", "postActionVerificationResultRef", "targetUrl"])
+  && hasOutputRef(captureCommentsPanel, "commentsEvidenceRef");
 
 export const hasCommentsCleanupStep = (extractVisibleComments: MapStep | undefined): boolean =>
   extractVisibleComments?.stepKind === "ai"

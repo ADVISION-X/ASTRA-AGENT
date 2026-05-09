@@ -69,6 +69,14 @@ function buildFailureArtifacts(request: ParsedPostActionVerificationAbilityInput
   };
 }
 
+function buildBeforeEvidenceRefs(request: ParsedPostActionVerificationAbilityInput | null): string[] {
+  return request?.beforeAfterEvidence.beforeEvidence ? [request.beforeAfterEvidence.beforeEvidence.evidenceRef] : [];
+}
+
+function buildAfterEvidenceRefs(request: ParsedPostActionVerificationAbilityInput | null): string[] {
+  return request?.beforeAfterEvidence.afterEvidence ? [request.beforeAfterEvidence.afterEvidence.evidenceRef] : [];
+}
+
 export function createPostActionFailureResult(input: {
   request: ParsedPostActionVerificationAbilityInput;
   context: PostActionVerificationRuntimeContext;
@@ -79,6 +87,8 @@ export function createPostActionFailureResult(input: {
   dataQualityFlags?: string[];
 }): PostActionVerificationAbilityResult {
   const artifacts = buildFailureArtifacts(input.request, input.context);
+  const beforeEvidenceRefs = buildBeforeEvidenceRefs(input.request);
+  const afterEvidenceRefs = buildAfterEvidenceRefs(input.request);
   const runtimeProof = buildPostActionRuntimeProof({
     request: input.request,
     status: input.status,
@@ -102,6 +112,17 @@ export function createPostActionFailureResult(input: {
     ...buildPostActionRequestFields(input.request),
     status: input.status,
     abilityGroupId: "post-action-verification",
+    postActionVerificationResultRef: null,
+    sourceActionResultRef: input.request.actionProof.sourceActionResultRef,
+    sourceActionRuntimeProofRef: input.request.actionProof.sourceRuntimeProofRef,
+    sourceActionAbilityGroupId: input.request.sourceAbilityGroupId,
+    sourceActionChildCapabilityId: input.request.sourceChildCapabilityId,
+    beforeEvidenceRefs,
+    afterEvidenceRefs,
+    observationRefs: artifacts.observationRefs,
+    supportingSourceProofRefs: [],
+    observationFingerprint: runtimeProof.observationFingerprint,
+    packageStatus: input.status === "failed" ? "failed" : "review_required",
     output: null,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason ?? null,
@@ -154,6 +175,17 @@ export function createInvalidPostActionInputResult(input: {
     ...buildEmptyPostActionRequestFields(),
     status: "failed",
     abilityGroupId: "post-action-verification",
+    postActionVerificationResultRef: null,
+    sourceActionResultRef: null,
+    sourceActionRuntimeProofRef: null,
+    sourceActionAbilityGroupId: null,
+    sourceActionChildCapabilityId: null,
+    beforeEvidenceRefs: [],
+    afterEvidenceRefs: [],
+    observationRefs: [],
+    supportingSourceProofRefs: [],
+    observationFingerprint: runtimeProof.observationFingerprint,
+    packageStatus: "failed",
     output: null,
     failureReason: "input_schema_invalid",
     reviewRequiredReason: null,
@@ -191,6 +223,9 @@ export function createSuccessfulPostActionResult(input: {
 }): PostActionVerificationAbilityResult {
   const refs = buildPostActionDebugRefs(input.request.inputRef);
   const observationFingerprint = buildPostActionObservationFingerprint(input.request, input.childObservation.supportingObservationRefs);
+  const beforeEvidenceRefs = buildBeforeEvidenceRefs(input.request);
+  const afterEvidenceRefs = buildAfterEvidenceRefs(input.request);
+  const outputRef = `${input.request.inputRef}:output`;
   const runtimeProof = buildPostActionRuntimeProof({
     request: input.request,
     status: "success",
@@ -198,7 +233,7 @@ export function createSuccessfulPostActionResult(input: {
     reviewRequiredReason: null,
     observationRefs: input.childObservation.supportingObservationRefs,
     evidenceRefs: input.childObservation.supportingEvidenceRefs,
-    outputRef: `${input.request.inputRef}:output`,
+    outputRef,
     diagnosticPayloadRef: null,
     debugLogRef: refs.debugLogRef,
     structuredRuntimeEventRef: refs.structuredRuntimeEventRef,
@@ -214,6 +249,17 @@ export function createSuccessfulPostActionResult(input: {
     ...buildPostActionRequestFields(input.request),
     status: "success",
     abilityGroupId: "post-action-verification",
+    postActionVerificationResultRef: outputRef,
+    sourceActionResultRef: input.request.actionProof.sourceActionResultRef,
+    sourceActionRuntimeProofRef: input.request.actionProof.sourceRuntimeProofRef,
+    sourceActionAbilityGroupId: input.request.sourceAbilityGroupId,
+    sourceActionChildCapabilityId: input.request.sourceChildCapabilityId,
+    beforeEvidenceRefs,
+    afterEvidenceRefs,
+    observationRefs: input.childObservation.supportingObservationRefs,
+    supportingSourceProofRefs: input.childObservation.supportingSourceProofRefs,
+    observationFingerprint,
+    packageStatus: "built",
     output: buildSuccessfulPostActionOutput({
       request: input.request,
       childObservation: input.childObservation,

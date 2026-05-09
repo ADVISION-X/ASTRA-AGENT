@@ -4,11 +4,15 @@ import {
   buildForensicsBaseInput,
   buildProductPresenceDecision,
   buildRoundStructuralDecision,
+} from "./workbench-forensics-dispatch-builders.js";
+import {
   requireString,
   resolvePayloadString,
+} from "./workbench-forensics-dispatch-values.js";
+import {
   type WorkbenchForensicsEnvelope,
   type WorkbenchForensicsBrowseLedgerInput,
-} from "./workbench-forensics-dispatch-support.js";
+} from "./workbench-forensics-dispatch-types.js";
 
 type ProductPresenceSummary = NonNullable<ReturnType<typeof resolveAiProductPresenceOutputSummary>>;
 

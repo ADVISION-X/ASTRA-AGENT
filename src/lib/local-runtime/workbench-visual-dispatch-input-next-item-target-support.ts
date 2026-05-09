@@ -142,35 +142,54 @@ type AiInputScaleMapping = {
   scaleY: number;
 };
 
-const resolveAiInputScaleMappingFields = (summary: Record<string, unknown> | null): AiInputScaleMapping | null => {
-  const requiredValues = {
-    sourceCoordinateSpace: mapPreparedInputCoordinateSpace(readSummaryString(summary, "preparedInputSourceCoordinateSpace")),
-    targetCoordinateSpace: readSummaryString(summary, "preparedInputTargetCoordinateSpace"),
-    sourceScreenshotEvidenceId: readSummaryString(summary, "sourceScreenshotEvidenceId"),
-    sourceWidth: readSummaryNumber(summary, "preparedInputSourceWidth"),
-    sourceHeight: readSummaryNumber(summary, "preparedInputSourceHeight"),
-    targetWidth: readSummaryNumber(summary, "preparedInputTargetWidth"),
-    targetHeight: readSummaryNumber(summary, "preparedInputTargetHeight"),
-    cropOffsetX: readSummaryNumber(summary, "preparedInputCropOffsetX"),
-    cropOffsetY: readSummaryNumber(summary, "preparedInputCropOffsetY"),
-  };
+const hasAiInputScaleMappingRequiredValues = (
+  values: readonly [
+    AiInputScaleMapping["sourceCoordinateSpace"] | null,
+    string | null,
+    string | null,
+    number | null,
+    number | null,
+    number | null,
+    number | null,
+    number | null,
+    number | null,
+  ],
+): values is readonly [AiInputScaleMapping["sourceCoordinateSpace"], "ai_input_pixels", string, number, number, number, number, number, number] => values.every((value) => value !== null);
 
-  if (!requiredValues.sourceCoordinateSpace || requiredValues.targetCoordinateSpace !== "ai_input_pixels" || !requiredValues.sourceScreenshotEvidenceId || requiredValues.sourceWidth === null || requiredValues.sourceHeight === null || requiredValues.targetWidth === null || requiredValues.targetHeight === null || requiredValues.cropOffsetX === null || requiredValues.cropOffsetY === null) {
+const resolveAiInputScaleMappingFields = (summary: Record<string, unknown> | null): AiInputScaleMapping | null => {
+  const requiredValues = [
+    mapPreparedInputCoordinateSpace(readSummaryString(summary, "preparedInputSourceCoordinateSpace")),
+    readSummaryString(summary, "preparedInputTargetCoordinateSpace"),
+    readSummaryString(summary, "sourceScreenshotEvidenceId"),
+    readSummaryNumber(summary, "preparedInputSourceWidth"),
+    readSummaryNumber(summary, "preparedInputSourceHeight"),
+    readSummaryNumber(summary, "preparedInputTargetWidth"),
+    readSummaryNumber(summary, "preparedInputTargetHeight"),
+    readSummaryNumber(summary, "preparedInputCropOffsetX"),
+    readSummaryNumber(summary, "preparedInputCropOffsetY"),
+  ] as const;
+
+  if (!hasAiInputScaleMappingRequiredValues(requiredValues)) {
+    return null;
+  }
+
+  const [sourceCoordinateSpace, targetCoordinateSpace, sourceScreenshotEvidenceId, sourceWidth, sourceHeight, targetWidth, targetHeight, cropOffsetX, cropOffsetY] = requiredValues;
+  if (targetCoordinateSpace !== "ai_input_pixels") {
     return null;
   }
 
   return {
-    sourceScreenshotEvidenceId: requiredValues.sourceScreenshotEvidenceId,
-    sourceCoordinateSpace: requiredValues.sourceCoordinateSpace,
+    sourceScreenshotEvidenceId,
+    sourceCoordinateSpace,
     targetCoordinateSpace: "ai_input",
-    sourceWidth: requiredValues.sourceWidth,
-    sourceHeight: requiredValues.sourceHeight,
-    targetWidth: requiredValues.targetWidth,
-    targetHeight: requiredValues.targetHeight,
-    cropOffsetX: requiredValues.cropOffsetX,
-    cropOffsetY: requiredValues.cropOffsetY,
-    scaleX: requiredValues.sourceWidth / requiredValues.targetWidth,
-    scaleY: requiredValues.sourceHeight / requiredValues.targetHeight,
+    sourceWidth,
+    sourceHeight,
+    targetWidth,
+    targetHeight,
+    cropOffsetX,
+    cropOffsetY,
+    scaleX: sourceWidth / targetWidth,
+    scaleY: sourceHeight / targetHeight,
   };
 };
 

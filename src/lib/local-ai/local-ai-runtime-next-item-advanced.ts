@@ -1,9 +1,9 @@
 import type { LocalAiTaskRequest } from "../../types/local-ai.js";
-import { VisionNextItemAdvancedPayloadSchema } from "../../types/vision-next-item-advanced.js";
 import {
   NEXT_ITEM_ADVANCED_ROUTE_LABEL,
   NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
-} from "../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
+  VisionNextItemAdvancedPayloadSchema,
+} from "../../types/vision-next-item-advanced.js";
 import { LocalAiRuntimeError } from "./local-ai-runtime-error.js";
 import { parseRuntimeJsonOutput } from "./local-ai-runtime-task-support.js";
 

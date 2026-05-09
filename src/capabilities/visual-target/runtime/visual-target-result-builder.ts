@@ -63,6 +63,17 @@ function buildVisualTargetResultPayload(input: {
 }) {
   const chain = resolveVisualTargetChain(input.result.request, input.result.trace);
   const statusMessage = clampStatusMessage(input.result.statusMessage);
+  const output = input.result.status === "success" && input.refs.outputRef !== null && input.result.output !== null
+    ? input.result.output.targetNature === "action"
+      ? {
+          ...input.result.output,
+          geometryGuardHandoff: {
+            ...input.result.output.geometryGuardHandoff,
+            sourceVisualTargetResultRef: input.refs.outputRef,
+          },
+        }
+      : input.result.output
+    : input.result.output;
   return {
     abilityGroupId: "visual-target",
     childCapabilityId: input.result.trace.childCapabilityId,
@@ -77,7 +88,8 @@ function buildVisualTargetResultPayload(input: {
     targetType: input.result.status === "success"
       ? input.result.request?.targetType ?? input.result.trace.targetType
       : input.result.trace.targetType,
-    output: input.result.output,
+    visualTargetResultRef: input.refs.outputRef,
+    output,
     failureReason: input.result.failureReason,
     reviewRequiredReason: input.result.reviewRequiredReason,
     statusMessage,

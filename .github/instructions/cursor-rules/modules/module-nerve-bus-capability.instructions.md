@@ -19,6 +19,7 @@ Core doctrine:
 - Nerve Bus transports governed envelopes; it does not decide what the system should do next.
 - Commander, Orchestration, AI, and Ability Groups must communicate through governed Nerve Bus envelopes.
 - Nerve Bus must preserve upstream chain truth and must not invent missing command fields.
+- Nerve Bus transports typed result envelopes and result refs only; it must not define, interpret, modify, or verify owner-local handoff contracts.
 - Nerve Bus success means transport success only; it is not business success, action success, AI truth, page-state truth, or persistence truth.
 - No envelopeId, no transport.
 - No activationSnapshotRef, no mission transport.

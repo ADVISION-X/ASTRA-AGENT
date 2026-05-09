@@ -56,24 +56,50 @@ type PageStateProofSummaryRequiredFields = {
   sessionId: string;
 };
 
-const resolvePageStateProofSummaryRequiredValues = (runtimeProof: JsonObject): PageStateProofSummaryRequiredFields | null => {
-  const requiredValues = {
-    pageStateProofRef: readString(runtimeProof, "proofId"),
-    pageStateChildCapabilityId: readString(runtimeProof, "childCapabilityId"),
-    pageStateFingerprint: readString(runtimeProof, "observationFingerprint"),
-    pageStateHash: readString(runtimeProof, "snapshotHash") ?? readString(runtimeProof, "inputPayloadHash"),
-    currentUrl: readString(runtimeProof, "currentUrl"),
-    observedAt: readString(runtimeProof, "endedAt") ?? readString(runtimeProof, "startedAt"),
-    missionId: readString(runtimeProof, "missionId"),
-    runId: readString(runtimeProof, "runId"),
-    sessionId: readString(runtimeProof, "sessionId"),
-  };
+const hasPageStateProofSummaryRequiredValues = (
+  values: readonly [
+    string | null,
+    string | null,
+    string | null,
+    string | null,
+    string | null,
+    string | null,
+    string | null,
+    string | null,
+    string | null,
+  ],
+): values is readonly [string, string, string, string, string, string, string, string, string] => values.every((value) => value !== null);
 
-  if (!requiredValues.pageStateProofRef || !requiredValues.pageStateChildCapabilityId || !requiredValues.pageStateFingerprint || !requiredValues.pageStateHash || !requiredValues.currentUrl || !requiredValues.observedAt || !requiredValues.missionId || !requiredValues.runId || !requiredValues.sessionId) {
+const resolvePageStateProofSummaryRequiredValues = (runtimeProof: JsonObject): PageStateProofSummaryRequiredFields | null => {
+  const requiredValues = [
+    readString(runtimeProof, "proofId"),
+    readString(runtimeProof, "childCapabilityId"),
+    readString(runtimeProof, "observationFingerprint"),
+    readString(runtimeProof, "snapshotHash") ?? readString(runtimeProof, "inputPayloadHash"),
+    readString(runtimeProof, "currentUrl"),
+    readString(runtimeProof, "endedAt") ?? readString(runtimeProof, "startedAt"),
+    readString(runtimeProof, "missionId"),
+    readString(runtimeProof, "runId"),
+    readString(runtimeProof, "sessionId"),
+  ] as const;
+
+  if (!hasPageStateProofSummaryRequiredValues(requiredValues)) {
     return null;
   }
 
-  return requiredValues;
+  const [pageStateProofRef, pageStateChildCapabilityId, pageStateFingerprint, pageStateHash, currentUrl, observedAt, missionId, runId, sessionId] = requiredValues;
+
+  return {
+    pageStateProofRef,
+    pageStateChildCapabilityId,
+    pageStateFingerprint,
+    pageStateHash,
+    currentUrl,
+    observedAt,
+    missionId,
+    runId,
+    sessionId,
+  };
 };
 
 const resolvePageStateProofSummaryRequiredFields = (input: {

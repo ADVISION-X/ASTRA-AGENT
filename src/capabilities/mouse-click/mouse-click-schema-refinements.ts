@@ -38,22 +38,25 @@ type MouseClickInputBindingsValue = {
 };
 
 type MouseClickRuntimeProofValue = {
-  status: string; startedAt: string; endedAt: string; retryCount: number; maxRetry: number;
+  status: string; startedAt: string; endedAt: string; retryCount: number; maxRetry: number; outputRef: string;
   actionExecutionRef: NullableString; primitiveExecutionRef: NullableString; executableCoordinate: MouseClickPointValue | null;
   postClickObservation: boolean; postClickObservationRef: NullableString; missionId: NullableString; runId: NullableString;
+  postActionVerificationRequired: boolean; postActionVerificationHandoffRef: NullableString;
   stepId: NullableString; mapPackageId: NullableString; mapPackageVersion: NullableString; selectedMapId: NullableString; selectedMapVersion: NullableString;
-  activationSnapshotRef: NullableString; capabilityCallId: NullableString; nerveBusEnvelopeId: NullableString; geometryGuardProofRef: NullableString;
+  activationSnapshotRef: NullableString; capabilityCallId: NullableString; nerveBusEnvelopeId: NullableString; geometryGuardRef: NullableString; geometryGuardProofRef: NullableString;
   geometryGuardOutputRef: NullableString; geometryGuardRuntimeProofRef: NullableString; diagnosticPayloadRef: NullableString; attemptRef: string;
-  sourceVisualTargetResultRef: NullableString; geometryDecision: string; safetyDecision: string; primitiveDecision: string;
+  sourceCoordinateProofRef: NullableString; sourceTargetRef: NullableString; sourceVisualTargetResultRef: NullableString; geometryDecision: string; safetyDecision: string; primitiveDecision: string;
   timeoutDecision: string; abortDecision: string; idempotencyDecision: NullableString;
 };
 
 type MouseClickAbilityResultValue = {
-  status: string; output: { postClickObservation: boolean; postClickObservationRef: NullableString } | null; attemptRef: string; missionId: NullableString; runId: NullableString;
+  status: string; output: { clickResultRef: string; postClickObservation: boolean; postClickObservationRef: NullableString; postActionVerificationRequired: boolean; postActionVerificationHandoffRef: string } | null;
+  clickResultRef: NullableString; attemptRef: string; missionId: NullableString; runId: NullableString;
   stepId: NullableString; mapPackageId: NullableString; mapPackageVersion: NullableString; selectedMapId: NullableString; selectedMapVersion: NullableString;
   activationSnapshotRef: NullableString; capabilityCallId: NullableString; nerveBusEnvelopeId: NullableString; diagnosticPayloadRef: NullableString;
-  geometryGuardProofRef: NullableString; sourceVisualTargetResultRef: NullableString; geometryDecision: string; safetyDecision: string;
+  geometryGuardRef: NullableString; geometryGuardProofRef: NullableString; sourceCoordinateProofRef: NullableString; sourceTargetRef: NullableString; sourceVisualTargetResultRef: NullableString; geometryDecision: string; safetyDecision: string;
   primitiveDecision: string; timeoutDecision: string; abortDecision: string; idempotencyDecision: NullableString; postClickObservationRef: NullableString;
+  postActionVerificationRequired: boolean; postActionVerificationHandoffRef: NullableString;
   runtimeProof: MouseClickRuntimeProofValue;
 };
 
@@ -128,6 +131,8 @@ const validateSuccessOutcomeRefs = (value: MouseClickRuntimeProofValue, context:
   validateBinding(context, value.actionExecutionRef !== null, ["actionExecutionRef"], "success proof requires actionExecutionRef");
   validateBinding(context, value.primitiveExecutionRef !== null, ["primitiveExecutionRef"], "success proof requires primitiveExecutionRef");
   validateBinding(context, value.executableCoordinate !== null, ["executableCoordinate"], "success proof requires executableCoordinate");
+  validateBinding(context, value.postActionVerificationRequired === true, ["postActionVerificationRequired"], "success proof requires postActionVerificationRequired=true");
+  validateBinding(context, value.postActionVerificationHandoffRef !== null, ["postActionVerificationHandoffRef"], "success proof requires postActionVerificationHandoffRef");
 };
 
 const validateSuccessChainFields = (value: MouseClickRuntimeProofValue, context: z.RefinementCtx): void => {
@@ -196,7 +201,11 @@ const validateAbilityResultChainParity = (value: MouseClickAbilityResultValue, c
 
 const validateAbilityResultDecisionParity = (value: MouseClickAbilityResultValue, context: z.RefinementCtx): void => {
   validateBinding(context, value.diagnosticPayloadRef === value.runtimeProof.diagnosticPayloadRef, ["runtimeProof", "diagnosticPayloadRef"], "runtimeProof.diagnosticPayloadRef must equal result.diagnosticPayloadRef");
+  validateBinding(context, value.clickResultRef === value.runtimeProof.outputRef, ["runtimeProof", "outputRef"], "runtimeProof.outputRef must equal result.clickResultRef");
+  validateBinding(context, value.geometryGuardRef === value.runtimeProof.geometryGuardRef, ["runtimeProof", "geometryGuardRef"], "runtimeProof.geometryGuardRef must equal result.geometryGuardRef");
   validateBinding(context, value.geometryGuardProofRef === value.runtimeProof.geometryGuardProofRef, ["runtimeProof", "geometryGuardProofRef"], "runtimeProof.geometryGuardProofRef must equal result.geometryGuardProofRef");
+  validateBinding(context, value.sourceCoordinateProofRef === value.runtimeProof.sourceCoordinateProofRef, ["runtimeProof", "sourceCoordinateProofRef"], "runtimeProof.sourceCoordinateProofRef must equal result.sourceCoordinateProofRef");
+  validateBinding(context, value.sourceTargetRef === value.runtimeProof.sourceTargetRef, ["runtimeProof", "sourceTargetRef"], "runtimeProof.sourceTargetRef must equal result.sourceTargetRef");
   validateBinding(context, value.sourceVisualTargetResultRef === value.runtimeProof.sourceVisualTargetResultRef, ["runtimeProof", "sourceVisualTargetResultRef"], "runtimeProof.sourceVisualTargetResultRef must equal result.sourceVisualTargetResultRef");
   validateBinding(context, value.geometryDecision === value.runtimeProof.geometryDecision, ["runtimeProof", "geometryDecision"], "runtimeProof.geometryDecision must equal result.geometryDecision");
   validateBinding(context, value.safetyDecision === value.runtimeProof.safetyDecision, ["runtimeProof", "safetyDecision"], "runtimeProof.safetyDecision must equal result.safetyDecision");
@@ -205,14 +214,34 @@ const validateAbilityResultDecisionParity = (value: MouseClickAbilityResultValue
   validateBinding(context, value.abortDecision === value.runtimeProof.abortDecision, ["runtimeProof", "abortDecision"], "runtimeProof.abortDecision must equal result.abortDecision");
   validateBinding(context, value.idempotencyDecision === value.runtimeProof.idempotencyDecision, ["runtimeProof", "idempotencyDecision"], "runtimeProof.idempotencyDecision must equal result.idempotencyDecision");
   validateBinding(context, value.postClickObservationRef === value.runtimeProof.postClickObservationRef, ["runtimeProof", "postClickObservationRef"], "runtimeProof.postClickObservationRef must equal result.postClickObservationRef");
+  validateBinding(context, value.postActionVerificationRequired === value.runtimeProof.postActionVerificationRequired, ["runtimeProof", "postActionVerificationRequired"], "runtimeProof.postActionVerificationRequired must equal result.postActionVerificationRequired");
+  validateBinding(context, value.postActionVerificationHandoffRef === value.runtimeProof.postActionVerificationHandoffRef, ["runtimeProof", "postActionVerificationHandoffRef"], "runtimeProof.postActionVerificationHandoffRef must equal result.postActionVerificationHandoffRef");
 };
 
 const validateAbilityResultOutput = (value: MouseClickAbilityResultValue, context: z.RefinementCtx): void => {
   validateBinding(
     context,
+    !value.output || value.output.clickResultRef === value.clickResultRef,
+    ["output", "clickResultRef"],
+    "output.clickResultRef must equal result.clickResultRef",
+  );
+  validateBinding(
+    context,
     !value.output || value.output.postClickObservationRef === value.postClickObservationRef,
     ["output", "postClickObservationRef"],
     "output.postClickObservationRef must equal result.postClickObservationRef",
+  );
+  validateBinding(
+    context,
+    !value.output || value.output.postActionVerificationRequired === value.postActionVerificationRequired,
+    ["output", "postActionVerificationRequired"],
+    "output.postActionVerificationRequired must equal result.postActionVerificationRequired",
+  );
+  validateBinding(
+    context,
+    !value.output || value.output.postActionVerificationHandoffRef === value.postActionVerificationHandoffRef,
+    ["output", "postActionVerificationHandoffRef"],
+    "output.postActionVerificationHandoffRef must equal result.postActionVerificationHandoffRef",
   );
 };
 

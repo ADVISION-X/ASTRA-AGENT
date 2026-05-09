@@ -28,6 +28,22 @@ type TargetCandidateRuntimeState = {
   normalized: unknown;
 };
 
+type CandidateGeometryCoordinates = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  clickX: number;
+  clickY: number;
+};
+
+type CandidateBox = Pick<CandidateGeometryCoordinates, "x" | "y" | "width" | "height">;
+type CandidatePoint = Pick<CandidateGeometryCoordinates, "clickX" | "clickY">;
+
+const hasCompleteCandidateBox = (
+  values: readonly [number | null, number | null, number | null, number | null],
+): values is readonly [number, number, number, number] => values.every((value) => value !== null);
+
 const isRecord = (value: unknown): value is JsonRecord => typeof value === "object" && value !== null && !Array.isArray(value);
 
 const toStringArray = (value: unknown): string[] =>
@@ -83,32 +99,49 @@ const isLikelyTemplatePlaceholderCandidate = (input: {
   return Math.abs(input.clickX - centerX) <= 2 && Math.abs(input.clickY - centerY) <= 2;
 };
 
-const resolveCandidateGeometry = (entry: unknown, index: number): CandidateGeometry | null => {
-  if (!isRecord(entry)) {
+const resolveCandidateBox = (entry: JsonRecord): CandidateBox | null => {
+  const box = isRecord(entry.boundingBox) ? entry.boundingBox : null;
+  if (!box) {
     return null;
   }
 
-  const box = isRecord(entry.boundingBox) ? entry.boundingBox : null;
+  const values = [
+    toFiniteNumber(box.x),
+    toFiniteNumber(box.y),
+    toFiniteNumber(box.width),
+    toFiniteNumber(box.height),
+  ] as const;
+
+  if (!hasCompleteCandidateBox(values)) {
+    return null;
+  }
+
+  const [x, y, width, height] = values;
+  return width <= 0 || height <= 0 ? null : { x, y, width, height };
+};
+
+const resolveCandidatePoint = (entry: JsonRecord): CandidatePoint | null => {
   const point = isRecord(entry.clickPoint) ? entry.clickPoint : null;
-  const x = box ? toFiniteNumber(box.x) : null;
-  const y = box ? toFiniteNumber(box.y) : null;
-  const width = box ? toFiniteNumber(box.width) : null;
-  const height = box ? toFiniteNumber(box.height) : null;
   const clickX = point ? toFiniteNumber(point.x) : null;
   const clickY = point ? toFiniteNumber(point.y) : null;
 
-  if (x === null || y === null || width === null || height === null || clickX === null || clickY === null || width <= 0 || height <= 0) {
-    return null;
-  }
+  return clickX === null || clickY === null ? null : { clickX, clickY };
+};
 
-  if (!isPointInsideBox({ x, y, width, height, clickX, clickY })) {
-    return null;
-  }
+const resolveCandidateCoordinates = (entry: JsonRecord): CandidateGeometryCoordinates | null => {
+  const box = resolveCandidateBox(entry);
+  const point = resolveCandidatePoint(entry);
+  return box && point ? { ...box, ...point } : null;
+};
 
-  if (isLikelyTemplatePlaceholderCandidate({ x, y, width, height, clickX, clickY })) {
-    return null;
-  }
+const shouldRejectCandidateGeometry = (coordinates: CandidateGeometryCoordinates): boolean =>
+  !isPointInsideBox(coordinates) || isLikelyTemplatePlaceholderCandidate(coordinates);
 
+const buildCandidateGeometry = (
+  entry: JsonRecord,
+  index: number,
+  coordinates: CandidateGeometryCoordinates,
+): CandidateGeometry => {
   const candidateId = typeof entry.candidateId === "string" && entry.candidateId.length > 0
     ? entry.candidateId
     : `candidate_${index + 1}`;
@@ -117,13 +150,30 @@ const resolveCandidateGeometry = (entry: unknown, index: number): CandidateGeome
   return {
     candidateId,
     coordinateSpace,
-    boundingBox: { x, y, width, height },
-    clickPoint: { x: clickX, y: clickY },
+    boundingBox: { x: coordinates.x, y: coordinates.y, width: coordinates.width, height: coordinates.height },
+    clickPoint: { x: coordinates.clickX, y: coordinates.clickY },
     confidence: normalizeConfidence(entry.confidence, 0),
     visibleText: typeof entry.visibleText === "string" && entry.visibleText.length > 0 ? entry.visibleText : null,
     evidenceObservations: toStringArray(entry.evidenceObservations),
     uncertainty: toStringArray(entry.uncertainty),
   };
+};
+
+const resolveCandidateGeometry = (entry: unknown, index: number): CandidateGeometry | null => {
+  if (!isRecord(entry)) {
+    return null;
+  }
+
+  const coordinates = resolveCandidateCoordinates(entry);
+  if (coordinates === null) {
+    return null;
+  }
+
+  if (shouldRejectCandidateGeometry(coordinates)) {
+    return null;
+  }
+
+  return buildCandidateGeometry(entry, index, coordinates);
 };
 
 const normalizeCandidate = (entry: unknown, index: number): VisionNextItemTargetCandidate | null => {

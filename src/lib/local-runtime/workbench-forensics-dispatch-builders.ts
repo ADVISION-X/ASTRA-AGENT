@@ -1,27 +1,5 @@
-import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { getActiveMapChain } from "./workbench-map-chain-support.js";
-import { payloadValueToString, type payloadDocumentToObject } from "./workbench-payload.js";
-
-export type WorkbenchForensicsRuntimeEventInput = Parameters<WorkbenchRuntime["forensicsPersistenceAbilityGroup"]["writeStructuredRuntimeEvent"]>[0];
-export type WorkbenchForensicsImageEvidenceInput = Parameters<WorkbenchRuntime["forensicsPersistenceAbilityGroup"]["writeImageEvidence"]>[0];
-export type WorkbenchForensicsEvidencePacketInput = Parameters<WorkbenchRuntime["forensicsPersistenceAbilityGroup"]["finalizeEvidencePacket"]>[0];
-export type WorkbenchForensicsBrowseLedgerInput = Parameters<WorkbenchRuntime["forensicsPersistenceAbilityGroup"]["finalizeBrowseLedger"]>[0];
-
-export type WorkbenchForensicsEnvelope = {
-  commandId: string;
-  commandName: string;
-  mapId: string | null;
-  missionId: string;
-  payloadRef: string;
-  roundId: string | null;
-  runId: string;
-  selectedMapId: string | null;
-  sessionId: string;
-  stepId: string;
-  videoVisitId: string | null;
-};
-
-type JsonRecord = Record<string, unknown>;
+import type { WorkbenchForensicsEnvelope } from "./workbench-forensics-dispatch-types.js";
 
 export const DEFAULT_EXPORT_VERSION = "product-discovery-evidence-packet.v1";
 
@@ -32,44 +10,6 @@ const FRAME_LABELS_BY_STRATEGY = {
   route_plan_or_ability_owned_sampling: ["adaptive_first", "adaptive_mid", "adaptive_late"],
   single_frame_fallback: ["adaptive_first"],
 } as const;
-
-export const isRecord = (value: unknown): value is JsonRecord =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-export const readString = (value: JsonRecord | null | undefined, key: string): string | null => {
-  if (!value) {
-    return null;
-  }
-  const candidate = value[key];
-  return typeof candidate === "string" && candidate.length > 0 ? candidate : null;
-};
-
-export const readNumber = (value: JsonRecord | null | undefined, key: string): number | null => {
-  if (!value) {
-    return null;
-  }
-  const candidate = value[key];
-  return typeof candidate === "number" && Number.isFinite(candidate) ? candidate : null;
-};
-
-export const requireString = (value: string | null | undefined, label: string): string => {
-  if (!value) {
-    throw new Error(`Workbench forensics dispatch is missing ${label}.`);
-  }
-  return value;
-};
-
-export const requirePositiveInt = (value: number | null | undefined, label: string): number => {
-  if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) {
-    throw new Error(`Workbench forensics dispatch is missing valid ${label}.`);
-  }
-  return value;
-};
-
-export const resolvePayloadString = (
-  payload: ReturnType<typeof payloadDocumentToObject>,
-  key: string,
-): string | null => payloadValueToString(payload[key]);
 
 export const buildForensicsBaseInput = (input: {
   envelope: WorkbenchForensicsEnvelope;
@@ -95,7 +35,7 @@ export const buildForensicsBaseInput = (input: {
     missionId: input.envelope.missionId,
     runId: input.envelope.runId,
     sessionId: input.envelope.sessionId,
-    roundId: requireString(input.envelope.roundId, "roundId"),
+    roundId: input.envelope.roundId,
     videoVisitId: input.envelope.videoVisitId ?? null,
     stepId: input.envelope.stepId,
     mapPackageId: mapChain.mapPackageId,

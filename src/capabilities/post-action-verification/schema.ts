@@ -239,6 +239,8 @@ const PostActionVerificationClockSchema = z.object({
   endedMonotonicMs: z.number().finite(),
 }).strict();
 
+const PostActionPackageStatusSchema = z.enum(["built", "failed", "review_required"]);
+
 const PostActionVerificationOutputSchema = z.object({
   packageLabel: z.string().min(1).max(POST_ACTION_MAX_SUMMARY_LENGTH),
   observationSummary: z.string().min(1).max(POST_ACTION_MAX_SUMMARY_LENGTH),
@@ -348,8 +350,19 @@ const PostActionVerificationAbilityResultBaseSchema = z.object({
   activationSnapshotRef: nullableString,
   capabilityCallId: nullableString,
   nerveBusEnvelopeId: nullableString,
+  postActionVerificationResultRef: nullableString,
   actionProofRef: nullableString,
+  sourceActionResultRef: nullableString,
+  sourceActionRuntimeProofRef: nullableString,
+  sourceActionAbilityGroupId: PostActionSourceAbilityGroupIdSchema.nullable().optional().default(null),
+  sourceActionChildCapabilityId: z.string().min(1).max(POST_ACTION_MAX_TARGET_TYPE_LENGTH).nullable().optional().default(null),
   expectedOutcome: PostActionExpectedOutcomeSchema.nullable(),
+  beforeEvidenceRefs: z.array(requiredString).max(POST_ACTION_MAX_EVIDENCE_REFS).default([]),
+  afterEvidenceRefs: z.array(requiredString).max(POST_ACTION_MAX_EVIDENCE_REFS).default([]),
+  observationRefs: z.array(requiredString).max(POST_ACTION_MAX_OBSERVATIONS).default([]),
+  supportingSourceProofRefs: z.array(requiredString).max(POST_ACTION_MAX_SOURCE_PROOF_REFS).default([]),
+  observationFingerprint: nullableString,
+  packageStatus: PostActionPackageStatusSchema,
   output: PostActionVerificationOutputSchema.nullable(),
   failureReason: PostActionFailureReasonSchema.nullable().default(null),
   reviewRequiredReason: nullableLimitedString,
@@ -395,6 +408,9 @@ const validateRuntimeProofChain = (
   if (value.runtimeProof.status !== value.status) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
   }
+  if (value.postActionVerificationResultRef !== value.runtimeProof.outputRef) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "postActionVerificationResultRef must equal runtimeProof.outputRef", path: ["postActionVerificationResultRef"] });
+  }
 };
 
 const validateSuccessfulPostActionVerificationResultShape = (
@@ -409,6 +425,12 @@ const validateSuccessfulPostActionVerificationResultShape = (
   }
   if (value.output !== null && value.output.supportingSourceProofRefs.length === 0) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "success output requires supportingSourceProofRefs", path: ["output", "supportingSourceProofRefs"] });
+  }
+  if (value.postActionVerificationResultRef === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires postActionVerificationResultRef", path: ["postActionVerificationResultRef"] });
+  }
+  if (value.packageStatus !== "built") {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success result must keep packageStatus=built", path: ["packageStatus"] });
   }
 };
 
@@ -427,6 +449,30 @@ const validateUnsuccessfulPostActionVerificationResultShape = (
   }
   if (value.status === "review_required" && value.reviewRequiredReason === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "review_required result requires reviewRequiredReason", path: ["reviewRequiredReason"] });
+  }
+  if (value.status === "failed" && value.packageStatus !== "failed") {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed result must keep packageStatus=failed", path: ["packageStatus"] });
+  }
+  if (value.status === "review_required" && value.packageStatus !== "review_required") {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "review_required result must keep packageStatus=review_required", path: ["packageStatus"] });
+  }
+};
+
+const validatePostActionVerificationAbilityResultOutputParity = (
+  value: PostActionVerificationAbilityResultValue,
+  context: z.RefinementCtx,
+): void => {
+  if (value.output === null) {
+    return;
+  }
+  if (value.output.observationRefs.length !== value.observationRefs.length) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "output.observationRefs must equal result.observationRefs", path: ["output", "observationRefs"] });
+  }
+  if (value.output.supportingSourceProofRefs.length !== value.supportingSourceProofRefs.length) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "output.supportingSourceProofRefs must equal result.supportingSourceProofRefs", path: ["output", "supportingSourceProofRefs"] });
+  }
+  if (value.output.observationFingerprint !== value.observationFingerprint) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "output.observationFingerprint must equal result.observationFingerprint", path: ["output", "observationFingerprint"] });
   }
 };
 
@@ -472,6 +518,7 @@ const PostActionVerificationAbilityResultSchema = PostActionVerificationAbilityR
   validateRuntimeProofChain(value, context);
   validatePostActionVerificationAbilityResultShape(value, context);
   validatePostActionVerificationAbilityResultGovernedFields(value, context);
+  validatePostActionVerificationAbilityResultOutputParity(value, context);
 });
 
-export { PostActionVerificationChildCapabilityIdSchema, PostActionVerificationStatusSchema, PostActionFailureReasonSchema, PostActionActionStatusSchema, PostActionExpectedOutcomeTypeSchema, PostActionEvidenceKindSchema, PostActionObservationKindSchema, PostActionVerificationModeSchema, PostActionSourceAbilityGroupIdSchema, PostActionSourceChildCapabilityIdSchema, PostActionObservationSourceAbilityGroupIdSchema, PostActionObservationSourceSchema, PostActionExpectedOutcomeSchema, PostActionActionProofSchema, PostActionEvidenceRefSchema, PageStateObservationPayloadSchema, AiObservationPayloadSchema, VisualTargetObservationPayloadSchema, ScreenshotDiffObservationPayloadSchema, VideoIdentityObservationPayloadSchema, ActionCompletionObservationPayloadSchema, RuntimeSignalObservationPayloadSchema, PostActionObservationPayloadSchema, PostActionObservationSchema, PostActionBeforeAfterEvidenceSchema, PostActionVerificationPolicySchema, PostActionObservationSetSchema, PostActionVerificationAbilityInputSchema, PostActionVerificationClockSchema, PostActionVerificationOutputSchema, PostActionRuntimeProofSchema, PostActionChildObservationSchema, PostActionVerificationAbilityResultSchema };
+export { PostActionVerificationChildCapabilityIdSchema, PostActionVerificationStatusSchema, PostActionFailureReasonSchema, PostActionActionStatusSchema, PostActionExpectedOutcomeTypeSchema, PostActionEvidenceKindSchema, PostActionObservationKindSchema, PostActionVerificationModeSchema, PostActionSourceAbilityGroupIdSchema, PostActionSourceChildCapabilityIdSchema, PostActionObservationSourceAbilityGroupIdSchema, PostActionObservationSourceSchema, PostActionExpectedOutcomeSchema, PostActionActionProofSchema, PostActionEvidenceRefSchema, PageStateObservationPayloadSchema, AiObservationPayloadSchema, VisualTargetObservationPayloadSchema, ScreenshotDiffObservationPayloadSchema, VideoIdentityObservationPayloadSchema, ActionCompletionObservationPayloadSchema, RuntimeSignalObservationPayloadSchema, PostActionObservationPayloadSchema, PostActionObservationSchema, PostActionBeforeAfterEvidenceSchema, PostActionVerificationPolicySchema, PostActionObservationSetSchema, PostActionVerificationAbilityInputSchema, PostActionVerificationClockSchema, PostActionPackageStatusSchema, PostActionVerificationOutputSchema, PostActionRuntimeProofSchema, PostActionChildObservationSchema, PostActionVerificationAbilityResultSchema };

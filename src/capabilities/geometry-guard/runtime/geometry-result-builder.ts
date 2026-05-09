@@ -183,11 +183,15 @@ function buildGeometryAuditPayload(input: BuildGeometryGuardResultInput) {
 }
 
 function buildGeometryCoreIdentityPayload(input: BuildGeometryGuardResultInput, refs: GeometryResultRefs) {
+  const geometryGuardProofRef = buildStableGeometryRef([refs.geometryGuardRef, "proof"]);
   return {
     status: input.status,
     abilityGroupId: "geometry-guard",
     childCapabilityId: input.request.childCapabilityId,
     geometryGuardRef: refs.geometryGuardRef,
+    geometryGuardProofRef,
+    geometryGuardOutputRef: refs.outputRef,
+    geometryGuardRuntimeProofRef: geometryGuardProofRef,
     guardDecision: input.guardDecision,
     nerveBusEnvelopeId: input.request.nerveBusEnvelopeId,
   };

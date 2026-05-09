@@ -3,6 +3,7 @@ import type { WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
 import { resolveAbilityResultProofSummary, type AbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
+import { resolveMouseClickPostVerificationHandoff } from "./workbench-muscle-joint-contract-resolvers.js";
 
 type SupportedPostActionChildCapabilityId =
   | "observe-page-open-attempt"
@@ -126,7 +127,8 @@ const resolveSourceProofRef = (
   envelope: AbilityCommandEnvelope,
   payload: Record<string, string | number | boolean | null>,
 ) => {
-  return payloadValueToString(payload.abilityResultRef)
+  return payloadValueToString(payload.clickResultRef)
+    ?? payloadValueToString(payload.abilityResultRef)
     ?? payloadValueToString(payload.sourceEvidenceRef)
     ?? envelope.inputRef;
 };
@@ -184,18 +186,21 @@ const buildActionProof = (input: {
   sourceProofRef: string;
   policy: PostActionInputPolicy;
   sourceSummary?: AbilityResultProofSummary | null;
+  mouseClickHandoff?: ReturnType<typeof resolveMouseClickPostVerificationHandoff>;
 }) => ({
-  actionProofRef: input.sourceProofRef,
-  actionLogRef: input.sourceProofRef,
+  actionProofRef: input.mouseClickHandoff?.postActionVerificationHandoffRef ?? input.sourceProofRef,
+  actionLogRef: input.mouseClickHandoff?.postActionVerificationHandoffRef ?? input.sourceProofRef,
   actionRecordRef: null,
-  sourceRuntimeProofRef: input.sourceProofRef,
-  sourceActionResultRef: input.sourceProofRef,
-  sourceActionOutputRef: input.sourceProofRef,
-  sourceAbilityGroupId: input.policy.sourceAbilityGroupId,
-  sourceChildCapabilityId: input.policy.sourceChildCapabilityId,
+  sourceRuntimeProofRef: input.mouseClickHandoff?.sourceActionRuntimeProofRef ?? input.sourceProofRef,
+  sourceActionResultRef: input.mouseClickHandoff?.clickResultRef ?? input.sourceProofRef,
+  sourceActionOutputRef: input.mouseClickHandoff?.clickResultRef ?? input.sourceProofRef,
+  sourceAbilityGroupId: input.mouseClickHandoff?.sourceActionAbilityGroupId ?? input.policy.sourceAbilityGroupId,
+  sourceChildCapabilityId: input.mouseClickHandoff?.sourceActionChildCapabilityId ?? input.policy.sourceChildCapabilityId,
   actionType: input.policy.sourceActionType,
-  actionStatus: resolveActionStatus(input.sourceSummary ?? null),
-  primitiveExecutionRef: input.policy.executionRefField === "primitiveExecutionRef" ? input.sourceProofRef : null,
+  actionStatus: input.mouseClickHandoff ? "completed" : resolveActionStatus(input.sourceSummary ?? null),
+  primitiveExecutionRef: input.policy.executionRefField === "primitiveExecutionRef"
+    ? input.mouseClickHandoff?.primitiveExecutionRef ?? input.sourceProofRef
+    : null,
   navigationAttemptRef: null,
   scrollExecutionRef: input.policy.executionRefField === "scrollExecutionRef"
     ? readSummaryString(input.sourceSummary ?? null, "scrollExecutionRef") ?? input.sourceProofRef
@@ -203,10 +208,12 @@ const buildActionProof = (input: {
   sessionId: input.envelope.sessionId,
   roundId: input.envelope.roundId,
   videoVisitId: input.envelope.videoVisitId,
-  startedAt: readSummaryString(input.sourceSummary ?? null, "primitiveStartedAt")
+  startedAt: input.mouseClickHandoff?.actionStartedAt
+    ?? readSummaryString(input.sourceSummary ?? null, "primitiveStartedAt")
     ?? readSummaryString(input.sourceSummary ?? null, "startedAt")
     ?? input.envelope.createdAt,
-  endedAt: readSummaryString(input.sourceSummary ?? null, "primitiveEndedAt")
+  endedAt: input.mouseClickHandoff?.actionEndedAt
+    ?? readSummaryString(input.sourceSummary ?? null, "primitiveEndedAt")
     ?? readSummaryString(input.sourceSummary ?? null, "endedAt")
     ?? input.envelope.createdAt,
   selfReportedOnly: false,
@@ -258,7 +265,11 @@ export const buildPostActionVerificationInput = async (
   const payload = payloadDocumentToObject(inputPayload);
   const policy = resolvePostActionInputPolicy(envelope);
   const sourceProofRef = resolveSourceProofRef(envelope, payload);
-  const sourceSummary = resolveAbilityResultProofSummary(sourceProofRef);
+  const mouseClickHandoff = policy.sourceAbilityGroupId === "mouse-click"
+    ? resolveMouseClickPostVerificationHandoff(sourceProofRef)
+    : null;
+  const sourceSummary = mouseClickHandoff ? null : resolveAbilityResultProofSummary(sourceProofRef);
+  const actionProofRef = mouseClickHandoff?.postActionVerificationHandoffRef ?? sourceProofRef;
   return JSON.parse(JSON.stringify({
     abilityGroupId: "post-action-verification",
     childCapabilityId: policy.childCapabilityId,
@@ -269,11 +280,11 @@ export const buildPostActionVerificationInput = async (
     sourceActionType: policy.sourceActionType,
     expectedOutcome: buildExpectedOutcome(envelope, inputPayload, policy),
     actionProof: {
-      ...buildActionProof({ envelope, sourceProofRef, policy, sourceSummary }),
+      ...buildActionProof({ envelope, sourceProofRef, policy, sourceSummary, mouseClickHandoff }),
     },
     beforeAfterEvidence: { beforeEvidence: null, afterEvidence: null },
     observationSet: {
-      observations: [buildPageStateObservation(runtime, envelope, sourceProofRef, inputPayload.summary)],
+      observations: [buildPageStateObservation(runtime, envelope, actionProofRef, inputPayload.summary)],
     },
     verificationPolicy: buildVerificationPolicy(policy),
     inputRef: envelope.inputRef,
