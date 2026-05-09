@@ -328,6 +328,38 @@ Route Plan 只允许：
 -> 下一步 input ref
 ```
 
+### 6.6 评论打开肌肉结果链
+
+评论打开肌肉必须按以下标准结果链执行：
+
+```txt
+AI Candidate Result
+-> Visual Target Result
+-> Geometry Guard Result
+-> Mouse Click Result
+-> Post Action Verification Result
+-> capture-comments-panel
+```
+
+在这条结果链里，Route Plan 只传递以下肌肉关节结果 refs：
+
+```txt
+aiResultRef
+visualTargetResultRef
+geometryGuardResultRef
+clickResultRef
+postActionVerificationResultRef
+```
+
+禁止链路：
+
+```txt
+AI Candidate Result -> Mouse Click
+Visual Target Result -> Mouse Click
+Mouse Click success -> capture-comments-panel
+Mouse Click success -> comments panel opened
+```
+
 ---
 
 ## 7. 标准结果合同要求

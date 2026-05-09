@@ -6,6 +6,7 @@ import { runAntiEscape } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
 import { runGovernedRuntimeChecks } from "./run-governed-runtime-checks.js";
+import { runJointResultContractCheck } from "./run-joint-result-contract-check.js";
 import { runLawBaselineCheck } from "./run-law-baseline-check.js";
 import { runRequiredShape } from "./required-shape.js";
 import { runTruthOwnershipAttack } from "./run-truth-ownership-attack.js";
@@ -68,8 +69,15 @@ export async function inspectPostActionVerificationCapability(context: Inspector
   const boundary = await runBoundaryAttack(project);
   const truthOwnership = runTruthOwnershipAttack(project);
   const antiEscape = await runAntiEscape(project);
-  const findings = collectFindings({ base, lawBaseline, required, governedRuntime, forbidden, boundary, truthOwnership, antiEscape });
-  const phases = collectPhases({ base, lawBaseline, required, governedRuntime, forbidden, boundary, truthOwnership, antiEscape });
+  const jointResultContract = await runJointResultContractCheck();
+  const findings = [
+    ...collectFindings({ base, lawBaseline, required, governedRuntime, forbidden, boundary, truthOwnership, antiEscape }),
+    ...jointResultContract.findings,
+  ];
+  const phases = [
+    ...collectPhases({ base, lawBaseline, required, governedRuntime, forbidden, boundary, truthOwnership, antiEscape }),
+    jointResultContract.phase,
+  ];
 
   return finalizeInspectorResult({
     inspector: "GrassEye Post-action Verification Capability Owner Inspector",
@@ -78,7 +86,7 @@ export async function inspectPostActionVerificationCapability(context: Inspector
     findings,
     phases,
     summary: findings.length === 0
-      ? "post-action-verification owner inspector passed law-baseline, required, governed-runtime, forbidden, boundary, truth-ownership, and anti-escape phases"
+      ? "post-action-verification owner inspector passed law-baseline, required, governed-runtime, forbidden, boundary, truth-ownership, anti-escape, and joint-result-contract phases"
       : "post-action-verification owner inspector found capability-boundary or governance violations",
   });
 }

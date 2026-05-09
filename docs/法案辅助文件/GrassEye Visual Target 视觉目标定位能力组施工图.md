@@ -99,6 +99,29 @@ PAV 是“验证点击结果”
 
 这些不能混。
 
+## 2.1 Joint Result Contract
+
+VisualTargetResult.output.geometryGuardHandoff 是 Visual Target 面向 Geometry Guard 的唯一标准非执行交接面。
+
+它必须包含：
+
+```txt
+sourceVisualTargetResultRef
+sourceTargetRef
+sourceScreenshotEvidenceRef
+sourceAiResultRef
+sourcePageStateProofRef
+bbox
+clickPoint
+coordinateSpace
+targetType
+targetNature
+confidence
+dataQualityFlags
+```
+
+Visual Target 只负责产出这个 non-executable handoff，不负责宣称 safeToClick、canClick、clickAllowed、executionAllowed 或 geometryVerified。
+
 ---
 
 ## 3. 标准包结构

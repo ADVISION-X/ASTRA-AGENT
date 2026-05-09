@@ -120,7 +120,11 @@ const resolvePageStateProofSummaryFields = (input: {
     return null;
   }
 
-  const runtimeProof = input.result.runtimeProof;
+  const runtimeProof = isObject(input.result.runtimeProof) ? input.result.runtimeProof : null;
+  if (!runtimeProof) {
+    return null;
+  }
+
   return {
     ...requiredFields,
     currentTitle: readString(runtimeProof, "currentTitle"),

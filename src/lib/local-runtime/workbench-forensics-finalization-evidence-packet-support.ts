@@ -4,6 +4,7 @@ import {
   resolveAiProductPresenceOutputSummary,
 } from "../../capabilities/ai/index.js";
 import { resolveAbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
+import { resolveMouseClickPostVerificationHandoff } from "./workbench-muscle-joint-contract-resolvers.js";
 import { payloadDocumentToObject } from "./workbench-payload.js";
 import { resolveScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
 import { isRecord, readString, requireString, resolvePayloadString } from "./workbench-forensics-dispatch-values.js";
@@ -14,6 +15,7 @@ type ProductPresenceSummary = NonNullable<ReturnType<typeof resolveAiProductPres
 type CommentCleanupSummary = ReturnType<typeof resolveAiOcrCleanupOutputSummary>;
 type PagePreparationSummary = ReturnType<typeof resolveAiPagePreparationOutputSummary>;
 type ClickSummary = ReturnType<typeof resolveAbilityResultProofSummary>;
+type ClickHandoff = ReturnType<typeof resolveMouseClickPostVerificationHandoff>;
 
 type EvidencePacketRequest = {
   screenshotEvidenceRef: string;
@@ -21,8 +23,8 @@ type EvidencePacketRequest = {
   pagePreparationAiResultRef: string | null;
   productPresenceAiResultRef: string;
   commentCleanupAiResultRef: string | null;
-  commentsClickActionRef: string;
-  commentsOpenVerificationRef: string | null;
+  clickResultRef: string;
+  postActionVerificationResultRef: string | null;
 };
 
 type EvidencePacketSummaries = {
@@ -32,6 +34,7 @@ type EvidencePacketSummaries = {
   videoHandoff: ScreenshotHandoff;
   commentsHandoff: ScreenshotHandoff;
   clickSummary: ClickSummary;
+  clickHandoff: ClickHandoff;
 };
 
 type EvidencePacketEvidenceState = {
@@ -90,8 +93,8 @@ const readEvidencePacketRequest = (inputPayload: Parameters<typeof payloadDocume
     pagePreparationAiResultRef: resolvePayloadString(payload, "pagePreparationAiResultRef"),
     productPresenceAiResultRef: requireString(resolvePayloadString(payload, "productPresenceAiResultRef"), "productPresenceAiResultRef"),
     commentCleanupAiResultRef: resolvePayloadString(payload, "commentCleanupAiResultRef"),
-    commentsClickActionRef: requireString(resolvePayloadString(payload, "commentsClickActionRef"), "commentsClickActionRef"),
-    commentsOpenVerificationRef: resolvePayloadString(payload, "commentsOpenVerificationRef"),
+    clickResultRef: requireString(resolvePayloadString(payload, "clickResultRef"), "clickResultRef"),
+    postActionVerificationResultRef: resolvePayloadString(payload, "postActionVerificationResultRef"),
   };
 };
 
@@ -107,7 +110,15 @@ const resolveEvidencePacketSummaries = (request: EvidencePacketRequest): Evidenc
   if (!videoHandoff || !commentsHandoff) {
     throw new Error("Workbench forensics dispatch could not resolve screenshot handoff for evidence packet finalization.");
   }
-  return { productPresenceSummary, commentCleanupSummary, pagePreparationSummary, videoHandoff, commentsHandoff, clickSummary: resolveAbilityResultProofSummary(request.commentsClickActionRef) };
+  return {
+    productPresenceSummary,
+    commentCleanupSummary,
+    pagePreparationSummary,
+    videoHandoff,
+    commentsHandoff,
+    clickSummary: resolveAbilityResultProofSummary(request.clickResultRef),
+    clickHandoff: resolveMouseClickPostVerificationHandoff(request.clickResultRef),
+  };
 };
 
 const resolveEvidencePacketEvidenceState = (envelope: WorkbenchForensicsEnvelope, request: EvidencePacketRequest, summaries: EvidencePacketSummaries): EvidencePacketEvidenceState => {
@@ -123,7 +134,7 @@ const resolveEvidencePacketEvidenceState = (envelope: WorkbenchForensicsEnvelope
   const hasVisibleComments = cleanedComments.length > 0;
   const packetCapturedAt = summaries.commentCleanupSummary?.capturedAt ?? summaries.clickSummary?.endedAt ?? summaries.productPresenceSummary.capturedAt;
   const commentFailureReason = hasVisibleComments ? null : summaries.commentCleanupSummary ? "no_visible_comments_extracted" : "comment_cleanup_unavailable";
-  const actionLogId = summaries.clickSummary?.actionExecutionRef ?? request.commentsClickActionRef;
+  const actionLogId = summaries.clickHandoff?.actionExecutionRef ?? summaries.clickSummary?.actionExecutionRef ?? request.clickResultRef;
   const roundOutcome = hasVisibleComments ? "candidate_created" : "comments_unavailable_candidate_created";
   return {
     ids: { roundId, videoVisitId, packetId: `${envelope.sessionId}:${roundId}:${videoVisitId}:packet`, roundLogId: `${envelope.sessionId}:${roundId}:${videoVisitId}:round-log:evidence-packet`, actionLogId, videoEvidenceId, commentsEvidenceId },

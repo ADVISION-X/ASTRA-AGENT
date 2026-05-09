@@ -90,8 +90,13 @@ const isGovernedLocalProgramRecord = (record: Awaited<ReturnType<typeof loadBuil
 
 const findActionWithoutProof = (steps: NonNullable<Awaited<ReturnType<typeof loadBuiltinPackageRecords>>[number]["mapPackage"]>["operationalMap"]["steps"]) =>
   steps.find((step) => {
-    const actionStep = step.targetAbilityGroupId === "mouse-click" || step.targetAbilityGroupId === "mouse-scroll";
-    return actionStep && (!step.inputRefs.includes("visualTargetRef") || !step.inputRefs.includes("geometryProofRef"));
+    if (step.targetAbilityGroupId === "mouse-click") {
+      return !step.inputRefs.includes("visualTargetRef") || !step.inputRefs.includes("geometryGuardResultRef");
+    }
+    if (step.targetAbilityGroupId === "mouse-scroll") {
+      return !step.inputRefs.includes("visualTargetRef") || !step.inputRefs.includes("geometryProofRef");
+    }
+    return false;
   });
 
 const collectLocalProgramSmokeFindings = (
@@ -168,7 +173,7 @@ const collectIphoneMirroringInputFindings = (
   }
   const actionWithoutProof = findActionWithoutProof(steps);
   return actionWithoutProof
-    ? findings.concat(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring internal app actions must carry visualTargetRef and geometryProofRef.", detail: actionWithoutProof.stepId }))
+    ? findings.concat(createFinding({ lawId: MAP_PLUGIN_LAWS.NO_CODE, file: record.file, line: 1, severity: "fatal", message: "iPhone Mirroring internal app actions must carry visualTargetRef plus the canonical downstream geometry ref for their action type.", detail: actionWithoutProof.stepId }))
     : findings;
 };
 

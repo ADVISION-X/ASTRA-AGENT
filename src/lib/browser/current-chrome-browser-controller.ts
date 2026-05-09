@@ -123,7 +123,7 @@ export class CurrentChromeBrowserController implements BrowserController {
     });
     const auxiliaryKeyMessage = await runOptionalArrowDownAssist({
       required: scrollPlan.requiresArrowDownAssist,
-      abortSignal: input.abortSignal,
+      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
 
     await this.refreshSnapshot();

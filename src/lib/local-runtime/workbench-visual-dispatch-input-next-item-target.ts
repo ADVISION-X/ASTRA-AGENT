@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
 
-import { resolveAiVisualTargetCandidateOutputSummary } from "../../capabilities/ai/index.js";
-import { resolveAbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
@@ -18,6 +16,14 @@ import {
   buildAiInputScaleMapping,
   buildNextItemVisualCandidates,
 } from "./workbench-visual-dispatch-input-next-item-target-support.js";
+import {
+  resolveNextItemAiInputContext,
+  resolveNextItemAiSummary,
+} from "./workbench-visual-dispatch-input-next-item-target-proof-context.js";
+import {
+  buildNextItemTargetCommandPayload,
+  buildNextItemTargetSourceProof,
+} from "./workbench-visual-dispatch-input-next-item-target-payload.js";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -56,19 +62,41 @@ const resolveAiTargetCandidateRef = (payload: DispatchPayloadRecord) =>
   ?? payloadValueToString(payload.aiResultRef)
   ?? payloadValueToString(payload.targetCandidateRef);
 
-export const buildNextItemTargetVisualTargetCommand = (
-  runtime: WorkbenchRuntime,
-  envelope: AbilityCommandEnvelope,
-  inputPayload: NerveBusPayloadDocument,
-) => {
-  const payload = toDispatchPayload(inputPayload);
-  const aiTargetCandidateRef = resolveAiTargetCandidateRef(payload);
-  const aiSummary = resolveAiVisualTargetCandidateOutputSummary(aiTargetCandidateRef);
+type NextItemAiContext = {
+  aiInputArtifactRef: string;
+  aiInputScaleMapping: ReturnType<typeof buildAiInputScaleMapping>;
+  aiSummary: NonNullable<ReturnType<typeof resolveNextItemAiSummary>>;
+};
 
+type NextItemScreenshotContext = {
+  artifactHash: string;
+  imageHeight: number;
+  imageWidth: number;
+  screenshotHandoff: NonNullable<ReturnType<typeof resolveScreenshotSourceHandoff>>;
+  screenshotProofRef: string;
+  sourceScreenshotEvidenceId: string;
+};
+
+type NextItemMissionRunContext = {
+  aiMissionId: string | null;
+  aiRunId: string | null;
+  screenshotMissionId: string | null;
+  screenshotRunId: string | null;
+};
+
+const resolveNextItemAiContext = (payload: DispatchPayloadRecord): NextItemAiContext => {
+  const aiTargetCandidateRef = resolveAiTargetCandidateRef(payload);
+  const aiSummary = resolveNextItemAiSummary(aiTargetCandidateRef);
   if (!aiSummary) {
     throw new Error("Visual Target next-item dispatch requires governed AI target candidate proof; heuristic candidate generation is forbidden.");
   }
+  return { aiSummary, ...resolveNextItemAiInputContext({ aiSummary, payload }) };
+};
 
+const resolveNextItemScreenshotContext = (
+  payload: DispatchPayloadRecord,
+  envelope: AbilityCommandEnvelope,
+): NextItemScreenshotContext => {
   const screenshotHandoff = resolveScreenshotSourceHandoff([
     payloadValueToString(payload.screenshotEvidenceRef),
     payloadValueToString(payload.sourceEvidenceRef),
@@ -90,129 +118,94 @@ export const buildNextItemTargetVisualTargetCommand = (
     throw new Error("Visual Target next-item dispatch screenshot proof is incomplete; image hash, dimensions, and proofRef are mandatory.");
   }
 
+  return { artifactHash, imageHeight, imageWidth, screenshotHandoff, screenshotProofRef, sourceScreenshotEvidenceId };
+};
+
+const resolveNextItemPageStateSummary = (payload: DispatchPayloadRecord) => {
   const pageStateSummary = resolvePageStateProofSummary(payloadValueToString(payload.pageStateRef));
   if (!pageStateSummary) {
     throw new Error("Visual Target next-item dispatch requires a governed page-state proof summary.");
   }
+  return pageStateSummary;
+};
 
-  const { screenshotMissionId, screenshotRunId, aiMissionId, aiRunId } = requireVisualDispatchMissionRunBinding({
-    dispatchLabel: "next-item dispatch",
-    requestMissionId: envelope.missionId,
-    requestRunId: envelope.runId,
-    screenshot: {
-      missionId: readString(screenshotHandoff.sourceProof, "missionId"),
-      runId: readString(screenshotHandoff.sourceProof, "runId"),
-    },
-    ai: {
-      missionId: aiSummary.missionId,
-      runId: aiSummary.runId,
-    },
-    pageState: {
-      missionId: pageStateSummary.missionId,
-      runId: pageStateSummary.runId,
-    },
+const resolveNextItemMissionRunContext = (
+  envelope: AbilityCommandEnvelope,
+  screenshot: NextItemScreenshotContext,
+  aiSummary: NextItemAiContext["aiSummary"],
+  pageStateSummary: NonNullable<ReturnType<typeof resolvePageStateProofSummary>>,
+): NextItemMissionRunContext => requireVisualDispatchMissionRunBinding({
+  dispatchLabel: "next-item dispatch",
+  requestMissionId: envelope.missionId,
+  requestRunId: envelope.runId,
+  screenshot: {
+    missionId: readString(screenshot.screenshotHandoff.sourceProof, "missionId"),
+    runId: readString(screenshot.screenshotHandoff.sourceProof, "runId"),
+  },
+  ai: {
+    missionId: aiSummary.missionId,
+    runId: aiSummary.runId,
+  },
+  pageState: {
+    missionId: pageStateSummary.missionId,
+    runId: pageStateSummary.runId,
+  },
+});
+
+const buildNextItemSourceProofContext = (input: {
+  ai: NextItemAiContext;
+  envelope: AbilityCommandEnvelope;
+  missionRun: NextItemMissionRunContext;
+  pageStateSummary: NonNullable<ReturnType<typeof resolvePageStateProofSummary>>;
+  screenshot: NextItemScreenshotContext;
+}) => {
+  const coordinateSpace = mapCoordinateSpace(input.screenshot.screenshotHandoff.coordinateSpace);
+  const governedAiResultRef = input.ai.aiSummary.aiResultRef;
+  const sourceProofRef = buildCompactRef("visual-target-source-proof", [governedAiResultRef, input.envelope.inputRef, "next-item"]);
+  const sourceProof = buildNextItemTargetSourceProof({
+    aiInputArtifactRef: input.ai.aiInputArtifactRef,
+    aiSummary: input.ai.aiSummary,
+    artifactHash: input.screenshot.artifactHash,
+    coordinateAuthority: mapCoordinateAuthority(coordinateSpace),
+    coordinateSpace,
+    governedAiResultRef,
+    imageHeight: input.screenshot.imageHeight,
+    imageWidth: input.screenshot.imageWidth,
+    pageStateSummary: input.pageStateSummary,
+    screenshotHandoff: input.screenshot.screenshotHandoff,
+    screenshotMissionId: input.missionRun.screenshotMissionId,
+    screenshotProofRef: input.screenshot.screenshotProofRef,
+    screenshotRunId: input.missionRun.screenshotRunId,
+    sourceImageHash: readString(input.screenshot.screenshotHandoff.sourceProof, "sourceHash") ?? input.screenshot.artifactHash,
+    sourceProofRef,
+    sourceScreenshotEvidenceId: input.screenshot.sourceScreenshotEvidenceId,
   });
+  return { coordinateSpace, governedAiResultRef, sourceProof, sourceProofRef };
+};
 
-  const coordinateSpace = mapCoordinateSpace(screenshotHandoff.coordinateSpace);
-  const governedAiResultRef = aiSummary.aiResultRef;
-  const sourceProofRef = buildCompactRef("visual-target-source-proof", [governedAiResultRef, envelope.inputRef, "next-item"]);
-  const aiInputArtifactRef = aiSummary.aiInputArtifactRef
-    ?? payloadValueToString(payload.promptInputRef)
-    ?? payloadValueToString(payload.nextItemVerificationPromptInputRef)
-    ?? `${governedAiResultRef}:prompt-input`;
-  const aiInputProofSummary = resolveAbilityResultProofSummary(aiInputArtifactRef);
-  const aiInputScaleMapping = buildAiInputScaleMapping(aiInputProofSummary);
-
-  return JSON.parse(JSON.stringify({
-    abilityGroupId: "visual-target",
-    childCapabilityId: "observe-next-item-target-candidate",
-    missionId: envelope.missionId,
-    runId: envelope.runId,
-    sessionId: envelope.sessionId,
-    roundId: envelope.roundId,
-    videoVisitId: envelope.videoVisitId,
-    stepId: envelope.stepId,
-    mapPackageId: envelope.mapPackageId,
-    mapPackageVersion: envelope.mapPackageVersion,
-    selectedMapId: envelope.selectedMapId,
-    selectedMapVersion: envelope.selectedMapVersion,
-    activationSnapshotRef: envelope.activationSnapshotRef,
-    capabilityCallId: envelope.capabilityCallId,
-    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
-    requestedBy: "orchestration",
-    sourceAbilityGroupId: "orchestration",
-    sourceChildCapabilityId: "next-item-target-candidate-analysis",
-    inputRef: envelope.inputRef,
-    idempotencyKey: envelope.idempotencyKey,
-    targetType: "next_item_target_candidate",
-    targetNature: "action",
-    sourceProof: {
-      sourceProofRef,
-      screenshot: {
-        screenshotEvidenceId: sourceScreenshotEvidenceId,
-        artifactRef: screenshotHandoff.sourceStorageRef,
-        screenshotProofRef,
-        artifactHash,
-        imageHash: readString(screenshotHandoff.sourceProof, "sourceHash") ?? artifactHash,
-        imageWidth,
-        imageHeight,
-        coordinateSpace,
-        coordinateAuthority: mapCoordinateAuthority(coordinateSpace),
-        sourceScreenshotEvidenceId,
-        scaleMapping: null,
-        capturedAt: readString(screenshotHandoff.sourceProof, "stepId") ? aiSummary.capturedAt : aiSummary.capturedAt,
-        missionId: screenshotMissionId,
-        runId: screenshotRunId,
-        sessionId: envelope.sessionId,
-        roundId: envelope.roundId,
-        videoVisitId: envelope.videoVisitId,
-      },
-      ai: {
-        aiResultRef: governedAiResultRef,
-        aiProofRef: aiSummary.aiProofRef,
-        promptContractId: aiSummary.promptContractId,
-        outputSchemaRef: aiSummary.outputSchemaRef,
-        aiInputArtifactRef,
-        aiInputHash: aiSummary.aiInputHash,
-        outputPayloadHash: aiSummary.outputPayloadHash,
-        sourceImageHash: readString(screenshotHandoff.sourceProof, "sourceHash") ?? artifactHash,
-        sourceScreenshotEvidenceId,
-        sourceScreenshotProofRef: screenshotProofRef,
-        capturedAt: aiSummary.capturedAt,
-        missionId: aiMissionId,
-        runId: aiRunId,
-        sessionId: aiSummary.sessionId,
-        roundId: aiSummary.roundId,
-        videoVisitId: aiSummary.videoVisitId,
-        confidence: aiSummary.confidence,
-        modelRole: aiSummary.modelRole,
-      },
-      pageState: {
-        pageStateProofRef: pageStateSummary.pageStateProofRef,
-        pageStateChildCapabilityId: pageStateSummary.pageStateChildCapabilityId,
-        pageStateFingerprint: pageStateSummary.pageStateFingerprint,
-        pageStateHash: pageStateSummary.pageStateHash,
-        pageStateStatus: pageStateSummary.pageStateStatus,
-        currentUrl: pageStateSummary.currentUrl,
-        currentTitle: pageStateSummary.currentTitle,
-        observedAt: pageStateSummary.observedAt,
-        missionId: pageStateSummary.missionId,
-        runId: pageStateSummary.runId,
-        sessionId: pageStateSummary.sessionId,
-        roundId: pageStateSummary.roundId,
-        videoVisitId: pageStateSummary.videoVisitId,
-      },
-      operatorApproval: null,
-    },
+export const buildNextItemTargetVisualTargetCommand = (
+  runtime: WorkbenchRuntime,
+  envelope: AbilityCommandEnvelope,
+  inputPayload: NerveBusPayloadDocument,
+) => {
+  const payload = toDispatchPayload(inputPayload);
+  const ai = resolveNextItemAiContext(payload);
+  const screenshot = resolveNextItemScreenshotContext(payload, envelope);
+  const pageStateSummary = resolveNextItemPageStateSummary(payload);
+  const missionRun = resolveNextItemMissionRunContext(envelope, screenshot, ai.aiSummary, pageStateSummary);
+  const sourceProofContext = buildNextItemSourceProofContext({ ai, envelope, missionRun, pageStateSummary, screenshot });
+  return JSON.parse(JSON.stringify(buildNextItemTargetCommandPayload({
     candidates: buildNextItemVisualCandidates({
-      governedAiResultRef,
-      capturedAt: aiSummary.capturedAt,
-      sourceFrameRef: sourceScreenshotEvidenceId,
-      sourceProofRef,
-      imageWidth,
-      imageHeight,
-      aiInputScaleMapping,
-      targetCandidates: aiSummary.targetCandidates,
+      governedAiResultRef: sourceProofContext.governedAiResultRef,
+      capturedAt: ai.aiSummary.capturedAt,
+      sourceFrameRef: screenshot.sourceScreenshotEvidenceId,
+      sourceProofRef: sourceProofContext.sourceProofRef,
+      imageWidth: screenshot.imageWidth,
+      imageHeight: screenshot.imageHeight,
+      aiInputScaleMapping: ai.aiInputScaleMapping,
+      targetCandidates: ai.aiSummary.targetCandidates,
     }),
-  }));
+    envelope,
+    sourceProof: sourceProofContext.sourceProof,
+  })));
 };

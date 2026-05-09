@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T18:11:52.754Z",
+  "generatedAt": "2026-05-09T19:17:32.978Z",
   "phase": "phase-05-final-delivery-debug",
   "phaseGateFile": "scripts/audit/phase-gates/phase-05-final-delivery-debug.json",
   "owners": [
@@ -124,6 +124,7 @@
       "inspectorId": "nerve-bus-capability-owner",
       "entry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
       "lawIds": [
+        "GRASSEYE-NERVE-BUS-CAPABILITY-RESULT-CONTRACT-BOUNDARY-V1",
         "GRASSEYE-NERVE-BUS-CAPABILITY-001-V2",
         "GRASSEYE-NERVE-BUS-CAPABILITY-002-V2",
         "GRASSEYE-NERVE-BUS-CAPABILITY-003-V2",
@@ -156,6 +157,7 @@
       "inspectorId": "post-action-verification-capability-owner",
       "entry": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
       "lawIds": [
+        "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-RESULT-CONTRACT-V1",
         "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2",
         "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2",
         "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2",
@@ -203,6 +205,7 @@
       "inspectorId": "geometry-guard-capability-owner",
       "entry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
       "lawIds": [
+        "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-RESULT-CONTRACT-V1",
         "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3",
         "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V3",
         "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-003-V3",
@@ -218,6 +221,7 @@
       "inspectorId": "mouse-click-capability-owner",
       "entry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
       "lawIds": [
+        "GRASSEYE-MOUSE-CLICK-CAPABILITY-RESULT-CONTRACT-V1",
         "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2",
         "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V2",
         "GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V2",
@@ -265,6 +269,7 @@
       "inspectorId": "visual-target-capability-owner",
       "entry": "scripts/audit/domains/visual-target-capability/inspector.ts",
       "lawIds": [
+        "GRASSEYE-VISUAL-TARGET-CAPABILITY-RESULT-CONTRACT-V1",
         "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2",
         "GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V2",
         "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V2",

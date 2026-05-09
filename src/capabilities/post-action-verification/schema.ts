@@ -1,27 +1,84 @@
 import { z } from "zod";
 
-import { POST_ACTION_EVIDENCE_KINDS } from "./shared/post-action-evidence.js";
 import { POST_ACTION_ACTION_STATUSES, POST_ACTION_VERIFICATION_CLOCK_KIND } from "./shared/post-action-proof.js";
 import { POST_ACTION_VERIFICATION_MODES } from "./shared/post-action-policy.js";
 import { POST_ACTION_VERIFICATION_STATUSES, POST_ACTION_FAILURE_REASONS } from "./shared/post-action-result.js";
 import {
-  POST_ACTION_OBSERVATION_KINDS,
-  POST_ACTION_OBSERVATION_SOURCE_ABILITY_GROUP_IDS,
-} from "./shared/post-action-observation.js";
-import {
   POST_ACTION_EXPECTED_OUTCOME_TYPES,
   POST_ACTION_SOURCE_ABILITY_GROUP_IDS,
-  POST_ACTION_VERIFICATION_MODES,
   POST_ACTION_SOURCE_CHILD_CAPABILITY_IDS,
-import { validatePostActionVerificationAbilityResult } from "./post-action-result-schema-refinements.js";
   POST_ACTION_VERIFICATION_ABILITY_GROUP_ID,
   POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS,
+} from "./shared/post-action-types.js";
+import { validatePostActionVerificationAbilityResult } from "./post-action-result-schema-refinements.js";
+import {
+  POST_ACTION_MAX_EVIDENCE_REFS,
+  POST_ACTION_MAX_OBSERVATIONS,
+  POST_ACTION_MAX_SOURCE_PROOF_REFS,
+  POST_ACTION_MAX_STATUS_MESSAGE_LENGTH,
+  POST_ACTION_MAX_SUMMARY_LENGTH,
+  POST_ACTION_MAX_TARGET_TYPE_LENGTH,
+  ActionCompletionObservationPayloadSchema,
+  AiObservationPayloadSchema,
+  PageStateObservationPayloadSchema,
+  PostActionEvidenceKindSchema,
+  PostActionEvidenceRefSchema,
+  PostActionObservationKindSchema,
+  PostActionObservationSourceAbilityGroupIdSchema,
+  PostActionObservationSourceSchema,
+  RuntimeSignalObservationPayloadSchema,
+  ScreenshotDiffObservationPayloadSchema,
+  VideoIdentityObservationPayloadSchema,
+  VisualTargetObservationPayloadSchema,
+  dataQualityFlagsSchema,
+  nonNegativeInt,
+  nullableLimitedString,
+  nullableString,
+  requiredString,
+} from "./post-action-schema-primitives.js";
 
-  validatePostActionVerificationAbilityResult(value as PostActionVerificationAbilityResultValue, context);
-  targetStateChanged: z.boolean().nullable().default(null),
-  afterConfirmed: z.boolean().nullable().default(null),
-  summary: nullableLimitedString,
+const PostActionVerificationChildCapabilityIdSchema = z.enum(POST_ACTION_VERIFICATION_CHILD_CAPABILITY_IDS);
+const PostActionVerificationStatusSchema = z.enum(POST_ACTION_VERIFICATION_STATUSES);
+const PostActionFailureReasonSchema = z.enum(POST_ACTION_FAILURE_REASONS);
+const PostActionActionStatusSchema = z.enum(POST_ACTION_ACTION_STATUSES);
+const PostActionExpectedOutcomeTypeSchema = z.enum(POST_ACTION_EXPECTED_OUTCOME_TYPES);
+const PostActionVerificationModeSchema = z.enum(POST_ACTION_VERIFICATION_MODES);
+const PostActionSourceAbilityGroupIdSchema = z.enum(POST_ACTION_SOURCE_ABILITY_GROUP_IDS);
+const PostActionSourceChildCapabilityIdSchema = z.enum(POST_ACTION_SOURCE_CHILD_CAPABILITY_IDS);
+
+const PostActionExpectedOutcomeSchema = z.object({
+  outcomeType: PostActionExpectedOutcomeTypeSchema,
+  description: z.string().min(1).max(POST_ACTION_MAX_SUMMARY_LENGTH),
+  expectedUrlHost: nullableString,
+  expectedUrlPrefix: nullableString,
+  expectedState: nullableString,
+  expectedTargetType: nullableString,
+  requiresBeforeAfterComparison: z.boolean().default(false),
+  requiresVisualEvidence: z.boolean().default(false),
 }).strict();
+
+const PostActionActionProofSchema = z.object({
+  actionProofRef: requiredString,
+  actionLogRef: requiredString,
+  actionRecordRef: nullableString,
+  sourceRuntimeProofRef: nullableString,
+  sourceActionResultRef: nullableString,
+  sourceActionOutputRef: nullableString,
+  sourceAbilityGroupId: PostActionSourceAbilityGroupIdSchema,
+  sourceChildCapabilityId: PostActionSourceChildCapabilityIdSchema,
+  actionType: z.string().min(1).max(POST_ACTION_MAX_TARGET_TYPE_LENGTH),
+  actionStatus: PostActionActionStatusSchema,
+  primitiveExecutionRef: nullableString,
+  navigationAttemptRef: nullableString,
+  scrollExecutionRef: nullableString,
+  sessionId: requiredString,
+  roundId: nullableString,
+  videoVisitId: nullableString,
+  startedAt: z.string().datetime(),
+  endedAt: z.string().datetime(),
+  selfReportedOnly: z.boolean().default(false),
+}).strict();
+
 
 const PostActionObservationPayloadSchema = z.discriminatedUnion("kind", [
   PageStateObservationPayloadSchema,
@@ -234,151 +291,8 @@ const PostActionVerificationAbilityResultBaseSchema = z.object({
   dataQualityFlags: dataQualityFlagsSchema,
 }).strict();
 
-type PostActionVerificationAbilityResultValue = z.output<typeof PostActionVerificationAbilityResultBaseSchema>;
-const RESULT_RUNTIME_PROOF_CHAIN_FIELDS = [
-  "missionId",
-  "runId",
-  "sessionId",
-  "roundId",
-  "videoVisitId",
-  "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
-  "capabilityCallId",
-  "nerveBusEnvelopeId",
-] as const;
-
-const OPTIONAL_GOVERNED_RESULT_CHAIN_FIELDS = new Set<(typeof RESULT_RUNTIME_PROOF_CHAIN_FIELDS)[number]>([
-  "roundId",
-  "videoVisitId",
-]);
-
-const validateRuntimeProofChain = (
-  value: PostActionVerificationAbilityResultValue,
-  context: z.RefinementCtx,
-): void => {
-  for (const field of RESULT_RUNTIME_PROOF_CHAIN_FIELDS) {
-    if (value.runtimeProof[field] !== value[field]) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: `runtimeProof.${field} must equal result.${field}`, path: ["runtimeProof", field] });
-    }
-  }
-  if (value.runtimeProof.status !== value.status) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
-  }
-  if (value.postActionVerificationResultRef !== value.runtimeProof.outputRef) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "postActionVerificationResultRef must equal runtimeProof.outputRef", path: ["postActionVerificationResultRef"] });
-  }
-};
-
-const validateSuccessfulPostActionVerificationResultShape = (
-  value: PostActionVerificationAbilityResultValue,
-  context: z.RefinementCtx,
-): void => {
-  if (value.output === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires output", path: ["output"] });
-  }
-  if (value.diagnosticPayloadRef !== null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success result must not expose diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
-  }
-  if (value.output !== null && value.output.supportingSourceProofRefs.length === 0) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success output requires supportingSourceProofRefs", path: ["output", "supportingSourceProofRefs"] });
-  }
-  if (value.postActionVerificationResultRef === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires postActionVerificationResultRef", path: ["postActionVerificationResultRef"] });
-  }
-  if (value.packageStatus !== "built") {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "success result must keep packageStatus=built", path: ["packageStatus"] });
-  }
-};
-
-const validateUnsuccessfulPostActionVerificationResultShape = (
-  value: PostActionVerificationAbilityResultValue,
-  context: z.RefinementCtx,
-): void => {
-  if (value.output !== null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed/review_required result must not expose output", path: ["output"] });
-  }
-  if (value.diagnosticPayloadRef === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed/review_required result requires diagnosticPayloadRef", path: ["diagnosticPayloadRef"] });
-  }
-  if (value.status === "failed" && value.failureReason === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed result requires failureReason", path: ["failureReason"] });
-  }
-  if (value.status === "review_required" && value.reviewRequiredReason === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "review_required result requires reviewRequiredReason", path: ["reviewRequiredReason"] });
-  }
-  if (value.status === "failed" && value.packageStatus !== "failed") {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "failed result must keep packageStatus=failed", path: ["packageStatus"] });
-  }
-  if (value.status === "review_required" && value.packageStatus !== "review_required") {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "review_required result must keep packageStatus=review_required", path: ["packageStatus"] });
-  }
-};
-
-const validatePostActionVerificationAbilityResultOutputParity = (
-  value: PostActionVerificationAbilityResultValue,
-  context: z.RefinementCtx,
-): void => {
-  if (value.output === null) {
-    return;
-  }
-  if (value.output.observationRefs.length !== value.observationRefs.length) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "output.observationRefs must equal result.observationRefs", path: ["output", "observationRefs"] });
-  }
-  if (value.output.supportingSourceProofRefs.length !== value.supportingSourceProofRefs.length) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "output.supportingSourceProofRefs must equal result.supportingSourceProofRefs", path: ["output", "supportingSourceProofRefs"] });
-  }
-  if (value.output.observationFingerprint !== value.observationFingerprint) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "output.observationFingerprint must equal result.observationFingerprint", path: ["output", "observationFingerprint"] });
-  }
-};
-
-const validatePostActionVerificationAbilityResultShape = (
-  value: PostActionVerificationAbilityResultValue,
-  context: z.RefinementCtx,
-): void => {
-  if (value.status === "success") {
-    validateSuccessfulPostActionVerificationResultShape(value, context);
-    return;
-  }
-
-  validateUnsuccessfulPostActionVerificationResultShape(value, context);
-};
-
-const validatePostActionVerificationAbilityResultGovernedFields = (
-  value: z.output<typeof PostActionVerificationAbilityResultSchema>,
-  context: z.RefinementCtx,
-): void => {
-  if (value.failureReason === "input_schema_invalid") {
-    return;
-  }
-  if (value.childCapabilityId === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "childCapabilityId is required for governed results", path: ["childCapabilityId"] });
-  }
-  for (const field of RESULT_RUNTIME_PROOF_CHAIN_FIELDS) {
-    if (OPTIONAL_GOVERNED_RESULT_CHAIN_FIELDS.has(field)) {
-      continue;
-    }
-    if (value[field] === null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: `${field} is required for governed results`, path: [field] });
-    }
-  }
-  if (value.expectedOutcome === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "expectedOutcome is required for governed results", path: ["expectedOutcome"] });
-  }
-  if (value.actionProofRef === null) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "actionProofRef is required for governed results", path: ["actionProofRef"] });
-  }
-};
-
 const PostActionVerificationAbilityResultSchema = PostActionVerificationAbilityResultBaseSchema.superRefine((value, context) => {
-  validateRuntimeProofChain(value, context);
-  validatePostActionVerificationAbilityResultShape(value, context);
-  validatePostActionVerificationAbilityResultGovernedFields(value, context);
-  validatePostActionVerificationAbilityResultOutputParity(value, context);
+  validatePostActionVerificationAbilityResult(value, context);
 });
 
 export { PostActionVerificationChildCapabilityIdSchema, PostActionVerificationStatusSchema, PostActionFailureReasonSchema, PostActionActionStatusSchema, PostActionExpectedOutcomeTypeSchema, PostActionEvidenceKindSchema, PostActionObservationKindSchema, PostActionVerificationModeSchema, PostActionSourceAbilityGroupIdSchema, PostActionSourceChildCapabilityIdSchema, PostActionObservationSourceAbilityGroupIdSchema, PostActionObservationSourceSchema, PostActionExpectedOutcomeSchema, PostActionActionProofSchema, PostActionEvidenceRefSchema, PageStateObservationPayloadSchema, AiObservationPayloadSchema, VisualTargetObservationPayloadSchema, ScreenshotDiffObservationPayloadSchema, VideoIdentityObservationPayloadSchema, ActionCompletionObservationPayloadSchema, RuntimeSignalObservationPayloadSchema, PostActionObservationPayloadSchema, PostActionObservationSchema, PostActionBeforeAfterEvidenceSchema, PostActionVerificationPolicySchema, PostActionObservationSetSchema, PostActionVerificationAbilityInputSchema, PostActionVerificationClockSchema, PostActionPackageStatusSchema, PostActionVerificationOutputSchema, PostActionRuntimeProofSchema, PostActionChildObservationSchema, PostActionVerificationAbilityResultSchema };

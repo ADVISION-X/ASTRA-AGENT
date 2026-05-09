@@ -172,8 +172,8 @@ const routePlanOwnsProductYesNoRouting = (context: SeedingVideoContext): boolean
 const hasCommentsObservationTransitions = (context: SeedingVideoContext): boolean =>
   hasTransition(context.routePlanTransitions, { fromStepId: "judge-seeding-video", toStepId: "observe-comments-entry-page-state" })
   && hasTransition(context.routePlanTransitions, { fromStepId: "observe-comments-entry-page-state", toStepId: "analyze-comments-entry-target-candidate" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "analyze-comments-entry-target-candidate", toStepId: "locate-comments-entry-target" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "locate-comments-entry-target", toStepId: "normalize-comments-target" })
+  && hasTransition(context.routePlanTransitions, { fromStepId: "analyze-comments-entry-target-candidate", toStepId: "observe-comments-button" })
+  && hasTransition(context.routePlanTransitions, { fromStepId: "observe-comments-button", toStepId: "normalize-comments-target" })
   && hasTransition(context.routePlanTransitions, { fromStepId: "normalize-comments-target", toStepId: "click-comments-button" })
   && hasTransition(context.routePlanTransitions, { fromStepId: "click-comments-button", toStepId: "verify-comments-open" })
   && hasTransition(context.routePlanTransitions, { fromStepId: "verify-comments-open", toStepId: "capture-comments-panel" });
@@ -181,13 +181,13 @@ const hasCommentsObservationTransitions = (context: SeedingVideoContext): boolea
 const hasCommentsObservationChain = (context: SeedingVideoContext): boolean => {
   const observeCommentsState = getStep(context, "observe-comments-entry-page-state");
   const analyzeComments = getStep(context, "analyze-comments-entry-target-candidate");
-  const locateComments = getStep(context, "locate-comments-entry-target");
+  const observeCommentsButton = getStep(context, "observe-comments-button");
   const normalizeComments = getStep(context, "normalize-comments-target");
   const clickComments = getStep(context, "click-comments-button");
   const verifyCommentsOpen = getStep(context, "verify-comments-open");
   return hasCommentsObservationTransitions(context)
     && hasCommentsObservationPageStateStep(observeCommentsState)
-    && hasCommentsTargetCandidateSteps({ analyzeComments, locateComments, normalizeComments })
+    && hasCommentsTargetCandidateSteps({ analyzeComments, locateComments: observeCommentsButton, normalizeComments })
     && hasCommentsClickStep(clickComments)
     && hasCommentsOpenVerificationStep(verifyCommentsOpen);
 };
@@ -339,6 +339,6 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
     ? []
     : [createPromptContractFinding(
       context.record,
-      "Seeding video map packages must keep only the open entry local while Route Plan owns capture-startup-video-viewport -> prepare-startup-ai-input -> startup-preparation -> judge-seeding-video and capture-current-video-viewport -> prepare-current-video-ai-input -> judge-seeding-video. ProductPresence must stay binary route-only and must not leak target candidate ownership. Product-yes must pass observe-comments-entry-page-state -> analyze-comments-entry-target-candidate -> locate-comments-entry-target -> normalize-comments-target -> click-comments-button -> capture-comments-panel -> extract-visible-comments -> write-seeding-evidence-record -> finalize-seeding-evidence-packet -> finalize-seeding-browse-ledger with vision.commentsEntryTargetCandidate.v1 plus comments.ocr_cleanup.v1. analyze-comment-intent, comment-intent-analysis, comments.intent_analysis.v1, and commentIntentAiResultRef are forbidden in the governed product-yes chain. Advance-next-item must pass observe-next-item-page-state -> press-next-video-key -> capture-next-item-verification-viewport -> prepare-next-item-verification-ai-input -> verify-next-item-advanced, then reuse the verified prompt input by routing next-item-advanced directly to judge-seeding-video while next-item-not-advanced falls back to capture-current-video-viewport. press-next-video-key must use text-input/press-navigation-key with pageStateRef. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
+      "Seeding video map packages must keep only the open entry local while Route Plan owns capture-startup-video-viewport -> prepare-startup-ai-input -> startup-preparation -> judge-seeding-video and capture-current-video-viewport -> prepare-current-video-ai-input -> judge-seeding-video. ProductPresence must stay binary route-only and must not leak target candidate ownership. Product-yes must pass observe-comments-entry-page-state -> analyze-comments-entry-target-candidate -> observe-comments-button -> normalize-comments-target -> click-comments-button -> capture-comments-panel -> extract-visible-comments -> write-seeding-evidence-record -> finalize-seeding-evidence-packet -> finalize-seeding-browse-ledger with vision.commentsEntryTargetCandidate.v1 plus comments.ocr_cleanup.v1. analyze-comment-intent, comment-intent-analysis, comments.intent_analysis.v1, and commentIntentAiResultRef are forbidden in the governed product-yes chain. Advance-next-item must pass observe-next-item-page-state -> press-next-video-key -> capture-next-item-verification-viewport -> prepare-next-item-verification-ai-input -> verify-next-item-advanced, then reuse the verified prompt input by routing next-item-advanced directly to judge-seeding-video while next-item-not-advanced falls back to capture-current-video-viewport. press-next-video-key must use text-input/press-navigation-key with pageStateRef. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
     )];
 };

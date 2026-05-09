@@ -45,11 +45,32 @@ function buildTags(command: string, pid: number): string[] {
 }
 
 function parsePsLineParts(match: RegExpMatchArray) {
-  const parsedPid = Number.parseInt(match[1], 10);
-  const parsedPpid = Number.parseInt(match[2], 10);
-  const parsedCpuPercent = Number.parseFloat(match[3]);
-  const parsedRssKb = Number.parseInt(match[4], 10);
-  const parsedVszKb = Number.parseInt(match[5], 10);
+  const pidText = match[1];
+  const ppidText = match[2];
+  const cpuPercentText = match[3];
+  const rssKbText = match[4];
+  const vszKbText = match[5];
+  const elapsed = match[6];
+  const state = match[7];
+  const command = match[8];
+  if (
+    pidText === undefined
+    || ppidText === undefined
+    || cpuPercentText === undefined
+    || rssKbText === undefined
+    || vszKbText === undefined
+    || elapsed === undefined
+    || state === undefined
+    || command === undefined
+  ) {
+    return null;
+  }
+
+  const parsedPid = Number.parseInt(pidText, 10);
+  const parsedPpid = Number.parseInt(ppidText, 10);
+  const parsedCpuPercent = Number.parseFloat(cpuPercentText);
+  const parsedRssKb = Number.parseInt(rssKbText, 10);
+  const parsedVszKb = Number.parseInt(vszKbText, 10);
 
   if (![parsedPid, parsedPpid, parsedCpuPercent, parsedRssKb, parsedVszKb].every(Number.isFinite)) {
     return null;
@@ -61,9 +82,9 @@ function parsePsLineParts(match: RegExpMatchArray) {
     cpuPercent: parsedCpuPercent,
     rssKb: parsedRssKb,
     vszKb: parsedVszKb,
-    elapsed: match[6],
-    state: match[7],
-    command: match[8],
+    elapsed,
+    state,
+    command,
   };
 }
 

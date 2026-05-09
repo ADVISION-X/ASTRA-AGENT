@@ -18,6 +18,21 @@ export const CoreMuscleSchema = z.enum([
   "advance-next-item",
 ]);
 
+type MuscleSegmentValue = {
+  segmentId: string;
+  coreMuscle: z.output<typeof CoreMuscleSchema>;
+  displayName: string;
+  consumesRefs: string[];
+  producesRefs: string[];
+  allowedAbilityGroups: string[];
+  aiRequired: boolean;
+  semanticOwner: "ai" | "none";
+  requiresTargetCandidateRef?: boolean | undefined;
+  postClickObservation?: boolean | undefined;
+  fallbackPolicy?: "forbidden" | "fallback-only-with-post-click-observation" | undefined;
+  description: string;
+};
+
 const MUSCLE_SEGMENT_TARGET_CANDIDATE_REFS = [
   "nextItemTargetCandidateRef",
   "aiTargetCandidateRef",
@@ -34,19 +49,19 @@ const addMuscleSegmentIssue = (context: z.RefinementCtx, path: string[], message
   });
 };
 
-const validateMuscleSegmentAllowedAbilityGroups = (value: z.infer<typeof MuscleSegmentSchema>, context: z.RefinementCtx) => {
+const validateMuscleSegmentAllowedAbilityGroups = (value: MuscleSegmentValue, context: z.RefinementCtx) => {
   if (value.allowedAbilityGroups.includes("map-plugin-package")) {
     addMuscleSegmentIssue(context, ["allowedAbilityGroups"], "Muscle segments must not list map-plugin-package as an allowed ability group.");
   }
 };
 
-const validateMuscleSegmentSemanticOwner = (value: z.infer<typeof MuscleSegmentSchema>, context: z.RefinementCtx) => {
+const validateMuscleSegmentSemanticOwner = (value: MuscleSegmentValue, context: z.RefinementCtx) => {
   if (value.aiRequired && value.semanticOwner !== "ai") {
     addMuscleSegmentIssue(context, ["semanticOwner"], "Segments that require semantic judgment must declare semanticOwner=ai.");
   }
 };
 
-const validateAdvanceNextItemMuscleSegment = (value: z.infer<typeof MuscleSegmentSchema>, context: z.RefinementCtx) => {
+const validateAdvanceNextItemMuscleSegment = (value: MuscleSegmentValue, context: z.RefinementCtx) => {
   if (value.coreMuscle !== "advance-next-item") {
     return;
   }
@@ -63,19 +78,19 @@ const validateAdvanceNextItemMuscleSegment = (value: z.infer<typeof MuscleSegmen
   }
 };
 
-const validateMuscleSegmentFallbackPolicy = (value: z.infer<typeof MuscleSegmentSchema>, context: z.RefinementCtx) => {
+const validateMuscleSegmentFallbackPolicy = (value: MuscleSegmentValue, context: z.RefinementCtx) => {
   if (value.fallbackPolicy === "fallback-only-with-post-click-observation" && value.postClickObservation !== true) {
     addMuscleSegmentIssue(context, ["fallbackPolicy"], "Fallback-only muscle segments must declare postClickObservation as a non-blocking quality signal.");
   }
 };
 
-const validateMuscleSegmentTargetCandidates = (value: z.infer<typeof MuscleSegmentSchema>, context: z.RefinementCtx) => {
+const validateMuscleSegmentTargetCandidates = (value: MuscleSegmentValue, context: z.RefinementCtx) => {
   if (value.requiresTargetCandidateRef === true && !MUSCLE_SEGMENT_TARGET_CANDIDATE_REFS.some((ref) => value.consumesRefs.includes(ref))) {
     addMuscleSegmentIssue(context, ["consumesRefs"], "Segments that require target candidates must consume nextItemTargetCandidateRef, aiTargetCandidateRef, targetCandidateRef, sourceAiResultRef, or sourceVisualTargetResultRef.");
   }
 };
 
-const validateMuscleSegment = (value: z.infer<typeof MuscleSegmentSchema>, context: z.RefinementCtx) => {
+const validateMuscleSegment = (value: MuscleSegmentValue, context: z.RefinementCtx) => {
   validateMuscleSegmentAllowedAbilityGroups(value, context);
   validateMuscleSegmentSemanticOwner(value, context);
   validateAdvanceNextItemMuscleSegment(value, context);
@@ -96,7 +111,9 @@ export const MuscleSegmentSchema = z.object({
   postClickObservation: z.boolean().optional(),
   fallbackPolicy: z.enum(["forbidden", "fallback-only-with-post-click-observation"]).optional(),
   description: z.string().min(1),
-}).strict().superRefine(validateMuscleSegment);
+}).strict().superRefine((value, context) => {
+  validateMuscleSegment(value, context);
+});
 
 export const RoutePlanSchema = z.object({
   routePlanId: z.string().min(1),

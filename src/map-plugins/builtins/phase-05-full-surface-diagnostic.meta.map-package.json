@@ -158,7 +158,8 @@
         ],
         "outputRefPolicy": {
           "storeAs": [
-            "geometryProofRef"
+            "geometryProofRef",
+            "geometryGuardResultRef"
           ]
         },
         "promptContractId": null
@@ -171,7 +172,7 @@
         "targetAbilityGroupId": "mouse-click",
         "inputRefs": [
           "visualTargetRef",
-          "geometryProofRef"
+          "geometryGuardResultRef"
         ],
         "outputRefPolicy": {
           "storeAs": [

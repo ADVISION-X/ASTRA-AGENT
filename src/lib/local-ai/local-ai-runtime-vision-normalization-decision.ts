@@ -40,7 +40,7 @@ const normalizeNullableBoolean = (value: unknown): boolean | null | undefined =>
     : undefined;
 };
 
-const normalizeProductDecision = (value: JsonRecord, isProductVideo: boolean | null) => {
+const normalizeProductDecision = (value: JsonRecord, isProductVideo: boolean | null): "product_yes" | "product_no" => {
   const rawDecision = typeof value.decision === "string" ? value.decision : null;
   if (rawDecision === "product_yes" || rawDecision === "product_no") return rawDecision;
   if (isProductVideo === true) return "product_yes";
@@ -89,7 +89,10 @@ const resolveVisionRuntimeDecisionInputs = (value: JsonRecord) => {
   };
 };
 
-const resolveVisionRuntimeDecisionLabels = (value: JsonRecord, rootIsProductVideo: boolean | null) => {
+const resolveVisionRuntimeDecisionLabels = (
+  value: JsonRecord,
+  rootIsProductVideo: boolean | null,
+): Pick<VisionRuntimeDecisionState, "decision" | "routeLabel" | "nonExecutableSummary"> => {
   const decision = normalizeProductDecision(value, rootIsProductVideo);
   const routeLabel = resolveRouteLabelForDecision(decision);
   const nonExecutableSummary = typeof value.nonExecutableSummary === "string" && value.nonExecutableSummary.length > 0

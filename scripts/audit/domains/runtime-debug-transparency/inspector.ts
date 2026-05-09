@@ -2,7 +2,7 @@ import { readJsonFile, readTextFile } from "../../core/filesystem.js";
 import { Node } from "ts-morph";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase, finalizeInspectorResult } from "../../core/result.js";
-import type { DomainInspector } from "../../core/schema.js";
+import type { DomainInspector, Finding } from "../../core/schema.js";
 import { hasIdentifier, hasLiteralTextFragment } from "../_shared/ast-literal-queries.js";
 import { getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
 import { createRuntimeDebugTransparencyProject, getSource } from "./ast-utils.js";

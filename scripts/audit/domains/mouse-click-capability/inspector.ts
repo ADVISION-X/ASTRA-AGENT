@@ -5,6 +5,7 @@ import { runAntiEscapeAttack } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runClickOwnershipAttack } from "./run-click-ownership-attack.js";
 import { runForbiddenShapeAttack } from "./forbidden-shape.js";
+import { runJointResultContractCheck } from "./run-joint-result-contract-check.js";
 import { runLawBaselineCheck } from "./run-law-baseline-check.js";
 import { runRequiredShapeAttack } from "./required-shape.js";
 
@@ -24,6 +25,7 @@ export const mouseClickCapabilityInspector = createPendingDomainInspector({
     const boundary = runBoundaryAttack(project);
     const ownership = runClickOwnershipAttack(project);
     const antiEscape = runAntiEscapeAttack(project);
+    const jointResultContract = await runJointResultContractCheck();
 
     return {
       findings: [
@@ -33,6 +35,7 @@ export const mouseClickCapabilityInspector = createPendingDomainInspector({
         ...boundary.findings,
         ...ownership.findings,
         ...antiEscape.findings,
+        ...jointResultContract.findings,
       ],
       phases: [
         lawBaseline.phase,
@@ -41,6 +44,7 @@ export const mouseClickCapabilityInspector = createPendingDomainInspector({
         boundary.phase,
         ownership.phase,
         antiEscape.phase,
+        jointResultContract.phase,
       ],
     };
   },

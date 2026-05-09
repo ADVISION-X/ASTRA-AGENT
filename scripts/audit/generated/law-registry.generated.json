@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T18:11:52.754Z",
+  "generatedAt": "2026-05-09T19:17:32.978Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -739,6 +739,17 @@
       "line": 596
     },
     {
+      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-RESULT-CONTRACT-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "geometry-guard-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Geometry Guard Result Contract is the only executable-coordinate bridge from Visual Target Result into Mouse Click Result and Mouse Scroll Result.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
+      "line": 102
+    },
+    {
       "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3",
       "status": "active",
       "tier": "P0",
@@ -747,7 +758,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Geometry Guard is the only owner of governed executable geometry safety gating.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 102
+      "line": 150
     },
     {
       "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V3",
@@ -758,7 +769,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Geometry Guard public contract must stay clean, native and independent.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 158
+      "line": 206
     },
     {
       "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-003-V3",
@@ -769,7 +780,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Geometry Guard input must carry full chain fields, source refs, coordinate evidence, idempotency and policy.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 250
+      "line": 298
     },
     {
       "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-004-V3",
@@ -780,7 +791,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Geometry Guard must validate finite geometry, coordinate space, scale mapping, bounds, click safety and execution target without silent clamp.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 348
+      "line": 396
     },
     {
       "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-005-V3",
@@ -791,7 +802,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Geometry Guard must use one fixed gate pipeline and must remain side-effect free.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 412
+      "line": 460
     },
     {
       "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-006-V3",
@@ -802,7 +813,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Geometry Guard result and owner evidence must preserve real upstream chain, gate decisions, refs and normalized geometry.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 485
+      "line": 533
     },
     {
       "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-007-V3",
@@ -813,7 +824,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "downstream execution owners must consume only Geometry Guard approved executable geometry and must not redo mapping.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 652
+      "line": 700
     },
     {
       "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-008-V3",
@@ -824,7 +835,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Geometry Guard enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 704
+      "line": 752
     },
     {
       "lawId": "GRASSEYE-LOCAL-AI-RUNTIME-006-V1",
@@ -1036,6 +1047,17 @@
       "line": 1855
     },
     {
+      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-RESULT-CONTRACT-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "mouse-click-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Mouse Click Result Contract is the canonical primitive-execution bridge from Geometry Guard Result into Post Action Verification Result.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
+      "line": 93
+    },
+    {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2",
       "status": "active",
       "tier": "P0",
@@ -1044,7 +1066,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Mouse Click is the only owner of governed primitive click execution.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 93
+      "line": 140
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V2",
@@ -1055,7 +1077,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Mouse Click boundary stays pure and cannot compute coordinates, remap geometry, verify outcomes, or perform foreign owner work.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 146
+      "line": 193
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V2",
@@ -1066,7 +1088,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Mouse Click input must carry full chain fields, Geometry Guard allow proof, executable coordinate, safety policy, source refs, idempotency and timeout policy.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 207
+      "line": 254
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2",
@@ -1077,7 +1099,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Mouse Click must run one fixed gate pipeline and execute exactly one primitive click only after all gates pass.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 309
+      "line": 356
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2",
@@ -1088,7 +1110,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Mouse Click result must mean primitive click only and must hand off to Post-action Verification.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 384
+      "line": 431
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2",
@@ -1099,7 +1121,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Mouse Click result and owner evidence must preserve real upstream chain, gate decisions, primitive refs, timeout/cancellation, idempotency and PAV handoff.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 451
+      "line": 498
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-007-V2",
@@ -1110,7 +1132,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Mouse Click children are narrow primitive bindings and must use unified runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 646
+      "line": 693
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-008-V2",
@@ -1121,7 +1143,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Mouse Click enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 709
+      "line": 756
     },
     {
       "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V2",
@@ -1223,6 +1245,17 @@
       "line": 843
     },
     {
+      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-RESULT-CONTRACT-BOUNDARY-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "nerve-bus-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Nerve Bus transports ResultEnvelope only and must not define or inspect Muscle Joint Result Contracts.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
+      "line": 97
+    },
+    {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-001-V2",
       "status": "active",
       "tier": "P0",
@@ -1231,7 +1264,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Nerve Bus is the only owner of governed command/result transport between Commander Console, Orchestration, AI and Ability Groups.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 98
+      "line": 141
     },
     {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-002-V2",
@@ -1242,7 +1275,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "All Nerve Bus envelopes must preserve complete mission/map/step/capability/prompt chain fields and must fail closed when chain truth is missing.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 156
+      "line": 199
     },
     {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-003-V2",
@@ -1253,7 +1286,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Nerve Bus has exactly six governed logical channels and must not create business-specific or platform-specific transport channels.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 283
+      "line": 326
     },
     {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-004-V2",
@@ -1264,7 +1297,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Nerve Bus validates, routes, times out, records proof and returns typed envelopes; it must not make mission, map, AI, action, or storage decisions.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 346
+      "line": 389
     },
     {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-005-V2",
@@ -1275,7 +1308,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Nerve Bus must run a fixed fail-closed transport pipeline.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 409
+      "line": 452
     },
     {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-006-V2",
@@ -1286,7 +1319,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Nerve Bus result semantics must be typed, correlated, payload-ref first and real-code-inspection-backed.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 487
+      "line": 530
     },
     {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-007-V2",
@@ -1297,7 +1330,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Nerve Bus transfer proof must preserve full chain, timing, gate decisions, handler decision, payload refs and correlation refs.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 558
+      "line": 601
     },
     {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-008-V2",
@@ -1308,7 +1341,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Nerve Bus AI transport must carry Prompt Contract references only and must not carry raw prompt truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 677
+      "line": 720
     },
     {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-009-V2",
@@ -1319,7 +1352,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Nerve Bus children are narrow channel bindings and must use unified runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 741
+      "line": 784
     },
     {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-010-V2",
@@ -1330,7 +1363,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Nerve Bus enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 805
+      "line": 848
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
@@ -1630,6 +1663,17 @@
       "line": 652
     },
     {
+      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-RESULT-CONTRACT-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "post-action-verification-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Post Verify Result Contract is the canonical observation-package result boundary after Mouse Click Result and before any final semantic AI judgment.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
+      "line": 93
+    },
+    {
       "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2",
       "status": "active",
       "tier": "P0",
@@ -1638,7 +1682,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "PAV is the only owner of governed post-action observation-package truth, while AI remains the final semantic judgment source.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 93
+      "line": 139
     },
     {
       "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2",
@@ -1649,7 +1693,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "PAV boundary stays pure and cannot execute actions, capture evidence, call AI, or persist final evidence.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 145
+      "line": 191
     },
     {
       "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2",
@@ -1660,7 +1704,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "PAV input must carry complete chain fields, action proof, governed observations and packaging policy without confidence-policy drift.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 198
+      "line": 244
     },
     {
       "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V2",
@@ -1671,7 +1715,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "PAV must fail-close on missing or invalid observation support and package only bounded observations with valid source proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 309
+      "line": 355
     },
     {
       "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-005-V2",
@@ -1682,7 +1726,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "PAV result must report packaging status only: success, failed, or review_required.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 407
+      "line": 453
     },
     {
       "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-006-V2",
@@ -1693,7 +1737,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "PAV owner evidence must preserve input and result chain parity without fabricated ids or legacy decision traces.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 486
+      "line": 532
     },
     {
       "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-007-V2",
@@ -1704,7 +1748,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "child capabilities must remain narrow observation providers and flow through one unified executor and proof path.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 594
+      "line": 640
     },
     {
       "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2",
@@ -1715,7 +1759,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "PAV enforcement must close through owner-local AST and symbol inspectors, runner and real-code-inspection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 654
+      "line": 700
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-001-V2",
@@ -1971,6 +2015,17 @@
       "line": 16
     },
     {
+      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-RESULT-CONTRACT-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "visual-target-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Visual Target Result Contract is the canonical non-executable action-target result boundary between AI Candidate Result and Geometry Guard Result.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
+      "line": 96
+    },
+    {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2",
       "status": "active",
       "tier": "P0",
@@ -1979,7 +2034,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Visual Target is the only owner of governed visual target result normalization.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 96
+      "line": 146
     },
     {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V2",
@@ -1990,7 +2045,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Visual Target boundary stays pure: it validates, normalizes, selects and builds handoff only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 147
+      "line": 197
     },
     {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V2",
@@ -2001,7 +2056,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Visual Target input must carry full chain fields, source proof, candidate proof and idempotency.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 210
+      "line": 260
     },
     {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V2",
@@ -2012,7 +2067,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "coordinate-space truth must be explicit; Visual Target output is not executable until Geometry Guard.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 329
+      "line": 379
     },
     {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-005-V2",
@@ -2023,7 +2078,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Visual Target runtime must use a single gate pipeline and fail closed on ambiguity, stale evidence, source mismatch and critical data quality.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 398
+      "line": 448
     },
     {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-006-V2",
@@ -2034,7 +2089,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Visual Target result and owner evidence must preserve real chain, source refs, candidate refs, gate decisions, coordinate transform trace and Geometry Guard handoff.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 471
+      "line": 521
     },
     {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-007-V2",
@@ -2045,7 +2100,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "child capabilities are narrow target bindings and must use unified Visual Target runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 652
+      "line": 702
     },
     {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-008-V2",
@@ -2056,7 +2111,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Visual Target enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 715
+      "line": 765
     }
   ]
 }

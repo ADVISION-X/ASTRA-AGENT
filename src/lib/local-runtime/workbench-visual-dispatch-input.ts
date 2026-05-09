@@ -11,71 +11,109 @@ import { buildCommentsEntryVisualTargetCommand } from "./workbench-visual-dispat
 import { buildAdvanceNextItemGeometryGuardCommand } from "./workbench-visual-dispatch-input-next-item.js";
 import { buildNextItemTargetVisualTargetCommand } from "./workbench-visual-dispatch-input-next-item-target.js";
 
-const buildStructuredVisualTargetGeometryGuardCommand = async (
+type StructuredGeometryGuardContext = {
+  geometry: Awaited<ReturnType<WorkbenchRuntime["browserController"]["getGeometrySnapshot"]>>;
+  handoff: NonNullable<ReturnType<typeof resolveVisualTargetGeometryHandoff>>;
+  sourceScreenshotEvidenceRef: string;
+  sourceTargetRef: string;
+  sourceVisualTargetResultRef: string;
+};
+
+const resolveStructuredGeometryGuardContext = async (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
-) => {
+): Promise<StructuredGeometryGuardContext> => {
   const payload = toDispatchPayload(inputPayload);
   const geometry = await runtime.browserController.getGeometrySnapshot();
-  const visualTargetRef = payloadValueToString(payload.visualTargetResultRef)
-    ?? payloadValueToString(payload.visualTargetRef)
-    ?? payloadValueToString(payload.sourceVisualTargetResultRef)
-    ?? payloadValueToString(payload.sourceTargetRef);
-  const handoff = visualTargetRef ? resolveVisualTargetGeometryHandoff(visualTargetRef) : null;
-  const sourceVisualTargetResultRef = handoff?.sourceVisualTargetResultRef ?? visualTargetRef;
+  const visualTargetResultRef = payloadValueToString(payload.visualTargetResultRef)
+    ?? payloadValueToString(payload.sourceVisualTargetResultRef);
+  const handoff = visualTargetResultRef ? resolveVisualTargetGeometryHandoff(visualTargetResultRef) : null;
+  const sourceVisualTargetResultRef = handoff?.sourceVisualTargetResultRef ?? visualTargetResultRef;
 
   if (!handoff || !sourceVisualTargetResultRef) {
     throw new Error(`Geometry Guard dispatch for ${envelope.stepId} requires structured Visual Target geometry proof; center-screen fallback is forbidden.`);
   }
 
-  const sourceTargetRef = handoff.sourceTargetRef;
-  const sourceScreenshotEvidenceRef = handoff.sourceScreenshotEvidenceRef
-    ?? resolvePayloadRef(payload, ["screenshotEvidenceRef", "sourceEvidenceRef"], `${envelope.inputRef}:screenshot`);
-
-  return JSON.parse(JSON.stringify({
-    abilityGroupId: "geometry-guard",
-    childCapabilityId: envelope.commandName === "normalize-coordinate-geometry"
-      ? "validate-browser-viewport-bounds"
-      : "validate-coordinate-space",
-    missionId: envelope.missionId,
-    runId: envelope.runId,
-    sessionId: envelope.sessionId,
-    roundId: envelope.roundId,
-    videoVisitId: envelope.videoVisitId,
-    stepId: envelope.stepId,
-    mapPackageId: envelope.mapPackageId,
-    mapPackageVersion: envelope.mapPackageVersion,
-    selectedMapId: envelope.selectedMapId,
-    selectedMapVersion: envelope.selectedMapVersion,
-    activationSnapshotRef: envelope.activationSnapshotRef,
-    capabilityCallId: envelope.capabilityCallId,
-    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
-    requestedBy: "orchestration",
-    purpose: inputPayload.summary,
-    sourceAbilityGroupId: "visual-target",
-    sourceChildCapabilityId: "observe-comments-button",
-    inputRef: envelope.inputRef,
-    sourceRef: sourceTargetRef,
-    sourceScreenshotEvidenceRef,
-    sourceTargetRef,
-    sourceAiResultRef: handoff.sourceAiResultRef,
-    sourcePageStateProofRef: handoff.sourcePageStateProofRef,
+  return {
+    geometry,
+    handoff,
+    sourceScreenshotEvidenceRef: handoff.sourceScreenshotEvidenceRef
+      ?? resolvePayloadRef(payload, ["screenshotEvidenceRef", "sourceEvidenceRef"], `${envelope.inputRef}:screenshot`),
+    sourceTargetRef: handoff.sourceTargetRef,
     sourceVisualTargetResultRef,
-    sourceGeometryHandoffRef: handoff.handoffRef,
-    sourceCoordinateSpace: handoff.coordinateSpace,
-    requestedExecutionSpace: "browserViewport",
-    bbox: handoff.bbox,
-    clickPoint: handoff.clickPoint,
-    viewportSize: {
-      width: geometry.viewportWidth,
-      height: geometry.viewportHeight,
-    },
-    deviceScaleFactor: geometry.scaleFactor,
-    targetSemanticOwner: "visual-target",
-    dataQualityFlags: ["governed_visual_target_geometry"],
-    idempotencyKey: envelope.idempotencyKey,
-  }));
+  };
+};
+
+const buildStructuredGeometryGuardPayload = (
+  envelope: AbilityCommandEnvelope,
+  inputPayload: NerveBusPayloadDocument,
+  context: StructuredGeometryGuardContext,
+) => ({
+  ...buildStructuredGeometryIdentityPayload(envelope, inputPayload),
+  ...buildStructuredGeometrySourcePayload(envelope, context),
+  viewportSize: {
+    width: context.geometry.viewportWidth,
+    height: context.geometry.viewportHeight,
+  },
+  deviceScaleFactor: context.geometry.scaleFactor,
+  targetSemanticOwner: "visual-target",
+  dataQualityFlags: ["governed_visual_target_geometry"],
+  idempotencyKey: envelope.idempotencyKey,
+});
+
+const buildStructuredGeometryIdentityPayload = (
+  envelope: AbilityCommandEnvelope,
+  inputPayload: NerveBusPayloadDocument,
+) => ({
+  abilityGroupId: "geometry-guard",
+  childCapabilityId: envelope.commandName === "normalize-coordinate-geometry"
+    ? "validate-browser-viewport-bounds"
+    : "validate-coordinate-space",
+  missionId: envelope.missionId,
+  runId: envelope.runId,
+  sessionId: envelope.sessionId,
+  roundId: envelope.roundId,
+  videoVisitId: envelope.videoVisitId,
+  stepId: envelope.stepId,
+  mapPackageId: envelope.mapPackageId,
+  mapPackageVersion: envelope.mapPackageVersion,
+  selectedMapId: envelope.selectedMapId,
+  selectedMapVersion: envelope.selectedMapVersion,
+  activationSnapshotRef: envelope.activationSnapshotRef,
+  capabilityCallId: envelope.capabilityCallId,
+  nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
+  requestedBy: "orchestration",
+  purpose: inputPayload.summary,
+  sourceAbilityGroupId: "visual-target",
+  sourceChildCapabilityId: "observe-comments-button",
+  inputRef: envelope.inputRef,
+});
+
+const buildStructuredGeometrySourcePayload = (
+  envelope: AbilityCommandEnvelope,
+  context: StructuredGeometryGuardContext,
+) => ({
+  sourceRef: context.sourceTargetRef,
+  sourceScreenshotEvidenceRef: context.sourceScreenshotEvidenceRef,
+  sourceTargetRef: context.sourceTargetRef,
+  sourceAiResultRef: context.handoff.sourceAiResultRef,
+  sourcePageStateProofRef: context.handoff.sourcePageStateProofRef,
+  sourceVisualTargetResultRef: context.sourceVisualTargetResultRef,
+  sourceGeometryHandoffRef: context.handoff.handoffRef,
+  sourceCoordinateSpace: context.handoff.coordinateSpace,
+  requestedExecutionSpace: "browserViewport",
+  bbox: context.handoff.bbox,
+  clickPoint: context.handoff.clickPoint,
+});
+
+const buildStructuredVisualTargetGeometryGuardCommand = async (
+  runtime: WorkbenchRuntime,
+  envelope: AbilityCommandEnvelope,
+  inputPayload: NerveBusPayloadDocument,
+) => {
+  const context = await resolveStructuredGeometryGuardContext(runtime, envelope, inputPayload);
+  return JSON.parse(JSON.stringify(buildStructuredGeometryGuardPayload(envelope, inputPayload, context)));
 };
 
 export const buildVisualTargetCommand = (
@@ -93,9 +131,10 @@ export const buildVisualTargetCommand = (
   const payload = toDispatchPayload(inputPayload);
   const isCommentsButton = envelope.commandName === "observe-comments-button";
   const targetType = isCommentsButton ? "comments_button" : "next_video_region";
-  const aiTargetCandidateRef = payloadValueToString(payload.aiTargetCandidateRef)
-    ?? payloadValueToString(payload.targetCandidateRef)
-    ?? payloadValueToString(payload.sourceAiResultRef);
+  const aiTargetCandidateRef = payloadValueToString(payload.aiResultRef)
+    ?? payloadValueToString(payload.sourceAiResultRef)
+    ?? payloadValueToString(payload.aiTargetCandidateRef)
+    ?? payloadValueToString(payload.targetCandidateRef);
 
   if (!aiTargetCandidateRef) {
     throw new Error(`Visual Target dispatch for ${targetType} requires an AI target candidate ref. Heuristic target generation is forbidden.`);

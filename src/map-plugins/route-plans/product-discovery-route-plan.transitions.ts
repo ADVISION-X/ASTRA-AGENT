@@ -140,7 +140,7 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     transitionId: "analyze-comments-entry-target-candidate:success",
     fromStepId: "analyze-comments-entry-target-candidate",
     onStatus: "success",
-    toStepId: "locate-comments-entry-target",
+    toStepId: "observe-comments-button",
     finalStatus: null,
   },
   {
@@ -151,15 +151,15 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     finalStatus: "failed",
   },
   {
-    transitionId: "locate-comments-entry-target:success",
-    fromStepId: "locate-comments-entry-target",
+    transitionId: "observe-comments-button:success",
+    fromStepId: "observe-comments-button",
     onStatus: "success",
     toStepId: "normalize-comments-target",
     finalStatus: null,
   },
   {
-    transitionId: "locate-comments-entry-target:failed",
-    fromStepId: "locate-comments-entry-target",
+    transitionId: "observe-comments-button:failed",
+    fromStepId: "observe-comments-button",
     onStatus: "failed",
     toStepId: null,
     finalStatus: "failed",

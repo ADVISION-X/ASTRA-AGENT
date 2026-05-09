@@ -35,8 +35,8 @@ const inspectFoundation = async (context: Parameters<DomainInspector>[0]) => {
 
 const collectFindings = (input: {
   foundationFindings: Awaited<ReturnType<typeof inspectFoundation>>["findings"];
-  directPhases: Awaited<ReturnType<typeof runDirectGovernancePhases>>;
-  supplementalPhases: Awaited<ReturnType<typeof runSupplementalPhases>>;
+  directPhases: Awaited<ReturnType<typeof runDirectPhaseBundle>>;
+  supplementalPhases: Awaited<ReturnType<typeof runSupplementalPhaseBundle>>;
 }) => [
   ...input.foundationFindings,
   ...input.directPhases.required.findings,
@@ -56,8 +56,8 @@ const collectFindings = (input: {
 
 const collectPhases = (input: {
   foundationPhase: Awaited<ReturnType<typeof inspectFoundation>>["phase"];
-  directPhases: Awaited<ReturnType<typeof runDirectGovernancePhases>>;
-  supplementalPhases: Awaited<ReturnType<typeof runSupplementalPhases>>;
+  directPhases: Awaited<ReturnType<typeof runDirectPhaseBundle>>;
+  supplementalPhases: Awaited<ReturnType<typeof runSupplementalPhaseBundle>>;
 }) => [
   input.foundationPhase,
   input.directPhases.required.phase,

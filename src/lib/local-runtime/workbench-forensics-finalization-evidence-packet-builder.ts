@@ -24,8 +24,8 @@ const buildEvidencePacketInputRefs = (context: EvidencePacketContext) => [
   context.refs.productPresenceAiResultRef,
   ...(context.refs.commentCleanupAiResultRef ? [context.refs.commentCleanupAiResultRef] : []),
   ...(context.refs.pagePreparationAiResultRef ? [context.refs.pagePreparationAiResultRef] : []),
-  context.refs.commentsClickActionRef,
-  ...(context.refs.commentsOpenVerificationRef ? [context.refs.commentsOpenVerificationRef] : []),
+  context.refs.clickResultRef,
+  ...(context.refs.postActionVerificationResultRef ? [context.refs.postActionVerificationResultRef] : []),
 ];
 
 const buildEvidencePacketRoundEvidenceRefs = (context: EvidencePacketContext) => [
@@ -51,7 +51,7 @@ const buildEvidencePacketPageState = (context: EvidencePacketContext) => ({
   safetyState: context.pagePreparationSummary?.output.decision === "no" ? "blocked_or_unknown" : "clear_or_unchecked",
   feedReadyStatus: context.pagePreparationSummary?.output.decision === "yes" ? "ready" : "unknown",
   videoStableStatus: context.productPresenceSummary.input.validFrameCount > 0 ? "observed" : "unknown",
-  geometryStatus: context.refs.commentsOpenVerificationRef ? "comments_panel_verified" : "comments_button_clicked",
+  geometryStatus: context.refs.postActionVerificationResultRef ? "comments_panel_verified" : "comments_button_clicked",
   reviewRequiredReason: null,
 });
 
@@ -192,15 +192,15 @@ export const buildForensicsEvidencePacketInput = (envelope: WorkbenchForensicsEn
         context.refs.productPresenceAiResultRef,
         ...(context.refs.commentCleanupAiResultRef ? [context.refs.commentCleanupAiResultRef] : []),
         ...(context.refs.pagePreparationAiResultRef ? [context.refs.pagePreparationAiResultRef] : []),
-        context.refs.commentsClickActionRef,
-        ...(context.refs.commentsOpenVerificationRef ? [context.refs.commentsOpenVerificationRef] : []),
+        context.refs.clickResultRef,
+        ...(context.refs.postActionVerificationResultRef ? [context.refs.postActionVerificationResultRef] : []),
       ],
       promptContractId: context.productPresenceSummary.promptContractId,
       promptContractVersion: context.productPresenceSummary.promptContractVersion,
       promptCatalogVersion: context.productPresenceSummary.promptCatalogVersion,
       decisionRef: context.productPresenceSummary.aiProofRef,
-      actionRef: context.refs.commentsClickActionRef,
-      postActionVerificationRef: context.refs.commentsOpenVerificationRef,
+      actionRef: context.refs.clickResultRef,
+      postActionVerificationRef: context.refs.postActionVerificationResultRef,
       dataQualityFlags: context.dataQualityFlags,
     }),
     payload: buildEvidencePacketPayload(context),

@@ -117,7 +117,7 @@ const validateSuccessfulShape = (
   }
 };
 
-const validateUnsuccessfulShape = (
+const validateUnsuccessfulEnvelope = (
   value: PostActionVerificationAbilityResultValue,
   context: z.RefinementCtx,
 ) => {
@@ -127,18 +127,39 @@ const validateUnsuccessfulShape = (
   if (value.diagnosticPayloadRef === null) {
     addIssue(context, "failed/review_required result requires diagnosticPayloadRef", ["diagnosticPayloadRef"]);
   }
+};
+
+const validateUnsuccessfulOutcomeReasons = (
+  value: PostActionVerificationAbilityResultValue,
+  context: z.RefinementCtx,
+) => {
   if (value.status === "failed" && value.failureReason === null) {
     addIssue(context, "failed result requires failureReason", ["failureReason"]);
   }
   if (value.status === "review_required" && value.reviewRequiredReason === null) {
     addIssue(context, "review_required result requires reviewRequiredReason", ["reviewRequiredReason"]);
   }
+};
+
+const validateUnsuccessfulPackageStatus = (
+  value: PostActionVerificationAbilityResultValue,
+  context: z.RefinementCtx,
+) => {
   if (value.status === "failed" && value.packageStatus !== "failed") {
     addIssue(context, "failed result must keep packageStatus=failed", ["packageStatus"]);
   }
   if (value.status === "review_required" && value.packageStatus !== "review_required") {
     addIssue(context, "review_required result must keep packageStatus=review_required", ["packageStatus"]);
   }
+};
+
+const validateUnsuccessfulShape = (
+  value: PostActionVerificationAbilityResultValue,
+  context: z.RefinementCtx,
+) => {
+  validateUnsuccessfulEnvelope(value, context);
+  validateUnsuccessfulOutcomeReasons(value, context);
+  validateUnsuccessfulPackageStatus(value, context);
 };
 
 const validateOutputParity = (

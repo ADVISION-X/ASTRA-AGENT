@@ -1,3 +1,5 @@
+import { SyntaxKind } from "ts-morph";
+
 import { getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
 import { createFinding, createPhase, fileExists, pathFromRepoRoot, readTextFile, type Finding } from "./inspection-core.js";
 import { createAuditProject, getSourceFileOrThrow } from "./inspection-ast-helpers.js";

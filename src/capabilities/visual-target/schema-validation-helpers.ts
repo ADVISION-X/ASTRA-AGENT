@@ -67,33 +67,81 @@ function validateVisualTargetAbilityResultChainParity(
   }
 }
 
-export function validateVisualTargetAbilityResult(value: VisualTargetAbilityResultLike, context: z.RefinementCtx): void {
-  const isInvalidInputFailure = value.status === "failed" && value.failureReason === "input_schema_invalid";
-  const resultRecord = value as ChainRecord;
-  const proofRecord = value.runtimeProof as ChainRecord;
-
+const validateRuntimeStatusParity = (
+  value: VisualTargetAbilityResultLike,
+  context: z.RefinementCtx,
+) => {
   if (value.runtimeProof.status !== value.status) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "runtimeProof.status must equal result.status", path: ["runtimeProof", "status"] });
   }
   if (value.visualTargetResultRef !== value.runtimeProof.outputRef) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "visualTargetResultRef must equal runtimeProof.outputRef", path: ["visualTargetResultRef"] });
   }
-  validateVisualTargetAbilityResultChainParity(resultRecord, proofRecord, isInvalidInputFailure, context);
+};
+
+const validateOutputState = (
+  value: VisualTargetAbilityResultLike,
+  context: z.RefinementCtx,
+) => {
   if (value.status === "success" && value.output === null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires output", path: ["output"] });
   }
   if (value.status !== "success" && value.output !== null) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "failed/review_required result must keep output null", path: ["output"] });
   }
-  if (value.status === "success" && value.output && typeof value.output === "object" && value.output !== null && "geometryGuardHandoff" in (value.output as Record<string, unknown>)) {
-    const actionOutput = value.output as Record<string, unknown>;
-    const handoff = actionOutput.geometryGuardHandoff;
-    if (typeof handoff !== "object" || handoff === null || Array.isArray(handoff)) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "success action output requires geometryGuardHandoff object", path: ["output", "geometryGuardHandoff"] });
-      return;
-    }
-    if ((handoff as Record<string, unknown>).sourceVisualTargetResultRef !== value.visualTargetResultRef) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "geometryGuardHandoff.sourceVisualTargetResultRef must equal visualTargetResultRef", path: ["output", "geometryGuardHandoff", "sourceVisualTargetResultRef"] });
-    }
+};
+
+const resolveGeometryGuardHandoff = (output: unknown): Record<string, unknown> | null => {
+  if (!(output && typeof output === "object" && !Array.isArray(output) && "geometryGuardHandoff" in (output as Record<string, unknown>))) {
+    return null;
   }
+
+  const handoff = (output as Record<string, unknown>).geometryGuardHandoff;
+  return typeof handoff === "object" && handoff !== null && !Array.isArray(handoff)
+    ? handoff as Record<string, unknown>
+    : null;
+};
+
+const validateGeometryGuardHandoffPresence = (
+  value: VisualTargetAbilityResultLike,
+  context: z.RefinementCtx,
+) => {
+  const handoff = resolveGeometryGuardHandoff(value.output);
+  if (handoff !== null || value.status !== "success") {
+    return handoff;
+  }
+
+  if (value.output && typeof value.output === "object" && value.output !== null && "geometryGuardHandoff" in (value.output as Record<string, unknown>)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "success action output requires geometryGuardHandoff object", path: ["output", "geometryGuardHandoff"] });
+  }
+  return null;
+};
+
+const validateSuccessGeometryHandoff = (
+  value: VisualTargetAbilityResultLike,
+  context: z.RefinementCtx,
+) => {
+  if (value.status !== "success") {
+    return;
+  }
+
+  const handoff = validateGeometryGuardHandoffPresence(value, context);
+  if (handoff === null) {
+    return;
+  }
+
+  if (handoff.sourceVisualTargetResultRef !== value.visualTargetResultRef) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "geometryGuardHandoff.sourceVisualTargetResultRef must equal visualTargetResultRef", path: ["output", "geometryGuardHandoff", "sourceVisualTargetResultRef"] });
+  }
+};
+
+export function validateVisualTargetAbilityResult(value: VisualTargetAbilityResultLike, context: z.RefinementCtx): void {
+  const isInvalidInputFailure = value.status === "failed" && value.failureReason === "input_schema_invalid";
+  const resultRecord = value as ChainRecord;
+  const proofRecord = value.runtimeProof as ChainRecord;
+
+  validateRuntimeStatusParity(value, context);
+  validateVisualTargetAbilityResultChainParity(resultRecord, proofRecord, isInvalidInputFailure, context);
+  validateOutputState(value, context);
+  validateSuccessGeometryHandoff(value, context);
 }

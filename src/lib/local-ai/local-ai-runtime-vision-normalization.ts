@@ -77,8 +77,8 @@ const resolveNormalizedFrameObservation = (
   }
 
   const rawFrameLabel = typeof entry.frameLabel === "string" ? entry.frameLabel : null;
-  const frameLabel = rawFrameLabel && expectedFrameLabels.includes(rawFrameLabel as LocalAiVisionFrameSamplePointLabel)
-    ? rawFrameLabel
+  const frameLabel: LocalAiVisionFrameSamplePointLabel = rawFrameLabel && expectedFrameLabels.includes(rawFrameLabel as LocalAiVisionFrameSamplePointLabel)
+    ? (rawFrameLabel as LocalAiVisionFrameSamplePointLabel)
     : (expectedFrameLabels[index] ?? fallbackObservation.frameLabel);
   const hasVisibleProduct = typeof entry.hasVisibleProduct === "boolean" || entry.hasVisibleProduct === null
     ? entry.hasVisibleProduct

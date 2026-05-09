@@ -99,6 +99,31 @@ PAV 验证动作后的结果。
 Forensics 保存整条链路。
 ```
 
+## 2.1 Joint Result Contract
+
+Geometry Guard input consumes VisualTargetResult.output.geometryGuardHandoff.
+Geometry Guard output produces GeometryGuardResult.
+
+GeometryGuardResult allow success 至少要公开：
+
+```txt
+geometryGuardRef
+geometryGuardProofRef
+geometryGuardOutputRef
+geometryGuardRuntimeProofRef
+sourceVisualTargetResultRef
+sourceTargetRef
+sourceScreenshotEvidenceRef
+sourceAiResultRef
+sourcePageStateProofRef
+normalizedCoordinateSpace
+normalizedClickPoint
+normalizedBbox
+guardDecision = allow
+```
+
+Mouse Click 和 Mouse Scroll 只能消费 GeometryGuardResult，不得回读 raw Visual Target bbox/clickPoint。
+
 ---
 
 ## 3. 标准包结构

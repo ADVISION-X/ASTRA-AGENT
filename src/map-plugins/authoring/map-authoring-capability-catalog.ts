@@ -8,15 +8,15 @@ import type {
 
 const PRODUCED_OUTPUT_REFS_BY_ABILITY_GROUP: Record<string, string[]> = {
   ai: ["aiResultRef", "aiProofRef"],
-  "visual-target": ["visualTargetRef", "targetProofRef"],
+  "visual-target": ["visualTargetResultRef"],
   screenshot: ["screenshotRef", "captureProofRef"],
-  "geometry-guard": ["geometryProofRef"],
-  "mouse-click": ["actionResultRef", "postActionVerificationRef"],
+  "geometry-guard": ["geometryGuardResultRef"],
+  "mouse-click": ["clickResultRef"],
   "text-input": ["textInputResultRef", "postActionVerificationRef"],
   "mouse-scroll": ["scrollResultRef", "postScrollVerificationRef"],
   open: ["pageOpenRef", "navigationProofRef"],
   "page-state": ["pageStateRef"],
-  "post-action-verification": ["postActionVerificationRef"],
+  "post-action-verification": ["postActionVerificationResultRef"],
   "forensics-persistence": ["forensicsRecordRef"],
 };
 
@@ -43,13 +43,13 @@ const REQUIRED_INPUT_REFS_BY_ABILITY_GROUP: Record<string, string[]> = {
   ai: ["promptInputRef"],
   "visual-target": ["sourceImageRef"],
   screenshot: ["captureTargetRef"],
-  "geometry-guard": ["candidateGeometryRef"],
-  "mouse-click": ["geometryProofRef", "targetProofRef"],
+  "geometry-guard": ["visualTargetResultRef"],
+  "mouse-click": ["geometryGuardResultRef"],
   "text-input": ["approvedTextRef", "targetProofRef", "focusProofRef"],
   "mouse-scroll": ["scrollAnchorRef"],
   open: ["targetUrlRef"],
   "page-state": ["pageRef"],
-  "post-action-verification": ["preActionEvidenceRef", "postActionEvidenceRef"],
+  "post-action-verification": ["clickResultRef"],
   "forensics-persistence": ["proofRef"],
 };
 
@@ -70,8 +70,9 @@ const FAILURE_MODES_BY_ABILITY_GROUP: Record<string, string[]> = {
   open: ["navigation_failed", "unsafe_target_blocked", "timeout"],
 };
 
-const GEOMETRY_PROOF_GROUPS = new Set(["mouse-click", "mouse-scroll", "text-input", "geometry-guard"]);
-const TARGET_PROOF_GROUPS = new Set(["mouse-click", "text-input"]);
+const GEOMETRY_PROOF_GROUPS = new Set(["mouse-scroll", "text-input", "geometry-guard"]);
+const GEOMETRY_GUARD_RESULT_GROUPS = new Set(["mouse-click"]);
+const TARGET_PROOF_GROUPS = new Set(["text-input"]);
 
 const buildProducedOutputRefs = (abilityGroupId: string): string[] => {
   return PRODUCED_OUTPUT_REFS_BY_ABILITY_GROUP[abilityGroupId] ?? ["runtimeProofRef"];
@@ -116,6 +117,7 @@ const buildProofRequirements = (abilityGroupId: string, childCapabilityId: strin
   return [
     "runtimeProofRef",
     ...includeProofRequirements(GEOMETRY_PROOF_GROUPS.has(abilityGroupId), ["geometryProofRef"]),
+    ...includeProofRequirements(GEOMETRY_GUARD_RESULT_GROUPS.has(abilityGroupId), ["geometryGuardResultRef"]),
     ...includeProofRequirements(TARGET_PROOF_GROUPS.has(abilityGroupId), ["targetProofRef"]),
     ...includeProofRequirements(abilityGroupId === "text-input", ["focusProofRef", "approvedTextRef"]),
     ...includeProofRequirements(abilityGroupId === "ai", ["promptContractId", "outputSchemaRef", "aiProofRef"]),

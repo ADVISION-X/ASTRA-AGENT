@@ -4,7 +4,6 @@ import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./work
 import { payloadValueToString } from "./workbench-payload.js";
 import { resolveGeometryGuardClickHandoff } from "./workbench-muscle-joint-contract-resolvers.js";
 import {
-  resolvePayloadRef,
   toDispatchPayload,
 } from "./workbench-action-dispatch-shared.js";
 
@@ -81,8 +80,12 @@ const resolveMouseClickCommandContext = async (
   inputPayload: NerveBusPayloadDocument,
 ): Promise<MouseClickCommandContext> => {
   const payload = toDispatchPayload(inputPayload);
-  const geometryProofRef = resolvePayloadRef(payload, ["geometryGuardResultRef", "geometryProofRef"], envelope.inputRef);
-  const geometryHandoff = resolveGeometryGuardClickHandoff(geometryProofRef);
+  const geometryGuardResultRef = payloadValueToString(payload.geometryGuardResultRef);
+  if (!geometryGuardResultRef) {
+    throw new Error(`Mouse Click dispatch for ${envelope.stepId} requires geometryGuardResultRef from GeometryGuardResult.`);
+  }
+
+  const geometryHandoff = resolveGeometryGuardClickHandoff(geometryGuardResultRef);
   if (!geometryHandoff) {
     throw new Error(`Mouse Click dispatch for ${envelope.stepId} requires a canonical GeometryGuardResult handoff.`);
   }

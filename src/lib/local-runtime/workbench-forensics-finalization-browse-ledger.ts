@@ -22,8 +22,8 @@ type BrowseLedgerContext = {
   roundId: string;
   videoVisitId: string;
   productPresenceAiResultRef: string;
-  commentsClickActionRef: string | null;
-  commentsOpenVerificationRef: string | null;
+  clickResultRef: string | null;
+  postActionVerificationResultRef: string | null;
   packetId: string;
   roundLogId: string;
   actionLogRefs: string[];
@@ -33,7 +33,7 @@ type BrowseLedgerContext = {
 const buildBrowseLedgerInputRefs = (context: BrowseLedgerContext) => [
   context.productPresenceAiResultRef,
   ...context.actionLogRefs,
-  ...(context.commentsOpenVerificationRef ? [context.commentsOpenVerificationRef] : []),
+  ...(context.postActionVerificationResultRef ? [context.postActionVerificationResultRef] : []),
 ];
 
 const buildBrowseLedgerPayload = (context: BrowseLedgerContext) => ({
@@ -83,15 +83,15 @@ const resolveBrowseLedgerContext = (
   const roundId = requireString(envelope.roundId, "roundId");
   const videoVisitId = requireString(envelope.videoVisitId, "videoVisitId");
   const productPresenceAiResultRef = requireString(resolvePayloadString(payload, "productPresenceAiResultRef"), "productPresenceAiResultRef");
-  const commentsClickActionRef = resolvePayloadString(payload, "commentsClickActionRef");
-  const commentsOpenVerificationRef = resolvePayloadString(payload, "commentsOpenVerificationRef");
+  const clickResultRef = resolvePayloadString(payload, "clickResultRef");
+  const postActionVerificationResultRef = resolvePayloadString(payload, "postActionVerificationResultRef");
   const productPresenceSummary = resolveAiProductPresenceOutputSummary(productPresenceAiResultRef);
 
   if (!productPresenceSummary) {
     throw new Error("Workbench forensics dispatch could not resolve product presence AI summary for browse ledger finalization.");
   }
 
-  const actionLogRefs = commentsClickActionRef ? [commentsClickActionRef] : [];
+  const actionLogRefs = clickResultRef ? [clickResultRef] : [];
 
   return {
     envelope,
@@ -99,8 +99,8 @@ const resolveBrowseLedgerContext = (
     roundId,
     videoVisitId,
     productPresenceAiResultRef,
-    commentsClickActionRef,
-    commentsOpenVerificationRef,
+    clickResultRef,
+    postActionVerificationResultRef,
     packetId: `${envelope.sessionId}:${roundId}:${videoVisitId}:packet`,
     roundLogId: `${envelope.sessionId}:${roundId}:${videoVisitId}:round-log:browse-ledger`,
     actionLogRefs,
@@ -124,8 +124,8 @@ export const buildForensicsBrowseLedgerInput = (
       promptContractVersion: context.productPresenceSummary.promptContractVersion,
       promptCatalogVersion: context.productPresenceSummary.promptCatalogVersion,
       decisionRef: context.productPresenceSummary.aiProofRef,
-      actionRef: context.commentsClickActionRef,
-      postActionVerificationRef: context.commentsOpenVerificationRef,
+      actionRef: context.clickResultRef,
+      postActionVerificationRef: context.postActionVerificationResultRef,
       dataQualityFlags: context.dataQualityFlags,
     }),
     payload: buildBrowseLedgerPayload(context),

@@ -24,8 +24,18 @@ function createCapabilityIssue(message: string, path: string): MapPackageValidat
   };
 }
 
-function hasGeometryProofInput(step: MapPackage["operationalMap"]["steps"][number]): boolean {
+function hasRequiredCoordinateInput(step: MapPackage["operationalMap"]["steps"][number]): boolean {
+  if (step.targetAbilityGroupId === "mouse-click") {
+    return step.inputRefs.includes("geometryGuardResultRef");
+  }
+
   return step.inputRefs.includes("geometryProofRef");
+}
+
+function buildCoordinateInputRequirementMessage(step: MapPackage["operationalMap"]["steps"][number]): string {
+  return step.targetAbilityGroupId === "mouse-click"
+    ? `Target child capability ${step.targetAbilityGroupId}/${step.childCapabilityId} requires geometryGuardResultRef.`
+    : `Target child capability ${step.targetAbilityGroupId}/${step.childCapabilityId} requires geometryProofRef.`;
 }
 
 function createStepPath(step: MapPackage["operationalMap"]["steps"][number]): string {
@@ -75,9 +85,9 @@ function validateCapabilityPolicies(
       createStepPath(step),
     ));
   }
-  if (capabilityEntry.requiresGeometryProof && !hasGeometryProofInput(step)) {
+  if (capabilityEntry.requiresGeometryProof && !hasRequiredCoordinateInput(step)) {
     issues.push(createCapabilityIssue(
-      `Target child capability ${step.targetAbilityGroupId}/${step.childCapabilityId} requires geometryProofRef.`,
+      buildCoordinateInputRequirementMessage(step),
       createStepPath(step),
     ));
   }

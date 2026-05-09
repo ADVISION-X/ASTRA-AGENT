@@ -37,19 +37,19 @@ const hasAnalyzeCommentsStep = (analyzeComments: MapStep | undefined): boolean =
   analyzeComments?.stepKind === "ai"
   && analyzeComments.promptContractId === "vision.commentsEntryTargetCandidate.v1"
   && hasInputRefs(analyzeComments, ["promptInputRef", "screenshotEvidenceRef"])
-  && hasOutputRefs(analyzeComments, ["aiTargetCandidateRef", "sourceAiResultRef"]);
+  && hasOutputRefs(analyzeComments, ["aiResultRef"]);
 
 const hasLocateAndNormalizeSteps = (
   locateComments: MapStep | undefined,
   normalizeComments: MapStep | undefined,
 ): boolean => locateComments?.targetAbilityGroupId === "visual-target"
   && locateComments.childCapabilityId === "observe-comments-button"
-  && hasInputRefs(locateComments, ["aiTargetCandidateRef", "pageStateRef", "screenshotEvidenceRef"])
-  && hasOutputRefs(locateComments, ["visualTargetRef", "visualTargetResultRef"])
+  && hasInputRefs(locateComments, ["aiResultRef", "pageStateRef", "screenshotEvidenceRef"])
+  && hasOutputRefs(locateComments, ["visualTargetResultRef"])
   && normalizeComments?.targetAbilityGroupId === "geometry-guard"
   && normalizeComments.childCapabilityId === "normalize-coordinate-geometry"
-  && hasInputRefs(normalizeComments, ["visualTargetRef", "visualTargetResultRef"])
-  && hasOutputRefs(normalizeComments, ["geometryProofRef", "geometryGuardResultRef"]);
+  && hasInputRefs(normalizeComments, ["visualTargetResultRef"])
+  && hasOutputRefs(normalizeComments, ["geometryGuardResultRef"]);
 
 export const hasCommentsTargetCandidateSteps = (input: CommentsTargetCandidateInput): boolean =>
   hasAnalyzeCommentsStep(input.analyzeComments)
@@ -58,14 +58,14 @@ export const hasCommentsTargetCandidateSteps = (input: CommentsTargetCandidateIn
 export const hasCommentsClickStep = (clickComments: MapStep | undefined): boolean =>
   clickComments?.targetAbilityGroupId === "mouse-click"
   && clickComments.childCapabilityId === "click-browser-coordinate"
-  && hasInputRefs(clickComments, ["visualTargetRef", "visualTargetResultRef", "geometryProofRef", "geometryGuardResultRef"])
-  && hasOutputRefs(clickComments, ["commentsClickActionRef", "clickResultRef"]);
+  && hasInputRefs(clickComments, ["geometryGuardResultRef"])
+  && hasOutputRefs(clickComments, ["clickResultRef"]);
 
 export const hasCommentsOpenVerificationStep = (verifyCommentsOpen: MapStep | undefined): boolean =>
   verifyCommentsOpen?.targetAbilityGroupId === "post-action-verification"
   && verifyCommentsOpen.childCapabilityId === "observe-comments-panel-open-attempt"
   && hasInputRefs(verifyCommentsOpen, ["clickResultRef"])
-  && hasOutputRefs(verifyCommentsOpen, ["commentsOpenVerificationRef", "postActionVerificationResultRef"]);
+  && hasOutputRefs(verifyCommentsOpen, ["postActionVerificationResultRef"]);
 
 export const hasCaptureCommentsPanelStep = (captureCommentsPanel: MapStep | undefined): boolean =>
   captureCommentsPanel?.targetAbilityGroupId === "screenshot"

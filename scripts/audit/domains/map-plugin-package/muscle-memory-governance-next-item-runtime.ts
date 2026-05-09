@@ -102,7 +102,7 @@ const collectTextInputDispatchFindings = (texts: NextItemRuntimeTexts): Finding[
 const collectCommentsEntryChainFindings = (texts: NextItemRuntimeTexts): Finding[] =>
   !texts.routePlanRuntimeText.includes('stepId: "observe-comments-entry-page-state"')
   || !texts.routePlanRuntimeText.includes('stepId: "analyze-comments-entry-target-candidate"')
-  || !texts.routePlanRuntimeText.includes('stepId: "locate-comments-entry-target"')
+  || !texts.routePlanRuntimeText.includes('stepId: "observe-comments-button"')
   || !texts.routePlanRuntimeText.includes('promptContractId: "vision.commentsEntryTargetCandidate.v1"')
     ? [toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Product-yes must be governed by the comments-entry AI candidate chain and bind vision.commentsEntryTargetCandidate.v1.")]
     : [];

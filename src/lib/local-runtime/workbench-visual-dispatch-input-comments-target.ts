@@ -17,6 +17,10 @@ import {
   normalizeCandidateTextList,
   normalizeCandidateTextValue,
 } from "./workbench-visual-dispatch-input-candidate-normalization.js";
+import {
+  buildCommentsEntryCommandPayload,
+  buildCommentsEntrySourceProof,
+} from "./workbench-visual-dispatch-input-comments-target-payload.js";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -49,10 +53,10 @@ const mapCoordinateSpace = (value: string | null) => {
 const mapCoordinateAuthority = (coordinateSpace: string) =>
   coordinateSpace === "source_image" ? "optimized_equivalent" : "evidence_original";
 
-const resolveAiTargetCandidateRef = (payload: DispatchPayloadRecord) =>
-  payloadValueToString(payload.aiTargetCandidateRef)
+const resolveAiCandidateResultRef = (payload: DispatchPayloadRecord) =>
+  payloadValueToString(payload.aiResultRef)
   ?? payloadValueToString(payload.sourceAiResultRef)
-  ?? payloadValueToString(payload.aiResultRef)
+  ?? payloadValueToString(payload.aiTargetCandidateRef)
   ?? payloadValueToString(payload.targetCandidateRef);
 
 const buildCommentsCandidates = (input: {
@@ -83,19 +87,47 @@ const buildCommentsCandidates = (input: {
     dataQualityFlags: [],
   }));
 
-export const buildCommentsEntryVisualTargetCommand = (
-  runtime: WorkbenchRuntime,
-  envelope: AbilityCommandEnvelope,
-  inputPayload: NerveBusPayloadDocument,
-) => {
-  const payload = toDispatchPayload(inputPayload);
-  const aiTargetCandidateRef = resolveAiTargetCandidateRef(payload);
-  const aiSummary = resolveAiVisualTargetCandidateOutputSummary(aiTargetCandidateRef);
+type CommentsAiContext = {
+  aiSummary: NonNullable<ReturnType<typeof resolveAiVisualTargetCandidateOutputSummary>>;
+};
+
+type CommentsScreenshotContext = {
+  artifactHash: string;
+  imageHeight: number;
+  imageWidth: number;
+  screenshotHandoff: NonNullable<ReturnType<typeof resolveScreenshotSourceHandoff>>;
+  screenshotProofRef: string;
+  sourceScreenshotEvidenceId: string;
+};
+
+type CommentsMissionRunContext = {
+  aiMissionId: string | null;
+  aiRunId: string | null;
+  screenshotMissionId: string | null;
+  screenshotRunId: string | null;
+};
+
+type CommentsSourceProofContext = {
+  governedAiResultRef: string;
+  sourceProof: ReturnType<typeof buildCommentsEntrySourceProof>;
+  sourceProofRef: string;
+};
+
+const resolveCommentsAiContext = (payload: DispatchPayloadRecord): CommentsAiContext => {
+  const aiCandidateResultRef = resolveAiCandidateResultRef(payload);
+  const aiSummary = resolveAiVisualTargetCandidateOutputSummary(aiCandidateResultRef);
 
   if (!aiSummary) {
     throw new Error("Visual Target comments dispatch requires governed AI target candidate proof; heuristic candidate generation is forbidden.");
   }
 
+  return { aiSummary };
+};
+
+const resolveCommentsScreenshotContext = (
+  payload: DispatchPayloadRecord,
+  envelope: AbilityCommandEnvelope,
+): CommentsScreenshotContext => {
   const screenshotHandoff = resolveScreenshotSourceHandoff([
     payloadValueToString(payload.screenshotEvidenceRef),
     payloadValueToString(payload.sourceEvidenceRef),
@@ -116,18 +148,22 @@ export const buildCommentsEntryVisualTargetCommand = (
     throw new Error("Visual Target comments dispatch screenshot proof is incomplete; image hash, dimensions, and proofRef are mandatory.");
   }
 
-  const pageStateSummary = resolvePageStateProofSummary(payloadValueToString(payload.pageStateRef));
-  if (!pageStateSummary) {
-    throw new Error("Visual Target comments dispatch requires a governed page-state proof summary.");
-  }
+  return { artifactHash, imageHeight, imageWidth, screenshotHandoff, screenshotProofRef, sourceScreenshotEvidenceId };
+};
 
-  const { screenshotMissionId, screenshotRunId, aiMissionId, aiRunId } = requireVisualDispatchMissionRunBinding({
+const resolveCommentsMissionRunContext = (
+  envelope: AbilityCommandEnvelope,
+  screenshot: CommentsScreenshotContext,
+  aiSummary: CommentsAiContext["aiSummary"],
+  pageStateSummary: NonNullable<ReturnType<typeof resolvePageStateProofSummary>>,
+): CommentsMissionRunContext => {
+  return requireVisualDispatchMissionRunBinding({
     dispatchLabel: "comments dispatch",
     requestMissionId: envelope.missionId,
     requestRunId: envelope.runId,
     screenshot: {
-      missionId: readString(screenshotHandoff.sourceProof, "missionId"),
-      runId: readString(screenshotHandoff.sourceProof, "runId"),
+      missionId: readString(screenshot.screenshotHandoff.sourceProof, "missionId"),
+      runId: readString(screenshot.screenshotHandoff.sourceProof, "runId"),
     },
     ai: {
       missionId: aiSummary.missionId,
@@ -138,101 +174,106 @@ export const buildCommentsEntryVisualTargetCommand = (
       runId: pageStateSummary.runId,
     },
   });
+};
 
-  const coordinateSpace = mapCoordinateSpace(screenshotHandoff.coordinateSpace);
-  const governedAiResultRef = aiSummary.aiResultRef;
-  const sourceProofRef = buildCompactRef("visual-target-source-proof", [governedAiResultRef, envelope.inputRef, "comments-entry"]);
-  const aiInputArtifactRef = aiSummary.aiInputArtifactRef
-    ?? payloadValueToString(payload.promptInputRef)
-    ?? `${governedAiResultRef}:prompt-input`;
+const buildCommentsSourceProofPayload = (input: {
+  aiSummary: CommentsAiContext["aiSummary"];
+  coordinateSpace: string;
+  envelope: AbilityCommandEnvelope;
+  governedAiResultRef: string;
+  missionRun: CommentsMissionRunContext;
+  pageStateSummary: NonNullable<ReturnType<typeof resolvePageStateProofSummary>>;
+  screenshot: CommentsScreenshotContext;
+  sourceProofRef: string;
+}) => {
+  return buildCommentsEntrySourceProof({
+    aiSummary: input.aiSummary,
+    artifactHash: input.screenshot.artifactHash,
+    coordinateSpace: input.coordinateSpace,
+    coordinateAuthority: mapCoordinateAuthority(input.coordinateSpace),
+    governedAiResultRef: input.governedAiResultRef,
+    imageHeight: input.screenshot.imageHeight,
+    imageWidth: input.screenshot.imageWidth,
+    pageStateSummary: input.pageStateSummary,
+    screenshotHandoff: input.screenshot.screenshotHandoff,
+    screenshotMissionId: input.missionRun.screenshotMissionId,
+    screenshotProofRef: input.screenshot.screenshotProofRef,
+    screenshotRunId: input.missionRun.screenshotRunId,
+    sourceImageHash: readString(input.screenshot.screenshotHandoff.sourceProof, "sourceHash") ?? input.screenshot.artifactHash,
+    sourceProofRef: input.sourceProofRef,
+    sourceScreenshotEvidenceId: input.screenshot.sourceScreenshotEvidenceId,
+  });
+};
 
-  return JSON.parse(JSON.stringify({
-    abilityGroupId: "visual-target",
-    childCapabilityId: "observe-comments-button",
-    missionId: envelope.missionId,
-    runId: envelope.runId,
-    sessionId: envelope.sessionId,
-    roundId: envelope.roundId,
-    videoVisitId: envelope.videoVisitId,
-    stepId: envelope.stepId,
-    mapPackageId: envelope.mapPackageId,
-    mapPackageVersion: envelope.mapPackageVersion,
-    selectedMapId: envelope.selectedMapId,
-    selectedMapVersion: envelope.selectedMapVersion,
-    activationSnapshotRef: envelope.activationSnapshotRef,
-    capabilityCallId: envelope.capabilityCallId,
-    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
-    requestedBy: "orchestration",
-    sourceAbilityGroupId: "orchestration",
-    sourceChildCapabilityId: "comments-entry-target-candidate-analysis",
-    inputRef: envelope.inputRef,
-    idempotencyKey: envelope.idempotencyKey,
-    targetType: "comments_button",
-    targetNature: "action",
-    sourceProof: {
-      sourceProofRef,
-      screenshot: {
-        screenshotEvidenceId: sourceScreenshotEvidenceId,
-        artifactRef: screenshotHandoff.sourceStorageRef,
-        screenshotProofRef,
-        artifactHash,
-        imageHash: readString(screenshotHandoff.sourceProof, "sourceHash") ?? artifactHash,
-        imageWidth,
-        imageHeight,
-        coordinateSpace,
-        coordinateAuthority: mapCoordinateAuthority(coordinateSpace),
-        sourceScreenshotEvidenceId,
-        scaleMapping: null,
-        capturedAt: aiSummary.capturedAt,
-        missionId: screenshotMissionId,
-        runId: screenshotRunId,
-        sessionId: envelope.sessionId,
-        roundId: envelope.roundId,
-        videoVisitId: envelope.videoVisitId,
-      },
-      ai: {
-        aiResultRef: governedAiResultRef,
-        aiProofRef: aiSummary.aiProofRef,
-        promptContractId: aiSummary.promptContractId,
-        outputSchemaRef: aiSummary.outputSchemaRef,
-        aiInputArtifactRef,
-        aiInputHash: aiSummary.aiInputHash,
-        outputPayloadHash: aiSummary.outputPayloadHash,
-        sourceImageHash: readString(screenshotHandoff.sourceProof, "sourceHash") ?? artifactHash,
-        sourceScreenshotEvidenceId,
-        sourceScreenshotProofRef: screenshotProofRef,
-        capturedAt: aiSummary.capturedAt,
-        missionId: aiMissionId,
-        runId: aiRunId,
-        sessionId: aiSummary.sessionId,
-        roundId: aiSummary.roundId,
-        videoVisitId: aiSummary.videoVisitId,
-        confidence: aiSummary.confidence,
-        modelRole: aiSummary.modelRole,
-      },
-      pageState: {
-        pageStateProofRef: pageStateSummary.pageStateProofRef,
-        pageStateChildCapabilityId: pageStateSummary.pageStateChildCapabilityId,
-        pageStateFingerprint: pageStateSummary.pageStateFingerprint,
-        pageStateHash: pageStateSummary.pageStateHash,
-        pageStateStatus: pageStateSummary.pageStateStatus,
-        currentUrl: pageStateSummary.currentUrl,
-        currentTitle: pageStateSummary.currentTitle,
-        observedAt: pageStateSummary.observedAt,
-        missionId: pageStateSummary.missionId,
-        runId: pageStateSummary.runId,
-        sessionId: pageStateSummary.sessionId,
-        roundId: pageStateSummary.roundId,
-        videoVisitId: pageStateSummary.videoVisitId,
-      },
-      operatorApproval: null,
-    },
+const buildCommentsEntryCommandPayloadDocument = (input: {
+  aiSummary: CommentsAiContext["aiSummary"];
+  envelope: AbilityCommandEnvelope;
+  governedAiResultRef: string;
+  screenshot: CommentsScreenshotContext;
+  sourceProof: ReturnType<typeof buildCommentsEntrySourceProof>;
+  sourceProofRef: string;
+}) => {
+  return buildCommentsEntryCommandPayload({
     candidates: buildCommentsCandidates({
-      governedAiResultRef,
-      capturedAt: aiSummary.capturedAt,
-      sourceFrameRef: sourceScreenshotEvidenceId,
-      sourceProofRef,
-      targetCandidates: aiSummary.targetCandidates,
+      governedAiResultRef: input.governedAiResultRef,
+      capturedAt: input.aiSummary.capturedAt,
+      sourceFrameRef: input.screenshot.sourceScreenshotEvidenceId,
+      sourceProofRef: input.sourceProofRef,
+      targetCandidates: input.aiSummary.targetCandidates,
     }),
-  }));
+    envelope: input.envelope,
+    sourceProof: input.sourceProof,
+  });
+};
+
+const resolveCommentsPageStateSummary = (payload: DispatchPayloadRecord) => {
+  const pageStateSummary = resolvePageStateProofSummary(payloadValueToString(payload.pageStateRef));
+  if (!pageStateSummary) {
+    throw new Error("Visual Target comments dispatch requires a governed page-state proof summary.");
+  }
+  return pageStateSummary;
+};
+
+const resolveCommentsSourceProofContext = (input: {
+  aiSummary: CommentsAiContext["aiSummary"];
+  envelope: AbilityCommandEnvelope;
+  pageStateSummary: NonNullable<ReturnType<typeof resolvePageStateProofSummary>>;
+  screenshot: CommentsScreenshotContext;
+}) : CommentsSourceProofContext => {
+  const missionRun = resolveCommentsMissionRunContext(input.envelope, input.screenshot, input.aiSummary, input.pageStateSummary);
+  const coordinateSpace = mapCoordinateSpace(input.screenshot.screenshotHandoff.coordinateSpace);
+  const governedAiResultRef = input.aiSummary.aiResultRef;
+  const sourceProofRef = buildCompactRef("visual-target-source-proof", [governedAiResultRef, input.envelope.inputRef, "comments-entry"]);
+  const sourceProof = buildCommentsSourceProofPayload({
+    aiSummary: input.aiSummary,
+    coordinateSpace,
+    envelope: input.envelope,
+    governedAiResultRef,
+    missionRun,
+    pageStateSummary: input.pageStateSummary,
+    screenshot: input.screenshot,
+    sourceProofRef,
+  });
+  return { governedAiResultRef, sourceProof, sourceProofRef };
+};
+
+export const buildCommentsEntryVisualTargetCommand = (
+  runtime: WorkbenchRuntime,
+  envelope: AbilityCommandEnvelope,
+  inputPayload: NerveBusPayloadDocument,
+) => {
+  const payload = toDispatchPayload(inputPayload);
+  const { aiSummary } = resolveCommentsAiContext(payload);
+  const screenshot = resolveCommentsScreenshotContext(payload, envelope);
+  const pageStateSummary = resolveCommentsPageStateSummary(payload);
+  const sourceProofContext = resolveCommentsSourceProofContext({ aiSummary, envelope, pageStateSummary, screenshot });
+
+  return JSON.parse(JSON.stringify(buildCommentsEntryCommandPayloadDocument({
+    aiSummary,
+    envelope,
+    governedAiResultRef: sourceProofContext.governedAiResultRef,
+    screenshot,
+    sourceProof: sourceProofContext.sourceProof,
+    sourceProofRef: sourceProofContext.sourceProofRef,
+  })));
 };

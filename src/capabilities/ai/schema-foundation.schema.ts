@@ -16,11 +16,6 @@ import {
   VisionPagePreparationRequestInputSchema,
 } from "./shared/ai-page-preparation-schemas.js";
 import {
-  VisionProductPresenceMissingFrameSchema,
-  VisionProductPresencePayloadSchema,
-  VisionProductPresenceRequestInputSchema,
-} from "./shared/ai-evidence-vision-schemas.js";
-import {
   DEFAULT_AI_COST_POLICY,
   DEFAULT_AI_DATA_POLICY,
   DEFAULT_AI_PROVIDER_POLICY,

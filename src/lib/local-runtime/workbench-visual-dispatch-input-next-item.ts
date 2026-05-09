@@ -15,13 +15,19 @@ import {
   toDispatchPayload,
   type DispatchPayloadRecord,
 } from "./workbench-action-dispatch-shared.js";
+import {
+  buildDeterministicNextItemGeometryPayload,
+  buildStructuredNextItemGeometryPayload,
+} from "./workbench-visual-dispatch-input-next-item-payload.js";
 
 const NEXT_VIDEO_DETERMINISTIC_FALLBACK_POLICY_ENV = "GRASSEYE_ALLOW_NEXT_VIDEO_DETERMINISTIC_FALLBACK";
 
 const isAdvanceNextItemDeterministicFallbackEnabled = (): boolean =>
   process.env[NEXT_VIDEO_DETERMINISTIC_FALLBACK_POLICY_ENV] === "1";
 
-const buildDeterministicNextVideoArrowFallbackCommand = async (
+const serializePayload = (value: unknown) => JSON.parse(JSON.stringify(value));
+
+const resolveDeterministicFallbackContext = async (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
@@ -37,56 +43,26 @@ const buildDeterministicNextVideoArrowFallbackCommand = async (
     ["screenshotEvidenceRef", "sourceEvidenceRef"],
     `${envelope.inputRef}:next-video-arrow-screenshot`,
   );
-  const sourceTargetRef = `${envelope.inputRef}:deterministic-fallback-geometry-candidate`;
-
-  return JSON.parse(JSON.stringify({
-    abilityGroupId: "geometry-guard",
-    childCapabilityId: "validate-browser-viewport-bounds",
-    missionId: envelope.missionId,
-    runId: envelope.runId,
-    sessionId: envelope.sessionId,
-    roundId: envelope.roundId,
-    videoVisitId: envelope.videoVisitId,
-    stepId: envelope.stepId,
-    mapPackageId: envelope.mapPackageId,
-    mapPackageVersion: envelope.mapPackageVersion,
-    selectedMapId: envelope.selectedMapId,
-    selectedMapVersion: envelope.selectedMapVersion,
-    activationSnapshotRef: envelope.activationSnapshotRef,
-    capabilityCallId: envelope.capabilityCallId,
-    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
-    requestedBy: "orchestration",
-    purpose: "click_next_video",
-    sourceAbilityGroupId: "orchestration",
-    sourceChildCapabilityId: envelope.stepId,
-    inputRef: envelope.inputRef,
-    sourceRef: sourceTargetRef,
+  return {
+    executableGeometry,
+    geometry,
     sourceScreenshotEvidenceRef,
-    sourceTargetRef,
-    sourceAiResultRef: null,
-    sourcePageStateProofRef: null,
-    sourceVisualTargetResultRef: null,
-    sourceGeometryHandoffRef: `${envelope.inputRef}:deterministic-fallback-handoff`,
-    sourceCoordinateSpace: "browserViewport",
-    requestedExecutionSpace: "browserViewport",
-    bbox: executableGeometry.bbox,
-    clickPoint: executableGeometry.clickPoint,
-    viewportSize: {
-      width: geometry.viewportWidth,
-      height: geometry.viewportHeight,
-    },
-    deviceScaleFactor: geometry.scaleFactor,
-    riskLevel: "high",
-    requiresPostClickAiVerification: true,
-    fallbackReason: "missing_governed_next_item_target_candidate",
-    targetSemanticOwner: "missing",
-    actionableMessage: "Deterministic fallback geometry may click a previous or incorrect affordance; post-click AI verification is mandatory before treating the item as advanced.",
-    dataQualityFlags: [
-      "deterministic_next_video_arrow_geometry_fallback",
-      "mechanical_click_success_is_not_next_item_semantic_success",
-      "requires_post_click_ai_verification",
-    ],
-    idempotencyKey: envelope.idempotencyKey,
+    sourceTargetRef: `${envelope.inputRef}:deterministic-fallback-geometry-candidate`,
+  };
+};
+
+const buildDeterministicNextVideoArrowFallbackCommand = async (
+  runtime: WorkbenchRuntime,
+  envelope: AbilityCommandEnvelope,
+  inputPayload: NerveBusPayloadDocument,
+) => {
+  const context = await resolveDeterministicFallbackContext(runtime, envelope, inputPayload);
+  return serializePayload(buildDeterministicNextItemGeometryPayload({
+    envelope,
+    geometry: context.geometry,
+    executableGeometry: context.executableGeometry,
+    sourceScreenshotEvidenceRef: context.sourceScreenshotEvidenceRef,
+    sourceTargetRef: context.sourceTargetRef,
   }));
 };
 
@@ -103,7 +79,7 @@ const readProofNumber = (proof: Record<string, unknown> | null | undefined, key:
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 };
 
-const buildStructuredNextItemGeometryCommand = async (
+const resolveStructuredGeometryContext = async (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
@@ -112,7 +88,6 @@ const buildStructuredNextItemGeometryCommand = async (
   const payload = toDispatchPayload(inputPayload);
   const geometry = await runtime.browserController.getGeometrySnapshot();
   const handoff = resolveVisualTargetGeometryHandoff(targetCandidateRef);
-  const normalizedCoordinateSpace = handoff?.coordinateSpace ?? null;
   const sourceVisualTargetResultRef = payloadValueToString(payload.sourceVisualTargetResultRef)
     ?? payloadValueToString(payload.visualTargetResultRef)
     ?? payloadValueToString(payload.visualTargetRef)
@@ -122,88 +97,80 @@ const buildStructuredNextItemGeometryCommand = async (
     throw new Error("normalize-next-video-arrow received a target candidate ref but lacks structured Visual Target geometry proof; deterministic geometry is fallback-only and cannot replace candidate validation.");
   }
 
-  const sourceTargetRef = handoff.sourceTargetRef;
   const sourceScreenshotEvidenceRef = handoff.sourceScreenshotEvidenceRef
     ?? resolvePayloadRef(payload, ["screenshotEvidenceRef", "sourceEvidenceRef"], `${envelope.inputRef}:next-video-arrow-screenshot`);
-  const rawGeometry = {
-    bbox: handoff.bbox,
-    clickPoint: handoff.clickPoint,
-  };
   const screenshotHandoff = resolveScreenshotSourceHandoff([
     sourceScreenshotEvidenceRef,
     payloadValueToString(payload.screenshotEvidenceRef),
     payloadValueToString(payload.sourceEvidenceRef),
   ]);
-  const sourceWidth = readProofNumber(screenshotHandoff?.sourceProof ?? null, "sourceWidth");
-  const sourceHeight = readProofNumber(screenshotHandoff?.sourceProof ?? null, "sourceHeight");
+  return { geometry, handoff, payload, screenshotHandoff, sourceScreenshotEvidenceRef, sourceVisualTargetResultRef };
+};
+
+const buildProjectedNextItemGeometry = (input: {
+  geometry: Awaited<ReturnType<WorkbenchRuntime["browserController"]["getGeometrySnapshot"]>>;
+  handoff: NonNullable<ReturnType<typeof resolveVisualTargetGeometryHandoff>>;
+  screenshotHandoff: ReturnType<typeof resolveScreenshotSourceHandoff>;
+}) => {
+  const rawGeometry = { bbox: input.handoff.bbox, clickPoint: input.handoff.clickPoint };
+  const sourceWidth = readProofNumber(input.screenshotHandoff?.sourceProof ?? null, "sourceWidth");
+  const sourceHeight = readProofNumber(input.screenshotHandoff?.sourceProof ?? null, "sourceHeight");
   const shouldProjectGeometry = sourceWidth !== null
     && sourceHeight !== null
     && shouldProjectSourceGeometryToViewport({
       ...rawGeometry,
-      viewportWidth: geometry.viewportWidth,
-      viewportHeight: geometry.viewportHeight,
-      coordinateSpace: normalizedCoordinateSpace,
+      viewportWidth: input.geometry.viewportWidth,
+      viewportHeight: input.geometry.viewportHeight,
+      coordinateSpace: input.handoff.coordinateSpace,
     });
   const projectedGeometry = shouldProjectGeometry
     ? projectSourceGeometryToViewport({
       ...rawGeometry,
       sourceWidth,
       sourceHeight,
-      viewportWidth: geometry.viewportWidth,
-      viewportHeight: geometry.viewportHeight,
+      viewportWidth: input.geometry.viewportWidth,
+      viewportHeight: input.geometry.viewportHeight,
     })
     : rawGeometry;
-  const executableGeometry = clampViewportGeometry({
-    bbox: projectedGeometry.bbox,
-    clickPoint: projectedGeometry.clickPoint,
-    viewportWidth: geometry.viewportWidth,
-    viewportHeight: geometry.viewportHeight,
-  });
-  const dataQualityFlags = [
-    "governed_next_item_target_candidate_geometry",
-    ...(shouldProjectGeometry ? ["governed_next_item_geometry_projected_from_source_screenshot"] : []),
-  ];
+  return {
+    dataQualityFlags: [
+      "governed_next_item_target_candidate_geometry",
+      ...(shouldProjectGeometry ? ["governed_next_item_geometry_projected_from_source_screenshot"] : []),
+    ],
+    executableGeometry: clampViewportGeometry({
+      bbox: projectedGeometry.bbox,
+      clickPoint: projectedGeometry.clickPoint,
+      viewportWidth: input.geometry.viewportWidth,
+      viewportHeight: input.geometry.viewportHeight,
+    }),
+  };
+};
 
-  return JSON.parse(JSON.stringify({
-    abilityGroupId: "geometry-guard",
-    childCapabilityId: "validate-browser-viewport-bounds",
-    missionId: envelope.missionId,
-    runId: envelope.runId,
-    sessionId: envelope.sessionId,
-    roundId: envelope.roundId,
-    videoVisitId: envelope.videoVisitId,
-    stepId: envelope.stepId,
-    mapPackageId: envelope.mapPackageId,
-    mapPackageVersion: envelope.mapPackageVersion,
-    selectedMapId: envelope.selectedMapId,
-    selectedMapVersion: envelope.selectedMapVersion,
-    activationSnapshotRef: envelope.activationSnapshotRef,
-    capabilityCallId: envelope.capabilityCallId,
-    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
-    requestedBy: "orchestration",
-    purpose: "click_next_video",
-    sourceAbilityGroupId: "visual-target",
-    sourceChildCapabilityId: "observe-next-item-target-candidate",
-    inputRef: envelope.inputRef,
-    sourceRef: sourceTargetRef,
-    sourceScreenshotEvidenceRef,
-    sourceTargetRef,
-    sourceAiResultRef: payloadValueToString(payload.sourceAiResultRef) ?? handoff.sourceAiResultRef,
-    sourcePageStateProofRef: handoff.sourcePageStateProofRef,
-    sourceVisualTargetResultRef,
-    sourceGeometryHandoffRef: handoff.handoffRef,
-    sourceCoordinateSpace: handoff.coordinateSpace,
-    requestedExecutionSpace: "browserViewport",
-    bbox: executableGeometry.bbox,
-    clickPoint: executableGeometry.clickPoint,
-    viewportSize: {
-      width: geometry.viewportWidth,
-      height: geometry.viewportHeight,
-    },
-    deviceScaleFactor: geometry.scaleFactor,
-    targetSemanticOwner: "visual-target",
-    dataQualityFlags,
-    idempotencyKey: envelope.idempotencyKey,
+const buildStructuredNextItemGeometryCommand = async (
+  runtime: WorkbenchRuntime,
+  envelope: AbilityCommandEnvelope,
+  inputPayload: NerveBusPayloadDocument,
+  targetCandidateRef: string,
+) => {
+  const context = await resolveStructuredGeometryContext(runtime, envelope, inputPayload, targetCandidateRef);
+  const projectedGeometry = buildProjectedNextItemGeometry({
+    geometry: context.geometry,
+    handoff: context.handoff,
+    screenshotHandoff: context.screenshotHandoff,
+  });
+  return serializePayload(buildStructuredNextItemGeometryPayload({
+    envelope,
+    geometry: context.geometry,
+    executableGeometry: projectedGeometry.executableGeometry,
+    sourceRef: context.handoff.sourceTargetRef,
+    sourceScreenshotEvidenceRef: context.sourceScreenshotEvidenceRef,
+    sourceTargetRef: context.handoff.sourceTargetRef,
+    sourceAiResultRef: payloadValueToString(context.payload.sourceAiResultRef) ?? context.handoff.sourceAiResultRef,
+    sourcePageStateProofRef: context.handoff.sourcePageStateProofRef,
+    sourceVisualTargetResultRef: context.sourceVisualTargetResultRef,
+    sourceGeometryHandoffRef: context.handoff.handoffRef,
+    sourceCoordinateSpace: context.handoff.coordinateSpace,
+    dataQualityFlags: projectedGeometry.dataQualityFlags,
   }));
 };
 

@@ -70,6 +70,32 @@ Open / Click / Scroll
 - PAV 不替代 AI judgment。
 - PAV 也不替代 Forensics 持久化。
 
+## 2.1 Joint Result Contract
+
+PAV input consumes MouseClickResult.postActionVerificationHandoffRef.
+PAV output produces PostActionVerificationResult.
+PAV result is observation package only, not semantic truth.
+
+PostActionVerificationResult success 至少要公开：
+
+```txt
+postActionVerificationResultRef
+sourceActionResultRef
+sourceActionRuntimeProofRef
+sourceActionAbilityGroupId
+sourceActionChildCapabilityId
+expectedOutcome
+beforeEvidenceRefs
+afterEvidenceRefs
+observationRefs
+supportingSourceProofRefs
+observationFingerprint
+packageStatus
+runtimeProof
+```
+
+PAV 不得输出 verificationDecision、confidence、finalActionTruth 或 businessTruth。
+
 ---
 
 ## 3. 标准包结构

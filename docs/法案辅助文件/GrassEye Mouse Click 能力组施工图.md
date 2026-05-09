@@ -88,6 +88,33 @@ PAV 验证点击后是否达到预期。
 Forensics 保存最终动作日志和证据链。
 ```
 
+## 2.1 Joint Result Contract
+
+Mouse Click input consumes GeometryGuardResult.
+Mouse Click output produces MouseClickResult.
+
+MouseClickResult success 只代表 primitive click execution only，并且必须至少公开：
+
+```txt
+clickResultRef
+actionExecutionRef
+primitiveExecutionRef
+geometryGuardRef
+geometryGuardProofRef
+sourceCoordinateProofRef
+sourceTargetRef
+sourceVisualTargetResultRef
+normalizedClickPoint
+coordinateSpace
+button
+clickCount
+postActionVerificationRequired = true
+postActionVerificationHandoffRef
+runtimeProof
+```
+
+Mouse Click 不得输出 verificationDecision、页面最终真相或 comments panel opened 结论。
+
 ---
 
 ## 3. 标准包结构

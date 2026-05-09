@@ -1,6 +1,7 @@
 import type {
   AiRequestDispatchInput,
 } from "../../capabilities/nerve-bus/contract.js";
+import { resolveAiInputProofSummary } from "../../capabilities/ai/index.js";
 import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 
 import {

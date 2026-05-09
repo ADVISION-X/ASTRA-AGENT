@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T18:11:52.877Z",
+  "generatedAt": "2026-05-09T19:17:33.096Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -17,7 +17,7 @@
     "forensics-persistence-capability",
     "page-state-capability"
   ],
-  "totalActiveLaws": 130,
+  "totalActiveLaws": 135,
   "globalChain": {
     "observed": false,
     "passed": false,
@@ -660,6 +660,25 @@
       ]
     },
     {
+      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-RESULT-CONTRACT-V1",
+      "capabilityDomain": "geometry-guard-capability",
+      "abilityGroupId": "geometry-guard",
+      "ownerManifestPath": "scripts/audit/domains/geometry-guard-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ]
+    },
+    {
       "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3",
       "capabilityDomain": "geometry-guard-capability",
       "abilityGroupId": "geometry-guard",
@@ -817,6 +836,25 @@
       "abilityGroupId": "ai",
       "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
       "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-RESULT-CONTRACT-V1",
+      "capabilityDomain": "mouse-click-capability",
+      "abilityGroupId": "mouse-click",
+      "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
       "coverageStatus": "NOT_COVERED",
       "matrixMapped": true,
       "auditPlanMapped": true,
@@ -1140,6 +1178,25 @@
       "abilityGroupId": "mouse-scroll",
       "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
       "ownerInspectorEntry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-RESULT-CONTRACT-BOUNDARY-V1",
+      "capabilityDomain": "nerve-bus-capability",
+      "abilityGroupId": "nerve-bus",
+      "ownerManifestPath": "scripts/audit/domains/nerve-bus-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
       "coverageStatus": "NOT_COVERED",
       "matrixMapped": true,
       "auditPlanMapped": true,
@@ -1857,6 +1914,25 @@
       ]
     },
     {
+      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-RESULT-CONTRACT-V1",
+      "capabilityDomain": "post-action-verification-capability",
+      "abilityGroupId": "post-action-verification",
+      "ownerManifestPath": "scripts/audit/domains/post-action-verification-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ]
+    },
+    {
       "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2",
       "capabilityDomain": "post-action-verification-capability",
       "abilityGroupId": "post-action-verification",
@@ -2356,6 +2432,25 @@
       "abilityGroupId": "text-input",
       "ownerManifestPath": "scripts/audit/domains/text-input-capability/manifest.json",
       "ownerInspectorEntry": "scripts/audit/domains/text-input-capability/inspector.ts",
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-RESULT-CONTRACT-V1",
+      "capabilityDomain": "visual-target-capability",
+      "abilityGroupId": "visual-target",
+      "ownerManifestPath": "scripts/audit/domains/visual-target-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/visual-target-capability/inspector.ts",
       "coverageStatus": "NOT_COVERED",
       "matrixMapped": true,
       "auditPlanMapped": true,

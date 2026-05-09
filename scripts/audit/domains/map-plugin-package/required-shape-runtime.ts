@@ -41,6 +41,7 @@ const createRegistryBootstrapError = (message: string): Finding =>
 type ActiveRegistryRecord = NonNullable<ReturnType<ReturnType<typeof createMapPluginRegistry>["active"]["getActiveOperationalMapRecordByTaskTemplateId"]>>;
 type BuiltinMapPackage = ReturnType<typeof loadBuiltinMapPackages>[number];
 type DiagnosticStep = BuiltinMapPackage["operationalMap"]["steps"][number];
+type DiagnosticTargetAbilityGroupId = NonNullable<DiagnosticStep["targetAbilityGroupId"]>;
 
 type Phase05DiagnosticState = {
   hasDeterministicDiagnosticAi: boolean;
@@ -182,14 +183,23 @@ export const inspectMapAuthoringCapabilityCatalogGate = (): Finding[] => {
 };
 
 const createPhase05DiagnosticFinding = (lawId: string, message: string, detail?: string): Finding =>
-  createFinding({ lawId, file: PHASE_05_DIAGNOSTIC_MAP_PATH, line: 1, severity: "fatal", message, detail });
+  createFinding({
+    lawId,
+    file: PHASE_05_DIAGNOSTIC_MAP_PATH,
+    line: 1,
+    severity: "fatal",
+    message,
+    ...(detail ? { detail } : {}),
+  });
 
 const findPhase05DiagnosticPackage = (): BuiltinMapPackage | null =>
   loadBuiltinMapPackages().find((mapPackage) => mapPackage.manifest.packageId === PHASE_05_DIAGNOSTIC_PACKAGE_ID) ?? null;
 
 const collectMissingAbilitySurface = (steps: DiagnosticStep[]): string[] => {
   const abilitySurface = new Set(
-    steps.map((step) => step.targetAbilityGroupId).filter((value): value is string => Boolean(value)),
+    steps
+      .map((step) => step.targetAbilityGroupId)
+      .filter((value): value is DiagnosticTargetAbilityGroupId => typeof value === "string" && value.length > 0),
   );
   return PHASE_05_REQUIRED_ABILITY_SURFACE.filter((abilityGroupId) => !abilitySurface.has(abilityGroupId));
 };

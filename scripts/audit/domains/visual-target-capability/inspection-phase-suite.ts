@@ -4,6 +4,7 @@ import { runAntiEscapeAttack } from "./run-anti-escape-attack.js";
 import { runBoundaryAttack } from "./run-boundary-attack.js";
 import { runForbiddenShapeAttack } from "./run-forbidden-shape-attack.js";
 import { runGeneratedChainCheck } from "./run-generated-chain-check.js";
+import { runJointResultContractCheck } from "./run-joint-result-contract-check.js";
 import { runManifestCheck } from "./run-manifest-check.js";
 import { runPipelineTruthAttack } from "./run-pipeline-truth-attack.js";
 import { createVisualTargetAuditProject, runRequiredShapeAttack } from "./run-required-shape-attack.js";
@@ -16,7 +17,7 @@ import { runTruthOwnershipAttack } from "./run-truth-ownership-attack.js";
 export const runVisualTargetChecks = async (context: InspectorContext) => {
   const project = createVisualTargetAuditProject();
   const typeChecker = project.getTypeChecker();
-  const [required, forbidden, boundary, antiEscape, pipelineTruth, runnerFailPower, truthOwnership] = await Promise.all([
+  const [required, forbidden, boundary, antiEscape, pipelineTruth, runnerFailPower, truthOwnership, jointResultContract] = await Promise.all([
     runRequiredShapeAttack(project),
     runForbiddenShapeAttack(project),
     runBoundaryAttack(project, typeChecker),
@@ -24,10 +25,11 @@ export const runVisualTargetChecks = async (context: InspectorContext) => {
     runPipelineTruthAttack(project),
     runRunnerFailPowerCheck(project),
     runTruthOwnershipAttack(project),
+    runJointResultContractCheck(),
   ]);
   const generatedChain = await runGeneratedChainCheck(context);
   const manifest = await runManifestCheck();
-  return { required, forbidden, boundary, antiEscape, generatedChain, manifest, pipelineTruth, runnerFailPower, truthOwnership };
+  return { required, forbidden, boundary, antiEscape, generatedChain, manifest, pipelineTruth, runnerFailPower, truthOwnership, jointResultContract };
 };
 
 export const buildVisualTargetInspectorResult = (
@@ -45,6 +47,7 @@ export const buildVisualTargetInspectorResult = (
     ...checks.pipelineTruth.findings,
     ...checks.runnerFailPower.findings,
     ...checks.truthOwnership.findings,
+    ...checks.jointResultContract.findings,
   ];
   return {
     inspector: "GrassEye Visual Target Capability Owner Inspector",
@@ -62,9 +65,10 @@ export const buildVisualTargetInspectorResult = (
       checks.pipelineTruth.phase,
       checks.runnerFailPower.phase,
       checks.truthOwnership.phase,
+      checks.jointResultContract.phase,
     ],
     summary: findings.length === 0
-      ? "visual-target owner inspector passed required, forbidden, boundary, anti-escape, generated-chain, manifest, pipeline-truth, runner-fail-power, and truth-ownership phases"
+      ? "visual-target owner inspector passed required, forbidden, boundary, anti-escape, generated-chain, manifest, pipeline-truth, runner-fail-power, truth-ownership, and joint-result-contract phases"
       : "visual-target owner inspector found capability-boundary, chain-truth, or enforcement violations",
   };
 };

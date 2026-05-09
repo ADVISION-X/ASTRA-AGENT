@@ -1,11 +1,14 @@
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import {
-  buildMirroredEnvelopeBase,
   buildPayloadDocument,
   payloadDocumentToObject,
   payloadValueToString,
 } from "./workbench-payload.js";
-import { handleStartMission } from "./workbench-human-command-start-mission.js";
+import {
+  buildHumanCommandResultEnvelope,
+  handleStartMission,
+  type HumanCommandHandledResult,
+} from "./workbench-human-command-start-mission.js";
 import type { WorkbenchNerveBusHandledResult as NerveBusHandledResult } from "./workbench-nerve-bus-types.js";
 import type { HumanCommandEnvelope, HumanCommandResultEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 

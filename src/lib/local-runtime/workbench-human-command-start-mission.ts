@@ -14,7 +14,7 @@ import {
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import type { HumanCommandEnvelope, HumanCommandResultEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 
-type HumanCommandHandledResult = {
+export type HumanCommandHandledResult = {
   envelope: HumanCommandResultEnvelope;
   outputPayload: ReturnType<typeof buildPayloadDocument>;
 };
@@ -39,7 +39,7 @@ const recordHumanCommandDebug = (write: Promise<void>) => {
   void write.catch(logHumanCommandDebugFailure);
 };
 
-const buildStartMissionResultEnvelope = (input: {
+export const buildHumanCommandResultEnvelope = (input: {
   envelope: HumanCommandEnvelope;
   status: "success" | "failed" | "review_required";
   summary: string;
@@ -142,7 +142,7 @@ export const handleStartMission = async (
 ) => {
   const requestedPlatformId = payloadValueToString(payload.requestedPlatformId);
   if (!requestedPlatformId) {
-    return buildStartMissionResultEnvelope({ envelope, status: "failed", summary: "requestedPlatformId is required for start-mission.", failureReason: "requestedPlatformId is required for start-mission." });
+    return buildHumanCommandResultEnvelope({ envelope, status: "failed", summary: "requestedPlatformId is required for start-mission.", failureReason: "requestedPlatformId is required for start-mission." });
   }
 
   const parsedSelectedMapId = payloadValueToString(payload.selectedMapId);
@@ -171,7 +171,7 @@ export const handleStartMission = async (
   void missionStartPromise.catch(createBackgroundMissionFailureHandler(runtime, backgroundMissionInput));
   watchBackgroundMissionStart(runtime, backgroundMissionInput);
 
-  return buildStartMissionResultEnvelope({
+  return buildHumanCommandResultEnvelope({
     envelope,
     status: "success",
     summary: `Mission ${envelope.missionId} was accepted for governed execution.`,

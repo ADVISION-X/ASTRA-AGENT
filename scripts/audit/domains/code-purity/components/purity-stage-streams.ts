@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile, rm } from "node:fs/promises";
+import { appendFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { fileExists } from "../../../core/filesystem.js";
@@ -9,6 +9,11 @@ import type { CodePurityInventoryRecord } from "./purity-stage-types.js";
 
 export const resetCodePurityStreamArtifacts = async (): Promise<void> => {
   await rm(pathFromRepoRoot(CODE_PURITY_WORK_DIR), { recursive: true, force: true });
+  await mkdir(pathFromRepoRoot(CODE_PURITY_WORK_DIR), { recursive: true });
+  await Promise.all([
+    writeFile(pathFromRepoRoot(CODE_PURITY_FINDINGS_NDJSON), "", "utf8"),
+    writeFile(pathFromRepoRoot(CODE_PURITY_INVENTORY_NDJSON), "", "utf8"),
+  ]);
 };
 
 export const appendNdjson = async (relativePath: string, value: unknown): Promise<void> => {

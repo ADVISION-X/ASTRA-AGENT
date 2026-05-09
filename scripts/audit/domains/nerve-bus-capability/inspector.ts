@@ -3,6 +3,7 @@ import { PATHS } from "./config.js";
 import { runAntiEscapeAttack } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
 import { runForbiddenShapeAttack } from "./forbidden-shape.js";
+import { runJointResultContractBoundaryCheck } from "./run-joint-result-contract-boundary-check.js";
 import { runRequiredShapeAttack } from "./required-shape.js";
 
 export const nerveBusCapabilityInspector = createPendingDomainInspector({
@@ -18,6 +19,7 @@ export const nerveBusCapabilityInspector = createPendingDomainInspector({
     const forbidden = runForbiddenShapeAttack();
     const boundary = runBoundaryAttack();
     const antiEscape = runAntiEscapeAttack();
+    const jointResultBoundary = await runJointResultContractBoundaryCheck();
 
     return {
       findings: [
@@ -25,12 +27,14 @@ export const nerveBusCapabilityInspector = createPendingDomainInspector({
         ...forbidden.findings,
         ...boundary.findings,
         ...antiEscape.findings,
+        ...jointResultBoundary.findings,
       ],
       phases: [
         required.phase,
         forbidden.phase,
         boundary.phase,
         antiEscape.phase,
+        jointResultBoundary.phase,
       ],
     };
   },

@@ -4,134 +4,30 @@ import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./work
 import { resolveAbilityResultProofSummary, type AbilityResultProofSummary } from "../../capabilities/orchestration/index.js";
 import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
 import { resolveMouseClickPostVerificationHandoff } from "./workbench-muscle-joint-contract-resolvers.js";
-
-type SupportedPostActionChildCapabilityId =
-  | "observe-page-open-attempt"
-  | "observe-comments-panel-open-attempt"
-  | "observe-comments-panel-close-attempt"
-  | "observe-not-interested-attempt"
-  | "observe-target-state-transition"
-  | "verify-action-result";
+import {
+  buildExpectedOutcome,
+  buildPostActionChainFields,
+  buildVerificationPolicy,
+  normalizePageStateLogin,
+  resolveCanonicalPlatformUrl,
+  resolvePostActionInputPolicy,
+  type PostActionInputPolicy,
+} from "./workbench-post-action-dispatch-policy.js";
 
 type PostActionDispatchRuntime = Pick<WorkbenchRuntime, "browserController">;
-
-type PostActionInputPolicy = {
-  childCapabilityId: SupportedPostActionChildCapabilityId;
-  outcomeType: "page_opened" | "comments_panel_opened" | "comments_panel_closed" | "not_interested_applied" | "target_state_changed";
-  sourceAbilityGroupId: "open" | "mouse-click" | "mouse-scroll";
-  sourceChildCapabilityId: "open-tiktok" | "open-facebook" | "click-browser-coordinate" | "scroll-browser-viewport";
-  sourceActionType: string;
-  verificationMode: "observation_only" | "visual_evidence" | "before_after_comparison";
-  requireAfterEvidence: boolean;
-  requireBeforeAfterComparison: boolean;
-  requiresVisualEvidence: boolean;
-  executionRefField: "primitiveExecutionRef" | "scrollExecutionRef";
-};
-
-const DEFAULT_PAGE_URL_BY_MAP = {
-  "facebook.seeding-video.discovery.meta.v1": "https://www.facebook.com/reel/",
-  "tiktok.seeding-video.discovery.meta.v1": "https://www.tiktok.com/foryou",
-} as const;
-
-const normalizePageStateLogin = (loginState: string | null | undefined) => {
-  if (loginState === "logged_in") {
-    return "ready" as const;
-  }
-  if (loginState === "login_required" || loginState === "review_required") {
-    return loginState;
-  }
-  return "unknown" as const;
-};
-
-const resolveCanonicalPlatformUrl = (selectedMapId: string | null | undefined): string | null =>
-  DEFAULT_PAGE_URL_BY_MAP[selectedMapId as keyof typeof DEFAULT_PAGE_URL_BY_MAP] ?? null;
-
-const resolveCanonicalPlatformHost = (selectedMapId: string | null | undefined): string | null => {
-  const canonicalUrl = resolveCanonicalPlatformUrl(selectedMapId);
-  if (!canonicalUrl) {
-    return null;
-  }
-  return new URL(canonicalUrl).hostname;
-};
-
-const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, PostActionInputPolicy>> = {
-  "observe-page-open-attempt": {
-    childCapabilityId: "observe-page-open-attempt",
-    outcomeType: "page_opened",
-    sourceAbilityGroupId: "open",
-    sourceChildCapabilityId: "open-tiktok",
-    sourceActionType: "open_page",
-    verificationMode: "observation_only",
-    requireAfterEvidence: false,
-    requireBeforeAfterComparison: false,
-    requiresVisualEvidence: false,
-    executionRefField: "primitiveExecutionRef",
-  },
-  "observe-comments-panel-open-attempt": {
-    childCapabilityId: "observe-comments-panel-open-attempt",
-    outcomeType: "comments_panel_opened",
-    sourceAbilityGroupId: "mouse-click",
-    sourceChildCapabilityId: "click-browser-coordinate",
-    sourceActionType: "open_comments",
-    verificationMode: "visual_evidence",
-    requireAfterEvidence: true,
-    requireBeforeAfterComparison: false,
-    requiresVisualEvidence: true,
-    executionRefField: "primitiveExecutionRef",
-  },
-  "observe-comments-panel-close-attempt": {
-    childCapabilityId: "observe-comments-panel-close-attempt",
-    outcomeType: "comments_panel_closed",
-    sourceAbilityGroupId: "mouse-click",
-    sourceChildCapabilityId: "click-browser-coordinate",
-    sourceActionType: "close_comments",
-    verificationMode: "visual_evidence",
-    requireAfterEvidence: true,
-    requireBeforeAfterComparison: false,
-    requiresVisualEvidence: true,
-    executionRefField: "primitiveExecutionRef",
-  },
-  "observe-not-interested-attempt": {
-    childCapabilityId: "observe-not-interested-attempt",
-    outcomeType: "not_interested_applied",
-    sourceAbilityGroupId: "mouse-click",
-    sourceChildCapabilityId: "click-browser-coordinate",
-    sourceActionType: "not_interested",
-    verificationMode: "before_after_comparison",
-    requireAfterEvidence: true,
-    requireBeforeAfterComparison: true,
-    requiresVisualEvidence: false,
-    executionRefField: "primitiveExecutionRef",
-  },
-};
-
-const DEFAULT_POST_ACTION_POLICY: PostActionInputPolicy = {
-  childCapabilityId: "verify-action-result",
-  outcomeType: "target_state_changed",
-  sourceAbilityGroupId: "mouse-click",
-  sourceChildCapabilityId: "click-browser-coordinate",
-  sourceActionType: "click_target_state_change",
-  verificationMode: "before_after_comparison",
-  requireAfterEvidence: true,
-  requireBeforeAfterComparison: true,
-  requiresVisualEvidence: false,
-  executionRefField: "primitiveExecutionRef",
-};
-
-const resolvePostActionInputPolicy = (envelope: AbilityCommandEnvelope): PostActionInputPolicy => {
-  const policy = POST_ACTION_POLICY_BY_COMMAND[envelope.commandName] ?? DEFAULT_POST_ACTION_POLICY;
-  return policy;
-};
 
 const resolveSourceProofRef = (
   envelope: AbilityCommandEnvelope,
   payload: Record<string, string | number | boolean | null>,
 ) => {
-  return payloadValueToString(payload.clickResultRef)
-    ?? payloadValueToString(payload.abilityResultRef)
+  return payloadValueToString(payload.abilityResultRef)
     ?? payloadValueToString(payload.sourceEvidenceRef)
     ?? envelope.inputRef;
 };
+
+const resolveMouseClickResultRef = (
+  payload: Record<string, string | number | boolean | null>,
+) => payloadValueToString(payload.clickResultRef);
 
 const readSummaryString = (summary: AbilityResultProofSummary | null, key: string): string | null => {
   const value = summary?.[key];
@@ -219,44 +115,6 @@ const buildActionProof = (input: {
   selfReportedOnly: false,
 });
 
-const buildExpectedOutcome = (
-  envelope: AbilityCommandEnvelope,
-  inputPayload: NerveBusPayloadDocument,
-  policy: PostActionInputPolicy,
-) => ({
-  outcomeType: policy.outcomeType,
-  description: inputPayload.summary,
-  expectedUrlHost: policy.childCapabilityId === "observe-page-open-attempt" ? resolveCanonicalPlatformHost(envelope.selectedMapId) : null,
-  expectedUrlPrefix: null,
-  expectedState: null,
-  expectedTargetType: null,
-  requiresBeforeAfterComparison: policy.requireBeforeAfterComparison,
-  requiresVisualEvidence: policy.requiresVisualEvidence,
-});
-
-const buildVerificationPolicy = (policy: PostActionInputPolicy) => ({
-  verificationMode: policy.verificationMode,
-  requireAfterEvidence: policy.requireAfterEvidence,
-  requireBeforeAfterComparison: policy.requireBeforeAfterComparison,
-  allowSelfReportedSuccess: false,
-});
-
-const buildPostActionChainFields = (envelope: AbilityCommandEnvelope) => ({
-  missionId: envelope.missionId,
-  runId: envelope.runId,
-  sessionId: envelope.sessionId,
-  roundId: envelope.roundId,
-  videoVisitId: envelope.videoVisitId,
-  stepId: envelope.stepId,
-  mapPackageId: envelope.mapPackageId,
-  mapPackageVersion: envelope.mapPackageVersion,
-  selectedMapId: envelope.selectedMapId,
-  selectedMapVersion: envelope.selectedMapVersion,
-  activationSnapshotRef: envelope.activationSnapshotRef,
-  capabilityCallId: envelope.capabilityCallId,
-  nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
-});
-
 export const buildPostActionVerificationInput = async (
   runtime: PostActionDispatchRuntime,
   envelope: AbilityCommandEnvelope,
@@ -264,10 +122,23 @@ export const buildPostActionVerificationInput = async (
 ) => {
   const payload = payloadDocumentToObject(inputPayload);
   const policy = resolvePostActionInputPolicy(envelope);
-  const sourceProofRef = resolveSourceProofRef(envelope, payload);
-  const mouseClickHandoff = policy.sourceAbilityGroupId === "mouse-click"
-    ? resolveMouseClickPostVerificationHandoff(sourceProofRef)
+  const mouseClickResultRef = policy.sourceAbilityGroupId === "mouse-click"
+    ? resolveMouseClickResultRef(payload)
     : null;
+
+  if (policy.sourceAbilityGroupId === "mouse-click" && !mouseClickResultRef) {
+    throw new Error(`Post Action Verification dispatch for ${envelope.stepId} requires clickResultRef from MouseClickResult.`);
+  }
+
+  const sourceProofRef = mouseClickResultRef ?? resolveSourceProofRef(envelope, payload);
+  const mouseClickHandoff = mouseClickResultRef
+    ? resolveMouseClickPostVerificationHandoff(mouseClickResultRef)
+    : null;
+
+  if (mouseClickResultRef && !mouseClickHandoff) {
+    throw new Error(`Post Action Verification dispatch for ${envelope.stepId} requires canonical MouseClickResult handoff.`);
+  }
+
   const sourceSummary = mouseClickHandoff ? null : resolveAbilityResultProofSummary(sourceProofRef);
   const actionProofRef = mouseClickHandoff?.postActionVerificationHandoffRef ?? sourceProofRef;
   return JSON.parse(JSON.stringify({

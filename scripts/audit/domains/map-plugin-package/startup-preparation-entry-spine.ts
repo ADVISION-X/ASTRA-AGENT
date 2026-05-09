@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
+import { loadBuiltinMapPackages } from "../../../../src/map-plugins/builtins/index.js";
 import { MAP_PLUGIN_LAWS, MAP_PLUGIN_PATHS } from "./constants.js";
 import { TARGET_PACKAGE_IDS, inspectSeedingStartupPreparation } from "./startup-preparation-entry-spine-checks.js";
 
