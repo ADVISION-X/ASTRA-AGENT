@@ -51,6 +51,63 @@ const resolveCanonicalAiChain = (input: WorkbenchAiDebugEvent) => {
   };
 };
 
+const resolveAiDebugPersistenceRefs = (input: {
+  chain: ReturnType<typeof resolveCanonicalAiChain>;
+  debugEvent: WorkbenchAiDebugEvent;
+  artifactRefs: ReturnType<typeof buildAiDebugArtifactRefs>;
+  durableFullDebug: boolean;
+}) => ({
+  inputRefs: input.durableFullDebug ? [...new Set([...(input.chain.inputRef ? [input.chain.inputRef] : []), ...input.debugEvent.refs])] : [],
+  outputRefs: input.durableFullDebug && input.debugEvent.rawResponseRef ? [input.debugEvent.rawResponseRef] : [],
+  artifactRefs: input.durableFullDebug ? input.artifactRefs : [],
+  dataQualityFlags: input.durableFullDebug ? input.debugEvent.parserErrors : [],
+});
+
+const resolveAiDebugPersistencePolicy = (input: {
+  debugEvent: WorkbenchAiDebugEvent;
+  durableFullDebug: boolean;
+}) => ({
+  mode: "append" as const,
+  allowPartialRefs: input.durableFullDebug ? !isCriticalAiRuntimeProof(input.debugEvent.eventType) : true,
+  allowExternalArtifactRef: input.durableFullDebug && isCriticalAiRuntimeProof(input.debugEvent.eventType),
+});
+
+const buildAiDebugStructuredRuntimeWriteInput = (input: {
+  runtime: WorkbenchAiDebugForensicsRuntime;
+  debugEvent: WorkbenchAiDebugEvent;
+  chain: ReturnType<typeof resolveCanonicalAiChain>;
+  artifactRefs: ReturnType<typeof buildAiDebugArtifactRefs>;
+  structuredRuntimeEvent: ReturnType<typeof buildAiStructuredRuntimeEvent>;
+  durableEvent: ReturnType<typeof buildAiDebugDurableRuntimeEvent>;
+  durableFullDebug: boolean;
+}) => ({
+  abilityGroupId: "forensics-persistence",
+  childCapabilityId: "write-structured-runtime-event",
+  recordType: "structured_runtime_event",
+  requestedBy: "ai",
+  sourceAbilityGroupId: "ai",
+  sourceChildCapabilityId: input.structuredRuntimeEvent.childCapabilityId ?? "local-vision-ai",
+  missionId: input.chain.missionId,
+  runId: input.chain.runId,
+  sessionId: input.debugEvent.sessionId,
+  roundId: input.debugEvent.roundId ?? input.debugEvent.attemptId,
+  videoVisitId: input.debugEvent.videoVisitId,
+  stepId: input.chain.stepId,
+  mapPackageId: input.chain.mapPackageId,
+  mapPackageVersion: input.chain.mapPackageVersion,
+  selectedMapId: input.chain.selectedMapId,
+  selectedMapVersion: input.chain.selectedMapVersion,
+  activationSnapshotRef: input.chain.activationSnapshotRef,
+  capabilityCallId: input.chain.capabilityCallId,
+  sourceRecordRefs: [],
+  parentRefs: [],
+  promptContractId: input.debugEvent.promptContractId,
+  promptContractVersion: input.debugEvent.promptVersion,
+  ...resolveAiDebugPersistenceRefs(input),
+  persistencePolicy: resolveAiDebugPersistencePolicy(input),
+  payload: { structuredRuntimeEvent: input.durableEvent },
+});
+
 export const recordWorkbenchAiDebugEvent = async (
   runtime: WorkbenchAiDebugForensicsRuntime,
   input: WorkbenchAiDebugEvent,
@@ -65,38 +122,15 @@ export const recordWorkbenchAiDebugEvent = async (
 
   const durableEvent = buildAiDebugDurableRuntimeEvent(structuredRuntimeEvent);
   const durableFullDebug = isAiDebugDurableEnabled();
-  await runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent({
-    abilityGroupId: "forensics-persistence",
-    childCapabilityId: "write-structured-runtime-event",
-    recordType: "structured_runtime_event",
-    requestedBy: "ai",
-    sourceAbilityGroupId: "ai",
-    sourceChildCapabilityId: structuredRuntimeEvent.childCapabilityId ?? "local-vision-ai",
-    missionId: chain.missionId,
-    runId: chain.runId,
-    sessionId: input.sessionId,
-    roundId: input.roundId ?? input.attemptId,
-    videoVisitId: input.videoVisitId,
-    stepId: chain.stepId,
-    mapPackageId: chain.mapPackageId,
-    mapPackageVersion: chain.mapPackageVersion,
-    selectedMapId: chain.selectedMapId,
-    selectedMapVersion: chain.selectedMapVersion,
-    activationSnapshotRef: chain.activationSnapshotRef,
-    capabilityCallId: chain.capabilityCallId,
-    inputRefs: durableFullDebug ? [...new Set([...(chain.inputRef ? [chain.inputRef] : []), ...input.refs])] : [],
-    outputRefs: durableFullDebug && input.rawResponseRef ? [input.rawResponseRef] : [],
-    sourceRecordRefs: [],
-    parentRefs: [],
-    artifactRefs: durableFullDebug ? artifactRefs : [],
-    promptContractId: input.promptContractId,
-    promptContractVersion: input.promptVersion,
-    persistencePolicy: {
-      mode: "append",
-      allowPartialRefs: durableFullDebug ? !isCriticalAiRuntimeProof(input.eventType) : true,
-      allowExternalArtifactRef: durableFullDebug && isCriticalAiRuntimeProof(input.eventType),
-    },
-    dataQualityFlags: durableFullDebug ? input.parserErrors : [],
-    payload: { structuredRuntimeEvent: durableEvent },
-  });
+  await runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent(
+    buildAiDebugStructuredRuntimeWriteInput({
+      runtime,
+      debugEvent: input,
+      chain,
+      artifactRefs,
+      structuredRuntimeEvent,
+      durableEvent,
+      durableFullDebug,
+    }),
+  );
 };

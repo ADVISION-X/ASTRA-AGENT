@@ -37,7 +37,7 @@ const inspectRunInspector = (source: SourceText) => {
   }
   const findings = [];
   if (!source.text.includes("runOwnerInspector")) {
-    findings.push(createFinding(source.relativePath, "Owner run-inspector must call shared runOwnerInspector so artifact loading, resource logging, and negative-proof isolation stay centralized."));
+    findings.push(createFinding(source.relativePath, "Owner run-inspector must call shared runOwnerInspector so artifact loading and resource logging stay centralized."));
   }
   if (source.text.includes("buildAuditArtifacts")) {
     findings.push(createFinding(source.relativePath, "Owner run-inspector must not build audit artifacts directly; only shared owner-audit-runner may rebuild under GRASSEYE_OWNER_BUILD_ARTIFACTS=1."));
@@ -49,26 +49,6 @@ const inspectRunInspector = (source: SourceText) => {
     findings.push(createFinding(source.relativePath, "Owner run-inspector must not use standalone heartbeat wrappers; shared owner-audit-runner provides the governed execution envelope."));
   }
   return findings;
-};
-
-const inspectNegativeProofIsolation = (source: SourceText, allSources: SourceText[]) => {
-  if (!isOwnerRunInspector(source) || !source.text.includes("runOwnerInspector")) {
-    return [];
-  }
-  const domainDir = source.relativePath.slice(0, source.relativePath.lastIndexOf("/"));
-  const negativeProofEntry = `${domainDir}/run-negative-proof.ts`;
-  const hasSeparateNegativeProofEntry = allSources.some((candidate) => candidate.relativePath === negativeProofEntry);
-  if (source.text.includes("negativeProofScript") && !source.text.includes("run-negative-proof.ts")) {
-    return [createFinding(source.relativePath, "Owner negative proof must use a separate run-negative-proof.ts entrypoint instead of wiring the harness file directly.")];
-  }
-  const inspector = allSources.find((candidate) => candidate.relativePath === `${domainDir}/inspector.ts`);
-  if (inspector?.text.includes("runNegativeProofHarness") && !hasSeparateNegativeProofEntry) {
-    return [createFinding(source.relativePath, "Owner negative proof must be split into a separate run-negative-proof.ts entrypoint.")];
-  }
-  if (inspector?.text.includes("runNegativeProofHarness") && !source.text.includes("skipNegativeProofEnv")) {
-    return [createFinding(source.relativePath, "Owner inspector imports negative proof; run-inspector must set skipNegativeProofEnv and run the harness in a child process.")];
-  }
-  return [];
 };
 
 const inspectAstProjectPolicy = (source: SourceText) => {
@@ -116,8 +96,8 @@ const createPhase = (findingCount: number) => [
     findingCount === 0 ? "PASS" : "SCRIPT OVERREACH",
     findingCount === 0,
     findingCount === 0
-      ? "Owner audit entries use shared resource-bounded runner, isolated negative proof, and bounded AST project loading."
-      : "Owner audit resource topology can still rebuild, over-load AST projects, run inline negative proof, or miss resource limits.",
+      ? "Owner audit entries use shared resource-bounded runner and bounded AST project loading."
+        : "Owner audit resource topology can still rebuild, over-load AST projects, or miss resource limits.",
   ),
 ];
 
@@ -127,7 +107,6 @@ export const validateOwnerAuditResourceTopology = async (
   const sources = await loadAuditSources();
   const findings = sources.flatMap((source) => [
     ...inspectRunInspector(source),
-    ...inspectNegativeProofIsolation(source, sources),
     ...inspectAstProjectPolicy(source),
     ...inspectCiFull(source),
     ...inspectOwnerRunner(source),

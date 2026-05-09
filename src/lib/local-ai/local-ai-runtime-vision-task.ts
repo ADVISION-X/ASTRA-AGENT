@@ -1,8 +1,3 @@
-import {
-  CommentsEntryTargetCandidateTaskResultSchema,
-  NextItemTargetCandidateTaskResultSchema,
-  VisionTaskResultSchema,
-} from "../../types/local-ai.js";
 import { parseCommentsEntryTargetCandidateRuntimeOutput } from "./local-ai-runtime-comments-entry-target-candidate.js";
 import { buildCommentsEntryTargetCandidatePromptParts } from "./local-ai-runtime-comments-entry-target-candidate-prompt.js";
 import { parseNextItemTargetCandidateRuntimeOutput } from "./local-ai-runtime-target-candidate.js";
@@ -10,7 +5,10 @@ import { buildNextItemTargetCandidatePromptParts } from "./local-ai-runtime-targ
 import { parseVisionRuntimeOutput } from "./local-ai-runtime-vision.js";
 import { buildVisionPromptParts } from "./local-ai-runtime-vision-prompt.js";
 import {
-  MODEL_TIMEOUT_MS,
+  handleVisionProductPresenceRuntimeTask,
+  handleVisionTargetCandidateRuntimeTask,
+} from "./local-ai-runtime-vision-task-handlers.js";
+import {
   buildPromptPreview,
   hashText,
   isFullAiIoDebugEnabled,
@@ -28,7 +26,7 @@ function resolveVisionRequestArtifacts(request: SupportedVisionRequest) {
     ? buildNextItemTargetCandidatePromptParts(request)
     : request.taskType === "vision.commentsEntryTargetCandidate"
       ? buildCommentsEntryTargetCandidatePromptParts(request)
-    : buildVisionPromptParts(request);
+      : buildVisionPromptParts(request);
   return {
     imagePaths,
     promptParts,
@@ -71,72 +69,6 @@ function buildVisionDebugStartPayload(input: RuntimeExecutionInput, artifacts: R
   };
 }
 
-function buildVisionTaskResult(input: RuntimeExecutionInput, createdAt: string, payload: unknown) {
-  if (input.request.taskType === "vision.nextItemTargetCandidate") {
-    return NextItemTargetCandidateTaskResultSchema.parse({
-      id: input.request.id,
-      taskType: input.request.taskType,
-      modelRole: input.request.modelRole,
-      provider: "local",
-      runtime: input.roleConfig.runtime,
-      model: input.roleConfig.model,
-      implementationStatus: "model_backed",
-      promptVersion: input.request.promptVersion,
-      schemaVersion: input.request.schemaVersion,
-      evidenceRefs: input.request.evidenceRefs,
-      confidence: typeof payload === "object" && payload !== null && typeof (payload as { confidence?: unknown }).confidence === "number"
-        ? (payload as { confidence: number }).confidence
-        : 0,
-      createdAt,
-      result: payload,
-    });
-  }
-
-  if (input.request.taskType === "vision.commentsEntryTargetCandidate") {
-    return CommentsEntryTargetCandidateTaskResultSchema.parse({
-      id: input.request.id,
-      taskType: input.request.taskType,
-      modelRole: input.request.modelRole,
-      provider: "local",
-      runtime: input.roleConfig.runtime,
-      model: input.roleConfig.model,
-      implementationStatus: "model_backed",
-      promptVersion: input.request.promptVersion,
-      schemaVersion: input.request.schemaVersion,
-      evidenceRefs: input.request.evidenceRefs,
-      confidence: typeof payload === "object" && payload !== null && typeof (payload as { confidence?: unknown }).confidence === "number"
-        ? (payload as { confidence: number }).confidence
-        : 0,
-      createdAt,
-      result: payload,
-    });
-  }
-
-  return VisionTaskResultSchema.parse({
-    id: input.request.id,
-    taskType: input.request.taskType,
-    modelRole: input.request.modelRole,
-    provider: "local",
-    runtime: input.roleConfig.runtime,
-    model: input.roleConfig.model,
-    implementationStatus: "model_backed",
-    promptVersion: input.request.promptVersion,
-    schemaVersion: input.request.schemaVersion,
-    evidenceRefs: input.request.evidenceRefs,
-    confidence: (payload as { confidence: number }).confidence,
-    createdAt,
-    result: payload,
-  });
-}
-
-function buildNextItemParsedDecision(payload: { targetCandidates: unknown[] }) {
-  return `target_candidates:${payload.targetCandidates.length}`;
-}
-
-function buildProductPresenceParsedDecision(payload: { isProductVideo: boolean | null }) {
-  return payload.isProductVideo === true ? "product_yes" : payload.isProductVideo === false ? "product_no" : "product_uncertain";
-}
-
 export async function executeVisionRuntimeTask(input: RuntimeExecutionInput, createdAt: string) {
   const request = input.request as SupportedVisionRequest;
   const artifacts = resolveVisionRequestArtifacts(request);
@@ -152,47 +84,8 @@ export async function executeVisionRuntimeTask(input: RuntimeExecutionInput, cre
     ...(input.debugHook ? { debugHook: input.debugHook } : {}),
   });
   if (request.taskType === "vision.nextItemTargetCandidate" || request.taskType === "vision.commentsEntryTargetCandidate") {
-    const visionOutput = request.taskType === "vision.commentsEntryTargetCandidate"
-      ? parseCommentsEntryTargetCandidateRuntimeOutput(responseText, request)
-      : parseNextItemTargetCandidateRuntimeOutput(responseText, request);
-    await input.debugHook?.({
-      eventType: "local_ai_output_normalized",
-      detail: `taskType=${request.taskType}; adjusted=${String(visionOutput.adjusted)}; normalizedTargetCandidates=${visionOutput.normalizedCandidateCount}`,
-      taskType: request.taskType,
-      rawResponsePreview: buildPromptPreview(responseText),
-      rawResponseText: responseText,
-      parsedJson: visionOutput.payload,
-      parsedDecision: buildNextItemParsedDecision(visionOutput.payload),
-    });
-    const payload = visionOutput.payload;
-    await input.debugHook?.({
-      eventType: "local_ai_output_parsed",
-      detail: `taskType=${request.taskType}; confidence=${payload.confidence}; targetCandidates=${payload.targetCandidates.length}; reason=${buildPromptPreview(payload.reason)}`,
-      taskType: request.taskType,
-      parsedJson: payload,
-      parsedDecision: buildNextItemParsedDecision(payload),
-    });
-    return buildVisionTaskResult(input, createdAt, payload);
+    return handleVisionTargetCandidateRuntimeTask(input, createdAt, request, responseText);
   }
 
-  const visionOutput = parseVisionRuntimeOutput(responseText, request);
-  await input.debugHook?.({
-    eventType: "local_ai_output_normalized",
-    detail: `taskType=${request.taskType}; adjusted=${String(visionOutput.adjusted)}; normalizedFrameLevelObservations=${visionOutput.normalizedFrameCount}`,
-    taskType: request.taskType,
-    rawResponsePreview: buildPromptPreview(responseText),
-    rawResponseText: responseText,
-    parsedJson: visionOutput.payload,
-    parsedDecision: buildProductPresenceParsedDecision(visionOutput.payload),
-  });
-  const payload = visionOutput.payload;
-  await input.debugHook?.({
-    eventType: "local_ai_output_parsed",
-    detail: `taskType=${request.taskType}; confidence=${payload.confidence}; isProductVideo=${String(payload.isProductVideo)}; reason=${buildPromptPreview(payload.reason)}`,
-    taskType: request.taskType,
-    parsedJson: payload,
-    parsedDecision: buildProductPresenceParsedDecision(payload),
-  });
-
-  return buildVisionTaskResult(input, createdAt, payload);
+  return handleVisionProductPresenceRuntimeTask(input, createdAt, request, responseText);
 }

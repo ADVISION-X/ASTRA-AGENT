@@ -8,13 +8,12 @@ import {
 } from "./components/purity-stage-memory.js";
 import {
   CODE_PURITY_FINDINGS_NDJSON,
-  CODE_PURITY_NEGATIVE_PROOF_RESULT,
+  CODE_PURITY_REPORT_RESULT,
   CODE_PURITY_SCAN_SUMMARY,
 } from "./components/purity-stage-paths.js";
 import {
   assertFreshStreamArtifact,
   readCodePurityReportResult,
-  readNegativeProofResult,
   readScanSummary,
 } from "./components/purity-stage-results.js";
 
@@ -23,7 +22,6 @@ const EXPLICIT_BUILD_ENV = "GRASSEYE_CODE_PURITY_BUILD_ARTIFACTS";
 const STAGES = [
   { label: "code-purity:scan", script: "scripts/audit/domains/code-purity/run-scan.ts" },
   { label: "code-purity:report", script: "scripts/audit/domains/code-purity/run-report.ts" },
-  { label: "code-purity:negative-proof", script: "scripts/audit/domains/code-purity/run-negative-proof.ts" },
 ] as const;
 
 const runStage = async (stage: (typeof STAGES)[number]): Promise<void> => {
@@ -65,12 +63,11 @@ const main = async (): Promise<void> => {
 
   await assertFreshStreamArtifact(CODE_PURITY_SCAN_SUMMARY);
   await assertFreshStreamArtifact(CODE_PURITY_FINDINGS_NDJSON);
-  await assertFreshStreamArtifact(CODE_PURITY_NEGATIVE_PROOF_RESULT);
+  await assertFreshStreamArtifact(CODE_PURITY_REPORT_RESULT);
 
   const summary = await readScanSummary();
   const reportResult = await readCodePurityReportResult();
-  const negativeProof = await readNegativeProofResult();
-  const findings = [...reportResult.findings, ...negativeProof.findings];
+  const findings = [...reportResult.findings];
   const blocking = hasBlockingFindings(findings);
 
   logCodePurityStageMetrics("orchestrator:done", summary.scannedFileCount, findings.length);

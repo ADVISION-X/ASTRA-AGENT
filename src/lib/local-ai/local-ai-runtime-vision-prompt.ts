@@ -1,10 +1,9 @@
 import type { LocalAiTaskRequest } from "../../types/local-ai.js";
 import type { VideoFrameSamplePointLabel } from "../../types/multi-frame-evidence.js";
-import {
-  PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
-  PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
-} from "../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
 import { VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT } from "./prompts/vision-product-presence.v1.js";
+
+const PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL = "product_discovery_positive";
+const PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL = "product_discovery_negative";
 
 type VisionProductPresenceRequest = Extract<LocalAiTaskRequest, { taskType: "vision.productPresence" }>;
 

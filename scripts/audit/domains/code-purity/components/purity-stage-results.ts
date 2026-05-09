@@ -4,8 +4,8 @@ import { fileExists, readJsonFile, writeJsonFile } from "../../../core/filesyste
 import { generatedArtifactPaths } from "../../../core/generated-artifact-paths.js";
 import { pathFromRepoRoot } from "../../../core/paths.js";
 import type { GeneratedLawRegistry } from "../../../core/schema-generated-artifacts.js";
-import { CODE_PURITY_NEGATIVE_PROOF_RESULT, CODE_PURITY_SCAN_SUMMARY, CODE_PURITY_WORK_DIR } from "./purity-stage-paths.js";
-import type { CodePurityNegativeProofResult, CodePurityReportResult, CodePurityScanSummary } from "./purity-stage-types.js";
+import { CODE_PURITY_SCAN_SUMMARY, CODE_PURITY_WORK_DIR } from "./purity-stage-paths.js";
+import type { CodePurityReportResult, CodePurityScanSummary } from "./purity-stage-types.js";
 
 export const writeScanSummary = async (summary: CodePurityScanSummary): Promise<void> => {
   await writeJsonFile(pathFromRepoRoot(CODE_PURITY_SCAN_SUMMARY), summary);
@@ -13,13 +13,6 @@ export const writeScanSummary = async (summary: CodePurityScanSummary): Promise<
 
 export const readScanSummary = async (): Promise<CodePurityScanSummary> =>
   readJsonFile<CodePurityScanSummary>(pathFromRepoRoot(CODE_PURITY_SCAN_SUMMARY));
-
-export const writeNegativeProofResult = async (result: CodePurityNegativeProofResult): Promise<void> => {
-  await writeJsonFile(pathFromRepoRoot(CODE_PURITY_NEGATIVE_PROOF_RESULT), result);
-};
-
-export const readNegativeProofResult = async (): Promise<CodePurityNegativeProofResult> =>
-  readJsonFile<CodePurityNegativeProofResult>(pathFromRepoRoot(CODE_PURITY_NEGATIVE_PROOF_RESULT));
 
 export const writeCodePurityReportResult = async (result: CodePurityReportResult): Promise<void> => {
   await writeJsonFile(pathFromRepoRoot(`${CODE_PURITY_WORK_DIR}/report-result.generated.json`), result);

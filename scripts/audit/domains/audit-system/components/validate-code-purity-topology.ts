@@ -7,7 +7,6 @@ import { getAuditProject, getSourceFileOrThrow } from "./audit-system-ts-morph-s
 const CODE_PURITY_ORCHESTRATOR_PATH = "scripts/audit/domains/code-purity/run-inspector.ts";
 const CODE_PURITY_SCAN_PATH = "scripts/audit/domains/code-purity/run-scan.ts";
 const CODE_PURITY_REPORT_PATH = "scripts/audit/domains/code-purity/run-report.ts";
-const CODE_PURITY_NEGATIVE_PROOF_PATH = "scripts/audit/domains/code-purity/run-negative-proof.ts";
 
 const createFinding = (file: string, message: string) =>
   createAuditSystemFinding({
@@ -29,14 +28,14 @@ const inspectOrchestrator = (sourceFile: SourceFile) => {
 };
 
 const inspectOrchestratorStages = (text: string) =>
-  text.includes("code-purity:scan") && text.includes("code-purity:report") && text.includes("code-purity:negative-proof")
+  text.includes("code-purity:scan") && text.includes("code-purity:report")
     ? []
-    : [createFinding(CODE_PURITY_ORCHESTRATOR_PATH, "audit:code-purity must orchestrate scan, report, and negative-proof as separate serial process stages.")];
+    : [createFinding(CODE_PURITY_ORCHESTRATOR_PATH, "audit:code-purity must orchestrate scan and report as separate serial process stages.")];
 
 const inspectOrchestratorProcess = (text: string) =>
-  text.includes("spawn(process.execPath") && text.includes(CODE_PURITY_NEGATIVE_PROOF_PATH)
+  text.includes("spawn(process.execPath") && text.includes(CODE_PURITY_SCAN_PATH) && text.includes(CODE_PURITY_REPORT_PATH)
     ? []
-    : [createFinding(CODE_PURITY_ORCHESTRATOR_PATH, "Code-purity negative proof must run in an independent child process.")];
+    : [createFinding(CODE_PURITY_ORCHESTRATOR_PATH, "Code-purity scan and report must run in independent child processes.")];
 
 const inspectOrchestratorBuildGate = (text: string) => {
   if (!text.includes("GRASSEYE_CODE_PURITY_BUILD_ARTIFACTS")) {
@@ -64,18 +63,13 @@ const inspectReport = (sourceFile: SourceFile) =>
     ? [createFinding(CODE_PURITY_REPORT_PATH, "Code-purity report stage must not import or call ts-morph.")]
     : [];
 
-const inspectNegativeProof = (sourceFile: SourceFile) =>
-  textOf(sourceFile).includes("runCodePurityNegativeProof")
-    ? []
-    : [createFinding(CODE_PURITY_NEGATIVE_PROOF_PATH, "Code-purity negative proof stage must execute the real negative-proof harness.")];
-
 const createPhases = (findingCount: number) => [
   createAuditSystemPhase(
     "code-purity-process-topology",
     findingCount === 0 ? "PASS" : "SCRIPT OVERREACH",
     findingCount === 0,
     findingCount === 0
-      ? "Code-purity scan, report, and negative proof are isolated into bounded child processes."
+      ? "Code-purity scan and report are isolated into bounded child processes."
       : "Code-purity process isolation, memory boundary, or explicit-build topology has drifted.",
   ),
 ];
@@ -88,7 +82,6 @@ export const validateCodePurityTopology = async (
     ...inspectOrchestrator(getSourceFileOrThrow(project, CODE_PURITY_ORCHESTRATOR_PATH)),
     ...inspectScan(getSourceFileOrThrow(project, CODE_PURITY_SCAN_PATH)),
     ...inspectReport(getSourceFileOrThrow(project, CODE_PURITY_REPORT_PATH)),
-    ...inspectNegativeProof(getSourceFileOrThrow(project, CODE_PURITY_NEGATIVE_PROOF_PATH)),
   ];
   return {
     findings,

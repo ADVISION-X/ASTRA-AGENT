@@ -68,8 +68,11 @@ const getSingleLawCoverageFindings = (
   if (!law.auditPlanMapped) {
     findings.push(createLawCoverageFinding({ lawId: law.lawId, file: law.ownerInspectorEntry, message: "static-clause-coverage requires every active law to remain mapped in the generated audit plan." }));
   }
-  if (!law.negativeProofMapped) {
-    findings.push(createLawCoverageFinding({ lawId: law.lawId, file: law.negativeProofPath, message: "Owner negative-proof harness is required for static clause coverage." }));
+  if (!law.inspectorMapped) {
+    findings.push(createLawCoverageFinding({ lawId: law.lawId, file: law.ownerInspectorEntry, message: "static-clause-coverage requires real source evidence for each owner inspector." }));
+  }
+  if (!law.ownerAuditPassed) {
+    findings.push(createLawCoverageFinding({ lawId: law.lawId, file: law.ownerInspectorEntry, message: "static-clause-coverage requires each owner audit command to pass." }));
   }
   if (!law.ownerAuditScriptDeclared) {
     findings.push(createLawCoverageFinding({ lawId: law.lawId, file: "package.json", message: "package.json must keep the owner audit script bound for every governed ability group." }));

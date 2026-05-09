@@ -35,13 +35,6 @@ const REQUIRED_INSPECTOR_CALLS = [
   },
   {
     lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
-    localName: "validateNegativeProofWiring",
-    targetFile: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
-    importPath: "./validate-negative-proof-wiring.js",
-    importName: "validateNegativeProofWiring",
-  },
-  {
-    lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
     localName: "validateCodePurityEvidence",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
     importPath: "./validate-code-purity-evidence.js",

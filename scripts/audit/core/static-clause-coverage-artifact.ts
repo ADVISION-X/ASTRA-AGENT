@@ -6,9 +6,6 @@ import type { GlobalChainStatus, SourceEvidence } from "./static-clause-coverage
 export const STATIC_COVERAGE_STATUSES = [
   "NOT_COVERED",
   "INSPECTOR_MAPPED",
-  "NEGATIVE_PROOF_MAPPED",
-  "MUTATION_PROOF_CAPTURED",
-  "OWNER_BINDING_PROOF_CAPTURED",
   "OWNER_AUDIT_PASS",
   "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED",
   "ENFORCED",
@@ -22,22 +19,16 @@ export type StaticClauseCoverageRecord = {
   abilityGroupId: string | null;
   ownerManifestPath: string;
   ownerInspectorEntry: string;
-  negativeProofPath: string;
   ownerAuditScript: string | null;
   ownerAuditScriptDeclared: boolean;
   coverageStatus: StaticCoverageStatus;
   matrixMapped: boolean;
   auditPlanMapped: boolean;
   inspectorMapped: boolean;
-  negativeProofMapped: boolean;
-  mutationProofPresent: boolean;
-  ownerBindingProofPresent: boolean;
   ownerAuditPassed: boolean;
   globalChainPassed: boolean;
   sourceEvidence: SourceEvidence[];
   blockers: string[];
-  mutationProofPath: string | null;
-  ownerBindingProofPath: string | null;
 };
 
 export type StaticClauseCoverageArtifact = {

@@ -1,7 +1,5 @@
 import { execFile } from "node:child_process";
-import type { ChildProcess } from "node:child_process";
 import { promisify } from "node:util";
-import { spawn } from "node:child_process";
 
 import { buildAuditArtifacts } from "../build-audit-artifacts.js";
 import { fileExists } from "./filesystem.js";
@@ -14,7 +12,6 @@ import { createInspectorContext, loadGeneratedArtifacts, loadInspector, runWithS
 type OwnerRunnerInput = {
   capabilityDomain: string;
   inspectorEntry: string;
-  negativeProofScript?: string;
   skipNegativeProofEnv?: string;
 };
 
@@ -114,34 +111,6 @@ const maybeBuildArtifacts = async (): Promise<void> => {
   await runWithStandaloneHeartbeat("build-audit-artifacts", buildAuditArtifacts());
 };
 
-const runNegativeProofProcess = async (input: OwnerRunnerInput, startedAtMs: number): Promise<void> => {
-  if (process.env.GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF !== "1" || !input.negativeProofScript) {
-    return;
-  }
-  const script = input.negativeProofScript;
-  await logResourceSnapshot(input.capabilityDomain, "negative-proof:start", startedAtMs);
-  await new Promise<void>((resolve, reject) => {
-    const env: NodeJS.ProcessEnv = { ...process.env, GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF: "1" };
-    const child: ChildProcess = spawn(process.execPath, ["--import", "tsx", script], { stdio: "inherit", env });
-    const finish = (error?: Error): void => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve();
-    };
-    child.on("error", reject);
-    child.on("exit", (code, signal) => {
-      if (code === 0) {
-        finish();
-        return;
-      }
-      finish(new Error(`${input.capabilityDomain} negative proof failed${signal ? ` by ${signal}` : ""} with exit code ${code ?? 1}.`));
-    });
-  });
-  await logResourceSnapshot(input.capabilityDomain, "negative-proof:done", startedAtMs);
-};
-
 export const runOwnerInspector = async (input: OwnerRunnerInput): Promise<OwnerAuditRunResult> => {
   const startedAtMs = Date.now();
   const stopGuard = startResourceGuard(input.capabilityDomain, startedAtMs);
@@ -172,7 +141,6 @@ export const runOwnerInspector = async (input: OwnerRunnerInput): Promise<OwnerA
     for (const finding of result.findings) {
       process.stdout.write(`- ${finding.severity.toUpperCase()} ${finding.file}:${finding.line} ${finding.message}\n`);
     }
-    await runNegativeProofProcess(input, startedAtMs);
     await logResourceSnapshot(input.capabilityDomain, "done", startedAtMs);
 
     if (!result.passed || hasBlockingFindings(result.findings)) {

@@ -10,94 +10,115 @@ import { createRuntimeProofReadModel } from "./workbench-commander-runtime-proof
 
 type CommanderConsoleAbilityGroup = ReturnType<typeof createCommanderConsoleAbilityGroup>;
 
+type CommanderConsoleFallbackContext = {
+  failureReason: string;
+  now: string;
+  browser: ReturnType<WorkbenchRuntime["browserController"]["getSessionState"]>;
+};
+
+const buildCommanderConsoleFallbackMissionSection = (context: CommanderConsoleFallbackContext) => ({
+  missionId: null,
+  humanGoal: "",
+  status: "review_required" as const,
+  missionRunRef: null,
+  currentRoundIndex: 0,
+  requestedPlatform: null,
+  selectedMapId: null,
+  lastHumanCommand: null,
+  reviewRequiredReason: context.failureReason,
+  failureReason: null,
+  startedAt: null,
+  updatedAt: context.now,
+  endedAt: null,
+});
+
+const buildCommanderConsoleFallbackRuntimeSection = (context: CommanderConsoleFallbackContext) => ({
+  runtimeStatus: "review_required" as const,
+  currentStep: "show-mission-dashboard",
+  reviewReason: context.failureReason,
+  totalSeenCount: 0,
+  evidencePacketCount: 0,
+  browseLedgerCount: 0,
+  candidateCount: 0,
+  lastAiFailureReason: null,
+});
+
+const buildCommanderConsoleFallbackBrowserSection = (context: CommanderConsoleFallbackContext) => ({
+  dataMode: "real-platform" as const,
+  platformId: "agent-shell",
+  platformLabel: "Mission-governed multi-platform agent shell",
+  realPlatformConnection: "current local Chrome session",
+  browserMode: "current-chrome" as const,
+  browserExecutable: context.browser.browserExecutable,
+  browserProfileRef: context.browser.browserProfileRef,
+  browserProfileStatus: context.browser.profileStatus,
+  browserProfileDirectory: context.browser.profileDirectory,
+  browserProfileProvisioning: "operator-managed" as const,
+  browserProfileVerificationStatus: context.browser.profileVerificationStatus,
+  browserProfileVerificationReason: context.browser.profileVerificationReason ?? "dashboard fallback is serving current browser session metadata",
+  loginState: context.browser.loginState,
+  lastLoginCheckAt: context.browser.lastLoginCheckAt,
+  loginRequiredReason: context.browser.loginRequiredReason,
+  reviewRequiredReason: context.browser.reviewRequiredReason,
+  storeScope: "local phase-04 enforcement store",
+  executionMode: "dashboard degraded fallback",
+  fallbackMode: "read-model timeout fallback",
+  geometryGuard: "capability-owned at execution time",
+  viewport: "not_available_in_dashboard_fallback",
+  calibration: "not_applicable",
+  orientation: "capability-owned",
+});
+
+const buildCommanderConsoleFallbackHealthSection = (context: CommanderConsoleFallbackContext) => ([{
+  id: "commander-dashboard",
+  label: "Commander Dashboard",
+  tone: "warn" as const,
+  detail: "Dashboard read model timed out; serving fallback shell so startup stays alive.",
+  ownerResponsible: "Commander Console",
+  actionableMessage: "Inspect read-model latency and state size; app shell remains available.",
+  failureReason: context.failureReason,
+  missionRuntimeAvailable: false,
+  checkedAt: context.now,
+}]);
+
+const buildCommanderConsoleFallbackRuntimeProofSection = (context: CommanderConsoleFallbackContext) => ([{
+  id: "commander-dashboard:fallback",
+  createdAt: context.now,
+  step: "show-mission-dashboard",
+  status: "review_required" as const,
+  message: context.failureReason,
+}]);
+
+const buildCommanderConsoleFallbackAuditSummarySection = () => ({
+  phase: "unknown",
+  activeLawDomains: [],
+  lastGeneratedAt: null,
+  lastRunGeneratedAt: null,
+  totals: null,
+});
+
 const buildFallbackCommanderConsoleSnapshot = (
   runtime: WorkbenchRuntime,
   failureReason: string,
 ): CommanderMissionDashboardView => {
-  const browser = runtime.browserController.getSessionState();
-  const now = new Date().toISOString();
+  const context = {
+    failureReason,
+    now: new Date().toISOString(),
+    browser: runtime.browserController.getSessionState(),
+  };
   return {
-    mission: {
-      missionId: null,
-      humanGoal: "",
-      status: "review_required",
-      missionRunRef: null,
-      currentRoundIndex: 0,
-      requestedPlatform: null,
-      selectedMapId: null,
-      lastHumanCommand: null,
-      reviewRequiredReason: failureReason,
-      failureReason: null,
-      startedAt: null,
-      updatedAt: now,
-      endedAt: null,
-    },
-    runtime: {
-      runtimeStatus: "review_required",
-      currentStep: "show-mission-dashboard",
-      reviewReason: failureReason,
-      totalSeenCount: 0,
-      evidencePacketCount: 0,
-      browseLedgerCount: 0,
-      candidateCount: 0,
-      lastAiFailureReason: null,
-    },
-    browser: {
-      dataMode: "real-platform",
-      platformId: "agent-shell",
-      platformLabel: "Mission-governed multi-platform agent shell",
-      realPlatformConnection: "current local Chrome session",
-      browserMode: "current-chrome",
-      browserExecutable: browser.browserExecutable,
-      browserProfileRef: browser.browserProfileRef,
-      browserProfileStatus: browser.profileStatus,
-      browserProfileDirectory: browser.profileDirectory,
-      browserProfileProvisioning: "operator-managed",
-      browserProfileVerificationStatus: browser.profileVerificationStatus,
-      browserProfileVerificationReason: browser.profileVerificationReason ?? "dashboard fallback is serving current browser session metadata",
-      loginState: browser.loginState,
-      lastLoginCheckAt: browser.lastLoginCheckAt,
-      loginRequiredReason: browser.loginRequiredReason,
-      reviewRequiredReason: browser.reviewRequiredReason,
-      storeScope: "local phase-04 enforcement store",
-      executionMode: "dashboard degraded fallback",
-      fallbackMode: "read-model timeout fallback",
-      geometryGuard: "capability-owned at execution time",
-      viewport: "not_available_in_dashboard_fallback",
-      calibration: "not_applicable",
-      orientation: "capability-owned",
-    },
-    health: [{
-      id: "commander-dashboard",
-      label: "Commander Dashboard",
-      tone: "warn",
-      detail: "Dashboard read model timed out; serving fallback shell so startup stays alive.",
-      ownerResponsible: "Commander Console",
-      actionableMessage: "Inspect read-model latency and state size; app shell remains available.",
-      failureReason,
-      missionRuntimeAvailable: false,
-      checkedAt: now,
-    }],
+    mission: buildCommanderConsoleFallbackMissionSection(context),
+    runtime: buildCommanderConsoleFallbackRuntimeSection(context),
+    browser: buildCommanderConsoleFallbackBrowserSection(context),
+    health: buildCommanderConsoleFallbackHealthSection(context),
     capabilityRoster: [],
     candidates: [],
     reviewQueue: [],
     evidencePackets: [],
     browseLedger: [],
     failedRecords: [],
-    runtimeProof: [{
-      id: "commander-dashboard:fallback",
-      createdAt: now,
-      step: "show-mission-dashboard",
-      status: "review_required",
-      message: failureReason,
-    }],
-    auditSummary: {
-      phase: "unknown",
-      activeLawDomains: [],
-      lastGeneratedAt: null,
-      lastRunGeneratedAt: null,
-      totals: null,
-    },
+    runtimeProof: buildCommanderConsoleFallbackRuntimeProofSection(context),
+    auditSummary: buildCommanderConsoleFallbackAuditSummarySection(),
   };
 };
 

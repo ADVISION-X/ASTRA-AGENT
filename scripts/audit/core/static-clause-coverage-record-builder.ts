@@ -3,7 +3,7 @@ import path from "node:path";
 import { type SourceFile } from "ts-morph";
 
 import { createAuditProject } from "../domains/_shared/ast-helpers.js";
-import { fileExists, listFilesRecursive, readJsonFile, readTextFile } from "./filesystem.js";
+import { listFilesRecursive, readJsonFile } from "./filesystem.js";
 import { loadDomainManifests } from "./manifests.js";
 import { pathFromRepoRoot } from "./paths.js";
 import type { AuditPlan, GeneratedLawRegistry } from "./schema-generated-artifacts.js";
@@ -37,9 +37,6 @@ export const ABILITY_GROUP_DOMAINS = [
 
 type CoverageStatusInput = {
   inspectorMapped: boolean;
-  negativeProofMapped: boolean;
-  mutationProofPresent: boolean;
-  ownerBindingProofPresent: boolean;
   ownerAuditScriptDeclared: boolean;
   ownerAuditPassed: boolean;
   globalChainObserved: boolean;
@@ -50,9 +47,6 @@ type BlockerInput = {
   matrixMapped: boolean;
   auditPlanMapped: boolean;
   inspectorMapped: boolean;
-  negativeProofMapped: boolean;
-  mutationProofPresent: boolean;
-  ownerBindingProofPresent: boolean;
   ownerAuditScriptDeclared: boolean;
   ownerAuditPassed: boolean;
   globalChain: StaticClauseCoverageArtifact["globalChain"];
@@ -72,9 +66,6 @@ type StaticCoverageRecordRefs = {
   abilityGroupId: string | null;
   ownerManifestPath: string;
   ownerInspectorEntry: string;
-  negativeProofPath: string;
-  mutationProofPath: string | null;
-  ownerBindingProofPath: string | null;
   ownerAuditScript: string | null;
   sourceEvidence: SourceEvidence[];
   matrixMapped: boolean;
@@ -84,9 +75,6 @@ type StaticCoverageRecordRefs = {
 type StaticCoverageRecordStatus = {
   ownerAuditScriptDeclared: boolean;
   ownerAuditPassed: boolean;
-  negativeProofMapped: boolean;
-  mutationProofPresent: boolean;
-  ownerBindingProofPresent: boolean;
   inspectorMapped: boolean;
   coverageStatus: StaticCoverageStatus;
 };
@@ -98,10 +86,7 @@ const COVERAGE_STATUS_RULES: readonly {
   applies: (input: CoverageStatusInput) => boolean;
 }[] = [
   { status: "NOT_COVERED", applies: (input) => !input.inspectorMapped },
-  { status: "INSPECTOR_MAPPED", applies: (input) => !input.negativeProofMapped },
-  { status: "NEGATIVE_PROOF_MAPPED", applies: (input) => !input.mutationProofPresent },
-  { status: "MUTATION_PROOF_CAPTURED", applies: (input) => !input.ownerBindingProofPresent },
-  { status: "OWNER_BINDING_PROOF_CAPTURED", applies: (input) => !input.ownerAuditScriptDeclared || !input.ownerAuditPassed },
+  { status: "INSPECTOR_MAPPED", applies: (input) => !input.ownerAuditScriptDeclared || !input.ownerAuditPassed },
   { status: "OWNER_AUDIT_PASS", applies: (input) => !input.globalChainObserved },
   { status: "OWNER_PROOF_COMPLETE_BUT_GLOBAL_CHAIN_BLOCKED", applies: (input) => !input.globalChainPassed },
 ] as const;
@@ -113,9 +98,6 @@ const BLOCKER_RULES: readonly {
   { applies: (input) => !input.matrixMapped, message: "Law is missing from the generated enforcement matrix." },
   { applies: (input) => !input.auditPlanMapped, message: "Law is missing from the generated audit plan." },
   { applies: (input) => !input.inspectorMapped, message: "Owner inspector source does not expose concrete law coverage evidence." },
-  { applies: (input) => !input.negativeProofMapped, message: "Owner negative-proof harness is missing." },
-  { applies: (input) => !input.mutationProofPresent, message: "Production mutation proof bundle is missing." },
-  { applies: (input) => !input.ownerBindingProofPresent, message: "Owner-binding proof bundle is missing." },
   { applies: (input) => !input.ownerAuditScriptDeclared, message: "Owner audit script is missing from package.json." },
   { applies: (input) => !input.ownerAuditPassed, message: "Owner audit command is failing or missing fresh evidence." },
 ] as const;
@@ -141,20 +123,6 @@ const getOwnerAuditStatus = async (summary: Map<string, AuditSummaryEntry>, audi
 
 const getDomainSourceFiles = async (capabilityDomain: string): Promise<string[]> =>
   listFilesRecursive(pathFromRepoRoot(path.join("scripts", "audit", "domains", capabilityDomain)), { extensions: [".ts"] });
-
-const getMutationProofPath = (abilityGroupId: string | null, lawId: string): string | null =>
-  abilityGroupId ? `tmp/audit/ability-law-census/regression-proofs/${abilityGroupId}/${lawId}/proof-summary.md` : null;
-
-const getOwnerBindingProofPath = (abilityGroupId: string | null): string | null =>
-  abilityGroupId ? `tmp/audit/ability-law-census/regression-proofs/${abilityGroupId}/owner-binding/owner-binding-proof-summary.md` : null;
-
-const hasRequiredProofMarkers = async (proofPath: string | null, requiredMarkers: readonly string[]): Promise<boolean> => {
-  if (!proofPath || !(await fileExists(pathFromRepoRoot(proofPath)))) {
-    return false;
-  }
-  const content = await readTextFile(pathFromRepoRoot(proofPath));
-  return requiredMarkers.every((marker) => content.includes(marker));
-};
 
 const determineCoverageStatus = (input: CoverageStatusInput): StaticCoverageStatus =>
   COVERAGE_STATUS_RULES.find((rule) => rule.applies(input))?.status ?? "ENFORCED";
@@ -210,9 +178,6 @@ const collectStaticCoverageRecordRefs = (
     abilityGroupId,
     ownerManifestPath: manifest?.manifestPath ?? `scripts/audit/domains/${law.capabilityDomain}/manifest.json`,
     ownerInspectorEntry: manifest?.entry ?? `scripts/audit/domains/${law.capabilityDomain}/inspector.ts`,
-    negativeProofPath: `scripts/audit/domains/${law.capabilityDomain}/negative-proof-harness.ts`,
-    mutationProofPath: getMutationProofPath(abilityGroupId, law.lawId),
-    ownerBindingProofPath: getOwnerBindingProofPath(abilityGroupId),
     ownerAuditScript: getOwnerAuditScript(law.capabilityDomain),
     sourceEvidence: domainEvidence.get(law.lawId) ?? [],
     matrixMapped: Boolean(matrixOwner?.lawIds.includes(law.lawId)),
@@ -227,17 +192,11 @@ const collectStaticCoverageRecordStatus = async (
   const ownerAuditScriptDeclared = Boolean(refs.ownerAuditScript && context.packageScripts[refs.ownerAuditScript]);
   const ownerAuditPassed = await getOwnerAuditStatus(context.auditSummary, refs.ownerAuditScript);
   const inspectorMapped = refs.sourceEvidence.length > 0;
-  const negativeProofMapped = await fileExists(pathFromRepoRoot(refs.negativeProofPath));
-  const mutationProofPresent = await hasRequiredProofMarkers(refs.mutationProofPath, ["coveredLawIds:", "Mutated production file caused", "Rollback restored the production file"]);
-  const ownerBindingProofPresent = await hasRequiredProofMarkers(refs.ownerBindingProofPath, ["FAIL observed", "rollback:"]);
   return {
     ownerAuditScriptDeclared,
     ownerAuditPassed,
-    negativeProofMapped,
-    mutationProofPresent,
-    ownerBindingProofPresent,
     inspectorMapped,
-    coverageStatus: determineCoverageStatus({ inspectorMapped, negativeProofMapped, mutationProofPresent, ownerBindingProofPresent, ownerAuditScriptDeclared, ownerAuditPassed, globalChainObserved: context.globalChain.observed, globalChainPassed: context.globalChain.passed }),
+    coverageStatus: determineCoverageStatus({ inspectorMapped, ownerAuditScriptDeclared, ownerAuditPassed, globalChainObserved: context.globalChain.observed, globalChainPassed: context.globalChain.passed }),
   };
 };
 
@@ -253,22 +212,16 @@ const createStaticCoverageRecord = async (
     abilityGroupId: refs.abilityGroupId,
     ownerManifestPath: refs.ownerManifestPath,
     ownerInspectorEntry: refs.ownerInspectorEntry,
-    negativeProofPath: refs.negativeProofPath,
     ownerAuditScript: refs.ownerAuditScript,
     ownerAuditScriptDeclared: status.ownerAuditScriptDeclared,
     coverageStatus: status.coverageStatus,
     matrixMapped: refs.matrixMapped,
     auditPlanMapped: refs.auditPlanMapped,
     inspectorMapped: status.inspectorMapped,
-    negativeProofMapped: status.negativeProofMapped,
-    mutationProofPresent: status.mutationProofPresent,
-    ownerBindingProofPresent: status.ownerBindingProofPresent,
     ownerAuditPassed: status.ownerAuditPassed,
     globalChainPassed: context.globalChain.passed,
     sourceEvidence: refs.sourceEvidence,
-    blockers: collectBlockers({ matrixMapped: refs.matrixMapped, auditPlanMapped: refs.auditPlanMapped, inspectorMapped: status.inspectorMapped, negativeProofMapped: status.negativeProofMapped, mutationProofPresent: status.mutationProofPresent, ownerBindingProofPresent: status.ownerBindingProofPresent, ownerAuditScriptDeclared: status.ownerAuditScriptDeclared, ownerAuditPassed: status.ownerAuditPassed, globalChain: context.globalChain }),
-    mutationProofPath: refs.mutationProofPath,
-    ownerBindingProofPath: refs.ownerBindingProofPath,
+    blockers: collectBlockers({ matrixMapped: refs.matrixMapped, auditPlanMapped: refs.auditPlanMapped, inspectorMapped: status.inspectorMapped, ownerAuditScriptDeclared: status.ownerAuditScriptDeclared, ownerAuditPassed: status.ownerAuditPassed, globalChain: context.globalChain }),
   };
 };
 

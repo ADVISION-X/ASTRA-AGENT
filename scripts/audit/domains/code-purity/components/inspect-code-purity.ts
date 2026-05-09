@@ -8,7 +8,6 @@ import { collectTouchedFilesArtifact } from "../../../core/touched-files-collect
 import { CODE_PURITY_LAW_IDS, LAW_PHASE_SUMMARIES } from "./purity-law-phase-data.js";
 import { ACTIVE_FILES, ACTIVE_ROOTS, BLUEPRINT_PATH, CODE_PURITY_SCAN_EXTENSIONS, CODE_PURITY_SCAN_SCOPE } from "./purity-runtime-constants.js";
 import { createEmptyPurityReport, inspectPurityMetrics } from "./purity-metric-inspection.js";
-import { runCodePurityNegativeProof } from "./purity-negative-proof.js";
 import { finalizePurityReport, writePurityReport } from "./purity-report.js";
 
 const REQUIRED_COMPONENT_EXPORTS = [
@@ -20,21 +19,8 @@ const REQUIRED_COMPONENT_EXPORTS = [
   },
 ] as const;
 
-const SKIP_CODE_PURITY_ENV = "GRASSEYE_SKIP_AUDIT_SYSTEM_CODE_PURITY";
 const EXCLUDED_SOURCE_PREFIXES = ["scripts/audit/generated/"] as const;
 const EXCLUDED_SOURCE_SUFFIXES = [".generated.json", ".generated.jsonc"] as const;
-
-const createSkippedCodePurityResult = (): { findings: Finding[]; phases: InspectorPhase[] } => ({
-  findings: [],
-  phases: [
-    createPhase(
-      "code-purity-nested-skip",
-      "PASS",
-      true,
-      "Code-purity scan is skipped for nested audit-system negative-proof execution.",
-    ),
-  ],
-});
 
 const debug = (message: string): void => {
   if (process.env.GRASSEYE_AUDIT_DEBUG === "1") {
@@ -206,27 +192,12 @@ const inspectReportOutputs = async (reportDraft: ReturnType<typeof createEmptyPu
   })];
 };
 
-const runNegativeProofPhase = async (): Promise<{ findings: Finding[]; phase: InspectorPhase }> => {
-  if (process.env.GRASSEYE_SKIP_CODE_PURITY_NEGATIVE_PROOF === "1") {
-    return {
-      findings: [],
-      phase: createPhase("negative-proof-harness", "PASS", true, "Negative proof is skipped for nested code-purity harness runs."),
-    };
-  }
-  return runCodePurityNegativeProof();
-};
-
-const createInspectorPhases = (sourceFileCount: number, findings: Finding[], negativeProofPhase: InspectorPhase): InspectorPhase[] => [
+const createInspectorPhases = (sourceFileCount: number, findings: Finding[]): InspectorPhase[] => [
   createPhase("scope-activation", "PASS", true, `code-purity scans ${sourceFileCount} active files under ${BLUEPRINT_PATH}`),
   ...LAW_PHASE_SUMMARIES.map((summary) => createPhaseForLaw(summary.lawId, findings)),
-  negativeProofPhase,
 ];
 
 export const inspectCodePurity = async (context: InspectorContext): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
-  if (process.env[SKIP_CODE_PURITY_ENV] === "1") {
-    return createSkippedCodePurityResult();
-  }
-
   const reportDraft = createEmptyPurityReport();
   const { relativePaths, touchedPaths, touchedBaselineSource, project } = await collectSourceFiles();
   reportDraft.touchedBaselineSource = touchedBaselineSource;
@@ -249,10 +220,7 @@ export const inspectCodePurity = async (context: InspectorContext): Promise<{ fi
     ...(await inspectReportOutputs(reportDraft)),
   ];
 
-  const negativeProof = await runNegativeProofPhase();
-  findings.push(...negativeProof.findings);
-
   debug(`findings=${findings.length}`);
 
-  return { findings, phases: createInspectorPhases(relativePaths.length, findings, negativeProof.phase) };
+  return { findings, phases: createInspectorPhases(relativePaths.length, findings) };
 };

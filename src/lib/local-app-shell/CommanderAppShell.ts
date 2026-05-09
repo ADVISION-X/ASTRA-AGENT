@@ -2,13 +2,8 @@ import { escapeHtml, safeJsonScript } from "./render-helpers.js";
 
 import { renderCommanderAppRouter } from "./CommanderAppRouter.js";
 import { buildCommanderShellRenderState } from "./commander-shell-render-state.js";
-import { appRunLimitSettingsClient } from "./app-run-limit-settings-client.js";
-import { commanderConsoleShellClient } from "./commander-console-shell-client.js";
-import { mapLabClient } from "./map-lab-client.js";
-import { renderAppFrame } from "./layout/AppFrame.js";
-import { renderBottomNav } from "./layout/BottomNav.js";
-import { renderCompactStatusBar } from "./layout/CompactStatusBar.js";
-import { renderInspectModal } from "./layout/InspectModal.js";
+import { appRunLimitSettingsClient, commanderConsoleShellClient, mapLabClient } from "./clients/index.js";
+import { renderAppFrame, renderBottomNav, renderCompactStatusBar, renderInspectModal } from "./layout/index.js";
 import { commanderConsoleStyles } from "./styles/commander-console-styles.js";
 import type { AppRunLimitSettings } from "../local-runtime/app-run-limit-settings-types.js";
 import type { CommanderMissionDashboardView } from "../../capabilities/commander-console/shared/commander-view-types.js";

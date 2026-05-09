@@ -4,7 +4,6 @@ const main = async (): Promise<void> => {
   const outcome = await runOwnerInspector({
     capabilityDomain: "audit-system",
     inspectorEntry: "scripts/audit/domains/audit-system/inspector.ts",
-    skipNegativeProofEnv: "GRASSEYE_SKIP_AUDIT_SYSTEM_NEGATIVE_PROOF",
   });
 
   process.stdout.write(JSON.stringify({ auditConflicts: outcome.artifacts.auditConflicts.conflicts, result: outcome.result }, null, 2));

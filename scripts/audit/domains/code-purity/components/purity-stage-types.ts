@@ -1,4 +1,4 @@
-import type { Finding, InspectorPhase } from "../../../core/schema.js";
+import type { Finding } from "../../../core/schema.js";
 import type { PurityInventoryItem } from "./purity-report-types.js";
 
 export type CodePurityScanSummary = {
@@ -8,12 +8,6 @@ export type CodePurityScanSummary = {
   scanScope: string[];
   scannedFileCount: number;
   findingsCount: number;
-};
-
-export type CodePurityNegativeProofResult = {
-  generatedAt: string;
-  findings: Finding[];
-  phase: InspectorPhase;
 };
 
 export type CodePurityReportResult = {

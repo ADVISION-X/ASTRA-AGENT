@@ -140,6 +140,40 @@ function resolveTerminalPrefix(logEntry: StructuredLogEntry): "grasseye:event" |
   return logEntry.entry.status === "review_required" ? "grasseye:review" : "grasseye:event";
 }
 
+function shouldSkipStructuredTerminalLogEntry(
+  logEntry: StructuredLogEntry,
+  level: StructuredLogLevel,
+  mirroredRuntimeDedupeKeys: Set<string>,
+): boolean {
+  if (logEntry.kind === "event" && !shouldMirrorRuntimeEvent(logEntry.entry, level)) {
+    return true;
+  }
+
+  if (logEntry.kind === "event" && logEntry.entry.eventType.startsWith("AI_")) {
+    const dedupeKey = resolveTerminalDedupeKey(logEntry.entry);
+    if (dedupeKey && mirroredRuntimeDedupeKeys.has(dedupeKey)) {
+      return true;
+    }
+    if (dedupeKey) {
+      mirroredRuntimeDedupeKeys.add(dedupeKey);
+      if (mirroredRuntimeDedupeKeys.size > MAX_TERMINAL_DEDUPE_KEYS) {
+        const firstKey = mirroredRuntimeDedupeKeys.values().next().value;
+        if (firstKey) {
+          mirroredRuntimeDedupeKeys.delete(firstKey);
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+function buildStructuredTerminalPayload(logEntry: StructuredLogEntry, level: StructuredLogLevel) {
+  return logEntry.kind === "event"
+    ? buildEventPayload(logEntry.entry, level)
+    : buildActionPayload(logEntry.entry, level);
+}
+
 export function isStructuredLogStdoutEnabled(): boolean {
   return process.env.GRASSEYE_STRUCTURED_LOG_STDOUT !== "0";
 }
@@ -154,30 +188,12 @@ export function createStructuredTerminalLogListener(level: StructuredLogLevel = 
   const mirroredRuntimeDedupeKeys = new Set<string>();
 
   return (logEntry) => {
-    if (logEntry.kind === "event" && !shouldMirrorRuntimeEvent(logEntry.entry, level)) {
+    if (shouldSkipStructuredTerminalLogEntry(logEntry, level, mirroredRuntimeDedupeKeys)) {
       return;
     }
 
-    if (logEntry.kind === "event" && logEntry.entry.eventType.startsWith("AI_")) {
-      const dedupeKey = resolveTerminalDedupeKey(logEntry.entry);
-      if (dedupeKey && mirroredRuntimeDedupeKeys.has(dedupeKey)) {
-        return;
-      }
-      if (dedupeKey) {
-        mirroredRuntimeDedupeKeys.add(dedupeKey);
-        if (mirroredRuntimeDedupeKeys.size > MAX_TERMINAL_DEDUPE_KEYS) {
-          const firstKey = mirroredRuntimeDedupeKeys.values().next().value;
-          if (firstKey) {
-            mirroredRuntimeDedupeKeys.delete(firstKey);
-          }
-        }
-      }
-    }
-
     const prefix = resolveTerminalPrefix(logEntry);
-    const payload = logEntry.kind === "event"
-      ? buildEventPayload(logEntry.entry, level)
-      : buildActionPayload(logEntry.entry, level);
+    const payload = buildStructuredTerminalPayload(logEntry, level);
 
     process.stdout.write(`[${prefix}] ${JSON.stringify(payload)}\n`);
   };

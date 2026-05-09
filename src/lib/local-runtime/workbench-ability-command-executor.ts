@@ -62,6 +62,25 @@ const executePointerAbilityCommand = async (
   throw new Error(`Unsupported pointer ability target: ${envelope.to}`);
 };
 
+const executeForensicsAbilityCommand = (
+  runtime: WorkbenchRuntime,
+  envelope: AbilityCommandEnvelope,
+  inputPayload: NerveBusPayloadDocument,
+): Promise<WorkbenchAbilityExecutionResult> => {
+  switch (envelope.commandName) {
+    case "write-structured-runtime-event":
+      return Promise.resolve(runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent(buildForensicsRuntimeEventInput(envelope)));
+    case "write-evidence-record":
+      return Promise.resolve(runtime.forensicsPersistenceAbilityGroup.writeImageEvidence(buildForensicsEvidenceRecordInput(envelope, inputPayload)));
+    case "finalize-evidence-packet":
+      return Promise.resolve(runtime.forensicsPersistenceAbilityGroup.finalizeEvidencePacket(buildForensicsEvidencePacketInput(envelope, inputPayload)));
+    case "finalize-browse-ledger":
+      return Promise.resolve(runtime.forensicsPersistenceAbilityGroup.finalizeBrowseLedger(buildForensicsBrowseLedgerInput(envelope, inputPayload)));
+  }
+
+  throw new Error(`Unsupported forensics child capability: ${envelope.commandName}`);
+};
+
 const executeRuntimeAbilityCommand = async (
   runtime: WorkbenchRuntime,
   envelope: AbilityCommandEnvelope,
@@ -69,17 +88,7 @@ const executeRuntimeAbilityCommand = async (
 ): Promise<WorkbenchAbilityExecutionResult> => {
   switch (envelope.to) {
     case "forensics-persistence":
-      switch (envelope.commandName) {
-        case "write-structured-runtime-event":
-          return runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent(buildForensicsRuntimeEventInput(envelope));
-        case "write-evidence-record":
-          return runtime.forensicsPersistenceAbilityGroup.writeImageEvidence(buildForensicsEvidenceRecordInput(envelope, inputPayload));
-        case "finalize-evidence-packet":
-          return runtime.forensicsPersistenceAbilityGroup.finalizeEvidencePacket(buildForensicsEvidencePacketInput(envelope, inputPayload));
-        case "finalize-browse-ledger":
-          return runtime.forensicsPersistenceAbilityGroup.finalizeBrowseLedger(buildForensicsBrowseLedgerInput(envelope, inputPayload));
-      }
-      throw new Error(`Unsupported forensics child capability: ${envelope.commandName}`);
+      return executeForensicsAbilityCommand(runtime, envelope, inputPayload);
     case "page-state":
       return runtime.pageStateAbilityGroup.execute(await buildPageStateDispatchInput(runtime, envelope, inputPayload));
     case "post-action-verification":
