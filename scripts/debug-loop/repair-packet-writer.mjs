@@ -7,7 +7,7 @@ const DEFAULT_FORBIDDEN_ACTIONS = [
   "Do not modify forbiddenModify paths.",
   "Do not downgrade laws.",
   "Do not disable inspectors.",
-  "Do not remove negative proof.",
+  "Do not bypass CI-FULL real-code inspection.",
   "Do not hand-edit generated files to fake PASS.",
 ];
 

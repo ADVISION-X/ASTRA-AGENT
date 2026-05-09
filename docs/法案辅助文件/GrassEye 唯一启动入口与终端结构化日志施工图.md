@@ -368,5 +368,5 @@ TerminalStructuredLogEvent 字段：
 ## 执法与验收
 
 - startup 子边界由 commander-console-capability inspector 以 startup child-contract checker 身份统筹执法。
-- 启动治理的最终判定必须通过 audit runner。
+- 启动治理的最终判定必须通过 CI-FULL。
 - verify 脚本、smoke 脚本、acceptance 脚本都不是 startup owner proof。

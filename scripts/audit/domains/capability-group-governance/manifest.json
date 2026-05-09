@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/capability-group-governance/inspector.ts",
   "engine": "law",
-  "supportsEvidenceModes": ["law", "fs"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-CAPABILITY-GROUP-001-V1",
     "GRASSEYE-CAPABILITY-GROUP-002-V1",

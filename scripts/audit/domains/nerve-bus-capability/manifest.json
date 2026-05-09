@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
   "engine": "hybrid",
-  "supportsEvidenceModes": ["law", "fs", "hybrid"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-NERVE-BUS-CAPABILITY-001-V2",
     "GRASSEYE-NERVE-BUS-CAPABILITY-002-V2",

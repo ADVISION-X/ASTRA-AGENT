@@ -11,20 +11,39 @@ const buildUnavailableAuditSummary = (_error: unknown): CommanderAuditSummary =>
   totals: null,
 });
 
+type CiFullSummary = {
+  generatedAt?: string;
+  layers?: Array<{
+    steps?: Array<{
+      status?: string;
+    }>;
+  }>;
+};
+
+const collectCiFullTotals = (summary: CiFullSummary): CommanderAuditSummary["totals"] => {
+  const steps = (summary.layers ?? []).flatMap((layer) => layer.steps ?? []);
+  return {
+    inspectors: steps.length,
+    passed: steps.filter((step) => step.status === "PASS").length,
+    failed: steps.filter((step) => step.status === "FAIL").length,
+    blocking: steps.filter((step) => step.status === "FAIL").length,
+  };
+};
+
 export const readAuditSummary = async (): Promise<CommanderAuditSummary> => {
   try {
-    const [runnerSummaryText, phaseGateText] = await Promise.all([
-      readFile(path.join(process.cwd(), "scripts", "audit", "generated", "runner-summary.json"), "utf8"),
+    const [ciFullSummaryText, phaseGateText] = await Promise.all([
+      readFile(path.join(process.cwd(), "scripts", "audit", "generated", "ci-full-summary.generated.json"), "utf8"),
       readFile(path.join(process.cwd(), "scripts", "audit", "phase-gates", "phase-04-full-enforcement.json"), "utf8"),
     ]);
-    const runnerSummary = JSON.parse(runnerSummaryText) as { generatedAt?: string; totals?: CommanderAuditSummary["totals"] };
+    const ciFullSummary = JSON.parse(ciFullSummaryText) as CiFullSummary;
     const phaseGate = JSON.parse(phaseGateText) as { phase: string; activeLawDomains: string[] };
     return {
       phase: phaseGate.phase,
       activeLawDomains: phaseGate.activeLawDomains,
-      lastGeneratedAt: phaseGate.phase ? runnerSummary.generatedAt ?? null : null,
-      lastRunGeneratedAt: runnerSummary.generatedAt ?? null,
-      totals: runnerSummary.totals ?? null,
+      lastGeneratedAt: phaseGate.phase ? ciFullSummary.generatedAt ?? null : null,
+      lastRunGeneratedAt: ciFullSummary.generatedAt ?? null,
+      totals: collectCiFullTotals(ciFullSummary),
     };
   } catch (error) {
     return buildUnavailableAuditSummary(error);

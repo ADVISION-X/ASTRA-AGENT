@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/map-plugin-package/inspector.ts",
   "engine": "hybrid",
-  "supportsEvidenceModes": ["law", "fs", "hybrid"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-MAP-PLUGIN-001-V2",
     "GRASSEYE-MAP-PLUGIN-002-V2",

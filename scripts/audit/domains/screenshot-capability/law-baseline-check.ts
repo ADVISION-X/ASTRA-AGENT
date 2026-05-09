@@ -11,13 +11,13 @@ const INSPECTOR_FILE = "scripts/audit/domains/screenshot-capability/inspector.ts
 async function collectLawFileFindings(findings: Finding[]): Promise<void> {
   const content = await readFile(LAW_FILE, "utf8");
   if (content.includes("enforcementMode: manual-first")) {
-    findings.push(createFinding({ lawId: LAW_IDS.NEGATIVE_PROOF, file: LAW_FILE, line: 1, severity: "fatal", message: "Screenshot active laws must remain machine-blocking." }));
+    findings.push(createFinding({ lawId: LAW_IDS.REAL_CODE_INSPECTION, file: LAW_FILE, line: 1, severity: "fatal", message: "Screenshot active laws must remain machine-blocking." }));
   }
   if (content.includes("tier: P1")) {
-    findings.push(createFinding({ lawId: LAW_IDS.NEGATIVE_PROOF, file: LAW_FILE, line: 1, severity: "fatal", message: "Screenshot active laws must remain P0." }));
+    findings.push(createFinding({ lawId: LAW_IDS.REAL_CODE_INSPECTION, file: LAW_FILE, line: 1, severity: "fatal", message: "Screenshot active laws must remain P0." }));
   }
-  if (content.includes("evidenceMode: law\n") || content.includes("evidenceMode: law\r\n")) {
-    findings.push(createFinding({ lawId: LAW_IDS.NEGATIVE_PROOF, file: LAW_FILE, line: 1, severity: "fatal", message: "Screenshot active laws must keep law+inspector evidence mode." }));
+  if (!content.includes("evidenceMode: law+blueprint+real-code-inspection")) {
+    findings.push(createFinding({ lawId: LAW_IDS.REAL_CODE_INSPECTION, file: LAW_FILE, line: 1, severity: "fatal", message: "Screenshot active laws must keep law+blueprint+real-code-inspection evidence mode." }));
   }
 }
 

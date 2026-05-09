@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/audit-system/inspector.ts",
   "engine": "hybrid",
-  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-AUDIT-SYSTEM-001-V1",
     "GRASSEYE-AUDIT-SYSTEM-002-V1",

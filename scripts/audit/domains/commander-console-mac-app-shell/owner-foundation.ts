@@ -64,7 +64,7 @@ const collectRuntimeRegistrationFindings = (context: InspectorContext): Finding[
     findings.push(createFinding({ lawId: LAW_IDS.AUDIT, file: MANIFEST_PATH, line: 1, severity: "fatal", message: "Generated enforcement matrix does not contain commander-console-mac-app-shell." }));
   }
   if (!context.planOwnersByDomain.get(CAPABILITY_DOMAIN)) {
-    findings.push(createFinding({ lawId: LAW_IDS.AUDIT, file: PHASE_GATE_PATH, line: 1, severity: "fatal", message: "Phase gate does not activate commander-console-mac-app-shell, so the audit runner would skip it." }));
+    findings.push(createFinding({ lawId: LAW_IDS.AUDIT, file: PHASE_GATE_PATH, line: 1, severity: "fatal", message: "Phase gate does not activate commander-console-mac-app-shell, so CI-FULL would skip it." }));
   }
 
   return findings;

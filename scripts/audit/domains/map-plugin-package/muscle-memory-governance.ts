@@ -4,22 +4,15 @@ import { listFilesRecursive } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { listRoutePlans } from "../../../../src/map-plugins/route-plans/index.js";
 import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
 import { MAP_PLUGIN_LAWS } from "./constants.js";
+import { collectAdvanceNextItemRuntimeFindings } from "./muscle-memory-governance-next-item-runtime.js";
 import { collectNonAiNextSemanticFindings, collectPreviousVideoOwnerFindings } from "./muscle-memory-governance-next-semantic.js";
+import { collectRoutePlanMetadataFindings } from "./muscle-memory-governance-route-plan-metadata.js";
 
 const ROUTE_PLAN_ROOT = "src/map-plugins/route-plans";
 const ROUTE_PLAN_SCHEMA_PATH = `${ROUTE_PLAN_ROOT}/route-plan.schema.ts`;
 const PRODUCT_DISCOVERY_ROUTE_PLAN_PATH = `${ROUTE_PLAN_ROOT}/product-discovery-route-plan.v1.ts`;
-const PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS_PATH = `${ROUTE_PLAN_ROOT}/product-discovery-route-plan.transitions.next-item.ts`;
-const WORKBENCH_TEXT_INPUT_DISPATCH_PATH = "src/lib/local-runtime/workbench-text-input-dispatch-input.ts";
-const WORKBENCH_VISUAL_DISPATCH_PATH = "src/lib/local-runtime/workbench-visual-dispatch-input.ts";
-const WORKBENCH_NEXT_ITEM_DISPATCH_PATH = "src/lib/local-runtime/workbench-visual-dispatch-input-next-item.ts";
-const LOOP_GUARD_PATH = "src/capabilities/orchestration/runtime/loop-guard.ts";
-const LOOP_GUARD_PROOF_PATH = "src/capabilities/orchestration/runtime/orchestration-loop-proof-builders.ts";
-const PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH = `${ROUTE_PLAN_ROOT}/product-discovery-route-plan.steps.ts`;
-const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH = `${ROUTE_PLAN_ROOT}/product-discovery-route-plan.transitions.ts`;
 const MACOS_LOCAL_PROGRAM_OPEN_SMOKE_PATH = "src/map-plugins/builtins/macos-local-program-open-smoke.meta.map-package.json";
 const CORE_MUSCLES = new Set(["visible-state", "target-action", "evidence-analysis", "advance-next-item"]);
 const PLATFORM_SPECIFIC_MUSCLE_TOKENS = [
@@ -106,30 +99,6 @@ const toFinding = (file: string, message: string, detail?: string): Finding =>
   });
 
 const readRepoFile = async (file: string): Promise<string> => readFile(pathFromRepoRoot(file), "utf8");
-
-const collectRoutePlanMetadataFindings = (): Finding[] => {
-  const findings: Finding[] = [];
-  for (const routePlan of listRoutePlans()) {
-    if (routePlan.routePlanKind !== "muscle-memory") {
-      findings.push(toFinding(ROUTE_PLAN_ROOT, "Route Plan must declare routePlanKind=muscle-memory.", routePlan.routePlanId));
-    }
-    for (const segment of routePlan.muscleSegments ?? []) {
-      if (!CORE_MUSCLES.has(segment.coreMuscle)) {
-        findings.push(toFinding(ROUTE_PLAN_ROOT, "Route Plan muscleSegments may only use the four core muscles.", `${routePlan.routePlanId}:${segment.segmentId}:${segment.coreMuscle}`));
-      }
-      if (segment.allowedAbilityGroups.includes("map-plugin-package")) {
-        findings.push(toFinding(ROUTE_PLAN_ROOT, "Muscle segments must not list map-plugin-package as an allowed ability group.", `${routePlan.routePlanId}:${segment.segmentId}`));
-      }
-      if (!segment.aiRequired && segment.producesRefs.some((ref) => ref.toLowerCase().includes("routelabel"))) {
-        findings.push(toFinding(ROUTE_PLAN_ROOT, "Non-AI muscle segments must not produce routeLabel refs.", `${routePlan.routePlanId}:${segment.segmentId}`));
-      }
-      if (segment.aiRequired && segment.semanticOwner !== "ai") {
-        findings.push(toFinding(ROUTE_PLAN_ROOT, "Semantic muscle segments must declare semanticOwner=ai.", `${routePlan.routePlanId}:${segment.segmentId}`));
-      }
-    }
-  }
-  return findings;
-};
 
 async function collectRoutePlanSourceFindings(): Promise<Finding[]> {
   const files = (await listFilesRecursive(pathFromRepoRoot(ROUTE_PLAN_ROOT)))
@@ -222,80 +191,6 @@ async function collectProductDiscoveryRequiredFindings(): Promise<Finding[]> {
   return missing.length > 0
     ? [toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH, "product-discovery-route-plan.v1 must declare four-core-muscle governance metadata.", missing.join(", "))]
     : [];
-}
-
-async function collectAdvanceNextItemRuntimeFindings(): Promise<Finding[]> {
-  const findings: Finding[] = [];
-  const routePlanText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH);
-  const routePlanStepsText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH);
-  const routePlanTransitionsText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH);
-  const routePlanNextItemTransitionsText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS_PATH);
-  const routePlanAllTransitionsText = `${routePlanTransitionsText}\n${routePlanNextItemTransitionsText}`;
-  const routePlanRuntimeText = `${routePlanText}\n${routePlanStepsText}\n${routePlanAllTransitionsText}`;
-  const textInputDispatchText = await readRepoFile(WORKBENCH_TEXT_INPUT_DISPATCH_PATH);
-  const visualDispatchText = await readRepoFile(WORKBENCH_VISUAL_DISPATCH_PATH);
-  const nextItemDispatchText = await readRepoFile(WORKBENCH_NEXT_ITEM_DISPATCH_PATH);
-  const visualRuntimeText = `${visualDispatchText}\n${nextItemDispatchText}`;
-  const loopGuardText = await readRepoFile(LOOP_GUARD_PATH);
-  const loopGuardProofText = await readRepoFile(LOOP_GUARD_PROOF_PATH);
-  const forbiddenLegacyNextItemTokens = [
-    'stepId: "analyze-next-item-target-candidate"',
-    'stepId: "locate-next-item-target"',
-    'stepId: "normalize-next-video-arrow"',
-    'stepId: "click-next-video-arrow"',
-    'promptContractId: "vision.nextItemTargetCandidate.v1"',
-  ];
-
-  if (forbiddenLegacyNextItemTokens.some((token) => routePlanRuntimeText.includes(token))) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Advance Next Item main route must no longer include the legacy AI/Visual Target/Geometry/Click chain."));
-  }
-  if (!routePlanRuntimeText.includes('stepId: "press-next-video-key"')
-    || !routePlanRuntimeText.includes('childCapabilityId: "press-navigation-key"')
-    || !routePlanRuntimeText.includes('targetAbilityGroupId: "text-input"')) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Advance Next Item must declare press-next-video-key as a text-input/press-navigation-key muscle step."));
-  }
-  if (!routePlanAllTransitionsText.includes('fromStepId: "observe-next-item-page-state",\n    onStatus: "success",\n    toStepId: "press-next-video-key"')
-    || !routePlanAllTransitionsText.includes('fromStepId: "press-next-video-key",\n    onStatus: "success",\n    toStepId: "capture-next-item-verification-viewport"')) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH, "Advance Next Item transitions must route observe-next-item-page-state -> press-next-video-key -> capture-next-item-verification-viewport."));
-  }
-  if (!routePlanText.includes('allowedAbilityGroups: ["page-state", "text-input", "screenshot", "ai"]')
-    || !routePlanText.includes("requiresTargetCandidateRef: false")
-    || !routePlanText.includes('fallbackPolicy: "fallback-only-with-post-click-observation"')) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH, "Advance Next Item muscle metadata must reflect page-state + text-input ownership and mandatory post-action observation."));
-  }
-  if (!textInputDispatchText.includes('childCapabilityId: "press-navigation-key"')
-    || !textInputDispatchText.includes('targetProofOwner: "page-state"')
-    || !textInputDispatchText.includes('focusProofOwner: "page-state"')
-    || !textInputDispatchText.includes('return "ArrowDown"')) {
-    findings.push(toFinding(WORKBENCH_TEXT_INPUT_DISPATCH_PATH, "press-navigation-key dispatch must bind page-state proof/focus and emit ArrowDown for press-next-video-key."));
-  }
-  if (!routePlanRuntimeText.includes('stepId: "observe-comments-entry-page-state"')
-    || !routePlanRuntimeText.includes('stepId: "analyze-comments-entry-target-candidate"')
-    || !routePlanRuntimeText.includes('stepId: "locate-comments-entry-target"')
-    || !routePlanRuntimeText.includes('promptContractId: "vision.commentsEntryTargetCandidate.v1"')) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Product-yes must be governed by the comments-entry AI candidate chain and bind vision.commentsEntryTargetCandidate.v1."));
-  }
-  if (!routePlanRuntimeText.includes('stepId: "verify-next-item-advanced"') || !routePlanAllTransitionsText.includes('toStepId: "verify-next-item-advanced"')) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Route Plan must include verify-next-item-advanced so AI judges whether a new video is visible after press-navigation-key."));
-  }
-  if (!routePlanRuntimeText.includes('promptContractId: "vision.nextItemAdvanced.v1"')
-    || !routePlanAllTransitionsText.includes("NEXT_ITEM_ADVANCED_ROUTE_LABEL")
-    || !routePlanAllTransitionsText.includes("NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL")) {
-    findings.push(toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH, "verify-next-item-advanced must use the dedicated vision.nextItemAdvanced.v1 contract and dedicated next-item route labels."));
-  }
-  if (!visualRuntimeText.includes("buildCommentsEntryVisualTargetCommand") || visualRuntimeText.includes("Math.round(geometry.viewportWidth / 2)") || visualRuntimeText.includes("Math.round(geometry.viewportHeight / 2)")) {
-    findings.push(toFinding(WORKBENCH_VISUAL_DISPATCH_PATH, "Comments-entry visual dispatch must consume governed AI candidate geometry and must not fall back to center-screen geometry."));
-  }
-  if (visualRuntimeText.includes('return buildDeterministicNextVideoArrowCommand(runtime, envelope, inputPayload);')) {
-    findings.push(toFinding(WORKBENCH_NEXT_ITEM_DISPATCH_PATH, "Legacy normalize-next-video-arrow deterministic path must not be reinstated as the active next-item route."));
-  }
-  if (!loopGuardText.includes("completed_by_run_limit") || !loopGuardText.includes("blocked_by_loop_guard")) {
-    findings.push(toFinding(LOOP_GUARD_PATH, "Loop guard must distinguish run-limit completion from blocked loop-guard failures."));
-  }
-  if (loopGuardProofText.includes('failureReason: input.failureReason ?? "loop_guard_triggered"')) {
-    findings.push(toFinding(LOOP_GUARD_PROOF_PATH, "Loop guard proof must not collapse completed_by_run_limit/blocked_by_loop_guard into generic loop_guard_triggered."));
-  }
-  return findings;
 }
 
 async function collectCoreMuscleSchemaFindings(): Promise<Finding[]> {

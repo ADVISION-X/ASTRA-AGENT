@@ -8,8 +8,7 @@ import { LAW_IDS } from "./config.js";
 
 const LAW_FILE = ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md";
 
-export async function runLawBaselineCheck(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
-  const content = await readFile(pathFromRepoRoot(LAW_FILE), "utf8");
+const collectLawBaselineFindings = (content: string): Finding[] => {
   const findings: Finding[] = [];
 
   if (content.includes("enforcementMode: manual-first")) {
@@ -27,6 +26,13 @@ export async function runLawBaselineCheck(): Promise<{ findings: Finding[]; phas
   if (!content.includes("Explicit governed review is not a valid substitute for PAV in production automation.")) {
     findings.push(createFinding({ lawId: LAW_IDS.PACKAGE, file: LAW_FILE, line: 1, severity: "fatal", message: "PAV law must explicitly forbid governed review from replacing PAV for production actions." }));
   }
+
+  return findings;
+};
+
+export async function runLawBaselineCheck(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {
+  const content = await readFile(pathFromRepoRoot(LAW_FILE), "utf8");
+  const findings = collectLawBaselineFindings(content);
 
   return {
     findings,

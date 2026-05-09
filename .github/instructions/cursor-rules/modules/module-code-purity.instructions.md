@@ -577,7 +577,7 @@ capabilityDomain: audit-system
 enforcementMode: machine-blocking  
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: all active code-purity laws must be proven by real enforcement, generated audit artifacts, runner execution, and real-code-inspection.
+summary: all active code-purity laws must be enforced by CI-FULL, generated audit artifacts, and real-code-inspection.
 
 ### 主题
 
@@ -590,19 +590,19 @@ Every active code-purity law must be represented in real enforcement.
 Required direction:
 - Every active code-purity law must have inspector coverage.
 - Every P0/P1 code-purity law must have real-code-inspection.
-- Every code-purity inspector must be connected to audit runner.
+- Code-purity must run as a mandatory CI-FULL foundation step.
 - Generated audit artifacts must include code-purity coverage.
-- Runner output must prove execution.
-- Real-code-inspection must demonstrate a rejected regression and a restored pass after the fix is applied.
+- CI-FULL summary must record the code-purity step result.
+- Real-code-inspection must inspect current src/** and scripts/** source truth.
 - Audit-system must fail if code-purity enforcement is removed, bypassed, warning-only, or disconnected.
 
 ### 禁止
 
 FORBIDDEN:
 - Active law without inspector.
-- Inspector without runner.
-- Runner without real-code-inspection for P0/P1 purity law.
-- Inspection harness that does not verify the regression and fix.
+- Code-purity disconnected from CI-FULL.
+- CI-FULL without real-code-inspection for P0/P1 purity law.
+- Inspection harness that does not inspect current real code.
 - Generated fake PASS.
 - Manual-only claims as enforcement.
 - Warning-only purity findings for P0 violations.

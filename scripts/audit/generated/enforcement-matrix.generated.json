@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T15:23:06.930Z",
+  "generatedAt": "2026-05-09T15:47:01.671Z",
   "owners": [
     {
       "inspectorId": "ai-capability-owner",
@@ -9,10 +9,7 @@
       "entry": "scripts/audit/domains/ai-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "config",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -47,26 +44,6 @@
       ]
     },
     {
-      "inspectorId": "audit-coverage-governance-owner",
-      "capabilityDomain": "audit-coverage-governance",
-      "ownerKind": "standalone-audit",
-      "manifestPath": "scripts/audit/domains/audit-coverage-governance/manifest.json",
-      "entry": "scripts/audit/domains/audit-coverage-governance/inspector.ts",
-      "engine": "hybrid",
-      "supportsEvidenceModes": [
-        "law",
-        "blueprint",
-        "fs",
-        "generated-artifact"
-      ],
-      "lawIds": [],
-      "readsLawFiles": [],
-      "readsBlueprintFiles": [
-        "docs/法案辅助文件/GrassEye 执法系统施工图.md",
-        "docs/法案辅助文件/GrassEye 法案冻结基线.md"
-      ]
-    },
-    {
       "inspectorId": "audit-system-owner",
       "capabilityDomain": "audit-system",
       "ownerKind": "foundation-law",
@@ -74,10 +51,7 @@
       "entry": "scripts/audit/domains/audit-system/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "config",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-AUDIT-SYSTEM-001-V1",
@@ -115,8 +89,7 @@
       "entry": "scripts/audit/domains/capability-group-governance/inspector.ts",
       "engine": "law",
       "supportsEvidenceModes": [
-        "law",
-        "fs"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-CAPABILITY-GROUP-001-V1",
@@ -146,9 +119,7 @@
       "entry": "scripts/audit/domains/commander-console-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
@@ -184,10 +155,7 @@
       "entry": "scripts/audit/domains/debug-loop-boundary/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "config",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1",
@@ -214,10 +182,7 @@
       "entry": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "config",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
@@ -248,10 +213,7 @@
       "entry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "config",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3",
@@ -278,8 +240,7 @@
       "entry": "scripts/audit/domains/index/inspector.ts",
       "engine": "law",
       "supportsEvidenceModes": [
-        "law",
-        "schema"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [],
       "readsLawFiles": [
@@ -299,11 +260,7 @@
       "entry": "scripts/audit/domains/kernel/inspector.ts",
       "engine": "law",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "ast",
-        "import-graph",
-        "symbol"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [],
       "readsLawFiles": [
@@ -322,9 +279,7 @@
       "entry": "scripts/audit/domains/map-plugin-package/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-MAP-PLUGIN-001-V2",
@@ -372,10 +327,7 @@
       "entry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "config",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2",
@@ -402,10 +354,7 @@
       "entry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "config",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V2",
@@ -442,9 +391,7 @@
       "entry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-NERVE-BUS-CAPABILITY-001-V2",
@@ -473,10 +420,7 @@
       "entry": "scripts/audit/domains/open-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "config",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-OPEN-CAPABILITY-001-V2",
@@ -507,9 +451,7 @@
       "entry": "scripts/audit/domains/orchestration-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V3",
@@ -538,9 +480,7 @@
       "entry": "scripts/audit/domains/page-state-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-PAGE-STATE-CAPABILITY-001-V2",
@@ -567,9 +507,7 @@
       "entry": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2",
@@ -596,10 +534,7 @@
       "entry": "scripts/audit/domains/screenshot-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "config",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-SCREENSHOT-CAPABILITY-001-V2",
@@ -628,10 +563,7 @@
       "entry": "scripts/audit/domains/security-privacy/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "config",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-SECURITY-PRIVACY-001-V1",
@@ -651,10 +583,7 @@
       "entry": "scripts/audit/domains/text-input-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "config",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2",
@@ -682,10 +611,7 @@
       "entry": "scripts/audit/domains/type-safety/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "config",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-TYPE-SAFETY-001-V1"
@@ -703,10 +629,7 @@
       "entry": "scripts/audit/domains/visual-target-capability/inspector.ts",
       "engine": "hybrid",
       "supportsEvidenceModes": [
-        "law",
-        "fs",
-        "config",
-        "hybrid"
+        "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
         "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2",

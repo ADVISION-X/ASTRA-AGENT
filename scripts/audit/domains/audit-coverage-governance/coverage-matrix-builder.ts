@@ -1,7 +1,7 @@
 import { loadDomainManifests } from "../../core/manifests.js";
 import { readJsonFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
-import type { CoverageRequirement, CoverageSummary, NegativeProofCoverageEvidence } from "./coverage-types.js";
+import type { CoverageRequirement, CoverageSummary } from "./coverage-types.js";
 import { PILOT_OWNER_DOMAINS } from "./pilot-owners.js";
 import { classifyInspectorStrength, getStrengthRank, maxStrength } from "./enforcement-strength-classifier.js";
 

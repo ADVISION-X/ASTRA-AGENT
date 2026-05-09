@@ -566,8 +566,8 @@ code-purity domain exists
 manifest exists
 inspector exists
 runner executes inspector
-audit:code-purity command exists
-audit:build generates artifacts
+CI-FULL code-purity stage command exists
+ci:full generates artifacts
 generated artifacts include code-purity
 active code-purity laws have coverage
 P0/P1 rules have real-code-inspection
@@ -727,10 +727,10 @@ REMEDIATION
 
 1. 读取冻结法案。
 2. 读取本施工图。
-3. `npm run audit:build`
-4. `npm run audit:code-purity`
+3. `npm run ci:full`
+4. CI-FULL code-purity stage
 5. 如无独立命令，必须补齐。
-6. `npm run audit`
+6. `npm run ci:full`
 7. 生成 inventory。
 8. 建立 violation dossier。
 9. 建立 WHY。
@@ -747,9 +747,9 @@ REMEDIATION
 必须存在：
 
 ```txt
-npm run audit:build
-npm run audit:code-purity
-npm run audit
+npm run ci:full
+CI-FULL code-purity stage
+npm run ci:full
 npm run typecheck -- --pretty false
 git diff --check
 ```
@@ -792,7 +792,7 @@ Code Purity Phase 3.5 READY 只有在以下全部成立时才允许：
 2. 旧 2000 / 60 / 8 阈值不再作为 active baseline。
 3. 300 / 40 / 24 / 3 阈值真实执法。
 4. owner boundary 使用真实能力组粒度。
-5. `audit:code-purity` 存在并可运行。
+5. `CI-FULL code-purity stage` 存在并可运行。
 6. code-purity inspector 接入 runner。
 7. audit-system 能发现 active law 无 enforcement。
 8. real-code-inspection 真实执行。

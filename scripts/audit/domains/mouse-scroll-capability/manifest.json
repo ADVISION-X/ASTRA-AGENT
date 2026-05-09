@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
   "engine": "hybrid",
-  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V2",
     "GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V2",

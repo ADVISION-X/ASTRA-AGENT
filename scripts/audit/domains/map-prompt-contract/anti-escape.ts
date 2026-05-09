@@ -13,7 +13,7 @@ export async function runAntiEscape(context: InspectorContext): Promise<{ findin
       file: "scripts/audit/domains/map-prompt-contract/manifest.json",
       line: 1,
       severity: "error",
-      message: "Standalone map-prompt-contract inspector must not declare a manifest owner entry because audit:build only supports unique capability-domain owners.",
+      message: "Standalone map-prompt-contract inspector must not declare a manifest owner entry because CI-FULL only supports unique capability-domain owners.",
     }));
   }
 
@@ -24,7 +24,7 @@ export async function runAntiEscape(context: InspectorContext): Promise<{ findin
       findings.length === 0 ? "PASS" : "SCRIPT OVERREACH",
       findings.length === 0,
       findings.length === 0
-        ? "Standalone map-prompt-contract enforcement stays outside owner-manifest registration and does not collide with audit:build owner loading."
+        ? "Standalone map-prompt-contract enforcement stays outside owner-manifest registration and does not collide with CI-FULL owner loading."
         : "Standalone map-prompt-contract enforcement attempted to escape into owner-manifest registration.",
     ),
   };

@@ -108,9 +108,9 @@ const createNonOwnerAuditEntryFinding = (ownerId: string): Finding => {
       ? REQUIREMENT_ID_014
       : REQUIREMENT_ID_011;
   const message = ownerId === "local-data"
-    ? "package.json must not expose audit:local-data; local-data must not own evidence, ledger, AI-result, snapshot, or operator-snapshot truth."
+    ? "package.json must not expose local-data quality entrypoints; local-data must not own evidence, ledger, AI-result, snapshot, or operator-snapshot truth."
     : ownerId === "platform-action"
-      ? "package.json must not expose audit:platform-action; platform-action must not own open, screenshot, visual target, geometry, click, scroll, page-state, or post-action verification truth."
+      ? "package.json must not expose platform-action quality entrypoints; platform-action must not own open, screenshot, visual target, geometry, click, scroll, page-state, or post-action verification truth."
       : `package.json must not expose ${scriptName}; non-capability surfaces must not publish audit owners.`;
 
   return createRequirementFinding({ lawId, file: "package.json", message });

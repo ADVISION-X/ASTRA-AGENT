@@ -37,6 +37,41 @@ type LoopTerminalOutcome = {
   lastProof: RuntimeProofLike | null;
 };
 
+const LAST_RESULT_DIAGNOSTIC_REF_KEYS = [
+  "implementationStatus",
+  "runtimeCallId",
+  "rawOutputRef",
+  "rawOutputHash",
+  "diagnosticPayloadRef",
+  "schemaIssueCount",
+  "schemaDecision",
+  "schemaValidationStatus",
+  "qualityDecision",
+  "qualityDecisionReason",
+  "outputBoundaryDecision",
+  "minimumConfidence",
+  "dataQualityFlags",
+  "parsedDecision",
+  "screenshotEvidenceId",
+  "artifactRef",
+  "artifactStorageRef",
+  "outputHash",
+  "artifactHash",
+  "byteSize",
+  "width",
+  "height",
+  "coordinateSpace",
+  "runtimeProofRef",
+  "promptInputRef",
+  "aiInputArtifactRef",
+  "aiInputStorageRef",
+  "sourceScreenshotEvidenceId",
+  "sourceStorageRef",
+  "preparedImageHash",
+  "preparedImageWidth",
+  "preparedImageHeight",
+] as const;
+
 function getTerminalEventType(status: MissionState["status"]): "MISSION_FAILED" | "MISSION_FINALIZED" | "MISSION_REVIEW_REQUIRED" | "MISSION_STOPPED" | null {
   if (status === "failed") {
     return "MISSION_FAILED";
@@ -51,52 +86,28 @@ function getTerminalEventType(status: MissionState["status"]): "MISSION_FAILED" 
   return status === "completed" ? "MISSION_FINALIZED" : null;
 }
 
-function collectLastResultRefs(lastResult: StepResultRecord): string[] {
-  const diagnosticRefs = [
-    "implementationStatus",
-    "runtimeCallId",
-    "rawOutputRef",
-    "rawOutputHash",
-    "diagnosticPayloadRef",
-    "schemaIssueCount",
-    "schemaDecision",
-    "schemaValidationStatus",
-    "qualityDecision",
-    "qualityDecisionReason",
-    "outputBoundaryDecision",
-    "minimumConfidence",
-    "dataQualityFlags",
-    "parsedDecision",
-    "screenshotEvidenceId",
-    "artifactRef",
-    "artifactStorageRef",
-    "outputHash",
-    "artifactHash",
-    "byteSize",
-    "width",
-    "height",
-    "coordinateSpace",
-    "runtimeProofRef",
-    "promptInputRef",
-    "aiInputArtifactRef",
-    "aiInputStorageRef",
-    "sourceScreenshotEvidenceId",
-    "sourceStorageRef",
-    "preparedImageHash",
-    "preparedImageWidth",
-    "preparedImageHeight",
-  ]
-    .map((key) => {
-      const value = lastResult.branchFieldValues[key];
-      return value !== null && value !== undefined && String(value).length > 0 ? `${key}=${String(value)}` : null;
-    })
-    .filter((value): value is string => Boolean(value));
+function formatDiagnosticBranchRef(lastResult: StepResultRecord, key: string): string | null {
+  const value = lastResult.branchFieldValues[key];
+  return value !== null && value !== undefined && String(value).length > 0
+    ? `${key}=${String(value)}`
+    : null;
+}
 
+function collectDiagnosticRefs(lastResult: StepResultRecord): string[] {
+  return LAST_RESULT_DIAGNOSTIC_REF_KEYS
+    .map((key) => formatDiagnosticBranchRef(lastResult, key))
+    .filter((value): value is string => Boolean(value));
+}
+
+function collectPrimaryResultRefs(lastResult: StepResultRecord): string[] {
   return [
     ...(lastResult.resultRef ? [lastResult.resultRef] : []),
     ...(lastResult.outputRef ? [lastResult.outputRef] : []),
-    ...diagnosticRefs,
   ];
+}
+
+function collectLastResultRefs(lastResult: StepResultRecord): string[] {
+  return [...collectPrimaryResultRefs(lastResult), ...collectDiagnosticRefs(lastResult)];
 }
 
 function resolvePayloadRefValue(payloadRefs: MissionState["payloadRefs"], key: string): string | null {

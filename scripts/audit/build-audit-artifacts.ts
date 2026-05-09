@@ -69,7 +69,7 @@ const collectActiveDomainConflicts = (context: ManifestCollectionContext): Audit
 
 const collectManifestLawConflicts = async (
   manifests: Awaited<ReturnType<typeof loadDomainManifests>>,
-  lawsByDomain: Map<string, LawRecord[]>,
+  lawsByDomain: ReadonlyMap<string, LawRecord[]>,
 ): Promise<AuditConflict[]> => {
   const conflicts: AuditConflict[] = [];
 
@@ -151,7 +151,7 @@ const collectManifestConflicts = async (
 ): Promise<AuditConflict[]> => {
   const frozenBaseline = await loadFrozenBaselineDomains();
   const context: ManifestCollectionContext = {
-    lawsByDomain: groupLawsByDomain(laws),
+    lawsByDomain: new Map(groupLawsByDomain(laws)),
     manifestsByDomain: new Map(manifests.map((manifest) => [manifest.capabilityDomain, manifest])),
     phaseGate,
     requiredPhaseDomains: frozenBaseline.activeLawDomains,

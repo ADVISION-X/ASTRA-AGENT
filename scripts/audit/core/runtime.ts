@@ -1,8 +1,7 @@
-import { readJsonFile, writeJsonFile } from "./filesystem.js";
+import { readJsonFile } from "./filesystem.js";
 import { getRegisteredInspector } from "./inspector-registry.js";
 import { generatedArtifactPaths } from "./generated-artifact-paths.js";
 import { defaultPhaseGatePath, repoRoot } from "./path-roots.js";
-import path from "node:path";
 import type {
   AuditConflictsSnapshot,
   AuditPlan,
@@ -11,7 +10,6 @@ import type {
   PhaseGate,
 } from "./schema-generated-artifacts.js";
 import type { EnforcementMatrix } from "./schema-manifests.js";
-import type { RunnerSummary } from "./schema-runner.js";
 import type { DomainInspector, InspectorContext } from "./schema.js";
 import { loadDomainManifests } from "./manifests.js";
 
@@ -54,20 +52,6 @@ export const loadInspector = async (entry: string): Promise<DomainInspector> => 
   }
 
   return inspector;
-};
-
-export const writeRunnerSummary = async (summary: RunnerSummary): Promise<void> => {
-  await writeJsonFile(generatedArtifactPaths.runnerSummary, summary);
-};
-
-export const writeDomainRunnerSummary = async (
-  capabilityDomain: string,
-  summary: RunnerSummary,
-): Promise<void> => {
-  await writeJsonFile(
-    path.join(generatedArtifactPaths.domainSummariesHome, `${capabilityDomain}.json`),
-    summary,
-  );
 };
 
 const STANDALONE_HEARTBEAT_INTERVAL_MS = 5_000;

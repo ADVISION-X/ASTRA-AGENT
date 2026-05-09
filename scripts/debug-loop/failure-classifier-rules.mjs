@@ -18,7 +18,7 @@ const OWNER_PATTERNS = [
 ];
 
 const OWNER_SOURCE_HINTS = [
-  ["audit-system", /audit-build|owner-audit|runner-summary|law-registry|enforcement-matrix|audit-plan/i],
+  ["audit-system", /ci-full|law-registry|enforcement-matrix|audit-plan/i],
   ["map-plugin-package", /map-resolver|validationReportRef|humanApprovalRef|promptBindings/i],
   ["orchestration", /runtime-recheck/i],
 ];
@@ -26,7 +26,7 @@ const OWNER_SOURCE_HINTS = [
 const LAW_AND_AUDIT_RULES = [
   [/conflict/i, ["LAW_CONFLICT", "audit-system", "LAW_FIX"]],
   [/law|registry|matrix|enforcement/i, ["LAW_SOURCE_ERROR", "audit-system", "LAW_FIX"]],
-  [/audit|inspector|negative-proof/i, ["AUDIT_ENFORCEMENT_ERROR", "audit-system", "AUDIT_FIX"]],
+  [/audit|inspector|real-code-inspection|ci-full/i, ["AUDIT_ENFORCEMENT_ERROR", "audit-system", "AUDIT_FIX"]],
 ];
 
 export function collectEvidenceRefs(signals = [], limit = 5) {
@@ -82,8 +82,8 @@ function hasText(signals, pattern) {
 
 function classifyLawAndAudit(logIndex) {
   const fatalContext = [logIndex.firstFatal?.text ?? "", logIndex.firstBlocking?.text ?? ""].join(" ");
-  const missingAuditArtifacts = (logIndex.missingLogSources ?? []).some((sourceName) => /runner-summary|law-registry|enforcement-matrix|audit-plan/i.test(sourceName));
-  const hasLawContext = /law|registry|matrix|enforcement|audit|inspector|negative-proof/i.test(fatalContext);
+  const missingAuditArtifacts = (logIndex.missingLogSources ?? []).some((sourceName) => /ci-full-summary|law-registry|enforcement-matrix|audit-plan/i.test(sourceName));
+  const hasLawContext = /law|registry|matrix|enforcement|audit|inspector|real-code-inspection|ci-full/i.test(fatalContext);
 
   if (!hasLawContext && !missingAuditArtifacts) {
     return null;
@@ -108,10 +108,7 @@ function buildVerificationClassification(input, value) {
 
 function hasAuditVerificationFailure(verificationResult) {
   return [
-    verificationResult.auditBuild === "FAIL",
-    verificationResult.ownerAuditRequired === true && verificationResult.ownerAudit === "FAIL",
     verificationResult.lawEnforcementPassed === false,
-    verificationResult.runnerSummaryIncludesOwner === false,
     verificationResult.warningOnlyP0 === true,
     verificationResult.detachedInspector === true,
     (verificationResult.missingMatrixLawIds?.length ?? 0) > 0,
@@ -121,21 +118,12 @@ function hasAuditVerificationFailure(verificationResult) {
 }
 
 const VERIFICATION_FAILURE_RESOLVERS = [
-  (input, verificationResult) => verificationResult.negativeProof === "FAIL" || verificationResult.emptyNegativeProof
-    ? buildVerificationClassification(input, {
-        failureCategory: "NEGATIVE_PROOF_ERROR",
-        owner: "audit-system",
-        rootCause: input.logIndex.negativeProofSignals[0]?.text ?? "Negative proof failed during verification.",
-        signals: input.logIndex.negativeProofSignals,
-        requiredFixType: "AUDIT_FIX",
-      })
-    : null,
   (input, verificationResult) => hasAuditVerificationFailure(verificationResult)
     ? buildVerificationClassification(input, {
         failureCategory: "AUDIT_ENFORCEMENT_ERROR",
         owner: "audit-system",
         rootCause: input.logIndex.firstFatal?.text ?? input.logIndex.inspectorSignals[0]?.text ?? input.logIndex.lawSignals[0]?.text ?? "Audit or law enforcement verification failed.",
-        signals: [...input.logIndex.lawSignals, ...input.logIndex.inspectorSignals, ...input.logIndex.negativeProofSignals],
+        signals: [...input.logIndex.lawSignals, ...input.logIndex.inspectorSignals, ...input.logIndex.realCodeInspectionSignals],
         requiredFixType: "AUDIT_FIX",
       })
     : null,
@@ -215,7 +203,7 @@ const SIGNAL_PRIORITY_RESOLVERS = [
       failureCategory,
       owner,
       rootCause: input.logIndex.firstFatal?.text ?? input.logIndex.firstBlocking?.text ?? failureCategory,
-      signals: [...input.logIndex.lawSignals, ...input.logIndex.inspectorSignals, ...input.logIndex.negativeProofSignals],
+      signals: [...input.logIndex.lawSignals, ...input.logIndex.inspectorSignals, ...input.logIndex.realCodeInspectionSignals],
       requiredFixType,
     });
   },

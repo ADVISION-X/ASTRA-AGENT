@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/debug-loop-boundary/inspector.ts",
   "engine": "hybrid",
-  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1",
     "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1",

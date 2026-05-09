@@ -61,6 +61,20 @@ function forbiddenFrameMapTokens(): string[] {
   ]);
 }
 
+async function collectSeedingMapFindings(seedingMap: { file: string; label: string; openStepId: string }, forbiddenTokens: string[]): Promise<Finding[]> {
+  const mapText = await readFile(pathFromRepoRoot(seedingMap.file), "utf8");
+  const leakedTokens = forbiddenTokens.filter((token) => mapText.includes(token));
+  return !mapText.includes(seedingMap.openStepId)
+    || !mapText.includes('"stepId": "capture-video-viewport"')
+    || !mapText.includes('"stepId": "prepare-ai-input"')
+    || !mapText.includes('"stepId": "startup-preparation"')
+    || !mapText.includes('"stepId": "judge-seeding-video"')
+    || !mapText.includes('"routePlanId": "product-discovery-route-plan.v1"')
+    || leakedTokens.length > 0
+      ? [createFinding({ lawId: LAW_ID, file: seedingMap.file, line: 1, severity: "fatal", message: `${seedingMap.label} must remain a weak entry-spine map. Product video sampling is Route Plan / ability-owned, and frame-specific capture or prompt refs must not appear in the production map.`, detail: leakedTokens.join(", ") })]
+      : [];
+}
+
 async function collectProductPresenceRoutePlanOwnedSamplingFindings(): Promise<Finding[]> {
   const findings: Finding[] = [];
   const project = createAuditProject();
@@ -84,19 +98,7 @@ async function collectProductPresenceRoutePlanOwnedSamplingFindings(): Promise<F
 
   const forbiddenTokens = forbiddenFrameMapTokens();
   for (const seedingMap of seedingMaps) {
-    const mapText = await readFile(pathFromRepoRoot(seedingMap.file), "utf8");
-    const leakedTokens = forbiddenTokens.filter((token) => mapText.includes(token));
-    if (
-      !mapText.includes(seedingMap.openStepId)
-      || !mapText.includes('"stepId": "capture-video-viewport"')
-      || !mapText.includes('"stepId": "prepare-ai-input"')
-      || !mapText.includes('"stepId": "startup-preparation"')
-      || !mapText.includes('"stepId": "judge-seeding-video"')
-      || !mapText.includes('"routePlanId": "product-discovery-route-plan.v1"')
-      || leakedTokens.length > 0
-    ) {
-      findings.push(createFinding({ lawId: LAW_ID, file: seedingMap.file, line: 1, severity: "fatal", message: `${seedingMap.label} must remain a weak entry-spine map. Product video sampling is Route Plan / ability-owned, and frame-specific capture or prompt refs must not appear in the production map.`, detail: leakedTokens.join(", ") }));
-    }
+    findings.push(...await collectSeedingMapFindings(seedingMap, forbiddenTokens));
   }
 
   return findings;

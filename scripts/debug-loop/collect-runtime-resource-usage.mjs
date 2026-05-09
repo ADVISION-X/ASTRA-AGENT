@@ -11,38 +11,62 @@ function parsePositiveInteger(value, minimum) {
   return Number.isFinite(parsed) && parsed >= minimum ? parsed : null;
 }
 
-function applyResourceUsageFlag(options, flag, value) {
-  if (flag === "--base-url" && value) {
+function applyBaseUrlFlag(options, value) {
+  if (value) {
     options.baseUrl = value;
-    return;
   }
+}
 
-  if (flag === "--interval-ms" && value) {
-    const parsed = parsePositiveInteger(value, 1);
-    if (parsed !== null) {
-      options.intervalMs = parsed;
-    }
-    return;
+function applyIntervalFlag(options, value) {
+  const parsed = parsePositiveInteger(value, 1);
+  if (parsed !== null) {
+    options.intervalMs = parsed;
   }
+}
 
-  if (flag === "--limit" && value) {
-    const parsed = parsePositiveInteger(value, 1);
-    if (parsed !== null) {
-      options.limit = parsed;
-    }
-    return;
+function applyLimitFlag(options, value) {
+  const parsed = parsePositiveInteger(value, 1);
+  if (parsed !== null) {
+    options.limit = parsed;
   }
+}
 
-  if (flag === "--samples" && value) {
-    const parsed = parsePositiveInteger(value, 0);
-    if (parsed !== null) {
-      options.samples = parsed;
-    }
-    return;
+function applySamplesFlag(options, value) {
+  const parsed = parsePositiveInteger(value, 0);
+  if (parsed !== null) {
+    options.samples = parsed;
   }
+}
 
-  if (flag === "--output" && value) {
+function applyOutputFlag(options, value) {
+  if (value) {
     options.output = path.resolve(process.cwd(), value);
+  }
+}
+
+function applyResourceUsageFlag(options, flag, value) {
+  if (flag === "--base-url") {
+    applyBaseUrlFlag(options, value);
+    return;
+  }
+
+  if (flag === "--interval-ms") {
+    applyIntervalFlag(options, value);
+    return;
+  }
+
+  if (flag === "--limit") {
+    applyLimitFlag(options, value);
+    return;
+  }
+
+  if (flag === "--samples") {
+    applySamplesFlag(options, value);
+    return;
+  }
+
+  if (flag === "--output") {
+    applyOutputFlag(options, value);
   }
 }
 

@@ -46,7 +46,7 @@ const safeSampleMemoryPeak = async (options: StepRunOptions, runtimeState: StepR
 const clearStepTimeout = (runtimeState: StepRuntimeState): void => {
   if (runtimeState.timeoutHandle) {
     clearTimeout(runtimeState.timeoutHandle);
-    runtimeState.timeoutHandle = undefined;
+    delete runtimeState.timeoutHandle;
   }
 };
 

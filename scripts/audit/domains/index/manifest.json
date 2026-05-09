@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/index/inspector.ts",
   "engine": "law",
-  "supportsEvidenceModes": ["law", "schema"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [],
   "readsLawFiles": [
     ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md",

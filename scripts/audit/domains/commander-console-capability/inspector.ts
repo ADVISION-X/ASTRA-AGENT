@@ -71,7 +71,7 @@ const createStartupGatePhase = (startupGateViolation: boolean): InspectorPhase =
     !startupGateViolation,
     startupGateViolation
       ? "Startup local-AI readiness gate drifted: update/preflight, fail-closed ordering, or bootstrap boundaries are no longer enforced."
-      : "Startup local-AI readiness gate remains enforced through Commander owner audit.",
+      : "Startup local-AI readiness gate remains enforced through the Commander owner inspector.",
   );
 
 const createStartupExitPhase = (startupExitViolation: boolean): InspectorPhase =>

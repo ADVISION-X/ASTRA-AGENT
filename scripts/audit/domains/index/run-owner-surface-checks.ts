@@ -5,10 +5,6 @@ import type { Finding, InspectorContext, InspectorPhase } from "../../core/schem
 
 import { indexInspectionConstants } from "./inspection-constants.js";
 
-type PackageJson = {
-  scripts?: Record<string, string>;
-};
-
 type IndexManifest = {
   inspectorId?: string;
   capabilityDomain?: string;
@@ -27,8 +23,6 @@ const {
   RUN_INSPECTOR_FILE,
 } = indexInspectionConstants;
 const STANDARD_PACKAGE_BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye_能力组标准包与执法结构统一施工图.md";
-
-const EXPECTED_AUDIT_SCRIPT = "node --import tsx scripts/audit/domains/index/run-inspector.ts";
 
 const addMissingFileFinding = (findings: Finding[], file: string, message: string): void => {
   findings.push(createFinding({
@@ -79,20 +73,6 @@ const collectManifestFindings = async (): Promise<Finding[]> => {
   ];
 };
 
-const collectAuditScriptFindings = async (): Promise<Finding[]> => {
-  const findings: Finding[] = [];
-  const packageJson = await readJsonFile<PackageJson>(pathFromRepoRoot("package.json"));
-  const auditScript = packageJson.scripts?.["audit:index"];
-
-  if (!auditScript) {
-    findings.push(createFinding({ lawId: REQUIREMENT_ID_001, file: "package.json", line: 1, severity: "fatal", message: "package.json must expose audit:index for the index routing owner." }));
-  } else if (auditScript !== EXPECTED_AUDIT_SCRIPT) {
-    findings.push(createFinding({ lawId: REQUIREMENT_ID_001, file: "package.json", line: 1, severity: "error", message: "package.json audit:index must execute the governed index run-inspector entry.", detail: auditScript }));
-  }
-
-  return findings;
-};
-
 export async function runIndexOwnerSurfaceChecks(
   context: InspectorContext,
 ): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
@@ -110,8 +90,6 @@ export async function runIndexOwnerSurfaceChecks(
       message: "Generated enforcement matrix must include the index routing owner.",
     }));
   }
-  findings.push(...(await collectAuditScriptFindings()));
-
   return {
     findings,
     phases: [

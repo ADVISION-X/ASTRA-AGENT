@@ -7,7 +7,9 @@
   "ownedPaths": [
     "src/capabilities/post-action-verification"
   ],
-  "supportsEvidenceModes": ["law", "fs", "hybrid"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2",
     "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2",

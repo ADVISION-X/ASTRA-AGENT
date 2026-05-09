@@ -212,7 +212,7 @@ import
 → quarantine
 → schema validation
 → dependency validation
-→ transition closure validation
+→ transition completeness validation
 → capability registry validation
 → prompt contract validation
 → platform profile validation
@@ -229,7 +229,7 @@ Required validation gates:
 ```txt
 schema validation
 dependency validation
-transition closure validation
+transition completeness validation
 capability registry validation
 prompt contract validation
 platform profile validation
@@ -425,7 +425,7 @@ capabilityDomain: orchestration-capability
 enforcementMode: machine-blocking  
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: Orchestration step execution must follow the active map and enforce preconditions, PAV after actions, evidence routing, loop guard, and transition closure.
+summary: Orchestration step execution must follow the active map and enforce preconditions, PAV after actions, evidence routing, loop guard, and transition completeness.
 
 ### 主题
 

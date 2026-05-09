@@ -151,7 +151,7 @@ durabilityMode=durable 或 memory_only
 - AST/symbol/import graph 检查生产路径。
 - real-code-inspection 覆盖生产突变和 inspector wiring 突变。
 - generated artifacts 必须可重建，不得手写 `scripts/audit/generated/**`。
-- runner-summary stale 时必须记录 stale root cause，并以重跑 owner inspector 为准。
+- ci-full-summary stale 时必须记录 stale root cause，并以重跑 owner inspector 为准。
 ## Phase-05 owner evidence Hardening Addendum
 
 - AI debug events must never infer `selectedMapId`, `runId`, `mapPackageId`, or `activationSnapshotRef` from `traceId`. `traceId` is observability only; governed chain truth must come from the upstream command envelope, mission context, and active map chain fields.

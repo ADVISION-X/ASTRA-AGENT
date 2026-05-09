@@ -9,6 +9,8 @@ import { buildFinding, collectRuleFindings, createCheckPhase, extractArrayBlock,
 const DOMAIN = "debug-loop-boundary";
 const INSPECTOR_ENTRY = "scripts/audit/domains/debug-loop-boundary/inspector.ts";
 const DEBUG_LOOP_ROOT = "scripts/debug-loop";
+const KERNEL_FILE = ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md";
+const BASELINE_FILE = "docs/法案辅助文件/GrassEye 法案冻结基线.md";
 const TASK_PUBLISHER = "scripts/debug-loop/task-publisher.mjs";
 const REPAIR_PACKET = "scripts/debug-loop/repair-packet-writer.mjs";
 const MAP_AUTHORING = "scripts/debug-loop/map-authoring-public-contract.mjs";
@@ -39,7 +41,7 @@ const FORBIDDEN_SCENARIO_FIELDS = new Set([
   "autoMessage",
   "autoPurchase",
 ]);
-const REQUIRED_MUTATION_NAMES = [
+const REQUIRED_ATTACK_NAMES = [
   "add debug-loop as ability group",
   "debug-loop imports mouse-click executor",
   "debug-loop imports text-input executor",
@@ -161,8 +163,8 @@ const collectArtifactBoundaryFindings = async (input: {
     ...collectRuleFindings({ file: MAP_AUTHORING, content: input.mapAuthoringContent, rules: AUTHORING_RULES }),
     ...collectRuleFindings({ file: REPAIR_PACKET, content: input.repairContent, rules: REPAIR_RULES }),
   ];
-  const script = input.packageJson.scripts?.["audit:debug-loop-boundary"] ?? null;
-  if (script !== "node --import tsx scripts/audit/domains/debug-loop-boundary/run-inspector.ts") findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1", file: PACKAGE_JSON, line: 1, message: "package.json must expose audit:debug-loop-boundary through the owner-local run-inspector entry." }));
+  const legacyScriptName = ["audit", "debug-loop-boundary"].join(":");
+  if (legacyScriptName in (input.packageJson.scripts ?? {})) findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1", file: PACKAGE_JSON, line: 1, message: "package.json must not expose debug-loop-boundary owner scripts; CI-FULL is the only complete quality entrypoint." }));
   if (!/hasBlockingFindings\(result\.findings\)/.test(input.runInspectorContent)) findings.push(buildFinding({ lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1", file: RUN_INSPECTOR, line: 1, message: "run-inspector must keep blocking findings fail-fast logic and must not downgrade P0 enforcement." }));
   return findings;
 };
@@ -189,7 +191,7 @@ const runDebugLoopBoundaryChecks = async (context: InspectorContext) => {
       createCheckPhase({ name: "debug-loop-identity", findings: identityFindings, pass: "debug-loop stays local tooling and never becomes an active owner.", fail: "debug-loop identity drifted into an active owner or runtime role." }),
       createCheckPhase({ name: "debug-loop-runtime-boundary", findings: runtimeFindings, pass: "mission-runtime starts via Commander and observes through governed read models only.", fail: "mission-runtime still reaches across the Commander boundary or direct browser/runtime internals." }),
       createCheckPhase({ name: "debug-loop-scenario-boundary", findings: scenarioFindings, pass: "scenario JSON stays declarative and non-executable.", fail: "scenario JSON still contains executable action fields or a non-Commander mission entry." }),
-      createCheckPhase({ name: "debug-loop-artifact-boundary", findings: artifactFindings, pass: "repair packets, fake authoring, package wiring, and negative proof remain governed.", fail: "artifact boundaries or enforcement wiring drifted into fake enforcement.", classification: "FAKE ENFORCEMENT" }),
+      createCheckPhase({ name: "debug-loop-artifact-boundary", findings: artifactFindings, pass: "repair packets, fake authoring, and package wiring remain governed.", fail: "artifact boundaries or enforcement wiring drifted into fake enforcement.", classification: "FAKE ENFORCEMENT" }),
     ],
   };
 };

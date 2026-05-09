@@ -312,7 +312,7 @@ import
 → quarantine
 → schema validation
 → dependency validation
-→ transition closure validation
+→ transition completeness validation
 → capability registry validation
 → prompt contract validation
 → platform profile validation
@@ -994,7 +994,7 @@ Forensics 记账存证。
 
 ---
 
-## 24. 实战运行日志透明化修复补充：step branch closure
+## 24. 实战运行日志透明化修复补充：step branch completeness
 
 本节只补施工细节，不新增 lawId，不修改冻结法案。
 
@@ -1048,7 +1048,7 @@ READY 标准补充：
 
 ```txt
 map-plugin-package inspector PASS
-生产突变删除/篡改 step branch closure 后 FAIL
+生产突变删除/篡改 step branch completeness 后 FAIL
 re-inspect 后 PASS
 真实 restart + 真实任务触发 + fresh phase-1 日志分析确认不再出现 no matching transition
 ```

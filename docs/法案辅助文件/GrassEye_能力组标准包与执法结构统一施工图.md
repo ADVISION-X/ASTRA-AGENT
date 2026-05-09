@@ -1154,8 +1154,8 @@ Codex 每次处理能力组，必须按以下顺序：
 必须运行：
 
 ```bash
-npm run audit:build
-npm run audit
+npm run ci:full
+npm run ci:full
 npm run typecheck
 npm run lint
 npm run ci:full
@@ -1164,8 +1164,8 @@ git diff --check
 
 如果存在更细命令，也必须运行：
 
-- audit:meta
-- audit:runner
+- CI-FULL internal metadata
+- CI-FULL
 - verify 仅可作为辅助，不得替代 audit
 
 ---
@@ -1210,7 +1210,7 @@ Codex 最终只允许输出：
 - re-inspect verified:
 
 6. Commands
-- audit:build:
+- ci:full:
 - audit:
 - typecheck:
 - lint:
@@ -1363,8 +1363,8 @@ Codex 最终只允许输出：
 12. 让 support 子契约恢复成 independent owner。
 
 必须运行：
-- npm run audit:build
-- npm run audit
+- npm run ci:full
+- npm run ci:full
 - npm run typecheck
 - npm run lint
 - npm run ci:full

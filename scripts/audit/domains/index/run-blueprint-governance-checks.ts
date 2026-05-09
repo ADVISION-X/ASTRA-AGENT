@@ -217,9 +217,9 @@ const collectGeneratedBuildChainFindings = (input: {
   const findings: Finding[] = [];
 
   if (!input.syncSection.includes("后续 audit/generated registry、matrix、audit-plan、phase-gate、manifest、inspector 必须以本冻结基线为唯一源头。")
-    || input.packageScripts["audit:build"] !== "node --import tsx scripts/audit/build-audit-artifacts-cli.ts"
-    || !input.runInspectorText.includes("await buildAuditArtifacts();")) {
-    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-001", message: "Index blueprint sync principle requires the governed build chain and index run-inspector rebuild step." }));
+    || !input.packageScripts["ci:full"]
+    || input.runInspectorText.includes("buildAuditArtifacts")) {
+    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-001", message: "Index blueprint sync principle requires CI-FULL as the single generated artifact build chain." }));
   }
   if (LEGACY_OWNER_DOMAINS.some((owner) => `audit:${owner}` in input.packageScripts) || !input.syncSection.includes("- 不得用旧 owner 恢复 CI。")) {
     findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-009-REQ-002", file: "package.json", message: "Index blueprint sync principle must not revive legacy owners for CI." }));

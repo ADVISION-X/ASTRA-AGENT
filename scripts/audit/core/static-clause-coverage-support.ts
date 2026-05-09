@@ -34,8 +34,6 @@ export type AuditSummaryEntry = {
 const GLOBAL_CHAIN_COMMANDS = [
   { name: "typecheck", command: "npm run typecheck", evidencePath: "tmp/audit/ability-law-census/audit-runs/typecheck.txt" },
   { name: "lint", command: "npm run lint", evidencePath: "tmp/audit/ability-law-census/audit-runs/lint.txt" },
-  { name: "audit:capability-group-governance", command: "npm run audit:capability-group-governance", evidencePath: "tmp/audit/ability-law-census/audit-runs/audit-capability-group-governance.txt" },
-  { name: "audit", command: "npm run audit", evidencePath: "tmp/audit/ability-law-census/audit-runs/audit.txt" },
   { name: "ci:full", command: "npm run ci:full", evidencePath: "tmp/audit/ability-law-census/audit-runs/ci-full.txt" },
 ] as const;
 

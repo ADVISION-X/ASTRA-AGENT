@@ -59,7 +59,7 @@ const formatSnapshot = (snapshot: ResourceSnapshot): string =>
   `rssMB=${snapshot.rssMB} heapUsedMB=${snapshot.heapUsedMB} durationMs=${snapshot.durationMs}`;
 
 const logResourceSnapshot = async (owner: string, label: string, startedAtMs: number): Promise<void> => {
-  process.stdout.write(`[OWNER AUDIT] ${owner} ${label} ${formatSnapshot(await captureResourceSnapshot(startedAtMs))}\n`);
+  process.stdout.write(`[OWNER INSPECTOR] ${owner} ${label} ${formatSnapshot(await captureResourceSnapshot(startedAtMs))}\n`);
 };
 
 const startResourceGuard = (owner: string, startedAtMs: number): () => void => {
@@ -94,7 +94,7 @@ const assertGeneratedArtifactsExist = async (): Promise<void> => {
   ];
   for (const artifactPath of required) {
     if (!(await fileExists(artifactPath))) {
-      throw new Error("Owner audit requires generated artifacts. Run ci:full first.");
+      throw new Error("Owner inspector requires generated artifacts. Run ci:full first.");
     }
   }
 };
@@ -124,7 +124,7 @@ export const runOwnerInspector = async (input: OwnerRunnerInput): Promise<OwnerA
     }
 
     if (!artifacts || !result) {
-      throw new Error(`Owner audit runner for ${input.capabilityDomain} did not produce artifacts or result.`);
+      throw new Error(`Owner inspector host for ${input.capabilityDomain} did not produce artifacts or result.`);
     }
 
     return { artifacts, result };
@@ -133,26 +133,46 @@ export const runOwnerInspector = async (input: OwnerRunnerInput): Promise<OwnerA
   }
 };
 
-export const readProcessTreeRssMB = async (rootPid: number): Promise<number> => {
-  const descendants = new Set<number>([rootPid]);
-  let frontier = [rootPid];
-  while (frontier.length > 0) {
-    const next: number[] = [];
-    for (const pid of frontier) {
-      const { stdout } = await execFileAsync("pgrep", ["-P", String(pid)]).catch(() => ({ stdout: "" }));
-      for (const child of stdout.split("\n").map((line) => Number(line.trim())).filter(Number.isInteger)) {
-        if (!descendants.has(child)) {
-          descendants.add(child);
-          next.push(child);
-        }
+const readChildPids = async (pid: number): Promise<number[]> => {
+  const { stdout } = await execFileAsync("pgrep", ["-P", String(pid)]).catch(() => ({ stdout: "" }));
+  return stdout
+    .split("\n")
+    .map((line) => Number(line.trim()))
+    .filter(Number.isInteger);
+};
+
+const collectNextProcessFrontier = async (frontier: readonly number[], descendants: Set<number>): Promise<number[]> => {
+  const next: number[] = [];
+  for (const pid of frontier) {
+    for (const child of await readChildPids(pid)) {
+      if (!descendants.has(child)) {
+        descendants.add(child);
+        next.push(child);
       }
     }
-    frontier = next;
   }
-  const rssValues = await Promise.all([...descendants].map(async (pid) => {
-    const { stdout } = await execFileAsync("ps", ["-o", "rss=", "-p", String(pid)]).catch(() => ({ stdout: "" }));
-    const rssKb = Number(stdout.trim());
-    return Number.isFinite(rssKb) ? rssKb / 1024 : 0;
-  }));
+  return next;
+};
+
+const collectProcessTreePids = async (rootPid: number): Promise<Set<number>> => {
+  const descendants = new Set<number>([rootPid]);
+  let frontier = [rootPid];
+
+  while (frontier.length > 0) {
+    frontier = await collectNextProcessFrontier(frontier, descendants);
+  }
+
+  return descendants;
+};
+
+const readProcessRssMb = async (pid: number): Promise<number> => {
+  const { stdout } = await execFileAsync("ps", ["-o", "rss=", "-p", String(pid)]).catch(() => ({ stdout: "" }));
+  const rssKb = Number(stdout.trim());
+  return Number.isFinite(rssKb) ? rssKb / 1024 : 0;
+};
+
+export const readProcessTreeRssMB = async (rootPid: number): Promise<number> => {
+  const descendants = await collectProcessTreePids(rootPid);
+  const rssValues = await Promise.all([...descendants].map((pid) => readProcessRssMb(pid)));
   return Math.round(rssValues.reduce((sum, value) => sum + value, 0) * 10) / 10;
 };

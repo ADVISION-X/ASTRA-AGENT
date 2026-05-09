@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T15:23:06.930Z",
+  "generatedAt": "2026-05-09T15:47:01.671Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -173,7 +173,7 @@
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "inspector plus generated artifacts plus audit runner is the only enforcement chain.",
+      "summary": "CI-FULL is the only complete quality gate and connects current law files, blueprints, manifests and real-code inspectors.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
       "line": 14
     },
@@ -186,7 +186,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Map Prompt Contract Governance must be enforced by AST, schema and real-code-inspection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
-      "line": 56
+      "line": 58
     },
     {
       "lawId": "GRASSEYE-AUDIT-SYSTEM-003-V1",
@@ -197,7 +197,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Prompt contract and map binding drift is audit-blocking.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
-      "line": 74
+      "line": 76
     },
     {
       "lawId": "GRASSEYE-CAPABILITY-GROUP-001-V1",
@@ -426,7 +426,7 @@
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "all active code-purity laws must be proven by real enforcement, generated audit artifacts, runner execution and real-code-inspection.",
+      "summary": "all active code-purity laws must be enforced by CI-FULL, generated audit artifacts and real-code-inspection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 572
     },
@@ -1482,7 +1482,7 @@
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Orchestration step execution must follow the active map and enforce preconditions, PAV after actions, evidence routing, loop guard and transition closure.",
+      "summary": "Orchestration step execution must follow the active map and enforce preconditions, PAV after actions, evidence routing, loop guard and transition completeness.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
       "line": 420
     },

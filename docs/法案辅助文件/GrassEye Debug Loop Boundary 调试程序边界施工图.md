@@ -466,7 +466,7 @@ scripts/audit/domains/debug-loop-boundary/owner-inspection-harness.ts
 必须新增命令：
 
 ```bash
-npm run audit:debug-loop-boundary
+CI-FULL internal debug-loop-boundary owner step
 ```
 
 ---
@@ -526,10 +526,10 @@ remove real-code-inspection invocation
 ```txt
 debug-loop-boundary law installed
 debug-loop-boundary blueprint installed
-audit:debug-loop-boundary exists
+CI-FULL debug-loop-boundary owner step exists
 inspector PASS
 real-code-inspection PASS
-audit:build PASS
+ci:full PASS
 debug-loop remains operator harness only
 production Agent remains sole runtime executor
 ```

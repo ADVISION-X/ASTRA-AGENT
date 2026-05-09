@@ -58,9 +58,8 @@ function buildPlatformAuthSnippet(scenario) {
   ].join("\n");
 }
 
-function buildMissionRuntimeSnippet(scenario) {
+function buildMissionRuntimeSetupLines(scenario) {
   return [
-    buildSnippetPreamble(scenario),
     `const { createWorkbenchRuntime } = await import(${JSON.stringify(toImportHref("src/lib/local-runtime/workbench-runtime.ts"))});`,
     `const { resolveMissionStartBinding } = await import(${JSON.stringify(toImportHref("src/lib/local-app-shell/task-start-binding.ts"))});`,
     "const runtime = createWorkbenchRuntime(baseOptions);",
@@ -70,6 +69,11 @@ function buildMissionRuntimeSnippet(scenario) {
     "const preflight = await runtime.getMissionStartPreflight({ requestedPlatformId: binding.requestedPlatformId, selectedMapId: binding.selectedMapId, taskTemplateId: binding.taskTemplateId, activationId: binding.activationId, activationSnapshotRef: binding.activationSnapshotRef, targetProfileRef: binding.targetProfileRef });",
     "if (preflight.status === 'blocked') { emit({ status: 'BLOCKED', scenarioId: scenario.scenarioId, successSignals: [], blockingSignals: [preflight.failureReason ?? 'MISSION_PREFLIGHT_BLOCKED'], runtimeEvents: [], rootCause: preflight.actionableMessage }); process.exit(2); }",
     "const initialPayload = { kind: 'start-mission', requestedBy: 'commander-console', requestedPlatformId: binding.requestedPlatformId, selectedMapId: binding.selectedMapId, taskTemplateId: binding.taskTemplateId, activationId: binding.activationId, activationSnapshotRef: binding.activationSnapshotRef, targetProfileRef: binding.targetProfileRef, ...(scenario.humanGoal ? { humanGoal: scenario.humanGoal } : {}), ...(scenario.operatorNote ? { operatorNote: scenario.operatorNote } : {}), ...(scenario.targetUrl ? { targetUrl: scenario.targetUrl } : {}), ...(scenario.targetTitle ? { targetTitle: scenario.targetTitle } : {}), ...(scenario.sourceEvidenceRef ? { sourceEvidenceRef: scenario.sourceEvidenceRef } : {}), ...(scenario.sourceTargetRef ? { sourceTargetRef: scenario.sourceTargetRef } : {}), ...(scenario.promptInputRef ? { promptInputRef: scenario.promptInputRef } : {}), ...(scenario.commandInputRef ? { commandInputRef: scenario.commandInputRef } : {}) };",
+  ].join("\n");
+}
+
+function buildMissionRuntimePollingLines(scenario) {
+  return [
     "const dispatch = await runtime.commanderConsole.execute({ childCapabilityId: 'issue-human-command', operatorRef: 'debug-loop:scenario-runner', input: { commandType: 'start-mission', requestedPlatformId: binding.requestedPlatformId, selectedMapId: binding.selectedMapId, humanGoal: scenario.humanGoal ?? null, operatorNote: scenario.operatorNote ?? null, initialPayload } });",
     "const terminalStatuses = new Set(['completed', 'failed', 'review_required', 'stopped']);",
     "const readDashboard = async () => {",
@@ -99,11 +103,25 @@ function buildMissionRuntimeSnippet(scenario) {
     "  if (dashboardResult.ok) { dashboard = dashboardResult.dashboard; mission = dashboard.mission; dashboardReadFailureReason = null; }",
     "  else { dashboardReadFailureReason = dashboardResult.failureReason; if (eventMission) mission = eventMission; }",
     "}",
+  ].join("\n");
+}
+
+function buildMissionRuntimeResultLines(scenario) {
+  return [
     "const evidenceCreated = Array.isArray(dashboard.evidencePackets) && dashboard.evidencePackets.length > 0;",
     "const reviewBlockingSignal = scenario.reviewRequiredBlockingSignal ?? 'MISSION_REVIEW_REQUIRED';",
     "const blockingSignals = mission.status === 'review_required' || (Array.isArray(dashboard.reviewQueue) && dashboard.reviewQueue.length > 0) ? [reviewBlockingSignal] : [];",
     "const passed = mission.status === 'completed' && evidenceCreated;",
     "emit({ status: passed ? 'PASS' : blockingSignals.length > 0 ? 'BLOCKED' : 'FAIL', scenarioId: scenario.scenarioId, successSignals: passed ? ['missionStatus=completed', 'forensicsEvidencePacketCreated=true'] : [], blockingSignals, missionStatus: mission.status, forensicsEvidencePacketCreated: evidenceCreated, runtimeEvents, rootCause: dispatch.failureReason ?? dispatch.reviewRequiredReason ?? mission.failureReason ?? mission.reviewRequiredReason ?? dashboardReadFailureReason ?? null });",
+  ].join("\n");
+}
+
+function buildMissionRuntimeSnippet(scenario) {
+  return [
+    buildSnippetPreamble(scenario),
+    buildMissionRuntimeSetupLines(scenario),
+    buildMissionRuntimePollingLines(scenario),
+    buildMissionRuntimeResultLines(scenario),
   ].join("\n");
 }
 

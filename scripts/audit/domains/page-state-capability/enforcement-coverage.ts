@@ -5,11 +5,8 @@ import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../core/schema.js";
 
 const CAPABILITY_DOMAIN = "page-state-capability";
-const INSPECTOR_ID = "page-state-capability-owner";
 const FINAL_LAW_PATH = ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md";
 const FINAL_BLUEPRINT_PATH = "docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md";
-const RUNNER_SUMMARY_PATH = "scripts/audit/generated/runner-summary.json";
-const DIRECT_OWNER_AUDIT_ENV = "GRASSEYE_DIRECT_PAGE_STATE_OWNER_AUDIT";
 const REQUIRED_LAW_IDS = [
   "GRASSEYE-PAGE-STATE-CAPABILITY-001-V2",
   "GRASSEYE-PAGE-STATE-CAPABILITY-002-V2",
@@ -20,13 +17,6 @@ const REQUIRED_LAW_IDS = [
   "GRASSEYE-PAGE-STATE-CAPABILITY-007-V2",
   "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2",
 ] as const;
-
-type RunnerSummary = {
-  results?: Array<{
-    capabilityDomain?: string;
-    inspectorId?: string;
-  }>;
-};
 
 async function inspectFinalLawBaseline(): Promise<Finding[]> {
   try {
@@ -53,13 +43,13 @@ async function inspectFinalLawBaseline(): Promise<Finding[]> {
       }));
     }
 
-    if (!raw.includes("evidenceMode: law+inspector")) {
+    if (!raw.includes("evidenceMode: law+blueprint+real-code-inspection")) {
       findings.push(createFinding({
         lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2",
         file: FINAL_LAW_PATH,
         line: 1,
         severity: "fatal",
-        message: "Page State FINAL law baseline must require law+inspector evidence.",
+        message: "Page State FINAL law baseline must require law+blueprint+real-code-inspection evidence.",
       }));
     }
 
@@ -97,22 +87,6 @@ function compareLawSets(input: {
   })];
 }
 
-async function inspectRunnerSummary(): Promise<Finding[]> {
-  if (process.env[DIRECT_OWNER_AUDIT_ENV] === "1") {
-    return [];
-  }
-
-  try {
-    const raw = await readFile(pathFromRepoRoot(RUNNER_SUMMARY_PATH), "utf8");
-    const runnerSummary = JSON.parse(raw) as RunnerSummary;
-    return Array.isArray(runnerSummary.results)
-      ? []
-      : [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2", file: RUNNER_SUMMARY_PATH, line: 1, severity: "fatal", message: "runner-summary must remain readable structured JSON while Page State enforcement coverage runs." })];
-  } catch {
-    return [createFinding({ lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2", file: RUNNER_SUMMARY_PATH, line: 1, severity: "fatal", message: "runner-summary is missing or unreadable for Page State enforcement coverage." })];
-  }
-}
-
 function collectActiveLawSetFindings(activeLawIds: readonly string[]): Finding[] {
   return compareLawSets({
     actual: activeLawIds,
@@ -136,8 +110,8 @@ function collectActiveLawMetadataFindings(activeLaws: Array<{
     if (law.enforcementMode !== "machine-blocking") {
       findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Page State active law must be machine-blocking." }));
     }
-    if (law.evidenceMode !== "law+inspector") {
-      findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Page State active law must require law+inspector evidence." }));
+    if (law.evidenceMode !== "law+blueprint+real-code-inspection") {
+      findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Page State active law must require law+blueprint+real-code-inspection evidence." }));
     }
     if (law.tier !== "P0") {
       findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Page State active law must remain P0." }));
@@ -209,7 +183,6 @@ export async function runEnforcementCoverage(context: InspectorContext): Promise
     ...collectManifestCoverageFindings(manifest),
     ...collectMatrixCoverageFindings(matrixOwner),
     ...collectPlanCoverageFindings(planOwner),
-    ...await inspectRunnerSummary(),
   ];
 
   const phasePassed = findings.length === 0;
@@ -220,7 +193,7 @@ export async function runEnforcementCoverage(context: InspectorContext): Promise
       phasePassed ? "PASS" : "ENFORCEMENT GAP",
       phasePassed,
       phasePassed
-        ? "Page State FINAL law, manifest, matrix, audit-plan, and runner-summary are aligned."
+        ? "Page State FINAL law, manifest, matrix, and audit-plan are aligned."
         : "Page State enforcement metadata drifted from the FINAL V2 law chain.",
     ),
   };

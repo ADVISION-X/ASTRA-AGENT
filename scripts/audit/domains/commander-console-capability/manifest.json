@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/commander-console-capability/inspector.ts",
   "engine": "hybrid",
-  "supportsEvidenceModes": ["law", "fs", "hybrid"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
     "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",

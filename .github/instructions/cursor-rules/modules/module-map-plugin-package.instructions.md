@@ -207,7 +207,7 @@ import
 → quarantine
 → schema validation
 → dependency validation
-→ transition closure validation
+→ transition completeness validation
 → capability registry validation
 → prompt contract validation
 → platform profile validation

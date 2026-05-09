@@ -2,28 +2,9 @@ import path from "node:path";
 
 import { runCommand } from "./command-runner.mjs";
 import { captureGitState } from "./git-guard.mjs";
-import { resolvePackageScript } from "./package-script-resolver.mjs";
 import { getRepoRoot } from "./path-policy.mjs";
 import { readLawEnforcementState } from "./law-enforcement-reader.mjs";
 import { writeJsonFile } from "./json-utils.mjs";
-
-const OWNER_AUDIT_SCRIPT_MAP = {
-  "commander-console": "audit:commander-console",
-  orchestration: "audit:orchestration",
-  "nerve-bus": "audit:nerve-bus",
-  open: "audit:open",
-  "page-state": "audit:page-state",
-  screenshot: "audit:screenshot",
-  ai: "audit:ai",
-  "visual-target": "audit:visual-target",
-  "geometry-guard": "audit:geometry-guard",
-  "mouse-click": "audit:mouse-click",
-  "mouse-scroll": "audit:mouse-scroll",
-  "text-input": "audit:text-input-capability",
-  "forensics-persistence": "audit:forensics-persistence",
-  "map-plugin-package": "audit:map-plugin-package",
-  "audit-system": "audit",
-};
 
 function statusFromExitCode(result) {
   return result.exitCode === 0 ? "PASS" : "FAIL";
@@ -75,24 +56,13 @@ function resolveRuntimeScenarioStatus(commandResult, runtimeResult) {
   return "FAIL";
 }
 
-async function resolveOwnerAuditScript(owner) {
-  const mappedScript = OWNER_AUDIT_SCRIPT_MAP[owner] ?? (owner ? `audit:${owner}` : null);
-  if (!mappedScript) {
-    return null;
-  }
-
-  return (await resolvePackageScript(mappedScript)) ? mappedScript : null;
-}
-
 function isVerificationPass(input) {
   return [
-    input.auditBuild === "PASS",
-    !input.ownerAuditRequired || input.ownerAudit === "PASS",
     input.ciFull === "PASS",
     input.runtimeScenario === "PASS",
     input.lawEnforcementPassed === true,
-    Array.isArray(input.remainingP0),
-    input.remainingP0.length === 0,
+    Array.isArray(input.ciFullFailures),
+    input.ciFullFailures.length === 0,
   ].every(Boolean);
 }
 
@@ -104,49 +74,34 @@ function buildVerdict(input) {
   return isVerificationPass(input) ? "PASS" : "NOT_PASS";
 }
 
-async function runOwnerAudit(ownerAuditScript, iterationDir) {
-  return ownerAuditScript
-    ? runNpmScript(ownerAuditScript, iterationDir, "owner-audit")
-    : null;
-}
-
 function buildSkippedLawEnforcementState() {
   return {
-    runnerSummaryIncludesOwner: true,
     hasActiveLaw: true,
     hasMatrixEntry: true,
     ownerInAuditPlan: true,
     missingMatrixLawIds: [],
     missingAuditPlanLawIds: [],
     missingP0P1LawCoverage: [],
-    negativeProof: "PASS",
     warningOnlyP0: false,
     detachedInspector: false,
-    emptyNegativeProof: false,
     lawEnforcementPassed: true,
-    remainingP0: [],
+    ciFullFailures: [],
   };
 }
 
 async function runVerificationCommands(input) {
-  const auditBuildResult = await runNpmScript("audit:build", input.iterationDir, "audit-build");
-  const postAuditBuildGitState = await captureGitState({ iterationDir: input.iterationDir, fileName: "git-state-post-audit-build.json" });
-  const ownerAuditScript = await resolveOwnerAuditScript(input.owner);
-  const ownerAuditResult = await runOwnerAudit(ownerAuditScript, input.iterationDir);
   const ciFullResult = await runNpmScript("ci:full", input.iterationDir, "ci-full");
+  const postCiFullGitState = await captureGitState({ iterationDir: input.iterationDir, fileName: "git-state-post-ci-full.json" });
   const runtimeScenarioResult = await runCommand("npm", ["run", "debug:scenario", "--", "--scenario", input.scenarioId], {
     cwd: getRepoRoot(),
     ...resolveLogTargets(input.iterationDir, "runtime-recheck"),
   });
 
   return {
-    auditBuildResult,
-    postAuditBuildGitState,
-    ownerAuditScript,
-    ownerAuditResult,
     ciFullResult,
+    postCiFullGitState,
     runtimeScenarioResult,
-    enforcementState: ownerAuditScript
+    enforcementState: input.owner
       ? await readLawEnforcementState({ owner: input.owner })
       : buildSkippedLawEnforcementState(),
   };
@@ -176,15 +131,10 @@ function createRuntimeScenarioPayload(runtimeScenarioResult) {
 
 function buildVerificationResult(input) {
   const verificationResult = {
-    auditBuild: statusFromExitCode(input.commandResults.auditBuildResult),
-    ownerAuditRequired: input.commandResults.ownerAuditScript !== null,
-    ownerAudit: input.commandResults.ownerAuditResult ? statusFromExitCode(input.commandResults.ownerAuditResult) : "MISSING",
-    negativeProof: input.enforcementState.negativeProof,
     ciFull: statusFromExitCode(input.commandResults.ciFullResult),
     runtimeScenario: resolveRuntimeScenarioStatus(input.commandResults.runtimeScenarioResult, input.runtimeScenarioPayload),
     runtimeScenarioPayload: input.runtimeScenarioPayload,
     runtimeScenarioResultPath: path.join(input.iterationDir, "runtime-recheck-result.json"),
-    runnerSummaryIncludesOwner: input.enforcementState.runnerSummaryIncludesOwner,
     hasActiveLaw: input.enforcementState.hasActiveLaw,
     hasMatrixEntry: input.enforcementState.hasMatrixEntry,
     ownerInAuditPlan: input.enforcementState.ownerInAuditPlan,
@@ -193,10 +143,9 @@ function buildVerificationResult(input) {
     missingP0P1LawCoverage: input.enforcementState.missingP0P1LawCoverage,
     warningOnlyP0: input.enforcementState.warningOnlyP0,
     detachedInspector: input.enforcementState.detachedInspector,
-    emptyNegativeProof: input.enforcementState.emptyNegativeProof,
     lawEnforcementPassed: input.enforcementState.lawEnforcementPassed,
-    auditBuildGeneratedHashesAfter: input.commandResults.postAuditBuildGitState.generatedHashes,
-    remainingP0: input.enforcementState.remainingP0,
+    ciFullGeneratedHashesAfter: input.commandResults.postCiFullGitState.generatedHashes,
+    ciFullFailures: input.enforcementState.ciFullFailures,
     verdict: "NOT_PASS",
   };
 

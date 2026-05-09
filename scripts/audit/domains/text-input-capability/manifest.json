@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/text-input-capability/inspector.ts",
   "engine": "hybrid",
-  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2",
     "GRASSEYE-TEXT-INPUT-CAPABILITY-002-V2",

@@ -70,9 +70,9 @@ Required clarification:
 ### 禁止
 
 FORBIDDEN:
-- hidden round finalizers or hidden runtime closure paths that create logging truth without public Forensics record refs.
+- hidden round finalizers or hidden runtime finalization paths that create logging truth without public Forensics record refs.
 - runtime snapshot writes that do not produce a real runtime_snapshot persisted record.
-- Forensics internal runtime helpers becoming an untraceable second closure path.
+- Forensics internal runtime helpers becoming an untraceable second finalization path.
 
 ---
 

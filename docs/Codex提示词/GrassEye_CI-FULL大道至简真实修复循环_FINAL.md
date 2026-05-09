@@ -344,7 +344,7 @@ scripts/audit/domains/<owner>/manifest.json
 
 补齐 inspector。
 补齐 real-code-inspection。
-补齐 owner audit 入口。
+补齐 owner inspector 入口。
 必要时补 manifest。
 ```
 
@@ -372,14 +372,14 @@ scripts/audit/domains/<owner>/manifest.json
 定义：
 
 
-法案、manifest、matrix、audit-plan、runner-summary、generated artifacts 之间漂移。
+法案、manifest、matrix、audit-plan、ci-full-summary、generated artifacts 之间漂移。
 ```
 
 处理：
 
 
 修 source law / manifest / generator / runner source。
-重新运行 audit:build。
+重新运行 ci:full。
 不得手工改 generated 伪造 PASS。
 ```
 
@@ -506,7 +506,7 @@ package.json 当前 audit 命令
 
 
 修 source，不手改 generated。
-重新运行 audit:build。
+重新运行 ci:full。
 ```
 
 ### 6.4 法案/施工图识别错误
@@ -642,7 +642,7 @@ CI-FULL TRUE GREEN
 - inspector files:
 - real-code-inspection files:
 - code files:
-- generated files by audit:build only:
+- generated files by ci:full only:
 - law files:
 - blueprint files:
 

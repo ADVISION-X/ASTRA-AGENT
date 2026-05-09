@@ -1,22 +1,22 @@
 {
-  "generatedAt": "2026-05-09T15:23:48.306Z",
-  "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+  "generatedAt": "2026-05-09T15:47:39.233Z",
+  "runId": "2c726581-af22-400b-b837-1061f2659f58",
   "status": "FAIL",
   "layers": [
     {
       "label": "foundation-layer",
-      "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+      "runId": "2c726581-af22-400b-b837-1061f2659f58",
       "status": "FAIL",
       "steps": [
         {
           "name": "audit-build",
           "layer": "foundation-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/build-audit-artifacts-cli.ts",
           "status": "PASS",
           "exitCode": 0,
-          "durationMs": 508,
-          "memoryPeakMb": 367.8,
+          "durationMs": 456,
+          "memoryPeakMb": 375.2,
           "artifactPaths": [
             "/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/generated/law-registry.generated.json",
             "/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/generated/enforcement-matrix.generated.json",
@@ -30,12 +30,12 @@
         {
           "name": "code-purity",
           "layer": "foundation-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/code-purity/run-inspector.ts",
           "status": "FAIL",
           "exitCode": 1,
-          "durationMs": 41240,
-          "memoryPeakMb": 2107.1,
+          "durationMs": 37455,
+          "memoryPeakMb": 1883,
           "artifactPaths": [
             "scripts/audit/generated/code-purity/findings.ndjson",
             "scripts/audit/generated/code-purity/inventory.ndjson",
@@ -46,7 +46,7 @@
         {
           "name": "typecheck",
           "layer": "foundation-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "npm run typecheck",
           "status": "SKIPPED",
           "exitCode": null,
@@ -57,7 +57,7 @@
         {
           "name": "capability-group-governance",
           "layer": "foundation-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/capability-group-governance/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -68,7 +68,7 @@
         {
           "name": "type-safety",
           "layer": "foundation-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/type-safety/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -79,7 +79,7 @@
         {
           "name": "security-privacy",
           "layer": "foundation-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/security-privacy/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -90,7 +90,7 @@
         {
           "name": "audit-system",
           "layer": "foundation-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/audit-system/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -102,13 +102,13 @@
     },
     {
       "label": "map-layer",
-      "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+      "runId": "2c726581-af22-400b-b837-1061f2659f58",
       "status": "SKIPPED",
       "steps": [
         {
           "name": "map-plugin-package",
           "layer": "map-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/map-plugin-package/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -120,13 +120,13 @@
     },
     {
       "label": "ability-group-layer",
-      "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+      "runId": "2c726581-af22-400b-b837-1061f2659f58",
       "status": "SKIPPED",
       "steps": [
         {
           "name": "commander-console",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -137,7 +137,7 @@
         {
           "name": "orchestration",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/orchestration-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -148,7 +148,7 @@
         {
           "name": "nerve-bus",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/nerve-bus-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -159,7 +159,7 @@
         {
           "name": "ai",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/ai-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -170,7 +170,7 @@
         {
           "name": "open",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/open-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -181,7 +181,7 @@
         {
           "name": "screenshot",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/screenshot-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -192,7 +192,7 @@
         {
           "name": "visual-target",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/visual-target-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -203,7 +203,7 @@
         {
           "name": "geometry-guard",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/geometry-guard-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -214,7 +214,7 @@
         {
           "name": "mouse-click",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/mouse-click-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -225,7 +225,7 @@
         {
           "name": "text-input",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/text-input-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -236,7 +236,7 @@
         {
           "name": "mouse-scroll",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/mouse-scroll-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -247,7 +247,7 @@
         {
           "name": "post-action-verification",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/post-action-verification-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -258,7 +258,7 @@
         {
           "name": "forensics-persistence",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/forensics-persistence-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,
@@ -269,7 +269,7 @@
         {
           "name": "page-state",
           "layer": "ability-group-layer",
-          "runId": "0c74be85-fa73-451b-a2aa-e0dde408183e",
+          "runId": "2c726581-af22-400b-b837-1061f2659f58",
           "command": "node --import tsx scripts/audit/domains/page-state-capability/run-inspector.ts",
           "status": "SKIPPED",
           "exitCode": null,

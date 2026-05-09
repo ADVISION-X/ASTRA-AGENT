@@ -19,7 +19,7 @@ function collectShellBoundaryFindings(project: ReturnType<typeof createCommander
 function collectServerBoundaryFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
   const createServerSource = getMacShellSourceFile(project, PATHS.CREATE_SERVER);
   return hasPropertyAccessPath(createServerSource, ["activeWorkbench", "evidenceStore"]) || hasPropertyAccessPath(createServerSource, ["activeWorkbench", "deleteCandidate"])
-    ? [createFinding({ lawId: LAW_IDS.APP_SHELL, file: PATHS.CREATE_SERVER, line: 1, severity: "fatal", message: "Workbench server must not expose evidence store or delete mutations for the shell." })]
+    ? [createFinding({ lawId: LAW_IDS.APP_SHELL, file: PATHS.CREATE_SERVER, line: 1, severity: "fatal", message: "Workbench server must not expose evidence store or delete operations for the shell." })]
     : [];
 }
 
@@ -33,7 +33,7 @@ function collectRuntimeBoundaryFindings(project: ReturnType<typeof createCommand
 function collectCandidateBoundaryFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
   const candidateSource = getMacShellSourceFile(project, PATHS.CANDIDATE_HANDLER);
   return hasPropertyAccessPath(candidateSource, ["activeWorkbench", "deleteCandidate"]) || hasPropertyAccessPath(candidateSource, ["activeWorkbench", "exportCandidateSummaries"])
-    ? [createFinding({ lawId: LAW_IDS.APP_SHELL, file: PATHS.CANDIDATE_HANDLER, line: 1, severity: "fatal", message: "Candidate handlers must not bypass Commander public boundaries for delete/export mutations." })]
+    ? [createFinding({ lawId: LAW_IDS.APP_SHELL, file: PATHS.CANDIDATE_HANDLER, line: 1, severity: "fatal", message: "Candidate handlers must not bypass Commander public boundaries for delete/export operations." })]
     : [];
 }
 

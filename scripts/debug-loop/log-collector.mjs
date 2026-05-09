@@ -10,8 +10,6 @@ const REQUIRED_LOG_ARTIFACTS = [
   "runtime.jsonl",
   "audit-build.stdout.log",
   "audit-build.stderr.log",
-  "owner-audit.stdout.log",
-  "owner-audit.stderr.log",
   "ci-full.stdout.log",
   "ci-full.stderr.log",
   "runtime-recheck.stdout.log",
@@ -19,7 +17,7 @@ const REQUIRED_LOG_ARTIFACTS = [
 ];
 
 const GENERATED_AUDIT_ARTIFACTS = [
-  "runner-summary.json",
+  "ci-full-summary.generated.json",
   "law-registry.generated.json",
   "enforcement-matrix.generated.json",
   "audit-plan.generated.json",

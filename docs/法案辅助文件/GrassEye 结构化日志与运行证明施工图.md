@@ -181,7 +181,7 @@ runtimeProof 至少应包含：
 
 - 不把 console output 当 runtime truth。
 - 不把 structured-logging 写成独立 owner 或第二 persistence owner。
-- 不把 hidden round finalizer 或 hidden runtime closure path 藏成 Forensics truth。
+- 不把 hidden round finalizer 或 hidden runtime finalization path 藏成 Forensics truth。
 - 不允许 verify 脚本成为日志执法主链。
 - 不允许 promptLength-only visibility。
 - 不允许 parser 吞掉 raw response。
@@ -199,7 +199,7 @@ runtimeProof 至少应包含：
 
 漂移信号：
 - console 文本充当运行真相
-- hidden round finalizer 或 hidden closure 继续充当真相闭合
+- hidden round finalizer 或 hidden finalization 继续充当真相闭合
 - runtime snapshot 不是独立 record
 - 只有 promptLength、没有 promptHash 或 promptDebugRef
 - raw response 被 parser 吞掉后不可回看

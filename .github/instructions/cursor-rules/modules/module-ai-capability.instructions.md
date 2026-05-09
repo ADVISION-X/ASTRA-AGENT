@@ -30,7 +30,7 @@ Core doctrine:
 - Forensics stores evidence; AI does not persist evidence.
 - Runtime adapters execute model calls; adapters do not own final AI result truth.
 - Disabled, paid, and future providers fail closed.
-- Every AI P0 law must be enforced by ai-capability inspector, audit runner, generated artifacts, and real-code-inspection.
+- Every AI P0 law must be enforced by the ai-capability inspector under CI-FULL, generated artifacts, and real-code-inspection.
 
 ---
 
@@ -701,19 +701,19 @@ AI 执法入口唯一
 
 ### 法条
 
-AI topology, owner-cutover, prompt truth, runtime pipeline, provider policy, result proof, and anti-escape enforcement must close through the ai-capability inspector and audit runner.
+AI topology, owner-cutover, prompt truth, runtime pipeline, provider policy, result proof, and anti-escape enforcement must close through the ai-capability inspector under CI-FULL.
 
 Required direction:
 - `scripts/audit/domains/ai-capability/inspector.ts` is the AI enforcement entry.
-- `scripts/audit/domains/ai-capability/run-inspector.ts` must be runnable from package scripts.
-- `scripts/audit/domains/ai-capability/owner-inspection-harness.ts` must execute fail → re-inspect → pass regressions.
+- `scripts/audit/domains/ai-capability/run-inspector.ts` is an internal CI-FULL owner step, not a public package script.
+- `scripts/audit/domains/ai-capability/owner-inspection-harness.ts` must execute real-code inspection under CI-FULL.
 - Decisive checks must use AST, symbol resolution, import graph analysis, JSON schema validation, generated artifact validation, or type-aware checks.
 - Regex/grep/includes may be used only as pre-filtering, never as final judgment.
 - AI enforcement must participate in:
   - law-registry
   - enforcement-matrix
   - audit-plan
-  - runner-summary
+  - ci-full-summary
   - CI-FULL
 
 ### 机器可读不变量
@@ -724,12 +724,12 @@ governanceInvariant:
   owner: ai-capability
   inspector: scripts/audit/domains/ai-capability/inspector.ts
   runInspector: scripts/audit/domains/ai-capability/run-inspector.ts
-  negativeProof: scripts/audit/domains/ai-capability/owner-inspection-harness.ts
+  realCodeInspection: scripts/audit/domains/ai-capability/owner-inspection-harness.ts
   requiredAuditSurfaces:
     - law-registry
     - enforcement-matrix
     - audit-plan
-    - runner-summary
+    - ci-full-summary
     - ci-full
   forbiddenEnforcement:
     - regex-final-judgment
@@ -1401,7 +1401,7 @@ The ai-capability real-code-inspection must prove fail → re-inspect → pass f
 - Add module-level unmanaged `circuitBreaker` → FAIL.
 - Convert ai inspector to warning-only → FAIL.
 - Remove ai real-code-inspection invocation → FAIL.
-- Detach ai inspector from audit runner → FAIL.
+- Detach ai inspector from CI-FULL → FAIL.
 - Gate full raw AI IO behind `GRASSEYE_DEBUG_AI_IO` or emit only rawResponsePreview → FAIL.
 - Collapse raw model output and parser-normalized output into one AI_RESPONSE_DEBUG event → FAIL.
 - Let product_presence_judgment use single_frame_fallback or fewer/more than fixed 3s/6s two-frame input refs → FAIL.

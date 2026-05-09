@@ -67,34 +67,44 @@ function resolvePolicyReasonDecision(input: Parameters<typeof evaluateAiQualityG
   });
 }
 
+function buildConfidenceMissingDecision(input: Parameters<typeof evaluateAiQualityGate>[0]) {
+  return buildReviewOrBlockedDecision({
+    request: input.request,
+    reviewFlag: input.request.safetyPolicy.reviewOnLowConfidence,
+    reason: "confidence_missing",
+    flags: ["confidence:null"],
+    schemaValidationStatus: "valid",
+  });
+}
+
+function buildConfidenceBelowThresholdDecision(input: Parameters<typeof evaluateAiQualityGate>[0], minimumConfidence: number) {
+  return buildReviewOrBlockedDecision({
+    request: input.request,
+    reviewFlag: input.request.safetyPolicy.reviewOnLowConfidence,
+    reason: "confidence_below_threshold",
+    flags: [`confidence:${input.confidence}`, `minimumConfidence:${minimumConfidence}`],
+    schemaValidationStatus: "valid",
+  });
+}
+
+function isConfidenceDecisionExempt(input: Parameters<typeof evaluateAiQualityGate>[0]): boolean {
+  return input.request.taskType === "product_presence_judgment" && isBinaryProductPresenceOutput(input.output)
+    || isDefinitiveNonProductOutput(input.output);
+}
+
 function resolveConfidenceDecision(input: Parameters<typeof evaluateAiQualityGate>[0]) {
   const minimumConfidence = input.request.qualityPolicy.minimumConfidence;
   if (minimumConfidence === null) {
     return null;
   }
-  if (input.request.taskType === "product_presence_judgment" && isBinaryProductPresenceOutput(input.output)) {
-    return null;
-  }
-  if (isDefinitiveNonProductOutput(input.output)) {
+  if (isConfidenceDecisionExempt(input)) {
     return null;
   }
   if (input.confidence === null) {
-    return buildReviewOrBlockedDecision({
-      request: input.request,
-      reviewFlag: input.request.safetyPolicy.reviewOnLowConfidence,
-      reason: "confidence_missing",
-      flags: ["confidence:null"],
-      schemaValidationStatus: "valid",
-    });
+    return buildConfidenceMissingDecision(input);
   }
   if (input.confidence < minimumConfidence) {
-    return buildReviewOrBlockedDecision({
-      request: input.request,
-      reviewFlag: input.request.safetyPolicy.reviewOnLowConfidence,
-      reason: "confidence_below_threshold",
-      flags: [`confidence:${input.confidence}`, `minimumConfidence:${minimumConfidence}`],
-      schemaValidationStatus: "valid",
-    });
+    return buildConfidenceBelowThresholdDecision(input, minimumConfidence);
   }
   return null;
 }

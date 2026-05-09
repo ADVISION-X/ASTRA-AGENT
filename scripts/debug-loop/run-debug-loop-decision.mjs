@@ -28,7 +28,6 @@ function buildGitGuardClassification(gitGuardDecision) {
 
 function buildRequiredCommands(debugSessionId, scenarioId) {
   return [
-    "npm run audit:build",
     "npm run ci:full",
     `node scripts/debug-loop/run-debug-loop.mjs --scenario ${scenarioId} --continue --runId ${debugSessionId}`,
   ];

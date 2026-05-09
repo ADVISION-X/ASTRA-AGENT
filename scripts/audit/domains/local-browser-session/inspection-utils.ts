@@ -15,7 +15,7 @@ const looseScriptProject = new Project({
 const includesAll = (text: string, markers: readonly string[]): boolean => markers.every((marker) => text.includes(marker));
 
 const debug = (message: string): void => {
-  process.stdout.write(`[audit:local-browser-session] ${message}\n`);
+  process.stdout.write(`[owner-inspector:local-browser-session] ${message}\n`);
 };
 
 const hasScriptExtension = (filePath: string): boolean => config.SCRIPT_EXTENSIONS.some((extension) => filePath.endsWith(extension));

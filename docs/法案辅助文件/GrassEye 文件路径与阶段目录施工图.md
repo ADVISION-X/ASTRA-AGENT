@@ -71,7 +71,7 @@
 - support paths 只承担支持职责
 - 文档引用的是同一组 active 路径
 - inspector 由 capability-group-governance owner 统一执行 topology checker
-- CI 通过 `npm run audit:build` 和 `npm run audit` 复核 topology contract
+- CI 通过 `npm run ci:full` 和 `npm run ci:full` 复核 topology contract
 
 漂移信号：
 

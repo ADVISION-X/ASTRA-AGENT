@@ -1008,12 +1008,12 @@ No real-code-inspection = no PASS.
 AI 能力组交付必须至少运行：
 
 ```bash
-npm run audit:build
-npm run audit:ai
+npm run ci:full
+CI-FULL ai owner step
 npm run ci:full
 ```
 
-如果 `audit:ai` 不存在，必须补齐。  
+如果 `CI-FULL ai owner step` 不存在，必须补齐。  
 `ci:full` 不全绿，不得交付 PASS。
 
 ---

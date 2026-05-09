@@ -44,58 +44,35 @@ const REQUIRED_INPUT_PACKAGE_BUILDER_FIELDS = [
   "expectedDraftStatus",
 ] as const;
 
+type AuthoringRequirement = {
+  lawId: string;
+  file: string;
+  message: string;
+  ok: boolean;
+  detail?: string;
+};
+
+const collectRequirementFindings = (requirements: readonly AuthoringRequirement[]): Finding[] =>
+  requirements.flatMap((requirement) =>
+    requirement.ok
+      ? []
+      : [createAuthoringFinding(requirement.lawId, requirement.file, requirement.message, requirement.detail)]);
+
 const inspectInputPackageBuilder = (project: Project): Finding[] => {
   const builderSource = getSource(project, INPUT_PACKAGE_BUILDER_FILE);
   const sourceText = builderSource.getFullText();
-  const findings: Finding[] = [];
   const derivesPromptCatalogFromGovernedRegistry = hasCallExpression(builderSource, "listPromptContractCatalogEntries")
     || hasCallExpression(builderSource, "listAiPromptContractCatalogEntries")
     || hasCallExpression(builderSource, "listMapAuthoringGovernedPromptContracts");
-
-  if (!hasCallExpressionPath(builderSource, ["MapAuthoringInputPackageSchema", "parse"])) {
-    findings.push(createAuthoringFinding(
-      MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE,
-      INPUT_PACKAGE_BUILDER_FILE,
-      "Map Authoring Input Package builder must close through MapAuthoringInputPackageSchema.parse.",
-    ));
-  }
-  if (!hasCallExpression(builderSource, "buildCapabilityCatalog") || !derivesPromptCatalogFromGovernedRegistry) {
-    findings.push(createAuthoringFinding(
-      MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE,
-      INPUT_PACKAGE_BUILDER_FILE,
-      "Map Authoring Input Package builder must derive catalogs from governed capability and prompt registries.",
-    ));
-  }
-  if (!builderSource.getFullText().includes('expectedDraftStatus: "draft"')) {
-    findings.push(createAuthoringFinding(
-      MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT,
-      INPUT_PACKAGE_BUILDER_FILE,
-      "Map Authoring Input Package builder must lock expectedDraftStatus=draft.",
-    ));
-  }
-  if (
-    !sourceText.includes("binaryOutcomePolicy: buildBinaryOutcomePolicy(request)")
-    || !sourceText.includes("productPositiveOutcomeOptions")
-    || !sourceText.includes("selectedProductNegativeOutcomeId")
-  ) {
-    findings.push(createAuthoringFinding(
-      MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE,
-      INPUT_PACKAGE_BUILDER_FILE,
-      "Map Authoring Input Package builder must carry hardcoded/default binary outcome options from user request into userRequirement and sourceRequirementHash.",
-    ));
-  }
-
   const missingBuilderFields = REQUIRED_INPUT_PACKAGE_BUILDER_FIELDS.filter((fieldName) => !sourceText.includes(`${fieldName}:`));
-  if (missingBuilderFields.length > 0) {
-    findings.push(createAuthoringFinding(
-      MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE,
-      INPUT_PACKAGE_BUILDER_FILE,
-      "Map Authoring Input Package builder must emit every governed top-level field before schema parse.",
-      missingBuilderFields.join(", "),
-    ));
-  }
 
-  return findings;
+  return collectRequirementFindings([
+    { lawId: MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE, file: INPUT_PACKAGE_BUILDER_FILE, message: "Map Authoring Input Package builder must close through MapAuthoringInputPackageSchema.parse.", ok: hasCallExpressionPath(builderSource, ["MapAuthoringInputPackageSchema", "parse"]) },
+    { lawId: MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE, file: INPUT_PACKAGE_BUILDER_FILE, message: "Map Authoring Input Package builder must derive catalogs from governed capability and prompt registries.", ok: hasCallExpression(builderSource, "buildCapabilityCatalog") && derivesPromptCatalogFromGovernedRegistry },
+    { lawId: MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT, file: INPUT_PACKAGE_BUILDER_FILE, message: "Map Authoring Input Package builder must lock expectedDraftStatus=draft.", ok: sourceText.includes('expectedDraftStatus: "draft"') },
+    { lawId: MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE, file: INPUT_PACKAGE_BUILDER_FILE, message: "Map Authoring Input Package builder must carry hardcoded/default binary outcome options from user request into userRequirement and sourceRequirementHash.", ok: sourceText.includes("binaryOutcomePolicy: buildBinaryOutcomePolicy(request)") && sourceText.includes("productPositiveOutcomeOptions") && sourceText.includes("selectedProductNegativeOutcomeId") },
+    { lawId: MAP_PLUGIN_LAWS.AUTHORING_INPUT_PACKAGE, file: INPUT_PACKAGE_BUILDER_FILE, message: "Map Authoring Input Package builder must emit every governed top-level field before schema parse.", ok: missingBuilderFields.length === 0, detail: missingBuilderFields.join(", ") },
+  ]);
 };
 
 const inspectPromptBuilderBoundary = (project: Project): Finding[] => {
@@ -136,52 +113,34 @@ const FORBIDDEN_TEMPLATE_CHILD_LITERALS = [
   "comment-intent-analysis",
 ] as const;
 
+const hasHandWrittenCapabilityTable = (sourceText: string): boolean =>
+  sourceText.includes('"Allowed Capabilities:"') || sourceText.includes("formatCapabilitySection");
+
+const hasAutomationNoHumanReviewPromptRules = (sourceText: string): boolean =>
+  sourceText.includes(AUTOMATION_NO_HUMAN_REVIEW_RULE)
+  && sourceText.includes("request-human-review")
+  && sourceText.includes("review_required terminal routing")
+  && sourceText.includes("automated failed termination");
+
+const hasBinaryOutcomeRouteLabelPromptRules = (sourceText: string): boolean =>
+  sourceText.includes("UserRequirement.binaryOutcomePolicy is mandatory source truth")
+  && sourceText.includes("decision plus routeLabel")
+  && sourceText.includes("Orchestration may only match the routeLabel mechanically")
+  && sourceText.includes("must not include nextIntent, suggestedNextAction, actionIntent, or action_intent")
+  && sourceText.includes("Production routePlanBoundMap must not use Branch DSL, schemaFieldRef routing, action chains, review routes, or map-owned branching");
+
 const inspectPromptTemplateHardcoding = (project: Project): Finding[] => {
   const templateSource = getSource(project, PROMPT_TEMPLATE_FILE);
   const sourceText = templateSource.getFullText();
-  const findings: Finding[] = [];
   const hardcodedChildren = FORBIDDEN_TEMPLATE_CHILD_LITERALS.filter((literal) => sourceText.includes(literal));
-  if (hardcodedChildren.length > 0) {
-    findings.push(createAuthoringFinding(
-      MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT,
-      PROMPT_TEMPLATE_FILE,
-      "Map authoring prompt template must not hardcode childCapabilityId literals; capability truth must come from inputPackage.capabilityCatalog.",
-      hardcodedChildren.join(", "),
-    ));
-  }
-  if (sourceText.includes('"Allowed Capabilities:"') || sourceText.includes("formatCapabilitySection")) {
-    findings.push(createAuthoringFinding(
-      MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT,
-      PROMPT_TEMPLATE_FILE,
-      "Map authoring prompt template must not maintain a second hand-written capability table.",
-    ));
-  }
-  if (
-    !sourceText.includes(AUTOMATION_NO_HUMAN_REVIEW_RULE)
-    || !sourceText.includes("request-human-review")
-    || !sourceText.includes("review_required terminal routing")
-    || !sourceText.includes("automated failed termination")
-  ) {
-    findings.push(createAuthoringFinding(
-      MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT,
-      PROMPT_TEMPLATE_FILE,
-      "Map authoring prompt template must explicitly forbid human-review actions and require automation maps to complete through automated execution, blocking, or failed termination.",
-    ));
-  }
-  if (
-    !sourceText.includes("UserRequirement.binaryOutcomePolicy is mandatory source truth")
-    || !sourceText.includes("decision plus routeLabel")
-    || !sourceText.includes("Orchestration may only match the routeLabel mechanically")
-    || !sourceText.includes("must not include nextIntent, suggestedNextAction, actionIntent, or action_intent")
-    || !sourceText.includes("Production routePlanBoundMap must not use Branch DSL, schemaFieldRef routing, action chains, review routes, or map-owned branching")
-  ) {
-    findings.push(createAuthoringFinding(
-      MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT,
-      PROMPT_TEMPLATE_FILE,
-      "Map authoring prompt template must require selected/default binary outcome options to become AI decision plus routeLabel, with Orchestration limited to mechanical route matching.",
-    ));
-  }
-  return findings;
+  const requirements: AuthoringRequirement[] = [
+    { lawId: MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT, file: PROMPT_TEMPLATE_FILE, message: "Map authoring prompt template must not hardcode childCapabilityId literals; capability truth must come from inputPackage.capabilityCatalog.", ok: hardcodedChildren.length === 0, detail: hardcodedChildren.join(", ") },
+    { lawId: MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT, file: PROMPT_TEMPLATE_FILE, message: "Map authoring prompt template must not maintain a second hand-written capability table.", ok: !hasHandWrittenCapabilityTable(sourceText) },
+    { lawId: MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT, file: PROMPT_TEMPLATE_FILE, message: "Map authoring prompt template must explicitly forbid human-review actions and require automation maps to complete through automated execution, blocking, or failed termination.", ok: hasAutomationNoHumanReviewPromptRules(sourceText) },
+    { lawId: MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT, file: PROMPT_TEMPLATE_FILE, message: "Map authoring prompt template must require selected/default binary outcome options to become AI decision plus routeLabel, with Orchestration limited to mechanical route matching.", ok: hasBinaryOutcomeRouteLabelPromptRules(sourceText) },
+  ];
+
+  return collectRequirementFindings(requirements);
 };
 
 const canonicalize = (value: unknown): unknown => {
@@ -202,39 +161,37 @@ const canonicalize = (value: unknown): unknown => {
 const hashValue = (value: unknown): string =>
   `sha256:${createHash("sha256").update(typeof value === "string" ? value : JSON.stringify(canonicalize(value))).digest("hex")}`;
 
+const hasExpectedPromptContractHashes = (contract: Record<string, unknown>, expectedContractHash: string): boolean =>
+  contract.promptHash !== "sha256:map-authoring-v1"
+  && contract.promptHash === expectedContractHash
+  && contract.promptContractHash === expectedContractHash;
+
+const hasExpectedTemplateHashes = (contract: Record<string, unknown>): boolean =>
+  contract.systemPromptTemplateHash === hashValue(MAP_AUTHORING_SYSTEM_PROMPT_TEMPLATE)
+  && contract.userPromptTemplateHash === hashValue(MAP_AUTHORING_USER_PROMPT_TEMPLATE);
+
+const hasAutomationMapSafetyPolicy = (forbiddenOutputs: readonly unknown[], safetyPolicy: Record<string, unknown>): boolean =>
+  forbiddenOutputs.includes("request-human-review")
+  && forbiddenOutputs.includes("review_required terminal routing")
+  && safetyPolicy.forbidHumanReviewActionsInAutomationMaps === true
+  && safetyPolicy.automationMapsMustCompleteWithoutHumanReview === true
+  && safetyPolicy.requireHumanReviewForSensitiveOperations === false
+  && safetyPolicy.automationMapRule === "forbid-human-review-actions-and-review-required-terminal-routing";
+
 const inspectMapAuthoringPromptContract = (): Finding[] => {
   const contract = JSON.parse(readFileSync(pathFromRepoRoot(MAP_AUTHORING_PROMPT_CONTRACT_FILE), "utf8")) as Record<string, unknown>;
-  const findings: Finding[] = [];
   const expectedContractHash = hashValue(contract);
-  if (contract.modelRole !== "map-authoring") {
-    findings.push(createAuthoringFinding(MAP_PLUGIN_LAWS.PROMPT_OUTPUT_CATALOGS, MAP_AUTHORING_PROMPT_CONTRACT_FILE, "Map authoring prompt contract modelRole must be map-authoring."));
-  }
-  if (contract.promptHash === "sha256:map-authoring-v1" || contract.promptHash !== expectedContractHash || contract.promptContractHash !== expectedContractHash) {
-    findings.push(createAuthoringFinding(MAP_PLUGIN_LAWS.PROMPT_OUTPUT_CATALOGS, MAP_AUTHORING_PROMPT_CONTRACT_FILE, "Map authoring prompt contract hash fields must match the canonical static contract hash."));
-  }
-  if (contract.systemPromptTemplateHash !== hashValue(MAP_AUTHORING_SYSTEM_PROMPT_TEMPLATE)) {
-    findings.push(createAuthoringFinding(MAP_PLUGIN_LAWS.PROMPT_OUTPUT_CATALOGS, MAP_AUTHORING_PROMPT_CONTRACT_FILE, "Map authoring systemPromptTemplateHash must match the static system template."));
-  }
-  if (contract.userPromptTemplateHash !== hashValue(MAP_AUTHORING_USER_PROMPT_TEMPLATE)) {
-    findings.push(createAuthoringFinding(MAP_PLUGIN_LAWS.PROMPT_OUTPUT_CATALOGS, MAP_AUTHORING_PROMPT_CONTRACT_FILE, "Map authoring userPromptTemplateHash must match the static user template."));
-  }
   const forbiddenOutputs = Array.isArray(contract.forbiddenOutputs) ? contract.forbiddenOutputs : [];
   const safetyPolicy = contract.safetyPolicy && typeof contract.safetyPolicy === "object" ? contract.safetyPolicy as Record<string, unknown> : {};
-  if (
-    !forbiddenOutputs.includes("request-human-review")
-    || !forbiddenOutputs.includes("review_required terminal routing")
-    || safetyPolicy.forbidHumanReviewActionsInAutomationMaps !== true
-    || safetyPolicy.automationMapsMustCompleteWithoutHumanReview !== true
-    || safetyPolicy.requireHumanReviewForSensitiveOperations !== false
-    || safetyPolicy.automationMapRule !== "forbid-human-review-actions-and-review-required-terminal-routing"
-  ) {
-    findings.push(createAuthoringFinding(
-      MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT,
-      MAP_AUTHORING_PROMPT_CONTRACT_FILE,
-      "Map authoring prompt contract must encode the automation-map ban on human-review actions and review_required terminal routing.",
-    ));
-  }
-  return findings;
+  const requirements: AuthoringRequirement[] = [
+    { lawId: MAP_PLUGIN_LAWS.PROMPT_OUTPUT_CATALOGS, file: MAP_AUTHORING_PROMPT_CONTRACT_FILE, message: "Map authoring prompt contract modelRole must be map-authoring.", ok: contract.modelRole === "map-authoring" },
+    { lawId: MAP_PLUGIN_LAWS.PROMPT_OUTPUT_CATALOGS, file: MAP_AUTHORING_PROMPT_CONTRACT_FILE, message: "Map authoring prompt contract hash fields must match the canonical static contract hash.", ok: hasExpectedPromptContractHashes(contract, expectedContractHash) },
+    { lawId: MAP_PLUGIN_LAWS.PROMPT_OUTPUT_CATALOGS, file: MAP_AUTHORING_PROMPT_CONTRACT_FILE, message: "Map authoring systemPromptTemplateHash must match the static system template.", ok: hasExpectedTemplateHashes({ ...contract, userPromptTemplateHash: hashValue(MAP_AUTHORING_USER_PROMPT_TEMPLATE) }) },
+    { lawId: MAP_PLUGIN_LAWS.PROMPT_OUTPUT_CATALOGS, file: MAP_AUTHORING_PROMPT_CONTRACT_FILE, message: "Map authoring userPromptTemplateHash must match the static user template.", ok: hasExpectedTemplateHashes({ ...contract, systemPromptTemplateHash: hashValue(MAP_AUTHORING_SYSTEM_PROMPT_TEMPLATE) }) },
+    { lawId: MAP_PLUGIN_LAWS.AUTHORING_ENFORCEMENT, file: MAP_AUTHORING_PROMPT_CONTRACT_FILE, message: "Map authoring prompt contract must encode the automation-map ban on human-review actions and review_required terminal routing.", ok: hasAutomationMapSafetyPolicy(forbiddenOutputs, safetyPolicy) },
+  ];
+
+  return collectRequirementFindings(requirements);
 };
 
 const inspectAiAndMapLabBoundary = (project: Project): Finding[] => {

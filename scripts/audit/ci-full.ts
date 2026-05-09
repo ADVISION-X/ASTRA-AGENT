@@ -201,35 +201,44 @@ const buildCiFullSummary = (runId: string, layers: CiFullLayerSummary[]): CiFull
   layers,
 });
 
-const main = async (): Promise<void> => {
-  const runId = randomUUID();
+const runCiStagesUntilFailure = async (runId: string): Promise<CiFullLayerSummary[]> => {
   const layerSummaries: CiFullLayerSummary[] = [];
   let encounteredFailure = false;
 
-  try {
-    for (const stage of CI_STAGES) {
-      if (encounteredFailure) {
-        layerSummaries.push(createSkippedStageSummary(stage, runId));
-        continue;
-      }
-
-      const result = await runCiStage(stage, runId);
-      layerSummaries.push(result.summary);
-      if (!result.passed) {
-        encounteredFailure = true;
-      }
+  for (const stage of CI_STAGES) {
+    if (encounteredFailure) {
+      layerSummaries.push(createSkippedStageSummary(stage, runId));
+      continue;
     }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`[CI FULL ERROR] ${message}\n`);
-    while (layerSummaries.length < CI_STAGES.length) {
-      layerSummaries.push(createSkippedStageSummary(CI_STAGES[layerSummaries.length], runId));
+
+    const result = await runCiStage(stage, runId);
+    layerSummaries.push(result.summary);
+    if (!result.passed) {
+      encounteredFailure = true;
     }
   }
 
-  const summary = buildCiFullSummary(runId, layerSummaries);
-  await writeCiFullSummary(summary);
+  return layerSummaries;
+};
 
+const appendSkippedStagesAfterError = (layerSummaries: CiFullLayerSummary[], runId: string): CiFullLayerSummary[] => {
+  while (layerSummaries.length < CI_STAGES.length) {
+    const stage = CI_STAGES[layerSummaries.length];
+    if (!stage) {
+      break;
+    }
+    layerSummaries.push(createSkippedStageSummary(stage, runId));
+  }
+  return layerSummaries;
+};
+
+const recoverLayerSummariesFromError = (error: unknown, layerSummaries: CiFullLayerSummary[], runId: string): CiFullLayerSummary[] => {
+  const message = error instanceof Error ? error.message : String(error);
+  process.stderr.write(`[CI FULL ERROR] ${message}\n`);
+  return appendSkippedStagesAfterError(layerSummaries, runId);
+};
+
+const exitFromCiFullSummary = (summary: CiFullSummary): void => {
   if (summary.status === "PASS") {
     process.stdout.write("[CI FULL PASS] foundation, map, and ability-group audits all passed.\n");
     exitNow(0);
@@ -237,6 +246,21 @@ const main = async (): Promise<void> => {
 
   process.stderr.write("[CI FULL FAIL] structured summary recorded blocking or skipped evidence.\n");
   exitNow(1);
+};
+
+const main = async (): Promise<void> => {
+  const runId = randomUUID();
+  let layerSummaries: CiFullLayerSummary[] = [];
+
+  try {
+    layerSummaries = await runCiStagesUntilFailure(runId);
+  } catch (error) {
+    layerSummaries = recoverLayerSummariesFromError(error, layerSummaries, runId);
+  }
+
+  const summary = buildCiFullSummary(runId, layerSummaries);
+  await writeCiFullSummary(summary);
+  exitFromCiFullSummary(summary);
 };
 
 void main().catch((error: unknown) => {

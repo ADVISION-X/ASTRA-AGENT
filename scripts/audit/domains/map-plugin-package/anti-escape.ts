@@ -120,7 +120,7 @@ const inspectBuiltinLoaderDiagnostics = (project: Project): Finding[] => {
 const inspectManifestShape = (context: InspectorContext): Finding[] => {
   const manifest = context.manifestsByDomain.get("map-plugin-package");
   if (!manifest) {
-    return [createEnforcementFinding("scripts/audit/domains/map-plugin-package/manifest.json", 1, "Map package manifest must exist so audit runner ownership can resolve.")];
+    return [createEnforcementFinding("scripts/audit/domains/map-plugin-package/manifest.json", 1, "Map package manifest must exist so CI-FULL ownership can resolve.")];
   }
 
   return hasExactLawSet(manifest.allowedLawIds)

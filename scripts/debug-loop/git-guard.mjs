@@ -7,7 +7,7 @@ import { writeJsonFile } from "./json-utils.mjs";
 import { getRepoRoot } from "./path-policy.mjs";
 
 const GENERATED_ROOT = "scripts/audit/generated";
-const PROTECTED_DELETION_PATTERNS = [/\/inspector\.ts$/i, /negative-proof-harness\.ts$/i, /\.instructions\.md$/i];
+const PROTECTED_DELETION_PATTERNS = [/\/inspector\.ts$/i, /\.instructions\.md$/i];
 const LAW_DOWNGRADE_PATTERN = /status:\s*active[\s\S]{0,200}?tier:\s*P0[\s\S]{0,200}?enforcementMode:\s*(manual-first|warning-only)/i;
 
 function splitLines(text) {
@@ -119,7 +119,7 @@ function checkProtectedDeletes(currentState) {
 
 function checkGeneratedDrift(input, currentState) {
   const changedGeneratedFiles = diffGeneratedHashes(input.previousGitState?.generatedHashes, currentState.generatedHashes);
-  return changedGeneratedFiles.length > 0 ? `Generated audit files changed before audit:build: ${changedGeneratedFiles.join(", ")}` : null;
+  return changedGeneratedFiles.length > 0 ? `Generated audit files changed before ci:full: ${changedGeneratedFiles.join(", ")}` : null;
 }
 
 function checkAllowedModify(input, currentState) {

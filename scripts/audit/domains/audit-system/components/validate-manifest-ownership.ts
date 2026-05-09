@@ -1,15 +1,8 @@
 import { createFinding, createPhase } from "../../../core/result.js";
 import type { Finding, InspectorContext, InspectorPhase } from "../../../core/schema.js";
 
-const collectManifestOwnershipFindings = (context: InspectorContext): Finding[] => {
+const collectLawManifestOwnershipFindings = (context: InspectorContext, lawIdsByDomain: Map<string, Set<string>>): Finding[] => {
   const findings: Finding[] = [];
-  const lawIdsByDomain = new Map<string, Set<string>>();
-
-  for (const law of context.lawRegistry.laws) {
-    const lawIds = lawIdsByDomain.get(law.capabilityDomain) ?? new Set<string>();
-    lawIds.add(law.lawId);
-    lawIdsByDomain.set(law.capabilityDomain, lawIds);
-  }
 
   for (const law of context.lawRegistry.laws) {
     const manifest = context.manifestsByDomain.get(law.capabilityDomain);
@@ -50,6 +43,12 @@ const collectManifestOwnershipFindings = (context: InspectorContext): Finding[] 
       );
     }
   }
+
+  return findings;
+};
+
+const collectAuditPlanOwnerOwnershipFindings = (context: InspectorContext, lawIdsByDomain: Map<string, Set<string>>): Finding[] => {
+  const findings: Finding[] = [];
 
   for (const owner of context.auditPlan.owners) {
     const manifest = context.manifestsByDomain.get(owner.capabilityDomain);
@@ -95,6 +94,21 @@ const collectManifestOwnershipFindings = (context: InspectorContext): Finding[] 
   }
 
   return findings;
+};
+
+const collectManifestOwnershipFindings = (context: InspectorContext): Finding[] => {
+  const lawIdsByDomain = new Map<string, Set<string>>();
+
+  for (const law of context.lawRegistry.laws) {
+    const lawIds = lawIdsByDomain.get(law.capabilityDomain) ?? new Set<string>();
+    lawIds.add(law.lawId);
+    lawIdsByDomain.set(law.capabilityDomain, lawIds);
+  }
+
+  return [
+    ...collectLawManifestOwnershipFindings(context, lawIdsByDomain),
+    ...collectAuditPlanOwnerOwnershipFindings(context, lawIdsByDomain),
+  ];
 };
 
 const createManifestOwnershipPhase = (findings: Finding[]): InspectorPhase =>

@@ -142,6 +142,61 @@ async function emitErrorDebug(args: {
   });
 }
 
+function resolveEventDurationMs(event: LocalAiDebugEvent): number | null {
+  return "durationMs" in event && typeof event.durationMs === "number" ? event.durationMs : null;
+}
+
+async function handleRequestStartedDebug(args: {
+  emit: LocalAiRuntimePortOptions["emitDebugEvent"];
+  state: CollectedDebugState;
+  baseEvent: () => Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs">;
+}) {
+  if (args.state.requestEmitted) {
+    return;
+  }
+  args.state.requestEmitted = true;
+  await emitRequestDebug({ emit: args.emit, baseEvent: args.baseEvent });
+}
+
+async function handleRawResponseDebug(args: {
+  emit: LocalAiRuntimePortOptions["emitDebugEvent"];
+  event: LocalAiDebugEvent;
+  state: CollectedDebugState;
+  baseEvent: () => Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs">;
+}) {
+  if (args.state.rawResponseEmitted) {
+    return;
+  }
+  args.state.rawResponseEmitted = true;
+  await emitRawResponseDebug({ emit: args.emit, baseEvent: args.baseEvent, durationMs: resolveEventDurationMs(args.event) });
+}
+
+async function handleNormalizedResponseDebug(args: {
+  emit: LocalAiRuntimePortOptions["emitDebugEvent"];
+  event: LocalAiDebugEvent;
+  state: CollectedDebugState;
+  baseEvent: () => Omit<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "failureReason" | "errorKind" | "actionableMessage" | "ownerResponsible" | "durationMs">;
+}) {
+  if (args.state.normalizedResponseEmitted) {
+    return;
+  }
+  args.state.normalizedResponseEmitted = true;
+  await emitNormalizedResponseDebug({ emit: args.emit, baseEvent: args.baseEvent, durationMs: resolveEventDurationMs(args.event) });
+}
+
+async function handleParsedOutputDebug(args: {
+  event: LocalAiDebugEvent;
+  state: CollectedDebugState;
+  emitRuntimeSuccess: (parsedJson: unknown, durationMs: number | null) => Promise<void>;
+}) {
+  if (!("parsedJson" in args.event)) {
+    return;
+  }
+  args.state.parsedJson = args.event.parsedJson ?? null;
+  args.state.parsedDecision = ("parsedDecision" in args.event && args.event.parsedDecision?.trim()) || null;
+  await args.emitRuntimeSuccess(args.state.parsedJson, resolveEventDurationMs(args.event));
+}
+
 async function handleDebugHookEvent(args: {
   emit: LocalAiRuntimePortOptions["emitDebugEvent"];
   event: LocalAiDebugEvent;
@@ -151,32 +206,19 @@ async function handleDebugHookEvent(args: {
 }) {
   updateDebugState(args.state, args.event);
   if (args.event.eventType === "local_ai_runtime_request_started" && !args.state.requestEmitted) {
-    args.state.requestEmitted = true;
-    await emitRequestDebug({ emit: args.emit, baseEvent: args.baseEvent });
+    await handleRequestStartedDebug({ emit: args.emit, state: args.state, baseEvent: args.baseEvent });
     return;
   }
   if (args.event.eventType === "local_ai_adapter_response_received" && !args.state.rawResponseEmitted) {
-    args.state.rawResponseEmitted = true;
-    await emitRawResponseDebug({
-      emit: args.emit,
-      baseEvent: args.baseEvent,
-      durationMs: typeof args.event.durationMs === "number" ? args.event.durationMs : null,
-    });
+    await handleRawResponseDebug({ emit: args.emit, event: args.event, state: args.state, baseEvent: args.baseEvent });
     return;
   }
   if (args.event.eventType === "local_ai_output_normalized" && !args.state.normalizedResponseEmitted) {
-    args.state.normalizedResponseEmitted = true;
-    await emitNormalizedResponseDebug({
-      emit: args.emit,
-      baseEvent: args.baseEvent,
-      durationMs: typeof args.event.durationMs === "number" ? args.event.durationMs : null,
-    });
+    await handleNormalizedResponseDebug({ emit: args.emit, event: args.event, state: args.state, baseEvent: args.baseEvent });
     return;
   }
   if (args.event.eventType === "local_ai_output_parsed") {
-    args.state.parsedJson = args.event.parsedJson ?? null;
-    args.state.parsedDecision = args.event.parsedDecision?.trim() || null;
-    await args.emitRuntimeSuccess(args.state.parsedJson, typeof args.event.durationMs === "number" ? args.event.durationMs : null);
+    await handleParsedOutputDebug({ event: args.event, state: args.state, emitRuntimeSuccess: args.emitRuntimeSuccess });
   }
 }
 

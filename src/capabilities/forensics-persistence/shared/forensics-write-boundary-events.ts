@@ -145,6 +145,46 @@ function withBoundaryProofRefs(event: StructuredRuntimeEvent, proofRefs: string[
   return StructuredRuntimeEventSchema.parse({ ...event, proofRefs });
 }
 
+function resolveForensicsRecordWrittenEventType(result: ForensicsPersistenceAbilityResult): "FORENSICS_RECORD_WRITE_REVIEW_REQUIRED" | "FORENSICS_RECORD_WRITTEN" {
+  return result.status === "review_required" || result.status === "failed"
+    ? "FORENSICS_RECORD_WRITE_REVIEW_REQUIRED"
+    : "FORENSICS_RECORD_WRITTEN";
+}
+
+function resolveForensicsRecordWrittenStatus(result: ForensicsPersistenceAbilityResult): "review_required" | "success" {
+  return result.status === "review_required" || result.status === "failed" ? "review_required" : "success";
+}
+
+function resolveForensicsRecordWrittenDedupeDecision(result: ForensicsPersistenceAbilityResult): string {
+  return result.status === "failed"
+    ? "failed"
+    : result.status === "review_required"
+      ? "review_required"
+      : "written";
+}
+
+function buildForensicsRecordWrittenRefs(
+  request: StructuredWriteRequest,
+  result: ForensicsPersistenceAbilityResult,
+  dedupeDecision: string,
+): string[] {
+  return [
+    `recordType=${request.recordType}`,
+    `recordKind=${request.recordType}`,
+    `sourceEventId=${resolveSourceEventId(request)}`,
+    `sourceEventType=${resolveSourceEventType(request)}`,
+    `forensicsResultStatus=${result.status}`,
+    `recordId=${result.recordRef.recordId}`,
+    `recordRef=${result.recordRef.recordId}`,
+    `idempotencyKey=${result.policyDecision.idempotencyKey}`,
+    `dedupeDecision=${dedupeDecision}`,
+    ...(result.failureReason ? [`failureReason=${result.failureReason.code}`] : []),
+    ...(result.reviewRequiredReason ? [`reviewRequiredReason=${result.reviewRequiredReason}`] : []),
+    `durabilityMode=${result.storageRef ? "durable" : "memory_only"}`,
+    `storageRef=${result.storageRef ?? "MISSING"}`,
+  ];
+}
+
 function buildEmptyBoundaryEventFields() {
   return {
     previousStep: null,
@@ -197,33 +237,8 @@ export async function emitForensicsRecordWritten(
     return;
   }
 
-  const reviewRequired = result.status === "review_required" || result.status === "failed";
-  const eventType = reviewRequired ? "FORENSICS_RECORD_WRITE_REVIEW_REQUIRED" : "FORENSICS_RECORD_WRITTEN";
-  const status = reviewRequired ? "review_required" : "success";
-  const dedupeDecision = result.status === "failed" ? "failed" : reviewRequired ? "review_required" : "written";
-  await emitter.emitRuntimeEvent(
-    withBoundaryProofRefs(
-      buildBoundaryEvent(
-        request,
-        eventType,
-        status,
-        [
-          `recordType=${request.recordType}`,
-          `recordKind=${request.recordType}`,
-          `sourceEventId=${resolveSourceEventId(request)}`,
-          `sourceEventType=${resolveSourceEventType(request)}`,
-          `forensicsResultStatus=${result.status}`,
-          `recordId=${result.recordRef.recordId}`,
-          `recordRef=${result.recordRef.recordId}`,
-          `idempotencyKey=${result.policyDecision.idempotencyKey}`,
-          `dedupeDecision=${dedupeDecision}`,
-          ...(result.failureReason ? [`failureReason=${result.failureReason.code}`] : []),
-          ...(result.reviewRequiredReason ? [`reviewRequiredReason=${result.reviewRequiredReason}`] : []),
-          `durabilityMode=${result.storageRef ? "durable" : "memory_only"}`,
-          `storageRef=${result.storageRef ?? "MISSING"}`,
-        ],
-      ),
-      result.runtimeProof?.proofId ? [result.runtimeProof.proofId] : [],
-    ),
-  );
+  const eventType = resolveForensicsRecordWrittenEventType(result);
+  const status = resolveForensicsRecordWrittenStatus(result);
+  const dedupeDecision = resolveForensicsRecordWrittenDedupeDecision(result);
+  await emitter.emitRuntimeEvent(withBoundaryProofRefs(buildBoundaryEvent(request, eventType, status, buildForensicsRecordWrittenRefs(request, result, dedupeDecision)), result.runtimeProof?.proofId ? [result.runtimeProof.proofId] : []));
 }

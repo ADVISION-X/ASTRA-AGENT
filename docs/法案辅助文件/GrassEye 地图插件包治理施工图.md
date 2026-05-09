@@ -134,7 +134,7 @@ draft map package
 → quarantine
 → schema validation
 → dependency validation
-→ transition closure validation
+→ transition completeness validation
 → capability catalog validation
 → prompt contract validation
 → platform profile validation
@@ -610,7 +610,7 @@ Validation gates:
 ```txt
 schema validation
 dependency validation
-transition closure validation
+transition completeness validation
 capability catalog validation
 prompt contract validation
 platform profile validation

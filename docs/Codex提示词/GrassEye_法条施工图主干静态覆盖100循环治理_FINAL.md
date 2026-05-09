@@ -87,11 +87,11 @@ lastRequirementId:
 → 判断 inspector 对该 requirement 是否静态覆盖 100%
 → 如果未覆盖 100%，删除/重写 inspector 对应逻辑
 → 如果缺 real-code-inspection，补 real-code-inspection
-→ 运行 npm run audit:build
-→ 运行 npm run audit:<owner>
+→ 运行 npm run ci:full
+→ 运行 CI-FULL owner stage
 → 如果 audit 抓到真实代码违规，删除/重写/物理切割代码文件
-→ 再次运行 npm run audit:build
-→ 再次运行 npm run audit:<owner>
+→ 再次运行 npm run ci:full
+→ 再次运行 CI-FULL owner stage
 → 当前 requirement 达到 100%
 → 自动读取下一条 requirement
 ```
@@ -109,8 +109,8 @@ lastRequirementId:
 4. 已读取对应 inspector。
 5. inspector 静态覆盖该 requirement = 100%。
 6. required real-code-inspection 已存在并覆盖。
-7. npm run audit:build PASS。
-8. npm run audit:<owner> PASS。
+7. npm run ci:full PASS。
+8. CI-FULL owner stage PASS。
 9. inspector 抓出的真实代码问题已修复。
 10. 未修改法案内容。
 11. 未弱化施工图内容。
@@ -137,7 +137,7 @@ remaining:
 完成了几条 requirement
 完成了一个 owner 的一部分
 完成了 K01 的前几条
-audit:kernel PASS
+CI-FULL kernel owner step PASS
 audit:<owner> PASS
 发现下一条比较复杂
 需要继续处理下一条
@@ -278,8 +278,8 @@ compat
 每条 requirement 只跑轻量链：
 
 ```bash
-npm run audit:build
-npm run audit:<owner>
+npm run ci:full
+CI-FULL owner stage
 ```
 
 本阶段禁止把 CI-FULL 当主线。
@@ -333,7 +333,7 @@ completedRequirements == totalRequirements
 2. COVERAGE
 - law/blueprint static coverage:
 - real-code-inspection coverage:
-- owner audit pass count:
+- owner inspector pass count:
 
 3. INSPECTOR CHANGES
 - inspectors rewritten:
@@ -345,8 +345,8 @@ completedRequirements == totalRequirements
 - files split:
 
 5. COMMANDS RUN
-- audit:build:
-- owner audits:
+- ci:full:
+- owner inspectors:
 
 6. FREEZE CHECK
 - law content changed: NO
@@ -366,7 +366,7 @@ completedRequirements == totalRequirements
 ## 一句话执行纪律
 
 ```txt
-从《法条+施工图要求执法复查清单.md》第一条开始，一条一条做；每条必须法条/施工图为主干，inspector 静态覆盖 100%，代码问题修复，owner audit 通过；清单未完成或未明确 BLOCKED，禁止停止。
+从《法条+施工图要求执法复查清单.md》第一条开始，一条一条做；每条必须法条/施工图为主干，inspector 静态覆盖 100%，代码问题修复，owner inspector 通过；清单未完成或未明确 BLOCKED，禁止停止。
 ```
 
 现在开始执行，不要再阶段性停止。

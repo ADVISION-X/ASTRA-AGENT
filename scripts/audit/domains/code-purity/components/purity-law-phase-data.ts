@@ -81,8 +81,8 @@ export const LAW_PHASE_SUMMARIES: PurityPhaseSummary[] = [
   {
     lawId: "GRASSEYE-CODE-PURITY-011-V1",
     name: "real-enforcement-coverage",
-    okSummary: "All active code-purity laws have inspector coverage, runner execution, and negative proof.",
-    failedSummary: "One or more active code-purity laws lack real coverage or negative proof.",
+    okSummary: "All active code-purity laws have inspector coverage and CI-FULL execution.",
+    failedSummary: "One or more active code-purity laws lack real-code coverage or CI-FULL execution.",
   },
   {
     lawId: "GRASSEYE-CODE-PURITY-012-V1",

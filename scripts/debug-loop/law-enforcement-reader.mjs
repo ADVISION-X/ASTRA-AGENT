@@ -47,26 +47,6 @@ function resolveActiveLaws(lawRegistry, ownerDomain) {
   return laws.filter((law) => law.status === "active" && law.capabilityDomain === ownerDomain);
 }
 
-function resolveRemainingP0(runnerSummary) {
-  return (runnerSummary.results ?? [])
-    .flatMap((result) => result.findings ?? [])
-    .filter((finding) => String(finding.severity ?? "").toLowerCase() === "error")
-    .map((finding) => `${finding.lawId ?? "unknown-law"}:${finding.message ?? "error"}`);
-}
-
-function resolveNegativeProofPhase(runnerOwnerEntry) {
-  return (runnerOwnerEntry?.phases ?? []).find((phase) => /negative[- ]proof/i.test(phase.name ?? "")) ?? null;
-}
-
-function resolveNegativeProofStatus(runnerOwnerEntry) {
-  const negativeProofPhase = resolveNegativeProofPhase(runnerOwnerEntry);
-  if (!negativeProofPhase) {
-    return "FAIL";
-  }
-
-  return negativeProofPhase.passed === true ? "PASS" : "FAIL";
-}
-
 function resolveMissingLawIds(activeLaws, ownerEntry) {
   const ownedLawIds = new Set(ownerEntry?.lawIds ?? []);
   return activeLaws
@@ -85,20 +65,17 @@ function hasWarningOnlyP0(activeLaws) {
   return activeLaws.some((law) => law.tier === "P0" && law.enforcementMode !== "machine-blocking");
 }
 
-function hasEmptyNegativeProof(runnerOwnerEntry) {
-  const negativeProofPhase = resolveNegativeProofPhase(runnerOwnerEntry);
-  if (!negativeProofPhase) {
-    return true;
-  }
-
-  return typeof negativeProofPhase.summary !== "string" || negativeProofPhase.summary.trim().length === 0;
+function resolveCiFullFailures(ciFullSummary) {
+  return (ciFullSummary.layers ?? [])
+    .flatMap((layer) => layer.steps ?? [])
+    .filter((step) => step.status !== "PASS")
+    .map((step) => `${step.name ?? "unknown-step"}:${step.status ?? "unknown"}`);
 }
 
-function buildOwnerCoverage(ownerDomain, matrixOwnerEntry, auditPlanOwnerEntry, runnerOwnerEntry) {
+function buildOwnerCoverage(ownerDomain, matrixOwnerEntry, auditPlanOwnerEntry) {
   return {
     hasMatrixEntry: ownerDomain === null ? true : matrixOwnerEntry !== null,
     ownerInAuditPlan: ownerDomain === null ? true : auditPlanOwnerEntry !== null,
-    runnerSummaryIncludesOwner: ownerDomain === null ? true : runnerOwnerEntry !== null,
   };
 }
 
@@ -111,14 +88,11 @@ function resolveLawEnforcementPassed(input) {
     input.activeLaws.length > 0,
     input.hasMatrixEntry,
     input.ownerInAuditPlan,
-    input.runnerSummaryIncludesOwner,
     input.missingMatrixLawIds.length === 0,
     input.missingAuditPlanLawIds.length === 0,
     input.missingP0P1LawCoverage.length === 0,
-    input.negativeProof === "PASS",
     !input.warningOnlyP0,
     !input.detachedInspector,
-    !input.emptyNegativeProof,
   ].every(Boolean);
 }
 
@@ -126,21 +100,17 @@ function buildLawEnforcementChecks(input) {
   const missingMatrixLawIds = resolveMissingLawIds(input.activeLaws, input.matrixOwnerEntry);
   const missingAuditPlanLawIds = resolveMissingLawIds(input.activeLaws, input.auditPlanOwnerEntry);
   const missingP0P1LawCoverage = resolveMissingP0P1Coverage(input.activeLaws, input.matrixOwnerEntry);
-  const ownerCoverage = buildOwnerCoverage(input.ownerDomain, input.matrixOwnerEntry, input.auditPlanOwnerEntry, input.runnerOwnerEntry);
-  const negativeProof = resolveNegativeProofStatus(input.runnerOwnerEntry);
+  const ownerCoverage = buildOwnerCoverage(input.ownerDomain, input.matrixOwnerEntry, input.auditPlanOwnerEntry);
   const warningOnlyP0 = hasWarningOnlyP0(input.activeLaws);
   const detachedInspector = ownerCoverage.hasMatrixEntry && !ownerCoverage.ownerInAuditPlan;
-  const emptyNegativeProof = hasEmptyNegativeProof(input.runnerOwnerEntry);
 
   return {
     ...ownerCoverage,
     missingMatrixLawIds,
     missingAuditPlanLawIds,
     missingP0P1LawCoverage,
-    negativeProof,
     warningOnlyP0,
     detachedInspector,
-    emptyNegativeProof,
     lawEnforcementPassed: resolveLawEnforcementPassed({
       ownerDomain: input.ownerDomain,
       activeLaws: input.activeLaws,
@@ -148,38 +118,35 @@ function buildLawEnforcementChecks(input) {
       missingMatrixLawIds,
       missingAuditPlanLawIds,
       missingP0P1LawCoverage,
-      negativeProof,
       warningOnlyP0,
       detachedInspector,
-      emptyNegativeProof,
     }),
   };
 }
 
 export async function readLawEnforcementState(input = {}) {
-  const [lawRegistry, enforcementMatrix, auditPlan, runnerSummary] = await Promise.all([
+  const [lawRegistry, enforcementMatrix, auditPlan, ciFullSummary] = await Promise.all([
     readGeneratedArtifact("law-registry.generated.json"),
     readGeneratedArtifact("enforcement-matrix.generated.json"),
     readGeneratedArtifact("audit-plan.generated.json"),
-    readGeneratedArtifact("runner-summary.json"),
+    readGeneratedArtifact("ci-full-summary.generated.json"),
   ]);
 
   const ownerDomain = resolveOwnerDomain(input.owner);
   const activeLaws = resolveActiveLaws(lawRegistry, ownerDomain);
   const matrixOwnerEntry = resolveOwnerEntry(enforcementMatrix.owners, ownerDomain);
   const auditPlanOwnerEntry = resolveOwnerEntry(auditPlan.owners, ownerDomain);
-  const runnerOwnerEntry = resolveOwnerEntry(runnerSummary.results, ownerDomain);
-  const enforcementChecks = buildLawEnforcementChecks({ ownerDomain, activeLaws, matrixOwnerEntry, auditPlanOwnerEntry, runnerOwnerEntry });
+  const enforcementChecks = buildLawEnforcementChecks({ ownerDomain, activeLaws, matrixOwnerEntry, auditPlanOwnerEntry });
 
   return {
     lawRegistry,
     enforcementMatrix,
     auditPlan,
-    runnerSummary,
+    ciFullSummary,
     ownerDomain,
     activeLawIds: activeLaws.map((law) => law.lawId),
     hasActiveLaw: activeLaws.length > 0,
     ...enforcementChecks,
-    remainingP0: resolveRemainingP0(runnerSummary),
+    ciFullFailures: resolveCiFullFailures(ciFullSummary),
   };
 }

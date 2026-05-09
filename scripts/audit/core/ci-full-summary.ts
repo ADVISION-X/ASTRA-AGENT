@@ -1,4 +1,4 @@
-import { readJsonFile, writeJsonFile } from "./filesystem.js";
+import { writeJsonFile } from "./filesystem.js";
 import { generatedArtifactPaths } from "./generated-artifact-paths.js";
 import type { CiFullLayerLabel } from "./ci-full-plan.js";
 
@@ -36,9 +36,6 @@ export const buildCiFullCommand = (command: readonly string[]): string => comman
 export const writeCiFullSummary = async (summary: CiFullSummary): Promise<void> => {
   await writeJsonFile(generatedArtifactPaths.ciFullSummary, summary);
 };
-
-export const readCiFullSummary = async (): Promise<CiFullSummary> =>
-  readJsonFile<CiFullSummary>(generatedArtifactPaths.ciFullSummary);
 
 export const getCiFullLayerStatus = (steps: CiFullStepSummary[]): CiFullLayerStatus => {
   if (steps.some((step) => step.status === "FAIL")) {

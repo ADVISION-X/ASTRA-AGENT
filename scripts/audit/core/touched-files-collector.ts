@@ -68,7 +68,7 @@ const buildArtifact = (input: {
 export const collectTouchedFilesArtifact = async (options?: { allowStatusFallback?: boolean }): Promise<TouchedFilesArtifact> => {
   const baseRef = process.env.CODE_PURITY_BASE_REF?.trim();
   if (baseRef) {
-    const result = runGitLines(["diff", "--name-only", `${baseRef}...HEAD`]);
+    const result = runGitLines(["diff", "--name-only", "--diff-filter=ACMRTUXB", `${baseRef}...HEAD`]);
     if (result.ok) {
       return buildArtifact({
         source: "CODE_PURITY_BASE_REF...HEAD",
@@ -78,7 +78,7 @@ export const collectTouchedFilesArtifact = async (options?: { allowStatusFallbac
     }
   }
 
-  const headResult = runGitLines(["diff", "--name-only", "HEAD"]);
+  const headResult = runGitLines(["diff", "--name-only", "--diff-filter=ACMRTUXB", "HEAD"]);
   if (headResult.ok) {
     return buildArtifact({
       source: "git diff --name-only HEAD",

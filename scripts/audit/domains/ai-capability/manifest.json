@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/ai-capability/inspector.ts",
   "engine": "hybrid",
-  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-AI-CAPABILITY-001-V1",
     "GRASSEYE-AI-CAPABILITY-002-V1",

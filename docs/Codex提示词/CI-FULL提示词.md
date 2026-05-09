@@ -133,8 +133,8 @@ LOOP-1：运行 CI-FULL 相关命令。
 
 至少运行：
 
-- npm run audit:build
-- npm run audit
+- npm run ci:full
+- npm run ci:full
 - npm run typecheck
 - npm run lint
 - npm run ci:full
@@ -196,7 +196,7 @@ LOOP-7：重新运行全部命令。
 - real-code-inspection:
 
 6. Commands
-- audit:build:
+- ci:full:
 - audit:
 - typecheck:
 - lint:

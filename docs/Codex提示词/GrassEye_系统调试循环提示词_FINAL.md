@@ -74,7 +74,7 @@ A-2：遍历相关法案文件 + 故事情节 + 执法系统
 .github/instructions/cursor-rules/grasseye-index.instructions.md
 .github/instructions/cursor-rules/modules/**
 docs/法案辅助文件/**
-scripts/audit/generated/runner-summary.json
+scripts/audit/generated/ci-full-summary.json
 scripts/audit/generated/audit-plan.generated.json
 scripts/audit/generated/enforcement-matrix.generated.*
 scripts/audit/phase-gates/**
@@ -383,8 +383,8 @@ B-6：运行静态命令
 
 按 package.json 实际存在 scripts 执行：
 
-npm run audit:build
-npm run audit
+npm run ci:full
+npm run ci:full
 npm run typecheck
 npm run lint
 npm run ci:full

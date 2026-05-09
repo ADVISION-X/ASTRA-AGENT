@@ -655,11 +655,11 @@ section: 17. READY 标准
 → 判断 inspector 对这些 requirement 是否 100% 静态覆盖
 → 未覆盖则删除/重写 inspector 对应逻辑
 → 缺 real-code-inspection 则补 real-code-inspection
-→ 运行 npm run audit:build
-→ 运行 npm run audit:map-plugin-package
+→ 运行 npm run ci:full
+→ 运行 CI-FULL map-plugin-package owner stage
 → 如果 audit 抓到真实代码违规，则删除/重写/物理切割代码文件
-→ 再次运行 npm run audit:build
-→ 再次运行 npm run audit:map-plugin-package
+→ 再次运行 npm run ci:full
+→ 再次运行 CI-FULL map-plugin-package owner stage
 → 当前清单项 100% 完成
 → 自动进入下一清单项
 ```
@@ -677,8 +677,8 @@ section: 17. READY 标准
 4. 已读取 map-plugin-package inspector。
 5. inspector 静态覆盖该清单项 = 100%。
 6. required real-code-inspection 已存在并覆盖。
-7. npm run audit:build PASS。
-8. npm run audit:map-plugin-package PASS。
+7. npm run ci:full PASS。
+8. CI-FULL map-plugin-package owner stage PASS。
 9. inspector 抓出的真实代码问题已修复。
 10. 未修改法案内容。
 11. 未弱化施工图内容。
@@ -706,7 +706,7 @@ nextRequirementId:
 完成了几条 requirement
 完成了一个 law
 完成了一个施工图 section
-audit:map-plugin-package PASS
+ci:full PASS
 发现下一条比较复杂
 想向用户汇报阶段进展
 ```
@@ -839,8 +839,8 @@ compat
 每条清单项只跑轻量链：
 
 ```bash
-npm run audit:build
-npm run audit:map-plugin-package
+npm run ci:full
+CI-FULL map-plugin-package owner stage
 ```
 
 本阶段禁止把 CI-FULL 当主线。
@@ -893,8 +893,8 @@ completedRequirements == 81
 - boundary fixes:
 
 5. COMMANDS RUN
-- audit:build:
-- audit:map-plugin-package:
+- ci:full:
+- ci:full:
 
 6. FREEZE CHECK
 - law content changed: NO
@@ -915,7 +915,7 @@ completedRequirements == 81
 
 ```txt
 本专项只按本文 81 条清单顺序走。
-每一条都必须：读源头，审 inspector，补静态覆盖 100%，修真实代码，audit:map-plugin-package 通过，再进入下一条。
+每一条都必须：读源头，审 inspector，补静态覆盖 100%，修真实代码，ci:full 通过，再进入下一条。
 81 条未全部完成或未明确 BLOCKED，禁止停止。
 ```
 

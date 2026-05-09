@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/open-capability/inspector.ts",
   "engine": "hybrid",
-  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-OPEN-CAPABILITY-001-V2",
     "GRASSEYE-OPEN-CAPABILITY-002-V2",

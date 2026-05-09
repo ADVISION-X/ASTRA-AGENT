@@ -10,11 +10,11 @@ export class BuiltinMapPackageLoadError extends Error {
     receivedPackageKind: string | null;
     cause: unknown;
   }) {
-    super(`MAP_PACKAGE_BUILTIN_PARSE_FAILED packageFile=${input.fileName} ownerResponsible=map-plugin-package actionableMessage="Fix the builtin map package manifest.packageKind and rerun npm run audit:map-plugin-package."`);
+    super(`MAP_PACKAGE_BUILTIN_PARSE_FAILED packageFile=${input.fileName} ownerResponsible=map-plugin-package actionableMessage="Fix the builtin map package manifest.packageKind and rerun npm run ci:full."`);
     this.name = "BuiltinMapPackageLoadError";
     this.packageFile = input.fileName;
     this.receivedPackageKind = input.receivedPackageKind;
-    this.actionableMessage = "Fix the builtin map package manifest.packageKind and rerun npm run audit:map-plugin-package.";
+    this.actionableMessage = "Fix the builtin map package manifest.packageKind and rerun npm run ci:full.";
     this.cause = input.cause;
   }
 }

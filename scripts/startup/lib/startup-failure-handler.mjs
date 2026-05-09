@@ -7,7 +7,7 @@ const ownerForFailure = (failureReason) =>
 
 const actionableForFailure = (failureReason) =>
   isMapPackageFailure(failureReason)
-    ? "Fix map package readiness and rerun npm run audit:map-plugin-package."
+    ? "Fix map package readiness and rerun npm run ci:full."
     : "Inspect startup structured logs and rerun npm run grasseye:start.";
 
 export async function createStartupFailureReport({

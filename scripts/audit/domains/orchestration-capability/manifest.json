@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/orchestration-capability/inspector.ts",
   "engine": "hybrid",
-  "supportsEvidenceModes": ["law", "fs", "hybrid"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V3",
     "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V3",

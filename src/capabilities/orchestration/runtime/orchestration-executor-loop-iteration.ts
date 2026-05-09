@@ -14,17 +14,19 @@ import {
 } from "./orchestration-loop-iteration-dispatch-support.js";
 import type { OrchestrationLoopProofContext } from "./orchestration-loop-proof-builders.js";
 import {
-  buildDispatchGateFailureOutcome,
-  buildLoopGuardFailureOutcome,
-  buildStepDispatchFailureOutcome,
-  buildTransitionFailureOutcome,
-  buildTransitionSuccessOutcome,
   type MissionLoopIterationOutcome,
   type OrchestrationStepResultRecord,
   prepareMissionLoopIteration,
   type PreparedMissionLoopIteration,
   type RunMissionLoopIterationInput,
 } from "./orchestration-executor-loop-iteration-support.js";
+import {
+  buildDispatchGateFailureOutcome,
+  buildLoopGuardFailureOutcome,
+  buildStepDispatchFailureOutcome,
+  buildTransitionFailureOutcome,
+} from "./orchestration-loop-iteration-outcomes.js";
+import { buildTransitionSuccessOutcome } from "./orchestration-loop-transition-success-outcome.js";
 import {
   buildTransitionFailureDetails,
   buildTransitionSuccessDetails,

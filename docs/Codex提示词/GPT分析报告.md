@@ -1,4 +1,4 @@
-你说得对。重新站在 **CI FULL 三层质检系统** 看，真正的根治不是“让 `audit:audit-system` 少跑一点”，而是要把 **每一层的职责固定下来**：
+你说得对。重新站在 **CI FULL 三层质检系统** 看，真正的根治不是“让 `CI-FULL audit-system stage` 少跑一点”，而是要把 **每一层的职责固定下来**：
 
 ```text
 CI FULL = 总质检编排器
@@ -95,7 +95,7 @@ inspectCodePurity(context)
 code-purity
 ```
 
-而且 `audit:code-purity` 本身已经被拆成：
+而且 `CI-FULL code-purity stage` 本身已经被拆成：
 
 ```text
 code-purity:scan
@@ -163,26 +163,26 @@ code-purity 是否被 CI FULL 纳入
 它应该拥有这些真实检查：
 
 ```text
-1. audit:build
+1. ci:full
    生成 law registry / matrix / audit plan / conflicts 等基础产物
 
-2. audit:code-purity
+2. CI-FULL code-purity stage
    全仓代码纯洁度扫描
    这是全局重检查，只能在这里真实执行一次
 
 3. typecheck
    TypeScript 全局类型检查
 
-4. audit:capability-group-governance
+4. CI-FULL capability-group-governance stage
    检查能力组注册、owner 映射、矩阵关系
 
-5. audit:type-safety
+5. CI-FULL type-safety stage
    类型安全规则
 
-6. audit:security-privacy
+6. CI-FULL security-privacy stage
    安全隐私边界
 
-7. audit:audit-system
+7. CI-FULL audit-system stage
    只检查“审计系统本身的拓扑、证据链、产物链、runner 链”
    不允许重新执行 code-purity
    不允许重新执行 CI FULL
@@ -373,14 +373,14 @@ export const CI_FULL_CHECK_OWNERS = [
   {
     checkId: "audit-build",
     layer: "foundation-layer",
-    producer: "audit:build",
+    producer: "ci:full",
     consumers: ["audit-system"],
     exclusive: true,
   },
   {
     checkId: "code-purity",
     layer: "foundation-layer",
-    producer: "audit:code-purity",
+    producer: "CI-FULL code-purity stage",
     consumers: ["audit-system", "ability-group-layer"],
     exclusive: true,
   },
@@ -394,14 +394,14 @@ export const CI_FULL_CHECK_OWNERS = [
   {
     checkId: "map-plugin-package",
     layer: "map-layer",
-    producer: "audit:map-plugin-package",
+    producer: "ci:full",
     consumers: ["audit-system"],
     exclusive: true,
   },
   {
     checkId: "ai-capability",
     layer: "ability-group-layer",
-    producer: "audit:ai",
+    producer: "CI-FULL ai owner step",
     consumers: ["audit-system", "capability-group-governance"],
     exclusive: true,
   }
@@ -430,7 +430,7 @@ results.push(await inspectCodePurity(context));
 results.push(await validateCiFullEvidence({
   checkId: "code-purity",
   expectedLayer: "foundation-layer",
-  expectedProducer: "audit:code-purity",
+  expectedProducer: "CI-FULL code-purity stage",
 }));
 ```
 
@@ -499,7 +499,7 @@ ci:full = 重型变异证明
 {
   "scripts": {
     "ci:full": "node --import tsx scripts/audit/ci-full.ts",
-    "ci:full": "GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1 node --import tsx scripts/audit/ci-proof.ts"
+    "ci:full": "node --import tsx scripts/audit/ci-full-plan.ts"
   }
 }
 ```
@@ -513,7 +513,7 @@ ci:full = 重型变异证明
 `ci:full` 做：
 
 ```text
-低频、重型、串行、限内存、可中断的 regression proof
+低频、重型、串行、限内存、可中断的 real-code inspection
 ```
 
 否则普通 CI FULL 每次都动生产树、反复 spawn、自我验证，风险太大。
@@ -573,24 +573,24 @@ ci-full-summary 是否存在
 CI FULL
 │
 ├─ foundation-layer
-│  ├─ audit:build                         生产 generated artifacts
-│  ├─ audit:code-purity                   生产 code-purity evidence
+│  ├─ ci:full                         生产 generated artifacts
+│  ├─ CI-FULL code-purity stage                   生产 code-purity evidence
 │  ├─ typecheck                           生产 typecheck evidence
-│  ├─ audit:capability-group-governance   生产 owner/matrix evidence
-│  ├─ audit:type-safety                   生产 type safety evidence
-│  ├─ audit:security-privacy              生产 security evidence
-│  └─ audit:audit-system                  只检查 CI 拓扑与 evidence 链
+│  ├─ CI-FULL capability-group-governance stage   生产 owner/matrix evidence
+│  ├─ CI-FULL type-safety stage                   生产 type safety evidence
+│  ├─ CI-FULL security-privacy stage              生产 security evidence
+│  └─ CI-FULL audit-system stage                  只检查 CI 拓扑与 evidence 链
 │
 ├─ map-layer
-│  └─ audit:map-plugin-package            只生产 map evidence
+│  └─ ci:full            只生产 map evidence
 │
 └─ ability-group-layer
-   ├─ audit:commander-console             只生产 commander evidence
-   ├─ audit:orchestration                 只生产 orchestration evidence
-   ├─ audit:nerve-bus                     只生产 nerve-bus evidence
-   ├─ audit:ai                            只生产 ai evidence
+   ├─ CI-FULL commander-console owner step             只生产 commander evidence
+   ├─ CI-FULL orchestration owner step                 只生产 orchestration evidence
+   ├─ CI-FULL nerve-bus owner step                     只生产 nerve-bus evidence
+   ├─ CI-FULL ai owner step                            只生产 ai evidence
    ├─ ...
-   └─ audit:page-state                    只生产 page-state evidence
+   └─ CI-FULL page-state owner step                    只生产 page-state evidence
 ```
 
 一句话：
@@ -614,15 +614,15 @@ audit-system 只查证据链，不再亲自重跑全系统。
 原则：
 1. CI FULL 是唯一总编排器，分为 foundation-layer、map-layer、ability-group-layer。
 2. 每个 check 只能有一个 producer owner。其他层只能读取 evidence，不得重新执行该 check。
-3. foundation-layer 负责全局检查：audit:build、audit:code-purity、typecheck、audit:capability-group-governance、audit:type-safety、audit:security-privacy、audit:audit-system。
-4. map-layer 只负责 audit:map-plugin-package。
-5. ability-group-layer 只负责 14 个 ability owner audits。
+3. foundation-layer 负责全局检查：ci:full、CI-FULL code-purity stage、typecheck、CI-FULL capability-group-governance stage、CI-FULL type-safety stage、CI-FULL security-privacy stage、CI-FULL audit-system stage。
+4. map-layer 只负责 ci:full。
+5. ability-group-layer 只负责 14 个 ability owner inspectors。
 6. audit-system 的定位改为“CI 拓扑与 evidence 链检查器”，不得重新执行 code-purity、typecheck、map-layer、ability-group-layer，不得默认跑 production regression real-code-inspection。
 7. 移除 audit-system 内部对 inspectCodePurity 的真实执行，改为 validate code-purity evidence：检查 foundation-layer/code-purity evidence 是否存在、PASS、新鲜、被 ci-full-summary 汇总。
 8. 建立 CI_FULL_CHECK_OWNERS 矩阵，声明每个 checkId 的唯一 producer、所属 layer、允许 consumers。
 9. 所有 owner inspector 禁止 import/call 其他 owner 的真实 inspector，只能读取 generated artifacts / evidence / summaries。
 10. ci:full 输出 scripts/audit/generated/ci-full-summary.generated.json，汇总三层所有 step 的 status、exitCode、duration、memoryPeak、artifactPaths。
-11. real-code-inspection 从常规 ci:full 中物理切出，放到显式 ci:full 或 GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1 模式；普通 ci:full 不做生产树 regression proof。
+11. real-code-inspection 从常规 ci:full 中物理切出，放到显式 ci:full 或 CI-FULL real-code-inspection 模式；普通 ci:full 不做生产树 real-code inspection。
 12. 资源保护仍保留：每个 step 限时、限 RSS、超限 kill child process tree。
 13. 最终结果：ci:full 是完整质检，但每项检查只执行一次；audit-system 只验证链路完整，不重复执行重型检查。
 ```

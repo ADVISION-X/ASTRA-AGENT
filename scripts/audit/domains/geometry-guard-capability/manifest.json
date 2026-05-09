@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
   "engine": "hybrid",
-  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3",
     "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V3",

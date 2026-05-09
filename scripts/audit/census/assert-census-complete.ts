@@ -10,14 +10,13 @@ type CensusProgress = {
   blockedLawIds?: string[];
 };
 
-type RunnerSummary = {
-  passed?: boolean;
-  totals?: {
-    inspectors?: number;
-    passed?: number;
-    failed?: number;
-    blocking?: number;
-  };
+type CiFullSummary = {
+  status?: string;
+  layers?: Array<{
+    steps?: Array<{
+      status?: string;
+    }>;
+  }>;
 };
 
 type StaticCoverage = {
@@ -30,7 +29,7 @@ type StaticCoverage = {
 
 const PROGRESS_PATH = "docs/audit/static-clause-enforcement-progress.json";
 const STATIC_COVERAGE_PATH = "scripts/audit/generated/static-clause-coverage.generated.json";
-const RUNNER_SUMMARY_PATH = "scripts/audit/generated/runner-summary.json";
+const CI_FULL_SUMMARY_PATH = "scripts/audit/generated/ci-full-summary.generated.json";
 
 const readJson = async <T>(filePath: string): Promise<T> => {
   const text = await readFile(filePath, "utf8");
@@ -52,20 +51,16 @@ const assertEmptyStringArray = (name: string, value: unknown): void => {
   }
 };
 
-const assertRunnerPassed = (summary: RunnerSummary): void => {
-  const totals = summary.totals;
-  if (!summary.passed) {
-    fail("runner-summary.json passed must be true.");
+const assertCiFullPassed = (summary: CiFullSummary): void => {
+  const steps = (summary.layers ?? []).flatMap((layer) => layer.steps ?? []);
+  if (summary.status !== "PASS") {
+    fail("ci-full-summary.generated.json status must be PASS.");
   }
-  const resolvedTotals = totals ?? fail("runner-summary.json totals are missing.");
-  if ((resolvedTotals.inspectors ?? 0) <= 0) {
-    fail("runner-summary.json must include at least one inspector result.");
+  if (steps.length === 0) {
+    fail("ci-full-summary.generated.json must include at least one step result.");
   }
-  if (resolvedTotals.failed !== 0 || resolvedTotals.blocking !== 0) {
-    fail("runner-summary.json must have zero failed and zero blocking inspectors.");
-  }
-  if (resolvedTotals.passed !== resolvedTotals.inspectors) {
-    fail("runner-summary.json passed inspector count must equal inspector total.");
+  if (steps.some((step) => step.status !== "PASS")) {
+    fail("ci-full-summary.generated.json must have only PASS step results.");
   }
 };
 
@@ -100,9 +95,9 @@ const main = async (): Promise<void> => {
   assertEmptyStringArray("progress blockedLawIds", progress.blockedLawIds);
 
   const coverage = await readJson<StaticCoverage>(STATIC_COVERAGE_PATH);
-  const runnerSummary = await readJson<RunnerSummary>(RUNNER_SUMMARY_PATH);
+  const ciFullSummary = await readJson<CiFullSummary>(CI_FULL_SUMMARY_PATH);
   assertStaticCoverageComplete(coverage);
-  assertRunnerPassed(runnerSummary);
+  assertCiFullPassed(ciFullSummary);
 
   process.stdout.write("CENSUS COMPLETE\n");
 };

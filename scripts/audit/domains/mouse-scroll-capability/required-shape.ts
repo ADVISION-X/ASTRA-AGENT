@@ -1,4 +1,4 @@
-import { Node, SyntaxKind } from "ts-morph";
+import { Node, SyntaxKind, type CallExpression, type PropertyAssignment, type SourceFile } from "ts-morph";
 
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
@@ -88,6 +88,41 @@ function collectBuilderFindings(project: ReturnType<typeof makeProject>): Findin
     : findings;
 }
 
+function buildMouseScrollViewportBoundsFinding(builderNode: Node, line: number): Finding | null {
+  const hasGeometrySnapshot = (builderNode.getDescendantsOfKind(SyntaxKind.CallExpression) as CallExpression[]).some((call) => call.getExpression().getText() === "runtime.browserController.getGeometrySnapshot");
+  const boundsProperty = (builderNode.getDescendantsOfKind(SyntaxKind.PropertyAssignment) as PropertyAssignment[]).find((property) => property.getName() === "bounds");
+  const boundsText = boundsProperty?.getInitializer()?.getText() ?? "";
+  const bindsViewportBounds = boundsText.includes("geometry.viewportWidth") && boundsText.includes("geometry.viewportHeight");
+  const hasSyntheticHundredPxBounds = boundsText.includes("width: 100") || boundsText.includes("height: 100");
+  return !hasGeometrySnapshot || !bindsViewportBounds || hasSyntheticHundredPxBounds
+    ? createFinding({
+      lawId: LAW_IDS.EXECUTION,
+      file: PATHS.WORKBENCH_ACTION_DISPATCH_INPUT,
+      line,
+      severity: "fatal",
+      message: "Workbench mouse-scroll dispatch must bind onePage bounds to the live browser viewport, not synthetic 100px bounds.",
+    })
+    : null;
+}
+
+function buildMouseScrollViewportAnchorFinding(builderNode: Node, line: number): Finding | null {
+  const anchorProperty = (builderNode.getDescendantsOfKind(SyntaxKind.PropertyAssignment) as PropertyAssignment[]).find((property) => property.getName() === "normalizedAnchorPoint");
+  const anchorText = anchorProperty?.getInitializer()?.getText() ?? "";
+  const bindsViewportCenterAnchor = anchorText.includes("executableAnchorPoint")
+    && builderNode.getText().includes("geometry.viewportWidth / 2")
+    && builderNode.getText().includes("geometry.viewportHeight / 2");
+  const hasHardcodedTopLeftAnchor = anchorText.includes("x: 50") || anchorText.includes("y: 50");
+  return !bindsViewportCenterAnchor || hasHardcodedTopLeftAnchor
+    ? createFinding({
+      lawId: LAW_IDS.EXECUTION,
+      file: PATHS.WORKBENCH_ACTION_DISPATCH_INPUT,
+      line,
+      severity: "fatal",
+      message: "Workbench mouse-scroll dispatch must target the live viewport center, not a hardcoded top-left anchor that can miss the video feed.",
+    })
+    : null;
+}
+
 function collectChildImplementationFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const findings: Finding[] = [];
   for (const filePath of [PATHS.BROWSER_CHILD_IMPL, PATHS.DESKTOP_CHILD_IMPL, PATHS.REGION_CHILD_IMPL]) {
@@ -122,37 +157,70 @@ function collectWorkbenchDispatchFindings(project: ReturnType<typeof makeProject
   }
 
   const builderNode = builder.getInitializerOrThrow();
-  const hasGeometrySnapshot = builderNode.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => call.getExpression().getText() === "runtime.browserController.getGeometrySnapshot");
-  const boundsProperty = builderNode.getDescendantsOfKind(SyntaxKind.PropertyAssignment).find((property) => property.getName() === "bounds");
-  const boundsText = boundsProperty?.getInitializer()?.getText() ?? "";
-  const bindsViewportBounds = boundsText.includes("geometry.viewportWidth") && boundsText.includes("geometry.viewportHeight");
-  const hasSyntheticHundredPxBounds = boundsText.includes("width: 100") || boundsText.includes("height: 100");
-  const anchorProperty = builderNode.getDescendantsOfKind(SyntaxKind.PropertyAssignment).find((property) => property.getName() === "normalizedAnchorPoint");
-  const anchorText = anchorProperty?.getInitializer()?.getText() ?? "";
-  const bindsViewportCenterAnchor = anchorText.includes("executableAnchorPoint")
-    && builderNode.getText().includes("geometry.viewportWidth / 2")
-    && builderNode.getText().includes("geometry.viewportHeight / 2");
-  const hasHardcodedTopLeftAnchor = anchorText.includes("x: 50") || anchorText.includes("y: 50");
   const findings: Finding[] = [];
-  if (!hasGeometrySnapshot || !bindsViewportBounds || hasSyntheticHundredPxBounds) {
-    findings.push(createFinding({
-      lawId: LAW_IDS.EXECUTION,
-      file: PATHS.WORKBENCH_ACTION_DISPATCH_INPUT,
-      line: builder.getStartLineNumber(),
-      severity: "fatal",
-      message: "Workbench mouse-scroll dispatch must bind onePage bounds to the live browser viewport, not synthetic 100px bounds.",
-    }));
+  const boundsFinding = buildMouseScrollViewportBoundsFinding(builderNode, builder.getStartLineNumber());
+  const anchorFinding = buildMouseScrollViewportAnchorFinding(builderNode, builder.getStartLineNumber());
+  if (boundsFinding) {
+    findings.push(boundsFinding);
   }
-  if (!bindsViewportCenterAnchor || hasHardcodedTopLeftAnchor) {
-    findings.push(createFinding({
-      lawId: LAW_IDS.EXECUTION,
-      file: PATHS.WORKBENCH_ACTION_DISPATCH_INPUT,
-      line: builder.getStartLineNumber(),
-      severity: "fatal",
-      message: "Workbench mouse-scroll dispatch must target the live viewport center, not a hardcoded top-left anchor that can miss the video feed.",
-    }));
+  if (anchorFinding) {
+    findings.push(anchorFinding);
   }
   return findings;
+}
+
+function buildVisibleScrollPrimitiveOrderingFinding(scrollMethod: Node): Finding | null {
+  const calls = (scrollMethod.getDescendantsOfKind(SyntaxKind.CallExpression) as CallExpression[]).map((call) => ({
+    name: call.getExpression().getText(),
+    position: call.getStart(),
+  }));
+  const activateCall = calls.find((call) => call.name === "activateChrome") ?? null;
+  const scrollAtCall = calls.find((call) => call.name === "scrollAt") ?? null;
+  return activateCall === null || scrollAtCall === null || activateCall.position > scrollAtCall.position
+    ? createFinding({
+      lawId: LAW_IDS.EXECUTION,
+      file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER,
+      line: scrollMethod.getStartLineNumber(),
+      severity: "fatal",
+      message: "Current Chrome scroll primitive must activate Chrome before posting the wheel event so production scroll is visible and targets the controlled browser.",
+    })
+    : null;
+}
+
+function buildVisibleScrollPrimitiveVideoIdentityFinding(source: SourceFile, scrollMethod: Node): Finding | null {
+  const text = source.getFullText();
+  const hasForbiddenVideoIdentityPolling = source.getClass("CurrentChromeBrowserController")?.getInstanceMethod("waitForScrollNextVideoIdentityChange") !== undefined
+    || text.includes("AND THEN observed video identity change")
+    || text.includes("AND THEN fallback timeout reached without video identity change")
+    || text.includes("readCurrentVideoIdentitySnapshot");
+  const hasFixedScrollNextTimeout = text.includes("targetLabel.includes(\"scroll_next_video\") ? 1200 : 300")
+    || text.includes("targetLabel.includes('scroll_next_video') ? 1200 : 300");
+  return hasForbiddenVideoIdentityPolling || hasFixedScrollNextTimeout
+    ? createFinding({
+      lawId: LAW_IDS.EXECUTION,
+      file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER,
+      line: scrollMethod.getStartLineNumber(),
+      severity: "fatal",
+      message: "Current Chrome scroll-next-video primitive must not use DOM/URL/native video identity polling or fixed waits as next-video proof; Mouse Scroll may only execute the primitive, observe settle, and hand off downstream evidence refs.",
+    })
+    : null;
+}
+
+function buildVisibleScrollPrimitiveClickBridgeFinding(scrollMethod: Node): Finding | null {
+  const scrollMethodText = scrollMethod.getText();
+  const hasForbiddenClickBridge = scrollMethodText.includes("clickAt(")
+    || scrollMethodText.includes("FACEBOOK_REELS_NEXT_ARROW_CLICK_TARGET_LABEL")
+    || scrollMethodText.includes("isFacebookReelsNextVideoScroll")
+    || scrollMethodText.includes("resolveFacebookReelsNextArrowPoint");
+  return hasForbiddenClickBridge
+    ? createFinding({
+      lawId: LAW_IDS.EXECUTION,
+      file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER,
+      line: scrollMethod.getStartLineNumber(),
+      severity: "fatal",
+      message: "Current Chrome scroll primitive must stay scroll-only. Embedding click execution or facebook-specific arrow-click substitution inside scroll_next_video is a forbidden cross-owner bridge.",
+    })
+    : null;
 }
 
 function collectVisibleScrollPrimitiveFindings(project: ReturnType<typeof makeProject>): Finding[] {
@@ -165,55 +233,49 @@ function collectVisibleScrollPrimitiveFindings(project: ReturnType<typeof makePr
   if (!scrollMethod) {
     return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER, line: 1, severity: "fatal", message: "Current Chrome browser controller must expose governed scroll primitive execution." })];
   }
+  const orderingFinding = buildVisibleScrollPrimitiveOrderingFinding(scrollMethod);
+  if (orderingFinding) {
+    return [orderingFinding];
+  }
+  const videoIdentityFinding = buildVisibleScrollPrimitiveVideoIdentityFinding(source, scrollMethod);
+  if (videoIdentityFinding) {
+    return [videoIdentityFinding];
+  }
+  const clickBridgeFinding = buildVisibleScrollPrimitiveClickBridgeFinding(scrollMethod);
+  return clickBridgeFinding ? [clickBridgeFinding] : [];
+}
 
-  const calls = scrollMethod.getDescendantsOfKind(SyntaxKind.CallExpression).map((call) => ({
-    name: call.getExpression().getText(),
-    position: call.getStart(),
-  }));
-  const activateCall = calls.find((call) => call.name === "activateChrome") ?? null;
-  const scrollAtCall = calls.find((call) => call.name === "scrollAt") ?? null;
-  if (activateCall === null || scrollAtCall === null || activateCall.position > scrollAtCall.position) {
-    return [createFinding({
-      lawId: LAW_IDS.EXECUTION,
-      file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER,
-      line: scrollMethod.getStartLineNumber(),
-      severity: "fatal",
-      message: "Current Chrome scroll primitive must activate Chrome before posting the wheel event so production scroll is visible and targets the controlled browser.",
-    })];
-  }
+function buildQuartzWheelConverterFinding(source: SourceFile): Finding | null {
+  const converter = source.getVariableDeclaration("toQuartzWheelDelta");
+  const converterInitializer = converter?.getInitializer();
+  const converterBody = Node.isArrowFunction(converterInitializer) ? converterInitializer.getBody() : null;
+  const converterNegatesBrowserDelta = converterBody !== null
+    && Node.isPrefixUnaryExpression(converterBody)
+    && converterBody.getOperatorToken() === SyntaxKind.MinusToken
+    && converterBody.getOperand().getText().startsWith("Math.round(");
+  return converterNegatesBrowserDelta ? null : createFinding({
+    lawId: LAW_IDS.EXECUTION,
+    file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER_PRIMITIVES,
+    line: converter?.getStartLineNumber() ?? 1,
+    severity: "fatal",
+    message: "Current Chrome Quartz wheel primitive must invert browser-semantic deltas before posting CGEvent scroll events, so direction=down advances the feed instead of replaying the current video.",
+  });
+}
 
-  const text = source.getFullText();
-  const hasForbiddenVideoIdentityPolling = source.getClass("CurrentChromeBrowserController")?.getInstanceMethod("waitForScrollNextVideoIdentityChange") !== undefined
-    || text.includes("AND THEN observed video identity change")
-    || text.includes("AND THEN fallback timeout reached without video identity change")
-    || text.includes("readCurrentVideoIdentitySnapshot");
-  const hasFixedScrollNextTimeout = text.includes("targetLabel.includes(\"scroll_next_video\") ? 1200 : 300")
-    || text.includes("targetLabel.includes('scroll_next_video') ? 1200 : 300");
-  if (hasForbiddenVideoIdentityPolling || hasFixedScrollNextTimeout) {
-    return [createFinding({
-      lawId: LAW_IDS.EXECUTION,
-      file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER,
-      line: scrollMethod.getStartLineNumber(),
-      severity: "fatal",
-      message: "Current Chrome scroll-next-video primitive must not use DOM/URL/native video identity polling or fixed waits as next-video proof; Mouse Scroll may only execute the primitive, observe settle, and hand off downstream evidence refs.",
-    })];
-  }
-  const scrollMethodText = scrollMethod.getText();
-  const hasForbiddenClickBridge =
-    scrollMethodText.includes("clickAt(")
-    || scrollMethodText.includes("FACEBOOK_REELS_NEXT_ARROW_CLICK_TARGET_LABEL")
-    || scrollMethodText.includes("isFacebookReelsNextVideoScroll")
-    || scrollMethodText.includes("resolveFacebookReelsNextArrowPoint");
-  if (hasForbiddenClickBridge) {
-    return [createFinding({
-      lawId: LAW_IDS.EXECUTION,
-      file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER,
-      line: scrollMethod.getStartLineNumber(),
-      severity: "fatal",
-      message: "Current Chrome scroll primitive must stay scroll-only. Embedding click execution or facebook-specific arrow-click substitution inside scroll_next_video is a forbidden cross-owner bridge.",
-    })];
-  }
-  return [];
+function buildQuartzWheelScrollAtFinding(source: SourceFile): Finding | null {
+  const scrollAt = source.getVariableDeclaration("scrollAt");
+  const scrollAtInitializer = scrollAt?.getInitializer();
+  const scrollAtCallsConverter = scrollAtInitializer?.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((call) => call.getExpression().getText() === "toQuartzWheelDelta" && ["input.deltaY", "input.deltaX"].includes(call.getArguments()[0]?.getText() ?? "")) === true;
+  const scrollTemplate = scrollAtInitializer?.getText() ?? "";
+  const scrollTemplateUsesConvertedDeltas = scrollTemplate.includes("${quartzWheelDeltaY}") && scrollTemplate.includes("${quartzWheelDeltaX}");
+  return scrollAtCallsConverter && scrollTemplateUsesConvertedDeltas ? null : createFinding({
+    lawId: LAW_IDS.EXECUTION,
+    file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER_PRIMITIVES,
+    line: scrollAt?.getStartLineNumber() ?? 1,
+    severity: "fatal",
+    message: "Current Chrome Quartz wheel primitive must invert browser-semantic deltas before posting CGEvent scroll events, so direction=down advances the feed instead of replaying the current video.",
+  });
 }
 
 function collectQuartzWheelPolarityFindings(project: ReturnType<typeof makeProject>): Finding[] {
@@ -222,29 +284,16 @@ function collectQuartzWheelPolarityFindings(project: ReturnType<typeof makeProje
     return [createFinding({ lawId: LAW_IDS.EXECUTION, file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER_PRIMITIVES, line: 1, severity: "fatal", message: "Current Chrome scroll primitive adapter is missing." })];
   }
 
-  const converter = source.getVariableDeclaration("toQuartzWheelDelta");
-  const converterInitializer = converter?.getInitializer();
-  const converterBody = Node.isArrowFunction(converterInitializer) ? converterInitializer.getBody() : null;
-  const converterNegatesBrowserDelta = converterBody !== null
-    && Node.isPrefixUnaryExpression(converterBody)
-    && converterBody.getOperatorToken() === SyntaxKind.MinusToken
-    && converterBody.getOperand().getText().startsWith("Math.round(");
-  const scrollAt = source.getVariableDeclaration("scrollAt");
-  const scrollAtInitializer = scrollAt?.getInitializer();
-  const scrollAtCallsConverter = scrollAtInitializer?.getDescendantsOfKind(SyntaxKind.CallExpression)
-    .some((call) => call.getExpression().getText() === "toQuartzWheelDelta" && ["input.deltaY", "input.deltaX"].includes(call.getArguments()[0]?.getText() ?? "")) === true;
-  const scrollTemplate = scrollAtInitializer?.getText() ?? "";
-  const scrollTemplateUsesConvertedDeltas = scrollTemplate.includes("${quartzWheelDeltaY}") && scrollTemplate.includes("${quartzWheelDeltaX}");
-
-  return converterNegatesBrowserDelta && scrollAtCallsConverter && scrollTemplateUsesConvertedDeltas
-    ? []
-    : [createFinding({
-      lawId: LAW_IDS.EXECUTION,
-      file: PATHS.CURRENT_CHROME_BROWSER_CONTROLLER_PRIMITIVES,
-      line: converter?.getStartLineNumber() ?? scrollAt?.getStartLineNumber() ?? 1,
-      severity: "fatal",
-      message: "Current Chrome Quartz wheel primitive must invert browser-semantic deltas before posting CGEvent scroll events, so direction=down advances the feed instead of replaying the current video.",
-    })];
+  const findings: Finding[] = [];
+  const converterFinding = buildQuartzWheelConverterFinding(source);
+  const scrollAtFinding = buildQuartzWheelScrollAtFinding(source);
+  if (converterFinding) {
+    findings.push(converterFinding);
+  }
+  if (scrollAtFinding) {
+    findings.push(scrollAtFinding);
+  }
+  return findings;
 }
 
 export async function runRequiredShapeAttack(): Promise<{ findings: Finding[]; phase: InspectorPhase }> {

@@ -78,8 +78,8 @@ const collectActiveLawFindings = (activeLaws: readonly OpenLawRecord[], activeLa
     if (law.enforcementMode !== "machine-blocking") {
       findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Open active law must remain machine-blocking." }));
     }
-    if (law.evidenceMode !== "law+inspector") {
-      findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Open active law must require law+inspector evidence." }));
+    if (law.evidenceMode !== "law+blueprint+real-code-inspection") {
+      findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Open active law must require law+blueprint+real-code-inspection evidence." }));
     }
     if (law.tier !== "P0") {
       findings.push(createFinding({ lawId: law.lawId, file: law.relativeFilePath, line: law.line, severity: "fatal", message: "Open active law must remain P0." }));
@@ -140,7 +140,7 @@ export async function runOpenEnforcementCoverage(context: InspectorContext): Pro
       phasePassed ? "PASS" : "ENFORCEMENT GAP",
       phasePassed,
       phasePassed
-        ? "Open FINAL law, manifest, matrix, audit-plan, and runner-summary are aligned."
+        ? "Open FINAL law, manifest, matrix, and audit-plan are aligned."
         : "Open enforcement metadata drifted away from the FINAL V2 law chain.",
     ),
   };

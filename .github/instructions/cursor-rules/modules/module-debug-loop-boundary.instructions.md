@@ -564,9 +564,9 @@ scripts/audit/domains/debug-loop-boundary/run-inspector.ts
 scripts/audit/domains/debug-loop-boundary/owner-inspection-harness.ts
 ```
 
-Required package command:
+Required CI-FULL/internal command:
 ```txt
-npm run audit:debug-loop-boundary
+node --import tsx scripts/audit/domains/debug-loop-boundary/run-inspector.ts
 ```
 
 Required inspector coverage:
@@ -622,10 +622,10 @@ Final readiness:
 ```txt
 debug-loop-boundary law installed
 debug-loop-boundary blueprint installed
-audit:debug-loop-boundary exists
+CI-FULL debug-loop-boundary owner step exists
 inspector PASS
 real-code-inspection PASS
-audit:build PASS
+ci:full PASS
 debug-loop remains operator harness only
 production Agent remains sole runtime executor
 ```

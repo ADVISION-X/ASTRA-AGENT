@@ -67,37 +67,25 @@ function isIdentifierWithName(node: Node | undefined, expected: string): boolean
   return Boolean(node && Node.isIdentifier(node) && node.getText() === expected);
 }
 
+function isDigestHexCall(node: Node | undefined): boolean {
+  return Boolean(node && Node.isCallExpression(node) && Node.isPropertyAccessExpression(node.getExpression()) && node.getExpression().getName() === "digest" && isStringLiteralWithValue(node.getArguments()[0], "hex"));
+}
+
+function isUpdateTextCall(node: Node | undefined): boolean {
+  return Boolean(node && Node.isCallExpression(node) && Node.isPropertyAccessExpression(node.getExpression()) && node.getExpression().getName() === "update" && isIdentifierWithName(node.getArguments()[0], "text"));
+}
+
+function isCreateHashSha256Call(node: Node | undefined): boolean {
+  return Boolean(node && Node.isCallExpression(node) && isIdentifierWithName(node.getExpression(), "createHash") && isStringLiteralWithValue(node.getArguments()[0], "sha256"));
+}
+
 function isCanonicalSha256DigestCall(node: Node | undefined): boolean {
-  if (!node || !Node.isCallExpression(node)) {
+  if (!node || !Node.isCallExpression(node) || !isDigestHexCall(node)) {
     return false;
   }
 
-  const digestAccess = node.getExpression();
-  if (!Node.isPropertyAccessExpression(digestAccess) || digestAccess.getName() !== "digest") {
-    return false;
-  }
-  if (!isStringLiteralWithValue(node.getArguments()[0], "hex")) {
-    return false;
-  }
-
-  const updateCall = digestAccess.getExpression();
-  if (!Node.isCallExpression(updateCall)) {
-    return false;
-  }
-  const updateAccess = updateCall.getExpression();
-  if (!Node.isPropertyAccessExpression(updateAccess) || updateAccess.getName() !== "update") {
-    return false;
-  }
-  if (!isIdentifierWithName(updateCall.getArguments()[0], "text")) {
-    return false;
-  }
-
-  const createHashCall = updateAccess.getExpression();
-  if (!Node.isCallExpression(createHashCall) || !isIdentifierWithName(createHashCall.getExpression(), "createHash")) {
-    return false;
-  }
-
-  return isStringLiteralWithValue(createHashCall.getArguments()[0], "sha256");
+  const updateCall = node.getExpression().getExpression();
+  return isUpdateTextCall(updateCall) && isCreateHashSha256Call(Node.isCallExpression(updateCall) ? updateCall.getExpression() : undefined);
 }
 
 function isCanonicalHashTextReturn(node: Node | undefined): boolean {

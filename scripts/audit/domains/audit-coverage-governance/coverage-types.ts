@@ -3,10 +3,10 @@ export type RequirementTier = "P0" | "P1" | "P2" | "P3" | "UNKNOWN";
 export type CoverageStatus = "covered" | "partial" | "missing" | "weak";
 
 export type EnforcementStrength =
-  | "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF"
-  | "LEVEL_4_STRUCTURAL_NEGATIVE_PROOF"
-  | "LEVEL_3_SCHEMA_JSON_NEGATIVE_PROOF"
-  | "LEVEL_2_EXACT_TEXT_GENERATED_NEGATIVE_PROOF"
+  | "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH"
+  | "LEVEL_4_STRUCTURAL"
+  | "LEVEL_3_SCHEMA_JSON"
+  | "LEVEL_2_EXACT_TEXT_GENERATED"
   | "LEVEL_1_TEXT_INCLUDES_PATH_EXISTS"
   | "LEVEL_0_MANUAL_ONLY_OR_MISSING";
 
@@ -33,16 +33,6 @@ export type StaticCoverageEvidence = {
   entry: string;
   evidenceMode: string;
   strength: EnforcementStrength;
-};
-
-export type NegativeProofCoverageEvidence = {
-  negativeProofId: string;
-  domain: string;
-  harnessPath: string;
-  mutation: string;
-  expected: "FAIL";
-  actual: "FAIL" | "MISSING" | "UNKNOWN";
-  rollback: "PASS" | "MISSING" | "UNKNOWN";
 };
 
 export type CoverageSummary = {

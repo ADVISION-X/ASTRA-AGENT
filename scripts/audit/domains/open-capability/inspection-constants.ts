@@ -1,7 +1,6 @@
 const OPEN_ROOT = "src/capabilities/open";
 const FINAL_LAW_PATH = ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md";
 const FINAL_BLUEPRINT_PATH = "docs/法案辅助文件/GrassEye Open 能力组施工图.md";
-const RUNNER_SUMMARY_PATH = "scripts/audit/generated/runner-summary.json";
 
 export const openInspectionConstants = {
   LAW_PUBLIC_CONTRACT: "GRASSEYE-OPEN-CAPABILITY-001-V2",
@@ -17,7 +16,6 @@ export const openInspectionConstants = {
   OPEN_ROOT,
   FINAL_LAW_PATH,
   FINAL_BLUEPRINT_PATH,
-  RUNNER_SUMMARY_PATH,
   CONTRACT_PATH: `${OPEN_ROOT}/contract.ts`,
   ABILITY_GROUP_PATH: `${OPEN_ROOT}/ability-group.ts`,
   SCHEMA_PATH: `${OPEN_ROOT}/schema.ts`,

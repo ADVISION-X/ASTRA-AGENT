@@ -123,11 +123,11 @@ summary: startup governance is enforced through the commander-console-capability
 
 ### 主题
 
-启动执法走 audit 不走 verify
+启动执法走 CI-FULL owner step，不走 verify
 
 ### 法条
 
-Startup-entrypoint enforcement must close through its owner inspector and the generated audit runner only.
+Startup-entrypoint enforcement must close through its owner inspector under CI-FULL only.
 
 Required direction:
 - startup bootstrap checks are enforced by the commander-console-capability inspector as the startup child-contract checker.

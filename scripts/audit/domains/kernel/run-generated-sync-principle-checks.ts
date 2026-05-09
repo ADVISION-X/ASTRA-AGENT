@@ -139,19 +139,19 @@ const buildGeneratedSyncPhases = (findings: Finding[]): InspectorPhase[] => {
 const collectGeneratedArtifactSourceFindings = (state: GeneratedSyncState): Finding[] => {
   const findings: Finding[] = [];
 
-  if (!state.packageJsonText.includes('"audit:build": "node --import tsx scripts/audit/build-audit-artifacts-cli.ts"')) {
+  if (!state.packageJsonText.includes('"ci:full"')) {
     findings.push(createRequirementFinding({
       requirementId: "K01-BLUEPRINT-01-SECTION-009-REQ-001",
       file: "package.json",
-      message: "audit:build must keep generated registry, matrix, and audit-plan sourced from the governed build-audit-artifacts CLI.",
+      message: "package.json must expose ci:full as the single complete quality entrypoint.",
     }));
   }
 
-  if (!state.runInspectorText.includes("await buildAuditArtifacts();")) {
+  if (state.runInspectorText.includes("buildAuditArtifacts")) {
     findings.push(createRequirementFinding({
       requirementId: "K01-BLUEPRINT-01-SECTION-009-REQ-001",
       file: kernelInspectionConstants.RUN_INSPECTOR_FILE,
-      message: "Kernel run-inspector must rebuild generated audit artifacts before loading them.",
+      message: "Owner run-inspector must not rebuild generated audit artifacts outside CI-FULL.",
     }));
   }
 

@@ -62,7 +62,7 @@ function resolveBlockedClassificationDecision(input) {
 
 function resolvePassDecision(verificationResult) {
   return isPassVerification(verificationResult)
-    ? createDecision("PASS", "Scenario, owner audit, negative proof, and CI all passed.")
+    ? createDecision("PASS", "Scenario, CI-FULL, and owner law linkage all passed.")
     : null;
 }
 

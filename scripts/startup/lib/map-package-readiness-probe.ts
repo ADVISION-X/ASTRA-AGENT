@@ -30,7 +30,7 @@ const toFailureResult = (error: unknown): ReadinessResult => {
     failureReason: message,
     actionableMessage: typeof shaped.actionableMessage === "string"
       ? shaped.actionableMessage
-      : "Fix the builtin map package and rerun npm run audit:map-plugin-package.",
+      : "Fix the builtin map package and rerun npm run ci:full.",
   };
 };
 

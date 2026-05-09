@@ -35,7 +35,7 @@ export const AUDIT_COVERAGE_ANTI_FRAUD_MUTATIONS: AntiFraudMutation[] = [
   {
     name: "downgrade-debug-loop-import-graph-to-includes",
     file: "scripts/audit/domains/audit-coverage-governance/enforcement-strength-classifier.ts",
-    search: "return \"LEVEL_5_AST_SYMBOL_IMPORT_GRAPH_NEGATIVE_PROOF\";",
+    search: "return \"LEVEL_5_AST_SYMBOL_IMPORT_GRAPH\";",
     replace: "return \"LEVEL_1_TEXT_INCLUDES_PATH_EXISTS\";",
     command: ["npm", "run", "audit:coverage"],
     detection: "summary-final-verdict-blocked",

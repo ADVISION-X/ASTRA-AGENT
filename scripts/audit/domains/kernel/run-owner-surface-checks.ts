@@ -5,10 +5,6 @@ import type { Finding, InspectorPhase } from "../../core/schema.js";
 
 import { kernelInspectionConstants } from "./inspection-constants.js";
 
-type PackageJson = {
-  scripts?: Record<string, string>;
-};
-
 type KernelManifest = {
   inspectorId?: string;
   capabilityDomain?: string;
@@ -79,24 +75,10 @@ const collectManifestFindings = async (): Promise<Finding[]> => {
   ];
 };
 
-const collectAuditScriptFindings = async (): Promise<Finding[]> => {
-  const packageJson = await readJsonFile<PackageJson>(pathFromRepoRoot("package.json"));
-  return packageJson.scripts?.["audit:kernel"]
-    ? []
-    : [createFinding({
-        lawId: REQUIREMENT_ID_001,
-        file: "package.json",
-        line: 1,
-        severity: "fatal",
-        message: "package.json must expose audit:kernel for the kernel routing owner.",
-      })];
-};
-
 export async function runKernelOwnerSurfaceChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
   const findings = [
     ...await collectRequiredFileFindings(),
     ...await collectManifestFindings(),
-    ...await collectAuditScriptFindings(),
   ];
 
   return {

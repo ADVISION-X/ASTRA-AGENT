@@ -4,7 +4,9 @@
   "owner": true,
   "entry": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
   "engine": "hybrid",
-  "supportsEvidenceModes": ["law", "fs", "config", "hybrid"],
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
   "allowedLawIds": [
     "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
     "GRASSEYE-FORENSICS-PERSISTENCE-002-V2",

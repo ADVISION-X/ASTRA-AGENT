@@ -551,7 +551,7 @@ scripts/audit/domains/post-action-verification-capability/owner-inspection-harne
 交付前至少满足：
 
 ```txt
-audit:post-action-verification PASS
+CI-FULL post-action-verification owner step PASS
 负例 fail -> re-inspect -> pass
 law 与 blueprint 术语一致
 无 verificationDecision / confidencePolicy 漂移回 PAV
