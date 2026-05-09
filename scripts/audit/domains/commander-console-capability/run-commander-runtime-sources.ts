@@ -7,7 +7,7 @@ import { commanderConsoleInspectionConstants } from "./inspection-constants.js";
 const { ABILITY_GROUP_PATH, BOUNDARY_POLICY_PATH, CHILD_EXECUTORS_PATH, COMMAND_CHILD_EXECUTOR_PATH, COMMAND_GATE_PATH, COMMAND_OUTCOMES_PATH, COMMAND_PAYLOAD_PATH, DISPATCH_FAILURE_PATH, EXECUTOR_PATH, IDEMPOTENCY_GATE_PATH, PROOF_BUILDER_PATH } = commanderConsoleInspectionConstants;
 const { READ_CHILD_EXECUTOR_PATH, READ_GATE_PATH, READ_PROOF_GATE_PATH, RESULT_BUILDER_PATH, RUNTIME_PROOF_SCHEMA_PATH, TASK_START_DISPATCH_RESULT_PATH, TIMEOUT_GATE_PATH, TRANSPORT_SCHEMA_PATH, TRANSPORT_SEMANTIC_GATE_PATH, WORKBENCH_COMMANDER_DEBUG_PATH } = commanderConsoleInspectionConstants;
 
-export const WORKBENCH_HUMAN_COMMAND_PATH = "src/lib/local-runtime/workbench-human-command.ts";
+export const WORKBENCH_HUMAN_COMMAND_PATH = "src/lib/local-runtime/workbench-human-command-start-mission.ts";
 const TASK_START_SUPPORT_PATH = "src/lib/local-app-shell/task-start-support.ts";
 const COMMANDER_COMMAND_TRANSPORT_PATH = "src/lib/local-runtime/workbench-commander-command-transport.ts";
 

@@ -1,27 +1,31 @@
 {
-  "generatedAt": "2026-05-09T19:43:22.798Z",
+  "generatedAt": "2026-05-09T20:10:25.456Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Route Plan /350/202/214/350/202/211/350/256/260/345/277/206/346/226/275/345/267/245/345/233/276.md\"",
-    "scripts/audit/domains/capability-group-governance/run-owner-runtime-proof-checks.ts",
+    "scripts/audit/domains/_shared/zod-schema-fields.ts",
+    "scripts/audit/domains/ai-capability/run-ai-proof-chain-checks.ts",
+    "scripts/audit/domains/ai-capability/run-ai-runtime-contract-checks.ts",
+    "scripts/audit/domains/ai-capability/runtime-contract-binary-product-presence-checks.ts",
+    "scripts/audit/domains/ai-capability/runtime-contract-debug-transparency-checks.ts",
+    "scripts/audit/domains/ai-capability/runtime-failure-transparency-checks.ts",
+    "scripts/audit/domains/commander-console-capability/run-app-run-limit-settings-governance-checks.ts",
+    "scripts/audit/domains/commander-console-capability/run-commander-runtime-sources.ts",
+    "scripts/audit/domains/commander-console-capability/run-commander-structure-checks.ts",
+    "scripts/audit/domains/commander-console-capability/run-template-run-limit-governance-checks.ts",
     "scripts/audit/domains/geometry-guard-capability/run-joint-result-contract-check.ts",
-    "scripts/audit/domains/map-plugin-package/constants.ts",
     "scripts/audit/domains/map-plugin-package/inspector.ts",
-    "scripts/audit/domains/map-plugin-package/muscle-memory-governance-route-plan-metadata.ts",
-    "scripts/audit/domains/map-plugin-package/run-inspector.ts",
     "scripts/audit/domains/mouse-click-capability/run-joint-result-contract-check.ts",
+    "scripts/audit/domains/nerve-bus-capability/project-access.ts",
+    "scripts/audit/domains/orchestration-capability/ai-prompt-contract-tasktype-dispatch-checks.ts",
+    "scripts/audit/domains/orchestration-capability/mission-loop-event-semantics-checks.ts",
+    "scripts/audit/domains/orchestration-capability/mission-loop-traceability-phase.ts",
+    "scripts/audit/domains/orchestration-capability/run-governed-runtime-step-checks.ts",
+    "scripts/audit/domains/orchestration-capability/start-mission-boundary-checks.ts",
+    "scripts/audit/domains/post-action-verification-capability/anti-escape.ts",
+    "scripts/audit/domains/post-action-verification-capability/forbidden-shape.ts",
     "scripts/audit/domains/post-action-verification-capability/governed-runtime-fixtures.ts",
-    "scripts/audit/domains/post-action-verification-capability/run-joint-result-contract-check.ts",
-    "scripts/audit/domains/visual-target-capability/run-joint-result-contract-check.ts",
-    "src/app/runtime-resource-usage.ts",
-    "src/capabilities/ai/runtime/ai-executor.ts",
-    "src/capabilities/ai/runtime/ai-output-summary-recorders.ts",
-    "src/capabilities/post-action-verification/runtime/post-action-success-result.ts",
-    "src/lib/local-runtime/workbench-forensics-dispatch-types.ts",
-    "src/lib/local-runtime/workbench-forensics-finalization-evidence-packet-support.ts",
-    "src/lib/local-runtime/workbench-nerve-bus-ai-input-proof-support.ts",
-    "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts",
-    "src/lib/local-runtime/workbench-post-action-runtime.ts"
+    "scripts/audit/domains/post-action-verification-capability/required-shape.ts",
+    "scripts/audit/domains/post-action-verification-capability/run-joint-result-contract-check.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -65,94 +69,9 @@
   ],
   "ownerMixingInventory": [],
   "oversizedTouchedFileInventory": [],
-  "functionOverLimitInventory": [
-    {
-      "file": "scripts/audit/domains/_shared/zod-schema-fields.ts",
-      "lines": 99,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "getZodShapePropertyNamesFromNode"
-      ],
-      "classMembers": 0,
-      "importCount": 1,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/geometry-guard-capability/run-joint-result-contract-check.ts",
-      "lines": 127,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "collectMissingFieldFindings"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/mouse-click-capability/run-joint-result-contract-check.ts",
-      "lines": 106,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "collectMissingFieldFindings"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/post-action-verification-capability/run-joint-result-contract-check.ts",
-      "lines": 120,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "collectMissingFieldFindings"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    }
-  ],
+  "functionOverLimitInventory": [],
   "classObjectOverLimitInventory": [],
-  "importExportOverLimitInventory": [
-    {
-      "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
-      "lines": 147,
-      "fileType": "audit inspector",
-      "overLimitBy": 0,
-      "primaryRole": "inspector",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 15,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    }
-  ],
+  "importExportOverLimitInventory": [],
   "remediationQueue": [
     {
       "file": "src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json",
@@ -183,89 +102,6 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
-      "lines": 147,
-      "fileType": "audit inspector",
-      "overLimitBy": 0,
-      "primaryRole": "inspector",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 15,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/geometry-guard-capability/run-joint-result-contract-check.ts",
-      "lines": 127,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "collectMissingFieldFindings"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/post-action-verification-capability/run-joint-result-contract-check.ts",
-      "lines": 120,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "collectMissingFieldFindings"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/mouse-click-capability/run-joint-result-contract-check.ts",
-      "lines": 106,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "collectMissingFieldFindings"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/_shared/zod-schema-fields.ts",
-      "lines": 99,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "getZodShapePropertyNamesFromNode"
-      ],
-      "classMembers": 0,
-      "importCount": 1,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [
@@ -298,55 +134,6 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
-      "lines": 147,
-      "fileType": "audit inspector",
-      "overLimitBy": 0,
-      "primaryRole": "inspector",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 15,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/geometry-guard-capability/run-joint-result-contract-check.ts",
-      "lines": 127,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "collectMissingFieldFindings"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "scripts/audit/domains/post-action-verification-capability/run-joint-result-contract-check.ts",
-      "lines": 120,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "collectMissingFieldFindings"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
     }
   ]
 }

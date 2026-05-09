@@ -10,11 +10,13 @@ import { createAuditProject } from "../_shared/ast-helpers.js";
 import { PATHS, REQUIRED_FILES } from "./config.js";
 
 export function makeProject(): Project {
-  return createAuditProject();
+  const project = createAuditProject();
+  project.addSourceFilesAtPaths(pathFromRepoRoot(`${PATHS.ROOT}/**/*.ts`));
+  return project;
 }
 
 export function getSourceFile(project: Project, repoRelativePath: string): SourceFile | null {
-  return project.getSourceFile(pathFromRepoRoot(repoRelativePath)) ?? null;
+  return project.addSourceFileAtPathIfExists(pathFromRepoRoot(repoRelativePath)) ?? null;
 }
 
 export async function missingRequiredFiles(): Promise<string[]> {

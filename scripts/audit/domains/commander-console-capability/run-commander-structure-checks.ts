@@ -55,6 +55,13 @@ const REQUIRED_LAW_IDS = [
   "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
 ] as const;
 
+const loadCommanderSourceFiles = async (project: import("ts-morph").Project): Promise<void> => {
+  const commanderFiles = await listFilesRecursive(pathFromRepoRoot(ROOT), { extensions: [".ts"] });
+  for (const filePath of commanderFiles) {
+    project.addSourceFileAtPathIfExists(filePath);
+  }
+};
+
 const collectCanonicalShapeFindings = async (project: import("ts-morph").Project): Promise<Finding[]> => {
   const findings: Finding[] = [];
   const commanderSources = getCommanderSourceFiles(project);
@@ -128,6 +135,7 @@ const collectManifestFindings = async (): Promise<Finding[]> => {
 };
 
 export async function runCommanderStructureChecks(project: import("ts-morph").Project): Promise<StructureCheckResult> {
+  await loadCommanderSourceFiles(project);
   const canonicalFindings = await collectCanonicalShapeFindings(project);
   const registryResult = collectContractAndRegistryFindings(project);
   const manifestFindings = await collectManifestFindings();

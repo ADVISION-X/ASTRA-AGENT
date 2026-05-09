@@ -18,6 +18,7 @@ const LOCAL_AI_TASK_SUPPORT_PATH = "src/lib/local-ai/local-ai-runtime-task-suppo
 const OLLAMA_RUNTIME_SUPPORT_PATH = "src/lib/local-ai/runtime-adapters/ollama-runtime-support.ts";
 const OCR_RUNTIME_SUPPORT_PATH = "src/lib/local-ai/runtime-adapters/local-ocr-runtime-support.ts";
 const VISION_RUNTIME_TASK_PATH = "src/lib/local-ai/local-ai-runtime-vision-task.ts";
+const VISION_RUNTIME_TASK_HANDLER_PATH = "src/lib/local-ai/local-ai-runtime-vision-task-handlers.ts";
 
 const createAiDebugFinding = (lawId: string, file: string, message: string): Finding => createFinding({
   lawId,
@@ -155,11 +156,19 @@ const hasTerminalDebugPaths = (project: Project): boolean => {
     && [localDebugSource, externalRuntimeSource].some((source) => hasStringLiteral(source, "AI_RESPONSE_DEBUG"));
 };
 
+const hasVisionNormalizedDebugStage = (sourceFile: SourceFile): boolean => {
+  const text = sourceFile.getFullText();
+  return hasStringLiteral(sourceFile, "local_ai_output_normalized")
+    && text.includes("adjusted=${String(visionOutput.adjusted)}")
+    && text.includes("rawResponseText: responseText");
+};
+
 export const findAiDebugTransparencyViolations = (project: Project): Finding[] => {
   const localTaskSupport = getSourceOrThrow(project, LOCAL_AI_TASK_SUPPORT_PATH);
   const ollamaSupport = getSourceOrThrow(project, OLLAMA_RUNTIME_SUPPORT_PATH);
   const ocrSupport = getSourceOrThrow(project, OCR_RUNTIME_SUPPORT_PATH);
   const visionTask = getSourceOrThrow(project, VISION_RUNTIME_TASK_PATH);
+  const visionTaskHandlers = getSourceOrThrow(project, VISION_RUNTIME_TASK_HANDLER_PATH);
   const findings: Finding[] = [];
 
   for (const [file, source] of [[LOCAL_AI_TASK_SUPPORT_PATH, localTaskSupport], [OLLAMA_RUNTIME_SUPPORT_PATH, ollamaSupport], [OCR_RUNTIME_SUPPORT_PATH, ocrSupport]] as const) {
@@ -170,8 +179,8 @@ export const findAiDebugTransparencyViolations = (project: Project): Finding[] =
   if (!ollamaSupport.getFullText().includes("rawResponseText: parsed.response") || !ocrSupport.getFullText().includes("rawResponseText: ocrText")) {
     findings.push(createAiDebugFinding("GRASSEYE-AI-CAPABILITY-007A-V1", OLLAMA_RUNTIME_SUPPORT_PATH, "Local AI adapters must emit full rawResponseText by default, not only rawResponsePreview."));
   }
-  if (!hasStringLiteral(visionTask, "local_ai_output_normalized") || !visionTask.getFullText().includes("adjusted=${String(visionOutput.adjusted)}") || !visionTask.getFullText().includes("rawResponseText: responseText")) {
-    findings.push(createAiDebugFinding("GRASSEYE-AI-CAPABILITY-007A-V1", VISION_RUNTIME_TASK_PATH, "Vision parser must emit a separate normalized/assembled debug step with the original raw response still attached."));
+  if (![visionTask, visionTaskHandlers].some((sourceFile) => hasVisionNormalizedDebugStage(sourceFile))) {
+    findings.push(createAiDebugFinding("GRASSEYE-AI-CAPABILITY-007A-V1", VISION_RUNTIME_TASK_HANDLER_PATH, "Vision parser must emit a separate normalized/assembled debug step with the original raw response still attached."));
   }
 
   return findings;

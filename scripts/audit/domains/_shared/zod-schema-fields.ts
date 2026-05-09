@@ -69,17 +69,10 @@ const collectMergedShapePropertyNames = (
   return fields;
 };
 
-export const getZodShapePropertyNamesFromNode = (node: Node | undefined): Set<string> => {
-  if (!node) {
-    return new Set();
-  }
-  if (Node.isIdentifier(node)) {
-    return getZodShapePropertyNamesFromNode(resolveIdentifierInitializer(node));
-  }
-  if (!Node.isCallExpression(node)) {
-    return new Set();
-  }
+const collectIdentifierShapePropertyNames = (node: import("ts-morph").Identifier): Set<string> =>
+  getZodShapePropertyNamesFromNode(resolveIdentifierInitializer(node));
 
+const collectCallShapePropertyNames = (node: import("ts-morph").CallExpression): Set<string> => {
   const expression = node.getExpression();
   if (isShapePassthroughCall(expression)) {
     return getZodShapePropertyNamesFromNode(expression.getExpression());
@@ -92,6 +85,19 @@ export const getZodShapePropertyNamesFromNode = (node: Node | undefined): Set<st
   }
 
   return getObjectLiteralPropertyNames(node.getArguments()[0]);
+};
+
+export const getZodShapePropertyNamesFromNode = (node: Node | undefined): Set<string> => {
+  if (!node) {
+    return new Set();
+  }
+  if (Node.isIdentifier(node)) {
+    return collectIdentifierShapePropertyNames(node);
+  }
+  if (!Node.isCallExpression(node)) {
+    return new Set();
+  }
+  return collectCallShapePropertyNames(node);
 };
 
 export const getZodShapePropertyNames = (sourceFile: SourceFile, declarationName: string): Set<string> =>

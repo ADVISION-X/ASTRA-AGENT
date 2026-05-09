@@ -1,5 +1,6 @@
 import { SyntaxKind } from "ts-morph";
 
+import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 
@@ -14,7 +15,7 @@ const FORBIDDEN_FILES = [
 
 export function runTemplateRunLimitGovernanceChecks(project: import("ts-morph").Project) {
   const findings = FORBIDDEN_FILES.flatMap((filePath) => {
-    const source = project.getSourceFile(filePath);
+    const source = project.addSourceFileAtPathIfExists(pathFromRepoRoot(filePath));
     if (!source) {
       return [createFinding({ lawId: "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", file: filePath, line: 1, severity: "fatal", message: "Commander run-limit governance audit cannot load required source file." })];
     }

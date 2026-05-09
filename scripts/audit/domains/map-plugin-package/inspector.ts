@@ -2,17 +2,21 @@ import { createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { DomainInspector } from "../../core/schema.js";
 import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
 import { createMapPluginAuditProject } from "./audit-project.js";
-import { runIntegrationPhaseBundle } from "../map-plugin-orchestration-integration/phase-bundle.js";
-import { runAntiEscape } from "./anti-escape.js";
-import { runAuthoringInputPackage } from "./authoring-input-package.js";
-import { runBoundaryAttack } from "./boundary-attack.js";
-import { runForbiddenShape } from "./forbidden-shape.js";
-import { runMuscleMemoryGovernance } from "./muscle-memory-governance.js";
-import { runRequiredShape } from "./required-shape.js";
-import { runRoutePlanEntrySpine } from "./route-plan-entry-spine.js";
-import { runScorecardGate } from "./scorecard-gate.js";
-import { runStartupPreparationEntrySpine } from "./startup-preparation-entry-spine.js";
-import { runTaskTemplateRunLimitGovernance } from "./task-template-run-limit-governance.js";
+import {
+  runAuthoringInputPackage,
+  runBoundaryAttack,
+  runForbiddenShape,
+  runMuscleMemoryGovernance,
+  runRequiredShape,
+  runRoutePlanEntrySpine,
+  runStartupPreparationEntrySpine,
+  runTaskTemplateRunLimitGovernance,
+} from "./direct-phase-runners.js";
+import {
+  runAntiEscape,
+  runIntegrationPhaseBundle,
+  runScorecardGate,
+} from "./supplemental-phase-runners.js";
 
 const buildFoundationPhase = (foundationFindings: Awaited<ReturnType<typeof runDomainOwnerInspection>>["findings"]) =>
   foundationFindings.length === 0

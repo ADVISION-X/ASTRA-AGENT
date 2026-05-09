@@ -3,7 +3,7 @@ import { SyntaxKind } from "ts-morph";
 import { createFinding, createPhase, type Finding } from "./inspection-core.js";
 import { getSourceFileOrThrow, type createAuditProject } from "./inspection-ast-helpers.js";
 
-const WORKBENCH_HUMAN_COMMAND_PATH = "src/lib/local-runtime/workbench-human-command.ts";
+const WORKBENCH_HUMAN_COMMAND_START_MISSION_PATH = "src/lib/local-runtime/workbench-human-command-start-mission.ts";
 const WORKBENCH_HUMAN_COMMAND_DEBUG_EVENTS_PATH = "src/lib/local-runtime/workbench-human-command-debug-events.ts";
 const WORKBENCH_MISSION_COMMAND_PREFLIGHT_PATH = "src/lib/local-runtime/workbench-mission-command-preflight.ts";
 const WORKBENCH_STATUS_PATH = "src/lib/local-runtime/workbench-status.ts";
@@ -31,7 +31,7 @@ const createRuntimePhase = (findings: Finding[]) => createPhase(
 );
 
 export function inspectStartMissionCommandBoundary(project: ReturnType<typeof createAuditProject>): PhaseResult {
-  const humanCommandSource = getSourceFileOrThrow(project, WORKBENCH_HUMAN_COMMAND_PATH);
+  const humanCommandSource = getSourceFileOrThrow(project, WORKBENCH_HUMAN_COMMAND_START_MISSION_PATH);
   const debugEventsSource = getSourceFileOrThrow(project, WORKBENCH_HUMAN_COMMAND_DEBUG_EVENTS_PATH);
   const commandPreflightSource = getSourceFileOrThrow(project, WORKBENCH_MISSION_COMMAND_PREFLIGHT_PATH);
   const handleStartMission = humanCommandSource.getVariableDeclaration("handleStartMission")?.getInitializer();
@@ -57,16 +57,16 @@ export function inspectStartMissionCommandBoundary(project: ReturnType<typeof cr
   const findings: Finding[] = [];
 
   if (!callPreservesEnvelopeRunId) {
-    findings.push(createFatalFinding({ file: WORKBENCH_HUMAN_COMMAND_PATH, message: "Human command start boundary must pass HumanCommandEnvelope.runId into Orchestration startMission." }));
+    findings.push(createFatalFinding({ file: WORKBENCH_HUMAN_COMMAND_START_MISSION_PATH, message: "Human command start boundary must pass HumanCommandEnvelope.runId into Orchestration startMission." }));
   }
   if (!preflightDryRunsMissionCommand) {
     findings.push(createFatalFinding({ file: WORKBENCH_STATUS_PATH, message: "MissionStartPreflight must dry-run MissionCommandSchema before Nerve Bus dispatch." }));
   }
   if (!emitsStartBoundaryLogs) {
-    findings.push(createFatalFinding({ file: WORKBENCH_HUMAN_COMMAND_PATH, message: "Human command start boundary must emit ORCHESTRATION_START_RECEIVED, MISSION_ACTIVATION_SNAPSHOT_FROZEN, and COMMAND_ACCEPTED structured runtime events." }));
+    findings.push(createFatalFinding({ file: WORKBENCH_HUMAN_COMMAND_START_MISSION_PATH, message: "Human command start boundary must emit ORCHESTRATION_START_RECEIVED, MISSION_ACTIVATION_SNAPSHOT_FROZEN, and COMMAND_ACCEPTED structured runtime events." }));
   }
   if (!preservesBoundaryOrder) {
-    findings.push(createFatalFinding({ file: WORKBENCH_HUMAN_COMMAND_PATH, message: "Human command start boundary must emit start-received, activation-snapshot-frozen, and command-accepted before Orchestration startMission begins." }));
+    findings.push(createFatalFinding({ file: WORKBENCH_HUMAN_COMMAND_START_MISSION_PATH, message: "Human command start boundary must emit start-received, activation-snapshot-frozen, and command-accepted before Orchestration startMission begins." }));
   }
 
   return { findings, phase: createRuntimePhase(findings) };

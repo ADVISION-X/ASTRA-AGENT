@@ -25,12 +25,12 @@ export const collectLocalProgramRuntimeFindings = (project: import("ts-morph").P
   const localProgramCompletionSource = getOpenSourceOrThrow(project, LOCAL_PROGRAM_COMPLETION_PATH);
   const localProgramLaunchSource = getOpenSourceOrThrow(project, LOCAL_PROGRAM_LAUNCH_PATH);
   const localProgramFailureSource = getOpenSourceOrThrow(project, LOCAL_PROGRAM_FAILURE_PATH);
-  const adapterSource = project.getSourceFileOrThrow(LOCAL_PROGRAM_ADAPTER_PATH);
-  const adapterSystemSource = project.getSourceFileOrThrow(LOCAL_PROGRAM_ADAPTER_SYSTEM_PATH);
-  const adapterConstantsSource = project.getSourceFileOrThrow(LOCAL_PROGRAM_ADAPTER_CONSTANTS_PATH);
-  const catalogSource = project.getSourceFileOrThrow(MAP_CAPABILITY_CATALOG_OPEN_BUILDER_PATH);
-  const workbenchOpenSource = project.getSourceFileOrThrow(WORKBENCH_PATH);
-  const workbenchStatusSource = project.getSourceFileOrThrow(WORKBENCH_STATUS_PATH);
+  const adapterSource = getOpenSourceOrThrow(project, LOCAL_PROGRAM_ADAPTER_PATH);
+  const adapterSystemSource = getOpenSourceOrThrow(project, LOCAL_PROGRAM_ADAPTER_SYSTEM_PATH);
+  const adapterConstantsSource = getOpenSourceOrThrow(project, LOCAL_PROGRAM_ADAPTER_CONSTANTS_PATH);
+  const catalogSource = getOpenSourceOrThrow(project, MAP_CAPABILITY_CATALOG_OPEN_BUILDER_PATH);
+  const workbenchOpenSource = getOpenSourceOrThrow(project, WORKBENCH_PATH);
+  const workbenchStatusSource = getOpenSourceOrThrow(project, WORKBENCH_STATUS_PATH);
 
   return [
     ...collectLocalProgramLaunchFindings(localProgramLaunchSource, localProgramRunnerSource.getText()),

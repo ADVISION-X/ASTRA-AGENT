@@ -1,4 +1,5 @@
 import { createFinding, createPhase } from "../../core/result.js";
+import { pathFromRepoRoot } from "../../core/paths.js";
 import type { Finding } from "../../core/schema.js";
 
 const LAW_ID = "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2";
@@ -6,6 +7,9 @@ const COMMANDER_FOUNDATION_SCHEMA_FILE = "src/capabilities/commander-console/sha
 const SETTINGS_SCHEMA_FILE = "src/lib/local-runtime/app-run-limit-settings.ts";
 const SETTINGS_API_FILE = "src/app/app-settings-api-handlers.ts";
 const START_BINDING_FILE = "src/lib/local-app-shell/task-start-binding.ts";
+
+const getProjectSourceFile = (project: import("ts-morph").Project, filePath: string) =>
+  project.addSourceFileAtPathIfExists(pathFromRepoRoot(filePath));
 
 function createMissingSourceFinding(file: string, subject: string): Finding {
   return createFinding({ lawId: LAW_ID, file, line: 1, severity: "fatal", message: `Commander run-limit governance audit cannot load ${subject}.` });
@@ -32,7 +36,7 @@ function hasTaskStartBindingDefaultResolution(resolverText: string): boolean {
 }
 
 function inspectCommanderFoundationSchema(project: import("ts-morph").Project): Finding[] {
-  const source = project.getSourceFile(COMMANDER_FOUNDATION_SCHEMA_FILE);
+  const source = getProjectSourceFile(project, COMMANDER_FOUNDATION_SCHEMA_FILE);
   if (!source) {
     return [createMissingSourceFinding(COMMANDER_FOUNDATION_SCHEMA_FILE, "commander schema foundation source")];
   }
@@ -52,7 +56,7 @@ function inspectCommanderFoundationSchema(project: import("ts-morph").Project): 
 }
 
 function inspectAppRunLimitSettingsSchema(project: import("ts-morph").Project): Finding[] {
-  const settingsSource = project.getSourceFile(SETTINGS_SCHEMA_FILE);
+  const settingsSource = getProjectSourceFile(project, SETTINGS_SCHEMA_FILE);
   if (!settingsSource) {
     return [createMissingSourceFinding(SETTINGS_SCHEMA_FILE, "app run-limit settings source")];
   }
@@ -73,7 +77,7 @@ function inspectAppRunLimitSettingsSchema(project: import("ts-morph").Project): 
 }
 
 function inspectAppRunLimitSettingsApi(project: import("ts-morph").Project): Finding[] {
-  const apiSource = project.getSourceFile(SETTINGS_API_FILE);
+  const apiSource = getProjectSourceFile(project, SETTINGS_API_FILE);
   if (!apiSource) {
     return [createMissingSourceFinding(SETTINGS_API_FILE, "app run-limit settings API source")];
   }
@@ -94,7 +98,7 @@ function inspectAppRunLimitSettingsApi(project: import("ts-morph").Project): Fin
 }
 
 function inspectTaskStartBinding(project: import("ts-morph").Project): Finding[] {
-  const bindingSource = project.getSourceFile(START_BINDING_FILE);
+  const bindingSource = getProjectSourceFile(project, START_BINDING_FILE);
   if (!bindingSource) {
     return [createMissingSourceFinding(START_BINDING_FILE, "task start binding source")];
   }

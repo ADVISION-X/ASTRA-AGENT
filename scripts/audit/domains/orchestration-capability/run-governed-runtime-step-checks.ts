@@ -5,7 +5,7 @@ const STEP_DISPATCH_SHARED_PATH = "src/capabilities/orchestration/runtime/step-d
 const STEP_DISPATCHER_PATH = "src/capabilities/orchestration/runtime/step-dispatcher.ts";
 const STEP_DISPATCH_REQUEST_BUILDERS_PATH = "src/capabilities/orchestration/runtime/step-dispatch-request-builders.ts";
 const NERVE_BUS_ADAPTER_PATH = "src/capabilities/orchestration/runtime/orchestration-nerve-bus-adapter.ts";
-const LOOP_ITERATION_SUPPORT_PATH = "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts";
+const LOOP_TRANSITION_SUCCESS_PATH = "src/capabilities/orchestration/runtime/orchestration-loop-transition-success-outcome.ts";
 
 type PhaseResult = {
   findings: Finding[];
@@ -63,9 +63,9 @@ function collectNerveBusAdapterFindings(nerveBusAdapterSource: ReturnType<typeof
 
 export function inspectRoundAndVideoVisitChain(project: ReturnType<typeof createAuditProject>): PhaseResult {
   const sharedSource = getSourceFileOrThrow(project, STEP_DISPATCH_SHARED_PATH);
-  const loopSupportSource = getSourceFileOrThrow(project, LOOP_ITERATION_SUPPORT_PATH);
+  const transitionSuccessSource = getSourceFileOrThrow(project, LOOP_TRANSITION_SUCCESS_PATH);
   const sharedText = sharedSource.getFullText();
-  const loopSupportText = loopSupportSource.getFullText();
+  const transitionSuccessText = transitionSuccessSource.getFullText();
   const findings: Finding[] = [];
 
   if (sharedText.includes("videoVisitId: null")) {
@@ -74,8 +74,8 @@ export function inspectRoundAndVideoVisitChain(project: ReturnType<typeof create
   if (!sharedText.includes("video-visit") || !sharedText.includes("state.currentRoundIndex")) {
     findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: STEP_DISPATCH_SHARED_PATH, line: 1, message: "Orchestration dispatch chain must derive videoVisitId from mission identity and currentRoundIndex." }));
   }
-  if (!loopSupportText.includes("shouldAdvanceMissionRound") || !loopSupportText.includes("verify-next-item-advanced") || !loopSupportText.includes("capture-video-viewport")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: LOOP_ITERATION_SUPPORT_PATH, line: 1, message: "Mission round advancement must treat verify-next-item-advanced returning to capture-video-viewport as the governed round boundary." }));
+  if (!transitionSuccessText.includes("shouldAdvanceMissionRound") || !transitionSuccessText.includes("verify-next-item-advanced") || !transitionSuccessText.includes("capture-video-viewport")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: LOOP_TRANSITION_SUCCESS_PATH, line: 1, message: "Mission round advancement must treat verify-next-item-advanced returning to capture-video-viewport as the governed round boundary." }));
   }
 
   return {

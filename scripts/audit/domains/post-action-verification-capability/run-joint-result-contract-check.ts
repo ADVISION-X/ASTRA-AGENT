@@ -74,11 +74,11 @@ function collectForbiddenTokenFindings(file: string, text: string, tokens: reado
   });
 }
 
-function collectMissingFieldFindings(file: string, schemaName: string, actualFields: Set<string>, requiredFields: readonly string[], message: string): Finding[] {
-  return requiredFields.flatMap((field) => {
-    return actualFields.has(field)
+function collectMissingFieldFindings(input: { file: string; schemaName: string; actualFields: Set<string>; requiredFields: readonly string[]; message: string }): Finding[] {
+  return input.requiredFields.flatMap((field) => {
+    return input.actualFields.has(field)
       ? []
-      : [createFinding({ lawId: LAW_IDS.RESULT, file, line: 1, severity: "fatal", message: `${message}: ${schemaName}.${field}.` })];
+      : [createFinding({ lawId: LAW_IDS.RESULT, file: input.file, line: 1, severity: "fatal", message: `${input.message}: ${input.schemaName}.${field}.` })];
   });
 }
 
@@ -96,8 +96,8 @@ export async function runJointResultContractCheck(): Promise<JointResultContract
   const resultFields = getZodShapePropertyNames(schemaSource, "PostActionVerificationAbilityResultBaseSchema");
   const outputFields = getZodShapePropertyNames(schemaSource, "PostActionVerificationOutputSchema");
   const findings = [
-    ...collectMissingFieldFindings(PATHS.SCHEMA, "PostActionVerificationAbilityResultBaseSchema", resultFields, REQUIRED_RESULT_FIELDS, "Post Action Verification result schema must expose canonical observation-package fields"),
-    ...collectMissingFieldFindings(PATHS.SCHEMA, "PostActionVerificationOutputSchema", outputFields, REQUIRED_OUTPUT_FIELDS, "Post Action Verification output schema must expose observation bundle fields"),
+    ...collectMissingFieldFindings({ file: PATHS.SCHEMA, schemaName: "PostActionVerificationAbilityResultBaseSchema", actualFields: resultFields, requiredFields: REQUIRED_RESULT_FIELDS, message: "Post Action Verification result schema must expose canonical observation-package fields" }),
+    ...collectMissingFieldFindings({ file: PATHS.SCHEMA, schemaName: "PostActionVerificationOutputSchema", actualFields: outputFields, requiredFields: REQUIRED_OUTPUT_FIELDS, message: "Post Action Verification output schema must expose observation bundle fields" }),
     ...collectMissingTokenFindings(PATHS.SCHEMA, schemaText, REQUIRED_SCHEMA_TOKENS, "Post Action Verification schema must expose the canonical observation-package result contract"),
     ...collectMissingTokenFindings(SUCCESS_RESULT_PATH, successResultText, REQUIRED_BUILDER_TOKENS, "Post Action Verification success result builder must emit the canonical observation-package result fields"),
     ...collectForbiddenTokenFindings(PATHS.SCHEMA, schemaText, FORBIDDEN_TOKENS, "Post Action Verification schema must not claim semantic verification truth"),

@@ -84,6 +84,14 @@ const hasOrderedFunctionCall = (sourceFile: SourceFile, functionName: string, fi
   return firstStart !== null && secondStart !== null && firstStart < secondStart;
 };
 
+const hasExecutorRequestDebugBeforePreRuntime = (executorSource: SourceFile): boolean => {
+  return hasOrderedFunctionCall(executorSource, "executeAiChild", "emitAiExecutionRequestDebug", "resolveAiPreRuntimeResult")
+    || (
+      hasOrderedFunctionCall(executorSource, "executeAiChild", "prepareExecutionPlan", "resolveAiPreRuntimeResult")
+      && hasFunctionCall(executorSource, "prepareExecutionPlan", "emitAiExecutionRequestDebug")
+    );
+};
+
 const collectRuntimeStatusFindings = (project: Project): Finding[] => {
   const runtimeResultSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-runtime-result.ts`);
   return hasStringArrayElements(runtimeResultSource, REQUIRED_AI_RUNTIME_FAILURE_STATUSES)
@@ -116,7 +124,7 @@ const collectOuterCatchDebugFindings = (project: Project): Finding[] => {
 const hasExecutorPreRuntimeRequestDebug = (project: Project): boolean => {
   const executorSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-executor.ts`);
   const executionRequestDebugSource = getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-execution-request-debug.ts`);
-  return hasOrderedFunctionCall(executorSource, "executeAiChild", "emitAiExecutionRequestDebug", "resolveAiPreRuntimeResult")
+  return hasExecutorRequestDebugBeforePreRuntime(executorSource)
     && hasFunctionCall(executionRequestDebugSource, "emitAiExecutionRequestDebug", "emitDebugEvent")
     && hasFunctionObjectProperty(executionRequestDebugSource, "buildRequestDebugRuntime", "runtimeCallId")
     && hasFunctionObjectProperty(executionRequestDebugSource, "buildRequestDebugRuntime", "implementationStatus")

@@ -7,6 +7,8 @@ import { hasCallExpression } from "../_shared/ast-helpers.js";
 import { LAW_IDS, PATHS } from "./config.js";
 import { getSource } from "./project-access.js";
 
+const SUCCESS_RESULT_PATH = "src/capabilities/post-action-verification/runtime/post-action-success-result.ts";
+
 function collectExecutorFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
   const executorSource = getSource(project, PATHS.EXECUTOR);
@@ -21,7 +23,8 @@ function collectExecutorFindings(project: Project): Finding[] {
 function collectResultBuilderFindings(project: Project): Finding[] {
   const resultBuilderSource = getSource(project, PATHS.RESULT_BUILDER);
   const resultBuilderText = resultBuilderSource.getFullText();
-  return !resultBuilderText.includes("output: null") || !hasCallExpression(resultBuilderSource, "buildSuccessfulPostActionOutput")
+  const successResultSource = getSource(project, SUCCESS_RESULT_PATH);
+  return !resultBuilderText.includes("output: null") || !hasCallExpression(successResultSource, "buildSuccessfulPostActionOutput")
     ? [createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must enforce success-only output construction." })]
     : [];
 }

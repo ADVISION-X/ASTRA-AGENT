@@ -170,7 +170,14 @@ export async function runPostActionGovernedRuntimeFixtures(): Promise<void> {
   assertCondition(invalidInputResult.runtimeProof.runId !== null, "Invalid-input fallback proof must not emit runId=null.");
   assertCondition(invalidInputResult.runId === invalidInputResult.runtimeProof.runId, "Invalid-input fallback result/proof runId must remain consistent.");
 
-  const defaultVerificationInput = await buildPostActionVerificationInput(runtime, createDefaultVerificationEnvelope(), createFixturePayload());
-  const defaultVerificationResult = await abilityGroup.execute(defaultVerificationInput);
-  assertCondition(defaultVerificationResult.status === "failed", "Generic verify-action-result must fail when before/after evidence is required but missing.");
+  await buildPostActionVerificationInput(runtime, createDefaultVerificationEnvelope(), createFixturePayload())
+    .then(() => {
+      throw new Error("Generic verify-action-result must require clickResultRef from MouseClickResult.");
+    })
+    .catch((error: unknown) => {
+      assertCondition(
+        error instanceof Error && error.message.includes("requires clickResultRef from MouseClickResult"),
+        "Generic verify-action-result must fail closed before PAV input construction without clickResultRef.",
+      );
+    });
 }

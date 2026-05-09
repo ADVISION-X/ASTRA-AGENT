@@ -64,11 +64,11 @@ function collectForbiddenTokenFindings(file: string, text: string, tokens: reado
   });
 }
 
-function collectMissingFieldFindings(file: string, schemaName: string, actualFields: Set<string>, requiredFields: readonly string[], message: string): Finding[] {
-  return requiredFields.flatMap((field) => {
-    return actualFields.has(field)
+function collectMissingFieldFindings(input: { file: string; schemaName: string; actualFields: Set<string>; requiredFields: readonly string[]; message: string }): Finding[] {
+  return input.requiredFields.flatMap((field) => {
+    return input.actualFields.has(field)
       ? []
-      : [createFinding({ lawId: LAW_ID, file, line: 1, severity: "fatal", message: `${message}: ${schemaName}.${field}.` })];
+      : [createFinding({ lawId: LAW_ID, file: input.file, line: 1, severity: "fatal", message: `${input.message}: ${input.schemaName}.${field}.` })];
   });
 }
 
@@ -84,7 +84,7 @@ export async function runJointResultContractCheck(): Promise<JointResultContract
   ]);
   const successOutputFields = getZodShapePropertyNames(schemaSource, "MouseClickSuccessOutputSchema");
   const findings = [
-    ...collectMissingFieldFindings(PATHS.SCHEMA, "MouseClickSuccessOutputSchema", successOutputFields, REQUIRED_SCHEMA_TOKENS, "Mouse Click success output schema must expose primitive execution and PAV handoff fields"),
+    ...collectMissingFieldFindings({ file: PATHS.SCHEMA, schemaName: "MouseClickSuccessOutputSchema", actualFields: successOutputFields, requiredFields: REQUIRED_SCHEMA_TOKENS, message: "Mouse Click success output schema must expose primitive execution and PAV handoff fields" }),
     ...collectMissingTokenFindings(PATHS.SCHEMA, schemaText, REQUIRED_SCHEMA_TOKENS, "Mouse Click schema must expose the canonical post-action handoff result contract"),
     ...collectMissingTokenFindings(PATHS.RESULT_BUILDER, resultBuilderText, REQUIRED_BUILDER_TOKENS, "Mouse Click result builder must emit the canonical post-action handoff fields"),
     ...collectForbiddenTokenFindings(PATHS.SCHEMA, schemaText, FORBIDDEN_TOKENS, "Mouse Click schema must not claim verification or business truth"),

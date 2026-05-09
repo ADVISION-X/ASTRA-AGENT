@@ -78,11 +78,11 @@ function collectForbiddenTokenFindings(file: string, text: string, tokens: reado
   });
 }
 
-function collectMissingFieldFindings(file: string, schemaName: string, actualFields: Set<string>, requiredFields: readonly string[], message: string): Finding[] {
-  return requiredFields.flatMap((field) => {
-    return actualFields.has(field)
+function collectMissingFieldFindings(input: { file: string; schemaName: string; actualFields: Set<string>; requiredFields: readonly string[]; message: string }): Finding[] {
+  return input.requiredFields.flatMap((field) => {
+    return input.actualFields.has(field)
       ? []
-      : [createFinding({ lawId: LAW_ID, file, line: 1, severity: "fatal", message: `${message}: ${schemaName}.${field}.` })];
+      : [createFinding({ lawId: LAW_ID, file: input.file, line: 1, severity: "fatal", message: `${input.message}: ${input.schemaName}.${field}.` })];
   });
 }
 
@@ -102,8 +102,8 @@ export async function runJointResultContractCheck(): Promise<JointResultContract
   const resultFields = getZodShapePropertyNames(schemaResultSource, "GeometryGuardBaseResultSchema");
   const executableOutputFields = getZodShapePropertyNames(schemaOutputSource, "ExecutableGeometryOutputSchema");
   const findings = [
-    ...collectMissingFieldFindings(config.SCHEMA_RESULT_PATH, "GeometryGuardBaseResultSchema", resultFields, REQUIRED_RESULT_TOKENS, "Geometry Guard result schema must expose canonical executable coordinate fields"),
-    ...collectMissingFieldFindings(SCHEMA_OUTPUT_PATH, "ExecutableGeometryOutputSchema", executableOutputFields, REQUIRED_OUTPUT_TOKENS, "Geometry Guard executable output schema must expose canonical coordinate fields"),
+    ...collectMissingFieldFindings({ file: config.SCHEMA_RESULT_PATH, schemaName: "GeometryGuardBaseResultSchema", actualFields: resultFields, requiredFields: REQUIRED_RESULT_TOKENS, message: "Geometry Guard result schema must expose canonical executable coordinate fields" }),
+    ...collectMissingFieldFindings({ file: SCHEMA_OUTPUT_PATH, schemaName: "ExecutableGeometryOutputSchema", actualFields: executableOutputFields, requiredFields: REQUIRED_OUTPUT_TOKENS, message: "Geometry Guard executable output schema must expose canonical coordinate fields" }),
     ...collectMissingTokenFindings(config.SCHEMA_RESULT_PATH, schemaResultText, REQUIRED_RESULT_TOKENS, "Geometry Guard result schema must expose the canonical executable coordinate contract"),
     ...collectMissingTokenFindings(SCHEMA_OUTPUT_PATH, schemaOutputText, REQUIRED_OUTPUT_TOKENS, "Geometry Guard output schema must preserve executable coordinate fields"),
     ...collectMissingTokenFindings(config.RESULT_BUILDER_PATH, resultBuilderText, REQUIRED_BUILDER_TOKENS, "Geometry Guard result builder must emit canonical executable coordinate fields only through GeometryGuardResult"),

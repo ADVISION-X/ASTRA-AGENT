@@ -7,6 +7,8 @@ import { LAW_IDS, PATHS } from "./config.js";
 import { hasDateOutsideClock, hasForbiddenEscape } from "./escape-rules.js";
 import { getOwnedSources, getRepoPath, getSource } from "./project-access.js";
 
+const RESULT_REFINEMENTS_PATH = "src/capabilities/post-action-verification/post-action-result-schema-refinements.ts";
+
 function collectIndexFindings(project: Project): Finding[] {
   const indexSource = getSource(project, `${PATHS.ROOT}/index.ts`);
   return indexSource.getExportDeclarations().some((declaration) => declaration.isNamespaceExport())
@@ -15,8 +17,9 @@ function collectIndexFindings(project: Project): Finding[] {
 }
 
 function collectSchemaFindings(project: Project): Finding[] {
-  const schemaSource = getSource(project, PATHS.SCHEMA);
-  return !hasLiteralTextFragment(schemaSource, "failed/review_required result must not expose output") || !hasLiteralTextFragment(schemaSource, "failed/review_required proof requires diagnosticPayloadRef")
+  const resultRefinementSource = getSource(project, RESULT_REFINEMENTS_PATH);
+  const runtimeProofSource = getSource(project, PATHS.SCHEMA);
+  return !hasLiteralTextFragment(resultRefinementSource, "failed/review_required result must not expose output") || !hasLiteralTextFragment(runtimeProofSource, "failed/review_required proof requires diagnosticPayloadRef")
     ? [createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Schema must forbid non-null output/outputRef on non-success results." })]
     : [];
 }

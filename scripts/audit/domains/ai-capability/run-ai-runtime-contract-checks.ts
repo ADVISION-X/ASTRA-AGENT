@@ -222,6 +222,7 @@ const findModelOwnedConfidenceViolations = (project: Project): Finding[] => {
   const parserSource = getSourceOrThrow(project, "src/lib/local-ai/local-ai-runtime-vision.ts");
   const taskSource = getSourceOrThrow(project, "src/lib/local-ai/local-ai-runtime-vision-task.ts");
   const findings: Finding[] = [];
+  const promptText = promptSource.getFullText();
 
   const confidenceAssignments = [
     ...promptSource.getDescendantsOfKind(SyntaxKind.PropertyAssignment),
@@ -242,7 +243,12 @@ const findModelOwnedConfidenceViolations = (project: Project): Finding[] => {
       message: "Vision product-presence confidence must be model-owned; prompt templates and local vision parsing must not hard-code numeric confidence values that the model can copy or that runtime can substitute.",
     }));
   }
-  if (!promptSource.getFullText().includes("AI_ESTIMATE_NUMBER_0_TO_1_DO_NOT_COPY_THIS_PLACEHOLDER") || !promptSource.getFullText().includes("confidence must be your own calibrated estimate")) {
+  const hasModelOwnedConfidencePrompt = (
+    promptText.includes("confidence must be your own calibrated estimate")
+    || promptText.includes("confidence = one grounded JSON number from 0 to 1")
+    || promptText.includes("confidence must be a JSON number from 0 to 1")
+  ) && !/confidence\s*(?:=|:)\s*(?:0(?:\.\d+)?|1(?:\.0+)?)\b/.test(promptText);
+  if (!hasModelOwnedConfidencePrompt) {
     findings.push(createFinding({
       lawId: "GRASSEYE-AI-CAPABILITY-007A-V1",
       file: "src/lib/local-ai/local-ai-runtime-vision-prompt.ts",

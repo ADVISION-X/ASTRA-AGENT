@@ -142,14 +142,19 @@ function collectResultBuilderFindings(project: Project): Finding[] {
     || !hasCallExpression(resultBuilderSource, "buildPostActionRuntimeProof")) {
     findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must preserve mission/run/step/map chain parity from the governed request." }));
   }
-  if (!resultBuilderText.includes("postActionObservationRef") || !resultBuilderText.includes("actionObservationBundleRef")) {
-    const successResultText = getSource(project, SUCCESS_RESULT_PATH).getFullText();
-    if (!successResultText.includes("postActionObservationRef") || !successResultText.includes("actionObservationBundleRef")) {
-      findings.push(createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must emit neutral post-action observation bundle refs for governed success outcomes." }));
-    }
-  }
+  findings.push(...collectSuccessObservationBundleFindings(project, resultBuilderText));
 
   return findings;
+}
+
+function collectSuccessObservationBundleFindings(project: Project, resultBuilderText: string): Finding[] {
+  if (resultBuilderText.includes("postActionObservationRef") && resultBuilderText.includes("actionObservationBundleRef")) {
+    return [];
+  }
+  const successResultText = getSource(project, SUCCESS_RESULT_PATH).getFullText();
+  return successResultText.includes("postActionObservationRef") && successResultText.includes("actionObservationBundleRef")
+    ? []
+    : [createFinding({ lawId: LAW_IDS.RESULT, file: PATHS.RESULT_BUILDER, line: 1, severity: "fatal", message: "Result builder must emit neutral post-action observation bundle refs for governed success outcomes." })];
 }
 
 function collectDispatchFailureFindings(project: Project): Finding[] {

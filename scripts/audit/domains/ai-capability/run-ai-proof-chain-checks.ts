@@ -23,6 +23,7 @@ const REQUIRED_CHAIN_FIELD_NAMES = [
 ] as const;
 
 const WORKBENCH_AI_REQUEST_BUILDER_FILE = "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts";
+const WORKBENCH_AI_INPUT_PROOF_SUPPORT_FILE = "src/lib/local-runtime/workbench-nerve-bus-ai-input-proof-support.ts";
 
 const getNamedObjectLiteral = (sourceFile: SourceFile, declarationName: string) => {
   const initializer = sourceFile.getVariableDeclaration(declarationName)?.getInitializer();
@@ -93,6 +94,7 @@ type AiInputProofDebugSources = {
   executorSource: SourceFile;
   registrySource: SourceFile;
   workbenchRequestSource: SourceFile;
+  workbenchInputProofSupportSource: SourceFile;
 };
 
 type AiProofChainSources = AiInputProofDebugSources & {
@@ -154,8 +156,10 @@ const hasInputDebugProofFields = (input: AiInputProofDebugSources): boolean => {
 };
 
 const hasWorkbenchInputProofFields = (input: AiInputProofDebugSources): boolean => {
-  return hasPropertyUsingText(input.workbenchRequestSource, "buildWorkbenchAiInputRefs", "filePath", "proof.aiInputStorageRef")
-    && hasCallExpressionNamed(input.workbenchRequestSource, "ensureSingleWorkbenchAiInputProof");
+  return hasCallExpressionNamed(input.workbenchRequestSource, "buildWorkbenchAiInputRefs")
+    && hasCallExpressionNamed(input.workbenchRequestSource, "ensureWorkbenchAiInputProof")
+    && hasPropertyUsingText(input.workbenchInputProofSupportSource, "buildWorkbenchAiInputRefs", "filePath", "proof.aiInputStorageRef")
+    && hasCallExpressionNamed(input.workbenchInputProofSupportSource, "ensureSingleWorkbenchAiInputProof");
 };
 
 const hasGateAndRejectedInputProofFields = (input: AiInputProofDebugSources): boolean => {
@@ -197,6 +201,7 @@ const loadProofChainSources = (project: Project): AiProofChainSources => ({
   inputSchemaSource: getSourceOrThrow(project, `${AI_ROOT}/schema-core.schema.ts`),
   runtimeSchemaSource: getSourceOrThrow(project, `${AI_ROOT}/schema-runtime.schema.ts`),
   workbenchRequestSource: getSourceOrThrow(project, WORKBENCH_AI_REQUEST_BUILDER_FILE),
+  workbenchInputProofSupportSource: getSourceOrThrow(project, WORKBENCH_AI_INPUT_PROOF_SUPPORT_FILE),
   proofBuilderSource: getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-proof-builder.ts`),
   idempotencySource: getSourceOrThrow(project, `${AI_ROOT}/runtime/ai-idempotency.ts`),
   aiDebugSupportSource: getSourceOrThrow(project, WORKBENCH_AI_DEBUG_SUPPORT_FILE),

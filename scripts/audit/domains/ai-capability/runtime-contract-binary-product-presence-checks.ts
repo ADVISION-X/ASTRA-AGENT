@@ -20,10 +20,35 @@ const createBinaryProductPresenceFinding = (file: string, message: string): Find
   message,
 });
 
+const includesAny = (sourceText: string, snippets: readonly string[]): boolean => {
+  return snippets.some((snippet) => sourceText.includes(snippet));
+};
+
 const hasBinaryPromptContract = (promptText: string): boolean => {
-  return promptText.includes("Return exactly one product-presence decision: product_yes or product_no.")
-    && promptText.includes("Never return product_uncertain")
-    && promptText.includes("choose product_no and explain the limiting visual evidence");
+  const hasBinaryDecision = includesAny(promptText, [
+    "Return exactly one product-presence decision: product_yes or product_no.",
+    "Return exactly one decision: product_yes or product_no.",
+    'decision must be product_yes or product_no',
+  ]);
+  const forbidsReviewHandoff = includesAny(promptText, [
+    "Never return product_uncertain",
+    "Never return review_required, product_uncertain, maybe, unknown, or mustReview=true.",
+  ]) && includesAny(promptText, [
+    "mustReview must stay false",
+    'mustReview: "false"',
+    "mustReview = false",
+  ]);
+  const routesAmbiguousEvidenceToProductNo = includesAny(promptText, [
+    "choose product_no and explain the limiting visual evidence",
+    "return decision=product_no",
+    "Choose product_no only when the sampled evidence does not visibly show a concrete product presentation",
+  ]) && includesAny(promptText, [
+    "limiting visual evidence",
+    "missing visual proof",
+    "too weak to identify a product safely",
+  ]);
+
+  return hasBinaryDecision && forbidsReviewHandoff && routesAmbiguousEvidenceToProductNo;
 };
 
 const hasBinaryProductPresenceSchema = (schemaText: string): boolean => {

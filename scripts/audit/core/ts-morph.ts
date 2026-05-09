@@ -20,7 +20,8 @@ export const getAuditProject = (): Project => {
 };
 
 export const getSourceFileOrThrow = (project: Project, relativePath: string): SourceFile => {
-  const sourceFile = project.getSourceFile(pathFromRepoRoot(relativePath));
+  const absolutePath = pathFromRepoRoot(relativePath);
+  const sourceFile = project.getSourceFile(absolutePath) ?? project.addSourceFileAtPathIfExists(absolutePath);
   if (!sourceFile) {
     throw new Error(`Source file not found in ts-morph project: ${relativePath}`);
   }

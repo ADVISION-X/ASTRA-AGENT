@@ -12,7 +12,7 @@ import {
 const INTERNAL_TYPES_PATH = "src/capabilities/orchestration/internal.ts";
 const ABILITY_GROUP_PATH = "src/capabilities/orchestration/ability-group.ts";
 const LOOP_ITERATION_PATH = "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts";
-const LOOP_ITERATION_SUPPORT_PATH = "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts";
+const TRANSITION_SUCCESS_OUTCOME_PATH = "src/capabilities/orchestration/runtime/orchestration-loop-transition-success-outcome.ts";
 const LOOP_EVENTS_PATH = "src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts";
 const LOOP_EVENTS_SHARED_PATH = "src/capabilities/orchestration/runtime/orchestration-loop-iteration-event-shared.ts";
 const STEP_TRACE_RECORDER_PATH = "src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts";
@@ -134,7 +134,7 @@ const collectForensicsPersistenceFindings = (
 };
 
 const collectTransitionRoundBoundaryFinding = (input: {
-  loopIterationSupportSource: ReturnType<typeof getSourceFileOrThrow>;
+  transitionSuccessSource: ReturnType<typeof getSourceFileOrThrow>;
   transitionStateText: string;
   roundBoundaryText: string;
 }): Finding[] => {
@@ -144,16 +144,16 @@ const collectTransitionRoundBoundaryFinding = (input: {
     && input.roundBoundaryText.includes("capture-video-viewport");
   const usesPerStepRoundIncrement = input.transitionStateText.includes("currentRoundIndex: input.state.currentRoundIndex + 1");
 
-  return !hasSuccessProofClosure(input.loopIterationSupportSource)
-    ? [createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success path must persist lastRuntimeProofRef and runtimeProofRefs before Commander reads mission state." })]
+  return !hasSuccessProofClosure(input.transitionSuccessSource)
+    ? [createFatalFinding({ file: TRANSITION_SUCCESS_OUTCOME_PATH, message: "Transition success path must persist lastRuntimeProofRef and runtimeProofRefs before Commander reads mission state." })]
     : !guardsRoundIncrementByInitialStep || !guardsClickNextVideoCaptureBoundary || usesPerStepRoundIncrement
-      ? [createFatalFinding({ file: LOOP_ITERATION_SUPPORT_PATH, message: "Transition success state must increment currentRoundIndex only at governed round boundaries: map initial-step return or verify-next-item-advanced returning to capture-video-viewport." })]
+      ? [createFatalFinding({ file: TRANSITION_SUCCESS_OUTCOME_PATH, message: "Transition success state must increment currentRoundIndex only at governed round boundaries: map initial-step return or verify-next-item-advanced returning to capture-video-viewport." })]
       : [];
 };
 
 const collectLoopStateFindings = (input: {
   loopIterationSource: ReturnType<typeof getSourceFileOrThrow>;
-  loopIterationSupportSource: ReturnType<typeof getSourceFileOrThrow>;
+  transitionSuccessSource: ReturnType<typeof getSourceFileOrThrow>;
   stepTraceRecorderSource: ReturnType<typeof getSourceFileOrThrow>;
   transitionStateText: string;
   roundBoundaryText: string;
@@ -162,7 +162,7 @@ const collectLoopStateFindings = (input: {
   ...collectVideoVisitTraceFindings(input.stepTraceRecorderSource),
   ...collectForensicsPersistenceFindings(input.stepTraceRecorderSource),
   ...collectTransitionRoundBoundaryFinding({
-    loopIterationSupportSource: input.loopIterationSupportSource,
+    transitionSuccessSource: input.transitionSuccessSource,
     transitionStateText: input.transitionStateText,
     roundBoundaryText: input.roundBoundaryText,
   }),
@@ -192,14 +192,14 @@ export function inspectMissionLoopEventSemantics(project: ReturnType<typeof crea
   const internalSource = getSourceFileOrThrow(project, INTERNAL_TYPES_PATH);
   const abilityGroupSource = getSourceFileOrThrow(project, ABILITY_GROUP_PATH);
   const loopIterationSource = getSourceFileOrThrow(project, LOOP_ITERATION_PATH);
-  const loopIterationSupportSource = getSourceFileOrThrow(project, LOOP_ITERATION_SUPPORT_PATH);
+  const transitionSuccessSource = getSourceFileOrThrow(project, TRANSITION_SUCCESS_OUTCOME_PATH);
   const loopEventsSource = getSourceFileOrThrow(project, LOOP_EVENTS_PATH);
   const loopEventsSharedSource = getSourceFileOrThrow(project, LOOP_EVENTS_SHARED_PATH);
   const stepTraceRecorderSource = getSourceFileOrThrow(project, STEP_TRACE_RECORDER_PATH);
   const workbenchOrchestrationSource = getSourceFileOrThrow(project, WORKBENCH_ORCHESTRATION_PATH);
-  const buildTransitionSuccessState = getNamedFunctionLike(loopIterationSupportSource, "buildTransitionSuccessState");
+  const buildTransitionSuccessState = getNamedFunctionLike(transitionSuccessSource, "buildTransitionSuccessState");
   const transitionStateText = buildTransitionSuccessState?.getFullText() ?? "";
-  const shouldAdvanceMissionRound = getNamedFunctionLike(loopIterationSupportSource, "shouldAdvanceMissionRound");
+  const shouldAdvanceMissionRound = getNamedFunctionLike(transitionSuccessSource, "shouldAdvanceMissionRound");
   const roundBoundaryText = shouldAdvanceMissionRound?.getFullText() ?? "";
   const recordDispatchStarted = loopEventsSource.getFunction("recordDispatchStarted");
   const dispatchStartedText = recordDispatchStarted?.getFullText() ?? "";
@@ -207,7 +207,7 @@ export function inspectMissionLoopEventSemantics(project: ReturnType<typeof crea
   const findings = [
     ...collectForensicsWiringFindings({ internalSource, abilityGroupSource, workbenchOrchestrationSource }),
     ...collectRuntimeEventCoverageFindings({ loopIterationSource, loopEventsSource, runtimeEventTypes, dispatchStartedText }),
-    ...collectLoopStateFindings({ loopIterationSource, loopIterationSupportSource, stepTraceRecorderSource, transitionStateText, roundBoundaryText }),
+    ...collectLoopStateFindings({ loopIterationSource, transitionSuccessSource, stepTraceRecorderSource, transitionStateText, roundBoundaryText }),
     ...collectCapabilityCallIdStabilityFindings({ loopIterationSource, loopEventsSource }),
   ];
 

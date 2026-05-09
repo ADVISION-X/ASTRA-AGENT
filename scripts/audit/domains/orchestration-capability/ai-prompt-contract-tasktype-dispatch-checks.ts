@@ -1,6 +1,6 @@
 import { createFinding, createPhase, pathFromRepoRoot, readTextFile, type Finding } from "./inspection-core.js";
 
-const STEP_DISPATCH_SHARED_PATH = "src/capabilities/orchestration/runtime/step-dispatch-shared.ts";
+const AI_DISPATCH_REQUIREMENTS_PATH = "src/capabilities/orchestration/runtime/step-dispatch-ai-requirements.ts";
 const NERVE_BUS_ENVELOPE_BUILDERS_PATH = "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts";
 const AI_REQUEST_BUILDER_PATH = "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts";
 
@@ -40,15 +40,15 @@ function hasImageCollectionModalityForWorkbenchVisionTasks(aiRequestText: string
 }
 
 export async function inspectAiPromptContractTaskTypeDispatch() {
-  const [sharedText, envelopeText, aiRequestText] = await Promise.all([
-    readTextFile(pathFromRepoRoot(STEP_DISPATCH_SHARED_PATH)),
+  const [requirementsText, envelopeText, aiRequestText] = await Promise.all([
+    readTextFile(pathFromRepoRoot(AI_DISPATCH_REQUIREMENTS_PATH)),
     readTextFile(pathFromRepoRoot(NERVE_BUS_ENVELOPE_BUILDERS_PATH)),
     readTextFile(pathFromRepoRoot(AI_REQUEST_BUILDER_PATH)),
   ]);
   const findings: Finding[] = [];
 
-  if (!sharedText.includes("findAiPromptContractCatalogEntry") || !sharedText.includes("taskType: contractBinding.promptContract.taskType")) {
-    findings.push(createTaskTypeFinding({ file: STEP_DISPATCH_SHARED_PATH, message: "Orchestration AI dispatch requirements must resolve taskType from the AI Prompt Contract Registry before Nerve Bus transport." }));
+  if (!requirementsText.includes("findAiPromptContractCatalogEntry") || !requirementsText.includes("taskType: contractBinding.promptContract.taskType")) {
+    findings.push(createTaskTypeFinding({ file: AI_DISPATCH_REQUIREMENTS_PATH, message: "Orchestration AI dispatch requirements must resolve taskType from the AI Prompt Contract Registry before Nerve Bus transport." }));
   }
   if (envelopeText.includes("taskType: input.promptContractId") || !envelopeText.includes("taskType: input.taskType")) {
     findings.push(createTaskTypeFinding({ file: NERVE_BUS_ENVELOPE_BUILDERS_PATH, message: "Orchestration-to-AI envelope must transport prompt-contract taskType, not promptContractId, as the AI schema discriminant." }));
