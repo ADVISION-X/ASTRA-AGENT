@@ -158,7 +158,7 @@ export const runOwnerInspector = async (input: OwnerRunnerInput): Promise<OwnerA
     const inspector = await loadInspector(input.inspectorEntry);
     const previousSkip = input.skipNegativeProofEnv ? process.env[input.skipNegativeProofEnv] : undefined;
     try {
-      if (input.skipNegativeProofEnv && input.negativeProofScript) {
+      if (input.skipNegativeProofEnv) {
         process.env[input.skipNegativeProofEnv] = "1";
       }
       result = await runWithStandaloneHeartbeat(input.capabilityDomain, inspector(context));

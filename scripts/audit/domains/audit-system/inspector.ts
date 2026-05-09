@@ -76,7 +76,7 @@ export const inspectAuditSystem = async (context: InspectorContext) => {
     phases,
     summary:
       findings.length === 0
-        ? "audit main chain is generated, routed, owner-boundary clean, and purity red lines are enforced"
+        ? "audit main chain is generated, routed, owner-boundary clean, and purity evidence is validated"
         : "audit main chain has blocking law, manifest, runner, or purity-red-line defects",
   });
 };

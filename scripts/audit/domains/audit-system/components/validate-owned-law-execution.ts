@@ -36,10 +36,10 @@ const REQUIRED_INSPECTOR_CALLS = [
     importName: "validateNegativeProofWiring",
   },
   {
-    localName: "inspectCodePurity",
+    localName: "validateCodePurityEvidence",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
-    importPath: "../../code-purity/components/inspect-code-purity.js",
-    importName: "inspectCodePurity",
+    importPath: "./validate-code-purity-evidence.js",
+    importName: "validateCodePurityEvidence",
   },
 ] as const;
 
@@ -67,8 +67,7 @@ const returnsPromiseLike = (callExpression: CallExpression): boolean => {
   return symbol?.getName() === "Promise";
 };
 
-const getRequiredLawId = (importName: string) =>
-  importName === "inspectCodePurity" ? "GRASSEYE-CODE-PURITY-011-V1" : "GRASSEYE-AUDIT-SYSTEM-001-V1";
+const getRequiredLawId = (_importName: string) => "GRASSEYE-AUDIT-SYSTEM-001-V1";
 
 const createMissingInspectorImportFinding = (
   relativePath: string,
@@ -246,7 +245,7 @@ const createOwnedLawExecutionPhase = (findings: Finding[]): InspectorPhase =>
     findings.length === 0 ? "PASS" : "FAKE ENFORCEMENT",
     findings.length === 0,
     findings.length === 0
-      ? "Audit-system inspector executes its owned generated-artifact, phase-domain, production-path, and code-purity checks."
+      ? "Audit-system inspector executes its owned generated-artifact, phase-domain, production-path, and code-purity evidence checks."
       : "Audit-system inspector is missing one or more required owned-law execution checks.",
   );
 

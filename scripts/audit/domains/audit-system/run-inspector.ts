@@ -4,7 +4,6 @@ const main = async (): Promise<void> => {
   const outcome = await runOwnerInspector({
     capabilityDomain: "audit-system",
     inspectorEntry: "scripts/audit/domains/audit-system/inspector.ts",
-    negativeProofScript: "scripts/audit/domains/audit-system/run-negative-proof.ts",
     skipNegativeProofEnv: "GRASSEYE_SKIP_AUDIT_SYSTEM_NEGATIVE_PROOF",
   });
 

@@ -171,7 +171,7 @@ const CI_STAGES: CiStage[] = [
       { label: "capability-group-governance", args: ["run", "audit:capability-group-governance"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
       { label: "type-safety", args: ["run", "audit:type-safety"], timeoutMs: QUICK_STEP_TIMEOUT_MS },
       { label: "security-privacy", args: ["run", "audit:security-privacy"], timeoutMs: QUICK_STEP_TIMEOUT_MS },
-      { label: "audit-system", args: ["run", "audit:audit-system"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: { ...SKIP_NEGATIVE_PROOF_ENV, GRASSEYE_SKIP_AUDIT_SYSTEM_CODE_PURITY: "1" } },
+      { label: "audit-system", args: ["run", "audit:audit-system"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
     ],
   },
   {
