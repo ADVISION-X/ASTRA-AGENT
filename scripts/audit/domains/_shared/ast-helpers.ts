@@ -5,12 +5,12 @@ import { pathFromRepoRoot } from "../../core/paths.js";
 export function createAuditProject(): Project {
   return new Project({
     tsConfigFilePath: pathFromRepoRoot("tsconfig.json"),
-    skipAddingFilesFromTsConfig: false,
+    skipAddingFilesFromTsConfig: true,
   });
 }
 
 export function getSourceFileOrThrow(project: Project, repoRelativePath: string): SourceFile {
-  const sourceFile = project.getSourceFile(pathFromRepoRoot(repoRelativePath));
+  const sourceFile = project.addSourceFileAtPathIfExists(pathFromRepoRoot(repoRelativePath));
   if (!sourceFile) {
     throw new Error(`Missing source file: ${repoRelativePath}`);
   }

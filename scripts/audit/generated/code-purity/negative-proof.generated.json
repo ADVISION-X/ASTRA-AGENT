@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-05-09T09:14:00.528Z",
+  "findings": [],
+  "phase": {
+    "name": "negative-proof-harness",
+    "classification": "PASS",
+    "passed": true,
+    "summary": "Negative proof mutates sandbox source, proves fail, resets the sandbox, and proves rollback PASS."
+  }
+}

@@ -1,11 +1,12 @@
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
-import type { RunnerSummary } from "../../core/schema-runner.js";
-import { createInspectorContext, loadGeneratedArtifacts, loadInspector, runWithStandaloneHeartbeat, writeDomainRunnerSummary } from "../../core/runtime.js";
+import { runOwnerInspector } from "../../core/owner-audit-runner.js";
 import { hasBlockingFindings } from "../../core/result.js";
+import type { RunnerSummary } from "../../core/schema-runner.js";
+import { writeDomainRunnerSummary } from "../../core/runtime.js";
 
 const DIRECT_OWNER_AUDIT_ENV = "GRASSEYE_DIRECT_PAGE_STATE_OWNER_AUDIT";
+const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_PAGE_STATE_NEGATIVE_PROOF";
 
-const buildDirectRunnerSummary = (phase: string, result: Awaited<ReturnType<Awaited<ReturnType<typeof loadInspector>>>>): RunnerSummary => ({
+const buildDirectRunnerSummary = (phase: string, result: Awaited<ReturnType<typeof runOwnerInspector>>["result"]): RunnerSummary => ({
   generatedAt: new Date().toISOString(),
   phase,
   passed: result.passed && !hasBlockingFindings(result.findings),
@@ -19,26 +20,30 @@ const buildDirectRunnerSummary = (phase: string, result: Awaited<ReturnType<Awai
 });
 
 const main = async (): Promise<void> => {
-  if (!process.argv.includes("--skip-build")) {
-    process.stdout.write("[AUDIT] building artifacts...\n");
-    await runWithStandaloneHeartbeat("build-audit-artifacts", buildAuditArtifacts());
-  }
-  const artifacts = await loadGeneratedArtifacts();
-  const context = await createInspectorContext(artifacts);
-  const inspector = await loadInspector("scripts/audit/domains/page-state-capability/inspector.ts");
+  const previousDirectOwnerAudit = process.env[DIRECT_OWNER_AUDIT_ENV];
   process.env[DIRECT_OWNER_AUDIT_ENV] = "1";
-  process.stdout.write("[AUDIT] starting page-state-capability...\n");
-  const result = await runWithStandaloneHeartbeat("page-state-capability", inspector(context));
-  await writeDomainRunnerSummary(result.capabilityDomain, buildDirectRunnerSummary(artifacts.auditPlan.phase, result));
+  try {
+    const outcome = await runOwnerInspector({
+      capabilityDomain: "page-state-capability",
+      inspectorEntry: "scripts/audit/domains/page-state-capability/inspector.ts",
+      negativeProofScript: "scripts/audit/domains/page-state-capability/run-negative-proof.ts",
+      skipNegativeProofEnv: SKIP_NEGATIVE_PROOF_ENV,
+    });
+    await writeDomainRunnerSummary(outcome.result.capabilityDomain, buildDirectRunnerSummary(outcome.artifacts.auditPlan.phase, outcome.result));
 
-  process.stdout.write(`[${result.classification}] ${result.capabilityDomain}: ${result.summary}\n`);
-  for (const finding of result.findings) {
-    process.stdout.write(`- ${finding.severity.toUpperCase()} ${finding.file}:${finding.line} ${finding.message}\n`);
-  }
-
-  if (!result.passed || hasBlockingFindings(result.findings)) {
-    process.exitCode = 1;
+    if (!outcome.result.passed || hasBlockingFindings(outcome.result.findings)) {
+      process.exitCode = 1;
+    }
+  } finally {
+    if (previousDirectOwnerAudit === undefined) {
+      delete process.env[DIRECT_OWNER_AUDIT_ENV];
+    } else {
+      process.env[DIRECT_OWNER_AUDIT_ENV] = previousDirectOwnerAudit;
+    }
   }
 };
 
-void main();
+void main().catch((error) => {
+  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.exitCode = 1;
+});

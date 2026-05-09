@@ -1,4 +1,4 @@
-import { finalizeInspectorResult } from "../../core/result.js";
+import { finalizeInspectorResult, createPhase } from "../../core/result.js";
 import type { DomainInspector } from "../../core/schema.js";
 import { runAntiEscape } from "./anti-escape.js";
 import { runBoundaryAttack } from "./boundary-attack.js";
@@ -11,7 +11,10 @@ const inspector: DomainInspector = async (context) => {
   const forbidden = await runForbiddenShape();
   const boundary = runBoundaryAttack();
   const antiEscape = await runAntiEscape(context);
-  const negativeProof = await runNegativeProofHarness();
+  const SKIP_NEGATIVE_PROOF_ENV = "GRASSEYE_SKIP_MAP_PROMPT_CONTRACT_NEGATIVE_PROOF";
+  const negativeProof = process.env[SKIP_NEGATIVE_PROOF_ENV]
+    ? { findings: [], phase: createPhase("negative-proof-harness", "SKIPPED", true, "Negative proof skipped via env") }
+    : await runNegativeProofHarness();
 
   const findings = [
     ...required.findings,

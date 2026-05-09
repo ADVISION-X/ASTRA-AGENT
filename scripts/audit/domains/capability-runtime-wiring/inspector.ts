@@ -119,7 +119,7 @@ function collectRuntimeWiringFindings(sources: InspectionSources): Finding[] {
 }
 
 export async function inspectCapabilityRuntimeWiring() {
-  const project = new Project({ tsConfigFilePath: pathFromRepoRoot("tsconfig.json"), skipAddingFilesFromTsConfig: false });
+  const project = new Project({ tsConfigFilePath: pathFromRepoRoot("tsconfig.json"), skipAddingFilesFromTsConfig: true });
   const sources = loadInspectionSources(project);
   const findings = [
     ...collectSourceAvailabilityFindings(sources),

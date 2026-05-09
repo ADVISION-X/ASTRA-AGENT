@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-09T09:04:07.407Z",
+  "generatedAt": "2026-05-09T09:13:59.154Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "package.json",
-    "scripts/audit/ci-full.ts",
-    "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
-    "scripts/audit/domains/audit-system/components/validate-ci-full-topology.ts",
-    "scripts/audit/domains/code-purity/components/inspect-code-purity.ts",
-    "scripts/audit/domains/code-purity/components/purity-import-analysis.ts",
-    "scripts/audit/domains/code-purity/run-inspector.ts"
+    "scripts/audit/domains/ai-capability/run-inspector.ts",
+    "scripts/audit/domains/debug-loop-boundary/run-inspector.ts",
+    "scripts/audit/domains/forensics-persistence-capability/run-inspector.ts",
+    "scripts/audit/domains/nerve-bus-capability/run-inspector.ts",
+    "scripts/audit/domains/orchestration-capability/run-inspector.ts",
+    "scripts/audit/domains/screenshot-capability/run-inspector.ts",
+    "src/lib/browser/current-chrome-browser-controller.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -251,25 +251,6 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split schema/type by owner-local collaborators."
-    },
-    {
-      "file": "src/lib/browser/current-chrome-browser-controller.ts",
-      "lines": 297,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "scroll"
-      ],
-      "classMembers": 16,
-      "importCount": 10,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split runtime/implementation by role: class-and-free-functions."
     },
     {
       "file": "src/lib/local-ai/local-ai-runtime-next-item-advanced.ts",
@@ -648,6 +629,24 @@
       ],
       "classMembers": 0,
       "importCount": 2,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/core/owner-audit-runner.ts",
+      "lines": 177,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "runner",
+      "functionsOverLimit": [
+        "runOwnerInspector",
+        "readProcessTreeRssMB"
+      ],
+      "classMembers": 0,
+      "importCount": 8,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -1396,25 +1395,6 @@
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "src/lib/browser/current-chrome-browser-controller.ts",
-      "lines": 297,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "scroll"
-      ],
-      "classMembers": 16,
-      "importCount": 10,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split runtime/implementation by role: class-and-free-functions."
-    },
-    {
       "file": "src/lib/local-ai/governed-task-execution.ts",
       "lines": 54,
       "fileType": "ordinary implementation",
@@ -1933,27 +1913,7 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ],
-  "classObjectOverLimitInventory": [
-    {
-      "file": "src/lib/browser/current-chrome-browser-controller.ts",
-      "lines": 297,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "scroll"
-      ],
-      "classMembers": 16,
-      "importCount": 10,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split runtime/implementation by role: class-and-free-functions."
-    }
-  ],
+  "classObjectOverLimitInventory": [],
   "importExportOverLimitInventory": [
     {
       "file": "scripts/audit/domains/map-plugin-package/inspector.ts",
@@ -2156,25 +2116,6 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
-      "file": "src/lib/browser/current-chrome-browser-controller.ts",
-      "lines": 297,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "scroll"
-      ],
-      "classMembers": 16,
-      "importCount": 10,
-      "crossOwnerImports": 2,
-      "ownerBoundaries": 2,
-      "roleMixingSignals": [
-        "class-and-free-functions"
-      ],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split runtime/implementation by role: class-and-free-functions."
     },
     {
       "file": "src/capabilities/ai/runtime-adapters/local-ai-runtime-mapper.ts",
@@ -3047,6 +2988,24 @@
       ],
       "classMembers": 0,
       "importCount": 5,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/core/owner-audit-runner.ts",
+      "lines": 177,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "runner",
+      "functionsOverLimit": [
+        "runOwnerInspector",
+        "readProcessTreeRssMB"
+      ],
+      "classMembers": 0,
+      "importCount": 8,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],

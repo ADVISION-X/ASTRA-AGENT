@@ -1,5 +1,6 @@
-import { execFile, spawn } from "node:child_process";
-import { promisify } from "node:util";
+import { spawn } from "node:child_process";
+
+import { readProcessTreeRssMB } from "./core/owner-audit-runner.js";
 
 type CiStep = {
   label: string;
@@ -25,8 +26,6 @@ type MemorySnapshot = {
   externalMb: number;
   activeChildCount: number;
 };
-
-const execFileAsync = promisify(execFile);
 
 const QUICK_STEP_TIMEOUT_MS = 120_000;
 const OWNER_STEP_TIMEOUT_MS = 300_000;
@@ -78,19 +77,9 @@ const readPositiveIntegerEnv = (name: string): number | undefined => {
 
 const roundMb = (bytes: number): number => Math.round((bytes / 1024 / 1024) * 10) / 10;
 
-const readPidRssMb = async (pid: number): Promise<number> => {
-  try {
-    const { stdout } = await execFileAsync("ps", ["-o", "rss=", "-p", String(pid)]);
-    const rssKb = Number(stdout.trim());
-    return Number.isFinite(rssKb) && rssKb > 0 ? Math.round((rssKb / 1024) * 10) / 10 : 0;
-  } catch {
-    return 0;
-  }
-};
-
 const captureMemorySnapshot = async (): Promise<MemorySnapshot> => {
   const runnerUsage = process.memoryUsage();
-  const childRssValues = await Promise.all([...ACTIVE_CHILD_PIDS].map((pid) => readPidRssMb(pid)));
+  const childRssValues = await Promise.all([...ACTIVE_CHILD_PIDS].map((pid) => readProcessTreeRssMB(pid)));
   const childRssMb = Math.round(childRssValues.reduce((sum, value) => sum + value, 0) * 10) / 10;
   const runnerRssMb = roundMb(runnerUsage.rss);
 

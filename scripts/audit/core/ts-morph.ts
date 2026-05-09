@@ -12,7 +12,7 @@ export const getAuditProject = (): Project => {
   if (!cachedProject) {
     cachedProject = new Project({
       tsConfigFilePath: pathFromRepoRoot("tsconfig.json"),
-      skipAddingFilesFromTsConfig: false,
+      skipAddingFilesFromTsConfig: true,
     });
   }
 

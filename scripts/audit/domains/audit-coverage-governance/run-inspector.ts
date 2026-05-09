@@ -1,36 +1,9 @@
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
-import { createInspectorContext, loadGeneratedArtifacts, runWithStandaloneHeartbeat } from "../../core/runtime.js";
-import { hasBlockingFindings } from "../../core/result.js";
-import { inspectAuditCoverageGovernance } from "./inspector.js";
+import { runOwnerInspector } from "../../core/owner-audit-runner.js";
 
-const exitNow = (code: number): never => {
-  process.exit(code);
-};
-
-const main = async (): Promise<void> => {
-  process.stdout.write("[AUDIT] building artifacts...\n");
-  await runWithStandaloneHeartbeat("build-audit-artifacts", buildAuditArtifacts());
-  const artifacts = await loadGeneratedArtifacts();
-  const context = await createInspectorContext(artifacts);
-  process.stdout.write("[AUDIT] starting audit-coverage-governance...\n");
-  const result = await runWithStandaloneHeartbeat("audit-coverage-governance", inspectAuditCoverageGovernance(context));
-
-  process.stdout.write(`[${result.classification}] ${result.capabilityDomain}: ${result.summary}\n`);
-  for (const phase of result.phases) {
-    process.stdout.write(`[${phase.classification}] ${phase.name}: ${phase.summary}\n`);
-  }
-  for (const finding of result.findings) {
-    process.stderr.write(`- ${finding.severity.toUpperCase()} ${finding.lawId} ${finding.file}:${finding.line} ${finding.message}\n`);
-    if (finding.detail) {
-      process.stderr.write(`${finding.detail}\n`);
-    }
-  }
-
-  exitNow(hasBlockingFindings(result.findings) ? 1 : 0);
-};
-
-main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.stack ?? error.message : String(error);
-  process.stderr.write(`[AUDIT-COVERAGE-GOVERNANCE ERROR] ${message}\n`);
-  exitNow(1);
+void runOwnerInspector({
+  capabilityDomain: "audit-coverage-governance",
+  inspectorEntry: "scripts/audit/domains/audit-coverage-governance/inspector.ts",
+}).catch((error) => {
+  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.exitCode = 1;
 });

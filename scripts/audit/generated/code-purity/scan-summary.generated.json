@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-05-09T09:13:58.641Z",
+  "touchedBaselineSource": "git diff --name-only HEAD",
+  "touchedFiles": [
+    "scripts/audit/domains/ai-capability/run-inspector.ts",
+    "scripts/audit/domains/debug-loop-boundary/run-inspector.ts",
+    "scripts/audit/domains/forensics-persistence-capability/run-inspector.ts",
+    "scripts/audit/domains/nerve-bus-capability/run-inspector.ts",
+    "scripts/audit/domains/orchestration-capability/run-inspector.ts",
+    "scripts/audit/domains/screenshot-capability/run-inspector.ts",
+    "src/lib/browser/current-chrome-browser-controller.ts"
+  ],
+  "scanScope": [
+    "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
+    "scripts/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
+    "src/map-plugins/**/*.{json,jsonc,ts,tsx}",
+    "src/**/prompt-contracts/**/*.{json,jsonc,ts,tsx}",
+    "src/capabilities/**/prompt-contracts/**/*.{json,jsonc,ts,tsx}"
+  ],
+  "scannedFileCount": 2001,
+  "findingsCount": 134
+}

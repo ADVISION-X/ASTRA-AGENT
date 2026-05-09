@@ -1,6 +1,5 @@
 import { readFile } from "node:fs/promises";
 
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
@@ -37,7 +36,7 @@ async function runInspector(mutationName?: string): Promise<InspectorRun> {
   process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
 
   try {
-    await buildAuditArtifacts();
+
     const artifacts = await loadGeneratedArtifacts();
     const context = await createInspectorContext(artifacts);
     const inspector = await loadInspector(INSPECTOR_ENTRY);

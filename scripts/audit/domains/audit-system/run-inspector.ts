@@ -1,24 +1,20 @@
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
-import { createInspectorContext, loadGeneratedArtifacts, loadInspector, runWithStandaloneHeartbeat } from "../../core/runtime.js";
-
-const INSPECTOR_ENTRY = "scripts/audit/domains/audit-system/inspector.ts";
+import { runOwnerInspector } from "../../core/owner-audit-runner.js";
 
 const main = async (): Promise<void> => {
-  if (!process.argv.includes("--skip-build")) {
-    process.stdout.write("[AUDIT] building artifacts...\n");
-    await runWithStandaloneHeartbeat("build-audit-artifacts", buildAuditArtifacts());
-  }
+  const outcome = await runOwnerInspector({
+    capabilityDomain: "audit-system",
+    inspectorEntry: "scripts/audit/domains/audit-system/inspector.ts",
+    negativeProofScript: "scripts/audit/domains/audit-system/run-negative-proof.ts",
+    skipNegativeProofEnv: "GRASSEYE_SKIP_AUDIT_SYSTEM_NEGATIVE_PROOF",
+  });
 
-  const artifacts = await loadGeneratedArtifacts();
-  const context = await createInspectorContext(artifacts);
-  const inspector = await loadInspector(INSPECTOR_ENTRY);
-  process.stdout.write("[AUDIT] starting audit-system...\n");
-  const result = await runWithStandaloneHeartbeat("audit-system", inspector(context));
-
-  process.stdout.write(JSON.stringify({ auditConflicts: artifacts.auditConflicts.conflicts, result }, null, 2));
-  if (artifacts.auditConflicts.conflicts.length > 0 || !result.passed) {
+  process.stdout.write(JSON.stringify({ auditConflicts: outcome.artifacts.auditConflicts.conflicts, result: outcome.result }, null, 2));
+  if (outcome.artifacts.auditConflicts.conflicts.length > 0 || !outcome.result.passed) {
     process.exitCode = 1;
   }
 };
 
-void main();
+void main().catch((error) => {
+  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.exitCode = 1;
+});

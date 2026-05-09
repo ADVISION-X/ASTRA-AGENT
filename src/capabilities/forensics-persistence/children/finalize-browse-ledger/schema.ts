@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { BrowseLedgerEntrySchema } from "../../../../types/evidence-packet.js";
 import { ForensicsAbilityInputBaseSchema, ForensicsPersistedOutputSchema, ForensicsPlainObjectSchema } from "../../shared/forensics-base-schema.js";
 
 export const ForensicsBrowseLedgerPayloadSchema = z.object({

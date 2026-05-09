@@ -1,11 +1,9 @@
-import { appendFile, mkdir } from "node:fs/promises";
-import path from "node:path";
-
 import type { LocalBrowserSessionConfig } from "../../types/local-browser-session.js";
 import { createInitialLocalBrowserSessionState } from "./local-browser-session.js";
 import type {
   BrowserActionResult,
   BrowserCaptureResult,
+  BrowserClickCoordinateSpace,
   BrowserTextInputAction,
   BrowserTextInputKey,
   BrowserController,
@@ -24,9 +22,15 @@ import {
   scrollAt,
 } from "./current-chrome-browser-controller-primitives.js";
 import {
-  createBrowserActionResult,
   resolveChromeLoginState,
 } from "./current-chrome-browser-session-state.js";
+import { createCurrentChromeBrowserActionResult } from "./current-chrome-browser-action-result.js";
+import { emitCurrentChromeMouseClickProbe } from "./current-chrome-browser-click-probe.js";
+import {
+  createZeroScrollMessage,
+  resolveCurrentChromeScrollPlan,
+  runOptionalArrowDownAssist,
+} from "./current-chrome-browser-scroll-support.js";
 import { captureCurrentChromeScreenshot } from "./current-chrome-browser-screenshot.js";
 import { executeCurrentChromeTextInput } from "./current-chrome-browser-text-input.js";
 
@@ -35,44 +39,6 @@ type CurrentChromeBrowserControllerOptions = {
   screenshotDir: string;
   headlessRequested?: boolean;
 };
-
-async function writeMouseClickProbeLog(input: {
-  probeFilePath: string;
-  stage: string;
-  details: Record<string, unknown>;
-}) {
-  if (
-    process.env.GRASSEYE_VISUAL_TARGET_INPUT_PROBE !== "1"
-    && process.env.GRASSEYE_MOUSE_CLICK_PROBE !== "1"
-  ) {
-    return;
-  }
-
-  const line = JSON.stringify({
-    loggedAt: new Date().toISOString(),
-    stage: input.stage,
-    details: input.details,
-  });
-
-  await mkdir(path.dirname(input.probeFilePath), { recursive: true });
-  await appendFile(input.probeFilePath, `${line}\n`, "utf8");
-}
-
-function logMouseClickProbe(input: {
-  stage: string;
-  details: Record<string, unknown>;
-}) {
-  if (
-    process.env.GRASSEYE_VISUAL_TARGET_INPUT_PROBE !== "1"
-    && process.env.GRASSEYE_MOUSE_CLICK_PROBE !== "1"
-  ) {
-    return;
-  }
-
-  console.log(
-    `[grasseye:mouse-click-probe] stage=${input.stage}; details=${JSON.stringify(input.details)}`,
-  );
-}
 
 export class CurrentChromeBrowserController implements BrowserController {
   private snapshot: BrowserStateSnapshot;
@@ -133,50 +99,48 @@ export class CurrentChromeBrowserController implements BrowserController {
   async open(input: { url: string; title: string }): Promise<BrowserActionResult> {
     await runAppleScript(buildOpenUrlScript(input.url));
     await this.refreshSnapshot();
-    return this.createActionResult({ message: `opened ${input.url} in current Chrome session` });
+    return createCurrentChromeBrowserActionResult({ message: `opened ${input.url} in current Chrome session` });
   }
 
   async scroll(input: { targetLabel: string; deltaX: number; deltaY: number; coordinateSpace?: BrowserScrollCoordinateSpace; anchorPoint?: { x: number; y: number }; fallbackUsed?: boolean; abortSignal?: AbortSignal }): Promise<BrowserActionResult> {
     const geometry = this.lastWindowState ?? await this.refreshSnapshot();
-    const coordinateSpace = input.coordinateSpace ?? "browserViewport";
-    const anchorPoint = input.anchorPoint ?? {
-      x: Math.round(geometry.width / 2),
-      y: Math.round(geometry.height / 2),
-    };
-    const scrollX = coordinateSpace === "desktopScreen" ? anchorPoint.x : geometry.windowX + anchorPoint.x;
-    const scrollY = coordinateSpace === "desktopScreen" ? anchorPoint.y : geometry.windowY + anchorPoint.y;
-    if (input.deltaX === 0 && input.deltaY === 0) {
-      return this.createActionResult({ message: `skipped zero scroll for ${input.targetLabel}`, ok: false, fallbackUsed: input.fallbackUsed ?? false });
+    const scrollPlan = resolveCurrentChromeScrollPlan(input, geometry);
+    if (!scrollPlan) {
+      return createCurrentChromeBrowserActionResult({
+        message: createZeroScrollMessage(input.targetLabel),
+        ok: false,
+        fallbackUsed: input.fallbackUsed ?? false,
+      });
     }
-    const requiresArrowDownAssist = input.targetLabel.includes("scroll_next_video") && input.deltaY > 0;
+
     await activateChrome(input.abortSignal);
     await scrollAt({
-      x: Math.round(scrollX),
-      y: Math.round(scrollY),
+      x: Math.round(scrollPlan.scrollX),
+      y: Math.round(scrollPlan.scrollY),
       deltaX: input.deltaX,
       deltaY: input.deltaY,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
-    let auxiliaryKeyMessage = "";
-    if (requiresArrowDownAssist) {
-      try {
-        await pressBrowserKey(125, input.abortSignal);
-        auxiliaryKeyMessage = " with ArrowDown assist";
-      } catch (error) {
-        auxiliaryKeyMessage = `; ArrowDown assist skipped: ${error instanceof Error ? error.message : "unknown key dispatch error"}`;
-      }
-    }
+    const auxiliaryKeyMessage = await runOptionalArrowDownAssist({
+      required: scrollPlan.requiresArrowDownAssist,
+      abortSignal: input.abortSignal,
+    });
+
     await this.refreshSnapshot();
-    return this.createActionResult({ message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}${auxiliaryKeyMessage}; browser scroll settle observed`, fallbackUsed: input.fallbackUsed ?? false });
+    return createCurrentChromeBrowserActionResult({
+      message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}${auxiliaryKeyMessage}; browser scroll settle observed`,
+      fallbackUsed: input.fallbackUsed ?? false,
+    });
   }
 
-  async click(input: { targetLabel: string; point: { x: number; y: number }; coordinateSpace?: "browserViewport" | "desktopScreen"; button?: "left" | "right" | "middle"; clickCount?: 1 | 2; fallbackUsed?: boolean }): Promise<BrowserActionResult> {
+  async click(input: { targetLabel: string; point: { x: number; y: number }; coordinateSpace?: BrowserClickCoordinateSpace; button?: "left" | "right" | "middle"; clickCount?: 1 | 2; fallbackUsed?: boolean }): Promise<BrowserActionResult> {
     const geometry = await this.getGeometrySnapshot();
     await activateChrome();
     const coordinateSpace = input.coordinateSpace ?? "browserViewport";
     const clickX = coordinateSpace === "desktopScreen" ? input.point.x : geometry.windowX + input.point.x;
     const clickY = coordinateSpace === "desktopScreen" ? input.point.y : geometry.windowY + input.point.y;
-    const probeDetails = {
+    await emitCurrentChromeMouseClickProbe({
+      screenshotDir: this.options.screenshotDir,
       targetLabel: input.targetLabel,
       coordinateSpace,
       inputPoint: input.point,
@@ -190,22 +154,11 @@ export class CurrentChromeBrowserController implements BrowserController {
         viewportWidth: geometry.viewportWidth,
         viewportHeight: geometry.viewportHeight,
         visibleContentBounds: geometry.visibleContentBounds,
-        currentUrl: geometry.currentUrl,
-        pageTitle: geometry.pageTitle,
       },
-    };
-    logMouseClickProbe({
-      stage: "browser-click",
-      details: probeDetails,
-    });
-    await writeMouseClickProbeLog({
-      probeFilePath: path.join(this.options.screenshotDir, "..", "mouse-click-probe.log"),
-      stage: "browser-click",
-      details: probeDetails,
     });
     await clickAt(Math.round(clickX), Math.round(clickY), input.button ?? "left", input.clickCount ?? 1);
     await this.refreshSnapshot();
-    return this.createActionResult({ message: `clicked ${input.targetLabel}`, fallbackUsed: input.fallbackUsed ?? false });
+    return createCurrentChromeBrowserActionResult({ message: `clicked ${input.targetLabel}`, fallbackUsed: input.fallbackUsed ?? false });
   }
 
   async textInput(input: { targetLabel: string; action: BrowserTextInputAction; text?: string | null; key?: BrowserTextInputKey | null; fallbackUsed?: boolean; abortSignal?: AbortSignal }): Promise<BrowserActionResult> {
@@ -243,21 +196,12 @@ export class CurrentChromeBrowserController implements BrowserController {
   async wait(durationMs: number): Promise<BrowserActionResult> {
     await this.sleep(durationMs);
     await this.refreshSnapshot();
-    return this.createActionResult({ message: `waited ${durationMs}ms` });
+    return createCurrentChromeBrowserActionResult({ message: `waited ${durationMs}ms` });
   }
 
   async close(): Promise<BrowserActionResult> {
     await this.refreshSnapshot().catch(() => undefined);
-    return createBrowserActionResult({ actionId: createId("browser"), message: "left current Chrome session open for the operator", fallbackUsed: false });
-  }
-
-  private createActionResult(input: { message: string; ok?: boolean; fallbackUsed?: boolean }): BrowserActionResult {
-    return createBrowserActionResult({
-      actionId: createId("browser"),
-      message: input.message,
-      ...(input.ok === undefined ? {} : { ok: input.ok }),
-      ...(input.fallbackUsed === undefined ? {} : { fallbackUsed: input.fallbackUsed }),
-    });
+    return createCurrentChromeBrowserActionResult({ message: "left current Chrome session open for the operator", fallbackUsed: false });
   }
 
   private async sleep(durationMs: number, abortSignal?: AbortSignal): Promise<void> {

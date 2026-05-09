@@ -1,4 +1,3 @@
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { createInspectorContext, loadGeneratedArtifacts, loadInspector } from "../../core/runtime.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { applyAuditMutation, readAuditFileState, restoreAuditFileState } from "../_shared/read-audit-file-state.js";
@@ -70,7 +69,7 @@ const MUTATIONS: Mutation[] = [
 ];
 
 async function runInspector(): Promise<{ passed: boolean; violationCount: number }> {
-  await buildAuditArtifacts();
+
   const artifacts = await loadGeneratedArtifacts();
   const context = await createInspectorContext(artifacts);
   const inspector = await loadInspector(INSPECTOR_ENTRY);

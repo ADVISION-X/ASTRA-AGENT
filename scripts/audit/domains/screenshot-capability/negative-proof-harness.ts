@@ -1,4 +1,3 @@
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
@@ -171,7 +170,7 @@ async function runInspector(): Promise<{ passed: boolean; violationCount: number
   process.env[SKIP_NEGATIVE_PROOF_ENV] = "1";
 
   try {
-    await buildAuditArtifacts();
+
     const artifacts = await loadGeneratedArtifacts();
     const context = await createInspectorContext(artifacts);
     const inspector = await loadInspector(INSPECTOR_ENTRY);

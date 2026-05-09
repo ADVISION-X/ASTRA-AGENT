@@ -3,7 +3,7 @@ import { Node, Project } from "ts-morph";
 import { pathFromRepoRoot } from "../../core/paths.js";
 
 export function source(project: Project, path: string) {
-  return project.getSourceFile(pathFromRepoRoot(path));
+  return project.addSourceFileAtPathIfExists(pathFromRepoRoot(path));
 }
 
 export function unwrapExpression(expression: Node | undefined): Node | undefined {

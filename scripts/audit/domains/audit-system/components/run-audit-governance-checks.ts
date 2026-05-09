@@ -5,6 +5,7 @@ import { validateCodePurityTopology } from "./validate-code-purity-topology.js";
 import { validateLawHome } from "./validate-law-home.js";
 import { validateManifestOwnership } from "./validate-manifest-ownership.js";
 import { validateOwnerEvidence } from "./validate-owner-evidence.js";
+import { validateOwnerAuditResourceTopology } from "./validate-owner-audit-resource-topology.js";
 import { validateRequiredPhaseDomains } from "./validate-required-phase-domains.js";
 import { validateRunnerBoundary } from "./validate-runner-boundary.js";
 import { validateStaticClauseCoverage } from "./validate-static-clause-coverage.js";
@@ -23,6 +24,7 @@ export const runAuditGovernanceChecks = async (
   results.push(await validateGeneratedArtifacts(context));
   results.push(await validateCiFullTopology(context));
   results.push(await validateCodePurityTopology(context));
+  results.push(await validateOwnerAuditResourceTopology(context));
   results.push(await validateStaticClauseCoverage(context));
   results.push(await validateRequiredPhaseDomains(context));
   results.push(await validateRunnerBoundary(context));
