@@ -7,6 +7,7 @@ import {
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 import { MAP_PLUGIN_LAWS, MAP_PLUGIN_PATHS } from "./constants.js";
+import { PRODUCT_PRESENCE_CAPTURE_STEP_ID } from "./product-presence-route-plan-governance.js";
 
 const { ROOT } = MAP_PLUGIN_PATHS;
 
@@ -191,7 +192,7 @@ const collectStartupPreparationTransitionFindings = (routePlan: RoutePlan | null
       transitionId: `startup-preparation:${STARTUP_PREPARATION_READY_ROUTE_LABEL}`,
       fromStepId: "startup-preparation",
       onStatus: "success",
-      toStepId: "capture-video-frame-3s",
+      toStepId: PRODUCT_PRESENCE_CAPTURE_STEP_ID,
       finalStatus: null,
     },
     {

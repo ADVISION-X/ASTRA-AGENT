@@ -37,19 +37,28 @@ const hasVisionRuntimeContentAdjustment = (
   || decisionState.routeLabel !== value.routeLabel
   || decisionState.confidence !== value.confidence;
 
+const hasVisionRuntimeContractIdentityAdjustment = (value: JsonRecord): boolean =>
+  typeof value.taskType !== "string"
+  || value.taskType !== "vision.productPresence"
+  || value.promptId !== "vision.productPresence.v1"
+  || value.promptVersion !== "v1"
+  || value.schemaVersion !== "vision.productPresence.schema.v1";
+
+const hasVisionRuntimeContractPayloadAdjustment = (
+  value: JsonRecord,
+  frameState: VisionRuntimeFrameState,
+): boolean =>
+  typeof value.nonExecutableSummary !== "string"
+  || frameState.normalizedFrameObservations.adjusted
+  || typeof value.reason !== "string"
+  || hasUnexpectedExecutableField(value);
+
 const hasVisionRuntimeContractAdjustment = (
   value: JsonRecord,
   frameState: VisionRuntimeFrameState,
 ): boolean =>
-  typeof value.taskType !== "string"
-  || typeof value.nonExecutableSummary !== "string"
-  || frameState.normalizedFrameObservations.adjusted
-  || value.taskType !== "vision.productPresence"
-  || value.promptId !== "vision.productPresence.v1"
-  || value.promptVersion !== "v1"
-  || value.schemaVersion !== "vision.productPresence.schema.v1"
-  || typeof value.reason !== "string"
-  || hasUnexpectedExecutableField(value);
+  hasVisionRuntimeContractIdentityAdjustment(value)
+  || hasVisionRuntimeContractPayloadAdjustment(value, frameState);
 
 export const isVisionRuntimeOutputAdjusted = (
   value: JsonRecord,

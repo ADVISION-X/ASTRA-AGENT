@@ -119,6 +119,19 @@ next video scroll chain
 evidence persistence chain
 ```
 
+产品存在判断的默认 Route Plan 主链必须保持轻量：
+
+```txt
+capture-startup-video-viewport
+-> prepare-startup-ai-input
+-> startup-preparation
+-> capture-current-video-viewport
+-> prepare-current-video-ai-input
+-> judge-seeding-video
+```
+
+其中 `capture-current-video-viewport -> prepare-current-video-ai-input` 只允许承载轻量观察输入；不得把 3s / 6s / 10s 多帧采样重新拆回 Route Plan。AI 只消费轻量输入，只有 `product_yes` / `read-comments-and-save-evidence` 分支成立后，后续高质量证据截图链才允许展开。
+
 TikTok、Facebook 等平台必须共享同一类弱地图边界。不得为了某个平台单独把动作链写进地图。
 
 ---
@@ -630,19 +643,23 @@ routeLabel = read-comments-and-save-evidence
 匹配肌肉链：
 
 ```txt
-observe-comments-button
+observe-comments-entry-page-state
+-> analyze-comments-entry-target-candidate
+-> observe-comments-button
 -> normalize-comments-target
 -> click-comments-button
 -> verify-comments-open
 -> capture-comments-panel
--> analyze-comment-intent
--> persist-seeding-candidate-record
--> normalize-next-video-arrow
--> click-next-video-arrow
+-> extract-visible-comments
+-> write-seeding-evidence-record
+-> finalize-seeding-evidence-packet
+-> finalize-seeding-browse-ledger
+-> observe-next-item-page-state
+-> press-next-video-key
 -> capture-next-item-verification-viewport
 -> prepare-next-item-verification-ai-input
 -> verify-next-item-advanced
--> capture-video-viewport
+-> capture-current-video-viewport
 ```
 
 ### 8.2 product_no
@@ -656,12 +673,12 @@ routeLabel = skip-current-video
 匹配肌肉链：
 
 ```txt
-normalize-next-video-arrow
--> click-next-video-arrow
+observe-next-item-page-state
+-> press-next-video-key
 -> capture-next-item-verification-viewport
 -> prepare-next-item-verification-ai-input
 -> verify-next-item-advanced
--> capture-video-viewport
+-> capture-current-video-viewport
 ```
 
 ### 8.3 product_yes 关节结果链

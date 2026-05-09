@@ -5,16 +5,41 @@ import { payloadDocumentToObject, payloadValueToString } from "./workbench-paylo
 import { resolveScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
 
 const BOOTSTRAP_CAPTURE_SAMPLE_DELAY_MS = 5_000;
+const PRODUCT_PRESENCE_LIGHTWEIGHT_CAPTURE_TIMEOUT_MS = 1_500;
+const PRODUCT_PRESENCE_LIGHTWEIGHT_CAPTURE_MAX_AI_WIDTH = 720;
 const ROUTE_PLAN_CAPTURE_SAMPLE_DELAY_MS_BY_STEP_ID: Readonly<Record<string, number>> = {
-  "capture-video-frame-3s": 3_000,
-  "capture-video-frame-6s": 3_000,
-  "capture-video-frame-10s": 4_000,
+  "capture-current-video-viewport": 250,
 };
 const PREPARE_AI_INPUT_SOURCE_KEYS_BY_STEP_ID: Readonly<Record<string, readonly string[]>> = {
-  "prepare-ai-input-frame-3s": ["screenshotEvidenceRefFrame3s", "screenshotEvidenceRef"],
-  "prepare-ai-input-frame-6s": ["screenshotEvidenceRefFrame6s", "screenshotEvidenceRef"],
-  "prepare-ai-input-frame-10s": ["screenshotEvidenceRefFrame10s", "screenshotEvidenceRef"],
+  "prepare-current-video-ai-input": ["screenshotEvidenceRef"],
 };
+
+function isCurrentVideoLightweightCaptureStep(stepId: string) {
+  return stepId === "capture-current-video-viewport";
+}
+
+function isCurrentVideoLightweightPrepareStep(stepId: string) {
+  return stepId === "prepare-current-video-ai-input";
+}
+
+function resolveLightweightScreenshotTimeoutMs(envelope: AbilityCommandEnvelope) {
+  return Math.min(resolveTransportTimeoutMs(envelope), PRODUCT_PRESENCE_LIGHTWEIGHT_CAPTURE_TIMEOUT_MS);
+}
+
+function buildCurrentVideoLightweightCapturePolicy() {
+  return {
+    allowMissingRoundId: false,
+    allowMissingVideoVisitId: false,
+    allowFirstCaptureWithoutPageStateProof: false,
+    maxContentLines: 8,
+    contentLineMaxLength: 160,
+    maxAiWidth: PRODUCT_PRESENCE_LIGHTWEIGHT_CAPTURE_MAX_AI_WIDTH,
+    preservePixels: false,
+    evidencePolicy: "ai_input" as const,
+    maxDurationMs: PRODUCT_PRESENCE_LIGHTWEIGHT_CAPTURE_TIMEOUT_MS,
+    onTimeoutStatus: "failed" as const,
+  };
+}
 
 function resolveTransportTimeoutMs(envelope: AbilityCommandEnvelope) {
   const startedAt = Date.parse(envelope.createdAt);
@@ -131,10 +156,16 @@ function buildCaptureBrowserViewportCommand(
   payload: Record<string, string | number | boolean | null>,
 ) {
   const pageStateProof = buildScreenshotPageStateProof(envelope, payload);
-  const capturePolicy = buildBootstrapCapturePolicy({ envelope, payload, pageStateProof });
+  const capturePolicy = isCurrentVideoLightweightCaptureStep(envelope.stepId)
+    ? buildCurrentVideoLightweightCapturePolicy()
+    : buildBootstrapCapturePolicy({ envelope, payload, pageStateProof });
+  const timeoutMs = isCurrentVideoLightweightCaptureStep(envelope.stepId)
+    ? resolveLightweightScreenshotTimeoutMs(envelope)
+    : resolveTransportTimeoutMs(envelope);
 
   return {
     ...buildScreenshotCommonFields(envelope, inputPayload),
+    timeoutMs,
     childCapabilityId: "capture-browser-viewport",
     sampleDelayMs: resolveCaptureSampleDelayMs(envelope, capturePolicy),
     source: {
@@ -154,10 +185,19 @@ function buildPrepareAiInputCommand(
   payload: Record<string, string | number | boolean | null>,
 ) {
   const source = resolvePrepareAiInputSource(envelope, payload);
+  const isLightweightPrepare = isCurrentVideoLightweightPrepareStep(envelope.stepId);
 
   return {
     ...buildScreenshotCommonFields(envelope, inputPayload),
+    timeoutMs: isLightweightPrepare ? resolveLightweightScreenshotTimeoutMs(envelope) : resolveTransportTimeoutMs(envelope),
     childCapabilityId: "prepare-ai-input",
+    ...(isLightweightPrepare
+      ? {
+          maxAiWidth: PRODUCT_PRESENCE_LIGHTWEIGHT_CAPTURE_MAX_AI_WIDTH,
+          preservePixels: false,
+          evidencePolicy: "ai_input" as const,
+        }
+      : {}),
     ...(source ? { source } : {}),
   };
 }

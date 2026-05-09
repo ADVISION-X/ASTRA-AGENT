@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import type { LocalAiDebugEvent } from "../../../lib/local-ai/runtime-adapters/local-ai-runtime-adapter.js";
 import { type StructuredAiImageInput } from "../../../types/structured-log.js";
 import type { ParsedAiAbilityInput } from "../contract.js";
+import { resolveAiRuntimeTimeoutMs } from "../runtime/local-ai-runtime-policy.js";
 import { resolveAiInputProofSummary } from "../shared/ai-input-proof-registry.js";
 import type { AiRuntimeStructuredDebugEvent, CollectedDebugState } from "./local-ai-runtime-debug-contract.js";
 
@@ -68,6 +69,50 @@ function mergeImageInputs(existing: StructuredAiImageInput[], incoming: Structur
     };
   }
   return merged;
+}
+
+function readRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function estimateImageBytes(imageInput: StructuredAiImageInput): number | null {
+  if (typeof imageInput.bytes === "number") {
+    return imageInput.bytes;
+  }
+  return typeof imageInput.width === "number" && typeof imageInput.height === "number"
+    ? imageInput.width * imageInput.height * 4
+    : null;
+}
+
+function buildDebugRefs(request: ParsedAiAbilityInput, imageInputs: StructuredAiImageInput[]): string[] {
+  const visionInput = readRecord(request.input);
+  const estimatedInputBytes = imageInputs.reduce<number | null>((total, imageInput) => {
+    const estimatedBytes = estimateImageBytes(imageInput);
+    if (estimatedBytes === null) {
+      return total;
+    }
+    return (total ?? 0) + estimatedBytes;
+  }, null);
+  const maxImageWidth = imageInputs.reduce<number | null>((currentMax, imageInput) => {
+    return typeof imageInput.width === "number" && Number.isFinite(imageInput.width)
+      ? Math.max(currentMax ?? 0, imageInput.width)
+      : currentMax;
+  }, null);
+
+  return [
+    ...request.inputRefs.map((ref) => ref.id),
+    `timeoutMs=${resolveAiRuntimeTimeoutMs(request.taskType)}`,
+    `imageCount=${imageInputs.length}`,
+    ...(typeof maxImageWidth === "number" ? [`imageMaxWidth=${maxImageWidth}`] : []),
+    ...(typeof estimatedInputBytes === "number" ? [`estimatedInputBytes=${estimatedInputBytes}`] : []),
+    ...(typeof visionInput?.inputMode === "string" ? [`inputMode=${visionInput.inputMode}`] : []),
+    ...(typeof visionInput?.samplingStrategy === "string" ? [`samplingStrategy=${visionInput.samplingStrategy}`] : []),
+    ...(typeof visionInput?.validFrameCount === "number" ? [`validFrameCount=${visionInput.validFrameCount}`] : []),
+    ...(typeof visionInput?.expectedFrameCount === "number" ? [`expectedFrameCount=${visionInput.expectedFrameCount}`] : []),
+    ...(typeof visionInput?.fallbackReason === "string" ? [`fallbackReason=${visionInput.fallbackReason}`] : []),
+  ];
 }
 
 function createCollectedDebugState(request: ParsedAiAbilityInput, promptDebugRef: string): CollectedDebugState {
@@ -137,6 +182,7 @@ function updateDebugState(state: CollectedDebugState, event: LocalAiDebugEvent) 
 
 const buildDebugTraceFields = (args: {
   request: ParsedAiAbilityInput;
+  state: CollectedDebugState;
   traceId: string;
   runtimeCallId: string | null;
 }) => ({
@@ -159,7 +205,7 @@ const buildDebugTraceFields = (args: {
     spanId: args.runtimeCallId ?? `${args.request.sessionId}:${args.request.taskType}`,
     attemptId: `${args.runtimeCallId ?? args.request.sessionId}:attempt:0`,
     taskType: args.request.taskType,
-    refs: args.request.inputRefs.map((ref) => ref.id),
+    refs: buildDebugRefs(args.request, args.state.imageInputs),
 });
 
 const buildDebugPromptFields = (args: {

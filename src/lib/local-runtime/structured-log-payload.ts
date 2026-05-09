@@ -2,6 +2,7 @@ import type { EvidenceRef } from "../../types/evidence.js";
 import type { StructuredActionLog, StructuredRuntimeEvent } from "../../types/structured-log.js";
 
 import type { StructuredLogLevel } from "./structured-log-terminal.js";
+import { buildProductPresenceAiSummaryPayload } from "./structured-log-payload-product-presence.js";
 
 const SENSITIVE_INLINE_VALUE_PATTERN = /((?:apiKey|api_key|authorization|cookie|session|token|password|credential|secret|localStorage)\s*[:=]\s*)[^\s,;]+/gi;
 
@@ -137,35 +138,6 @@ const buildEventAiPayload = (entry: StructuredRuntimeEvent): Record<string, unkn
   aiInputArtifactRef: entry.aiInputArtifactRef,
   tokenEstimate: entry.tokenEstimate,
 });
-
-const buildProductPresenceAiSummaryPayload = (entry: StructuredRuntimeEvent): Record<string, unknown> => {
-  if (
-    entry.promptContractId !== "vision.productPresence.v1"
-    || (entry.eventType !== "AI_NORMALIZED_RESPONSE_DEBUG" && entry.eventType !== "AI_RESPONSE_DEBUG")
-    || !isRecord(entry.parsedJson)
-  ) {
-    return {};
-  }
-
-  const aiSummary = compactPayload({
-    decision: typeof entry.parsedJson.decision === "string" ? entry.parsedJson.decision : entry.decision,
-    routeLabel: typeof entry.parsedJson.routeLabel === "string" ? entry.parsedJson.routeLabel : null,
-    isProductVideo:
-      typeof entry.parsedJson.isProductVideo === "boolean" || entry.parsedJson.isProductVideo === null
-        ? entry.parsedJson.isProductVideo
-        : null,
-    confidence: typeof entry.parsedJson.confidence === "number" ? entry.parsedJson.confidence : null,
-    visibleProductTypes: toStringArray(entry.parsedJson.visibleProductTypes),
-    reason: redactSensitiveText(typeof entry.parsedJson.reason === "string" ? entry.parsedJson.reason : entry.reason),
-    inputMode: typeof entry.parsedJson.inputMode === "string" ? entry.parsedJson.inputMode : null,
-    validFrameCount: typeof entry.parsedJson.validFrameCount === "number" ? entry.parsedJson.validFrameCount : entry.validFrameCount,
-    samplingStrategy: typeof entry.parsedJson.samplingStrategy === "string" ? entry.parsedJson.samplingStrategy : entry.samplingStrategy,
-    normalizationAdjusted: (entry.schemaIssueCount ?? 0) > 0 || entry.parserErrors.length > 0,
-    diagnosticPayloadRef: entry.diagnosticPayloadRef,
-  });
-
-  return Object.keys(aiSummary).length > 0 ? { aiSummary } : {};
-};
 
 const buildEventProofPayload = (entry: StructuredRuntimeEvent): Record<string, unknown> => ({
   screenshotEvidenceId: entry.screenshotEvidenceId,

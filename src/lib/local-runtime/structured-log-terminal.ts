@@ -95,13 +95,14 @@ const INFO_RUNTIME_EVENT_TYPES = new Set([
   "next_video_wait_started",
   "review_required",
   "task_stopped",
-  "runtime_resource_checkpoint",
-  "runtime_resource_warning",
+  "CHROME_RESOURCE_CHECKPOINT",
+  "CHROME_RESOURCE_WARNING",
   "runtime_snapshot_summary",
   "step_timeout",
 ]);
 
 const MAX_TERMINAL_DEDUPE_KEYS = 500;
+const SNAPSHOT_RUNTIME_EVENT_TYPES = new Set(["runtime_snapshot_summary", "CHROME_RESOURCE_CHECKPOINT", "CHROME_RESOURCE_WARNING"]);
 
 function resolveTerminalDedupeKey(entry: StructuredRuntimeEvent): string | null {
   if (!entry.runtimeCallId && !entry.diagnosticPayloadRef && !entry.eventId) {
@@ -126,16 +127,24 @@ function shouldMirrorRuntimeEvent(entry: StructuredRuntimeEvent, level: Structur
     || INFO_RUNTIME_EVENT_TYPES.has(entry.eventType);
 }
 
+function isSnapshotLogEntry(logEntry: StructuredLogEntry): boolean {
+  return logEntry.kind === "event" && SNAPSHOT_RUNTIME_EVENT_TYPES.has(logEntry.entry.eventType);
+}
+
+function isStallLogEntry(logEntry: StructuredLogEntry): boolean {
+  return logEntry.kind === "event" && (logEntry.entry.eventType === "step_timeout" || logEntry.entry.reason === "step_timeout");
+}
+
 function resolveTerminalPrefix(logEntry: StructuredLogEntry): "grasseye:event" | "grasseye:action" | "grasseye:review" | "grasseye:stall" | "grasseye:snapshot" {
   if (logEntry.kind === "action") {
     return logEntry.entry.result === "review_required" ? "grasseye:review" : "grasseye:action";
   }
 
-  if (logEntry.entry.eventType === "runtime_snapshot_summary" || logEntry.entry.eventType === "runtime_resource_checkpoint" || logEntry.entry.eventType === "runtime_resource_warning") {
+  if (isSnapshotLogEntry(logEntry)) {
     return "grasseye:snapshot";
   }
 
-  if (logEntry.entry.eventType === "step_timeout" || logEntry.entry.reason === "step_timeout") {
+  if (isStallLogEntry(logEntry)) {
     return "grasseye:stall";
   }
 

@@ -5,7 +5,9 @@ import type { RuntimeEventInput } from "./orchestration-runtime-event-payload.js
 
 const RESOURCE_CHECKPOINT_INTERVAL_MS = 60_000;
 const DEFAULT_CHROME_WARNING_THRESHOLD_MB = 4_500;
-const ROUND_START_STEP_ID = "capture-video-frame-3s";
+const CHROME_RESOURCE_CHECKPOINT_EVENT_TYPE = "CHROME_RESOURCE_CHECKPOINT";
+const CHROME_RESOURCE_WARNING_EVENT_TYPE = "CHROME_RESOURCE_WARNING";
+const ROUND_START_STEP_ID = "capture-current-video-viewport";
 const TERMINAL_RESOURCE_EVENT_TYPES = new Set([
   "MISSION_FAILED",
   "MISSION_FINALIZED",
@@ -39,7 +41,7 @@ function resolveMissionKey(input: RuntimeEventInput): string {
 }
 
 function isRuntimeResourceEvent(eventType: string): boolean {
-  return eventType === "runtime_resource_checkpoint" || eventType === "runtime_resource_warning";
+  return eventType === CHROME_RESOURCE_CHECKPOINT_EVENT_TYPE || eventType === CHROME_RESOURCE_WARNING_EVENT_TYPE;
 }
 
 function shouldForceResourceCheckpoint(input: RuntimeEventInput): boolean {
@@ -63,6 +65,23 @@ function shouldRecordResourceCheckpoint(input: RuntimeEventInput): boolean {
 
   const missionKey = resolveMissionKey(input);
   return shouldForceResourceCheckpoint(input) || shouldRecordPeriodicResourceCheckpoint(input, missionKey);
+}
+
+function resolveMissionElapsedMs(input: RuntimeEventInput): number | null {
+  const startedAtMs = Date.parse(input.state.startedAt ?? "");
+  return Number.isFinite(startedAtMs) ? Math.max(0, Date.now() - startedAtMs) : null;
+}
+
+function buildResourceRefs(input: RuntimeEventInput, resourceSummary: StructuredRuntimeResourceSummary): string[] {
+  return [
+    `chromeTotalRssMb=${resourceSummary.chromeRssMb}`,
+    `chromeProcessCount=${resourceSummary.chromeProcessCount}`,
+    `largestChromeProcessRssMb=${resourceSummary.topChromeRssMb ?? 0}`,
+    `missionElapsedMs=${resolveMissionElapsedMs(input) ?? 0}`,
+    `roundCount=${input.state.currentRoundIndex + 1}`,
+    `lastStepId=${input.state.currentStepId ?? input.step.stepId}`,
+    `nodeRssMb=${resourceSummary.nodeRssMb}`,
+  ];
 }
 
 function buildResourceSummary(snapshot: ResourceSnapshot): StructuredRuntimeResourceSummary {
@@ -93,16 +112,12 @@ function buildResourceEventBase(input: RuntimeEventInput, resourceSummary: Struc
     ...input,
     level: "INFO",
     status: "success",
-    eventType: "runtime_resource_checkpoint",
-    reason: `Chrome rss checkpoint captured at step "${input.step.stepId}" (${resourceSummary.chromeRssMb}MB across ${resourceSummary.chromeProcessCount} chrome processes).`,
+    eventType: CHROME_RESOURCE_CHECKPOINT_EVENT_TYPE,
+    reason: `CHROME_RESOURCE_CHECKPOINT captured at step "${input.step.stepId}" (${resourceSummary.chromeRssMb}MB across ${resourceSummary.chromeProcessCount} chrome processes).`,
     actionableMessage: "Track Chrome rss checkpoints across rounds and inspect the current Chrome session before memory pressure starts distorting mission outcomes.",
     ownerResponsible: "Orchestration / runtime-resource-monitor",
     resourceSummary,
-    refs: [
-      `chromeRssMb=${resourceSummary.chromeRssMb}`,
-      `chromeProcessCount=${resourceSummary.chromeProcessCount}`,
-      `nodeRssMb=${resourceSummary.nodeRssMb}`,
-    ],
+    refs: buildResourceRefs(input, resourceSummary),
     inputRefs: [],
     outputRefs: [],
     proofRefs: [],
@@ -137,8 +152,8 @@ export async function buildRuntimeResourceEvents(input: RuntimeEventInput): Prom
     {
       ...checkpointEvent,
       level: "WARN",
-      eventType: "runtime_resource_warning",
-      reason: `Chrome rss soft warning triggered at ${resourceSummary.chromeRssMb}MB (threshold ${warningThresholdMb}MB).`,
+      eventType: CHROME_RESOURCE_WARNING_EVENT_TYPE,
+      reason: `CHROME_RESOURCE_WARNING triggered at ${resourceSummary.chromeRssMb}MB (threshold ${warningThresholdMb}MB).`,
       actionableMessage: `Chrome rss exceeded the soft warning threshold. Inspect the current Chrome session and reduce memory pressure before the next round continues.`,
       refs: [...(checkpointEvent.refs ?? []), `warningThresholdMb=${warningThresholdMb}`],
     },

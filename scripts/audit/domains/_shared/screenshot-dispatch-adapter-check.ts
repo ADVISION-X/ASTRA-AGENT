@@ -37,8 +37,8 @@ const COMMON_BINDINGS: PropertyBinding[] = [
 ] as const;
 
 const PREPARE_AI_INPUT_SNIPPETS = [
-  "const source = resolveScreenshotSourceHandoff([",
-  "payloadValueToString(payload.screenshotEvidenceRef)",
+  "const source = resolvePrepareAiInputSource(envelope, payload);",
+  "PREPARE_AI_INPUT_SOURCE_KEYS_BY_STEP_ID",
   "payloadValueToString(payload.abilityResultRef)",
   "envelope.inputRef",
   "...(source ? { source } : {})",
@@ -322,6 +322,13 @@ const getTerminalProofSummaryFindings = (project: Project, lawId: string): Findi
   return hasTerminalProofSummaryProjection(project) ? [] : [createTerminalProofSummaryFinding(lawId)];
 };
 
+const getLightweightCurrentVideoFindings = (project: Project, lawId: string): Finding[] => sourceContainsAll(project, DISPATCH_FILE, [
+  '"capture-current-video-viewport": 250',
+  'return Math.min(resolveTransportTimeoutMs(envelope), PRODUCT_PRESENCE_LIGHTWEIGHT_CAPTURE_TIMEOUT_MS);',
+  'maxAiWidth: PRODUCT_PRESENCE_LIGHTWEIGHT_CAPTURE_MAX_AI_WIDTH', 'preservePixels: false', 'evidencePolicy: "ai_input" as const',
+  'maxDurationMs: PRODUCT_PRESENCE_LIGHTWEIGHT_CAPTURE_TIMEOUT_MS', 'timeoutMs: isLightweightPrepare ? resolveLightweightScreenshotTimeoutMs(envelope) : resolveTransportTimeoutMs(envelope)',
+]) ? [] : [createFinding({ lawId, file: DISPATCH_FILE, line: 1, severity: "fatal", message: "Screenshot dispatch adapter must keep current-video product-presence capture on the lightweight policy path: 250ms sample delay, <=720px AI width, preservePixels=false, ai_input evidence policy, and <=1500ms timeout/budget." })];
+
 export function inspectScreenshotDispatchAdapter(project: Project, lawId: string): Finding[] {
   const commonFields = getReturnedObjectLiteral(project, "buildScreenshotCommonFields");
   const captureBrowserViewport = getReturnedObjectLiteral(project, "buildCaptureBrowserViewportCommand");
@@ -333,6 +340,7 @@ export function inspectScreenshotDispatchAdapter(project: Project, lawId: string
       ...getViewportDispatchFindings(project, captureBrowserViewport, lawId),
       ...getSourceHandoffFindings(project, lawId),
       ...getTerminalProofSummaryFindings(project, lawId),
+      ...getLightweightCurrentVideoFindings(project, lawId),
     ]
     : missingCommonFields;
 }

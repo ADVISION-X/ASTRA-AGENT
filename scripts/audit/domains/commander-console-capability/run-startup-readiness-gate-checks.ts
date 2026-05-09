@@ -271,12 +271,12 @@ function importsGovernedMissionCommandSchema(
 }
 
 function collectTerminalRelayFieldFindings(project: import("ts-morph").Project): Finding[] {
-  const terminalSource = project.addSourceFileAtPathIfExists(pathFromRepoRoot(TERMINAL_STRUCTURED_LOG_PATH)) ?? project.addSourceFileAtPath(pathFromRepoRoot(TERMINAL_STRUCTURED_LOG_PATH));
+  const terminalSources = [TERMINAL_STRUCTURED_LOG_PATH, "scripts/startup/lib/terminal-structured-runtime-relay.mjs"].map((filePath) => project.addSourceFileAtPathIfExists(pathFromRepoRoot(filePath)) ?? project.addSourceFileAtPath(pathFromRepoRoot(filePath)));
   const payloadSource = project.getSourceFileOrThrow(pathFromRepoRoot(STRUCTURED_LOG_PAYLOAD_PATH));
   const hasProperty = (sourceFile: import("ts-morph").SourceFile, propertyName: string) =>
     sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName);
   const payloadFields = ["runId", "ownerResponsible", "actionableMessage"].every((propertyName) => hasProperty(payloadSource, propertyName));
-  const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "selectedMapId", "activationSnapshotRef"].every((propertyName) => hasProperty(terminalSource, propertyName));
+  const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "selectedMapId", "activationSnapshotRef"].every((propertyName) => terminalSources.some((sourceFile) => hasProperty(sourceFile, propertyName)));
 
   return payloadFields && terminalFields
     ? []

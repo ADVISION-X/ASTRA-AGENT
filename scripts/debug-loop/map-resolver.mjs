@@ -214,17 +214,20 @@ function resolveModeResult(mode) {
 }
 
 function hasActivationMetadata(entry) {
-  return Boolean(entry.validationReportRef)
-    && Boolean(entry.activationRecord?.activationSnapshotRef)
-    && Boolean(entry.activationRecord?.activationSnapshotHash)
-    && Boolean(entry.activationRecord?.automationGateRef)
-    && Boolean(entry.activationRecord?.activationProofRef)
-    && Boolean(entry.activationRecord?.mapPackageHash)
-    && Boolean(entry.activationRecord?.operationalMapHash)
-    && Boolean(entry.capabilityCatalogVersion)
-    && Boolean(entry.promptCatalogVersion)
-    && Boolean(entry.packageVersion)
-    && Boolean(entry.mapVersion);
+  const activationRecord = entry.activationRecord;
+  return [
+    entry.validationReportRef,
+    activationRecord?.activationSnapshotRef,
+    activationRecord?.activationSnapshotHash,
+    activationRecord?.automationGateRef,
+    activationRecord?.activationProofRef,
+    activationRecord?.mapPackageHash,
+    activationRecord?.operationalMapHash,
+    entry.capabilityCatalogVersion,
+    entry.promptCatalogVersion,
+    entry.packageVersion,
+    entry.mapVersion,
+  ].every(Boolean);
 }
 
 function resolveEntryBlock(entry, input) {

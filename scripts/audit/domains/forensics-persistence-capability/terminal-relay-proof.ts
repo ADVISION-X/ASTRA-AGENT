@@ -106,10 +106,11 @@ const hasBoundedAiDebugTerminalDedupe = (sourceFile: import("ts-morph").SourceFi
 
 export const collectTerminalRelayFinding = (project: import("ts-morph").Project): Finding[] => {
   const terminalSource = getScriptSource(project, TERMINAL_STRUCTURED_LOG_PATH);
+  const relaySource = getScriptSource(project, "scripts/startup/lib/terminal-structured-runtime-relay.mjs");
   const localTerminalSource = getSourceFileOrThrow(project, "src/lib/local-runtime/structured-log-terminal.ts");
   const payloadSource = getSourceFileOrThrow(project, STRUCTURED_LOG_PAYLOAD_PATH);
   const payloadFields = ["runId", "ownerResponsible", "actionableMessage"].every((fieldName) => hasObjectProperty(payloadSource, fieldName));
-  const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "selectedMapId", "activationSnapshotRef"].every((fieldName) => hasObjectProperty(terminalSource, fieldName));
+  const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "selectedMapId", "activationSnapshotRef"].every((fieldName) => hasObjectProperty(terminalSource, fieldName) || hasObjectProperty(relaySource, fieldName));
   const terminalDiagnosticFields = [
     "capabilityCallId",
     "childCapabilityId",
@@ -119,9 +120,9 @@ export const collectTerminalRelayFinding = (project: import("ts-morph").Project)
     "diagnosticPayloadRef",
     "promptContractId",
     "outputSchemaRef",
-  ].every((fieldName) => hasObjectProperty(terminalSource, fieldName));
+  ].every((fieldName) => hasObjectProperty(terminalSource, fieldName) || hasObjectProperty(relaySource, fieldName));
 
-  return payloadFields && terminalFields && terminalDiagnosticFields && hasTerminalPayloadRefsRelay(terminalSource) && hasBoundedAiDebugTerminalDedupe(localTerminalSource)
+  return payloadFields && terminalFields && terminalDiagnosticFields && hasTerminalPayloadRefsRelay(relaySource) && hasBoundedAiDebugTerminalDedupe(localTerminalSource)
     ? []
     : [createFinding({ lawId: LAW_STRUCTURED_LOGGING_COMMAND_FLOW, file: TERMINAL_STRUCTURED_LOG_PATH, line: 1, severity: "fatal", message: "Terminal structured runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, selectedMapId, activationSnapshotRef, payload refs, AI runtime diagnostic fields, and bounded AI debug terminal de-duplication." })];
 };

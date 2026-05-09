@@ -502,6 +502,19 @@ prepare-ai-input -> transient-ai-input
 diagnostic-only outputs -> diagnostic-debug
 ```
 
+产品存在判断的 current-video 观察默认必须走轻量路径：
+
+```txt
+capture-current-video-viewport -> lightweight ai_input observation
+prepare-current-video-ai-input -> lightweight ai_input artifact
+maxAiWidth <= 720
+preservePixels = false
+evidencePolicy = ai_input
+timeout / capture budget <= 1500ms
+```
+
+只有 `judge-seeding-video` 进入 `product_yes` / `read-comments-and-save-evidence` 后，Route Plan 才能继续触发高质量证据截图链；产品判断前的 current-video 图像不得升格为重型长期证据。
+
 默认 TTL / quota：
 
 ```txt
