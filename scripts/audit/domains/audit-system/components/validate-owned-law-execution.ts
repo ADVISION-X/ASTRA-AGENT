@@ -6,36 +6,56 @@ import { getAuditProject, getNodeLine, getSourceFileOrThrow, toRelativeSourcePat
 
 const REQUIRED_INSPECTOR_CALLS = [
   {
+    lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
     localName: "validateGeneratedArtifacts",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
     importPath: "./validate-generated-artifacts.js",
     importName: "validateGeneratedArtifacts",
   },
   {
+    lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
+    localName: "validateCiFullEvidence",
+    targetFile: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
+    importPath: "./validate-ci-full-evidence.js",
+    importName: "validateCiFullEvidence",
+  },
+  {
+    lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
+    localName: "validateCheckOwnership",
+    targetFile: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
+    importPath: "./validate-check-ownership.js",
+    importName: "validateCheckOwnership",
+  },
+  {
+    lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
     localName: "validateRequiredPhaseDomains",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
     importPath: "./validate-required-phase-domains.js",
     importName: "validateRequiredPhaseDomains",
   },
   {
+    lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
     localName: "validateStaticClauseCoverage",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
     importPath: "./validate-static-clause-coverage.js",
     importName: "validateStaticClauseCoverage",
   },
   {
+    lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
     localName: "validateNoSimulatedProductionPaths",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
     importPath: "./validate-no-simulated-production-paths.js",
     importName: "validateNoSimulatedProductionPaths",
   },
   {
+    lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
     localName: "validateNegativeProofWiring",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
     importPath: "./validate-negative-proof-wiring.js",
     importName: "validateNegativeProofWiring",
   },
   {
+    lawId: "GRASSEYE-AUDIT-SYSTEM-001-V1",
     localName: "validateCodePurityEvidence",
     targetFile: "scripts/audit/domains/audit-system/components/run-audit-red-line-checks.ts",
     importPath: "./validate-code-purity-evidence.js",
@@ -67,14 +87,14 @@ const returnsPromiseLike = (callExpression: CallExpression): boolean => {
   return symbol?.getName() === "Promise";
 };
 
-const getRequiredLawId = (_importName: string) => "GRASSEYE-AUDIT-SYSTEM-001-V1";
+const getRequiredLawId = (requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number]) => requiredCall.lawId;
 
 const createMissingInspectorImportFinding = (
   relativePath: string,
   requiredCall: (typeof REQUIRED_INSPECTOR_CALLS)[number],
 ): Finding =>
   createFinding({
-    lawId: getRequiredLawId(requiredCall.importName),
+    lawId: getRequiredLawId(requiredCall),
     file: relativePath,
     line: 1,
     severity: "error",
@@ -96,7 +116,7 @@ const collectImportValidationFindings = (
 
   return [
     createFinding({
-      lawId: getRequiredLawId(requiredCall.importName),
+      lawId: getRequiredLawId(requiredCall),
       file: relativePath,
       line: getNodeLine(importSpecifier),
       severity: "error",
@@ -125,7 +145,7 @@ const collectExecutionFindings = (
 
   return [
     createFinding({
-      lawId: getRequiredLawId(requiredCall.importName),
+      lawId: getRequiredLawId(requiredCall),
       file: relativePath,
       line: 1,
       severity: "error",
@@ -157,7 +177,7 @@ const collectReferenceFindings = (
 
   return [
     createFinding({
-      lawId: getRequiredLawId(requiredCall.importName),
+      lawId: getRequiredLawId(requiredCall),
       file: relativePath,
       line: getNodeLine(importSpecifier),
       severity: "error",
@@ -177,7 +197,7 @@ const collectPromiseReturnFindings = (
 
   return [
     createFinding({
-      lawId: getRequiredLawId(requiredCall.importName),
+      lawId: getRequiredLawId(requiredCall),
       file: relativePath,
       line: matchingCalls[0] ? getNodeLine(matchingCalls[0]) : 1,
       severity: "error",

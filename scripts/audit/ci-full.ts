@@ -1,18 +1,21 @@
 import { spawn } from "node:child_process";
 
 import { readProcessTreeRssMB } from "./core/owner-audit-runner.js";
+import { CI_FULL_LAYER_EXECUTION, CI_FULL_LAYER_ORDER, getCiFullOwnership, getCiFullOwnersByLayer, type CiFullCheckOwner, type CiFullLayerLabel } from "./core/ci-full-check-ownership.js";
+import { buildCiFullCommand, getCiFullLayerStatus, type CiFullLayerSummary, type CiFullSummary, type CiFullStepSummary, writeCiFullSummary } from "./core/ci-full-summary.js";
+import { ABILITY_GROUP_SAFE_CONCURRENCY } from "./core/ci-full-timeouts.js";
 
 type CiStep = {
-  label: string;
+  checkId: string;
   args: string[];
   timeoutMs: number;
-  env?: Record<string, string>;
+  ownership: CiFullCheckOwner;
 };
 
 type CiStageExecutionMode = "serial" | "bounded";
 
 type CiStage = {
-  label: string;
+  label: CiFullLayerLabel;
   executionMode: CiStageExecutionMode;
   steps: CiStep[];
   maxConcurrency?: number;
@@ -27,35 +30,15 @@ type MemorySnapshot = {
   activeChildCount: number;
 };
 
-const QUICK_STEP_TIMEOUT_MS = 120_000;
-const OWNER_STEP_TIMEOUT_MS = 300_000;
-const CODE_PURITY_TIMEOUT_MS = 600_000;
-const ABILITY_GROUP_DEFAULT_MAX_CONCURRENCY = 2;
-const ABILITY_GROUP_SAFE_MAX_CONCURRENCY = 2;
+type StageRunResult = {
+  summary: CiFullLayerSummary;
+  passed: boolean;
+};
+
 const DEFAULT_MAX_RSS_MB = 12_000;
 const MEMORY_SAMPLE_INTERVAL_MS = 1_000;
 const MAX_CONCURRENCY_ENV = "GRASSEYE_CI_FULL_MAX_CONCURRENCY";
 const MAX_RSS_ENV = "GRASSEYE_CI_MAX_RSS_MB";
-
-const SKIP_NEGATIVE_PROOF_ENV: Record<string, string> = {
-  GRASSEYE_SKIP_AI_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_AUDIT_SYSTEM_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_CAPABILITY_GROUP_GOVERNANCE_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_COMMANDER_STARTUP_EXIT_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_FORENSICS_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_GEOMETRY_GUARD_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_MAP_PLUGIN_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_MOUSE_CLICK_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_MOUSE_SCROLL_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_NERVE_BUS_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_OPEN_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_ORCHESTRATION_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_PAGE_STATE_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_POST_ACTION_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_SCREENSHOT_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_TEXT_INPUT_NEGATIVE_PROOF: "1",
-  GRASSEYE_SKIP_VISUAL_TARGET_NEGATIVE_PROOF: "1",
-};
 
 const ACTIVE_CHILD_PIDS = new Set<number>();
 
@@ -153,169 +136,299 @@ const startStageMemoryGuard = (stageLabel: string): (() => Promise<void>) => {
 };
 
 const resolveAbilityGroupConcurrency = (): number => {
-  const configuredValue = readPositiveIntegerEnv(MAX_CONCURRENCY_ENV) ?? ABILITY_GROUP_DEFAULT_MAX_CONCURRENCY;
-  if (configuredValue > ABILITY_GROUP_SAFE_MAX_CONCURRENCY) {
-    throw new Error(`[CI FULL CONFIG] ${MAX_CONCURRENCY_ENV} must not exceed ${ABILITY_GROUP_SAFE_MAX_CONCURRENCY} on the memory-safe topology.`);
+  const configuredValue = readPositiveIntegerEnv(MAX_CONCURRENCY_ENV) ?? ABILITY_GROUP_SAFE_CONCURRENCY;
+  if (configuredValue > ABILITY_GROUP_SAFE_CONCURRENCY) {
+    throw new Error(`[CI FULL CONFIG] ${MAX_CONCURRENCY_ENV} must not exceed ${ABILITY_GROUP_SAFE_CONCURRENCY} on the memory-safe topology.`);
   }
   return configuredValue;
 };
 
-const CI_STAGES: CiStage[] = [
-  {
-    label: "foundation-layer",
-    executionMode: "serial",
-    steps: [
-      { label: "audit build", args: ["run", "audit:build"], timeoutMs: QUICK_STEP_TIMEOUT_MS },
-      { label: "code-purity", args: ["run", "audit:code-purity"], timeoutMs: CODE_PURITY_TIMEOUT_MS },
-      { label: "typecheck", args: ["run", "typecheck"], timeoutMs: QUICK_STEP_TIMEOUT_MS },
-      { label: "capability-group-governance", args: ["run", "audit:capability-group-governance"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "type-safety", args: ["run", "audit:type-safety"], timeoutMs: QUICK_STEP_TIMEOUT_MS },
-      { label: "security-privacy", args: ["run", "audit:security-privacy"], timeoutMs: QUICK_STEP_TIMEOUT_MS },
-      { label: "audit-system", args: ["run", "audit:audit-system"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-    ],
-  },
-  {
-    label: "map-layer",
-    executionMode: "serial",
-    steps: [
-      { label: "map-plugin-package", args: ["run", "audit:map-plugin-package"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-    ],
-  },
-  {
-    label: "ability-group-layer",
-    executionMode: "bounded",
-    maxConcurrency: ABILITY_GROUP_DEFAULT_MAX_CONCURRENCY,
-    steps: [
-      { label: "commander-console", args: ["run", "audit:commander-console"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "orchestration", args: ["run", "audit:orchestration"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "nerve-bus", args: ["run", "audit:nerve-bus"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "ai", args: ["run", "audit:ai"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "open", args: ["run", "audit:open"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "screenshot", args: ["run", "audit:screenshot"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "visual-target", args: ["run", "audit:visual-target"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "geometry-guard", args: ["run", "audit:geometry-guard"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "mouse-click", args: ["run", "audit:mouse-click"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "text-input", args: ["run", "audit:text-input-capability"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "mouse-scroll", args: ["run", "audit:mouse-scroll"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "post-action-verification", args: ["run", "audit:post-action-verification"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "forensics-persistence", args: ["run", "audit:forensics-persistence"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-      { label: "page-state", args: ["run", "audit:page-state"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
-    ],
-  },
-];
+const createStep = (checkId: string): CiStep => {
+  const ownership = getCiFullOwnership(checkId);
+  return {
+    checkId,
+    args: ownership.args,
+    timeoutMs: ownership.timeoutMs,
+    ownership,
+  };
+};
+
+const CI_STAGES: CiStage[] = CI_FULL_LAYER_ORDER.map((label) => ({
+  label,
+  executionMode: CI_FULL_LAYER_EXECUTION[label].executionMode,
+  ...(CI_FULL_LAYER_EXECUTION[label].executionMode === "bounded"
+    ? { maxConcurrency: CI_FULL_LAYER_EXECUTION[label].maxConcurrency }
+    : {}),
+  steps: getCiFullOwnersByLayer(label).map((owner) => createStep(owner.checkId)),
+}));
 
 const exitNow = (code: number): never => {
   process.exit(code);
 };
 
-const runCiStep = async (step: CiStep, stageLabel: string): Promise<void> => {
+const createSkippedStepSummary = (step: CiStep, stageLabel: CiFullLayerLabel): CiFullStepSummary => ({
+  checkId: step.checkId,
+  layer: stageLabel,
+  command: buildCiFullCommand(step.args),
+  producer: step.ownership.producer,
+  allowedConsumers: [...step.ownership.allowedConsumers],
+  exclusive: true,
+  status: "SKIPPED",
+  exitCode: null,
+  durationMs: 0,
+  memoryPeakMb: 0,
+  artifactPaths: [...step.ownership.artifactPaths],
+});
+
+const runCiStep = async (step: CiStep, stageLabel: CiFullLayerLabel): Promise<CiFullStepSummary> => {
   assertStageResourceHealthy();
-  process.stdout.write(`[CI FULL] ${stageLabel} starting ${step.label}...\n`);
-  await logMemorySnapshot(`before ${stageLabel}/${step.label}`);
+  process.stdout.write(`[CI FULL] ${stageLabel} starting ${step.checkId}...\n`);
+  await logMemorySnapshot(`before ${stageLabel}/${step.checkId}`);
+
+  const startedAtMs = Date.now();
+  let memoryPeakMb = 0;
+  let status: CiFullStepSummary["status"] = "FAIL";
+  let exitCode: number | null = null;
+  let settled = false;
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  let trackerHandle: ReturnType<typeof setInterval> | undefined;
+
+  const sampleMemory = async (): Promise<void> => {
+    try {
+      const snapshot = await captureMemorySnapshot();
+      if (snapshot.totalRssMb > memoryPeakMb) {
+        memoryPeakMb = snapshot.totalRssMb;
+      }
+    } catch {
+      // Best-effort telemetry.
+    }
+  };
+
+  trackerHandle = setInterval(() => {
+    void sampleMemory();
+  }, MEMORY_SAMPLE_INTERVAL_MS);
+
+  await sampleMemory();
 
   try {
-    await new Promise<void>((resolve, reject) => {
-    const child = spawn("npm", step.args, {
-      stdio: "inherit",
-      shell: process.platform === "win32",
-      env: { ...process.env, ...step.env },
-    });
-    if (typeof child.pid === "number") {
-      ACTIVE_CHILD_PIDS.add(child.pid);
-    }
-    let settled = false;
-    let timeoutHandle: ReturnType<typeof setTimeout>;
+    await new Promise<void>((resolve) => {
+      const child = spawn("npm", step.args, {
+        stdio: "inherit",
+        shell: process.platform === "win32",
+        env: { ...process.env, ...step.ownership.env },
+      });
 
-    const finish = (error?: Error): void => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearTimeout(timeoutHandle);
       if (typeof child.pid === "number") {
-        ACTIVE_CHILD_PIDS.delete(child.pid);
+        ACTIVE_CHILD_PIDS.add(child.pid);
       }
-      if (error) {
-        reject(error);
-        return;
-      }
-      process.stdout.write(`[CI FULL] ${step.label} passed.\n`);
-      resolve();
-    };
 
-    timeoutHandle = setTimeout(() => {
-      child.kill("SIGTERM");
-      finish(new Error(`[CI FULL FAIL-FAST] stopped at ${step.label} after ${step.timeoutMs}ms.`));
-    }, step.timeoutMs);
+      const finish = (nextStatus: CiFullStepSummary["status"], nextExitCode: number | null): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        if (trackerHandle) {
+          clearInterval(trackerHandle);
+        }
+        if (typeof child.pid === "number") {
+          ACTIVE_CHILD_PIDS.delete(child.pid);
+        }
+        status = nextStatus;
+        exitCode = nextExitCode;
+        resolve();
+      };
 
-    child.on("error", (error) => {
-      finish(new Error(`[CI FULL FAIL-FAST] ${step.label} could not start: ${error.message}`));
-    });
-    child.on("exit", (code, signal) => {
-      if (activeStageResourceError) {
-        finish(activeStageResourceError);
-        return;
-      }
-      if (code === 0) {
-        finish();
-        return;
-      }
-      finish(new Error(`[CI FULL FAIL-FAST] stopped at ${step.label}${signal ? ` by ${signal}` : ""} with exit code ${code ?? 1}.`));
-    });
+      timeoutHandle = setTimeout(() => {
+        child.kill("SIGTERM");
+        finish("FAIL", 1);
+      }, step.timeoutMs);
+
+      child.on("error", (error) => {
+        process.stderr.write(`[CI FULL FAIL-FAST] ${stageLabel}/${step.checkId} could not start: ${error.message}\n`);
+        finish("FAIL", 1);
+      });
+
+      child.on("exit", (code, signal) => {
+        if (activeStageResourceError) {
+          finish("FAIL", 1);
+          return;
+        }
+
+        if (code === 0) {
+          finish("PASS", 0);
+          return;
+        }
+
+        finish("FAIL", code ?? (signal ? 1 : 1));
+      });
     });
   } finally {
-    await logMemorySnapshot(`after ${stageLabel}/${step.label}`);
+    if (trackerHandle) {
+      clearInterval(trackerHandle);
+    }
+    await sampleMemory();
   }
+
+  const durationMs = Date.now() - startedAtMs;
+  await logMemorySnapshot(`after ${stageLabel}/${step.checkId}`);
+  process.stdout.write(`[CI FULL] ${step.checkId} ${status === "PASS" ? "passed" : "failed"}.\n`);
+
+  return {
+    checkId: step.checkId,
+    layer: stageLabel,
+    command: buildCiFullCommand(step.args),
+    producer: step.ownership.producer,
+    allowedConsumers: [...step.ownership.allowedConsumers],
+    exclusive: true,
+    status,
+    exitCode,
+    durationMs,
+    memoryPeakMb: Math.round(memoryPeakMb * 10) / 10,
+    artifactPaths: [...step.ownership.artifactPaths],
+  };
 };
 
-const runBoundedStage = async (stage: CiStage, maxConcurrency: number): Promise<void> => {
+const runSerialStage = async (stage: CiStage): Promise<StageRunResult> => {
+  const stepSummaries: CiFullStepSummary[] = [];
+  let stageFailed = false;
+
+  for (const step of stage.steps) {
+    if (stageFailed) {
+      stepSummaries.push(createSkippedStepSummary(step, stage.label));
+      continue;
+    }
+
+    const summary = await runCiStep(step, stage.label);
+    stepSummaries.push(summary);
+    if (summary.status !== "PASS") {
+      stageFailed = true;
+    }
+  }
+
+  return {
+    summary: {
+      label: stage.label,
+      status: getCiFullLayerStatus(stepSummaries),
+      steps: stepSummaries,
+    },
+    passed: !stageFailed && stepSummaries.every((step) => step.status === "PASS"),
+  };
+};
+
+const runBoundedStage = async (stage: CiStage, maxConcurrency: number): Promise<StageRunResult> => {
   const pendingSteps = [...stage.steps];
+  const stepSummaries = new Map<string, CiFullStepSummary>();
+  let stopRequested = false;
   const workerCount = Math.min(maxConcurrency, pendingSteps.length);
+
   const workers = Array.from({ length: workerCount }, async () => {
-    while (pendingSteps.length > 0) {
-      assertStageResourceHealthy();
+    while (true) {
+      if (stopRequested) {
+        return;
+      }
+
       const step = pendingSteps.shift();
       if (!step) {
         return;
       }
-      await runCiStep(step, stage.label);
+
+      const summary = await runCiStep(step, stage.label);
+      stepSummaries.set(step.checkId, summary);
+      if (summary.status !== "PASS") {
+        stopRequested = true;
+      }
     }
   });
+
   await Promise.all(workers);
+
+  for (const step of pendingSteps) {
+    stepSummaries.set(step.checkId, createSkippedStepSummary(step, stage.label));
+  }
+
+  const orderedStepSummaries = stage.steps.map((step) => stepSummaries.get(step.checkId) ?? createSkippedStepSummary(step, stage.label));
+
+  return {
+    summary: {
+      label: stage.label,
+      status: getCiFullLayerStatus(orderedStepSummaries),
+      steps: orderedStepSummaries,
+    },
+    passed: orderedStepSummaries.every((step) => step.status === "PASS"),
+  };
 };
 
-const runCiStage = async (stage: CiStage): Promise<void> => {
+const runCiStage = async (stage: CiStage): Promise<StageRunResult> => {
   const maxConcurrency = stage.executionMode === "bounded" ? resolveAbilityGroupConcurrency() : 1;
   process.stdout.write(`[CI FULL] stage ${stage.label} starting (${stage.executionMode}${stage.executionMode === "bounded" ? ` maxConcurrency=${maxConcurrency}` : ""}).\n`);
   await logMemorySnapshot(`before stage ${stage.label}`);
   activeStageResourceError = undefined;
   const stopMemoryGuard = startStageMemoryGuard(stage.label);
+
   try {
-    if (stage.executionMode === "serial") {
-      for (const step of stage.steps) {
-        await runCiStep(step, stage.label);
-      }
-    } else {
-      await runBoundedStage(stage, maxConcurrency);
-    }
+    const result = stage.executionMode === "serial"
+      ? await runSerialStage(stage)
+      : await runBoundedStage(stage, maxConcurrency);
+    return result;
   } finally {
     await stopMemoryGuard();
   }
-  assertStageResourceHealthy();
-  await logMemorySnapshot(`after stage ${stage.label}`);
-  process.stdout.write(`[CI FULL] stage ${stage.label} passed.\n`);
 };
+
+const createSkippedStageSummary = (stage: CiStage): CiFullLayerSummary => ({
+  label: stage.label,
+  status: "SKIPPED",
+  steps: stage.steps.map((step) => createSkippedStepSummary(step, stage.label)),
+});
+
+const buildCiFullSummary = (layers: CiFullLayerSummary[]): CiFullSummary => ({
+  generatedAt: new Date().toISOString(),
+  status: layers.every((layer) => layer.status === "PASS") ? "PASS" : "FAIL",
+  layers,
+});
 
 const main = async (): Promise<void> => {
-  for (const stage of CI_STAGES) {
-    await runCiStage(stage);
+  const layerSummaries: CiFullLayerSummary[] = [];
+  let encounteredFailure = false;
+
+  try {
+    for (const stage of CI_STAGES) {
+      if (encounteredFailure) {
+        layerSummaries.push(createSkippedStageSummary(stage));
+        continue;
+      }
+
+      const result = await runCiStage(stage);
+      layerSummaries.push(result.summary);
+      if (!result.passed) {
+        encounteredFailure = true;
+      }
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`[CI FULL ERROR] ${message}\n`);
+    while (layerSummaries.length < CI_STAGES.length) {
+      layerSummaries.push(createSkippedStageSummary(CI_STAGES[layerSummaries.length]));
+    }
   }
-  process.stdout.write("[CI FULL PASS] foundation, map, and 14 ability-group audits all passed.\n");
-  exitNow(0);
+
+  const summary = buildCiFullSummary(layerSummaries);
+  await writeCiFullSummary(summary);
+
+  if (summary.status === "PASS") {
+    process.stdout.write("[CI FULL PASS] foundation, map, and 14 ability-group audits all passed.\n");
+    exitNow(0);
+  }
+
+  process.stderr.write("[CI FULL FAIL] structured summary recorded blocking or skipped evidence.\n");
+  exitNow(1);
 };
 
-main().catch((error: unknown) => {
+void main().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  process.stderr.write(`${message}\n`);
+  process.stderr.write(`[CI FULL ERROR] ${message}\n`);
   exitNow(1);
 });

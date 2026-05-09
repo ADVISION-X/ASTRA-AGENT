@@ -1,39 +1,124 @@
 {
   "findings": [
     {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+      "lawId": "GRASSEYE-CODE-PURITY-001-V1",
       "file": "scripts/audit/ci-full.ts",
-      "line": 86,
+      "line": 1,
       "severity": "error",
-      "message": "Function readPidRssMb contains a silent catch clause."
+      "message": "File exceeds the audit phase hard limit of 350 lines.",
+      "detail": "434"
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-002-V1",
+      "file": "scripts/audit/ci-full.ts",
+      "line": 1,
+      "severity": "error",
+      "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-003-V1",
       "file": "scripts/audit/ci-full.ts",
-      "line": 119,
+      "line": 91,
       "severity": "error",
       "message": "Function stopActiveChildren contains a silent catch clause."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-003-V1",
       "file": "scripts/audit/ci-full.ts",
-      "line": 222,
+      "line": 183,
       "severity": "error",
       "message": "Function runCiStep exceeds code-purity function limits."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+      "file": "scripts/audit/ci-full.ts",
+      "line": 202,
+      "severity": "error",
+      "message": "Function runCiStep contains a silent catch clause."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+      "file": "scripts/audit/ci-full.ts",
+      "line": 202,
+      "severity": "error",
+      "message": "Function sampleMemory contains a silent catch clause."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-006-V1",
+      "file": "scripts/audit/core/ci-full-check-ownership.ts",
+      "line": 1,
+      "severity": "error",
+      "message": "Import or export structure exceeds code-purity limits."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-006-V1",
+      "file": "scripts/audit/core/ci-full-summary.ts",
+      "line": 1,
+      "severity": "error",
+      "message": "Import or export structure exceeds code-purity limits."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
       "file": "scripts/audit/core/owner-audit-runner.ts",
-      "line": 118,
+      "line": 145,
       "severity": "error",
       "message": "Function runOwnerInspector exceeds code-purity function limits."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-003-V1",
       "file": "scripts/audit/core/owner-audit-runner.ts",
-      "line": 154,
+      "line": 192,
       "severity": "error",
       "message": "Function readProcessTreeRssMB exceeds code-purity function limits."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-006-V1",
+      "file": "scripts/audit/domains/audit-system/components/run-audit-governance-checks.ts",
+      "line": 1,
+      "severity": "error",
+      "message": "Import or export structure exceeds code-purity limits."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+      "file": "scripts/audit/domains/audit-system/components/validate-check-ownership.ts",
+      "line": 24,
+      "severity": "error",
+      "message": "Function validateMatrixShape exceeds code-purity function limits."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+      "file": "scripts/audit/domains/audit-system/components/validate-check-ownership.ts",
+      "line": 78,
+      "severity": "error",
+      "message": "Function validateSummaryAgainstMatrix exceeds code-purity function limits."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+      "file": "scripts/audit/domains/audit-system/components/validate-check-ownership.ts",
+      "line": 110,
+      "severity": "error",
+      "message": "Function validateSummaryAgainstMatrix exceeds code-purity function limits."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+      "file": "scripts/audit/domains/audit-system/components/validate-ci-full-evidence.ts",
+      "line": 24,
+      "severity": "error",
+      "message": "Function validateStepShape exceeds code-purity function limits."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+      "file": "scripts/audit/domains/audit-system/components/validate-code-purity-evidence.ts",
+      "line": 27,
+      "severity": "error",
+      "message": "Function validateReportShape exceeds code-purity function limits."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
+      "file": "scripts/audit/domains/audit-system/components/validate-owner-audit-resource-topology.ts",
+      "line": 54,
+      "severity": "error",
+      "message": "Function inspectNegativeProofIsolation exceeds code-purity function limits."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-003-V1",
@@ -757,50 +842,6 @@
       "line": 1,
       "severity": "error",
       "message": "Import or export structure exceeds code-purity limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-001-V1",
-      "file": "src/lib/local-runtime/workbench-forensics-finalization-dispatch.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "File exceeds the ordinary implementation hard limit of 300 lines.",
-      "detail": "345"
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-runtime/workbench-forensics-finalization-dispatch.ts",
-      "line": 27,
-      "severity": "error",
-      "message": "Function buildForensicsEvidencePacketInput exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-runtime/workbench-forensics-finalization-dispatch.ts",
-      "line": 272,
-      "severity": "error",
-      "message": "Function buildForensicsBrowseLedgerInput exceeds code-purity function limits."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-005-V1",
-      "file": "src/lib/local-runtime/workbench-forensics-finalization-dispatch.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "File crosses too many real owner boundaries or cross-owner imports."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-001-V1",
-      "file": "src/lib/local-runtime/workbench-human-command.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "File exceeds the ordinary implementation hard limit of 300 lines.",
-      "detail": "341"
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-003-V1",
-      "file": "src/lib/local-runtime/workbench-human-command.ts",
-      "line": 172,
-      "severity": "error",
-      "message": "Function handleStartMission exceeds code-purity function limits."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-003-V1",

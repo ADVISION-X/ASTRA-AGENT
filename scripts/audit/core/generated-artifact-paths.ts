@@ -10,6 +10,7 @@ export const generatedArtifactPaths = {
   auditConflicts: path.join(generatedHome, "audit-conflicts.generated.json"),
   staticClauseCoverage: path.join(generatedHome, "static-clause-coverage.generated.json"),
   touchedFiles: path.join(generatedHome, "touched-files.generated.json"),
+  ciFullSummary: path.join(generatedHome, "ci-full-summary.generated.json"),
   domainSummariesHome: path.join(generatedHome, "domain-summaries"),
   runnerSummary: path.join(generatedHome, "runner-summary.json"),
 } as const;

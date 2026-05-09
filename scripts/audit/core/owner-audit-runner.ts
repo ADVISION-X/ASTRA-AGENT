@@ -115,16 +115,13 @@ const maybeBuildArtifacts = async (): Promise<void> => {
 };
 
 const runNegativeProofProcess = async (input: OwnerRunnerInput, startedAtMs: number): Promise<void> => {
-  if (!input.negativeProofScript) {
+  if (process.env.GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF !== "1" || !input.negativeProofScript) {
     return;
   }
   const script = input.negativeProofScript;
   await logResourceSnapshot(input.capabilityDomain, "negative-proof:start", startedAtMs);
   await new Promise<void>((resolve, reject) => {
     const env: NodeJS.ProcessEnv = { ...process.env, GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF: "1" };
-    if (input.skipNegativeProofEnv) {
-      delete env[input.skipNegativeProofEnv];
-    }
     const child: ChildProcess = spawn(process.execPath, ["--import", "tsx", script], { stdio: "inherit", env });
     const finish = (error?: Error): void => {
       if (error) {

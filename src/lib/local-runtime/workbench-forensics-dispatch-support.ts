@@ -1,4 +1,3 @@
-import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { getActiveMapChain } from "./workbench-map-chain-support.js";
 import { payloadValueToString, type payloadDocumentToObject } from "./workbench-payload.js";
@@ -7,6 +6,20 @@ export type WorkbenchForensicsRuntimeEventInput = Parameters<WorkbenchRuntime["f
 export type WorkbenchForensicsImageEvidenceInput = Parameters<WorkbenchRuntime["forensicsPersistenceAbilityGroup"]["writeImageEvidence"]>[0];
 export type WorkbenchForensicsEvidencePacketInput = Parameters<WorkbenchRuntime["forensicsPersistenceAbilityGroup"]["finalizeEvidencePacket"]>[0];
 export type WorkbenchForensicsBrowseLedgerInput = Parameters<WorkbenchRuntime["forensicsPersistenceAbilityGroup"]["finalizeBrowseLedger"]>[0];
+
+export type WorkbenchForensicsEnvelope = {
+  commandId: string;
+  commandName: string;
+  mapId: string | null;
+  missionId: string;
+  payloadRef: string;
+  roundId: string | null;
+  runId: string;
+  selectedMapId: string | null;
+  sessionId: string;
+  stepId: string;
+  videoVisitId: string | null;
+};
 
 type JsonRecord = Record<string, unknown>;
 
@@ -59,7 +72,7 @@ export const resolvePayloadString = (
 ): string | null => payloadValueToString(payload[key]);
 
 export const buildForensicsBaseInput = (input: {
-  envelope: AbilityCommandEnvelope;
+  envelope: WorkbenchForensicsEnvelope;
   childCapabilityId: string;
   recordType: string;
   inputRefs: string[];
