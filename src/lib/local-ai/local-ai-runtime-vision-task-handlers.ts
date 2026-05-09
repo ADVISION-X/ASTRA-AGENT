@@ -52,20 +52,22 @@ export async function handleVisionProductPresenceRuntimeTask(
   const visionOutput = parseVisionRuntimeOutput(responseText, request);
   await input.debugHook?.({
     eventType: "local_ai_output_normalized",
-    detail: `taskType=${request.taskType}; adjusted=${String(visionOutput.adjusted)}; normalizedFrameLevelObservations=${visionOutput.normalizedFrameCount}`,
+    detail: `taskType=${request.taskType}; adjusted=${String(visionOutput.adjusted)}; normalizedFrameLevelObservations=${visionOutput.normalizedFrameCount}; ${visionOutput.normalizationSummary}`,
     taskType: request.taskType,
     rawResponsePreview: buildPromptPreview(responseText),
     rawResponseText: responseText,
     parsedJson: visionOutput.payload,
-    parsedDecision: buildProductPresenceParsedDecision(visionOutput.payload),
+    parsedDecision: visionOutput.parsedDecision,
+    parserErrors: visionOutput.parserIssues,
   });
   const payload = visionOutput.payload;
   await input.debugHook?.({
     eventType: "local_ai_output_parsed",
-    detail: `taskType=${request.taskType}; confidence=${payload.confidence}; isProductVideo=${String(payload.isProductVideo)}; reason=${buildPromptPreview(payload.reason)}`,
+    detail: `taskType=${request.taskType}; confidence=${payload.confidence}; isProductVideo=${String(payload.isProductVideo)}; routeLabel=${payload.routeLabel}; reason=${buildPromptPreview(payload.reason)}`,
     taskType: request.taskType,
     parsedJson: payload,
-    parsedDecision: buildProductPresenceParsedDecision(payload),
+    parsedDecision: visionOutput.parsedDecision,
+    parserErrors: visionOutput.parserIssues,
   });
   return buildVisionTaskResult(input, createdAt, payload);
 }

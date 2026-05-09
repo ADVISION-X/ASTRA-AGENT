@@ -3,6 +3,7 @@ import {
   PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
   PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
 } from "./product-discovery-route-plan.constants.js";
+import { PRODUCT_DISCOVERY_ROUTE_PLAN_PRODUCT_PRESENCE_TRANSITIONS } from "./product-discovery-route-plan.transitions.product-presence.js";
 import { PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS } from "./product-discovery-route-plan.transitions.next-item.js";
 import {
   STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
@@ -39,13 +40,6 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     finalStatus: "failed",
   },
   {
-    transitionId: `startup-preparation:${STARTUP_PREPARATION_READY_ROUTE_LABEL}`,
-    fromStepId: "startup-preparation",
-    onStatus: "success",
-    toStepId: "judge-seeding-video",
-    finalStatus: null,
-  },
-  {
     transitionId: `startup-preparation:${STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL}`,
     fromStepId: "startup-preparation",
     onStatus: "success",
@@ -59,69 +53,7 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     toStepId: null,
     finalStatus: "failed",
   },
-  {
-    transitionId: "capture-current-video-viewport:success",
-    fromStepId: "capture-current-video-viewport",
-    onStatus: "success",
-    toStepId: "prepare-current-video-ai-input",
-    finalStatus: null,
-  },
-  {
-    transitionId: "capture-current-video-viewport:failed",
-    fromStepId: "capture-current-video-viewport",
-    onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
-  },
-  {
-    transitionId: "prepare-current-video-ai-input:success",
-    fromStepId: "prepare-current-video-ai-input",
-    onStatus: "success",
-    toStepId: "judge-seeding-video",
-    finalStatus: null,
-  },
-  {
-    transitionId: "prepare-current-video-ai-input:failed",
-    fromStepId: "prepare-current-video-ai-input",
-    onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
-  },
-  {
-    transitionId: `judge-seeding-video:${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}`,
-    fromStepId: "judge-seeding-video",
-    onStatus: "success",
-    toStepId: "observe-comments-entry-page-state",
-    finalStatus: null,
-  },
-  {
-    transitionId: `judge-seeding-video:${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}`,
-    fromStepId: "judge-seeding-video",
-    onStatus: "success",
-    toStepId: "observe-next-item-page-state",
-    finalStatus: null,
-  },
-  {
-    transitionId: "judge-seeding-video:finish-current-video",
-    fromStepId: "judge-seeding-video",
-    onStatus: "success",
-    toStepId: "finalize-mission",
-    finalStatus: null,
-  },
-  {
-    transitionId: "judge-seeding-video:stop-task",
-    fromStepId: "judge-seeding-video",
-    onStatus: "success",
-    toStepId: "finalize-mission",
-    finalStatus: null,
-  },
-  {
-    transitionId: "judge-seeding-video:failed",
-    fromStepId: "judge-seeding-video",
-    onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
-  },
+  ...PRODUCT_DISCOVERY_ROUTE_PLAN_PRODUCT_PRESENCE_TRANSITIONS,
   {
     transitionId: "observe-comments-entry-page-state:success",
     fromStepId: "observe-comments-entry-page-state",

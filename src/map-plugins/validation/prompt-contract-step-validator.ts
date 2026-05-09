@@ -170,9 +170,34 @@ const bindingSatisfiesContractInputRef = (state: ResolvedPromptStepState, inputR
   return false;
 };
 
+const isFrameScopedPromptInputRef = (inputRef: string): boolean =>
+  /^promptInputRefFrame\d+s$/.test(inputRef);
+
+const canAliasFrameScopedPromptInputRef = (state: ResolvedPromptStepState, inputRef: string): boolean =>
+  inputRef === "promptInputRef"
+  && state.promptContract.taskType === "product_presence_judgment";
+
+const collectionSatisfiesBindingInputRef = (
+  state: ResolvedPromptStepState,
+  candidates: Iterable<string>,
+  inputRef: string,
+): boolean => {
+  for (const candidate of candidates) {
+    if (candidate === inputRef) {
+      return true;
+    }
+    if (canAliasFrameScopedPromptInputRef(state, inputRef) && isFrameScopedPromptInputRef(candidate)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 const validateRequiredInputRefs = (state: ResolvedPromptStepState): MapPackageValidationIssue[] => {
   const issues: MapPackageValidationIssue[] = [];
-  const missingStepInputRefs = state.binding.requiredInputRefs.filter((inputRef) => !state.step.inputRefs.some((candidate) => candidate === inputRef));
+  const missingStepInputRefs = state.binding.requiredInputRefs.filter(
+    (inputRef) => !collectionSatisfiesBindingInputRef(state, state.step.inputRefs, inputRef),
+  );
   if (missingStepInputRefs.length > 0) {
     issues.push(createIssue({
       code: "missing_dependency",
@@ -182,7 +207,9 @@ const validateRequiredInputRefs = (state: ResolvedPromptStepState): MapPackageVa
     }));
   }
 
-  const missingProducedRefs = state.binding.requiredInputRefs.filter((inputRef) => !state.producedRefs.has(inputRef));
+  const missingProducedRefs = state.binding.requiredInputRefs.filter(
+    (inputRef) => !collectionSatisfiesBindingInputRef(state, state.producedRefs, inputRef),
+  );
   if (missingProducedRefs.length > 0) {
     issues.push(createIssue({
       code: "missing_dependency",

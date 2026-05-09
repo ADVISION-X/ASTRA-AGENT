@@ -191,7 +191,7 @@ const collectStartupPreparationTransitionFindings = (routePlan: RoutePlan | null
       transitionId: `startup-preparation:${STARTUP_PREPARATION_READY_ROUTE_LABEL}`,
       fromStepId: "startup-preparation",
       onStatus: "success",
-      toStepId: "judge-seeding-video",
+      toStepId: "capture-video-frame-3s",
       finalStatus: null,
     },
     {
@@ -217,7 +217,7 @@ const collectStartupPreparationTransitionFindings = (routePlan: RoutePlan | null
       file,
       line: 1,
       severity: "fatal",
-      message: "Seeding map startup-preparation must fail-close locally and route ready handoff directly to judge-seeding-video.",
+      message: "Seeding map startup-preparation must fail-close locally and route ready handoff into the Route Plan-owned product-presence sampling spine.",
       detail: missingTransitions.map((transition) => transition.transitionId).join(", "),
     })];
 };

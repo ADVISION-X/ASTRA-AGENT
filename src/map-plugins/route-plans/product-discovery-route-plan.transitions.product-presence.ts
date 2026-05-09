@@ -1,0 +1,137 @@
+import type { RoutePlan } from "./route-plan.schema.js";
+import {
+  PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
+  PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
+} from "./product-discovery-route-plan.constants.js";
+import {
+  STARTUP_PREPARATION_READY_ROUTE_LABEL,
+} from "../shared/startup-preparation.constants.js";
+
+export const PRODUCT_DISCOVERY_ROUTE_PLAN_PRODUCT_PRESENCE_TRANSITIONS: RoutePlan["transitions"] = [
+  {
+    transitionId: `startup-preparation:${STARTUP_PREPARATION_READY_ROUTE_LABEL}`,
+    fromStepId: "startup-preparation",
+    onStatus: "success",
+    toStepId: "capture-video-frame-3s",
+    finalStatus: null,
+  },
+  {
+    transitionId: "capture-video-frame-3s:success",
+    fromStepId: "capture-video-frame-3s",
+    onStatus: "success",
+    toStepId: "prepare-ai-input-frame-3s",
+    finalStatus: null,
+  },
+  {
+    transitionId: "capture-video-frame-3s:failed",
+    fromStepId: "capture-video-frame-3s",
+    onStatus: "failed",
+    toStepId: null,
+    finalStatus: "failed",
+  },
+  {
+    transitionId: "prepare-ai-input-frame-3s:success",
+    fromStepId: "prepare-ai-input-frame-3s",
+    onStatus: "success",
+    toStepId: "capture-video-frame-6s",
+    finalStatus: null,
+  },
+  {
+    transitionId: "prepare-ai-input-frame-3s:failed",
+    fromStepId: "prepare-ai-input-frame-3s",
+    onStatus: "failed",
+    toStepId: null,
+    finalStatus: "failed",
+  },
+  {
+    transitionId: "capture-video-frame-6s:success",
+    fromStepId: "capture-video-frame-6s",
+    onStatus: "success",
+    toStepId: "prepare-ai-input-frame-6s",
+    finalStatus: null,
+  },
+  {
+    transitionId: "capture-video-frame-6s:failed",
+    fromStepId: "capture-video-frame-6s",
+    onStatus: "failed",
+    toStepId: null,
+    finalStatus: "failed",
+  },
+  {
+    transitionId: "prepare-ai-input-frame-6s:success",
+    fromStepId: "prepare-ai-input-frame-6s",
+    onStatus: "success",
+    toStepId: "capture-video-frame-10s",
+    finalStatus: null,
+  },
+  {
+    transitionId: "prepare-ai-input-frame-6s:failed",
+    fromStepId: "prepare-ai-input-frame-6s",
+    onStatus: "failed",
+    toStepId: null,
+    finalStatus: "failed",
+  },
+  {
+    transitionId: "capture-video-frame-10s:success",
+    fromStepId: "capture-video-frame-10s",
+    onStatus: "success",
+    toStepId: "prepare-ai-input-frame-10s",
+    finalStatus: null,
+  },
+  {
+    transitionId: "capture-video-frame-10s:failed",
+    fromStepId: "capture-video-frame-10s",
+    onStatus: "failed",
+    toStepId: null,
+    finalStatus: "failed",
+  },
+  {
+    transitionId: "prepare-ai-input-frame-10s:success",
+    fromStepId: "prepare-ai-input-frame-10s",
+    onStatus: "success",
+    toStepId: "judge-seeding-video",
+    finalStatus: null,
+  },
+  {
+    transitionId: "prepare-ai-input-frame-10s:failed",
+    fromStepId: "prepare-ai-input-frame-10s",
+    onStatus: "failed",
+    toStepId: null,
+    finalStatus: "failed",
+  },
+  {
+    transitionId: `judge-seeding-video:${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}`,
+    fromStepId: "judge-seeding-video",
+    onStatus: "success",
+    toStepId: "observe-comments-entry-page-state",
+    finalStatus: null,
+  },
+  {
+    transitionId: `judge-seeding-video:${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}`,
+    fromStepId: "judge-seeding-video",
+    onStatus: "success",
+    toStepId: "observe-next-item-page-state",
+    finalStatus: null,
+  },
+  {
+    transitionId: "judge-seeding-video:finish-current-video",
+    fromStepId: "judge-seeding-video",
+    onStatus: "success",
+    toStepId: "finalize-mission",
+    finalStatus: null,
+  },
+  {
+    transitionId: "judge-seeding-video:stop-task",
+    fromStepId: "judge-seeding-video",
+    onStatus: "success",
+    toStepId: "finalize-mission",
+    finalStatus: null,
+  },
+  {
+    transitionId: "judge-seeding-video:failed",
+    fromStepId: "judge-seeding-video",
+    onStatus: "failed",
+    toStepId: null,
+    finalStatus: "failed",
+  },
+];

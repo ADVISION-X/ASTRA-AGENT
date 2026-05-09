@@ -5,6 +5,16 @@ import { payloadDocumentToObject, payloadValueToString } from "./workbench-paylo
 import { resolveScreenshotSourceHandoff } from "./workbench-screenshot-source-handoff.js";
 
 const BOOTSTRAP_CAPTURE_SAMPLE_DELAY_MS = 5_000;
+const ROUTE_PLAN_CAPTURE_SAMPLE_DELAY_MS_BY_STEP_ID: Readonly<Record<string, number>> = {
+  "capture-video-frame-3s": 3_000,
+  "capture-video-frame-6s": 3_000,
+  "capture-video-frame-10s": 4_000,
+};
+const PREPARE_AI_INPUT_SOURCE_KEYS_BY_STEP_ID: Readonly<Record<string, readonly string[]>> = {
+  "prepare-ai-input-frame-3s": ["screenshotEvidenceRefFrame3s", "screenshotEvidenceRef"],
+  "prepare-ai-input-frame-6s": ["screenshotEvidenceRefFrame6s", "screenshotEvidenceRef"],
+  "prepare-ai-input-frame-10s": ["screenshotEvidenceRefFrame10s", "screenshotEvidenceRef"],
+};
 
 function resolveTransportTimeoutMs(envelope: AbilityCommandEnvelope) {
   const startedAt = Date.parse(envelope.createdAt);
@@ -95,6 +105,26 @@ function buildBootstrapCapturePolicy(input: {
   };
 }
 
+function resolveCaptureSampleDelayMs(
+  envelope: AbilityCommandEnvelope,
+  capturePolicy: ReturnType<typeof buildBootstrapCapturePolicy>,
+) {
+  return ROUTE_PLAN_CAPTURE_SAMPLE_DELAY_MS_BY_STEP_ID[envelope.stepId]
+    ?? (capturePolicy ? BOOTSTRAP_CAPTURE_SAMPLE_DELAY_MS : null);
+}
+
+function resolvePrepareAiInputSource(
+  envelope: AbilityCommandEnvelope,
+  payload: Record<string, string | number | boolean | null>,
+) {
+  const sourceKeys = PREPARE_AI_INPUT_SOURCE_KEYS_BY_STEP_ID[envelope.stepId] ?? ["screenshotEvidenceRef"];
+  return resolveScreenshotSourceHandoff([
+    ...sourceKeys.map((key) => payloadValueToString(payload[key])),
+    payloadValueToString(payload.abilityResultRef),
+    envelope.inputRef,
+  ]);
+}
+
 function buildCaptureBrowserViewportCommand(
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
@@ -106,7 +136,7 @@ function buildCaptureBrowserViewportCommand(
   return {
     ...buildScreenshotCommonFields(envelope, inputPayload),
     childCapabilityId: "capture-browser-viewport",
-    sampleDelayMs: capturePolicy ? BOOTSTRAP_CAPTURE_SAMPLE_DELAY_MS : null,
+    sampleDelayMs: resolveCaptureSampleDelayMs(envelope, capturePolicy),
     source: {
       kind: "browser_viewport",
       pageUrl: payloadValueToString(payload.targetUrl),
@@ -123,11 +153,7 @@ function buildPrepareAiInputCommand(
   inputPayload: NerveBusPayloadDocument,
   payload: Record<string, string | number | boolean | null>,
 ) {
-  const source = resolveScreenshotSourceHandoff([
-    payloadValueToString(payload.screenshotEvidenceRef),
-    payloadValueToString(payload.abilityResultRef),
-    envelope.inputRef,
-  ]);
+  const source = resolvePrepareAiInputSource(envelope, payload);
 
   return {
     ...buildScreenshotCommonFields(envelope, inputPayload),

@@ -76,7 +76,6 @@ function extractPsLineTextFields(match: RegExpMatchArray): PsLineTextFields | nu
   }
 
   const [pidText, ppidText, cpuPercentText, rssKbText, vszKbText, elapsed, state, command] = values;
-
   return {
     pidText,
     ppidText,

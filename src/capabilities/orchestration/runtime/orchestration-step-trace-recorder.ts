@@ -19,6 +19,7 @@ import {
   resolveStepInputTrace,
   resolveStepOutputTrace,
 } from "./orchestration-step-trace-fields.js";
+import { buildRuntimeResourceEvents } from "./orchestration-runtime-resource-events.js";
 
 type PersistedActionLogRecord = {
   actionLogId: string;
@@ -131,12 +132,12 @@ function enrichRuntimeEventInput(input: RuntimeEventInput): RuntimeEventInput {
   };
 }
 
-export async function recordMissionRuntimeEvent(input: RuntimeEventInput): Promise<void> {
-  const eventInput = enrichRuntimeEventInput(input);
-  const structuredRuntimeEvent = buildStructuredRuntimeEvent(eventInput);
+function buildStructuredRuntimeEventWriteRequest(
+  eventInput: RuntimeEventInput,
+  structuredRuntimeEvent: ReturnType<typeof buildStructuredRuntimeEvent>,
+): Parameters<OrchestrationRuntimeContext["forensics"]["writeStructuredRuntimeEvent"]>[0] {
   const mapChain = resolveMapChain(eventInput.state, eventInput.mapRecord);
-
-  await writeStructuredRuntimeEventWithoutBlockingLoop(eventInput, {
+  return {
     abilityGroupId: "forensics-persistence",
     childCapabilityId: "write-structured-runtime-event",
     recordType: "structured_runtime_event",
@@ -165,7 +166,25 @@ export async function recordMissionRuntimeEvent(input: RuntimeEventInput): Promi
     persistencePolicy: { mode: "append", allowPartialRefs: true },
     dataQualityFlags: [],
     payload: { structuredRuntimeEvent },
-  });
+  };
+}
+
+async function persistStructuredRuntimeEvent(eventInput: RuntimeEventInput): Promise<void> {
+  const structuredRuntimeEvent = buildStructuredRuntimeEvent(eventInput);
+  await writeStructuredRuntimeEventWithoutBlockingLoop(
+    eventInput,
+    buildStructuredRuntimeEventWriteRequest(eventInput, structuredRuntimeEvent),
+  );
+}
+
+export async function recordMissionRuntimeEvent(input: RuntimeEventInput): Promise<void> {
+  const eventInput = enrichRuntimeEventInput(input);
+  await persistStructuredRuntimeEvent(eventInput);
+
+  const runtimeResourceEvents = await buildRuntimeResourceEvents(eventInput);
+  for (const runtimeResourceEvent of runtimeResourceEvents) {
+    await persistStructuredRuntimeEvent(runtimeResourceEvent);
+  }
 }
 
 export async function recordPostActionVerificationActionLog(input: ActionLogInput): Promise<PersistedActionLogRecord | null> {

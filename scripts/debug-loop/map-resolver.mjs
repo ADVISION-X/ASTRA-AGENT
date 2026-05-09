@@ -214,10 +214,13 @@ function resolveModeResult(mode) {
 }
 
 function hasActivationMetadata(entry) {
-  return entry.approvalStatus === "approved"
-    && Boolean(entry.humanApprovalRef)
-    && Boolean(entry.validationReportRef)
+  return Boolean(entry.validationReportRef)
     && Boolean(entry.activationRecord?.activationSnapshotRef)
+    && Boolean(entry.activationRecord?.activationSnapshotHash)
+    && Boolean(entry.activationRecord?.automationGateRef)
+    && Boolean(entry.activationRecord?.activationProofRef)
+    && Boolean(entry.activationRecord?.mapPackageHash)
+    && Boolean(entry.activationRecord?.operationalMapHash)
     && Boolean(entry.capabilityCatalogVersion)
     && Boolean(entry.promptCatalogVersion)
     && Boolean(entry.packageVersion)
@@ -233,7 +236,7 @@ function resolveEntryBlock(entry, input) {
   }
 
   if (!hasActivationMetadata(entry)) {
-    return buildBlockedResult("BLOCKED_MAP_NOT_ACTIVATED", "Active map is missing activation snapshot or required version metadata.");
+    return buildBlockedResult("BLOCKED_MAP_NOT_ACTIVATED", "Active map is missing activation record evidence or required version metadata.");
   }
 
   return input.scenario.mapRequirement.requiredPromptContracts && hasPromptBindingIssues(entry)

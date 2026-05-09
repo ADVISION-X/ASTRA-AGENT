@@ -19,6 +19,17 @@ const STANDARD_META_KEYS = [
   "outputSchemaRef",
   "jointStage",
 ];
+const AI_SUMMARY_META_KEYS = [
+  "decision",
+  "routeLabel",
+  "isProductVideo",
+  "confidence",
+  "visibleProductTypes",
+  "inputMode",
+  "validFrameCount",
+  "samplingStrategy",
+  "normalizationAdjusted",
+];
 const FAILURE_DEBUG_META_KEYS = [
   "missingInputRefKeys",
   "lastSuccessfulResultRef",
@@ -57,7 +68,7 @@ function pushMeta(meta, key, value) {
     return;
   }
 
-  if (value) {
+  if (value !== null && value !== undefined && value !== "") {
     meta.push(`${key}=${formatMetaValue(value)}`);
   }
 }
@@ -81,6 +92,9 @@ function buildEventMeta(event) {
   const meta = [];
   pushMeta(meta, "failureReason", event.failureReason);
   appendNamedMeta(meta, event, STANDARD_META_KEYS);
+  if (isProductPresenceAiSummaryEvent(event)) {
+    appendNamedMeta(meta, event, AI_SUMMARY_META_KEYS);
+  }
   pushMeta(meta, "refs", Array.isArray(event.refs) ? event.refs : []);
   appendNamedMeta(meta, event, FAILURE_DEBUG_META_KEYS);
   if (typeof event.durationMs === "number") {
@@ -171,8 +185,46 @@ function buildFailureDebugProjection(payload, status) {
   };
 }
 
+function resolveAiSummary(payload) {
+  return payload.aiSummary && typeof payload.aiSummary === "object" ? payload.aiSummary : {};
+}
+
+function buildAiSummaryProjection(payload) {
+  if (
+    payload.promptContractId !== "vision.productPresence.v1"
+    || (payload.eventType !== "AI_NORMALIZED_RESPONSE_DEBUG" && payload.eventType !== "AI_RESPONSE_DEBUG")
+  ) {
+    return {};
+  }
+
+  const aiSummary = resolveAiSummary(payload);
+  const visibleProductTypes = Array.isArray(aiSummary.visibleProductTypes)
+    ? aiSummary.visibleProductTypes.filter(Boolean)
+    : [];
+
+  return {
+    decision: aiSummary.decision ?? payload.decision ?? payload.parsedDecision ?? null,
+    routeLabel: aiSummary.routeLabel ?? null,
+    isProductVideo: typeof aiSummary.isProductVideo === "boolean" ? aiSummary.isProductVideo : null,
+    confidence: typeof aiSummary.confidence === "number" ? aiSummary.confidence : null,
+    visibleProductTypes: visibleProductTypes.length > 0 ? visibleProductTypes : ["none"],
+    reason: aiSummary.reason ?? payload.reason ?? null,
+    inputMode: aiSummary.inputMode ?? null,
+    validFrameCount: typeof aiSummary.validFrameCount === "number" ? aiSummary.validFrameCount : payload.validFrameCount ?? null,
+    samplingStrategy: aiSummary.samplingStrategy ?? payload.samplingStrategy ?? null,
+    normalizationAdjusted: typeof aiSummary.normalizationAdjusted === "boolean" ? aiSummary.normalizationAdjusted : null,
+    diagnosticPayloadRef: aiSummary.diagnosticPayloadRef ?? payload.diagnosticPayloadRef ?? null,
+  };
+}
+
+function isProductPresenceAiSummaryEvent(event) {
+  return event.promptContractId === "vision.productPresence.v1"
+    && (event.eventType === "AI_NORMALIZED_RESPONSE_DEBUG" || event.eventType === "AI_RESPONSE_DEBUG");
+}
+
 function buildRuntimeRelayEvent(phase, payload) {
   const status = payload.status ?? payload.result ?? "emitted";
+  const aiSummary = buildAiSummaryProjection(payload);
   return {
     timestamp: payload.createdAt ?? new Date().toISOString(),
     level: resolveLevel(payload.status ?? payload.result),
@@ -180,7 +232,7 @@ function buildRuntimeRelayEvent(phase, payload) {
     component: payload.skillCategory ?? payload.skillId ?? phase.toLowerCase(),
     eventType: payload.eventType ?? payload.actionType ?? `${phase.toLowerCase()}_event`,
     status,
-    message: payload.reason ?? payload.actionPurpose ?? payload.eventType ?? payload.actionType ?? "structured log emitted",
+    message: aiSummary.reason ?? payload.reason ?? payload.actionPurpose ?? payload.eventType ?? payload.actionType ?? "structured log emitted",
     failureReason: payload.failureReason ?? payload.reviewRequiredReason ?? null,
     ownerResponsible: payload.ownerResponsible ?? null,
     actionableMessage: payload.actionableMessage ?? null,
@@ -194,9 +246,18 @@ function buildRuntimeRelayEvent(phase, payload) {
     implementationStatus: payload.implementationStatus ?? null,
     errorKind: payload.errorKind ?? null,
     runtimeCallId: payload.runtimeCallId ?? null,
-    diagnosticPayloadRef: payload.diagnosticPayloadRef ?? null,
+    diagnosticPayloadRef: aiSummary.diagnosticPayloadRef ?? payload.diagnosticPayloadRef ?? null,
     promptContractId: payload.promptContractId ?? null,
     outputSchemaRef: payload.outputSchemaRef ?? null,
+    decision: aiSummary.decision ?? null,
+    routeLabel: aiSummary.routeLabel ?? null,
+    isProductVideo: aiSummary.isProductVideo ?? null,
+    confidence: aiSummary.confidence ?? null,
+    visibleProductTypes: aiSummary.visibleProductTypes ?? null,
+    inputMode: aiSummary.inputMode ?? null,
+    validFrameCount: aiSummary.validFrameCount ?? null,
+    samplingStrategy: aiSummary.samplingStrategy ?? null,
+    normalizationAdjusted: aiSummary.normalizationAdjusted ?? null,
     ...buildFailureDebugProjection(payload, status),
     refs: resolvePayloadRefs(payload),
     durationMs: typeof payload.durationMs === "number" ? payload.durationMs : null,

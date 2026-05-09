@@ -50,6 +50,25 @@ const StructuredAiImageInputSchema = z.object({
   height: z.number().int().positive().nullable().default(null),
 });
 
+const StructuredRuntimeResourceProcessSchema = z.object({
+  pid: z.number().int().positive(),
+  rssMb: z.number().nonnegative(),
+  cpuPercent: z.number().nonnegative(),
+  tags: z.array(z.string().min(1)).default([]),
+}).strict();
+
+const StructuredRuntimeResourceSummarySchema = z.object({
+  capturedAt: z.string().datetime(),
+  chromeRssMb: z.number().nonnegative(),
+  chromeProcessCount: z.number().int().nonnegative(),
+  nodeRssMb: z.number().nonnegative(),
+  hostFreeMemoryMb: z.number().nonnegative(),
+  warningThresholdMb: z.number().positive().nullable().default(null),
+  topChromePid: z.number().int().positive().nullable().default(null),
+  topChromeRssMb: z.number().nonnegative().nullable().default(null),
+  interestingProcesses: z.array(StructuredRuntimeResourceProcessSchema).default([]),
+}).strict();
+
 const StructuredRuntimeSnapshotSummarySchema = z.object({
   runtimeStatus: z.string().min(1),
   currentStep: z.string().min(1),
@@ -153,6 +172,7 @@ const StructuredRuntimeEventSchema = z.object({
   fallbackReason: nullableString,
   missingFrames: z.array(StructuredRuntimeMissingFrameSchema).default([]),
   snapshotSummary: StructuredRuntimeSnapshotSummarySchema.nullable().default(null),
+  resourceSummary: StructuredRuntimeResourceSummarySchema.nullable().default(null),
   provider: nullableString,
   model: nullableString,
   modelRole: nullableString,
@@ -313,11 +333,12 @@ type StructuredLogRef = z.infer<typeof StructuredLogRefSchema>;
 type StructuredRuntimeMissingFrame = z.infer<typeof StructuredRuntimeMissingFrameSchema>;
 type StructuredAiImageInput = z.infer<typeof StructuredAiImageInputSchema>;
 type StructuredRuntimeSnapshotSummary = z.infer<typeof StructuredRuntimeSnapshotSummarySchema>;
+type StructuredRuntimeResourceSummary = z.infer<typeof StructuredRuntimeResourceSummarySchema>;
 type StructuredJointStage = z.infer<typeof StructuredJointStageSchema>;
 type StructuredJointCheckpointStatus = z.infer<typeof StructuredJointCheckpointStatusSchema>;
 type StructuredFailureSnapshot = z.infer<typeof StructuredFailureSnapshotSchema>;
 type StructuredJointCheckpoint = z.infer<typeof StructuredJointCheckpointSchema>;
 type StructuredRuntimeEvent = z.infer<typeof StructuredRuntimeEventSchema>;
 type StructuredActionLog = z.infer<typeof StructuredActionLogSchema>;
-export { StructuredRuntimeLogLevelSchema, StructuredLogStatusSchema, StructuredRuntimeEventTypeSchema, StructuredActionTypeSchema, StructuredActionPurposeSchema, StructuredLogRefSchema, StructuredRuntimeMissingFrameSchema, StructuredAiImageInputSchema, StructuredRuntimeSnapshotSummarySchema, StructuredJointStageSchema, StructuredJointCheckpointStatusSchema, StructuredFailureSnapshotSchema, StructuredJointCheckpointSchema, StructuredRuntimeEventSchema, StructuredActionLogSchema, LiveProofLogSequence, LiveProofLogSequenceSchema };
-export type { StructuredLogStatus, StructuredRuntimeLogLevel, StructuredRuntimeEventType, StructuredActionType, StructuredActionPurpose, StructuredLogRef, StructuredRuntimeMissingFrame, StructuredAiImageInput, StructuredRuntimeSnapshotSummary, StructuredJointStage, StructuredJointCheckpointStatus, StructuredFailureSnapshot, StructuredJointCheckpoint, StructuredRuntimeEvent, StructuredActionLog };
+export { StructuredRuntimeLogLevelSchema, StructuredLogStatusSchema, StructuredRuntimeEventTypeSchema, StructuredActionTypeSchema, StructuredActionPurposeSchema, StructuredLogRefSchema, StructuredRuntimeMissingFrameSchema, StructuredAiImageInputSchema, StructuredRuntimeResourceSummarySchema, StructuredRuntimeSnapshotSummarySchema, StructuredJointStageSchema, StructuredJointCheckpointStatusSchema, StructuredFailureSnapshotSchema, StructuredJointCheckpointSchema, StructuredRuntimeEventSchema, StructuredActionLogSchema, LiveProofLogSequence, LiveProofLogSequenceSchema };
+export type { StructuredLogStatus, StructuredRuntimeLogLevel, StructuredRuntimeEventType, StructuredActionType, StructuredActionPurpose, StructuredLogRef, StructuredRuntimeMissingFrame, StructuredAiImageInput, StructuredRuntimeResourceSummary, StructuredRuntimeSnapshotSummary, StructuredJointStage, StructuredJointCheckpointStatus, StructuredFailureSnapshot, StructuredJointCheckpoint, StructuredRuntimeEvent, StructuredActionLog };

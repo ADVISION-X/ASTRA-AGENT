@@ -124,6 +124,9 @@ function updateDebugState(state: CollectedDebugState, event: LocalAiDebugEvent) 
   state.parsedJson = event.parsedJson ?? state.parsedJson;
   state.parsedDecision = normalizeText(event.parsedDecision) ?? state.parsedDecision;
   state.parserErrors = event.parserErrors ?? state.parserErrors;
+  if ((event.parserErrors ?? []).length > 0) {
+    state.schemaIssueCount = event.parserErrors!.length;
+  }
   state.sourceScreenshotEvidenceId = normalizeText(event.sourceScreenshotEvidenceId) ?? state.sourceScreenshotEvidenceId;
   state.aiInputArtifactRef = normalizeText(event.aiInputArtifactRef) ?? state.aiInputArtifactRef;
   state.tokenEstimate = typeof event.tokenEstimate === "number" ? event.tokenEstimate : state.tokenEstimate;

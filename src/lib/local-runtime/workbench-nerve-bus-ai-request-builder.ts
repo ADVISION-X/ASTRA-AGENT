@@ -20,6 +20,11 @@ type WorkbenchAiExecuteInput = Parameters<import("./workbench-contract.js").Work
 const PAGE_PREPARATION_TASK_TYPE = "page_preparation_judgment";
 const PRODUCT_PRESENCE_TASK_TYPE = "product_presence_judgment";
 const VISUAL_TARGET_CANDIDATE_TASK_TYPE = "visual_target_candidate_analysis";
+const PRODUCT_PRESENCE_FRAME_PROMPT_INPUT_KEYS = [
+  "promptInputRefFrame3s",
+  "promptInputRefFrame6s",
+  "promptInputRefFrame10s",
+] as const;
 const SUPPORTED_WORKBENCH_AI_TASK_TYPES = [
   "page_preparation_judgment",
   "product_presence_judgment",
@@ -58,6 +63,38 @@ const buildDefaultAiInputPayload = (inputPayload: WorkbenchAiPayloadDocument) =>
   return payloadDocumentToObject(inputPayload);
 };
 
+const buildUniqueAiInputRefs = (refs: Array<string | null | undefined>) => Array.from(new Set(
+  refs.filter((ref): ref is string => typeof ref === "string" && ref.length > 0),
+));
+
+const resolveVisionSamplingStrategy = (
+  payload: Record<string, string | number | boolean | null>,
+  aiInputRefs: string[],
+) => {
+  const fixedFrameCount = PRODUCT_PRESENCE_FRAME_PROMPT_INPUT_KEYS
+    .map((key) => payloadValueToString(payload[key]))
+    .filter((ref): ref is string => typeof ref === "string" && ref.length > 0)
+    .length;
+
+  if (fixedFrameCount >= 3) {
+    return "fixed_3_6_10";
+  }
+  if (fixedFrameCount === 2) {
+    return "fixed_3_6";
+  }
+  return aiInputRefs.length > 1 ? "route_plan_or_ability_owned_sampling" : "single_frame_fallback";
+};
+
+const buildMultiFrameEvidenceSetId = (
+  envelope: WorkbenchAiRequestEnvelope,
+  samplingStrategy: string,
+  frameCount: number,
+) => (
+  frameCount > 1
+    ? `${envelope.missionId}:${envelope.videoVisitId ?? envelope.stepId}:${samplingStrategy}`
+    : null
+);
+
 const buildVisionImageCollectionInputPayload = (
   envelope: WorkbenchAiRequestEnvelope,
   inputPayload: WorkbenchAiPayloadDocument,
@@ -66,14 +103,18 @@ const buildVisionImageCollectionInputPayload = (
   const preparedInputRef = payloadValueToString(payload.promptInputRef) ?? envelope.aiInputRefs[0] ?? null;
   const proof = resolveWorkbenchAiInputProofSummary(preparedInputRef) ?? null;
   const screenshotEvidenceId = proof?.sourceScreenshotEvidenceId ?? payloadValueToString(payload.screenshotEvidenceRef) ?? preparedInputRef;
-  const aiInputRefs = envelope.aiInputRefs.length > 0 ? envelope.aiInputRefs : (preparedInputRef ? [preparedInputRef] : []);
+  const aiInputRefs = buildUniqueAiInputRefs([
+    ...PRODUCT_PRESENCE_FRAME_PROMPT_INPUT_KEYS.map((key) => payloadValueToString(payload[key])),
+    ...envelope.aiInputRefs,
+    preparedInputRef,
+  ]);
   const inputMode = aiInputRefs.length > 1 ? "multi_image" : "single_frame_fallback";
-  const samplingStrategy = aiInputRefs.length > 1 ? "route_plan_or_ability_owned_sampling" : "single_frame_fallback";
+  const samplingStrategy = resolveVisionSamplingStrategy(payload, aiInputRefs);
   const frameCount = Math.max(aiInputRefs.length, 1);
 
   return {
     inputMode,
-    multiFrameEvidenceSetId: null,
+    multiFrameEvidenceSetId: buildMultiFrameEvidenceSetId(envelope, samplingStrategy, frameCount),
     contactSheetEvidenceId: inputMode === "multi_image" ? null : preparedInputRef,
     frameEvidenceIds: inputMode === "multi_image" ? aiInputRefs : [],
     screenshotEvidenceId,

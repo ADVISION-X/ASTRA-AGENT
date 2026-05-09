@@ -95,6 +95,8 @@ const INFO_RUNTIME_EVENT_TYPES = new Set([
   "next_video_wait_started",
   "review_required",
   "task_stopped",
+  "runtime_resource_checkpoint",
+  "runtime_resource_warning",
   "runtime_snapshot_summary",
   "step_timeout",
 ]);
@@ -129,7 +131,7 @@ function resolveTerminalPrefix(logEntry: StructuredLogEntry): "grasseye:event" |
     return logEntry.entry.result === "review_required" ? "grasseye:review" : "grasseye:action";
   }
 
-  if (logEntry.entry.eventType === "runtime_snapshot_summary") {
+  if (logEntry.entry.eventType === "runtime_snapshot_summary" || logEntry.entry.eventType === "runtime_resource_checkpoint" || logEntry.entry.eventType === "runtime_resource_warning") {
     return "grasseye:snapshot";
   }
 

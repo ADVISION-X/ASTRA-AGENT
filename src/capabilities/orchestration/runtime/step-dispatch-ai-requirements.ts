@@ -11,6 +11,9 @@ type AiDispatchRequirements = {
   providerPolicyRef: string;
 };
 
+const PRODUCT_PRESENCE_PROMPT_CONTRACT_ID = "vision.productPresence.v1";
+const WEAK_PRODUCT_PRESENCE_BINDING_INPUT_REFS = ["promptInputRef"] as const;
+
 const resolvePayloadRefValue = (payloadRefs: MissionState["payloadRefs"], key: string): string | null => {
   const payloadKey = key as keyof MissionState["payloadRefs"];
   const value = payloadRefs[payloadKey];
@@ -46,6 +49,19 @@ const resolvePromptContractForAiStep = (step: AiStep) => {
     : { ok: false as const, failureReason: `AI step "${step.stepId}" prompt_contract_resolution_failed for ${step.promptContractId}.` };
 };
 
+const shouldPreferRoutePlanInputRefs = (step: AiStep, requiredInputRefs: string[]) => (
+  step.promptContractId === PRODUCT_PRESENCE_PROMPT_CONTRACT_ID
+  && step.inputRefs.length > 0
+  && requiredInputRefs.length === WEAK_PRODUCT_PRESENCE_BINDING_INPUT_REFS.length
+  && WEAK_PRODUCT_PRESENCE_BINDING_INPUT_REFS.every((ref, index) => requiredInputRefs[index] === ref)
+);
+
+const resolveBindingRequiredInputRefs = (step: AiStep, requiredInputRefs: string[]) => (
+  shouldPreferRoutePlanInputRefs(step, requiredInputRefs)
+    ? step.inputRefs
+    : requiredInputRefs
+);
+
 const resolveAiPromptBinding = (input: {
   registration: NonNullable<ReturnType<ReturnType<typeof getDefaultMapPluginRegistry>["active"]["getRegistration"]>>;
   step: AiStep;
@@ -64,7 +80,13 @@ const resolveAiPromptBinding = (input: {
     };
   }
   return binding.outputSchemaRef === input.outputSchemaRef
-    ? { ok: true as const, binding }
+    ? {
+      ok: true as const,
+      binding: {
+        ...binding,
+        requiredInputRefs: resolveBindingRequiredInputRefs(input.step, binding.requiredInputRefs),
+      },
+    }
     : { ok: false as const, failureReason: `AI step "${input.step.stepId}" prompt contract output schema mismatch.` };
 };
 

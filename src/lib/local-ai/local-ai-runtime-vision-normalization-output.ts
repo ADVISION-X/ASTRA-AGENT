@@ -19,6 +19,12 @@ type VisionRuntimeFrameState = {
   normalizedFrameObservations: { adjusted: boolean; observations: Array<{ frameLabel: string; hasVisibleProduct: boolean | null; visibleProductTypes: string[]; observations: string[] }> };
 };
 
+const hasUnexpectedExecutableField = (value: JsonRecord): boolean =>
+  typeof value.suggestedNextAction === "string"
+  || typeof value.nextIntent === "string"
+  || typeof value.actionIntent === "string"
+  || typeof value.action_intent === "string";
+
 const hasVisionRuntimeContentAdjustment = (
   value: JsonRecord,
   decisionState: VisionRuntimeDecisionState,
@@ -42,7 +48,8 @@ const hasVisionRuntimeContractAdjustment = (
   || value.promptId !== "vision.productPresence.v1"
   || value.promptVersion !== "v1"
   || value.schemaVersion !== "vision.productPresence.schema.v1"
-  || typeof value.reason !== "string";
+  || typeof value.reason !== "string"
+  || hasUnexpectedExecutableField(value);
 
 export const isVisionRuntimeOutputAdjusted = (
   value: JsonRecord,

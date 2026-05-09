@@ -43,6 +43,12 @@ type TransitionQuery = {
 };
 
 const SUPPORTED_SEEDING_VIDEO_PLATFORMS = ["facebook-web", "tiktok-web"] as const;
+const PRODUCT_PRESENCE_FRAME_SPINE = [
+  ["capture-video-frame-3s", "screenshotEvidenceRefFrame3s", "prepare-ai-input-frame-3s", "promptInputRefFrame3s"],
+  ["capture-video-frame-6s", "screenshotEvidenceRefFrame6s", "prepare-ai-input-frame-6s", "promptInputRefFrame6s"],
+  ["capture-video-frame-10s", "screenshotEvidenceRefFrame10s", "prepare-ai-input-frame-10s", "promptInputRefFrame10s"],
+] as const;
+const PRODUCT_PRESENCE_PROMPT_INPUT_REFS = ["promptInputRefFrame3s", "promptInputRefFrame6s", "promptInputRefFrame10s"] as const;
 
 const buildFrameSpecificMapTokens = (): string[] =>
   ["3s", "6s", "10s"].flatMap((framePoint) => [
@@ -246,12 +252,12 @@ const hasAutomaticNonProductAdvanceTransitions = (context: SeedingVideoContext):
   && hasTransition(context.routePlanTransitions, { fromStepId: "press-next-video-key", toStepId: "capture-next-item-verification-viewport" })
   && hasTransition(context.routePlanTransitions, {
     fromStepId: "verify-next-item-advanced",
-    toStepId: "judge-seeding-video",
+    toStepId: "capture-video-frame-3s",
     transitionId: "verify-next-item-advanced:next-item-advanced",
   })
   && hasTransition(context.routePlanTransitions, {
     fromStepId: "verify-next-item-advanced",
-    toStepId: "capture-current-video-viewport",
+    toStepId: "capture-video-frame-3s",
     transitionId: "verify-next-item-advanced:next-item-not-advanced",
   });
 
@@ -278,23 +284,32 @@ const hasStartupAndCurrentCaptureShapes = (context: SeedingVideoContext): boolea
   const startupCapture = getStep(context, "capture-startup-video-viewport");
   const startupPrepare = getStep(context, "prepare-startup-ai-input");
   const startupPreparation = getStep(context, "startup-preparation");
-  const currentCapture = getStep(context, "capture-current-video-viewport");
-  const currentPrepare = getStep(context, "prepare-current-video-ai-input");
   return hasOutputRef(startupCapture, "screenshotEvidenceRef")
     && hasInputRefs(startupPrepare, ["screenshotEvidenceRef"])
     && hasOutputRef(startupPrepare, "promptInputRef")
     && hasInputRefs(startupPreparation, ["promptInputRef"])
-    && hasOutputRef(currentCapture, "screenshotEvidenceRef")
-    && hasInputRefs(currentPrepare, ["screenshotEvidenceRef"])
-    && hasOutputRef(currentPrepare, "promptInputRef");
+    && PRODUCT_PRESENCE_FRAME_SPINE.every(([captureStepId, screenshotRef, prepareStepId, promptRef], index) => {
+      const captureStep = getStep(context, captureStepId);
+      const prepareStep = getStep(context, prepareStepId);
+      const isFinalFrame = index === PRODUCT_PRESENCE_FRAME_SPINE.length - 1;
+      return hasInputRefs(captureStep, ["targetUrl", "targetTitle"])
+        && hasOutputRefs(captureStep, isFinalFrame ? [screenshotRef, "screenshotEvidenceRef"] : [screenshotRef])
+        && hasInputRefs(prepareStep, [screenshotRef])
+        && hasOutputRefs(prepareStep, isFinalFrame ? [promptRef, "promptInputRef"] : [promptRef]);
+    });
 };
 
 const hasStartupAndCurrentCaptureTransitions = (context: SeedingVideoContext): boolean =>
   hasTransition(context.routePlanTransitions, { fromStepId: "capture-startup-video-viewport", toStepId: "prepare-startup-ai-input" })
   && hasTransition(context.routePlanTransitions, { fromStepId: "prepare-startup-ai-input", toStepId: "startup-preparation" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "startup-preparation", toStepId: "judge-seeding-video" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "capture-current-video-viewport", toStepId: "prepare-current-video-ai-input" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "prepare-current-video-ai-input", toStepId: "judge-seeding-video" });
+  && hasTransition(context.routePlanTransitions, { fromStepId: "startup-preparation", toStepId: "capture-video-frame-3s" })
+  && PRODUCT_PRESENCE_FRAME_SPINE.every(([captureStepId, , prepareStepId], index) =>
+    hasTransition(context.routePlanTransitions, { fromStepId: captureStepId, toStepId: prepareStepId })
+    && hasTransition(context.routePlanTransitions, {
+      fromStepId: prepareStepId,
+      toStepId: PRODUCT_PRESENCE_FRAME_SPINE[index + 1]?.[0] ?? "judge-seeding-video",
+    })
+  );
 
 const hasRoutePlanOwnedStartupGate = (context: SeedingVideoContext): boolean =>
   hasStartupAndCurrentCaptureTransitions(context) && hasStartupAndCurrentCaptureShapes(context);
@@ -302,9 +317,10 @@ const hasRoutePlanOwnedStartupGate = (context: SeedingVideoContext): boolean =>
 const hasJudgePromptContractGate = (context: SeedingVideoContext): boolean => {
   const judge = getStep(context, "judge-seeding-video");
   return judge?.stepKind === "ai"
-    && hasInputRefs(judge, ["promptInputRef"])
+    && hasInputRefs(judge, PRODUCT_PRESENCE_PROMPT_INPUT_REFS)
     && judge.promptContractId === "vision.productPresence.v1"
     && context.promptBinding?.requiredInputRefs.includes("promptInputRef") === true
+    && context.promptBinding?.requiredInputRefs.some((ref) => ref.includes("Frame")) !== true
     && context.promptBinding?.outputSchemaRef === "ai.product_presence_judgment.v1"
     && !judgeLeaksNextTargetCandidate(context);
 };
@@ -339,6 +355,6 @@ export const inspectSeedingVideoAiInputChain = (record: BuiltinPackageRecord): F
     ? []
     : [createPromptContractFinding(
       context.record,
-      "Seeding video map packages must keep only the open entry local while Route Plan owns capture-startup-video-viewport -> prepare-startup-ai-input -> startup-preparation -> judge-seeding-video and capture-current-video-viewport -> prepare-current-video-ai-input -> judge-seeding-video. ProductPresence must stay binary route-only and must not leak target candidate ownership. Product-yes must pass observe-comments-entry-page-state -> analyze-comments-entry-target-candidate -> observe-comments-button -> normalize-comments-target -> click-comments-button -> capture-comments-panel -> extract-visible-comments -> write-seeding-evidence-record -> finalize-seeding-evidence-packet -> finalize-seeding-browse-ledger with vision.commentsEntryTargetCandidate.v1 plus comments.ocr_cleanup.v1. analyze-comment-intent, comment-intent-analysis, comments.intent_analysis.v1, and commentIntentAiResultRef are forbidden in the governed product-yes chain. Advance-next-item must pass observe-next-item-page-state -> press-next-video-key -> capture-next-item-verification-viewport -> prepare-next-item-verification-ai-input -> verify-next-item-advanced, then reuse the verified prompt input by routing next-item-advanced directly to judge-seeding-video while next-item-not-advanced falls back to capture-current-video-viewport. press-next-video-key must use text-input/press-navigation-key with pageStateRef. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
+      "Seeding video map packages must keep only the open entry local while Route Plan owns capture-startup-video-viewport -> prepare-startup-ai-input -> startup-preparation -> capture-video-frame-3s -> prepare-ai-input-frame-3s -> capture-video-frame-6s -> prepare-ai-input-frame-6s -> capture-video-frame-10s -> prepare-ai-input-frame-10s -> judge-seeding-video. ProductPresence must stay binary route-only and must not leak target candidate ownership; maps keep only the weak promptInputRef binding while frame-specific prompt refs stay Route Plan-owned. Product-yes must pass observe-comments-entry-page-state -> analyze-comments-entry-target-candidate -> observe-comments-button -> normalize-comments-target -> click-comments-button -> capture-comments-panel -> extract-visible-comments -> write-seeding-evidence-record -> finalize-seeding-evidence-packet -> finalize-seeding-browse-ledger with vision.commentsEntryTargetCandidate.v1 plus comments.ocr_cleanup.v1. analyze-comment-intent, comment-intent-analysis, comments.intent_analysis.v1, and commentIntentAiResultRef are forbidden in the governed product-yes chain. Advance-next-item must pass observe-next-item-page-state -> press-next-video-key -> capture-next-item-verification-viewport -> prepare-next-item-verification-ai-input -> verify-next-item-advanced, then route both next-item-advanced and next-item-not-advanced back to capture-video-frame-3s for the governed sampling spine. press-next-video-key must use text-input/press-navigation-key with pageStateRef. Non-AI video-changed PAV, product_uncertain/review_required/request-human-review handoff is forbidden.",
     )];
 };

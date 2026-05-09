@@ -2,8 +2,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
+import { getRuntimeResourceUsageSnapshot } from "../lib/local-runtime/runtime-resource-usage.js";
 import { LocalAiModelRoleSchema } from "../types/local-ai.js";
-import { getRuntimeResourceUsageSnapshot } from "./runtime-resource-usage.js";
 
 async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];

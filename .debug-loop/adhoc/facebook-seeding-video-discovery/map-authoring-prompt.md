@@ -1,5 +1,5 @@
 You are GrassEye Map Authoring Agent.
-Input Package ID: map-authoring-input:debug-loop:facebook-seeding-video-discovery:ca57749b1ba5
+Input Package ID: map-authoring-input:debug-loop:facebook-seeding-video-discovery:6fba43396dd6
 Prompt Contract ID: map-authoring-from-user-requirement-v1
 Task Type: map_authoring
 Output Schema Ref: ai.map_authoring.v1
@@ -18,9 +18,9 @@ Static Governance Rules:
 - Never request credentials, cookies, hidden tokens, or anti-abuse bypass instructions.
 Complete Map Authoring Input Package JSON:
 {
-  "inputPackageId": "map-authoring-input:debug-loop:facebook-seeding-video-discovery:ca57749b1ba5",
+  "inputPackageId": "map-authoring-input:debug-loop:facebook-seeding-video-discovery:6fba43396dd6",
   "inputPackageVersion": "map-authoring-input-package.v1",
-  "generatedAt": "2026-05-09T21:13:22.089Z",
+  "generatedAt": "2026-05-09T22:54:09.903Z",
   "requesterRef": "debug-loop:facebook-seeding-video-discovery",
   "userRequirement": {
     "goal": "Open Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, extract visible comments with comments.ocr_cleanup.v1, persist evidence refs, and stop or review on gated states.",
@@ -99,7 +99,7 @@ Complete Map Authoring Input Package JSON:
     "operatorNotes": "scenarioId: facebook-seeding-video-discovery\n\nplatformId: facebook-web\n\ngeneratedMapPath: src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json\n\nrawRequirement:\nUse a local authorized browser session to inspect public Facebook Reels, identify product-seeding video candidates, capture viewport and comment evidence, extract visible comments with OCR cleanup only, scroll to the next video, and persist governed evidence refs.\n\nsafeExecutableRequirement:\nOpen Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, extract visible comments with comments.ocr_cleanup.v1, persist evidence refs, and stop or review on gated states.",
     "outputLanguage": "zh-CN"
   },
-  "userRequirementRef": "user-requirement:debug-loop:facebook-seeding-video-discovery:ca57749b1ba5",
+  "userRequirementRef": "user-requirement:debug-loop:facebook-seeding-video-discovery:6fba43396dd6",
   "sourceRequirementHash": "sha256:3dde58bd20d7cdeadf41ded91e00ea8df8e7198fa4fac029f581fbe543066c45",
   "targetPlatformProfileRef": "facebook-web:map-authoring-profile:v1",
   "targetPlatformProfile": {
@@ -141,7 +141,7 @@ Complete Map Authoring Input Package JSON:
   },
   "capabilityCatalog": {
     "version": "2026-04-map-prompt-contract-v1",
-    "generatedAt": "2026-05-09T21:13:22.089Z",
+    "generatedAt": "2026-05-09T22:54:09.903Z",
     "generatedFrom": "src/map-plugins/authoring/map-authoring-input-package-builder.ts",
     "activeAbilityGroupCount": 14,
     "abilityGroups": [
@@ -6981,12 +6981,12 @@ Complete Map Authoring Input Package JSON:
       {
         "promptContractId": "vision.productPresence.v1",
         "promptContractVersion": "v1",
-        "promptHash": "sha256:740271d78404419aac86379c95f5bf60610b8d22a434a96f3ae232d2d9b1a334",
+        "promptHash": "sha256:4d81a0204eeafeead8f1611a155fead2acd703018b73b61dd89d28c900ed7fc9",
         "displayName": "vision.productPresence.v1",
         "description": "Autonomously classify whether sampled short-video frames visibly prove product-presenting content for binary downstream routing.",
         "inputSchemaRef": "image_collection.ai_input",
         "outputSchemaRef": "ai.product_presence_judgment.v1",
-        "promptContractHash": "sha256:740271d78404419aac86379c95f5bf60610b8d22a434a96f3ae232d2d9b1a334",
+        "promptContractHash": "sha256:4d81a0204eeafeead8f1611a155fead2acd703018b73b61dd89d28c900ed7fc9",
         "allowedInputRefs": [
           "promptInputRef"
         ],
@@ -7039,6 +7039,10 @@ Complete Map Authoring Input Package JSON:
           "advertising decision",
           "fabricated invisible product",
           "page assumptions outside the sampled frames",
+          "suggestedNextAction",
+          "nextIntent",
+          "actionIntent",
+          "action_intent",
           "product_uncertain",
           "human review request",
           "ambiguous branch decision",

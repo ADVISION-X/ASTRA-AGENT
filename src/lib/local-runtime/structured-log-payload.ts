@@ -13,6 +13,12 @@ const redactSensitiveText = (value: string | null | undefined): string | null =>
   return value.replaceAll(SENSITIVE_INLINE_VALUE_PATTERN, "$1[redacted]");
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const toStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.length > 0) : [];
+
 const compactEvidenceRefs = (refs: EvidenceRef[] | undefined): string[] => (refs ?? []).map((ref) => ref.id);
 
 const compactPayload = <TValue extends Record<string, unknown>>(payload: TValue): Record<string, unknown> =>
@@ -38,6 +44,21 @@ const buildSnapshotPayload = (entry: StructuredRuntimeEvent): Record<string, unk
       latestBrowseLedgerEntryId: entry.snapshotSummary.latestBrowseLedgerEntryId,
       latestEvidencePacketId: entry.snapshotSummary.latestEvidencePacketId,
       counters: entry.snapshotSummary.counters,
+    }
+  : {};
+
+const buildResourcePayload = (entry: StructuredRuntimeEvent): Record<string, unknown> => entry.resourceSummary
+  ? {
+      resourceSummary: {
+        chromeRssMb: entry.resourceSummary.chromeRssMb,
+        chromeProcessCount: entry.resourceSummary.chromeProcessCount,
+        nodeRssMb: entry.resourceSummary.nodeRssMb,
+        hostFreeMemoryMb: entry.resourceSummary.hostFreeMemoryMb,
+        warningThresholdMb: entry.resourceSummary.warningThresholdMb,
+        topChromePid: entry.resourceSummary.topChromePid,
+        topChromeRssMb: entry.resourceSummary.topChromeRssMb,
+        interestingProcesses: entry.resourceSummary.interestingProcesses,
+      },
     }
   : {};
 
@@ -117,6 +138,35 @@ const buildEventAiPayload = (entry: StructuredRuntimeEvent): Record<string, unkn
   tokenEstimate: entry.tokenEstimate,
 });
 
+const buildProductPresenceAiSummaryPayload = (entry: StructuredRuntimeEvent): Record<string, unknown> => {
+  if (
+    entry.promptContractId !== "vision.productPresence.v1"
+    || (entry.eventType !== "AI_NORMALIZED_RESPONSE_DEBUG" && entry.eventType !== "AI_RESPONSE_DEBUG")
+    || !isRecord(entry.parsedJson)
+  ) {
+    return {};
+  }
+
+  const aiSummary = compactPayload({
+    decision: typeof entry.parsedJson.decision === "string" ? entry.parsedJson.decision : entry.decision,
+    routeLabel: typeof entry.parsedJson.routeLabel === "string" ? entry.parsedJson.routeLabel : null,
+    isProductVideo:
+      typeof entry.parsedJson.isProductVideo === "boolean" || entry.parsedJson.isProductVideo === null
+        ? entry.parsedJson.isProductVideo
+        : null,
+    confidence: typeof entry.parsedJson.confidence === "number" ? entry.parsedJson.confidence : null,
+    visibleProductTypes: toStringArray(entry.parsedJson.visibleProductTypes),
+    reason: redactSensitiveText(typeof entry.parsedJson.reason === "string" ? entry.parsedJson.reason : entry.reason),
+    inputMode: typeof entry.parsedJson.inputMode === "string" ? entry.parsedJson.inputMode : null,
+    validFrameCount: typeof entry.parsedJson.validFrameCount === "number" ? entry.parsedJson.validFrameCount : entry.validFrameCount,
+    samplingStrategy: typeof entry.parsedJson.samplingStrategy === "string" ? entry.parsedJson.samplingStrategy : entry.samplingStrategy,
+    normalizationAdjusted: (entry.schemaIssueCount ?? 0) > 0 || entry.parserErrors.length > 0,
+    diagnosticPayloadRef: entry.diagnosticPayloadRef,
+  });
+
+  return Object.keys(aiSummary).length > 0 ? { aiSummary } : {};
+};
+
 const buildEventProofPayload = (entry: StructuredRuntimeEvent): Record<string, unknown> => ({
   screenshotEvidenceId: entry.screenshotEvidenceId,
   artifactRef: entry.artifactRef,
@@ -190,8 +240,10 @@ export const buildEventPayload = (entry: StructuredRuntimeEvent, level: Structur
     ...buildEventIdentityPayload(entry),
     ...buildEventReasonPayload(entry),
     ...buildEventAiPayload(entry),
+    ...buildProductPresenceAiSummaryPayload(entry),
     ...buildEventProofPayload(entry),
     ...buildEventOutcomePayload(entry),
+    ...buildResourcePayload(entry),
     ...buildSnapshotPayload(entry),
   });
 

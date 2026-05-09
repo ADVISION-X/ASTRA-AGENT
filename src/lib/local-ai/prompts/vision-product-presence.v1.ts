@@ -58,6 +58,7 @@ export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
     "Decide whether the sampled frames visibly show a concrete product as the subject of demonstration, display, use, unboxing, comparison, wearing, holding, installation, assembly, or sale presentation.",
     "Return exactly one decision: product_yes or product_no.",
     `For product_yes use routeLabel ${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}; for product_no use ${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}.`,
+    "Never return suggestedNextAction, nextIntent, actionIntent, action_intent, or any executable instruction field.",
     "Use only visible sampled-frame evidence. Treat contact-sheet or multi-image input as one governed decision, not separate votes.",
     "One clearly visible product frame is enough for product_yes; do not require every frame to show the product.",
     "Choose product_no only when the sampled evidence does not visibly show a concrete product presentation, or when the frames are scenery-only, person-only, text-only, blocked, or too weak to identify a product safely.",

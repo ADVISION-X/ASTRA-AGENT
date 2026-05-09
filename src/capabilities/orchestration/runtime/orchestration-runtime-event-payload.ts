@@ -9,6 +9,7 @@ import {
   type StructuredJointCheckpoint,
   type StructuredJointStage,
   type StructuredRuntimeEvent,
+  type StructuredRuntimeResourceSummary,
 } from "../../../types/structured-log.js";
 import { resolveRuntimeStepForOperationalStep } from "./orchestration-step-trace-mapper.js";
 import type { OperationalStep } from "./step-dispatch-shared.js";
@@ -50,6 +51,7 @@ type RuntimeEventInput = {
   ownerResponsible?: string | null;
   decision?: string | null;
   durationMs?: number | null;
+  level?: StructuredRuntimeEvent["level"];
   capabilityCallId?: string | null;
   refs?: string[];
   inputRefs?: string[];
@@ -58,6 +60,7 @@ type RuntimeEventInput = {
   actionLogRefs?: string[];
   actionRef?: string | null;
   postActionVerificationRef?: string | null;
+  resourceSummary?: StructuredRuntimeResourceSummary | null;
   expectedInputRefKeys?: string[];
   resolvedInputRefKeys?: string[];
   missingInputRefKeys?: string[];
@@ -125,7 +128,7 @@ export const buildStructuredRuntimeEvent = (input: RuntimeEventInput) =>
   StructuredRuntimeEventSchema.parse({
     eventId: randomUUID(),
     eventType: input.eventType,
-    level: "INFO",
+    level: input.level ?? "INFO",
     phase: "mission-loop",
     component: "orchestration",
     owner: "Orchestration",
@@ -150,6 +153,7 @@ export const buildStructuredRuntimeEvent = (input: RuntimeEventInput) =>
     actionableMessage: input.actionableMessage ?? null,
     ownerResponsible: input.ownerResponsible ?? "Orchestration",
     decision: input.decision ?? null,
+    resourceSummary: input.resourceSummary ?? null,
     ...buildRuntimeEventTiming(input),
     ...buildRuntimeEventDebugFields(input),
     ...(input.proofSummary ?? {}),
