@@ -176,9 +176,9 @@ const CI_STAGES: CiStage[] = [
     label: "foundation-layer",
     executionMode: "serial",
     steps: [
-      { label: "code-purity", args: ["run", "audit:code-purity"], timeoutMs: CODE_PURITY_TIMEOUT_MS, env: { GRASSEYE_SKIP_CODE_PURITY_NEGATIVE_PROOF: "1" } },
-      { label: "typecheck", args: ["run", "typecheck"], timeoutMs: QUICK_STEP_TIMEOUT_MS },
       { label: "audit build", args: ["run", "audit:build"], timeoutMs: QUICK_STEP_TIMEOUT_MS },
+      { label: "code-purity", args: ["run", "audit:code-purity"], timeoutMs: CODE_PURITY_TIMEOUT_MS },
+      { label: "typecheck", args: ["run", "typecheck"], timeoutMs: QUICK_STEP_TIMEOUT_MS },
       { label: "capability-group-governance", args: ["run", "audit:capability-group-governance"], timeoutMs: OWNER_STEP_TIMEOUT_MS, env: SKIP_NEGATIVE_PROOF_ENV },
       { label: "type-safety", args: ["run", "audit:type-safety"], timeoutMs: QUICK_STEP_TIMEOUT_MS },
       { label: "security-privacy", args: ["run", "audit:security-privacy"], timeoutMs: QUICK_STEP_TIMEOUT_MS },

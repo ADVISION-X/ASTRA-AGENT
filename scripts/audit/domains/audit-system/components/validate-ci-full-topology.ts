@@ -110,17 +110,20 @@ const collectCiStages = (sourceFile: SourceFile): CiStageShape[] => {
     return [];
   }
 
-  return initializer.getElements().filter(Node.isObjectLiteralExpression).map((stageObject) => ({
-    label: getStringProperty(stageObject, "label") ?? "",
-    executionMode: (getStringProperty(stageObject, "executionMode") ?? "") as CiStageExecutionMode | "",
-    maxConcurrency: getNumericProperty(sourceFile, stageObject, "maxConcurrency"),
-    line: getNodeLine(stageObject),
-    steps: getObjectArrayProperty(stageObject, "steps").map((stepObject) => ({
-      label: getStringProperty(stepObject, "label") ?? "",
-      args: getStringArrayProperty(stepObject, "args"),
-      mutatesProduction: getBooleanProperty(stepObject, "mutatesProduction") ?? false,
-    })),
-  }));
+  return initializer.getElements().filter(Node.isObjectLiteralExpression).map((stageObject) => {
+    const maxConcurrency = getNumericProperty(sourceFile, stageObject, "maxConcurrency");
+    return {
+      label: getStringProperty(stageObject, "label") ?? "",
+      executionMode: (getStringProperty(stageObject, "executionMode") ?? "") as CiStageExecutionMode | "",
+      ...(maxConcurrency === undefined ? {} : { maxConcurrency }),
+      line: getNodeLine(stageObject),
+      steps: getObjectArrayProperty(stageObject, "steps").map((stepObject) => ({
+        label: getStringProperty(stepObject, "label") ?? "",
+        args: getStringArrayProperty(stepObject, "args"),
+        mutatesProduction: getBooleanProperty(stepObject, "mutatesProduction") ?? false,
+      })),
+    };
+  });
 };
 
 const hasSpawnImport = (sourceFile: SourceFile): boolean => {
@@ -158,7 +161,9 @@ const hasRequiredLayerOrder = (stages: CiStageShape[]): boolean => {
 
 const hasFoundationFirstCodePurity = (stages: CiStageShape[]): boolean => {
   const foundation = stages.find((stage) => stage.label === "foundation-layer");
-  return foundation?.executionMode === "serial" && foundation.steps[0]?.args.join(" ") === "run audit:code-purity";
+  return foundation?.executionMode === "serial"
+    && foundation.steps[0]?.args.join(" ") === "run audit:build"
+    && foundation.steps[1]?.args.join(" ") === "run audit:code-purity";
 };
 
 const hasMapSecond = (stages: CiStageShape[]): boolean => {
@@ -223,7 +228,7 @@ const collectLayerOrderFindings = (stages: CiStageShape[], relativePath: string)
     findings.push(createTopologyFinding({ relativePath, line: stages[0]?.line ?? 1, message: "CI full must run foundation-layer first, map-layer second, and ability-group-layer third." }));
   }
   if (!hasFoundationFirstCodePurity(stages)) {
-    findings.push(createTopologyFinding({ relativePath, line: stages[0]?.line ?? 1, message: "CI full foundation-layer must run audit:code-purity as the first gate." }));
+    findings.push(createTopologyFinding({ relativePath, line: stages[0]?.line ?? 1, message: "CI full foundation-layer must run audit:build before audit:code-purity so code-purity does not rebuild the audit universe." }));
   }
   if (!hasMapSecond(stages)) {
     findings.push(createTopologyFinding({ relativePath, line: stages[1]?.line ?? 1, message: "CI full map-layer must run audit:map-plugin-package before ability groups." }));
@@ -239,7 +244,7 @@ const collectStageGraphFindings = (stages: CiStageShape[], relativePath: string)
   if (!isolatesMutatingAuditStage(stages)) {
     findings.push(createTopologyFinding({
       relativePath,
-      line: stages.find((stage) => stage.parallel && stage.steps.some((step) => step.mutatesProduction))?.line ?? 1,
+      line: stages.find((stage) => stage.executionMode !== "serial" && stage.steps.some((step) => step.mutatesProduction))?.line ?? 1,
       message: "CI full must isolate production-mutation audit steps in a serial stage.",
     }));
   }
@@ -279,7 +284,7 @@ const createTopologyPhases = (findings: CiTopologyFinding[]) => [
     findings.length === 0 ? "PASS" : "SCRIPT OVERREACH",
     findings.length === 0,
     findings.length === 0
-      ? "CI full runs foundation first with code-purity as gate one, then map, then the 14 ability groups."
+      ? "CI full runs foundation first with audit:build then code-purity, then map, then the 14 ability groups."
       : "CI full has layer order, timeout, script graph, redundant coverage, or mutation-isolation drift.",
   ),
 ];

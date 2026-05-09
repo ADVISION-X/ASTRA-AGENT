@@ -7,7 +7,10 @@ import { hasSpecifierFakePathToken, isProductionFakePath } from "./purity-path-r
 
 const SOURCE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".json", ".jsonc"] as const;
 
-const normalizeRelativePath = (value: string): string => value.replace(/\\/g, "/").replace(/^\.\//, "");
+const normalizeRelativePath = (value: string): string => {
+  const normalized = value.replace(/\\/g, "/");
+  return normalized.startsWith("./") ? normalized.slice(2) : normalized;
+};
 
 const stripRuntimeExtension = (value: string): string =>
   value.replace(/\.(?:js|jsx|mjs)$/u, "");

@@ -61,7 +61,7 @@ const filterActiveRelativePaths = (relativePaths: string[]): string[] =>
     .filter((relativePath) => !isExcludedSourcePath(relativePath))
     .sort((left, right) => left.localeCompare(right));
 
-const getActiveRelativePaths = async (): Promise<string[]> => {
+export const getActiveCodePurityRelativePaths = async (): Promise<string[]> => {
   const discovered = new Set<string>(ACTIVE_FILES);
 
   for (const root of ACTIVE_ROOTS) {
@@ -95,7 +95,7 @@ const collectSourceFiles = async (): Promise<{
   project: Project;
 }> => {
   const touchedSnapshot = await collectTouchedFilesArtifact();
-  const relativePaths = await getActiveRelativePaths();
+  const relativePaths = await getActiveCodePurityRelativePaths();
   const touchedPaths = new Set(filterActiveRelativePaths(touchedSnapshot.touchedFiles));
   debug(`activeRoots=${ACTIVE_ROOTS.join(",")}`);
   debug(`scannedCandidates=${relativePaths.length}`);
@@ -157,7 +157,7 @@ const inspectRequiredComponentExports = (project: Project): Finding[] =>
       })];
   });
 
-const inspectLawCoverage = (context: InspectorContext): Finding[] => {
+export const inspectCodePurityLawCoverage = (context: Pick<InspectorContext, "lawRegistry">): Finding[] => {
   const expectedLawIds = context.lawRegistry.laws
     .filter((law) => law.relativeFilePath === ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md")
     .map((law) => law.lawId);
@@ -245,7 +245,7 @@ export const inspectCodePurity = async (context: InspectorContext): Promise<{ fi
   const findings = [
     ...inspectSourcePaths(project, relativePaths, touchedPaths, reportDraft),
     ...inspectRequiredComponentExports(project),
-    ...inspectLawCoverage(context),
+    ...inspectCodePurityLawCoverage(context),
     ...(await inspectReportOutputs(reportDraft)),
   ];
 

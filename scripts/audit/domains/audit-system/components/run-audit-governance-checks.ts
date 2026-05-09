@@ -1,6 +1,7 @@
 import type { Finding, InspectorContext, InspectorPhase } from "../../../core/schema.js";
 import { validateGeneratedArtifacts } from "./validate-generated-artifacts.js";
 import { validateCiFullTopology } from "./validate-ci-full-topology.js";
+import { validateCodePurityTopology } from "./validate-code-purity-topology.js";
 import { validateLawHome } from "./validate-law-home.js";
 import { validateManifestOwnership } from "./validate-manifest-ownership.js";
 import { validateOwnerEvidence } from "./validate-owner-evidence.js";
@@ -21,6 +22,7 @@ export const runAuditGovernanceChecks = async (
   results.push(await validateManifestOwnership(context));
   results.push(await validateGeneratedArtifacts(context));
   results.push(await validateCiFullTopology(context));
+  results.push(await validateCodePurityTopology(context));
   results.push(await validateStaticClauseCoverage(context));
   results.push(await validateRequiredPhaseDomains(context));
   results.push(await validateRunnerBoundary(context));
