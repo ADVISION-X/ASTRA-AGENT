@@ -9,6 +9,14 @@ import { handleMapLabRequest } from "./map-lab-api-handlers.js";
 import { handleRuntimeReadRequest } from "./runtime-api-handlers.js";
 import { handleTaskRequest } from "./task-api-handlers.js";
 
+const WORKBENCH_ROUTE_HANDLERS = [
+  handleRuntimeReadRequest,
+  handleTaskRequest,
+  handleCandidateRequest,
+  handleAppSettingsRequest,
+  handleMapLabRequest,
+] as const;
+
 async function handleArtifactOrRootRequest(
   request: import("node:http").IncomingMessage,
   response: import("node:http").ServerResponse,
@@ -43,24 +51,10 @@ async function handleRequest(
 ): Promise<void> {
   const url = new URL(request.url ?? "/", activeBaseUrl);
 
-  if (await handleRuntimeReadRequest(request, response, activeWorkbench, url)) {
-    return;
-  }
-
-  if (await handleTaskRequest(request, response, activeWorkbench, url)) {
-    return;
-  }
-
-  if (await handleCandidateRequest(request, response, activeWorkbench, url)) {
-    return;
-  }
-
-  if (await handleAppSettingsRequest(request, response, activeWorkbench, url)) {
-    return;
-  }
-
-  if (await handleMapLabRequest(request, response, activeWorkbench, url)) {
-    return;
+  for (const routeHandler of WORKBENCH_ROUTE_HANDLERS) {
+    if (await routeHandler(request, response, activeWorkbench, url)) {
+      return;
+    }
   }
 
   if (await handleArtifactOrRootRequest(request, response, activeWorkbench, url)) {

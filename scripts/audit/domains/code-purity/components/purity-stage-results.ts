@@ -23,7 +23,7 @@ export const readCodePurityReportResult = async (): Promise<CodePurityReportResu
 
 export const loadCodePurityLawRegistry = async (): Promise<GeneratedLawRegistry> => {
   if (!(await fileExists(generatedArtifactPaths.lawRegistry))) {
-    throw new Error("Code-purity requires generated law registry. Run `npm run audit:build` first, or set GRASSEYE_CODE_PURITY_BUILD_ARTIFACTS=1 for an explicit rebuild.");
+    throw new Error("Code-purity requires generated law registry. Run ci:full first.");
   }
   const registry = await readJsonFile<GeneratedLawRegistry>(generatedArtifactPaths.lawRegistry);
   return {

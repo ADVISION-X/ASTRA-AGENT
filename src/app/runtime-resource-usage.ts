@@ -29,17 +29,19 @@ function toMb(kb: number): number {
   return Math.round((kb / 1024) * 10) / 10;
 }
 
+const RUNTIME_RESOURCE_USAGE_TAG_RULES = [
+  { tag: "workbench-server", matches: (normalizedCommand: string, pid: number) => pid === process.pid },
+  { tag: "ollama-runner", matches: (normalizedCommand: string) => normalizedCommand.includes("ollama runner") },
+  { tag: "ollama", matches: (normalizedCommand: string) => !normalizedCommand.includes("ollama runner") && normalizedCommand.includes("ollama") },
+  { tag: "chrome", matches: (normalizedCommand: string) => normalizedCommand.includes("google chrome helper") || normalizedCommand.includes("google chrome") },
+  { tag: "grasseye-app-server", matches: (normalizedCommand: string) => normalizedCommand.includes("dist/src/app/server.js") },
+  { tag: "grasseye-dev-server", matches: (normalizedCommand: string) => normalizedCommand.includes("tsx src/app/server.ts") },
+  { tag: "esbuild", matches: (normalizedCommand: string) => normalizedCommand.includes("esbuild") },
+] as const;
+
 function buildTags(command: string, pid: number): string[] {
   const normalizedCommand = command.toLowerCase();
-  return [
-    pid === process.pid ? "workbench-server" : null,
-    normalizedCommand.includes("ollama runner") ? "ollama-runner" : null,
-    !normalizedCommand.includes("ollama runner") && normalizedCommand.includes("ollama") ? "ollama" : null,
-    normalizedCommand.includes("google chrome helper") || normalizedCommand.includes("google chrome") ? "chrome" : null,
-    normalizedCommand.includes("dist/src/app/server.js") ? "grasseye-app-server" : null,
-    normalizedCommand.includes("tsx src/app/server.ts") ? "grasseye-dev-server" : null,
-    normalizedCommand.includes("esbuild") ? "esbuild" : null,
-  ].filter((tag): tag is string => tag !== null);
+  return RUNTIME_RESOURCE_USAGE_TAG_RULES.flatMap((rule) => (rule.matches(normalizedCommand, pid) ? [rule.tag] : []));
 }
 
 function parsePsLineParts(match: RegExpMatchArray) {

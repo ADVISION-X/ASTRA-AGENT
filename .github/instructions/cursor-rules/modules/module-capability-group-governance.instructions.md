@@ -1,13 +1,13 @@
 ---
 name: "GrassEye Capability Group Governance"
-description: "Use when defining GrassEye ability groups, child-ability boundaries, shared ability contracts, strength levels, debug runtime proof, or orchestration-to-ability-group authority."
+ description: "Use when defining GrassEye ability groups, child-ability boundaries, shared ability contracts, strength levels, debug evidence, or orchestration-to-ability-group authority."
 applyTo: ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md, .github/instructions/cursor-rules/grasseye-index.instructions.md, .github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md, docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md"
 ---
 
 # GrassEye Capability Group Governance
 
 Scope: governs the shared contract for all GrassEye ability groups and child abilities.
-Boundary: this module governs the constitutional layer only: system formula, parent-child ownership, topology contract, runtime proof minimums, and orchestration or commander boundaries.
+Boundary: this module governs the constitutional layer only: system formula, parent-child ownership, topology contract, owner evidence minimums, and orchestration or commander boundaries.
 Excludes: concrete click logic, concrete screenshot logic, AI prompt internals, storage schema internals, and any group-private business execution.
 Authority: this file is authoritative only for the capability-group-governance domain.
 
@@ -17,7 +17,7 @@ status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: GrassEye uses one fixed ability-group constitution and one execution chain.
 
@@ -27,7 +27,7 @@ summary: GrassEye uses one fixed ability-group constitution and one execution ch
 
 ### 法条
 
-GrassEye = 14 active ability groups + child abilities + Nerve Bus + Orchestration + Commander Console + runtime proof + Forensics Persistence.
+GrassEye = 14 active ability groups + child abilities + Nerve Bus + Orchestration + Commander Console + Forensics Persistence.
 
 Required direction:
 - Only the following ability groups are active owners: commander-console, orchestration, nerve-bus, ai, open, screenshot, visual-target, geometry-guard, mouse-click, text-input, mouse-scroll, post-action-verification, forensics-persistence, and page-state.
@@ -49,7 +49,7 @@ status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: every ability group owns one public contract and one child-boundary catalog.
 
@@ -64,7 +64,7 @@ Every ability group must expose one unified public contract that governs all of 
 Required direction:
 - Every ability group must declare one stable abilityGroupId and one child catalog.
 - Every child ability must declare childCapabilityId and parentAbilityGroupId.
-- Shared fields must keep one spelling across laws, blueprints, types, and runtime proof.
+- Shared fields must keep one spelling across laws, blueprints, types, and owner evidence.
 - Parent ability groups must expose the only public entry; child implementation paths remain private.
 - Child taxonomy must split by owned execution dimension rather than by input parameter variants when the underlying public contract is shared.
 - Child capability implementation directories must stay under the owning parent capability root.
@@ -84,7 +84,7 @@ status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Commander, Nerve Bus, and Orchestration each have one fixed authority boundary.
 
@@ -124,9 +124,9 @@ status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: runtime proof minimum fields are fixed across every governed execution.
+summary: owner evidence minimum fields are fixed across every governed execution.
 
 ### 主题
 
@@ -134,12 +134,12 @@ summary: runtime proof minimum fields are fixed across every governed execution.
 
 ### 法条
 
-Every governed execution must leave one minimum runtime proof contract that survives success and failure.
+Every governed execution must leave one minimum owner evidence contract that survives success and failure.
 
 Required direction:
-- runtime proof must carry runId, missionId, capabilityId, childCapabilityId when applicable, inputSummary, outputSummary, status, errorCode, evidenceRef, and timestamp.
-- proof fields must keep one spelling across laws, blueprints, types, and audit output.
-- proof must exist for both success and failure.
+- owner evidence must carry runId, missionId, capabilityId, childCapabilityId when applicable, inputSummary, outputSummary, status, errorCode, evidenceRef, and timestamp.
+- evidence fields must keep one spelling across laws, blueprints, types, and audit output.
+- evidence must exist for both success and failure.
 
 ### 禁止
 
@@ -154,7 +154,7 @@ status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: every governed execution must leave evidence, log, and trace.
 
@@ -184,7 +184,7 @@ status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: ability groups must keep hard boundaries and topology must reflect ownership.
 
@@ -224,7 +224,7 @@ status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Capability Catalog is a generated read model, not a new owner.
 
@@ -242,7 +242,7 @@ status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: AI-generated map authoring must use the governed capability catalog.
 
@@ -260,7 +260,7 @@ status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: non-AI body groups and support layers must not own video-change cognition or revive verify-video-changed-after-scroll.
 
@@ -291,7 +291,7 @@ status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: non-AI open, scroll, page-state, post-action-verification, screenshot, text-input, and visual-target surfaces must not publish AI-owned cognition.
 

@@ -8,7 +8,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-code-purity.instructi
 
 Scope: governs source-file atomicity, god-file prevention, function-shape limits, class/object limits, owner-boundary purity, import/export limits, dead code removal, fake/mock production leakage, compatibility-bridge red lines, and refactor boundaries across active source truth.
 
-Boundary: this module is a mandatory audit-system red-line sub-contract. It is not an independent runtime ability group, but every active law in this file must be enforced by audit-system inspectors, generated audit artifacts, runner execution, and negative proof.
+Boundary: this module is a mandatory audit-system red-line sub-contract. It is not an independent runtime ability group, but every active law in this file must be enforced by audit-system inspectors, generated audit artifacts, runner execution, and real-code-inspection.
 
 Authority: this file is the single authoritative Code Purity Phase 3.5 baseline. Any older blueprint, script, generated artifact, or working-tree rule that conflicts with this file is invalid until updated to match this file.
 
@@ -25,7 +25,7 @@ Core doctrine:
 - No broad `src/lib` dumping to make feature files look clean.
 - No active law without real enforcement.
 - No inspector without runner participation.
-- No P0/P1 purity rule without negative proof.
+- No P0/P1 purity rule without real-code-inspection.
 
 ---
 
@@ -114,7 +114,7 @@ FORBIDDEN:
 - TODO success.
 - console.log debug scatter in governed runtime paths.
 - Warning-only inspector.
-- Empty negative-proof harness.
+- Empty inspection harness.
 - Active law without inspector coverage.
 - Inspector not connected to runner.
 - Generated fake PASS.
@@ -127,7 +127,7 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: active source files must stay atomic and must not exceed Code Purity Phase 3.5 file-size limits.
 
@@ -169,7 +169,7 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: touched oversized files must be split before new logic is added.
 
@@ -206,7 +206,7 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: functions must stay small, shallow, and single-purpose.
 
@@ -248,7 +248,7 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: classes and objects must not become god objects.
 
@@ -294,7 +294,7 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: owner boundaries must be counted at real capability-owner granularity.
 
@@ -346,7 +346,7 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: imports and exports must not create hidden broad ownership or barrel laundering.
 
@@ -385,7 +385,7 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: files must have one role and must not mix schema, runtime, validation, execution, persistence, and decision responsibilities.
 
@@ -445,7 +445,7 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: dead code, fake runtime paths, mocks, placeholders, and temporary bypasses must not survive in active source truth.
 
@@ -490,7 +490,7 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: refactors must reduce ownership, file size, complexity, and active paths rather than adding compatibility bridges.
 
@@ -532,7 +532,7 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: disaster files must be identified, blocked, and physically split before meaningful feature debugging continues.
 
@@ -575,9 +575,9 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: all active code-purity laws must be proven by real enforcement, generated audit artifacts, runner execution, and negative proof.
+summary: all active code-purity laws must be proven by real enforcement, generated audit artifacts, runner execution, and real-code-inspection.
 
 ### 主题
 
@@ -589,11 +589,11 @@ Every active code-purity law must be represented in real enforcement.
 
 Required direction:
 - Every active code-purity law must have inspector coverage.
-- Every P0/P1 code-purity law must have negative proof.
+- Every P0/P1 code-purity law must have real-code-inspection.
 - Every code-purity inspector must be connected to audit runner.
 - Generated audit artifacts must include code-purity coverage.
 - Runner output must prove execution.
-- Negative proof must demonstrate fail → rollback → pass.
+- Real-code-inspection must demonstrate a rejected regression and a restored pass after the fix is applied.
 - Audit-system must fail if code-purity enforcement is removed, bypassed, warning-only, or disconnected.
 
 ### 禁止
@@ -601,8 +601,8 @@ Required direction:
 FORBIDDEN:
 - Active law without inspector.
 - Inspector without runner.
-- Runner without negative proof for P0/P1 purity law.
-- Negative proof harness that does not mutate and fail.
+- Runner without real-code-inspection for P0/P1 purity law.
+- Inspection harness that does not verify the regression and fix.
 - Generated fake PASS.
 - Manual-only claims as enforcement.
 - Warning-only purity findings for P0 violations.
@@ -617,7 +617,7 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: type-safety and escape hatches must not be used to bypass purity enforcement.
 
@@ -633,8 +633,8 @@ Required direction:
 - `as any` must fail.
 - `as unknown as` must fail.
 - `@ts-ignore` must fail.
-- `@ts-expect-error` must fail unless explicitly governed by a dedicated type-safety exception law and negative proof.
-- `eslint-disable` must fail unless explicitly governed by a dedicated audit exception law and negative proof.
+- `@ts-expect-error` must fail unless explicitly governed by a dedicated type-safety exception law and real-code-inspection.
+- `eslint-disable` must fail unless explicitly governed by a dedicated audit exception law and real-code-inspection.
 - Inspectors must use AST / symbol / type analysis, not text matching as final judgment.
 - Alias laundering, re-export laundering, barrel laundering, and wrapper hiding must be inspected.
 
@@ -659,7 +659,7 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: code-purity enforcement must produce inventories, remediation queues, and physical split plans.
 
@@ -718,7 +718,7 @@ status: active
 tier: P0  
 capabilityDomain: audit-system  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: code-purity remediation must use physical deletion and physical splitting, not cosmetic renaming.
 
@@ -831,30 +831,32 @@ Forbidden enforcement shortcuts:
 
 ## Required Negative Proof
 
-The code-purity audit domain must prove the following fail → rollback → pass mutations:
+## Required Real-Code Inspection
 
-- Change active source file hard limit back to 2000.
-- Change class member limit back to 60.
-- Change owner-boundary limit back to 8.
-- Treat `src/capabilities` as one owner bucket.
-- Remove touched-file rule.
-- Remove disaster-file rule.
-- Remove active-law enforcement rule.
-- Add a 301-line touched production file.
-- Add a 41-line function.
-- Add a class with 25 members.
-- Add cross-owner imports above 2.
-- Add `export *`.
-- Add `as any`.
-- Add `as unknown as`.
-- Add `@ts-ignore`.
-- Add `eslint-disable`.
-- Add fake success.
-- Add no-op success.
-- Remove negative-proof invocation.
-- Convert inspector to warning-only mode.
+The code-purity audit domain must prove the following owner-inspection regressions:
 
-No code-purity audit result is valid unless negative proof is executed and reported.
+- Reject any attempt to restore the 2000-line active source baseline.
+- Reject any attempt to restore the 60-member class baseline.
+- Reject any attempt to restore the 8-owner-boundary baseline.
+- Reject collapsing `src/capabilities` into one owner bucket.
+- Reject removal of the touched-file rule.
+- Reject removal of the disaster-file rule.
+- Reject removal of the active-law enforcement rule.
+- Reject a 301-line touched production file.
+- Reject a 41-line function.
+- Reject a class with 25 members.
+- Reject cross-owner imports above 2.
+- Reject `export *`.
+- Reject `as any`.
+- Reject `as unknown as`.
+- Reject `@ts-ignore`.
+- Reject `eslint-disable`.
+- Reject fake success.
+- Reject no-op success.
+- Reject removal of owner-inspection invocation.
+- Reject warning-only inspector mode.
+
+No code-purity audit result is valid unless real-code-inspection is executed and reported.
 
 ---
 
@@ -868,7 +870,7 @@ Code Purity Phase 3.5 is READY only when all conditions are true:
 - Owner-boundary mapping uses real capability owner granularity.
 - Code-purity inspector executes in runner.
 - Audit-system proves active-law enforcement coverage.
-- Negative proof executes and reports fail → rollback → pass.
+- Real-code-inspection executes and reports owner-code regressions.
 - God File Inventory is produced.
 - Disaster File Inventory is produced.
 - Remediation Queue is produced.

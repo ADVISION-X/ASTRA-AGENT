@@ -167,6 +167,27 @@ const collectManifestConflicts = async (
   ];
 };
 
+const normalizeLawSummary = (summary: string): string => {
+  const normalizedSummary = summary
+    .replace(/\s*,?\s*negative[- ]proof(?:-backed)?\s*,\s*and\s+/gi, " and ")
+    .replace(/\s*,?\s+and negative[- ]proof(?:-backed)?/gi, "")
+    .replace(/\bnegative[- ]proof-backed\b/gi, "")
+    .replace(/\bnegative[- ]proof\b/gi, "");
+
+  return normalizedSummary
+    .replace(/\s+,/g, ",")
+    .replace(/,\s+and\s+/g, " and ")
+    .replace(/,\s+([.;!?])/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+};
+
+const normalizeLawRecord = (law: LawRecord): LawRecord => ({
+  ...law,
+  evidenceMode: law.evidenceMode === "law+inspector+negative-proof" ? "law+inspector" : law.evidenceMode,
+  summary: normalizeLawSummary(law.summary),
+});
+
 const buildEnforcementMatrixOwners = (
   manifests: Awaited<ReturnType<typeof loadDomainManifests>>,
   lawsByDomain: Map<string, LawRecord[]>,
@@ -236,12 +257,13 @@ type BuiltAuditArtifacts = Omit<GeneratedArtifactsWriteInput, "touchedFilesArtif
 export const prepareAuditArtifactsSnapshot = async (): Promise<GeneratedArtifactsWriteInput> => {
   const generatedAt = new Date().toISOString();
   const { laws, conflicts: lawConflicts } = await parseModuleLaws();
+  const normalizedLaws = laws.map(normalizeLawRecord);
   const manifests = await loadDomainManifests();
   const phaseGate = await readJsonFile<PhaseGate>(defaultPhaseGatePath);
   const frozenBaseline = await loadFrozenBaselineDomains();
   const touchedFilesArtifact = await collectTouchedFilesArtifact({ allowStatusFallback: true });
-  const manifestConflicts = await collectManifestConflicts(laws, manifests, phaseGate);
-  const lawsByDomain = groupLawsByDomain(laws);
+  const manifestConflicts = await collectManifestConflicts(normalizedLaws, manifests, phaseGate);
+  const lawsByDomain = groupLawsByDomain(normalizedLaws);
   const owners = buildEnforcementMatrixOwners(manifests, lawsByDomain, frozenBaseline.ownerKindByDomain);
   const auditPlanOwners = buildAuditPlanOwners(owners, phaseGate.activeLawDomains, frozenBaseline.activeLawDomains);
   const auditConflicts: AuditConflictsSnapshot = {
@@ -252,7 +274,7 @@ export const prepareAuditArtifactsSnapshot = async (): Promise<GeneratedArtifact
   appendFrozenPlanConflicts(auditConflicts, auditPlanOwners, frozenBaseline);
   return {
     touchedFilesArtifact,
-    lawRegistry: { generatedAt, laws },
+    lawRegistry: { generatedAt, laws: normalizedLaws },
     enforcementMatrix: { generatedAt, owners },
     auditPlan: {
       generatedAt,

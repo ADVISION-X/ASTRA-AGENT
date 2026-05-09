@@ -1,6 +1,5 @@
 import { spawn } from "node:child_process";
 
-import { buildAuditArtifacts } from "../../build-audit-artifacts.js";
 import { hasBlockingFindings } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 import {
@@ -16,8 +15,6 @@ import {
   readCodePurityReportResult,
   readScanSummary,
 } from "./components/purity-stage-results.js";
-
-const EXPLICIT_BUILD_ENV = "GRASSEYE_CODE_PURITY_BUILD_ARTIFACTS";
 
 const STAGES = [
   { label: "code-purity:scan", script: "scripts/audit/domains/code-purity/run-scan.ts" },
@@ -42,20 +39,11 @@ const runStage = async (stage: (typeof STAGES)[number]): Promise<void> => {
   });
 };
 
-const maybeBuildArtifacts = async (): Promise<void> => {
-  if (process.env[EXPLICIT_BUILD_ENV] !== "1") {
-    return;
-  }
-  process.stdout.write("[AUDIT] GRASSEYE_CODE_PURITY_BUILD_ARTIFACTS=1 set; building audit artifacts explicitly...\n");
-  await buildAuditArtifacts();
-};
-
 const printFinding = (finding: Finding): void => {
   process.stdout.write(`- ${finding.severity.toUpperCase()} ${finding.lawId} ${finding.file}:${finding.line} ${finding.message}\n`);
 };
 
 const main = async (): Promise<void> => {
-  await maybeBuildArtifacts();
   logCodePurityStageMetrics("orchestrator:start", 0, 0);
   for (const stage of STAGES) {
     await runStage(stage);

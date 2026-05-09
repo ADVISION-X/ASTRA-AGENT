@@ -80,13 +80,26 @@ const logMemorySnapshot = async (prefix: string): Promise<void> => {
   process.stdout.write(`[CI FULL] ${prefix} memory ${formatMemorySnapshot(snapshot)}.\n`);
 };
 
-const stopActiveChildren = (): void => {
-  for (const pid of ACTIVE_CHILD_PIDS) {
+const terminateChildProcessGroup = (pid: number, signal: NodeJS.Signals): void => {
+  try {
+    if (process.platform !== "win32") {
+      process.kill(-pid, signal);
+      return;
+    }
+
+    process.kill(pid, signal);
+  } catch {
     try {
-      process.kill(pid, "SIGTERM");
+      process.kill(pid, signal);
     } catch {
       // Ignore races for already-exited children.
     }
+  }
+};
+
+const stopActiveChildren = (signal: NodeJS.Signals = "SIGTERM"): void => {
+  for (const pid of ACTIVE_CHILD_PIDS) {
+    terminateChildProcessGroup(pid, signal);
   }
 };
 
@@ -114,7 +127,7 @@ const startStageMemoryGuard = (stageLabel: string): (() => Promise<void>) => {
       .then((snapshot) => {
         if (snapshot.totalRssMb > MAX_RSS_MB) {
           activeStageResourceError = createResourceLimitError(stageLabel, snapshot);
-          stopActiveChildren();
+          stopActiveChildren("SIGKILL");
         }
       })
       .catch(() => {
@@ -199,6 +212,7 @@ const runCiStep = async (step: CiStep, stageLabel: CiFullLayerLabel, runId: stri
       const [command, ...args] = step.command;
       const child = spawn(command, args, {
         stdio: "inherit",
+        detached: process.platform !== "win32",
         shell: process.platform === "win32",
       });
 
@@ -226,7 +240,11 @@ const runCiStep = async (step: CiStep, stageLabel: CiFullLayerLabel, runId: stri
       };
 
       timeoutHandle = setTimeout(() => {
-        child.kill("SIGTERM");
+        if (typeof child.pid === "number") {
+          terminateChildProcessGroup(child.pid, "SIGTERM");
+        } else {
+          child.kill("SIGTERM");
+        }
         finish("FAIL", 1);
       }, step.timeoutMs);
 

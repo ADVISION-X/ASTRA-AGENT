@@ -17,7 +17,7 @@ status: active
 tier: P0
 capabilityDomain: audit-system
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: inspector plus generated artifacts plus audit runner is the only enforcement chain.
 
@@ -40,7 +40,7 @@ Required direction:
 - Public-index leakage, private-path escape, and legacy-contract escape must also close through decisive AST, symbol resolution, or import-graph checks.
 - Per-child capability-check or verify files may be referenced only as forbidden-shape targets and must never become inspection substitutes.
 - startup bootstrap checks are enforced by the commander-console-capability inspector as the startup child-contract checker and may not fall back to verify or smoke scripts.
-- governed non-owner domains such as map-plugin-package must still provide manifest, inspector, required-shape, forbidden-shape, boundary-attack, anti-escape, negative-proof-harness, and scorecard-gate coverage when they become enforcement truth for a controlled package architecture.
+- governed non-owner domains such as map-plugin-package must still provide manifest, inspector, required-shape, forbidden-shape, boundary-attack, anti-escape, and real-code-inspection coverage when they become enforcement truth for a controlled package architecture.
 
 ### 禁止
 
@@ -59,9 +59,9 @@ status: active
 tier: P0
 capabilityDomain: audit-system
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Map Prompt Contract Governance must be enforced by AST, schema, and negative proof.
+summary: Map Prompt Contract Governance must be enforced by AST, schema, and real-code-inspection.
 
 ### 主题
 
@@ -69,7 +69,7 @@ summary: Map Prompt Contract Governance must be enforced by AST, schema, and neg
 
 ### 法条
 
-Map Prompt Contract Governance must be enforced by AST, schema, and negative proof rather than documentation-only assertions.
+Map Prompt Contract Governance must be enforced by AST, schema, and real-code-inspection rather than documentation-only assertions.
 
 ## Law GRASSEYE-AUDIT-SYSTEM-003-V1
 
@@ -77,7 +77,7 @@ status: active
 tier: P0
 capabilityDomain: audit-system
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Prompt contract and map binding drift is audit-blocking.
 

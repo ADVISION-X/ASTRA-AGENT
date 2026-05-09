@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T14:51:13.153Z",
+  "generatedAt": "2026-05-09T15:07:41.457Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -7,7 +7,7 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "AI is an independent first-class ability group and must remain the only public AI owner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 197
@@ -18,7 +18,7 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "AI child capabilities represent provider/runtime channels; business task routing is AI-owned and must not replace child ids.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 271
@@ -29,7 +29,7 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "AI may reason and return structured results only; it may not execute actions or side effects.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 352
@@ -40,7 +40,7 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "local-ai-runtime is an internal execution boundary under AI ownership and must not become a second public AI system.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 431
@@ -51,7 +51,7 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "paid and future API AI children are visible but disabled by policy and must fail closed.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 497
@@ -62,7 +62,7 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "AI outputs must be cleaned before persistence and must not leak AI runtime contracts into Forensics public ownership.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 572
@@ -73,7 +73,7 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "AI keeps a single public contract and does not leak child, adapter, prompt, or legacy internals.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 625
@@ -84,8 +84,8 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "ai-capability inspector is the only enforcement owner for AI topology, runtime pipeline, prompt truth, and anti-escape checks.",
+      "evidenceMode": "law+inspector",
+      "summary": "ai-capability inspector is the only enforcement owner for AI topology, runtime pipeline, prompt truth and anti-escape checks.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 686
     },
@@ -95,7 +95,7 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "AI owns the Prompt Contract Registry; prompt execution must resolve by promptContractId/version/catalog, never by hardcoded prompt text.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 758
@@ -106,8 +106,8 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Prompt contracts must declare full governed metadata and must be hashable, strict, and audit-proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "Prompt contracts must declare full governed metadata and must be hashable, strict and audit-proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 834
     },
@@ -117,7 +117,7 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Prompt contracts may guide reasoning only and must not command actions, bypass security, or make final mission decisions.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 920
@@ -128,7 +128,7 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "AI runtime must resolve prompt execution by promptContractId and execute a governed runtime pipeline with typed failures.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 985
@@ -139,8 +139,8 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "AI timeout, cancellation, idempotency, concurrency, and circuit breaker state must be governed and proof-backed.",
+      "evidenceMode": "law+inspector",
+      "summary": "AI timeout, cancellation, idempotency, concurrency and circuit breaker state must be governed and proof-backed.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 1064
     },
@@ -150,8 +150,8 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "AI result proof must be complete, chain-linked, raw-output-backed, and impossible to fake as success.",
+      "evidenceMode": "law+inspector",
+      "summary": "AI result proof must be complete, chain-linked, raw-output-backed and impossible to fake as success.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 1134
     },
@@ -161,8 +161,8 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "AI output boundary must recursively block action authority, browser authority, Forensics authority, and command authority.",
+      "evidenceMode": "law+inspector",
+      "summary": "AI output boundary must recursively block action authority, browser authority, Forensics authority and command authority.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
       "line": 1236
     },
@@ -172,7 +172,7 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "inspector plus generated artifacts plus audit runner is the only enforcement chain.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
       "line": 14
@@ -183,8 +183,8 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Map Prompt Contract Governance must be enforced by AST, schema, and negative proof.",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Map Prompt Contract Governance must be enforced by AST, schema and real-code-inspection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
       "line": 56
     },
@@ -194,7 +194,7 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Prompt contract and map binding drift is audit-blocking.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
       "line": 74
@@ -205,7 +205,7 @@
       "tier": "P0",
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "GrassEye uses one fixed ability-group constitution and one execution chain.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 14
@@ -216,7 +216,7 @@
       "tier": "P0",
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "every ability group owns one public contract and one child-boundary catalog.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 46
@@ -227,8 +227,8 @@
       "tier": "P0",
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Commander, Nerve Bus, and Orchestration each have one fixed authority boundary.",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Commander, Nerve Bus and Orchestration each have one fixed authority boundary.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 81
     },
@@ -238,8 +238,8 @@
       "tier": "P0",
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "runtime proof minimum fields are fixed across every governed execution.",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "owner evidence minimum fields are fixed across every governed execution.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 121
     },
@@ -249,8 +249,8 @@
       "tier": "P0",
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "every governed execution must leave evidence, log, and trace.",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "every governed execution must leave evidence, log and trace.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 151
     },
@@ -260,7 +260,7 @@
       "tier": "P0",
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "ability groups must keep hard boundaries and topology must reflect ownership.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 181
@@ -271,7 +271,7 @@
       "tier": "P0",
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Capability Catalog is a generated read model, not a new owner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 221
@@ -282,7 +282,7 @@
       "tier": "P0",
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI-generated map authoring must use the governed capability catalog.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 239
@@ -293,7 +293,7 @@
       "tier": "P0",
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "non-AI body groups and support layers must not own video-change cognition or revive verify-video-changed-after-scroll.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 257
@@ -304,8 +304,8 @@
       "tier": "P0",
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "non-AI open, scroll, page-state, post-action-verification, screenshot, text-input, and visual-target surfaces must not publish AI-owned cognition.",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "non-AI open, scroll, page-state, post-action-verification, screenshot, text-input and visual-target surfaces must not publish AI-owned cognition.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 288
     },
@@ -315,7 +315,7 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "active source files must stay atomic and must not exceed Code Purity Phase 3.5 file-size limits.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 124
@@ -326,7 +326,7 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "touched oversized files must be split before new logic is added.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 166
@@ -337,8 +337,8 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "functions must stay small, shallow, and single-purpose.",
+      "evidenceMode": "law+inspector",
+      "summary": "functions must stay small, shallow and single-purpose.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 203
     },
@@ -348,7 +348,7 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "classes and objects must not become god objects.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 245
@@ -359,7 +359,7 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "owner boundaries must be counted at real capability-owner granularity.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 291
@@ -370,7 +370,7 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "imports and exports must not create hidden broad ownership or barrel laundering.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 343
@@ -381,8 +381,8 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "files must have one role and must not mix schema, runtime, validation, execution, persistence, and decision responsibilities.",
+      "evidenceMode": "law+inspector",
+      "summary": "files must have one role and must not mix schema, runtime, validation, execution, persistence and decision responsibilities.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 382
     },
@@ -392,8 +392,8 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "dead code, fake runtime paths, mocks, placeholders, and temporary bypasses must not survive in active source truth.",
+      "evidenceMode": "law+inspector",
+      "summary": "dead code, fake runtime paths, mocks, placeholders and temporary bypasses must not survive in active source truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 442
     },
@@ -403,8 +403,8 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "refactors must reduce ownership, file size, complexity, and active paths rather than adding compatibility bridges.",
+      "evidenceMode": "law+inspector",
+      "summary": "refactors must reduce ownership, file size, complexity and active paths rather than adding compatibility bridges.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 487
     },
@@ -414,8 +414,8 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "disaster files must be identified, blocked, and physically split before meaningful feature debugging continues.",
+      "evidenceMode": "law+inspector",
+      "summary": "disaster files must be identified, blocked and physically split before meaningful feature debugging continues.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 529
     },
@@ -425,8 +425,8 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "all active code-purity laws must be proven by real enforcement, generated audit artifacts, runner execution, and negative proof.",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "all active code-purity laws must be proven by real enforcement, generated audit artifacts, runner execution and real-code-inspection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 572
     },
@@ -436,7 +436,7 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "type-safety and escape hatches must not be used to bypass purity enforcement.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 614
@@ -447,8 +447,8 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "code-purity enforcement must produce inventories, remediation queues, and physical split plans.",
+      "evidenceMode": "law+inspector",
+      "summary": "code-purity enforcement must produce inventories, remediation queues and physical split plans.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 656
     },
@@ -458,7 +458,7 @@
       "tier": "P0",
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "code-purity remediation must use physical deletion and physical splitting, not cosmetic renaming.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 715
@@ -469,7 +469,7 @@
       "tier": "P0",
       "capabilityDomain": "commander-console-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Commander Console is the only owner of human command entry and review-disposition entry.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
       "line": 80
@@ -480,8 +480,8 @@
       "tier": "P0",
       "capabilityDomain": "commander-console-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Commander command envelope must be explicit, map/platform-safe, idempotent, timeout-governed, and semantically validated.",
+      "evidenceMode": "law+inspector",
+      "summary": "Commander command envelope must be explicit, map/platform-safe, idempotent, timeout-governed and semantically validated.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
       "line": 146
     },
@@ -491,7 +491,7 @@
       "tier": "P0",
       "capabilityDomain": "commander-console-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Commander read models are read-only Commander-owned view records sourced from governed read-model ports.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
       "line": 246
@@ -502,7 +502,7 @@
       "tier": "P0",
       "capabilityDomain": "commander-console-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Commander must not become Orchestration, Nerve Bus, AI, Forensics, browser/action owner, or storage owner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
       "line": 312
@@ -513,8 +513,8 @@
       "tier": "P0",
       "capabilityDomain": "commander-console-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Commander package must have one canonical root, real child folders, one child registry, one runtime pipeline, and no compat bridge.",
+      "evidenceMode": "law+inspector",
+      "summary": "Commander package must have one canonical root, real child folders, one child registry, one runtime pipeline and no compat bridge.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
       "line": 369
     },
@@ -524,7 +524,7 @@
       "tier": "P0",
       "capabilityDomain": "commander-console-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Commander runtime result and proof must preserve command/read chain and must never use fake success, null proof, warning-only pass, or throw from public boundary.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
       "line": 450
@@ -535,7 +535,7 @@
       "tier": "P0",
       "capabilityDomain": "commander-console-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Commander task-template and map-import UX may display governed map lifecycle but must not become map execution, validation, activation, or runtime truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
       "line": 542
@@ -546,8 +546,8 @@
       "tier": "P0",
       "capabilityDomain": "commander-console-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Commander enforcement must close through owner-local AST/symbol/import-graph inspector, generated artifacts, runner, and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "Commander enforcement must close through owner-local AST/symbol/import-graph inspector, generated artifacts, runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
       "line": 614
     },
@@ -557,7 +557,7 @@
       "tier": "P0",
       "capabilityDomain": "debug-loop-boundary",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "debug-loop is local development tooling and must not be registered as an active ability group, runtime owner, or production capability owner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
       "line": 147
@@ -568,7 +568,7 @@
       "tier": "P0",
       "capabilityDomain": "debug-loop-boundary",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "debug-loop may start missions only through Commander public contract and must not directly dispatch Nerve Bus, Orchestration, or ability actions.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
       "line": 200
@@ -579,7 +579,7 @@
       "tier": "P0",
       "capabilityDomain": "debug-loop-boundary",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "debug-loop must not execute direct browser/page/platform operations during mission runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
       "line": 249
@@ -590,7 +590,7 @@
       "tier": "P0",
       "capabilityDomain": "debug-loop-boundary",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "debug-loop must not write production Forensics proof, evidence packets, activation snapshots, or active registry truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
       "line": 301
@@ -601,7 +601,7 @@
       "tier": "P0",
       "capabilityDomain": "debug-loop-boundary",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "debug-loop map-authoring harness may create input/prompt artifacts but must not bypass map-plugin lifecycle or execute generated maps.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
       "line": 355
@@ -612,7 +612,7 @@
       "tier": "P0",
       "capabilityDomain": "debug-loop-boundary",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "debug-loop scenario files describe user/operator intent and success/failure signals; they must not contain executable ability logic or direct platform automation logic.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
       "line": 408
@@ -623,7 +623,7 @@
       "tier": "P0",
       "capabilityDomain": "debug-loop-boundary",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "debug-loop repair packets are diagnostic artifacts and must not become code, proof, policy, or runtime truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
       "line": 487
@@ -634,8 +634,8 @@
       "tier": "P0",
       "capabilityDomain": "debug-loop-boundary",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "debug-loop boundary must be machine-enforced by owner-local inspector, negative proof, and package scripts.",
+      "evidenceMode": "law+inspector",
+      "summary": "debug-loop boundary must be machine-enforced by owner-local inspector and package scripts.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
       "line": 541
     },
@@ -645,7 +645,7 @@
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Forensics Persistence is the only final evidence-ledger owner and must not be bypassed by local-data, runtime, workbench, Commander, AI, or action abilities.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
       "line": 80
@@ -656,7 +656,7 @@
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "child abilities must be persistence behaviors and every child must write exactly one governed Forensics record type.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
       "line": 132
@@ -667,7 +667,7 @@
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Forensics writes and links records only; it must not reason, verify, decide, act, or reconstruct business truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
       "line": 194
@@ -678,7 +678,7 @@
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Forensics public contract must be Forensics-native and must not leak legacy business or runtime type sovereignty.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
       "line": 248
@@ -689,7 +689,7 @@
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "every Forensics record and result must preserve the full execution chain and must be replayable.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
       "line": 332
@@ -700,7 +700,7 @@
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "storage must be a generic record-store port and old store ownership must stay outside the canonical Forensics root.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
       "line": 418
@@ -711,8 +711,8 @@
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Forensics writes must be policy-gated, integrity-gated, idempotent, and append-safe.",
+      "evidenceMode": "law+inspector",
+      "summary": "Forensics writes must be policy-gated, integrity-gated, idempotent and append-safe.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
       "line": 482
     },
@@ -722,8 +722,8 @@
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Forensics enforcement must be AST/symbol/import-graph based and connected to runner and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "Forensics enforcement must be AST/symbol/import-graph based and connected to runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
       "line": 545
     },
@@ -733,8 +733,8 @@
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Forensics is the only owner allowed to promote transient screenshot artifacts into retained evidence or legal hold, and it owns cleanup-ledger truth.",
+      "evidenceMode": "law+inspector",
+      "summary": "Forensics is the only owner allowed to promote transient screenshot artifacts into retained evidence or legal hold and it owns cleanup-ledger truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
       "line": 596
     },
@@ -744,7 +744,7 @@
       "tier": "P0",
       "capabilityDomain": "geometry-guard-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Geometry Guard is the only owner of governed executable geometry safety gating.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
       "line": 102
@@ -755,8 +755,8 @@
       "tier": "P0",
       "capabilityDomain": "geometry-guard-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Geometry Guard public contract must stay clean, native, and independent.",
+      "evidenceMode": "law+inspector",
+      "summary": "Geometry Guard public contract must stay clean, native and independent.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
       "line": 158
     },
@@ -766,8 +766,8 @@
       "tier": "P0",
       "capabilityDomain": "geometry-guard-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Geometry Guard input must carry full chain fields, source refs, coordinate evidence, idempotency, and policy.",
+      "evidenceMode": "law+inspector",
+      "summary": "Geometry Guard input must carry full chain fields, source refs, coordinate evidence, idempotency and policy.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
       "line": 250
     },
@@ -777,8 +777,8 @@
       "tier": "P0",
       "capabilityDomain": "geometry-guard-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Geometry Guard must validate finite geometry, coordinate space, scale mapping, bounds, click safety, and execution target without silent clamp.",
+      "evidenceMode": "law+inspector",
+      "summary": "Geometry Guard must validate finite geometry, coordinate space, scale mapping, bounds, click safety and execution target without silent clamp.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
       "line": 348
     },
@@ -788,7 +788,7 @@
       "tier": "P0",
       "capabilityDomain": "geometry-guard-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Geometry Guard must use one fixed gate pipeline and must remain side-effect free.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
       "line": 412
@@ -799,8 +799,8 @@
       "tier": "P0",
       "capabilityDomain": "geometry-guard-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Geometry Guard result and runtime proof must preserve real upstream chain, gate decisions, refs, and normalized geometry.",
+      "evidenceMode": "law+inspector",
+      "summary": "Geometry Guard result and runtime proof must preserve real upstream chain, gate decisions, refs and normalized geometry.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
       "line": 485
     },
@@ -810,7 +810,7 @@
       "tier": "P0",
       "capabilityDomain": "geometry-guard-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "downstream execution owners must consume only Geometry Guard approved executable geometry and must not redo mapping.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
       "line": 652
@@ -821,8 +821,8 @@
       "tier": "P0",
       "capabilityDomain": "geometry-guard-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Geometry Guard enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "Geometry Guard enforcement must close through owner-local AST/symbol/import-graph inspector, runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
       "line": 704
     },
@@ -832,7 +832,7 @@
       "tier": "P0",
       "capabilityDomain": "ai-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "local-ai-runtime must expose one governed startup readiness contract and must not be started ad hoc by consumers.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md",
       "line": 172
@@ -843,7 +843,7 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "map packages are declarative route data consumed by Orchestration, not runtime code, child abilities, or new owners.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 109
@@ -854,8 +854,8 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "map packages must pass import, quarantine, validation, automation gate, activation, active registry, and rollback lifecycle before runtime consumption.",
+      "evidenceMode": "law+inspector",
+      "summary": "map packages must pass import, quarantine, validation, automation gate, activation, active registry and rollback lifecycle before runtime consumption.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 185
     },
@@ -865,7 +865,7 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "map package schema must contain complete governance metadata and must not depend on runtime truth as package authority.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 304
@@ -876,7 +876,7 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "map packages must never carry executable payloads, runtime code, prompt text, shell scripts, dynamic imports, handlers, or direct ability control.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 411
@@ -887,7 +887,7 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "map packages may reference prompt contracts but must not own prompt content or create prompt double-truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 532
@@ -898,7 +898,7 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "AI-generated map packages must be authored against governed catalogs and remain draft/quarantine until all gates and automation gate pass.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 604
@@ -909,7 +909,7 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "capability catalog is a generated read model used for authoring and validation; it must not become runtime truth or a second ability registry.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 756
@@ -920,8 +920,8 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "branch condition DSL must be schema-declared, closed, non-executable, and able to reference declared outputSchemaRef fields.",
+      "evidenceMode": "law+inspector",
+      "summary": "branch condition DSL must be schema-declared, closed, non-executable and able to reference declared outputSchemaRef fields.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 833
     },
@@ -931,8 +931,8 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "ordinary and developer map surfaces must stay separate, and Commander must not activate or mutate maps without governed validation/automation-gate path.",
+      "evidenceMode": "law+inspector",
+      "summary": "ordinary and developer map surfaces must stay separate and Commander must not activate or mutate maps without governed validation/automation-gate path.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 932
     },
@@ -942,8 +942,8 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "map activation, validation, automation gate, prompt binding, and authoring must produce Forensics-compatible proof records.",
+      "evidenceMode": "law+inspector",
+      "summary": "map activation, validation, automation gate, prompt binding and authoring must produce Forensics-compatible proof records.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 1030
     },
@@ -953,7 +953,7 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "user-facing map explanation must translate route data into understandable task flow without exposing runtime internals in ordinary mode.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 1131
@@ -964,8 +964,8 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "map-plugin-package enforcement must close through owner-local AST/schema/reference inspector, runner, and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "map-plugin-package enforcement must close through owner-local AST/schema/reference inspector, runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 1201
     },
@@ -975,7 +975,7 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "advanced AI map generation must receive a complete Map Authoring Input Package; missing catalogs or policies must block generation.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 1379
@@ -986,7 +986,7 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "capability catalog must be detailed enough for advanced AI to generate maps without inventing abilities.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 1500
@@ -997,7 +997,7 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "prompt contract and output schema catalogs must define every AI step and branchable field used by maps.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 1606
@@ -1008,8 +1008,8 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "safety, automation gate, evidence, PAV, Forensics, privacy, secret, rate-limit, and platform policies must be first-class inputs to map authoring.",
+      "evidenceMode": "law+inspector",
+      "summary": "safety, automation gate, evidence, PAV, Forensics, privacy, secret, rate-limit and platform policies must be first-class inputs to map authoring.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 1702
     },
@@ -1019,8 +1019,8 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "GrassEye Muscle Memory is the reusable visible-surface instinct layer, constrained to four first-level muscles and separated from Map, AI, Ability Group, and Surface Profile authority.",
+      "evidenceMode": "law+inspector",
+      "summary": "GrassEye Muscle Memory is the reusable visible-surface instinct layer, constrained to four first-level muscles and separated from Map, AI, Ability Group and Surface Profile authority.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 1798
     },
@@ -1030,8 +1030,8 @@
       "tier": "P0",
       "capabilityDomain": "map-plugin-package",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "map-plugin-package enforcement must prove Map Authoring Input Package completeness, generated-map safety, and lifecycle boundaries in addition to existing map package governance.",
+      "evidenceMode": "law+inspector",
+      "summary": "map-plugin-package enforcement must prove Map Authoring Input Package completeness, generated-map safety and lifecycle boundaries in addition to existing map package governance.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
       "line": 1855
     },
@@ -1041,7 +1041,7 @@
       "tier": "P0",
       "capabilityDomain": "mouse-click-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Mouse Click is the only owner of governed primitive click execution.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
       "line": 93
@@ -1052,7 +1052,7 @@
       "tier": "P0",
       "capabilityDomain": "mouse-click-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Mouse Click boundary stays pure and cannot compute coordinates, remap geometry, verify outcomes, or perform foreign owner work.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
       "line": 146
@@ -1063,8 +1063,8 @@
       "tier": "P0",
       "capabilityDomain": "mouse-click-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Mouse Click input must carry full chain fields, Geometry Guard allow proof, executable coordinate, safety policy, source refs, idempotency, and timeout policy.",
+      "evidenceMode": "law+inspector",
+      "summary": "Mouse Click input must carry full chain fields, Geometry Guard allow proof, executable coordinate, safety policy, source refs, idempotency and timeout policy.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
       "line": 207
     },
@@ -1074,7 +1074,7 @@
       "tier": "P0",
       "capabilityDomain": "mouse-click-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Mouse Click must run one fixed gate pipeline and execute exactly one primitive click only after all gates pass.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
       "line": 309
@@ -1085,7 +1085,7 @@
       "tier": "P0",
       "capabilityDomain": "mouse-click-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Mouse Click result must mean primitive click only and must hand off to Post-action Verification.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
       "line": 384
@@ -1096,8 +1096,8 @@
       "tier": "P0",
       "capabilityDomain": "mouse-click-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Mouse Click result and runtime proof must preserve real upstream chain, gate decisions, primitive refs, timeout/cancellation, idempotency, and PAV handoff.",
+      "evidenceMode": "law+inspector",
+      "summary": "Mouse Click result and runtime proof must preserve real upstream chain, gate decisions, primitive refs, timeout/cancellation, idempotency and PAV handoff.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
       "line": 451
     },
@@ -1107,7 +1107,7 @@
       "tier": "P0",
       "capabilityDomain": "mouse-click-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Mouse Click children are narrow primitive bindings and must use unified runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
       "line": 646
@@ -1118,8 +1118,8 @@
       "tier": "P0",
       "capabilityDomain": "mouse-click-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Mouse Click enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "Mouse Click enforcement must close through owner-local AST/symbol/import-graph inspector, runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
       "line": 709
     },
@@ -1129,7 +1129,7 @@
       "tier": "P0",
       "capabilityDomain": "mouse-scroll-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Mouse Scroll is the only owner of governed primitive scroll execution.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
       "line": 100
@@ -1140,7 +1140,7 @@
       "tier": "P0",
       "capabilityDomain": "mouse-scroll-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Mouse Scroll boundary stays pure and cannot compute coordinates, remap geometry, verify outcomes, or perform foreign owner work.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
       "line": 160
@@ -1151,8 +1151,8 @@
       "tier": "P0",
       "capabilityDomain": "mouse-scroll-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Mouse Scroll input must carry full chain fields, Geometry Guard allow proof, explicit direction/magnitude/repeat, safety policy, source refs, idempotency, and timeout policy.",
+      "evidenceMode": "law+inspector",
+      "summary": "Mouse Scroll input must carry full chain fields, Geometry Guard allow proof, explicit direction/magnitude/repeat, safety policy, source refs, idempotency and timeout policy.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
       "line": 223
     },
@@ -1162,8 +1162,8 @@
       "tier": "P0",
       "capabilityDomain": "mouse-scroll-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Scroll direction, magnitude, delta, and repeat are input/policy only, not child capability or hidden loop.",
+      "evidenceMode": "law+inspector",
+      "summary": "Scroll direction, magnitude, delta and repeat are input/policy only, not child capability or hidden loop.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
       "line": 340
     },
@@ -1173,7 +1173,7 @@
       "tier": "P0",
       "capabilityDomain": "mouse-scroll-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Mouse Scroll must run one fixed gate pipeline and execute primitive scroll only after all gates pass.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
       "line": 418
@@ -1184,7 +1184,7 @@
       "tier": "P0",
       "capabilityDomain": "mouse-scroll-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Mouse Scroll result must mean primitive scroll only and must hand off to Post-action Verification.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
       "line": 497
@@ -1195,8 +1195,8 @@
       "tier": "P0",
       "capabilityDomain": "mouse-scroll-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Mouse Scroll result and runtime proof must preserve real upstream chain, gate decisions, primitive refs, repeat proofs, timeout/cancellation, idempotency, and PAV handoff.",
+      "evidenceMode": "law+inspector",
+      "summary": "Mouse Scroll result and runtime proof must preserve real upstream chain, gate decisions, primitive refs, repeat proofs, timeout/cancellation, idempotency and PAV handoff.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
       "line": 567
     },
@@ -1206,7 +1206,7 @@
       "tier": "P0",
       "capabilityDomain": "mouse-scroll-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Mouse Scroll children are narrow primitive bindings and must use unified runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
       "line": 774
@@ -1217,8 +1217,8 @@
       "tier": "P0",
       "capabilityDomain": "mouse-scroll-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Mouse Scroll enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "Mouse Scroll enforcement must close through owner-local AST/symbol/import-graph inspector, runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
       "line": 843
     },
@@ -1228,8 +1228,8 @@
       "tier": "P0",
       "capabilityDomain": "nerve-bus-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Nerve Bus is the only owner of governed command/result transport between Commander Console, Orchestration, AI, and Ability Groups.",
+      "evidenceMode": "law+inspector",
+      "summary": "Nerve Bus is the only owner of governed command/result transport between Commander Console, Orchestration, AI and Ability Groups.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
       "line": 98
     },
@@ -1239,7 +1239,7 @@
       "tier": "P0",
       "capabilityDomain": "nerve-bus-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "All Nerve Bus envelopes must preserve complete mission/map/step/capability/prompt chain fields and must fail closed when chain truth is missing.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
       "line": 156
@@ -1250,7 +1250,7 @@
       "tier": "P0",
       "capabilityDomain": "nerve-bus-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Nerve Bus has exactly six governed logical channels and must not create business-specific or platform-specific transport channels.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
       "line": 283
@@ -1261,8 +1261,8 @@
       "tier": "P0",
       "capabilityDomain": "nerve-bus-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Nerve Bus validates, routes, times out, records proof, and returns typed envelopes; it must not make mission, map, AI, action, or storage decisions.",
+      "evidenceMode": "law+inspector",
+      "summary": "Nerve Bus validates, routes, times out, records proof and returns typed envelopes; it must not make mission, map, AI, action, or storage decisions.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
       "line": 346
     },
@@ -1272,7 +1272,7 @@
       "tier": "P0",
       "capabilityDomain": "nerve-bus-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Nerve Bus must run a fixed fail-closed transport pipeline.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
       "line": 409
@@ -1283,8 +1283,8 @@
       "tier": "P0",
       "capabilityDomain": "nerve-bus-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Nerve Bus result semantics must be typed, correlated, payload-ref first, and proof-backed.",
+      "evidenceMode": "law+inspector",
+      "summary": "Nerve Bus result semantics must be typed, correlated, payload-ref first and proof-backed.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
       "line": 487
     },
@@ -1294,8 +1294,8 @@
       "tier": "P0",
       "capabilityDomain": "nerve-bus-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Nerve Bus transfer proof must preserve full chain, timing, gate decisions, handler decision, payload refs, and correlation refs.",
+      "evidenceMode": "law+inspector",
+      "summary": "Nerve Bus transfer proof must preserve full chain, timing, gate decisions, handler decision, payload refs and correlation refs.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
       "line": 558
     },
@@ -1305,7 +1305,7 @@
       "tier": "P0",
       "capabilityDomain": "nerve-bus-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Nerve Bus AI transport must carry Prompt Contract references only and must not carry raw prompt truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
       "line": 677
@@ -1316,7 +1316,7 @@
       "tier": "P0",
       "capabilityDomain": "nerve-bus-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Nerve Bus children are narrow channel bindings and must use unified runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
       "line": 741
@@ -1327,8 +1327,8 @@
       "tier": "P0",
       "capabilityDomain": "nerve-bus-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Nerve Bus enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "Nerve Bus enforcement must close through owner-local AST/symbol/import-graph inspector, runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
       "line": 805
     },
@@ -1338,7 +1338,7 @@
       "tier": "P0",
       "capabilityDomain": "open-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Open Ability Group is the only owner of governed open behavior.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
       "line": 94
@@ -1349,7 +1349,7 @@
       "tier": "P0",
       "capabilityDomain": "open-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Open boundary stays pure and cannot own state, verification, AI, screenshot, visual target, action, Forensics, or mission branching truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
       "line": 142
@@ -1360,8 +1360,8 @@
       "tier": "P0",
       "capabilityDomain": "open-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Open input must carry governed chain fields, target profile context, source proof, timeout, and idempotency.",
+      "evidenceMode": "law+inspector",
+      "summary": "Open input must carry governed chain fields, target profile context, source proof, timeout and idempotency.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
       "line": 199
     },
@@ -1371,7 +1371,7 @@
       "tier": "P0",
       "capabilityDomain": "open-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Open must run a fixed target/profile/session/navigation/idempotency/timeout/page-state-handoff pipeline.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
       "line": 278
@@ -1382,7 +1382,7 @@
       "tier": "P0",
       "capabilityDomain": "open-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Open success requires page-state handoff and must not claim page-state readiness or action-result verification.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
       "line": 353
@@ -1393,8 +1393,8 @@
       "tier": "P0",
       "capabilityDomain": "open-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Open result and runtime proof must preserve real upstream chain, gate decisions, browser attempt refs, timeout/cancellation, idempotency, and page-state handoff.",
+      "evidenceMode": "law+inspector",
+      "summary": "Open result and runtime proof must preserve real upstream chain, gate decisions, browser attempt refs, timeout/cancellation, idempotency and page-state handoff.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
       "line": 432
     },
@@ -1404,7 +1404,7 @@
       "tier": "P0",
       "capabilityDomain": "open-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "child capabilities are narrow target-open bindings and must use unified Open runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
       "line": 582
@@ -1415,7 +1415,7 @@
       "tier": "P0",
       "capabilityDomain": "open-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Open must support governed macOS local program launch as a first-class target and must not confuse local program opening with local workbench URL opening.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
       "line": 646
@@ -1426,8 +1426,8 @@
       "tier": "P0",
       "capabilityDomain": "open-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Open enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "Open enforcement must close through owner-local AST/symbol/import-graph inspector, runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
       "line": 731
     },
@@ -1437,8 +1437,8 @@
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Orchestration is the only owner of mission flow, operational map selection, mission state, step state, branch evaluation, and finalization.",
+      "evidenceMode": "law+inspector",
+      "summary": "Orchestration is the only owner of mission flow, operational map selection, mission state, step state, branch evaluation and finalization.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
       "line": 105
     },
@@ -1448,7 +1448,7 @@
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Operational maps are declarative approved packages consumed by Orchestration, not executable code, child abilities, or second runtimes.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
       "line": 174
@@ -1459,7 +1459,7 @@
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Orchestration must freeze map activation snapshot and must not reselect latest map during mission execution.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
       "line": 271
@@ -1470,7 +1470,7 @@
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Orchestration dispatches only through Nerve Bus envelopes and public ability group contracts.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
       "line": 346
@@ -1481,8 +1481,8 @@
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Orchestration step execution must follow the active map and enforce preconditions, PAV after actions, evidence routing, loop guard, and transition closure.",
+      "evidenceMode": "law+inspector",
+      "summary": "Orchestration step execution must follow the active map and enforce preconditions, PAV after actions, evidence routing, loop guard and transition closure.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
       "line": 420
     },
@@ -1492,7 +1492,7 @@
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Prompt selection is map-owned and frozen; Orchestration must not build raw prompts or hardcode prompt selection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
       "line": 487
@@ -1503,7 +1503,7 @@
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Orchestration may request persistence but must not hide finalization, branch, candidate, or delivery-state ownership under Forensics.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
       "line": 542
@@ -1514,8 +1514,8 @@
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Orchestration result and runtime proof must preserve command, map activation, state transition, dispatch envelope, branch, loop, timeout, idempotency, and finalization chain.",
+      "evidenceMode": "law+inspector",
+      "summary": "Orchestration result and runtime proof must preserve command, map activation, state transition, dispatch envelope, branch, loop, timeout, idempotency and finalization chain.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
       "line": 604
     },
@@ -1525,7 +1525,7 @@
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Orchestration children are mission lifecycle and transition actions only and must use unified runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
       "line": 748
@@ -1536,8 +1536,8 @@
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Orchestration enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "Orchestration enforcement must close through owner-local AST/symbol/import-graph inspector, runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
       "line": 817
     },
@@ -1547,7 +1547,7 @@
       "tier": "P0",
       "capabilityDomain": "page-state-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Page State is raw observation packaging only; AI owns all visual/page/business interpretation.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
       "line": 78
@@ -1558,7 +1558,7 @@
       "tier": "P0",
       "capabilityDomain": "page-state-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Page State boundary is pure and may only package raw governed inputs.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
       "line": 153
@@ -1569,8 +1569,8 @@
       "tier": "P0",
       "capabilityDomain": "page-state-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Page State input must carry full chain fields, snapshot proof, observations, evidence refs, policies, and open handoff.",
+      "evidenceMode": "law+inspector",
+      "summary": "Page State input must carry full chain fields, snapshot proof, observations, evidence refs, policies and open handoff.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
       "line": 213
     },
@@ -1580,8 +1580,8 @@
       "tier": "P0",
       "capabilityDomain": "page-state-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Observations and evidence must be source-bound, fresh, and from allowed owners.",
+      "evidenceMode": "law+inspector",
+      "summary": "Observations and evidence must be source-bound, fresh and from allowed owners.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
       "line": 314
     },
@@ -1591,7 +1591,7 @@
       "tier": "P0",
       "capabilityDomain": "page-state-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Page State output must be evidence-backed and cannot claim action-result verification truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
       "line": 386
@@ -1602,8 +1602,8 @@
       "tier": "P0",
       "capabilityDomain": "page-state-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Page State runtime proof must preserve real chain, gate decisions, source refs, and state fingerprint.",
+      "evidenceMode": "law+inspector",
+      "summary": "Page State runtime proof must preserve real chain, gate decisions, source refs and state fingerprint.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
       "line": 486
     },
@@ -1613,7 +1613,7 @@
       "tier": "P0",
       "capabilityDomain": "page-state-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "child capabilities are narrow state classifiers and must use unified runtime gates.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
       "line": 591
@@ -1624,8 +1624,8 @@
       "tier": "P0",
       "capabilityDomain": "page-state-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Page State enforcement must close through owner-local AST/symbol inspector, runner, and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "Page State enforcement must close through owner-local AST/symbol inspector, runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
       "line": 652
     },
@@ -1635,7 +1635,7 @@
       "tier": "P0",
       "capabilityDomain": "post-action-verification-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "PAV is the only owner of governed post-action observation-package truth, while AI remains the final semantic judgment source.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
       "line": 93
@@ -1646,7 +1646,7 @@
       "tier": "P0",
       "capabilityDomain": "post-action-verification-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "PAV boundary stays pure and cannot execute actions, capture evidence, call AI, or persist final evidence.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
       "line": 145
@@ -1657,8 +1657,8 @@
       "tier": "P0",
       "capabilityDomain": "post-action-verification-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "PAV input must carry complete chain fields, action proof, governed observations, and packaging policy without confidence-policy drift.",
+      "evidenceMode": "law+inspector",
+      "summary": "PAV input must carry complete chain fields, action proof, governed observations and packaging policy without confidence-policy drift.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
       "line": 198
     },
@@ -1668,7 +1668,7 @@
       "tier": "P0",
       "capabilityDomain": "post-action-verification-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "PAV must fail-close on missing or invalid observation support and package only bounded observations with valid source proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
       "line": 309
@@ -1679,7 +1679,7 @@
       "tier": "P0",
       "capabilityDomain": "post-action-verification-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "PAV result must report packaging status only: success, failed, or review_required.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
       "line": 407
@@ -1690,7 +1690,7 @@
       "tier": "P0",
       "capabilityDomain": "post-action-verification-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "PAV runtime proof must preserve input and result chain parity without fabricated ids or legacy decision traces.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
       "line": 486
@@ -1701,7 +1701,7 @@
       "tier": "P0",
       "capabilityDomain": "post-action-verification-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "child capabilities must remain narrow observation providers and flow through one unified executor and proof path.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
       "line": 594
@@ -1712,8 +1712,8 @@
       "tier": "P0",
       "capabilityDomain": "post-action-verification-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "PAV enforcement must close through owner-local AST and symbol inspectors, runner, and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "PAV enforcement must close through owner-local AST and symbol inspectors, runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
       "line": 654
     },
@@ -1723,8 +1723,8 @@
       "tier": "P0",
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Screenshot Ability Group is the only owner of governed screenshot capture, image artifact truth, coordinate-space truth, and scale mapping.",
+      "evidenceMode": "law+inspector",
+      "summary": "Screenshot Ability Group is the only owner of governed screenshot capture, image artifact truth, coordinate-space truth and scale mapping.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
       "line": 91
     },
@@ -1734,8 +1734,8 @@
       "tier": "P0",
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Screenshot boundary stays pure: capture, lossless optimize, crop/region, AI input preparation, artifact refs, and proof only.",
+      "evidenceMode": "law+inspector",
+      "summary": "Screenshot boundary stays pure: capture, lossless optimize, crop/region, AI input preparation, artifact refs and proof only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
       "line": 139
     },
@@ -1745,8 +1745,8 @@
       "tier": "P0",
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Screenshot input must carry full chain fields, source proof, privacy policy, capture policy, idempotency, and timeout.",
+      "evidenceMode": "law+inspector",
+      "summary": "Screenshot input must carry full chain fields, source proof, privacy policy, capture policy, idempotency and timeout.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
       "line": 195
     },
@@ -1756,8 +1756,8 @@
       "tier": "P0",
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Screenshot coordinate spaces and scale mapping must be explicit, lossless where claimed, and non-executable until downstream governance.",
+      "evidenceMode": "law+inspector",
+      "summary": "Screenshot coordinate spaces and scale mapping must be explicit, lossless where claimed and non-executable until downstream governance.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
       "line": 301
     },
@@ -1767,8 +1767,8 @@
       "tier": "P0",
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Screenshot runtime must use one fixed gate pipeline and fail closed on privacy, source, session, timeout, artifact, and output-boundary violations.",
+      "evidenceMode": "law+inspector",
+      "summary": "Screenshot runtime must use one fixed gate pipeline and fail closed on privacy, source, session, timeout, artifact and output-boundary violations.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
       "line": 374
     },
@@ -1778,8 +1778,8 @@
       "tier": "P0",
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Screenshot result and runtime proof must preserve real chain, artifact refs, hashes, source refs, scale mapping, gate decisions, and parity.",
+      "evidenceMode": "law+inspector",
+      "summary": "Screenshot result and runtime proof must preserve real chain, artifact refs, hashes, source refs, scale mapping, gate decisions and parity.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
       "line": 445
     },
@@ -1789,7 +1789,7 @@
       "tier": "P0",
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Screenshot child capabilities are narrow capture/transform bindings and must use unified Screenshot runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
       "line": 609
@@ -1800,8 +1800,8 @@
       "tier": "P0",
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Screenshot enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "Screenshot enforcement must close through owner-local AST/symbol/import-graph inspector, runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
       "line": 667
     },
@@ -1811,8 +1811,8 @@
       "tier": "P0",
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Screenshot artifacts are transient runtime materials by default and must carry lifecycle manifest, retention, TTL, quota, physical burn-after-handoff cleanup, and non-self-promotion truth.",
+      "evidenceMode": "law+inspector",
+      "summary": "Screenshot artifacts are transient runtime materials by default and must carry lifecycle manifest, retention, TTL, quota, physical burn-after-handoff cleanup and non-self-promotion truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
       "line": 757
     },
@@ -1822,7 +1822,7 @@
       "tier": "P0",
       "capabilityDomain": "security-privacy",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "GrassEye must operate only with user-authorized local accounts while minimizing sensitive capture and never bypassing platform security.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-security-privacy.instructions.md",
       "line": 16
@@ -1833,7 +1833,7 @@
       "tier": "P0",
       "capabilityDomain": "security-privacy",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Prompt contracts and AI-generated maps must never request sensitive secrets or hidden bypass channels.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-security-privacy.instructions.md",
       "line": 65
@@ -1844,7 +1844,7 @@
       "tier": "P0",
       "capabilityDomain": "security-privacy",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Sensitive tasks require review gates before mutating user data or high-risk platform state.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-security-privacy.instructions.md",
       "line": 83
@@ -1855,7 +1855,7 @@
       "tier": "P0",
       "capabilityDomain": "commander-console-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "startup must complete update preflight and local AI readiness gate before mission runtime becomes available.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md",
       "line": 145
@@ -1866,7 +1866,7 @@
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Text Input is the only owner of governed text/key writing primitives.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
       "line": 100
@@ -1877,7 +1877,7 @@
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Text Input is write-only and must not generate text, locate targets, decide target safety, or verify final page state.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
       "line": 153
@@ -1888,8 +1888,8 @@
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Text Input input must carry full mission/map/step/capability chain, approved text proof, verified target proof, focus proof, and Nerve Bus envelope refs.",
+      "evidenceMode": "law+inspector",
+      "summary": "Text Input input must carry full mission/map/step/capability chain, approved text proof, verified target proof, focus proof and Nerve Bus envelope refs.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
       "line": 213
     },
@@ -1899,8 +1899,8 @@
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Text Input executes only through governed execution, clipboard, and clock ports with AbortSignal/timeout and fail-closed semantics.",
+      "evidenceMode": "law+inspector",
+      "summary": "Text Input executes only through governed execution, clipboard and clock ports with AbortSignal/timeout and fail-closed semantics.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
       "line": 339
     },
@@ -1910,8 +1910,8 @@
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Text Input must treat sensitive text and clipboard content as non-persistent transient material and must record only refs, hashes, redacted previews, and policy decisions.",
+      "evidenceMode": "law+inspector",
+      "summary": "Text Input must treat sensitive text and clipboard content as non-persistent transient material and must record only refs, hashes, redacted previews and policy decisions.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
       "line": 430
     },
@@ -1921,7 +1921,7 @@
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Text Input success is primitive write/key success only and must hand off to Post-action Verification.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
       "line": 488
@@ -1932,8 +1932,8 @@
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Text Input runtime proof must preserve full chain, target proof, focus proof, text proof, clipboard proof, primitive proof, PAV handoff, and redaction decisions.",
+      "evidenceMode": "law+inspector",
+      "summary": "Text Input runtime proof must preserve full chain, target proof, focus proof, text proof, clipboard proof, primitive proof, PAV handoff and redaction decisions.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
       "line": 559
     },
@@ -1943,7 +1943,7 @@
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Text Input children are narrow execution bindings and must use unified runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
       "line": 696
@@ -1954,8 +1954,8 @@
       "tier": "P0",
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Text Input enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "Text Input enforcement must close through owner-local AST/symbol/import-graph inspector, runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
       "line": 770
     },
@@ -1965,7 +1965,7 @@
       "tier": "P0",
       "capabilityDomain": "type-safety",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "all external uncertainty must become validated domain types before it can drive actions or records.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-type-safety.instructions.md",
       "line": 16
@@ -1976,7 +1976,7 @@
       "tier": "P0",
       "capabilityDomain": "visual-target-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "Visual Target is the only owner of governed visual target result normalization.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
       "line": 96
@@ -1987,8 +1987,8 @@
       "tier": "P0",
       "capabilityDomain": "visual-target-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Visual Target boundary stays pure: it validates, normalizes, selects, and builds handoff only.",
+      "evidenceMode": "law+inspector",
+      "summary": "Visual Target boundary stays pure: it validates, normalizes, selects and builds handoff only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
       "line": 147
     },
@@ -1998,8 +1998,8 @@
       "tier": "P0",
       "capabilityDomain": "visual-target-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Visual Target input must carry full chain fields, source proof, candidate proof, and idempotency.",
+      "evidenceMode": "law+inspector",
+      "summary": "Visual Target input must carry full chain fields, source proof, candidate proof and idempotency.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
       "line": 210
     },
@@ -2009,7 +2009,7 @@
       "tier": "P0",
       "capabilityDomain": "visual-target-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "coordinate-space truth must be explicit; Visual Target output is not executable until Geometry Guard.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
       "line": 329
@@ -2020,8 +2020,8 @@
       "tier": "P0",
       "capabilityDomain": "visual-target-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Visual Target runtime must use a single gate pipeline and fail closed on ambiguity, stale evidence, source mismatch, and critical data quality.",
+      "evidenceMode": "law+inspector",
+      "summary": "Visual Target runtime must use a single gate pipeline and fail closed on ambiguity, stale evidence, source mismatch and critical data quality.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
       "line": 398
     },
@@ -2031,8 +2031,8 @@
       "tier": "P0",
       "capabilityDomain": "visual-target-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Visual Target result and runtime proof must preserve real chain, source refs, candidate refs, gate decisions, coordinate transform trace, and Geometry Guard handoff.",
+      "evidenceMode": "law+inspector",
+      "summary": "Visual Target result and runtime proof must preserve real chain, source refs, candidate refs, gate decisions, coordinate transform trace and Geometry Guard handoff.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
       "line": 471
     },
@@ -2042,7 +2042,7 @@
       "tier": "P0",
       "capabilityDomain": "visual-target-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
+      "evidenceMode": "law+inspector",
       "summary": "child capabilities are narrow target bindings and must use unified Visual Target runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
       "line": 652
@@ -2053,8 +2053,8 @@
       "tier": "P0",
       "capabilityDomain": "visual-target-capability",
       "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+inspector+negative-proof",
-      "summary": "Visual Target enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.",
+      "evidenceMode": "law+inspector",
+      "summary": "Visual Target enforcement must close through owner-local AST/symbol/import-graph inspector, runner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
       "line": 715
     }

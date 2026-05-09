@@ -1,7 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-import { buildAuditArtifacts } from "../build-audit-artifacts.js";
 import { fileExists } from "./filesystem.js";
 import { generatedArtifactPaths } from "./generated-artifact-paths.js";
 import { hasBlockingFindings } from "./result.js";
@@ -26,7 +25,6 @@ type OwnerAuditRunResult = {
 };
 
 const execFileAsync = promisify(execFile);
-const BUILD_ARTIFACTS_ENV = "GRASSEYE_OWNER_BUILD_ARTIFACTS";
 const MAX_RSS_ENV = "GRASSEYE_OWNER_AUDIT_MAX_RSS_MB";
 const DEFAULT_MAX_RSS_MB = 4_500;
 const RESOURCE_SAMPLE_INTERVAL_MS = 1_000;
@@ -96,18 +94,9 @@ const assertGeneratedArtifactsExist = async (): Promise<void> => {
   ];
   for (const artifactPath of required) {
     if (!(await fileExists(artifactPath))) {
-      throw new Error("Owner audit requires generated artifacts. Run ci:full first, or set GRASSEYE_OWNER_BUILD_ARTIFACTS=1 for an explicit standalone rebuild.");
+      throw new Error("Owner audit requires generated artifacts. Run ci:full first.");
     }
   }
-};
-
-const maybeBuildArtifacts = async (): Promise<void> => {
-  if (process.env[BUILD_ARTIFACTS_ENV] !== "1") {
-    await assertGeneratedArtifactsExist();
-    return;
-  }
-  process.stdout.write("[OWNER AUDIT] GRASSEYE_OWNER_BUILD_ARTIFACTS=1 set; building audit artifacts explicitly.\n");
-  await runWithStandaloneHeartbeat("build-audit-artifacts", buildAuditArtifacts());
 };
 
 export const runOwnerInspector = async (input: OwnerRunnerInput): Promise<OwnerAuditRunResult> => {
@@ -116,7 +105,7 @@ export const runOwnerInspector = async (input: OwnerRunnerInput): Promise<OwnerA
   let artifacts: GeneratedArtifacts | undefined;
   let result: InspectorResult | undefined;
   try {
-    await maybeBuildArtifacts();
+    await assertGeneratedArtifactsExist();
     await logResourceSnapshot(input.capabilityDomain, "inspector:start", startedAtMs);
     artifacts = await loadGeneratedArtifacts();
     const context = await createInspectorContext(artifacts);
