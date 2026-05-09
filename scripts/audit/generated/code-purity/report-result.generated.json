@@ -1,3 +1,19 @@
 {
-  "findings": []
+  "findings": [
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-001-V1",
+      "file": "scripts/audit/domains/map-plugin-package/startup-preparation-entry-spine-checks.ts",
+      "line": 1,
+      "severity": "error",
+      "message": "File exceeds the audit phase hard limit of 350 lines.",
+      "detail": "357"
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-002-V1",
+      "file": "scripts/audit/domains/map-plugin-package/startup-preparation-entry-spine-checks.ts",
+      "line": 1,
+      "severity": "error",
+      "message": "Touched file exceeds its code-purity hard limit and must be physically split before more logic is accepted."
+    }
+  ]
 }

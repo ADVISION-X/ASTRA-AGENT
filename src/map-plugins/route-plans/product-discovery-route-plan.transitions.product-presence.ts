@@ -12,8 +12,22 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_PRODUCT_PRESENCE_TRANSITIONS: RoutePla
     transitionId: `startup-preparation:${STARTUP_PREPARATION_READY_ROUTE_LABEL}`,
     fromStepId: "startup-preparation",
     onStatus: "success",
+    toStepId: "observe-current-video-page-state",
+    finalStatus: null,
+  },
+  {
+    transitionId: "observe-current-video-page-state:success",
+    fromStepId: "observe-current-video-page-state",
+    onStatus: "success",
     toStepId: "capture-current-video-viewport",
     finalStatus: null,
+  },
+  {
+    transitionId: "observe-current-video-page-state:failed",
+    fromStepId: "observe-current-video-page-state",
+    onStatus: "failed",
+    toStepId: null,
+    finalStatus: "failed",
   },
   {
     transitionId: "capture-current-video-viewport:success",

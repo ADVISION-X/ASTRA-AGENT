@@ -283,6 +283,20 @@ export const collectProductJudgmentHandoffFindings = (mapPackage: MapPackage, ro
   ...collectProductJudgmentTransitionFindings(mapPackage, file),
 ];
 
+const collectCaptureCurrentPageStateFindings = (routePlan: RoutePlan | null, file: string): Finding[] => {
+  const findings: Finding[] = [];
+  const captureStep = routePlan?.steps.find((step) => step.stepId === PRODUCT_PRESENCE_CAPTURE_STEP_ID);
+  if (!captureStep) {
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file, line: 1, severity: "fatal", message: "Route Plan must declare capture-current-video-viewport step." }));
+    return findings;
+  }
+
+  if (!captureStep.inputRefs.includes("pageStateRef")) {
+    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file, line: 1, severity: "fatal", message: "capture-current-video-viewport must declare pageStateRef in inputRefs to satisfy screenshot pageStateProof requirements." }));
+  }
+  return findings;
+};
+
 export const collectRoutePlanBoundaryFindings = (mapPackage: MapPackage, file: string): Finding[] => {
   const routePlanOwnedSteps = mapPackage.operationalMap.steps
     .map((step) => step.stepId)
@@ -325,6 +339,7 @@ export const inspectSeedingStartupPreparation = (packageId: string): Finding[] =
     ...collectForbiddenFrameFindings(mapPackage, file),
     ...collectStartupPreparationFindings(mapPackage, routePlan, file),
     ...collectProductJudgmentHandoffFindings(mapPackage, routePlan, file),
+    ...collectCaptureCurrentPageStateFindings(routePlan, file),
     ...collectRoutePlanBoundaryFindings(mapPackage, file),
   ];
 

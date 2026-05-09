@@ -1,31 +1,11 @@
 {
-  "generatedAt": "2026-05-09T23:39:43.840Z",
+  "generatedAt": "2026-05-09T23:54:30.366Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Route Plan /350/202/214/350/202/211/350/256/260/345/277/206/346/226/275/345/267/245/345/233/276.md\"",
-    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Screenshot /350/203/275/345/212/233/347/273/204/346/226/275/345/267/245/345/233/276.md\"",
-    "\"docs/Codex/346/217/220/347/244/272/350/257/215//347/273/210/347/253/257/346/227/245/345/277/227/345/244/215/345/210/266.md\"",
-    "scripts/audit/domains/_shared/screenshot-dispatch-adapter-check.ts",
-    "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
-    "scripts/audit/domains/forensics-persistence-capability/terminal-relay-proof.ts",
-    "scripts/audit/domains/map-plugin-package/required-shape-seeding-video.ts",
     "scripts/audit/domains/map-plugin-package/startup-preparation-entry-spine-checks.ts",
-    "scripts/debug-loop/map-resolver.mjs",
-    "scripts/startup/lib/terminal-structured-log.mjs",
-    "src/app/runtime-api-handlers.ts",
-    "src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts",
-    "src/capabilities/orchestration/runtime/orchestration-runtime-resource-events.ts",
-    "src/capabilities/orchestration/schema.ts",
-    "src/lib/local-ai/local-ai-runtime-vision-normalization-output.ts",
-    "src/lib/local-runtime/structured-log-payload.ts",
-    "src/lib/local-runtime/structured-log-terminal.ts",
-    "src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts",
-    "src/lib/local-runtime/workbench-screenshot-dispatch-input.ts",
     "src/map-plugins/route-plans/product-discovery-route-plan.steps.product-presence.ts",
     "src/map-plugins/route-plans/product-discovery-route-plan.transitions.next-item.ts",
-    "src/map-plugins/route-plans/product-discovery-route-plan.transitions.product-presence.ts",
-    "src/map-plugins/schema/operational-map-payload.schema.ts"
+    "src/map-plugins/route-plans/product-discovery-route-plan.transitions.product-presence.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -35,5 +15,5 @@
     "src/capabilities/**/prompt-contracts/**/*.{json,jsonc,ts,tsx}"
   ],
   "scannedFileCount": 2004,
-  "findingsCount": 0
+  "findingsCount": 2
 }
