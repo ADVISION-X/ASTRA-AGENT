@@ -134,34 +134,41 @@ const collectMissingFieldFindings = (input: {
     : [createFinding({ lawId: input.lawId, file: input.file, line: 1, severity: "fatal", message: input.message, detail: missingFields.join(",") })];
 };
 
+const collectPostOpenDecisionFindings = (postOpenObservationSource: import("ts-morph").SourceFile): Finding[] =>
+  !hasIdentifier(postOpenObservationSource, "evaluatePostOpenObservationHandoff") || !hasCallExpression(postOpenObservationSource, "buildPostOpenDecision")
+    ? [createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_OBSERVATION_HANDOFF_PATH, line: 1, severity: "fatal", message: "Post-open observation handoff must evaluate the governed post-open observation and build a non-authoritative handoff decision." })]
+    : [];
+
+const collectPostOpenAuthorityFindings = (postOpenObservationSource: import("ts-morph").SourceFile): Finding[] =>
+  !hasPropertyNamed(postOpenObservationSource, "authoritative")
+  || !hasLiteralTextFragment(postOpenObservationSource, "AI owns readiness, safety, freshness, and page-kind judgment.")
+  || !hasPropertyNamed(postOpenObservationSource, "pageStateHandoffRequired")
+  || !hasPropertyNamed(postOpenObservationSource, "pageStateHandoffRef")
+    ? [createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_OBSERVATION_HANDOFF_PATH, line: 1, severity: "fatal", message: "Post-open observation handoff must stay non-authoritative, preserve page-state handoff, and explicitly hand readiness judgment to AI." })]
+    : [];
+
+const collectPostOpenOutcomeFindings = (postOpenObservationSource: import("ts-morph").SourceFile): Finding[] =>
+  !hasLiteralTextFragment(postOpenObservationSource, "timed_out")
+  || !hasLiteralTextFragment(postOpenObservationSource, "navigation_failure_observation")
+    ? [createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_OBSERVATION_HANDOFF_PATH, line: 1, severity: "fatal", message: "Post-open observation handoff must treat timed_out and failed navigation as failure observations instead of success." })]
+    : [];
+
+const collectPostOpenForbiddenBranchFindings = (postOpenObservationSource: import("ts-morph").SourceFile): Finding[] =>
+  hasLiteralTextFragment(postOpenObservationSource, "captcha_wall")
+  || hasLiteralTextFragment(postOpenObservationSource, "permission_wall")
+  || hasLiteralTextFragment(postOpenObservationSource, "login_wall")
+  || hasLiteralTextFragment(postOpenObservationSource, "wrong_domain")
+    ? [createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_OBSERVATION_HANDOFF_PATH, line: 1, severity: "fatal", message: "Post-open observation handoff must not revive local page-state truth branches such as login_wall, wrong_domain, captcha_wall, or permission_wall." })]
+    : [];
+
 const collectPostOpenStateFindings = (project: import("ts-morph").Project): Finding[] => {
   const postOpenObservationSource = getOpenSourceOrThrow(project, POST_OPEN_OBSERVATION_HANDOFF_PATH);
-  const findings: Finding[] = [];
-
-  if (!hasIdentifier(postOpenObservationSource, "evaluatePostOpenObservationHandoff") || !hasCallExpression(postOpenObservationSource, "buildPostOpenDecision")) {
-    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_OBSERVATION_HANDOFF_PATH, line: 1, severity: "fatal", message: "Post-open observation handoff must evaluate the governed post-open observation and build a non-authoritative handoff decision." }));
-  }
-
-  if (!hasPropertyNamed(postOpenObservationSource, "authoritative")
-    || !hasLiteralTextFragment(postOpenObservationSource, "AI owns readiness, safety, freshness, and page-kind judgment.")
-    || !hasPropertyNamed(postOpenObservationSource, "pageStateHandoffRequired")
-    || !hasPropertyNamed(postOpenObservationSource, "pageStateHandoffRef")) {
-    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_OBSERVATION_HANDOFF_PATH, line: 1, severity: "fatal", message: "Post-open observation handoff must stay non-authoritative, preserve page-state handoff, and explicitly hand readiness judgment to AI." }));
-  }
-
-  if (!hasLiteralTextFragment(postOpenObservationSource, "timed_out")
-    || !hasLiteralTextFragment(postOpenObservationSource, "navigation_failure_observation")) {
-    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_OBSERVATION_HANDOFF_PATH, line: 1, severity: "fatal", message: "Post-open observation handoff must treat timed_out and failed navigation as failure observations instead of success." }));
-  }
-
-  if (hasLiteralTextFragment(postOpenObservationSource, "captcha_wall")
-    || hasLiteralTextFragment(postOpenObservationSource, "permission_wall")
-    || hasLiteralTextFragment(postOpenObservationSource, "login_wall")
-    || hasLiteralTextFragment(postOpenObservationSource, "wrong_domain")) {
-    findings.push(createFinding({ lawId: LAW_RUNTIME_GOVERNANCE, file: POST_OPEN_OBSERVATION_HANDOFF_PATH, line: 1, severity: "fatal", message: "Post-open observation handoff must not revive local page-state truth branches such as login_wall, wrong_domain, captcha_wall, or permission_wall." }));
-  }
-
-  return findings;
+  return [
+    ...collectPostOpenDecisionFindings(postOpenObservationSource),
+    ...collectPostOpenAuthorityFindings(postOpenObservationSource),
+    ...collectPostOpenOutcomeFindings(postOpenObservationSource),
+    ...collectPostOpenForbiddenBranchFindings(postOpenObservationSource),
+  ];
 };
 
 const collectResultBuilderFindings = (project: import("ts-morph").Project): Finding[] => {

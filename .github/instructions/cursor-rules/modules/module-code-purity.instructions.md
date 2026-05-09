@@ -815,7 +815,7 @@ Required enforcement dimensions:
 - Oversized touched files.
 - Disaster files.
 - Inventory output.
-- Negative proof.
+- Real-code-inspection.
 
 Forbidden enforcement shortcuts:
 - grep as final judgment.
@@ -825,11 +825,9 @@ Forbidden enforcement shortcuts:
 - manual-only proof.
 - generated fake PASS.
 - detached inspector.
-- empty negative-proof harness.
+- empty inspection harness.
 
 ---
-
-## Required Negative Proof
 
 ## Required Real-Code Inspection
 

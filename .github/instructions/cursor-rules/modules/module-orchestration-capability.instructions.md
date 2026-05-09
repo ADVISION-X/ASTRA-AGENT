@@ -6,7 +6,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-orchestration-capabil
 
 # GrassEye Orchestration Capability FINAL
 
-Scope: governs the independent Orchestration Ability Group, governed mission command consumption, operational map package selection, frozen activation snapshot, mission state ownership, step state ownership, branch evaluation, Nerve Bus dispatch, step loop, review escalation, mission finalization, map-level proof, and Orchestration runtime proof.
+Scope: governs the independent Orchestration Ability Group, governed mission command consumption, operational map package selection, frozen activation snapshot, mission state ownership, step state ownership, branch evaluation, Nerve Bus dispatch, step loop, review escalation, mission finalization, map-level proof, and Orchestration owner evidence.
 
 Boundary: this module governs only mission flow and map-driven orchestration. It does not govern human command UI, Commander public surface, Nerve Bus transport internals, primitive actions, AI runtime internals, screenshot/image processing, browser control, Forensics storage internals, product judgement, or platform business adapters.
 
@@ -30,7 +30,7 @@ Core doctrine:
 - No activationSnapshotRef, no runtime-ready mission.
 - No Nerve Bus envelope, no governed step dispatch.
 - No post-action verification after action step, no action step completion.
-- No active Orchestration law without inspector + runner + negative proof.
+- No active Orchestration law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -43,7 +43,7 @@ status: active
 tier: P0
 capabilityDomain: orchestration-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required package:
@@ -83,7 +83,7 @@ scripts/audit/domains/orchestration-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden:
@@ -94,7 +94,7 @@ Forbidden:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- empty/missing negative proof.
+- empty/missing real-code-inspection.
 - legacy browse-flow as runtime owner.
 - agent-runtime as mission owner.
 - platform adapter as flow owner.
@@ -108,7 +108,7 @@ status: active
 tier: P0  
 capabilityDomain: orchestration-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Orchestration is the only owner of mission flow, operational map selection, mission state, step state, branch evaluation, and finalization.
 
@@ -154,16 +154,16 @@ FORBIDDEN:
 - `requestedPlatform ?? "tiktok-web"`.
 - `defaultRequestedPlatformId`.
 - `selectedMapId ?? defaultMapId`.
-- review-runtime state mutation outside governed review command.
+- review-runtime state regression outside governed review command.
 
 Required inspector:
 - External mission-owner scan.
 - Commander direct Orchestration import/hold ban.
 - Startup mission-control command ban.
 - Default platform/map fallback ban.
-- Review mutation source check.
+- Review regression source check.
 
-Required negative proof:
+Required real-code-inspection:
 - Add startup direct startMission call → FAIL.
 - Add `requestedPlatform ?? "tiktok-web"` → FAIL.
 - Commander imports raw OrchestrationAbilityGroup → FAIL.
@@ -177,7 +177,7 @@ status: active
 tier: P0  
 capabilityDomain: orchestration-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Operational maps are declarative approved packages consumed by Orchestration, not executable code, child abilities, or second runtimes.
 
@@ -222,7 +222,7 @@ import
 → activation proof
 → activation
 → active registry
-→ rollback if needed
+→ re-inspect if needed
 ```
 
 Required validation gates:
@@ -260,7 +260,7 @@ Required inspector:
 - Validation gate presence.
 - No map as child capability.
 
-Required negative proof:
+Required real-code-inspection:
 - Add executable function inside map package → FAIL.
 - Add map package direct Nerve Bus dispatch → FAIL.
 - Activate unapproved map → FAIL.
@@ -274,7 +274,7 @@ status: active
 tier: P0  
 capabilityDomain: orchestration-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Orchestration must freeze map activation snapshot and must not reselect latest map during mission execution.
 
@@ -311,14 +311,14 @@ Required:
 - loop proof must carry activationSnapshotRef.
 - result proof must carry activationSnapshotRef.
 - all step outputs must be traceable to activationSnapshotRef.
-- rollback must preserve activation record and rollback record.
+- re-inspect must preserve activation record and re-inspect record.
 - running mission must not perform latest active map lookup.
 - resuming mission must load map by frozen activationSnapshotRef or activation record, not by latest active map.
 
 ### 禁止
 
 FORBIDDEN:
-- runtime proof only records selectedMapId but lacks activationSnapshotRef.
+- owner evidence only records selectedMapId but lacks activationSnapshotRef.
 - selectedMapVersion nullable in valid mission execution.
 - mapPackageVersion nullable in valid mission execution.
 - promptContractVersion nullable when map contains AI steps.
@@ -335,9 +335,9 @@ Required inspector:
 - Proof parity check.
 - No nullable activation chain in valid execution.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove activationSnapshotRef from mission state → FAIL.
-- Runtime proof missing activationSnapshotRef → FAIL.
+- owner evidence missing activationSnapshotRef → FAIL.
 - Resume calls latest active map lookup → FAIL.
 - selectedMapVersion nullable on running state → FAIL.
 
@@ -349,7 +349,7 @@ status: active
 tier: P0  
 capabilityDomain: orchestration-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Orchestration dispatches only through Nerve Bus envelopes and public ability group contracts.
 
@@ -409,7 +409,7 @@ Required inspector:
 - Timeout gate check.
 - Envelope semantic gate check.
 
-Required negative proof:
+Required real-code-inspection:
 - Orchestration imports open child implementation → FAIL.
 - Ability dispatch without nerveBusEnvelopeId → FAIL.
 - Direct call to Mouse Click implementation → FAIL.
@@ -423,7 +423,7 @@ status: active
 tier: P0  
 capabilityDomain: orchestration-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Orchestration step execution must follow the active map and enforce preconditions, PAV after actions, evidence routing, loop guard, and transition closure.
 
@@ -475,7 +475,7 @@ Required inspector:
 - Loop guard check.
 - Emergency stop gate.
 
-Required negative proof:
+Required real-code-inspection:
 - Mouse click step without PAV → FAIL.
 - Branch reads undeclared AI output field → FAIL.
 - Remove loop guard → FAIL.
@@ -490,7 +490,7 @@ status: active
 tier: P0  
 capabilityDomain: orchestration-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Prompt selection is map-owned and frozen; Orchestration must not build raw prompts or hardcode prompt selection.
 
@@ -531,7 +531,7 @@ Required inspector:
 - outputSchemaRef required.
 - prompt version frozen check.
 
-Required negative proof:
+Required real-code-inspection:
 - Add raw prompt template in Orchestration → FAIL.
 - AI step without outputSchemaRef → FAIL.
 - Prompt selected from latest catalog at runtime → FAIL.
@@ -545,7 +545,7 @@ status: active
 tier: P0  
 capabilityDomain: orchestration-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Orchestration may request persistence but must not hide finalization, branch, candidate, or delivery-state ownership under Forensics.
 
@@ -568,8 +568,8 @@ Required:
 - Orchestration may request promotion or cleanup only through Forensics public contract / Nerve Bus request.
 - Orchestration must not mark screenshot artifacts as `promoted-evidence` or `legal-hold-evidence`.
 - Forensics returns persistence refs.
-- Forensics must not own AgentRound mutation.
-- Forensics must not own RuntimeDeliveryState mutation.
+- Forensics must not own AgentRound regression.
+- Forensics must not own RuntimeDeliveryState regression.
 - Forensics must not own product candidate construction.
 - Forensics must not own round outcome judgment.
 
@@ -590,10 +590,10 @@ Required inspector:
 - Forensics runtime import ban.
 - Finalizer owner scan.
 - Persistence request through public contract/Nerve Bus only.
-- Mission state mutation outside Orchestration ban.
+- Mission state regression outside Orchestration ban.
 - Screenshot retention/promotion boundary text presence.
 
-Required negative proof:
+Required real-code-inspection:
 - Import Forensics runtime in Orchestration → FAIL.
 - Move finalize-round judgment under Forensics → FAIL.
 - Forensics mutates mission state → FAIL.
@@ -607,9 +607,9 @@ status: active
 tier: P0  
 capabilityDomain: orchestration-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Orchestration result and runtime proof must preserve command, map activation, state transition, dispatch envelope, branch, loop, timeout, idempotency, and finalization chain.
+summary: Orchestration result and owner evidence must preserve command, map activation, state transition, dispatch envelope, branch, loop, timeout, idempotency, and finalization chain.
 
 ### 主题
 
@@ -736,7 +736,7 @@ Required inspector:
 - Dispatch envelope proof invariant.
 - Finalization proof invariant.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove activationSnapshotRef from proof → FAIL.
 - Step success without nerveBusEnvelopeId → FAIL.
 - Set runId from missionId + stepId → FAIL.
@@ -751,7 +751,7 @@ status: active
 tier: P0  
 capabilityDomain: orchestration-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Orchestration children are mission lifecycle and transition actions only and must use unified runtime.
 
@@ -782,7 +782,7 @@ Required:
 - Child does not own maps as child.
 - Child does not build final proof/result directly when unified builder applies.
 - `emergency-stop` must latch state and prevent further dispatch.
-- `pause/resume/stop` must be governed state transitions, not raw mutations.
+- `pause/resume/stop` must be governed state transitions, not raw regressions.
 - Orchestration must not expose `request-human-review`, `submitReviewDecision`, or any review-decision route. Automation failures terminate as `failed`.
 
 ### 禁止
@@ -806,7 +806,7 @@ Required inspector:
 - Foreign implementation import ban.
 - Emergency latch check.
 
-Required negative proof:
+Required real-code-inspection:
 - Add browse-next-video child → FAIL.
 - Child imports open implementation → FAIL.
 - emergency-stop does not latch state → FAIL.
@@ -820,9 +820,9 @@ status: active
 tier: P0  
 capabilityDomain: orchestration-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Orchestration enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.
+summary: Orchestration enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and real-code-inspection.
 
 ### 主题
 
@@ -836,7 +836,7 @@ Orchestration enforcement must close through:
 scripts/audit/domains/orchestration-capability/manifest.json
 scripts/audit/domains/orchestration-capability/inspector.ts
 scripts/audit/domains/orchestration-capability/run-inspector.ts
-scripts/audit/domains/orchestration-capability/negative-proof-harness.ts
+scripts/audit/domains/orchestration-capability/owner-inspection-harness.ts
 ```
 
 Required:
@@ -845,12 +845,12 @@ Required:
 - Inspector must use schema-level checks.
 - Inspector must include anti-escape checks.
 - Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
-- Negative proof must run and report fail → rollback → pass.
+- real-code-inspection must run and report fail → re-inspect → pass.
 - CI-FULL must be green for delivery.
 - No grep/regex/includes as final judgment.
 - No warning-only P0.
 - No detached inspector.
-- No empty/missing negative proof.
+- No empty/missing real-code-inspection.
 - No generated fake PASS.
 - No capability-check.ts.
 - No verify script as release truth.
@@ -875,10 +875,10 @@ Required inspector checks:
 16. Children use unified runtime.
 17. No forbidden imports/symbols/legacy browse-flow.
 18. ALL active Orchestration laws in registry/matrix/audit-plan/runner.
-19. negative-proof-harness executed.
+19. owner-inspection-harness executed.
 ```
 
-Required negative proof:
+Required real-code-inspection:
 ```txt
 manual-first enforcement reintroduced
 remove activationSnapshotRef from mission state
@@ -902,7 +902,7 @@ add browse-next-video child
 map package contains executable function
 activate unapproved map
 capability-check.ts added
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -929,7 +929,7 @@ Forensics cannot own finalization/branch/mission state
 result/proof/state/input chain parity passes
 children are narrow lifecycle/transition actions
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```

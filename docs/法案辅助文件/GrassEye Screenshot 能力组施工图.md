@@ -640,7 +640,7 @@ productClassification
 
 ---
 
-## 15. Runtime Proof
+## 15. owner evidence
 
 `ScreenshotRuntimeProof` 必须包含：
 
@@ -816,7 +816,7 @@ Screenshot 不构造最终 evidence packet。
 scripts/audit/domains/screenshot-capability/manifest.json
 scripts/audit/domains/screenshot-capability/inspector.ts
 scripts/audit/domains/screenshot-capability/run-inspector.ts
-scripts/audit/domains/screenshot-capability/negative-proof-harness.ts
+scripts/audit/domains/screenshot-capability/owner-inspection-harness.ts
 ```
 
 Inspector 必须：
@@ -830,7 +830,7 @@ schema-level
 anti-escape
 generated artifact aware
 runner-connected
-negative-proof-backed
+real-code-inspection-backed
 ```
 
 禁止：
@@ -842,7 +842,7 @@ includes final judgment
 manual-only proof
 warning-only P0
 detached inspector
-empty/missing negative proof
+empty/missing real-code-inspection
 verify script as release truth
 ```
 
@@ -869,7 +869,7 @@ verify script as release truth
 16. No forbidden imports/symbols/DOM/BOM/cookie reads.
 17. No second screenshot owner.
 18. ALL active laws in registry/matrix/audit-plan/runner.
-19. negative-proof-harness executed.
+19. owner-inspection-harness executed.
 ```
 
 ### 19.1 当前 blocker 补充
@@ -892,9 +892,9 @@ AST 校验 validateResultChainFields 必须拆分 requiredness 与 parity，不�
 
 ---
 
-## 20. Negative Proof 最低清单
+## 20. real-code-inspection 最低清单
 
-必须 fail → rollback → pass：
+必须 fail → re-inspect → pass：
 
 ```txt
 manual-first enforcement reintroduced
@@ -915,13 +915,13 @@ platform-action screenshot drawer active path
 local-ai resize/crop helper produces artifact truth
 child returns boolean
 child imports sibling implementation
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
 ### 20.1 当前 blocker 补充
 
-必须 fail → rollback → pass：
+必须 fail → re-inspect → pass：
 
 ```txt
 local-runtime screenshot dispatch adapter maps capabilityCallId to missionId
@@ -948,7 +948,7 @@ coordinate-space and scaleMapping policy complete
 prepare-ai-input always preserves scaleMapping
 result/proof/input chain parity passes
 children narrow capture/transform bindings
-negative proof PASS
+real-code-inspection PASS
 ```
 
 ### 21.1 当前 blocker 补充
@@ -1030,16 +1030,16 @@ ability result envelope 必须记录 screenshot source handoff
 handoff helper 必须保留 sourceArtifactRef、sourceProof、sha256、storageRef
 screenshot-execution-phases 必须调用 burnEphemeralScreenshotFile
 screenshot-ephemeral-file-cleanup 必须物理 rm outputFilePath
-ephemeral cleanup bypass negative proof 必须 FAIL
+ephemeral cleanup bypass real-code-inspection 必须 FAIL
 ```
 
-negative proof 应覆盖：
+real-code-inspection 应覆盖：
 
 ```txt
 删除 screenshotEvidenceRef source candidate 必须 FAIL
 删除 ability result source handoff recording 必须 FAIL
 删除 artifact hash handoff 字段必须 FAIL
-rollback 后 inspector 必须 PASS
+re-inspect 后 inspector 必须 PASS
 ```
 
 结构化日志必备字段：
@@ -1099,12 +1099,12 @@ AST 校验 non-success diagnosticPayloadRef 暴露规则仍然存在
 不得用 grep/includes 作为最终结论
 ```
 
-negative proof 应覆盖：
+real-code-inspection 应覆盖：
 
 ```txt
 移除 prepare-ai-input success 状态门禁必须 FAIL
 把 prepare-ai-input 的 scaleMapping 检查恢复成 blanket required 必须 FAIL
-rollback 后 inspector 必须 PASS
+re-inspect 后 inspector 必须 PASS
 ```
 
 结构化日志必备字段：

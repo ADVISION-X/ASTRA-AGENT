@@ -109,7 +109,6 @@ const updateCoverageStatus = (requirement: CoverageRequirement): CoverageRequire
 
 export const buildCoverageMatrix = async (requirements: CoverageRequirement[]): Promise<{
   requirements: CoverageRequirement[];
-  negativeProofEvidence: NegativeProofCoverageEvidence[];
 }> => {
   const manifests = await loadDomainManifests();
   const coveredRequirements: CoverageRequirement[] = [];
@@ -135,12 +134,11 @@ export const buildCoverageMatrix = async (requirements: CoverageRequirement[]): 
     coveredRequirements.push(updateCoverageStatus({
       ...requirement,
       staticCoverage,
-      negativeProofCoverage: [],
       enforcementStrength,
     }));
   }
 
-  return { requirements: coveredRequirements, negativeProofEvidence: [] };
+  return { requirements: coveredRequirements };
 };
 
 export const buildCoverageSummary = (requirements: CoverageRequirement[], generatedAt: string): CoverageSummary => {
@@ -150,7 +148,7 @@ export const buildCoverageSummary = (requirements: CoverageRequirement[], genera
 export const buildCoverageSummaryWithIntegrity = async (input: {
   requirements: CoverageRequirement[];
   generatedAt: string;
-  integrity: Pick<CoverageSummary, "sourceLawHash" | "sourceBlueprintHash" | "inspectorHash" | "negativeProofHash" | "packageScriptHash" | "auditPlanHash" | "coverageBuilderVersion" | "antiFraudVerified">;
+  integrity: Pick<CoverageSummary, "sourceLawHash" | "sourceBlueprintHash" | "inspectorHash" | "packageScriptHash" | "auditPlanHash" | "coverageBuilderVersion" | "antiFraudVerified">;
 }): Promise<CoverageSummary> => {
   const requirements = input.requirements;
   const p0p1Requirements = getP0P1Requirements(requirements);
@@ -159,7 +157,6 @@ export const buildCoverageSummaryWithIntegrity = async (input: {
   const blockers = getCoverageBlockers(requirements);
   const weakCoverage = countByStatus(requirements, "weak");
   const missingCoverage = countByStatus(requirements, "missing");
-  const negativeProofCovered = 0;
   const staticCovered = requirements.filter((requirement) => requirement.staticCoverage.length > 0).length;
   const manualOnly = requirements.filter((requirement) => requirement.enforcementStrength === "LEVEL_0_MANUAL_ONLY_OR_MISSING").length;
   const inspectorNotInRunner = missingOwnerCommands.size;
@@ -179,7 +176,6 @@ export const buildCoverageSummaryWithIntegrity = async (input: {
     blueprintRequirements: requirements.filter((requirement) => requirement.sourceType === "blueprint").length,
     p0p1Requirements: p0p1Requirements.length,
     staticCovered,
-    negativeProofCovered,
     weakCoverage,
     missingCoverage,
     manualOnly,

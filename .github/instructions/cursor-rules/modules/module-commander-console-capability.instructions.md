@@ -1,14 +1,14 @@
 ---
 name: "GrassEye Commander Console Capability"
-description: "Use when governing the Commander Console Ability Group, human command entry, governed HumanCommandEnvelope transport, mission dashboard read models, runtime proof timeline, review queue, task-template UX, map import UX, and the boundary that prevents Commander from becoming Orchestration, Forensics, AI, or browser/action owner."
+description: "Use when governing the Commander Console Ability Group, human command entry, governed HumanCommandEnvelope transport, mission dashboard read models, owner evidence timeline, review queue, task-template UX, map import UX, and the boundary that prevents Commander from becoming Orchestration, Forensics, AI, or browser/action owner."
 applyTo: ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md, src/capabilities/commander-console/**, src/app/task-api-handlers.ts, src/app/candidate-api-handlers.ts, src/lib/local-runtime/workbench.ts, src/lib/local-app-shell/**, scripts/audit/domains/commander-console-capability/**, docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md"
 ---
 
 # GrassEye Commander Console Capability FINAL
 
-Scope: governs the independent Commander Console Ability Group, human command entry, governed command envelope creation, read-only commander dashboards, review-disposition entry, task-template start UX, map-import UX, runtime proof timeline, evidence/browse/failed-record read models, and audit-facing console surfaces.
+Scope: governs the independent Commander Console Ability Group, human command entry, governed command envelope creation, read-only commander dashboards, review-disposition entry, task-template start UX, map-import UX, owner evidence timeline, evidence/browse/failed-record read models, and audit-facing console surfaces.
 
-Boundary: Commander Console governs only human entry and read-model presentation. It does not own mission truth, map progression, Nerve Bus delivery truth, AI runtime truth, browser/action execution, page-state truth, Forensics persistence truth, evidence packet truth, candidate mutation truth, or runtime snapshot truth.
+Boundary: Commander Console governs only human entry and read-model presentation. It does not own mission truth, map progression, Nerve Bus delivery truth, AI runtime truth, browser/action execution, page-state truth, Forensics persistence truth, evidence packet truth, candidate regression truth, or runtime snapshot truth.
 
 Authority: this file is authoritative only for the `commander-console-capability` domain.
 
@@ -25,7 +25,7 @@ Core doctrine:
 - No silent map/platform default.
 - No raw runtime truth as Commander public contract.
 - No command or review path outside Commander.
-- No active Commander law without inspector + runner + negative proof.
+- No active Commander law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -38,7 +38,7 @@ status: active
 tier: P0
 capabilityDomain: commander-console-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required package:
@@ -63,7 +63,7 @@ scripts/audit/domains/commander-console-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden:
@@ -73,7 +73,7 @@ Forbidden:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- empty negative proof.
+- empty real-code-inspection.
 
 ---
 
@@ -83,7 +83,7 @@ status: active
 tier: P0  
 capabilityDomain: commander-console-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Commander Console is the only owner of human command entry and review-disposition entry.
 
@@ -136,7 +136,7 @@ Required inspector:
 - Public surface check.
 - Commander transport-only command path.
 
-Required negative proof:
+Required real-code-inspection:
 - Task handler directly calls workbench.startTask → FAIL.
 - Candidate handler calls setCandidateDisposition → FAIL.
 - Commander public contract exposes raw OrchestrationAbilityGroup → FAIL.
@@ -149,7 +149,7 @@ status: active
 tier: P0  
 capabilityDomain: commander-console-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Commander command envelope must be explicit, map/platform-safe, idempotent, timeout-governed, and semantically validated.
 
@@ -208,7 +208,7 @@ Start mission:
 
 Review commands:
 - approve/reject/mark-review-required require candidate targetRecordRef.
-- Review command cannot carry targetMissionId as mutation truth unless law explicitly allows.
+- Review command cannot carry targetMissionId as regression truth unless law explicitly allows.
 
 Emergency stop:
 - priority must be `emergency`.
@@ -235,7 +235,7 @@ Required inspector:
 - Timeout/idempotency gates called.
 - Emergency hard-stop invariant.
 
-Required negative proof:
+Required real-code-inspection:
 - start-mission with only requestedPlatformId → FAIL.
 - `requestedPlatformId ?? "tiktok-web"` → FAIL.
 - transport accepted without envelopeRef → FAIL.
@@ -249,7 +249,7 @@ status: active
 tier: P0  
 capabilityDomain: commander-console-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Commander read models are read-only Commander-owned view records sourced from governed read-model ports.
 
@@ -302,7 +302,7 @@ Required inspector:
 - Commander view record transformation.
 - Read proof/source enforcement.
 
-Required negative proof:
+Required real-code-inspection:
 - Commander contract exports TaskRun → FAIL.
 - Read child returns UI-only summary without proofRef when required → FAIL.
 - Commander imports EvidenceStoreService → FAIL.
@@ -315,7 +315,7 @@ status: active
 tier: P0  
 capabilityDomain: commander-console-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Commander must not become Orchestration, Nerve Bus, AI, Forensics, browser/action owner, or storage owner.
 
@@ -348,7 +348,7 @@ Forbidden behavior:
 - direct Forensics write.
 - direct browser action.
 - direct AI call.
-- direct candidate mutation.
+- direct candidate regression.
 - direct runtime snapshot building.
 
 Required inspector:
@@ -358,7 +358,7 @@ Required inspector:
 - Local shell render-only check.
 - Startup bootstrap-only check.
 
-Required negative proof:
+Required real-code-inspection:
 - Commander imports BrowserController → FAIL.
 - Commander directly calls orchestration.startMission → FAIL.
 - Commander writes Forensics record → FAIL.
@@ -372,7 +372,7 @@ status: active
 tier: P0  
 capabilityDomain: commander-console-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Commander package must have one canonical root, real child folders, one child registry, one runtime pipeline, and no compat bridge.
 
@@ -440,7 +440,7 @@ Required inspector:
 - No legacy file names.
 - No compat bridge.
 
-Required negative proof:
+Required real-code-inspection:
 - Add external import of child implementation → FAIL.
 - Add export * in index → FAIL.
 - Add flat children.ts → FAIL.
@@ -453,7 +453,7 @@ status: active
 tier: P0  
 capabilityDomain: commander-console-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Commander runtime result and proof must preserve command/read chain and must never use fake success, null proof, warning-only pass, or throw from public boundary.
 
@@ -474,7 +474,7 @@ runtimeProof
 dataQualityFlags
 ```
 
-Runtime proof must include:
+owner evidence must include:
 
 ```txt
 proofId
@@ -531,7 +531,7 @@ Required inspector:
 - Public boundary non-throw.
 - Fake success/escape detection.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove RuntimeProofSchema.parse → FAIL.
 - return runtimeProof:null → FAIL.
 - make unknown child throw → FAIL.
@@ -545,7 +545,7 @@ status: active
 tier: P0  
 capabilityDomain: commander-console-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Commander task-template and map-import UX may display governed map lifecycle but must not become map execution, validation, activation, or runtime truth.
 
@@ -588,7 +588,7 @@ Required:
 - Runtime command envelope must contain requestedPlatformId + selectedMapId or fail/review_required.
 - Quarantined/disabled/draft maps cannot appear as runnable ordinary tasks.
 - AI-generated maps must remain draft-only unless map-package law allows approved activation.
-- Commander may request import/approval/activation/disable/rollback through governed ports only.
+- Commander may request import/approval/activation/disable/re-inspect through governed ports only.
 - Commander preflight summary is not final validation truth.
 
 Forbidden:
@@ -600,11 +600,11 @@ Forbidden:
 
 Required inspector:
 - Ordinary vs developer field separation.
-- No direct active registry mutation.
+- No direct active registry regression.
 - Start command map/platform resolution.
 - Draft/quarantine runnable ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Ordinary task list exposes mapId → FAIL.
 - Commander writes active registry → FAIL.
 - Draft map marked runnable → FAIL.
@@ -617,9 +617,9 @@ status: active
 tier: P0  
 capabilityDomain: commander-console-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Commander enforcement must close through owner-local AST/symbol/import-graph inspector, generated artifacts, runner, and negative proof.
+summary: Commander enforcement must close through owner-local AST/symbol/import-graph inspector, generated artifacts, runner, and real-code-inspection.
 
 ### 主题
 
@@ -633,7 +633,7 @@ Commander enforcement must close through:
 scripts/audit/domains/commander-console-capability/manifest.json
 scripts/audit/domains/commander-console-capability/inspector.ts
 scripts/audit/domains/commander-console-capability/run-inspector.ts
-scripts/audit/domains/commander-console-capability/negative-proof-harness.ts
+scripts/audit/domains/commander-console-capability/owner-inspection-harness.ts
 ```
 
 Required:
@@ -641,12 +641,12 @@ Required:
 - Inspector uses symbol and import-graph checks.
 - Inspector uses schema-level checks for command/result/proof.
 - Inspector verifies active law coverage in registry/matrix/audit-plan/runner.
-- Negative proof reports fail → rollback → pass.
+- real-code-inspection reports fail → re-inspect → pass.
 - CI-FULL must be green for delivery.
 - No grep/regex/includes as final judgment.
 - No warning-only P0.
 - No detached inspector.
-- No empty negative proof.
+- No empty real-code-inspection.
 - No generated fake PASS.
 
 Required inspector checks:
@@ -662,16 +662,16 @@ Required inspector checks:
 9. No legacy public truth types.
 10. No forbidden foreign owner imports.
 11. Child registry parity.
-12. Runtime proof never null.
+12. owner evidence never null.
 13. Public execute never throws.
 14. External APIs route through Commander public interface.
 15. Local shell render-only.
 16. Startup bootstrap-only.
 17. ALL active Commander laws in registry/matrix/audit-plan/runner.
-18. negative-proof-harness executed.
+18. owner-inspection-harness executed.
 ```
 
-Required negative proof:
+Required real-code-inspection:
 ```txt
 manual-first enforcement reintroduced
 start-mission only requestedPlatformId
@@ -685,7 +685,7 @@ Commander imports Forensics storage internals
 external imports Commander child
 runtimeProof:null
 public execute throw
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -705,12 +705,12 @@ no silent defaults
 transport semantic gate enforced
 timeout/idempotency gates enforced
 emergency stop hard path enforced
-read models are read-only and proof-backed
+read models are read-only and real-code-inspection-backed
 no foreign owner imports
 no legacy truth types
 task-template UX does not own map truth
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```

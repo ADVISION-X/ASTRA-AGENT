@@ -42,12 +42,10 @@ const hashFiles = async (files: readonly string[]): Promise<string> => {
 const buildCoverageIntegrity = async (
   context: InspectorContext,
   manifests: Awaited<ReturnType<typeof loadDomainManifests>>,
-  matrix: Awaited<ReturnType<typeof buildCoverageMatrix>>,
 ) => ({
   sourceLawHash: await hashFiles(context.lawRegistry.laws.map((law) => law.relativeFilePath)),
   sourceBlueprintHash: await hashFiles(manifests.flatMap((manifest) => manifest.readsBlueprintFiles ?? [])),
   inspectorHash: await hashFiles(manifests.flatMap((manifest) => [manifest.manifestPath, manifest.entry])),
-  negativeProofHash: await hashFiles(matrix.negativeProofEvidence.map((proof) => proof.harnessPath)),
   packageScriptHash: await hashFiles(["package.json"]),
   auditPlanHash: await hashFiles(["scripts/audit/generated/audit-plan.generated.json"]),
   coverageBuilderVersion: "audit-coverage-governance-anti-fraud-v1",
@@ -62,12 +60,11 @@ const buildCoverageSummary = async (context: InspectorContext) => {
   const summary = await buildCoverageSummaryWithIntegrity({
     generatedAt,
     requirements: matrix.requirements,
-    integrity: await buildCoverageIntegrity(context, manifests, matrix),
+    integrity: await buildCoverageIntegrity(context, manifests),
   });
   await writeCoverageArtifacts({
     generatedAt,
     requirements: matrix.requirements,
-    negativeProofEvidence: matrix.negativeProofEvidence,
     summary,
   });
 

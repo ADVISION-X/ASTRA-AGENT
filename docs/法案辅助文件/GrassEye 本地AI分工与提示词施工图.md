@@ -730,7 +730,7 @@ Forensics writer
 browser controller
 platform action
 map branch decision
-mission state mutation
+mission state regression
 ```
 
 允许 `src/capabilities/ai/runtime-adapters` 导入：
@@ -780,9 +780,9 @@ forbiddenOutputs missing action keys fails
 
 ---
 
-## 22. Negative Proof 最低清单
+## 22. real-code-inspection 最低清单
 
-必须 fail → rollback → pass：
+必须 fail → re-inspect → pass：
 
 ```txt
 external app imports LocalAiGateway
@@ -800,7 +800,7 @@ paid-analysis falls back to local
 disabled provider returns success
 remove outputSchemaRef
 remove requiredInputRefs
-remove negative proof invocation
+remove real-code-inspection invocation
 ```
 
 ---

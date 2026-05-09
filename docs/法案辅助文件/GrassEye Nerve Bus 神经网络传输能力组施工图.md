@@ -636,7 +636,7 @@ Nerve Bus 只传 refs/proof，不写 storage。
 scripts/audit/domains/nerve-bus-capability/manifest.json
 scripts/audit/domains/nerve-bus-capability/inspector.ts
 scripts/audit/domains/nerve-bus-capability/run-inspector.ts
-scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts
+scripts/audit/domains/nerve-bus-capability/owner-inspection-harness.ts
 ```
 
 Inspector 必须：
@@ -649,7 +649,7 @@ import graph-level
 schema-level
 anti-escape
 runner-connected
-negative-proof-backed
+real-code-inspection-backed
 ```
 
 ---
@@ -674,14 +674,14 @@ negative-proof-backed
 15. No forbidden imports/symbols.
 16. No raw prompt/API key/raw image leakage.
 17. ALL active laws in registry/matrix/audit-plan/runner.
-18. Negative proof executed.
+18. real-code-inspection executed.
 ```
 
 ---
 
-## 20. Negative Proof 最低清单
+## 20. real-code-inspection 最低清单
 
-必须 fail → rollback → pass：
+必须 fail → re-inspect → pass：
 
 ```txt
 manual-first enforcement reintroduced
@@ -705,7 +705,7 @@ add retry loop
 add nextStepId to transport result
 add API key-like value to proof
 capability-check.ts added
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -730,7 +730,7 @@ AbortSignal/timeout/idempotency/sequence/queue enforced
 result semantic gate blocks bad result
 transfer proof full-chain and secret-safe
 children are narrow channel bindings
-negative proof PASS
+real-code-inspection PASS
 ```
 
 ---

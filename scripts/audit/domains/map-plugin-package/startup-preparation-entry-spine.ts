@@ -1,25 +1,11 @@
 import { readFileSync } from "node:fs";
 
-import { loadBuiltinMapPackages } from "../../../../src/map-plugins/builtins/index.js";
-import { findRoutePlanById } from "../../../../src/map-plugins/route-plans/index.js";
-import {
-  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
-  STARTUP_PREPARATION_READY_ROUTE_LABEL,
-} from "../../../../src/map-plugins/shared/startup-preparation.constants.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { MAP_PLUGIN_LAWS, MAP_PLUGIN_PATHS } from "./constants.js";
+import { TARGET_PACKAGE_IDS, inspectSeedingStartupPreparation } from "./startup-preparation-entry-spine-checks.js";
 
 const { ROOT } = MAP_PLUGIN_PATHS;
-const STARTUP_PREPARATION_PROMPT_CONTRACT_ID = "vision.pagePreparation.v1";
-const STARTUP_PREPARATION_CHILD_CAPABILITY_ID = "page-preparation-judgment";
-const STARTUP_PREPARATION_OUTPUT_SCHEMA_REF = "ai.page_preparation_judgment.v1";
-const PRODUCT_JUDGMENT_PROMPT_CONTRACT_ID = "vision.productPresence.v1";
-const PRODUCT_JUDGMENT_OUTPUT_SCHEMA_REF = "ai.product_presence_judgment.v1";
-const TARGET_PACKAGE_IDS = [
-  "builtin.facebook-seeding-video-discovery",
-  "builtin.tiktok-seeding-video-discovery",
-] as const;
 const INSPECTOR_FILE = "scripts/audit/domains/map-plugin-package/startup-preparation-entry-spine.ts";
 const FRAME_3S = "frame-3s";
 const FRAME_6S = "frame-6s";
@@ -81,20 +67,6 @@ type MapPackage = ReturnType<typeof loadBuiltinMapPackages>[number];
 type MapStep = MapPackage["operationalMap"]["steps"][number];
 type MapTransition = MapPackage["operationalMap"]["transitions"][number];
 type PromptBinding = MapPackage["promptBindings"]["bindings"][number];
-type RoutePlan = NonNullable<ReturnType<typeof findRoutePlanById>>;
-
-const toMapFile = (packageId: string) => `${ROOT}/builtins/${packageId.replace("builtin.", "")}.meta.map-package.json`;
-
-const hasTransition = (
-  transitions: MapTransition[],
-  expected: { transitionId: string; fromStepId: string; onStatus: string; toStepId?: string | null; finalStatus?: string | null },
-): boolean => transitions.some((transition) =>
-  transition.transitionId === expected.transitionId
-  && transition.fromStepId === expected.fromStepId
-  && transition.onStatus === expected.onStatus
-  && (transition.toStepId ?? null) === (expected.toStepId ?? null)
-  && (transition.finalStatus ?? null) === (expected.finalStatus ?? null),
-);
 
 const collectStepRefValues = (step: MapStep): string[] => [
   step.stepId,
@@ -178,169 +150,6 @@ const collectAllowedStepFindings = (mapPackage: MapPackage, file: string): Findi
         detail: step.stepId,
       })],
   );
-
-const collectStartupPreparationFindings = (mapPackage: MapPackage, routePlan: RoutePlan | null, file: string): Finding[] => {
-  const findings: Finding[] = [];
-  const startupStep = routePlan?.steps.find((step) => step.stepId === "startup-preparation");
-  if (!startupStep) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "Seeding map must declare startup-preparation AI handoff step." }));
-  } else if (
-    startupStep.stepKind !== "ai"
-    || startupStep.targetAbilityGroupId !== "ai"
-    || startupStep.childCapabilityId !== STARTUP_PREPARATION_CHILD_CAPABILITY_ID
-    || startupStep.promptContractId !== STARTUP_PREPARATION_PROMPT_CONTRACT_ID
-  ) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "startup-preparation must remain an AI-owned page-preparation judgment bound to vision.pagePreparation.v1." }));
-  }
-
-  const startupBinding = mapPackage.promptBindings.bindings.find((binding) => binding.stepId === "startup-preparation");
-  if (
-    !startupBinding
-    || startupBinding.promptContractId !== STARTUP_PREPARATION_PROMPT_CONTRACT_ID
-    || startupBinding.outputSchemaRef !== STARTUP_PREPARATION_OUTPUT_SCHEMA_REF
-    || !startupBinding.requiredInputRefs.includes("promptInputRef")
-  ) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "Seeding map promptBindings must bind startup-preparation to promptInputRef and ai.page_preparation_judgment.v1." }));
-  }
-
-  const transitions = routePlan?.transitions ?? [];
-  const requiredTransitions = [
-    {
-      transitionId: `startup-preparation:${STARTUP_PREPARATION_READY_ROUTE_LABEL}`,
-      fromStepId: "startup-preparation",
-      onStatus: "success",
-      toStepId: "judge-seeding-video",
-      finalStatus: null,
-    },
-    {
-      transitionId: `startup-preparation:${STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL}`,
-      fromStepId: "startup-preparation",
-      onStatus: "success",
-      toStepId: null,
-      finalStatus: "failed",
-    },
-    {
-      transitionId: "startup-preparation:failed",
-      fromStepId: "startup-preparation",
-      onStatus: "failed",
-      toStepId: null,
-      finalStatus: "failed",
-    },
-  ];
-  const missingTransitions = requiredTransitions.filter((transition) => !hasTransition(transitions, transition));
-  if (missingTransitions.length > 0) {
-    findings.push(createFinding({
-      lawId: MAP_PLUGIN_LAWS.LIFECYCLE,
-      file,
-      line: 1,
-      severity: "fatal",
-      message: "Seeding map startup-preparation must fail-close locally and route ready handoff directly to judge-seeding-video.",
-      detail: missingTransitions.map((transition) => transition.transitionId).join(", "),
-    }));
-  }
-
-  return findings;
-};
-
-const collectProductJudgmentHandoffFindings = (mapPackage: MapPackage, routePlan: RoutePlan | null, file: string): Finding[] => {
-  const findings: Finding[] = [];
-  const judgeStep = routePlan?.steps.find((step) => step.stepId === "judge-seeding-video");
-  if (!judgeStep) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "Seeding map must declare judge-seeding-video as the AI product judgment handoff." }));
-  } else if (
-    judgeStep.stepKind !== "ai"
-    || judgeStep.targetAbilityGroupId !== "ai"
-    || judgeStep.childCapabilityId !== "product-presence-judgment"
-    || judgeStep.promptContractId !== PRODUCT_JUDGMENT_PROMPT_CONTRACT_ID
-  ) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "judge-seeding-video must remain an AI-owned product-presence handoff bound to vision.productPresence.v1." }));
-  }
-
-  const judgeBinding = mapPackage.promptBindings.bindings.find((binding) => binding.stepId === "judge-seeding-video");
-  if (
-    !judgeBinding
-    || judgeBinding.promptContractId !== PRODUCT_JUDGMENT_PROMPT_CONTRACT_ID
-    || judgeBinding.outputSchemaRef !== PRODUCT_JUDGMENT_OUTPUT_SCHEMA_REF
-    || !judgeBinding.requiredInputRefs.includes("promptInputRef")
-  ) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "judge-seeding-video promptBinding must remain a weak AI handoff using promptInputRef; frame-specific prompt refs are forbidden in maps." }));
-  }
-
-  const forbiddenSuccessTransitions = mapPackage.operationalMap.transitions.filter((transition) =>
-    transition.fromStepId === "judge-seeding-video"
-    && transition.onStatus === "success",
-  );
-  if (forbiddenSuccessTransitions.length > 0) {
-    findings.push(createFinding({
-      lawId: MAP_PLUGIN_LAWS.LIFECYCLE,
-      file,
-      line: 1,
-      severity: "fatal",
-      message: "Map must not own judge-seeding-video success routing; Route Plan owns product routeLabel action chains.",
-      detail: forbiddenSuccessTransitions.map((transition) => transition.transitionId).join(", "),
-    }));
-  }
-
-  return findings;
-};
-
-const collectRoutePlanBoundaryFindings = (mapPackage: MapPackage, file: string): Finding[] => {
-  const routePlanOwnedSteps = mapPackage.operationalMap.steps
-    .map((step) => step.stepId)
-    .filter((stepId) => ROUTE_PLAN_OWNED_ACTION_STEP_IDS.has(stepId));
-  const routePlanOwnedTransitions = mapPackage.operationalMap.transitions.filter((transition) =>
-    ROUTE_PLAN_OWNED_ACTION_STEP_IDS.has(transition.fromStepId)
-    || (transition.toStepId !== null && transition.toStepId !== undefined && ROUTE_PLAN_OWNED_ACTION_STEP_IDS.has(transition.toStepId)),
-  );
-
-  return [
-    ...(routePlanOwnedSteps.length === 0 ? [] : [createFinding({
-      lawId: MAP_PLUGIN_LAWS.LIFECYCLE,
-      file,
-      line: 1,
-      severity: "fatal",
-      message: "Map must not duplicate Route Plan-owned action steps.",
-      detail: routePlanOwnedSteps.join(", "),
-    })]),
-    ...(routePlanOwnedTransitions.length === 0 ? [] : [createFinding({
-      lawId: MAP_PLUGIN_LAWS.LIFECYCLE,
-      file,
-      line: 1,
-      severity: "fatal",
-      message: "Map must not route into or out of Route Plan-owned action-chain steps.",
-      detail: routePlanOwnedTransitions.map((transition) => transition.transitionId).join(", "),
-    })]),
-  ];
-};
-
-const inspectSeedingStartupPreparation = (packageId: string): Finding[] => {
-  const mapPackage = loadBuiltinMapPackages().find((entry) => entry.manifest.packageId === packageId);
-  if (!mapPackage) {
-    return [createFinding({ lawId: MAP_PLUGIN_LAWS.LIFECYCLE, file: toMapFile(packageId), line: 1, severity: "fatal", message: `Builtin seeding map ${packageId} must exist.` })];
-  }
-
-  const file = toMapFile(packageId);
-  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
-  const findings: Finding[] = [
-    ...collectAllowedStepFindings(mapPackage, file),
-    ...collectForbiddenFrameFindings(mapPackage, file),
-    ...collectStartupPreparationFindings(mapPackage, routePlan, file),
-    ...collectProductJudgmentHandoffFindings(mapPackage, routePlan, file),
-    ...collectRoutePlanBoundaryFindings(mapPackage, file),
-  ];
-
-  if (!mapPackage.dependencies.requiredChildCapabilities.includes(STARTUP_PREPARATION_CHILD_CAPABILITY_ID)) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.CAPABILITY_CATALOG, file, line: 1, severity: "fatal", message: "Seeding map dependencies must declare page-preparation-judgment child capability." }));
-  }
-  if (!mapPackage.dependencies.requiredPromptContracts.includes(STARTUP_PREPARATION_PROMPT_CONTRACT_ID)) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "Seeding map dependencies must declare vision.pagePreparation.v1 prompt contract." }));
-  }
-  if (!mapPackage.compatibility.requiresPromptRegistry.includes(STARTUP_PREPARATION_PROMPT_CONTRACT_ID)) {
-    findings.push(createFinding({ lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT, file, line: 1, severity: "fatal", message: "Seeding map compatibility must require vision.pagePreparation.v1 prompt registry entry." }));
-  }
-
-  return findings;
-};
 
 const collectInspectorSelfBoundaryFindings = (): Finding[] => {
   const sourceText = readFileSync(INSPECTOR_FILE, "utf8");

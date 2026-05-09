@@ -303,7 +303,7 @@ scripts/audit/domains/<owner>/inspector.ts
 必要时同步重写：
 
 
-scripts/audit/domains/<owner>/negative-proof-harness.ts
+scripts/audit/domains/<owner>/owner-inspection-harness.ts
 scripts/audit/domains/<owner>/run-inspector.ts
 scripts/audit/domains/<owner>/manifest.json
 ```
@@ -343,7 +343,7 @@ scripts/audit/domains/<owner>/manifest.json
 
 
 补齐 inspector。
-补齐 negative proof。
+补齐 real-code-inspection。
 补齐 owner audit 入口。
 必要时补 manifest。
 ```
@@ -353,7 +353,7 @@ scripts/audit/domains/<owner>/manifest.json
 
 该要求必须能 fail。
 必须有正反例。
-必须有 negative proof。
+必须有 real-code-inspection。
 ```
 
 输出：
@@ -362,7 +362,7 @@ scripts/audit/domains/<owner>/manifest.json
 [ENFORCEMENT-ADD]
 缺失要求：
 新增 inspector 检查：
-新增 negative proof：
+新增 real-code-inspection：
 ```
 
 ---
@@ -441,7 +441,7 @@ summary
 法条
 禁止
 Required inspector
-Required negative proof
+Required real-code-inspection
 Final readiness gate
 ```
 
@@ -464,7 +464,7 @@ Final readiness gate
 
 inspector 当前逻辑
 run-inspector 当前入口
-negative-proof 当前覆盖
+real-code-inspection 当前覆盖
 manifest 当前 owner/law 映射
 package.json 当前 audit 命令
 ```
@@ -534,7 +534,7 @@ package.json 当前 audit 命令
 9. 必须检查 owner boundary。
 10. 必须检查 anti-escape。
 11. 必须能 fail。
-12. 必须有 negative proof。
+12. 必须有 real-code-inspection。
 ```
 
 禁止：
@@ -544,7 +544,7 @@ warning-only
 info-only
 no-op pass
 fake pass
-空 negative proof
+空 real-code-inspection
 只检查文件存在
 只检查字符串存在
 ```
@@ -640,7 +640,7 @@ CI-FULL TRUE GREEN
 
 4. FILES MODIFIED
 - inspector files:
-- negative proof files:
+- real-code-inspection files:
 - code files:
 - generated files by audit:build only:
 - law files:
@@ -653,7 +653,7 @@ CI-FULL TRUE GREEN
 - 是否降低法案：NO
 - 是否删除法条：NO
 - 是否关闭 inspector：NO
-- 是否删除 negative proof：NO
+- 是否删除 real-code-inspection：NO
 - 是否手改 generated：NO
 
 6. FINAL COMMANDS
@@ -677,7 +677,7 @@ CI-FULL 未全绿
 施工图内容被改
 法案被降级
 inspector 被关闭
-negative proof 被删除
+real-code-inspection 被删除
 generated 被手工改
 通过 warning/info/no-op 当 PASS
 新增 bridge/fallback/compat

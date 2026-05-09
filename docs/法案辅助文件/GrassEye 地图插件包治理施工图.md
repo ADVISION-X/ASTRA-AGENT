@@ -14,7 +14,7 @@ architecturePhase:
   - Pluginized Map Package Architecture
   - Map-Driven Prompt Contract Architecture
   - Nerve Bus Governed Transport
-  - Forensics-backed Runtime Proof
+  - Forensics-backed owner evidence
 replace:
   - docs/法案辅助文件/GrassEye 地图插件包治理施工图.md
 notAbilityGroup: true
@@ -188,7 +188,7 @@ src/map-plugins/
 │   ├── map-package-quarantine.ts
 │   ├── map-package-automation-gate.ts
 │   ├── map-package-activation.ts
-│   └── map-package-rollback.ts
+│   └── map-package-re-inspect.ts
 ├── registry/
 │   ├── active-map-registry.ts
 │   ├── map-plugin-registry.ts
@@ -230,7 +230,7 @@ scripts/audit/domains/map-plugin-package/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 ---
@@ -693,12 +693,12 @@ production built-in active by side door
 
 ---
 
-### 10.5 Rollback
+### 10.5 re-inspect
 
-Rollback must produce:
+re-inspect must produce:
 
 ```txt
-rollbackRecordRef
+re-inspectRecordRef
 previousActivationId
 previousActivationSnapshotRef
 newActiveActivationId
@@ -707,7 +707,7 @@ rolledBackAt
 rolledBackBy
 ```
 
-Rollback must preserve previous activation history.
+re-inspect must preserve previous activation history.
 
 ---
 
@@ -862,7 +862,7 @@ onStep
 onTransition
 directAbilityCall
 directNerveBusDispatch
-missionStateMutation
+missionStateregression
 ```
 
 Must scan executable markers:
@@ -913,7 +913,7 @@ mapPackageHash
 operationalMapHash
 capabilityCatalogVersion
 promptCatalogVersion
-rollbackRecordRef when rollback
+re-inspectRecordRef when re-inspect
 authoringProofRef when aiGenerated
 userRequirementRef when aiGenerated
 sourceRequirementHash when aiGenerated
@@ -932,7 +932,7 @@ scripts/audit/domains/map-plugin-package/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Inspector must use:
@@ -965,15 +965,15 @@ Must verify:
 15. user explanation hides internals.
 16. Forensics proof fields complete.
 17. ALL active laws in registry/matrix/audit-plan/runner.
-18. negative proof executed.
+18. real-code-inspection executed.
 19. builtin loader wraps schema failures with packageFile, ownerResponsible, expectedPackageKind, receivedPackageKind, and actionableMessage before startup consumes them.
 ```
 
 ---
 
-## 17. Negative Proof Minimum
+## 17. real-code-inspection Minimum
 
-Must fail → rollback → pass:
+Must fail → re-inspect → pass:
 
 ```txt
 manual-first enforcement reintroduced
@@ -1016,7 +1016,7 @@ ordinary explanation exposes stepId
 Commander directly writes active registry
 Forensics proof missing activationId
 Forensics proof missing authoringProofRef for AI map
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -1048,7 +1048,7 @@ Commander cannot bypass validators/registry ports
 Forensics-compatible proof records exist
 builtin parse failures are diagnosable before app shell health, with ownerResponsible=map-plugin-package and packageFile/actionableMessage refs
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```
@@ -1271,7 +1271,7 @@ AI-generated map activation → governed activation proof required
 ```txt
 mouse-click success requires PAV handoff
 text-input success requires PAV handoff
-action step requires runtime proof
+action step requires owner evidence
 AI step requires aiProofRef + promptContract refs
 candidate/evidence capture requires evidencePacketRef or Forensics write request
 screenshot step requires retention policy
@@ -1428,7 +1428,7 @@ evidence steps require Forensics/evidence policy
 ordinary explanation hides internals
 activation proof and activationSnapshotRef required before runnable
 inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ```
 
 ## L. Runtime Debug Loop 补充：route-only closure
@@ -1448,7 +1448,7 @@ inspector 应覆盖：
 - `validateMapTransitionClosure()` 必须检查 route-only step 可达性和 transition 指向闭合。
 - schema/audit 必须物理禁止地图约束字段复发。
 
-negative proof 应覆盖：
+real-code-inspection 应覆盖：
 - 向 step 注入 `successCondition` / `failureBranch` / `reviewBranch` / `postActionVerification` / `proofPolicy` 必须失败。
 - 向 transition 注入 `condition` 必须失败。
 

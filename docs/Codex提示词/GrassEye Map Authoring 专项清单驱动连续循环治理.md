@@ -137,7 +137,7 @@ summary: map packages are declarative route data consumed by Orchestration, not 
 
 ```txt
 lawId: GRASSEYE-MAP-PLUGIN-002-V2
-summary: map packages must pass import, quarantine, validation, human approval, activation, active registry, and rollback lifecycle before runtime consumption.
+summary: map packages must pass import, quarantine, validation, human approval, activation, active registry, and re-inspect lifecycle before runtime consumption.
 ```
 
 ## MAP-LAW-003
@@ -207,7 +207,7 @@ summary: user-facing map explanation must translate route data into understandab
 
 ```txt
 lawId: GRASSEYE-MAP-PLUGIN-012-V2
-summary: map-plugin-package enforcement must close through owner-local AST/schema/reference inspector, runner, and negative proof.
+summary: map-plugin-package enforcement must close through owner-local AST/schema/reference inspector, runner, and real-code-inspection.
 ```
 
 ## MAP-LAW-013
@@ -354,7 +354,7 @@ section: 16. Enforcement
 ## MAP-BP-GOV-017
 
 ```txt
-section: 17. Negative Proof Minimum
+section: 17. real-code-inspection Minimum
 ```
 
 ## MAP-BP-GOV-018
@@ -484,7 +484,7 @@ section: 7. Forensics Proof
 ## MAP-BP-PROMPT-008
 
 ```txt
-section: 8. Negative Proof
+section: 8. real-code-inspection
 ```
 
 ## MAP-BP-PROMPT-009
@@ -526,7 +526,7 @@ section: E. Forensics Proof Requirements
 ## MAP-BP-PROMPT-F
 
 ```txt
-section: F. Negative Proof Additions
+section: F. real-code-inspection Additions
 ```
 
 ---
@@ -654,7 +654,7 @@ section: 17. READY 标准
 → 读取 scripts/audit/domains/map-plugin-package/**
 → 判断 inspector 对这些 requirement 是否 100% 静态覆盖
 → 未覆盖则删除/重写 inspector 对应逻辑
-→ 缺 negative proof 则补 negative proof
+→ 缺 real-code-inspection 则补 real-code-inspection
 → 运行 npm run audit:build
 → 运行 npm run audit:map-plugin-package
 → 如果 audit 抓到真实代码违规，则删除/重写/物理切割代码文件
@@ -676,7 +676,7 @@ section: 17. READY 标准
 3. 已从原文拆出静态可执法 requirement。
 4. 已读取 map-plugin-package inspector。
 5. inspector 静态覆盖该清单项 = 100%。
-6. required negative proof 已存在并覆盖。
+6. required real-code-inspection 已存在并覆盖。
 7. npm run audit:build PASS。
 8. npm run audit:map-plugin-package PASS。
 9. inspector 抓出的真实代码问题已修复。
@@ -800,7 +800,7 @@ recommendedUserDecision:
 
 ```txt
 删除/重写 inspector 对应逻辑。
-补 negative proof。
+补 real-code-inspection。
 补 run-inspector / manifest / package script。
 ```
 
@@ -876,12 +876,12 @@ completedRequirements == 81
 2. COVERAGE
 - law static coverage:
 - blueprint static coverage:
-- negative proof coverage:
+- real-code-inspection coverage:
 - map-plugin-package audit:
 
 3. INSPECTOR CHANGES
 - inspectors rewritten:
-- negative proofs added:
+- real-code-inspections added:
 - manifests/run-inspectors/package scripts changed:
 
 4. CODE FIXES
@@ -900,7 +900,7 @@ completedRequirements == 81
 - law content changed: NO
 - blueprint content weakened: NO
 - inspector disabled: NO
-- negative proof removed: NO
+- real-code-inspection removed: NO
 - generated manually edited: NO
 
 7. FINAL VERDICT

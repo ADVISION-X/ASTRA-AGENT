@@ -6,7 +6,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-visual-target-capabil
 
 # GrassEye Visual Target Capability FINAL
 
-Scope: governs the independent Visual Target Ability Group, target candidate normalization, source-proof binding, candidate selection, coordinate-space normalization, non-executable geometry handoff, metric/region/action target result shaping, and Visual Target runtime proof.
+Scope: governs the independent Visual Target Ability Group, target candidate normalization, source-proof binding, candidate selection, coordinate-space normalization, non-executable geometry handoff, metric/region/action target result shaping, and Visual Target owner evidence.
 
 Boundary: this module governs only how governed screenshot/AI/page-state evidence and target candidates become governed VisualTargetResult. It does not govern screenshot capture, AI reasoning, Page State classification, Geometry Guard policy, click/scroll/text execution, DOM/BOM selector lookup, Post-action Verification, Forensics persistence, Orchestration branching, platform action, product judgement, or comment extraction.
 
@@ -26,7 +26,7 @@ Core doctrine:
 - Post-action Verification verifies the result after action.
 - No source proof, no target success.
 - No chain fields, no production-ready target result.
-- No active Visual Target law without inspector + runner + negative proof.
+- No active Visual Target law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -39,7 +39,7 @@ status: active
 tier: P0
 capabilityDomain: visual-target-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required package:
@@ -78,7 +78,7 @@ scripts/audit/domains/visual-target-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden:
@@ -88,7 +88,7 @@ Forbidden:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- empty or missing negative proof.
+- empty or missing real-code-inspection.
 - legacy visual-action compatibility universe.
 
 ---
@@ -99,7 +99,7 @@ status: active
 tier: P0
 capabilityDomain: visual-target-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Visual Target is the only owner of governed visual target result normalization.
 
@@ -136,7 +136,7 @@ Required inspector:
 - External private import ban.
 - Public contract consumption check.
 
-Required negative proof:
+Required real-code-inspection:
 - Add platform adapter `computeTargetCoordinates` → FAIL.
 - Add mouse-click local bbox computation → FAIL.
 - Add AI direct target output consumed by mouse-click → FAIL.
@@ -150,7 +150,7 @@ status: active
 tier: P0
 capabilityDomain: visual-target-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Visual Target boundary stays pure: it validates, normalizes, selects, and builds handoff only.
 
@@ -199,7 +199,7 @@ Required inspector:
 - Forbidden symbol checks: captureScreenshot, executeAi, click, scroll, type, openPage, querySelector, document, window, cookie, localStorage, sessionStorage, writeEvidence, dispatchEnvelope, advanceStep.
 - No Page State/PAV/Geometry final truth fields.
 
-Required negative proof:
+Required real-code-inspection:
 - Visual Target imports screenshot implementation → FAIL.
 - Visual Target calls LocalAiGateway → FAIL.
 - Visual Target reads `document.querySelector` → FAIL.
@@ -213,7 +213,7 @@ status: active
 tier: P0
 capabilityDomain: visual-target-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Visual Target input must carry full chain fields, source proof, candidate proof, and idempotency.
 
@@ -318,7 +318,7 @@ Required inspector:
 - Screenshot proof gate.
 - Chain field gate.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove `activationSnapshotRef` from input → FAIL.
 - Remove `capabilityCallId` from input → FAIL.
 - AI candidate without aiProofRef returns success → FAIL.
@@ -332,7 +332,7 @@ status: active
 tier: P0
 capabilityDomain: visual-target-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: coordinate-space truth must be explicit; Visual Target output is not executable until Geometry Guard.
 
@@ -387,7 +387,7 @@ Required inspector:
 - Forbidden executable field scan.
 - Downstream mouse-click requires Geometry Guard, not Visual Target directly.
 
-Required negative proof:
+Required real-code-inspection:
 - Action success with `geometryGuardHandoffRequired=false` → FAIL.
 - Action success with `coordinateSpace=ai_input` → FAIL.
 - Result includes `safeToClick` → FAIL.
@@ -401,7 +401,7 @@ status: active
 tier: P0
 capabilityDomain: visual-target-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Visual Target runtime must use a single gate pipeline and fail closed on ambiguity, stale evidence, source mismatch, and critical data quality.
 
@@ -460,7 +460,7 @@ Required inspector:
 - Selection trace and ambiguity trace check.
 - Critical data quality fail-closed check.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove ambiguity gate → FAIL.
 - Candidate source mismatch returns success → FAIL.
 - Critical data quality returns success → FAIL.
@@ -474,9 +474,9 @@ status: active
 tier: P0
 capabilityDomain: visual-target-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Visual Target result and runtime proof must preserve real chain, source refs, candidate refs, gate decisions, coordinate transform trace, and Geometry Guard handoff.
+summary: Visual Target result and owner evidence must preserve real chain, source refs, candidate refs, gate decisions, coordinate transform trace, and Geometry Guard handoff.
 
 ### 主题
 
@@ -641,7 +641,7 @@ Required inspector:
 - No fabricated id pattern.
 - Success/failure proof invariants.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove `activationSnapshotRef` from proof → FAIL.
 - Set runId from sessionId + child → FAIL.
 - Success without outputRef → FAIL.
@@ -655,7 +655,7 @@ status: active
 tier: P0
 capabilityDomain: visual-target-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: child capabilities are narrow target bindings and must use unified Visual Target runtime.
 
@@ -704,7 +704,7 @@ Required inspector:
 - Forbidden imports/symbols.
 - Metric/action/region targetNature correctness.
 
-Required negative proof:
+Required real-code-inspection:
 - Child returns boolean → FAIL.
 - Child imports sibling implementation → FAIL.
 - Child hardcodes platform coordinate constant as final truth → FAIL.
@@ -718,9 +718,9 @@ status: active
 tier: P0
 capabilityDomain: visual-target-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Visual Target enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.
+summary: Visual Target enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and real-code-inspection.
 
 ### 主题
 
@@ -734,7 +734,7 @@ Visual Target enforcement must close through:
 scripts/audit/domains/visual-target-capability/manifest.json
 scripts/audit/domains/visual-target-capability/inspector.ts
 scripts/audit/domains/visual-target-capability/run-inspector.ts
-scripts/audit/domains/visual-target-capability/negative-proof-harness.ts
+scripts/audit/domains/visual-target-capability/owner-inspection-harness.ts
 ```
 
 Required:
@@ -743,12 +743,12 @@ Required:
 - Inspector must use schema-level checks.
 - Inspector must include anti-escape checks.
 - Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
-- Negative proof must run and report fail → rollback → pass.
+- real-code-inspection must run and report fail → re-inspect → pass.
 - CI-FULL must be green for delivery.
 - No grep/regex/includes as final judgment.
 - No warning-only P0.
 - No detached inspector.
-- No empty/missing negative proof.
+- No empty/missing real-code-inspection.
 - No generated fake PASS.
 - No verify script.
 - No capability-check.ts under Visual Target root.
@@ -772,10 +772,10 @@ Required inspector checks:
 15. No forbidden imports/symbols/DOM/BOM.
 16. No second visual target owner in platform/runtime/AI/click/scroll.
 17. ALL active Visual Target laws in registry/matrix/audit-plan/runner.
-18. negative-proof-harness executed.
+18. owner-inspection-harness executed.
 ```
 
-Required negative proof:
+Required real-code-inspection:
 ```txt
 manual-first enforcement reintroduced
 remove capabilityCallId from input
@@ -797,7 +797,7 @@ child returns boolean
 external import of child implementation
 platform adapter computes target coordinates
 mouse-click computes target bbox directly
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -819,7 +819,7 @@ target selection and ambiguity gates fail closed
 result/proof/input chain parity passes
 children are narrow target bindings
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```

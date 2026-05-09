@@ -118,6 +118,65 @@ const hasAiDebugStructuredSchemaShape = (
     && hasPropertyInitializer("durationMs", "toIntegerDurationMs");
 };
 
+const collectWhyAndTraceabilityFindings = async (input: {
+  whyText: string;
+  aiProofBuilder: ReturnType<typeof getSource>;
+  aiExecutor: ReturnType<typeof getSource>;
+  structuredLogPayload: ReturnType<typeof getSource>;
+  localAiRuntimeSources: ReturnType<typeof getSource>[];
+}): Promise<Finding[]> => {
+  return !hasRequiredWhySections(input.whyText) || !hasRequiredTraceFields(input.aiProofBuilder, input.aiExecutor, input.structuredLogPayload, input.localAiRuntimeSources)
+    ? [createFinding({
+      lawId: LAW_ID,
+      file: WHY_PATH,
+      line: 1,
+      severity: "error",
+      message: "Runtime debug transparency is missing WHY coverage or prompt-trace structured logging fields across AI and local runtime surfaces.",
+    })]
+    : [];
+};
+
+const collectTerminalProofFindings = (input: {
+  structuredLogSchema: ReturnType<typeof getSource>;
+  structuredLogPayload: ReturnType<typeof getSource>;
+  orchestrationPayloads: ReturnType<typeof getSource>;
+  orchestrationEvents: ReturnType<typeof getSource>;
+}): Finding[] => {
+  return hasTerminalProofFieldShape(input.structuredLogSchema, input.structuredLogPayload, input.orchestrationPayloads, input.orchestrationEvents)
+    ? []
+    : [createFinding({
+      lawId: LAW_ID,
+      file: "src/lib/local-runtime/structured-log-payload.ts",
+      line: 1,
+      severity: "error",
+      message: "Runtime debug transparency must carry screenshot artifact refs and prepare-ai-input proof refs as first-class structured terminal payload fields, not only opaque outputRefs strings.",
+    })];
+};
+
+const collectRuntimeAssetCopyFindings = async (): Promise<Finding[]> => {
+  return await hasRuntimeAssetCopyShape()
+    ? []
+    : [createFinding({
+      lawId: LAW_ID,
+      file: COPY_RUNTIME_ASSETS_PATH,
+      line: 1,
+      severity: "error",
+      message: "Build/runtime transparency must copy prompt-contract JSON, builtin map-package JSON, and generated capability-catalog JSON into dist so startup cannot fail before AI debug events become observable.",
+    })];
+};
+
+const collectAiDebugSchemaFindings = (aiDebugSupport: ReturnType<typeof getSource>): Finding[] => {
+  return hasAiDebugStructuredSchemaShape(aiDebugSupport)
+    ? []
+    : [createFinding({
+      lawId: LAW_ID,
+      file: "src/lib/local-runtime/workbench-ai-debug-support.ts",
+      line: 1,
+      severity: "error",
+      message: "AI debug structured runtime events must map inputRefs/outputRefs/artifactRefs/durationMs into the StructuredRuntimeEventSchema shape before terminal or forensics emission.",
+    })];
+};
+
 const inspector: DomainInspector = async () => {
   const findings = [];
   const project = createRuntimeDebugTransparencyProject();
@@ -136,42 +195,10 @@ const inspector: DomainInspector = async () => {
   ];
 
   const whyText = await readTextFile(pathFromRepoRoot(WHY_PATH));
-  if (!hasRequiredWhySections(whyText) || !hasRequiredTraceFields(aiProofBuilder, aiExecutor, structuredLogPayload, localAiRuntimeSources)) {
-    findings.push(createFinding({
-      lawId: LAW_ID,
-      file: WHY_PATH,
-      line: 1,
-      severity: "error",
-      message: "Runtime debug transparency is missing WHY coverage or prompt-trace structured logging fields across AI and local runtime surfaces.",
-    }));
-  }
-  if (!hasTerminalProofFieldShape(structuredLogSchema, structuredLogPayload, orchestrationPayloads, orchestrationEvents)) {
-    findings.push(createFinding({
-      lawId: LAW_ID,
-      file: "src/lib/local-runtime/structured-log-payload.ts",
-      line: 1,
-      severity: "error",
-      message: "Runtime debug transparency must carry screenshot artifact refs and prepare-ai-input proof refs as first-class structured terminal payload fields, not only opaque outputRefs strings.",
-    }));
-  }
-  if (!await hasRuntimeAssetCopyShape()) {
-    findings.push(createFinding({
-      lawId: LAW_ID,
-      file: COPY_RUNTIME_ASSETS_PATH,
-      line: 1,
-      severity: "error",
-      message: "Build/runtime transparency must copy prompt-contract JSON, builtin map-package JSON, and generated capability-catalog JSON into dist so startup cannot fail before AI debug events become observable.",
-    }));
-  }
-  if (!hasAiDebugStructuredSchemaShape(aiDebugSupport)) {
-    findings.push(createFinding({
-      lawId: LAW_ID,
-      file: "src/lib/local-runtime/workbench-ai-debug-support.ts",
-      line: 1,
-      severity: "error",
-      message: "AI debug structured runtime events must map inputRefs/outputRefs/artifactRefs/durationMs into the StructuredRuntimeEventSchema shape before terminal or forensics emission.",
-    }));
-  }
+  findings.push(...await collectWhyAndTraceabilityFindings({ whyText, aiProofBuilder, aiExecutor, structuredLogPayload, localAiRuntimeSources }));
+  findings.push(...collectTerminalProofFindings({ structuredLogSchema, structuredLogPayload, orchestrationPayloads, orchestrationEvents }));
+  findings.push(...await collectRuntimeAssetCopyFindings());
+  findings.push(...collectAiDebugSchemaFindings(aiDebugSupport));
 
   const phase = createPhase(
     "traceability-shape",

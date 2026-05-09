@@ -6,7 +6,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-mouse-scroll-capabili
 
 # GrassEye Mouse Scroll Capability FINAL
 
-Scope: governs the independent Mouse Scroll Ability Group, governed scroll input, Geometry Guard approved executable anchor/region consumption, explicit direction/magnitude/repeat policy, primitive scroll execution through port, idempotency, timeout/cancellation, primitive execution proof, post-action verification handoff, and Mouse Scroll runtime proof.
+Scope: governs the independent Mouse Scroll Ability Group, governed scroll input, Geometry Guard approved executable anchor/region consumption, explicit direction/magnitude/repeat policy, primitive scroll execution through port, idempotency, timeout/cancellation, primitive execution proof, post-action verification handoff, and Mouse Scroll owner evidence.
 
 Boundary: this module governs only primitive scroll execution after Geometry Guard has allowed executable anchor/region geometry. It does not govern screenshot capture, target detection, coordinate mapping, scale mapping, AI execution, click execution, comment capture, product classification, page-state truth, post-action verification truth, next-video verification, Forensics final action-log persistence, map branching, browser controller ownership, or platform business verbs.
 
@@ -23,7 +23,7 @@ Core doctrine:
 - Mouse Scroll success means primitive scroll accepted/executed only; it is not page-state truth and not “next video changed” truth.
 - Real-platform next-video advance must not be implemented inside Mouse Scroll; product_no continuation must route through Geometry Guard + Mouse Click, and Mouse Scroll may only hand off governed scroll observation refs.
 - Post-action Verification verifies what happened after the scroll.
-- Forensics persists final action logs; Mouse Scroll emits runtime proof and scrollExecutionRef only.
+- Forensics persists final action logs; Mouse Scroll emits owner evidence and scrollExecutionRef only.
 - No Geometry Guard allow, no scroll.
 - No explicit direction/magnitude/repeat, no scroll.
 - No primitive port, no scroll.
@@ -32,7 +32,7 @@ Core doctrine:
 - No hidden scroll-until-found loop.
 - No retry/fallback inside Mouse Scroll.
 - No fixed debug wait as next-video advance strategy inside Mouse Scroll.
-- No active Mouse Scroll law without inspector + runner + negative proof.
+- No active Mouse Scroll law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -45,7 +45,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-scroll-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required package:
@@ -78,7 +78,7 @@ scripts/audit/domains/mouse-scroll-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden:
@@ -89,7 +89,7 @@ Forbidden:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- empty/missing negative proof.
+- empty/missing real-code-inspection.
 - legacy visual-action scroll path.
 - platform-action scroll owner.
 - BrowserController in public contract.
@@ -103,7 +103,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-scroll-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Mouse Scroll is the only owner of governed primitive scroll execution.
 
@@ -121,7 +121,7 @@ Required:
 - Orchestration, platform adapters, local runtime, workbench, Visual Target, AI, Geometry Guard, Screenshot, Page State, PAV, and BrowserController must not own governed scroll execution truth.
 - BrowserController may exist only behind `MouseScrollPrimitivePort` adapter at composition boundary.
 - PlatformAction may request a scroll but may not own scroll strategy or primitive execution.
-- Mouse Scroll emits `scrollExecutionRef`, `primitiveExecutionRefs`, `postActionVerificationHandoffRef`, and runtime proof.
+- Mouse Scroll emits `scrollExecutionRef`, `primitiveExecutionRefs`, `postActionVerificationHandoffRef`, and owner evidence.
 - Forensics owns persisted final action-log truth.
 
 ### 禁止
@@ -149,7 +149,7 @@ Required inspector:
 - Forensics action-log write ban.
 - Business verb ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Add BrowserController to public contract → FAIL.
 - Platform adapter directly calls primitive scroll → FAIL.
 - Mouse Scroll writes final actionLogRef → FAIL.
@@ -163,7 +163,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-scroll-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Mouse Scroll boundary stays pure and cannot compute coordinates, remap geometry, verify outcomes, or perform foreign owner work.
 
@@ -185,7 +185,7 @@ Allowed:
 - primitive scroll through `MouseScrollPrimitivePort`.
 - timeout/cancellation of primitive call.
 - post-action verification handoff builder.
-- runtime proof/result builder.
+- owner evidence/result builder.
 
 Forbidden:
 - screenshot capture.
@@ -212,7 +212,7 @@ Required inspector:
 - Retry/fallback/until-found ban.
 - BrowserAction result leakage ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Add scaleMapping in Mouse Scroll runtime → FAIL.
 - Add scroll-until-found loop → FAIL.
 - Add BrowserActionId to result → FAIL.
@@ -226,7 +226,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-scroll-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Mouse Scroll input must carry full chain fields, Geometry Guard allow proof, explicit direction/magnitude/repeat, safety policy, source refs, idempotency, and timeout policy.
 
@@ -327,7 +327,7 @@ Required inspector:
 - Direction/magnitude/repeat policy gate.
 - Desktop scroll policy gate.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove activationSnapshotRef from input → FAIL.
 - Remove capabilityCallId from input → FAIL.
 - guardDecision=review_required returns success → FAIL.
@@ -343,7 +343,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-scroll-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Scroll direction, magnitude, delta, and repeat are input/policy only, not child capability or hidden loop.
 
@@ -407,7 +407,7 @@ Required inspector:
 - Hidden loop/until-found symbol scan.
 - Repeat proof parity.
 
-Required negative proof:
+Required real-code-inspection:
 - Add `scroll-next-video` child → FAIL.
 - Move magnitude constants outside shared/scroll-magnitude.ts → FAIL.
 - Add hidden `while (!found)` scroll loop → FAIL.
@@ -421,7 +421,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-scroll-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Mouse Scroll must run one fixed gate pipeline and execute primitive scroll only after all gates pass.
 
@@ -484,7 +484,7 @@ Required inspector:
 - Retry/fallback/until-found ban.
 - Child unified runtime call.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove geometry proof gate → FAIL.
 - Primitive call before preflight → FAIL.
 - Remove AbortSignal → FAIL.
@@ -500,7 +500,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-scroll-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Mouse Scroll result must mean primitive scroll only and must hand off to Post-action Verification.
 
@@ -555,7 +555,7 @@ Required inspector:
 - Forensics final action log ban.
 - Retry/fallback field ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Success without postActionVerificationHandoffRef → FAIL.
 - Add verificationDecision to result → FAIL.
 - Add nextVideoVerified to result → FAIL.
@@ -570,9 +570,9 @@ status: active
 tier: P0
 capabilityDomain: mouse-scroll-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Mouse Scroll result and runtime proof must preserve real upstream chain, gate decisions, primitive refs, repeat proofs, timeout/cancellation, idempotency, and PAV handoff.
+summary: Mouse Scroll result and owner evidence must preserve real upstream chain, gate decisions, primitive refs, repeat proofs, timeout/cancellation, idempotency, and PAV handoff.
 
 ### 主题
 
@@ -762,7 +762,7 @@ Required inspector:
 - Success/failure proof invariants.
 - Gate decision fields.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove activationSnapshotRef from proof → FAIL.
 - Set runId from attemptRef + child → FAIL.
 - Success without primitiveExecutionRefs → FAIL.
@@ -777,7 +777,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-scroll-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Mouse Scroll children are narrow primitive bindings and must use unified runtime.
 
@@ -831,7 +831,7 @@ Required inspector:
 - Sibling import ban.
 - Child direct primitive call ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Add scroll-one-page child → FAIL.
 - Add scroll-until-found child → FAIL.
 - Child calls primitive port directly → FAIL.
@@ -846,9 +846,9 @@ status: active
 tier: P0
 capabilityDomain: mouse-scroll-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Mouse Scroll enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.
+summary: Mouse Scroll enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and real-code-inspection.
 
 ### 主题
 
@@ -862,7 +862,7 @@ Mouse Scroll enforcement must close through:
 scripts/audit/domains/mouse-scroll-capability/manifest.json
 scripts/audit/domains/mouse-scroll-capability/inspector.ts
 scripts/audit/domains/mouse-scroll-capability/run-inspector.ts
-scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts
+scripts/audit/domains/mouse-scroll-capability/owner-inspection-harness.ts
 ```
 
 Required:
@@ -871,12 +871,12 @@ Required:
 - Inspector must use schema-level checks.
 - Inspector must include anti-escape checks.
 - Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
-- Negative proof must run and report fail → rollback → pass.
+- real-code-inspection must run and report fail → re-inspect → pass.
 - CI-FULL must be green for delivery.
 - No grep/regex/includes as final judgment.
 - No warning-only P0.
 - No detached inspector.
-- No empty/missing negative proof.
+- No empty/missing real-code-inspection.
 - No generated fake PASS.
 - No capability-check.ts.
 - No verify script as release truth.
@@ -900,10 +900,10 @@ Required inspector checks:
 15. No forbidden imports/symbols/business verbs.
 16. External platform/runtime cannot bypass Mouse Scroll.
 17. ALL active Mouse Scroll laws in registry/matrix/audit-plan/runner.
-18. negative-proof-harness executed.
+18. owner-inspection-harness executed.
 ```
 
-Required negative proof:
+Required real-code-inspection:
 ```txt
 manual-first enforcement reintroduced
 remove capabilityCallId from input
@@ -926,7 +926,7 @@ child calls primitive port directly
 child returns boolean
 platform adapter directly calls primitive scroll
 capability-check.ts added
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -952,7 +952,7 @@ result/proof/input chain parity passes
 children are narrow primitive bindings
 external platform/runtime cannot bypass Mouse Scroll
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```

@@ -30,7 +30,7 @@ Core doctrine:
 - Forensics stores evidence; AI does not persist evidence.
 - Runtime adapters execute model calls; adapters do not own final AI result truth.
 - Disabled, paid, and future providers fail closed.
-- Every AI P0 law must be enforced by ai-capability inspector, audit runner, generated artifacts, and negative proof.
+- Every AI P0 law must be enforced by ai-capability inspector, audit runner, generated artifacts, and real-code-inspection.
 
 ---
 
@@ -126,7 +126,7 @@ Forbidden result shapes:
 
 ### Required Chain Fields
 
-AI input or AI runtime proof must include:
+AI input or AI owner evidence must include:
 
 ```txt
 missionId
@@ -200,7 +200,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: AI is an independent first-class ability group and must remain the only public AI owner.
 
@@ -274,7 +274,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: AI child capabilities represent provider/runtime channels; business task routing is AI-owned and must not replace child ids.
 
@@ -355,7 +355,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: AI may reason and return structured results only; it may not execute actions or side effects.
 
@@ -434,7 +434,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: local-ai-runtime is an internal execution boundary under AI ownership and must not become a second public AI system.
 
@@ -500,7 +500,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: paid and future API AI children are visible but disabled by policy and must fail closed.
 
@@ -575,7 +575,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: AI outputs must be cleaned before persistence and must not leak AI runtime contracts into Forensics public ownership.
 
@@ -628,7 +628,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: AI keeps a single public contract and does not leak child, adapter, prompt, or legacy internals.
 
@@ -689,7 +689,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: ai-capability inspector is the only enforcement owner for AI topology, runtime pipeline, prompt truth, and anti-escape checks.
 
@@ -706,7 +706,7 @@ AI topology, owner-cutover, prompt truth, runtime pipeline, provider policy, res
 Required direction:
 - `scripts/audit/domains/ai-capability/inspector.ts` is the AI enforcement entry.
 - `scripts/audit/domains/ai-capability/run-inspector.ts` must be runnable from package scripts.
-- `scripts/audit/domains/ai-capability/negative-proof-harness.ts` must execute fail → rollback → pass mutations.
+- `scripts/audit/domains/ai-capability/owner-inspection-harness.ts` must execute fail → re-inspect → pass regressions.
 - Decisive checks must use AST, symbol resolution, import graph analysis, JSON schema validation, generated artifact validation, or type-aware checks.
 - Regex/grep/includes may be used only as pre-filtering, never as final judgment.
 - AI enforcement must participate in:
@@ -724,7 +724,7 @@ governanceInvariant:
   owner: ai-capability
   inspector: scripts/audit/domains/ai-capability/inspector.ts
   runInspector: scripts/audit/domains/ai-capability/run-inspector.ts
-  negativeProof: scripts/audit/domains/ai-capability/negative-proof-harness.ts
+  negativeProof: scripts/audit/domains/ai-capability/owner-inspection-harness.ts
   requiredAuditSurfaces:
     - law-registry
     - enforcement-matrix
@@ -750,7 +750,7 @@ FORBIDDEN:
 - AI public-index leakage or AI-private path imports escaping inspector coverage.
 - Active AI law without inspector.
 - AI inspector not connected to runner.
-- P0/P1 AI law without negative proof.
+- P0/P1 AI law without real-code-inspection.
 - Warning-only P0 findings.
 
 ---
@@ -761,7 +761,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: AI owns the Prompt Contract Registry; prompt execution must resolve by promptContractId/version/catalog, never by hardcoded prompt text.
 
@@ -837,7 +837,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Prompt contracts must declare full governed metadata and must be hashable, strict, and audit-proof.
 
@@ -849,7 +849,7 @@ Prompt Contract 完整合同
 
 ### 法条
 
-AI prompt contracts must declare full governed metadata and must support strict validation, hashing, runtime proof, and negative proof.
+AI prompt contracts must declare full governed metadata and must support strict validation, hashing, owner evidence, and real-code-inspection.
 
 Required direction:
 - Every Prompt Contract must include:
@@ -923,7 +923,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Prompt contracts may guide reasoning only and must not command actions, bypass security, or make final mission decisions.
 
@@ -988,7 +988,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: AI runtime must resolve prompt execution by promptContractId and execute a governed runtime pipeline with typed failures.
 
@@ -1067,9 +1067,9 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: AI timeout, cancellation, idempotency, concurrency, and circuit breaker state must be governed and proof-backed.
+summary: AI timeout, cancellation, idempotency, concurrency, and circuit breaker state must be governed and real-code-inspection-backed.
 
 alias: APEX-AI-012-V1
 
@@ -1137,7 +1137,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: AI result proof must be complete, chain-linked, raw-output-backed, and impossible to fake as success.
 
@@ -1239,7 +1239,7 @@ status: active
 tier: P0  
 capabilityDomain: ai-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: AI output boundary must recursively block action authority, browser authority, Forensics authority, and command authority.
 
@@ -1327,7 +1327,7 @@ FORBIDDEN:
 
 ## Required Enforcement
 
-The ai-capability audit domain must enforce this module using AST, symbol, import graph, JSON schema, generated artifact, and negative-proof-backed inspection.
+The ai-capability audit domain must enforce this module using AST, symbol, import graph, JSON schema, generated artifact, and real-code-inspection-backed inspection.
 
 Required inspector dimensions:
 - AI public export boundary.
@@ -1354,7 +1354,7 @@ Required inspector dimensions:
 - No `export *`.
 - No fake success, fallback success, no-op success.
 - AI inspector enters runner.
-- AI negative proof executes.
+- AI real-code-inspection executes.
 - Generated artifacts include AI law coverage.
 
 Forbidden enforcement shortcuts:
@@ -1364,14 +1364,14 @@ Forbidden enforcement shortcuts:
 - warning-only P0.
 - manual-only proof.
 - detached inspector.
-- empty negative-proof harness.
+- empty real-code-inspection harness.
 - generated fake PASS.
 
 ---
 
-## Required Negative Proof
+## Required real-code-inspection
 
-The ai-capability negative proof must prove fail → rollback → pass for at least:
+The ai-capability real-code-inspection must prove fail → re-inspect → pass for at least:
 
 - Add browser/action implementation import in AI runtime → FAIL.
 - Add Forensics writer import in AI → FAIL.
@@ -1400,14 +1400,14 @@ The ai-capability negative proof must prove fail → rollback → pass for at le
 - Add module-level unmanaged `activeRuns` → FAIL.
 - Add module-level unmanaged `circuitBreaker` → FAIL.
 - Convert ai inspector to warning-only → FAIL.
-- Remove ai negative proof invocation → FAIL.
+- Remove ai real-code-inspection invocation → FAIL.
 - Detach ai inspector from audit runner → FAIL.
 - Gate full raw AI IO behind `GRASSEYE_DEBUG_AI_IO` or emit only rawResponsePreview → FAIL.
 - Collapse raw model output and parser-normalized output into one AI_RESPONSE_DEBUG event → FAIL.
 - Let product_presence_judgment use single_frame_fallback or fewer/more than fixed 3s/6s two-frame input refs → FAIL.
 - Reintroduce production low-confidence product judgment outside the AI response contract → FAIL.
 
-No AI audit result is valid unless negative proof executes and reports.
+No AI audit result is valid unless real-code-inspection executes and reports.
 
 ---
 
@@ -1417,9 +1417,9 @@ AI Capability Phase 3.5 is READY only when all conditions are true:
 
 - This law file, AI blueprint, inspector, generated artifacts, and runner agree.
 - All AI laws are machine-blocking.
-- All AI laws use evidenceMode `law+inspector+negative-proof`.
+- All AI laws use evidenceMode `law+inspector+real-code-inspection`.
 - AI inspector is connected to runner.
-- AI negative proof executes.
+- AI real-code-inspection executes.
 - Prompt Contract Registry is the only prompt truth.
 - Unknown/mismatched prompt contract produces typed failure.
 - Prompt contract metadata and hash are enforced.

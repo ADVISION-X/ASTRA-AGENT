@@ -182,30 +182,41 @@ function buildGeometryAuditPayload(input: BuildGeometryGuardResultInput) {
   };
 }
 
-function buildGeometryCorePayload(
-  input: BuildGeometryGuardResultInput,
-  refs: GeometryResultRefs,
-  decisionState: GeometryDecisionState,
-) {
+function buildGeometryCoreIdentityPayload(input: BuildGeometryGuardResultInput, refs: GeometryResultRefs) {
   return {
     status: input.status,
     abilityGroupId: "geometry-guard",
     childCapabilityId: input.request.childCapabilityId,
+    geometryGuardRef: refs.geometryGuardRef,
+    guardDecision: input.guardDecision,
+    nerveBusEnvelopeId: input.request.nerveBusEnvelopeId,
+  };
+}
+
+function buildGeometryCoreMissionPayload(input: BuildGeometryGuardResultInput) {
+  return {
     missionId: input.request.missionId,
     runId: input.request.runId,
     sessionId: input.request.sessionId,
     roundId: input.request.roundId,
     videoVisitId: input.request.videoVisitId,
     stepId: input.request.stepId,
+  };
+}
+
+function buildGeometryCoreMapPayload(input: BuildGeometryGuardResultInput) {
+  return {
     mapPackageId: input.request.mapPackageId,
     mapPackageVersion: input.request.mapPackageVersion,
     selectedMapId: input.request.selectedMapId,
     selectedMapVersion: input.request.selectedMapVersion,
     activationSnapshotRef: input.request.activationSnapshotRef,
     capabilityCallId: input.request.capabilityCallId,
-    nerveBusEnvelopeId: input.request.nerveBusEnvelopeId,
-    geometryGuardRef: refs.geometryGuardRef,
-    guardDecision: input.guardDecision,
+  };
+}
+
+function buildGeometryCoreOutputPayload(input: BuildGeometryGuardResultInput, refs: GeometryResultRefs, decisionState: GeometryDecisionState) {
+  return {
     output: decisionState.allowSuccess ? input.output : null,
     outputRef: refs.outputRef,
     diagnosticPayloadRef: refs.diagnosticPayloadRef,
@@ -218,18 +229,43 @@ function buildGeometryCorePayload(
     sourceAiResultRef: input.request.sourceAiResultRef,
     sourcePageStateProofRef: input.request.sourcePageStateProofRef,
     sourceVisualTargetResultRef: input.request.sourceVisualTargetResultRef,
-    failureReason: input.failureReason,
-    reviewRequiredReason: input.reviewRequiredReason,
     debugLogRef: refs.diagnosticPayloadRef ?? refs.outputRef,
+  };
+}
+
+function buildGeometryCoreDecisionPayload(input: BuildGeometryGuardResultInput, decisionState: GeometryDecisionState) {
+  return {
     sourceEvidenceDecision: decisionState.sourceEvidenceDecision,
     coordinateSpaceDecision: decisionState.coordinateSpaceDecision,
     executionSpaceDecision: decisionState.executionSpaceDecision,
     outputBoundaryDecision: decisionState.outputBoundaryDecision,
+  };
+}
+
+function buildGeometryCoreRiskPayload(input: BuildGeometryGuardResultInput) {
+  return {
     riskLevel: input.request.riskLevel,
     requiresPostClickAiVerification: input.request.requiresPostClickAiVerification,
     fallbackReason: input.request.fallbackReason,
     targetSemanticOwner: input.request.targetSemanticOwner,
     actionableMessage: input.request.actionableMessage,
+  };
+}
+
+function buildGeometryCorePayload(
+  input: BuildGeometryGuardResultInput,
+  refs: GeometryResultRefs,
+  decisionState: GeometryDecisionState,
+) {
+  return {
+    ...buildGeometryCoreIdentityPayload(input, refs),
+    ...buildGeometryCoreMissionPayload(input),
+    ...buildGeometryCoreMapPayload(input),
+    ...buildGeometryCoreOutputPayload(input, refs, decisionState),
+    failureReason: input.failureReason,
+    reviewRequiredReason: input.reviewRequiredReason,
+    ...buildGeometryCoreDecisionPayload(input, decisionState),
+    ...buildGeometryCoreRiskPayload(input),
   };
 }
 

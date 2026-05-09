@@ -78,7 +78,7 @@ page-state
 base owner inspection
 governance checks
 red-line checks
-negative-proof
+real-code-inspection
 ```
 
 并且 red-line 里面直接调用了：
@@ -100,7 +100,7 @@ code-purity
 ```text
 code-purity:scan
 code-purity:report
-code-purity:negative-proof
+code-purity:real-code-inspection
 ```
 
 三个独立阶段。
@@ -112,7 +112,7 @@ CI FULL 第一层已经跑 code-purity
     ↓
 audit-system 又内嵌 inspectCodePurity
     ↓
-audit-system negative-proof 又反复启动 audit-system
+audit-system real-code-inspection 又反复启动 audit-system
     ↓
 每一轮又可能触发 code-purity / topology / artifact 检查
 ```
@@ -186,7 +186,7 @@ code-purity 是否被 CI FULL 纳入
    只检查“审计系统本身的拓扑、证据链、产物链、runner 链”
    不允许重新执行 code-purity
    不允许重新执行 CI FULL
-   不允许默认执行 production mutation negative-proof
+   不允许默认执行 production regression real-code-inspection
 ```
 
 关键点：
@@ -220,7 +220,7 @@ audit-system 是 foundation-layer 的一个检查项，不是 CI FULL 的替身�
 不跑 audit-system
 不跑 capability-group-governance
 不跑 ability group owner 检查
-不跑 negative-proof 总链
+不跑 real-code-inspection 总链
 ```
 
 map-layer 如果需要知道 code-purity 是否通过，只读取第一层证据：
@@ -256,7 +256,7 @@ open 只检查 open
 不 typecheck
 不检查其他 owner 的完整逻辑
 不跑 CI FULL
-不默认跑 production mutation negative-proof
+不默认跑 production regression real-code-inspection
 ```
 
 它可以检查：
@@ -350,7 +350,7 @@ foundation-layer evidence
 不能真实跑 typecheck
 不能真实跑 map-layer
 不能真实跑 ability-group-layer
-不能默认跑 mutation negative-proof
+不能默认跑 regression real-code-inspection
 不能通过启动自己来证明自己
 ```
 
@@ -482,15 +482,15 @@ ability owner 不得 import ci-full runner
 
 ---
 
-## 方案 4：negative-proof 从 CI FULL 常规链中物理切出去
+## 方案 4：real-code-inspection 从 CI FULL 常规链中物理切出去
 
-negative-proof 不是每日常规 CI FULL 的一部分。
+real-code-inspection 不是每日常规 CI FULL 的一部分。
 
 它应该变成：
 
 ```text
 ci:full = 常规完整质检
-ci:proof = 重型变异证明
+ci:full = 重型变异证明
 ```
 
 也就是：
@@ -499,7 +499,7 @@ ci:proof = 重型变异证明
 {
   "scripts": {
     "ci:full": "node --import tsx scripts/audit/ci-full.ts",
-    "ci:proof": "GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1 node --import tsx scripts/audit/ci-proof.ts"
+    "ci:full": "GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1 node --import tsx scripts/audit/ci-proof.ts"
   }
 }
 ```
@@ -510,10 +510,10 @@ ci:proof = 重型变异证明
 完整但不变异生产树的检查
 ```
 
-`ci:proof` 做：
+`ci:full` 做：
 
 ```text
-低频、重型、串行、限内存、可中断的 mutation proof
+低频、重型、串行、限内存、可中断的 regression proof
 ```
 
 否则普通 CI FULL 每次都动生产树、反复 spawn、自我验证，风险太大。
@@ -617,12 +617,12 @@ audit-system 只查证据链，不再亲自重跑全系统。
 3. foundation-layer 负责全局检查：audit:build、audit:code-purity、typecheck、audit:capability-group-governance、audit:type-safety、audit:security-privacy、audit:audit-system。
 4. map-layer 只负责 audit:map-plugin-package。
 5. ability-group-layer 只负责 14 个 ability owner audits。
-6. audit-system 的定位改为“CI 拓扑与 evidence 链检查器”，不得重新执行 code-purity、typecheck、map-layer、ability-group-layer，不得默认跑 production mutation negative-proof。
+6. audit-system 的定位改为“CI 拓扑与 evidence 链检查器”，不得重新执行 code-purity、typecheck、map-layer、ability-group-layer，不得默认跑 production regression real-code-inspection。
 7. 移除 audit-system 内部对 inspectCodePurity 的真实执行，改为 validate code-purity evidence：检查 foundation-layer/code-purity evidence 是否存在、PASS、新鲜、被 ci-full-summary 汇总。
 8. 建立 CI_FULL_CHECK_OWNERS 矩阵，声明每个 checkId 的唯一 producer、所属 layer、允许 consumers。
 9. 所有 owner inspector 禁止 import/call 其他 owner 的真实 inspector，只能读取 generated artifacts / evidence / summaries。
 10. ci:full 输出 scripts/audit/generated/ci-full-summary.generated.json，汇总三层所有 step 的 status、exitCode、duration、memoryPeak、artifactPaths。
-11. negative-proof 从常规 ci:full 中物理切出，放到显式 ci:proof 或 GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1 模式；普通 ci:full 不做生产树 mutation proof。
+11. real-code-inspection 从常规 ci:full 中物理切出，放到显式 ci:full 或 GRASSEYE_AUDIT_RUN_NEGATIVE_PROOF=1 模式；普通 ci:full 不做生产树 regression proof。
 12. 资源保护仍保留：每个 step 限时、限 RSS、超限 kill child process tree。
 13. 最终结果：ci:full 是完整质检，但每项检查只执行一次；audit-system 只验证链路完整，不重复执行重型检查。
 ```

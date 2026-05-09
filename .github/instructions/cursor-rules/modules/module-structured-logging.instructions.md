@@ -1,6 +1,6 @@
 ---
 name: "GrassEye Structured Logging"
-description: "Use when defining runtime event logs, action logs, live proof logs, log schema, log persistence, and structured runtime proof."
+description: "Use when defining runtime event logs, action logs, live proof logs, log schema, log persistence, and structured owner evidence."
 applyTo: ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md, src/capabilities/forensics-persistence/**, src/lib/local-runtime/**, src/types/structured-log.ts, scripts/audit/domains/forensics-persistence-capability/**"
 ---
 
@@ -54,11 +54,11 @@ capabilityDomain: forensics-persistence-capability
 enforcementMode: manual-first
 evidenceMode: law
 
-summary: runtime proof must link to Forensics record refs and may not depend on hidden round finalizers.
+summary: owner evidence must link to Forensics record refs and may not depend on hidden round finalizers.
 
 ### 主题
 
-runtime proof 必须回连 Forensics 记录，不得依赖藏在 Forensics 里的 round finalizer。
+owner evidence 必须回连 Forensics 记录，不得依赖藏在 Forensics 里的 round finalizer。
 
 ### 法条
 
@@ -448,7 +448,7 @@ Required checks:
 - no promptLength-only visibility.
 - no localAi unreachable app_server SIGTERM.
 
-Negative proof requirements:
+real-code-inspection requirements:
 - promptLength-only logging is non-compliant.
 - parser-only persistence that drops raw response is non-compliant.
 - terminal relay without Forensics refs is non-compliant.

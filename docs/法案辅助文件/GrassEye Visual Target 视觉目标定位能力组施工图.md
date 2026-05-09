@@ -509,7 +509,7 @@ not action executable truth
 
 ---
 
-## 12. Runtime Proof
+## 12. owner evidence
 
 `VisualTargetRuntimeProof` 必须包含：
 
@@ -672,7 +672,7 @@ Visual Target 不决定 safeToClick。
 scripts/audit/domains/visual-target-capability/manifest.json
 scripts/audit/domains/visual-target-capability/inspector.ts
 scripts/audit/domains/visual-target-capability/run-inspector.ts
-scripts/audit/domains/visual-target-capability/negative-proof-harness.ts
+scripts/audit/domains/visual-target-capability/owner-inspection-harness.ts
 ```
 
 Inspector 必须：
@@ -686,7 +686,7 @@ schema-level
 anti-escape
 generated artifact aware
 runner-connected
-negative-proof-backed
+real-code-inspection-backed
 ```
 
 禁止：
@@ -698,7 +698,7 @@ includes final judgment
 manual-only proof
 warning-only P0
 detached inspector
-empty/missing negative proof
+empty/missing real-code-inspection
 verify script as release truth
 ```
 
@@ -724,14 +724,14 @@ verify script as release truth
 15. No forbidden imports/symbols/DOM/BOM.
 16. No second visual target owner in platform/runtime/AI/click/scroll.
 17. ALL active laws in registry/matrix/audit-plan/runner.
-18. negative-proof-harness executed.
+18. owner-inspection-harness executed.
 ```
 
 ---
 
-## 17. Negative Proof 最低清单
+## 17. real-code-inspection 最低清单
 
-必须 fail → rollback → pass：
+必须 fail → re-inspect → pass：
 
 ```txt
 manual-first enforcement reintroduced
@@ -754,7 +754,7 @@ child returns boolean
 external import of child implementation
 platform adapter computes target coordinates
 mouse-click computes target bbox directly
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -775,7 +775,7 @@ action success always requires Geometry Guard handoff
 target selection and ambiguity gates fail closed
 result/proof/input chain parity passes
 children are narrow target bindings
-negative proof PASS
+real-code-inspection PASS
 ```
 
 ---

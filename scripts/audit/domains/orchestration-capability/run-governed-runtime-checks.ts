@@ -1,30 +1,19 @@
-import { Node, SyntaxKind } from "ts-morph";
-
 import { getZodObjectPropertyNames } from "../_shared/ast-schema-queries.js";
 import { createFinding, createPhase, fileExists, pathFromRepoRoot, readTextFile, type Finding } from "./inspection-core.js";
-import { createAuditProject, getSourceFileOrThrow, hasCallExpressionPath } from "./inspection-ast-helpers.js";
+import { createAuditProject, getSourceFileOrThrow } from "./inspection-ast-helpers.js";
 import { inspectForensicsRetentionBoundary } from "./forensics-retention-boundary-phase.js";
 import { inspectAiPromptContractTaskTypeDispatch } from "./ai-prompt-contract-tasktype-dispatch-checks.js";
 import { orchestrationInspectionConstants as config } from "./inspection-constants.js";
 import { inspectMissionLoopTraceability } from "./mission-loop-traceability-phase.js";
 import { inspectStartMissionCommandBoundary } from "./start-mission-boundary-checks.js";
+import { inspectAiStepTimeoutChain, inspectRoundAndVideoVisitChain } from "./run-governed-runtime-step-checks.js";
+import { collectChildRunnerFindings, collectExecuteBoundaryFindings, collectForbiddenRoutingFindings } from "./run-governed-runtime-public-surface-checks.js";
 
 const RESUME_PATH = "src/capabilities/orchestration/runtime/orchestration-executor-resume.ts";
 const PROOF_BUILDER_PATH = "src/capabilities/orchestration/runtime/orchestration-proof-builder.ts";
 const STEP_DISPATCHER_PATH = "src/capabilities/orchestration/runtime/step-dispatcher.ts";
-const STEP_DISPATCH_SHARED_PATH = "src/capabilities/orchestration/runtime/step-dispatch-shared.ts";
-const STEP_DISPATCH_REQUEST_BUILDERS_PATH = "src/capabilities/orchestration/runtime/step-dispatch-request-builders.ts";
-const NERVE_BUS_ADAPTER_PATH = "src/capabilities/orchestration/runtime/orchestration-nerve-bus-adapter.ts";
-const NERVE_BUS_PORT_PATH = "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts";
-const NERVE_BUS_ENVELOPE_BUILDERS_PATH = "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts";
 const MAP_VALIDATION_GATE_PATH = "src/capabilities/orchestration/runtime/map-validation-gate.ts";
-const CHILD_RUNNER_PATH = "src/capabilities/orchestration/runtime/orchestration-child-runner.ts";
-const EXECUTOR_PATH = "src/capabilities/orchestration/runtime/orchestration-executor.ts";
 const FORBIDDEN_HUMAN_REVIEW_CHILD_PATH = "src/capabilities/orchestration/children/request-human-review/implementation.ts";
-const THROW_BOUNDARY_PATHS = [
-  EXECUTOR_PATH,
-  "src/capabilities/orchestration/children/finalize-mission/implementation.ts",
-] as const;
 const FROZEN_STATE_FIELDS = [
   "activationSnapshotRef",
   "selectedMapVersion",
@@ -85,76 +74,12 @@ function createRuntimePhase(name: string, findings: Finding[], passSummary: stri
   return createPhase(name, findings.length === 0 ? "PASS" : "CODE VIOLATION", findings.length === 0, findings.length === 0 ? passSummary : failSummary);
 }
 
-function hasCallObjectProperty(sourceFile: ReturnType<typeof getSourceFileOrThrow>, callName: string, propertyName: string): boolean {
-  return sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
-    const expression = callExpression.getExpression();
-    if (!Node.isIdentifier(expression) || expression.getText() !== callName) {
-      return false;
-    }
-
-    const [firstArgument] = callExpression.getArguments();
-    return Boolean(firstArgument && Node.isObjectLiteralExpression(firstArgument) && firstArgument.getProperty(propertyName));
-  });
-}
-
 function inspectGovernedPublicSurface(project: ReturnType<typeof createAuditProject>): PhaseResult {
-  const contractSource = getSourceFileOrThrow(project, config.CONTRACT_PATH);
-  const abilityGroupSource = getSourceFileOrThrow(project, config.ABILITY_GROUP_PATH);
-  const childRunnerSource = getSourceFileOrThrow(project, CHILD_RUNNER_PATH);
-  const schemaSource = getSourceFileOrThrow(project, config.SCHEMA_PATH);
-  const registrySource = getSourceFileOrThrow(project, config.REGISTRY_PATH);
-  const executorSource = getSourceFileOrThrow(project, EXECUTOR_PATH);
-  const nerveBusPortSource = getSourceFileOrThrow(project, NERVE_BUS_PORT_PATH);
-  const nerveBusAdapterSource = getSourceFileOrThrow(project, NERVE_BUS_ADAPTER_PATH);
-  const nerveBusEnvelopeBuildersSource = getSourceFileOrThrow(project, NERVE_BUS_ENVELOPE_BUILDERS_PATH);
   const findings: Finding[] = [];
 
-  const executeMethod = contractSource.getInterface("OrchestrationAbilityGroup")?.getMethod("execute");
-  const executeReturnText = executeMethod?.getReturnTypeNode()?.getText() ?? "";
-  if (executeReturnText.includes("unknown")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.CONTRACT_PATH, line: executeMethod?.getStartLineNumber() ?? 1, message: "Orchestration public execute boundary must return a governed typed result, not Promise<unknown>." }));
-  }
-
-  const directExecutorImports = abilityGroupSource
-    .getImportDeclarations()
-    .filter((declaration) => declaration.getModuleSpecifierValue() === "./runtime/orchestration-executor.js")
-    .flatMap((declaration) => declaration.getNamedImports())
-    .map((specifier) => specifier.getName())
-    .filter((specifier) => DIRECT_EXECUTOR_IMPORTS.has(specifier));
-  if (directExecutorImports.length > 0) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.ABILITY_GROUP_PATH, line: 1, message: "Orchestration ability-group public methods must not call granular executor commands directly; retain only governed execute plus thin wrappers.", detail: directExecutorImports.join(", ") }));
-  }
-
-  const childRunnerText = childRunnerSource.getFullText();
-  if (childRunnerText.includes("runtimeProof: null")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: CHILD_RUNNER_PATH, line: collectLineNumber(childRunnerText, "runtimeProof: null"), message: "Unknown orchestration child failure must carry typed proof and must not return runtimeProof:null." }));
-  }
-  if ((childRunnerSource.getFunction("executeOrchestrationChild")?.getReturnTypeNode()?.getText() ?? "").includes("unknown")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: CHILD_RUNNER_PATH, line: childRunnerSource.getFunction("executeOrchestrationChild")?.getStartLineNumber() ?? 1, message: "Orchestration child executor pipeline must return a governed envelope, not Promise<unknown>." }));
-  }
-
-  const forbiddenSources = [
-    { file: config.SCHEMA_PATH, text: schemaSource.getFullText() },
-    { file: config.REGISTRY_PATH, text: registrySource.getFullText() },
-    { file: CHILD_RUNNER_PATH, text: childRunnerText },
-    { file: EXECUTOR_PATH, text: executorSource.getFullText() },
-    { file: config.CONTRACT_PATH, text: contractSource.getFullText() },
-    { file: config.ABILITY_GROUP_PATH, text: abilityGroupSource.getFullText() },
-    { file: NERVE_BUS_PORT_PATH, text: nerveBusPortSource.getFullText() },
-    { file: NERVE_BUS_ADAPTER_PATH, text: nerveBusAdapterSource.getFullText() },
-    { file: NERVE_BUS_ENVELOPE_BUILDERS_PATH, text: nerveBusEnvelopeBuildersSource.getFullText() },
-  ];
-  for (const source of forbiddenSources) {
-    const forbiddenMarker = ["request-human-review", "RequestHumanReview", "submitReviewDecision", "submitMissionReviewDecision", "sendReviewRequestToCommander"].find((marker) => source.text.includes(marker));
-    if (forbiddenMarker) {
-      findings.push(createFatalFinding({
-        lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
-        file: source.file,
-        line: collectLineNumber(source.text, forbiddenMarker),
-        message: "Orchestration must not expose request-human-review, sendReviewRequestToCommander, or review-decision routing. Automation failures must terminate as failed, not route to runtime human review.",
-      }));
-    }
-  }
+  collectExecuteBoundaryFindings(project, findings);
+  collectChildRunnerFindings(project, findings);
+  collectForbiddenRoutingFindings(project, findings);
 
   return {
     findings,
@@ -274,7 +199,10 @@ function inspectRuntimeProofRunIdChain(project: ReturnType<typeof createAuditPro
 function inspectTypedFailureBoundary(project: ReturnType<typeof createAuditProject>): PhaseResult {
   const findings: Finding[] = [];
 
-  for (const filePath of THROW_BOUNDARY_PATHS) {
+  for (const filePath of [
+    "src/capabilities/orchestration/runtime/orchestration-executor.ts",
+    "src/capabilities/orchestration/children/finalize-mission/implementation.ts",
+  ] as const) {
     const sourceFile = getSourceFileOrThrow(project, filePath);
     for (const throwStatement of sourceFile.getDescendantsOfKind(SyntaxKind.ThrowStatement)) {
       findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: filePath, line: throwStatement.getStartLineNumber(), message: "Orchestration public boundary and child execution must convert failures into typed envelopes rather than throwing." }));
@@ -315,68 +243,6 @@ function inspectPostActionVerificationChain(project: ReturnType<typeof createAud
       findings,
       "Orchestration validates and dispatches post-action verification for state-changing action steps.",
       "Orchestration still allows action steps to complete without mandatory post-action verification chaining.",
-    ),
-  };
-}
-
-function inspectRoundAndVideoVisitChain(project: ReturnType<typeof createAuditProject>): PhaseResult {
-  const sharedSource = getSourceFileOrThrow(project, STEP_DISPATCH_SHARED_PATH);
-  const loopSupportSource = getSourceFileOrThrow(project, "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts");
-  const sharedText = sharedSource.getFullText();
-  const loopSupportText = loopSupportSource.getFullText();
-  const findings: Finding[] = [];
-
-  if (sharedText.includes("videoVisitId: null")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: STEP_DISPATCH_SHARED_PATH, line: collectLineNumber(sharedText, "videoVisitId: null"), message: "Orchestration dispatch chain must bind a non-null videoVisitId per mission round; no-video dispatch chains can hide same-video AI loops." }));
-  }
-  if (!sharedText.includes("video-visit") || !sharedText.includes("state.currentRoundIndex")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: STEP_DISPATCH_SHARED_PATH, line: 1, message: "Orchestration dispatch chain must derive videoVisitId from mission identity and currentRoundIndex." }));
-  }
-  if (!loopSupportText.includes("shouldAdvanceMissionRound") || !loopSupportText.includes("verify-next-item-advanced") || !loopSupportText.includes("capture-video-viewport")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: "src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration-support.ts", line: 1, message: "Mission round advancement must treat verify-next-item-advanced returning to capture-video-viewport as the governed round boundary." }));
-  }
-
-  return {
-    findings,
-    phase: createRuntimePhase(
-      "round-video-visit-chain",
-      findings,
-      "Orchestration binds non-null per-round videoVisitId and advances rounds after governed next-item AI verification.",
-      "Orchestration can still dispatch no-video loops or fail to advance rounds after verified next-video scroll.",
-    ),
-  };
-}
-
-function inspectAiStepTimeoutChain(project: ReturnType<typeof createAuditProject>): PhaseResult {
-  const sharedSource = getSourceFileOrThrow(project, STEP_DISPATCH_SHARED_PATH);
-  const dispatcherSource = getSourceFileOrThrow(project, STEP_DISPATCHER_PATH);
-  const requestBuilderSource = getSourceFileOrThrow(project, STEP_DISPATCH_REQUEST_BUILDERS_PATH);
-  const nerveBusAdapterSource = getSourceFileOrThrow(project, NERVE_BUS_ADAPTER_PATH);
-  const findings: Finding[] = [];
-
-  if (!sharedSource.getFullText().includes("PRODUCTION_STEP_TIMEOUT_MS_BY_KIND") || !sharedSource.getFullText().includes("PRODUCTION_STEP_TIMEOUT_MS_BY_ABILITY") || sharedSource.getFullText().includes("step.timeoutPolicy")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCH_SHARED_PATH, line: 1, message: "Orchestration must resolve dispatch timeout from production runtime policy only; maps must not own timeoutPolicy." }));
-  }
-  if (!hasCallExpressionPath(dispatcherSource, ["dispatchWithTimeout"]) || !dispatcherSource.getFullText().includes("AI dispatch timed out after ${timeoutMs}ms")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCHER_PATH, line: 1, message: "AI step dispatch must be wrapped by the resolved step timeout and return a governed timeout failure." }));
-  }
-  if (!requestBuilderSource.getFullText().includes("timeoutMs: resolveStepTimeoutMs(input.step)")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCH_REQUEST_BUILDERS_PATH, line: 1, message: "AI Nerve Bus dispatch request must carry the production-owned step timeout value." }));
-  }
-  if (!dispatcherSource.getFullText().includes("async (signal)") || !dispatcherSource.getFullText().includes("signal,")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCHER_PATH, line: 1, message: "AI step dispatchWithTimeout must pass its AbortSignal into sendRequestToAi, not discard it with _signal." }));
-  }
-  if (!nerveBusAdapterSource.getFullText().includes("signal: input.signal")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: NERVE_BUS_ADAPTER_PATH, line: 1, message: "Orchestration Nerve Bus AI adapter must pass the AI dispatch AbortSignal into nerveBus.requestAi." }));
-  }
-
-  return {
-    findings,
-    phase: createRuntimePhase(
-      "ai-step-timeout-chain",
-      findings,
-      "Orchestration applies production-owned step timeout policy to AI dispatch and timeout terminal failure.",
-      "Orchestration still lets AI dispatch ignore the production-owned step timeout policy.",
     ),
   };
 }

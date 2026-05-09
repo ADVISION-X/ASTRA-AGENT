@@ -6,7 +6,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-geometry-guard-capabi
 
 # GrassEye Geometry Guard Capability FINAL
 
-Scope: governs the independent Geometry Guard Ability Group, executable geometry safety gating, coordinate-space validation, bbox/click-point legality, scale mapping, bounds validation, normalized executable geometry output, geometry guard references, and runtime proof.
+Scope: governs the independent Geometry Guard Ability Group, executable geometry safety gating, coordinate-space validation, bbox/click-point legality, scale mapping, bounds validation, normalized executable geometry output, geometry guard references, and owner evidence.
 
 Boundary: this module governs only whether a governed geometry input is safe and normalized for an execution space. It does not govern browser control, screenshot capture, target detection, visual target selection, coordinate action planning, action execution, AI reasoning, platform business verbs, post-action verification, Forensics persistence, Orchestration branching, product judgement, or comment extraction.
 
@@ -27,7 +27,7 @@ Core doctrine:
 - No action type decides geometry verdict.
 - No source proof, no allow.
 - No chain fields, no production-ready geometry result.
-- No active Geometry Guard law without inspector + runner + negative proof.
+- No active Geometry Guard law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -40,7 +40,7 @@ status: active
 tier: P0
 capabilityDomain: geometry-guard-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required package:
@@ -83,7 +83,7 @@ scripts/audit/domains/geometry-guard-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden:
@@ -94,7 +94,7 @@ Forbidden:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- empty/missing negative proof.
+- empty/missing real-code-inspection.
 - compatibility/legacy visual-action geometry chain.
 
 ---
@@ -105,7 +105,7 @@ status: active
 tier: P0
 capabilityDomain: geometry-guard-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Geometry Guard is the only owner of governed executable geometry safety gating.
 
@@ -147,7 +147,7 @@ Required inspector:
 - Visual Target to Geometry Guard public handoff check.
 - Geometry Guard public surface check.
 
-Required negative proof:
+Required real-code-inspection:
 - Add `plan-coordinate-action` child → FAIL.
 - Add `fallbackMode` to result → FAIL.
 - Add Mouse Click scaleMapping remap → FAIL.
@@ -161,7 +161,7 @@ status: active
 tier: P0
 capabilityDomain: geometry-guard-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Geometry Guard public contract must stay clean, native, and independent.
 
@@ -239,7 +239,7 @@ Required inspector:
 - `index.ts` export-star ban.
 - Private runtime/children import ban outside Geometry Guard root.
 
-Required negative proof:
+Required real-code-inspection:
 - Import `BrowserController` in contract → FAIL.
 - Export old `VisualTarget` type → FAIL.
 - Add `requestedActionType` to result → FAIL.
@@ -253,7 +253,7 @@ status: active
 tier: P0
 capabilityDomain: geometry-guard-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Geometry Guard input must carry full chain fields, source refs, coordinate evidence, idempotency, and policy.
 
@@ -336,7 +336,7 @@ Required inspector:
 - Source ref gate.
 - Invalid input proof with receivedShapeHash.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove `activationSnapshotRef` from input → FAIL.
 - Remove `capabilityCallId` from input → FAIL.
 - Remove `nerveBusEnvelopeId` from input → FAIL.
@@ -351,7 +351,7 @@ status: active
 tier: P0
 capabilityDomain: geometry-guard-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Geometry Guard must validate finite geometry, coordinate space, scale mapping, bounds, click safety, and execution target without silent clamp.
 
@@ -400,7 +400,7 @@ Required inspector:
 - Device scale factor gate.
 - ContactSheet block.
 
-Required negative proof:
+Required real-code-inspection:
 - `aiInput` without scaleMapping returns allow → FAIL.
 - `contactSheet` returns allow into browserViewport → FAIL.
 - Missing deviceScaleFactor for desktopScreen returns allow → FAIL.
@@ -415,7 +415,7 @@ status: active
 tier: P0
 capabilityDomain: geometry-guard-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Geometry Guard must use one fixed gate pipeline and must remain side-effect free.
 
@@ -473,7 +473,7 @@ Required inspector:
 - Forbidden imports/symbols.
 - Unknown child proof check.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove coordinate-space gate → FAIL.
 - Remove scale-mapping gate → FAIL.
 - Child returns boolean → FAIL.
@@ -488,9 +488,9 @@ status: active
 tier: P0
 capabilityDomain: geometry-guard-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Geometry Guard result and runtime proof must preserve real upstream chain, gate decisions, refs, and normalized geometry.
+summary: Geometry Guard result and owner evidence must preserve real upstream chain, gate decisions, refs, and normalized geometry.
 
 ### 主题
 
@@ -640,7 +640,7 @@ Required inspector:
 - Success/failure proof invariants.
 - Gate decision fields.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove activationSnapshotRef from proof → FAIL.
 - Set runId from sessionId + child → FAIL.
 - `allow` without outputRef → FAIL.
@@ -655,7 +655,7 @@ status: active
 tier: P0
 capabilityDomain: geometry-guard-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: downstream execution owners must consume only Geometry Guard approved executable geometry and must not redo mapping.
 
@@ -693,7 +693,7 @@ Required inspector:
 - Forbidden remap symbol scan downstream.
 - Public Geometry Guard result consumption check.
 
-Required negative proof:
+Required real-code-inspection:
 - Mouse Click consumes raw Visual Target clickPoint → FAIL.
 - Mouse Click remaps aiInput scaleMapping → FAIL.
 - Mouse Scroll remaps imageEvidence → FAIL.
@@ -707,9 +707,9 @@ status: active
 tier: P0
 capabilityDomain: geometry-guard-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Geometry Guard enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.
+summary: Geometry Guard enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and real-code-inspection.
 
 ### 主题
 
@@ -723,7 +723,7 @@ Geometry Guard enforcement must close through:
 scripts/audit/domains/geometry-guard-capability/manifest.json
 scripts/audit/domains/geometry-guard-capability/inspector.ts
 scripts/audit/domains/geometry-guard-capability/run-inspector.ts
-scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts
+scripts/audit/domains/geometry-guard-capability/owner-inspection-harness.ts
 ```
 
 Required:
@@ -732,12 +732,12 @@ Required:
 - Inspector must use schema-level checks.
 - Inspector must include anti-escape checks.
 - Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
-- Negative proof must run and report fail → rollback → pass.
+- real-code-inspection must run and report fail → re-inspect → pass.
 - CI-FULL must be green for delivery.
 - No grep/regex/includes as final judgment.
 - No warning-only P0.
 - No detached inspector.
-- No empty/missing negative proof.
+- No empty/missing real-code-inspection.
 - No generated fake PASS.
 - No capability-check.ts.
 - No verify script as release truth.
@@ -759,10 +759,10 @@ Required inspector checks:
 13. no forbidden imports/symbols/business verbs.
 14. downstream Mouse Click / Mouse Scroll consume only Geometry Guard approved geometry.
 15. ALL active Geometry Guard laws in registry/matrix/audit-plan/runner.
-16. negative-proof-harness executed.
+16. owner-inspection-harness executed.
 ```
 
-Required negative proof:
+Required real-code-inspection:
 ```txt
 manual-first enforcement reintroduced
 remove capabilityCallId from input
@@ -784,7 +784,7 @@ child returns boolean
 Mouse Click remaps Visual Target raw clickPoint
 Mouse Scroll remaps aiInput
 capability-check.ts added
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -808,7 +808,7 @@ allow result has normalized executable geometry and outputRef
 downstream Mouse Click/Mouse Scroll cannot bypass Geometry Guard
 children are narrow geometry gates
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```

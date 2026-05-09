@@ -327,7 +327,7 @@ Forbidden:
 
 ```txt
 direct setCandidateDisposition
-direct ProductOpportunityCandidate mutation
+direct ProductOpportunityCandidate regression
 direct Forensics storage write
 review command without candidate ref
 ```
@@ -416,7 +416,7 @@ TaskRun / activeTaskRunId naming
 
 ---
 
-## 10. Runtime Proof
+## 10. owner evidence
 
 `CommanderRuntimeProof` must include:
 
@@ -529,7 +529,7 @@ quarantine
 validation
 approve
 active
-rollback
+re-inspect
 draft-only
 disabled
 not runnable
@@ -611,7 +611,7 @@ Must exist:
 scripts/audit/domains/commander-console-capability/manifest.json
 scripts/audit/domains/commander-console-capability/inspector.ts
 scripts/audit/domains/commander-console-capability/run-inspector.ts
-scripts/audit/domains/commander-console-capability/negative-proof-harness.ts
+scripts/audit/domains/commander-console-capability/owner-inspection-harness.ts
 ```
 
 Inspector must use:
@@ -625,7 +625,7 @@ schema-level
 anti-escape
 generated artifact aware
 runner-connected
-negative-proof-backed
+real-code-inspection-backed
 ```
 
 Forbidden:
@@ -637,7 +637,7 @@ includes final judgment
 manual-only proof
 warning-only P0
 detached inspector
-empty negative proof
+empty real-code-inspection
 ```
 
 ---
@@ -665,14 +665,14 @@ empty negative proof
 18. runtimeProof non-null.
 19. public execute non-throwing.
 20. ALL active laws in registry/matrix/audit-plan/runner.
-21. negative proof executed.
+21. real-code-inspection executed.
 ```
 
 ---
 
-## 17. Negative Proof 最低清单
+## 17. real-code-inspection 最低清单
 
-Must fail → rollback → pass:
+Must fail → re-inspect → pass:
 
 ```txt
 manual-first enforcement reintroduced
@@ -694,7 +694,7 @@ Candidate handler calls setCandidateDisposition
 index.ts export *
 runtimeProof:null
 public execute throw
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -737,7 +737,7 @@ RuntimeProofSchema 必须对 childKind=command 拒绝 runId:null
 Local App Shell 写 COMMAND_REJECTED 时必须把 commandEnvelopeRef/resultEnvelopeRef/runtimeProofRef 放入 refs/proofRefs
 ```
 
-negative proof 必须覆盖：
+real-code-inspection 必须覆盖：
 
 ```txt
 删除 CommandTransportResultSchema.runId 必须 FAIL
@@ -751,7 +751,7 @@ READY 标准补充：
 
 ```txt
 start-mission dispatch result has non-null runId
-Commander runtime proof preserves the same runId
+Commander owner evidence preserves the same runId
 terminal and runtime debug API COMMAND_REJECTED include ownerResponsible/actionableMessage plus command/result/proof refs when dispatch fails
 ```
 
@@ -768,10 +768,10 @@ no silent default
 transport semantic gate hard
 timeout/idempotency real
 emergency-stop hard path
-read models proof-backed
+read models real-code-inspection-backed
 no foreign owner imports
 no legacy truth types
-negative proof PASS
+real-code-inspection PASS
 ```
 
 ---
@@ -811,9 +811,9 @@ COMMAND_ACCEPTED
 - AST 检查 `handleStartMission` 不得 `await runtime.orchestrationAbilityGroup.startMission(...)`。
 - AST 检查 `handleStartMission` 必须在记录 `COMMAND_ACCEPTED` 后以 background promise 启动 mission loop。
 - AST 检查 background promise 必须带 rejection guard，避免 unhandled rejection。
-- 保留 timeout gate、idempotency gate、transport semantic gate、runtime proof refs 原有检查。
+- 保留 timeout gate、idempotency gate、transport semantic gate、owner evidence refs 原有检查。
 
-### Negative Proof 应覆盖
+### real-code-inspection 应覆盖
 
 - 将 background `startMission` 改回 `await runtime.orchestrationAbilityGroup.startMission(...)` 必须 FAIL。
 - 删除 timeout gate 仍必须 FAIL。
@@ -887,7 +887,7 @@ NERVE_BUS_ENVELOPE_CREATED
 ORCHESTRATION_START_RECEIVED
 MISSION_ACTIVATION_SNAPSHOT_FROZEN
 COMMAND_ACCEPTED
-commandEnvelopeRef + resultEnvelopeRef runtime proof
+commandEnvelopeRef + resultEnvelopeRef owner evidence
 ```
 
 accepted 后的 HTTP/receipt observer timeout 必须改写为：

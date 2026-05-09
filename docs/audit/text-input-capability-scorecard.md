@@ -15,9 +15,9 @@
 | Clipboard Governance | 96 | pass |
 | Primitive Timeout And Abort | 97 | pass |
 | Output Boundary Integrity | 98 | pass |
-| Runtime Proof Completeness | 97 | pass |
+| owner evidence Completeness | 97 | pass |
 | Debug Transparency | 96 | pass |
-| Enforcement And Negative Proof | 97 | pass |
+| Enforcement And real-code-inspection | 97 | pass |
 
 Verdict: TEXT_INPUT_CAPABILITY_READY_FOR_MERGE_WITH_PRE_EXISTING_REPO_NOISE
 

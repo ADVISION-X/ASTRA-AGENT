@@ -391,7 +391,7 @@ postActionVerificationRef as final action proof
 
 ---
 
-## 11. Runtime Proof
+## 11. owner evidence
 
 `PageStateRuntimeProof` 必须包含：
 
@@ -524,7 +524,7 @@ Orchestration 只调用 Page State 并消费结果。
 scripts/audit/domains/page-state-capability/manifest.json
 scripts/audit/domains/page-state-capability/inspector.ts
 scripts/audit/domains/page-state-capability/run-inspector.ts
-scripts/audit/domains/page-state-capability/negative-proof-harness.ts
+scripts/audit/domains/page-state-capability/owner-inspection-harness.ts
 ```
 
 Inspector 必须：
@@ -538,7 +538,7 @@ schema-level
 anti-escape
 generated artifact aware
 runner-connected
-negative-proof-backed
+real-code-inspection-backed
 ```
 
 禁止：
@@ -550,7 +550,7 @@ includes final judgment
 manual-only proof
 warning-only P0
 detached inspector
-empty negative proof
+empty real-code-inspection
 verify script as release truth
 ```
 
@@ -572,21 +572,21 @@ verify script as release truth
 11. Platform profile gate invoked.
 12. Output boundary gate invoked.
 13. Result/proof/input chain parity.
-14. Runtime proof has gate decisions and no fabricated ids.
+14. owner evidence has gate decisions and no fabricated ids.
 15. No verificationDecision/action-result fields.
 16. Child registry/folder/schema parity.
 17. Child cannot build final result/proof.
 18. No forbidden imports.
 19. No verify scripts/capability-check.
 20. ALL active laws in registry/matrix/audit-plan/runner.
-21. negative proof executed.
+21. real-code-inspection executed.
 ```
 
 ---
 
-## 16. Negative Proof 最低清单
+## 16. real-code-inspection 最低清单
 
-必须 fail → rollback → pass：
+必须 fail → re-inspect → pass：
 
 ```txt
 manual-first enforcement reintroduced
@@ -609,20 +609,20 @@ child hardcodes TikTok feed path
 external import of child implementation
 add verify-page-state-capabilities.ts
 turn P0 into warning-only
-remove negative proof invocation
+remove real-code-inspection invocation
 ```
 
 执行拓扑要求：
 
 ```txt
-negative-proof-harness 必须按执法 phase 对 mutation 分组。
-每个 mutation 必须声明 targeted enforcement phase。
-嵌套 inspector 必须只执行该 mutation group 对应的 targeted phase。
-禁止每个 mutation 重放完整 inspector。
-禁止每个 mutation 重建 generated artifacts；只有法条 metadata mutation 可重建。
-rollback PASS 可在所有 mutation rollback 后统一执行一次，但必须真实重建并证明恢复 PASS。
-anti-escape phase 必须用 ts-morph AST 检查 negative-proof-harness 的分组、phase 标注、targeted phase 传递和 grouped loop。
-negative proof 必须包含“拆回逐 mutation 完整 inspector”的自毁 mutation，并证明会被 inspector 阻断。
+owner-inspection-harness 必须按执法 phase 对 regression 分组。
+每个 regression 必须声明 targeted enforcement phase。
+嵌套 inspector 必须只执行该 regression group 对应的 targeted phase。
+禁止每个 regression 重放完整 inspector。
+禁止每个 regression 重建 generated artifacts；只有法条 metadata regression 可重建。
+re-inspect PASS 可在所有 regression re-inspect 后统一执行一次，但必须真实重建并证明恢复 PASS。
+anti-escape phase 必须用 ts-morph AST 检查 owner-inspection-harness 的分组、phase 标注、targeted phase 传递和 grouped loop。
+real-code-inspection 必须包含“拆回逐 regression 完整 inspector”的自毁 regression，并证明会被 inspector 阻断。
 ```
 
 ---
@@ -642,7 +642,7 @@ result evidence-backed
 runtimeProof chain/gate decisions complete
 no action-result verification truth
 children narrow classifiers only
-negative proof PASS
+real-code-inspection PASS
 ```
 
 ---
@@ -691,7 +691,7 @@ captcha present=false / safety_wall present=false
 - AST 检查 normal evidence collector 必须保留 platform capture 或等效 runtime source-bound evidence。
 - AST 检查 `buildSafetyPageNormalOutput` 不能在已具备负向观察时写入 `insufficient_signal`。
 
-### Negative Proof 应覆盖
+### real-code-inspection 应覆盖
 
 - 将 normal 分支改回只使用 positive blocker observations 必须 FAIL。
 - 删除 local runtime governed observations 必须 FAIL。

@@ -27,7 +27,7 @@ Index only locates the narrowest current authority.
 ## Routing Rules
 
 - Load GRASSEYE-KERNEL before any module match.
-- Load module-capability-group-governance when the task defines ability groups, child abilities, shared contracts, currentStrength, forbiddenResponsibilities, or debug runtime proof.
+- Load module-capability-group-governance when the task defines ability groups, child abilities, shared contracts, currentStrength, forbiddenResponsibilities, or debug owner evidence.
 - Index may route only to the 14 active ability groups, foundation laws, and explicit support-governance domains.
 - Match the narrowest domain by path and task keywords.
 - Deleted historical owner names may appear only as remap triggers to a current owner; they must never route to absent modules.
@@ -47,10 +47,10 @@ Local development tooling:
 
 | Path or trigger | Load module | Routing note |
 | -- | -- | -- |
-| commander console, human command, mission dashboard, runtime proof timeline, review queue, audit summary, manual override, candidate pool, operator review | module-commander-console-capability.instructions.md | Human entry and console reads only |
+| commander console, human command, mission dashboard, owner evidence timeline, review queue, audit summary, manual override, candidate pool, operator review | module-commander-console-capability.instructions.md | Human entry and console reads only |
 | ability group, child ability, shared ability contract, currentStrength, debug proof contract, forbidden responsibilities, orchestration matrix, capability catalog, catalog generated from abilities | module-capability-group-governance.instructions.md | Shared ability-group governance only |
 | orchestration ability group, mission state, mission command execution, operational map, map registry, step state, branch, runtime loop, observe, classify, act, record, orchestrator, facebook-product-discovery-map, tiktok-product-discovery-map, branch after AI output | module-orchestration-capability.instructions.md | Legacy runtime-loop vocabulary remaps to Orchestration mission-map authority |
-| map plugin, map package, operational map package, task template package, map import, map activation, map rollback, map quarantine, map compatibility, map validator, AI draft map, map step, prompt binding, map-driven prompt, map authoring prompt builder, AI-generated map prompt | module-map-plugin-package.instructions.md | Controlled pluggable map-package support governance routes here first, then to Orchestration and Commander Console as the direct owners |
+| map plugin, map package, operational map package, task template package, map import, map activation, map re-inspect, map quarantine, map compatibility, map validator, AI draft map, map step, prompt binding, map-driven prompt, map authoring prompt builder, AI-generated map prompt | module-map-plugin-package.instructions.md | Controlled pluggable map-package support governance routes here first, then to Orchestration and Commander Console as the direct owners |
 | nerve bus, command transport, command envelope, result envelope, ai request envelope, ai response envelope, transfer proof, channel routing | module-nerve-bus-capability.instructions.md | Governed transport authority only |
 | ai ability group, first AI question, product presence judgment, comments OCR, intent analysis, pain point, complaint signal, opportunity synthesis, product signal, score, local model, prompt registry, prompt contract, prompt content, output schema ref | module-ai-capability.instructions.md | AI owns judgment; load Forensics or Commander only when persistence or review is the real boundary |
 | src/capabilities/open, open ability group, open capability, open-tiktok, open-facebook, open-local-workbench, open result, capability-check, open proof | module-open-capability.instructions.md | Open capability authority only |
@@ -68,7 +68,7 @@ Local development tooling:
 | local data, storage port, storage adapter, dedupe, retention, export, delete, traceability | module-forensics-persistence-capability.instructions.md | Route retired local-data vocabulary to the active Forensics write boundary |
 | local persistence, sqlite, grasseye.sqlite, evidence file store, export set storage, storageRef, structured store, local persistence schema | module-forensics-persistence-capability.instructions.md | Local persistence schema now routes through Forensics child boundary |
 | real chrome, persistent profile, browser profile, local browser session, login state reuse, profileRef, userDataDir, chrome executable, headless default, incognito | module-open-capability.instructions.md | Local real browser session now routes through Open child boundary |
-| structured log, structured logging, runtime event, action log, debug runtime proof, log schema, sessionId, roundId, videoVisitId | module-forensics-persistence-capability.instructions.md | Structured runtime proof now routes through Forensics child boundary |
+| structured log, structured logging, runtime event, action log, debug owner evidence, log schema, sessionId, roundId, videoVisitId | module-forensics-persistence-capability.instructions.md | Structured owner evidence now routes through Forensics child boundary |
 | credentials, cookies, session, token, privacy, sensitive screenshot, authorized account, privacy prompt boundary | module-security-privacy.instructions.md | Security and privacy only |
 | startup script, launch script, bootstrap, dependency check, auto open page, health-gated launch, unique startup source, grasseye:start | module-commander-console-capability.instructions.md | Startup bootstrap now routes through Commander Console child boundary |
 | localhost console, desktop app, macOS app, local app shell, local workbench, public exposure | module-commander-console-capability.instructions.md | Local app shell now routes through Commander Console child boundary |

@@ -83,10 +83,10 @@ lastRequirementId:
 读取当前 requirement
 → 回读对应法条原文
 → 回读对应施工图段落
-→ 读取对应 inspector / negative proof / run-inspector / manifest / package audit 命令
+→ 读取对应 inspector / real-code-inspection / run-inspector / manifest / package audit 命令
 → 判断 inspector 对该 requirement 是否静态覆盖 100%
 → 如果未覆盖 100%，删除/重写 inspector 对应逻辑
-→ 如果缺 negative proof，补 negative proof
+→ 如果缺 real-code-inspection，补 real-code-inspection
 → 运行 npm run audit:build
 → 运行 npm run audit:<owner>
 → 如果 audit 抓到真实代码违规，删除/重写/物理切割代码文件
@@ -108,7 +108,7 @@ lastRequirementId:
 3. 已回读对应施工图段落。
 4. 已读取对应 inspector。
 5. inspector 静态覆盖该 requirement = 100%。
-6. required negative proof 已存在并覆盖。
+6. required real-code-inspection 已存在并覆盖。
 7. npm run audit:build PASS。
 8. npm run audit:<owner> PASS。
 9. inspector 抓出的真实代码问题已修复。
@@ -239,7 +239,7 @@ BLOCKED_LAW_BLUEPRINT_CONFLICT
 
 ```txt
 删除/重写 inspector 对应逻辑。
-补 negative proof。
+补 real-code-inspection。
 补 run-inspector / manifest / package script。
 ```
 
@@ -332,12 +332,12 @@ completedRequirements == totalRequirements
 
 2. COVERAGE
 - law/blueprint static coverage:
-- negative proof coverage:
+- real-code-inspection coverage:
 - owner audit pass count:
 
 3. INSPECTOR CHANGES
 - inspectors rewritten:
-- negative proofs added:
+- real-code-inspections added:
 
 4. CODE FIXES
 - files deleted:
@@ -352,7 +352,7 @@ completedRequirements == totalRequirements
 - law content changed: NO
 - blueprint content weakened: NO
 - inspector disabled: NO
-- negative proof removed: NO
+- real-code-inspection removed: NO
 - generated manually edited: NO
 
 7. FINAL VERDICT

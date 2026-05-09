@@ -114,7 +114,7 @@ B. 删除后按 ts-morph AST / symbol / reference / anti-escape 重构
 7. re-export laundering 检查。
 8. wrapper hiding 检查。
 9. forbidden call 检查。
-10. negative proof 可触发 FAIL。
+10. real-code-inspection 可触发 FAIL。
 11. 执法运行效率达到顶级状态。
 
 执法脚本必须覆盖四方攻击：
@@ -150,8 +150,8 @@ LOOP-4：按鉴权结果删除文件或删除后重构。
 
 LOOP-5：同步能力包、执法脚本、manifest、audit-plan、runner。
 
-LOOP-6：执行 negative proof。
-必须证明关键错误注入后 audit FAIL，并回滚 mutation。
+LOOP-6：执行 real-code-inspection。
+必须证明关键错误注入后 audit FAIL，并回滚 regression。
 
 LOOP-7：重新运行全部命令。
 
@@ -193,7 +193,7 @@ LOOP-7：重新运行全部命令。
 - type checker:
 - references:
 - anti-escape:
-- negative proof:
+- real-code-inspection:
 
 6. Commands
 - audit:build:

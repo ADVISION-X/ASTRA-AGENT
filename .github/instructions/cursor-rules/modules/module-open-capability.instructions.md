@@ -6,7 +6,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-open-capability.instr
 
 # GrassEye Open Capability FINAL
 
-Scope: governs the independent Open Ability Group, child open abilities, open request/result contract, target policy, URL safety, real Chrome session gate, navigation attempt, timeout/cancellation, idempotency, page-state handoff, open runtime proof, and open ownership boundaries.
+Scope: governs the independent Open Ability Group, child open abilities, open request/result contract, target policy, URL safety, real Chrome session gate, navigation attempt, timeout/cancellation, idempotency, page-state handoff, open owner evidence, and open ownership boundaries.
 
 Boundary: this module governs only **opening a governed target** and producing an open attempt/result/proof. It does not govern current page-state truth, action-result verification truth, screenshot capture, AI execution, visual target detection, coordinate/mouse action, text input, Forensics persistence truth, map branching, mission progression, product judgement, or comment extraction.
 
@@ -25,8 +25,8 @@ Core doctrine:
 - Open must never read cookies, DOM/BOM, or private browser state directly.
 - Open must never become platform adapter, browser controller, Orchestration, Page State, PAV, Screenshot, AI, or Forensics.
 - No page-state handoff, no Open success.
-- No runtime proof, no Open result.
-- No active Open law without inspector + runner + negative proof.
+- No owner evidence, no Open result.
+- No active Open law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -39,7 +39,7 @@ status: active
 tier: P1
 capabilityDomain: open-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required package:
@@ -77,7 +77,7 @@ scripts/audit/domains/open-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden:
@@ -87,7 +87,7 @@ Forbidden:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- empty negative proof.
+- empty real-code-inspection.
 
 ---
 
@@ -97,7 +97,7 @@ status: active
 tier: P0
 capabilityDomain: open-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Open Ability Group is the only owner of governed open behavior.
 
@@ -132,7 +132,7 @@ Required inspector:
 - Startup/local shell route check.
 - Child registry and folder parity.
 
-Required negative proof:
+Required real-code-inspection:
 - Add `openFeed` to platform adapter → FAIL.
 - Add startup platform open helper → FAIL.
 - Add direct import of open child implementation from another child → FAIL.
@@ -145,7 +145,7 @@ status: active
 tier: P0
 capabilityDomain: open-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Open boundary stays pure and cannot own state, verification, AI, screenshot, visual target, action, Forensics, or mission branching truth.
 
@@ -166,7 +166,7 @@ Allowed:
 - timeout/cancellation for navigation
 - post-open observation summary only as non-authoritative handoff metadata
 - page-state handoff ref creation
-- runtime proof/result construction
+- owner evidence/result construction
 
 Forbidden:
 - screenshot capture
@@ -188,7 +188,7 @@ Required inspector:
 - Forbidden symbols: screenshot, ai, visual-target, mouse, text-input, forensics, orchestration, querySelector, document/window/cookie/localStorage/sessionStorage.
 - Page-state/PAV truth field ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Open imports screenshot implementation → FAIL.
 - Open reads `document.cookie` → FAIL.
 - Open result exposes `verificationDecision` → FAIL.
@@ -202,7 +202,7 @@ status: active
 tier: P0
 capabilityDomain: open-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Open input must carry governed chain fields, target profile context, source proof, timeout, and idempotency.
 
@@ -267,7 +267,7 @@ Required inspector:
 - No default platform/URL pattern.
 - Invalid input failure proof.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove `activationSnapshotRef` from input → FAIL.
 - Remove `capabilityCallId` from input → FAIL.
 - Remove `nerveBusEnvelopeId` from input → FAIL.
@@ -281,7 +281,7 @@ status: active
 tier: P0
 capabilityDomain: open-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Open must run a fixed target/profile/session/navigation/idempotency/timeout/page-state-handoff pipeline.
 
@@ -341,7 +341,7 @@ Required inspector:
 - Idempotency execution presence.
 - Post-open non-authoritative proof.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove URL safety gate → FAIL.
 - Remove real Chrome session gate → FAIL.
 - Remove idempotency gate → FAIL.
@@ -356,7 +356,7 @@ status: active
 tier: P0
 capabilityDomain: open-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Open success requires page-state handoff and must not claim page-state readiness or action-result verification.
 
@@ -421,7 +421,7 @@ Required inspector:
 - Forbidden PAV/Page-State truth fields.
 - Success handoff required.
 
-Required negative proof:
+Required real-code-inspection:
 - Open success without pageStateHandoffRef → FAIL.
 - Login wall returns success → FAIL.
 - Result includes verificationDecision → FAIL.
@@ -435,9 +435,9 @@ status: active
 tier: P0
 capabilityDomain: open-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Open result and runtime proof must preserve real upstream chain, gate decisions, browser attempt refs, timeout/cancellation, idempotency, and page-state handoff.
+summary: Open result and owner evidence must preserve real upstream chain, gate decisions, browser attempt refs, timeout/cancellation, idempotency, and page-state handoff.
 
 ### 主题
 
@@ -571,7 +571,7 @@ Required inspector:
 - No fabricated chain pattern.
 - Success/failure proof invariants.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove `activationSnapshotRef` from proof → FAIL.
 - Set runId from fingerprint → FAIL.
 - Success without outputRef → FAIL.
@@ -585,7 +585,7 @@ status: active
 tier: P0
 capabilityDomain: open-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: child capabilities are narrow target-open bindings and must use unified Open runtime.
 
@@ -633,7 +633,7 @@ Required inspector:
 - No raw browser/controller import.
 - No final proof builder inside child if law requires centralized builder.
 
-Required negative proof:
+Required real-code-inspection:
 - Child imports sibling implementation → FAIL.
 - Child returns boolean → FAIL.
 - Child imports BrowserController → FAIL.
@@ -649,7 +649,7 @@ status: active
 tier: P0  
 capabilityDomain: open-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Open must support governed macOS local program launch as a first-class target and must not confuse local program opening with local workbench URL opening.
 
@@ -717,7 +717,7 @@ Required inspector:
 - no direct click/type/screenshot/AI logic in `open-local-program`.
 - map/scenario/debug-loop cannot bypass Open for local program launch.
 
-Required negative proof:
+Required real-code-inspection:
 - map uses `open-local-workbench` for `targetKind=local-program` → FAIL.
 - `open-local-program` launches raw user command → FAIL.
 - `open-local-program` uses unvalidated `open -a ${input}` → FAIL.
@@ -734,9 +734,9 @@ status: active
 tier: P0
 capabilityDomain: open-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Open enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.
+summary: Open enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and real-code-inspection.
 
 ### 主题
 
@@ -750,7 +750,7 @@ Open enforcement must close through:
 scripts/audit/domains/open-capability/manifest.json
 scripts/audit/domains/open-capability/inspector.ts
 scripts/audit/domains/open-capability/run-inspector.ts
-scripts/audit/domains/open-capability/negative-proof-harness.ts
+scripts/audit/domains/open-capability/owner-inspection-harness.ts
 ```
 
 Required:
@@ -759,12 +759,12 @@ Required:
 - Inspector must use schema-level checks.
 - Inspector must include anti-escape checks.
 - Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
-- Negative proof must run and report fail → rollback → pass.
+- real-code-inspection must run and report fail → re-inspect → pass.
 - CI-FULL must be green for delivery.
 - No grep/regex/includes as final judgment.
 - No warning-only P0.
 - No detached inspector.
-- No empty negative proof.
+- No empty real-code-inspection.
 - No generated fake PASS.
 - No verify script.
 - No capability-check.ts under Open root.
@@ -788,10 +788,10 @@ Required inspector checks:
 15. No forbidden imports/symbols/cookies/DOM/BOM.
 16. External second-open owners forbidden.
 17. ALL active Open laws in registry/matrix/audit-plan/runner.
-18. negative-proof-harness executed.
+18. owner-inspection-harness executed.
 ```
 
-Required negative proof:
+Required real-code-inspection:
 ```txt
 manual-first enforcement reintroduced
 remove capabilityCallId from input
@@ -815,7 +815,7 @@ Open reads document.cookie
 external platform adapter adds openFeed
 startup owns platform open helper
 turn P0 into warning-only
-remove negative proof invocation
+remove real-code-inspection invocation
 ```
 
 ---
@@ -837,7 +837,7 @@ Open does not own Page State/PAV truth
 result/proof/input chain parity passes
 children are narrow target-open bindings
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```

@@ -445,7 +445,7 @@ retryCount
 
 ---
 
-## 11. Runtime Proof
+## 11. owner evidence
 
 `TextInputRuntimeProof` 必须包含完整链路：
 
@@ -551,7 +551,7 @@ raw clipboard text
 scripts/audit/domains/text-input-capability/manifest.json
 scripts/audit/domains/text-input-capability/inspector.ts
 scripts/audit/domains/text-input-capability/run-inspector.ts
-scripts/audit/domains/text-input-capability/negative-proof-harness.ts
+scripts/audit/domains/text-input-capability/owner-inspection-harness.ts
 ```
 
 Inspector 必查：
@@ -573,11 +573,11 @@ Inspector 必查：
 14. Six children exact.
 15. No raw text/clipboard/API key leakage.
 16. ALL active laws in registry/matrix/audit-plan/runner.
-17. Negative proof executed.
+17. real-code-inspection executed.
 18. TextInputExecutionPort adapter output hashes are schema-canonical `sha256:<64 hex>` by AST inspection.
 ```
 
-Negative proof minimum：
+real-code-inspection minimum：
 
 ```txt
 manual-first enforcement reintroduced
@@ -599,7 +599,7 @@ child calls primitive port directly
 child imports BrowserController
 add send-message child
 capability-check.ts added
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -624,7 +624,7 @@ no retry/fallback/no-op success
 success requires PAV handoff
 result/proof/input parity
 six children exact and unified runtime
-negative proof PASS
+real-code-inspection PASS
 ```
 
 ---

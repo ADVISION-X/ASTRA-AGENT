@@ -148,7 +148,7 @@ status: active
 tier: P0
 capabilityDomain: commander-console-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: startup must complete update preflight and local AI readiness gate before mission runtime becomes available.
 
@@ -175,7 +175,7 @@ Required startup order:
 Required direction:
 - scripts/startup/launch-grasseye.mjs remains the only canonical startup entrypoint.
 - startup must run update preflight before local app service start or Commander Console open.
-- update preflight must be explicit, structured-logged, and proof-backed.
+- update preflight must be explicit, structured-logged, and real-code-inspection-backed.
 - startup must obtain local AI readiness only through the governed startup helper and the governed local-ai readiness contract.
 - startup must verify required local AI model roles before mission runtime becomes available.
 - startup must use typed failureReason values for local AI startup failure:
@@ -207,7 +207,7 @@ Required inspector:
 - check startup helper delegates to the governed local AI readiness probe.
 - check debug-loop and consumers do not start local AI runtime ad hoc.
 
-Required negative proof:
+Required real-code-inspection:
 - move local AI readiness after service start or Commander open -> FAIL.
 - remove update_preflight_check -> FAIL.
 - remove local_ai_model_roster_check -> FAIL.

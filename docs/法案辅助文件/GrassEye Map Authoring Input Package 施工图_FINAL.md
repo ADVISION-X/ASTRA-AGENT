@@ -487,7 +487,7 @@ prompt template contains rules only and no duplicated ability catalog text
 stale capability catalog blocks authoring
 ```
 
-Negative proof must include:
+real-code-inspection must include:
 
 ```txt
 remove binaryOutcomePolicy
@@ -526,5 +526,5 @@ safety/automationGate/evidence/PAV/Forensics policies present
 platformProfile present
 example maps marked exampleOnly
 missing package blocks generation
-negative proof PASS
+real-code-inspection PASS
 ```

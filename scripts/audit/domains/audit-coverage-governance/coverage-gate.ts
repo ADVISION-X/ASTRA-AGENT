@@ -1,13 +1,12 @@
 import { writeJsonFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
-import type { CoverageRequirement, CoverageSummary, NegativeProofCoverageEvidence } from "./coverage-types.js";
+import type { CoverageRequirement, CoverageSummary } from "./coverage-types.js";
 
 const generatedPath = (fileName: string): string => pathFromRepoRoot(`scripts/audit/generated/${fileName}`);
 
 const toCensusRecord = (requirement: CoverageRequirement) => ({
   ...requirement,
   staticCoverage: [],
-  negativeProofCoverage: [],
 });
 
 const toStaticMatrixRecord = (requirement: CoverageRequirement) => ({
@@ -18,12 +17,6 @@ const toStaticMatrixRecord = (requirement: CoverageRequirement) => ({
   staticCoverage: requirement.staticCoverage,
   coverageStatus: requirement.coverageStatus,
   blockingReason: requirement.blockingReason,
-});
-
-const toNegativeMatrixRecord = (requirement: CoverageRequirement) => ({
-  requirementId: requirement.requirementId,
-  owner: requirement.owner,
-  negativeProofIds: requirement.negativeProofCoverage.map((proof) => proof.negativeProofId),
 });
 
 const toUncoveredRecord = (requirement: CoverageRequirement) => ({
@@ -41,7 +34,6 @@ const toUncoveredRecord = (requirement: CoverageRequirement) => ({
 export const writeCoverageArtifacts = async (input: {
   generatedAt: string;
   requirements: CoverageRequirement[];
-  negativeProofEvidence: NegativeProofCoverageEvidence[];
   summary: CoverageSummary;
 }): Promise<void> => {
   const enforcementStrength = input.requirements.map((requirement) => ({
@@ -61,11 +53,6 @@ export const writeCoverageArtifacts = async (input: {
     writeJsonFile(generatedPath("inspector-coverage-matrix.generated.json"), {
       generatedAt: input.generatedAt,
       requirements: input.requirements.map(toStaticMatrixRecord),
-    }),
-    writeJsonFile(generatedPath("coverage-evidence.generated.json"), {
-      generatedAt: input.generatedAt,
-      negativeProofs: input.negativeProofEvidence,
-      requirements: input.requirements.map(toNegativeMatrixRecord),
     }),
     writeJsonFile(generatedPath("enforcement-strength.generated.json"), {
       generatedAt: input.generatedAt,

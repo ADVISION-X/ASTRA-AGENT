@@ -44,7 +44,7 @@ Orchestration 是 GrassEye 的总指挥能力组。
 评估 branch / transition
 升级 human review
 执行 pause/resume/stop/emergency-stop/finalize
-生成 mission/step/dispatch/transition/runtime proof
+生成 mission/step/dispatch/transition/owner evidence
 ```
 
 它不负责：
@@ -322,7 +322,7 @@ import
 → activation proof
 → activation
 → active registry
-→ rollback
+→ re-inspect
 ```
 
 每个 active map record 必须包含：
@@ -342,7 +342,7 @@ ActiveOperationalMapRecord:
   approvedAt: required
   compatibilityDecision: required
   operationalMap: required
-  rollbackRecordRef: optional
+  re-inspectRecordRef: optional
 ```
 
 禁止：
@@ -389,7 +389,7 @@ not reselect by taskTemplateId unless starting a new mission
 running mission looks up latest active map
 resume selects latest map
 step dispatch reloads active map by selectedMapId only
-runtime proof only stores selectedMapId
+owner evidence only stores selectedMapId
 cross-step backfill without activationSnapshotRef
 ```
 
@@ -649,7 +649,7 @@ durationMs: required
 
 ---
 
-## 16. Runtime Proof
+## 16. owner evidence
 
 `OrchestrationRuntimeProof` / step proof 必须包含：
 
@@ -719,7 +719,7 @@ Local App Shell 在 Nerve Bus dispatch 前必须用 Orchestration MissionCommand
 dry-run 必须包含 requestedPlatform、selectedMapId/preferredMapId、taskTemplateId、activationId、targetProfileRef、non-null generated runId。
 MissionCommandSchema dry-run failed 时必须返回 MISSION_PREFLIGHT_FAILED / COMMAND_REJECTED，不得继续创建 Nerve Bus envelope。
 inspector 必须覆盖 task-start-flow 传入 activationId/activationSnapshotRef/targetProfileRef，workbench-status 调用 MissionCommandSchema.safeParse，且存在 missionCommandSchema preflight component。
-negative proof 必须覆盖删除 missionCommandSchema component、删除 MissionCommandSchema.safeParse、删除 activationId 传递三类生产突变。
+real-code-inspection 必须覆盖删除 missionCommandSchema component、删除 MissionCommandSchema.safeParse、删除 activationId 传递三类生产突变。
 READY 标准：preflight passed 后不允许出现仅因 MissionCommandSchema path=runId/null 导致的 COMMAND_REJECTED。
 ```
 
@@ -762,7 +762,7 @@ raw browser child
 scripts/audit/domains/orchestration-capability/manifest.json
 scripts/audit/domains/orchestration-capability/inspector.ts
 scripts/audit/domains/orchestration-capability/run-inspector.ts
-scripts/audit/domains/orchestration-capability/negative-proof-harness.ts
+scripts/audit/domains/orchestration-capability/owner-inspection-harness.ts
 ```
 
 Inspector 必须：
@@ -776,7 +776,7 @@ schema-level
 anti-escape
 generated artifact aware
 runner-connected
-negative-proof-backed
+real-code-inspection-backed
 ```
 
 禁止：
@@ -788,7 +788,7 @@ includes final judgment
 manual-only proof
 warning-only P0
 detached inspector
-empty negative proof
+empty real-code-inspection
 capability-check.ts as acceptance
 verify script as release truth
 ```
@@ -819,7 +819,7 @@ verify script as release truth
 19. No forbidden imports/legacy browse-flow.
 20. No fixed hard cap for configured maxRounds/maxMinutes; positive-only validation.
 21. ALL active laws in registry/matrix/audit-plan/runner.
-22. negative proof executed.
+22. real-code-inspection executed.
 ```
 
 ### 19.1 当前 blocker 补充
@@ -835,9 +835,9 @@ mission-loop event semantics survives file splits and still covers terminal miss
 
 ---
 
-## 20. Negative Proof 最低清单
+## 20. real-code-inspection 最低清单
 
-必须 fail → rollback → pass：
+必须 fail → re-inspect → pass：
 
 ```txt
 manual-first enforcement reintroduced
@@ -863,13 +863,13 @@ add browse-next-video child
 map package contains executable function
 activate unapproved map
 capability-check.ts added
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
 ### 20.1 当前 blocker 补充
 
-必须 fail → rollback → pass：
+必须 fail → re-inspect → pass：
 
 ```txt
 remove CAPABILITY_CALL_STARTED eventType from orchestration-loop-iteration-events
@@ -881,7 +881,7 @@ rename terminal mission eventType so runtime semantics no longer exposes MISSION
 
 ## 21. READY 标准
 
-### 21.1 runtime proof runId 链路补充
+### 21.1 owner evidence runId 链路补充
 
 正确链路：
 
@@ -912,7 +912,7 @@ BuildProofInput 必须声明 runId
 buildOrchestrationProofIdentityFields 必须发出 input.runId
 ```
 
-negative proof 必须覆盖：
+real-code-inspection 必须覆盖：
 
 ```txt
 删除 RuntimeProofSchema.runId 必须 FAIL
@@ -955,7 +955,7 @@ prompt selection comes from frozen map step only
 Forensics cannot own finalization/branch/mission state
 result/proof/state/input chain parity
 children narrow lifecycle/transition actions
-negative proof PASS
+real-code-inspection PASS
 ```
 
 ---
@@ -1024,12 +1024,12 @@ validateMapTransitionClosure 必须逐 step 检查 failureBranch / reviewBranch
 postActionVerification 三个 transition id 必须仍指向可达 PAV step
 ```
 
-negative proof 应覆盖：
+real-code-inspection 应覆盖：
 
 ```txt
 把 iPhone Mirroring open step 的 failureBranch 改成不存在的 transitionId 必须 FAIL
-rollback 后同一 inspector 必须 PASS
-删除对应 negative proof 或 inspector binding 必须被 anti-escape 拦截
+re-inspect 后同一 inspector 必须 PASS
+删除对应 real-code-inspection 或 inspector binding 必须被 anti-escape 拦截
 ```
 
 结构化日志必备字段：
@@ -1049,7 +1049,7 @@ READY 标准补充：
 ```txt
 map-plugin-package inspector PASS
 生产突变删除/篡改 step branch closure 后 FAIL
-rollback 后 PASS
+re-inspect 后 PASS
 真实 restart + 真实任务触发 + fresh phase-1 日志分析确认不再出现 no matching transition
 ```
 

@@ -54,7 +54,7 @@ Capability Group -> Child Capability -> Nerve Bus -> Orchestration -> Commander 
 - local-persistence-schema：Forensics Persistence 内部 schema 子契约
 - local-app-shell：Commander Console 子能力壳层
 - local-browser-session：Open Capability 子能力前置边界
-- structured-logging：runtime proof minimum contract，与 Forensics evidence 回连
+- structured-logging：owner evidence minimum contract，与 Forensics evidence 回连
 
 当前不进入 active owner 链：
 

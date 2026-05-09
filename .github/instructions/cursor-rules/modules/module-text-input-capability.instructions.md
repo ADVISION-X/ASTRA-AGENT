@@ -28,7 +28,7 @@ Core doctrine:
 - No approved text/hash/ref for non-empty write, no write.
 - No focus proof, no write.
 - No PAV handoff on success, no success.
-- No active Text Input law without inspector + runner + negative proof.
+- No active Text Input law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -41,7 +41,7 @@ status: active
 tier: P0
 capabilityDomain: text-input-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required package:
@@ -77,7 +77,7 @@ scripts/audit/domains/text-input-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden:
@@ -88,7 +88,7 @@ Forbidden:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- empty/missing negative proof.
+- empty/missing real-code-inspection.
 - text generation inside Text Input.
 - selector / DOM locator public contract.
 - raw BrowserController public contract.
@@ -103,7 +103,7 @@ status: active
 tier: P0  
 capabilityDomain: text-input-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Text Input is the only owner of governed text/key writing primitives.
 
@@ -142,7 +142,7 @@ Required inspector:
 - Platform direct text-write bypass ban.
 - AI/Orchestration direct write ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Orchestration imports TextInputExecutionPort adapter directly → FAIL.
 - Text Input public contract exposes BrowserController → FAIL.
 - Public input accepts selector/querySelector/CSS locator → FAIL.
@@ -156,7 +156,7 @@ status: active
 tier: P0  
 capabilityDomain: text-input-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Text Input is write-only and must not generate text, locate targets, decide target safety, or verify final page state.
 
@@ -202,7 +202,7 @@ Required inspector:
 - Page-state/PAV decision field ban.
 - Forensics writer import ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Text Input builds message text from prompt/user goal → FAIL.
 - Text Input imports visual-target runtime → FAIL.
 - Text Input emits pageAccepted/publishSuccess/sendSuccess → FAIL.
@@ -216,7 +216,7 @@ status: active
 tier: P0  
 capabilityDomain: text-input-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Text Input input must carry full mission/map/step/capability chain, approved text proof, verified target proof, focus proof, and Nerve Bus envelope refs.
 
@@ -326,7 +326,7 @@ Required inspector:
 - Selector/DOM public contract ban.
 - Raw text leakage check.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove activationSnapshotRef from input → FAIL.
 - Remove nerveBusEnvelopeId from input → FAIL.
 - type-text without approvedTextRef → FAIL.
@@ -342,7 +342,7 @@ status: active
 tier: P0  
 capabilityDomain: text-input-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Text Input executes only through governed execution, clipboard, and clock ports with AbortSignal/timeout and fail-closed semantics.
 
@@ -417,7 +417,7 @@ Required inspector:
 - Clipboard plaintext leakage ban.
 - Retry/fallback/no-op ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove AbortSignal from execution port call → FAIL.
 - Add Date.now in runtime child implementation → FAIL.
 - paste-text logs clipboard plaintext → FAIL.
@@ -433,7 +433,7 @@ status: active
 tier: P0  
 capabilityDomain: text-input-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Text Input must treat sensitive text and clipboard content as non-persistent transient material and must record only refs, hashes, redacted previews, and policy decisions.
 
@@ -476,7 +476,7 @@ Required inspector:
 - Commit approval gate check.
 - Redaction policy check.
 
-Required negative proof:
+Required real-code-inspection:
 - runtimeProof contains raw approvedText → FAIL.
 - diagnostic/debug material contains raw clipboard backup → FAIL.
 - sensitive text writes without humanApprovalRef when required → FAIL.
@@ -491,7 +491,7 @@ status: active
 tier: P0  
 capabilityDomain: text-input-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Text Input success is primitive write/key success only and must hand off to Post-action Verification.
 
@@ -545,9 +545,9 @@ Required inspector:
 - Success requires PAV handoff.
 - Page-state/business result field ban.
 - Failure/review output null invariant.
-- Runtime proof/result parity.
+- owner evidence/result parity.
 
-Required negative proof:
+Required real-code-inspection:
 - Success without postActionVerificationHandoffRef → FAIL.
 - Add sendSuccess to Text Input result → FAIL.
 - Failed result with output → FAIL.
@@ -562,17 +562,17 @@ status: active
 tier: P0  
 capabilityDomain: text-input-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Text Input runtime proof must preserve full chain, target proof, focus proof, text proof, clipboard proof, primitive proof, PAV handoff, and redaction decisions.
+summary: Text Input owner evidence must preserve full chain, target proof, focus proof, text proof, clipboard proof, primitive proof, PAV handoff, and redaction decisions.
 
 ### 主题
 
-Runtime Proof 全链路完整性
+owner evidence 全链路完整性
 
 ### 法条
 
-Every Text Input result must include runtime proof.
+Every Text Input result must include owner evidence.
 
 Required proof fields:
 
@@ -684,7 +684,7 @@ Required inspector:
 - Raw text leakage scan.
 - Success/failure invariants.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove activationSnapshotRef from proof → FAIL.
 - Set runId from attemptRef → FAIL.
 - Remove nerveBusEnvelopeId from proof → FAIL.
@@ -699,7 +699,7 @@ status: active
 tier: P0  
 capabilityDomain: text-input-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Text Input children are narrow execution bindings and must use unified runtime.
 
@@ -758,7 +758,7 @@ Required inspector:
 - Child direct primitive call ban.
 - Platform/business child ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Add send-message child → FAIL.
 - Child calls executionPort directly → FAIL.
 - press-key accepts arbitrary key string → FAIL.
@@ -773,9 +773,9 @@ status: active
 tier: P0  
 capabilityDomain: text-input-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Text Input enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.
+summary: Text Input enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and real-code-inspection.
 
 ### 主题
 
@@ -789,7 +789,7 @@ Text Input enforcement must close through:
 scripts/audit/domains/text-input-capability/manifest.json
 scripts/audit/domains/text-input-capability/inspector.ts
 scripts/audit/domains/text-input-capability/run-inspector.ts
-scripts/audit/domains/text-input-capability/negative-proof-harness.ts
+scripts/audit/domains/text-input-capability/owner-inspection-harness.ts
 ```
 
 Required:
@@ -798,12 +798,12 @@ Required:
 - Inspector must use schema-level checks.
 - Inspector must include anti-escape checks.
 - Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
-- Negative proof must run and report fail → rollback → pass.
+- real-code-inspection must run and report fail → re-inspect → pass.
 - CI-FULL must be green for delivery.
 - No grep/regex/includes as final judgment.
 - No warning-only P0.
 - No detached inspector.
-- No empty/missing negative proof.
+- No empty/missing real-code-inspection.
 - No generated fake PASS.
 - No capability-check.ts.
 - No verify script as release truth.
@@ -827,10 +827,10 @@ Required inspector checks:
 15. No raw text/clipboard/API key leakage.
 16. No forbidden imports/symbols/business fields.
 17. ALL active Text Input laws in registry/matrix/audit-plan/runner.
-18. negative-proof-harness executed.
+18. owner-inspection-harness executed.
 ```
 
-Required negative proof:
+Required real-code-inspection:
 ```txt
 manual-first enforcement reintroduced
 remove activationSnapshotRef from input
@@ -850,7 +850,7 @@ child calls primitive port directly
 child imports BrowserController
 add send-message child
 capability-check.ts added
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -875,7 +875,7 @@ success requires PAV handoff
 result/proof/input parity passes
 children are narrow unified runtime bindings
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```

@@ -58,7 +58,7 @@ status: active
 tier: P0
 capabilityDomain: debug-loop-boundary
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required audit domain:
@@ -68,7 +68,7 @@ scripts/audit/domains/debug-loop-boundary/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 ---
@@ -150,7 +150,7 @@ status: active
 tier: P0  
 capabilityDomain: debug-loop-boundary  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: debug-loop is local development tooling and must not be registered as an active ability group, runtime owner, or production capability owner.
 
@@ -189,7 +189,7 @@ Required inspector:
 - debug-loop not in generated active law domains except audit-only boundary domain.
 - debug-loop package scripts do not publish it as production runtime.
 
-Required negative proof:
+Required real-code-inspection:
 - Add debug-loop to active ability group list → FAIL.
 - Add debug-loop as child capability → FAIL.
 - Add debug-loop as runtime owner in generated artifacts → FAIL.
@@ -203,7 +203,7 @@ status: active
 tier: P0  
 capabilityDomain: debug-loop-boundary  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: debug-loop may start missions only through Commander public contract and must not directly dispatch Nerve Bus, Orchestration, or ability actions.
 
@@ -221,7 +221,7 @@ Allowed:
 - observe mission result via logs/read models.
 
 Forbidden:
-- direct Orchestration mission-state mutation.
+- direct Orchestration mission-state regression.
 - direct Orchestration step execution.
 - direct Nerve Bus dispatch for mission actions.
 - direct ability executor call.
@@ -237,7 +237,7 @@ Required inspector:
 - task publisher uses Commander public entry only.
 - no map-step interpreter in debug-loop.
 
-Required negative proof:
+Required real-code-inspection:
 - debug-loop imports Orchestration dispatcher → FAIL.
 - debug-loop imports Nerve Bus dispatcher → FAIL.
 - debug-loop directly calls mouse-click/text-input/screenshot executors → FAIL.
@@ -252,7 +252,7 @@ status: active
 tier: P0  
 capabilityDomain: debug-loop-boundary  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: debug-loop must not execute direct browser/page/platform operations during mission runtime.
 
@@ -289,7 +289,7 @@ Required inspector:
 - direct action APIs allowed only in preflight files with explicit allowlisted scenario kind.
 - debug-loop scenario definitions must mark mode: platform-auth-check/environment-preflight for controller use.
 
-Required negative proof:
+Required real-code-inspection:
 - mission-runtime file imports CurrentChromeBrowserController → FAIL.
 - mission-runtime file calls page.click → FAIL.
 - mission-runtime file calls page.screenshot → FAIL.
@@ -304,7 +304,7 @@ status: active
 tier: P0  
 capabilityDomain: debug-loop-boundary  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: debug-loop must not write production Forensics proof, evidence packets, activation snapshots, or active registry truth.
 
@@ -343,7 +343,7 @@ Required inspector:
 - debug-loop writes only under debug-loop artifact/repair directories.
 - no raw secret/cookie/prompt/sensitive text in repair packet.
 
-Required negative proof:
+Required real-code-inspection:
 - debug-loop imports Forensics writer → FAIL.
 - debug-loop writes evidencePacketRef as production proof → FAIL.
 - debug-loop writes active registry → FAIL.
@@ -358,7 +358,7 @@ status: active
 tier: P0  
 capabilityDomain: debug-loop-boundary  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: debug-loop map-authoring harness may create input/prompt artifacts but must not bypass map-plugin lifecycle or execute generated maps.
 
@@ -381,7 +381,7 @@ Allowed:
 Forbidden:
 - direct write active registry.
 - direct write validationReportRef/humanApprovalRef/activationProofRef.
-- direct active status mutation.
+- direct active status regression.
 - execute draft map.
 - interpret operationalMap steps as runtime.
 - bypass validation.
@@ -396,7 +396,7 @@ Required inspector:
 - debug-loop does not execute operational map.
 - debug-loop does not mutate map status directly.
 
-Required negative proof:
+Required real-code-inspection:
 - fake authoring directly writes active registry → FAIL.
 - fake authoring marks draft map active → FAIL.
 - fake authoring executes operationalMap steps → FAIL.
@@ -411,7 +411,7 @@ status: active
 tier: P0  
 capabilityDomain: debug-loop-boundary  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: debug-loop scenario files describe user/operator intent and success/failure signals; they must not contain executable ability logic or direct platform automation logic.
 
@@ -475,7 +475,7 @@ Required inspector:
 - scenarioKind controls allowed preflight fields.
 - high-risk action scenario must include automated gate requirement.
 
-Required negative proof:
+Required real-code-inspection:
 - scenario contains clickSelector → FAIL.
 - scenario contains pageEvaluate → FAIL.
 - scenario contains abilityCall → FAIL.
@@ -490,7 +490,7 @@ status: active
 tier: P0  
 capabilityDomain: debug-loop-boundary  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: debug-loop repair packets are diagnostic artifacts and must not become code, proof, policy, or runtime truth.
 
@@ -529,7 +529,7 @@ Required inspector:
 - repair packet cannot execute code or apply patch.
 - repair packet cannot write production source.
 
-Required negative proof:
+Required real-code-inspection:
 - repair packet contains raw cookie → FAIL.
 - repair packet contains API key → FAIL.
 - repair packet includes executable patch script → FAIL.
@@ -544,9 +544,9 @@ status: active
 tier: P0  
 capabilityDomain: debug-loop-boundary  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: debug-loop boundary must be machine-enforced by owner-local inspector, negative proof, and package scripts.
+summary: debug-loop boundary must be machine-enforced by owner-local inspector, real-code-inspection, and package scripts.
 
 ### 主题
 
@@ -561,7 +561,7 @@ Required files:
 scripts/audit/domains/debug-loop-boundary/manifest.json
 scripts/audit/domains/debug-loop-boundary/inspector.ts
 scripts/audit/domains/debug-loop-boundary/run-inspector.ts
-scripts/audit/domains/debug-loop-boundary/negative-proof-harness.ts
+scripts/audit/domains/debug-loop-boundary/owner-inspection-harness.ts
 ```
 
 Required package command:
@@ -583,7 +583,7 @@ Required inspector coverage:
 11. repair packets contain no raw secrets/cookies/prompts/sensitive text.
 12. fake map authoring cannot bypass map lifecycle.
 13. debug-loop can start missions only through Commander public contract.
-14. all negative proofs execute.
+14. all real-code-inspections execute.
 15. P0 findings are machine-blocking, not warning-only.
 
 Forbidden enforcement shortcuts:
@@ -591,11 +591,11 @@ Forbidden enforcement shortcuts:
 - regex-only final judgment.
 - warning-only P0.
 - detached inspector.
-- empty negative proof.
+- empty real-code-inspection.
 - generated fake PASS.
 - manual-only proof.
 
-Required negative proof:
+Required real-code-inspection:
 ```txt
 add debug-loop as ability group
 debug-loop imports mouse-click executor
@@ -615,7 +615,7 @@ debug-loop writes raw cookie to repair packet
 fake authoring marks draft map active
 fake authoring skips validation
 turn P0 into warning-only
-remove negative proof invocation
+remove real-code-inspection invocation
 ```
 
 Final readiness:
@@ -624,7 +624,7 @@ debug-loop-boundary law installed
 debug-loop-boundary blueprint installed
 audit:debug-loop-boundary exists
 inspector PASS
-negative proof PASS
+real-code-inspection PASS
 audit:build PASS
 debug-loop remains operator harness only
 production Agent remains sole runtime executor

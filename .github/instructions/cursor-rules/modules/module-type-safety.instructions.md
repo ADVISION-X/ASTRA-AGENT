@@ -19,7 +19,7 @@ status: active
 tier: P0
 capabilityDomain: type-safety
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: all external uncertainty must become validated domain types before it can drive actions or records.
 
@@ -33,7 +33,7 @@ Phase-one TypeScript must run in strict mode, reject untyped uncertainty, and va
 
 Required direction:
 - External inputs must enter as unknown until validated.
-- AI outputs must pass schema validation before any action, Forensics record, Orchestration runtime proof, Page State result, or Post-action Verification result.
+- AI outputs must pass schema validation before any action, Forensics record, Orchestration owner evidence, Page State result, or Post-action Verification result.
 - Local AI outputs must be validated against task-specific schemas before downstream use.
 - OCR outputs must be cleaned into explicit structured data before they can become AI input, AI result context, or Forensics record payload.
 - Prompt version and schema version must be carried with AI result records.

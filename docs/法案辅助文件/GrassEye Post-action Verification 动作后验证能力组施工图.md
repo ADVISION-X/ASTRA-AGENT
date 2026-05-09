@@ -387,7 +387,7 @@ success != 动作语义上被最终判定为成功
 
 ---
 
-## 10. Runtime Proof
+## 10. owner evidence
 
 PostActionRuntimeProof 必须保留真实链路字段：
 
@@ -545,14 +545,14 @@ PAV 不决定 Orchestration 下一步
 ```txt
 scripts/audit/domains/post-action-verification-capability/inspector.ts
 scripts/audit/domains/post-action-verification-capability/run-inspector.ts
-scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts
+scripts/audit/domains/post-action-verification-capability/owner-inspection-harness.ts
 ```
 
 交付前至少满足：
 
 ```txt
 audit:post-action-verification PASS
-负例 fail -> rollback -> pass
+负例 fail -> re-inspect -> pass
 law 与 blueprint 术语一致
 无 verificationDecision / confidencePolicy 漂移回 PAV
 CI-FULL PASS

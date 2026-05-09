@@ -35,60 +35,107 @@ const EPHEMERAL_CLEANUP_SNIPPETS = [
   "rm(input.outputFilePath, { force: true })",
 ] as const;
 
+type LifecycleEvidenceCheck = {
+  path: string;
+  snippets: readonly string[];
+};
+
+type LifecycleRequirement = {
+  file: string;
+  message: string;
+  evidence: readonly LifecycleEvidenceCheck[];
+};
+
+const createLifecycleFinding = (requirement: LifecycleRequirement): Finding =>
+  createFinding({
+    lawId: LAW_IDS.LIFECYCLE,
+    file: requirement.file,
+    line: 1,
+    severity: "fatal",
+    message: requirement.message,
+  });
+
+const LIFECYCLE_REQUIREMENTS: readonly LifecycleRequirement[] = [
+  {
+    file: PATHS.LIFECYCLE_SCHEMA,
+    message: "Screenshot lifecycle schema must define budget policy, budget snapshot, cleanup gate, and lifecycle manifest truth.",
+    evidence: [{
+      path: PATHS.LIFECYCLE_SCHEMA,
+      snippets: [
+        "ScreenshotArtifactBudgetPolicySchema",
+        "ScreenshotArtifactBudgetSnapshotSchema",
+        "ScreenshotArtifactLifecycleManifestSchema",
+        "ScreenshotArtifactCleanupGateSchema",
+      ],
+    }],
+  },
+  {
+    file: PATHS.SCHEMA,
+    message: "Screenshot schema must project lifecycle manifest, retention, promotion, artifact hash, and byte-size truth.",
+    evidence: [{ path: PATHS.SCHEMA, snippets: LIFECYCLE_SCHEMA_SNIPPETS }],
+  },
+  {
+    file: PATHS.LIFECYCLE_RUNTIME,
+    message: "Screenshot lifecycle runtime must resolve retention, default non-promotion, TTL, and artifact budget checks.",
+    evidence: [{ path: PATHS.LIFECYCLE_RUNTIME, snippets: LIFECYCLE_RUNTIME_SNIPPETS }],
+  },
+  {
+    file: PATHS.PAYLOAD_BUDGET_GATE,
+    message: "Screenshot payload budget gate must enforce artifact quota/backpressure before execution.",
+    evidence: [{
+      path: PATHS.PAYLOAD_BUDGET_GATE,
+      snippets: [
+        "artifact_budget_exceeded",
+        "evaluateScreenshotArtifactBudget",
+        "resolveScreenshotRetentionClass",
+      ],
+    }],
+  },
+  {
+    file: PATHS.ARTIFACT_STORAGE_GATE,
+    message: "Screenshot artifact storage gate must write lifecycle metadata and fail closed on budget overflow.",
+    evidence: [{
+      path: PATHS.ARTIFACT_STORAGE_GATE,
+      snippets: [
+        "artifact_budget_exceeded",
+        "resolveScreenshotArtifactLifecyclePlan",
+        "artifactLifecycleManifestRef",
+      ],
+    }],
+  },
+  {
+    file: PATHS.EPHEMERAL_FILE_CLEANUP,
+    message: "Screenshot lifecycle must physically delete ephemeral work files after artifact handoff; only retained artifact storage refs may survive.",
+    evidence: [
+      { path: PATHS.EPHEMERAL_FILE_CLEANUP, snippets: EPHEMERAL_CLEANUP_SNIPPETS },
+      {
+        path: PATHS.EXECUTION_PHASES,
+        snippets: [
+          "burnEphemeralScreenshotFile",
+          "ephemeral_cleanup_failed",
+          "Screenshot ephemeral work file cleanup failed after artifact handoff.",
+        ],
+      },
+    ],
+  },
+  {
+    file: PATHS.OUTPUT_BOUNDARY_GATE,
+    message: "Screenshot output boundary gate must verify lifecycle manifest parity and ban self-promotion.",
+    evidence: [{ path: PATHS.OUTPUT_BOUNDARY_GATE, snippets: LIFECYCLE_GATE_SNIPPETS }],
+  },
+] as const;
+
 function sourceContainsAll(path: string, project: Project, snippets: readonly string[]): boolean {
   const text = getSource(project, path).getFullText();
   return snippets.every((snippet) => text.includes(snippet));
 }
 
+const requirementIsSatisfied = (project: Project, requirement: LifecycleRequirement): boolean =>
+  requirement.evidence.every(({ path, snippets }) => sourceContainsAll(path, project, snippets));
+
 function collectLifecycleTruthFindings(project: Project): Finding[] {
-  const findings: Finding[] = [];
-
-  if (!sourceContainsAll(PATHS.LIFECYCLE_SCHEMA, project, [
-    "ScreenshotArtifactBudgetPolicySchema",
-    "ScreenshotArtifactBudgetSnapshotSchema",
-    "ScreenshotArtifactLifecycleManifestSchema",
-    "ScreenshotArtifactCleanupGateSchema",
-  ])) {
-    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.LIFECYCLE_SCHEMA, line: 1, severity: "fatal", message: "Screenshot lifecycle schema must define budget policy, budget snapshot, cleanup gate, and lifecycle manifest truth." }));
-  }
-
-  if (!sourceContainsAll(PATHS.SCHEMA, project, LIFECYCLE_SCHEMA_SNIPPETS)) {
-    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Screenshot schema must project lifecycle manifest, retention, promotion, artifact hash, and byte-size truth." }));
-  }
-
-  if (!sourceContainsAll(PATHS.LIFECYCLE_RUNTIME, project, LIFECYCLE_RUNTIME_SNIPPETS)) {
-    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.LIFECYCLE_RUNTIME, line: 1, severity: "fatal", message: "Screenshot lifecycle runtime must resolve retention, default non-promotion, TTL, and artifact budget checks." }));
-  }
-
-  if (!sourceContainsAll(PATHS.PAYLOAD_BUDGET_GATE, project, [
-    "artifact_budget_exceeded",
-    "evaluateScreenshotArtifactBudget",
-    "resolveScreenshotRetentionClass",
-  ])) {
-    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.PAYLOAD_BUDGET_GATE, line: 1, severity: "fatal", message: "Screenshot payload budget gate must enforce artifact quota/backpressure before execution." }));
-  }
-
-  if (!sourceContainsAll(PATHS.ARTIFACT_STORAGE_GATE, project, [
-    "artifact_budget_exceeded",
-    "resolveScreenshotArtifactLifecyclePlan",
-    "artifactLifecycleManifestRef",
-  ])) {
-    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.ARTIFACT_STORAGE_GATE, line: 1, severity: "fatal", message: "Screenshot artifact storage gate must write lifecycle metadata and fail closed on budget overflow." }));
-  }
-
-  if (!sourceContainsAll(PATHS.EPHEMERAL_FILE_CLEANUP, project, EPHEMERAL_CLEANUP_SNIPPETS) || !sourceContainsAll(PATHS.EXECUTION_PHASES, project, [
-    "burnEphemeralScreenshotFile",
-    "ephemeral_cleanup_failed",
-    "Screenshot ephemeral work file cleanup failed after artifact handoff.",
-  ])) {
-    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.EPHEMERAL_FILE_CLEANUP, line: 1, severity: "fatal", message: "Screenshot lifecycle must physically delete ephemeral work files after artifact handoff; only retained artifact storage refs may survive." }));
-  }
-
-  if (!sourceContainsAll(PATHS.OUTPUT_BOUNDARY_GATE, project, LIFECYCLE_GATE_SNIPPETS)) {
-    findings.push(createFinding({ lawId: LAW_IDS.LIFECYCLE, file: PATHS.OUTPUT_BOUNDARY_GATE, line: 1, severity: "fatal", message: "Screenshot output boundary gate must verify lifecycle manifest parity and ban self-promotion." }));
-  }
-
-  return findings;
+  return LIFECYCLE_REQUIREMENTS.flatMap((requirement) =>
+    requirementIsSatisfied(project, requirement) ? [] : [createLifecycleFinding(requirement)]);
 }
 
 export { collectLifecycleTruthFindings };

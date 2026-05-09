@@ -80,7 +80,7 @@ scripts/audit/generated/enforcement-matrix.generated.*
 scripts/audit/phase-gates/**
 scripts/audit/domains/**/manifest.json
 scripts/audit/domains/**/inspector.ts
-scripts/audit/domains/**/negative-proof-harness.ts
+scripts/audit/domains/**/owner-inspection-harness.ts
 src/**
 
 必须重建当前故事链：
@@ -232,7 +232,7 @@ lawId：
 
 ### 7. 执法缺口定位
 owner inspector：
-negative proof：
+real-code-inspection：
 manifest：
 audit script：
 当前是否覆盖：
@@ -245,8 +245,8 @@ A. 法案缺失
 B. 施工图细节缺失
 C. 法案存在但 inspector 未覆盖
 D. inspector 只做 grep/includes/regex，缺 AST/symbol/import graph
-E. inspector 只覆盖 happy path，缺 negative proof
-F. negative proof 没有生产代码突变验证
+E. inspector 只覆盖 happy path，缺 real-code-inspection
+F. real-code-inspection 没有生产代码突变验证
 G. warning-only / fake PASS / skip / 豁免
 H. runtime 日志字段不足导致不可判定
 I. 生产代码绕过 governed public interface
@@ -256,7 +256,7 @@ J. 其它，必须说明
 修生产代码：
 修施工图：
 修 inspector：
-修 negative proof：
+修 real-code-inspection：
 修结构化日志：
 是否需要申请改法案：YES / NO
 
@@ -304,7 +304,7 @@ B-1：为每个 P0 建立 FIX 卡
 为什么这是根因：
 为什么修后不会复发：
 需要补哪个 inspector：
-需要补哪个 negative proof：
+需要补哪个 real-code-inspection：
 需要补哪个结构化日志字段：
 
 B-2：修复原则
@@ -350,9 +350,9 @@ B-4：防复发
 
 1. owner inspector AST / symbol / import graph 检查。
 2. structured log semantic check。
-3. negative proof 生产突变验证。
+3. real-code-inspection 生产突变验证。
 4. anti-escape 检查。
-5. runtime proof field completeness 检查。
+5. owner evidence field completeness 检查。
 
 不得只加普通测试文件。
 不得只靠人工说明。
@@ -372,10 +372,10 @@ B-5：生产突变验证
 保存到：
 
 tmp/debug-loop/regression-proofs/<BLOCKER-N>/
-├── mutation-description.md
+├── regression-description.md
 ├── mutated-file.patch
 ├── inspector-fail-output.txt
-├── rollback-proof.txt
+├── re-inspect-proof.txt
 ├── inspector-pass-output.txt
 └── proof-summary.md
 

@@ -17,7 +17,7 @@ applyTo: ".github/instructions/cursor-rules/**"
 
 ## Fixed Formula
 
-- GrassEye = Ability Groups + Child Abilities + Commander Console + Orchestration + Nerve Bus + Map Packages + Prompt Contracts + Debug Runtime Proof + Forensics Persistence.
+- GrassEye = Ability Groups + Child Abilities + Commander Console + Orchestration + Nerve Bus + Map Packages + Prompt Contracts + Debug owner evidence + Forensics Persistence.
 - Startup Entrypoint is a support boundary that bootstraps the local shell; it is not an ability group, not Commander Console, and not mission truth.
 - Ability groups are the only allowed top-level execution owners.
 - Child abilities exist only inside one parent ability group.

@@ -571,7 +571,7 @@ runtimeProof exists
 
 ---
 
-## 12. Runtime Proof
+## 12. owner evidence
 
 `OpenRuntimeProof` 必须包含：
 
@@ -719,7 +719,7 @@ Must exist:
 scripts/audit/domains/open-capability/manifest.json
 scripts/audit/domains/open-capability/inspector.ts
 scripts/audit/domains/open-capability/run-inspector.ts
-scripts/audit/domains/open-capability/negative-proof-harness.ts
+scripts/audit/domains/open-capability/owner-inspection-harness.ts
 ```
 
 Inspector must use:
@@ -733,7 +733,7 @@ schema-level
 anti-escape
 generated artifact aware
 runner-connected
-negative-proof-backed
+real-code-inspection-backed
 ```
 
 Forbidden:
@@ -745,7 +745,7 @@ includes final judgment
 manual-only proof
 warning-only P0
 detached inspector
-empty negative proof
+empty real-code-inspection
 verify script as release truth
 ```
 
@@ -772,7 +772,7 @@ verify script as release truth
 16. No forbidden imports/symbols/cookie/DOM/BOM.
 17. No second open owner in platform/startup/runtime.
 18. ALL active laws in registry/matrix/audit-plan/runner.
-19. negative proof executed.
+19. real-code-inspection executed.
 20. open-local-program child/port/profile/proof exists.
 21. open-local-workbench cannot represent local-program.
 22. local-program success requires windowHandoffRef/localAppStateHandoffRef.
@@ -781,9 +781,9 @@ verify script as release truth
 
 ---
 
-## 17. Negative Proof 最低清单
+## 17. real-code-inspection 最低清单
 
-Must fail → rollback → pass:
+Must fail → re-inspect → pass:
 
 ```txt
 manual-first enforcement reintroduced
@@ -808,7 +808,7 @@ Open reads document.cookie
 external platform adapter adds openFeed
 startup owns platform open helper
 turn P0 into warning-only
-remove negative proof invocation
+remove real-code-inspection invocation
 remove open-local-program from required children
 remove open-local-program from registry
 remove macos-local from OPEN_PLATFORM_IDS
@@ -842,7 +842,7 @@ page-state handoff required
 Open has no Page State/PAV truth
 result/proof/input chain parity
 children narrow target-open bindings
-negative proof PASS
+real-code-inspection PASS
 ```
 
 ---
@@ -905,7 +905,7 @@ inspector 应覆盖：
 - local-program execution helper 不得 `shell: true`。
 - capability catalog 必须保留 `macos-local/local-program-window/desktop-screen` supported targets。
 
-negative proof 应覆盖：
+real-code-inspection 应覆盖：
 - 删除 OpenLocalProgramPort 注入。
 - 删除 readiness block。
 - 删除 `windowHandoffRef` 或 `localAppStateHandoffRef`。

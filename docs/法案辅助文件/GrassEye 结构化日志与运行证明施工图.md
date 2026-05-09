@@ -9,7 +9,7 @@
 
 ## 定位
 
-本图只描述 Forensics Persistence 之下的结构化日志字段纪律、runtime proof 和写账关系。
+本图只描述 Forensics Persistence 之下的结构化日志字段纪律、owner evidence 和写账关系。
 
 Structured Logging 子边界负责日志 schema 与可追溯性。
 Forensics Persistence 负责把这些 payload 持久化成 record envelope。
@@ -169,7 +169,7 @@ runtimeProof 至少应包含：
 - secrets、cookies、tokens、credentials、授权头、会话标识符不得明文出现在终端。
 - 允许输出 hash、preview、ref、dimensions、bytes、schema refs，但不允许把敏感原文直接暴露。
 
-## Negative Proof Requirements
+## real-code-inspection Requirements
 
 - 只打 promptLength 没有 promptHash 和 promptDebugRef，判定不合格。
 - 只有 parsedJson 没有 rawResponseHash 或 rawResponseRef，判定不合格。

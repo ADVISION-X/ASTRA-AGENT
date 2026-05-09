@@ -24,7 +24,7 @@ Core doctrine:
 - No chain refs, no production-ready Forensics record.
 - No legacy business type can become Forensics public contract truth.
 - No write path outside Forensics may be treated as final evidence truth.
-- No active Forensics law without inspector + runner + negative proof.
+- No active Forensics law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -37,7 +37,7 @@ status: active
 tier: P0
 capabilityDomain: forensics-persistence-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required package:
@@ -63,7 +63,7 @@ scripts/audit/domains/forensics-persistence-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden:
@@ -73,7 +73,7 @@ Forbidden:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- negative-proof missing or empty.
+- real-code-inspection missing or empty.
 
 ---
 
@@ -83,7 +83,7 @@ status: active
 tier: P0  
 capabilityDomain: forensics-persistence-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Forensics Persistence is the only final evidence-ledger owner and must not be bypassed by local-data, runtime, workbench, Commander, AI, or action abilities.
 
@@ -122,7 +122,7 @@ Required inspector:
 - Storage-port boundary check.
 - Runner coverage.
 
-Required negative proof:
+Required real-code-inspection:
 - Add direct `saveEvidencePacket` outside Forensics → FAIL.
 - Add Commander import of Forensics storage internals → FAIL.
 - Add `resetLocalStore` to Forensics public surface → FAIL.
@@ -135,7 +135,7 @@ status: active
 tier: P0  
 capabilityDomain: forensics-persistence-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: child abilities must be persistence behaviors and every child must write exactly one governed Forensics record type.
 
@@ -184,7 +184,7 @@ Required inspector:
 - External child import ban.
 - Child implementation uses unified executor.
 
-Required negative proof:
+Required real-code-inspection:
 - Add external import of child implementation → FAIL.
 - Add child not in registry → FAIL.
 - Add child with mismatched recordType → FAIL.
@@ -197,7 +197,7 @@ status: active
 tier: P0  
 capabilityDomain: forensics-persistence-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Forensics writes and links records only; it must not reason, verify, decide, act, or reconstruct business truth.
 
@@ -228,8 +228,8 @@ Forbidden:
 - Click/scroll/input/open.
 - Product yes/no judgement.
 - Candidate construction.
-- RuntimeDeliveryState mutation.
-- AgentRound mutation.
+- RuntimeDeliveryState regression.
+- AgentRound regression.
 - Business finalizer logic.
 - Hidden recomputation of business truth while sealing records.
 
@@ -238,7 +238,7 @@ Required inspector:
 - Forbidden symbol check: business-decision functions, candidate builders, runtime state mutators.
 - Record payload plain-envelope check.
 
-Required negative proof:
+Required real-code-inspection:
 - Add AI reasoning function to Forensics → FAIL.
 - Add browser action import → FAIL.
 - Add ProductOpportunityCandidate construction → FAIL.
@@ -251,7 +251,7 @@ status: active
 tier: P0  
 capabilityDomain: forensics-persistence-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Forensics public contract must be Forensics-native and must not leak legacy business or runtime type sovereignty.
 
@@ -322,7 +322,7 @@ Required inspector:
 - Export ban for legacy types.
 - Payload schema legacy-type ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Import `BrowseLedgerEntrySchema` in child schema → FAIL.
 - Import `ActionLogSchema` in write-structured-action-log schema → FAIL.
 - Export `ProductDiscoveryEvidencePacket` from contract → FAIL.
@@ -335,7 +335,7 @@ status: active
 tier: P0  
 capabilityDomain: forensics-persistence-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: every Forensics record and result must preserve the full execution chain and must be replayable.
 
@@ -407,7 +407,7 @@ Required inspector:
 - AI record prompt contract refs.
 - Activation snapshot ref.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove `capabilityCallId` from envelope → FAIL.
 - Save AI record without promptContractId → FAIL.
 - Save action log without postActionVerificationRef → FAIL.
@@ -421,7 +421,7 @@ status: active
 tier: P0  
 capabilityDomain: forensics-persistence-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: storage must be a generic record-store port and old store ownership must stay outside the canonical Forensics root.
 
@@ -472,7 +472,7 @@ Required inspector:
 - Forbidden storage API symbol check.
 - Old store adapter boundary check.
 
-Required negative proof:
+Required real-code-inspection:
 - Add `runtime/` under Forensics → FAIL.
 - Add `shared/store` → FAIL.
 - Add `saveAiResult(LocalAiTaskResult)` → FAIL.
@@ -485,7 +485,7 @@ status: active
 tier: P0  
 capabilityDomain: forensics-persistence-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Forensics writes must be policy-gated, integrity-gated, idempotent, and append-safe.
 
@@ -535,7 +535,7 @@ Required inspector:
 - No fake persisted result.
 - Unknown child proof.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove idempotencyKey → FAIL.
 - Artifact write fails but result success → FAIL.
 - Unknown child without proof → FAIL.
@@ -548,9 +548,9 @@ status: active
 tier: P0  
 capabilityDomain: forensics-persistence-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Forensics enforcement must be AST/symbol/import-graph based and connected to runner and negative proof.
+summary: Forensics enforcement must be AST/symbol/import-graph based and connected to runner and real-code-inspection.
 
 ### 主题
 
@@ -564,7 +564,7 @@ Forensics enforcement must close through:
 scripts/audit/domains/forensics-persistence-capability/manifest.json
 scripts/audit/domains/forensics-persistence-capability/inspector.ts
 scripts/audit/domains/forensics-persistence-capability/run-inspector.ts
-scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts
+scripts/audit/domains/forensics-persistence-capability/owner-inspection-harness.ts
 ```
 
 Required:
@@ -573,7 +573,7 @@ Required:
 - Inspector must include schema-level checks for record envelope/proof/result.
 - Inspector must include anti-escape checks.
 - Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
-- Negative proof must run and report fail → rollback → pass.
+- real-code-inspection must run and report fail → re-inspect → pass.
 - CI-FULL must be green for delivery.
 
 Forbidden:
@@ -581,11 +581,11 @@ Forbidden:
 - grep/regex/includes as final judgment.
 - warning-only P0.
 - detached inspector.
-- empty negative proof.
+- empty real-code-inspection.
 - generated fake PASS.
 - capability-check.ts under Forensics root.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove inspector from runner → FAIL.
 - Convert P0 to warning-only → FAIL.
 - Use regex-only final check → FAIL.
@@ -599,7 +599,7 @@ status: active
 tier: P0
 capabilityDomain: forensics-persistence-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Forensics is the only owner allowed to promote transient screenshot artifacts into retained evidence or legal hold, and it owns cleanup-ledger truth.
 
@@ -646,9 +646,9 @@ Forbidden:
 Required inspector:
 - `ForensicsArtifactRef` lifecycle/promotion field presence.
 - Manifest active-law coverage.
-- Negative proof for lifecycle field regression.
+- real-code-inspection for lifecycle field regression.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove `promotionStatus` from `ForensicsArtifactRef` → FAIL.
 - Remove `refCount` from `ForensicsArtifactRef` → FAIL.
 
@@ -671,7 +671,7 @@ The inspector must check:
 10. No business decision symbols.
 11. No old store APIs.
 12. Record envelope has full chain fields.
-13. Runtime proof has full chain fields.
+13. owner evidence has full chain fields.
 14. Result/proof/envelope parity.
 15. AI record requires promptContractId/version/catalogVersion.
 16. Action log requires actionRef and postActionVerificationRef.
@@ -681,14 +681,14 @@ The inspector must check:
 20. Unknown child result has proof.
 21. No runtimeProof:null.
 22. All active Forensics laws are in registry/matrix/audit-plan/runner.
-23. negative-proof-harness is executed.
+23. owner-inspection-harness is executed.
 ```
 
 ---
 
-## Required Negative Proof
+## Required real-code-inspection
 
-The Forensics negative proof must fail → rollback → pass for:
+The Forensics real-code-inspection must fail → re-inspect → pass for:
 
 ```txt
 add runtime/ directory
@@ -711,7 +711,7 @@ return record:unknown
 return runtimeProof:null
 external import of children implementation
 add capability-check.ts
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -733,7 +733,7 @@ action log postActionVerificationRef enforced
 storage port generic and adapter-only
 policy/integrity/idempotency/proof gates pass
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```

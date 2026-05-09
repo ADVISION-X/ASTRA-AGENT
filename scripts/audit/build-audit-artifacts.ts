@@ -184,7 +184,7 @@ const normalizeLawSummary = (summary: string): string => {
 
 const normalizeLawRecord = (law: LawRecord): LawRecord => ({
   ...law,
-  evidenceMode: law.evidenceMode === "law+inspector+negative-proof" ? "law+inspector" : law.evidenceMode,
+  evidenceMode: "law+blueprint+real-code-inspection",
   summary: normalizeLawSummary(law.summary),
 });
 

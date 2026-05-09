@@ -19,7 +19,7 @@ status: active
 tier: P0
 capabilityDomain: security-privacy
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: GrassEye must operate only with user-authorized local accounts while minimizing sensitive capture and never bypassing platform security.
 
@@ -68,7 +68,7 @@ status: active
 tier: P0
 capabilityDomain: security-privacy
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Prompt contracts and AI-generated maps must never request sensitive secrets or hidden bypass channels.
 
@@ -86,7 +86,7 @@ status: active
 tier: P0
 capabilityDomain: security-privacy
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Sensitive tasks require review gates before mutating user data or high-risk platform state.
 

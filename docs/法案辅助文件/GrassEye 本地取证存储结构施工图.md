@@ -52,7 +52,7 @@ local-persistence-schema 是 Forensics Persistence 内部 schema 子契约。
 禁止：
 - 任何独立 local-data owner 回流。
 - src/capabilities/forensics-persistence/shared/store 继续存在。
-- EvidenceStoreService、operator snapshot、review mutation 成为 Forensics 内部主权。
+- EvidenceStoreService、operator snapshot、review regression 成为 Forensics 内部主权。
 
 ## 验收信号
 

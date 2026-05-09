@@ -641,7 +641,7 @@ executableDelta absent in proof
 
 ---
 
-## 13. Runtime Proof
+## 13. owner evidence
 
 `MouseScrollRuntimeProof` 必须包含：
 
@@ -827,7 +827,7 @@ Mouse Scroll 不写 finalActionLogRef。
 scripts/audit/domains/mouse-scroll-capability/manifest.json
 scripts/audit/domains/mouse-scroll-capability/inspector.ts
 scripts/audit/domains/mouse-scroll-capability/run-inspector.ts
-scripts/audit/domains/mouse-scroll-capability/negative-proof-harness.ts
+scripts/audit/domains/mouse-scroll-capability/owner-inspection-harness.ts
 ```
 
 Inspector 必须：
@@ -841,7 +841,7 @@ schema-level
 anti-escape
 generated artifact aware
 runner-connected
-negative-proof-backed
+real-code-inspection-backed
 ```
 
 禁止：
@@ -853,7 +853,7 @@ includes final judgment
 manual-only proof
 warning-only P0
 detached inspector
-empty negative proof
+empty real-code-inspection
 capability-check.ts as acceptance
 verify script as release truth
 ```
@@ -880,14 +880,14 @@ verify script as release truth
 15. No forbidden imports/symbols/business verbs.
 16. External platform/runtime cannot bypass Mouse Scroll.
 17. ALL active laws in registry/matrix/audit-plan/runner.
-18. negative proof executed.
+18. real-code-inspection executed.
 ```
 
 ---
 
-## 18. Negative Proof 最低清单
+## 18. real-code-inspection 最低清单
 
-必须 fail → rollback → pass：
+必须 fail → re-inspect → pass：
 
 ```txt
 manual-first enforcement reintroduced
@@ -911,7 +911,7 @@ child calls primitive port directly
 child returns boolean
 platform adapter directly calls primitive scroll
 capability-check.ts added
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -936,7 +936,7 @@ success requires scrollExecutionRef + primitiveExecutionRefs + PAV handoff
 result/proof/input chain parity
 children narrow primitive bindings
 external platform/runtime cannot bypass Mouse Scroll
-negative proof PASS
+real-code-inspection PASS
 ```
 
 ---

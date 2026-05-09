@@ -21,7 +21,6 @@ export type CoverageRequirement = {
   tier: RequirementTier;
   requiredEvidence: string[];
   staticCoverage: StaticCoverageEvidence[];
-  negativeProofCoverage: NegativeProofCoverageEvidence[];
   enforcementStrength: EnforcementStrength;
   coverageStatus: CoverageStatus;
   blockingReason: string[];
@@ -51,7 +50,6 @@ export type CoverageSummary = {
   sourceLawHash: string;
   sourceBlueprintHash: string;
   inspectorHash: string;
-  negativeProofHash: string;
   packageScriptHash: string;
   auditPlanHash: string;
   coverageBuilderVersion: string;
@@ -63,7 +61,6 @@ export type CoverageSummary = {
   blueprintRequirements: number;
   p0p1Requirements: number;
   staticCovered: number;
-  negativeProofCovered: number;
   weakCoverage: number;
   missingCoverage: number;
   manualOnly: number;

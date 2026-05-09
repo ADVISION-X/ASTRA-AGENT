@@ -16,7 +16,7 @@
 4. 每个子能力必须具备什么结构。
 5. 每个能力组的执法系统必须如何建设。
 6. 四方攻击如何验收。
-7. negative proof 如何证明执法真实有效。
+7. real-code-inspection 如何证明执法真实有效。
 8. Codex 每轮交付必须满足什么标准。
 
 一句话：
@@ -240,7 +240,7 @@ B. 删除后重构
 - platform profile
 - local browser session
 - local app shell
-- runtime proof
+- owner evidence
 - code topology
 - code purity
 - single click mode
@@ -365,7 +365,7 @@ ability-group.ts 必须薄。
 1. 所有 public input 必须先 parse。
 2. 所有 output 返回前必须 parse。
 3. childCapabilityId 与 registry 必须一致。
-4. public result 与 runtime proof 必须强约束。
+4. public result 与 owner evidence 必须强约束。
 5. 不得用 TypeScript 类型替代 runtime schema。
 6. 不得用 Record<string, unknown> 透传生产 payload。
 
@@ -625,7 +625,7 @@ failed / review_required 不得返回可执行输出。
 
 ---
 
-## 8. 统一 runtime proof 标准
+## 8. 统一 owner evidence 标准
 
 每个能力组必须有 runtimeProof。
 
@@ -860,7 +860,7 @@ scripts/audit/domains/<ability>-capability/
 ├── forbidden-shape.ts
 ├── boundary-attack.ts
 ├── anti-escape.ts
-├── negative-proof-harness.ts
+├── owner-inspection-harness.ts
 └── ast-utils.ts, if needed
 ```
 
@@ -1002,9 +1002,9 @@ runRunnerFailPowerCheck()
 
 ---
 
-## 14. negative proof 统一标准
+## 14. real-code-inspection 统一标准
 
-每个能力组必须做真实 mutation 反证。
+每个能力组必须做真实 regression 反证。
 
 禁止只写“理论上会 fail”。
 
@@ -1018,13 +1018,13 @@ runRunnerFailPowerCheck()
 
 执行拓扑强制要求：
 
-- spawned negative-proof harness 禁止对大量 mutation 逐个重放完整 inspector。
-- 多 mutation spawned harness 必须合组 mutation；高复杂 owner 必须按 phase 或等价执法切片缩小 nested inspector 范围。
-- 非 law metadata mutation 的 nested inspector 必须 `--skip-build`。
-- rollback PASS 可以在所有 mutation rollback 后统一执行一次，但必须真实证明恢复 PASS。
-- audit-system owner 必须用 ts-morph AST 全仓检查 negative-proof-harness 的 spawn、mutation loop、rollback replay、`--skip-build` 与 grouping topology。
+- spawned real-code-inspection harness 禁止对大量 regression 逐个重放完整 inspector。
+- 多 regression spawned harness 必须合组 regression；高复杂 owner 必须按 phase 或等价执法切片缩小 nested inspector 范围。
+- 非 law metadata regression 的 nested inspector 必须 `--skip-build`。
+- re-inspect PASS 可以在所有 regression re-inspect 后统一执行一次，但必须真实证明恢复 PASS。
+- audit-system owner 必须用 ts-morph AST 全仓检查 owner-inspection-harness 的 spawn、regression loop、re-inspect replay、`--skip-build` 与 grouping topology。
 
-最低通用 mutation：
+最低通用 regression：
 
 1. 删除 input gate 调用 → audit FAIL → 回滚
 2. 删除 policy gate 调用 → audit FAIL → 回滚
@@ -1145,9 +1145,9 @@ Codex 每次处理能力组，必须按以下顺序：
 
 如果 inspector 打出 FATAL / ERROR，必须修源码，不得降级 inspector。
 
-### Step 6：negative proof
+### Step 6：real-code-inspection
 
-必须做 mutation fail + rollback。
+必须做 regression fail + re-inspect。
 
 ### Step 7：全量命令
 
@@ -1204,10 +1204,10 @@ Codex 最终只允许输出：
 - boundary:
 - anti-escape:
 
-5. Negative Proof
-- mutation list:
+5. real-code-inspection
+- regression list:
 - audit failed:
-- rollback verified:
+- re-inspect verified:
 
 6. Commands
 - audit:build:
@@ -1264,9 +1264,9 @@ Codex 最终只允许输出：
 12. 没有 any / unknown as / ts-ignore / eslint-disable。
 13. 没有 metadata-only child。
 14. 没有复制粘贴 child implementation。
-15. 有 runtime proof。
+15. 有 owner evidence。
 16. 有 policy decision。
-17. 有 negative proof。
+17. 有 real-code-inspection。
 18. inspector 四方攻击闭合。
 19. runner 可真实 fail。
 20. CI 全量命令通过。
@@ -1294,7 +1294,7 @@ Codex 最终只允许输出：
 - 仍未删除的旧文件
 - 仍未重建的标准文件
 - 仍无法证明的四方攻击
-- 仍缺失的 negative proof
+- 仍缺失的 real-code-inspection
 - 仍失败的命令
 - BLOCKED 的真实原因
 
@@ -1312,7 +1312,7 @@ Codex 最终只允许输出：
 → 重建 child
 → 重建 runtime gates
 → 重建 inspector
-→ negative proof
+→ real-code-inspection
 → full CI
 → READY / NOT_READY
 ```
@@ -1344,7 +1344,7 @@ Codex 最终只允许输出：
 9. 必须同步 owner inspector。
 10. inspector 必须 ts-morph AST / symbol / type / reference 级。
 11. 必须覆盖四方攻击：required / forbidden / boundary / anti-escape。
-12. 必须执行 negative proof：mutation fail + rollback。
+12. 必须执行 real-code-inspection：regression fail + re-inspect。
 13. 执法发现的问题必须修源码，不能降级 inspector。
 14. 最终达到 <ABILITY>_READY_TO_ESTABLISH；否则明确输出 <ABILITY>_NOT_READY。
 
@@ -1385,13 +1385,13 @@ Codex 最终只允许输出：
 标准包结构
 + 生产级 runtime gates
 + governed result
-+ runtime proof
++ owner evidence
 + 四方攻击 inspector
-+ negative proof
++ real-code-inspection
 + full CI
 ```
 
-如果 Codex 只跑通 CI，但没有 negative proof，不达标。
+如果 Codex 只跑通 CI，但没有 real-code-inspection，不达标。
 
 如果 Codex 只修 inspector，没有重建能力组本体，不达标。
 

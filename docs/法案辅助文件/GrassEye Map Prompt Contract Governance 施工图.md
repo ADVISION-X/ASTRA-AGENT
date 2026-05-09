@@ -298,7 +298,7 @@ raw user secret in proof/log/map
 
 ---
 
-## 8. Negative Proof
+## 8. real-code-inspection
 
 Must fail：
 
@@ -337,7 +337,7 @@ Prompt binding validates against Prompt Contract Catalog
 OutputSchemaRef validates against Output Schema Catalog
 Branch DSL validates against branchableFields
 Forensics records prompt refs/hashes/outputSchemaRef
-negative proof PASS
+real-code-inspection PASS
 CI-FULL PASS
 ```
 
@@ -542,7 +542,7 @@ raw user secret
 raw sensitive text
 ```
 
-## F. Negative Proof Additions
+## F. real-code-inspection Additions
 
 Must fail:
 

@@ -503,7 +503,7 @@ runtimeProof exists
 
 ---
 
-## 11. Runtime Proof
+## 11. owner evidence
 
 `GeometryGuardRuntimeProof` 必须包含：
 
@@ -643,7 +643,7 @@ Geometry Guard 不直接操作浏览器。
 scripts/audit/domains/geometry-guard-capability/manifest.json
 scripts/audit/domains/geometry-guard-capability/inspector.ts
 scripts/audit/domains/geometry-guard-capability/run-inspector.ts
-scripts/audit/domains/geometry-guard-capability/negative-proof-harness.ts
+scripts/audit/domains/geometry-guard-capability/owner-inspection-harness.ts
 ```
 
 Inspector 必须：
@@ -657,7 +657,7 @@ schema-level
 anti-escape
 generated artifact aware
 runner-connected
-negative-proof-backed
+real-code-inspection-backed
 ```
 
 禁止：
@@ -669,7 +669,7 @@ includes final judgment
 manual-only proof
 warning-only P0
 detached inspector
-empty negative proof
+empty real-code-inspection
 capability-check.ts as acceptance
 verify script as release truth
 ```
@@ -695,14 +695,14 @@ verify script as release truth
 14. no business verbs / action plans / fallbackMode / allowlists.
 15. Mouse Click / Mouse Scroll cannot bypass Geometry Guard.
 16. ALL active laws in registry/matrix/audit-plan/runner.
-17. negative proof executed.
+17. real-code-inspection executed.
 ```
 
 ---
 
-## 16. Negative Proof 最低清单
+## 16. real-code-inspection 最低清单
 
-必须 fail → rollback → pass：
+必须 fail → re-inspect → pass：
 
 ```txt
 manual-first enforcement reintroduced
@@ -725,7 +725,7 @@ child returns boolean
 Mouse Click remaps Visual Target raw clickPoint
 Mouse Scroll remaps aiInput
 capability-check.ts added
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -748,7 +748,7 @@ allow result has normalized geometry and outputRef
 result/proof/input chain parity
 Mouse Click / Mouse Scroll cannot bypass Geometry Guard
 children narrow geometry gates
-negative proof PASS
+real-code-inspection PASS
 ```
 
 ---

@@ -104,7 +104,7 @@ AI 不能向外扩张为：
 ```txt
 AI → Browser
 AI → Forensics Writer
-AI → Map Mutation
+AI → Map regression
 AI → Mission Final Decision
 AI → Action Execution
 ```
@@ -898,7 +898,7 @@ scripts/audit/domains/ai-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Inspector 必须：
@@ -912,7 +912,7 @@ JSON schema-level
 generated artifact aware
 anti-escape
 runner-connected
-negative-proof-backed
+real-code-inspection-backed
 ```
 
 禁止：
@@ -925,7 +925,7 @@ manual-only proof
 warning-only P0
 detached inspector
 fake pass
-empty negative proof
+empty real-code-inspection
 ```
 
 ---
@@ -958,14 +958,14 @@ empty negative proof
 23. no module-level uncontrolled circuitBreaker/activeRuns.
 24. no as any / as unknown as / as never / ts-ignore / eslint-disable.
 25. all active AI laws in registry/matrix/audit-plan/runner.
-26. negative proof executed.
+26. real-code-inspection executed.
 ```
 
 ---
 
-## 20. Negative Proof 最低清单
+## 20. real-code-inspection 最低清单
 
-必须 fail → rollback → pass：
+必须 fail → re-inspect → pass：
 
 ```txt
 remove promptContractId
@@ -995,11 +995,11 @@ AI imports Forensics writer
 AI imports Orchestration runtime
 export AI child implementation
 export LocalAiTaskRequest as public contract
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 finding into warning-only
 ```
 
-No negative proof = no PASS.
+No real-code-inspection = no PASS.
 
 ---
 
@@ -1036,7 +1036,7 @@ bad output hardening complete
 output boundary recursive
 result proof complete
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL law enforcement PASS
 CI-FULL PASS
 ```

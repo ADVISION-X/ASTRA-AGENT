@@ -26,7 +26,7 @@ Core doctrine:
 - No promptContractId/outputSchemaRef for AI request, no AI transport.
 - No typed result envelope, no transport success.
 - No transfer proof, no transport success.
-- No active Nerve Bus law without inspector + runner + negative proof.
+- No active Nerve Bus law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -39,7 +39,7 @@ status: active
 tier: P0
 capabilityDomain: nerve-bus-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required package:
@@ -75,7 +75,7 @@ scripts/audit/domains/nerve-bus-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden:
@@ -86,7 +86,7 @@ Forbidden:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- empty/missing negative proof.
+- empty/missing real-code-inspection.
 - direct Orchestration-to-child calls.
 - direct Ability-to-Ability command chains.
 - Commander bypassing Nerve Bus.
@@ -101,7 +101,7 @@ status: active
 tier: P0  
 capabilityDomain: nerve-bus-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Nerve Bus is the only owner of governed command/result transport between Commander Console, Orchestration, AI, and Ability Groups.
 
@@ -121,7 +121,7 @@ Required:
 - AI responses must return through governed Nerve Bus result envelopes or through the Nerve Bus transport result generated from the original request.
 - Orchestration-to-Commander review/status responses must use governed Nerve Bus transport.
 - Envelope refs must remain traceable for mission commands, ability commands, AI requests, review commands, and result envelopes.
-- Nerve Bus may provide a unified `transportEnvelope` API or explicit channel methods, but every channel must be represented in registry, schema, runtime, proof, inspector, and negative proof.
+- Nerve Bus may provide a unified `transportEnvelope` API or explicit channel methods, but every channel must be represented in registry, schema, runtime, proof, inspector, and real-code-inspection.
 
 ### 禁止
 
@@ -144,7 +144,7 @@ Required inspector:
 - Startup second router ban.
 - Default injection scan.
 
-Required negative proof:
+Required real-code-inspection:
 - Commander imports Orchestration execute directly → FAIL.
 - Orchestration imports an ability child implementation → FAIL.
 - AI imports mouse-click implementation → FAIL.
@@ -159,7 +159,7 @@ status: active
 tier: P0  
 capabilityDomain: nerve-bus-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: All Nerve Bus envelopes must preserve complete mission/map/step/capability/prompt chain fields and must fail closed when chain truth is missing.
 
@@ -271,7 +271,7 @@ Required inspector:
 - No nullable activation chain in valid transport.
 - Default injection ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove activationSnapshotRef from envelope → FAIL.
 - Remove capabilityCallId from ability command → FAIL.
 - AI request uses promptRef/rawPrompt but no promptContractId → FAIL.
@@ -286,7 +286,7 @@ status: active
 tier: P0  
 capabilityDomain: nerve-bus-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Nerve Bus has exactly six governed logical channels and must not create business-specific or platform-specific transport channels.
 
@@ -335,7 +335,7 @@ Required inspector:
 - allowedFrom/allowedTo matrix check.
 - Child/registry/schema parity.
 
-Required negative proof:
+Required real-code-inspection:
 - Add `facebook-to-orchestration` channel → FAIL.
 - Add `ability-to-ability` channel → FAIL.
 - Remove `orchestration-to-commander` channel → FAIL.
@@ -349,7 +349,7 @@ status: active
 tier: P0  
 capabilityDomain: nerve-bus-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Nerve Bus validates, routes, times out, records proof, and returns typed envelopes; it must not make mission, map, AI, action, or storage decisions.
 
@@ -397,7 +397,7 @@ Required inspector:
 - No Forensics runtime writes.
 - No transition evaluator in Nerve Bus.
 
-Required negative proof:
+Required real-code-inspection:
 - Nerve Bus imports map selection gate → FAIL.
 - Nerve Bus builds raw prompt string → FAIL.
 - Nerve Bus imports BrowserController → FAIL.
@@ -412,7 +412,7 @@ status: active
 tier: P0  
 capabilityDomain: nerve-bus-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Nerve Bus must run a fixed fail-closed transport pipeline.
 
@@ -475,7 +475,7 @@ Required inspector:
 - Gate failure proof invariant.
 - No naked throw public boundary.
 
-Required negative proof:
+Required real-code-inspection:
 - Move handler dispatch before integrity gate → FAIL.
 - Remove AbortSignal → FAIL.
 - Add retry loop → FAIL.
@@ -490,9 +490,9 @@ status: active
 tier: P0  
 capabilityDomain: nerve-bus-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Nerve Bus result semantics must be typed, correlated, payload-ref first, and proof-backed.
+summary: Nerve Bus result semantics must be typed, correlated, payload-ref first, and real-code-inspection-backed.
 
 ### 主题
 
@@ -546,7 +546,7 @@ Required inspector:
 - No business fields in transport result.
 - Raw provider passthrough ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Success without outputPayload → FAIL.
 - Failure without failureReason → FAIL.
 - AI provider raw JSON bypasses AiResponseEnvelope → FAIL.
@@ -561,7 +561,7 @@ status: active
 tier: P0  
 capabilityDomain: nerve-bus-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Nerve Bus transfer proof must preserve full chain, timing, gate decisions, handler decision, payload refs, and correlation refs.
 
@@ -665,7 +665,7 @@ Required inspector:
 - No secret/raw payload leakage.
 - Gate-decision completeness.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove activationSnapshotRef from proof → FAIL.
 - Remove handlerDecision from proof → FAIL.
 - Add raw prompt body to proof → FAIL.
@@ -680,7 +680,7 @@ status: active
 tier: P0  
 capabilityDomain: nerve-bus-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Nerve Bus AI transport must carry Prompt Contract references only and must not carry raw prompt truth.
 
@@ -729,7 +729,7 @@ Required inspector:
 - outputSchemaRef required.
 - promptContractId required.
 
-Required negative proof:
+Required real-code-inspection:
 - AI request without promptContractId → FAIL.
 - AI request without outputSchemaRef → FAIL.
 - Add rawPrompt field to envelope → FAIL.
@@ -744,7 +744,7 @@ status: active
 tier: P0  
 capabilityDomain: nerve-bus-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Nerve Bus children are narrow channel bindings and must use unified runtime.
 
@@ -793,7 +793,7 @@ Required inspector:
 - Foreign implementation import ban.
 - Raw boolean/null result ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Add `product-video-discovery` child → FAIL.
 - Child imports AI provider adapter → FAIL.
 - Child directly calls Orchestration execute → FAIL.
@@ -808,9 +808,9 @@ status: active
 tier: P0  
 capabilityDomain: nerve-bus-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Nerve Bus enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.
+summary: Nerve Bus enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and real-code-inspection.
 
 ### 主题
 
@@ -824,7 +824,7 @@ Nerve Bus enforcement must close through:
 scripts/audit/domains/nerve-bus-capability/manifest.json
 scripts/audit/domains/nerve-bus-capability/inspector.ts
 scripts/audit/domains/nerve-bus-capability/run-inspector.ts
-scripts/audit/domains/nerve-bus-capability/negative-proof-harness.ts
+scripts/audit/domains/nerve-bus-capability/owner-inspection-harness.ts
 ```
 
 Required:
@@ -833,12 +833,12 @@ Required:
 - Inspector must use schema-level checks.
 - Inspector must include anti-escape checks.
 - Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
-- Negative proof must run and report fail → rollback → pass.
+- real-code-inspection must run and report fail → re-inspect → pass.
 - CI-FULL must be green for delivery.
 - No grep/regex/includes as final judgment.
 - No warning-only P0.
 - No detached inspector.
-- No empty/missing negative proof.
+- No empty/missing real-code-inspection.
 - No generated fake PASS.
 - No capability-check.ts.
 - No verify script as release truth.
@@ -861,10 +861,10 @@ Required inspector checks:
 14. Children use unified runtime.
 15. No raw prompt/API key/raw image leakage.
 16. ALL active Nerve Bus laws in registry/matrix/audit-plan/runner.
-17. negative-proof-harness executed.
+17. owner-inspection-harness executed.
 ```
 
-Required negative proof:
+Required real-code-inspection:
 ```txt
 manual-first enforcement reintroduced
 remove activationSnapshotRef from envelope
@@ -887,7 +887,7 @@ add retry loop
 add nextStepId to transport result
 add API key-like value to proof
 capability-check.ts added
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -912,7 +912,7 @@ transfer proof is full-chain and secret-safe
 AI request carries promptContractId/outputSchemaRef only
 children are narrow channel bindings
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```

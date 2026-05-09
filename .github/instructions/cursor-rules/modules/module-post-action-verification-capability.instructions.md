@@ -6,7 +6,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-post-action-verificat
 
 # GrassEye Post-action Verification Capability FINAL
 
-Scope: governs the independent Post-action Verification Ability Group as the owner of post-action observation packaging, before/after evidence binding, observation proof binding, and observation-package runtime proof integrity.
+Scope: governs the independent Post-action Verification Ability Group as the owner of post-action observation packaging, before/after evidence binding, observation proof binding, and observation-package owner evidence integrity.
 
 Boundary: this module governs only the packaging of governed post-action observations after an action has already executed and after bounded observations or evidence have already been collected. It does not execute actions, capture screenshots, call AI, detect visual targets, read DOM/BOM directly, write final evidence, or decide the final semantic action outcome.
 
@@ -23,7 +23,7 @@ Core doctrine:
 - PAV public result and runtime-proof surfaces must not expose verificationDecision, confidence, confidencePolicy, minimumConfidence, or actionResultVerifiedRef.
 - Explicit governed review is not a valid substitute for PAV in production automation.
 - No bounded observations, no source proof, no package success.
-- No active PAV law without inspector + runner + negative proof.
+- No active PAV law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -36,7 +36,7 @@ status: active
 tier: P0
 capabilityDomain: post-action-verification-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required package:
@@ -76,7 +76,7 @@ scripts/audit/domains/post-action-verification-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden:
@@ -86,7 +86,7 @@ Forbidden:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- empty negative proof.
+- empty real-code-inspection.
 
 ---
 
@@ -96,7 +96,7 @@ status: active
 tier: P0
 capabilityDomain: post-action-verification-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: PAV is the only owner of governed post-action observation-package truth, while AI remains the final semantic judgment source.
 
@@ -135,7 +135,7 @@ Required inspector:
 - Orchestration must consume PAV package status, not fabricate it.
 - Page State cannot export PAV package truth.
 
-Required negative proof:
+Required real-code-inspection:
 - Add verificationDecision to PAV output -> FAIL.
 - Add confidencePolicy to PAV input -> FAIL.
 - Add page-state-only final action-truth branch -> FAIL.
@@ -148,7 +148,7 @@ status: active
 tier: P0
 capabilityDomain: post-action-verification-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: PAV boundary stays pure and cannot execute actions, capture evidence, call AI, or persist final evidence.
 
@@ -166,7 +166,7 @@ Allowed:
 - Validate action proof refs.
 - Validate evidence bindings and source proof refs.
 - Enforce before/after and visual-evidence requirements.
-- Build result and runtime proof.
+- Build result and owner evidence.
 
 Forbidden:
 - Screenshot capture.
@@ -186,7 +186,7 @@ Required inspector:
 - Forbidden symbols: click, scroll, type, openPage, captureScreenshot, executeAi, writeEvidence, dispatchEnvelope, advanceStep.
 - External private PAV path import ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Add screenshot implementation import -> FAIL.
 - Add browser controller import -> FAIL.
 - Add AI runtime call -> FAIL.
@@ -201,7 +201,7 @@ status: active
 tier: P0
 capabilityDomain: post-action-verification-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: PAV input must carry complete chain fields, action proof, governed observations, and packaging policy without confidence-policy drift.
 
@@ -293,11 +293,11 @@ FORBIDDEN:
 
 Required inspector:
 - Schema field checks.
-- Runtime proof chain field checks.
+- owner evidence chain field checks.
 - Action proof gate call-order checks.
 - Legacy confidence-policy field ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove capabilityCallId -> FAIL.
 - Remove activationSnapshotRef -> FAIL.
 - Remove verificationPolicy -> FAIL.
@@ -312,7 +312,7 @@ status: active
 tier: P0
 capabilityDomain: post-action-verification-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: PAV must fail-close on missing or invalid observation support and package only bounded observations with valid source proof.
 
@@ -396,7 +396,7 @@ Required inspector:
 - Before/after gate checks.
 - Support-ref checks on success path.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove supportingSourceProofRefs from success path -> FAIL.
 - Return success with no supportingObservationRefs -> FAIL.
 - Return success with no afterEvidence when required -> FAIL.
@@ -410,7 +410,7 @@ status: active
 tier: P0
 capabilityDomain: post-action-verification-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: PAV result must report packaging status only: success, failed, or review_required.
 
@@ -474,7 +474,7 @@ Required inspector:
 - Output-field parity checks.
 - Legacy decision or confidence surface bans.
 
-Required negative proof:
+Required real-code-inspection:
 - Return status ok -> FAIL.
 - Return verificationDecision field -> FAIL.
 - Return confidence field -> FAIL.
@@ -489,9 +489,9 @@ status: active
 tier: P0
 capabilityDomain: post-action-verification-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: PAV runtime proof must preserve input and result chain parity without fabricated ids or legacy decision traces.
+summary: PAV owner evidence must preserve input and result chain parity without fabricated ids or legacy decision traces.
 
 ### 主题
 
@@ -582,7 +582,7 @@ Required inspector:
 - Proof/result/input chain parity.
 - Legacy decision-trace field ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Set runId = proofFingerprint -> FAIL.
 - Set missionId = sessionId -> FAIL.
 - Remove activationSnapshotRef -> FAIL.
@@ -597,7 +597,7 @@ status: active
 tier: P0
 capabilityDomain: post-action-verification-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: child capabilities must remain narrow observation providers and flow through one unified executor and proof path.
 
@@ -643,7 +643,7 @@ Required inspector:
 - No forbidden imports.
 - No final result or proof builder call in child code.
 
-Required negative proof:
+Required real-code-inspection:
 - Child imports screenshot implementation -> FAIL.
 - Child returns boolean -> FAIL.
 - Child builds final result -> FAIL.
@@ -657,9 +657,9 @@ status: active
 tier: P0
 capabilityDomain: post-action-verification-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: PAV enforcement must close through owner-local AST and symbol inspectors, runner, and negative proof.
+summary: PAV enforcement must close through owner-local AST and symbol inspectors, runner, and real-code-inspection.
 
 ### 主题
 
@@ -673,7 +673,7 @@ PAV enforcement must close through:
 scripts/audit/domains/post-action-verification-capability/manifest.json
 scripts/audit/domains/post-action-verification-capability/inspector.ts
 scripts/audit/domains/post-action-verification-capability/run-inspector.ts
-scripts/audit/domains/post-action-verification-capability/negative-proof-harness.ts
+scripts/audit/domains/post-action-verification-capability/owner-inspection-harness.ts
 ```
 
 Required:
@@ -682,7 +682,7 @@ Required:
 - Inspector must use schema-level checks.
 - Inspector must include anti-escape checks.
 - Inspector must verify active law coverage in registry, matrix, audit plan, and runner.
-- Negative proof must run and report fail -> rollback -> pass.
+- real-code-inspection must run and report fail -> re-inspect -> pass.
 - CI-FULL must be green for delivery.
 
 Forbidden:
@@ -690,11 +690,11 @@ Forbidden:
 - grep, regex, or includes-only final judgment.
 - warning-only P0.
 - detached inspector.
-- empty negative proof.
+- empty real-code-inspection.
 - generated fake PASS.
 - capability-check.ts under PAV root.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove inspector from runner -> FAIL.
 - Convert P0 finding to warning-only -> FAIL.
 - Use regex-only final check -> FAIL.
@@ -707,7 +707,7 @@ Required negative proof:
 Inspector must check:
 
 ```txt
-1. Law file uses machine-blocking + law+inspector+negative-proof.
+1. Law file uses machine-blocking + law+inspector+real-code-inspection.
 2. Public ability-group is thin and execute-only.
 3. Contract does not expose runtime context or child execute internals.
 4. Child registry matches schema and shared/post-action-types.ts.
@@ -726,14 +726,14 @@ Inspector must check:
 17. Failed or review_required output is null and diagnosticPayloadRef exists.
 18. Child implementation cannot build final result or proof.
 19. All active PAV laws remain covered in registry, matrix, audit plan, and runner.
-20. negative-proof-harness executed.
+20. owner-inspection-harness executed.
 ```
 
 ---
 
-## Required Negative Proof
+## Required real-code-inspection
 
-The PAV negative proof must fail -> rollback -> pass for:
+The PAV real-code-inspection must fail -> re-inspect -> pass for:
 
 ```txt
 manual-first enforcement reintroduced
@@ -756,7 +756,7 @@ child builds final result
 external imports runtime private path
 page-state claims final action truth
 PAV output exposes verificationDecision
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -777,7 +777,7 @@ AI remains final semantic judgment source
 runtimeProof preserves real upstream chain without legacy decision fields
 children are narrow observation providers
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 all active law enforcement PASS
 CI-FULL PASS
 ```

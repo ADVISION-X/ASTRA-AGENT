@@ -6,7 +6,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-page-state-capability
 
 # GrassEye Page State Capability FINAL
 
-Scope: governs the independent Page State Ability Group, raw current-page/runtime observation packaging, evidence-backed observation output, and page-state runtime proof. Page State no longer owns current-page classification, page readiness, login-state classification, safety-page detection, feed/video stability detection, modal/comment panel state classification, page abnormality classification, or platform page-kind classification.
+Scope: governs the independent Page State Ability Group, raw current-page/runtime observation packaging, evidence-backed observation output, and page-state owner evidence. Page State no longer owns current-page classification, page readiness, login-state classification, safety-page detection, feed/video stability detection, modal/comment panel state classification, page abnormality classification, or platform page-kind classification.
 
 Boundary: this module governs only the question: **what raw evidence about the page/runtime has been packaged for AI or downstream proof**. It does not govern page meaning, blocker meaning, action execution, action-result semantic verification, screenshot capture, AI execution, visual-target detection, comment extraction, product classification, evidence finalization, map branching, or mission progression.
 
@@ -23,7 +23,7 @@ Core doctrine:
 - No observation support, no page-state success.
 - No source proof, no governed observation.
 - No chain fields, no production-ready Page State result.
-- No active Page State law without inspector + runner + negative proof.
+- No active Page State law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -36,7 +36,7 @@ status: active
 tier: P0
 capabilityDomain: page-state-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required package:
@@ -61,7 +61,7 @@ scripts/audit/domains/page-state-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden:
@@ -71,7 +71,7 @@ Forbidden:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- empty negative proof.
+- empty real-code-inspection.
 
 ---
 
@@ -81,7 +81,7 @@ status: active
 tier: P0  
 capabilityDomain: page-state-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Page State is raw observation packaging only; AI owns all visual/page/business interpretation.
 
@@ -143,7 +143,7 @@ Required inspector:
 - Open/platform/runtime/Page State/PAV/Screenshot/Visual Target state-truth ownership ban.
 - Action completion as page-state proof ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Add feed-ready classifier in any non-AI file → FAIL.
 - Add login-wall truth helper in platform adapter → FAIL.
 - Use actionCompletion as page-state evidence → FAIL.
@@ -156,7 +156,7 @@ status: active
 tier: P0  
 capabilityDomain: page-state-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Page State boundary is pure and may only package raw governed inputs.
 
@@ -177,7 +177,7 @@ Allowed:
 - Check freshness.
 - Check source binding.
 - Preserve raw currentUrl/currentTitle/browserLoginState/sourceEvidenceRefs/openHandoff/runtimeSignalRefs without deriving page meaning.
-- Produce runtime proof and structured result.
+- Produce owner evidence and structured result.
 
 Forbidden:
 - Screenshot capture.
@@ -202,7 +202,7 @@ Required inspector:
 - Forbidden symbol checks: click, scroll, type, openPage, captureScreenshot, executeAi, writeEvidence, dispatchEnvelope, advanceStep, querySelector, document/window access.
 - External private path import ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Page State imports screenshot implementation → FAIL.
 - Page State calls BrowserController → FAIL.
 - Page State calls AI runtime → FAIL.
@@ -216,7 +216,7 @@ status: active
 tier: P0  
 capabilityDomain: page-state-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Page State input must carry full chain fields, snapshot proof, observations, evidence refs, policies, and open handoff.
 
@@ -303,7 +303,7 @@ Required inspector:
 - Open handoff field.
 - Input gate call order.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove activationSnapshotRef from input → FAIL.
 - Remove capabilityCallId from input → FAIL.
 - Remove nerveBusEnvelopeId from input → FAIL.
@@ -317,7 +317,7 @@ status: active
 tier: P0  
 capabilityDomain: page-state-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Observations and evidence must be source-bound, fresh, and from allowed owners.
 
@@ -376,7 +376,7 @@ Required inspector:
 - Observation proof binding gate.
 - Observation-required child policy.
 
-Required negative proof:
+Required real-code-inspection:
 - Add observation without sourceProofRef → FAIL.
 - Add stale observation and return success → FAIL.
 - Add forbidden source owner and return success → FAIL.
@@ -389,7 +389,7 @@ status: active
 tier: P0  
 capabilityDomain: page-state-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Page State output must be evidence-backed and cannot claim action-result verification truth.
 
@@ -475,7 +475,7 @@ Required inspector:
 - Success support refs.
 - Failure/review output null.
 
-Required negative proof:
+Required real-code-inspection:
 - Add verificationDecision to result → FAIL.
 - Return success without evidenceRefs → FAIL.
 - Return success with low_confidence flag → FAIL.
@@ -489,9 +489,9 @@ status: active
 tier: P0  
 capabilityDomain: page-state-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Page State runtime proof must preserve real chain, gate decisions, source refs, and state fingerprint.
+summary: Page State owner evidence must preserve real chain, gate decisions, source refs, and state fingerprint.
 
 ### 主题
 
@@ -580,7 +580,7 @@ Required inspector:
 - Gate-decision fields.
 - Invalid input proof includes receivedShapeHash.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove activationSnapshotRef from proof → FAIL.
 - Set runId from fingerprint only → FAIL.
 - Success without outputRef → FAIL.
@@ -594,7 +594,7 @@ status: active
 tier: P0  
 capabilityDomain: page-state-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: child capabilities are narrow state classifiers and must use unified runtime gates.
 
@@ -641,7 +641,7 @@ Required inspector:
 - Forbidden imports/symbols.
 - No platform path hardcode.
 
-Required negative proof:
+Required real-code-inspection:
 - Child imports screenshot implementation → FAIL.
 - Child returns boolean → FAIL.
 - Child hardcodes TikTok path → FAIL.
@@ -655,9 +655,9 @@ status: active
 tier: P0  
 capabilityDomain: page-state-capability  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Page State enforcement must close through owner-local AST/symbol inspector, runner, and negative proof.
+summary: Page State enforcement must close through owner-local AST/symbol inspector, runner, and real-code-inspection.
 
 ### 主题
 
@@ -671,7 +671,7 @@ Page State enforcement must close through:
 scripts/audit/domains/page-state-capability/manifest.json
 scripts/audit/domains/page-state-capability/inspector.ts
 scripts/audit/domains/page-state-capability/run-inspector.ts
-scripts/audit/domains/page-state-capability/negative-proof-harness.ts
+scripts/audit/domains/page-state-capability/owner-inspection-harness.ts
 ```
 
 Required:
@@ -680,12 +680,12 @@ Required:
 - Inspector must use schema-level checks.
 - Inspector must include anti-escape checks.
 - Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
-- Negative proof must run and report fail → rollback → pass.
+- real-code-inspection must run and report fail → re-inspect → pass.
 - CI-FULL must be green for delivery.
 - No grep/regex/includes as final judgment.
 - No warning-only P0.
 - No detached inspector.
-- No empty negative proof.
+- No empty real-code-inspection.
 - No generated fake PASS.
 - No verify script.
 - No capability-check.ts under Page State root.
@@ -702,16 +702,16 @@ Required inspector checks:
 8. Platform profile gate invoked.
 9. Payload budget gate invoked.
 10. Output boundary gate invoked.
-11. Runtime proof chain fields and parity.
+11. owner evidence chain fields and parity.
 12. Child registry parity and narrow child behavior.
 13. No forbidden foreign imports.
 14. No action-result verification fields.
 15. No verify scripts or capability-check files.
 16. ALL active Page State laws in registry/matrix/audit-plan/runner.
-17. negative-proof-harness executed.
+17. owner-inspection-harness executed.
 ```
 
-Required negative proof:
+Required real-code-inspection:
 ```txt
 manual-first enforcement reintroduced
 remove capabilityCallId from input
@@ -733,7 +733,7 @@ child hardcodes TikTok feed path
 external import of child implementation
 add verify-page-state-capabilities.ts
 turn P0 into warning-only
-remove negative proof invocation
+remove real-code-inspection invocation
 ```
 
 ---
@@ -754,7 +754,7 @@ action-result verification fields absent
 runtimeProof preserves real chain and gate decisions
 children are narrow classifiers
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```

@@ -175,7 +175,7 @@ status: active
 tier: P0
 capabilityDomain: ai-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: local-ai-runtime must expose one governed startup readiness contract and must not be started ad hoc by consumers.
 
@@ -214,7 +214,7 @@ Required inspector:
 - no consumers or debug-loop start local AI runtime directly.
 - readiness result includes modelRole, modelName, provider, runtime, health, failureReason, and missionRuntimeAvailable.
 
-Required negative proof:
+Required real-code-inspection:
 - consumer or debug-loop starts local AI runtime -> FAIL.
 - readiness returns success without full required model-role roster -> FAIL.
 - readiness uses business inference as startup proof -> FAIL.

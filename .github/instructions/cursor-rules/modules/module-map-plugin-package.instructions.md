@@ -1,6 +1,6 @@
 ---
 name: "GrassEye Map Plugin Package Governance"
-description: "Use when governing controlled declarative operational-map packages, task-template packages, Map Authoring Input Package, user-requirement map authoring, AI-generated map quarantine, prompt binding, capability/output-schema/safety/evidence catalog validation, activation snapshots, rollback, ordinary/developer task feeds, and the boundary that prevents maps from becoming runtime code, child abilities, prompt owners, or second Orchestration."
+description: "Use when governing controlled declarative operational-map packages, task-template packages, Map Authoring Input Package, user-requirement map authoring, AI-generated map quarantine, prompt binding, capability/output-schema/safety/evidence catalog validation, activation snapshots, re-inspect, ordinary/developer task feeds, and the boundary that prevents maps from becoming runtime code, child abilities, prompt owners, or second Orchestration."
 applyTo: ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md, src/map-plugins/**, docs/法案辅助文件/GrassEye 地图插件包治理施工图.md, docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md, docs/法案辅助文件/GrassEye Map Authoring Input Package 施工图.md, scripts/audit/domains/map-plugin-package/**, src/capabilities/orchestration/**, src/capabilities/ai/**, src/capabilities/commander-console/**"
 ---
 
@@ -8,7 +8,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-map-plugin-package.in
 
 ## 0. Module Identity
 
-Scope: governs controlled declarative operational-map packages, task-template packages, user-requirement map authoring schema support, AI-generated map draft/quarantine lifecycle, package validation, prompt binding, capability catalog binding, activation snapshot, active registry, ordinary/developer task-template feeds, rollback, and map-package audit enforcement.
+Scope: governs controlled declarative operational-map packages, task-template packages, user-requirement map authoring schema support, AI-generated map draft/quarantine lifecycle, package validation, prompt binding, capability catalog binding, activation snapshot, active registry, ordinary/developer task-template feeds, re-inspect, and map-package audit enforcement.
 
 Boundary: this module governs the `map-plugin-package` support-governance domain only. It does not create a new ability group, does not modify the 14 active ability groups, does not own mission execution, does not own prompt content, does not execute AI, does not dispatch Nerve Bus, does not call ability implementations, and does not mutate Orchestration mission state.
 
@@ -21,7 +21,7 @@ Static Capability Package Architecture
 + Pluginized Map Package Architecture
 + Map-Driven Prompt Contract Architecture
 + Nerve Bus Governed Transport
-+ Forensics-backed Runtime Proof
++ Forensics-backed owner evidence
 ```
 
 Core doctrine:
@@ -34,11 +34,11 @@ Core doctrine:
 - AI Capability is the map authoring assistant and Prompt Contract owner.
 - Commander Console is the user command, review, explanation, automation-gate pass, activation, and task-selection surface.
 - Map Plugin Package may reference `promptContractId`, but never owns prompt text.
-- Commander may display, review, approve, activate, disable, and rollback through governed ports only.
+- Commander may display, review, approve, activate, disable, and re-inspect through governed ports only.
 - AI-generated maps are draft/quarantine only until validation and automation gate pass.
 - Built-in map packages must pass the same lifecycle gates as imported packages.
 - No map package may become active without validation report, automation gate, activation proof, activation record, and frozen activation snapshot.
-- No active map law without inspector + runner + negative proof.
+- No active map law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -51,7 +51,7 @@ status: active
 tier: P0
 capabilityDomain: map-plugin-package
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Canonical roots:
@@ -85,7 +85,7 @@ scripts/audit/domains/map-plugin-package/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden active truth:
@@ -97,7 +97,7 @@ Forbidden active truth:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- empty/missing negative proof.
+- empty/missing real-code-inspection.
 - map-plugin-package listed as one of the 14 active ability groups.
 - map-plugin-package modeled as a child capability.
 - map-plugin-package executing runtime logic.
@@ -112,7 +112,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: map packages are declarative route data consumed by Orchestration, not runtime code, child abilities, or new owners.
 
@@ -141,7 +141,7 @@ Required:
 - Startup entry-spine page-preparation judgment must be AI-owned and Route Plan-owned; map packages must not use page-state steps as the yes/no owner for startup continuation and must not host the startup AI step locally.
 - automation maps must strictly forbid request-human-review, human-review, manual-review, operator-review, review_required terminal routing, or any step that waits for a person.
 - map packages must not expand the frozen ability-group constitution.
-- registry governs import, quarantine, validation, automation gate, activation, rollback, and active-read access only.
+- registry governs import, quarantine, validation, automation gate, activation, re-inspect, and active-read access only.
 - registry must not execute abilities, mutate mission state, dispatch steps, dispatch Nerve Bus, or decide branches.
 - built-in packages must pass the same import/quarantine/validation/automation-gate/activation pipeline as imported packages.
 - ordinary UI consumes taskTemplate records, not map internals.
@@ -170,7 +170,7 @@ Required inspector:
 - production no auto-active builtins check.
 - no AI provider/secret resolver imports in map plugin.
 
-Required negative proof:
+Required real-code-inspection:
 
 - Model map package as child ability → FAIL.
 - Registry dispatches Nerve Bus → FAIL.
@@ -188,9 +188,9 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: map packages must pass import, quarantine, validation, automation gate, activation, active registry, and rollback lifecycle before runtime consumption.
+summary: map packages must pass import, quarantine, validation, automation gate, activation, active registry, and re-inspect lifecycle before runtime consumption.
 
 ### 主题
 
@@ -219,7 +219,7 @@ import
 → activation proof
 → activation
 → active registry
-→ rollback if needed
+→ re-inspect if needed
 ```
 
 Required activation record fields:
@@ -243,7 +243,7 @@ importProofRef
 quarantineProofRef
 activationProofRef
 authoringProofRef when aiGenerated
-rollbackRecordRef when rollback
+re-inspectRecordRef when re-inspect
 capabilityCatalogVersion
 promptCatalogVersion
 operationalMapHash
@@ -262,8 +262,8 @@ Required:
 - activationProofRef is mandatory for activation.
 - capabilityCatalogVersion and promptCatalogVersion are mandatory for activation.
 - activation creates activationSnapshotRef and activationSnapshotHash.
-- rollback preserves activation record and rollback record.
-- rollback must not delete activation history.
+- re-inspect preserves activation record and re-inspect record.
+- re-inspect must not delete activation history.
 
 Forbidden:
 
@@ -277,7 +277,7 @@ Forbidden:
 - package before automation gate active.
 - activation directly from draft without quarantine.
 - activation by availabilityPolicy only.
-- rollback deleting activation history.
+- re-inspect deleting activation history.
 - production default registry auto-activating built-ins.
 
 Required inspector:
@@ -289,7 +289,7 @@ Required inspector:
 - built-in production seed ban.
 - development seed proof check.
 
-Required negative proof:
+Required real-code-inspection:
 
 - Activate package before automation gate → FAIL.
 - Activate package with validation issues → FAIL.
@@ -297,7 +297,7 @@ Required negative proof:
 - Active record missing activationProofRef → FAIL.
 - Active record missing mapPackageHash → FAIL.
 - Built-in production auto-active → FAIL.
-- Rollback deletes activation record → FAIL.
+- re-inspect deletes activation record → FAIL.
 
 ---
 
@@ -307,7 +307,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: map package schema must contain complete governance metadata and must not depend on runtime truth as package authority.
 
@@ -397,7 +397,7 @@ Required inspector:
   - promptBindings.stepId references existing AI step.
   - operationalMap step promptContractId matches binding promptContractId.
 
-Required negative proof:
+Required real-code-inspection:
 
 - Gate-passed manifest without automationGateRef → FAIL.
 - taskTemplate active while activationGateStatus draft → FAIL.
@@ -414,7 +414,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: map packages must never carry executable payloads, runtime code, prompt text, shell scripts, dynamic imports, handlers, or direct ability control.
 
@@ -459,7 +459,7 @@ onStep
 onTransition
 directAbilityCall
 directNerveBusDispatch
-missionStateMutation
+missionStateregression
 forensicsWrite
 ```
 
@@ -516,9 +516,9 @@ Required inspector:
 - AST check for map package code imports.
 - executable marker scan.
 - natural-language field false-positive prevention check.
-- negative proof with package injection.
+- real-code-inspection with package injection.
 
-Required negative proof:
+Required real-code-inspection:
 
 - Add rawPrompt to map package → FAIL.
 - Add functionBody to map package → FAIL.
@@ -535,7 +535,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: map packages may reference prompt contracts but must not own prompt content or create prompt double-truth.
 
@@ -589,7 +589,7 @@ Required inspector:
 - raw prompt/key ban across map package, Orchestration, AI runtime, map adapter, Nerve Bus.
 - branch declared-field check.
 
-Required negative proof:
+Required real-code-inspection:
 
 - Delete promptContractId → FAIL.
 - Delete prompt binding → FAIL.
@@ -607,7 +607,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: AI-generated map packages must be authored against governed catalogs and remain draft/quarantine until all gates and automation gate pass.
 
@@ -741,7 +741,7 @@ Required inspector:
 - userRequirementRef/sourceRequirementHash chain check.
 - automated gate for sensitive/commit actions.
 
-Required negative proof:
+Required real-code-inspection:
 
 - AI generated map with aiGenerated=false → FAIL.
 - AI generated map with activationGateStatus=gate_passed → FAIL.
@@ -759,7 +759,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: capability catalog is a generated read model used for authoring and validation; it must not become runtime truth or a second ability registry.
 
@@ -819,7 +819,7 @@ Required inspector:
 - sensitive/automated gate check.
 - no manual-edit generated catalog check.
 
-Required negative proof:
+Required real-code-inspection:
 
 - Map references missing ability child → FAIL.
 - Map routes to routableByMap=false → FAIL.
@@ -836,7 +836,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: branch condition DSL must be schema-declared, closed, non-executable, and able to reference declared outputSchemaRef fields.
 
@@ -917,9 +917,9 @@ Required inspector:
 - schema DSL check.
 - outputSchemaRef declared-field check.
 - forbidden expression/function/eval check.
-- ambiguity/no-transition negative proof hook.
+- ambiguity/no-transition real-code-inspection hook.
 
-Required negative proof:
+Required real-code-inspection:
 
 - Add raw expression string → FAIL.
 - Add function body to condition → FAIL.
@@ -935,7 +935,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: ordinary and developer map surfaces must stay separate, and Commander must not activate or mutate maps without governed validation/automation-gate path.
 
@@ -990,7 +990,7 @@ Required:
 - ordinary runnable task must resolve through active gate-passed binding.
 - quarantined/draft/disabled/rejected map packages must not appear as runnable ordinary tasks.
 - ordinary feed must not require mapId or requestedPlatformId as launch key.
-- Commander Console may request import, automation-gate pass, activation, disable, and rollback only through governed ports/APIs.
+- Commander Console may request import, automation-gate pass, activation, disable, and re-inspect only through governed ports/APIs.
 - Commander preflight summary is not final validation truth.
 - user-facing map explanation must be plain language and must not expose runtime internals by default.
 
@@ -1017,7 +1017,7 @@ Required inspector:
 - draft/quarantine/disabled feed ban.
 - user explanation/internal id separation check.
 
-Required negative proof:
+Required real-code-inspection:
 
 - Ordinary feed exposes mapId → FAIL.
 - Ordinary feed exposes promptContractId → FAIL.
@@ -1033,7 +1033,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: map activation, validation, automation gate, prompt binding, and authoring must produce Forensics-compatible proof records.
 
@@ -1043,7 +1043,7 @@ summary: map activation, validation, automation gate, prompt binding, and author
 
 ### 法条
 
-Map governance operations must be proof-backed and Forensics-compatible.
+Map governance operations must be real-code-inspection-backed and Forensics-compatible.
 
 Required proof records:
 
@@ -1060,7 +1060,7 @@ mapPackageHash
 operationalMapHash
 capabilityCatalogVersion
 promptCatalogVersion
-rollbackRecordRef when rollback
+re-inspectRecordRef when re-inspect
 authoringProofRef when aiGenerated
 ```
 
@@ -1093,7 +1093,7 @@ Required:
 - validation report must include validator names, pass/fail, issue list, severity, and generatedAt.
 - activation proof must include exact package hash and operational map hash.
 - activation proof must include validationReportRef and automationGateRef/developmentAutomationGateRef.
-- rollback proof must preserve previous activation and new active state.
+- re-inspect proof must preserve previous activation and new active state.
 - prompt binding proof must carry promptContractId and outputSchemaRef.
 - evidence chain must reference hashes/refs, not raw prompt body.
 - AI-generated map activation must include authoringProofRef and userRequirementRef.
@@ -1105,7 +1105,7 @@ Forbidden:
 - automation gate without automationGateRef.
 - prompt proof without promptHash from AI Prompt Contract Catalog.
 - raw prompt stored in map package proof.
-- rollback without rollback record.
+- re-inspect without re-inspect record.
 - AI-generated map activation without authoringProofRef.
 - proof containing raw API key, raw prompt body, or raw user secret.
 
@@ -1117,11 +1117,11 @@ Required inspector:
 - Forensics-compatible fields check.
 - secret/raw prompt leak ban.
 
-Required negative proof:
+Required real-code-inspection:
 
 - Activation proof missing mapPackageHash → FAIL.
 - Validation report missing validator list → FAIL.
-- Rollback without rollback record → FAIL.
+- re-inspect without re-inspect record → FAIL.
 - Forensics proof missing promptContractId for AI step → FAIL.
 - AI-generated activation missing authoringProofRef → FAIL.
 - Map proof contains raw prompt body → FAIL.
@@ -1134,7 +1134,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: user-facing map explanation must translate route data into understandable task flow without exposing runtime internals in ordinary mode.
 
@@ -1188,7 +1188,7 @@ Required inspector:
 - explanation derived from map/validation data only.
 - validation failure visibility check.
 
-Required negative proof:
+Required real-code-inspection:
 
 - Ordinary explanation exposes stepId → FAIL.
 - Ordinary explanation exposes promptContractId → FAIL.
@@ -1204,9 +1204,9 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: map-plugin-package enforcement must close through owner-local AST/schema/reference inspector, runner, and negative proof.
+summary: map-plugin-package enforcement must close through owner-local AST/schema/reference inspector, runner, and real-code-inspection.
 
 ### 主题
 
@@ -1220,7 +1220,7 @@ Map Plugin enforcement must close through:
 scripts/audit/domains/map-plugin-package/manifest.json
 scripts/audit/domains/map-plugin-package/inspector.ts
 scripts/audit/domains/map-plugin-package/run-inspector.ts
-scripts/audit/domains/map-plugin-package/negative-proof-harness.ts
+scripts/audit/domains/map-plugin-package/owner-inspection-harness.ts
 ```
 
 Required:
@@ -1231,7 +1231,7 @@ Required:
 - inspector uses import-graph checks for owner boundaries.
 - inspector uses anti-escape checks for executable payload and authority spoofing.
 - inspector verifies active law coverage in registry/matrix/audit-plan/runner.
-- negative proof must run and report fail → rollback → pass.
+- real-code-inspection must run and report fail → re-inspect → pass.
 - CI-FULL must be green for delivery.
 
 Forbidden:
@@ -1241,7 +1241,7 @@ Forbidden:
 - includes-only final judgment.
 - warning-only P0.
 - detached inspector.
-- empty negative proof.
+- empty real-code-inspection.
 - generated fake PASS.
 - verify script as release truth.
 - capability-check.ts as readiness truth.
@@ -1253,7 +1253,7 @@ Required inspector checks:
 2. map-plugin-package is not an ability group.
 3. Maps are data-only, not child abilities.
 4. Built-ins pass same lifecycle gates and cannot production auto-active.
-5. Import/quarantine/validation/automation-gate/activation/rollback present.
+5. Import/quarantine/validation/automation-gate/activation/re-inspect present.
 6. Active record contains activationSnapshotRef, activationProofRef, validationReportRef, automationGateRef, hashes, catalog versions.
 7. Approved/active map requires automationGateRef and validationReportRef.
 8. AI-generated maps contain authoring chain and remain draft/quarantine until automation gate.
@@ -1269,10 +1269,10 @@ Required inspector checks:
 18. Forensics-compatible proof fields exist.
 19. User-facing explanation hides runtime internals and exposes validation risks.
 20. ALL active Map Plugin laws in registry/matrix/audit-plan/runner.
-21. negative-proof-harness executed.
+21. owner-inspection-harness executed.
 ```
 
-Required negative proof:
+Required real-code-inspection:
 
 ```txt
 manual-first enforcement reintroduced
@@ -1314,7 +1314,7 @@ ordinary explanation exposes stepId
 Commander directly writes active registry
 Forensics proof missing activationId
 Forensics proof missing authoringProofRef for AI map
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -1346,7 +1346,7 @@ user-facing explanation is plain-language and hides runtime internals
 Commander cannot bypass validators/registry ports
 Forensics-compatible proof records exist
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```
@@ -1382,7 +1382,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: advanced AI map generation must receive a complete Map Authoring Input Package; missing catalogs or policies must block generation.
 
@@ -1477,7 +1477,7 @@ Required inspector:
 - missing input package blocks generation.
 - exampleMaps exampleOnly and not active checks.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove capabilityCatalog → FAIL.
 - Remove promptContractCatalog → FAIL.
 - Remove outputSchemaCatalog → FAIL.
@@ -1503,7 +1503,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: capability catalog must be detailed enough for advanced AI to generate maps without inventing abilities.
 
@@ -1592,7 +1592,7 @@ Required inspector:
 - no non-routable ability in generated draft.
 - missing boundary/forbiddenResponsibilities checks.
 
-Required negative proof:
+Required real-code-inspection:
 - capability child without outputSchemaRef → FAIL.
 - capability child without forbiddenResponsibilities → FAIL.
 - text-input child missing approvedText requirement → FAIL.
@@ -1609,7 +1609,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: prompt contract and output schema catalogs must define every AI step and branchable field used by maps.
 
@@ -1687,7 +1687,7 @@ Required inspector:
 - Forensics proof field check.
 - map-authoring input package prompt contract reference check.
 
-Required negative proof:
+Required real-code-inspection:
 - AI step missing promptContractId → FAIL.
 - outputSchemaRef missing from catalog → FAIL.
 - prompt outputSchemaRef mismatch → FAIL.
@@ -1705,7 +1705,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: safety, automation gate, evidence, PAV, Forensics, privacy, secret, rate-limit, and platform policies must be first-class inputs to map authoring.
 
@@ -1783,7 +1783,7 @@ Required inspector:
 - external transmission automated gate check.
 - AI-generated map activation gate check.
 
-Required negative proof:
+Required real-code-inspection:
 - send-message map without Route Plan automated gate → FAIL.
 - text-input commit without Route Plan automated gate → FAIL.
 - mouse-click action without PAV → FAIL.
@@ -1801,7 +1801,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: GrassEye Muscle Memory is the reusable visible-surface instinct layer, constrained to four first-level muscles and separated from Map, AI, Ability Group, and Surface Profile authority.
 
@@ -1858,7 +1858,7 @@ status: active
 tier: P0  
 capabilityDomain: map-plugin-package  
 enforcementMode: machine-blocking  
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: map-plugin-package enforcement must prove Map Authoring Input Package completeness, generated-map safety, and lifecycle boundaries in addition to existing map package governance.
 
@@ -1891,9 +1891,9 @@ Required inspector coverage additions:
 18. no raw prompt/secret/sensitive text leakage.
 19. Orchestration matches AI routeLabel mechanically and must not infer next action from product_yes/product_no.
 20. all active map-plugin laws in registry/matrix/audit-plan/runner.
-21. negative-proof-harness executed.
+21. owner-inspection-harness executed.
 
-Required negative proof additions:
+Required real-code-inspection additions:
 
 ```txt
 remove capabilityCatalog
@@ -1930,7 +1930,7 @@ draft map appears runnable
 Map Plugin imports AI provider adapter
 Map Plugin imports secret resolver
 Commander direct active registry write
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -1950,6 +1950,6 @@ catalog references valid
 activation proof enforced
 ordinary feed safe
 inspector PASS
-negative proof PASS
+real-code-inspection PASS
 CI-FULL PASS
 ```

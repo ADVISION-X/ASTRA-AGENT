@@ -460,7 +460,7 @@ generated audit manual edit
 scripts/audit/domains/debug-loop-boundary/manifest.json
 scripts/audit/domains/debug-loop-boundary/inspector.ts
 scripts/audit/domains/debug-loop-boundary/run-inspector.ts
-scripts/audit/domains/debug-loop-boundary/negative-proof-harness.ts
+scripts/audit/domains/debug-loop-boundary/owner-inspection-harness.ts
 ```
 
 必须新增命令：
@@ -488,12 +488,12 @@ npm run audit:debug-loop-boundary
 12. repair packet 禁止 raw secret/cookie/prompt/sensitive text。
 13. fake map authoring 禁止绕过 map lifecycle。
 14. mission 只能通过 Commander public contract 启动。
-15. negative proof 必须执行。
+15. real-code-inspection 必须执行。
 ```
 
 ---
 
-## 10. Negative Proof 必须覆盖
+## 10. real-code-inspection 必须覆盖
 
 ```txt
 add debug-loop as ability group
@@ -516,7 +516,7 @@ debug-loop writes raw cookie to repair packet
 fake authoring marks draft map active
 fake authoring skips validation
 turn P0 into warning-only
-remove negative proof invocation
+remove real-code-inspection invocation
 ```
 
 ---
@@ -528,7 +528,7 @@ debug-loop-boundary law installed
 debug-loop-boundary blueprint installed
 audit:debug-loop-boundary exists
 inspector PASS
-negative proof PASS
+real-code-inspection PASS
 audit:build PASS
 debug-loop remains operator harness only
 production Agent remains sole runtime executor

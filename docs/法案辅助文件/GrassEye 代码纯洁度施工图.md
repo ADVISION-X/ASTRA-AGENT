@@ -50,7 +50,7 @@ Phase 3.5 的目标：
 5. 阻断 `src/lib` dumping。
 6. 阻断 compat / bridge / legacy 第二系统。
 7. 阻断 fake / mock / placeholder runtime leakage。
-8. 阻断 active law 无 inspector、inspector 不进 runner、negative proof 空壳。
+8. 阻断 active law 无 inspector、inspector 不进 runner、real-code-inspection 空壳。
 9. 输出真实 God File Inventory / Disaster File Inventory / Remediation Queue。
 10. 为后续大面积调试前建立可迭代代码基线。
 
@@ -96,7 +96,7 @@ import/export purity
 forbidden escape detection
 fake/mock/dead-code detection
 compat-bridge detection
-negative proof
+real-code-inspection
 inventory and remediation queue
 ```
 
@@ -488,7 +488,7 @@ index.ts barrel laundering
 ```txt
 handler → request parser / command gate / response builder
 runtime → input gate / policy gate / executor / result builder / proof builder
-inspector → required-shape / forbidden-shape / boundary-attack / anti-escape / negative-proof
+inspector → required-shape / forbidden-shape / boundary-attack / anti-escape / real-code-inspection
 workbench → shell / runtime assembly / command reader / debug reader / forensics reader
 AI adapter → contract translation / prompt resolution / schema gate / runtime execution / result mapping
 ```
@@ -553,7 +553,7 @@ scripts/audit/domains/code-purity/components/*.ts
 34. bridge / compat / legacy filename leakage。
 35. active law without inspector。
 36. inspector without runner。
-37. negative proof empty shell。
+37. real-code-inspection empty shell。
 
 ---
 
@@ -570,7 +570,7 @@ audit:code-purity command exists
 audit:build generates artifacts
 generated artifacts include code-purity
 active code-purity laws have coverage
-P0/P1 rules have negative proof
+P0/P1 rules have real-code-inspection
 God File Inventory is produced
 Disaster File Inventory is produced
 Remediation Queue is produced
@@ -638,40 +638,40 @@ neutral filename hiding mixed owner
 generated file hiding active logic
 fixture leaking into production
 fake PASS
-empty negative-proof harness
+empty real-code-inspection harness
 audit disconnected from runner
 owner mapping collapsed to broad bucket
 ```
 
 ---
 
-## Negative Proof
+## real-code-inspection
 
-必须真实执行 mutation fail → rollback → pass。
+必须真实执行 regression fail → re-inspect → pass。
 
-最低 mutation 清单：
+最低 regression 清单：
 
 ```txt
-MAX_ACTIVE_SOURCE_FILE_LINES 改回 2000 → FAIL → rollback PASS
-MAX_CLASS_TOTAL_MEMBERS 改回 60 → FAIL → rollback PASS
-MAX_OWNER_BOUNDARIES 改回 8 → FAIL → rollback PASS
-src/capabilities 重新归为一个 owner bucket → FAIL → rollback PASS
-删除 touched file rule → FAIL → rollback PASS
-删除 disaster file rule → FAIL → rollback PASS
-删除 active law enforcement rule → FAIL → rollback PASS
-添加 301 行 touched production file → FAIL → rollback PASS
-添加 41 行函数 → FAIL → rollback PASS
-添加 25 members class → FAIL → rollback PASS
-添加 cross-owner imports > 2 → FAIL → rollback PASS
-添加 export * → FAIL → rollback PASS
-添加 as any → FAIL → rollback PASS
-添加 as unknown as → FAIL → rollback PASS
-添加 @ts-ignore → FAIL → rollback PASS
-添加 eslint-disable → FAIL → rollback PASS
-添加 fake success → FAIL → rollback PASS
-添加 no-op success → FAIL → rollback PASS
-删除 negative-proof invocation → FAIL → rollback PASS
-inspector 改成 warning-only → FAIL → rollback PASS
+MAX_ACTIVE_SOURCE_FILE_LINES 改回 2000 → FAIL → re-inspect PASS
+MAX_CLASS_TOTAL_MEMBERS 改回 60 → FAIL → re-inspect PASS
+MAX_OWNER_BOUNDARIES 改回 8 → FAIL → re-inspect PASS
+src/capabilities 重新归为一个 owner bucket → FAIL → re-inspect PASS
+删除 touched file rule → FAIL → re-inspect PASS
+删除 disaster file rule → FAIL → re-inspect PASS
+删除 active law enforcement rule → FAIL → re-inspect PASS
+添加 301 行 touched production file → FAIL → re-inspect PASS
+添加 41 行函数 → FAIL → re-inspect PASS
+添加 25 members class → FAIL → re-inspect PASS
+添加 cross-owner imports > 2 → FAIL → re-inspect PASS
+添加 export * → FAIL → re-inspect PASS
+添加 as any → FAIL → re-inspect PASS
+添加 as unknown as → FAIL → re-inspect PASS
+添加 @ts-ignore → FAIL → re-inspect PASS
+添加 eslint-disable → FAIL → re-inspect PASS
+添加 fake success → FAIL → re-inspect PASS
+添加 no-op success → FAIL → re-inspect PASS
+删除 real-code-inspection invocation → FAIL → re-inspect PASS
+inspector 改成 warning-only → FAIL → re-inspect PASS
 ```
 
 禁止理论覆盖。
@@ -736,7 +736,7 @@ REMEDIATION
 9. 建立 WHY。
 10. 物理删除 / 物理切割 / 删除重写。
 11. 强化防复发 inspector。
-12. negative proof。
+12. real-code-inspection。
 13. 再跑 audit。
 14. 循环直到本轮门槛达标或 BLOCKED。
 
@@ -795,7 +795,7 @@ Code Purity Phase 3.5 READY 只有在以下全部成立时才允许：
 5. `audit:code-purity` 存在并可运行。
 6. code-purity inspector 接入 runner。
 7. audit-system 能发现 active law 无 enforcement。
-8. negative proof 真实执行。
+8. real-code-inspection 真实执行。
 9. God File Inventory 输出。
 10. Disaster File Inventory 输出。
 11. Remediation Queue 输出。

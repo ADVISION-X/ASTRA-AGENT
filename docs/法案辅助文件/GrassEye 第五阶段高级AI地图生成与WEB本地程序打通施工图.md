@@ -36,7 +36,7 @@ generateMapLabDraft
 - dry run captured 不得 import。
 - validation issues 必须返回 `review_required` 或 `failed`。
 - generated package 不得包含 executable marker、function、handler、script、exec、shell、import、require、browser action implementation。
-- 不得调用 active registry mutation，例如 `activatePackage`、`setActive`、`writeActive`。
+- 不得调用 active registry regression，例如 `activatePackage`、`setActive`、`writeActive`。
 
 ## 3. AI runtime debug truth
 
@@ -95,7 +95,7 @@ idempotencyKey
 
 ## 5. Commander accepted 后事件语义
 
-`COMMAND_REJECTED` 只表示 command 未进入 mission runtime。一旦同一 command/run 已有 command envelope、result envelope、runtime proof 或 `COMMAND_ACCEPTED`，后续 observer timeout 不得再写 `COMMAND_REJECTED`。
+`COMMAND_REJECTED` 只表示 command 未进入 mission runtime。一旦同一 command/run 已有 command envelope、result envelope、owner evidence 或 `COMMAND_ACCEPTED`，后续 observer timeout 不得再写 `COMMAND_REJECTED`。
 
 accepted 后 timeout 必须写：
 
@@ -149,15 +149,15 @@ durabilityMode=durable 或 memory_only
 第五阶段执法必须证明生产代码吻合法案和施工图：
 
 - AST/symbol/import graph 检查生产路径。
-- negative proof 覆盖生产突变和 inspector wiring 突变。
+- real-code-inspection 覆盖生产突变和 inspector wiring 突变。
 - generated artifacts 必须可重建，不得手写 `scripts/audit/generated/**`。
 - runner-summary stale 时必须记录 stale root cause，并以重跑 owner inspector 为准。
-## Phase-05 Runtime Proof Hardening Addendum
+## Phase-05 owner evidence Hardening Addendum
 
 - AI debug events must never infer `selectedMapId`, `runId`, `mapPackageId`, or `activationSnapshotRef` from `traceId`. `traceId` is observability only; governed chain truth must come from the upstream command envelope, mission context, and active map chain fields.
 - Every `AI_REQUEST_DEBUG` must terminate under the same `runtimeCallId` with exactly one `AI_RESPONSE_DEBUG` or `AI_ERROR_DEBUG` path, and that terminal event must enter the structured runtime event sink.
 - `capabilityCallId` is the step invocation id across selected/precondition/dispatch/started/completed/transition lifecycle events. Result envelope ids must be emitted as `resultEnvelopeRef` or equivalent refs, not substituted into `capabilityCallId`.
-- `durabilityMode=durable` plus `status=review_required` is not a ready state. If storage, record ref, runtime proof, idempotency, and chain fields are complete, Forensics should emit `FORENSICS_RECORD_WRITTEN status=success`.
+- `durabilityMode=durable` plus `status=review_required` is not a ready state. If storage, record ref, owner evidence, idempotency, and chain fields are complete, Forensics should emit `FORENSICS_RECORD_WRITTEN status=success`.
 - Business maps must stay business-shaped. Full phase-05 coverage belongs in a dedicated draft/local diagnostic map, with social-platform text input and destructive actions forbidden.
 
 ## Phase-05 Runtime Closure Addendum

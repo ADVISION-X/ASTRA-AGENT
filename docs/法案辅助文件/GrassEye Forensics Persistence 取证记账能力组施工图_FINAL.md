@@ -272,7 +272,7 @@ success without integrityHash
 
 ---
 
-## 6. Runtime Proof
+## 6. owner evidence
 
 `ForensicsRuntimeProof` 必须包含：
 
@@ -591,7 +591,7 @@ Forensics 不替 Nerve Bus 做 command transport。
 scripts/audit/domains/forensics-persistence-capability/manifest.json
 scripts/audit/domains/forensics-persistence-capability/inspector.ts
 scripts/audit/domains/forensics-persistence-capability/run-inspector.ts
-scripts/audit/domains/forensics-persistence-capability/negative-proof-harness.ts
+scripts/audit/domains/forensics-persistence-capability/owner-inspection-harness.ts
 ```
 
 Inspector 必须：
@@ -605,7 +605,7 @@ schema-level
 anti-escape
 generated artifact aware
 runner-connected
-negative-proof-backed
+real-code-inspection-backed
 ```
 
 禁止：
@@ -617,7 +617,7 @@ includes final judgment
 manual-only proof
 warning-only P0
 detached inspector
-empty negative proof
+empty real-code-inspection
 ```
 
 ---
@@ -644,14 +644,14 @@ empty negative proof
 17. Success requires integrityHash.
 18. Unknown child returns proof.
 19. All active law coverage in registry/matrix/audit-plan/runner.
-20. Negative proof executed.
+20. real-code-inspection executed.
 ```
 
 ---
 
-## 16. Negative Proof 最低清单
+## 16. real-code-inspection 最低清单
 
-必须 fail → rollback → pass：
+必须 fail → re-inspect → pass：
 
 ```txt
 add runtime/ directory
@@ -674,7 +674,7 @@ return record:unknown
 return runtimeProof:null
 external import children implementation
 add capability-check.ts
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -696,7 +696,7 @@ AI record prompt refs 强制
 action record postActionVerificationRef 强制
 storage port 通用
 统一 executor pipeline
-negative proof PASS
+real-code-inspection PASS
 ```
 
 ---
@@ -774,7 +774,7 @@ durabilityMode=durable or memory_only
 ## Durable Write Boundary Addendum
 
 - `FORENSICS_RECORD_WRITE_REVIEW_REQUIRED` is not durable proof, even when a `storageRef` is present in diagnostic refs.
-- When `storageRef`, `recordRef`, runtime proof, idempotency key, and core chain fields are complete, structured writes should emit `FORENSICS_RECORD_WRITTEN status=success` with `durabilityMode=durable`.
+- When `storageRef`, `recordRef`, owner evidence, idempotency key, and core chain fields are complete, structured writes should emit `FORENSICS_RECORD_WRITTEN status=success` with `durabilityMode=durable`.
 
 ## Phase-05 Structured Write Closure Addendum
 

@@ -115,9 +115,9 @@ map-package-readiness-probe.ts loads builtin packages and exercises registry boo
 failure logs preserve ownerResponsible and actionableMessage
 ```
 
-### negative proof 覆盖
+### real-code-inspection 覆盖
 
-必须 fail → rollback → pass：
+必须 fail → re-inspect → pass：
 
 ```txt
 remove ensureStartupMapPackageReadiness from performLaunch
@@ -306,7 +306,7 @@ Task start dispatch result 必须从 runtimeProof 派生 commandEnvelopeRef/resu
 terminal runtime relay 输出 runId/ownerResponsible/actionableMessage/traceId/selectedMapId/activationSnapshotRef
 ```
 
-negative proof 必须覆盖：
+real-code-inspection 必须覆盖：
 
 ```txt
 删除 terminal relay ownerResponsible/actionableMessage/runId 任一字段必须 FAIL

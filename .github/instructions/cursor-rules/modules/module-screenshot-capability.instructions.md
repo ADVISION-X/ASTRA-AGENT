@@ -6,7 +6,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-screenshot-capability
 
 # GrassEye Screenshot Capability FINAL
 
-Scope: governs the independent Screenshot Ability Group, screenshot capture and image-processing children, screenshot artifacts, image-kind taxonomy, coordinate-space taxonomy, scale mapping, source screenshot inheritance, screenshot runtime proof, artifact refs, browser/session/privacy gates, and Screenshot ownership boundaries.
+Scope: governs the independent Screenshot Ability Group, screenshot capture and image-processing children, screenshot artifacts, image-kind taxonomy, coordinate-space taxonomy, scale mapping, source screenshot inheritance, screenshot owner evidence, artifact refs, browser/session/privacy gates, and Screenshot ownership boundaries.
 
 Boundary: this module governs only screenshot/image artifact truth. It does not govern AI reasoning, OCR semantics, visual target detection, Geometry Guard decisions, click/scroll/text execution, Page State classification, Post-action Verification decisions, Forensics final persistence truth, Orchestration branching, product judgement, or comment extraction.
 
@@ -24,7 +24,7 @@ Core doctrine:
 - No source proof, no transformed artifact success.
 - No scaleMapping, no AI-input/crop/resize success.
 - No chain fields, no production-ready screenshot result.
-- No active Screenshot law without inspector + runner + negative proof.
+- No active Screenshot law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -37,7 +37,7 @@ status: active
 tier: P0
 capabilityDomain: screenshot-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required package:
@@ -73,7 +73,7 @@ scripts/audit/domains/screenshot-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden:
@@ -83,7 +83,7 @@ Forbidden:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- empty or missing negative proof.
+- empty or missing real-code-inspection.
 - legacy screenshot drawer ownership.
 
 ---
@@ -94,7 +94,7 @@ status: active
 tier: P0
 capabilityDomain: screenshot-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Screenshot Ability Group is the only owner of governed screenshot capture, image artifact truth, coordinate-space truth, and scale mapping.
 
@@ -108,7 +108,7 @@ Screenshot Ability Group is the only owner of governed screenshot capture and sc
 
 Required:
 - All governed screenshot operations must flow through `src/capabilities/screenshot` public interface.
-- Screenshot truth includes artifact kind, image kind, coordinate space, source screenshot inheritance, scale mapping, artifact refs, output hash, and runtime proof.
+- Screenshot truth includes artifact kind, image kind, coordinate space, source screenshot inheritance, scale mapping, artifact refs, output hash, and owner evidence.
 - Browser helpers, platform adapters, local AI adapters, visual target, geometry guard, page state, PAV, orchestration, and Forensics must not own screenshot truth.
 - BrowserController may exist only behind `ScreenshotCapturePort` / screenshot adapter boundary.
 - `src/features/platform-action/screenshot-drawer` and any deleted historical screenshot drawer path must not survive as active owner.
@@ -129,7 +129,7 @@ Required inspector:
 - Public contract ownership check.
 - BrowserController only behind ScreenshotCapturePort adapter.
 
-Required negative proof:
+Required real-code-inspection:
 - Add platform-action screenshot drawer active path → FAIL.
 - Add local-ai resize/crop helper producing governed screenshot artifact → FAIL.
 - Add direct BrowserController capture outside screenshot adapter → FAIL.
@@ -142,7 +142,7 @@ status: active
 tier: P0
 capabilityDomain: screenshot-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Screenshot boundary stays pure: capture, lossless optimize, crop/region, AI input preparation, artifact refs, and proof only.
 
@@ -161,7 +161,7 @@ Allowed:
 - optimize lossless output.
 - prepare AI input by crop/resize with scaleMapping.
 - write screenshot artifact refs through `ScreenshotArtifactPort`.
-- produce screenshot runtime proof and structured result.
+- produce screenshot owner evidence and structured result.
 
 Forbidden:
 - AI judgement.
@@ -184,7 +184,7 @@ Required inspector:
 - DOM/BOM/cookie read ban.
 - Screenshot result field ban for AI/VisualTarget/PAV/PageState truth.
 
-Required negative proof:
+Required real-code-inspection:
 - Screenshot imports AI runtime → FAIL.
 - Screenshot imports visual-target implementation → FAIL.
 - Screenshot reads `document.cookie` → FAIL.
@@ -198,7 +198,7 @@ status: active
 tier: P0
 capabilityDomain: screenshot-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Screenshot input must carry full chain fields, source proof, privacy policy, capture policy, idempotency, and timeout.
 
@@ -290,7 +290,7 @@ Required inspector:
 - Privacy policy gate presence.
 - Timeout/idempotency field requirement.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove `activationSnapshotRef` from input → FAIL.
 - Remove `capabilityCallId` from input → FAIL.
 - Remove `nerveBusEnvelopeId` from input → FAIL.
@@ -304,7 +304,7 @@ status: active
 tier: P0
 capabilityDomain: screenshot-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Screenshot coordinate spaces and scale mapping must be explicit, lossless where claimed, and non-executable until downstream governance.
 
@@ -359,11 +359,11 @@ Forbidden:
 
 Required inspector:
 - Result schema superRefine for imageKind/coordinateSpace/scaleMapping.
-- Runtime proof scaleMapping checks.
+- owner evidence scaleMapping checks.
 - Child-specific coordinate policy checks.
 - Forbidden executable coordinate field scan.
 
-Required negative proof:
+Required real-code-inspection:
 - prepare-ai-input success without scaleMapping → FAIL.
 - region crop success without sourceScreenshotEvidenceId → FAIL.
 - optimize-lossless changes dimensions → FAIL.
@@ -377,7 +377,7 @@ status: active
 tier: P0
 capabilityDomain: screenshot-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Screenshot runtime must use one fixed gate pipeline and fail closed on privacy, source, session, timeout, artifact, and output-boundary violations.
 
@@ -434,7 +434,7 @@ Required inspector:
 - Artifact storage proof check.
 - Fake success ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove privacy gate → FAIL.
 - Remove source proof gate → FAIL.
 - Remove artifact storage gate → FAIL.
@@ -448,9 +448,9 @@ status: active
 tier: P0
 capabilityDomain: screenshot-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Screenshot result and runtime proof must preserve real chain, artifact refs, hashes, source refs, scale mapping, gate decisions, and parity.
+summary: Screenshot result and owner evidence must preserve real chain, artifact refs, hashes, source refs, scale mapping, gate decisions, and parity.
 
 ### 主题
 
@@ -598,7 +598,7 @@ Required inspector:
 - No fabricated id pattern.
 - Success/failure proof invariants.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove `activationSnapshotRef` from proof → FAIL.
 - Set runId from sessionId + child → FAIL.
 - Success without artifactRef → FAIL.
@@ -612,7 +612,7 @@ status: active
 tier: P0
 capabilityDomain: screenshot-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Screenshot child capabilities are narrow capture/transform bindings and must use unified Screenshot runtime.
 
@@ -656,7 +656,7 @@ Required inspector:
 - Forbidden imports/symbols.
 - Child-specific operation checks.
 
-Required negative proof:
+Required real-code-inspection:
 - Child returns boolean → FAIL.
 - Child imports BrowserController → FAIL.
 - Child imports sibling implementation → FAIL.
@@ -670,9 +670,9 @@ status: active
 tier: P0
 capabilityDomain: screenshot-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Screenshot enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.
+summary: Screenshot enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and real-code-inspection.
 
 ### 主题
 
@@ -686,7 +686,7 @@ Screenshot enforcement must close through:
 scripts/audit/domains/screenshot-capability/manifest.json
 scripts/audit/domains/screenshot-capability/inspector.ts
 scripts/audit/domains/screenshot-capability/run-inspector.ts
-scripts/audit/domains/screenshot-capability/negative-proof-harness.ts
+scripts/audit/domains/screenshot-capability/owner-inspection-harness.ts
 ```
 
 Required:
@@ -695,12 +695,12 @@ Required:
 - Inspector must use schema-level checks.
 - Inspector must include anti-escape checks.
 - Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
-- Negative proof must run and report fail → rollback → pass.
+- real-code-inspection must run and report fail → re-inspect → pass.
 - CI-FULL must be green for delivery.
 - No grep/regex/includes as final judgment.
 - No warning-only P0.
 - No detached inspector.
-- No empty/missing negative proof.
+- No empty/missing real-code-inspection.
 - No generated fake PASS.
 - No verify script.
 - No capability-check.ts under Screenshot root.
@@ -725,10 +725,10 @@ Required inspector checks:
 16. No forbidden imports/symbols/DOM/BOM/cookie reads.
 17. No second screenshot owner.
 18. ALL active Screenshot laws in registry/matrix/audit-plan/runner.
-19. negative-proof-harness executed.
+19. owner-inspection-harness executed.
 ```
 
-Required negative proof:
+Required real-code-inspection:
 ```txt
 manual-first enforcement reintroduced
 remove capabilityCallId from input
@@ -748,7 +748,7 @@ platform-action screenshot drawer active path
 local-ai resize/crop helper produces artifact truth
 child returns boolean
 child imports sibling implementation
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -760,7 +760,7 @@ status: active
 tier: P0
 capabilityDomain: screenshot-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Screenshot artifacts are transient runtime materials by default and must carry lifecycle manifest, retention, TTL, quota, physical burn-after-handoff cleanup, and non-self-promotion truth.
 
@@ -823,10 +823,10 @@ Required inspector:
 - Artifact budget/backpressure gate presence.
 - Artifact storage gate writes lifecycle manifest.
 - Execution phase invokes physical ephemeral work-file cleanup.
-- Cleanup bypass is covered by negative proof.
+- Cleanup bypass is covered by real-code-inspection.
 - Output boundary gate validates manifest parity and self-promotion ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove `artifactLifecycleManifestRef` from success output → FAIL.
 - Remove `artifactHash` from proof/output → FAIL.
 - Set Screenshot `promotionStatus` to `promoted` by default → FAIL.
@@ -851,7 +851,7 @@ prepare-ai-input always preserves scaleMapping
 result/proof/input chain parity passes
 children are narrow capture/transform bindings
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```

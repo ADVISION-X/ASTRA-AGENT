@@ -6,7 +6,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-mouse-click-capabilit
 
 # GrassEye Mouse Click Capability FINAL
 
-Scope: governs the independent Mouse Click Ability Group, governed click input, Geometry Guard approved executable coordinate consumption, primitive click execution through port, click safety policy, idempotency, timeout/cancellation, primitive execution proof, post-action verification handoff, and Mouse Click runtime proof.
+Scope: governs the independent Mouse Click Ability Group, governed click input, Geometry Guard approved executable coordinate consumption, primitive click execution through port, click safety policy, idempotency, timeout/cancellation, primitive execution proof, post-action verification handoff, and Mouse Click owner evidence.
 
 Boundary: this module governs only primitive click execution after Geometry Guard has allowed executable geometry. It does not govern screenshot capture, target detection, coordinate mapping, scale mapping, AI execution, comment capture, product classification, page-state truth, post-action verification truth, Forensics final action-log persistence, map branching, browser controller ownership, or platform business verbs.
 
@@ -21,13 +21,13 @@ Core doctrine:
 - Mouse Click executes one governed primitive click through `MouseClickPrimitivePort`.
 - Mouse Click success means primitive click accepted/executed only; it is not action-result truth.
 - Post-action Verification verifies what happened after the click.
-- Forensics persists final action logs; Mouse Click emits runtime proof and actionExecutionRef only.
+- Forensics persists final action logs; Mouse Click emits owner evidence and actionExecutionRef only.
 - No Geometry Guard allow, no click.
 - No primitive port, no click.
 - No post-action verification handoff, no success.
 - No chain fields, no production-ready click result.
 - No retry/fallback inside Mouse Click.
-- No active Mouse Click law without inspector + runner + negative proof.
+- No active Mouse Click law without inspector + runner + real-code-inspection.
 
 ---
 
@@ -40,7 +40,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-click-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 ```
 
 Required package:
@@ -72,7 +72,7 @@ scripts/audit/domains/mouse-click-capability/
 ├── manifest.json
 ├── inspector.ts
 ├── run-inspector.ts
-└── negative-proof-harness.ts
+└── owner-inspection-harness.ts
 ```
 
 Forbidden:
@@ -83,7 +83,7 @@ Forbidden:
 - detached inspector.
 - warning-only P0.
 - generated fake PASS.
-- empty/missing negative proof.
+- empty/missing real-code-inspection.
 - legacy visual-action click path.
 - platform-action click owner.
 - BrowserController in public contract.
@@ -96,7 +96,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-click-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Mouse Click is the only owner of governed primitive click execution.
 
@@ -114,7 +114,7 @@ Required:
 - Orchestration, platform adapters, local runtime, workbench, Visual Target, AI, Geometry Guard, Screenshot, Page State, and PAV must not own click execution truth.
 - BrowserController may exist only behind `MouseClickPrimitivePort` adapter at composition boundary.
 - PlatformAction may request a click but may not own click strategy or primitive execution.
-- Mouse Click emits `actionExecutionRef`, `primitiveExecutionRef`, `postActionVerificationHandoffRef`, and runtime proof.
+- Mouse Click emits `actionExecutionRef`, `primitiveExecutionRef`, `postActionVerificationHandoffRef`, and owner evidence.
 - Forensics owns persisted final action-log truth.
 
 ### 禁止
@@ -135,7 +135,7 @@ Required inspector:
 - Runtime/workbench composition boundary check.
 - Forensics action-log write ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Add BrowserController to public contract → FAIL.
 - Platform adapter directly calls primitive click → FAIL.
 - Mouse Click writes final actionLogRef → FAIL.
@@ -149,7 +149,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-click-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Mouse Click boundary stays pure and cannot compute coordinates, remap geometry, verify outcomes, or perform foreign owner work.
 
@@ -170,7 +170,7 @@ Allowed:
 - primitive click through `MouseClickPrimitivePort`.
 - timeout/cancellation of primitive call.
 - post-action verification handoff builder.
-- runtime proof/result builder.
+- owner evidence/result builder.
 
 Forbidden:
 - screenshot capture.
@@ -196,7 +196,7 @@ Required inspector:
 - Retry/fallback ban.
 - BrowserAction result leakage ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Add scaleMapping in Mouse Click runtime → FAIL.
 - Add retry loop → FAIL.
 - Add BrowserActionId to result → FAIL.
@@ -210,7 +210,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-click-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Mouse Click input must carry full chain fields, Geometry Guard allow proof, executable coordinate, safety policy, source refs, idempotency, and timeout policy.
 
@@ -297,7 +297,7 @@ Required inspector:
 - Right/double click policy gate.
 - Desktop click policy gate.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove activationSnapshotRef from input → FAIL.
 - Remove capabilityCallId from input → FAIL.
 - guardDecision=review_required returns success → FAIL.
@@ -312,7 +312,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-click-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Mouse Click must run one fixed gate pipeline and execute exactly one primitive click only after all gates pass.
 
@@ -372,7 +372,7 @@ Required inspector:
 - Retry/fallback ban.
 - Child unified runtime call.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove geometry proof gate → FAIL.
 - Primitive call before preflight → FAIL.
 - Remove AbortSignal → FAIL.
@@ -387,7 +387,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-click-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Mouse Click result must mean primitive click only and must hand off to Post-action Verification.
 
@@ -440,7 +440,7 @@ Required inspector:
 - Forensics final action log ban.
 - Retry/fallback field ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Success without postActionVerificationHandoffRef → FAIL.
 - Add verificationDecision to result → FAIL.
 - Add finalActionLogRef to result → FAIL.
@@ -454,9 +454,9 @@ status: active
 tier: P0
 capabilityDomain: mouse-click-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Mouse Click result and runtime proof must preserve real upstream chain, gate decisions, primitive refs, timeout/cancellation, idempotency, and PAV handoff.
+summary: Mouse Click result and owner evidence must preserve real upstream chain, gate decisions, primitive refs, timeout/cancellation, idempotency, and PAV handoff.
 
 ### 主题
 
@@ -634,7 +634,7 @@ Required inspector:
 - Success/failure proof invariants.
 - Gate decision fields.
 
-Required negative proof:
+Required real-code-inspection:
 - Remove activationSnapshotRef from proof → FAIL.
 - Set runId from attemptRef + child → FAIL.
 - Success without primitiveExecutionRef → FAIL.
@@ -649,7 +649,7 @@ status: active
 tier: P0
 capabilityDomain: mouse-click-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
 summary: Mouse Click children are narrow primitive bindings and must use unified runtime.
 
@@ -698,7 +698,7 @@ Required inspector:
 - Sibling import ban.
 - Child direct primitive call ban.
 
-Required negative proof:
+Required real-code-inspection:
 - Add click-left-point child → FAIL.
 - Child calls primitive port directly → FAIL.
 - Child returns boolean → FAIL.
@@ -712,9 +712,9 @@ status: active
 tier: P0
 capabilityDomain: mouse-click-capability
 enforcementMode: machine-blocking
-evidenceMode: law+inspector+negative-proof
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Mouse Click enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and negative proof.
+summary: Mouse Click enforcement must close through owner-local AST/symbol/import-graph inspector, runner, and real-code-inspection.
 
 ### 主题
 
@@ -728,7 +728,7 @@ Mouse Click enforcement must close through:
 scripts/audit/domains/mouse-click-capability/manifest.json
 scripts/audit/domains/mouse-click-capability/inspector.ts
 scripts/audit/domains/mouse-click-capability/run-inspector.ts
-scripts/audit/domains/mouse-click-capability/negative-proof-harness.ts
+scripts/audit/domains/mouse-click-capability/owner-inspection-harness.ts
 ```
 
 Required:
@@ -737,12 +737,12 @@ Required:
 - Inspector must use schema-level checks.
 - Inspector must include anti-escape checks.
 - Inspector must verify active law coverage in registry/matrix/audit-plan/runner.
-- Negative proof must run and report fail → rollback → pass.
+- real-code-inspection must run and report fail → re-inspect → pass.
 - CI-FULL must be green for delivery.
 - No grep/regex/includes as final judgment.
 - No warning-only P0.
 - No detached inspector.
-- No empty/missing negative proof.
+- No empty/missing real-code-inspection.
 - No generated fake PASS.
 - No capability-check.ts.
 - No verify script as release truth.
@@ -766,10 +766,10 @@ Required inspector checks:
 15. No forbidden imports/symbols/business verbs.
 16. External platform/runtime cannot bypass Mouse Click.
 17. ALL active Mouse Click laws in registry/matrix/audit-plan/runner.
-18. negative-proof-harness executed.
+18. owner-inspection-harness executed.
 ```
 
-Required negative proof:
+Required real-code-inspection:
 ```txt
 manual-first enforcement reintroduced
 remove capabilityCallId from input
@@ -791,7 +791,7 @@ child calls primitive port directly
 child returns boolean
 platform adapter directly calls primitive click
 capability-check.ts added
-remove negative proof invocation
+remove real-code-inspection invocation
 turn P0 into warning-only
 ```
 
@@ -816,7 +816,7 @@ result/proof/input chain parity passes
 children are narrow primitive bindings
 external platform/runtime cannot bypass Mouse Click
 owner-local inspector PASS
-negative proof PASS
+real-code-inspection PASS
 ALL active law enforcement PASS
 CI-FULL PASS
 ```

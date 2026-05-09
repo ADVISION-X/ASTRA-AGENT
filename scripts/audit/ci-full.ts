@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { spawn } from "node:child_process";
 
-import { readProcessTreeRssMB } from "./core/owner-audit-runner.js";
 import { CI_FULL_LAYER_EXECUTION, CI_FULL_LAYER_ORDER, getCiFullStepsByLayer, type CiFullLayerLabel, type CiFullStepDefinition } from "./core/ci-full-plan.js";
+import { logMemorySnapshot, startStageMemoryGuard, type StageResourceState } from "./core/ci-full-resource-guard.js";
+import { runCiStep } from "./core/ci-full-step-runner.js";
 import { buildCiFullCommand, getCiFullLayerStatus, type CiFullLayerSummary, type CiFullSummary, type CiFullStepSummary, writeCiFullSummary } from "./core/ci-full-summary.js";
 import { ABILITY_GROUP_SAFE_MAX_CONCURRENCY } from "./core/ci-full-timeouts.js";
 
@@ -17,15 +17,6 @@ type CiStage = {
   maxConcurrency?: number;
 };
 
-type MemorySnapshot = {
-  runnerRssMb: number;
-  childRssMb: number;
-  totalRssMb: number;
-  heapUsedMb: number;
-  externalMb: number;
-  activeChildCount: number;
-};
-
 type StageRunResult = {
   summary: CiFullLayerSummary;
   passed: boolean;
@@ -37,8 +28,6 @@ const MAX_CONCURRENCY_ENV = "GRASSEYE_CI_FULL_MAX_CONCURRENCY";
 const MAX_RSS_ENV = "GRASSEYE_CI_MAX_RSS_MB";
 
 const ACTIVE_CHILD_PIDS = new Set<number>();
-
-let activeStageResourceError: Error | undefined;
 
 const readPositiveIntegerEnv = (name: string): number | undefined => {
   const rawValue = process.env[name]?.trim();
@@ -54,95 +43,7 @@ const readPositiveIntegerEnv = (name: string): number | undefined => {
   return parsedValue;
 };
 
-const roundMb = (bytes: number): number => Math.round((bytes / 1024 / 1024) * 10) / 10;
-
-const captureMemorySnapshot = async (): Promise<MemorySnapshot> => {
-  const runnerUsage = process.memoryUsage();
-  const childRssValues = await Promise.all([...ACTIVE_CHILD_PIDS].map((pid) => readProcessTreeRssMB(pid)));
-  const childRssMb = Math.round(childRssValues.reduce((sum, value) => sum + value, 0) * 10) / 10;
-  const runnerRssMb = roundMb(runnerUsage.rss);
-
-  return {
-    runnerRssMb,
-    childRssMb,
-    totalRssMb: Math.round((runnerRssMb + childRssMb) * 10) / 10,
-    heapUsedMb: roundMb(runnerUsage.heapUsed),
-    externalMb: roundMb(runnerUsage.external),
-    activeChildCount: ACTIVE_CHILD_PIDS.size,
-  };
-};
-
-const formatMemorySnapshot = (snapshot: MemorySnapshot): string =>
-  `runnerRssMB=${snapshot.runnerRssMb} childRssMB=${snapshot.childRssMb} totalRssMB=${snapshot.totalRssMb} heapUsedMB=${snapshot.heapUsedMb} externalMB=${snapshot.externalMb} activeChildren=${snapshot.activeChildCount}`;
-
-const logMemorySnapshot = async (prefix: string): Promise<void> => {
-  const snapshot = await captureMemorySnapshot();
-  process.stdout.write(`[CI FULL] ${prefix} memory ${formatMemorySnapshot(snapshot)}.\n`);
-};
-
-const terminateChildProcessGroup = (pid: number, signal: NodeJS.Signals): void => {
-  try {
-    if (process.platform !== "win32") {
-      process.kill(-pid, signal);
-      return;
-    }
-
-    process.kill(pid, signal);
-  } catch {
-    try {
-      process.kill(pid, signal);
-    } catch {
-      // Ignore races for already-exited children.
-    }
-  }
-};
-
-const stopActiveChildren = (signal: NodeJS.Signals = "SIGTERM"): void => {
-  for (const pid of ACTIVE_CHILD_PIDS) {
-    terminateChildProcessGroup(pid, signal);
-  }
-};
-
 const MAX_RSS_MB = readPositiveIntegerEnv(MAX_RSS_ENV) ?? DEFAULT_MAX_RSS_MB;
-
-const createResourceLimitError = (stageLabel: string, snapshot: MemorySnapshot): Error =>
-  new Error(`[CI_RESOURCE_LIMIT_EXCEEDED] stage ${stageLabel} exceeded ${MAX_RSS_MB}MB rss limit (${formatMemorySnapshot(snapshot)}).`);
-
-const assertStageResourceHealthy = (): void => {
-  if (activeStageResourceError) {
-    throw activeStageResourceError;
-  }
-};
-
-const startStageMemoryGuard = (stageLabel: string): (() => Promise<void>) => {
-  let isStopped = false;
-  let isChecking = false;
-  const interval = setInterval(() => {
-    if (isStopped || isChecking || activeStageResourceError) {
-      return;
-    }
-
-    isChecking = true;
-    void captureMemorySnapshot()
-      .then((snapshot) => {
-        if (snapshot.totalRssMb > MAX_RSS_MB) {
-          activeStageResourceError = createResourceLimitError(stageLabel, snapshot);
-          stopActiveChildren("SIGKILL");
-        }
-      })
-      .catch(() => {
-        // Best-effort guard; ignore sampling errors.
-      })
-      .finally(() => {
-        isChecking = false;
-      });
-  }, MEMORY_SAMPLE_INTERVAL_MS);
-
-  return async () => {
-    isStopped = true;
-    clearInterval(interval);
-  };
-};
 
 const resolveAbilityGroupConcurrency = (): number => {
   const configuredValue = readPositiveIntegerEnv(MAX_CONCURRENCY_ENV) ?? ABILITY_GROUP_SAFE_MAX_CONCURRENCY;
@@ -177,121 +78,7 @@ const createSkippedStepSummary = (step: CiStep, stageLabel: CiFullLayerLabel, ru
   artifactPaths: [...step.artifactPaths],
 });
 
-const runCiStep = async (step: CiStep, stageLabel: CiFullLayerLabel, runId: string): Promise<CiFullStepSummary> => {
-  assertStageResourceHealthy();
-  process.stdout.write(`[CI FULL] ${stageLabel} starting ${step.name}...\n`);
-  await logMemorySnapshot(`before ${stageLabel}/${step.name}`);
-
-  const startedAtMs = Date.now();
-  let memoryPeakMb = 0;
-  let status: CiFullStepSummary["status"] = "FAIL";
-  let exitCode: number | null = null;
-  let settled = false;
-  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-  let trackerHandle: ReturnType<typeof setInterval> | undefined;
-
-  const sampleMemory = async (): Promise<void> => {
-    try {
-      const snapshot = await captureMemorySnapshot();
-      if (snapshot.totalRssMb > memoryPeakMb) {
-        memoryPeakMb = snapshot.totalRssMb;
-      }
-    } catch {
-      // Best-effort telemetry.
-    }
-  };
-
-  trackerHandle = setInterval(() => {
-    void sampleMemory();
-  }, MEMORY_SAMPLE_INTERVAL_MS);
-
-  await sampleMemory();
-
-  try {
-    await new Promise<void>((resolve) => {
-      const [command, ...args] = step.command;
-      const child = spawn(command, args, {
-        stdio: "inherit",
-        detached: process.platform !== "win32",
-        shell: process.platform === "win32",
-      });
-
-      if (typeof child.pid === "number") {
-        ACTIVE_CHILD_PIDS.add(child.pid);
-      }
-
-      const finish = (nextStatus: CiFullStepSummary["status"], nextExitCode: number | null): void => {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        if (timeoutHandle) {
-          clearTimeout(timeoutHandle);
-        }
-        if (trackerHandle) {
-          clearInterval(trackerHandle);
-        }
-        if (typeof child.pid === "number") {
-          ACTIVE_CHILD_PIDS.delete(child.pid);
-        }
-        status = nextStatus;
-        exitCode = nextExitCode;
-        resolve();
-      };
-
-      timeoutHandle = setTimeout(() => {
-        if (typeof child.pid === "number") {
-          terminateChildProcessGroup(child.pid, "SIGTERM");
-        } else {
-          child.kill("SIGTERM");
-        }
-        finish("FAIL", 1);
-      }, step.timeoutMs);
-
-      child.on("error", (error) => {
-        process.stderr.write(`[CI FULL FAIL-FAST] ${stageLabel}/${step.name} could not start: ${error.message}\n`);
-        finish("FAIL", 1);
-      });
-
-      child.on("exit", (code, signal) => {
-        if (activeStageResourceError) {
-          finish("FAIL", 1);
-          return;
-        }
-
-        if (code === 0) {
-          finish("PASS", 0);
-          return;
-        }
-
-        finish("FAIL", code ?? (signal ? 1 : 1));
-      });
-    });
-  } finally {
-    if (trackerHandle) {
-      clearInterval(trackerHandle);
-    }
-    await sampleMemory();
-  }
-
-  const durationMs = Date.now() - startedAtMs;
-  await logMemorySnapshot(`after ${stageLabel}/${step.name}`);
-  process.stdout.write(`[CI FULL] ${step.name} ${status === "PASS" ? "passed" : "failed"}.\n`);
-
-  return {
-    name: step.name,
-    layer: stageLabel,
-    runId,
-    command: buildCiFullCommand(step.command),
-    status,
-    exitCode,
-    durationMs,
-    memoryPeakMb: Math.round(memoryPeakMb * 10) / 10,
-    artifactPaths: [...step.artifactPaths],
-  };
-};
-
-const runSerialStage = async (stage: CiStage, runId: string): Promise<StageRunResult> => {
+const runSerialStage = async (stage: CiStage, runId: string, resourceState: StageResourceState): Promise<StageRunResult> => {
   const stepSummaries: CiFullStepSummary[] = [];
   let stageFailed = false;
 
@@ -301,7 +88,14 @@ const runSerialStage = async (stage: CiStage, runId: string): Promise<StageRunRe
       continue;
     }
 
-    const summary = await runCiStep(step, stage.label, runId);
+    const summary = await runCiStep({
+      step,
+      stageLabel: stage.label,
+      runId,
+      activeChildPids: ACTIVE_CHILD_PIDS,
+      resourceState,
+      sampleIntervalMs: MEMORY_SAMPLE_INTERVAL_MS,
+    });
     stepSummaries.push(summary);
     if (summary.status !== "PASS") {
       stageFailed = true;
@@ -319,7 +113,7 @@ const runSerialStage = async (stage: CiStage, runId: string): Promise<StageRunRe
   };
 };
 
-const runBoundedStage = async (stage: CiStage, maxConcurrency: number, runId: string): Promise<StageRunResult> => {
+const runBoundedStage = async (stage: CiStage, maxConcurrency: number, runId: string, resourceState: StageResourceState): Promise<StageRunResult> => {
   const pendingSteps = [...stage.steps];
   const stepSummaries = new Map<string, CiFullStepSummary>();
   let stopRequested = false;
@@ -336,7 +130,14 @@ const runBoundedStage = async (stage: CiStage, maxConcurrency: number, runId: st
         return;
       }
 
-      const summary = await runCiStep(step, stage.label, runId);
+      const summary = await runCiStep({
+        step,
+        stageLabel: stage.label,
+        runId,
+        activeChildPids: ACTIVE_CHILD_PIDS,
+        resourceState,
+        sampleIntervalMs: MEMORY_SAMPLE_INTERVAL_MS,
+      });
       stepSummaries.set(step.name, summary);
       if (summary.status !== "PASS") {
         stopRequested = true;
@@ -366,14 +167,20 @@ const runBoundedStage = async (stage: CiStage, maxConcurrency: number, runId: st
 const runCiStage = async (stage: CiStage, runId: string): Promise<StageRunResult> => {
   const maxConcurrency = stage.executionMode === "bounded" ? resolveAbilityGroupConcurrency() : 1;
   process.stdout.write(`[CI FULL] stage ${stage.label} starting (${stage.executionMode}${stage.executionMode === "bounded" ? ` maxConcurrency=${maxConcurrency}` : ""}).\n`);
-  await logMemorySnapshot(`before stage ${stage.label}`);
-  activeStageResourceError = undefined;
-  const stopMemoryGuard = startStageMemoryGuard(stage.label);
+  await logMemorySnapshot(`before stage ${stage.label}`, ACTIVE_CHILD_PIDS);
+  const resourceState: StageResourceState = {};
+  const stopMemoryGuard = startStageMemoryGuard({
+    stageLabel: stage.label,
+    activeChildPids: ACTIVE_CHILD_PIDS,
+    maxRssMb: MAX_RSS_MB,
+    sampleIntervalMs: MEMORY_SAMPLE_INTERVAL_MS,
+    resourceState,
+  });
 
   try {
     const result = stage.executionMode === "serial"
-      ? await runSerialStage(stage, runId)
-      : await runBoundedStage(stage, maxConcurrency, runId);
+      ? await runSerialStage(stage, runId, resourceState)
+      : await runBoundedStage(stage, maxConcurrency, runId, resourceState);
     return result;
   } finally {
     await stopMemoryGuard();
