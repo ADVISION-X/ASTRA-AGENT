@@ -1,10 +1,19 @@
-import { loadBuiltinMapPackages } from "../../../src/map-plugins/builtins/index.js";
-import { createMapPluginRegistry } from "../../../src/map-plugins/registry/map-plugin-registry.js";
+import {
+  getPromptContractCatalogIntegrity,
+  listPromptContractCatalogEntries,
+  PROMPT_CONTRACT_CATALOG_VERSION,
+} from "../../../src/capabilities/ai/prompt-contracts/registry.js";
+import { loadMuscleMemoryCatalog } from "../../../src/muscle-memory/catalog/muscle-memory-catalog.js";
+import { listPlatformProfiles } from "../../../src/platforms/index.js";
 
 type ReadinessResult = {
   status: "ready" | "failed";
-  ownerResponsible: "map-plugin-package";
-  checkedPackageCount: number;
+  ownerResponsible: "startup-entrypoint";
+  promptContractCount: number;
+  promptContractCatalogVersion: string;
+  muscleMemoryEntryCount: number;
+  muscleMemoryCatalogVersion: string;
+  platformProfileCount: number;
   refs: string[];
   failureReason: string | null;
   actionableMessage: string | null;
@@ -12,53 +21,77 @@ type ReadinessResult = {
 
 const toFailureResult = (error: unknown): ReadinessResult => {
   const shaped = error as {
-    packageFile?: unknown;
-    receivedPackageKind?: unknown;
-    expectedPackageKind?: unknown;
     actionableMessage?: unknown;
     message?: unknown;
   };
-  const packageFile = typeof shaped.packageFile === "string" ? shaped.packageFile : "unknown";
-  const receivedPackageKind = typeof shaped.receivedPackageKind === "string" ? shaped.receivedPackageKind : "unknown";
-  const expectedPackageKind = typeof shaped.expectedPackageKind === "string" ? shaped.expectedPackageKind : "operational-map-package";
-  const message = typeof shaped.message === "string" ? shaped.message : "Map package readiness failed.";
+  const message = typeof shaped.message === "string" ? shaped.message : "Startup registry readiness failed.";
   return {
     status: "failed",
-    ownerResponsible: "map-plugin-package",
-    checkedPackageCount: 0,
-    refs: [`packageFile=${packageFile}`, `expectedPackageKind=${expectedPackageKind}`, `receivedPackageKind=${receivedPackageKind}`],
+    ownerResponsible: "startup-entrypoint",
+    promptContractCount: 0,
+    promptContractCatalogVersion: PROMPT_CONTRACT_CATALOG_VERSION,
+    muscleMemoryEntryCount: 0,
+    muscleMemoryCatalogVersion: "unknown",
+    platformProfileCount: 0,
+    refs: [],
     failureReason: message,
     actionableMessage: typeof shaped.actionableMessage === "string"
       ? shaped.actionableMessage
-      : "Fix the builtin map package and rerun npm run ci:full.",
+      : "Fix the governed startup registries and rerun npm run ci:full.",
   };
 };
 
-const verifyDevelopmentBootstrap = (packages: ReturnType<typeof loadBuiltinMapPackages>): void => {
-  const registry = createMapPluginRegistry();
-  for (const mapPackage of packages) {
-    const imported = registry.importPackage(mapPackage, "startup-map-package-readiness");
-    if (!imported.imported) {
-      throw new Error(`MAP_PACKAGE_STARTUP_IMPORT_FAILED packageId=${mapPackage.manifest.packageId}`);
-    }
-    if (mapPackage.manifest.activationGateStatus === "gate_passed" && mapPackage.taskTemplate.availabilityPolicy === "active") {
-      const activated = registry.activatePackage(mapPackage.manifest.packageId, mapPackage.manifest.packageVersion, "startup-map-package-readiness", "startup readiness probe");
-      if (!activated.activated) {
-        throw new Error(`MAP_PACKAGE_STARTUP_ACTIVATION_FAILED packageId=${mapPackage.manifest.packageId}`);
-      }
-    }
+const verifyPromptContractRegistry = (): number => {
+  const integrity = getPromptContractCatalogIntegrity();
+  if (!integrity.ok) {
+    throw new Error(`PROMPT_CONTRACT_REGISTRY_INVALID ${integrity.message}`);
   }
+  const contracts = listPromptContractCatalogEntries();
+  if (contracts.length === 0) {
+    throw new Error("PROMPT_CONTRACT_REGISTRY_EMPTY");
+  }
+  return contracts.length;
+};
+
+const verifyMuscleMemoryCatalog = (): { entryCount: number; catalogVersion: string } => {
+  const catalog = loadMuscleMemoryCatalog();
+  if (catalog.entries.length === 0) {
+    throw new Error("MUSCLE_MEMORY_CATALOG_EMPTY");
+  }
+  return {
+    entryCount: catalog.entries.length,
+    catalogVersion: catalog.catalogVersion,
+  };
+};
+
+const verifyPlatformRegistry = (): number => {
+  const profiles = listPlatformProfiles();
+  if (profiles.length === 0) {
+    throw new Error("PLATFORM_REGISTRY_EMPTY");
+  }
+  return profiles.length;
 };
 
 function runProbe(): ReadinessResult {
   try {
-    const packages = loadBuiltinMapPackages();
-    verifyDevelopmentBootstrap(packages);
+    const promptContractCount = verifyPromptContractRegistry();
+    const muscleMemoryCatalog = verifyMuscleMemoryCatalog();
+    const platformProfileCount = verifyPlatformRegistry();
     return {
       status: "ready",
-      ownerResponsible: "map-plugin-package",
-      checkedPackageCount: packages.length,
-      refs: packages.map((mapPackage) => `packageId=${mapPackage.manifest.packageId}`),
+      ownerResponsible: "startup-entrypoint",
+      promptContractCount,
+      promptContractCatalogVersion: PROMPT_CONTRACT_CATALOG_VERSION,
+      muscleMemoryEntryCount: muscleMemoryCatalog.entryCount,
+      muscleMemoryCatalogVersion: muscleMemoryCatalog.catalogVersion,
+      platformProfileCount,
+      refs: [
+        `promptContractCatalogVersion=${PROMPT_CONTRACT_CATALOG_VERSION}`,
+        `promptContractCount=${promptContractCount}`,
+        `muscleMemoryCatalogVersion=${muscleMemoryCatalog.catalogVersion}`,
+        `muscleMemoryEntryCount=${muscleMemoryCatalog.entryCount}`,
+        `platformProfileCount=${platformProfileCount}`,
+      ],
       failureReason: null,
       actionableMessage: null,
     };

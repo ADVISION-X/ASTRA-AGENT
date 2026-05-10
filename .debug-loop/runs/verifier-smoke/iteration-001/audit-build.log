@@ -1,6 +1,0 @@
-
-> grasseye-local-workbench@0.1.0 audit:build
-> node --import tsx scripts/audit/build-audit-artifacts-cli.ts
-
-Generated 158 active laws, 19 owners, 19 planned inspections, 0 conflicts.
-[AUDIT-BUILD PASS] generated artifacts with zero conflicts.

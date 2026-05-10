@@ -7,12 +7,12 @@ const probeScriptPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 const parseProbeOutput = (stdout, stderr) => {
   const jsonLine = stdout.trim().split(/\r?\n/).filter(Boolean).at(-1);
   if (!jsonLine) {
-    throw new Error(stderr.trim() || "Map package startup readiness probe produced no JSON output.");
+    throw new Error(stderr.trim() || "Startup registry readiness probe produced no JSON output.");
   }
   return JSON.parse(jsonLine);
 };
 
-export async function ensureMapPackageReadiness({ logger = () => {} } = {}) {
+export async function ensureStartupRegistryReadiness({ logger = () => {} } = {}) {
   return await new Promise((resolve, reject) => {
     const stdoutChunks = [];
     const stderrChunks = [];

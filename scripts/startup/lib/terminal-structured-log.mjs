@@ -6,9 +6,7 @@ const STANDARD_META_KEYS = [
   "traceId",
   "runId",
   "packageFile",
-  "selectedMapId",
   "requestedPlatformId",
-  "activationSnapshotRef",
   "capabilityCallId",
   "childCapabilityId",
   "implementationStatus",
@@ -21,7 +19,6 @@ const STANDARD_META_KEYS = [
 ];
 const AI_SUMMARY_META_KEYS = [
   "decision",
-  "routeLabel",
   "isProductVideo",
   "confidence",
   "visibleProductTypes",

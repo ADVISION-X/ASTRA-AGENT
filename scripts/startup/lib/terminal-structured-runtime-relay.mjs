@@ -83,7 +83,6 @@ function buildAiSummaryProjection(payload) {
 
   return {
     decision: aiSummary.decision ?? payload.decision ?? payload.parsedDecision ?? null,
-    routeLabel: aiSummary.routeLabel ?? null,
     isProductVideo: typeof aiSummary.isProductVideo === "boolean" ? aiSummary.isProductVideo : null,
     confidence: typeof aiSummary.confidence === "number" ? aiSummary.confidence : null,
     visibleProductTypes: visibleProductTypes.length > 0 ? visibleProductTypes : ["none"],
@@ -112,9 +111,7 @@ export function buildRuntimeRelayEvent(phase, payload) {
     actionableMessage: payload.actionableMessage ?? null,
     traceId: payload.traceId ?? null,
     runId: payload.runId ?? payload.sessionId ?? null,
-    selectedMapId: payload.mapId ?? payload.selectedMapId ?? null,
     requestedPlatformId: payload.requestedPlatformId ?? null,
-    activationSnapshotRef: payload.activationSnapshotRef ?? null,
     capabilityCallId: payload.capabilityCallId ?? null,
     childCapabilityId: payload.childCapabilityId ?? null,
     implementationStatus: payload.implementationStatus ?? null,
@@ -124,7 +121,6 @@ export function buildRuntimeRelayEvent(phase, payload) {
     promptContractId: payload.promptContractId ?? null,
     outputSchemaRef: payload.outputSchemaRef ?? null,
     decision: aiSummary.decision ?? null,
-    routeLabel: aiSummary.routeLabel ?? null,
     isProductVideo: aiSummary.isProductVideo ?? null,
     confidence: aiSummary.confidence ?? null,
     visibleProductTypes: aiSummary.visibleProductTypes ?? null,

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { assessDependencyState, installDependencies } from "./lib/dependency-check.mjs";
 import { waitForCommanderConsolePage } from "./lib/health-check.mjs";
 import { ensureLocalAiRuntimeReady } from "./lib/local-ai-runtime-readiness.mjs";
-import { ensureMapPackageReadiness } from "./lib/map-package-readiness.mjs";
+import { ensureStartupRegistryReadiness } from "./lib/map-package-readiness.mjs";
 import { openCommanderConsole } from "./lib/open-commander-console.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
 import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
@@ -150,11 +150,13 @@ async function ensureLocalAiReadiness() {
   return readiness;
 }
 
-async function ensureStartupMapPackageReadiness() {
+async function ensureStartupRegistryReadinessGate() {
   const startedAt = Date.now();
-  logEvent("MAP_PACKAGE", "map_package_readiness", "map_package_readiness_check", "started", "checking governed builtin map package readiness");
-  const readiness = await ensureMapPackageReadiness({
-    logger: (message) => logEvent("MAP_PACKAGE", "map_package_readiness", "map_package_readiness_detail", "event", message),
+  logEvent("STARTUP", "prompt_contract_registry", "prompt_contract_registry_check", "started", "checking Prompt Contract Registry readability");
+  logEvent("STARTUP", "muscle_memory_catalog", "muscle_memory_catalog_check", "started", "checking MuscleMemoryCatalog readability");
+  logEvent("STARTUP", "platform_registry", "platform_registry_check", "started", "checking PlatformRegistry readability");
+  const readiness = await ensureStartupRegistryReadiness({
+    logger: (message) => logEvent("STARTUP", "registry_readiness", "registry_readiness_detail", "event", message),
   });
   const refs = Array.isArray(readiness.refs) ? readiness.refs : [];
   const extra = {
@@ -166,11 +168,15 @@ async function ensureStartupMapPackageReadiness() {
   };
 
   if (readiness.status !== "ready") {
-    logFail("MAP_PACKAGE", "map_package_readiness", "map_package_readiness_check", "failed", "map package readiness failed before app shell start", extra);
-    throw new Error(`${readiness.failureReason ?? "MAP_PACKAGE_READINESS_FAILED"} actionableMessage=${readiness.actionableMessage ?? "Fix map package readiness."}`);
+    logFail("STARTUP", "prompt_contract_registry", "prompt_contract_registry_check", "failed", "Prompt Contract Registry check failed before app shell start", extra);
+    logFail("STARTUP", "muscle_memory_catalog", "muscle_memory_catalog_check", "failed", "MuscleMemoryCatalog check failed before app shell start", extra);
+    logFail("STARTUP", "platform_registry", "platform_registry_check", "failed", "PlatformRegistry check failed before app shell start", extra);
+    throw new Error(`${readiness.failureReason ?? "STARTUP_REGISTRY_READINESS_FAILED"} actionableMessage=${readiness.actionableMessage ?? "Fix startup registry readiness."}`);
   }
 
-  logPass("MAP_PACKAGE", "map_package_readiness", "map_package_readiness_check", "passed", "map package readiness passed before app shell start", extra);
+  logPass("STARTUP", "prompt_contract_registry", "prompt_contract_registry_check", "passed", "Prompt Contract Registry check passed", extra);
+  logPass("STARTUP", "muscle_memory_catalog", "muscle_memory_catalog_check", "passed", "MuscleMemoryCatalog check passed", extra);
+  logPass("STARTUP", "platform_registry", "platform_registry_check", "passed", "PlatformRegistry check passed", extra);
   return readiness;
 }
 
@@ -184,7 +190,7 @@ async function performLaunch(flags, root) {
   logMissionReadinessStarted();
   let localAiReadiness;
   try {
-    await ensureStartupMapPackageReadiness();
+    await ensureStartupRegistryReadinessGate();
     localAiReadiness = await ensureLocalAiReadiness();
     logMissionReadinessPassed(localAiReadiness);
   } catch (error) {

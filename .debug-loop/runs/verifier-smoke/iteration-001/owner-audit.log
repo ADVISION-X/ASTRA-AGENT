@@ -1,6 +1,0 @@
-
-> grasseye-local-workbench@0.1.0 audit:visual-target
-> node --import tsx scripts/audit/domains/visual-target-capability/run-inspector.ts
-
-[FAKE ENFORCEMENT] visual-target-capability: visual-target owner inspector found capability-boundary, chain-truth, or enforcement violations
-- FATAL scripts/audit/domains/visual-target-capability/inspector.ts:1 Mutation manual-first-enforcement-reintroduced could not find target text in .github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md
