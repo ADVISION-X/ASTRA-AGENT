@@ -437,6 +437,15 @@ success without artifact storage
 success without proof
 ```
 
+其中 browser session gate 的 URL drift 政策必须保持平台化且只做截图边界内判断，不得越权恢复页面：
+
+```txt
+Facebook same-platform drift -> Screenshot 允许继续截图，但 success message/runtimeProof 必须显式打印 URL_DRIFT_WARNING。
+TikTok same-platform drift -> Screenshot 返回 review_required，reason=tiktok_url_drift_reopen_entry，并显式打印 URL_DRIFT_RECOVERY_REQUIRED。
+foreign/unknown host drift -> Screenshot 直接 fail-close，并显式打印 URL_DRIFT_BLOCKED。
+Screenshot 自己不得 reopen/open 页面；恢复入口只能由 Orchestration 消费 review_required 后决定。
+```
+
 ---
 
 ## 11. Timeout / Cancellation

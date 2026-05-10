@@ -134,6 +134,8 @@ capture-startup-video-viewport
 
 对这条 V1 current-video 轻量观察链，Route Plan 只声明步骤，不得强迫 Screenshot 回退成 full-screen source capture、evidence-grade JPEG、或 product judgement 之前的重型证据保留。轻量链必须保持 direct viewport observation + phase timing proof，直到 `product_yes` 才允许进入后续高质量证据截图链。
 
+同平台 browser-session URL drift 不属于 Route Plan 的平台分支 DSL。Facebook drift 由 Screenshot 以 warning-only 继续截图；TikTok drift 由 Screenshot 返回 review_required，并由 Orchestration 合成恢复到 map initial step。地图和 Route Plan 都不得声明平台特化 URL drift branch。
+
 TikTok、Facebook 等平台必须共享同一类弱地图边界。不得为了某个平台单独把动作链写进地图。
 
 ---
@@ -730,6 +732,7 @@ finalize-seeding-evidence-packet
 - `press-next-video-key:success/failed/review_required` 后必须回到 `observe-current-video-page-state`，由下一轮观察自然处理当前画面。
 - `press-next-video-key` 只证明 focus/page click/ArrowDown 动作尝试，不证明下一条视频一定切换成功。
 - V1 主链不得使用 AI、截图验证或 PAV 来确认下一条视频是否成功切换。
+- TikTok/ Facebook 的 browser-session URL drift 处理不属于 next-item muscle；它是 Screenshot + Orchestration 的恢复边界，不能回写成 Route Plan 平台特化动作链。
 - loop guard block must not be finalized as normal completed unless reason is run limit reached.
 
 当前 V1 下一条视频动作证明链：

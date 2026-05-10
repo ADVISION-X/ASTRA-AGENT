@@ -30,6 +30,29 @@ type ScreenshotSuccessRuntimeProofInput = {
   outputBoundaryDecision: ScreenshotRuntimeProof["outputBoundaryDecision"];
 };
 
+function resolveScreenshotSuccessExpectedUrl(input: ScreenshotSuccessPathInput): string | null {
+  return input.request.pageStateProof?.pageUrl
+    ?? (input.request.source.kind === "browser_viewport" ? input.request.source.pageUrl : null);
+}
+
+function resolveScreenshotSuccessCurrentUrl(input: ScreenshotSuccessPathInput): string | null {
+  return input.captureRun?.captureResult?.kind === "browser"
+    ? input.captureRun.captureResult.capture.pageUrl
+    : null;
+}
+
+function resolveScreenshotSuccessMessage(input: ScreenshotSuccessPathInput): string {
+  if (input.gates.browserSessionGate.decision.reason !== "facebook_same_platform_url_drift_warning") {
+    return "Screenshot execution succeeded.";
+  }
+
+  const expectedUrl = resolveScreenshotSuccessExpectedUrl(input);
+  const currentUrl = resolveScreenshotSuccessCurrentUrl(input) ?? expectedUrl;
+  return expectedUrl && currentUrl
+    ? `URL_DRIFT_WARNING platform=facebook-web action=continue_capture expected=${expectedUrl} actual=${currentUrl}`
+    : "URL_DRIFT_WARNING platform=facebook-web action=continue_capture";
+}
+
 function compactDataQualityFlags(input: Array<ScreenshotRuntimeProof["dataQualityFlags"][number] | null>) {
   return input.filter((value): value is ScreenshotRuntimeProof["dataQualityFlags"][number] => value !== null);
 }
@@ -237,7 +260,7 @@ export const buildScreenshotSuccessResult = async (input: {
   return buildScreenshotResult({
     request: input.pathInput.request,
     status: "success",
-    message: "Screenshot execution succeeded.",
+    message: resolveScreenshotSuccessMessage(input.pathInput),
     output: input.successOutput,
     failureReason: null,
     reviewRequiredReason: null,

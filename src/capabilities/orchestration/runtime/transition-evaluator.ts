@@ -16,6 +16,12 @@ export type TransitionEvaluationResult =
 
 type MissionStepResultRecord = z.output<typeof MissionStepResultSchema>;
 
+const TIKTOK_URL_DRIFT_RECOVERY_REASON = "tiktok_url_drift_reopen_entry";
+const TIKTOK_URL_DRIFT_RECOVERY_STEPS = new Set([
+  "capture-startup-video-viewport",
+  "capture-current-video-viewport",
+]);
+
 const normalizeRouteToken = (value: string): string =>
   value.toLowerCase().replace(/[^a-z0-9]+/gu, "");
 
@@ -79,6 +85,39 @@ const buildAmbiguousTransitionFailure = (mapId: string, currentStepId: string, t
   return `Map "${mapId}" step "${currentStepId}" matched ${transitions.length} transitions: [${ids}]. Exactly one must match.`;
 };
 
+function resolveSyntheticTikTokUrlDriftRecovery(input: {
+  map: OperationalMap;
+  currentStepId: string;
+  result: MissionStepResultRecord;
+}): TransitionEvaluationResult | null {
+  if (input.result.status !== "review_required") {
+    return null;
+  }
+
+  if (input.result.failureReason !== TIKTOK_URL_DRIFT_RECOVERY_REASON && input.result.reviewRequiredReason !== TIKTOK_URL_DRIFT_RECOVERY_REASON) {
+    return null;
+  }
+
+  if (input.result.targetAbilityGroupId !== "screenshot") {
+    return null;
+  }
+
+  if (!input.map.mapId.includes("tiktok") || !TIKTOK_URL_DRIFT_RECOVERY_STEPS.has(input.currentStepId)) {
+    return null;
+  }
+
+  return {
+    decision: "matched",
+    transition: {
+      transitionId: `${input.currentStepId}:tiktok-url-drift-recovery`,
+      fromStepId: input.currentStepId,
+      onStatus: "review_required",
+      toStepId: input.map.initialStepId,
+      finalStatus: null,
+    },
+  };
+}
+
 const selectSingleTransition = (input: {
   map: OperationalMap;
   currentStepId: string;
@@ -107,6 +146,11 @@ export function evaluateStepTransition(input: {
   currentStepId: string;
   result: MissionStepResultRecord;
 }): TransitionEvaluationResult {
+  const syntheticRecovery = resolveSyntheticTikTokUrlDriftRecovery(input);
+  if (syntheticRecovery) {
+    return syntheticRecovery;
+  }
+
   const routeFiltered = filterByAiRouteLabel({
     candidates: findMatchingStatusTransitions(input),
     result: input.result,

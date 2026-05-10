@@ -53,7 +53,17 @@ function buildProofBranchFieldValues(outputRef: string | null): Record<string, s
   );
 }
 
-const normalizeDispatchStatus = (status: "success" | "failed" | "review_required"): "success" | "failed" =>
+const normalizeAbilityDispatchStatus = (input: {
+  status: "success" | "failed" | "review_required";
+  targetAbilityGroupId: SendAbilityInput["targetAbilityGroupId"];
+}): "success" | "failed" | "review_required" =>
+  input.targetAbilityGroupId === "screenshot"
+    ? input.status
+    : input.status === "success"
+      ? "success"
+      : "failed";
+
+const normalizeAiDispatchStatus = (status: "success" | "failed" | "review_required"): "success" | "failed" =>
   status === "success" ? "success" : "failed";
 
 const buildAiBranchFieldValues = (responseEnvelope: AiTransportResponseEnvelope) => ({
@@ -94,7 +104,10 @@ function createAbilityCommandDispatcher(nerveBus: OrchestrationNerveBusTransport
     });
     const outputRef = transport.resultEnvelope.outputRef ?? null;
     return {
-      status: normalizeDispatchStatus(transport.resultEnvelope.status),
+      status: normalizeAbilityDispatchStatus({
+        status: transport.resultEnvelope.status,
+        targetAbilityGroupId: input.targetAbilityGroupId,
+      }),
       envelopeId: transport.commandEnvelope.envelopeId,
       resultRef: transport.resultEnvelope.resultId ?? `${envelopeId}:result`,
       decision: null,
@@ -119,7 +132,7 @@ function createAiRequestDispatcher(nerveBus: OrchestrationNerveBusTransportSurfa
       signal: input.signal,
     });
     return {
-      status: normalizeDispatchStatus(transport.responseEnvelope.status),
+      status: normalizeAiDispatchStatus(transport.responseEnvelope.status),
       envelopeId: transport.requestEnvelope.envelopeId,
       resultRef: transport.responseEnvelope.responseId ?? `${envelopeId}:result`,
       decision: transport.responseEnvelope.decision ?? null,

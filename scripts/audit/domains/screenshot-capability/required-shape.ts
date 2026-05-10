@@ -262,6 +262,34 @@ function collectBrowserViewportScaleGapFindings(project: Project): Finding[] {
     : [createFinding({ lawId: LAW_IDS.TRANSFORM, file: PATHS.OUTPUT_BOUNDARY_GATE, line: 1, severity: "fatal", message: "Screenshot output boundary gate must allow browser viewport captures with explicit browser_viewport_pixels -> source_image_pixels scaleMapping." })];
 }
 
+function collectBrowserSessionUrlDriftGovernanceFindings(project: Project): Finding[] {
+  const findings: Finding[] = [];
+  const gatePath = "src/capabilities/screenshot/runtime/browser-session-url-drift-policy.ts";
+  const successResultPath = "src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts";
+
+  if (!sourceContainsAll(gatePath, project, [
+    "FACEBOOK_ALLOWED_HOSTS",
+    "TIKTOK_ALLOWED_HOSTS",
+    'samePlatformStatus: "passed"',
+    'samePlatformStatus: "review_required"',
+    "facebook_same_platform_url_drift_warning",
+    "tiktok_url_drift_reopen_entry",
+    "URL_DRIFT_RECOVERY_REQUIRED",
+    "URL_DRIFT_BLOCKED",
+  ])) {
+    findings.push(createFinding({ lawId: LAW_IDS.ENTRY, file: gatePath, line: 1, severity: "fatal", message: "Screenshot browser session gate must keep platform-aware URL drift policy for Facebook warning-only continue, TikTok recovery-required review, and foreign-host block." }));
+  }
+
+  if (!sourceContainsAll(successResultPath, project, [
+    "facebook_same_platform_url_drift_warning",
+    "URL_DRIFT_WARNING platform=facebook-web action=continue_capture",
+  ])) {
+    findings.push(createFinding({ lawId: LAW_IDS.ENTRY, file: successResultPath, line: 1, severity: "fatal", message: "Screenshot success path must surface Facebook same-platform URL drift as URL_DRIFT_WARNING instead of silently treating it as a normal capture success." }));
+  }
+
+  return findings;
+}
+
 function sourceContainsAll(path: string, project: Project, snippets: readonly string[]): boolean {
   const text = getSource(project, path).getFullText();
   return snippets.every((snippet) => text.includes(snippet));
@@ -284,6 +312,7 @@ function collectV2ChainTruthFindings(project: Project): Finding[] {
     ...collectIdempotencyFindings(project),
     ...collectTransformTruthFindings(project),
     ...collectBrowserViewportScaleGapFindings(project),
+    ...collectBrowserSessionUrlDriftGovernanceFindings(project),
     ...collectLifecycleTruthFindings(project),
     ...inspectScreenshotRuntimeProofParity(project),
     ...inspectScreenshotDispatchAdapter(project, LAW_IDS.SHAPE),

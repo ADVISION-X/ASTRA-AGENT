@@ -83,7 +83,7 @@ export function buildAbilityDispatchResult(
         branchFieldValues: dispatchResult.branchFieldValues,
       }),
       failureReason: dispatchResult.failureReason,
-      reviewRequiredReason: null,
+      reviewRequiredReason: dispatchResult.status === "review_required" ? dispatchResult.failureReason : null,
       payloadRefs: applyStepOutputRefPolicy(input.step, mergedPayloadRefs, outputRef, persistentPayloadRefKeys),
     }),
   };

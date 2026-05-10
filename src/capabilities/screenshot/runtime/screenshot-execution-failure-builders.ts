@@ -86,6 +86,29 @@ async function dispatchScreenshotFailureResult(input: {
   });
 }
 
+function resolvePlanValidationReviewRequiredReason(input: ScreenshotExecutionFailureContext & {
+  failEarly: ReturnType<typeof createScreenshotFailure> | null;
+  earlyStatus: "failed" | "review_required";
+}) {
+  if (input.earlyStatus !== "review_required") {
+    return null;
+  }
+
+  if (input.browserSessionGate.decision.status === "review_required") {
+    return input.browserSessionGate.decision.reason ?? input.failEarly?.message ?? "review required";
+  }
+
+  if (input.pageStateGate.decision.status === "review_required") {
+    return input.pageStateGate.decision.reason ?? input.failEarly?.message ?? "review required";
+  }
+
+  if (input.privacyGate.decision.status === "review_required") {
+    return input.privacyGate.decision.reason ?? input.failEarly?.message ?? "review required";
+  }
+
+  return input.failEarly?.message ?? "review required";
+}
+
 export async function buildScreenshotPlanValidationFailure(input: ScreenshotExecutionFailureContext & {
   failEarly: ReturnType<typeof createScreenshotFailure> | null;
   earlyStatus: "failed" | "review_required";
@@ -101,7 +124,7 @@ export async function buildScreenshotPlanValidationFailure(input: ScreenshotExec
       code: "dispatch_failure",
       message: "Screenshot governance gate blocked execution.",
     }),
-    reviewRequiredReason: input.earlyStatus === "review_required" ? (input.failEarly?.message ?? "review required") : null,
+    reviewRequiredReason: resolvePlanValidationReviewRequiredReason(input),
     sourceProof: input.sourceGate.sourceProof,
     browserSessionRef: input.browserSessionGate.browserSessionRef,
     pageStateProofRef: input.pageStateGate.pageStateProofRef,

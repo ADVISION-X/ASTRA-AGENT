@@ -1,39 +1,13 @@
-import { URL } from "node:url";
-
 import type { ScreenshotAbilityInput, ScreenshotBrowserSessionSnapshot } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
 import type { ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
-
-function normalizeComparableUrl(value: string) {
-  if (!URL.canParse(value)) {
-    return value;
-  }
-
-  const url = new URL(value);
-  url.hash = "";
-  return url.toString();
-}
-
-function buildBrowserSessionGateFailure(input: {
-  status: "failed" | "review_required";
-  reason: string;
-  message: string;
-  detail?: string | null;
-  sessionSnapshot: ScreenshotBrowserSessionSnapshot | null;
-  browserSessionRef: string | null;
-}) {
-  return {
-    decision: { status: input.status, reason: input.reason },
-    sessionSnapshot: input.sessionSnapshot,
-    browserSessionRef: input.browserSessionRef,
-    failure: createScreenshotFailure({
-      code: "browser_session_invalid",
-      message: input.message,
-      detail: input.detail ?? null,
-    }),
-  };
-}
+import {
+  buildBrowserSessionGateFailure,
+  buildBrowserSessionGatePass,
+  resolveBrowserSessionUrlFailure,
+  type BrowserSessionGateResult,
+} from "./browser-session-url-drift-policy.js";
 
 function resolveBrowserSessionModeFailure(sessionSnapshot: ScreenshotBrowserSessionSnapshot, browserSessionRef: string) {
   if (sessionSnapshot.browserMode === "real_chrome_persistent") {
@@ -109,27 +83,6 @@ function resolveBrowserSessionRefFailure(expectedBrowserSessionRef: string | nul
   });
 }
 
-function resolveBrowserSessionUrlFailure(expectedUrl: string | null, sessionSnapshot: ScreenshotBrowserSessionSnapshot, browserSessionRef: string) {
-  if (!expectedUrl) {
-    return null;
-  }
-
-  const currentComparableUrl = normalizeComparableUrl(sessionSnapshot.currentUrl);
-  const expectedComparableUrl = normalizeComparableUrl(expectedUrl);
-  if (currentComparableUrl === expectedComparableUrl) {
-    return null;
-  }
-
-  return buildBrowserSessionGateFailure({
-    status: "failed",
-    reason: "browser_session_url_mismatch",
-    message: "Screenshot browser session currentUrl does not match the governed page-state/open handoff URL.",
-    detail: `expected=${expectedUrl} actual=${sessionSnapshot.currentUrl}`,
-    sessionSnapshot,
-    browserSessionRef,
-  });
-}
-
 function resolveBrowserSessionGate(input: {
   request: ScreenshotAbilityInput;
   registryEntry: ScreenshotChildRegistryEntry;
@@ -159,18 +112,22 @@ function resolveBrowserSessionGate(input: {
       ?? resolveBrowserSessionProfileStateFailure(resolvedSessionSnapshot, browserSessionRef)
       ?? resolveBrowserSessionLoginStateFailure(resolvedSessionSnapshot, browserSessionRef)
       ?? resolveBrowserSessionRefFailure(expectedBrowserSessionRef, browserSessionRef, resolvedSessionSnapshot)
-      ?? resolveBrowserSessionUrlFailure(expectedUrl, resolvedSessionSnapshot, browserSessionRef);
+      ?? resolveBrowserSessionUrlFailure({
+        expectedUrl,
+        selectedMapId: input.request.selectedMapId,
+        sessionSnapshot: resolvedSessionSnapshot,
+        browserSessionRef,
+      });
 
     if (failure) {
       return failure;
     }
 
-    return {
-      decision: { status: "passed" as const, reason: null },
+    return buildBrowserSessionGatePass({
+      reason: null,
       sessionSnapshot: resolvedSessionSnapshot,
       browserSessionRef,
-      failure: null,
-    };
+    });
   });
 }
 
@@ -178,12 +135,7 @@ export async function runBrowserSessionGate(input: {
   request: ScreenshotAbilityInput;
   registryEntry: ScreenshotChildRegistryEntry;
   context: ScreenshotRuntimeContext;
-}): Promise<{
-  decision: { status: "passed" | "failed" | "review_required" | "not_applicable"; reason: string | null };
-  sessionSnapshot: ScreenshotBrowserSessionSnapshot | null;
-  browserSessionRef: string | null;
-  failure: ReturnType<typeof createScreenshotFailure> | null;
-}> {
+}): Promise<BrowserSessionGateResult> {
   try {
     return await resolveBrowserSessionGate(input);
   } catch (error) {
