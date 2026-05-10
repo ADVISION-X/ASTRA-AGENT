@@ -1,23 +1,23 @@
 {
-  "promptContractId": "vision.productPresence.v1",
-  "promptId": "vision.productPresence.v1",
+  "promptContractId": "visual-mission-judge.v1",
+  "promptId": "visual-mission-judge.v1",
   "taskType": "product_presence_judgment",
   "legacyTaskType": "vision.productPresence",
   "modelRole": "vision",
   "promptVersion": "v1",
-  "schemaVersion": "vision.productPresence.schema.v1",
+  "schemaVersion": "visual-mission-judge.schema.v1",
   "inputContract": "image_collection.ai_input",
   "requiredInputRefs": [
     "promptInputRef"
   ],
   "outputSchemaRef": "ai.product_presence_judgment.v1",
   "allowedBranchFields": [
-    "decision",
-    "routeLabel"
+    "taskDecision",
+    "pageStateDecision"
   ],
   "systemPromptTemplateRef": "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
   "userPromptTemplateRef": "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
-  "purpose": "Autonomously classify whether sampled short-video frames visibly prove product-presenting content so V1 can save a lightweight product lead record and continue browsing.",
+  "purpose": "Autonomously judge the current short-video page state and emit a governed action plan that references MuscleMemoryCatalog actionCode entries without returning routeLabel.",
   "forbiddenOutputs": [
     "profitability judgment",
     "supply chain judgment",
@@ -30,6 +30,7 @@
     "nextIntent",
     "actionIntent",
     "action_intent",
+    "routeLabel",
     "product_uncertain",
     "human review request",
     "ambiguous branch decision",
@@ -64,29 +65,30 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:a9da824f0f4579a64d544585974013e53e14e4b1566b4975073838d075f6f820",
+  "promptHash": "sha256:859592537800ae584ccdde77f3c7fa790dbb1e5983163fba9f22738b1aa3b527",
   "sensitiveOperation": false,
-  "promptContractHash": "sha256:a9da824f0f4579a64d544585974013e53e14e4b1566b4975073838d075f6f820",
+  "promptContractHash": "sha256:859592537800ae584ccdde77f3c7fa790dbb1e5983163fba9f22738b1aa3b527",
   "dataPolicy": {
-    "productPresenceDecisionMode": "binary_yes_no",
+    "productPresenceDecisionMode": "task_decision_action_plan",
     "ambiguousEvidenceRouting": "product_no",
     "humanReviewForProductPresence": false
   },
   "outputSchema": {
     "taskType": "vision.productPresence",
-    "promptId": "vision.productPresence.v1",
+    "promptId": "visual-mission-judge.v1",
     "promptVersion": "v1",
-    "schemaVersion": "vision.productPresence.schema.v1",
-    "decision": "product_yes | product_no only",
-    "routeLabel": "product_yes => read-comments-and-save-evidence (compatibility label; runtime writes product lead record and advances) | product_no => skip-current-video",
-    "nonExecutableSummary": "short human-readable summary for product lead logging only; not an action instruction",
-    "isProductVideo": "boolean; true iff decision=product_yes",
+    "schemaVersion": "visual-mission-judge.schema.v1",
+    "taskDecision": "YES_SEEDING_VIDEO_FLOW | NO_SEEDING_VIDEO_FLOW only",
+    "pageStateDecision": "ready only",
+    "actionPlan": "visualMissionActionPlan.v1 object; actions[0].actionCode must equal taskDecision and every actionCode must exist in MuscleMemoryCatalog",
+    "nonExecutableSummary": "short human-readable summary for lead logging only; never an execution instruction",
+    "isProductVideo": "boolean; true iff taskDecision=YES_SEEDING_VIDEO_FLOW",
     "confidence": "number 0..1; never used to request human review for this binary route",
     "visibleProductTypes": "string[]; empty when decision=product_no unless a visible object is mentioned as insufficient evidence",
     "evidenceObservations": "string[] based only on sampled frames",
-    "reason": "one precise sentence explaining YES/NO decision",
+    "reason": "one precise sentence explaining the taskDecision and action plan choice",
     "aggregateReason": "one sentence summarizing all sampled frames",
-    "uncertainty": "string[] allowed only as explanation for product_no; never a third branch",
+    "uncertainty": "string[] allowed only as explanation for NO_SEEDING_VIDEO_FLOW; never a third branch",
     "mustReview": false
   }
 }

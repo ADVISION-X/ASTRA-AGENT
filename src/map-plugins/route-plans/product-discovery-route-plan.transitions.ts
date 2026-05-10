@@ -1,13 +1,7 @@
 import type { RoutePlan } from "./route-plan.schema.js";
-import {
-  PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
-  PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
-} from "./product-discovery-route-plan.constants.js";
 import { PRODUCT_DISCOVERY_ROUTE_PLAN_PRODUCT_PRESENCE_TRANSITIONS } from "./product-discovery-route-plan.transitions.product-presence.js";
-import { PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS } from "./product-discovery-route-plan.transitions.next-item.js";
 import {
   STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
-  STARTUP_PREPARATION_READY_ROUTE_LABEL,
 } from "../shared/startup-preparation.constants.js";
 
 export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] = [
@@ -40,11 +34,11 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     finalStatus: "failed",
   },
   {
-    transitionId: `startup-preparation:${STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL}`,
+    transitionId: "startup-preparation:stop_review_required",
     fromStepId: "startup-preparation",
     onStatus: "success",
     toStepId: null,
-    finalStatus: "failed",
+    finalStatus: "stopped",
   },
   {
     transitionId: "startup-preparation:failed",
@@ -208,42 +202,6 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     toStepId: null,
     finalStatus: "failed",
   },
-  {
-    transitionId: "write-product-lead-record:success",
-    fromStepId: "write-product-lead-record",
-    onStatus: "success",
-    toStepId: "like-current-video-keyboard",
-    finalStatus: null,
-  },
-  {
-    transitionId: "write-product-lead-record:failed",
-    fromStepId: "write-product-lead-record",
-    onStatus: "failed",
-    toStepId: null,
-    finalStatus: "failed",
-  },
-  {
-    transitionId: "like-current-video-keyboard:success",
-    fromStepId: "like-current-video-keyboard",
-    onStatus: "success",
-    toStepId: "observe-next-item-page-state",
-    finalStatus: null,
-  },
-  {
-    transitionId: "like-current-video-keyboard:failed",
-    fromStepId: "like-current-video-keyboard",
-    onStatus: "failed",
-    toStepId: "observe-next-item-page-state",
-    finalStatus: null,
-  },
-  {
-    transitionId: "like-current-video-keyboard:review_required",
-    fromStepId: "like-current-video-keyboard",
-    onStatus: "review_required",
-    toStepId: "observe-next-item-page-state",
-    finalStatus: null,
-  },
-  ...PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS,
   {
     transitionId: "finalize-mission:success",
     fromStepId: "finalize-mission",

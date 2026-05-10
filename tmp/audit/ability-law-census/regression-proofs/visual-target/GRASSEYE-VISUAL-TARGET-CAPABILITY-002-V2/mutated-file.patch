@@ -1,7 +1,0 @@
-diff --git a/src/capabilities/visual-target/runtime/local-ai-import-probe.ts b/src/capabilities/visual-target/runtime/local-ai-import-probe.ts
---- a/src/capabilities/visual-target/runtime/local-ai-import-probe.ts
-+++ b/src/capabilities/visual-target/runtime/local-ai-import-probe.ts
-@@ -1,1 +1,3 @@
-+import { LocalAiGateway } from "../../../lib/local-ai/local-ai-gateway.js";
-+export const probe = LocalAiGateway;
- 

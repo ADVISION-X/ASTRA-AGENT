@@ -3,6 +3,7 @@ import type { RuntimeExecutionInput } from "./local-ai-runtime-task-support.js";
 import { executeNextItemAdvancedRuntimeTask } from "./local-ai-runtime-next-item-advanced-task.js";
 import { executeOcrCleanupRuntimeTask } from "./local-ai-runtime-ocr-task.js";
 import { executePagePreparationRuntimeTask } from "./local-ai-runtime-page-preparation-task.js";
+import { executeVisualMissionActionPlanRuntimeTask } from "./local-ai-runtime-visual-mission-action-plan-task.js";
 import { executeVisionRuntimeTask } from "./local-ai-runtime-vision-task.js";
 
 function assertRuntimeTaskAllowed(taskType: RuntimeExecutionInput["request"]["taskType"]): void {
@@ -21,9 +22,12 @@ function executeSupportedRuntimeTask(input: RuntimeExecutionInput, createdAt: st
     case "vision.nextItemAdvanced":
       return executeNextItemAdvancedRuntimeTask(input, createdAt);
     case "vision.productPresence":
+    case "vision.visualMissionActionPlan":
     case "vision.nextItemTargetCandidate":
     case "vision.commentsEntryTargetCandidate":
-      return executeVisionRuntimeTask(input, createdAt);
+      return input.request.taskType === "vision.visualMissionActionPlan"
+        ? executeVisualMissionActionPlanRuntimeTask(input, createdAt)
+        : executeVisionRuntimeTask(input, createdAt);
     case "comments.ocr_cleanup":
       return executeOcrCleanupRuntimeTask(input, createdAt);
     default:

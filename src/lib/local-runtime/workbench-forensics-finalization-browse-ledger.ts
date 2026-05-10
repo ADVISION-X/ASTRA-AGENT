@@ -30,6 +30,9 @@ type BrowseLedgerContext = {
   dataQualityFlags: string[];
 };
 
+const resolveBinaryDecision = (summary: ProductPresenceSummary) =>
+  summary.output.isProductVideo === true ? "product_yes" : "product_no";
+
 const buildBrowseLedgerInputRefs = (context: BrowseLedgerContext) => [
   context.productPresenceAiResultRef,
   ...context.actionLogRefs,
@@ -43,7 +46,7 @@ const buildBrowseLedgerPayload = (context: BrowseLedgerContext) => ({
     videoVisitId: context.videoVisitId,
     observedAt: context.productPresenceSummary.capturedAt,
     browseOutcome: "ordinary_scroll_next",
-    productPresenceDecision: buildProductPresenceDecision(context.productPresenceSummary.output.decision, context.productPresenceSummary.output.mustReview),
+    productPresenceDecision: buildProductPresenceDecision(resolveBinaryDecision(context.productPresenceSummary), context.productPresenceSummary.output.mustReview),
     confidence: context.productPresenceSummary.output.confidence,
     skipReason: null,
     actionLogRefs: context.actionLogRefs,
@@ -57,7 +60,7 @@ const buildBrowseLedgerPayload = (context: BrowseLedgerContext) => ({
     videoVisitId: context.videoVisitId,
     packetId: context.packetId,
     finalArtifactKind: "browse_ledger",
-    productPresenceDecision: buildRoundStructuralDecision(context.productPresenceSummary.output.decision, context.productPresenceSummary.output.mustReview),
+    productPresenceDecision: buildRoundStructuralDecision(resolveBinaryDecision(context.productPresenceSummary), context.productPresenceSummary.output.mustReview),
     browseOutcome: "ordinary_scroll_next",
     roundOutcome: "browse_ledger_recorded",
     decisionReason: context.productPresenceSummary.output.reason,

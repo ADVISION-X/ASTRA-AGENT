@@ -1,6 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 1
-summary: Text Input required package or governed execution chain is incomplete.
-
-FATAL GRASSEYE-TEXT-INPUT-CAPABILITY-006-V2 src/capabilities/text-input/runtime/text-input-result-builder.ts:1 Text Input result builder must preserve output boundary, debug bundle, proof, and PAV handoff checkpoints.

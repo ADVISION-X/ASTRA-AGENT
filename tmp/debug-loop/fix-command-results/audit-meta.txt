@@ -1,5 +1,0 @@
-npm error Missing script: "audit:meta"
-npm error
-npm error To see a list of scripts, run:
-npm error   npm run
-npm error A complete log of this run can be found in: /Users/nexgen/.npm/_logs/2026-05-05T03_57_30_758Z-debug-0.log

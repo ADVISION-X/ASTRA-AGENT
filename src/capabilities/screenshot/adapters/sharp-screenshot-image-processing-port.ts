@@ -5,7 +5,7 @@ import path from "node:path";
 
 import sharp from "sharp";
 
-import { buildGridColumnLabels, buildGridRowLabels, VISUAL_MISSION_AXIS_MODE, VISUAL_MISSION_GRID_VERSION } from "../shared/visual-mission-grid.js";
+import { buildGridAxes, VISUAL_MISSION_AXIS_MODE, VISUAL_MISSION_GRID_VERSION } from "../shared/visual-mission-grid.js";
 import type { ScreenshotGridCell, ScreenshotGridSpec } from "../contract.js";
 import type { ImageMetadata, ScreenshotImageProcessingPort } from "../ports/screenshot-image-processing-port.js";
 import { SCREENSHOT_IMAGE_PROCESSING_PORT_KIND } from "../shared/screenshot-result.js";
@@ -32,58 +32,104 @@ function detectMimeType(filePath: string): string {
   return "image/png";
 }
 
-function buildGridSpec(input: { width: number; height: number; rowCount: number; columnCount: number }): ScreenshotGridSpec {
-  const rowLabels = buildGridRowLabels(input.rowCount);
-  const columnLabels = buildGridColumnLabels(input.columnCount);
-  const cellWidthPx = input.width / input.columnCount;
-  const cellHeightPx = input.height / input.rowCount;
+function buildGridCell(input: {
+  rowLabel: string;
+  columnLabel: string;
+  rowIndex: number;
+  columnIndex: number;
+  cellWidthPx: number;
+  cellHeightPx: number;
+  sourceCoordinateSpace: ScreenshotGridSpec["sourceCoordinateSpace"];
+}): ScreenshotGridCell {
+  const x = input.columnIndex * input.cellWidthPx;
+  const y = input.rowIndex * input.cellHeightPx;
+  const width = input.cellWidthPx;
+  const height = input.cellHeightPx;
+  return {
+    cellId: `${input.rowLabel}${input.columnLabel}`,
+    rowLabel: input.rowLabel,
+    columnLabel: input.columnLabel,
+    rowIndex: input.rowIndex,
+    columnIndex: input.columnIndex + 1,
+    x,
+    y,
+    width,
+    height,
+    centerX: x + width / 2,
+    centerY: y + height / 2,
+    sourceCoordinateSpace: input.sourceCoordinateSpace,
+  };
+}
+
+function buildGridCells(input: {
+  rowLabels: string[];
+  columnLabels: string[];
+  cellWidthPx: number;
+  cellHeightPx: number;
+  sourceCoordinateSpace: ScreenshotGridSpec["sourceCoordinateSpace"];
+}): ScreenshotGridCell[] {
   const cells: ScreenshotGridCell[] = [];
 
-  for (let rowIndex = 0; rowIndex < input.rowCount; rowIndex += 1) {
-    for (let columnIndex = 0; columnIndex < input.columnCount; columnIndex += 1) {
-      const rowLabel = rowLabels[rowIndex]!;
-      const columnLabel = columnLabels[columnIndex]!;
-      const x = columnIndex * cellWidthPx;
-      const y = rowIndex * cellHeightPx;
-      const width = cellWidthPx;
-      const height = cellHeightPx;
-      cells.push({
-        cellId: `${rowLabel}${columnLabel}`,
-        rowLabel,
-        columnLabel,
+  for (let rowIndex = 0; rowIndex < input.rowLabels.length; rowIndex += 1) {
+    for (let columnIndex = 0; columnIndex < input.columnLabels.length; columnIndex += 1) {
+      cells.push(buildGridCell({
+        rowLabel: input.rowLabels[rowIndex]!,
+        columnLabel: input.columnLabels[columnIndex]!,
         rowIndex,
-        columnIndex: columnIndex + 1,
-        x,
-        y,
-        width,
-        height,
-        centerX: x + width / 2,
-        centerY: y + height / 2,
-        sourceCoordinateSpace: "source_image_pixels",
-      });
+        columnIndex,
+        cellWidthPx: input.cellWidthPx,
+        cellHeightPx: input.cellHeightPx,
+        sourceCoordinateSpace: input.sourceCoordinateSpace,
+      }));
     }
   }
 
+  return cells;
+}
+
+function buildGridSpec(input: {
+  sourceScreenshotEvidenceId: string;
+  sourceStorageRef: string;
+  sourceCoordinateSpace: ScreenshotGridSpec["sourceCoordinateSpace"];
+  sourceWidth: number;
+  sourceHeight: number;
+  gridImageWidth: number;
+  gridImageHeight: number;
+  rowCount: number;
+  columnCount: number;
+  createdAt: string;
+}): ScreenshotGridSpec {
+  const { rowLabels, columnLabels } = buildGridAxes({ rowCount: input.rowCount, columnCount: input.columnCount });
+  const cellWidthPx = input.gridImageWidth / input.columnCount;
+  const cellHeightPx = input.gridImageHeight / input.rowCount;
+  const draftGridSpecId = `draft-grid-spec:${createHash("sha256").update(`${input.sourceScreenshotEvidenceId}:${input.gridImageWidth}:${input.gridImageHeight}:${input.rowCount}:${input.columnCount}`).digest("hex").slice(0, 24)}`;
+
   return {
-    gridSpecId: `grid-spec:${createHash("sha256").update(`${input.width}:${input.height}:${input.rowCount}:${input.columnCount}`).digest("hex").slice(0, 24)}`,
-    gridSpecRef: "grid-spec:pending",
+    gridSpecId: draftGridSpecId,
+    gridSpecRef: draftGridSpecId,
     gridVersion: VISUAL_MISSION_GRID_VERSION,
     axisMode: VISUAL_MISSION_AXIS_MODE,
-    sourceScreenshotEvidenceId: "pending-source-evidence",
-    sourceStorageRef: "pending-source-storage",
-    sourceWidth: input.width,
-    sourceHeight: input.height,
-    gridImageWidth: input.width,
-    gridImageHeight: input.height,
+    sourceScreenshotEvidenceId: input.sourceScreenshotEvidenceId,
+    sourceStorageRef: input.sourceStorageRef,
+    sourceWidth: input.sourceWidth,
+    sourceHeight: input.sourceHeight,
+    gridImageWidth: input.gridImageWidth,
+    gridImageHeight: input.gridImageHeight,
     rowLabels,
     columnLabels,
     cellWidthPx,
     cellHeightPx,
-    sourceCoordinateSpace: "source_image_pixels",
+    sourceCoordinateSpace: input.sourceCoordinateSpace,
     gridCoordinateSpace: "coordinate_grid_pixels",
     cellCoordinateSpace: "grid_cell_index_space",
-    cells,
-    createdAt: new Date().toISOString(),
+    cells: buildGridCells({
+      rowLabels,
+      columnLabels,
+      cellWidthPx,
+      cellHeightPx,
+      sourceCoordinateSpace: input.sourceCoordinateSpace,
+    }),
+    createdAt: input.createdAt,
   };
 }
 
@@ -177,10 +223,16 @@ async function renderCoordinateGrid(portInput: Parameters<ScreenshotImageProcess
   const outputFilePath = await ensureTempOutput(".png");
   const metadata = await inspectImage(portInput.sourceFilePath);
   const gridSpec = buildGridSpec({
-    width: metadata.width,
-    height: metadata.height,
+    sourceScreenshotEvidenceId: portInput.sourceScreenshotEvidenceId,
+    sourceStorageRef: portInput.sourceStorageRef,
+    sourceCoordinateSpace: portInput.sourceCoordinateSpace,
+    sourceWidth: portInput.sourceWidth,
+    sourceHeight: portInput.sourceHeight,
+    gridImageWidth: metadata.width,
+    gridImageHeight: metadata.height,
     rowCount: portInput.rowCount,
     columnCount: portInput.columnCount,
+    createdAt: portInput.createdAt,
   });
   const overlaySvg = buildGridOverlay(gridSpec);
   const result = await sharp(portInput.sourceFilePath)

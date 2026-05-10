@@ -1,6 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 1
-summary: Open required shape is incomplete.
-
-FATAL GRASSEYE-OPEN-CAPABILITY-009-V1 src/capabilities/open/schema.ts:1 Open platform ids must include macos-local for governed local program launch.

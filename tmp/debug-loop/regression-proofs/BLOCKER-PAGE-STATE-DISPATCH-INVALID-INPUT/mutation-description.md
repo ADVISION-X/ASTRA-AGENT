@@ -1,1 +1,0 @@
-Mutation: hardcoded `childCapabilityId = "detect-platform-page-kind"` in `src/lib/local-runtime/workbench-page-state-dispatch-input.ts` instead of deriving it from `resolvePageStateChildCapabilityId(envelope.commandName)`.

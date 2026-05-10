@@ -1,6 +1,0 @@
-
-> grasseye-local-workbench@0.1.0 typecheck
-> tsc -p tsconfig.json --noEmit
-
-scripts/audit/domains/audit-system/components/validate-ci-full-topology.ts(184,9): error TS2345: Argument of type '"PASS" | "CI TOPOLOGY DRIFT"' is not assignable to parameter of type '"PASS" | "LAW GAP" | "ENFORCEMENT GAP" | "ENFORCEMENT MISS" | "SCRIPT OVERREACH" | "LAW-SCRIPT DRIFT" | "CODE VIOLATION" | "FAKE ENFORCEMENT"'.
-  Type '"CI TOPOLOGY DRIFT"' is not assignable to type '"PASS" | "LAW GAP" | "ENFORCEMENT GAP" | "ENFORCEMENT MISS" | "SCRIPT OVERREACH" | "LAW-SCRIPT DRIFT" | "CODE VIOLATION" | "FAKE ENFORCEMENT"'.

@@ -4,13 +4,11 @@ import { joinHtml } from "../render-utils.js";
 import type { CommanderConsoleViewModel } from "../types.js";
 import { renderActionableErrorBanner } from "../modules/ActionableErrorBanner.js";
 import { renderResultSummaryCard } from "../modules/ResultSummaryCard.js";
-import { renderTaskTemplateLauncherModule } from "../modules/TaskTemplateLauncher.js";
-import { getActiveTaskTemplate } from "../view-helpers.js";
+import { renderVisualMissionPromptLauncher } from "../modules/VisualMissionPromptLauncher.js";
 
 function isLaunchLocked(viewModel: CommanderConsoleViewModel): boolean {
-  const activeTemplate = getActiveTaskTemplate(viewModel);
   const runtimeStatus = viewModel.rawSnapshot.runtime.runtimeStatus;
-  return !activeTemplate || activeTemplate.availability !== "ready" || runtimeStatus === "running" || runtimeStatus === "paused" || runtimeStatus === "review_required";
+  return runtimeStatus === "running" || runtimeStatus === "paused" || runtimeStatus === "review_required";
 }
 
 function shouldRenderResultSummary(viewModel: CommanderConsoleViewModel): boolean {
@@ -21,7 +19,7 @@ function shouldRenderResultSummary(viewModel: CommanderConsoleViewModel): boolea
 
 function renderHomeLaunchCard(viewModel: CommanderConsoleViewModel): string {
   return `<form class="cc-home-form" data-start-mission-form>
-      ${renderTaskTemplateLauncherModule(viewModel, isLaunchLocked(viewModel))}
+      ${renderVisualMissionPromptLauncher(viewModel, isLaunchLocked(viewModel))}
     </form>`;
 }
 
@@ -39,8 +37,8 @@ export function renderHomeStartPage(viewModel: CommanderConsoleViewModel, appVie
     `<header class="cc-page-header cc-home-compact-header">
       <div>
         <span class="cc-home-workspace-label">${t("主工作区", "Main Workspace")}</span>
-        <h2>${t("开始", "Start")}</h2>
-        <p>${t("桌面启动页只保留启动任务、运行边界和当前状态。", "The desktop start page keeps only task launch, run bounds, and current status.")}</p>
+        <h2>${t("视觉任务启动", "Visual Mission Start")}</h2>
+        <p>${t("首页只保留用户需求、平台选择、运行边界和最近历史。", "The home page keeps only user requirement input, platform selection, run bounds, and recent history.")}</p>
       </div>
     </header>`,
     renderActionableErrorBanner(viewModel.locale, appViewModel.actionableErrors),

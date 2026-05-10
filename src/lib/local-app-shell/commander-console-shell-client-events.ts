@@ -58,6 +58,21 @@ export const commanderConsoleShellClientEvents = `  document.addEventListener("c
       handlers.onSubmitReviewDecision({ candidateId: reviewCandidateId, disposition: reviewDisposition }).catch((error) => showToast(error.message));
       return;
     }
+    const historyReuse = target.closest("[data-history-reuse]");
+    if (historyReuse instanceof HTMLElement) {
+      populateHistoryDraft(historyReuse);
+      handlers.onReuseHistoryEntry(historyReuse.getAttribute("data-history-reuse") || "")
+        .then(() => showToast(text.historyReused))
+        .catch((error) => showToast(error.message));
+      return;
+    }
+    const historyDelete = target.closest("[data-history-delete]");
+    if (historyDelete instanceof HTMLElement) {
+      handlers.onDeleteHistoryEntry(historyDelete.getAttribute("data-history-delete") || "")
+        .then(() => showToast(text.historyDeleted))
+        .catch((error) => showToast(error.message));
+      return;
+    }
     if (target.closest("[data-copy-inspect-json]") instanceof HTMLElement) {
       const nodes = getInspectNodes();
       const title = nodes.title ? nodes.title.textContent || "inspect" : "inspect";
@@ -65,24 +80,16 @@ export const commanderConsoleShellClientEvents = `  document.addEventListener("c
       const body = nodes.body ? nodes.body.textContent || "" : "";
       navigator.clipboard.writeText(title + "\\n" + summary + "\\n\\n" + body).then(() => showToast(text.copied)).catch(() => showToast(text.clipboardFailed));
     }
-    const filterButton = target.closest("[data-template-filter]");
-    if (filterButton instanceof HTMLElement) {
-      document.querySelectorAll("[data-template-filter]").forEach((button) => button.classList.toggle("is-active", button === filterButton));
-      applyTemplateFilters();
-    }
-  });
-  document.addEventListener("input", (event) => {
-    const target = event.target;
-    if (target instanceof HTMLInputElement && target.matches("[data-template-search]")) {
-      applyTemplateFilters();
-    }
   });
   document.addEventListener("change", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) { return; }
-    if (target instanceof HTMLInputElement && target.name === "taskTemplateId" && target.checked) {
-      updateTemplateUi(target.value);
-      showToast(text.taskSelected + (taskTemplates.get(target.value)?.displayName || target.value));
+    if (target instanceof HTMLInputElement && target.name === "selectedPlatforms") {
+      const selected = Array.from(document.querySelectorAll('input[name="selectedPlatforms"]:checked'))
+        .map((input) => input instanceof HTMLInputElement ? input.value : "")
+        .filter(Boolean);
+      state.selectedPlatforms = selected;
+      syncPlatformUi();
       return;
     }
     if (target instanceof HTMLInputElement && target.id === "cc-max-rounds") { state.maxRounds = Number(target.value || state.maxRounds); return; }

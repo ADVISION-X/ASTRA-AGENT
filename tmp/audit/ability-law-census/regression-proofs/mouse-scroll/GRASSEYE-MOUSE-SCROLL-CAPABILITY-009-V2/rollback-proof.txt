@@ -1,8 +1,0 @@
-scenarioId: manual-first-enforcement-mutation
-mutationName: manual-first-enforcement mutation
-mutatedFile: .github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md
-rollbackRestoredHash: sha256:90d1f0a21457423ce5743501982d33017357c8250aa9b20d6df2ce0f99cb75c4
-startedAt: 2026-05-07T08:45:57.012Z
-endedAt: 2026-05-07T08:46:08.960Z
-
-Rollback was verified by restoring the original production file content and rerunning the Mouse Scroll owner inspector.

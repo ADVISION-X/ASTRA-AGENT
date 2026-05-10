@@ -17,6 +17,7 @@ export const PATHS = {
   CONTRACT: "src/capabilities/screenshot/contract.ts",
   SCHEMA: "src/capabilities/screenshot/schema.ts",
   VISUAL_MISSION_SCHEMA: "src/capabilities/screenshot/visual-mission-schema.ts",
+  VISUAL_MISSION_OUTPUT_SCHEMA: "src/capabilities/screenshot/visual-mission-output-schema.ts",
   TYPES: "src/capabilities/screenshot/shared/screenshot-types.ts",
   VISUAL_MISSION_GRID: "src/capabilities/screenshot/shared/visual-mission-grid.ts",
   REGISTRY: "src/capabilities/screenshot/registry.ts",
@@ -37,6 +38,7 @@ export const PATHS = {
   ARTIFACT_STORAGE_GATE: "src/capabilities/screenshot/runtime/artifact-storage-gate.ts",
   EPHEMERAL_FILE_CLEANUP: "src/capabilities/screenshot/runtime/screenshot-ephemeral-file-cleanup.ts",
   CAPTURE_RUNNER: "src/capabilities/screenshot/runtime/capture-runner.ts",
+  IMAGE_PROCESSING_RUNNER: "src/capabilities/screenshot/runtime/image-processing-runner.ts",
   IMAGE_PROCESSING_PORT: "src/capabilities/screenshot/ports/screenshot-image-processing-port.ts",
   OUTPUT_BOUNDARY_GATE: "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
   PROOF_BUILDER: "src/capabilities/screenshot/runtime/screenshot-proof-builder.ts",
@@ -74,6 +76,7 @@ export const CANONICAL_FILES = [
   `${PATHS.ROOT}/contract.ts`,
   `${PATHS.ROOT}/schema.ts`,
   PATHS.VISUAL_MISSION_SCHEMA,
+  PATHS.VISUAL_MISSION_OUTPUT_SCHEMA,
   `${PATHS.ROOT}/registry.ts`,
   `${PATHS.ROOT}/index.ts`,
   `${PATHS.ROOT}/workbench-screenshot-ability-group.ts`,
@@ -126,7 +129,7 @@ export const CANONICAL_FILES = [
   PATHS.VISUAL_MISSION_OUTPUT,
 ] as const;
 
-export const PUBLIC_INDEX_ALLOWED_SPECIFIERS = ["./ability-group.js", "./contract.js", "./schema.js", "./registry.js"] as const;
+export const PUBLIC_INDEX_ALLOWED_SPECIFIERS = ["./ability-group.js", "./contract.js", "./schema.js", "./visual-mission-output-schema.js", "./registry.js"] as const;
 
 export const FORBIDDEN_CAPABILITY_MARKERS = [
   "/capabilities/ai/",

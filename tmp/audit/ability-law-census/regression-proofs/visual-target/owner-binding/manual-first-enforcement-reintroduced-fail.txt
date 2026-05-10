@@ -1,3 +1,0 @@
-[CODE VIOLATION] visual-target-capability: visual-target owner inspector found capability-boundary, chain-truth, or enforcement violations
-- ERROR scripts/audit/domains/visual-target-capability/manifest.json:1 GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2 must remain machine-blocking.
-

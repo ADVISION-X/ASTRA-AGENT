@@ -1,8 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 3
-summary: Text Input required package or governed execution chain is incomplete.
-
-FATAL GRASSEYE-TEXT-INPUT-CAPABILITY-007-V2 src/capabilities/text-input/runtime/text-input-proof-builder.ts:1 Text Input proof builder must preserve full upstream chain and approved text refs.
-FATAL GRASSEYE-TEXT-INPUT-CAPABILITY-007-V2 src/capabilities/text-input/runtime/text-input-proof-builder.ts:1 Text Input proof builder must not fabricate runId from attemptRef.
-FATAL GRASSEYE-TEXT-INPUT-CAPABILITY-007-V2 src/capabilities/text-input/runtime/text-input-proof-builder.ts:1 Text Input proof/result builders must not persist raw text or fabricate runId.

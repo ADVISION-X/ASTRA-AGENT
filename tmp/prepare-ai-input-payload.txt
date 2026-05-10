@@ -1,6 +1,0 @@
-PATH structuredRuntimeEvents.19560.inputRefs.0
-{
-  "id": "commander_command_bfd687e8-5dd8-4f8f-a8f6-d323f8e67394:prepare-ai-input:6:ability:result:payload",
-  "kind": "ai-result",
-  "summary": "AI runtime ref commander_command_bfd687e8-5dd8-4f8f-a8f6-d323f8e67394:prepare-ai-input:6:ability:result:payload"
-}

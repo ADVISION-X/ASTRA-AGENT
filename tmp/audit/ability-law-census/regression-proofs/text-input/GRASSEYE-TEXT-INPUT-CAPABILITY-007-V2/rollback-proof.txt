@@ -1,8 +1,0 @@
-scenarioId: text-input-fabricated-run-id
-mutationName: fabricated run id mutation
-mutatedFile: src/capabilities/text-input/runtime/text-input-proof-builder.ts
-rollbackRestoredHash: sha256:bbafaf6ee3c308e694cd170b25780d7ba3b69cd8adca616dbcd3a62b4051f06b
-startedAt: 2026-05-05T22:25:32.740Z
-endedAt: 2026-05-05T22:25:35.122Z
-
-Rollback was verified by restoring the original production file content and rerunning the Text Input owner inspector.

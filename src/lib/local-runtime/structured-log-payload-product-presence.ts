@@ -30,13 +30,21 @@ const compactPayload = <TValue extends Record<string, unknown>>(payload: TValue)
   );
 
 const isProductPresenceSummaryEvent = (entry: StructuredRuntimeEvent): entry is StructuredRuntimeEvent & { parsedJson: Record<string, unknown> } =>
-  entry.promptContractId === "vision.productPresence.v1"
+  entry.promptContractId === "visual-mission-judge.v1"
   && (entry.eventType === "AI_NORMALIZED_RESPONSE_DEBUG" || entry.eventType === "AI_RESPONSE_DEBUG")
   && isRecord(entry.parsedJson);
 
+const resolveActionPlanActionCodes = (value: unknown): string[] => {
+  if (!isRecord(value) || !Array.isArray(value.actions)) {
+    return [];
+  }
+  return value.actions.filter((action): action is { actionCode: string } => isRecord(action) && typeof action.actionCode === "string").map((action) => action.actionCode);
+};
+
 const buildProductPresenceDecisionFields = (entry: StructuredRuntimeEvent & { parsedJson: Record<string, unknown> }): Record<string, unknown> => ({
-  decision: typeof entry.parsedJson.decision === "string" ? entry.parsedJson.decision : entry.decision,
-  routeLabel: typeof entry.parsedJson.routeLabel === "string" ? entry.parsedJson.routeLabel : null,
+  taskDecision: typeof entry.parsedJson.taskDecision === "string" ? entry.parsedJson.taskDecision : entry.decision,
+  pageStateDecision: typeof entry.parsedJson.pageStateDecision === "string" ? entry.parsedJson.pageStateDecision : null,
+  actionPlanActionCodes: resolveActionPlanActionCodes(entry.parsedJson.actionPlan),
   isProductVideo:
     typeof entry.parsedJson.isProductVideo === "boolean" || entry.parsedJson.isProductVideo === null
       ? entry.parsedJson.isProductVideo
@@ -50,6 +58,7 @@ const buildProductPresenceObservationFields = (entry: StructuredRuntimeEvent & {
   inputMode: typeof entry.parsedJson.inputMode === "string" ? entry.parsedJson.inputMode : null,
   validFrameCount: typeof entry.parsedJson.validFrameCount === "number" ? entry.parsedJson.validFrameCount : entry.validFrameCount,
   samplingStrategy: typeof entry.parsedJson.samplingStrategy === "string" ? entry.parsedJson.samplingStrategy : entry.samplingStrategy,
+  nonExecutableSummary: redactSensitiveText(typeof entry.parsedJson.nonExecutableSummary === "string" ? entry.parsedJson.nonExecutableSummary : null),
   normalizationAdjusted: (entry.schemaIssueCount ?? 0) > 0 || entry.parserErrors.length > 0,
   diagnosticPayloadRef: entry.diagnosticPayloadRef,
 });

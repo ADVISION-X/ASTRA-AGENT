@@ -1,32 +1,97 @@
 {
-  "generatedAt": "2026-05-10T04:40:51.934Z",
+  "generatedAt": "2026-05-10T05:56:37.645Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
     ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
     "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Screenshot /350/203/275/345/212/233/347/273/204/346/226/275/345/267/245/345/233/276.md\"",
     "scripts/audit/domains/screenshot-capability/config.ts",
     "scripts/audit/domains/screenshot-capability/inspector.ts",
-    "scripts/audit/domains/screenshot-capability/project-access.ts",
+    "scripts/audit/domains/screenshot-capability/visual-mission-shape.ts",
+    "src/app/create-workbench-server.ts",
+    "src/capabilities/ai/children/local-vision-ai/contract.ts",
+    "src/capabilities/ai/children/local-vision-ai/schema.ts",
+    "src/capabilities/ai/model-roster.ts",
+    "src/capabilities/ai/prompt-contracts/builtins/vision.productPresence.v1.prompt-contract.json",
+    "src/capabilities/ai/prompt-contracts/registry.ts",
+    "src/capabilities/ai/prompt-contracts/schema.ts",
+    "src/capabilities/ai/runtime-adapters/local-ai-runtime-health-output-mapper.ts",
+    "src/capabilities/ai/runtime-adapters/local-ai-runtime-mapper.ts",
+    "src/capabilities/ai/runtime/ai-schema-gate.ts",
+    "src/capabilities/ai/runtime/local-ai-runtime-policy.ts",
+    "src/capabilities/ai/schema.ts",
+    "src/capabilities/ai/shared/ai-output-schema-catalog.ts",
+    "src/capabilities/ai/shared/ai-output.ts",
+    "src/capabilities/ai/shared/ai-types.ts",
+    "src/capabilities/ai/task-router.ts",
+    "src/capabilities/forensics-persistence/children/write-product-lead-record/schema.ts",
+    "src/capabilities/nerve-bus/schema-envelope.schema.ts",
+    "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
+    "src/capabilities/orchestration/runtime/orchestration-nerve-bus-adapter.ts",
+    "src/capabilities/orchestration/runtime/step-dispatch-ai-requirements.ts",
+    "src/capabilities/orchestration/runtime/step-dispatcher.ts",
+    "src/capabilities/orchestration/runtime/transition-evaluator.ts",
     "src/capabilities/screenshot/adapters/sharp-screenshot-image-processing-port.ts",
+    "src/capabilities/screenshot/children/prepare-visual-mission-input/contract.ts",
+    "src/capabilities/screenshot/children/prepare-visual-mission-input/implementation.ts",
     "src/capabilities/screenshot/contract.ts",
     "src/capabilities/screenshot/index.ts",
     "src/capabilities/screenshot/ports/screenshot-image-processing-port.ts",
-    "src/capabilities/screenshot/registry.ts",
-    "src/capabilities/screenshot/runtime/artifact-storage-gate.ts",
     "src/capabilities/screenshot/runtime/image-processing-runner.ts",
-    "src/capabilities/screenshot/runtime/screenshot-artifact-lifecycle.ts",
-    "src/capabilities/screenshot/runtime/screenshot-child-contract.ts",
-    "src/capabilities/screenshot/runtime/screenshot-child-registry.ts",
-    "src/capabilities/screenshot/runtime/screenshot-execution-artifact-phase.ts",
-    "src/capabilities/screenshot/runtime/screenshot-execution-success-helpers.ts",
+    "src/capabilities/screenshot/runtime/screenshot-execution-capture-image-phase.ts",
+    "src/capabilities/screenshot/runtime/screenshot-execution-phase-helpers.ts",
     "src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts",
     "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
-    "src/capabilities/screenshot/runtime/screenshot-proof-builder.ts",
-    "src/capabilities/screenshot/runtime/screenshot-result-builder.ts",
-    "src/capabilities/screenshot/runtime/screenshot-transform-truth.ts",
     "src/capabilities/screenshot/schema.ts",
     "src/capabilities/screenshot/screenshot-schema-refinements.ts",
-    "src/capabilities/screenshot/shared/screenshot-types.ts"
+    "src/capabilities/screenshot/shared/visual-mission-grid.ts",
+    "src/lib/local-ai/governed-task-execution.ts",
+    "src/lib/local-ai/local-ai-gateway.ts",
+    "src/lib/local-ai/local-ai-runtime-execution.ts",
+    "src/lib/local-ai/local-ai-runtime-vision-normalization-decision.ts",
+    "src/lib/local-ai/local-ai-runtime-vision-normalization-output.ts",
+    "src/lib/local-ai/local-ai-runtime-vision-normalization.ts",
+    "src/lib/local-ai/local-ai-runtime-vision-prompt.ts",
+    "src/lib/local-ai/local-ai-runtime-vision-task-handlers.ts",
+    "src/lib/local-ai/local-ai-runtime-vision-task-result.ts",
+    "src/lib/local-ai/local-ai-runtime-vision-task.ts",
+    "src/lib/local-ai/local-ai-runtime-vision.ts",
+    "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
+    "src/lib/local-app-shell/commander-console-shell-client-events.ts",
+    "src/lib/local-app-shell/commander-console-shell-client-support.ts",
+    "src/lib/local-app-shell/commander-console-shell-client.ts",
+    "src/lib/local-app-shell/commander-console-view-model.ts",
+    "src/lib/local-app-shell/commander-shell-render-state.ts",
+    "src/lib/local-app-shell/CommanderAppShell.ts",
+    "src/lib/local-app-shell/CommanderMacShell.ts",
+    "src/lib/local-app-shell/pages/HomeStartPage.ts",
+    "src/lib/local-app-shell/task-start-binding.ts",
+    "src/lib/local-app-shell/task-start-flow.ts",
+    "src/lib/local-app-shell/task-start-types.ts",
+    "src/lib/local-app-shell/types.ts",
+    "src/lib/local-app-shell/view-helpers.ts",
+    "src/lib/local-app-shell/view-model/summary-sections.ts",
+    "src/lib/local-runtime/structured-log-payload-product-presence.ts",
+    "src/lib/local-runtime/workbench-contract.ts",
+    "src/lib/local-runtime/workbench-facade.ts",
+    "src/lib/local-runtime/workbench-forensics-dispatch-input.ts",
+    "src/lib/local-runtime/workbench-forensics-finalization-browse-ledger.ts",
+    "src/lib/local-runtime/workbench-forensics-finalization-evidence-packet-builder.ts",
+    "src/lib/local-runtime/workbench-nerve-bus-ai-decision.ts",
+    "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts",
+    "src/lib/local-runtime/workbench-runtime.ts",
+    "src/map-plugins/authoring/capability-catalog/capability-catalog.generated.json",
+    "src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json",
+    "src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json",
+    "src/map-plugins/builtins/iphone-mirroring-tiktok-seeding-video-discovery.meta.map-package.json",
+    "src/map-plugins/builtins/tiktok-seeding-video-discovery.meta.map-package.json",
+    "src/map-plugins/route-plans/product-discovery-route-plan.steps.product-presence.ts",
+    "src/map-plugins/route-plans/product-discovery-route-plan.steps.ts",
+    "src/map-plugins/route-plans/product-discovery-route-plan.transitions.product-presence.ts",
+    "src/map-plugins/route-plans/product-discovery-route-plan.transitions.ts",
+    "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts",
+    "src/types/local-ai.ts",
+    "src/types/multi-frame-evidence.ts",
+    "src/types/vision-product-presence.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -35,8 +100,71 @@
     "src/**/prompt-contracts/**/*.{json,jsonc,ts,tsx}",
     "src/capabilities/**/prompt-contracts/**/*.{json,jsonc,ts,tsx}"
   ],
-  "godFileInventory": [],
+  "godFileInventory": [
+    {
+      "file": "src/lib/local-app-shell/task-start-binding.ts",
+      "lines": 322,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 22,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveVisualMissionStartBinding"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-decision.ts",
+      "lines": 349,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 49,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/muscle-memory/catalog/catalog-seed.ts",
+      "lines": 405,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 105,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    }
+  ],
   "disasterFileInventory": [
+    {
+      "file": "src/lib/local-ai/local-ai-runtime-visual-mission-action-plan-task.ts",
+      "lines": 72,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
     {
       "file": "src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json",
       "lines": 982,
@@ -66,53 +194,136 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
-    }
-  ],
-  "ownerMixingInventory": [],
-  "oversizedTouchedFileInventory": [],
-  "functionOverLimitInventory": [
-    {
-      "file": "src/capabilities/screenshot/adapters/sharp-screenshot-image-processing-port.ts",
-      "lines": 247,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "adapter",
-      "functionsOverLimit": [
-        "buildGridSpec"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts",
-      "lines": 278,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "buildScreenshotSuccessRuntimeProofIdentityFields"
-      ],
-      "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
-      "lines": 266,
+      "file": "src/muscle-memory/executor/muscle-memory-executor.ts",
+      "lines": 161,
       "fileType": "runtime/implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "resolveVisualMissionOutputShapeFailure"
+        "executeMuscleMemoryPlan"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    }
+  ],
+  "ownerMixingInventory": [
+    {
+      "file": "src/lib/local-ai/local-ai-runtime-visual-mission-action-plan-task.ts",
+      "lines": 72,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/muscle-memory/executor/muscle-memory-executor.ts",
+      "lines": 161,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "executeMuscleMemoryPlan"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    }
+  ],
+  "oversizedTouchedFileInventory": [
+    {
+      "file": "src/lib/local-app-shell/task-start-binding.ts",
+      "lines": 322,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 22,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveVisualMissionStartBinding"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-decision.ts",
+      "lines": 349,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 49,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    }
+  ],
+  "functionOverLimitInventory": [
+    {
+      "file": "src/app/user-requirement-history-api-handlers.ts",
+      "lines": 134,
+      "fileType": "app/api handler",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "handleHistoryUpsertRequest"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split app/api handler by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/orchestration/runtime/step-dispatcher.ts",
+      "lines": 252,
+      "fileType": "orchestration coordinator",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "dispatchAiStep"
+      ],
+      "classMembers": 0,
+      "importCount": 11,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-ai/local-ai-runtime-execution.ts",
+      "lines": 43,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "executeSupportedRuntimeTask"
       ],
       "classMembers": 0,
       "importCount": 7,
@@ -120,16 +331,119 @@
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/screenshot/screenshot-schema-refinements.ts",
-      "lines": 239,
+      "file": "src/lib/local-ai/local-ai-runtime-vision-normalization-decision.ts",
+      "lines": 196,
       "fileType": "ordinary implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "validateResultOutput"
+        "resolveTaskDecision",
+        "resolveVisionRuntimeDecisionLabels"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-ai/local-ai-runtime-vision.ts",
+      "lines": 126,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildVisionNormalizationDiagnostics"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/task-start-binding.ts",
+      "lines": 322,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 22,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveVisualMissionStartBinding"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/task-start-visual-mission-binding.ts",
+      "lines": 162,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveVisualMissionStartBinding"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts",
+      "lines": 296,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildWorkbenchAiResponseEnvelope"
+      ],
+      "classMembers": 0,
+      "importCount": 6,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/muscle-memory/executor/muscle-memory-executor.ts",
+      "lines": 161,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "executeMuscleMemoryPlan"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/muscle-memory/schema.ts",
+      "lines": 79,
+      "fileType": "schema/type",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "MuscleMemoryActionSchema"
       ],
       "classMembers": 0,
       "importCount": 2,
@@ -137,35 +451,84 @@
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+      "recommendedSplit": "Split schema/type by owner-local collaborators."
+    },
+    {
+      "file": "src/types/visual-mission-action-plan.ts",
+      "lines": 102,
+      "fileType": "schema/type",
+      "overLimitBy": 0,
+      "primaryRole": "type-only",
+      "functionsOverLimit": [
+        "VisualMissionActionSchema"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split schema/type by owner-local collaborators."
     }
   ],
   "classObjectOverLimitInventory": [],
   "importExportOverLimitInventory": [
     {
-      "file": "scripts/audit/domains/screenshot-capability/inspector.ts",
-      "lines": 82,
-      "fileType": "audit inspector",
-      "overLimitBy": 0,
-      "primaryRole": "inspector",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 13,
-      "crossOwnerImports": 1,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/screenshot/shared/visual-mission-grid.ts",
-      "lines": 84,
+      "file": "src/lib/local-app-shell/CommanderMacShell.ts",
+      "lines": 69,
       "fileType": "ordinary implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [],
       "classMembers": 0,
-      "importCount": 1,
+      "importCount": 13,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/task-start-binding.ts",
+      "lines": 322,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 22,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveVisualMissionStartBinding"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/task-start-legacy-binding.ts",
+      "lines": 183,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 2,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/muscle-memory/index.ts",
+      "lines": 65,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "index",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -205,78 +568,42 @@
       "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts",
-      "lines": 278,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "buildScreenshotSuccessRuntimeProofIdentityFields"
-      ],
-      "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
-      "lines": 266,
+      "file": "src/muscle-memory/executor/muscle-memory-executor.ts",
+      "lines": 161,
       "fileType": "runtime/implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "resolveVisualMissionOutputShapeFailure"
+        "executeMuscleMemoryPlan"
       ],
       "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
+      "importCount": 5,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
       "roleMixingSignals": [],
-      "severity": "REMEDIATION",
+      "severity": "DISASTER",
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/screenshot/adapters/sharp-screenshot-image-processing-port.ts",
-      "lines": 247,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "adapter",
-      "functionsOverLimit": [
-        "buildGridSpec"
-      ],
-      "classMembers": 0,
-      "importCount": 9,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/screenshot/screenshot-schema-refinements.ts",
-      "lines": 239,
+      "file": "src/lib/local-ai/local-ai-runtime-visual-mission-action-plan-task.ts",
+      "lines": 72,
       "fileType": "ordinary implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
-      "functionsOverLimit": [
-        "validateResultOutput"
-      ],
+      "functionsOverLimit": [],
       "classMembers": 0,
-      "importCount": 2,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
+      "importCount": 4,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 2,
       "roleMixingSignals": [],
-      "severity": "REMEDIATION",
+      "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/screenshot/shared/visual-mission-grid.ts",
-      "lines": 84,
+      "file": "src/muscle-memory/catalog/catalog-seed.ts",
+      "lines": 405,
       "fileType": "ordinary implementation",
-      "overLimitBy": 0,
+      "overLimitBy": 105,
       "primaryRole": "executor",
       "functionsOverLimit": [],
       "classMembers": 0,
@@ -284,23 +611,239 @@
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-decision.ts",
+      "lines": 349,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 49,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/task-start-binding.ts",
+      "lines": 322,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 22,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveVisualMissionStartBinding"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts",
+      "lines": 296,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildWorkbenchAiResponseEnvelope"
+      ],
+      "classMembers": 0,
+      "importCount": 6,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/screenshot-capability/inspector.ts",
-      "lines": 82,
-      "fileType": "audit inspector",
+      "file": "src/capabilities/orchestration/runtime/step-dispatcher.ts",
+      "lines": 252,
+      "fileType": "orchestration coordinator",
       "overLimitBy": 0,
-      "primaryRole": "inspector",
-      "functionsOverLimit": [],
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "dispatchAiStep"
+      ],
       "classMembers": 0,
-      "importCount": 13,
+      "importCount": 11,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-ai/local-ai-runtime-vision-normalization-decision.ts",
+      "lines": 196,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveTaskDecision",
+        "resolveVisionRuntimeDecisionLabels"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
       "crossOwnerImports": 1,
       "ownerBoundaries": 1,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/task-start-legacy-binding.ts",
+      "lines": 183,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 2,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/task-start-visual-mission-binding.ts",
+      "lines": 162,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveVisualMissionStartBinding"
+      ],
+      "classMembers": 0,
+      "importCount": 4,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/app/user-requirement-history-api-handlers.ts",
+      "lines": 134,
+      "fileType": "app/api handler",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "handleHistoryUpsertRequest"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split app/api handler by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-ai/local-ai-runtime-vision.ts",
+      "lines": 126,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildVisionNormalizationDiagnostics"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/types/visual-mission-action-plan.ts",
+      "lines": 102,
+      "fileType": "schema/type",
+      "overLimitBy": 0,
+      "primaryRole": "type-only",
+      "functionsOverLimit": [
+        "VisualMissionActionSchema"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split schema/type by owner-local collaborators."
+    },
+    {
+      "file": "src/muscle-memory/schema.ts",
+      "lines": 79,
+      "fileType": "schema/type",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "MuscleMemoryActionSchema"
+      ],
+      "classMembers": 0,
+      "importCount": 2,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split schema/type by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-app-shell/CommanderMacShell.ts",
+      "lines": 69,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 13,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/muscle-memory/index.ts",
+      "lines": 65,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "index",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-ai/local-ai-runtime-execution.ts",
+      "lines": 43,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "executeSupportedRuntimeTask"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [
@@ -335,55 +878,51 @@
       "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts",
-      "lines": 278,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "result-builder",
-      "functionsOverLimit": [
-        "buildScreenshotSuccessRuntimeProofIdentityFields"
-      ],
-      "classMembers": 0,
-      "importCount": 8,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
-      "lines": 266,
+      "file": "src/muscle-memory/executor/muscle-memory-executor.ts",
+      "lines": 161,
       "fileType": "runtime/implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "resolveVisualMissionOutputShapeFailure"
+        "executeMuscleMemoryPlan"
       ],
       "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
+      "importCount": 5,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 1,
       "roleMixingSignals": [],
-      "severity": "REMEDIATION",
+      "severity": "DISASTER",
       "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     },
     {
-      "file": "src/capabilities/screenshot/adapters/sharp-screenshot-image-processing-port.ts",
-      "lines": 247,
-      "fileType": "runtime/implementation",
+      "file": "src/lib/local-ai/local-ai-runtime-visual-mission-action-plan-task.ts",
+      "lines": 72,
+      "fileType": "ordinary implementation",
       "overLimitBy": 0,
-      "primaryRole": "adapter",
-      "functionsOverLimit": [
-        "buildGridSpec"
-      ],
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
       "classMembers": 0,
-      "importCount": 9,
+      "importCount": 4,
+      "crossOwnerImports": 3,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "DISASTER",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/muscle-memory/catalog/catalog-seed.ts",
+      "lines": 405,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 105,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 1,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     }
   ]
 }

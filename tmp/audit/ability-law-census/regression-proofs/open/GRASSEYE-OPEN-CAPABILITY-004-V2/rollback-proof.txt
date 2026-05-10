@@ -1,8 +1,0 @@
-scenarioId: timeout-abort-mutation
-mutationName: timeout abort mutation
-mutatedFile: src/capabilities/open/runtime/navigation-runner-support.ts
-rollbackRestoredHash: sha256:55db601a85388243969a1196841321da8691a825d82f5ec386d46050f56ddab7
-startedAt: 2026-05-06T15:37:50.623Z
-endedAt: 2026-05-06T15:37:55.005Z
-
-Rollback was verified by restoring the original production file content and rerunning the Open owner inspector.

@@ -1,4 +1,0 @@
-> grasseye-local-workbench@0.1.0 audit:screenshot
-> node --import tsx scripts/audit/domains/screenshot-capability/run-inspector.ts
-
-[PASS] screenshot-capability: screenshot-capability owner inspector passed owner-foundation, required-shape, forbidden-shape, boundary, ownership-boundary, anti-escape, and negative-proof phases

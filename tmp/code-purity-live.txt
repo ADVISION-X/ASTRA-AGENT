@@ -1,8 +1,0 @@
-
-> grasseye-local-workbench@0.1.0 audit:code-purity
-> node --import tsx scripts/audit/domains/code-purity/run-inspector.ts
-
-[CODE VIOLATION] code-purity: 3 finding(s)
-- ERROR GRASSEYE-CODE-PURITY-005-V1 src/capabilities/orchestration/ability-group.ts:1 File crosses too many real owner boundaries or cross-owner imports.
-- ERROR GRASSEYE-CODE-PURITY-001-V1 src/lib/local-app-shell/commander-console-shell-client.ts:1 File exceeds the ordinary implementation hard limit of 300 lines.
-- ERROR GRASSEYE-CODE-PURITY-001-V1 src/lib/local-app-shell/styles/commander-console-styles.ts:1 File exceeds the ordinary implementation hard limit of 300 lines.

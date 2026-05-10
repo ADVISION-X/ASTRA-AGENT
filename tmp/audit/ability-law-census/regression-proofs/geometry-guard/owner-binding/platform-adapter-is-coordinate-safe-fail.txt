@@ -1,4 +1,0 @@
-passed: false
-violationCount: 1
-
-FATAL GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3 src/lib/local-runtime/workbench-browser-runtime.ts:1 Platform adapters, runtime, and browser helpers must not own geometry safety truth.

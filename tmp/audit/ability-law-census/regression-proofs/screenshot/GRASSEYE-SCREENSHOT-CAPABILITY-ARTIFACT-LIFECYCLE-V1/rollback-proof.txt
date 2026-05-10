@@ -1,8 +1,0 @@
-scenarioId: screenshot-lifecycle-self-promotion
-mutationName: artifact lifecycle self-promotion mutation
-mutatedFile: src/capabilities/screenshot/runtime/screenshot-artifact-lifecycle.ts
-rollbackRestoredHash: sha256:b78fc30b88d38e2b95e51e9295391dbf8ce7dbf9bc407e02a7f02d3e57bd3253
-startedAt: 2026-05-05T22:40:17.804Z
-endedAt: 2026-05-05T22:40:21.063Z
-
-Rollback was verified by restoring the original production file content and rerunning the Screenshot owner inspector.

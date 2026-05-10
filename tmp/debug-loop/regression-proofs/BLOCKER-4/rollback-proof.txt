@@ -1,5 +1,0 @@
-
-> grasseye-local-workbench@0.1.0 audit:orchestration
-> node --import tsx scripts/audit/domains/orchestration-capability/run-inspector.ts
-
-[PASS] orchestration-capability: Orchestration negative-proof harness rejects execute-type escape, floating resume map lookup, unknown-child proof drop, and post-action verification bypass mutations.

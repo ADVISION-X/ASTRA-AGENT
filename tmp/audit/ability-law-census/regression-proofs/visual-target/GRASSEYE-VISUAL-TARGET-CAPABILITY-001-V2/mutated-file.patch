@@ -1,7 +1,0 @@
-diff --git a/src/app/visual-target-private-import-probe.ts b/src/app/visual-target-private-import-probe.ts
---- a/src/app/visual-target-private-import-probe.ts
-+++ b/src/app/visual-target-private-import-probe.ts
-@@ -1,1 +1,3 @@
-+import "../capabilities/visual-target/children/detect-comments-button/implementation.js";
-+export const probe = true;
- 

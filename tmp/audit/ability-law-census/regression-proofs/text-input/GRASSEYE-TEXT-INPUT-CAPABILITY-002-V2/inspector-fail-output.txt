@@ -1,7 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 2
-summary: Text Input still contains forbidden execution shapes or sensitive persistence leaks.
-
-FATAL GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2 src/capabilities/text-input/children/type-text/implementation.ts:1 Text Input must not import forbidden ability or browser internals.
-FATAL GRASSEYE-TEXT-INPUT-CAPABILITY-002-V2 src/capabilities/text-input/children/type-text/implementation.ts:1 Text Input write-only boundary must not import foreign owner or browser internals.

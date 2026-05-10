@@ -1,5 +1,0 @@
-
-> grasseye-local-workbench@0.1.0 audit:page-state
-> node --import tsx scripts/audit/domains/page-state-capability/run-inspector.ts
-
-[PASS] page-state-capability: page-state owner inspector passed required, forbidden, boundary, truth-ownership, anti-escape, enforcement-coverage, and negative-proof phases

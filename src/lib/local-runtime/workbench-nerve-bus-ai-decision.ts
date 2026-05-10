@@ -1,14 +1,14 @@
 import {
-  PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
-  PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
-} from "../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
-import {
   STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
   STARTUP_PREPARATION_READY_ROUTE_LABEL,
 } from "../../map-plugins/shared/startup-preparation.constants.js";
+import { loadMuscleMemoryCatalog } from "../../muscle-memory/index.js";
+import type { VisualMissionActionPlan } from "../../muscle-memory/decoder/action-plan.schema.js";
+import { VisualMissionActionPlanOutputSchema, type VisualMissionActionPlanOutput } from "../../types/visual-mission-action-plan.js";
 
 const PAGE_PREPARATION_TASK_TYPE = "page_preparation_judgment";
 const PRODUCT_PRESENCE_TASK_TYPE = "product_presence_judgment";
+const VISUAL_MISSION_ACTION_PLAN_TASK_TYPE = "visual_mission_action_plan";
 
 export const describeFailureReason = (
   failureReason: string | { code?: string; message?: string; detail?: string | null } | null | undefined,
@@ -28,12 +28,14 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 const isProductPresenceOutput = (
   value: unknown,
-): value is { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nonExecutableSummary?: string } => (
+): value is { isProductVideo: boolean | null; mustReview: boolean; taskDecision: string; pageStateDecision: string; actionPlan?: VisualMissionActionPlan; nonExecutableSummary?: string } => (
   isRecord(value)
   && "isProductVideo" in value
   && (typeof value.isProductVideo === "boolean" || value.isProductVideo === null)
   && "mustReview" in value
   && typeof value.mustReview === "boolean"
+  && typeof value.taskDecision === "string"
+  && typeof value.pageStateDecision === "string"
 );
 
 const isPagePreparationOutput = (
@@ -43,6 +45,73 @@ const isPagePreparationOutput = (
   && "decision" in value
   && (value.decision === "yes" || value.decision === "no")
 );
+
+const isVisualMissionActionPlanOutput = (value: unknown): value is VisualMissionActionPlanOutput =>
+  VisualMissionActionPlanOutputSchema.safeParse(value).success;
+
+const normalizeVisualMissionPageStateDecision = (decision: VisualMissionActionPlanOutput["pageStateDecision"]): VisualMissionActionPlan["pageStateDecision"] => {
+  switch (decision) {
+    case "ready":
+      return "ready";
+    case "recover":
+      return "recover_to_entry";
+    case "review_required":
+    case "blocked":
+      return "stop_review_required";
+  }
+};
+
+const resolveVisualMissionTaskDecision = (output: VisualMissionActionPlanOutput): string => {
+  const firstActionCode = output.actions[0]?.actionCode ?? null;
+  if (firstActionCode) {
+    return firstActionCode;
+  }
+  if (output.productDecision === "product_yes") {
+    return "SAVE_LEAD";
+  }
+  if (output.productDecision === "product_no") {
+    return "NEXT_VIDEO";
+  }
+  return "STOP_REVIEW_REQUIRED";
+};
+
+const shouldReviewVisualMissionOutput = (output: VisualMissionActionPlanOutput): boolean =>
+  output.pageStateDecision === "review_required"
+  || output.pageStateDecision === "blocked"
+  || output.productDecision === "uncertain"
+  || output.actions.some((action) => action.actionCode === "STOP_REVIEW_REQUIRED");
+
+const resolveVisualMissionReviewReason = (output: VisualMissionActionPlanOutput): string => {
+  if (output.pageStateDecision === "blocked") {
+    return "visual_mission_blocked";
+  }
+  if (output.pageStateDecision === "review_required") {
+    return "visual_mission_review_required";
+  }
+  if (output.productDecision === "uncertain") {
+    return "visual_mission_product_uncertain";
+  }
+  return "visual_mission_stop_review_required";
+};
+
+const buildCompatibleVisualMissionActionPlan = (output: VisualMissionActionPlanOutput): VisualMissionActionPlan => ({
+  schemaVersion: "visualMissionActionPlan.v1",
+  userRequirementRef: null,
+  muscleMemoryCatalogVersion: loadMuscleMemoryCatalog().catalogVersion,
+  platform: output.platform,
+  pageStateDecision: normalizeVisualMissionPageStateDecision(output.pageStateDecision),
+  taskDecision: resolveVisualMissionTaskDecision(output),
+  confidence: output.confidence,
+  reason: output.reason,
+  actions: output.actions.map((action) => ({
+    actionCode: action.actionCode,
+    required: action.required,
+    ...(action.input ? { input: action.input } : {}),
+    reason: action.reason,
+  })),
+  riskFlags: output.riskFlags,
+  nonExecutableSummary: output.nonExecutableSummary,
+});
 
 const resolveProductPresenceReviewReason = (input: {
   reviewRequiredReason: string | null | undefined;
@@ -70,28 +139,25 @@ const buildDefaultDecision = (input: {
   return {
     status: input.status,
     decision: input.aiTaskType,
+    taskDecision: null,
+    pageStateDecision: null,
+    actionPlan: null,
     reviewRequiredReason: input.status === "review_required"
       ? (input.reviewRequiredReason ?? input.failureReason ?? "review required")
       : null,
     isProductVideo: null,
     mustReview: null,
-    routeLabel: null,
     nonExecutableSummary: null,
   };
 };
 
-const resolveProductPresenceRouteLabel = (output: { routeLabel?: string; isProductVideo: boolean | null }) =>
-  typeof output.routeLabel === "string" && output.routeLabel.length > 0
-    ? output.routeLabel
-    : (output.isProductVideo === true ? PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL : PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL);
-
-const resolveProductPresenceNonExecutableSummary = (output: { nonExecutableSummary?: string; routeLabel?: string; isProductVideo: boolean | null }) => {
+const resolveProductPresenceNonExecutableSummary = (output: { nonExecutableSummary?: string | undefined; taskDecision: string }) => {
   if (typeof output.nonExecutableSummary === "string" && output.nonExecutableSummary.length > 0) {
     return output.nonExecutableSummary;
   }
-  return resolveProductPresenceRouteLabel(output) === PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL
-    ? "当前证据支持产品展示，选择产品证据路线标签。"
-    : "当前证据未证明产品展示，选择非产品路线标签。";
+  return output.taskDecision === "YES_SEEDING_VIDEO_FLOW"
+    ? "当前证据显示视频存在明确产品展示，执行保存线索、点赞并切到下一条。"
+    : "当前证据未显示明确产品展示，直接切到下一条。";
 };
 
 const resolvePagePreparationRouteLabel = (output: { routeLabel?: string; decision: "yes" | "no" }) =>
@@ -114,21 +180,25 @@ const resolvePagePreparationDecision = (input: {
 }) => ({
   status: input.status,
   decision: input.output.decision,
+  taskDecision: null,
+  pageStateDecision: input.output.decision === "yes" ? "ready" : "stop_review_required",
+  actionPlan: null,
   reviewRequiredReason: input.status === "review_required" ? "page_preparation_review_required" : null,
   isProductVideo: null,
   mustReview: false,
-  routeLabel: resolvePagePreparationRouteLabel(input.output),
   nonExecutableSummary: resolvePagePreparationNonExecutableSummary(input.output),
 });
 
-const buildProductPresenceFailedDecision = (output: { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nonExecutableSummary?: string }) => {
+const buildProductPresenceFailedDecision = (output: { isProductVideo: boolean | null; mustReview: boolean; taskDecision: string; pageStateDecision: string; actionPlan?: VisualMissionActionPlan | undefined; nonExecutableSummary?: string | undefined }) => {
   return {
     status: "failed" as const,
     decision: "product_presence_failed",
+    taskDecision: output.taskDecision,
+    pageStateDecision: output.pageStateDecision,
+    actionPlan: output.actionPlan ?? null,
     reviewRequiredReason: null,
     isProductVideo: output.isProductVideo,
     mustReview: output.mustReview,
-    routeLabel: resolveProductPresenceRouteLabel(output),
     nonExecutableSummary: resolveProductPresenceNonExecutableSummary(output),
   };
 };
@@ -140,43 +210,106 @@ const buildProductPresenceReviewDecision = (input: {
 }) => {
   return {
     status: "review_required" as const,
-    decision: "product_no",
+    decision: "product_presence_review_required",
+    taskDecision: null,
+    pageStateDecision: "stop_review_required",
+    actionPlan: null,
     reviewRequiredReason: resolveProductPresenceReviewReason(input),
     isProductVideo: input.isProductVideo,
     mustReview: input.mustReview,
-    routeLabel: PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
-    nonExecutableSummary: "当前证据未证明产品展示，选择非产品路线标签。",
+    nonExecutableSummary: "当前证据不足以进入自动动作执行，任务需要人工复核。",
   };
 };
 
 const resolveProductPresenceDecision = (input: {
   status: "success" | "failed" | "review_required";
   reviewRequiredReason: string | null | undefined;
-  output: { isProductVideo: boolean | null; mustReview: boolean; routeLabel?: string; nonExecutableSummary?: string };
+  output: { isProductVideo: boolean | null; mustReview: boolean; taskDecision: string; pageStateDecision: string; actionPlan?: VisualMissionActionPlan; nonExecutableSummary?: string };
 }) => {
   const { isProductVideo, mustReview } = input.output;
   if (input.status === "failed") {
-    return buildProductPresenceFailedDecision({ isProductVideo, mustReview });
+    return buildProductPresenceFailedDecision({
+      isProductVideo,
+      mustReview,
+      taskDecision: input.output.taskDecision,
+      pageStateDecision: input.output.pageStateDecision,
+      actionPlan: input.output.actionPlan,
+      nonExecutableSummary: input.output.nonExecutableSummary,
+    });
   }
   if (isProductVideo === false && mustReview === false) {
     return {
       status: "success" as const,
-      decision: "product_no",
+      decision: input.output.taskDecision,
+      taskDecision: input.output.taskDecision,
+      pageStateDecision: input.output.pageStateDecision,
+      actionPlan: input.output.actionPlan ?? null,
       reviewRequiredReason: null,
       isProductVideo,
       mustReview,
-      routeLabel: resolveProductPresenceRouteLabel(input.output),
       nonExecutableSummary: resolveProductPresenceNonExecutableSummary(input.output),
     };
   }
   return {
     status: "success" as const,
-    decision: isProductVideo ? "product_yes" : "product_no",
+    decision: input.output.taskDecision,
+    taskDecision: input.output.taskDecision,
+    pageStateDecision: input.output.pageStateDecision,
+    actionPlan: input.output.actionPlan ?? null,
     reviewRequiredReason: null,
     isProductVideo: isProductVideo === true,
     mustReview: false,
-    routeLabel: resolveProductPresenceRouteLabel(input.output),
     nonExecutableSummary: resolveProductPresenceNonExecutableSummary(input.output),
+  };
+};
+
+const resolveVisualMissionDecision = (input: {
+  status: "success" | "failed" | "review_required";
+  reviewRequiredReason: string | null | undefined;
+  output: VisualMissionActionPlanOutput;
+}) => {
+  const compatibleActionPlan = buildCompatibleVisualMissionActionPlan(input.output);
+  const taskDecision = compatibleActionPlan.taskDecision;
+  const reviewRequiredReason = input.reviewRequiredReason ?? resolveVisualMissionReviewReason(input.output);
+
+  if (input.status === "failed") {
+    return {
+      status: "failed" as const,
+      decision: taskDecision,
+      taskDecision,
+      pageStateDecision: compatibleActionPlan.pageStateDecision,
+      actionPlan: null,
+      reviewRequiredReason: null,
+      isProductVideo: input.output.isProductVideo,
+      mustReview: false,
+      nonExecutableSummary: input.output.nonExecutableSummary,
+    };
+  }
+
+  if (input.status === "review_required" || shouldReviewVisualMissionOutput(input.output)) {
+    return {
+      status: "review_required" as const,
+      decision: taskDecision,
+      taskDecision,
+      pageStateDecision: compatibleActionPlan.pageStateDecision,
+      actionPlan: null,
+      reviewRequiredReason,
+      isProductVideo: input.output.isProductVideo,
+      mustReview: true,
+      nonExecutableSummary: input.output.nonExecutableSummary,
+    };
+  }
+
+  return {
+    status: "success" as const,
+    decision: taskDecision,
+    taskDecision,
+    pageStateDecision: compatibleActionPlan.pageStateDecision,
+    actionPlan: compatibleActionPlan,
+    reviewRequiredReason: null,
+    isProductVideo: input.output.isProductVideo,
+    mustReview: false,
+    nonExecutableSummary: input.output.nonExecutableSummary,
   };
 };
 
@@ -191,6 +324,14 @@ export const resolveWorkbenchAiDecision = (input: {
   if (input.aiTaskType === PAGE_PREPARATION_TASK_TYPE && isPagePreparationOutput(input.output)) {
     return resolvePagePreparationDecision({
       status: input.status,
+      output: input.output,
+    });
+  }
+
+  if (input.aiTaskType === VISUAL_MISSION_ACTION_PLAN_TASK_TYPE && isVisualMissionActionPlanOutput(input.output)) {
+    return resolveVisualMissionDecision({
+      status: input.status,
+      reviewRequiredReason: input.reviewRequiredReason,
       output: input.output,
     });
   }

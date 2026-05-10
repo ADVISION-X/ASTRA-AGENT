@@ -14,6 +14,7 @@ const AI_TASK_TYPES = [
   "page_preparation_judgment",
   "product_presence_judgment",
   "visual_observation",
+  "visual_mission_action_plan",
   "visual_target_candidate_analysis",
   "ocr_cleanup",
   "comment_signal_summary",

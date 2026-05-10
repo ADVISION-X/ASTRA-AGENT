@@ -1,6 +1,0 @@
-
-> grasseye-local-workbench@0.1.0 audit:commander-console
-> node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts
-
-[CODE VIOLATION] commander-console-capability: Required Commander production shape is incomplete or structurally invalid.
-- FATAL src/lib/local-app-shell/task-start-support.ts:1 Task start dispatch result must publish commandEnvelopeRef/resultEnvelopeRef/runtimeProofRef through COMMAND_ACCEPTED/COMMAND_REJECTED refs and proofRefs.

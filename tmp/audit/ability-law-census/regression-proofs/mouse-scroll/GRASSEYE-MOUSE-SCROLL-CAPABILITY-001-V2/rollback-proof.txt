@@ -1,8 +1,0 @@
-scenarioId: platform-direct-scroll-mutation
-mutationName: platform-direct-scroll mutation
-mutatedFile: src/lib/local-runtime/workbench-mouse-scroll-runtime.ts
-rollbackRestoredHash: sha256:97d04beb8ebcf32888494cbc5332de1b893ed087263c8bc340fb70cb0a1bee93
-startedAt: 2026-05-07T08:46:31.412Z
-endedAt: 2026-05-07T08:46:42.705Z
-
-Rollback was verified by restoring the original production file content and rerunning the Mouse Scroll owner inspector.

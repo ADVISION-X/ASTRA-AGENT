@@ -98,11 +98,28 @@ type CommanderConsoleTaskTemplate = {
   disabledReason?: string;
 };
 
+type CommanderConsoleStartPlatformId =
+  | "facebook-web"
+  | "tiktok-web";
+
+type CommanderConsoleUserRequirementHistoryEntry = {
+  id: string;
+  title: string;
+  userRequirementText: string;
+  selectedPlatforms: CommanderConsoleStartPlatformId[];
+  maxRounds: number;
+  maxMinutes: number;
+  createdAt: string;
+  lastUsedAt: string;
+  useCount: number;
+};
+
 type CommanderConsoleCommandDraft = {
   commandType: "start-mission";
   commandSource: "commander-console:start-form-submit";
-  taskTemplateId: string | null;
-  humanGoal: string;
+  userRequirementText: string;
+  selectedPlatforms: CommanderConsoleStartPlatformId[];
+  historyEntryId: string | null;
   maxRounds: number;
   maxMinutes: number;
 };
@@ -180,6 +197,7 @@ type CommanderConsoleViewModel = {
   taskTemplates: CommanderConsoleTaskTemplate[];
   preflightSummary: CommanderConsolePreflightCheck[];
   commandDraft: CommanderConsoleCommandDraft;
+  userRequirementHistory: CommanderConsoleUserRequirementHistoryEntry[];
   capabilityHealth: CommanderCapabilityHealthEntry[];
   reviewQueueSummary: CommanderConsoleReviewSummary;
   failureRadarSummary: CommanderConsoleFailureItem[];
@@ -220,6 +238,8 @@ export type {
   CommanderConsoleMapView,
   CommanderConsolePreflightCheck,
   CommanderConsoleTaskTemplate,
+  CommanderConsoleStartPlatformId,
+  CommanderConsoleUserRequirementHistoryEntry,
   CommanderConsoleCommandDraft,
   CommanderConsoleSummaryItem,
   CommanderConsoleReviewSummary,

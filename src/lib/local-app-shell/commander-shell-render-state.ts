@@ -6,14 +6,16 @@ import { renderInspectItemHtml } from "./inspect/renderInspectItemHtml.js";
 
 type CommanderShellDashboard = Parameters<typeof buildCommanderConsoleViewModel>[0];
 type CommanderShellLocale = Parameters<typeof buildCommanderConsoleViewModel>[1];
+type CommanderShellUserRequirementHistory = Parameters<typeof buildCommanderConsoleViewModel>[3];
 
 export function buildCommanderShellRenderState(input: {
   dashboard: CommanderShellDashboard;
   locale: CommanderShellLocale;
   appRunLimitSettings: Parameters<typeof buildCommanderConsoleViewModel>[2];
+  userRequirementHistory?: CommanderShellUserRequirementHistory;
   initialPageId?: string | null;
 }) {
-  const viewModel = buildCommanderConsoleViewModel(input.dashboard, input.locale, input.appRunLimitSettings);
+  const viewModel = buildCommanderConsoleViewModel(input.dashboard, input.locale, input.appRunLimitSettings, input.userRequirementHistory ?? []);
   const appViewModel = buildCommanderAppViewModel(viewModel, { initialPageId: input.initialPageId ?? null });
   const pageHtmlMap = buildCommanderAppPageHtmlMap(viewModel, appViewModel);
   const inspectHtmlMap = Object.fromEntries(viewModel.inspectItems.map((item) => [`${item.kind}:${item.id}`, renderInspectItemHtml(item)]));

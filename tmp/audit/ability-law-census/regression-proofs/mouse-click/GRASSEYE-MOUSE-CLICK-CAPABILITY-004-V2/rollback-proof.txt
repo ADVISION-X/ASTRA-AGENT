@@ -1,8 +1,0 @@
-scenarioId: policy-gate-bypass-mutation
-mutationName: policy gate bypass mutation
-mutatedFile: src/capabilities/mouse-click/runtime/mouse-click-preflight-stages.ts
-rollbackRestoredHash: sha256:56f25a9757fa6659a0b1d1419de1187c34ec3a9acb502df47fa83748a92d3e1c
-startedAt: 2026-05-06T12:34:57.937Z
-endedAt: 2026-05-06T12:35:02.561Z
-
-Rollback was verified by restoring the original production file content and rerunning the Mouse Click owner inspector.

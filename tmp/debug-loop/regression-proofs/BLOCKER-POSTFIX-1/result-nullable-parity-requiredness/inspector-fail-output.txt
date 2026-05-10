@@ -1,8 +1,0 @@
-> grasseye-local-workbench@0.1.0 audit:screenshot
-> node --import tsx scripts/audit/domains/screenshot-capability/run-inspector.ts
-
-[FAKE ENFORCEMENT] screenshot-capability: screenshot-capability owner inspector found capability-boundary, chain-truth, or enforcement violations
-- FATAL src/capabilities/screenshot/screenshot-schema-refinements.ts:1 Screenshot result refine must separate required chain fields from nullable parity-only fields.
-- FATAL scripts/audit/domains/screenshot-capability/inspector.ts:1 Screenshot inspector baseline must pass before negative-proof mutation checks.
-
-Command exited with code 1

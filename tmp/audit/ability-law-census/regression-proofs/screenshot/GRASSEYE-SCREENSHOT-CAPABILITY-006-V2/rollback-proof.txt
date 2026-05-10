@@ -1,8 +1,0 @@
-scenarioId: screenshot-region-crop-flattening
-mutationName: region crop flattening mutation
-mutatedFile: src/capabilities/screenshot/registry.ts
-rollbackRestoredHash: sha256:f621f899cf9915f3e33f2cefec6358143583b8817376bccd466498d0f4267fd5
-startedAt: 2026-05-05T22:40:11.343Z
-endedAt: 2026-05-05T22:40:14.539Z
-
-Rollback was verified by restoring the original production file content and rerunning the Screenshot owner inspector.

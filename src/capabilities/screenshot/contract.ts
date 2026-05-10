@@ -33,6 +33,7 @@ import {
   ScreenshotGridSpecSchema,
   ScreenshotVisualMissionInputSchema,
 } from "./schema.js";
+import { ScreenshotCoordinateGridOutputSchema } from "./visual-mission-output-schema.js";
 import { SCREENSHOT_ABILITY_GROUP_ID } from "./shared/screenshot-types.js";
 
 export { SCREENSHOT_ABILITY_GROUP_ID } from "./shared/screenshot-types.js";
@@ -49,6 +50,7 @@ type PrepareVisualMissionInput = z.infer<typeof PrepareVisualMissionInputInputSc
 type ScreenshotAbilityResult = z.infer<typeof ScreenshotResultSchema>;
 type ScreenshotRuntimeProof = z.infer<typeof ScreenshotRuntimeProofSchema>;
 type ScreenshotExecutionOutput = z.infer<typeof ScreenshotExecutionOutputSchema>;
+type ScreenshotCoordinateGridOutput = z.infer<typeof ScreenshotCoordinateGridOutputSchema>;
 type ScreenshotArtifactRef = z.infer<typeof ScreenshotArtifactRefSchema>;
 type ScreenshotArtifactBudgetPolicy = z.infer<typeof ScreenshotArtifactBudgetPolicySchema>;
 type ScreenshotArtifactBudgetSnapshot = z.infer<typeof ScreenshotArtifactBudgetSnapshotSchema>;
@@ -81,4 +83,4 @@ interface ScreenshotAbilityGroup {
 }
 
 
-export type { ScreenshotAbilityGroupId, ScreenshotAbilityInputCandidate, ScreenshotAbilityInput, CaptureBrowserViewportInput, CaptureDesktopScreenInput, CaptureRegionInput, OptimizeLosslessInput, PrepareAiInputInput, PrepareVisualMissionInput, ScreenshotAbilityResult, ScreenshotRuntimeProof, ScreenshotExecutionOutput, ScreenshotArtifactRef, ScreenshotArtifactBudgetPolicy, ScreenshotArtifactBudgetSnapshot, ScreenshotArtifactCleanupGate, ScreenshotArtifactLifecycleManifest, ScreenshotBoundingBox, ScreenshotScaleMapping, ScreenshotSourceProof, ScreenshotFailure, ScreenshotPageStateProof, ScreenshotPromotionStatus, ScreenshotPrivacyPolicy, ScreenshotRetentionClass, ScreenshotBrowserSessionSnapshot, ScreenshotBrowserCapture, ScreenshotDesktopCapture, ScreenshotStoredArtifact, ScreenshotStructuredRef, ScreenshotGridCell, ScreenshotGridSpec, ScreenshotVisualMissionInput, ScreenshotChildCapabilityId, ScreenshotStatus, ScreenshotCoordinateSpace, ScreenshotImageKind, ScreenshotAbilityGroup };
+export type { ScreenshotAbilityGroupId, ScreenshotAbilityInputCandidate, ScreenshotAbilityInput, CaptureBrowserViewportInput, CaptureDesktopScreenInput, CaptureRegionInput, OptimizeLosslessInput, PrepareAiInputInput, PrepareVisualMissionInput, ScreenshotAbilityResult, ScreenshotRuntimeProof, ScreenshotExecutionOutput, ScreenshotCoordinateGridOutput, ScreenshotArtifactRef, ScreenshotArtifactBudgetPolicy, ScreenshotArtifactBudgetSnapshot, ScreenshotArtifactCleanupGate, ScreenshotArtifactLifecycleManifest, ScreenshotBoundingBox, ScreenshotScaleMapping, ScreenshotSourceProof, ScreenshotFailure, ScreenshotPageStateProof, ScreenshotPromotionStatus, ScreenshotPrivacyPolicy, ScreenshotRetentionClass, ScreenshotBrowserSessionSnapshot, ScreenshotBrowserCapture, ScreenshotDesktopCapture, ScreenshotStoredArtifact, ScreenshotStructuredRef, ScreenshotGridCell, ScreenshotGridSpec, ScreenshotVisualMissionInput, ScreenshotChildCapabilityId, ScreenshotStatus, ScreenshotCoordinateSpace, ScreenshotImageKind, ScreenshotAbilityGroup };

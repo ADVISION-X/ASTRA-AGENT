@@ -36,7 +36,7 @@ function resolveVisionRequestArtifacts(request: SupportedVisionRequest) {
       ? "vision.nextItemTargetCandidate.v1"
       : request.taskType === "vision.commentsEntryTargetCandidate"
         ? "vision.commentsEntryTargetCandidate.v1"
-      : "vision.productPresence.v1",
+      : "visual-mission-judge.v1",
     sourceScreenshotEvidenceId: typeof request.input.screenshotEvidenceId === "string" ? request.input.screenshotEvidenceId : undefined,
     aiInputArtifactRef: request.input.contactSheetEvidenceId ?? request.input.multiFrameEvidenceSetId ?? request.evidenceRefs[0]?.id,
   };

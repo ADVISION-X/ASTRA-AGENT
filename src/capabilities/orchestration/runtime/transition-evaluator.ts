@@ -22,20 +22,30 @@ const TIKTOK_URL_DRIFT_RECOVERY_STEPS = new Set([
   "capture-current-video-viewport",
 ]);
 
-const normalizeRouteToken = (value: string): string =>
+const normalizeDecisionToken = (value: string): string =>
   value.toLowerCase().replace(/[^a-z0-9]+/gu, "");
 
-const readRouteLabel = (result: MissionStepResultRecord): string | null => {
-  const routeLabel = result.branchFieldValues.routeLabel;
-  return typeof routeLabel === "string" && routeLabel.length > 0 ? routeLabel : null;
+const readDecisionToken = (result: MissionStepResultRecord): string | null => {
+  const taskDecision = result.branchFieldValues.taskDecision;
+  if (typeof taskDecision === "string" && taskDecision.length > 0) {
+    return taskDecision;
+  }
+
+  const pageStateDecision = result.branchFieldValues.pageStateDecision;
+  if (typeof pageStateDecision === "string" && pageStateDecision.length > 0) {
+    return pageStateDecision;
+  }
+
+  const decision = result.branchFieldValues.decision;
+  return typeof decision === "string" && decision.length > 0 ? decision : null;
 };
 
-const transitionMatchesRouteLabel = (
+const transitionMatchesDecisionToken = (
   transition: OperationalMap["transitions"][number],
-  routeLabel: string,
+  decisionToken: string,
 ): boolean => {
   const routeToken = transition.transitionId.split(":").pop() ?? transition.transitionId;
-  return normalizeRouteToken(routeLabel) === normalizeRouteToken(routeToken);
+  return normalizeDecisionToken(decisionToken) === normalizeDecisionToken(routeToken);
 };
 
 const findMatchingStatusTransitions = (input: {
@@ -48,7 +58,7 @@ const findMatchingStatusTransitions = (input: {
     && candidate.onStatus === input.result.status,
   );
 
-const filterByAiRouteLabel = (input: {
+const filterByDecisionToken = (input: {
   candidates: OperationalMap["transitions"];
   result: MissionStepResultRecord;
 }): TransitionEvaluationResult | { decision: "candidates"; candidates: OperationalMap["transitions"] } => {
@@ -56,21 +66,21 @@ const filterByAiRouteLabel = (input: {
     return { decision: "candidates", candidates: input.candidates };
   }
 
-  const routeLabel = readRouteLabel(input.result);
-  if (!routeLabel) {
+  const decisionToken = readDecisionToken(input.result);
+  if (!decisionToken) {
     return {
       decision: "invalid_decision",
-      failureReason: `Step "${input.result.stepId}" matched multiple transitions but did not provide branchFieldValues.routeLabel.`,
+      failureReason: `Step "${input.result.stepId}" matched multiple transitions but did not provide branchFieldValues.taskDecision, branchFieldValues.pageStateDecision, or branchFieldValues.decision.`,
     };
   }
 
   const routeMatches = input.candidates.filter((candidate) =>
-    transitionMatchesRouteLabel(candidate, routeLabel),
+    transitionMatchesDecisionToken(candidate, decisionToken),
   );
   if (routeMatches.length === 0) {
     return {
       decision: "invalid_decision",
-      failureReason: `Step "${input.result.stepId}" returned routeLabel "${routeLabel}" but no transition suffix matched it.`,
+      failureReason: `Step "${input.result.stepId}" returned decision token "${decisionToken}" but no transition suffix matched it.`,
     };
   }
 
@@ -151,7 +161,7 @@ export function evaluateStepTransition(input: {
     return syntheticRecovery;
   }
 
-  const routeFiltered = filterByAiRouteLabel({
+  const routeFiltered = filterByDecisionToken({
     candidates: findMatchingStatusTransitions(input),
     result: input.result,
   });

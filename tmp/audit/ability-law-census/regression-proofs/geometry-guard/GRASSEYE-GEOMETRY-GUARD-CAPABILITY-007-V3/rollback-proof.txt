@@ -1,8 +1,0 @@
-scenarioId: mouse-click-scale-mapping-remap
-mutationName: mouse-click-scale-mapping-remap
-mutatedFile: src/capabilities/mouse-click/runtime/mouse-click-execution-seed.ts
-rollbackRestoredHash: sha256:c3338db7c94ce68bff8cd2a65a0fbc3dabb1402ad9cbc4b0a7156ca1f2369b97
-startedAt: 2026-05-06T04:20:32.539Z
-endedAt: 2026-05-06T04:20:39.613Z
-
-Rollback was verified by restoring the original production file content and rerunning the Geometry Guard owner inspector.

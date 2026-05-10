@@ -21,7 +21,8 @@ import {
   VisionNextItemAdvancedPayloadSchema,
   VisionNextItemAdvancedRequestInputSchema,
 } from "./vision-next-item-advanced.js";
-const LocalAiTaskTypeSchema = z.enum(["vision.pagePreparation", "vision.nextItemAdvanced", "vision.productPresence", "vision.nextItemTargetCandidate", "vision.commentsEntryTargetCandidate", "comments.ocr_cleanup", "comments.intent_analysis", "product.signal_summary"]);
+import { VisualMissionActionPlanOutputSchema, VisualMissionActionPlanRequestInputSchema } from "./visual-mission-action-plan.js";
+const LocalAiTaskTypeSchema = z.enum(["vision.pagePreparation", "vision.nextItemAdvanced", "vision.productPresence", "vision.visualMissionActionPlan", "vision.nextItemTargetCandidate", "vision.commentsEntryTargetCandidate", "comments.ocr_cleanup", "comments.intent_analysis", "product.signal_summary"]);
 const LocalAiModelRoleSchema = z.enum(["vision", "ocr", "commentUnderstanding", "productSignal"]);
 const LocalAiRuntimeSchema = z.enum(["ollama", "llama.cpp", "paddleocr", "apple-vision", "local-ocr", "local-wrapper"]);
 const LocalAiImplementationStatusSchema = z.enum(["configured-not-connected", "governed-heuristic", "fixture_heuristic_only", "model_backed", "local_ai_unavailable"]);
@@ -75,10 +76,11 @@ const VisionTaskRequestSchema = z.object({
   taskType: z.literal("vision.productPresence"),
   modelRole: z.literal("vision"),
   promptVersion: z.literal("v1"),
-  schemaVersion: z.literal("vision.productPresence.schema.v1"),
+  schemaVersion: z.literal("visual-mission-judge.schema.v1"),
   evidenceRefs: z.array(EvidenceRefSchema).min(1),
   input: VisionProductPresenceRequestInputSchema,
 });
+const VisualMissionActionPlanTaskRequestSchema = z.object({ id: z.string().min(1), taskType: z.literal("vision.visualMissionActionPlan"), modelRole: z.literal("vision"), promptVersion: z.literal("v1"), schemaVersion: z.literal("visual-mission-action-plan.schema.v1"), evidenceRefs: z.array(EvidenceRefSchema).min(2), input: VisualMissionActionPlanRequestInputSchema });
 const NextItemTargetCandidateTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("vision.nextItemTargetCandidate"),
@@ -136,6 +138,7 @@ const LocalAiTaskRequestSchema = z.discriminatedUnion("taskType", [
   PagePreparationTaskRequestSchema,
   NextItemAdvancedTaskRequestSchema,
   VisionTaskRequestSchema,
+  VisualMissionActionPlanTaskRequestSchema,
   NextItemTargetCandidateTaskRequestSchema,
   CommentsEntryTargetCandidateTaskRequestSchema,
   OcrTaskRequestSchema,
@@ -171,6 +174,7 @@ const VisionTaskResultSchema = LocalAiResultBaseSchema.extend({
   modelRole: z.literal("vision"),
   result: VisionProductPresencePayloadSchema
 });
+const LocalAiVisualMissionActionPlanTaskResultSchema = LocalAiResultBaseSchema.extend({ taskType: z.literal("vision.visualMissionActionPlan"), modelRole: z.literal("vision"), result: VisualMissionActionPlanOutputSchema });
 const NextItemTargetCandidateTaskResultSchema = LocalAiResultBaseSchema.extend({
   taskType: z.literal("vision.nextItemTargetCandidate"),
   modelRole: z.literal("vision"),
@@ -200,6 +204,7 @@ const LocalAiTaskResultSchema = z.discriminatedUnion("taskType", [
   PagePreparationTaskResultSchema,
   NextItemAdvancedTaskResultSchema,
   VisionTaskResultSchema,
+  LocalAiVisualMissionActionPlanTaskResultSchema,
   NextItemTargetCandidateTaskResultSchema,
   CommentsEntryTargetCandidateTaskResultSchema,
   OcrTaskResultSchema,
@@ -268,5 +273,5 @@ type LocalAiHealth = z.infer<typeof LocalAiHealthSchema>;
 type LocalAiStartupRoleReadiness = z.infer<typeof LocalAiStartupRoleReadinessSchema>;
 type LocalAiStartupReadiness = z.infer<typeof LocalAiStartupReadinessSchema>;
 
-export { LocalAiTaskTypeSchema, LocalAiModelRoleSchema, LocalAiRuntimeSchema, LocalAiImplementationStatusSchema, LocalAiOverallStatusSchema, LocalAiDependencyStatusSchema, LocalAiInvocationStatusSchema, LocalAiStartupFailureReasonSchema, LocalAiStartupRoleHealthSchema, OcrCleanupPayloadSchema, CommentSignalPayloadSchema, ProductSignalPayloadSchema, PagePreparationTaskRequestSchema, NextItemAdvancedTaskRequestSchema, VisionTaskRequestSchema, NextItemTargetCandidateTaskRequestSchema, CommentsEntryTargetCandidateTaskRequestSchema, OcrTaskRequestSchema, CommentSignalTaskRequestSchema, ProductSignalTaskRequestSchema, LocalAiTaskRequestSchema, PagePreparationTaskResultSchema, NextItemAdvancedTaskResultSchema, VisionTaskResultSchema, NextItemTargetCandidateTaskResultSchema, CommentsEntryTargetCandidateTaskResultSchema, OcrTaskResultSchema, CommentSignalTaskResultSchema, ProductSignalTaskResultSchema, LocalAiTaskResultSchema, LocalAiHealthSchema, LocalAiStartupRoleReadinessSchema, LocalAiStartupReadinessSchema };
+export { LocalAiTaskTypeSchema, LocalAiModelRoleSchema, LocalAiRuntimeSchema, LocalAiImplementationStatusSchema, LocalAiOverallStatusSchema, LocalAiDependencyStatusSchema, LocalAiInvocationStatusSchema, LocalAiStartupFailureReasonSchema, LocalAiStartupRoleHealthSchema, OcrCleanupPayloadSchema, CommentSignalPayloadSchema, ProductSignalPayloadSchema, PagePreparationTaskRequestSchema, NextItemAdvancedTaskRequestSchema, VisionTaskRequestSchema, VisualMissionActionPlanTaskRequestSchema, NextItemTargetCandidateTaskRequestSchema, CommentsEntryTargetCandidateTaskRequestSchema, OcrTaskRequestSchema, CommentSignalTaskRequestSchema, ProductSignalTaskRequestSchema, LocalAiTaskRequestSchema, PagePreparationTaskResultSchema, NextItemAdvancedTaskResultSchema, VisionTaskResultSchema, LocalAiVisualMissionActionPlanTaskResultSchema, NextItemTargetCandidateTaskResultSchema, CommentsEntryTargetCandidateTaskResultSchema, OcrTaskResultSchema, CommentSignalTaskResultSchema, ProductSignalTaskResultSchema, LocalAiTaskResultSchema, LocalAiHealthSchema, LocalAiStartupRoleReadinessSchema, LocalAiStartupReadinessSchema };
 export type { LocalAiTaskType, LocalAiModelRole, LocalAiRuntime, LocalAiImplementationStatus, LocalAiOverallStatus, LocalAiDependencyStatus, LocalAiInvocationStatus, LocalAiStartupFailureReason, LocalAiStartupRoleHealth, PagePreparationPayload, VisionClassificationPayload, NextItemTargetCandidatePayload, CommentsEntryTargetCandidatePayload, OcrCleanupPayload, CommentSignalPayload, ProductSignalPayload, LocalAiTaskRequest, LocalAiTaskResult, LocalAiHealth, LocalAiStartupRoleReadiness, LocalAiStartupReadiness };

@@ -29,6 +29,7 @@ export type OrchestrationDispatchResult = {
   envelopeId: string;
   resultRef: string;
   decision: string | null;
+  actionPlan: unknown | null;
   branchFieldValues: z.output<typeof BranchFieldValuesSchema>;
   failureReason: string | null;
   payloadRefs: OrchestrationDispatchPayload;

@@ -1,9 +1,0 @@
-{
-  "commandSource": "post-fix-runtime-verification",
-  "taskTemplateId": "tiktok-seeding-video-discovery",
-  "selectedMapId": "tiktok.seeding-video.discovery.meta.v1",
-  "requestedPlatformId": "tiktok-web",
-  "humanGoal": "Browse TikTok videos, identify product-seeding candidates, capture public evidence, and preserve candidate summaries for review.",
-  "maxRounds": 3,
-  "maxMinutes": 20
-}

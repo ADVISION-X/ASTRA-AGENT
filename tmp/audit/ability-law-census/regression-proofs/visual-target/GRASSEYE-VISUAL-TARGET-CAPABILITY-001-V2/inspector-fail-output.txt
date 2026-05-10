@@ -1,3 +1,0 @@
-[CODE VIOLATION] visual-target-capability: visual-target owner inspector found capability-boundary, chain-truth, or enforcement violations
-- FATAL src/app/visual-target-private-import-probe.ts:1 External code must not import Visual Target internal surface ../capabilities/visual-target/children/detect-comments-button/implementation.js.
-

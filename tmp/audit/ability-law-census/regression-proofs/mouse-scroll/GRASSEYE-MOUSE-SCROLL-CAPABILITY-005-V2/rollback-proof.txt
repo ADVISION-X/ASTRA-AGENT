@@ -1,8 +1,0 @@
-scenarioId: policy-gate-bypass-mutation
-mutationName: policy gate bypass mutation
-mutatedFile: src/capabilities/mouse-scroll/runtime/mouse-scroll-execution-validator.ts
-rollbackRestoredHash: sha256:bed4ad3b5e3a4cacca8f6ae771c1e77c22541ba4e4e282962c54731ce475b19e
-startedAt: 2026-05-07T08:48:06.368Z
-endedAt: 2026-05-07T08:48:16.564Z
-
-Rollback was verified by restoring the original production file content and rerunning the Mouse Scroll owner inspector.

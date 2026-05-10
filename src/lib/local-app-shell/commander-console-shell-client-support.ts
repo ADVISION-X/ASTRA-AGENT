@@ -2,9 +2,6 @@ export const commanderConsoleShellClientSupport = `
   function getStartForm() {
     return document.querySelector("[data-start-mission-form]");
   }
-  function getSelectedTaskDescription() {
-    return document.querySelector("[data-selected-task-description]");
-  }
   function getHomePage() {
     return pageHost instanceof HTMLElement ? pageHost.querySelector("[data-home-page]") : null;
   }
@@ -88,55 +85,51 @@ export const commanderConsoleShellClientSupport = `
       });
     });
   }
-  function updateTemplateUi(templateId) {
-    state.selectedTaskTemplateId = templateId;
-    const template = templateId ? taskTemplates.get(templateId) : null;
-    document.querySelectorAll("[data-task-template-card]").forEach((card) => {
-      card.classList.toggle("is-selected", card.getAttribute("data-task-template-card") === templateId);
-    });
-    if (!template) {
-      setTextContent(getSelectedTaskDescription(), locale === "zh" ? "请先选择一个任务。" : "Select a task first.");
-      setTextContent(document.querySelector("[data-selected-task-title]"), locale === "zh" ? "请选择一个地图" : "Choose a map");
-      setTextContent(document.querySelector("[data-selected-task-category]"), locale === "zh" ? "未选择" : "None");
-      setTextContent(document.querySelector("[data-selected-task-safety]"), locale === "zh" ? "未选择" : "None");
-      return;
-    }
-    setTextContent(getSelectedTaskDescription(), template.description);
-    setTextContent(document.querySelector("[data-selected-task-title]"), template.displayName);
-    setTextContent(document.querySelector("[data-selected-task-category]"), template.taskCategory);
-    setTextContent(document.querySelector("[data-selected-task-safety]"), localizeSafetyLevel(template.safetyLevel));
-    const goalInput = document.querySelector("#cc-human-goal");
-    if (goalInput instanceof HTMLTextAreaElement && (!goalInput.value.trim() || goalInput.dataset.currentDefaultGoal === goalInput.value)) {
-      goalInput.value = template.defaultHumanGoal || "";
-      goalInput.dataset.currentDefaultGoal = template.defaultHumanGoal || "";
-    }
-    const startForm = getStartForm();
-    if (startForm instanceof HTMLFormElement) { return; }
-  }
-  function applyTemplateFilters() {
-    const searchInput = document.querySelector("[data-template-search]");
-    const query = searchInput instanceof HTMLInputElement ? searchInput.value.trim().toLowerCase() : "";
-    const activeFilter = document.querySelector("[data-template-filter].is-active");
-    const filter = activeFilter instanceof HTMLElement ? activeFilter.getAttribute("data-template-filter") || "all" : "all";
-    document.querySelectorAll("[data-task-template-card]").forEach((card) => {
+  function syncPlatformUi() {
+    document.querySelectorAll("[data-platform-option]").forEach((card) => {
       if (!(card instanceof HTMLElement)) { return; }
-      const text = card.getAttribute("data-template-search-text") || "";
-      const category = card.getAttribute("data-template-category") || "";
-      const ready = card.getAttribute("data-template-ready") === "true";
-      const recommended = card.getAttribute("data-template-recommended") === "true";
-      const matchesQuery = !query || text.indexOf(query) >= 0;
-      const matchesFilter = filter === "all" || (filter === "ready" && ready) || (filter === "recommended" && recommended) || category === filter;
-      card.hidden = !(matchesQuery && matchesFilter);
+      const platformId = card.getAttribute("data-platform-option") || "";
+      card.classList.toggle("is-selected", state.selectedPlatforms.includes(platformId));
+      const input = card.querySelector('input[name="selectedPlatforms"]');
+      if (input instanceof HTMLInputElement) {
+        input.checked = state.selectedPlatforms.includes(input.value);
+      }
     });
+    const hiddenInput = document.querySelector("[data-selected-history-entry-id]");
+    if (hiddenInput instanceof HTMLInputElement) {
+      hiddenInput.value = state.selectedHistoryEntryId || "";
+    }
+    document.querySelectorAll("[data-history-entry-id]").forEach((card) => {
+      if (card instanceof HTMLElement) {
+        card.classList.toggle("is-selected", card.getAttribute("data-history-entry-id") === state.selectedHistoryEntryId);
+      }
+    });
+  }
+  function populateHistoryDraft(button) {
+    const requirementInput = document.querySelector("#cc-user-requirement-text");
+    const maxRoundsInput = document.querySelector("#cc-max-rounds");
+    const maxMinutesInput = document.querySelector("#cc-max-minutes");
+    const rawPlatforms = button.getAttribute("data-history-platforms") || "";
+    const nextPlatforms = rawPlatforms.split(",").map((item) => item.trim()).filter(Boolean);
+    state.selectedPlatforms = nextPlatforms;
+    state.selectedHistoryEntryId = button.getAttribute("data-history-reuse") || null;
+    if (requirementInput instanceof HTMLTextAreaElement) {
+      requirementInput.value = button.getAttribute("data-history-requirement") || "";
+    }
+    if (maxRoundsInput instanceof HTMLInputElement) {
+      maxRoundsInput.value = button.getAttribute("data-history-max-rounds") || String(state.maxRounds);
+      state.maxRounds = Number(maxRoundsInput.value || state.maxRounds);
+    }
+    if (maxMinutesInput instanceof HTMLInputElement) {
+      maxMinutesInput.value = button.getAttribute("data-history-max-minutes") || String(state.maxMinutes);
+      state.maxMinutes = Number(maxMinutesInput.value || state.maxMinutes);
+    }
+    syncPlatformUi();
   }
   function syncHomeUi() {
     const startForm = getStartForm();
     if (!(startForm instanceof HTMLFormElement)) { return; }
-    const selectedId = state.selectedTaskTemplateId || viewModel.commandDraft.taskTemplateId || null;
-    startForm.querySelectorAll('input[name="taskTemplateId"]').forEach((input) => {
-      if (input instanceof HTMLInputElement) { input.checked = input.value === selectedId; }
-    });
-    updateTemplateUi(selectedId);
+    syncPlatformUi();
   }
   function renderActivePage() {
     if (!(pageHost instanceof HTMLElement)) { return; }
@@ -176,26 +169,29 @@ export const commanderConsoleShellClientSupport = `
     const startForm = getStartForm();
     if (!(startForm instanceof HTMLFormElement)) { return null; }
     const formData = new FormData(startForm);
-    const taskTemplateId = String(formData.get("taskTemplateId") || "").trim() || null;
-    const template = taskTemplateId ? taskTemplates.get(taskTemplateId) : null;
-    if (!template || template.availability !== "ready") { throw new Error(text.templateRequired); }
+    const userRequirementText = String(formData.get("userRequirementText") || "").trim();
+    if (!userRequirementText) { throw new Error(text.requirementRequired); }
+    const selectedPlatforms = formData.getAll("selectedPlatforms").map((value) => String(value).trim()).filter(Boolean);
+    if (selectedPlatforms.length === 0) { throw new Error(text.platformRequired); }
     const maxRounds = resolvePositiveInteger(formData.get("maxRounds"));
     const maxMinutes = resolvePositiveInteger(formData.get("maxMinutes"));
     state.maxRounds = maxRounds || viewModel.appRunLimitSettings.defaultMaxRounds;
     state.maxMinutes = maxMinutes || viewModel.appRunLimitSettings.defaultMaxMinutes;
-    const humanGoal = String(formData.get("humanGoal") || template.defaultHumanGoal || "").trim();
+    state.selectedPlatforms = selectedPlatforms;
+    state.selectedHistoryEntryId = String(formData.get("historyEntryId") || "").trim() || null;
     return {
       commandType: "start-mission",
       commandSource: "commander-console:start-form-submit",
-      taskTemplateId,
-      humanGoal,
+      userRequirementText,
+      selectedPlatforms,
+      historyEntryId: state.selectedHistoryEntryId,
       maxRounds: state.maxRounds,
       maxMinutes: state.maxMinutes
     };
   }
-  async function post(path, body) {
+  async function requestJson(method, path, body) {
     const response = await fetch(path, {
-      method: "POST",
+      method,
       headers: { "content-type": "application/json" },
       body: body ? JSON.stringify(body) : undefined
     });

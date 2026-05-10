@@ -1,6 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 1
-summary: Mouse Click still exposes anti-escape gaps in the governed chain.
-
-FATAL GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2 src/capabilities/mouse-click/runtime/mouse-click-executor.ts:1 Mouse Click executor must keep policyGate as a governed checkpoint.

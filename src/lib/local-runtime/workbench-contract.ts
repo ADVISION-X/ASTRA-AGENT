@@ -22,6 +22,10 @@ import type {
   MapLabProviderState,
   MapLabSnapshot,
 } from "./map-lab/map-lab-types.js";
+import type {
+  UserRequirementHistoryEntry,
+  UserRequirementHistoryUpsertInput,
+} from "./user-requirement-history-store.js";
 
 export type RequestedPlatformId =
   | "tiktok-web"
@@ -217,6 +221,11 @@ export type WorkbenchRuntime = WorkbenchBaseRuntime & {
   exportCandidateSummaries(): Promise<unknown>;
   getAppRunLimitSettings(): Promise<AppRunLimitSettings>;
   saveAppRunLimitSettings(input: Pick<AppRunLimitSettings, "defaultMaxRounds" | "defaultMaxMinutes">): Promise<AppRunLimitSettings>;
+  getDataDir(): string;
+  getUserRequirementHistory(limit?: number): Promise<UserRequirementHistoryEntry[]>;
+  upsertUserRequirementHistory(input: UserRequirementHistoryUpsertInput): Promise<UserRequirementHistoryEntry>;
+  deleteUserRequirementHistory(id: string): Promise<boolean>;
+  reuseUserRequirementHistory(id: string): Promise<UserRequirementHistoryEntry | null>;
   getMapLabSnapshot(): Promise<MapLabSnapshot>;
   saveMapLabProviderConfig(input: MapLabProviderConfigInput): Promise<MapLabProviderState>;
   generateMapLabDraft(input: unknown): Promise<MapLabGenerateDraftResult>;

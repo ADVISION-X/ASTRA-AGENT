@@ -9,7 +9,6 @@ export const commanderConsoleShellClient = `(function () {
   if (!viewModel) { return; }
 
   const locale = viewModel.locale === "zh" ? "zh" : "en";
-  const taskTemplates = new Map((viewModel.taskTemplates || []).map((template) => [template.taskTemplateId, template]));
   const inspectItems = new Map((viewModel.inspectItems || []).map((item) => [item.kind + ":" + item.id, item]));
   const pageHost = document.querySelector("[data-app-page-host]");
   const inspectModal = document.querySelector("[data-inspect-modal]");
@@ -24,17 +23,20 @@ export const commanderConsoleShellClient = `(function () {
     emergencySubmitted: locale === "zh" ? "急停命令已提交" : "Emergency stop command submitted",
     reviewSubmitted: locale === "zh" ? "复核决定已提交" : "Review decision submitted",
     exportUnavailable: locale === "zh" ? "当前构建未开放导出请求" : "Export requests are unavailable in this build",
-    templateRequired: locale === "zh" ? "请先选择一个可启动的任务" : "Select a runnable task first",
-    taskSelected: locale === "zh" ? "已选择任务: " : "Task selected: ",
+    requirementRequired: locale === "zh" ? "请先填写用户需求" : "Provide a user requirement first",
+    platformRequired: locale === "zh" ? "至少选择一个平台" : "Select at least one platform",
+    historyReused: locale === "zh" ? "已填充历史需求" : "Requirement history loaded",
+    historyDeleted: locale === "zh" ? "历史需求已删除" : "Requirement history deleted",
     copied: locale === "zh" ? "检查详情已复制" : "Inspect detail copied",
     clipboardFailed: locale === "zh" ? "剪贴板写入失败" : "Clipboard write failed",
     inspectClosed: locale === "zh" ? "检查详情已关闭" : "Inspect closed"
   };
   const state = {
     activePage: (appViewModel && appViewModel.initialPageId) || "home",
-    selectedTaskTemplateId: viewModel.commandDraft.taskTemplateId || null,
     maxRounds: viewModel.commandDraft.maxRounds,
     maxMinutes: viewModel.commandDraft.maxMinutes,
+    selectedPlatforms: Array.isArray(viewModel.commandDraft.selectedPlatforms) ? [...viewModel.commandDraft.selectedPlatforms] : [],
+    selectedHistoryEntryId: viewModel.commandDraft.historyEntryId || null,
     runtimeStartError: null,
     activeTabs: {
       mission: tabDefaults.get("mission") || "mission-overview",
@@ -77,7 +79,7 @@ ${commanderConsoleShellClientSupport}
   const handlers = {
     async onSubmitHumanCommand(draft) {
       try {
-        await post("/api/tasks/start", draft);
+        await requestJson("POST", "/api/tasks/start", draft);
         clearRuntimeStartError();
         showToast(text.startSubmitted);
       } catch (error) {
@@ -85,11 +87,16 @@ ${commanderConsoleShellClientSupport}
         showToast(error.message);
       }
     },
-    async onPauseMission() { await post("/api/tasks/pause"); showToast(text.pauseSubmitted); },
-    async onResumeMission() { await post("/api/tasks/resume"); showToast(text.resumeSubmitted); },
-    async onStopMission() { await post("/api/tasks/stop", { reason: "operator_stop" }); showToast(text.stopSubmitted); },
-    async onEmergencyStop() { await post("/api/tasks/emergency-stop", { reason: "operator_emergency_stop" }); showToast(text.emergencySubmitted); },
-    async onSubmitReviewDecision(payload) { await post("/api/candidates/review-decision", payload); showToast(text.reviewSubmitted); },
+    async onPauseMission() { await requestJson("POST", "/api/tasks/pause"); showToast(text.pauseSubmitted); },
+    async onResumeMission() { await requestJson("POST", "/api/tasks/resume"); showToast(text.resumeSubmitted); },
+    async onStopMission() { await requestJson("POST", "/api/tasks/stop", { reason: "operator_stop" }); showToast(text.stopSubmitted); },
+    async onEmergencyStop() { await requestJson("POST", "/api/tasks/emergency-stop", { reason: "operator_emergency_stop" }); showToast(text.emergencySubmitted); },
+    async onSubmitReviewDecision(payload) { await requestJson("POST", "/api/candidates/review-decision", payload); showToast(text.reviewSubmitted); },
+    async onReuseHistoryEntry(historyId) { await requestJson("POST", "/api/user-requirements/history/" + encodeURIComponent(historyId) + "/reuse"); },
+    async onDeleteHistoryEntry(historyId) {
+      await requestJson("DELETE", "/api/user-requirements/history/" + encodeURIComponent(historyId));
+      window.location.reload();
+    },
     onRequestExport() { showToast(text.exportUnavailable); },
     onOpenInspect(payload) {
       const key = payload.kind + ":" + payload.id;

@@ -8,6 +8,12 @@ import { createWorkbenchOrchestration } from "./workbench-orchestration.js";
 import { getWorkbenchLocalAiRoleControls, setWorkbenchLocalAiRoleStartupState } from "./workbench-ai-role-controls.js";
 import { createMapLabService } from "./map-lab/map-lab-service.js";
 import { getHealthReport, getMissionReadinessReport, getMissionStartPreflight, getModeInfo } from "./workbench-status.js";
+import {
+  deleteUserRequirementHistory,
+  loadUserRequirementHistory,
+  markUserRequirementHistoryReused,
+  upsertUserRequirementHistory,
+} from "./user-requirement-history-store.js";
 
 export const createWorkbenchRuntime = (
   options: GrassEyeWorkbenchOptions,
@@ -36,6 +42,11 @@ export const createWorkbenchRuntime = (
   runtime.exportCandidateSummaries = () => runtime.evidenceStore.exportCandidateSummaries();
   runtime.getAppRunLimitSettings = () => getAppRunLimitSettings(runtime);
   runtime.saveAppRunLimitSettings = (input) => updateAppRunLimitSettings(runtime, input);
+  runtime.getDataDir = () => runtime.options.dataDir ?? process.cwd();
+  runtime.getUserRequirementHistory = (limit = 20) => loadUserRequirementHistory(runtime.getDataDir(), limit);
+  runtime.upsertUserRequirementHistory = (input) => upsertUserRequirementHistory(runtime.getDataDir(), input);
+  runtime.deleteUserRequirementHistory = (id) => deleteUserRequirementHistory(runtime.getDataDir(), id);
+  runtime.reuseUserRequirementHistory = (id) => markUserRequirementHistoryReused(runtime.getDataDir(), id);
   runtime.getMapLabSnapshot = () => getMapLabService().getSnapshot();
   runtime.saveMapLabProviderConfig = (input) => getMapLabService().saveProviderConfig(input);
   runtime.generateMapLabDraft = (input) => getMapLabService().generateDraft(input);

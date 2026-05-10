@@ -18,6 +18,7 @@ import {
   TargetRecordRefSchema,
   validateNerveBusEnvelopeBase,
 } from "./schema-foundation.schema.js";
+import { VisualMissionActionPlanSchema } from "../../muscle-memory/decoder/action-plan.schema.js";
 
 const ResultEnvelopeBaseCoreSchema = NerveBusEnvelopeBaseCoreSchema.extend({
   status: EnvelopeStatusSchema,
@@ -148,7 +149,9 @@ export const AiResponseEnvelopeSchema = ResultEnvelopeBaseCoreSchema.extend({
   from: z.literal("ai"),
   to: z.literal("orchestration"),
   decision: z.string().min(1),
-  routeLabel: z.string().min(1).nullable().default(null),
+  taskDecision: z.string().min(1).nullable().default(null),
+  pageStateDecision: z.string().min(1).nullable().default(null),
+  actionPlan: VisualMissionActionPlanSchema.nullable().default(null),
   nonExecutableSummary: z.string().min(1).nullable().default(null),
   confidence: z.number().min(0).max(1).nullable().default(null),
   implementationStatus: z.string().min(1).nullable().default(null),

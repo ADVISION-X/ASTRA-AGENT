@@ -1,6 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 1
-summary: screenshot-capability owner inspector found capability-boundary, chain-truth, or enforcement violations
-
-FATAL GRASSEYE-SCREENSHOT-CAPABILITY-006-V2 src/capabilities/screenshot/registry.ts:1 Screenshot registry must keep capture-region as region_crop/region_crop_pixels and optimize-lossless as derived coordinate truth.

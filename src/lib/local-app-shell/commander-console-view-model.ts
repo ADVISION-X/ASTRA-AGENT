@@ -18,6 +18,7 @@ export function buildCommanderConsoleViewModel(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
   appRunLimitSettings: AppRunLimitSettings,
+  userRequirementHistory: CommanderConsoleViewModel["userRequirementHistory"],
 ): CommanderConsoleViewModel {
   const primaryPages = buildPrimaryPages(locale);
   const mapCatalog = buildMapCatalog(locale);
@@ -39,6 +40,7 @@ export function buildCommanderConsoleViewModel(
     taskTemplates,
     preflightSummary: buildPreflightSummary(dashboard, locale),
     commandDraft: buildCommandDraft(dashboard, activeTaskTemplate, appRunLimitSettings),
+    userRequirementHistory,
     capabilityHealth: dashboard.health,
     reviewQueueSummary: buildReviewSummary(dashboard),
     failureRadarSummary: buildFailureRadar(dashboard, locale),

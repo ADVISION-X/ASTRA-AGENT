@@ -13,6 +13,7 @@ const AI_RUNTIME_TIMEOUT_BY_TASK_MS: Record<ParsedAiAbilityInput["taskType"], nu
   page_preparation_judgment: 60_000,
   product_presence_judgment: 60_000,
   visual_observation: 60_000,
+  visual_mission_action_plan: 60_000,
   visual_target_candidate_analysis: 60_000,
   ocr_cleanup: 60_000,
   comment_signal_summary: 60_000,
@@ -27,7 +28,7 @@ export const MAX_AI_RUNTIME_TIMEOUT_MS = Math.max(...Object.values(AI_RUNTIME_TI
 export const AI_TRANSPORT_TIMEOUT_MS = MAX_AI_RUNTIME_TIMEOUT_MS + AI_RUNTIME_COMPLETION_GRACE_MS;
 
 export const resolveAiRuntimeTimeoutMs = (taskType: ParsedAiAbilityInput["taskType"]): number =>
-  AI_RUNTIME_TIMEOUT_BY_TASK_MS[taskType];
+  AI_RUNTIME_TIMEOUT_BY_TASK_MS[taskType] ?? 60_000;
 
 export const resolveAiDispatchTimeoutMs = (taskType: ParsedAiAbilityInput["taskType"]): number =>
   resolveAiRuntimeTimeoutMs(taskType) + AI_RUNTIME_COMPLETION_GRACE_MS;

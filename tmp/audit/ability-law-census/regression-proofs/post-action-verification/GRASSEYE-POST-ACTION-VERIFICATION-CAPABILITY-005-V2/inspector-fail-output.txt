@@ -1,3 +1,0 @@
-[AUDIT] starting post-action-verification-capability...
-[CODE VIOLATION] post-action-verification-capability: post-action-verification owner inspector found capability-boundary or governance violations
-- FATAL src/capabilities/post-action-verification/runtime/verification-result-builder.ts:1 Result builder must preserve mission/run/step/map chain parity from the governed request.

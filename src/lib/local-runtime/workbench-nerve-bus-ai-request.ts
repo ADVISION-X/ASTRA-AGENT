@@ -93,7 +93,9 @@ const buildAiOutputPayload = (input: {
   status: "success" | "failed" | "review_required";
   aiTaskType: string;
   decision: string;
-  routeLabel: string | null;
+  taskDecision: string | null;
+  pageStateDecision: string | null;
+  actionPlan: Record<string, unknown> | null;
   nonExecutableSummary: string | null;
   confidence: number | null;
   failureReason: string | null;
@@ -110,7 +112,11 @@ const buildAiOutputPayload = (input: {
   content: {
     aiTaskType: input.aiTaskType,
     decision: input.decision,
-    routeLabel: input.routeLabel,
+    taskDecision: input.taskDecision,
+    pageStateDecision: input.pageStateDecision,
+    actionPlanActionCodes: Array.isArray(input.actionPlan?.actions)
+      ? input.actionPlan.actions.map((action) => typeof action === "object" && action && typeof (action as { actionCode?: unknown }).actionCode === "string" ? (action as { actionCode: string }).actionCode : null).filter((actionCode): actionCode is string => actionCode !== null).join(",")
+      : null,
     nonExecutableSummary: input.nonExecutableSummary,
     status: input.status,
     confidence: input.confidence,
@@ -162,7 +168,9 @@ const buildWorkbenchAiResponseEnvelope = (input: {
     proofRef: `${input.envelope.envelopeId}:response:proof`,
     status: input.resolvedDecision.status,
     decision: input.resolvedDecision.decision,
-    routeLabel: input.resolvedDecision.routeLabel,
+    taskDecision: input.resolvedDecision.taskDecision,
+    pageStateDecision: input.resolvedDecision.pageStateDecision,
+    actionPlan: input.resolvedDecision.actionPlan ?? null,
     nonExecutableSummary: input.resolvedDecision.nonExecutableSummary,
     confidence: input.confidence,
     implementationStatus: input.diagnostics.implementationStatus,
@@ -229,7 +237,9 @@ const resolveWorkbenchAiResponseArtifacts = (input: {
       status: resolvedDecision.status,
       aiTaskType,
       decision: resolvedDecision.decision,
-      routeLabel: resolvedDecision.routeLabel,
+      taskDecision: resolvedDecision.taskDecision,
+      pageStateDecision: resolvedDecision.pageStateDecision,
+      actionPlan: (resolvedDecision.actionPlan as Record<string, unknown> | null | undefined) ?? null,
       nonExecutableSummary: resolvedDecision.nonExecutableSummary,
       confidence,
       failureReason,

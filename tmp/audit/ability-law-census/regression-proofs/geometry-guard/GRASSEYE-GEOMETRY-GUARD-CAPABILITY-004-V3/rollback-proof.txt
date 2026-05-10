@@ -1,8 +1,0 @@
-scenarioId: silent-clamp-introduced
-mutationName: silent-clamp-introduced
-mutatedFile: src/capabilities/geometry-guard/shared/geometry-transform.ts
-rollbackRestoredHash: sha256:8dc7ce2f8d2d186ee18cf1d62146003d8105ee1a69e92d5950ab8122bcfe55bc
-startedAt: 2026-05-06T04:21:22.047Z
-endedAt: 2026-05-06T04:21:28.942Z
-
-Rollback was verified by restoring the original production file content and rerunning the Geometry Guard owner inspector.

@@ -1,8 +1,0 @@
-scenarioId: warning-only-p0-mutation
-mutationName: warning-only-p0 mutation
-mutatedFile: .github/instructions/cursor-rules/modules/module-open-capability.instructions.md
-rollbackRestoredHash: sha256:1cec9036e387e22dff67edffcbcfa980c5c0119f7a50e398e9ae61dfa19cedcb
-startedAt: 2026-05-06T15:37:19.848Z
-endedAt: 2026-05-06T15:37:24.221Z
-
-Rollback was verified by restoring the original production file content and rerunning the Open owner inspector.

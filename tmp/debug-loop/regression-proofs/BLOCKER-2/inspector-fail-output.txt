@@ -1,7 +1,0 @@
-
-> grasseye-local-workbench@0.1.0 audit:page-state
-> node --import tsx scripts/audit/domains/page-state-capability/run-inspector.ts
-
-[FAKE ENFORCEMENT] page-state-capability: page-state owner inspector found capability-boundary, enforcement, or governance violations
-- FATAL src/capabilities/page-state/children/detect-safety-page/implementation.ts:1 detect-safety-page must bind governed negative captcha/safety-wall observations for page_normal success.
-- FATAL scripts/audit/domains/page-state-capability/inspector.ts:1 Page State inspector baseline must pass before negative-proof mutation checks.

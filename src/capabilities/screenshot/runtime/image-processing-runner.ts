@@ -145,15 +145,28 @@ async function resolvePrepareVisualMissionInputProcessing(input: {
   plan: Extract<ScreenshotExecutionPlan, { kind: "image-processing" }> & { operation: "prepare-visual-mission-input" };
   context: ScreenshotRuntimeContext;
   timeoutMs: number;
+  createdAt: string;
 }) {
+  const sourceScreenshotEvidenceId = input.plan.sourceProof.sourceScreenshotEvidenceId;
+  const sourceStorageRef = input.plan.sourceProof.sourceStorageRef;
+  const sourceCoordinateSpace = input.plan.sourceProof.coordinateSpace;
+
+  if (!sourceScreenshotEvidenceId || !sourceStorageRef || !sourceCoordinateSpace) {
+    throw new Error("prepare-visual-mission-input requires sourceProof sourceScreenshotEvidenceId, sourceStorageRef, and coordinateSpace.");
+  }
+
   const output = await withTimeout(
     input.context.imageProcessingPort.renderCoordinateGrid({
       sourceFilePath: input.plan.sourceFilePath,
+      sourceScreenshotEvidenceId,
+      sourceStorageRef,
+      sourceCoordinateSpace,
       sourceWidth: input.plan.sourceProof.sourceWidth ?? 0,
       sourceHeight: input.plan.sourceProof.sourceHeight ?? 0,
       rowCount: input.plan.rowCount,
       columnCount: input.plan.columnCount,
       axisMode: "y_letters_x_numbers",
+      createdAt: input.createdAt,
     }).then((result) => ({
       outputFilePath: result.outputFilePath,
       width: result.width,
@@ -165,11 +178,7 @@ async function resolvePrepareVisualMissionInputProcessing(input: {
       cropOffsetX: 0,
       cropOffsetY: 0,
       gridSpec: projectGridSpecToSourceCoordinates({
-        gridSpec: {
-          ...result.gridSpec,
-          sourceScreenshotEvidenceId: input.plan.sourceProof.sourceScreenshotEvidenceId ?? result.gridSpec.sourceScreenshotEvidenceId,
-          sourceStorageRef: input.plan.sourceProof.sourceStorageRef ?? result.gridSpec.sourceStorageRef,
-        },
+        gridSpec: result.gridSpec,
         sourceProof: input.plan.sourceProof,
       }),
     })),
@@ -188,6 +197,7 @@ async function resolveImageProcessingRunner(input: {
   request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   timeoutMs: number;
+  createdAt: string;
 }) {
   switch (input.plan.operation) {
     case "capture-region":
@@ -214,6 +224,7 @@ async function resolveImageProcessingRunner(input: {
         plan: input.plan,
         context: input.context,
         timeoutMs: input.timeoutMs,
+        createdAt: input.createdAt,
       });
   }
 }
@@ -223,6 +234,7 @@ export async function runImageProcessingRunner(input: {
   request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   timeoutMs: number;
+  createdAt: string;
 }): Promise<{
   decision: { status: "passed" | "failed" | "review_required"; reason: string | null };
   output: ImageProcessingRunnerOutput | null;

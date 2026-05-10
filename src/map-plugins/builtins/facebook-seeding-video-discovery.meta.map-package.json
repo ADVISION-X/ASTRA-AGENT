@@ -117,7 +117,7 @@
     ],
     "requiredPromptContracts": [
       "vision.pagePreparation.v1",
-      "vision.productPresence.v1"
+      "visual-mission-judge.v1"
     ],
     "requiredPlatformProfiles": [
       "facebook-web:persistent-local-profile"
@@ -140,7 +140,7 @@
     ],
     "requiresPromptRegistry": [
       "vision.pagePreparation.v1",
-      "vision.productPresence.v1"
+      "visual-mission-judge.v1"
     ],
     "requiresPlatformProfileRegistry": [
       "facebook-web:persistent-local-profile"
@@ -158,7 +158,7 @@
       },
       {
         "stepId": "judge-seeding-video",
-        "promptContractId": "vision.productPresence.v1",
+        "promptContractId": "visual-mission-judge.v1",
         "requiredInputRefs": [
           "promptInputRef"
         ],
@@ -166,6 +166,6 @@
       }
     ]
   },
-  "changelog": "Governed Facebook seeding-video discovery meta map for V1 product lead collection. Startup preparation emits AI-owned yes/no routeLabel before product judgment; product-discovery-route-plan.v1 persists screenshot/url/AI summary as a lightweight product lead record and advances without opening comments.",
+  "changelog": "Governed Facebook seeding-video discovery meta map for V1 product lead collection. Startup preparation still gates readiness, while product judgment now emits a governed action plan keyed by MuscleMemoryCatalog actionCode entries before the product lead record write and mechanical next-item advance.",
   "signature": null
 }

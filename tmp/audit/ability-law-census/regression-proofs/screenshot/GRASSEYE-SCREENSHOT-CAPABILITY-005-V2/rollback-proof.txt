@@ -1,8 +1,0 @@
-scenarioId: screenshot-timeout-truth-bypass
-mutationName: timeout truth bypass mutation
-mutatedFile: src/capabilities/screenshot/runtime/screenshot-execution-phase-helpers.ts
-rollbackRestoredHash: sha256:b970e4cfae370759f8d60e7f0f7b9b80df921d22c4286dc78ecb69800d2b19ac
-startedAt: 2026-05-05T22:40:08.057Z
-endedAt: 2026-05-05T22:40:11.342Z
-
-Rollback was verified by restoring the original production file content and rerunning the Screenshot owner inspector.

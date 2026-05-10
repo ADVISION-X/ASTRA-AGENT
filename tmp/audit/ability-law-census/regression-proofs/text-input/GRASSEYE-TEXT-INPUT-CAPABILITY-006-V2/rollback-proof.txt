@@ -1,8 +1,0 @@
-scenarioId: text-input-pav-handoff-removed
-mutationName: pav handoff removal mutation
-mutatedFile: src/capabilities/text-input/runtime/text-input-result-builder.ts
-rollbackRestoredHash: sha256:a906a7c067b1ad89f6246cc577fa3f12adbd3d80274b85399bf1226df4cfc522
-startedAt: 2026-05-05T22:25:30.319Z
-endedAt: 2026-05-05T22:25:32.738Z
-
-Rollback was verified by restoring the original production file content and rerunning the Text Input owner inspector.

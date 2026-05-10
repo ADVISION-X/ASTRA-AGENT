@@ -1,4 +1,0 @@
-passed: false
-violationCount: 1
-
-FATAL GRASSEYE-GEOMETRY-GUARD-CAPABILITY-005-V3 src/capabilities/geometry-guard/children/validate-click-point/implementation.ts:1 Geometry Guard child implementations must stay as thin factory delegates with no direct validation logic.

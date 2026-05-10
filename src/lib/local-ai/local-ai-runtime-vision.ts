@@ -41,36 +41,39 @@ const buildVisionNormalizationDiagnostics = (
   parsedDecision: string;
 } => {
   const summaryParts = [
-    `decision=${payload.decision}`,
-    `routeLabel=${payload.routeLabel}`,
+    `taskDecision=${payload.taskDecision}`,
+    `pageStateDecision=${payload.pageStateDecision}`,
   ];
 
   if (!isRecord(rawValue)) {
     return {
-      normalizationSummary: [...summaryParts, "rawDecision=missing", "rawRouteLabel=missing", "rawOutputShape=non_object"].join("; "),
+      normalizationSummary: [...summaryParts, "rawTaskDecision=missing", "rawActionPlan=missing", "rawOutputShape=non_object"].join("; "),
       parserIssues: ["Raw model output was not a JSON object before normalization."],
-      parsedDecision: `${payload.decision}|${payload.routeLabel}|issues=1`,
+      parsedDecision: `${payload.taskDecision}|actions=${payload.actionPlan.actions.length}|issues=1`,
     };
   }
 
-  const rawDecision = normalizeTextField(rawValue.decision);
-  const rawRouteLabel = normalizeTextField(rawValue.routeLabel);
+  const rawTaskDecision = normalizeTextField(rawValue.taskDecision);
+  const rawActionPlan = isRecord(rawValue.actionPlan) ? rawValue.actionPlan : null;
+  const rawFirstActionCode = rawActionPlan && Array.isArray(rawActionPlan.actions)
+    ? normalizeTextField((rawActionPlan.actions[0] as Record<string, unknown> | undefined)?.actionCode)
+    : null;
   const unexpectedActionFields = collectUnexpectedActionFields(rawValue);
   const parserIssues: string[] = [];
 
-  summaryParts.push(`rawDecision=${rawDecision ?? "missing"}`);
-  summaryParts.push(`rawRouteLabel=${rawRouteLabel ?? "missing"}`);
+  summaryParts.push(`rawTaskDecision=${rawTaskDecision ?? "missing"}`);
+  summaryParts.push(`rawActionCode=${rawFirstActionCode ?? "missing"}`);
 
-  if (rawDecision === null) {
-    parserIssues.push("Raw model output omitted required decision.");
-  } else if (rawDecision !== payload.decision) {
-    parserIssues.push(`Raw model output decision \"${rawDecision}\" normalized to \"${payload.decision}\".`);
+  if (rawTaskDecision === null) {
+    parserIssues.push("Raw model output omitted required taskDecision.");
+  } else if (rawTaskDecision !== payload.taskDecision) {
+    parserIssues.push(`Raw model output taskDecision \"${rawTaskDecision}\" normalized to \"${payload.taskDecision}\".`);
   }
 
-  if (rawRouteLabel === null) {
-    parserIssues.push("Raw model output omitted required routeLabel.");
-  } else if (rawRouteLabel !== payload.routeLabel) {
-    parserIssues.push(`Raw model output routeLabel \"${rawRouteLabel}\" normalized to \"${payload.routeLabel}\".`);
+  if (rawFirstActionCode === null) {
+    parserIssues.push("Raw model output omitted required actionPlan.actions[0].actionCode.");
+  } else if (rawFirstActionCode !== payload.actionPlan.actions[0]?.actionCode) {
+    parserIssues.push(`Raw model output actionCode \"${rawFirstActionCode}\" normalized to \"${payload.actionPlan.actions[0]?.actionCode ?? "missing"}\".`);
   }
 
   if (unexpectedActionFields.length > 0) {
@@ -85,7 +88,7 @@ const buildVisionNormalizationDiagnostics = (
   return {
     normalizationSummary: summaryParts.join("; "),
     parserIssues,
-    parsedDecision: `${payload.decision}|${payload.routeLabel}${parserIssues.length > 0 ? `|issues=${parserIssues.length}` : ""}`,
+    parsedDecision: `${payload.taskDecision}|actions=${payload.actionPlan.actions.length}${parserIssues.length > 0 ? `|issues=${parserIssues.length}` : ""}`,
   };
 };
 

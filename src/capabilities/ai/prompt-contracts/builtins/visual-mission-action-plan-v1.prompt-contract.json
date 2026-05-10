@@ -1,0 +1,101 @@
+{
+  "promptContractId": "visual-mission-action-plan-v1",
+  "promptId": "visual-mission-action-plan-v1",
+  "taskType": "visual_mission_action_plan",
+  "legacyTaskType": "vision.visualMissionActionPlan",
+  "modelRole": "vision",
+  "promptVersion": "v1",
+  "schemaVersion": "visual-mission-action-plan.schema.v1",
+  "inputContract": "image_collection.visual_mission_action_plan",
+  "requiredInputRefs": [
+    "userRequirementRef",
+    "systemManualRef",
+    "outputSchemaRef",
+    "originalScreenshotRef",
+    "coordinateGridScreenshotRef",
+    "gridSpecRef",
+    "platformContextRef"
+  ],
+  "outputSchemaRef": "ai.visual_mission_action_plan.v1",
+  "allowedBranchFields": [
+    "pageStateDecision",
+    "productDecision",
+    "actions.actionCode"
+  ],
+  "systemPromptTemplateRef": "src/capabilities/ai/prompt-contracts/visual-mission-action-plan/prompt-builder.ts#system",
+  "userPromptTemplateRef": "src/capabilities/ai/prompt-contracts/visual-mission-action-plan/prompt-builder.ts#user",
+  "purpose": "Compose a governed three-part visual mission prompt and return a strict action plan that only uses MuscleMemoryCatalog actionCode values.",
+  "forbiddenOutputs": [
+    "raw x",
+    "raw y",
+    "mouseX",
+    "mouseY",
+    "free-form execute",
+    "unknown actionCode",
+    "arbitrary url open",
+    "unrestricted text input"
+  ],
+  "prohibitedActions": [
+    "click",
+    "scroll",
+    "type",
+    "open_page",
+    "dispatch_action"
+  ],
+  "restrictedDataAccess": [
+    "cookies",
+    "credentials",
+    "hidden_token"
+  ],
+  "confidencePolicy": {
+    "minConfidence": 0,
+    "belowMin": "review_required"
+  },
+  "reviewPolicy": {
+    "requiredWhen": [
+      "low_confidence"
+    ]
+  },
+  "failurePolicy": {
+    "badJson": "failed",
+    "schemaMismatch": "failed",
+    "timeout": "failed",
+    "modelUnavailable": "failed"
+  },
+  "debugPolicy": {
+    "rawOutputRetention": "ref",
+    "includePromptHash": true
+  },
+  "promptHash": "sha256:75b33d73040bd3752d1b8ef47097478c11157b01dfcec462889e747ca75eb7e6",
+  "promptContractHash": "sha256:75b33d73040bd3752d1b8ef47097478c11157b01dfcec462889e747ca75eb7e6",
+  "sensitiveOperation": false,
+  "dataPolicy": {
+    "promptSections": [
+      "user_requirement",
+      "system_manual",
+      "output_format"
+    ],
+    "systemManualSource": "muscle-memory-catalog",
+    "coordinatePolicy": "grid_cell_only"
+  },
+  "safetyPolicy": {
+    "forbidRawCoordinates": true,
+    "allowListedActionCodesOnly": true,
+    "actionPlanNonExecutable": true
+  },
+  "outputSchema": {
+    "taskType": "visual_mission_action_plan",
+    "promptId": "visual-mission-action-plan-v1",
+    "promptVersion": "v1",
+    "schemaVersion": "visual-mission-action-plan.schema.v1",
+    "actions": "array of governed actionCode records only",
+    "clickTargets": "gridCell + targetName only",
+    "forbidden": [
+      "raw x",
+      "raw y",
+      "mouseX",
+      "mouseY",
+      "unknown actionCode"
+    ]
+  }
+}

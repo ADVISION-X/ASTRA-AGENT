@@ -1,8 +1,0 @@
-scenarioId: visual-target-local-ai-import
-mutationName: visual-target-local-ai-import
-mutatedFile: src/capabilities/visual-target/runtime/local-ai-import-probe.ts
-rollbackRestoredHash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-startedAt: 2026-05-05T22:12:01.142Z
-endedAt: 2026-05-05T22:12:07.339Z
-
-Rollback was verified by restoring the original production file content and rerunning the Visual Target owner inspector.

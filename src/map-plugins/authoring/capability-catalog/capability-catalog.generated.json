@@ -1279,6 +1279,31 @@
       ]
     },
     {
+      "abilityGroupId": "screenshot",
+      "childCapabilityId": "prepare-visual-mission-input",
+      "description": "Capture governed screenshot for coordinate_grid in derived.",
+      "inputSchemaRef": "screenshot.prepare-visual-mission-input.input",
+      "outputSchemaRef": "screenshot.prepare-visual-mission-input.output",
+      "platformId": null,
+      "targetKind": null,
+      "supportedTargets": [
+        "browser-viewport",
+        "browser-region",
+        "desktop-screen"
+      ],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresAutomationGate": false,
+      "sensitiveOperation": false,
+      "forbiddenResponsibilities": [
+        "execute actions",
+        "author prompt contracts",
+        "persist evidence records directly"
+      ]
+    },
+    {
       "abilityGroupId": "text-input",
       "childCapabilityId": "clear-input",
       "description": "Execute governed text-input behavior for clear input.",

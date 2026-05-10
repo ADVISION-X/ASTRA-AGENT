@@ -4,6 +4,7 @@ import { buildAiStepResult } from "./step-dispatch-ai.js";
 import { findEffectiveOperationalStep } from "./route-plan-resolver.js";
 import { buildAbilityDispatchResult, buildAiDispatchRequest } from "./step-dispatch-request-builders.js";
 import { buildFinalizeStepResult } from "./step-dispatch-review.js";
+import { decodeVisualMissionActionPlan, executeMuscleMemoryPlan } from "../../../muscle-memory/index.js";
 import {
   allowsPostClickObservationAbilityGroup,
   ensurePostActionVerificationDispatchGate,
@@ -129,9 +130,49 @@ async function dispatchAiStep(input: {
     }),
     timeoutMs,
   );
-  return timeoutResult.timedOut
-    ? { dispatched: false, failureReason: `AI dispatch timed out after ${timeoutMs}ms for step "${input.step.stepId}".` }
-    : buildAiStepResult({ state: input.state, map: input.map, step: input.step, missionId: input.missionId, dispatchResult: timeoutResult.result });
+  if (timeoutResult.timedOut) {
+    return { dispatched: false, failureReason: `AI dispatch timed out after ${timeoutMs}ms for step "${input.step.stepId}".` };
+  }
+
+  const dispatchResult = timeoutResult.result;
+  if (dispatchResult.actionPlan !== null) {
+    const decodedPlan = decodeVisualMissionActionPlan({
+      plan: dispatchResult.actionPlan,
+      sourceAiResultRef: dispatchResult.payloadRefs.aiResultRef ?? null,
+    });
+    const executionResult = await executeMuscleMemoryPlan({
+      state: input.state,
+      map: input.map,
+      missionId: input.missionId,
+      chain: prepared.value.chain,
+      sequenceNo: input.sequenceNo + 1,
+      idempotencyKey: `${input.idempotencyKey}:muscle-memory`,
+      plan: decodedPlan,
+      nerveBus: input.context.nerveBus,
+    });
+    return buildAiStepResult({
+      state: {
+        ...input.state,
+        payloadRefs: executionResult.payloadRefs,
+      },
+      map: input.map,
+      step: input.step,
+      missionId: input.missionId,
+      dispatchResult: {
+        ...dispatchResult,
+        status: executionResult.status,
+        failureReason: executionResult.failureReason,
+        payloadRefs: executionResult.payloadRefs,
+        branchFieldValues: {
+          ...dispatchResult.branchFieldValues,
+          muscleMemoryExecuted: true,
+          actionExecutionCount: executionResult.actionResults.length,
+        },
+      },
+    });
+  }
+
+  return buildAiStepResult({ state: input.state, map: input.map, step: input.step, missionId: input.missionId, dispatchResult });
 }
 
 async function dispatchOperationalStepCore(input: {

@@ -11,12 +11,13 @@ import type {
   AiVisualOutput,
   AiVisualTargetCandidateOutput,
 } from "../contract.js";
+import type { VisualMissionActionPlanOutput as AiVisualMissionActionPlanOutput } from "../../../types/visual-mission-action-plan.js";
 import type { MapAuthoringFallbackOutput } from "./ai-map-authoring-fallback.js";
 import { buildMapAuthoringFallback } from "./ai-map-authoring-fallback.js";
+import { loadMuscleMemoryCatalog } from "../../../muscle-memory/catalog/muscle-memory-catalog.js";
 import {
   STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
 } from "../../../map-plugins/shared/startup-preparation.constants.js";
-import { PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL } from "../../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
 
 function buildPagePreparationFallback(reason: string): AiPagePreparationOutput {
   return {
@@ -33,6 +34,7 @@ function buildPagePreparationFallback(reason: string): AiPagePreparationOutput {
 }
 
 function buildVisualFallback(reason: string): AiVisualOutput {
+  const catalogVersion = loadMuscleMemoryCatalog().catalogVersion;
   return {
     inputMode: "single_frame_fallback",
     multiFrameEvidenceSetId: null,
@@ -45,9 +47,24 @@ function buildVisualFallback(reason: string): AiVisualOutput {
     fallbackReason: reason,
     missingFrames: [],
     isProductVideo: false,
-    decision: "product_no",
-    routeLabel: PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
-    nonExecutableSummary: "当前证据未证明产品展示，选择非产品路线标签。",
+    taskDecision: "NO_SEEDING_VIDEO_FLOW",
+    pageStateDecision: "ready",
+    actionPlan: {
+      schemaVersion: "visualMissionActionPlan.v1",
+      userRequirementRef: "user-requirement:ai-fallback",
+      muscleMemoryCatalogVersion: catalogVersion,
+      platform: "unknown",
+      pageStateDecision: "ready",
+      taskDecision: "NO_SEEDING_VIDEO_FLOW",
+      confidence: 0,
+      reason,
+      actions: [
+        { actionCode: "NO_SEEDING_VIDEO_FLOW", required: true, reason },
+      ],
+      riskFlags: [reason],
+      nonExecutableSummary: "当前证据未显示明确产品展示，直接切到下一条。",
+    },
+    nonExecutableSummary: "当前证据未显示明确产品展示，直接切到下一条。",
     confidence: 0,
     visibleProductTypes: [],
     evidenceObservations: [],
@@ -81,11 +98,37 @@ function buildVisualTargetCandidateFallback(reason: string): AiVisualTargetCandi
   };
 }
 
-function buildFallbackByTaskType(reason: string) {
+function buildVisualMissionActionPlanFallback(reason: string): AiVisualMissionActionPlanOutput {
+  return {
+    schemaVersion: "visualMissionActionPlan.v1",
+    userIntentUnderstanding: {
+      matched: false,
+      summary: "当前视觉任务计划回退到 fail-closed 输出。",
+    },
+    platform: "facebook-web",
+    isTargetPlatform: false,
+    surface: "unknown",
+    isTargetFeed: false,
+    pageStateDecision: "review_required",
+    isProductVideo: false,
+    productDecision: "uncertain",
+    confidence: 0,
+    visibleProductTypes: [],
+    visualEvidence: [reason],
+    reason,
+    actions: [{ actionCode: "STOP_REVIEW_REQUIRED", required: true, reason }],
+    clickTargets: [],
+    riskFlags: ["visual_mission_fallback"],
+    nonExecutableSummary: reason,
+  };
+}
+
+function buildFallbackByTaskType(reason: string): Record<AiAbilityInput["taskType"], unknown> {
   return {
     page_preparation_judgment: buildPagePreparationFallback(reason),
     product_presence_judgment: buildVisualFallback(reason),
     visual_observation: buildVisualFallback(reason),
+    visual_mission_action_plan: buildVisualMissionActionPlanFallback(reason),
     visual_target_candidate_analysis: buildVisualTargetCandidateFallback(reason),
     ocr_cleanup: { cleanedComments: [], uncertainText: [reason], confidence: 0 },
     comment_signal_summary: { purchaseIntent: "low", painPoints: [], complaints: [], demandTerms: [], confidence: 0 },
@@ -93,9 +136,9 @@ function buildFallbackByTaskType(reason: string) {
     evidence_packet_analysis: { packetSummary: reason, evidenceIds: [], notes: [reason] },
     map_authoring: buildMapAuthoringFallback(reason),
     schema_validation_only: { valid: false, issues: [reason] },
-  } as const;
+  };
 }
 
-export function buildNonAuthoritativeOutput(taskType: AiAbilityInput["taskType"], reason: string): AiPagePreparationOutput | AiVisualOutput | AiVisualTargetCandidateOutput | AiOcrCleanupOutput | AiCommentSignalSummaryOutput | AiProductSignalSummaryOutput | AiEvidencePacketAnalysisOutput | MapAuthoringFallbackOutput | AiSchemaValidationOnlyOutput {
+export function buildNonAuthoritativeOutput(taskType: AiAbilityInput["taskType"], reason: string): AiPagePreparationOutput | AiVisualOutput | AiVisualMissionActionPlanOutput | AiVisualTargetCandidateOutput | AiOcrCleanupOutput | AiCommentSignalSummaryOutput | AiProductSignalSummaryOutput | AiEvidencePacketAnalysisOutput | MapAuthoringFallbackOutput | AiSchemaValidationOnlyOutput {
   return buildFallbackByTaskType(reason)[taskType];
 }

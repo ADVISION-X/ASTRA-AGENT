@@ -1,5 +1,0 @@
-
-> grasseye-local-workbench@0.1.0 audit:map-plugin-package
-> tsx scripts/audit/domains/map-plugin-package/run-inspector.ts
-
-[PASS] map-plugin-package: Map package governance passes direct parsed-data, boundary, and negative-proof enforcement.

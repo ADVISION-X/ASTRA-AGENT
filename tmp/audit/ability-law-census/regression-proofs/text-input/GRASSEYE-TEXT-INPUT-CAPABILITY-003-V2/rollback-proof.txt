@@ -1,8 +1,0 @@
-scenarioId: text-input-capability-call-optional
-mutationName: capability call optional mutation
-mutatedFile: src/capabilities/text-input/schema.ts
-rollbackRestoredHash: sha256:1f9126bd52382f3adaf8a4b9fed88d0bcdc78b9dd66cf58c44bf526745adda4c
-startedAt: 2026-05-05T22:25:23.178Z
-endedAt: 2026-05-05T22:25:25.580Z
-
-Rollback was verified by restoring the original production file content and rerunning the Text Input owner inspector.

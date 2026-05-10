@@ -1,8 +1,0 @@
-scenarioId: visual-target-critical-data-quality-fail-open
-mutationName: critical-data-quality-fail-open
-mutatedFile: src/capabilities/visual-target/runtime/visual-target-output-boundary-gate.ts
-rollbackRestoredHash: sha256:341b942d515b1261721f6a2f50fa2dfb5f699305b023ddbc5598f159d7b9b8a0
-startedAt: 2026-05-05T22:12:19.779Z
-endedAt: 2026-05-05T22:12:25.999Z
-
-Rollback was verified by restoring the original production file content and rerunning the Visual Target owner inspector.

@@ -1,7 +1,0 @@
-
-> grasseye-local-workbench@0.1.0 audit:orchestration
-> node --import tsx scripts/audit/domains/orchestration-capability/run-inspector.ts
-
-[FAKE ENFORCEMENT] orchestration-capability: Mission loop can still lose split-aware traceability, consume maxRounds as a step budget, or skip explicit PAV start proof.
-- FATAL src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts:1 Mission loop must emit governed step-selection, gate, dispatch, and transition runtime events after command acceptance.
-- FATAL scripts/audit/domains/orchestration-capability/inspector.ts:1 Orchestration inspector baseline must pass before negative-proof mutation checks.

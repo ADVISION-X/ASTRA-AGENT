@@ -86,7 +86,7 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN: RoutePlan = RoutePlanSchema.parse({
       description: "Use one governed focus-and-ArrowDown action to advance the feed mechanically; the next capture and product judgment naturally handle whatever is visible.",
     },
   ],
-  promptContractIds: ["vision.productPresence.v1", "vision.commentsEntryTargetCandidate.v1", "vision.nextItemAdvanced.v1", "comments.ocr_cleanup.v1", "vision.pagePreparation.v1"],
+  promptContractIds: ["visual-mission-judge.v1", "vision.commentsEntryTargetCandidate.v1", "vision.nextItemAdvanced.v1", "comments.ocr_cleanup.v1", "vision.pagePreparation.v1"],
   outcomeOptions: PRODUCT_DISCOVERY_OUTCOME_OPTIONS,
   selectedPositiveRouteLabel: PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
   selectedNegativeRouteLabel: PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,

@@ -337,7 +337,7 @@
             "aiResultRef"
           ]
         },
-        "promptContractId": "vision.productPresence.v1"
+        "promptContractId": "visual-mission-judge.v1"
       },
       {
         "stepId": "summarize-product-signal",
@@ -918,7 +918,7 @@
       "finalize-mission"
     ],
     "requiredPromptContracts": [
-      "vision.productPresence.v1",
+      "visual-mission-judge.v1",
       "product.signal_summary.v1"
     ],
     "requiredPlatformProfiles": [
@@ -948,7 +948,7 @@
       "mouse-scroll"
     ],
     "requiresPromptRegistry": [
-      "vision.productPresence.v1",
+      "visual-mission-judge.v1",
       "product.signal_summary.v1"
     ],
     "requiresPlatformProfileRegistry": [
@@ -960,7 +960,7 @@
     "bindings": [
       {
         "stepId": "judge-product-seeding-video",
-        "promptContractId": "vision.productPresence.v1",
+        "promptContractId": "visual-mission-judge.v1",
         "requiredInputRefs": [
           "promptInputRef"
         ],

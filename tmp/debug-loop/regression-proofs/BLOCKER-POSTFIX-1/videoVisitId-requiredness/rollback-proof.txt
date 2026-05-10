@@ -1,4 +1,0 @@
-scenarioId: BLOCKER-POSTFIX-1/videoVisitId-requiredness
-mutatedFile: src/capabilities/screenshot/shared/screenshot-governance.ts
-rollback: restored original production content and reran npm run audit:screenshot
-result: PASS

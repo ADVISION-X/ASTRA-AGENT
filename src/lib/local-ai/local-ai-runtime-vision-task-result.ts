@@ -74,4 +74,4 @@ export const buildVisionTaskResult = (
 
 export const buildNextItemParsedDecision = (payload: { targetCandidates: unknown[] }) => `target_candidates:${payload.targetCandidates.length}`;
 
-export const buildProductPresenceParsedDecision = (payload: { isProductVideo: boolean | null }) => payload.isProductVideo === true ? "product_yes" : payload.isProductVideo === false ? "product_no" : "product_uncertain";
+export const buildProductPresenceParsedDecision = (payload: { taskDecision: string; actionPlan: { actions: unknown[] } }) => `${payload.taskDecision}|actions:${payload.actionPlan.actions.length}`;

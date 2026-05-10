@@ -1,9 +1,0 @@
-diff --git a/src/lib/local-runtime/workbench-post-action-runtime.ts b/src/lib/local-runtime/workbench-post-action-runtime.ts
---- a/src/lib/local-runtime/workbench-post-action-runtime.ts
-+++ b/src/lib/local-runtime/workbench-post-action-runtime.ts
-@@ -1,4 +1,5 @@
- import { createPostActionVerificationAbilityGroup } from "../../capabilities/post-action-verification/index.js";
-+import type { PostActionVerificationRuntimeContext } from "../../capabilities/post-action-verification/runtime/post-action-verification-runtime-context.js";
- 
- export const createPostActionRuntime = () => ({
-   postActionVerificationAbilityGroup: createPostActionVerificationAbilityGroup({

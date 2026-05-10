@@ -39,6 +39,6 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_PRODUCT_PRESENCE_STEPS: RoutePlan["ste
     targetAbilityGroupId: "ai",
     inputRefs: ["promptInputRef"],
     outputRefPolicy: { storeAs: ["aiResultRef", "productPresenceAiResultRef"] },
-    promptContractId: "vision.productPresence.v1",
+    promptContractId: "visual-mission-judge.v1",
   },
 ];

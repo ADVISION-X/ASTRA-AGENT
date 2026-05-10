@@ -1,5 +1,6 @@
 import type { AiAbilityResult, AiTaskType, ParsedAiAbilityInput } from "../contract.js";
 import type { ResolvedAiPromptContract } from "../ports/ai-prompt-registry-port.js";
+import { z } from "zod";
 import {
   AiCommentSignalSummaryOutputSchema,
   AiEvidencePacketAnalysisOutputSchema,
@@ -8,13 +9,15 @@ import {
   AiPagePreparationOutputSchema,
   AiProductSignalSummaryOutputSchema,
   AiSchemaValidationOnlyOutputSchema,
+  AiVisualMissionActionPlanOutputSchema,
   AiVisualOutputSchema,
   AiVisualTargetCandidateOutputSchema,
 } from "../schema.js";
 
-const SCHEMA_BY_TASK_TYPE = {
+const SCHEMA_BY_TASK_TYPE: Record<AiTaskType, { schemaId: string; schema: z.ZodTypeAny }> = {
   page_preparation_judgment: { schemaId: "ai.page_preparation_judgment.v1", schema: AiPagePreparationOutputSchema },
   product_presence_judgment: { schemaId: "ai.product_presence_judgment.v1", schema: AiVisualOutputSchema },
+  visual_mission_action_plan: { schemaId: "ai.visual_mission_action_plan.v1", schema: AiVisualMissionActionPlanOutputSchema },
   visual_observation: { schemaId: "ai.visual_observation.v1", schema: AiVisualOutputSchema },
   visual_target_candidate_analysis: { schemaId: "ai.visual_target_candidate_analysis.v1", schema: AiVisualTargetCandidateOutputSchema },
   ocr_cleanup: { schemaId: "ai.ocr_cleanup.v1", schema: AiOcrCleanupOutputSchema },

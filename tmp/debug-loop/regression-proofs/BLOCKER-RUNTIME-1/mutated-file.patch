@@ -1,6 +1,0 @@
-diff --git a/src/capabilities/screenshot/screenshot-schema-refinements.ts b/src/capabilities/screenshot/screenshot-schema-refinements.ts
---- a/src/capabilities/screenshot/screenshot-schema-refinements.ts
-+++ b/src/capabilities/screenshot/screenshot-schema-refinements.ts
-@@
--  if (value.status === "success" && value.childCapabilityId === "prepare-ai-input" && !value.scaleMapping) {
-+  if (value.childCapabilityId === "prepare-ai-input" && !value.scaleMapping) {

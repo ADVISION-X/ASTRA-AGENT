@@ -4,7 +4,8 @@ import type { PrepareVisualMissionInputChildCapability } from "./contract.js";
 
 export const prepareVisualMissionInputChildCapability: PrepareVisualMissionInputChildCapability = {
   childCapabilityId: "prepare-visual-mission-input",
-  async execute({ request }) {
+  async execute(input) {
+    const { request } = input;
     return PrepareVisualMissionInputPlanSchema.parse({
       kind: "image-processing",
       operation: "prepare-visual-mission-input",

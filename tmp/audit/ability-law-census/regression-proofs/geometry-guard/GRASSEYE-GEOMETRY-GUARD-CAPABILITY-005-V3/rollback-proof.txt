@@ -1,8 +1,0 @@
-scenarioId: child-returns-boolean
-mutationName: child-returns-boolean
-mutatedFile: src/capabilities/geometry-guard/children/validate-click-point/implementation.ts
-rollbackRestoredHash: sha256:a02b5c970420effe3233d55ee6a0cff67defbb78025072a5b654371187b1a9e9
-startedAt: 2026-05-06T04:21:53.546Z
-endedAt: 2026-05-06T04:21:59.453Z
-
-Rollback was verified by restoring the original production file content and rerunning the Geometry Guard owner inspector.

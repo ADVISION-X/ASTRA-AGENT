@@ -2,15 +2,17 @@ import type { InspectorContext, InspectorResult } from "../../core/schema.js";
 import { finalizeInspectorResult } from "../../core/result.js";
 import { runDomainOwnerInspection } from "../_shared/owner-foundation-inspection.js";
 import { runAntiEscape } from "./anti-escape.js";
+import {
+  runBoundaryAttack,
+  runChildRuntimeCheck,
+  runForbiddenShape,
+  runLawBaselineCheck,
+  runOwnershipBoundary,
+  runProductPresenceLightweightCheck,
+  runRequiredShape,
+  runVisualMissionShape,
+} from "./phase-runners.js";
 import { createScreenshotAuditProject } from "./project-access.js";
-import { runBoundaryAttack } from "./boundary-attack.js";
-import { runChildRuntimeCheck } from "./child-runtime-check.js";
-import { runForbiddenShape } from "./forbidden-shape.js";
-import { runLawBaselineCheck } from "./law-baseline-check.js";
-import { runOwnershipBoundary } from "./ownership-boundary.js";
-import { runProductPresenceLightweightCheck } from "./run-product-presence-lightweight-check.js";
-import { runRequiredShape } from "./required-shape.js";
-import { runVisualMissionShape } from "./visual-mission-shape.js";
 
 const runScreenshotChecks = async (_context: InspectorContext) => {
   const project = createScreenshotAuditProject();

@@ -1,2 +1,0 @@
-[CODE VIOLATION] page-state-capability: page-state owner inspector found capability-boundary, enforcement, or governance violations
-- FATAL src/lib/local-runtime/workbench-page-state-dispatch-input.ts:1 Local runtime page-state dispatch must derive childCapabilityId from envelope.commandName.

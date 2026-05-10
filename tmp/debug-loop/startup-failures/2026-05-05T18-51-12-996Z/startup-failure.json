@@ -1,8 +1,0 @@
-{
-  "runId": "2026-05-05T18:51:12.996Z",
-  "baseUrl": "http://127.0.0.1:4173",
-  "ownerResponsible": "startup-entrypoint",
-  "failureReason": "ENOENT: no such file or directory, open '/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/ai-draft-map-placeholder.map-package.json' actionableMessage=Fix the builtin map package and rerun npm run audit:map-plugin-package.",
-  "actionableMessage": "Inspect startup structured logs and rerun npm run grasseye:start.",
-  "writtenAt": "2026-05-05T18:51:14.845Z"
-}

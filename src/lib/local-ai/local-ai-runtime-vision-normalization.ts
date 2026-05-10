@@ -173,7 +173,7 @@ export const normalizeVisionRuntimeOutput = (
   }
 
   const expectedFrameLabels = resolveExpectedFrameLabels(request);
-  const decisionState = resolveVisionRuntimeDecisionState(value);
+  const decisionState = resolveVisionRuntimeDecisionState(value, request);
   const frameState = resolveVisionRuntimeFrameState(request, value, expectedFrameLabels, decisionState);
 
   return {

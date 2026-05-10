@@ -1,3 +1,0 @@
-[CODE VIOLATION] visual-target-capability: visual-target owner inspector found capability-boundary, chain-truth, or enforcement violations
-- ERROR src/capabilities/visual-target/runtime/visual-target-output-boundary-gate.ts:1 Action output must keep geometryGuardHandoffRequired=true.
-

@@ -22,6 +22,7 @@ function renderCommanderAppShell(input: CommanderAppShellInput, options: {
     dashboard: input.dashboard,
     locale: options.locale,
     appRunLimitSettings: input.appRunLimitSettings,
+    userRequirementHistory: [],
   });
 
   const appFrame = renderAppFrame({

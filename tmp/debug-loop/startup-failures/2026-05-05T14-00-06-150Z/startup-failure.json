@@ -1,8 +1,0 @@
-{
-  "runId": "2026-05-05T14:00:06.150Z",
-  "baseUrl": "http://127.0.0.1:4173",
-  "ownerResponsible": "map-plugin-package",
-  "failureReason": "MAP_PACKAGE_BUILTIN_PARSE_FAILED packageFile=macos-local-program-open-smoke.meta.map-package.json ownerResponsible=map-plugin-package actionableMessage=\"Fix the builtin map package manifest.packageKind and rerun npm run audit:map-plugin-package.\" actionableMessage=Fix the builtin map package manifest.packageKind and rerun npm run audit:map-plugin-package.",
-  "actionableMessage": "Fix map package readiness and rerun npm run audit:map-plugin-package.",
-  "writtenAt": "2026-05-05T14:00:06.843Z"
-}

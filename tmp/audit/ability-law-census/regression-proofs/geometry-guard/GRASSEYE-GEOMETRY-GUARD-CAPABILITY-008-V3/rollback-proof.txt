@@ -1,8 +1,0 @@
-scenarioId: manual-first-enforcement-reintroduced
-mutationName: manual-first-enforcement-reintroduced
-mutatedFile: .github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md
-rollbackRestoredHash: sha256:15eef6f147362580f2f1d86791dfa0be65e526a60b83e0f42fd800b26d0a8aa4
-startedAt: 2026-05-06T04:20:13.849Z
-endedAt: 2026-05-06T04:20:20.239Z
-
-Rollback was verified by restoring the original production file content and rerunning the Geometry Guard owner inspector.

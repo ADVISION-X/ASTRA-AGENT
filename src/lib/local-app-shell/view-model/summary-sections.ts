@@ -6,7 +6,7 @@ import type { CommanderConsoleTaskTemplate, CommanderConsoleViewModel } from "..
 
 export function buildMissionSummary(dashboard: CommanderMissionDashboardView, locale: Locale): string {
   if (!dashboard.mission.missionId) {
-    return localizeCommanderText(locale, "当前无活动任务。先选择任务模板并设定运行限制，再开始执行。", "No active mission. Choose a task template and run limits before starting execution.");
+    return localizeCommanderText(locale, "当前无活动任务。先填写用户需求、选择平台并设定运行限制，再开始执行。", "No active mission. Provide a user requirement, choose platforms, and set run limits before starting execution.");
   }
 
   return localizeCommanderText(locale, `任务 ${dashboard.mission.missionId} 正在 ${dashboard.mission.status}，当前目标：${dashboard.mission.humanGoal || "未填写"}。`, `Mission ${dashboard.mission.missionId} is ${dashboard.mission.status} with goal ${dashboard.mission.humanGoal || "unspecified"}.`);
@@ -44,11 +44,19 @@ export function buildCommandDraft(
   activeTaskTemplate: CommanderConsoleTaskTemplate | null,
   appRunLimitSettings: AppRunLimitSettings,
 ): CommanderConsoleViewModel["commandDraft"] {
+  const selectedPlatforms: CommanderConsoleViewModel["commandDraft"]["selectedPlatforms"] = dashboard.mission.requestedPlatform === "facebook-web" || dashboard.mission.requestedPlatform === "tiktok-web"
+    ? [dashboard.mission.requestedPlatform]
+    : activeTaskTemplate?.taskCategory.toLowerCase().includes("facebook")
+      ? ["facebook-web"]
+      : activeTaskTemplate?.taskCategory.toLowerCase().includes("tiktok")
+        ? ["tiktok-web"]
+        : [];
   return {
     commandType: "start-mission",
     commandSource: "commander-console:start-form-submit",
-    taskTemplateId: activeTaskTemplate?.taskTemplateId ?? null,
-    humanGoal: activeTaskTemplate?.defaultHumanGoal ?? (dashboard.mission.humanGoal || ""),
+    userRequirementText: dashboard.mission.humanGoal || activeTaskTemplate?.defaultHumanGoal || "",
+    selectedPlatforms,
+    historyEntryId: null,
     maxRounds: appRunLimitSettings.defaultMaxRounds,
     maxMinutes: appRunLimitSettings.defaultMaxMinutes,
   };

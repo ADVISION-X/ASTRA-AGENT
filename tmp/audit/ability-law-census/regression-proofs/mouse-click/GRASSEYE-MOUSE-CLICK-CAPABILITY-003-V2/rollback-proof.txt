@@ -1,8 +1,0 @@
-scenarioId: input-capabilitycallid-removal-mutation
-mutationName: input capabilityCallId removal mutation
-mutatedFile: src/capabilities/mouse-click/schema.ts
-rollbackRestoredHash: sha256:cd91ddc7a95bd85f1ff6717a8628faab6295ea954ada3a7d35b438ac34d5537e
-startedAt: 2026-05-06T12:35:09.260Z
-endedAt: 2026-05-06T12:35:14.380Z
-
-Rollback was verified by restoring the original production file content and rerunning the Mouse Click owner inspector.

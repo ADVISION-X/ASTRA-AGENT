@@ -1,8 +1,0 @@
-scenarioId: text-input-orchestration-direct-port-import
-mutationName: orchestration-direct-text-port mutation
-mutatedFile: src/capabilities/orchestration/ability-group.ts
-rollbackRestoredHash: sha256:ff81a2732c7cb32b2d0b393a86bbc0819debf9ffdcc919b05302fcb76b7c9842
-startedAt: 2026-05-05T22:25:18.275Z
-endedAt: 2026-05-05T22:25:20.799Z
-
-Rollback was verified by restoring the original production file content and rerunning the Text Input owner inspector.

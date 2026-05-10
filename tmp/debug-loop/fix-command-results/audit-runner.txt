@@ -1,9 +1,0 @@
-npm error Missing script: "audit:runner"
-npm error
-npm error Did you mean one of these?
-npm error   npm run audit:index # run the "audit:index" package script
-npm error   npm run audit:kernel # run the "audit:kernel" package script
-npm error
-npm error To see a list of scripts, run:
-npm error   npm run
-npm error A complete log of this run can be found in: /Users/nexgen/.npm/_logs/2026-05-05T04_09_39_272Z-debug-0.log

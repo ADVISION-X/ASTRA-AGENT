@@ -85,6 +85,7 @@ export const resolveScreenshotImageRun = async (input: {
   context: ScreenshotRuntimeContext;
   request: ScreenshotAbilityInput;
   registryEntry: { maxDurationMs: number };
+  createdAt: string;
 }) => {
   return input.plan.kind === "image-processing"
     ? await runImageProcessingRunner({
@@ -92,6 +93,7 @@ export const resolveScreenshotImageRun = async (input: {
         request: input.request,
         context: input.context,
         timeoutMs: resolveScreenshotTimeoutMs(input.request, input.registryEntry.maxDurationMs),
+        createdAt: input.createdAt,
       })
     : null;
 };

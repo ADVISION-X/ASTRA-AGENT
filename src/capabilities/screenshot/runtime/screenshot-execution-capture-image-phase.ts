@@ -16,6 +16,13 @@ type ScreenshotCaptureImagePhaseSuccess = {
   phaseTimings: ScreenshotPhaseTimings;
 };
 
+type ScreenshotCaptureImagePhaseMeasurements = {
+  captureMeasurement: Awaited<ReturnType<typeof measureOptionalScreenshotPhase<ScreenshotCaptureMeasurement>>>;
+  imageMeasurement: Awaited<ReturnType<typeof measureOptionalScreenshotPhase<ScreenshotImageMeasurement>>>;
+  captureRun: ScreenshotCaptureMeasurement;
+  imageRun: ScreenshotImageMeasurement;
+};
+
 async function measureOptionalScreenshotPhase<T>(input: {
   enabled: boolean;
   context: ScreenshotRuntimeContext;
@@ -47,15 +54,14 @@ function buildPhaseTimings(input: {
   };
 }
 
-export async function executeScreenshotCaptureAndImagePhase(input: {
+async function resolveCaptureImageMeasurements(input: {
   plan: ScreenshotExecutionPlan;
-  gates: ScreenshotExecutionGates;
   request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   scope: ScreenshotExecutionScope;
   clockStart: ScreenshotClockStart;
   registryEntry: ScreenshotChildRegistryEntry;
-}): Promise<ScreenshotCaptureImagePhaseSuccess | ScreenshotAbilityResult> {
+}): Promise<ScreenshotCaptureImagePhaseMeasurements> {
   const captureMeasurement = await measureOptionalScreenshotPhase({
     enabled: input.plan.kind === "capture",
     context: input.context,
@@ -69,11 +75,26 @@ export async function executeScreenshotCaptureAndImagePhase(input: {
       context: input.context,
       request: input.request,
       registryEntry: input.registryEntry,
+      createdAt: input.clockStart.startedAt,
     }),
   });
-  const captureRun = captureMeasurement.result;
-  const imageRun = imageMeasurement.result;
-  const failure = await screenshotExecutionPhaseSupport.resolveScreenshotCaptureAndImagePhaseFailure({
+  return {
+    captureMeasurement,
+    imageMeasurement,
+    captureRun: captureMeasurement.result,
+    imageRun: imageMeasurement.result,
+  };
+}
+
+async function resolveCaptureImageFailure(input: {
+  request: ScreenshotAbilityInput;
+  context: ScreenshotRuntimeContext;
+  scope: ScreenshotExecutionScope;
+  clockStart: ScreenshotClockStart;
+  gates: ScreenshotExecutionGates;
+  measurements: ScreenshotCaptureImagePhaseMeasurements;
+}) {
+  return screenshotExecutionPhaseSupport.resolveScreenshotCaptureAndImagePhaseFailure({
     request: input.request,
     context: input.context,
     scope: input.scope,
@@ -82,15 +103,14 @@ export async function executeScreenshotCaptureAndImagePhase(input: {
     browserSessionGate: input.gates.browserSessionGate,
     pageStateGate: input.gates.pageStateGate,
     privacyGate: input.gates.privacyGate,
-    captureRun,
-    imageRun,
-    executionFailure: captureRun?.failure ?? imageRun?.failure ?? null,
+    captureRun: input.measurements.captureRun,
+    imageRun: input.measurements.imageRun,
+    executionFailure: input.measurements.captureRun?.failure ?? input.measurements.imageRun?.failure ?? null,
   });
+}
 
-  if (failure) {
-    return failure;
-  }
-
+function buildCaptureImagePhaseSuccess(measurements: ScreenshotCaptureImagePhaseMeasurements): ScreenshotCaptureImagePhaseSuccess {
+  const { captureMeasurement, imageMeasurement, captureRun, imageRun } = measurements;
   return {
     captureRun,
     imageRun,
@@ -99,4 +119,30 @@ export async function executeScreenshotCaptureAndImagePhase(input: {
       imageProcessingPhaseMs: imageMeasurement.durationMs,
     }),
   };
+}
+
+export async function executeScreenshotCaptureAndImagePhase(input: {
+  plan: ScreenshotExecutionPlan;
+  gates: ScreenshotExecutionGates;
+  request: ScreenshotAbilityInput;
+  context: ScreenshotRuntimeContext;
+  scope: ScreenshotExecutionScope;
+  clockStart: ScreenshotClockStart;
+  registryEntry: ScreenshotChildRegistryEntry;
+}): Promise<ScreenshotCaptureImagePhaseSuccess | ScreenshotAbilityResult> {
+  const measurements = await resolveCaptureImageMeasurements(input);
+  const failure = await resolveCaptureImageFailure({
+    request: input.request,
+    context: input.context,
+    scope: input.scope,
+    clockStart: input.clockStart,
+    gates: input.gates,
+    measurements,
+  });
+
+  if (failure) {
+    return failure;
+  }
+
+  return buildCaptureImagePhaseSuccess(measurements);
 }

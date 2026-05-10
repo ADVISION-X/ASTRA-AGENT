@@ -1,4 +1,0 @@
-passed: false
-violationCount: 1
-
-FATAL GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V3 src/capabilities/geometry-guard/runtime/geometry-result-builder.ts:1 Geometry Guard still exposes forbidden browser, visual-target, or action-plan identifiers.

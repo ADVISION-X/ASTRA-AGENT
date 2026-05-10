@@ -1,19 +1,19 @@
 import type { RoutePlan } from "./route-plan.schema.js";
-import {
-  PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
-  PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
-} from "./product-discovery-route-plan.constants.js";
-import {
-  STARTUP_PREPARATION_READY_ROUTE_LABEL,
-} from "../shared/startup-preparation.constants.js";
 
 export const PRODUCT_DISCOVERY_ROUTE_PLAN_PRODUCT_PRESENCE_TRANSITIONS: RoutePlan["transitions"] = [
   {
-    transitionId: `startup-preparation:${STARTUP_PREPARATION_READY_ROUTE_LABEL}`,
+    transitionId: "startup-preparation:ready",
     fromStepId: "startup-preparation",
     onStatus: "success",
     toStepId: "observe-current-video-page-state",
     finalStatus: null,
+  },
+  {
+    transitionId: "startup-preparation:stop_review_required",
+    fromStepId: "startup-preparation",
+    onStatus: "success",
+    toStepId: null,
+    finalStatus: "stopped",
   },
   {
     transitionId: "observe-current-video-page-state:success",
@@ -58,30 +58,16 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_PRODUCT_PRESENCE_TRANSITIONS: RoutePla
     finalStatus: "failed",
   },
   {
-    transitionId: `judge-seeding-video:${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}`,
+    transitionId: "judge-seeding-video:success",
     fromStepId: "judge-seeding-video",
     onStatus: "success",
-    toStepId: "write-product-lead-record",
+    toStepId: "observe-current-video-page-state",
     finalStatus: null,
   },
   {
-    transitionId: `judge-seeding-video:${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}`,
+    transitionId: "judge-seeding-video:review_required",
     fromStepId: "judge-seeding-video",
-    onStatus: "success",
-    toStepId: "observe-next-item-page-state",
-    finalStatus: null,
-  },
-  {
-    transitionId: "judge-seeding-video:finish-current-video",
-    fromStepId: "judge-seeding-video",
-    onStatus: "success",
-    toStepId: "finalize-mission",
-    finalStatus: null,
-  },
-  {
-    transitionId: "judge-seeding-video:stop-task",
-    fromStepId: "judge-seeding-video",
-    onStatus: "success",
+    onStatus: "review_required",
     toStepId: "finalize-mission",
     finalStatus: null,
   },

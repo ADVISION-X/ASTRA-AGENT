@@ -106,6 +106,7 @@ src/capabilities/screenshot/
 ├── contract.ts
 ├── schema.ts
 ├── visual-mission-schema.ts
+├── visual-mission-output-schema.ts
 ├── registry.ts
 ├── index.ts
 ├── ports/
@@ -424,6 +425,8 @@ X 轴 = 数字
 格子例子：A1 / A30 / C50 / K12
 AI 只能返回格子 ID，不得返回 raw x/y
 gridSpecRef 是格子到 source viewport 坐标的唯一 decoder contract
+coordinateGridScreenshotRef 是受治理的 screenshot-derived artifact，不是 final evidence packet
+gridSpecRef 只能在 sourceProof / sourceCoordinateSpace / sourceScreenshotEvidenceId 已知后生成，禁止 pending placeholder provenance
 ```
 
 禁止：

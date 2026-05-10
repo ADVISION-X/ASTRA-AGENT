@@ -20,6 +20,11 @@ function sourceContainsAll(project: Project, path: string, snippets: readonly st
   return snippets.every((snippet) => text.includes(snippet));
 }
 
+function sourceContainsNone(project: Project, path: string, snippets: readonly string[]): boolean {
+  const text = getSource(project, path).getFullText();
+  return snippets.every((snippet) => !text.includes(snippet));
+}
+
 function collectTypeSurfaceFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
   const typeSource = getSource(project, PATHS.TYPES);
@@ -45,8 +50,11 @@ function collectSchemaFindings(project: Project): Finding[] {
   if (!sourceContainsAll(project, PATHS.VISUAL_MISSION_SCHEMA, ["ScreenshotGridCellSchema", "ScreenshotGridSpecSchema", "ScreenshotVisualMissionInputSchema"])) {
     findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.VISUAL_MISSION_SCHEMA, line: 1, severity: "fatal", message: "Screenshot visual mission schema file must define grid cell, grid spec, and visual mission bundle schemas." }));
   }
-  if (!sourceContainsAll(project, PATHS.SCHEMA, ["PrepareVisualMissionInputInputSchema", "inheritedScaleMapping: ScreenshotScaleMappingSchema", "gridSpecRef: ScreenshotStructuredRefSchema", "visualMissionInputRef: ScreenshotStructuredRefSchema"])) {
-    findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Screenshot main schema must wire prepare-visual-mission-input, inheritedScaleMapping, gridSpecRef, and visualMissionInputRef." }));
+  if (!sourceContainsAll(project, PATHS.VISUAL_MISSION_OUTPUT_SCHEMA, ["ScreenshotCoordinateGridOutputSchema", "coordinate_grid", "coordinate_grid_pixels"])) {
+    findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.VISUAL_MISSION_OUTPUT_SCHEMA, line: 1, severity: "fatal", message: "Screenshot visual mission output schema file must define the explicit coordinate-grid output contract." }));
+  }
+  if (!sourceContainsAll(project, PATHS.SCHEMA, ["PrepareVisualMissionInputInputSchema", "gridSpecRef: ScreenshotStructuredRefSchema", "visualMissionInputRef: ScreenshotStructuredRefSchema"])) {
+    findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Screenshot main schema must wire prepare-visual-mission-input, gridSpecRef, and visualMissionInputRef." }));
   }
   return findings;
 }
@@ -57,16 +65,25 @@ function collectPortAndAdapterFindings(project: Project): Finding[] {
   if (!hasInterfaceMethod(portSource, "ScreenshotImageProcessingPort", "renderCoordinateGrid")) {
     findings.push(createFinding({ lawId: LAW_IDS.BOUNDARY, file: PATHS.IMAGE_PROCESSING_PORT, line: 1, severity: "fatal", message: "Screenshot image processing port must expose renderCoordinateGrid." }));
   }
-  if (!sourceContainsAll(project, PATHS.IMAGE_PROCESSING_ADAPTER, ["async function renderCoordinateGrid", "buildGridSpec", "composite([{ input: Buffer.from(overlaySvg)"])) {
+  if (!sourceContainsAll(project, PATHS.IMAGE_PROCESSING_PORT, ["sourceScreenshotEvidenceId", "sourceStorageRef", "sourceCoordinateSpace"])) {
+    findings.push(createFinding({ lawId: LAW_IDS.BOUNDARY, file: PATHS.IMAGE_PROCESSING_PORT, line: 1, severity: "fatal", message: "renderCoordinateGrid port input must require sourceScreenshotEvidenceId, sourceStorageRef, and sourceCoordinateSpace." }));
+  }
+  if (!sourceContainsAll(project, PATHS.IMAGE_PROCESSING_ADAPTER, ["async function renderCoordinateGrid", "buildGridSpec", "sourceScreenshotEvidenceId: portInput.sourceScreenshotEvidenceId", "sourceStorageRef: portInput.sourceStorageRef", "sourceCoordinateSpace: portInput.sourceCoordinateSpace", "composite([{ input: Buffer.from(overlaySvg)"])) {
     findings.push(createFinding({ lawId: LAW_IDS.BOUNDARY, file: PATHS.IMAGE_PROCESSING_ADAPTER, line: 1, severity: "fatal", message: "Sharp screenshot adapter must implement renderCoordinateGrid through governed overlay rendering." }));
+  }
+  if (!sourceContainsNone(project, PATHS.IMAGE_PROCESSING_ADAPTER, ["grid-spec:pending", "pending-source-evidence", "pending-source-storage"])) {
+    findings.push(createFinding({ lawId: LAW_IDS.BOUNDARY, file: PATHS.IMAGE_PROCESSING_ADAPTER, line: 1, severity: "fatal", message: "Sharp screenshot adapter must not emit pending visual mission provenance placeholders." }));
   }
   return findings;
 }
 
 function collectRuntimeAndDecoderFindings(project: Project): Finding[] {
   const findings: Finding[] = [];
-  if (!sourceContainsAll(project, PATHS.VISUAL_MISSION_GRID, ["export function projectGridSpecToSourceCoordinates", "export function decodeGridCell", "VISUAL_MISSION_COORDINATE_INSTRUCTION"])) {
-    findings.push(createFinding({ lawId: LAW_IDS.TRANSFORM, file: PATHS.VISUAL_MISSION_GRID, line: 1, severity: "fatal", message: "Screenshot must provide a production gridSpec decoder and coordinate instruction helper." }));
+  if (!sourceContainsAll(project, PATHS.VISUAL_MISSION_GRID, ["resolveSourceCoordinateSpace", "export function projectGridSpecToSourceCoordinates", "export function decodeGridCell", "VISUAL_MISSION_COORDINATE_INSTRUCTION"])) {
+    findings.push(createFinding({ lawId: LAW_IDS.TRANSFORM, file: PATHS.VISUAL_MISSION_GRID, line: 1, severity: "fatal", message: "Screenshot must provide a production gridSpec decoder, source-coordinate resolver, and coordinate instruction helper." }));
+  }
+  if (!sourceContainsAll(project, PATHS.IMAGE_PROCESSING_RUNNER, ["sourceScreenshotEvidenceId", "sourceStorageRef", "sourceCoordinateSpace", "prepare-visual-mission-input requires sourceProof sourceScreenshotEvidenceId, sourceStorageRef, and coordinateSpace."])) {
+    findings.push(createFinding({ lawId: LAW_IDS.TRANSFORM, file: PATHS.IMAGE_PROCESSING_RUNNER, line: 1, severity: "fatal", message: "prepare-visual-mission-input runner must fail closed when source proof provenance is incomplete before grid rendering." }));
   }
   if (!sourceContainsAll(project, PATHS.EXECUTION_ARTIFACT_PHASE, ["buildVisualMissionSupplementalOutput", "prepare-visual-mission-input", "visual_mission_bundle_write_failed"])) {
     findings.push(createFinding({ lawId: LAW_IDS.TRANSFORM, file: PATHS.EXECUTION_ARTIFACT_PHASE, line: 1, severity: "fatal", message: "Screenshot artifact phase must persist visual mission supplemental refs for coordinate-grid outputs." }));

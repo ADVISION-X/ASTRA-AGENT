@@ -5,30 +5,25 @@ import {
   ProductPresenceInputModeSchema,
   VideoFrameSamplePointLabelSchema,
 } from "./multi-frame-evidence.js";
-import { PRODUCT_DISCOVERY_ROUTE_LABELS } from "../map-plugins/route-plans/product-discovery-route-plan.constants.js";
+import {
+  VisualMissionActionPlanSchema,
+  VisualMissionPageStateDecisionSchema,
+} from "../muscle-memory/decoder/action-plan.schema.js";
 
 const VisionProductPresenceMissingFrameSchema = z.object({
   frameLabel: VideoFrameSamplePointLabelSchema,
   unavailableReason: z.string().min(1),
 });
 
-const VisionProductPresencePromptIdSchema = z.literal("vision.productPresence.v1");
+const VisionProductPresencePromptIdSchema = z.literal("visual-mission-judge.v1");
 const VisionProductPresenceTaskTypeSchema = z.literal("vision.productPresence");
 const VisionProductPresencePromptVersionSchema = z.literal("v1");
-const VisionProductPresenceSchemaVersionSchema = z.literal("vision.productPresence.schema.v1");
+const VisionProductPresenceSchemaVersionSchema = z.literal("visual-mission-judge.schema.v1");
 
-const VisionProductPresenceSuggestedNextActionSchema = z.enum([
-  "collect_metrics_like_marker_open_comments",
-  "scroll_next",
-  "click_not_interested_or_scroll_next",
+const VisionProductPresenceTaskDecisionSchema = z.enum([
+  "YES_SEEDING_VIDEO_FLOW",
+  "NO_SEEDING_VIDEO_FLOW",
 ]);
-
-const VisionProductPresenceRouteLabelSchema = z.enum(PRODUCT_DISCOVERY_ROUTE_LABELS);
-
-const VisionProductPresenceDecisionSchema = z.enum([
-  "product_yes",
-  "product_no",
-]).nullable().default(null);
 
 const VisionProductPresenceRequestInputSchema = z.object({
   inputMode: ProductPresenceInputModeSchema,
@@ -44,6 +39,7 @@ const VisionProductPresenceRequestInputSchema = z.object({
   expectedFrameCount: z.number().int().positive().default(3),
   fallbackReason: z.string().min(1).nullable().default(null),
   missingFrames: z.array(VisionProductPresenceMissingFrameSchema).default([]),
+  userRequirementRef: z.string().min(1).nullable().default(null),
   summary: z.string().min(1),
   tags: z.array(z.string().min(1)).default([]),
 });
@@ -71,8 +67,9 @@ const VisionProductPresencePayloadSchema = z.object({
   fallbackReason: z.string().min(1).nullable().default(null),
   missingFrames: z.array(VisionProductPresenceMissingFrameSchema).default([]),
   isProductVideo: z.boolean().nullable(),
-  decision: VisionProductPresenceDecisionSchema,
-  routeLabel: VisionProductPresenceRouteLabelSchema,
+  taskDecision: VisionProductPresenceTaskDecisionSchema,
+  pageStateDecision: VisualMissionPageStateDecisionSchema,
+  actionPlan: VisualMissionActionPlanSchema,
   nonExecutableSummary: z.string().min(1),
   confidence: z.number().min(0).max(1),
   visibleProductTypes: z.array(z.string().min(1)),
@@ -86,12 +83,11 @@ const VisionProductPresencePayloadSchema = z.object({
 
 const validateVisionProductPresenceResult = (input: unknown) => VisionProductPresencePayloadSchema.parse(input);
 
-type VisionProductPresenceSuggestedNextAction = z.infer<typeof VisionProductPresenceSuggestedNextActionSchema>;
-type VisionProductPresenceRouteLabel = z.infer<typeof VisionProductPresenceRouteLabelSchema>;
+type VisionProductPresenceTaskDecision = z.infer<typeof VisionProductPresenceTaskDecisionSchema>;
 type VisionProductPresenceRequestInput = z.infer<typeof VisionProductPresenceRequestInputSchema>;
 type VisionProductPresenceFrameObservation = z.infer<typeof VisionProductPresenceFrameObservationSchema>;
 type VisionProductPresenceResult = z.infer<typeof VisionProductPresencePayloadSchema>;
 type VisionProductPresencePayload = VisionProductPresenceResult;
 
-export { VisionProductPresenceMissingFrameSchema, VisionProductPresencePromptIdSchema, VisionProductPresenceTaskTypeSchema, VisionProductPresencePromptVersionSchema, VisionProductPresenceSchemaVersionSchema, VisionProductPresenceSuggestedNextActionSchema, VisionProductPresenceRouteLabelSchema, VisionProductPresenceDecisionSchema, VisionProductPresenceRequestInputSchema, VisionProductPresenceFrameObservationSchema, VisionProductPresencePayloadSchema, validateVisionProductPresenceResult };
-export type { VisionProductPresenceSuggestedNextAction, VisionProductPresenceRouteLabel, VisionProductPresenceRequestInput, VisionProductPresenceFrameObservation, VisionProductPresenceResult, VisionProductPresencePayload };
+export { VisionProductPresenceMissingFrameSchema, VisionProductPresencePromptIdSchema, VisionProductPresenceTaskTypeSchema, VisionProductPresencePromptVersionSchema, VisionProductPresenceSchemaVersionSchema, VisionProductPresenceTaskDecisionSchema, VisionProductPresenceRequestInputSchema, VisionProductPresenceFrameObservationSchema, VisionProductPresencePayloadSchema, validateVisionProductPresenceResult };
+export type { VisionProductPresenceTaskDecision, VisionProductPresenceRequestInput, VisionProductPresenceFrameObservation, VisionProductPresenceResult, VisionProductPresencePayload };

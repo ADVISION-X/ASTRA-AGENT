@@ -1,13 +1,22 @@
 import { z } from "zod";
 
-import { AiInputSchema } from "./schema-core.schema.js";
+import {
+  AiInputSchema as BaseAiInputSchema,
+  LocalVisionAiInputSchema as BaseLocalVisionAiInputSchema,
+} from "./schema-core.schema.js";
 import {
   AiBaseRuntimeProofFieldSchemas,
-  AiAbilityOutcomeSchema,
+  AiAbilityOutcomeSchema as BaseAiAbilityOutcomeSchema,
   AiHealthReportSchema,
-  AiResultSchema,
+  AiResultSchema as BaseAiResultSchema,
   AiRuntimeProofSchema,
+  LocalVisionAiResultSchema as BaseLocalVisionAiResultSchema,
 } from "./schema-runtime.schema.js";
+import {
+  AiVisualMissionActionPlanInputSchema,
+  AiVisualMissionActionPlanOutputSchema,
+  AiVisualMissionActionPlanResultSchema,
+} from "./schema-visual-mission-action-plan.schema.js";
 
 const AiBaseRuntimeProofSchema = z.object({
   proofId: AiBaseRuntimeProofFieldSchemas.proofId,
@@ -116,8 +125,6 @@ export {
   EvidencePacketAnalysisInputSchema,
   MapAuthoringInputSchema,
   SchemaValidationOnlyInputSchema,
-  AiInputSchema,
-  LocalVisionAiInputSchema,
   LocalTextAiInputSchema,
   LocalOcrAiInputSchema,
   InternalSchemaValidatorInputSchema,
@@ -142,10 +149,7 @@ export {
   EvidencePacketAnalysisResultSchema,
   MapAuthoringResultSchema,
   SchemaValidationOnlyResultSchema,
-  AiResultSchema,
   AiDispatchFailureEnvelopeSchema,
-  AiAbilityOutcomeSchema,
-  LocalVisionAiResultSchema,
   LocalTextAiResultSchema,
   LocalOcrAiResultSchema,
   InternalSchemaValidatorResultSchema,
@@ -159,6 +163,23 @@ export {
 } from "./schema-runtime.schema.js";
 
 export { AiVisualTargetCandidateOutputSchema } from "./schema-core.schema.js";
+
+const AiInputSchema = z.lazy(() => z.union([BaseAiInputSchema, AiVisualMissionActionPlanInputSchema]));
+const LocalVisionAiInputSchema = z.lazy(() => z.union([BaseLocalVisionAiInputSchema, AiVisualMissionActionPlanInputSchema]));
+const AiResultSchema = z.lazy(() => z.union([BaseAiResultSchema, AiVisualMissionActionPlanResultSchema]));
+const LocalVisionAiResultSchema = z.lazy(() => z.union([BaseLocalVisionAiResultSchema, AiVisualMissionActionPlanResultSchema]));
+const AiAbilityOutcomeSchema = z.lazy(() => z.union([BaseAiAbilityOutcomeSchema, AiVisualMissionActionPlanResultSchema]));
+
+export {
+  AiInputSchema,
+  LocalVisionAiInputSchema,
+  AiVisualMissionActionPlanInputSchema,
+  AiVisualMissionActionPlanOutputSchema,
+  AiResultSchema,
+  LocalVisionAiResultSchema,
+  AiVisualMissionActionPlanResultSchema,
+  AiAbilityOutcomeSchema,
+};
 
 export function parseAiInput(input: unknown) {
   return AiInputSchema.safeParse(input);

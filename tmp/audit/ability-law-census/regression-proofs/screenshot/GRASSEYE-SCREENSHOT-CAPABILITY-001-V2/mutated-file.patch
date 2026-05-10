@@ -1,6 +1,0 @@
-diff --git a/src/app/platform-action-screenshot-drawer-active-owner.ts b/src/app/platform-action-screenshot-drawer-active-owner.ts
---- a/src/app/platform-action-screenshot-drawer-active-owner.ts
-+++ b/src/app/platform-action-screenshot-drawer-active-owner.ts
-@@ -1,1 +1,2 @@
-+export const screenshotDrawerOwner = true;
- 

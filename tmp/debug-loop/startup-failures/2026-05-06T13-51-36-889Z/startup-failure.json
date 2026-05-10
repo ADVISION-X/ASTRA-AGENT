@@ -1,8 +1,0 @@
-{
-  "runId": "2026-05-06T13:51:36.889Z",
-  "baseUrl": "http://127.0.0.1:4173",
-  "ownerResponsible": "startup-entrypoint",
-  "failureReason": "Local service exited before health check passed with code 1.",
-  "actionableMessage": "Inspect startup structured logs and rerun npm run grasseye:start.",
-  "writtenAt": "2026-05-06T13:51:38.341Z"
-}

@@ -1,8 +1,0 @@
-scenarioId: request-chain-mutation
-mutationName: request chain mutation
-mutatedFile: src/capabilities/open/schema-core.ts
-rollbackRestoredHash: sha256:2524d474c700d9d57da2180864d348af6b5fdac65548ab218b4bf6de2562608a
-startedAt: 2026-05-06T15:37:24.223Z
-endedAt: 2026-05-06T15:37:28.451Z
-
-Rollback was verified by restoring the original production file content and rerunning the Open owner inspector.

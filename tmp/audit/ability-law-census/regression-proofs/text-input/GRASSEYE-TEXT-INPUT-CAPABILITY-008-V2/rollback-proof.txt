@@ -1,8 +1,0 @@
-scenarioId: text-input-forbidden-child-registry
-mutationName: forbidden child registry mutation
-mutatedFile: src/capabilities/text-input/registry.ts
-rollbackRestoredHash: sha256:cd40aa036ba5afcafafcd30c77c9dd94f2c0b65cd88a7e80f50681f4e19ab737
-startedAt: 2026-05-05T22:25:35.125Z
-endedAt: 2026-05-05T22:25:37.547Z
-
-Rollback was verified by restoring the original production file content and rerunning the Text Input owner inspector.

@@ -1,1 +1,0 @@
-[PASS] mouse-click-capability: Mouse Click negative-proof harness rejects baseline drift, BrowserController public-contract leak, platform direct click ownership, final action-log leakage, platform business-verb child drift, gate bypass, proof drop, timeout escape, computed click, and composition drift mutations.

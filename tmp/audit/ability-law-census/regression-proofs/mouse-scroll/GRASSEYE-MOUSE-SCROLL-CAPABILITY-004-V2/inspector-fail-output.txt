@@ -1,7 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 2
-summary: Mouse Scroll still contains forbidden execution shapes or escape hatches.
-
-FATAL GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V2 src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts:1 Mouse Scroll contains forbidden token scroll_until_found.
-FATAL GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V2 src/capabilities/mouse-scroll/runtime/mouse-scroll-executor.ts:1 Mouse Scroll must not embed platform business verbs inside the owner boundary.

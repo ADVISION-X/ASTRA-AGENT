@@ -1,6 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 1
-summary: Mouse Scroll required package or governed execution chain is incomplete.
-
-FATAL GRASSEYE-MOUSE-SCROLL-CAPABILITY-003-V2 src/capabilities/mouse-scroll/schema.ts:1 Mouse Scroll result schema must force output=null for non-success states.

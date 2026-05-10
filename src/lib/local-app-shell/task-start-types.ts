@@ -1,21 +1,26 @@
-import type { MissionStartBinding, RequestedPlatformId } from "./task-start-binding.js";
+import type {
+  MissionStartBinding,
+  RequestedPlatformId,
+  UserRequirementSelectedPlatformId,
+} from "./task-start-binding.js";
 
-export type StartTaskBody = {
+export type StartVisualMissionBody = {
   commandSource?: string;
-  humanGoal?: string;
-  taskTemplateId?: string;
-  requestedPlatformId?: string;
-  selectedMapId?: string;
+  userRequirementText: string;
+  selectedPlatforms: UserRequirementSelectedPlatformId[];
   maxRounds?: number;
   maxMinutes?: number;
-  operatorNote?: string;
+  historyEntryId?: string | null;
+  operatorNote?: string | null;
 };
 
 export type StartDraft = {
   traceId: string;
   attemptId: string;
   commandSource: string;
-  humanGoal: string | null;
+  userRequirementText: string;
+  selectedPlatforms: UserRequirementSelectedPlatformId[];
+  historyEntryId: string | null;
   taskTemplateId: string | null;
   requestedPlatformId: RequestedPlatformId | null;
   selectedMapId: string | null;
@@ -24,7 +29,9 @@ export type StartDraft = {
   operatorNote: string | null;
 };
 
-export type StartApproval = StartDraft & {
+export type StartApproval = Omit<StartDraft, "maxRounds" | "maxMinutes"> & {
+  maxRounds: number;
+  maxMinutes: number;
   binding: Extract<MissionStartBinding, { ok: true }>;
 };
 

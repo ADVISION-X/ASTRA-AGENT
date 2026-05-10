@@ -17,11 +17,15 @@ export interface ScreenshotImageProcessingPort {
   optimizeLossless(input: { sourceFilePath: string }): Promise<ImageMetadata & { outputFilePath: string; equivalence: "dimensions_preserved" }>;
   renderCoordinateGrid(input: {
     sourceFilePath: string;
+    sourceScreenshotEvidenceId: string;
+    sourceStorageRef: string;
+    sourceCoordinateSpace: ScreenshotGridSpec["sourceCoordinateSpace"];
     sourceWidth: number;
     sourceHeight: number;
     rowCount: number;
     columnCount: number;
     axisMode: "y_letters_x_numbers";
+    createdAt: string;
   }): Promise<ImageMetadata & { outputFilePath: string; gridSpec: ScreenshotGridSpec }>;
   prepareAiInput(input: {
     sourceFilePath: string;

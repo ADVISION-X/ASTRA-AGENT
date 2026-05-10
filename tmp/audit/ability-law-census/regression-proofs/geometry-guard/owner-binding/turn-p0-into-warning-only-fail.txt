@@ -1,4 +1,0 @@
-passed: false
-violationCount: 1
-
-FATAL GRASSEYE-GEOMETRY-GUARD-CAPABILITY-008-V3 .github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md:1 Geometry Guard active laws must remain P0.

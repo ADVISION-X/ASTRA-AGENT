@@ -1,8 +1,0 @@
-scenarioId: screenshot-imports-ai-runtime
-mutationName: screenshot-imports-ai-runtime mutation
-mutatedFile: src/capabilities/screenshot/runtime/ai-runtime-import-probe.ts
-rollbackRestoredHash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-startedAt: 2026-05-05T22:39:57.400Z
-endedAt: 2026-05-05T22:40:01.431Z
-
-Rollback was verified by restoring the original production file content and rerunning the Screenshot owner inspector.

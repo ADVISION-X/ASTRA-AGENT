@@ -1,3 +1,0 @@
-[CODE VIOLATION] visual-target-capability: visual-target owner inspector found capability-boundary, chain-truth, or enforcement violations
-- ERROR src/capabilities/visual-target/schema.ts:1 VisualTargetAbilityInputSchema is missing capabilityCallId.
-

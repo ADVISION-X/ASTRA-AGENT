@@ -10,6 +10,7 @@ export const LocalVisionAiChildExecutionPolicySchema = z.object({
     z.literal("page_preparation_judgment"),
     z.literal("product_presence_judgment"),
     z.literal("visual_observation"),
+    z.literal("visual_mission_action_plan"),
     z.literal("visual_target_candidate_analysis"),
   ]),
   requiresLocalRuntime: z.literal(true),

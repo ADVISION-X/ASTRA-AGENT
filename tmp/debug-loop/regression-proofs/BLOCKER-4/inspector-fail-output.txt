@@ -1,7 +1,0 @@
-
-> grasseye-local-workbench@0.1.0 audit:orchestration
-> node --import tsx scripts/audit/domains/orchestration-capability/run-inspector.ts
-
-[FAKE ENFORCEMENT] orchestration-capability: Human command start or preflight can still lose runId, omit start-boundary logs, or discover MissionCommandSchema failures after dispatch.
-- FATAL src/lib/local-runtime/workbench-human-command.ts:1 Human command start boundary must emit ORCHESTRATION_START_RECEIVED and MISSION_ACTIVATION_SNAPSHOT_FROZEN structured runtime events.
-- FATAL scripts/audit/domains/orchestration-capability/inspector.ts:1 Orchestration inspector baseline must pass before negative-proof mutation checks.

@@ -35,6 +35,7 @@ const GOVERNED_TASK_FALLBACK_MESSAGES: Record<Exclude<LocalAiTaskRequest["taskTy
   "vision.pagePreparation": "vision.pagePreparation forbids governed fallback execution.",
   "vision.nextItemAdvanced": "vision.nextItemAdvanced forbids governed fallback execution.",
   "vision.productPresence": "vision.productPresence forbids governed heuristic execution; only model-backed AI may decide product presence.",
+  "vision.visualMissionActionPlan": "vision.visualMissionActionPlan forbids governed heuristic execution; only model-backed AI may compose action plans.",
   "vision.nextItemTargetCandidate": "vision.nextItemTargetCandidate forbids governed heuristic execution; only model-backed AI may propose next-item candidates.",
   "vision.commentsEntryTargetCandidate": "vision.commentsEntryTargetCandidate forbids governed heuristic execution; only model-backed AI may propose comments-entry candidates.",
   "comments.intent_analysis": "comments.intent_analysis is not allowed; local AI may clean comments but must not produce commercial analysis.",

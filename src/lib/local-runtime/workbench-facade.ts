@@ -16,6 +16,11 @@ export type WorkbenchFacade = Pick<
   | "exportCandidateSummaries"
   | "getAppRunLimitSettings"
   | "saveAppRunLimitSettings"
+  | "getDataDir"
+  | "getUserRequirementHistory"
+  | "upsertUserRequirementHistory"
+  | "deleteUserRequirementHistory"
+  | "reuseUserRequirementHistory"
   | "getMapLabSnapshot"
   | "saveMapLabProviderConfig"
   | "generateMapLabDraft"
@@ -39,6 +44,11 @@ export const createWorkbenchFacade = (runtime: WorkbenchRuntime): WorkbenchFacad
   exportCandidateSummaries: () => runtime.exportCandidateSummaries(),
   getAppRunLimitSettings: () => runtime.getAppRunLimitSettings(),
   saveAppRunLimitSettings: (input) => runtime.saveAppRunLimitSettings(input),
+  getDataDir: () => runtime.getDataDir(),
+  getUserRequirementHistory: (limit) => runtime.getUserRequirementHistory(limit),
+  upsertUserRequirementHistory: (input) => runtime.upsertUserRequirementHistory(input),
+  deleteUserRequirementHistory: (id) => runtime.deleteUserRequirementHistory(id),
+  reuseUserRequirementHistory: (id) => runtime.reuseUserRequirementHistory(id),
   getMapLabSnapshot: () => runtime.getMapLabSnapshot(),
   saveMapLabProviderConfig: (input) => runtime.saveMapLabProviderConfig(input),
   generateMapLabDraft: (input) => runtime.generateMapLabDraft(input),

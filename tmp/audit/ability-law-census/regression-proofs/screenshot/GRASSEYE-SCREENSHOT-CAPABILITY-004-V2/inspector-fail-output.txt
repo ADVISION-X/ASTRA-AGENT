@@ -1,6 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 1
-summary: screenshot-capability owner inspector found capability-boundary, chain-truth, or enforcement violations
-
-FATAL GRASSEYE-SCREENSHOT-CAPABILITY-004-V2 src/capabilities/screenshot/schema.ts:1 Screenshot schema anti-escape rules for output and outputRef are missing.

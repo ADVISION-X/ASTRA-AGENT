@@ -1,6 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 1
-summary: Open still contains forbidden execution or export shapes.
-
-FATAL GRASSEYE-OPEN-CAPABILITY-006-V2 src/capabilities/open/runtime/open-proof-builder.ts:1 Open proof builder must mirror the FINAL V2 execution chain into OpenRuntimeProof.

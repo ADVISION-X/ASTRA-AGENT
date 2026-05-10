@@ -216,19 +216,29 @@ const validateResultParity = (value: ScreenshotAbilityResultValidationTarget, co
   }
 };
 
-const validateResultOutput = (value: ScreenshotAbilityResultValidationTarget, context: z.RefinementCtx): void => {
+const validateResultOutputPresence = (value: ScreenshotAbilityResultValidationTarget, context: z.RefinementCtx): void => {
   if (value.status === "success" && !value.output) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "success result requires output", path: ["output"] });
   }
   if (value.status !== "success" && value.output) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success result must not expose output", path: ["output"] });
   }
-  if (value.status === "success" && value.childCapabilityId === "prepare-visual-mission-input") {
-    const output = value.output as Record<string, unknown> | null;
-    if (!output || output.gridSpecRef == null || output.visualMissionInputRef == null || output.originalScreenshotRef == null || output.coordinateGridScreenshotRef == null) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "prepare-visual-mission-input result requires originalScreenshotRef, coordinateGridScreenshotRef, gridSpecRef, and visualMissionInputRef", path: ["output"] });
-    }
+};
+
+const validateVisualMissionResultOutput = (value: ScreenshotAbilityResultValidationTarget, context: z.RefinementCtx): void => {
+  if (value.status !== "success" || value.childCapabilityId !== "prepare-visual-mission-input") {
+    return;
   }
+
+  const output = value.output as Record<string, unknown> | null;
+  if (!output || output.gridSpecRef == null || output.visualMissionInputRef == null || output.originalScreenshotRef == null || output.coordinateGridScreenshotRef == null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "prepare-visual-mission-input result requires originalScreenshotRef, coordinateGridScreenshotRef, gridSpecRef, and visualMissionInputRef", path: ["output"] });
+  }
+};
+
+const validateResultOutput = (value: ScreenshotAbilityResultValidationTarget, context: z.RefinementCtx): void => {
+  validateResultOutputPresence(value, context);
+  validateVisualMissionResultOutput(value, context);
 };
 
 export const validateScreenshotResult = (value: ScreenshotAbilityResultValidationTarget, context: z.RefinementCtx): void => {

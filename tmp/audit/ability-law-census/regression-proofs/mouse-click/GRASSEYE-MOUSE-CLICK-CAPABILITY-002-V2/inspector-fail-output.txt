@@ -1,6 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 1
-summary: Mouse Click ownership drifted into public contract leaks, external click owners, or final action-log/business-verb truth.
-
-FATAL GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2 src/capabilities/mouse-click/runtime/mouse-click-result-builder.ts:1 Mouse Click must not write or expose final action-log truth.

@@ -1,10 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type {
-  ScreenshotAbilityResult,
-  ScreenshotRuntimeProof,
-  ScreenshotScaleMapping,
-} from "../contract.js";
+import type { ScreenshotAbilityResult, ScreenshotRuntimeProof, ScreenshotScaleMapping } from "../contract.js";
 import { SCREENSHOT_ABILITY_GROUP_ID } from "../shared/screenshot-types.js";
 import { finishScreenshotClock } from "./screenshot-clock.js";
 import { buildScreenshotRuntimeProof } from "./screenshot-proof-builder.js";
@@ -83,47 +79,71 @@ const buildScreenshotSuccessDataQualityFlags = (input: ScreenshotSuccessPathInpu
   ...buildConditionalSuccessDataQualityFlags(input),
 ];
 
+function buildSuccessScopeIdentityFields(input: ScreenshotSuccessRuntimeProofInput) {
+  return {
+    proofId: buildRef("screenshot-proof", `${input.pathInput.scope.inputRef}:${input.pathInput.scope.idempotencyKey}:success`),
+    runId: input.pathInput.scope.runId,
+    missionId: input.pathInput.scope.missionId,
+    sessionId: input.pathInput.request.sessionId,
+    roundId: input.pathInput.request.roundId,
+    videoVisitId: input.pathInput.request.videoVisitId,
+    abilityGroupId: SCREENSHOT_ABILITY_GROUP_ID,
+    childCapabilityId: input.pathInput.request.childCapabilityId,
+    sourceAbilityGroupId: input.pathInput.request.sourceAbilityGroupId,
+    sourceChildCapabilityId: input.pathInput.request.sourceChildCapabilityId,
+    inputRef: input.pathInput.scope.inputRef,
+    outputRef: input.pathInput.scope.outputRef,
+  };
+}
+
+function buildSuccessArtifactIdentityFields(input: ScreenshotSuccessRuntimeProofInput) {
+  return {
+    sourceProofRef: input.pathInput.gates.sourceGate.sourceProof?.proofRef ?? null,
+    pageStateProofRef: input.pathInput.gates.pageStateGate.pageStateProofRef,
+    browserSessionRef: input.pathInput.gates.browserSessionGate.browserSessionRef,
+    screenshotEvidenceId: input.pathInput.scope.evidenceId,
+    artifactRef: input.pathInput.artifactGate.artifactRef,
+    sourceArtifactRef: input.pathInput.gates.sourceGate.sourceProof?.sourceArtifactRef ?? null,
+    originalScreenshotRef: input.pathInput.artifactGate.originalScreenshotRef,
+    coordinateGridScreenshotRef: input.pathInput.artifactGate.coordinateGridScreenshotRef,
+    gridSpecRef: input.pathInput.artifactGate.gridSpecRef,
+    visualMissionInputRef: input.pathInput.artifactGate.visualMissionInputRef,
+    artifactLifecycleManifestRef: input.pathInput.artifactGate.artifactLifecycleManifestRef,
+    retentionClass: input.pathInput.artifactGate.retentionClass,
+    promotionStatus: input.pathInput.artifactGate.promotionStatus,
+    expiresAt: input.pathInput.artifactGate.expiresAt,
+    deleteAfter: input.pathInput.artifactGate.deleteAfter,
+    cleanupEligible: input.pathInput.artifactGate.cleanupEligible,
+    sourceHash: input.sourceHash,
+    outputHash: input.pathInput.artifactGate.outputHash,
+    artifactHash: input.pathInput.artifactGate.artifactHash,
+    byteSize: input.pathInput.artifactGate.byteSize,
+  };
+}
+
+function buildSuccessDimensionIdentityFields(input: ScreenshotSuccessRuntimeProofInput) {
+  const sourceWidth = input.pathInput.plan.kind === "capture"
+    ? input.outputWidth
+    : (input.pathInput.imageRun?.output?.sourceWidth ?? input.pathInput.gates.sourceGate.sourceProof?.sourceWidth ?? null);
+  const sourceHeight = input.pathInput.plan.kind === "capture"
+    ? input.outputHeight
+    : (input.pathInput.imageRun?.output?.sourceHeight ?? input.pathInput.gates.sourceGate.sourceProof?.sourceHeight ?? null);
+  return {
+    sourceWidth,
+    sourceHeight,
+    outputWidth: input.outputWidth,
+    outputHeight: input.outputHeight,
+    coordinateSpace: input.coordinateSpace,
+    sourceCoordinateSpace: input.pathInput.gates.sourceGate.sourceProof?.coordinateSpace ?? null,
+    scaleMapping: input.scaleMapping,
+    region: input.pathInput.request.region,
+  };
+}
+
 const buildScreenshotSuccessRuntimeProofIdentityFields = (input: ScreenshotSuccessRuntimeProofInput) => ({
-  proofId: buildRef("screenshot-proof", `${input.pathInput.scope.inputRef}:${input.pathInput.scope.idempotencyKey}:success`),
-  runId: input.pathInput.scope.runId,
-  missionId: input.pathInput.scope.missionId,
-  sessionId: input.pathInput.request.sessionId,
-  roundId: input.pathInput.request.roundId,
-  videoVisitId: input.pathInput.request.videoVisitId,
-  abilityGroupId: SCREENSHOT_ABILITY_GROUP_ID,
-  childCapabilityId: input.pathInput.request.childCapabilityId,
-  sourceAbilityGroupId: input.pathInput.request.sourceAbilityGroupId,
-  sourceChildCapabilityId: input.pathInput.request.sourceChildCapabilityId,
-  inputRef: input.pathInput.scope.inputRef,
-  outputRef: input.pathInput.scope.outputRef,
-  sourceProofRef: input.pathInput.gates.sourceGate.sourceProof?.proofRef ?? null,
-  pageStateProofRef: input.pathInput.gates.pageStateGate.pageStateProofRef,
-  browserSessionRef: input.pathInput.gates.browserSessionGate.browserSessionRef,
-  screenshotEvidenceId: input.pathInput.scope.evidenceId,
-  artifactRef: input.pathInput.artifactGate.artifactRef,
-  sourceArtifactRef: input.pathInput.gates.sourceGate.sourceProof?.sourceArtifactRef ?? null,
-  originalScreenshotRef: input.pathInput.artifactGate.originalScreenshotRef,
-  coordinateGridScreenshotRef: input.pathInput.artifactGate.coordinateGridScreenshotRef,
-  gridSpecRef: input.pathInput.artifactGate.gridSpecRef,
-  visualMissionInputRef: input.pathInput.artifactGate.visualMissionInputRef,
-  artifactLifecycleManifestRef: input.pathInput.artifactGate.artifactLifecycleManifestRef,
-  retentionClass: input.pathInput.artifactGate.retentionClass,
-  promotionStatus: input.pathInput.artifactGate.promotionStatus,
-  expiresAt: input.pathInput.artifactGate.expiresAt,
-  deleteAfter: input.pathInput.artifactGate.deleteAfter,
-  cleanupEligible: input.pathInput.artifactGate.cleanupEligible,
-  sourceHash: input.sourceHash,
-  outputHash: input.pathInput.artifactGate.outputHash,
-  artifactHash: input.pathInput.artifactGate.artifactHash,
-  byteSize: input.pathInput.artifactGate.byteSize,
-  sourceWidth: input.pathInput.plan.kind === "capture" ? input.outputWidth : (input.pathInput.imageRun?.output?.sourceWidth ?? input.pathInput.gates.sourceGate.sourceProof?.sourceWidth ?? null),
-  sourceHeight: input.pathInput.plan.kind === "capture" ? input.outputHeight : (input.pathInput.imageRun?.output?.sourceHeight ?? input.pathInput.gates.sourceGate.sourceProof?.sourceHeight ?? null),
-  outputWidth: input.outputWidth,
-  outputHeight: input.outputHeight,
-  coordinateSpace: input.coordinateSpace,
-  sourceCoordinateSpace: input.pathInput.gates.sourceGate.sourceProof?.coordinateSpace ?? null,
-  scaleMapping: input.scaleMapping,
-  region: input.pathInput.request.region,
+  ...buildSuccessScopeIdentityFields(input),
+  ...buildSuccessArtifactIdentityFields(input),
+  ...buildSuccessDimensionIdentityFields(input),
 });
 
 const buildScreenshotSuccessRuntimeProofDecisionFields = (input: ScreenshotSuccessRuntimeProofInput) => ({

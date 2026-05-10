@@ -1,7 +1,0 @@
-mutationName: public index helper mutation
-classification: LAW-SCRIPT DRIFT
-passed: false
-violationCount: 1
-summary: AI negative-proof harness was skipped for nested inspector execution.
-
-FATAL GRASSEYE-AI-CAPABILITY-001-V1 src/capabilities/ai/index.ts:1 AI public index must not export createAiExecutionContext.

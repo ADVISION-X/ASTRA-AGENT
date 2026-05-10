@@ -1,2 +1,0 @@
-[CODE VIOLATION] screenshot-capability: screenshot-capability owner inspector found capability-boundary, chain-truth, or enforcement violations
-- FATAL src/capabilities/screenshot/screenshot-schema-refinements.ts:1 Screenshot prepare-ai-input refine must require scaleMapping only for success proofs and keep failure/review diagnostics on the non-success path.

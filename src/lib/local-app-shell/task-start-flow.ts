@@ -5,9 +5,9 @@ import type { GrassEyeWorkbenchHandle } from "../local-runtime/workbench-handle.
 import { parseTaskJsonBody } from "./task-http-helpers.js";
 import {
   normalizePositiveInteger,
-  normalizeRequestedPlatformId,
+  normalizeSelectedPlatforms,
   resolveStartRunLimits,
-  resolveMissionStartBinding,
+  resolveVisualMissionStartBinding,
   type MissionStartBinding,
 } from "./task-start-binding.js";
 import {
@@ -21,18 +21,20 @@ import {
 } from "./task-start-support.js";
 import { recordTaskStartDebugEvent } from "./task-start-debug-writer.js";
 import { writeTaskStartDispatchResult } from "./task-start-dispatch-result.js";
-import type { StartApproval, StartDraft, StartTaskBody } from "./task-start-types.js";
+import type { StartApproval, StartCommandResult, StartDraft, StartVisualMissionBody } from "./task-start-types.js";
 
 const buildStartDraft = async (request: IncomingMessage): Promise<StartDraft> => {
-  const body = await parseTaskJsonBody(request) as StartTaskBody;
+  const body = await parseTaskJsonBody(request) as StartVisualMissionBody;
   return {
     traceId: createId("trace"),
     attemptId: createId("attempt"),
     commandSource: body.commandSource?.trim() || "task-api:http-post",
-    humanGoal: body.humanGoal?.trim() || null,
-    taskTemplateId: body.taskTemplateId?.trim() || null,
-    requestedPlatformId: normalizeRequestedPlatformId(body.requestedPlatformId),
-    selectedMapId: body.selectedMapId?.trim() || null,
+    userRequirementText: body.userRequirementText?.trim() || "",
+    selectedPlatforms: normalizeSelectedPlatforms(body.selectedPlatforms),
+    historyEntryId: body.historyEntryId?.trim() || null,
+    taskTemplateId: null,
+    requestedPlatformId: null,
+    selectedMapId: null,
     maxRounds: normalizePositiveInteger(body.maxRounds),
     maxMinutes: normalizePositiveInteger(body.maxMinutes),
     operatorNote: body.operatorNote?.trim() || null,
@@ -52,7 +54,12 @@ const buildApproval = (
       maxMinutes: draft.maxMinutes,
     },
   });
-  return { ...draft, ...runLimit, binding };
+  return {
+    ...draft,
+    binding,
+    maxRounds: runLimit.maxRounds,
+    maxMinutes: runLimit.maxMinutes,
+  };
 };
 
 const buildStartMissionInput = (approval: StartApproval) => {
@@ -60,7 +67,7 @@ const buildStartMissionInput = (approval: StartApproval) => {
     commandType: "start-mission" as const,
     requestedPlatformId: approval.binding.requestedPlatformId,
     selectedMapId: approval.binding.selectedMapId,
-    humanGoal: approval.humanGoal,
+    humanGoal: approval.userRequirementText,
     maxRounds: approval.maxRounds,
     maxMinutes: approval.maxMinutes,
     initialPayload: {
@@ -74,12 +81,36 @@ const buildStartMissionInput = (approval: StartApproval) => {
       targetUrl: approval.binding.targetUrl,
       targetTitle: approval.binding.targetTitle,
       targetProfileRef: approval.binding.targetProfileRef,
-      ...(approval.humanGoal ? { humanGoal: approval.humanGoal } : {}),
+      selectedRuntimeId: approval.binding.selectedRuntimeId ?? "visual-mission-runtime-v1",
+      selectedPlatforms: approval.selectedPlatforms,
+      targetProfiles: approval.binding.targetProfiles ?? null,
+      userRequirementRef: approval.binding.userRequirementRef ?? null,
+      userRequirementText: approval.userRequirementText,
+      historyEntryId: approval.historyEntryId,
+      ...(approval.userRequirementText ? { humanGoal: approval.userRequirementText } : {}),
       ...(approval.maxRounds ? { maxRounds: approval.maxRounds } : {}),
       ...(approval.maxMinutes ? { maxMinutes: approval.maxMinutes } : {}),
       ...(approval.operatorNote ? { operatorNote: approval.operatorNote } : {}),
     },
   };
+};
+
+const persistSuccessfulRequirementHistory = async (
+  activeWorkbench: GrassEyeWorkbenchHandle,
+  approval: StartApproval,
+  result: StartCommandResult,
+) => {
+  if (result.status !== "success") {
+    return;
+  }
+
+  await activeWorkbench.upsertUserRequirementHistory({
+    id: approval.historyEntryId,
+    userRequirementText: approval.userRequirementText,
+    selectedPlatforms: approval.selectedPlatforms,
+    maxRounds: approval.maxRounds,
+    maxMinutes: approval.maxMinutes,
+  });
 };
 
 const getApprovedTaskStartPreflight = async (
@@ -132,15 +163,15 @@ const executeApprovedTaskStart = async (
     operatorRef: "commander-console:http",
     input: buildStartMissionInput(approval),
   });
+  await persistSuccessfulRequirementHistory(activeWorkbench, approval, result);
   await writeTaskStartDispatchResult(response, activeWorkbench, approval, result);
 };
 
 export async function runTaskStartFlow(request: IncomingMessage, response: ServerResponse, activeWorkbench: GrassEyeWorkbenchHandle): Promise<true> {
   const draft = await buildStartDraft(request);
-  const binding = resolveMissionStartBinding({
-    taskTemplateId: draft.taskTemplateId,
-    requestedPlatformId: draft.requestedPlatformId,
-    selectedMapId: draft.selectedMapId,
+  const binding = resolveVisualMissionStartBinding({
+    selectedPlatforms: draft.selectedPlatforms,
+    userRequirementText: draft.userRequirementText,
   });
   const taskTemplateId = binding.ok ? binding.taskTemplateId : draft.taskTemplateId;
   await recordTaskStartDraftEvents(activeWorkbench, draft, taskTemplateId);

@@ -1,5 +1,0 @@
-classification: PASS
-passed: true
-violationCount: 0
-summary: Open negative-proof harness was skipped for nested inspector execution.
-FATAL GRASSEYE-OPEN-CAPABILITY-001-V2 .github/instructions/cursor-rules/modules/module-open-capability.instructions.md:1 Open active law must remain P0.

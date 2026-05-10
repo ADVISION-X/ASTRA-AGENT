@@ -1,13 +1,8 @@
-import {
-  PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL,
-  PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL,
-} from "../../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
-
 export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
-  promptId: "vision.productPresence.v1",
+  promptId: "visual-mission-judge.v1",
   taskType: "vision.productPresence",
   promptVersion: "v1",
-  schemaVersion: "vision.productPresence.schema.v1",
+  schemaVersion: "visual-mission-judge.schema.v1",
   modelRole: "vision",
   inputScope: [
     "inputMode",
@@ -39,11 +34,11 @@ export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
     sampledFrameCount: "number",
     validFrameCount: "number",
     isProductVideo: "true | false | null",
-    decision: "product_yes | product_no",
-    routeLabel:
-      `product_yes => ${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL} | product_no => ${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}`,
+    taskDecision: "YES_SEEDING_VIDEO_FLOW | NO_SEEDING_VIDEO_FLOW",
+    pageStateDecision: "ready",
+    actionPlan: "visualMissionActionPlan.v1 with exactly one action whose actionCode equals taskDecision",
     nonExecutableSummary:
-      "short human-readable summary of why the selected routeLabel applies; never an action instruction",
+      "short human-readable summary of why the selected muscle-memory flow applies; never an action instruction",
     confidence: "0..1",
     visibleProductTypes: "string[]",
     evidenceObservations: "string[]",
@@ -54,20 +49,20 @@ export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
     mustReview: "false",
   },
   prompt: [
-    "You are GrassEye's binary product-presence classifier for short-video discovery.",
+    "You are GrassEye's visual mission judge for short-video discovery.",
     "Decide whether the sampled frames visibly show a concrete product as the subject of demonstration, display, use, unboxing, comparison, wearing, holding, installation, assembly, or sale presentation.",
-    "Return exactly one decision: product_yes or product_no.",
-    `For product_yes use routeLabel ${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}; for product_no use ${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}.`,
-    "Never return suggestedNextAction, nextIntent, actionIntent, action_intent, or any executable instruction field.",
+    "Return exactly one governed taskDecision: YES_SEEDING_VIDEO_FLOW or NO_SEEDING_VIDEO_FLOW.",
+    "Return actionPlan.actions[0].actionCode equal to the governed taskDecision. The action plan must contain exactly one action.",
+    "Never return routeLabel, suggestedNextAction, nextIntent, actionIntent, action_intent, or raw browser instructions.",
     "Use only visible sampled-frame evidence. Treat contact-sheet or multi-image input as one governed decision, not separate votes.",
-    "One clearly visible product frame is enough for product_yes; do not require every frame to show the product.",
-    "Choose product_no only when the sampled evidence does not visibly show a concrete product presentation, or when the frames are scenery-only, person-only, text-only, blocked, or too weak to identify a product safely.",
-    "nonExecutableSummary is logging-only and must never contain an action instruction or a third route.",
+    "One clearly visible product frame is enough for YES_SEEDING_VIDEO_FLOW; do not require every frame to show the product.",
+    "Choose NO_SEEDING_VIDEO_FLOW only when the sampled evidence does not visibly show a concrete product presentation, or when the frames are scenery-only, person-only, text-only, blocked, or too weak to identify a product safely.",
+    "nonExecutableSummary is logging-only and must never contain an action instruction or a third branch.",
     "Never return review_required, product_uncertain, maybe, unknown, or mustReview=true.",
     "Do not invent hidden product details or judge profitability, sourcing, advertising, or product quality.",
     "Return structured JSON only and keep the JSON internally consistent.",
   ].join(" "),
-  purpose: "Determine whether the sampled frames from the current video visibly demonstrate a product so V1 can decide whether to save a lightweight product lead record and continue browsing.",
+  purpose: "Determine whether the sampled frames from the current video visibly demonstrate a product so the governed muscle-memory executor can save a lightweight product lead record, optionally like, and continue browsing.",
 } as const;
 
 export type VisionProductPresencePromptContract = typeof VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT;

@@ -1,2 +1,0 @@
-[PASS] visual-target-capability: visual-target owner inspector passed required, forbidden, boundary, anti-escape, generated-chain, manifest, pipeline-truth, runner-fail-power, truth-ownership, and negative-proof phases
-

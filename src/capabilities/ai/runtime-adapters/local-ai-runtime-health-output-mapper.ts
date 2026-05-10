@@ -7,6 +7,7 @@ const AI_TASK_BY_LEGACY: Record<LocalAiTaskType, AiTaskType> = {
   "vision.pagePreparation": "page_preparation_judgment",
   "vision.nextItemAdvanced": "page_preparation_judgment",
   "vision.productPresence": "product_presence_judgment",
+  "vision.visualMissionActionPlan": "visual_mission_action_plan",
   "vision.nextItemTargetCandidate": "visual_target_candidate_analysis",
   "vision.commentsEntryTargetCandidate": "visual_target_candidate_analysis",
   "comments.ocr_cleanup": "ocr_cleanup",

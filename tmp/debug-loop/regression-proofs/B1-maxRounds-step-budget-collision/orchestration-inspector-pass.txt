@@ -1,1 +1,0 @@
-[PASS] orchestration-capability: Orchestration negative-proof harness rejects early start-boundary loss, round-budget step drift, PAV-start event loss, execute-type escape, floating resume map lookup, step-trace event removal, success-proof closure loss, action-log writer loss, unknown-child proof drop, and post-action verification bypass mutations.

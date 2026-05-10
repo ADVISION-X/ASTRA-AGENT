@@ -1,6 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 1
-summary: Text Input still exposes anti-escape gaps in the governed chain.
-
-FATAL GRASSEYE-TEXT-INPUT-CAPABILITY-004-V2 src/capabilities/text-input/runtime/primitive-text-input-runner.ts:1 Text Input primitive runner must pass abortController.signal into the execution port call.

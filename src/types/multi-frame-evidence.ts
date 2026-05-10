@@ -50,9 +50,9 @@ const MultiFrameVideoEvidenceSetSchema = z.object({
 });
 
 const ProductPresenceMultiFrameAIInputSchema = z.object({
-  promptId: z.literal("vision.productPresence.v1"),
+  promptId: z.literal("visual-mission-judge.v1"),
   promptVersion: z.literal("v1"),
-  schemaVersion: z.literal("vision.productPresence.schema.v1"),
+  schemaVersion: z.literal("visual-mission-judge.schema.v1"),
   inputMode: ProductPresenceInputModeSchema,
   multiFrameEvidenceSetId: z.string().min(1).nullable().default(null),
   contactSheetEvidenceId: z.string().min(1).nullable().default(null),

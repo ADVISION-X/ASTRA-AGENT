@@ -130,29 +130,48 @@ function resolveVisualMissionOutputShapeFailure(input: { output: ScreenshotExecu
     return null;
   }
 
-  if (!input.output.originalScreenshotRef || !input.output.coordinateGridScreenshotRef || !input.output.gridSpecRef || !input.output.visualMissionInputRef || !input.output.gridSpec || !input.output.visualMissionInput) {
+  return resolveVisualMissionRequiredFieldsFailure(input.output)
+    ?? resolveVisualMissionCoordinateSpaceFailure(input.output)
+    ?? resolveVisualMissionSourceParityFailure(input.output)
+    ?? resolveVisualMissionReferenceParityFailure(input.output);
+}
+
+function resolveVisualMissionRequiredFieldsFailure(output: ScreenshotExecutionOutput) {
+  if (!output.originalScreenshotRef || !output.coordinateGridScreenshotRef || !output.gridSpecRef || !output.visualMissionInputRef || !output.gridSpec || !output.visualMissionInput) {
     return buildScreenshotOutputBoundaryFailure("visual_mission_output_required", "Coordinate grid success output requires originalScreenshotRef, coordinateGridScreenshotRef, gridSpecRef, visualMissionInputRef, gridSpec, and visualMissionInput.");
   }
 
-  if (input.output.gridSpec.sourceCoordinateSpace !== "browser_viewport_pixels") {
+  return null;
+}
+
+function resolveVisualMissionCoordinateSpaceFailure(output: ScreenshotExecutionOutput) {
+  if (output.gridSpec?.sourceCoordinateSpace !== "browser_viewport_pixels") {
     return buildScreenshotOutputBoundaryFailure("visual_mission_coordinate_space_invalid", "gridSpec must decode to browser_viewport_pixels before it leaves Screenshot.");
   }
 
-  if (input.output.originalScreenshotRef.evidenceId !== input.output.sourceScreenshotEvidenceId) {
+  return null;
+}
+
+function resolveVisualMissionSourceParityFailure(output: ScreenshotExecutionOutput) {
+  if (output.originalScreenshotRef?.evidenceId !== output.sourceScreenshotEvidenceId) {
     return buildScreenshotOutputBoundaryFailure("visual_mission_source_evidence_mismatch", "originalScreenshotRef.evidenceId must match sourceScreenshotEvidenceId for coordinate-grid outputs.");
   }
 
-  if (input.output.coordinateGridScreenshotRef.artifactId !== input.output.artifactRef.artifactId) {
+  if (output.coordinateGridScreenshotRef?.artifactId !== output.artifactRef.artifactId) {
     return buildScreenshotOutputBoundaryFailure("coordinate_grid_artifact_mismatch", "coordinateGridScreenshotRef must match the stored coordinate-grid artifactRef.");
   }
 
-  if (input.output.gridSpec.gridSpecRef !== input.output.gridSpecRef.refId) {
+  return null;
+}
+
+function resolveVisualMissionReferenceParityFailure(output: ScreenshotExecutionOutput) {
+  if (output.gridSpec?.gridSpecRef !== output.gridSpecRef?.refId) {
     return buildScreenshotOutputBoundaryFailure("grid_spec_ref_mismatch", "gridSpec.gridSpecRef must match gridSpecRef.refId.");
   }
 
-  if (input.output.visualMissionInput.gridSpecRef !== input.output.gridSpecRef.refId
-    || input.output.visualMissionInput.originalScreenshotRef !== input.output.originalScreenshotRef.artifactId
-    || input.output.visualMissionInput.coordinateGridScreenshotRef !== input.output.coordinateGridScreenshotRef.artifactId) {
+  if (output.visualMissionInput?.gridSpecRef !== output.gridSpecRef?.refId
+    || output.visualMissionInput?.originalScreenshotRef !== output.originalScreenshotRef?.artifactId
+    || output.visualMissionInput?.coordinateGridScreenshotRef !== output.coordinateGridScreenshotRef?.artifactId) {
     return buildScreenshotOutputBoundaryFailure("visual_mission_bundle_mismatch", "visualMissionInput must reference the governed original screenshot, coordinate grid, and gridSpec refs.");
   }
 

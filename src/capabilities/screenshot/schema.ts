@@ -1,33 +1,8 @@
 import { z } from "zod";
 
-import {
-  SCREENSHOT_ABILITY_GROUP_ID,
-  SCREENSHOT_CHILD_CAPABILITY_IDS,
-  SCREENSHOT_COORDINATE_SPACES,
-  SCREENSHOT_DATA_QUALITY_FLAGS,
-  SCREENSHOT_DECISION_STATUSES,
-  SCREENSHOT_EVIDENCE_POLICIES,
-  SCREENSHOT_FAILURE_CODES,
-  SCREENSHOT_IMAGE_KINDS,
-  SCREENSHOT_PAGE_STATE_STATUSES,
-  SCREENSHOT_RESULT_STATUSES,
-  SCREENSHOT_SENSITIVE_SCREEN_STATUSES,
-  SCREENSHOT_SOURCE_KINDS,
-} from "./shared/screenshot-types.js";
-import {
-  SCREENSHOT_RESULT_CHAIN_FIELD_NAMES,
-  ScreenshotInputGovernanceShape,
-  ScreenshotProofGovernanceShape,
-  ScreenshotResultGovernanceShape,
-} from "./shared/screenshot-governance.js";
-import {
-  ScreenshotArtifactBudgetPolicySchema,
-  ScreenshotArtifactBudgetSnapshotSchema,
-  ScreenshotArtifactCleanupGateSchema,
-  ScreenshotArtifactLifecycleManifestSchema,
-  ScreenshotPromotionStatusSchema,
-  ScreenshotRetentionClassSchema,
-} from "./shared/screenshot-artifact-lifecycle-schema.js";
+import { SCREENSHOT_ABILITY_GROUP_ID, SCREENSHOT_CHILD_CAPABILITY_IDS, SCREENSHOT_COORDINATE_SPACES, SCREENSHOT_DATA_QUALITY_FLAGS, SCREENSHOT_DECISION_STATUSES, SCREENSHOT_EVIDENCE_POLICIES, SCREENSHOT_FAILURE_CODES, SCREENSHOT_IMAGE_KINDS, SCREENSHOT_PAGE_STATE_STATUSES, SCREENSHOT_RESULT_STATUSES, SCREENSHOT_SENSITIVE_SCREEN_STATUSES, SCREENSHOT_SOURCE_KINDS } from "./shared/screenshot-types.js";
+import { SCREENSHOT_RESULT_CHAIN_FIELD_NAMES, ScreenshotInputGovernanceShape, ScreenshotProofGovernanceShape, ScreenshotResultGovernanceShape } from "./shared/screenshot-governance.js";
+import { ScreenshotArtifactBudgetPolicySchema, ScreenshotArtifactBudgetSnapshotSchema, ScreenshotArtifactCleanupGateSchema, ScreenshotArtifactLifecycleManifestSchema, ScreenshotPromotionStatusSchema, ScreenshotRetentionClassSchema } from "./shared/screenshot-artifact-lifecycle-schema.js";
 import {
   DEFAULT_AI_INPUT_MAX_WIDTH,
   DEFAULT_SCREENSHOT_ARTIFACT_BUDGET_POLICY,

@@ -135,7 +135,7 @@ const buildEvidencePacketRoundStructuralLog = (context: EvidencePacketContext) =
   videoVisitId: context.ids.videoVisitId,
   packetId: context.ids.packetId,
   finalArtifactKind: "evidence_packet",
-  productPresenceDecision: buildRoundStructuralDecision(context.productPresenceSummary.output.decision, context.productPresenceSummary.output.mustReview),
+  productPresenceDecision: buildRoundStructuralDecision(context.productPresenceSummary.output.isProductVideo === true ? "product_yes" : "product_no", context.productPresenceSummary.output.mustReview),
   browseOutcome: null,
   roundOutcome: context.evidence.roundOutcome,
   decisionReason: context.productPresenceSummary.output.reason,

@@ -1,5 +1,0 @@
-classification: PASS
-passed: true
-violationCount: 0
-summary: Mouse Scroll negative-proof harness was skipped for nested inspector execution.
-

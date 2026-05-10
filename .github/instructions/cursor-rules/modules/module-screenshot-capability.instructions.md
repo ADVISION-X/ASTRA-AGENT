@@ -22,6 +22,7 @@ Core doctrine:
 - Screenshot may output artifacts but must not decide targets, geometry safety, action success, page state, or business truth.
 - `ai_input`, contact sheet, crop, resize, and coordinate-grid outputs are non-executable screenshot evidence.
 - Screenshot must own coordinate-grid rendering and `gridSpecRef` generation for visual mission input.
+- Coordinate-grid artifact and `gridSpecRef` must be emitted only after governed source proof, source coordinate space, and source screenshot evidence are known; pending provenance placeholders are forbidden.
 - AI may output grid cell ids such as `A30` or `C50`, never raw executable `x/y`; `gridSpecRef` is the only decoder contract from AI grid cells to source viewport coordinates before Mouse Click, Text Input, and Forensics own execution and recording.
 - Product-presence observation on the current video must stay lightweight: current-video capture/prepare flows use `ai_input` evidence policy, `preservePixels=false`, max AI width <= 720, and timeout/budget <= 1500ms.
 - Product-presence `observation_lightweight` must prefer direct viewport region screencapture, must not fall back to full-screen source capture on the lightweight path, and must not keep full-screen source files as governed artifacts.
@@ -367,6 +368,7 @@ Required:
 - `prepare-visual-mission-input` must carry sourceScreenshotEvidenceId, inherited source scale mapping, coordinate-grid artifact proof, `gridSpecRef`, and `visualMissionInputRef`.
 - `ai_input_pixels`, `contact_sheet_pixels`, and `coordinate_grid_pixels` are never executable coordinate truth.
 - `grid_cell_index_space` is a governed AI-to-system location language, never executable mouse truth by itself.
+- `coordinate_grid` is a governed screenshot-derived artifact and decoder language layer, not final evidence packet truth.
 - Any resize/crop that changes coordinate meaning must produce scaleMapping.
 - Visual Target and Geometry Guard must use scaleMapping before executable coordinate reasoning.
 - Mouse Click must continue to consume Geometry Guard proof-gated executable coordinates, never AI raw `x/y`.
@@ -381,6 +383,7 @@ Forbidden:
 - coordinate_grid used as executable coordinate space.
 - gridSpec generated outside Screenshot.
 - coordinate grid rendered outside Screenshot.
+- pending visual-mission provenance placeholders.
 - AI raw `x/y` accepted as executable mouse coordinate.
 - Mouse Click consuming AI raw coordinates without Screenshot decoder + Geometry Guard proof.
 - hidden resizing/cropping policies outside Screenshot.

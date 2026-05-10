@@ -1,6 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 1
-summary: Open required shape is incomplete.
-
-FATAL GRASSEYE-OPEN-CAPABILITY-003-V2 src/capabilities/open/schema-core.ts:1 OpenRequestSchema must carry the FINAL V2 governed chain and dispatch fields.

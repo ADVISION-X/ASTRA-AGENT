@@ -1,8 +1,0 @@
-scenarioId: fallback-mode-result-escape
-mutationName: fallback-mode-result-escape
-mutatedFile: src/capabilities/geometry-guard/runtime/geometry-result-builder.ts
-rollbackRestoredHash: sha256:092565217be35f4a705cddbc0e0a464484c88c29f2afa1aca938b29179b0eefb
-startedAt: 2026-05-06T04:20:46.624Z
-endedAt: 2026-05-06T04:20:54.104Z
-
-Rollback was verified by restoring the original production file content and rerunning the Geometry Guard owner inspector.

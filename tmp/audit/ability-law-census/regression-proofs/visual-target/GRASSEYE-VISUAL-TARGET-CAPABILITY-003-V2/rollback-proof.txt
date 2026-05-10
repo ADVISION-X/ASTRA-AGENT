@@ -1,8 +1,0 @@
-scenarioId: visual-target-missing-capability-call-id
-mutationName: remove-capabilityCallId-from-input
-mutatedFile: src/capabilities/visual-target/shared/visual-target-governance.ts
-rollbackRestoredHash: sha256:4af7f312a0907f978fae2c00bb5e1e2b5603bef808e83564e12574981c705759
-startedAt: 2026-05-05T22:12:07.341Z
-endedAt: 2026-05-05T22:12:13.545Z
-
-Rollback was verified by restoring the original production file content and rerunning the Visual Target owner inspector.

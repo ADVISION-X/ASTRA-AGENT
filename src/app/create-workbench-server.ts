@@ -8,10 +8,12 @@ import { handleCandidateRequest } from "./candidate-api-handlers.js";
 import { handleMapLabRequest } from "./map-lab-api-handlers.js";
 import { handleRuntimeReadRequest } from "./runtime-api-handlers.js";
 import { handleTaskRequest } from "./task-api-handlers.js";
+import { handleUserRequirementHistoryRequest } from "./user-requirement-history-api-handlers.js";
 
 const WORKBENCH_ROUTE_HANDLERS = [
   handleRuntimeReadRequest,
   handleTaskRequest,
+  handleUserRequirementHistoryRequest,
   handleCandidateRequest,
   handleAppSettingsRequest,
   handleMapLabRequest,
@@ -30,11 +32,12 @@ async function handleArtifactOrRootRequest(
   }
 
   if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
-    const [dashboard, appRunLimitSettings] = await Promise.all([
+    const [dashboard, appRunLimitSettings, userRequirementHistory] = await Promise.all([
       activeWorkbench.getCommanderConsoleSnapshot(),
       activeWorkbench.getAppRunLimitSettings(),
+      activeWorkbench.getUserRequirementHistory(),
     ]);
-    const html = renderCommanderConsolePage({ dashboard, appRunLimitSettings }, url);
+    const html = renderCommanderConsolePage({ dashboard, appRunLimitSettings, userRequirementHistory }, url);
     response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
     response.end(html);
     return true;

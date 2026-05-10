@@ -63,7 +63,7 @@ export async function handleVisionProductPresenceRuntimeTask(
   const payload = visionOutput.payload;
   await input.debugHook?.({
     eventType: "local_ai_output_parsed",
-    detail: `taskType=${request.taskType}; confidence=${payload.confidence}; isProductVideo=${String(payload.isProductVideo)}; routeLabel=${payload.routeLabel}; reason=${buildPromptPreview(payload.reason)}`,
+    detail: `taskType=${request.taskType}; confidence=${payload.confidence}; isProductVideo=${String(payload.isProductVideo)}; taskDecision=${payload.taskDecision}; actions=${payload.actionPlan.actions.map((action) => action.actionCode).join(",")}; reason=${buildPromptPreview(payload.reason)}`,
     taskType: request.taskType,
     parsedJson: payload,
     parsedDecision: visionOutput.parsedDecision,

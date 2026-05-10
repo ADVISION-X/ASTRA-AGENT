@@ -60,7 +60,7 @@ export class LocalAiGateway {
   }
 
   private assertExecutionModeAllowed(request: LocalAiTaskRequest, executionMode?: LocalAiExecutionMode): void {
-    if ((request.taskType === "vision.pagePreparation" || request.taskType === "vision.nextItemAdvanced") && executionMode && executionMode !== "real-platform") {
+    if ((request.taskType === "vision.pagePreparation" || request.taskType === "vision.nextItemAdvanced" || request.taskType === "vision.visualMissionActionPlan") && executionMode && executionMode !== "real-platform") {
       throw new LocalAiRuntimeError(
         "disabled_by_policy",
         `${request.taskType} requires real-platform AI execution and forbids governed fallback modes.`,

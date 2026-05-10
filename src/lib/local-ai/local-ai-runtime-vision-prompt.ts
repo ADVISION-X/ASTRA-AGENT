@@ -2,9 +2,6 @@ import type { LocalAiTaskRequest } from "../../types/local-ai.js";
 import type { VideoFrameSamplePointLabel } from "../../types/multi-frame-evidence.js";
 import { VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT } from "./prompts/vision-product-presence.v1.js";
 
-const PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL = "product_discovery_positive";
-const PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL = "product_discovery_negative";
-
 type VisionProductPresenceRequest = Extract<LocalAiTaskRequest, { taskType: "vision.productPresence" }>;
 
 export type VisionPromptParts = {
@@ -28,9 +25,9 @@ const buildVisionOutputFieldGuide = (request: VisionProductPresenceRequest): str
   const firstFrameLabel = resolveExpectedFrameLabels(request)[0] ?? "adaptive_first";
   return [
     'taskType = "vision.productPresence"',
-    'promptId = "vision.productPresence.v1"',
+    'promptId = "visual-mission-judge.v1"',
     'promptVersion = "v1"',
-    'schemaVersion = "vision.productPresence.schema.v1"',
+    'schemaVersion = "visual-mission-judge.schema.v1"',
     `inputMode = ${JSON.stringify(request.input.inputMode)}`,
     `multiFrameEvidenceSetId = ${JSON.stringify(request.input.multiFrameEvidenceSetId)}`,
     `contactSheetEvidenceId = ${JSON.stringify(request.input.contactSheetEvidenceId)}`,
@@ -41,9 +38,11 @@ const buildVisionOutputFieldGuide = (request: VisionProductPresenceRequest): str
     `expectedFrameCount = ${String(request.input.expectedFrameCount)}`,
     `fallbackReason = ${JSON.stringify(request.input.fallbackReason)}`,
     `missingFrames = ${JSON.stringify(request.input.missingFrames)}`,
+    `userRequirementRef = ${JSON.stringify(request.input.userRequirementRef ?? `user-requirement:${request.id}`)}`,
     'isProductVideo = true when the visible frame shows a concrete product presentation; otherwise false',
-    'decision = "product_yes" when isProductVideo=true, otherwise "product_no"',
-    `routeLabel = ${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL} when decision=product_yes, otherwise ${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}`,
+    'taskDecision = "YES_SEEDING_VIDEO_FLOW" when isProductVideo=true, otherwise "NO_SEEDING_VIDEO_FLOW"',
+    'pageStateDecision = "ready"',
+    'actionPlan = one object that follows visualMissionActionPlan.v1 and contains exactly one action whose actionCode equals taskDecision',
     'nonExecutableSummary = one short grounded Chinese sentence describing what is visibly shown',
     'confidence = one grounded JSON number from 0 to 1',
     'visibleProductTypes = concrete visible product/category names, or [] when none are visible',
@@ -67,12 +66,11 @@ export const buildVisionPromptParts = (request: VisionProductPresenceRequest): V
     frameLabels: expectedFrameLabels,
   };
   const userPrompt = [
-    "Binary route only: decision must be product_yes or product_no, and every required key must be present.",
-    `routeLabel is mandatory: product_yes => ${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}; product_no => ${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}.`,
+    "Return a governed action plan only: taskDecision must be YES_SEEDING_VIDEO_FLOW or NO_SEEDING_VIDEO_FLOW, and every required key must be present.",
     "Use only the visible sampled evidence. One clearly visible product frame is enough for product_yes; do not require all frames to show the product.",
-    "If a concrete product is clearly being demonstrated, displayed, used, unboxed, compared, worn, held, installed, assembled, or shown for sale, return decision=product_yes, isProductVideo=true, and list the visible product types.",
-    `If the sampled evidence does not visibly show that kind of product presentation, return decision=product_no, isProductVideo=false, routeLabel=${PRODUCT_DISCOVERY_NEGATIVE_ROUTE_LABEL}, and explain the missing visual proof.`,
-    "nonExecutableSummary is logging-only. confidence must be a JSON number from 0 to 1. mustReview must stay false. uncertainty may explain a no decision but must never become a third branch.",
+    "If a concrete product is clearly being demonstrated, displayed, used, unboxed, compared, worn, held, installed, assembled, or shown for sale, return isProductVideo=true, taskDecision=YES_SEEDING_VIDEO_FLOW, and actionPlan.actions[0].actionCode=YES_SEEDING_VIDEO_FLOW.",
+    "If the sampled evidence does not visibly show that kind of product presentation, return isProductVideo=false, taskDecision=NO_SEEDING_VIDEO_FLOW, and actionPlan.actions[0].actionCode=NO_SEEDING_VIDEO_FLOW.",
+    "pageStateDecision must stay ready. nonExecutableSummary is logging-only. confidence must be a JSON number from 0 to 1. mustReview must stay false. uncertainty may explain a no decision but must never become a third branch.",
     "Do not echo schema instructions, placeholder wording, or translated template text. Every output string must be grounded in the visible image content.",
     `Evidence metadata: ${JSON.stringify(evidenceMetadata)}`,
     "Return one JSON object with exactly these fields and grounded values:",

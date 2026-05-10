@@ -1,3 +1,0 @@
-[CODE VIOLATION] visual-target-capability: visual-target owner inspector found capability-boundary, chain-truth, or enforcement violations
-- ERROR scripts/audit/domains/visual-target-capability/inspector.ts:1 Visual Target inspector must invoke and report the negative-proof harness.
-

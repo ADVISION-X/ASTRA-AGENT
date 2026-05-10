@@ -3,11 +3,13 @@ import {
   AiCommentSignalSummaryInputSchema,
   AiOcrCleanupInputSchema,
   AiProductSignalSummaryInputSchema,
+  AiVisualMissionActionPlanInputSchema,
   AiVisionRequestInputSchema,
 } from "../schema.js";
 import {
   CommentSignalTaskRequestSchema,
   CommentsEntryTargetCandidateTaskRequestSchema,
+  VisualMissionActionPlanTaskRequestSchema,
   NextItemAdvancedTaskRequestSchema,
   NextItemTargetCandidateTaskRequestSchema,
   OcrTaskRequestSchema,
@@ -30,6 +32,7 @@ import type { PromptContractCatalogEntry } from "../prompt-contracts/schema.js";
 import type { ParsedAiAbilityInput } from "../contract.js";
 type PagePreparationBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "page_preparation_judgment" }>;
 type VisionBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "product_presence_judgment" | "visual_observation" }>;
+type VisualMissionActionPlanBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "visual_mission_action_plan" }>;
 type VisualTargetCandidateBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "visual_target_candidate_analysis" }>;
 type OcrBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "ocr_cleanup" }>;
 type CommentSignalBridgeInput = Extract<ParsedAiAbilityInput, { taskType: "comment_signal_summary" }>;
@@ -56,6 +59,20 @@ function buildVisionTaskRequest(input: VisionBridgeInput, promptContract: Prompt
     schemaVersion: promptContract.schemaVersion,
     evidenceRefs: input.inputRefs,
     input: VisionProductPresenceRequestInputSchema.parse(AiVisionRequestInputSchema.parse(input.input)),
+  });
+}
+function buildVisualMissionActionPlanTaskRequest(
+  input: VisualMissionActionPlanBridgeInput,
+  promptContract: PromptContractCatalogEntry,
+): LocalAiTaskRequest {
+  return VisualMissionActionPlanTaskRequestSchema.parse({
+    id: `${input.sessionId}:${input.taskType}:${input.roundId ?? "no-round"}`,
+    taskType: "vision.visualMissionActionPlan",
+    modelRole: promptContract.modelRole,
+    promptVersion: promptContract.promptVersion,
+    schemaVersion: promptContract.schemaVersion,
+    evidenceRefs: input.inputRefs,
+    input: AiVisualMissionActionPlanInputSchema.parse(input).input,
   });
 }
 function buildVisualTargetCandidateTaskRequest(
@@ -175,6 +192,9 @@ function resolveLocalAiPromptRequest(
 function toVisionTaskRequest(input: VisionBridgeInput): LocalAiTaskRequestResolution {
   return resolveLocalAiPromptRequest("vision.productPresence", (promptContract) => buildVisionTaskRequest(input, promptContract));
 }
+function toVisualMissionActionPlanTaskRequest(input: VisualMissionActionPlanBridgeInput): LocalAiTaskRequestResolution {
+  return resolveLocalAiPromptRequest("vision.visualMissionActionPlan", (promptContract) => buildVisualMissionActionPlanTaskRequest(input, promptContract));
+}
 function toVisualTargetCandidateTaskRequest(input: VisualTargetCandidateBridgeInput): LocalAiTaskRequestResolution {
   const localTaskType = input.promptContractId === "vision.commentsEntryTargetCandidate.v1"
     ? "vision.commentsEntryTargetCandidate"
@@ -226,6 +246,8 @@ function resolveVisionTaskRequest(input: ParsedAiAbilityInput): LocalAiTaskReque
     case "product_presence_judgment":
     case "visual_observation":
       return toVisionTaskRequest(input);
+    case "visual_mission_action_plan":
+      return toVisualMissionActionPlanTaskRequest(input);
     case "visual_target_candidate_analysis":
       return toVisualTargetCandidateTaskRequest(input);
     default:

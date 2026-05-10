@@ -1,6 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 1
-summary: Open boundary leaks private children or runtime internals.
-
-FATAL GRASSEYE-OPEN-CAPABILITY-004-V2 src/capabilities/open/runtime/open-executor.ts:1 Open root must not import AI, Screenshot, Mouse, Scroll, Geometry, or Forensics implementations.

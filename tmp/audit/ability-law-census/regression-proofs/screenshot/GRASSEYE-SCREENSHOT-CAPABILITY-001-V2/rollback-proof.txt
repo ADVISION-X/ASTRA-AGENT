@@ -1,8 +1,0 @@
-scenarioId: screenshot-historical-drawer-resurrection
-mutationName: historical screenshot drawer resurrection mutation
-mutatedFile: src/app/platform-action-screenshot-drawer-active-owner.ts
-rollbackRestoredHash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-startedAt: 2026-05-05T22:39:53.980Z
-endedAt: 2026-05-05T22:39:57.398Z
-
-Rollback was verified by restoring the original production file content and rerunning the Screenshot owner inspector.

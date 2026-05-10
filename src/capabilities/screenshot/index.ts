@@ -9,6 +9,7 @@ export {
   type PrepareVisualMissionInput,
   type ScreenshotAbilityResult,
   type ScreenshotArtifactRef,
+  type ScreenshotCoordinateGridOutput,
   type ScreenshotStructuredRef,
   type ScreenshotGridCell,
   type ScreenshotGridSpec,
@@ -26,6 +27,9 @@ export {
   ScreenshotVisualMissionInputSchema,
   ScreenshotScaleMappingSchema,
 } from "./schema.js";
+export {
+  ScreenshotCoordinateGridOutputSchema,
+} from "./visual-mission-output-schema.js";
 export {
   listScreenshotChildren,
 } from "./registry.js";

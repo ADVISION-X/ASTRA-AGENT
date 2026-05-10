@@ -1,8 +1,0 @@
-scenarioId: forbidden-plan-coordinate-action-child
-mutationName: forbidden-plan-coordinate-action-child
-mutatedFile: src/capabilities/geometry-guard/registry.ts
-rollbackRestoredHash: sha256:6e8b84091e4308a798918a49ca375a4fc4718588eb599d498c3555721cae5ca7
-startedAt: 2026-05-06T04:20:26.218Z
-endedAt: 2026-05-06T04:20:32.537Z
-
-Rollback was verified by restoring the original production file content and rerunning the Geometry Guard owner inspector.

@@ -68,7 +68,9 @@ const normalizeAiDispatchStatus = (status: "success" | "failed" | "review_requir
 
 const buildAiBranchFieldValues = (responseEnvelope: AiTransportResponseEnvelope) => ({
   decision: responseEnvelope.decision ?? null,
-  routeLabel: responseEnvelope.routeLabel ?? null,
+  taskDecision: responseEnvelope.taskDecision ?? null,
+  pageStateDecision: responseEnvelope.pageStateDecision ?? null,
+  actionPlanActionCodes: responseEnvelope.actionPlan?.actions.map((action) => action.actionCode).join(",") ?? null,
   nonExecutableSummary: responseEnvelope.nonExecutableSummary ?? null,
   confidence: responseEnvelope.confidence ?? null,
   implementationStatus: responseEnvelope.implementationStatus ?? null,
@@ -111,6 +113,7 @@ function createAbilityCommandDispatcher(nerveBus: OrchestrationNerveBusTransport
       envelopeId: transport.commandEnvelope.envelopeId,
       resultRef: transport.resultEnvelope.resultId ?? `${envelopeId}:result`,
       decision: null,
+      actionPlan: null,
       branchFieldValues: buildProofBranchFieldValues(outputRef),
       failureReason: transport.resultEnvelope.failureReason ?? transport.resultEnvelope.reviewRequiredReason ?? null,
       payloadRefs: {
@@ -136,6 +139,7 @@ function createAiRequestDispatcher(nerveBus: OrchestrationNerveBusTransportSurfa
       envelopeId: transport.requestEnvelope.envelopeId,
       resultRef: transport.responseEnvelope.responseId ?? `${envelopeId}:result`,
       decision: transport.responseEnvelope.decision ?? null,
+      actionPlan: transport.responseEnvelope.actionPlan ?? null,
       branchFieldValues: buildAiBranchFieldValues(transport.responseEnvelope),
       failureReason: transport.responseEnvelope.failureReason ?? transport.responseEnvelope.reviewRequiredReason ?? null,
       payloadRefs: buildAiPayloadRefs(input, transport.responseEnvelope),

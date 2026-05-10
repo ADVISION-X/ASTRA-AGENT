@@ -1,8 +1,0 @@
-scenarioId: screenshot-child-boolean-shortcut
-mutationName: child boolean return mutation
-mutatedFile: src/capabilities/screenshot/children/capture-browser-viewport/implementation.ts
-rollbackRestoredHash: sha256:bee49c4cc0221a4d1983647656f0583685545ddc498d7ee755f84b15ad51e382
-startedAt: 2026-05-05T22:40:14.543Z
-endedAt: 2026-05-05T22:40:17.800Z
-
-Rollback was verified by restoring the original production file content and rerunning the Screenshot owner inspector.

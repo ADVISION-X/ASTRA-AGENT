@@ -1,5 +1,0 @@
-
-> grasseye-local-workbench@0.1.0 audit:commander-console
-> node --import tsx scripts/audit/domains/commander-console-capability/run-inspector.ts
-
-[PASS] commander-console-capability: Startup exit classification remains governed and rejects controlled-shutdown regressions.

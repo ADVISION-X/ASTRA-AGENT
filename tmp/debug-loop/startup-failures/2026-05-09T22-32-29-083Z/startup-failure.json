@@ -1,8 +1,0 @@
-{
-  "runId": "2026-05-09T22:32:29.083Z",
-  "baseUrl": "http://127.0.0.1:4173",
-  "ownerResponsible": "map-plugin-package",
-  "failureReason": "MAP_PACKAGE_STARTUP_ACTIVATION_FAILED packageId=builtin.facebook-seeding-video-discovery actionableMessage=Fix the builtin map package and rerun npm run ci:full.",
-  "actionableMessage": "Fix map package readiness and rerun npm run ci:full.",
-  "writtenAt": "2026-05-09T22:32:29.586Z"
-}

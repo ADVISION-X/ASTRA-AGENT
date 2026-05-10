@@ -1,8 +1,0 @@
-{
-  "runId": "2026-05-05T02:15:25.267Z",
-  "baseUrl": "http://127.0.0.1:4173",
-  "ownerResponsible": "map-plugin-package",
-  "failureReason": "MAP_PACKAGE_BUILTIN_PARSE_FAILED packageFile=tiktok-seeding-video-discovery.meta.map-package.json ownerResponsible=map-plugin-package actionableMessage=\"Fix the builtin map package manifest.packageKind and rerun npm run audit:map-plugin-package.\" actionableMessage=Fix the builtin map package manifest.packageKind and rerun npm run audit:map-plugin-package.",
-  "actionableMessage": "Fix map package readiness and rerun npm run audit:map-plugin-package.",
-  "writtenAt": "2026-05-05T02:15:25.856Z"
-}

@@ -11,7 +11,7 @@ type AiDispatchRequirements = {
   providerPolicyRef: string;
 };
 
-const PRODUCT_PRESENCE_PROMPT_CONTRACT_ID = "vision.productPresence.v1";
+const PRODUCT_PRESENCE_PROMPT_CONTRACT_ID = "visual-mission-judge.v1";
 const WEAK_PRODUCT_PRESENCE_BINDING_INPUT_REFS = ["promptInputRef"] as const;
 
 const resolvePayloadRefValue = (payloadRefs: MissionState["payloadRefs"], key: string): string | null => {

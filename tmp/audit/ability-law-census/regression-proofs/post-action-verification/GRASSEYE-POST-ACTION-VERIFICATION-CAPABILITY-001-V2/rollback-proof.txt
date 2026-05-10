@@ -1,8 +1,0 @@
-scenarioId: contract-exposes-child-interface
-mutationName: contract-exposes-child-interface
-mutatedFile: src/capabilities/post-action-verification/contract.ts
-rollbackRestoredHash: sha256:a6808eda6af9b6fceb6121b13bfdf4dae83650767c4513ce3f4b6cd4f0502ba3
-startedAt: 2026-05-07T08:28:13.781Z
-endedAt: 2026-05-07T08:28:20.968Z
-
-Rollback was verified by restoring the original production file content and rerunning the Post Action Verification owner inspector.

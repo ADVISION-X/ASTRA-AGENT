@@ -10,11 +10,13 @@ import { renderMacShellFrame } from "./layout/MacShellFrame.js";
 import { renderRightInspector } from "./layout/RightInspector.js";
 import { commanderConsoleStyles } from "./styles/commander-console-styles.js";
 import type { AppRunLimitSettings } from "../local-runtime/app-run-limit-settings-types.js";
+import type { CommanderConsoleViewModel } from "./types.js";
 import type { CommanderMissionDashboardView } from "../../capabilities/commander-console/shared/commander-view-types.js";
 
 type CommanderMacShellInput = {
   dashboard: CommanderMissionDashboardView;
   appRunLimitSettings: AppRunLimitSettings;
+  userRequirementHistory: CommanderConsoleViewModel["userRequirementHistory"];
 };
 type CommanderMacShellLocale = Parameters<typeof buildCommanderShellRenderState>[0]["locale"];
 
@@ -26,6 +28,7 @@ function renderCommanderMacShell(input: CommanderMacShellInput, options: {
     dashboard: input.dashboard,
     locale: options.locale,
     appRunLimitSettings: input.appRunLimitSettings,
+    userRequirementHistory: input.userRequirementHistory,
     initialPageId: options.requestUrl.searchParams.get("page"),
   });
   const copy = buildCommanderConsoleShellCopy(options.locale);

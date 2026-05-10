@@ -1,7 +1,0 @@
-classification: CODE VIOLATION
-passed: false
-violationCount: 2
-summary: screenshot-capability owner inspector found capability-boundary, chain-truth, or enforcement violations
-
-FATAL GRASSEYE-SCREENSHOT-CAPABILITY-002-V2 src/capabilities/screenshot/runtime/ai-runtime-import-probe.ts:1 Screenshot boundary must not import AI, mouse, geometry, forensics, or open internals.
-FATAL GRASSEYE-SCREENSHOT-CAPABILITY-002-V2 src/capabilities/screenshot/runtime/ai-runtime-import-probe.ts:1 Screenshot owner must not cross the boundary into AI, mouse, geometry, forensics, or open internals.
