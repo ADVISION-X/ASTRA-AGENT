@@ -49,6 +49,7 @@ export const resolveScreenshotCaptureRun = async (input: {
   return input.plan.kind === "capture"
     ? await runCaptureRunner({
         plan: input.plan,
+      request: input.request,
         context: input.context,
         timeoutMs: resolveScreenshotTimeoutMs(input.request, input.registryEntry.maxDurationMs),
         evidenceId: input.scope.evidenceId,
@@ -88,6 +89,7 @@ export const resolveScreenshotImageRun = async (input: {
   return input.plan.kind === "image-processing"
     ? await runImageProcessingRunner({
         plan: input.plan,
+        request: input.request,
         context: input.context,
         timeoutMs: resolveScreenshotTimeoutMs(input.request, input.registryEntry.maxDurationMs),
       })

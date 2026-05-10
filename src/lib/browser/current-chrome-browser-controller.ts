@@ -167,12 +167,13 @@ export class CurrentChromeBrowserController implements BrowserController {
     return result;
   }
 
-  async screenshotRegion(input: { regionLabel: string; contentLines?: string[]; abortSignal?: AbortSignal }): Promise<BrowserCaptureResult> {
+  async screenshotRegion(input: { regionLabel: string; contentLines?: string[]; captureProfile?: "default" | "observation_lightweight"; abortSignal?: AbortSignal }): Promise<BrowserCaptureResult> {
     const geometry = await this.getGeometrySnapshot();
     const screenshot = await captureCurrentChromeScreenshot({
       screenshotDir: this.options.screenshotDir,
       geometry,
       regionLabel: input.regionLabel,
+      allowFullscreenFallback: input.captureProfile !== "observation_lightweight",
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
     await this.refreshSnapshot();

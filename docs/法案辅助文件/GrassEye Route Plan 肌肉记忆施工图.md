@@ -132,6 +132,8 @@ capture-startup-video-viewport
 
 其中 `capture-current-video-viewport -> prepare-current-video-ai-input` 只允许承载轻量观察输入；不得把 3s / 6s / 10s 多帧采样重新拆回 Route Plan。AI 只消费轻量输入。当前 V1 中，`product_yes` / `read-comments-and-save-evidence` 只允许进入 `write-product-lead-record -> observe-next-item-page-state`。评论截图、评论 OCR、evidence packet 链统一降为 V2 dormant chain，不属于 V1 生产主链。
 
+对这条 V1 current-video 轻量观察链，Route Plan 只声明步骤，不得强迫 Screenshot 回退成 full-screen source capture、evidence-grade JPEG、或 product judgement 之前的重型证据保留。轻量链必须保持 direct viewport observation + phase timing proof，直到 `product_yes` 才允许进入后续高质量证据截图链。
+
 TikTok、Facebook 等平台必须共享同一类弱地图边界。不得为了某个平台单独把动作链写进地图。
 
 ---

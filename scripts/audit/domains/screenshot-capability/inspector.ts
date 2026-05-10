@@ -8,20 +8,22 @@ import { runChildRuntimeCheck } from "./child-runtime-check.js";
 import { runForbiddenShape } from "./forbidden-shape.js";
 import { runLawBaselineCheck } from "./law-baseline-check.js";
 import { runOwnershipBoundary } from "./ownership-boundary.js";
+import { runProductPresenceLightweightCheck } from "./run-product-presence-lightweight-check.js";
 import { runRequiredShape } from "./required-shape.js";
 
 const runScreenshotChecks = async (_context: InspectorContext) => {
   const project = createScreenshotAuditProject();
   const ownershipBoundary = runOwnershipBoundary(project);
-  const [lawBaseline, required, forbidden, boundary, childRuntime, antiEscape] = await Promise.all([
+  const [lawBaseline, required, forbidden, boundary, childRuntime, antiEscape, productPresenceLightweight] = await Promise.all([
     runLawBaselineCheck(),
     runRequiredShape(project),
     runForbiddenShape(project),
     runBoundaryAttack(project),
     Promise.resolve(runChildRuntimeCheck(project)),
     runAntiEscape(project),
+    Promise.resolve(runProductPresenceLightweightCheck(project)),
   ]);
-  return { lawBaseline, required, forbidden, boundary, childRuntime, ownershipBoundary, antiEscape };
+  return { lawBaseline, required, forbidden, boundary, childRuntime, ownershipBoundary, antiEscape, productPresenceLightweight };
 };
 
 const buildInspectorResult = (
@@ -37,6 +39,7 @@ const buildInspectorResult = (
     ...checks.childRuntime.findings,
     ...checks.ownershipBoundary.findings,
     ...checks.antiEscape.findings,
+    ...checks.productPresenceLightweight.findings,
   ];
 
   return {
@@ -53,6 +56,7 @@ const buildInspectorResult = (
       checks.childRuntime.phase,
       checks.ownershipBoundary.phase,
       checks.antiEscape.phase,
+      checks.productPresenceLightweight.phase,
     ],
     summary: findings.length === 0
       ? "screenshot-capability owner inspector passed owner-foundation, required-shape, forbidden-shape, boundary, ownership-boundary, and anti-escape phases"

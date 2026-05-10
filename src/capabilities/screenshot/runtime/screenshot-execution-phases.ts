@@ -2,7 +2,7 @@ import type { ScreenshotAbilityInput, ScreenshotAbilityResult, ScreenshotFailure
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 import type { ScreenshotChildRegistryEntry, ScreenshotExecutionPlan } from "./screenshot-child-contract.js";
 import type { ScreenshotExecutionScope } from "./screenshot-execution-failure.js";
-import type { ScreenshotClockStart } from "./screenshot-clock.js";
+import { EMPTY_SCREENSHOT_PHASE_TIMINGS, measureScreenshotPhaseMs, type ScreenshotClockStart, type ScreenshotPhaseTimings } from "./screenshot-clock.js";
 import { screenshotExecutionRuntimeSupport } from "./screenshot-execution-runtime-support.js";
 import { screenshotExecutionPhaseSupport } from "./screenshot-execution-phase-support.js";
 
@@ -31,6 +31,26 @@ export type ScreenshotExecutionGates = {
   pageStateGate: ScreenshotExecutionPageStateGateState;
   privacyGate: ScreenshotExecutionGateState;
 };
+
+async function measureOptionalScreenshotPhase<T>(input: {
+  enabled: boolean;
+  context: ScreenshotRuntimeContext;
+  invoke: () => Promise<T>;
+}): Promise<{ result: T | null; durationMs: number | null }> {
+  if (!input.enabled) {
+    return { result: null, durationMs: null };
+  }
+
+  const measurement = await measureScreenshotPhaseMs({
+    clockPort: input.context.clockPort,
+    invoke: input.invoke,
+  });
+
+  return {
+    result: measurement.result,
+    durationMs: measurement.durationMs,
+  };
+}
 
 async function executeScreenshotRegionGatePhase(input: {
   plan: ScreenshotExecutionPlan;
@@ -68,21 +88,31 @@ async function executeScreenshotCaptureAndImagePhase(input: {
   scope: ScreenshotExecutionScope;
   clockStart: ScreenshotClockStart;
   registryEntry: ScreenshotChildRegistryEntry;
-}): Promise<{ captureRun: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runCaptureRunner>> | null; imageRun: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runImageProcessingRunner>> | null; } | ScreenshotAbilityResult> {
-  const captureRun = await screenshotExecutionPhaseSupport.resolveScreenshotCaptureRun({
-    plan: input.plan,
+}): Promise<{ captureRun: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runCaptureRunner>> | null; imageRun: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runImageProcessingRunner>> | null; phaseTimings: ScreenshotPhaseTimings; } | ScreenshotAbilityResult> {
+  const captureMeasurement = await measureOptionalScreenshotPhase({
+    enabled: input.plan.kind === "capture",
     context: input.context,
-    scope: input.scope,
-    request: input.request,
-    clockStart: input.clockStart,
-    registryEntry: input.registryEntry,
+    invoke: () => screenshotExecutionPhaseSupport.resolveScreenshotCaptureRun({
+      plan: input.plan,
+      context: input.context,
+      scope: input.scope,
+      request: input.request,
+      clockStart: input.clockStart,
+      registryEntry: input.registryEntry,
+    }),
   });
-  const imageRun = await screenshotExecutionPhaseSupport.resolveScreenshotImageRun({
-    plan: input.plan,
+  const imageMeasurement = await measureOptionalScreenshotPhase({
+    enabled: input.plan.kind === "image-processing",
     context: input.context,
-    request: input.request,
-    registryEntry: input.registryEntry,
+    invoke: () => screenshotExecutionPhaseSupport.resolveScreenshotImageRun({
+      plan: input.plan,
+      context: input.context,
+      request: input.request,
+      registryEntry: input.registryEntry,
+    }),
   });
+  const captureRun = captureMeasurement.result;
+  const imageRun = imageMeasurement.result;
   const failure = await screenshotExecutionPhaseSupport.resolveScreenshotCaptureAndImagePhaseFailure({
     request: input.request,
     context: input.context,
@@ -100,7 +130,15 @@ async function executeScreenshotCaptureAndImagePhase(input: {
     return failure;
   }
 
-  return { captureRun, imageRun };
+  return {
+    captureRun,
+    imageRun,
+    phaseTimings: {
+      ...EMPTY_SCREENSHOT_PHASE_TIMINGS,
+      capturePhaseMs: captureMeasurement.durationMs,
+      imageProcessingPhaseMs: imageMeasurement.durationMs,
+    },
+  };
 }
 
 function validateAndExtractScreenshotMetadata(input: {
@@ -180,6 +218,7 @@ function buildArtifactStorageSuccessResult(
     captureRun: input.captureRun,
     imageRun: input.imageRun,
     artifactGate,
+    phaseTimings: input.phaseTimings,
   });
 }
 
@@ -187,6 +226,7 @@ async function executeScreenshotArtifactStoragePhase(input: {
   plan: ScreenshotExecutionPlan;
   captureRun: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runCaptureRunner>> | null;
   imageRun: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runImageProcessingRunner>> | null;
+  phaseTimings: ScreenshotPhaseTimings;
   request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   scope: ScreenshotExecutionScope;
@@ -195,22 +235,33 @@ async function executeScreenshotArtifactStoragePhase(input: {
   metadata: { outputFilePath: string; outputWidth: number; outputHeight: number; mimeType: string; createdAt: string };
   registryEntry: ScreenshotChildRegistryEntry;
 }) {
-  const artifactGate = await screenshotExecutionRuntimeSupport.runArtifactStorageGate({
-    request: input.request,
-    context: input.context,
-    childCapabilityId: input.request.childCapabilityId,
-    evidenceId: input.scope.evidenceId,
-    outputFilePath: input.metadata.outputFilePath,
-    imageKind: input.registryEntry.outputImageKind,
-    width: input.metadata.outputWidth,
-    height: input.metadata.outputHeight,
-    mimeType: input.metadata.mimeType,
-    createdAt: input.metadata.createdAt,
+  const artifactStorageMeasurement = await measureScreenshotPhaseMs({
+    clockPort: input.context.clockPort,
+    invoke: async () => {
+      const artifactGate = await screenshotExecutionRuntimeSupport.runArtifactStorageGate({
+        request: input.request,
+        context: input.context,
+        childCapabilityId: input.request.childCapabilityId,
+        evidenceId: input.scope.evidenceId,
+        outputFilePath: input.metadata.outputFilePath,
+        imageKind: input.registryEntry.outputImageKind,
+        width: input.metadata.outputWidth,
+        height: input.metadata.outputHeight,
+        mimeType: input.metadata.mimeType,
+        createdAt: input.metadata.createdAt,
+      });
+      const ephemeralCleanup = await screenshotExecutionRuntimeSupport.burnEphemeralScreenshotFile({
+        outputFilePath: input.metadata.outputFilePath,
+        retainedArtifactStorageRef: artifactGate.artifactRef?.storageRef ?? null,
+      });
+      return { artifactGate, ephemeralCleanup };
+    },
   });
-  const ephemeralCleanup = await screenshotExecutionRuntimeSupport.burnEphemeralScreenshotFile({
-    outputFilePath: input.metadata.outputFilePath,
-    retainedArtifactStorageRef: artifactGate.artifactRef?.storageRef ?? null,
-  });
+  const { artifactGate, ephemeralCleanup } = artifactStorageMeasurement.result;
+  const phaseTimings = {
+    ...input.phaseTimings,
+    artifactStoragePhaseMs: artifactStorageMeasurement.durationMs,
+  };
   if (ephemeralCleanup.attempted && !ephemeralCleanup.deleted) {
     return await buildArtifactStorageFailureResult(input, {
       ...artifactGate,
@@ -226,7 +277,10 @@ async function executeScreenshotArtifactStoragePhase(input: {
     return await buildArtifactStorageFailureResult(input, artifactGate);
   }
 
-  return buildArtifactStorageSuccessResult(input, artifactGate);
+  return buildArtifactStorageSuccessResult({
+    ...input,
+    phaseTimings,
+  }, artifactGate);
 }
 
 export async function executeScreenshotExecutionPhases(input: {
@@ -258,6 +312,7 @@ export async function executeScreenshotExecutionPhases(input: {
     ...input,
     captureRun: capturePhase.captureRun,
     imageRun: capturePhase.imageRun,
+    phaseTimings: capturePhase.phaseTimings,
     metadata: metadataPhase,
   });
 }

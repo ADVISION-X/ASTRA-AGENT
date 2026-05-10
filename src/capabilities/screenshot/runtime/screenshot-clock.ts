@@ -5,6 +5,22 @@ export type ScreenshotClockStart = {
   startedMonotonicMs: number;
 };
 
+export type ScreenshotPhaseTimings = {
+  capturePhaseMs: number | null;
+  imageProcessingPhaseMs: number | null;
+  artifactStoragePhaseMs: number | null;
+  outputBoundaryPhaseMs: number | null;
+  totalScreenshotStepMs: number | null;
+};
+
+export const EMPTY_SCREENSHOT_PHASE_TIMINGS: ScreenshotPhaseTimings = {
+  capturePhaseMs: null,
+  imageProcessingPhaseMs: null,
+  artifactStoragePhaseMs: null,
+  outputBoundaryPhaseMs: null,
+  totalScreenshotStepMs: null,
+};
+
 export function startScreenshotClock(clockPort: ScreenshotClockPort): ScreenshotClockStart {
   return {
     startedAt: clockPort.nowIso(),
@@ -26,5 +42,18 @@ export function finishScreenshotClock(input: {
     endedAt: input.clockPort.nowIso(),
     endedMonotonicMs,
     durationMs: Math.max(0, Math.round(endedMonotonicMs - input.startedMonotonicMs)),
+  };
+}
+
+export async function measureScreenshotPhaseMs<T>(input: {
+  clockPort: ScreenshotClockPort;
+  invoke: () => Promise<T>;
+}): Promise<{ result: T; durationMs: number }> {
+  const startedMonotonicMs = input.clockPort.nowMonotonicMs();
+  const result = await input.invoke();
+  const endedMonotonicMs = input.clockPort.nowMonotonicMs();
+  return {
+    result,
+    durationMs: Math.max(0, Math.round(endedMonotonicMs - startedMonotonicMs)),
   };
 }

@@ -1,5 +1,7 @@
+import type { ScreenshotAbilityInput } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
 import type { ScreenshotExecutionPlan } from "./screenshot-child-contract.js";
+import { resolveScreenshotAiInputEncodeProfile } from "./screenshot-lightweight-observation.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 
 function buildImageProcessingFailure(timeout: boolean, detail: string) {
@@ -91,6 +93,7 @@ async function resolveOptimizeLosslessProcessing(input: {
 
 async function resolvePrepareAiInputProcessing(input: {
   plan: Extract<ScreenshotExecutionPlan, { kind: "image-processing" }> & { operation: "prepare-ai-input" };
+  request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   timeoutMs: number;
 }) {
@@ -99,6 +102,7 @@ async function resolvePrepareAiInputProcessing(input: {
       sourceFilePath: input.plan.sourceFilePath,
       region: input.plan.region,
       maxAiWidth: input.plan.maxAiWidth,
+      encodeProfile: resolveScreenshotAiInputEncodeProfile(input.request),
     }).then((result) => ({
       outputFilePath: result.outputFilePath,
       width: result.width,
@@ -122,6 +126,7 @@ async function resolvePrepareAiInputProcessing(input: {
 
 async function resolveImageProcessingRunner(input: {
   plan: Extract<ScreenshotExecutionPlan, { kind: "image-processing" }>;
+  request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   timeoutMs: number;
 }) {
@@ -141,6 +146,7 @@ async function resolveImageProcessingRunner(input: {
     case "prepare-ai-input":
       return resolvePrepareAiInputProcessing({
         plan: input.plan,
+        request: input.request,
         context: input.context,
         timeoutMs: input.timeoutMs,
       });
@@ -149,6 +155,7 @@ async function resolveImageProcessingRunner(input: {
 
 export async function runImageProcessingRunner(input: {
   plan: Extract<ScreenshotExecutionPlan, { kind: "image-processing" }>;
+  request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   timeoutMs: number;
 }): Promise<{

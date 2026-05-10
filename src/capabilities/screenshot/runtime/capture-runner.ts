@@ -1,8 +1,10 @@
 import path from "node:path";
 
+import type { ScreenshotAbilityInput } from "../contract.js";
 import { ScreenshotBrowserCaptureSchema, ScreenshotDesktopCaptureSchema } from "../schema.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
 import type { ScreenshotExecutionPlan, ScreenshotRunnerCaptureResult } from "./screenshot-child-contract.js";
+import { resolveScreenshotCaptureProfile } from "./screenshot-lightweight-observation.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 
 function buildCaptureFailure(detail: string, timeout: boolean) {
@@ -49,6 +51,7 @@ async function waitForSampleDelay(input: { delayMs: number | null; abortSignal: 
 
 async function runBrowserViewportCapture(input: {
   plan: Extract<ScreenshotExecutionPlan, { kind: "capture" }> & { operation: "browser-viewport" };
+  request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   timeoutMs: number;
 }) {
@@ -59,6 +62,7 @@ async function runBrowserViewportCapture(input: {
       return input.context.capturePort.captureBrowserViewport({
         regionLabel: input.plan.regionLabel,
         contentLines: input.plan.contentLines,
+        captureProfile: resolveScreenshotCaptureProfile(input.request),
         abortSignal,
       });
     },
@@ -97,18 +101,20 @@ async function runDesktopScreenCapture(input: {
 
 async function resolveCaptureRunner(input: {
   plan: Extract<ScreenshotExecutionPlan, { kind: "capture" }>;
+  request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   timeoutMs: number;
   evidenceId: string;
   createdAt: string;
 }) {
   return input.plan.operation === "browser-viewport"
-    ? runBrowserViewportCapture({ plan: input.plan, context: input.context, timeoutMs: input.timeoutMs })
+    ? runBrowserViewportCapture({ plan: input.plan, request: input.request, context: input.context, timeoutMs: input.timeoutMs })
     : runDesktopScreenCapture({ plan: input.plan, context: input.context, timeoutMs: input.timeoutMs, evidenceId: input.evidenceId, createdAt: input.createdAt });
 }
 
 export async function runCaptureRunner(input: {
   plan: Extract<ScreenshotExecutionPlan, { kind: "capture" }>;
+  request: ScreenshotAbilityInput;
   context: ScreenshotRuntimeContext;
   timeoutMs: number;
   evidenceId: string;

@@ -6,6 +6,7 @@ import type {
   ScreenshotSourceProof,
 } from "../contract.js";
 import { buildDerivedScaleMapping, buildIdentityScaleMapping } from "../shared/screenshot-scale-mapping.js";
+import type { ScreenshotPhaseTimings } from "./screenshot-clock.js";
 import {
   resolveBrowserCaptureCoordinateSpace,
   resolveBrowserCaptureScaleMapping,
@@ -72,6 +73,7 @@ export type ScreenshotSuccessPathInput = {
   captureRun: ScreenshotCaptureRun | null;
   imageRun: ScreenshotImageRun | null;
   artifactGate: ScreenshotArtifactGate;
+  phaseTimings: ScreenshotPhaseTimings;
 };
 
 type ScreenshotSuccessOutputInput = {

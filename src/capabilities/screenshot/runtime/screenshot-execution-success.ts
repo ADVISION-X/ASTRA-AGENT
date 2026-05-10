@@ -1,5 +1,6 @@
 import type { ScreenshotAbilityResult } from "../contract.js";
 import { runScreenshotOutputBoundaryGate } from "./screenshot-output-boundary-gate.js";
+import { measureScreenshotPhaseMs } from "./screenshot-clock.js";
 import {
   buildScreenshotOutputBoundaryFailureResult,
   resolveScreenshotCoordinateSpace,
@@ -24,11 +25,22 @@ async function executeScreenshotSuccessPath(input: ScreenshotSuccessPathInput): 
     outputWidth,
     outputHeight,
   });
-  const outputBoundaryGate = await runScreenshotOutputBoundaryGate({
-    context: input.context,
-    registryEntry: input.registryEntry,
-    output: successOutput,
+  const outputBoundaryMeasurement = await measureScreenshotPhaseMs({
+    clockPort: input.context.clockPort,
+    invoke: () => runScreenshotOutputBoundaryGate({
+      context: input.context,
+      registryEntry: input.registryEntry,
+      output: successOutput,
+    }),
   });
+  const outputBoundaryGate = outputBoundaryMeasurement.result;
+  const pathInputWithTimings = {
+    ...input,
+    phaseTimings: {
+      ...input.phaseTimings,
+      outputBoundaryPhaseMs: outputBoundaryMeasurement.durationMs,
+    },
+  };
 
   if (outputBoundaryGate.failure || outputBoundaryGate.decision.status !== "passed") {
     return await buildScreenshotOutputBoundaryFailureResult({
@@ -44,7 +56,7 @@ async function executeScreenshotSuccessPath(input: ScreenshotSuccessPathInput): 
   }
 
   return buildScreenshotSuccessResult({
-    pathInput: input,
+    pathInput: pathInputWithTimings,
     sourceHash,
     scaleMapping,
     coordinateSpace,

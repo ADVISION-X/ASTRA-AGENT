@@ -10,6 +10,7 @@ import { finishScreenshotClock } from "./screenshot-clock.js";
 import { buildScreenshotRuntimeProof } from "./screenshot-proof-builder.js";
 import { buildScreenshotResult } from "./screenshot-result-builder.js";
 import type { ScreenshotSuccessPathInput } from "./screenshot-execution-success-helpers.js";
+import { isProductPresenceLightweightObservation } from "./screenshot-lightweight-observation.js";
 
 function buildRef(prefix: string, input: string): string {
   return `${prefix}:${createHash("sha256").update(input).digest("hex").slice(0, 24)}`;
@@ -33,6 +34,7 @@ const buildScreenshotSuccessDataQualityFlags = (input: ScreenshotSuccessPathInpu
   "artifact_persisted",
   "artifact_budget_verified",
   "artifact_lifecycle_manifest_written",
+  isProductPresenceLightweightObservation(input.request) ? "observation_lightweight_applied" : null,
   input.plan.kind === "capture" ? "capture_fresh" : "scale_mapping_verified",
   input.gates.browserSessionGate.decision.status === "passed" ? "browser_session_verified" : null,
   input.gates.pageStateGate.pageStateProofRef ? "page_state_verified" : "page_state_unverified",
@@ -85,6 +87,11 @@ const buildScreenshotSuccessRuntimeProofDecisionFields = (input: ScreenshotSucce
   startedAt: input.pathInput.clockStart.startedAt,
   endedAt: input.finished.endedAt,
   durationMs: input.finished.durationMs,
+  capturePhaseMs: input.pathInput.phaseTimings.capturePhaseMs,
+  imageProcessingPhaseMs: input.pathInput.phaseTimings.imageProcessingPhaseMs,
+  artifactStoragePhaseMs: input.pathInput.phaseTimings.artifactStoragePhaseMs,
+  outputBoundaryPhaseMs: input.pathInput.phaseTimings.outputBoundaryPhaseMs,
+  totalScreenshotStepMs: input.finished.durationMs,
   status: "success" as const,
   failureReason: null,
   reviewRequiredReason: null,

@@ -43,6 +43,7 @@ export function createBrowserControllerScreenshotCapturePort(browserController: 
       const capture = await browserController.screenshotRegion({
         regionLabel: input.regionLabel,
         contentLines: input.contentLines,
+        ...(input.captureProfile ? { captureProfile: input.captureProfile } : {}),
         ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
       });
       return {

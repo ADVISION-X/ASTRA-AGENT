@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T00:54:28.533Z",
+  "generatedAt": "2026-05-10T01:20:09.389Z",
   "owners": [
     {
       "inspectorId": "ai-capability-owner",
@@ -558,7 +558,8 @@
       ],
       "readsBlueprintFiles": [
         "docs/法案辅助文件/GrassEye Screenshot 能力组施工图.md",
-        "docs/法案辅助文件/GrassEye 多帧视频取证施工图.md"
+        "docs/法案辅助文件/GrassEye 多帧视频取证施工图.md",
+        "docs/法案辅助文件/GrassEye Route Plan 肌肉记忆施工图.md"
       ]
     },
     {

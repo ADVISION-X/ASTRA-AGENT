@@ -8,6 +8,9 @@ import sharp from "sharp";
 import type { ImageMetadata, ScreenshotImageProcessingPort } from "../ports/screenshot-image-processing-port.js";
 import { SCREENSHOT_IMAGE_PROCESSING_PORT_KIND } from "../shared/screenshot-result.js";
 
+const DEFAULT_AI_INPUT_JPEG_QUALITY = 82;
+const LIGHTWEIGHT_AI_INPUT_JPEG_QUALITY = 65;
+
 async function ensureTempOutput(extension: string): Promise<string> {
   const dir = await mkdtemp(path.join(os.tmpdir(), "grasseye-screenshot-"));
   await mkdir(dir, { recursive: true });
@@ -50,7 +53,7 @@ function createResizePlan(input: { sourceWidth: number; sourceHeight: number; ma
 
 async function cropRegion(portInput: Parameters<ScreenshotImageProcessingPort["cropRegion"]>[0]) {
   const outputFilePath = await ensureTempOutput(".png");
-  await sharp(portInput.sourceFilePath)
+  const result = await sharp(portInput.sourceFilePath)
     .extract({
       left: Math.round(portInput.region.x),
       top: Math.round(portInput.region.y),
@@ -59,15 +62,26 @@ async function cropRegion(portInput: Parameters<ScreenshotImageProcessingPort["c
     })
     .png({ compressionLevel: 9, adaptiveFiltering: true })
     .toFile(outputFilePath);
-  return { outputFilePath, ...await inspectImage(outputFilePath) };
+  return {
+    outputFilePath,
+    width: result.width,
+    height: result.height,
+    mimeType: "image/png",
+  };
 }
 
 async function optimizeLossless(portInput: Parameters<ScreenshotImageProcessingPort["optimizeLossless"]>[0]) {
   const outputFilePath = await ensureTempOutput(".png");
-  await sharp(portInput.sourceFilePath)
+  const result = await sharp(portInput.sourceFilePath)
     .png({ compressionLevel: 9, adaptiveFiltering: true })
     .toFile(outputFilePath);
-  return { outputFilePath, equivalence: "dimensions_preserved" as const, ...await inspectImage(outputFilePath) };
+  return {
+    outputFilePath,
+    equivalence: "dimensions_preserved" as const,
+    width: result.width,
+    height: result.height,
+    mimeType: "image/png",
+  };
 }
 
 function createAiInputPipeline(input: Parameters<ScreenshotImageProcessingPort["prepareAiInput"]>[0], targetWidth: number, targetHeight: number) {
@@ -89,12 +103,18 @@ async function prepareAiInput(portInput: Parameters<ScreenshotImageProcessingPor
   const sourceWidth = portInput.region?.width ?? sourceMetadata.width;
   const sourceHeight = portInput.region?.height ?? sourceMetadata.height;
   const { targetWidth, targetHeight } = createResizePlan({ sourceWidth, sourceHeight, maxAiWidth: portInput.maxAiWidth });
-  await createAiInputPipeline(portInput, targetWidth, targetHeight)
-    .jpeg({ quality: 82, mozjpeg: true })
+  const useLightweightProfile = portInput.encodeProfile === "observation_lightweight";
+  const result = await createAiInputPipeline(portInput, targetWidth, targetHeight)
+    .jpeg({
+      quality: useLightweightProfile ? LIGHTWEIGHT_AI_INPUT_JPEG_QUALITY : DEFAULT_AI_INPUT_JPEG_QUALITY,
+      mozjpeg: useLightweightProfile ? false : true,
+    })
     .toFile(outputFilePath);
   return {
     outputFilePath,
-    ...await inspectImage(outputFilePath),
+    width: result.width,
+    height: result.height,
+    mimeType: "image/jpeg",
     sourceWidth,
     sourceHeight,
     cropOffsetX: portInput.region?.x ?? 0,

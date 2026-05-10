@@ -43,6 +43,11 @@ export const PATHS = {
   SCHEMA_REFINEMENTS: "src/capabilities/screenshot/screenshot-schema-refinements.ts",
   CHAIN: "src/capabilities/screenshot/runtime/screenshot-chain.ts",
   WORKBENCH_DISPATCH_INPUT: "src/lib/local-runtime/workbench-screenshot-dispatch-input.ts",
+  LIGHTWEIGHT_OBSERVATION: "src/capabilities/screenshot/runtime/screenshot-lightweight-observation.ts",
+  IMAGE_PROCESSING_ADAPTER: "src/capabilities/screenshot/adapters/sharp-screenshot-image-processing-port.ts",
+  BROWSER_CONTROLLER_CONTRACT: "src/lib/browser/browser-controller.ts",
+  CURRENT_CHROME_CONTROLLER: "src/lib/browser/current-chrome-browser-controller.ts",
+  CURRENT_CHROME_SCREENSHOT: "src/lib/browser/current-chrome-browser-screenshot.ts",
 } as const;
 
 export const CHILDREN = [

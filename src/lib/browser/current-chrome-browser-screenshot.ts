@@ -8,6 +8,8 @@ import { activateChrome } from "./current-chrome-browser-controller-primitives.j
 import { runSpawn } from "./current-chrome-window-control.js";
 import { createId } from "../local-runtime/ids.js";
 
+type ScreenFrame = { x: number; y: number; width: number; height: number };
+
 const readImageSize = async (filePath: string): Promise<{ width: number; height: number }> => {
   const metadata = await sharp(filePath).metadata();
   if (!metadata.width || !metadata.height) {
@@ -16,7 +18,7 @@ const readImageSize = async (filePath: string): Promise<{ width: number; height:
   return { width: metadata.width, height: metadata.height };
 };
 
-const readMainScreenFrame = async (): Promise<{ x: number; y: number; width: number; height: number }> => {
+const readMainScreenFrame = async (): Promise<ScreenFrame> => {
   const output = await runSpawn("osascript", ["-l", "JavaScript", "-e", "ObjC.import('AppKit'); const f=$.NSScreen.mainScreen.frame; `${f.origin.x},${f.origin.y},${f.size.width},${f.size.height}`"]);
   const parts = output.split(",").map((value) => Number(value));
   const x = parts[0];
@@ -31,6 +33,35 @@ const readMainScreenFrame = async (): Promise<{ x: number; y: number; width: num
   }
 
   return { x, y, width, height };
+};
+
+const buildDirectCaptureRegion = (geometry: BrowserGeometrySnapshot) => {
+  const left = Math.round(geometry.windowX + geometry.visibleContentBounds.x);
+  const top = Math.round(geometry.windowY + geometry.visibleContentBounds.y);
+  const width = Math.round(geometry.visibleContentBounds.width || geometry.viewportWidth);
+  const height = Math.round(geometry.visibleContentBounds.height || geometry.viewportHeight);
+
+  if (width <= 0 || height <= 0) {
+    throw new Error(`Chrome direct screenshot region is invalid: left=${left} top=${top} width=${width} height=${height}`);
+  }
+
+  return { left, top, width, height };
+};
+
+const captureViewportRegionDirectly = async (input: {
+  screenshotPath: string;
+  geometry: BrowserGeometrySnapshot;
+  abortSignal?: AbortSignal;
+}) => {
+  const captureRegion = buildDirectCaptureRegion(input.geometry);
+  await runSpawn(
+    "screencapture",
+    ["-x", `-R${captureRegion.left},${captureRegion.top},${captureRegion.width},${captureRegion.height}`, input.screenshotPath],
+    input.abortSignal ? { signal: input.abortSignal } : undefined,
+  );
+  return {
+    dimensions: await readImageSize(input.screenshotPath),
+  };
 };
 
 const clampCropRegion = (input: {
@@ -52,29 +83,53 @@ const clampCropRegion = (input: {
   return { left, top, width, height };
 };
 
+async function captureViewportRegionWithFullscreenFallback(input: {
+  screenshotDir: string;
+  geometry: BrowserGeometrySnapshot;
+  regionLabel: string;
+  allowFullscreenFallback?: boolean;
+  abortSignal?: AbortSignal;
+}) {
+  const screenshotPath = path.join(input.screenshotDir, `${createId(input.regionLabel)}.png`);
+
+  try {
+    const directCapture = await captureViewportRegionDirectly({
+      screenshotPath,
+      geometry: input.geometry,
+      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+    });
+    return { screenshotPath, dimensions: directCapture.dimensions };
+  } catch (error) {
+    if (input.allowFullscreenFallback === false) {
+      throw error;
+    }
+    const fullScreenshotPath = path.join(input.screenshotDir, `${createId(`${input.regionLabel}:full-screen-source`)}.png`);
+    await runSpawn("screencapture", ["-x", fullScreenshotPath], input.abortSignal ? { signal: input.abortSignal } : undefined);
+    const fullDimensions = await readImageSize(fullScreenshotPath);
+    const screenFrame = await readMainScreenFrame();
+    const cropRegion = clampCropRegion({
+      geometry: input.geometry,
+      screenFrame,
+      fullImage: fullDimensions,
+    });
+    await sharp(fullScreenshotPath)
+      .extract(cropRegion)
+      .png()
+      .toFile(screenshotPath);
+    await rm(fullScreenshotPath, { force: true }).catch(() => undefined);
+    const dimensions = await readImageSize(screenshotPath);
+    return { screenshotPath, dimensions };
+  }
+}
+
 export const captureCurrentChromeScreenshot = async (input: {
   screenshotDir: string;
   geometry: BrowserGeometrySnapshot;
   regionLabel: string;
+  allowFullscreenFallback?: boolean;
   abortSignal?: AbortSignal;
 }) => {
   await mkdir(input.screenshotDir, { recursive: true });
-  const screenshotPath = path.join(input.screenshotDir, `${createId(input.regionLabel)}.png`);
-  const fullScreenshotPath = path.join(input.screenshotDir, `${createId(`${input.regionLabel}:full-screen-source`)}.png`);
   await activateChrome();
-  await runSpawn("screencapture", ["-x", fullScreenshotPath], input.abortSignal ? { signal: input.abortSignal } : undefined);
-  const fullDimensions = await readImageSize(fullScreenshotPath);
-  const screenFrame = await readMainScreenFrame();
-  const cropRegion = clampCropRegion({
-    geometry: input.geometry,
-    screenFrame,
-    fullImage: fullDimensions,
-  });
-  await sharp(fullScreenshotPath)
-    .extract(cropRegion)
-    .png()
-    .toFile(screenshotPath);
-  await rm(fullScreenshotPath, { force: true }).catch(() => undefined);
-  const dimensions = await readImageSize(screenshotPath);
-  return { screenshotPath, dimensions };
+  return captureViewportRegionWithFullscreenFallback(input);
 };

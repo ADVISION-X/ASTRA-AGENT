@@ -96,6 +96,7 @@ const SCREENSHOT_DATA_QUALITY_FLAGS = [
   "desktop_full_screen_requested",
   "privacy_review_required",
   "capture_fresh",
+  "observation_lightweight_applied",
   "artifact_budget_verified",
   "artifact_lifecycle_manifest_written",
 ] as const;

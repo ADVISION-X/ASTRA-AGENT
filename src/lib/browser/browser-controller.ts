@@ -25,6 +25,8 @@ type BrowserCaptureResult = {
   createdAt: string;
 };
 
+type BrowserScreenshotProfile = "default" | "observation_lightweight";
+
 type BrowserStateSnapshot = LocalBrowserSessionState & {
   open: boolean;
   currentUrl: string;
@@ -87,7 +89,9 @@ interface BrowserController {
     fallbackUsed?: boolean;
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
-  screenshotRegion(input: { regionLabel: string; contentLines?: string[]; abortSignal?: AbortSignal }): Promise<BrowserCaptureResult>;
+  screenshotRegion(input: { regionLabel: string; contentLines?: string[]; captureProfile?: BrowserScreenshotProfile; abortSignal?: AbortSignal }): Promise<BrowserCaptureResult>;
   wait(durationMs: number): Promise<BrowserActionResult>;
   close(): Promise<BrowserActionResult>;
-}export type { BrowserActionResult, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserClickButton, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserController };
+}
+
+export type { BrowserActionResult, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserClickButton, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserController, BrowserScreenshotProfile };

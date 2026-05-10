@@ -125,6 +125,11 @@ function buildScreenshotRuntimeProofDecisionFields(input: {
   startedAt: string;
   endedAt: string;
   durationMs: number;
+  capturePhaseMs?: number | null;
+  imageProcessingPhaseMs?: number | null;
+  artifactStoragePhaseMs?: number | null;
+  outputBoundaryPhaseMs?: number | null;
+  totalScreenshotStepMs?: number | null;
   status: ScreenshotStatus;
   failureReason: ScreenshotRuntimeProof["failureReason"];
   reviewRequiredReason: string | null;
@@ -150,6 +155,11 @@ function buildScreenshotRuntimeProofDecisionFields(input: {
     startedAt: input.startedAt,
     endedAt: input.endedAt,
     durationMs: input.durationMs,
+    capturePhaseMs: input.capturePhaseMs ?? null,
+    imageProcessingPhaseMs: input.imageProcessingPhaseMs ?? null,
+    artifactStoragePhaseMs: input.artifactStoragePhaseMs ?? null,
+    outputBoundaryPhaseMs: input.outputBoundaryPhaseMs ?? null,
+    totalScreenshotStepMs: input.totalScreenshotStepMs ?? null,
     status: input.status,
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,
@@ -185,6 +195,11 @@ export function buildScreenshotRuntimeProof(input: {
   startedAt: string;
   endedAt: string;
   durationMs: number;
+  capturePhaseMs?: number | null;
+  imageProcessingPhaseMs?: number | null;
+  artifactStoragePhaseMs?: number | null;
+  outputBoundaryPhaseMs?: number | null;
+  totalScreenshotStepMs?: number | null;
   startedMonotonicMs: number;
   endedMonotonicMs: number;
   status: ScreenshotStatus;

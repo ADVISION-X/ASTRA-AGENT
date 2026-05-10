@@ -9,6 +9,10 @@ import { CANONICAL_FILES, CHILDREN, PATHS } from "./config.js";
 export function createScreenshotAuditProject(): Project {
   const project = createAuditProject();
   project.addSourceFilesAtPaths(pathFromRepoRoot(`${PATHS.ROOT}/**/*.ts`));
+  project.addSourceFileAtPath(pathFromRepoRoot(PATHS.WORKBENCH_DISPATCH_INPUT));
+  project.addSourceFileAtPath(pathFromRepoRoot(PATHS.BROWSER_CONTROLLER_CONTRACT));
+  project.addSourceFileAtPath(pathFromRepoRoot(PATHS.CURRENT_CHROME_CONTROLLER));
+  project.addSourceFileAtPath(pathFromRepoRoot(PATHS.CURRENT_CHROME_SCREENSHOT));
   return project;
 }
 

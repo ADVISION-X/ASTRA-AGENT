@@ -22,6 +22,9 @@ Core doctrine:
 - Screenshot may output artifacts but must not decide targets, geometry safety, action success, page state, or business truth.
 - `ai_input`, contact sheet, crop, and resize outputs are non-executable evidence until Visual Target and Geometry Guard process them through their own laws.
 - Product-presence observation on the current video must stay lightweight: current-video capture/prepare flows use `ai_input` evidence policy, `preservePixels=false`, max AI width <= 720, and timeout/budget <= 1500ms.
+- Product-presence `observation_lightweight` must prefer direct viewport region screencapture, must not fall back to full-screen source capture on the lightweight path, and must not keep full-screen source files as governed artifacts.
+- Product-presence `observation_lightweight` prepare-ai-input must use lightweight JPEG encoding with quality in the 60-70 range and `mozjpeg=false`; evidence-grade encoding belongs only after a positive governed evidence branch.
+- Screenshot runtime proof must expose `capturePhaseMs`, `imageProcessingPhaseMs`, `artifactStoragePhaseMs`, `outputBoundaryPhaseMs`, and `totalScreenshotStepMs` so screenshot latency stays auditable by phase.
 - Screenshot must not force Route Plan or maps to reintroduce frame-specific 3s/6s/10s sampling steps just to feed `product_presence_judgment`.
 - Evidence-grade screenshot capture belongs after a positive governed routeLabel branch such as `product_yes` / `read-comments-and-save-evidence`, not before AI product judgement completes.
 - No source proof, no transformed artifact success.

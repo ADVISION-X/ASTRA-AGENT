@@ -511,9 +511,16 @@ maxAiWidth <= 720
 preservePixels = false
 evidencePolicy = ai_input
 timeout / capture budget <= 1500ms
+prefer direct viewport region screencapture
+no full-screen-source fallback on the lightweight path
+prepare-ai-input JPEG quality = 60-70
+prepare-ai-input mozjpeg = false
+runtimeProof emits capturePhaseMs / imageProcessingPhaseMs / artifactStoragePhaseMs / outputBoundaryPhaseMs / totalScreenshotStepMs
 ```
 
 只有 `judge-seeding-video` 进入 `product_yes` / `read-comments-and-save-evidence` 后，Route Plan 才能继续触发高质量证据截图链；产品判断前的 current-video 图像不得升格为重型长期证据。
+
+`observation_lightweight` 仍然是 Screenshot owner 管理下的 governed transient artifact，不是地图私货，不是 BrowserController 私货，也不是 Forensics 最终证据。它可以保留最小必要的 transient artifact / proof / hash / manifest，但不得回退成 full-screen source 保存链，不得在轻量路径上启用 evidence-grade 编码和长期保留心智。
 
 默认 TTL / quota：
 
@@ -602,6 +609,16 @@ ScreenshotAbilityResult:
   diagnosticPayloadRef: required-if-not-success
   runtimeProof: required
   dataQualityFlags: list
+```
+
+`runtimeProof` 的 timing 字段至少必须包含：
+
+```txt
+capturePhaseMs
+imageProcessingPhaseMs
+artifactStoragePhaseMs
+outputBoundaryPhaseMs
+totalScreenshotStepMs
 ```
 
 ---

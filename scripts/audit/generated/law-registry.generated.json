@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T00:54:28.533Z",
+  "generatedAt": "2026-05-10T01:20:09.389Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -1781,7 +1781,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot Ability Group is the only owner of governed screenshot capture, image artifact truth, coordinate-space truth and scale mapping.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 94
+      "line": 97
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-002-V2",
@@ -1792,7 +1792,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot boundary stays pure: capture, lossless optimize, crop/region, AI input preparation, artifact refs and proof only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 142
+      "line": 145
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-003-V2",
@@ -1803,7 +1803,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot input must carry full chain fields, source proof, privacy policy, capture policy, idempotency and timeout.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 198
+      "line": 201
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-004-V2",
@@ -1814,7 +1814,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot coordinate spaces and scale mapping must be explicit, lossless where claimed and non-executable until downstream governance.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 311
+      "line": 314
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-005-V2",
@@ -1825,7 +1825,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot runtime must use one fixed gate pipeline and fail closed on privacy, source, session, timeout, artifact and output-boundary violations.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 384
+      "line": 387
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-006-V2",
@@ -1836,7 +1836,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot result and owner evidence must preserve real chain, artifact refs, hashes, source refs, scale mapping, gate decisions and parity.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 455
+      "line": 458
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-007-V2",
@@ -1847,7 +1847,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot child capabilities are narrow capture/transform bindings and must use unified Screenshot runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 619
+      "line": 622
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-008-V2",
@@ -1858,7 +1858,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 677
+      "line": 680
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-ARTIFACT-LIFECYCLE-V1",
@@ -1869,7 +1869,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Screenshot artifacts are transient runtime materials by default and must carry lifecycle manifest, retention, TTL, quota, physical burn-after-handoff cleanup and non-self-promotion truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 767
+      "line": 770
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-001-V1",
