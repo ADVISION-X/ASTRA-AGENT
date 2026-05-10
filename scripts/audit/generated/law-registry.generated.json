@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T07:38:43.440Z",
+  "generatedAt": "2026-05-10T20:35:19.281Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -10,7 +10,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI is an independent first-class ability group and must remain the only public AI owner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 197
+      "line": 200
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-002-V1",
@@ -21,7 +21,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI child capabilities represent provider/runtime channels; business task routing is AI-owned and must not replace child ids.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 271
+      "line": 273
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-003-V1",
@@ -43,7 +43,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "local-ai-runtime is an internal execution boundary under AI ownership and must not become a second public AI system.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 431
+      "line": 434
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-005-V1",
@@ -54,7 +54,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "paid and future API AI children are visible but disabled by policy and must fail closed.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 497
+      "line": 500
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-005B-V2",
@@ -65,7 +65,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI outputs must be cleaned before persistence and must not leak AI runtime contracts into Forensics public ownership.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 572
+      "line": 575
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-006-V1",
@@ -76,7 +76,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI keeps a single public contract and does not leak child, adapter, prompt, or legacy internals.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 625
+      "line": 628
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-007-V1",
@@ -87,7 +87,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "ai-capability inspector is the only enforcement owner for AI topology, runtime pipeline, prompt truth and anti-escape checks.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 686
+      "line": 689
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-008-V1",
@@ -98,7 +98,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI owns the Prompt Contract Registry; prompt execution must resolve by promptContractId/version/catalog, never by hardcoded prompt text.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 758
+      "line": 761
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-009-V1",
@@ -109,7 +109,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Prompt contracts must declare full governed metadata and must be hashable, strict and audit-proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 834
+      "line": 837
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-010-V1",
@@ -120,7 +120,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Prompt contracts may guide reasoning only and must not command actions, bypass security, or make final mission decisions.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 920
+      "line": 923
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-011-V1",
@@ -131,7 +131,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI runtime must resolve prompt execution by promptContractId and execute a governed runtime pipeline with typed failures.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 985
+      "line": 988
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-012-V1",
@@ -142,7 +142,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI timeout, cancellation, idempotency, concurrency and circuit breaker state must be governed and real-code-inspection-backed.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 1064
+      "line": 1067
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-013-V1",
@@ -153,7 +153,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI result proof must be complete, chain-linked, raw-output-backed and impossible to fake as success.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 1134
+      "line": 1137
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-014-V1",
@@ -164,7 +164,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI output boundary must recursively block action authority, browser authority, Forensics authority and command authority.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 1236
+      "line": 1239
     },
     {
       "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
@@ -283,7 +283,7 @@
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "AI-generated map authoring must use the governed capability catalog.",
+      "summary": "AI-generated retired-flow drafting must use the governed capability catalog.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 239
     },
@@ -308,6 +308,17 @@
       "summary": "non-AI open, scroll, page-state, post-action-verification, screenshot, text-input and visual-target surfaces must not publish AI-owned cognition.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 288
+    },
+    {
+      "lawId": "GRASSEYE-CAPABILITY-STRENGTH-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "every child capability exposed to MuscleMemoryCatalog or AI action planning must prove executable strength.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
+      "line": 326
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-001-V1",
@@ -470,7 +481,7 @@
       "capabilityDomain": "audit-system",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "orphan files, dead exports, unused child capabilities, unused prompt contracts, unused route-plan steps, unused map packages, unused inspector components and unused muscle-memory action codes must be detected as fatal zombie findings.",
+      "summary": "orphan files, dead exports, unused child capabilities, unused prompt contracts, unused route-plan steps, unused retired package chains, unused inspector components and unused muscle-memory action codes must be detected as fatal zombie findings.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 754
     },
@@ -497,7 +508,7 @@
       "line": 835
     },
     {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
+      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "commander-console-capability",
@@ -505,370 +516,62 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Commander Console is the only owner of human command entry and review-disposition entry.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-      "line": 80
+      "line": 19
     },
     {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "commander-console-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Commander command envelope must be explicit, map/platform-safe, idempotent, timeout-governed and semantically validated.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-      "line": 146
-    },
-    {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "commander-console-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Commander read models are read-only Commander-owned view records sourced from governed read-model ports.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-      "line": 246
-    },
-    {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "commander-console-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Commander must not become Orchestration, Nerve Bus, AI, Forensics, browser/action owner, or storage owner.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-      "line": 312
-    },
-    {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "commander-console-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Commander package must have one canonical root, real child folders, one child registry, one runtime pipeline and no compat bridge.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-      "line": 369
-    },
-    {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "commander-console-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Commander runtime result and proof must preserve command/read chain and must never use fake success, null proof, warning-only pass, or throw from public boundary.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-      "line": 450
-    },
-    {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "commander-console-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Commander task-template and map-import UX may display governed map lifecycle but must not become map execution, validation, activation, or runtime truth.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-      "line": 542
-    },
-    {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "commander-console-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Commander enforcement must close through owner-local AST/symbol/import-graph inspector, generated artifacts, runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
-      "line": 614
-    },
-    {
-      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1",
+      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "debug-loop-boundary",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "debug-loop is local development tooling and must not be registered as an active ability group, runtime owner, or production capability owner.",
+      "summary": "debug-loop may act only as operator harness and must not become a second runtime.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 147
+      "line": 19
     },
     {
-      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "debug-loop-boundary",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "debug-loop may start missions only through Commander public contract and must not directly dispatch Nerve Bus, Orchestration, or ability actions.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 200
-    },
-    {
-      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-003-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "debug-loop-boundary",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "debug-loop must not execute direct browser/page/platform operations during mission runtime.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 249
-    },
-    {
-      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-004-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "debug-loop-boundary",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "debug-loop must not write production Forensics proof, evidence packets, activation snapshots, or active registry truth.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 301
-    },
-    {
-      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "debug-loop-boundary",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "debug-loop map-authoring harness may create input/prompt artifacts but must not bypass map-plugin lifecycle or execute generated maps.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 355
-    },
-    {
-      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-006-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "debug-loop-boundary",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "debug-loop scenario files describe user/operator intent and success/failure signals; they must not contain executable ability logic or direct platform automation logic.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 408
-    },
-    {
-      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "debug-loop-boundary",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "debug-loop repair packets are diagnostic artifacts and must not become code, proof, policy, or runtime truth.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 487
-    },
-    {
-      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "debug-loop-boundary",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "debug-loop boundary must be machine-enforced by owner-local inspector, real-code-inspection and package scripts.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 541
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
+      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-CAPABILITY-001-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Forensics Persistence is the only final evidence-ledger owner and must not be bypassed by local-data, runtime, workbench, Commander, AI, or action abilities.",
+      "summary": "every persisted record must preserve short-chain mission truth only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 80
+      "line": 19
     },
     {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-002-V2",
+      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-CAPABILITY-002-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "forensics-persistence-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "child abilities must be persistence behaviors and every child must write exactly one governed Forensics record type.",
+      "summary": "storage health and record proof must preserve durability truth without retired map fields.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 132
+      "line": 61
     },
     {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-003-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Forensics writes and links records only; it must not reason, verify, decide, act, or reconstruct business truth.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 194
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-004-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Forensics public contract must be Forensics-native and must not leak legacy business or runtime type sovereignty.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 248
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-005-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "every Forensics record and result must preserve the full execution chain and must be replayable.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 332
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-006-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "storage must be a generic record-store port and old store ownership must stay outside the canonical Forensics root.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 418
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-007-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Forensics writes must be policy-gated, integrity-gated, idempotent and append-safe.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 482
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-008-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Forensics enforcement must be AST/symbol/import-graph based and connected to runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 545
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-ARTIFACT-PROMOTION-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "forensics-persistence-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Forensics is the only owner allowed to promote transient screenshot artifacts into retained evidence or legal hold and it owns cleanup-ledger truth.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 596
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-RESULT-CONTRACT-V1",
+      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "geometry-guard-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Geometry Guard Result Contract is the only executable-coordinate bridge from Visual Target Result into Mouse Click Result and Mouse Scroll Result.",
+      "summary": "Geometry Guard input must carry short-chain mission truth plus governed coordinate evidence only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 102
+      "line": 18
     },
     {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3",
+      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "geometry-guard-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Geometry Guard is the only owner of governed executable geometry safety gating.",
+      "summary": "Geometry Guard proof must preserve normalized geometry truth and short-chain refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 150
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "geometry-guard-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Geometry Guard public contract must stay clean, native and independent.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 206
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-003-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "geometry-guard-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Geometry Guard input must carry full chain fields, source refs, coordinate evidence, idempotency and policy.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 298
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-004-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "geometry-guard-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Geometry Guard must validate finite geometry, coordinate space, scale mapping, bounds, click safety and execution target without silent clamp.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 396
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-005-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "geometry-guard-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Geometry Guard must use one fixed gate pipeline and must remain side-effect free.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 460
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-006-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "geometry-guard-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Geometry Guard result and owner evidence must preserve real upstream chain, gate decisions, refs and normalized geometry.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 533
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-007-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "geometry-guard-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "downstream execution owners must consume only Geometry Guard approved executable geometry and must not redo mapping.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 700
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-008-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "geometry-guard-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Geometry Guard enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md",
-      "line": 752
+      "line": 69
     },
     {
       "lawId": "GRASSEYE-LOCAL-AI-RUNTIME-006-V1",
@@ -882,213 +585,48 @@
       "line": 172
     },
     {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-RESULT-CONTRACT-V1",
+      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "mouse-click-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Click Result Contract is the canonical primitive-execution bridge from Geometry Guard Result into Post Action Verification Result.",
+      "summary": "Mouse Click input must carry short-chain mission truth plus approved executable geometry only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 93
+      "line": 18
     },
     {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2",
+      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "mouse-click-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Click is the only owner of governed primitive click execution.",
+      "summary": "Mouse Click proof must preserve primitive click truth and short-chain mission refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 140
+      "line": 73
     },
     {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-click-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Click boundary stays pure and cannot compute coordinates, remap geometry, verify outcomes, or perform foreign owner work.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 193
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-click-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Click input must carry full chain fields, Geometry Guard allow proof, executable coordinate, safety policy, source refs, idempotency and timeout policy.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 254
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-click-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Click must run one fixed gate pipeline and execute exactly one primitive click only after all gates pass.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 356
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-click-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Click result must mean primitive click only and must hand off to Post-action Verification.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 431
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-click-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Click result and owner evidence must preserve real upstream chain, gate decisions, primitive refs, timeout/cancellation, idempotency and PAV handoff.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 498
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-007-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-click-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Click children are narrow primitive bindings and must use unified runtime.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 693
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-008-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-click-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Click enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md",
-      "line": 756
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V2",
+      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "mouse-scroll-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Scroll is the only owner of governed primitive scroll execution.",
+      "summary": "Mouse Scroll input must carry short-chain mission truth plus approved executable geometry only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 100
+      "line": 18
     },
     {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V2",
+      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "mouse-scroll-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Scroll boundary stays pure and cannot compute coordinates, remap geometry, verify outcomes, or perform foreign owner work.",
+      "summary": "Mouse Scroll proof must preserve primitive scroll truth and short-chain mission refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 160
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-003-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-scroll-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Scroll input must carry full chain fields, Geometry Guard allow proof, explicit direction/magnitude/repeat, safety policy, source refs, idempotency and timeout policy.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 223
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-scroll-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Scroll direction, magnitude, delta and repeat are input/policy only, not child capability or hidden loop.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 340
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-005-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-scroll-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Scroll must run one fixed gate pipeline and execute primitive scroll only after all gates pass.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 418
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-006-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-scroll-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Scroll result must mean primitive scroll only and must hand off to Post-action Verification.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 497
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-007-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-scroll-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Scroll result and owner evidence must preserve real upstream chain, gate decisions, primitive refs, repeat proofs, timeout/cancellation, idempotency and PAV handoff.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 567
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-008-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-scroll-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Scroll children are narrow primitive bindings and must use unified runtime.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 774
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-009-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "mouse-scroll-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Mouse Scroll enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md",
-      "line": 843
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-RESULT-CONTRACT-BOUNDARY-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "nerve-bus-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Nerve Bus transports ResultEnvelope only and must not define or inspect Muscle Joint Result Contracts.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 97
+      "line": 66
     },
     {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-001-V2",
@@ -1097,9 +635,9 @@
       "capabilityDomain": "nerve-bus-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Nerve Bus is the only owner of governed command/result transport between Commander Console, Orchestration, AI and Ability Groups.",
+      "summary": "every governed command envelope must carry short-chain mission truth only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 141
+      "line": 19
     },
     {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-002-V2",
@@ -1108,97 +646,9 @@
       "capabilityDomain": "nerve-bus-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "All Nerve Bus envelopes must preserve complete mission/map/step/capability/prompt chain fields and must fail closed when chain truth is missing.",
+      "summary": "transfer proof must preserve the same short-chain fields as the governed envelope.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 199
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-003-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "nerve-bus-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Nerve Bus has exactly six governed logical channels and must not create business-specific or platform-specific transport channels.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 326
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-004-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "nerve-bus-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Nerve Bus validates, routes, times out, records proof and returns typed envelopes; it must not make mission, map, AI, action, or storage decisions.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 389
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-005-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "nerve-bus-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Nerve Bus must run a fixed fail-closed transport pipeline.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 452
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-006-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "nerve-bus-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Nerve Bus result semantics must be typed, correlated, payload-ref first and real-code-inspection-backed.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 530
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-007-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "nerve-bus-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Nerve Bus transfer proof must preserve full chain, timing, gate decisions, handler decision, payload refs and correlation refs.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 601
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-008-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "nerve-bus-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Nerve Bus AI transport must carry Prompt Contract references only and must not carry raw prompt truth.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 720
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-009-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "nerve-bus-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Nerve Bus children are narrow channel bindings and must use unified runtime.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 784
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-010-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "nerve-bus-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Nerve Bus enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
-      "line": 848
+      "line": 63
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
@@ -1207,9 +657,9 @@
       "capabilityDomain": "open-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Open Ability Group is the only owner of governed open behavior.",
+      "summary": "Open input must carry short-chain mission truth plus governed target identity only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 94
+      "line": 18
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -1218,306 +668,97 @@
       "capabilityDomain": "open-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Open boundary stays pure and cannot own state, verification, AI, screenshot, visual target, action, Forensics, or mission branching truth.",
+      "summary": "Open proof must preserve navigation attempt truth and short-chain refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 142
+      "line": 60
     },
     {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "open-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Open input must carry governed chain fields, target profile context, source proof, timeout and idempotency.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 199
-    },
-    {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "open-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Open must run a fixed target/profile/session/navigation/idempotency/timeout/page-state-handoff pipeline.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 278
-    },
-    {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "open-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Open success requires page-state handoff and must not claim page-state readiness or action-result verification.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 353
-    },
-    {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "open-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Open result and owner evidence must preserve real upstream chain, gate decisions, browser attempt refs, timeout/cancellation, idempotency and page-state handoff.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 432
-    },
-    {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "open-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "child capabilities are narrow target-open bindings and must use unified Open runtime.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 582
-    },
-    {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-009-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "open-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Open must support governed macOS local program launch as a first-class target and must not confuse local program opening with local workbench URL opening.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 646
-    },
-    {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "open-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Open enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 731
-    },
-    {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V3",
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V4",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Orchestration is the only owner of mission flow, operational map selection, mission state, step state, branch evaluation and finalization.",
+      "summary": "Orchestration is the only owner of governed mission flow, mission state, round/step sequencing and mission finalization.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 105
+      "line": 97
     },
     {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V3",
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V4",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Operational maps are declarative approved packages consumed by Orchestration, not executable code, child abilities, or second runtimes.",
+      "summary": "Mission flow must be driven by governed visual-mission context and AI action plans, not by maps, retired deterministic flows, or retired branch tokens.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 174
+      "line": 148
     },
     {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V3",
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V4",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Orchestration must freeze map activation snapshot and must not reselect latest map during mission execution.",
+      "summary": "Orchestration step execution must consume governed evidence bundles, AI decisions and declared action plans only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 271
+      "line": 188
     },
     {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-004-V3",
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-004-V4",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Orchestration dispatches only through Nerve Bus envelopes and public ability group contracts.",
+      "summary": "Real external actions must be dispatched through governed action plans and owning ability-group contracts.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 346
+      "line": 227
     },
     {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3",
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V4",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Orchestration step execution must follow the active map and enforce preconditions, PAV after actions, evidence routing, loop guard and transition completeness.",
+      "summary": "Prompt dispatch must use governed prompt contracts resolved from active visual-mission context, never from maps or raw strings.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 420
+      "line": 265
     },
     {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V3",
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V4",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "orchestration-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Prompt selection is map-owned and frozen; Orchestration must not build raw prompts or hardcode prompt selection.",
+      "summary": "Mission proof must preserve governed chain fields without reviving retired map truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 487
+      "line": 302
     },
     {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-007-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "orchestration-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Orchestration may request persistence but must not hide finalization, branch, candidate, or delivery-state ownership under Forensics.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 542
-    },
-    {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "orchestration-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Orchestration result and owner evidence must preserve command, map activation, state transition, dispatch envelope, branch, loop, timeout, idempotency and finalization chain.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 604
-    },
-    {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-009-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "orchestration-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Orchestration children are mission lifecycle and transition actions only and must use unified runtime.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 748
-    },
-    {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-010-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "orchestration-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Orchestration enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 817
-    },
-    {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-011-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "orchestration-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Orchestration must produce Mission Step Trace, Joint Chain Checkpoint and Failure Snapshot for every governed mission execution before real-platform debugging.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 911
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-001-V2",
+      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-001-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "page-state-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Page State is raw observation packaging only; AI owns all visual/page/business interpretation.",
+      "summary": "Page State input must carry short-chain mission truth plus raw observation refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
-      "line": 78
+      "line": 18
     },
     {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V2",
+      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "page-state-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Page State boundary is pure and may only package raw governed inputs.",
+      "summary": "Page State proof must preserve raw observation truth and short-chain mission refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
-      "line": 153
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "page-state-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Page State input must carry full chain fields, snapshot proof, observations, evidence refs, policies and open handoff.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
-      "line": 213
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-004-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "page-state-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Observations and evidence must be source-bound, fresh and from allowed owners.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
-      "line": 314
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "page-state-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Page State output must be evidence-backed and cannot claim action-result verification truth.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
-      "line": 386
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "page-state-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Page State owner evidence must preserve real chain, gate decisions, source refs and state fingerprint.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
-      "line": 486
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-007-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "page-state-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "child capabilities are narrow state classifiers and must use unified runtime gates.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
-      "line": 591
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "page-state-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Page State enforcement must close through owner-local AST/symbol inspector, runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
-      "line": 652
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-RESULT-CONTRACT-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Post Verify Result Contract is the canonical observation-package result boundary after Mouse Click Result and before any final semantic AI judgment.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 93
+      "line": 61
     },
     {
       "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2",
@@ -1526,9 +767,9 @@
       "capabilityDomain": "post-action-verification-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "PAV is the only owner of governed post-action observation-package truth, while AI remains the final semantic judgment source.",
+      "summary": "PAV input must carry short-chain mission truth plus bounded before/after observation refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 139
+      "line": 18
     },
     {
       "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2",
@@ -1537,75 +778,9 @@
       "capabilityDomain": "post-action-verification-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "PAV boundary stays pure and cannot execute actions, capture evidence, call AI, or persist final evidence.",
+      "summary": "PAV proof must preserve observation-package truth and short-chain refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 191
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "PAV input must carry complete chain fields, action proof, governed observations and packaging policy without confidence-policy drift.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 244
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "PAV must fail-close on missing or invalid observation support and package only bounded observations with valid source proof.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 355
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-005-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "PAV result must report packaging status only: success, failed, or review_required.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 453
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-006-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "PAV owner evidence must preserve input and result chain parity without fabricated ids or legacy decision traces.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 532
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-007-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "child capabilities must remain narrow observation providers and flow through one unified executor and proof path.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 640
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "post-action-verification-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "PAV enforcement must close through owner-local AST and symbol inspectors, runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md",
-      "line": 700
+      "line": 62
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-001-V2",
@@ -1614,9 +789,9 @@
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Screenshot Ability Group is the only owner of governed screenshot capture, image artifact truth, coordinate-space truth and scale mapping.",
+      "summary": "Screenshot input must carry short-chain mission truth, source proof and image policy only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 101
+      "line": 18
     },
     {
       "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-002-V2",
@@ -1625,86 +800,9 @@
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Screenshot boundary stays pure: capture, lossless optimize, crop/region, AI input preparation, artifact refs and proof only.",
+      "summary": "Screenshot proof must preserve artifact truth, coordinate truth and short-chain mission refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 149
-    },
-    {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-003-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "screenshot-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Screenshot input must carry full chain fields, source proof, privacy policy, capture policy, idempotency and timeout.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 205
-    },
-    {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-004-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "screenshot-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Screenshot coordinate spaces and scale mapping must be explicit, lossless where claimed and non-executable until downstream governance.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 318
-    },
-    {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-005-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "screenshot-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Screenshot runtime must use one fixed gate pipeline and fail closed on privacy, source, session, timeout, artifact and output-boundary violations.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 406
-    },
-    {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-006-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "screenshot-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Screenshot result and owner evidence must preserve real chain, artifact refs, hashes, source refs, scale mapping, gate decisions and parity.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 477
-    },
-    {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-007-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "screenshot-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Screenshot child capabilities are narrow capture/transform bindings and must use unified Screenshot runtime.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 641
-    },
-    {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-008-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "screenshot-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Screenshot enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 702
-    },
-    {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-ARTIFACT-LIFECYCLE-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "screenshot-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Screenshot artifacts are transient runtime materials by default and must carry lifecycle manifest, retention, TTL, quota, physical burn-after-handoff cleanup and non-self-promotion truth.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 792
+      "line": 63
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-001-V1",
@@ -1740,15 +838,48 @@
       "line": 83
     },
     {
-      "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
+      "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-001-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "commander-console-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "startup must complete update preflight and local AI readiness gate before mission runtime becomes available.",
+      "summary": "startup-entrypoint is the only bootstrap source and must never become a second runtime or mission owner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md",
-      "line": 145
+      "line": 14
+    },
+    {
+      "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-002-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "commander-console-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "startup readiness must be shell/bootstrap readiness only and must not revive retired package chain gates.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md",
+      "line": 48
+    },
+    {
+      "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-003-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "commander-console-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "startup may open Commander Console but must not own mission truth, platform truth, or visual judgment truth.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md",
+      "line": 100
+    },
+    {
+      "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-004-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "commander-console-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "terminal structured logs are display channel only and must show bootstrap readiness truth without becoming a second record system.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md",
+      "line": 133
     },
     {
       "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2",
@@ -1757,9 +888,9 @@
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Text Input is the only owner of governed text/key writing primitives.",
+      "summary": "Text Input input must carry short-chain mission truth plus approved text and verified target refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 100
+      "line": 18
     },
     {
       "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-002-V2",
@@ -1768,86 +899,9 @@
       "capabilityDomain": "text-input-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Text Input is write-only and must not generate text, locate targets, decide target safety, or verify final page state.",
+      "summary": "Text Input proof must preserve primitive write truth and short-chain mission refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 153
-    },
-    {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-003-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "text-input-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Text Input input must carry full mission/map/step/capability chain, approved text proof, verified target proof, focus proof and Nerve Bus envelope refs.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 213
-    },
-    {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-004-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "text-input-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Text Input executes only through governed execution, clipboard and clock ports with AbortSignal/timeout and fail-closed semantics.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 339
-    },
-    {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-005-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "text-input-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Text Input must treat sensitive text and clipboard content as non-persistent transient material and must record only refs, hashes, redacted previews and policy decisions.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 430
-    },
-    {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-006-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "text-input-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Text Input success is primitive write/key success only and must hand off to Post-action Verification.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 488
-    },
-    {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "text-input-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Text Input owner evidence must preserve full chain, target proof, focus proof, text proof, clipboard proof, primitive proof, PAV handoff and redaction decisions.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 559
-    },
-    {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-008-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "text-input-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Text Input children are narrow execution bindings and must use unified runtime.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 696
-    },
-    {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-009-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "text-input-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Text Input enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 770
+      "line": 61
     },
     {
       "lawId": "GRASSEYE-TYPE-SAFETY-001-V1",
@@ -1861,26 +915,15 @@
       "line": 16
     },
     {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-RESULT-CONTRACT-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "visual-target-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Visual Target Result Contract is the canonical non-executable action-target result boundary between AI Candidate Result and Geometry Guard Result.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 96
-    },
-    {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "visual-target-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Visual Target is the only owner of governed visual target result normalization.",
+      "summary": "Visual Target input must carry screenshot/source truth plus short-chain mission refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 146
+      "line": 18
     },
     {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V2",
@@ -1889,75 +932,9 @@
       "capabilityDomain": "visual-target-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Visual Target boundary stays pure: it validates, normalizes, selects and builds handoff only.",
+      "summary": "Visual Target proof must preserve source proof and candidate refs without retired map fields.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 197
-    },
-    {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "visual-target-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Visual Target input must carry full chain fields, source proof, candidate proof and idempotency.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 260
-    },
-    {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "visual-target-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "coordinate-space truth must be explicit; Visual Target output is not executable until Geometry Guard.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 379
-    },
-    {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-005-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "visual-target-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Visual Target runtime must use a single gate pipeline and fail closed on ambiguity, stale evidence, source mismatch and critical data quality.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 448
-    },
-    {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-006-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "visual-target-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Visual Target result and owner evidence must preserve real chain, source refs, candidate refs, gate decisions, coordinate transform trace and Geometry Guard handoff.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 521
-    },
-    {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-007-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "visual-target-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "child capabilities are narrow target bindings and must use unified Visual Target runtime.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 702
-    },
-    {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-008-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "visual-target-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Visual Target enforcement must close through owner-local AST/symbol/import-graph inspector, runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 765
+      "line": 61
     }
   ]
 }

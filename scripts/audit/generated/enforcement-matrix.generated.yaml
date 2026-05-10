@@ -1,4 +1,4 @@
-generatedAt: 2026-05-10T07:38:43.440Z
+generatedAt: 2026-05-10T20:35:19.281Z
 owners:
   - inspectorId: ai-capability-owner
     capabilityDomain: ai-capability
@@ -90,6 +90,7 @@ owners:
       - GRASSEYE-CAPABILITY-GROUP-008-V1
       - GRASSEYE-CAPABILITY-GROUP-009-V1
       - GRASSEYE-CAPABILITY-GROUP-010-V1
+      - GRASSEYE-CAPABILITY-STRENGTH-001-V1
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md
     readsBlueprintFiles:
@@ -104,15 +105,11 @@ owners:
     supportsEvidenceModes:
       - "law+blueprint+real-code-inspection"
     lawIds:
-      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2
-      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2
-      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2
-      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2
-      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2
-      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2
-      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2
-      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2
-      - GRASSEYE-STARTUP-ENTRYPOINT-005-V1
+      - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V3
+      - GRASSEYE-STARTUP-ENTRYPOINT-001-V2
+      - GRASSEYE-STARTUP-ENTRYPOINT-002-V2
+      - GRASSEYE-STARTUP-ENTRYPOINT-003-V2
+      - GRASSEYE-STARTUP-ENTRYPOINT-004-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md
       - .github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md
@@ -133,14 +130,7 @@ owners:
     supportsEvidenceModes:
       - "law+blueprint+real-code-inspection"
     lawIds:
-      - GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V1
-      - GRASSEYE-DEBUG-LOOP-BOUNDARY-002-V1
-      - GRASSEYE-DEBUG-LOOP-BOUNDARY-003-V1
-      - GRASSEYE-DEBUG-LOOP-BOUNDARY-004-V1
-      - GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1
-      - GRASSEYE-DEBUG-LOOP-BOUNDARY-006-V1
-      - GRASSEYE-DEBUG-LOOP-BOUNDARY-007-V1
-      - GRASSEYE-DEBUG-LOOP-BOUNDARY-008-V1
+      - GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md
     readsBlueprintFiles:
@@ -154,15 +144,8 @@ owners:
     supportsEvidenceModes:
       - "law+blueprint+real-code-inspection"
     lawIds:
-      - GRASSEYE-FORENSICS-PERSISTENCE-001-V2
-      - GRASSEYE-FORENSICS-PERSISTENCE-002-V2
-      - GRASSEYE-FORENSICS-PERSISTENCE-003-V2
-      - GRASSEYE-FORENSICS-PERSISTENCE-004-V2
-      - GRASSEYE-FORENSICS-PERSISTENCE-005-V2
-      - GRASSEYE-FORENSICS-PERSISTENCE-006-V2
-      - GRASSEYE-FORENSICS-PERSISTENCE-007-V2
-      - GRASSEYE-FORENSICS-PERSISTENCE-008-V2
-      - GRASSEYE-FORENSICS-PERSISTENCE-ARTIFACT-PROMOTION-V1
+      - GRASSEYE-FORENSICS-PERSISTENCE-CAPABILITY-001-V3
+      - GRASSEYE-FORENSICS-PERSISTENCE-CAPABILITY-002-V3
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md
     readsBlueprintFiles:
@@ -179,15 +162,8 @@ owners:
     supportsEvidenceModes:
       - "law+blueprint+real-code-inspection"
     lawIds:
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-RESULT-CONTRACT-V1
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V3
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-003-V3
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-004-V3
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-005-V3
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-006-V3
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-007-V3
-      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-008-V3
+      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V2
+      - GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md
     readsBlueprintFiles:
@@ -232,15 +208,8 @@ owners:
     supportsEvidenceModes:
       - "law+blueprint+real-code-inspection"
     lawIds:
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-RESULT-CONTRACT-V1
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V2
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V2
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-007-V2
-      - GRASSEYE-MOUSE-CLICK-CAPABILITY-008-V2
+      - GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V3
+      - GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V3
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md
     readsBlueprintFiles:
@@ -254,15 +223,8 @@ owners:
     supportsEvidenceModes:
       - "law+blueprint+real-code-inspection"
     lawIds:
-      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V2
-      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V2
-      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-003-V2
-      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V2
-      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-005-V2
-      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-006-V2
-      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-007-V2
-      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-008-V2
-      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-009-V2
+      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V3
+      - GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V3
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md
       - .github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md
@@ -285,17 +247,8 @@ owners:
     supportsEvidenceModes:
       - "law+blueprint+real-code-inspection"
     lawIds:
-      - GRASSEYE-NERVE-BUS-CAPABILITY-RESULT-CONTRACT-BOUNDARY-V1
       - GRASSEYE-NERVE-BUS-CAPABILITY-001-V2
       - GRASSEYE-NERVE-BUS-CAPABILITY-002-V2
-      - GRASSEYE-NERVE-BUS-CAPABILITY-003-V2
-      - GRASSEYE-NERVE-BUS-CAPABILITY-004-V2
-      - GRASSEYE-NERVE-BUS-CAPABILITY-005-V2
-      - GRASSEYE-NERVE-BUS-CAPABILITY-006-V2
-      - GRASSEYE-NERVE-BUS-CAPABILITY-007-V2
-      - GRASSEYE-NERVE-BUS-CAPABILITY-008-V2
-      - GRASSEYE-NERVE-BUS-CAPABILITY-009-V2
-      - GRASSEYE-NERVE-BUS-CAPABILITY-010-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md
     readsBlueprintFiles:
@@ -311,13 +264,6 @@ owners:
     lawIds:
       - GRASSEYE-OPEN-CAPABILITY-001-V2
       - GRASSEYE-OPEN-CAPABILITY-002-V2
-      - GRASSEYE-OPEN-CAPABILITY-003-V2
-      - GRASSEYE-OPEN-CAPABILITY-004-V2
-      - GRASSEYE-OPEN-CAPABILITY-005-V2
-      - GRASSEYE-OPEN-CAPABILITY-006-V2
-      - GRASSEYE-OPEN-CAPABILITY-007-V2
-      - GRASSEYE-OPEN-CAPABILITY-009-V1
-      - GRASSEYE-OPEN-CAPABILITY-008-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-open-capability.instructions.md
     readsBlueprintFiles:
@@ -334,17 +280,12 @@ owners:
     supportsEvidenceModes:
       - "law+blueprint+real-code-inspection"
     lawIds:
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-001-V3
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-002-V3
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-003-V3
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-004-V3
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-006-V3
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-007-V3
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-009-V3
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-010-V3
-      - GRASSEYE-ORCHESTRATION-CAPABILITY-011-V1
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-001-V4
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-002-V4
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-003-V4
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-004-V4
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-005-V4
+      - GRASSEYE-ORCHESTRATION-CAPABILITY-006-V4
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md
     readsBlueprintFiles:
@@ -359,14 +300,8 @@ owners:
     supportsEvidenceModes:
       - "law+blueprint+real-code-inspection"
     lawIds:
-      - GRASSEYE-PAGE-STATE-CAPABILITY-001-V2
-      - GRASSEYE-PAGE-STATE-CAPABILITY-002-V2
-      - GRASSEYE-PAGE-STATE-CAPABILITY-003-V2
-      - GRASSEYE-PAGE-STATE-CAPABILITY-004-V2
-      - GRASSEYE-PAGE-STATE-CAPABILITY-005-V2
-      - GRASSEYE-PAGE-STATE-CAPABILITY-006-V2
-      - GRASSEYE-PAGE-STATE-CAPABILITY-007-V2
-      - GRASSEYE-PAGE-STATE-CAPABILITY-008-V2
+      - GRASSEYE-PAGE-STATE-CAPABILITY-001-V3
+      - GRASSEYE-PAGE-STATE-CAPABILITY-002-V3
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md
     readsBlueprintFiles:
@@ -380,15 +315,8 @@ owners:
     supportsEvidenceModes:
       - "law+blueprint+real-code-inspection"
     lawIds:
-      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-RESULT-CONTRACT-V1
       - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2
       - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2
-      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2
-      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V2
-      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-005-V2
-      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-006-V2
-      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-007-V2
-      - GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md
     readsBlueprintFiles:
@@ -404,13 +332,6 @@ owners:
     lawIds:
       - GRASSEYE-SCREENSHOT-CAPABILITY-001-V2
       - GRASSEYE-SCREENSHOT-CAPABILITY-002-V2
-      - GRASSEYE-SCREENSHOT-CAPABILITY-003-V2
-      - GRASSEYE-SCREENSHOT-CAPABILITY-004-V2
-      - GRASSEYE-SCREENSHOT-CAPABILITY-005-V2
-      - GRASSEYE-SCREENSHOT-CAPABILITY-006-V2
-      - GRASSEYE-SCREENSHOT-CAPABILITY-007-V2
-      - GRASSEYE-SCREENSHOT-CAPABILITY-008-V2
-      - GRASSEYE-SCREENSHOT-CAPABILITY-ARTIFACT-LIFECYCLE-V1
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md
     readsBlueprintFiles:
@@ -444,13 +365,6 @@ owners:
     lawIds:
       - GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2
       - GRASSEYE-TEXT-INPUT-CAPABILITY-002-V2
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-003-V2
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-004-V2
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-005-V2
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-006-V2
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-007-V2
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-008-V2
-      - GRASSEYE-TEXT-INPUT-CAPABILITY-009-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md
     readsBlueprintFiles:
@@ -478,15 +392,8 @@ owners:
     supportsEvidenceModes:
       - "law+blueprint+real-code-inspection"
     lawIds:
-      - GRASSEYE-VISUAL-TARGET-CAPABILITY-RESULT-CONTRACT-V1
       - GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2
       - GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V2
-      - GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V2
-      - GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V2
-      - GRASSEYE-VISUAL-TARGET-CAPABILITY-005-V2
-      - GRASSEYE-VISUAL-TARGET-CAPABILITY-006-V2
-      - GRASSEYE-VISUAL-TARGET-CAPABILITY-007-V2
-      - GRASSEYE-VISUAL-TARGET-CAPABILITY-008-V2
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md
     readsBlueprintFiles:

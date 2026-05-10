@@ -3,26 +3,16 @@ import { readFileSync } from "node:fs";
 
 import type { AiTaskType } from "../contract.js";
 import { PromptContractCatalogEntrySchema, type PromptContractCatalogEntry } from "./schema.js";
-import {
-  MAP_AUTHORING_SYSTEM_PROMPT_TEMPLATE,
-  MAP_AUTHORING_USER_PROMPT_TEMPLATE,
-} from "../../../map-plugins/authoring/map-authoring-template.js";
 
 const BUILTIN_PROMPT_CONTRACT_FILES = [
   "ai.evidence_packet_analysis.disabled.prompt-contract.json",
-  "map.authoring.v1.prompt-contract.json",
   "ai.schema_validation_only.internal.prompt-contract.json",
-  "vision.pagePreparation.v1.prompt-contract.json",
   "visual-mission-action-plan-v1.prompt-contract.json",
-  "vision.nextItemAdvanced.v1.prompt-contract.json",
-  "vision.productPresence.v1.prompt-contract.json",
-  "vision.nextItemTargetCandidate.v1.prompt-contract.json",
-  "vision.commentsEntryTargetCandidate.v1.prompt-contract.json",
   "comments.ocr_cleanup.v1.prompt-contract.json",
   "product.signal_summary.v1.prompt-contract.json",
 ] as const;
 
-export const PROMPT_CONTRACT_CATALOG_VERSION = "map-prompt-contract-catalog.v1";
+export const PROMPT_CONTRACT_CATALOG_VERSION = "ai-prompt-contract-catalog.v1";
 
 const HASHED_CONTRACT_FIELDS = [
   "promptHash",
@@ -47,15 +37,7 @@ const canonicalize = (value: unknown): unknown => {
 export const hashPromptContractValue = (value: unknown): string =>
   `sha256:${createHash("sha256").update(typeof value === "string" ? value : JSON.stringify(canonicalize(value))).digest("hex")}`;
 
-const resolveTemplateHash = (templateRef: string | null): string | null => {
-  if (templateRef === "src/map-plugins/authoring/map-authoring-template.ts#system") {
-    return hashPromptContractValue(MAP_AUTHORING_SYSTEM_PROMPT_TEMPLATE);
-  }
-  if (templateRef === "src/map-plugins/authoring/map-authoring-template.ts#user") {
-    return hashPromptContractValue(MAP_AUTHORING_USER_PROMPT_TEMPLATE);
-  }
-  return null;
-};
+const resolveTemplateHash = (_templateRef: string | null): string | null => null;
 
 type PromptContractCatalog =
   | {
@@ -75,9 +57,6 @@ function readBuiltinPromptContract(fileName: string): PromptContractCatalogEntry
 }
 
 function validatePromptContractIntegrity(contract: PromptContractCatalogEntry): string | null {
-  if (contract.promptHash === "sha256:map-authoring-v1") {
-    return `Prompt contract ${contract.promptContractId} uses placeholder promptHash.`;
-  }
   const promptContractHash = hashPromptContractValue(contract);
   if (contract.promptContractHash !== promptContractHash || contract.promptHash !== promptContractHash) {
     return `Prompt contract ${contract.promptContractId} hash mismatch.`;

@@ -1,12 +1,27 @@
-import { getDevelopmentMapPluginRegistry as getGovernedMapPluginRegistry } from "../../../map-plugins/registry/map-plugin-registry.js";
 import type { OperationalMapId } from "../contract.js";
 
-type OrchestrationMapPluginRegistry = ReturnType<typeof getGovernedMapPluginRegistry>;
-type OrchestrationActiveRegistry = OrchestrationMapPluginRegistry["active"];
-type ActiveMapPackage = ReturnType<OrchestrationActiveRegistry["listActivePackages"]>[number];
+type ActiveMapPackage = { manifest: { mapId: OperationalMapId } };
+
+type OrchestrationActiveRegistry = {
+  listActivePackages(): ActiveMapPackage[];
+  getRegistration(_mapId: OperationalMapId): null;
+};
+
+type OrchestrationMapPluginRegistry = {
+  active: OrchestrationActiveRegistry;
+};
 
 export function getDefaultMapPluginRegistry(): OrchestrationMapPluginRegistry {
-  return getGovernedMapPluginRegistry();
+  return {
+    active: {
+      listActivePackages() {
+        return [];
+      },
+      getRegistration() {
+        return null;
+      },
+    },
+  };
 }
 
 export function listActivePackages(registry: OrchestrationActiveRegistry = getDefaultMapPluginRegistry().active): ActiveMapPackage[] {

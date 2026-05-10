@@ -17,7 +17,8 @@
     "GRASSEYE-CAPABILITY-GROUP-007-V1",
     "GRASSEYE-CAPABILITY-GROUP-008-V1",
     "GRASSEYE-CAPABILITY-GROUP-009-V1",
-    "GRASSEYE-CAPABILITY-GROUP-010-V1"
+    "GRASSEYE-CAPABILITY-GROUP-010-V1",
+    "GRASSEYE-CAPABILITY-STRENGTH-001-V1"
   ],
   "readsLawFiles": [
     ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md"

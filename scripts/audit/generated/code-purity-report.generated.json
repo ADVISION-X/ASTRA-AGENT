@@ -1,32 +1,46 @@
 {
-  "generatedAt": "2026-05-10T06:25:50.033Z",
+  "generatedAt": "2026-05-10T20:36:03.638Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    ".github/instructions/cursor-rules.zip",
-    ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-    "\"docs//345/275/222/346/241/243.zip\"",
-    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye /344/273/243/347/240/201/347/272/257/346/264/201/345/272/246/346/226/275/345/267/245/345/233/276.md\"",
-    "scripts/audit.zip",
-    "scripts/audit/core/schema.ts",
-    "scripts/audit/domains/audit-system/manifest.json",
+    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye APP /347/224/250/346/210/267/351/234/200/346/261/202/345/220/257/345/212/250/346/226/275/345/267/245/345/233/276.md\"",
+    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Muscle Memory Catalog /350/202/214/350/202/211/350/256/260/345/277/206/347/233/256/345/275/225/346/226/275/345/267/245/345/233/276.md\"",
+    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Orchestration /346/200/273/346/214/207/346/214/245/350/203/275/345/212/233/347/273/204/346/226/275/345/267/245/345/233/276.md\"",
+    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye PlatformRegistry /345/271/263/345/217/260/350/265/204/346/226/231/346/226/275/345/267/245/345/233/276.md\"",
+    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Visual Mission Prompt Contract /346/226/275/345/267/245/345/233/276.md\"",
+    "\"docs/Codex/346/217/220/347/244/272/350/257/215/GrassEye_CI-FULL/345/244/247/351/201/223/350/207/263/347/256/200/347/234/237/345/256/236/344/277/256/345/244/215/345/276/252/347/216/257_FINAL.md\"",
+    "scripts/audit/domains/capability-group-governance/child-capability-strength-builder.ts",
+    "scripts/audit/domains/capability-group-governance/child-capability-strength-inspector.ts",
+    "scripts/audit/domains/capability-group-governance/manifest.json",
     "scripts/audit/domains/code-purity/components/inspect-code-purity.ts",
-    "scripts/audit/domains/code-purity/components/purity-law-phase-data.ts",
+    "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
+    "scripts/audit/domains/code-purity/components/scan-visual-story-coherence.ts",
+    "scripts/audit/domains/code-purity/components/zombie-scan/zombie-catalog-assets.ts",
+    "scripts/audit/domains/code-purity/components/zombie-scan/zombie-catalog-exports.ts",
     "scripts/audit/domains/code-purity/run-scan.ts",
-    "src/capabilities/ai/prompt-contracts/visual-mission-action-plan/prompt-builder.ts",
-    "src/capabilities/orchestration/runtime/step-dispatcher.ts",
-    "src/lib/local-ai/local-ai-runtime-vision-normalization-decision.ts",
-    "src/lib/local-ai/local-ai-runtime-vision.ts",
-    "src/lib/local-app-shell/task-start-flow.ts",
-    "src/lib/local-app-shell/task-start-support.ts",
-    "src/lib/local-app-shell/task-start-types.ts",
-    "src/lib/local-app-shell/task-start-visual-mission-binding.ts",
-    "src/lib/local-runtime/workbench-nerve-bus-ai-decision.ts",
-    "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts",
-    "src/muscle-memory/catalog/catalog-seed.ts",
-    "src/muscle-memory/catalog/muscle-memory-catalog.ts",
-    "src/muscle-memory/executor/muscle-memory-executor.ts",
-    "src/muscle-memory/schema.ts",
-    "src/types/visual-mission-action-plan.ts"
+    "scripts/audit/domains/commander-console-capability/manifest.json",
+    "scripts/audit/domains/debug-loop-boundary/manifest.json",
+    "scripts/audit/domains/forensics-persistence-capability/manifest.json",
+    "scripts/audit/domains/geometry-guard-capability/manifest.json",
+    "scripts/audit/domains/mouse-click-capability/manifest.json",
+    "scripts/audit/domains/mouse-scroll-capability/manifest.json",
+    "scripts/audit/domains/nerve-bus-capability/manifest.json",
+    "scripts/audit/domains/open-capability/manifest.json",
+    "scripts/audit/domains/orchestration-capability/manifest.json",
+    "scripts/audit/domains/page-state-capability/manifest.json",
+    "scripts/audit/domains/post-action-verification-capability/manifest.json",
+    "scripts/audit/domains/screenshot-capability/manifest.json",
+    "scripts/audit/domains/text-input-capability/manifest.json",
+    "scripts/audit/domains/visual-target-capability/manifest.json",
+    "src/capabilities/ai/prompt-contracts/registry.ts",
+    "src/capabilities/ai/runtime-adapters/external-provider-runtime-messages.ts",
+    "src/capabilities/ai/schema-map-authoring.schema.ts",
+    "src/capabilities/ai/shared/ai-map-authoring-schemas.ts",
+    "src/capabilities/orchestration/runtime/orchestration-default-map-store.ts",
+    "src/capabilities/orchestration/runtime/orchestration-map-id-list.ts",
+    "src/capabilities/orchestration/runtime/orchestration-map-store.ts",
+    "src/capabilities/orchestration/runtime/orchestration-runtime-context.ts",
+    "src/capabilities/orchestration/runtime/step-dispatch-ai-requirements.ts",
+    "src/types/vision-product-presence.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -37,14 +51,16 @@
   ],
   "godFileInventory": [
     {
-      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-response.ts",
-      "lines": 310,
+      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts",
+      "lines": 306,
       "fileType": "ordinary implementation",
-      "overLimitBy": 10,
+      "overLimitBy": 6,
       "primaryRole": "executor",
-      "functionsOverLimit": [],
+      "functionsOverLimit": [
+        "buildWorkbenchAiResponseEnvelope"
+      ],
       "classMembers": 0,
-      "importCount": 4,
+      "importCount": 6,
       "crossOwnerImports": 2,
       "ownerBoundaries": 2,
       "roleMixingSignals": [],
@@ -67,36 +83,6 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json",
-      "lines": 982,
-      "fileType": "json map/prompt contract",
-      "overLimitBy": 0,
-      "primaryRole": "contract",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 0,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
-    },
-    {
-      "file": "src/map-plugins/builtins/iphone-mirroring-tiktok-seeding-video-discovery.meta.map-package.json",
-      "lines": 982,
-      "fileType": "json map/prompt contract",
-      "overLimitBy": 0,
-      "primaryRole": "contract",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 0,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
     }
   ],
   "ownerMixingInventory": [
@@ -119,27 +105,8 @@
   "oversizedTouchedFileInventory": [],
   "functionOverLimitInventory": [
     {
-      "file": "scripts/audit/domains/code-purity/components/zombie-scan/index.ts",
-      "lines": 156,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "index",
-      "functionsOverLimit": [
-        "resolveDeadExportReferences",
-        "buildZombieFinding",
-        "inspectZombieScan"
-      ],
-      "classMembers": 0,
-      "importCount": 7,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/code-purity/components/zombie-scan/zombie-catalog-exports.ts",
-      "lines": 187,
+      "lines": 191,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
@@ -157,7 +124,7 @@
     },
     {
       "file": "scripts/audit/domains/code-purity/components/zombie-scan/zombie-catalog-main.ts",
-      "lines": 129,
+      "lines": 148,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
@@ -173,16 +140,16 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/code-purity/components/zombie-scan/zombie-graph.ts",
-      "lines": 107,
+      "file": "scripts/audit/domains/code-purity/components/zombie-scan/zombie-findings.ts",
+      "lines": 57,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "buildZombieGraph"
+        "resolveZombieFindingMessage"
       ],
       "classMembers": 0,
-      "importCount": 5,
+      "importCount": 3,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -191,7 +158,7 @@
     },
     {
       "file": "scripts/audit/domains/code-purity/run-scan.ts",
-      "lines": 122,
+      "lines": 127,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
@@ -199,7 +166,7 @@
         "main"
       ],
       "classMembers": 0,
-      "importCount": 14,
+      "importCount": 15,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -224,6 +191,74 @@
       "recommendedSplit": "Split app/api handler by owner-local collaborators."
     },
     {
+      "file": "src/audit-support/code-purity/protected-seams.ts",
+      "lines": 101,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "getZombieProtectedSeamForPath"
+      ],
+      "classMembers": 0,
+      "importCount": 0,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/ai/runtime/ai-output-summary-recorders.ts",
+      "lines": 195,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "recordAiOutputSummary"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/orchestration/runtime/orchestration-default-map-store.ts",
+      "lines": 21,
+      "fileType": "orchestration coordinator",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "createDefaultOrchestrationMapStore"
+      ],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/orchestration/runtime/orchestration-map-store.ts",
+      "lines": 21,
+      "fileType": "orchestration coordinator",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "createRegistryBackedMapStore"
+      ],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
+    },
+    {
       "file": "src/lib/local-ai/local-ai-runtime-execution.ts",
       "lines": 43,
       "fileType": "ordinary implementation",
@@ -239,13 +274,64 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts",
+      "lines": 306,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 6,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "buildWorkbenchAiResponseEnvelope"
+      ],
+      "classMembers": 0,
+      "importCount": 6,
+      "crossOwnerImports": 2,
+      "ownerBoundaries": 2,
+      "roleMixingSignals": [],
+      "severity": "BLOCKING",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/muscle-memory/executor/muscle-memory-execution-dispatch.ts",
+      "lines": 160,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "dispatchExecutionAction"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/visual-mission/action-plan/ai-output.schema.ts",
+      "lines": 147,
+      "fileType": "schema/type",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "validateAtomicActionInput"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split schema/type by owner-local collaborators."
     }
   ],
   "classObjectOverLimitInventory": [],
   "importExportOverLimitInventory": [
     {
       "file": "scripts/audit/domains/code-purity/run-scan.ts",
-      "lines": 122,
+      "lines": 127,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
@@ -253,7 +339,7 @@
         "main"
       ],
       "classMembers": 0,
-      "importCount": 14,
+      "importCount": 15,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -278,36 +364,6 @@
   ],
   "remediationQueue": [
     {
-      "file": "src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json",
-      "lines": 982,
-      "fileType": "json map/prompt contract",
-      "overLimitBy": 0,
-      "primaryRole": "contract",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 0,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
-    },
-    {
-      "file": "src/map-plugins/builtins/iphone-mirroring-tiktok-seeding-video-discovery.meta.map-package.json",
-      "lines": 982,
-      "fileType": "json map/prompt contract",
-      "overLimitBy": 0,
-      "primaryRole": "contract",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 0,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
-    },
-    {
       "file": "src/lib/local-ai/local-ai-runtime-visual-mission-action-plan-task.ts",
       "lines": 72,
       "fileType": "ordinary implementation",
@@ -323,14 +379,16 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-response.ts",
-      "lines": 310,
+      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts",
+      "lines": 306,
       "fileType": "ordinary implementation",
-      "overLimitBy": 10,
+      "overLimitBy": 6,
       "primaryRole": "executor",
-      "functionsOverLimit": [],
+      "functionsOverLimit": [
+        "buildWorkbenchAiResponseEnvelope"
+      ],
       "classMembers": 0,
-      "importCount": 4,
+      "importCount": 6,
       "crossOwnerImports": 2,
       "ownerBoundaries": 2,
       "roleMixingSignals": [],
@@ -338,8 +396,25 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
+      "file": "src/capabilities/ai/runtime/ai-output-summary-recorders.ts",
+      "lines": 195,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "recordAiOutputSummary"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/domains/code-purity/components/zombie-scan/zombie-catalog-exports.ts",
-      "lines": 187,
+      "lines": 191,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
@@ -356,23 +431,55 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/code-purity/components/zombie-scan/index.ts",
-      "lines": 156,
-      "fileType": "audit phase",
+      "file": "src/muscle-memory/executor/muscle-memory-execution-dispatch.ts",
+      "lines": 160,
+      "fileType": "runtime/implementation",
       "overLimitBy": 0,
-      "primaryRole": "index",
+      "primaryRole": "executor",
       "functionsOverLimit": [
-        "resolveDeadExportReferences",
-        "buildZombieFinding",
-        "inspectZombieScan"
+        "dispatchExecutionAction"
       ],
       "classMembers": 0,
-      "importCount": 7,
+      "importCount": 3,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/code-purity/components/zombie-scan/zombie-catalog-main.ts",
+      "lines": 148,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "collectChildCapabilityCandidates"
+      ],
+      "classMembers": 0,
+      "importCount": 6,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/visual-mission/action-plan/ai-output.schema.ts",
+      "lines": 147,
+      "fileType": "schema/type",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "validateAtomicActionInput"
+      ],
+      "classMembers": 0,
+      "importCount": 5,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split schema/type by owner-local collaborators."
     },
     {
       "file": "src/app/user-requirement-history-api-handlers.ts",
@@ -392,25 +499,8 @@
       "recommendedSplit": "Split app/api handler by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/code-purity/components/zombie-scan/zombie-catalog-main.ts",
-      "lines": 129,
-      "fileType": "audit phase",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "collectChildCapabilityCandidates"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
-    },
-    {
       "file": "scripts/audit/domains/code-purity/run-scan.ts",
-      "lines": 122,
+      "lines": 127,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
@@ -418,7 +508,7 @@
         "main"
       ],
       "classMembers": 0,
-      "importCount": 14,
+      "importCount": 15,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
@@ -426,21 +516,21 @@
       "recommendedSplit": "Split audit phase by owner-local collaborators."
     },
     {
-      "file": "scripts/audit/domains/code-purity/components/zombie-scan/zombie-graph.ts",
-      "lines": 107,
-      "fileType": "audit phase",
+      "file": "src/audit-support/code-purity/protected-seams.ts",
+      "lines": 101,
+      "fileType": "ordinary implementation",
       "overLimitBy": 0,
       "primaryRole": "executor",
       "functionsOverLimit": [
-        "buildZombieGraph"
+        "getZombieProtectedSeamForPath"
       ],
       "classMembers": 0,
-      "importCount": 5,
+      "importCount": 0,
       "crossOwnerImports": 0,
       "ownerBoundaries": 0,
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
-      "recommendedSplit": "Split audit phase by owner-local collaborators."
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
       "file": "src/lib/local-app-shell/CommanderMacShell.ts",
@@ -458,6 +548,23 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
+      "file": "scripts/audit/domains/code-purity/components/zombie-scan/zombie-findings.ts",
+      "lines": 57,
+      "fileType": "audit phase",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveZombieFindingMessage"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
       "file": "src/lib/local-ai/local-ai-runtime-execution.ts",
       "lines": 43,
       "fileType": "ordinary implementation",
@@ -473,39 +580,43 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/orchestration/runtime/orchestration-default-map-store.ts",
+      "lines": 21,
+      "fileType": "orchestration coordinator",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "createDefaultOrchestrationMapStore"
+      ],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/orchestration/runtime/orchestration-map-store.ts",
+      "lines": 21,
+      "fileType": "orchestration coordinator",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "createRegistryBackedMapStore"
+      ],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split orchestration coordinator by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [
-    {
-      "file": "src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json",
-      "lines": 982,
-      "fileType": "json map/prompt contract",
-      "overLimitBy": 0,
-      "primaryRole": "contract",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 0,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
-    },
-    {
-      "file": "src/map-plugins/builtins/iphone-mirroring-tiktok-seeding-video-discovery.meta.map-package.json",
-      "lines": 982,
-      "fileType": "json map/prompt contract",
-      "overLimitBy": 0,
-      "primaryRole": "contract",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 0,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
-    },
     {
       "file": "src/lib/local-ai/local-ai-runtime-visual-mission-action-plan-task.ts",
       "lines": 72,
@@ -522,14 +633,16 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
-      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-response.ts",
-      "lines": 310,
+      "file": "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts",
+      "lines": 306,
       "fileType": "ordinary implementation",
-      "overLimitBy": 10,
+      "overLimitBy": 6,
       "primaryRole": "executor",
-      "functionsOverLimit": [],
+      "functionsOverLimit": [
+        "buildWorkbenchAiResponseEnvelope"
+      ],
       "classMembers": 0,
-      "importCount": 4,
+      "importCount": 6,
       "crossOwnerImports": 2,
       "ownerBoundaries": 2,
       "roleMixingSignals": [],
@@ -537,8 +650,25 @@
       "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
     },
     {
+      "file": "src/capabilities/ai/runtime/ai-output-summary-recorders.ts",
+      "lines": 195,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "recordAiOutputSummary"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
       "file": "scripts/audit/domains/code-purity/components/zombie-scan/zombie-catalog-exports.ts",
-      "lines": 187,
+      "lines": 191,
       "fileType": "audit phase",
       "overLimitBy": 0,
       "primaryRole": "executor",
@@ -553,6 +683,23 @@
       "roleMixingSignals": [],
       "severity": "REMEDIATION",
       "recommendedSplit": "Split audit phase by owner-local collaborators."
+    },
+    {
+      "file": "src/muscle-memory/executor/muscle-memory-execution-dispatch.ts",
+      "lines": 160,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "dispatchExecutionAction"
+      ],
+      "classMembers": 0,
+      "importCount": 3,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     }
   ]
 }

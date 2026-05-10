@@ -1,9 +1,10 @@
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { fileExists, readTextFile } from "../../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../../core/paths.js";
 import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
+import { FORBIDDEN_RETIRED_PROMPT_BUILTIN_PATHS, inspectPromptContract, inspectPromptContractRegistry, LOCAL_AI_TASK_TYPES_PATH } from "./scan-visual-story-coherence-prompt-checks.js";
 
 const VISUAL_STORY_COHERENCE_LAW_ID = "GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1";
 
@@ -45,10 +46,16 @@ const DUAL_CHAIN_RULES = [
   },
 ] as const;
 
-const PROMPT_CONTRACT_PATH = "src/capabilities/ai/prompt-contracts/builtins/visual-mission-action-plan-v1.prompt-contract.json";
-const LOCAL_AI_TASK_TYPES_PATH = "src/types/local-ai.ts";
 const GENERATED_CATALOG_PATH = "src/muscle-memory/catalog/muscle-memory-catalog.generated.json";
 const PLATFORM_TARGET_REGISTRY_PATH = "src/visual-mission/platform-target-registry.ts";
+const CI_FULL_SUMMARY_PATH = "scripts/audit/generated/ci-full-summary.generated.json";
+
+const FORBIDDEN_RETIRED_BLUEPRINT_PATHS = [
+  "docs/法案辅助文件/GrassEye 地图插件包治理施工图.md",
+  "docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md",
+  "docs/法案辅助文件/GrassEye Map Authoring Input Package 施工图_FINAL.md",
+  "docs/法案辅助文件/GrassEye Route Plan 肌肉记忆施工图.md",
+] as const;
 
 const isCoherencePath = (relativePath: string): boolean =>
   COHERENCE_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
@@ -66,7 +73,7 @@ const createCoherenceFinding = (input: {
   line: input.line,
   severity: "fatal",
   message: input.message,
-  detail: input.detail,
+  ...(input.detail ? { detail: input.detail } : {}),
   zombieKind: input.coherenceKind,
   recommendedAction: input.recommendedAction,
 });
@@ -79,6 +86,9 @@ const collectOccurrences = (sourceFile: SourceFile): Array<{ text: string; line:
 
 const findOccurrence = (occurrences: Array<{ text: string; line: number }>, token: string) =>
   occurrences.find((entry) => entry.text.includes(token)) ?? null;
+
+const findExactStringLiteral = (sourceFile: SourceFile, token: string) =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).find((node) => node.getLiteralText() === token) ?? null;
 
 const inspectDualChains = (relativePath: string, sourceFile: SourceFile): Finding[] => {
   if (!isCoherencePath(relativePath)) {
@@ -112,54 +122,74 @@ const findLineNumberForToken = (text: string, token: string): number => {
   return lineIndex >= 0 ? lineIndex + 1 : 1;
 };
 
-const inspectPromptContract = async (): Promise<Finding[]> => {
-  const absolutePath = pathFromRepoRoot(PROMPT_CONTRACT_PATH);
+const inspectForbiddenActiveFiles = async (input: {
+  relativePaths: readonly string[];
+  message: (relativePath: string) => string;
+  recommendedAction: (relativePath: string) => string;
+  coherenceKind: string;
+}): Promise<Finding[]> => {
+  const findings: Finding[] = [];
+  for (const relativePath of input.relativePaths) {
+    const absolutePath = pathFromRepoRoot(relativePath);
+    if (!(await fileExists(absolutePath))) {
+      continue;
+    }
+
+    findings.push(createCoherenceFinding({
+      file: relativePath,
+      line: 1,
+      message: input.message(relativePath),
+      detail: relativePath,
+      coherenceKind: input.coherenceKind,
+      recommendedAction: input.recommendedAction(relativePath),
+    }));
+  }
+  return findings;
+};
+
+const inspectCiFullSummary = async (): Promise<Finding[]> => {
+  const absolutePath = pathFromRepoRoot(CI_FULL_SUMMARY_PATH);
   if (!(await fileExists(absolutePath))) {
     return [];
   }
 
   const text = await readTextFile(absolutePath);
-  const contract = JSON.parse(text) as {
-    schemaVersion?: string;
-    forbiddenOutputs?: string[];
-    outputSchema?: { schemaVersion?: string; actions?: unknown };
+  const summary = JSON.parse(text) as {
+    status?: string;
+    layers?: Array<{ label?: string; steps?: Array<{ name?: string }> }>;
   };
 
   const findings: Finding[] = [];
-  if (contract.schemaVersion !== "visualMissionActionPlan.v1") {
+  if (summary.status !== "PASS") {
     findings.push(createCoherenceFinding({
-      file: PROMPT_CONTRACT_PATH,
-      line: findLineNumberForToken(text, '"schemaVersion"'),
-      message: "Visual mission prompt contract schemaVersion must match visualMissionActionPlan.v1.",
-      detail: contract.schemaVersion,
-      coherenceKind: "visual-story-drift",
-      recommendedAction: "Set the prompt contract schemaVersion and outputSchema.schemaVersion to visualMissionActionPlan.v1 and regenerate the prompt contract hash.",
+      file: CI_FULL_SUMMARY_PATH,
+      line: findLineNumberForToken(text, '"status"'),
+      message: "CI-FULL generated summary must be regenerated to PASS after visual-story cleanup.",
+      detail: summary.status ?? "missing-status",
+      coherenceKind: "stale-generated-proof",
+      recommendedAction: "Run npm run ci:full after registry and blueprint cleanup, then commit the regenerated summary only when it closes to PASS.",
     }));
   }
 
-  const forbiddenOutputs = new Set(contract.forbiddenOutputs ?? []);
-  for (const token of ["routeLabel", "routePlanId", "selectedMapId", "taskTemplateId", "raw x", "raw y"]) {
-    if (forbiddenOutputs.has(token)) {
-      continue;
-    }
+  if (summary.layers?.some((layer) => layer.label === "map-layer")) {
     findings.push(createCoherenceFinding({
-      file: PROMPT_CONTRACT_PATH,
-      line: findLineNumberForToken(text, '"forbiddenOutputs"'),
-      message: `Visual mission prompt contract must forbid ${token}.`,
-      detail: token,
-      coherenceKind: token === "routeLabel" ? "route-label-survivor" : "visual-story-drift",
-      recommendedAction: `Add ${token} to forbiddenOutputs and keep visual mission output limited to governed actionCode records.`,
+      file: CI_FULL_SUMMARY_PATH,
+      line: findLineNumberForToken(text, '"map-layer"'),
+      message: "CI-FULL generated summary must not retain map-layer after the visual-story cutover.",
+      detail: "map-layer",
+      coherenceKind: "stale-generated-proof",
+      recommendedAction: "Remove retired map-layer steps from the active CI-FULL plan and regenerate the summary.",
     }));
   }
 
-  if (contract.outputSchema?.schemaVersion !== "visualMissionActionPlan.v1") {
+  if (summary.layers?.some((layer) => layer.steps?.some((step) => step.name === "map-plugin-package"))) {
     findings.push(createCoherenceFinding({
-      file: PROMPT_CONTRACT_PATH,
-      line: findLineNumberForToken(text, '"outputSchema"'),
-      message: "Visual mission prompt contract outputSchema.schemaVersion must match visualMissionActionPlan.v1.",
-      detail: contract.outputSchema?.schemaVersion,
-      coherenceKind: "visual-story-drift",
-      recommendedAction: "Align outputSchema.schemaVersion with the governed visual mission output schema.",
+      file: CI_FULL_SUMMARY_PATH,
+      line: findLineNumberForToken(text, '"map-plugin-package"'),
+      message: "CI-FULL generated summary must not retain map-plugin-package after the visual-story cutover.",
+      detail: "map-plugin-package",
+      coherenceKind: "stale-generated-proof",
+      recommendedAction: "Delete map-plugin-package from the active CI-FULL layers and regenerate the summary.",
     }));
   }
 
@@ -193,42 +223,61 @@ const inspectTargetedTextFile = async (input: {
   })];
 };
 
-export const inspectVisualStoryCoherence = async (
-  relativePaths: string[],
-  sourceFiles: Map<string, SourceFile>,
-): Promise<Finding[]> => {
+const inspectRetiredArtifacts = async (): Promise<Finding[]> => {
   const findings: Finding[] = [];
+  findings.push(...await inspectForbiddenActiveFiles({
+    relativePaths: FORBIDDEN_RETIRED_PROMPT_BUILTIN_PATHS,
+    message: (relativePath) => `Retired AI prompt builtin must not survive in active source: ${relativePath}.`,
+    recommendedAction: () => "Delete the builtin from src/capabilities/ai/prompt-contracts/builtins or move it to docs/archive/retired-ai-prompts/ outside the active registry.",
+    coherenceKind: "retired-prompt-registry",
+  }));
+  findings.push(...await inspectForbiddenActiveFiles({
+    relativePaths: FORBIDDEN_RETIRED_BLUEPRINT_PATHS,
+    message: (relativePath) => `Retired map-system blueprint must not survive in active 法案辅助文件: ${relativePath}.`,
+    recommendedAction: () => "Delete the active blueprint or move it under docs/archive so it no longer acts as production governance truth.",
+    coherenceKind: "visual-story-drift",
+  }));
+  findings.push(...await inspectCiFullSummary());
+  return findings;
+};
 
-  for (const relativePath of relativePaths) {
-    const sourceFile = sourceFiles.get(relativePath);
-    if (!sourceFile) {
-      continue;
-    }
-    findings.push(...inspectDualChains(relativePath, sourceFile));
-  }
-
-  findings.push(...await inspectPromptContract());
-  findings.push(...await inspectTargetedTextFile({
+const inspectTargetedVisualStoryFiles = async (): Promise<Finding[]> => [
+  ...await inspectTargetedTextFile({
     relativePath: LOCAL_AI_TASK_TYPES_PATH,
-    token: "visual-mission-action-plan.schema.v1",
+    token: "visualMissionActionPlan.v1",
     message: "Local AI visual mission task request schemaVersion must use visualMissionActionPlan.v1.",
     coherenceKind: "visual-story-drift",
     recommendedAction: "Align src/types/local-ai.ts with the governed visual mission output schemaVersion.",
-  }));
-  findings.push(...await inspectTargetedTextFile({
+  }),
+  ...await inspectTargetedTextFile({
     relativePath: GENERATED_CATALOG_PATH,
     token: "PREPARE_VISUAL_INPUT",
     message: "Generated MuscleMemoryCatalog must not retain PREPARE_VISUAL_INPUT after the visual-story actionCode rename.",
     coherenceKind: "visual-story-drift",
     recommendedAction: "Rebuild the muscle-memory catalog so PREPARE_VISUAL_MISSION_INPUT is the only active actionCode spelling.",
-  }));
-  findings.push(...await inspectTargetedTextFile({
+  }),
+  ...await inspectTargetedTextFile({
     relativePath: PLATFORM_TARGET_REGISTRY_PATH,
     token: "openActionCode",
     message: "Platform target registry must not retain the retired openActionCode shadow field.",
     coherenceKind: "visual-story-drift",
     recommendedAction: "Delete openActionCode from platform-target-registry and keep only platform profile facts plus target defaults.",
-  }));
+  }),
+];
 
-  return findings;
+export const inspectVisualStoryCoherence = async (
+  relativePaths: string[],
+  sourceFiles: Map<string, SourceFile>,
+): Promise<Finding[]> => {
+  const dualChainFindings = relativePaths.flatMap((relativePath) => {
+    const sourceFile = sourceFiles.get(relativePath);
+    return sourceFile ? inspectDualChains(relativePath, sourceFile) : [];
+  });
+  return [
+    ...dualChainFindings,
+    ...inspectPromptContractRegistry(sourceFiles),
+    ...await inspectPromptContract(),
+    ...await inspectRetiredArtifacts(),
+    ...await inspectTargetedVisualStoryFiles(),
+  ];
 };

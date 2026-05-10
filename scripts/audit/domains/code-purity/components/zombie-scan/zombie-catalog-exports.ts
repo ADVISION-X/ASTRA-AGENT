@@ -1,4 +1,4 @@
-import { getNodeLine, getReferencePaths } from "../../../core/ts-morph.js";
+import { getNodeLine, getReferencePaths } from "../../../../core/ts-morph.js";
 import { Node, type Identifier, type SourceFile } from "ts-morph";
 
 import { isZombieProtectedPath } from "../../../../../../src/audit-support/code-purity/protected-seams.js";
@@ -35,45 +35,80 @@ const mergeCandidate = (candidates: Map<string, ZombieCandidate>, candidate: Zom
   }
 };
 
-const resolveDeadExportReferences = (candidate: ZombieCandidate, graphSourceFiles: Map<string, SourceFile>): Set<string> => {
-  const sourceFile = graphSourceFiles.get(candidate.file);
-  if (!sourceFile) {
-    return new Set<string>();
-  }
-
-  const declarationNodes = [
-    ...sourceFile.getFunctions().filter((fn) => fn.isExported() && fn.getName() === candidate.symbolName),
-    ...sourceFile.getClasses().filter((klass) => klass.isExported() && klass.getName() === candidate.symbolName),
-    ...sourceFile.getInterfaces().filter((iface) => iface.isExported() && iface.getName() === candidate.symbolName),
-    ...sourceFile.getTypeAliases().filter((alias) => alias.isExported() && alias.getName() === candidate.symbolName),
-    ...sourceFile.getEnums().filter((enumDeclaration) => enumDeclaration.isExported() && enumDeclaration.getName() === candidate.symbolName),
+const collectDeclarationNodesForSymbol = (sourceFile: SourceFile, symbolName: string): Node[] => {
+  const declarations: Node[] = [
+    ...sourceFile.getFunctions().filter((declaration) => declaration.isExported() && declaration.getName() === symbolName),
+    ...sourceFile.getClasses().filter((declaration) => declaration.isExported() && declaration.getName() === symbolName),
+    ...sourceFile.getInterfaces().filter((declaration) => declaration.isExported() && declaration.getName() === symbolName),
+    ...sourceFile.getTypeAliases().filter((declaration) => declaration.isExported() && declaration.getName() === symbolName),
+    ...sourceFile.getEnums().filter((declaration) => declaration.isExported() && declaration.getName() === symbolName),
   ];
 
   for (const variableStatement of sourceFile.getVariableStatements()) {
     if (!variableStatement.hasExportKeyword()) {
       continue;
     }
-    const declaration = variableStatement.getDeclarations().find((item) => item.getName() === candidate.symbolName);
+    const declaration = variableStatement.getDeclarations().find((item) => item.getName() === symbolName);
     if (declaration) {
-      declarationNodes.push(declaration);
+      declarations.push(declaration);
     }
   }
+  return declarations;
+};
 
+const resolveDeclarationNameNode = (declaration: Node): Identifier | null => {
+  if (
+    Node.isFunctionDeclaration(declaration)
+    || Node.isClassDeclaration(declaration)
+    || Node.isInterfaceDeclaration(declaration)
+    || Node.isTypeAliasDeclaration(declaration)
+    || Node.isEnumDeclaration(declaration)
+  ) {
+    return declaration.getNameNode() ?? null;
+  }
+  if (Node.isVariableDeclaration(declaration)) {
+    const variableNameNode = declaration.getNameNode();
+    return Node.isIdentifier(variableNameNode) ? variableNameNode : null;
+  }
+  return null;
+};
+
+const collectNamedExportCandidates = (sourceFile: SourceFile): Array<{ symbolName: string; line: number }> => {
+  const candidates = [
+    ...sourceFile.getFunctions().flatMap((declaration) => declaration.isExported() && declaration.getName() ? [{ symbolName: declaration.getName()!, line: getNodeLine(declaration) }] : []),
+    ...sourceFile.getClasses().flatMap((declaration) => declaration.isExported() && declaration.getName() ? [{ symbolName: declaration.getName()!, line: getNodeLine(declaration) }] : []),
+    ...sourceFile.getInterfaces().flatMap((declaration) => declaration.isExported() && declaration.getName() ? [{ symbolName: declaration.getName()!, line: getNodeLine(declaration) }] : []),
+    ...sourceFile.getTypeAliases().flatMap((declaration) => declaration.isExported() && declaration.getName() ? [{ symbolName: declaration.getName()!, line: getNodeLine(declaration) }] : []),
+    ...sourceFile.getEnums().flatMap((declaration) => declaration.isExported() && declaration.getName() ? [{ symbolName: declaration.getName()!, line: getNodeLine(declaration) }] : []),
+  ];
+
+  for (const variableStatement of sourceFile.getVariableStatements()) {
+    if (!variableStatement.hasExportKeyword()) {
+      continue;
+    }
+    for (const declaration of variableStatement.getDeclarations()) {
+      if (declaration.getName()) {
+        candidates.push({ symbolName: declaration.getName(), line: getNodeLine(declaration) });
+      }
+    }
+  }
+  return candidates;
+};
+
+const resolveDeadExportReferences = (candidate: ZombieCandidate, graphSourceFiles: Map<string, SourceFile>): Set<string> => {
+  const sourceFile = graphSourceFiles.get(candidate.file);
+  if (!sourceFile) {
+    return new Set<string>();
+  }
+
+  const declarationNodes = collectDeclarationNodesForSymbol(sourceFile, candidate.symbolName);
   const references = new Set<string>();
   for (const declaration of declarationNodes) {
-    const nameNode = Node.isFunctionDeclaration(declaration)
-      || Node.isClassDeclaration(declaration)
-      || Node.isInterfaceDeclaration(declaration)
-      || Node.isTypeAliasDeclaration(declaration)
-      || Node.isEnumDeclaration(declaration)
-      ? declaration.getNameNode()
-      : Node.isVariableDeclaration(declaration)
-        ? declaration.getNameNode()
-        : null;
+    const nameNode = resolveDeclarationNameNode(declaration);
     if (!nameNode) {
       continue;
     }
-    for (const filePath of getReferencePaths(nameNode as Identifier)) {
+    for (const filePath of getReferencePaths(nameNode)) {
       references.add(filePath);
     }
   }
@@ -88,8 +123,6 @@ const collectLocalExportCandidates = (graph: ZombieGraph, candidates: Map<string
     }
 
     const deadExportKind = classifyDeadExportKind(relativePath);
-    const exportedNames = new Set<string>();
-
     const addExportCandidate = (symbolName: string, line: number): void => {
       mergeCandidate(candidates, {
         kind: deadExportKind,
@@ -103,58 +136,10 @@ const collectLocalExportCandidates = (graph: ZombieGraph, candidates: Map<string
       });
     };
 
-    for (const functionDeclaration of sourceFile.getFunctions()) {
-      if (!functionDeclaration.isExported() || !functionDeclaration.getName()) {
-        continue;
-      }
-      exportedNames.add(functionDeclaration.getName()!);
-      addExportCandidate(functionDeclaration.getName()!, getNodeLine(functionDeclaration));
-    }
-
-    for (const classDeclaration of sourceFile.getClasses()) {
-      if (!classDeclaration.isExported() || !classDeclaration.getName()) {
-        continue;
-      }
-      exportedNames.add(classDeclaration.getName()!);
-      addExportCandidate(classDeclaration.getName()!, getNodeLine(classDeclaration));
-    }
-
-    for (const interfaceDeclaration of sourceFile.getInterfaces()) {
-      if (!interfaceDeclaration.isExported() || !interfaceDeclaration.getName()) {
-        continue;
-      }
-      exportedNames.add(interfaceDeclaration.getName()!);
-      addExportCandidate(interfaceDeclaration.getName()!, getNodeLine(interfaceDeclaration));
-    }
-
-    for (const typeAliasDeclaration of sourceFile.getTypeAliases()) {
-      if (!typeAliasDeclaration.isExported() || !typeAliasDeclaration.getName()) {
-        continue;
-      }
-      exportedNames.add(typeAliasDeclaration.getName()!);
-      addExportCandidate(typeAliasDeclaration.getName()!, getNodeLine(typeAliasDeclaration));
-    }
-
-    for (const enumDeclaration of sourceFile.getEnums()) {
-      if (!enumDeclaration.isExported() || !enumDeclaration.getName()) {
-        continue;
-      }
-      exportedNames.add(enumDeclaration.getName()!);
-      addExportCandidate(enumDeclaration.getName()!, getNodeLine(enumDeclaration));
-    }
-
-    for (const variableStatement of sourceFile.getVariableStatements()) {
-      if (!variableStatement.hasExportKeyword()) {
-        continue;
-      }
-      for (const declaration of variableStatement.getDeclarations()) {
-        const name = declaration.getName();
-        if (!name) {
-          continue;
-        }
-        exportedNames.add(name);
-        addExportCandidate(name, getNodeLine(declaration));
-      }
+    const exportedNames = new Set<string>();
+    for (const candidateInfo of collectNamedExportCandidates(sourceFile)) {
+      exportedNames.add(candidateInfo.symbolName);
+      addExportCandidate(candidateInfo.symbolName, candidateInfo.line);
     }
 
     if (exportedNames.size > 0) {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T07:38:43.539Z",
+  "generatedAt": "2026-05-10T20:35:19.370Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -17,7 +17,7 @@
     "forensics-persistence-capability",
     "page-state-capability"
   ],
-  "totalActiveLaws": 136,
+  "totalActiveLaws": 49,
   "globalChain": {
     "observed": false,
     "passed": false,
@@ -337,7 +337,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
+      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V3",
       "capabilityDomain": "commander-console-capability",
       "abilityGroupId": "commander-console",
       "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
@@ -356,140 +356,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2",
-      "capabilityDomain": "commander-console-capability",
-      "abilityGroupId": "commander-console",
-      "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-003-V2",
-      "capabilityDomain": "commander-console-capability",
-      "abilityGroupId": "commander-console",
-      "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-004-V2",
-      "capabilityDomain": "commander-console-capability",
-      "abilityGroupId": "commander-console",
-      "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-005-V2",
-      "capabilityDomain": "commander-console-capability",
-      "abilityGroupId": "commander-console",
-      "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2",
-      "capabilityDomain": "commander-console-capability",
-      "abilityGroupId": "commander-console",
-      "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-007-V2",
-      "capabilityDomain": "commander-console-capability",
-      "abilityGroupId": "commander-console",
-      "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-008-V2",
-      "capabilityDomain": "commander-console-capability",
-      "abilityGroupId": "commander-console",
-      "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/commander-console-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-001-V2",
+      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-CAPABILITY-001-V3",
       "capabilityDomain": "forensics-persistence-capability",
       "abilityGroupId": "forensics-persistence",
       "ownerManifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
@@ -508,7 +375,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-002-V2",
+      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-CAPABILITY-002-V3",
       "capabilityDomain": "forensics-persistence-capability",
       "abilityGroupId": "forensics-persistence",
       "ownerManifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
@@ -527,140 +394,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-003-V2",
-      "capabilityDomain": "forensics-persistence-capability",
-      "abilityGroupId": "forensics-persistence",
-      "ownerManifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-004-V2",
-      "capabilityDomain": "forensics-persistence-capability",
-      "abilityGroupId": "forensics-persistence",
-      "ownerManifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-005-V2",
-      "capabilityDomain": "forensics-persistence-capability",
-      "abilityGroupId": "forensics-persistence",
-      "ownerManifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-006-V2",
-      "capabilityDomain": "forensics-persistence-capability",
-      "abilityGroupId": "forensics-persistence",
-      "ownerManifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-007-V2",
-      "capabilityDomain": "forensics-persistence-capability",
-      "abilityGroupId": "forensics-persistence",
-      "ownerManifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-008-V2",
-      "capabilityDomain": "forensics-persistence-capability",
-      "abilityGroupId": "forensics-persistence",
-      "ownerManifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-ARTIFACT-PROMOTION-V1",
-      "capabilityDomain": "forensics-persistence-capability",
-      "abilityGroupId": "forensics-persistence",
-      "ownerManifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-RESULT-CONTRACT-V1",
+      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V2",
       "capabilityDomain": "geometry-guard-capability",
       "abilityGroupId": "geometry-guard",
       "ownerManifestPath": "scripts/audit/domains/geometry-guard-capability/manifest.json",
@@ -679,140 +413,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V3",
-      "capabilityDomain": "geometry-guard-capability",
-      "abilityGroupId": "geometry-guard",
-      "ownerManifestPath": "scripts/audit/domains/geometry-guard-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V3",
-      "capabilityDomain": "geometry-guard-capability",
-      "abilityGroupId": "geometry-guard",
-      "ownerManifestPath": "scripts/audit/domains/geometry-guard-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-003-V3",
-      "capabilityDomain": "geometry-guard-capability",
-      "abilityGroupId": "geometry-guard",
-      "ownerManifestPath": "scripts/audit/domains/geometry-guard-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-004-V3",
-      "capabilityDomain": "geometry-guard-capability",
-      "abilityGroupId": "geometry-guard",
-      "ownerManifestPath": "scripts/audit/domains/geometry-guard-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-005-V3",
-      "capabilityDomain": "geometry-guard-capability",
-      "abilityGroupId": "geometry-guard",
-      "ownerManifestPath": "scripts/audit/domains/geometry-guard-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-006-V3",
-      "capabilityDomain": "geometry-guard-capability",
-      "abilityGroupId": "geometry-guard",
-      "ownerManifestPath": "scripts/audit/domains/geometry-guard-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-007-V3",
-      "capabilityDomain": "geometry-guard-capability",
-      "abilityGroupId": "geometry-guard",
-      "ownerManifestPath": "scripts/audit/domains/geometry-guard-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-008-V3",
+      "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V2",
       "capabilityDomain": "geometry-guard-capability",
       "abilityGroupId": "geometry-guard",
       "ownerManifestPath": "scripts/audit/domains/geometry-guard-capability/manifest.json",
@@ -850,7 +451,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-RESULT-CONTRACT-V1",
+      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V3",
       "capabilityDomain": "mouse-click-capability",
       "abilityGroupId": "mouse-click",
       "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
@@ -869,7 +470,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2",
+      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V3",
       "capabilityDomain": "mouse-click-capability",
       "abilityGroupId": "mouse-click",
       "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
@@ -888,140 +489,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V2",
-      "capabilityDomain": "mouse-click-capability",
-      "abilityGroupId": "mouse-click",
-      "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-003-V2",
-      "capabilityDomain": "mouse-click-capability",
-      "abilityGroupId": "mouse-click",
-      "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-004-V2",
-      "capabilityDomain": "mouse-click-capability",
-      "abilityGroupId": "mouse-click",
-      "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-005-V2",
-      "capabilityDomain": "mouse-click-capability",
-      "abilityGroupId": "mouse-click",
-      "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-006-V2",
-      "capabilityDomain": "mouse-click-capability",
-      "abilityGroupId": "mouse-click",
-      "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-007-V2",
-      "capabilityDomain": "mouse-click-capability",
-      "abilityGroupId": "mouse-click",
-      "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-008-V2",
-      "capabilityDomain": "mouse-click-capability",
-      "abilityGroupId": "mouse-click",
-      "ownerManifestPath": "scripts/audit/domains/mouse-click-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-click-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V2",
+      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V3",
       "capabilityDomain": "mouse-scroll-capability",
       "abilityGroupId": "mouse-scroll",
       "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
@@ -1040,163 +508,11 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V2",
+      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V3",
       "capabilityDomain": "mouse-scroll-capability",
       "abilityGroupId": "mouse-scroll",
       "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
       "ownerInspectorEntry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-003-V2",
-      "capabilityDomain": "mouse-scroll-capability",
-      "abilityGroupId": "mouse-scroll",
-      "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-004-V2",
-      "capabilityDomain": "mouse-scroll-capability",
-      "abilityGroupId": "mouse-scroll",
-      "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-005-V2",
-      "capabilityDomain": "mouse-scroll-capability",
-      "abilityGroupId": "mouse-scroll",
-      "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-006-V2",
-      "capabilityDomain": "mouse-scroll-capability",
-      "abilityGroupId": "mouse-scroll",
-      "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-007-V2",
-      "capabilityDomain": "mouse-scroll-capability",
-      "abilityGroupId": "mouse-scroll",
-      "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-008-V2",
-      "capabilityDomain": "mouse-scroll-capability",
-      "abilityGroupId": "mouse-scroll",
-      "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-MOUSE-SCROLL-CAPABILITY-009-V2",
-      "capabilityDomain": "mouse-scroll-capability",
-      "abilityGroupId": "mouse-scroll",
-      "ownerManifestPath": "scripts/audit/domains/mouse-scroll-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-RESULT-CONTRACT-BOUNDARY-V1",
-      "capabilityDomain": "nerve-bus-capability",
-      "abilityGroupId": "nerve-bus",
-      "ownerManifestPath": "scripts/audit/domains/nerve-bus-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
       "coverageStatus": "NOT_COVERED",
       "matrixMapped": true,
       "auditPlanMapped": true,
@@ -1231,158 +547,6 @@
     },
     {
       "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-002-V2",
-      "capabilityDomain": "nerve-bus-capability",
-      "abilityGroupId": "nerve-bus",
-      "ownerManifestPath": "scripts/audit/domains/nerve-bus-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-003-V2",
-      "capabilityDomain": "nerve-bus-capability",
-      "abilityGroupId": "nerve-bus",
-      "ownerManifestPath": "scripts/audit/domains/nerve-bus-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-004-V2",
-      "capabilityDomain": "nerve-bus-capability",
-      "abilityGroupId": "nerve-bus",
-      "ownerManifestPath": "scripts/audit/domains/nerve-bus-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-005-V2",
-      "capabilityDomain": "nerve-bus-capability",
-      "abilityGroupId": "nerve-bus",
-      "ownerManifestPath": "scripts/audit/domains/nerve-bus-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-006-V2",
-      "capabilityDomain": "nerve-bus-capability",
-      "abilityGroupId": "nerve-bus",
-      "ownerManifestPath": "scripts/audit/domains/nerve-bus-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-007-V2",
-      "capabilityDomain": "nerve-bus-capability",
-      "abilityGroupId": "nerve-bus",
-      "ownerManifestPath": "scripts/audit/domains/nerve-bus-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-008-V2",
-      "capabilityDomain": "nerve-bus-capability",
-      "abilityGroupId": "nerve-bus",
-      "ownerManifestPath": "scripts/audit/domains/nerve-bus-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-009-V2",
-      "capabilityDomain": "nerve-bus-capability",
-      "abilityGroupId": "nerve-bus",
-      "ownerManifestPath": "scripts/audit/domains/nerve-bus-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-010-V2",
       "capabilityDomain": "nerve-bus-capability",
       "abilityGroupId": "nerve-bus",
       "ownerManifestPath": "scripts/audit/domains/nerve-bus-capability/manifest.json",
@@ -1439,140 +603,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-003-V2",
-      "capabilityDomain": "open-capability",
-      "abilityGroupId": "open",
-      "ownerManifestPath": "scripts/audit/domains/open-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/open-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-004-V2",
-      "capabilityDomain": "open-capability",
-      "abilityGroupId": "open",
-      "ownerManifestPath": "scripts/audit/domains/open-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/open-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-005-V2",
-      "capabilityDomain": "open-capability",
-      "abilityGroupId": "open",
-      "ownerManifestPath": "scripts/audit/domains/open-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/open-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-006-V2",
-      "capabilityDomain": "open-capability",
-      "abilityGroupId": "open",
-      "ownerManifestPath": "scripts/audit/domains/open-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/open-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-007-V2",
-      "capabilityDomain": "open-capability",
-      "abilityGroupId": "open",
-      "ownerManifestPath": "scripts/audit/domains/open-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/open-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-009-V1",
-      "capabilityDomain": "open-capability",
-      "abilityGroupId": "open",
-      "ownerManifestPath": "scripts/audit/domains/open-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/open-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-OPEN-CAPABILITY-008-V2",
-      "capabilityDomain": "open-capability",
-      "abilityGroupId": "open",
-      "ownerManifestPath": "scripts/audit/domains/open-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/open-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V3",
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V4",
       "capabilityDomain": "orchestration-capability",
       "abilityGroupId": "orchestration",
       "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
@@ -1591,7 +622,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V3",
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V4",
       "capabilityDomain": "orchestration-capability",
       "abilityGroupId": "orchestration",
       "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
@@ -1610,7 +641,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V3",
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V4",
       "capabilityDomain": "orchestration-capability",
       "abilityGroupId": "orchestration",
       "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
@@ -1629,7 +660,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-004-V3",
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-004-V4",
       "capabilityDomain": "orchestration-capability",
       "abilityGroupId": "orchestration",
       "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
@@ -1648,7 +679,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3",
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V4",
       "capabilityDomain": "orchestration-capability",
       "abilityGroupId": "orchestration",
       "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
@@ -1667,7 +698,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V3",
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V4",
       "capabilityDomain": "orchestration-capability",
       "abilityGroupId": "orchestration",
       "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
@@ -1686,102 +717,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-007-V3",
-      "capabilityDomain": "orchestration-capability",
-      "abilityGroupId": "orchestration",
-      "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/orchestration-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-008-V3",
-      "capabilityDomain": "orchestration-capability",
-      "abilityGroupId": "orchestration",
-      "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/orchestration-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-009-V3",
-      "capabilityDomain": "orchestration-capability",
-      "abilityGroupId": "orchestration",
-      "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/orchestration-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-010-V3",
-      "capabilityDomain": "orchestration-capability",
-      "abilityGroupId": "orchestration",
-      "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/orchestration-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-011-V1",
-      "capabilityDomain": "orchestration-capability",
-      "abilityGroupId": "orchestration",
-      "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/orchestration-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-001-V2",
+      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-001-V3",
       "capabilityDomain": "page-state-capability",
       "abilityGroupId": "page-state",
       "ownerManifestPath": "scripts/audit/domains/page-state-capability/manifest.json",
@@ -1800,144 +736,11 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V2",
+      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V3",
       "capabilityDomain": "page-state-capability",
       "abilityGroupId": "page-state",
       "ownerManifestPath": "scripts/audit/domains/page-state-capability/manifest.json",
       "ownerInspectorEntry": "scripts/audit/domains/page-state-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2",
-      "capabilityDomain": "page-state-capability",
-      "abilityGroupId": "page-state",
-      "ownerManifestPath": "scripts/audit/domains/page-state-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/page-state-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-004-V2",
-      "capabilityDomain": "page-state-capability",
-      "abilityGroupId": "page-state",
-      "ownerManifestPath": "scripts/audit/domains/page-state-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/page-state-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2",
-      "capabilityDomain": "page-state-capability",
-      "abilityGroupId": "page-state",
-      "ownerManifestPath": "scripts/audit/domains/page-state-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/page-state-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2",
-      "capabilityDomain": "page-state-capability",
-      "abilityGroupId": "page-state",
-      "ownerManifestPath": "scripts/audit/domains/page-state-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/page-state-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-007-V2",
-      "capabilityDomain": "page-state-capability",
-      "abilityGroupId": "page-state",
-      "ownerManifestPath": "scripts/audit/domains/page-state-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/page-state-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2",
-      "capabilityDomain": "page-state-capability",
-      "abilityGroupId": "page-state",
-      "ownerManifestPath": "scripts/audit/domains/page-state-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/page-state-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-RESULT-CONTRACT-V1",
-      "capabilityDomain": "post-action-verification-capability",
-      "abilityGroupId": "post-action-verification",
-      "ownerManifestPath": "scripts/audit/domains/post-action-verification-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
       "coverageStatus": "NOT_COVERED",
       "matrixMapped": true,
       "auditPlanMapped": true,
@@ -1972,120 +775,6 @@
     },
     {
       "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2",
-      "capabilityDomain": "post-action-verification-capability",
-      "abilityGroupId": "post-action-verification",
-      "ownerManifestPath": "scripts/audit/domains/post-action-verification-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-003-V2",
-      "capabilityDomain": "post-action-verification-capability",
-      "abilityGroupId": "post-action-verification",
-      "ownerManifestPath": "scripts/audit/domains/post-action-verification-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-004-V2",
-      "capabilityDomain": "post-action-verification-capability",
-      "abilityGroupId": "post-action-verification",
-      "ownerManifestPath": "scripts/audit/domains/post-action-verification-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-005-V2",
-      "capabilityDomain": "post-action-verification-capability",
-      "abilityGroupId": "post-action-verification",
-      "ownerManifestPath": "scripts/audit/domains/post-action-verification-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-006-V2",
-      "capabilityDomain": "post-action-verification-capability",
-      "abilityGroupId": "post-action-verification",
-      "ownerManifestPath": "scripts/audit/domains/post-action-verification-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-007-V2",
-      "capabilityDomain": "post-action-verification-capability",
-      "abilityGroupId": "post-action-verification",
-      "ownerManifestPath": "scripts/audit/domains/post-action-verification-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-008-V2",
       "capabilityDomain": "post-action-verification-capability",
       "abilityGroupId": "post-action-verification",
       "ownerManifestPath": "scripts/audit/domains/post-action-verification-capability/manifest.json",
@@ -2142,11 +831,11 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-003-V2",
-      "capabilityDomain": "screenshot-capability",
-      "abilityGroupId": "screenshot",
-      "ownerManifestPath": "scripts/audit/domains/screenshot-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/screenshot-capability/inspector.ts",
+      "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-001-V2",
+      "capabilityDomain": "commander-console-capability",
+      "abilityGroupId": "commander-console",
+      "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/commander-console-capability/inspector.ts",
       "coverageStatus": "NOT_COVERED",
       "matrixMapped": true,
       "auditPlanMapped": true,
@@ -2161,11 +850,11 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-004-V2",
-      "capabilityDomain": "screenshot-capability",
-      "abilityGroupId": "screenshot",
-      "ownerManifestPath": "scripts/audit/domains/screenshot-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/screenshot-capability/inspector.ts",
+      "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-002-V2",
+      "capabilityDomain": "commander-console-capability",
+      "abilityGroupId": "commander-console",
+      "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/commander-console-capability/inspector.ts",
       "coverageStatus": "NOT_COVERED",
       "matrixMapped": true,
       "auditPlanMapped": true,
@@ -2180,11 +869,11 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-005-V2",
-      "capabilityDomain": "screenshot-capability",
-      "abilityGroupId": "screenshot",
-      "ownerManifestPath": "scripts/audit/domains/screenshot-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/screenshot-capability/inspector.ts",
+      "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-003-V2",
+      "capabilityDomain": "commander-console-capability",
+      "abilityGroupId": "commander-console",
+      "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/commander-console-capability/inspector.ts",
       "coverageStatus": "NOT_COVERED",
       "matrixMapped": true,
       "auditPlanMapped": true,
@@ -2199,83 +888,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-006-V2",
-      "capabilityDomain": "screenshot-capability",
-      "abilityGroupId": "screenshot",
-      "ownerManifestPath": "scripts/audit/domains/screenshot-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/screenshot-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-007-V2",
-      "capabilityDomain": "screenshot-capability",
-      "abilityGroupId": "screenshot",
-      "ownerManifestPath": "scripts/audit/domains/screenshot-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/screenshot-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-008-V2",
-      "capabilityDomain": "screenshot-capability",
-      "abilityGroupId": "screenshot",
-      "ownerManifestPath": "scripts/audit/domains/screenshot-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/screenshot-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-ARTIFACT-LIFECYCLE-V1",
-      "capabilityDomain": "screenshot-capability",
-      "abilityGroupId": "screenshot",
-      "ownerManifestPath": "scripts/audit/domains/screenshot-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/screenshot-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-005-V1",
+      "lawId": "GRASSEYE-STARTUP-ENTRYPOINT-004-V2",
       "capabilityDomain": "commander-console-capability",
       "abilityGroupId": "commander-console",
       "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
@@ -2332,158 +945,6 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-003-V2",
-      "capabilityDomain": "text-input-capability",
-      "abilityGroupId": "text-input",
-      "ownerManifestPath": "scripts/audit/domains/text-input-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/text-input-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-004-V2",
-      "capabilityDomain": "text-input-capability",
-      "abilityGroupId": "text-input",
-      "ownerManifestPath": "scripts/audit/domains/text-input-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/text-input-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-005-V2",
-      "capabilityDomain": "text-input-capability",
-      "abilityGroupId": "text-input",
-      "ownerManifestPath": "scripts/audit/domains/text-input-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/text-input-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-006-V2",
-      "capabilityDomain": "text-input-capability",
-      "abilityGroupId": "text-input",
-      "ownerManifestPath": "scripts/audit/domains/text-input-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/text-input-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-007-V2",
-      "capabilityDomain": "text-input-capability",
-      "abilityGroupId": "text-input",
-      "ownerManifestPath": "scripts/audit/domains/text-input-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/text-input-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-008-V2",
-      "capabilityDomain": "text-input-capability",
-      "abilityGroupId": "text-input",
-      "ownerManifestPath": "scripts/audit/domains/text-input-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/text-input-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-009-V2",
-      "capabilityDomain": "text-input-capability",
-      "abilityGroupId": "text-input",
-      "ownerManifestPath": "scripts/audit/domains/text-input-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/text-input-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-RESULT-CONTRACT-V1",
-      "capabilityDomain": "visual-target-capability",
-      "abilityGroupId": "visual-target",
-      "ownerManifestPath": "scripts/audit/domains/visual-target-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/visual-target-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2",
       "capabilityDomain": "visual-target-capability",
       "abilityGroupId": "visual-target",
@@ -2504,120 +965,6 @@
     },
     {
       "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V2",
-      "capabilityDomain": "visual-target-capability",
-      "abilityGroupId": "visual-target",
-      "ownerManifestPath": "scripts/audit/domains/visual-target-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/visual-target-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V2",
-      "capabilityDomain": "visual-target-capability",
-      "abilityGroupId": "visual-target",
-      "ownerManifestPath": "scripts/audit/domains/visual-target-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/visual-target-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-004-V2",
-      "capabilityDomain": "visual-target-capability",
-      "abilityGroupId": "visual-target",
-      "ownerManifestPath": "scripts/audit/domains/visual-target-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/visual-target-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-005-V2",
-      "capabilityDomain": "visual-target-capability",
-      "abilityGroupId": "visual-target",
-      "ownerManifestPath": "scripts/audit/domains/visual-target-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/visual-target-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-006-V2",
-      "capabilityDomain": "visual-target-capability",
-      "abilityGroupId": "visual-target",
-      "ownerManifestPath": "scripts/audit/domains/visual-target-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/visual-target-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-007-V2",
-      "capabilityDomain": "visual-target-capability",
-      "abilityGroupId": "visual-target",
-      "ownerManifestPath": "scripts/audit/domains/visual-target-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/visual-target-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-008-V2",
       "capabilityDomain": "visual-target-capability",
       "abilityGroupId": "visual-target",
       "ownerManifestPath": "scripts/audit/domains/visual-target-capability/manifest.json",

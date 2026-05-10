@@ -1,6 +1,21 @@
-import { getDevelopmentMapPluginRegistry } from "../../../map-plugins/registry/map-plugin-registry.js";
-import { createRegistryBackedMapStore } from "./orchestration-map-store.js";
+import type { OrchestrationMapStorePort } from "../ports/orchestration-map-store-port.js";
 
-export function createDefaultOrchestrationMapStore() {
-  return createRegistryBackedMapStore(getDevelopmentMapPluginRegistry());
+export function createDefaultOrchestrationMapStore(): OrchestrationMapStorePort {
+  return {
+    async getMap() {
+      return null;
+    },
+    async getActiveMapRecord() {
+      return null;
+    },
+    async getActiveMapRecordByTaskTemplateId() {
+      return null;
+    },
+    async getActiveMapRecordByActivationId() {
+      return null;
+    },
+    async listMaps() {
+      return [];
+    },
+  };
 }

@@ -7,8 +7,9 @@ import {
 } from "./multi-frame-evidence.js";
 import {
   VisualMissionActionPlanSchema,
-  VisualMissionPageStateDecisionSchema,
 } from "../muscle-memory/decoder/action-plan.schema.js";
+
+const VisualMissionPageStateDecisionSchema = z.string().min(1);
 
 const VisionProductPresenceMissingFrameSchema = z.object({
   frameLabel: VideoFrameSamplePointLabelSchema,

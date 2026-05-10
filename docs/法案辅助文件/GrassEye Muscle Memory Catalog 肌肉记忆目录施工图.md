@@ -10,6 +10,17 @@
 Owner boundary: capability-group-governance
 Runtime consumers: ai-capability, orchestration-capability
 
+## Retired Vocabulary Table
+
+| 抽象词 | 实际禁止字段 |
+| --- | --- |
+| retired branch-token field | routeLabel |
+| legacy route-plan field | routePlanId |
+| retired selection field | selectedMapId / selectedMapVersion |
+| retired binding field | activationId / activationSnapshotRef |
+| retired package chain | mapPackageId / mapPackageVersion / map-plugin-package |
+| retired template flow | taskTemplateId / taskTemplate |
+
 ## 目录结构
 
 - single actionCode registry
@@ -45,3 +56,11 @@ AI 只能输出 actionCode。
 AI 不得输出 retired branch-token field。
 AI 不得输出原始 x/y。
 Scheduler 只执行解码后的受治理动作。
+
+## 强度与执行边界
+
+- 每个 actionCode 都必须绑定到一个受治理的强 child capability，或绑定到只由强 child capability 组成的 composite expansion。
+- AI 可直接选择的 actionCode 必须至少绑定到 Level 4 child capability strength。
+- CLICK_CELL 必须先被解码成受治理几何输入，并经过 Geometry Guard 批准后，Mouse Click 才能执行。
+- Mouse Click 不得自行解析 gridCell 或重算坐标。
+- CAPTURE_SCREEN 与 PREPARE_VISUAL_MISSION_INPUT 可以作为系统前置动作保留，不要求在每一轮都向 AI 自由开放。

@@ -6,6 +6,17 @@
 - 目标：把运行主权从 retired package chain / retired deterministic flow / retired branch-token field 切到 visual mission context + AI action plan
 - 口径：Orchestration 只负责 mission flow、loop guard、dispatch order、finalize
 
+## Retired Vocabulary Table
+
+| 抽象词 | 实际禁止字段 |
+| --- | --- |
+| retired branch-token field | routeLabel |
+| legacy route-plan field | routePlanId |
+| retired selection field | selectedMapId / selectedMapVersion |
+| retired binding field | activationId / activationSnapshotRef |
+| retired package chain | mapPackageId / mapPackageVersion / map-plugin-package |
+| retired template flow | taskTemplateId / taskTemplate |
+
 ## 新主链
 
 ```txt
@@ -56,6 +67,12 @@ outputSchemaRef when applicable
 selectedPlatforms
 status
 ```
+
+## 执行阶段语义
+
+- currentStepId / previousStepId 只表示 visual mission round 内部执行阶段，不得对应 retired packaged step。
+- branchTaken 如果存在，只能来自声明过的 decision / riskFlags / actions 字段，不得来自 routeLabel 或其他 retired branch token。
+- step state 是调度元数据，不是 retired declarative flow package 的回流主权。
 
 禁止字段：
 

@@ -10,6 +10,17 @@
 Owner boundary: open-capability
 Consumers: commander-console-capability, ai-capability, orchestration-capability
 
+## Retired Vocabulary Table
+
+| 抽象词 | 实际禁止字段 |
+| --- | --- |
+| retired branch-token field | routeLabel |
+| legacy route-plan field | routePlanId |
+| retired selection field | selectedMapId / selectedMapVersion |
+| retired binding field | activationId / activationSnapshotRef |
+| retired package chain | mapPackageId / mapPackageVersion / map-plugin-package |
+| retired template flow | taskTemplateId / taskTemplate |
+
 ## PlatformProfile
 
 ```ts
@@ -31,6 +42,13 @@ PlatformRegistry 只保存环境资料：
 - targetTitle
 - allowedHosts
 - supportedActionCodes
+
+supportedActionCodes is an allowlist hint only.
+It is not a route.
+It is not a recipe.
+It is not an action chain.
+It is not an execution plan.
+MuscleMemoryCatalog remains the only actionCode authority.
 
 PlatformRegistry 禁止保存：
 - legacy route-plan field

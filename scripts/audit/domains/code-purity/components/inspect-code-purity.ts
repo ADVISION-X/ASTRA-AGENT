@@ -9,9 +9,7 @@ import { CODE_PURITY_LAW_IDS, LAW_PHASE_SUMMARIES } from "./purity-law-phase-dat
 import { ACTIVE_FILES, ACTIVE_ROOTS, BLUEPRINT_PATH, CODE_PURITY_SCAN_EXTENSIONS, CODE_PURITY_SCAN_SCOPE } from "./purity-runtime-constants.js";
 import { createEmptyPurityReport, inspectPurityMetrics } from "./purity-metric-inspection.js";
 import { finalizePurityReport, writePurityReport } from "./purity-report.js";
-import { inspectRetiredMapSystem } from "./scan-retired-map-system.js";
-import { inspectVisualStoryCoherence } from "./scan-visual-story-coherence.js";
-import { inspectZombieScan } from "./zombie-scan/index.js";
+import { inspectSecondaryCodePurityScans } from "./inspect-code-purity-secondary-scans.js";
 
 const REQUIRED_COMPONENT_EXPORTS = [
   {
@@ -227,14 +225,14 @@ export const inspectCodePurity = async (context: InspectorContext): Promise<{ fi
     };
   }
 
+  const sourceFilesByPath = collectSourceFileMap(project, relativePaths);
+
   const findings = [
     ...inspectSourcePaths(project, relativePaths, touchedPaths, reportDraft),
     ...inspectRequiredComponentExports(project),
     ...inspectCodePurityLawCoverage(context),
     ...(await inspectReportOutputs(reportDraft)),
-    ...(await inspectRetiredMapSystem(relativePaths, collectSourceFileMap(project, relativePaths))),
-    ...(await inspectVisualStoryCoherence(relativePaths, collectSourceFileMap(project, relativePaths))),
-    ...(await inspectZombieScan(context.repoRoot, relativePaths)),
+    ...(await inspectSecondaryCodePurityScans(context, { repoRoot: context.repoRoot, relativePaths, sourceFilesByPath })),
   ];
 
   debug(`findings=${findings.length}`);

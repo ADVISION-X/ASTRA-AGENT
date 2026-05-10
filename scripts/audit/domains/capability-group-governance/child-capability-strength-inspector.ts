@@ -7,22 +7,19 @@ const LAW_STRUCTURE = "GRASSEYE-CAPABILITY-GROUP-002-V1";
 const LAW_DISPATCH = "GRASSEYE-CAPABILITY-GROUP-003-V1";
 const LAW_EVIDENCE = "GRASSEYE-CAPABILITY-GROUP-005-V1";
 const CLICK_CELL_ACTION_CODE = "CLICK_CELL";
+const IMPLEMENTATION_REASONS = new Set(["CHILD_HAS_NO_IMPLEMENTATION", "CHILD_HAS_NO_EXECUTE", "CHILD_RETURNS_FAKE_SUCCESS", "CHILD_PUBLIC_EXECUTE_THROWS"]);
+const CATALOG_REASONS = new Set(["AI_ACTION_WITHOUT_CHILD_PATH", "AI_ACTION_WITHOUT_NERVE_BUS_PATH"]);
 
 const resolveFindingFile = (entry: ChildCapabilityStrengthEntry, reason: string): string => {
-  switch (reason) {
-    case "CHILD_NOT_IN_SCHEMA_UNION":
-      return `src/capabilities/${entry.abilityGroupId}/schema.ts`;
-    case "CHILD_HAS_NO_IMPLEMENTATION":
-    case "CHILD_HAS_NO_EXECUTE":
-    case "CHILD_RETURNS_FAKE_SUCCESS":
-    case "CHILD_PUBLIC_EXECUTE_THROWS":
-      return `src/capabilities/${entry.abilityGroupId}/children/${entry.childCapabilityId}/implementation.ts`;
-    case "AI_ACTION_WITHOUT_CHILD_PATH":
-    case "AI_ACTION_WITHOUT_NERVE_BUS_PATH":
-      return "src/muscle-memory/catalog/muscle-memory-catalog.generated.json";
-    default:
-      return `src/capabilities/${entry.abilityGroupId}/registry.ts`;
+  if (reason === "CHILD_NOT_IN_SCHEMA_UNION") {
+    return `src/capabilities/${entry.abilityGroupId}/schema.ts`;
   }
+  if (IMPLEMENTATION_REASONS.has(reason)) {
+    return `src/capabilities/${entry.abilityGroupId}/children/${entry.childCapabilityId}/implementation.ts`;
+  }
+  return CATALOG_REASONS.has(reason)
+    ? "src/muscle-memory/catalog/muscle-memory-catalog.generated.json"
+    : `src/capabilities/${entry.abilityGroupId}/registry.ts`;
 };
 
 const buildFindingForReason = (entry: ChildCapabilityStrengthEntry, reason: string): Finding => {

@@ -11,6 +11,17 @@ Prompt owner: ai-capability
 Runtime consumers: commander-console-capability, orchestration-capability
 Retired systems: retired package chain, retired template flow, retired deterministic flow planning, retired branch-token field
 
+## Retired Vocabulary Table
+
+| 抽象词 | 实际禁止字段 |
+| --- | --- |
+| retired branch-token field | routeLabel |
+| legacy route-plan field | routePlanId |
+| retired selection field | selectedMapId / selectedMapVersion |
+| retired binding field | activationId / activationSnapshotRef |
+| retired package chain | mapPackageId / mapPackageVersion / map-plugin-package |
+| retired template flow | taskTemplateId / taskTemplate |
+
 ## 主权链
 
 APP Start Page
@@ -59,6 +70,8 @@ AI 禁止输出：
 - legacy route-plan field
 - legacy template field
 - retired selection field
+- abilityGroupId
+- childCapabilityId
 - nextIntent
 - suggestedNextAction
 - raw x/y

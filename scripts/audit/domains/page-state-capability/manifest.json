@@ -8,14 +8,8 @@
     "law+blueprint+real-code-inspection"
   ],
   "allowedLawIds": [
-    "GRASSEYE-PAGE-STATE-CAPABILITY-001-V2",
-    "GRASSEYE-PAGE-STATE-CAPABILITY-002-V2",
-    "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2",
-    "GRASSEYE-PAGE-STATE-CAPABILITY-004-V2",
-    "GRASSEYE-PAGE-STATE-CAPABILITY-005-V2",
-    "GRASSEYE-PAGE-STATE-CAPABILITY-006-V2",
-    "GRASSEYE-PAGE-STATE-CAPABILITY-007-V2",
-    "GRASSEYE-PAGE-STATE-CAPABILITY-008-V2"
+    "GRASSEYE-PAGE-STATE-CAPABILITY-001-V3",
+    "GRASSEYE-PAGE-STATE-CAPABILITY-002-V3"
   ],
   "readsLawFiles": [
     ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md"

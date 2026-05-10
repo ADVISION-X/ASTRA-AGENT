@@ -1,6 +1,5 @@
 import type { MissionState, OperationalMap } from "../contract.js";
 import { findAiPromptContractCatalogEntry } from "../../ai/index.js";
-import { getDefaultMapPluginRegistry } from "./orchestration-map-id-list.js";
 import type { AiStep } from "./step-dispatch-shared.js";
 
 type AiDispatchRequirements = {
@@ -10,9 +9,6 @@ type AiDispatchRequirements = {
   aiInputRefs: string[];
   providerPolicyRef: string;
 };
-
-const PRODUCT_PRESENCE_PROMPT_CONTRACT_ID = "visual-mission-judge.v1";
-const WEAK_PRODUCT_PRESENCE_BINDING_INPUT_REFS = ["promptInputRef"] as const;
 
 const resolvePayloadRefValue = (payloadRefs: MissionState["payloadRefs"], key: string): string | null => {
   const payloadKey = key as keyof MissionState["payloadRefs"];
@@ -24,20 +20,7 @@ const buildAiInputRefsForStep = (input: {
   state: MissionState;
   step: AiStep;
   aiInputRefs: string[];
-}) => {
-  if (input.step.promptContractId !== "vision.nextItemAdvanced.v1") {
-    return Array.from(new Set(input.aiInputRefs));
-  }
-
-  const previousPromptInputRef = resolvePayloadRefValue(input.state.payloadRefs, "previousPromptInputRef");
-  const nextItemVerificationPromptInputRef = resolvePayloadRefValue(input.state.payloadRefs, "nextItemVerificationPromptInputRef");
-
-  return Array.from(new Set([
-    previousPromptInputRef,
-    nextItemVerificationPromptInputRef,
-    ...input.aiInputRefs,
-  ].filter((value): value is string => typeof value === "string" && value.length > 0)));
-};
+}) => Array.from(new Set(input.aiInputRefs));
 
 const resolvePromptContractForAiStep = (step: AiStep) => {
   if (!step.promptContractId) {
@@ -49,46 +32,18 @@ const resolvePromptContractForAiStep = (step: AiStep) => {
     : { ok: false as const, failureReason: `AI step "${step.stepId}" prompt_contract_resolution_failed for ${step.promptContractId}.` };
 };
 
-const shouldPreferRoutePlanInputRefs = (step: AiStep, requiredInputRefs: string[]) => (
-  step.promptContractId === PRODUCT_PRESENCE_PROMPT_CONTRACT_ID
-  && step.inputRefs.length > 0
-  && requiredInputRefs.length === WEAK_PRODUCT_PRESENCE_BINDING_INPUT_REFS.length
-  && WEAK_PRODUCT_PRESENCE_BINDING_INPUT_REFS.every((ref, index) => requiredInputRefs[index] === ref)
-);
-
-const resolveBindingRequiredInputRefs = (step: AiStep, requiredInputRefs: string[]) => (
-  shouldPreferRoutePlanInputRefs(step, requiredInputRefs)
-    ? step.inputRefs
-    : requiredInputRefs
-);
-
 const resolveAiPromptBinding = (input: {
-  registration: NonNullable<ReturnType<ReturnType<typeof getDefaultMapPluginRegistry>["active"]["getRegistration"]>>;
   step: AiStep;
   outputSchemaRef: string;
-}) => {
-  const binding = input.registration.mapPackage.promptBindings.bindings.find((candidate) => candidate.stepId === input.step.stepId);
-  if (!binding) {
-    return {
-      ok: true as const,
-      binding: {
-        stepId: input.step.stepId,
-        promptContractId: input.step.promptContractId,
-        requiredInputRefs: input.step.inputRefs,
-        outputSchemaRef: input.outputSchemaRef,
-      },
-    };
-  }
-  return binding.outputSchemaRef === input.outputSchemaRef
-    ? {
-      ok: true as const,
-      binding: {
-        ...binding,
-        requiredInputRefs: resolveBindingRequiredInputRefs(input.step, binding.requiredInputRefs),
-      },
-    }
-    : { ok: false as const, failureReason: `AI step "${input.step.stepId}" prompt contract output schema mismatch.` };
-};
+}) => ({
+  ok: true as const,
+  binding: {
+    stepId: input.step.stepId,
+    promptContractId: input.step.promptContractId,
+    requiredInputRefs: input.step.inputRefs,
+    outputSchemaRef: input.outputSchemaRef,
+  },
+});
 
 const resolveRequiredAiInputRefs = (input: {
   state: MissionState;
@@ -119,16 +74,11 @@ const buildAiDispatchRequirements = (input: {
 });
 
 const resolveAiStepContractBinding = (input: { map: OperationalMap; step: AiStep }) => {
-  const registration = getDefaultMapPluginRegistry().active.getRegistration(input.map.mapId);
-  if (!registration) {
-    return { ok: false as const, failureReason: `AI step "${input.step.stepId}" has no active map registration.` };
-  }
   const promptContractResult = resolvePromptContractForAiStep(input.step);
   if (!promptContractResult.ok) {
     return promptContractResult;
   }
   const bindingResult = resolveAiPromptBinding({
-    registration,
     step: input.step,
     outputSchemaRef: promptContractResult.promptContract.outputSchemaRef,
   });

@@ -1,4 +1,4 @@
-import { Project } from "ts-morph";
+import { Project, type SourceFile } from "ts-morph";
 
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { collectTouchedFilesArtifact } from "../../core/touched-files-collector.js";
@@ -88,7 +88,7 @@ const main = async (): Promise<void> => {
     }
   }
 
-  const sourceFilesByPath = new Map<string, ReturnType<Project["addSourceFileAtPathIfExists"]>>();
+  const sourceFilesByPath = new Map<string, SourceFile>();
   for (const relativePath of relativePaths) {
     const sourceFile = project.addSourceFileAtPathIfExists(pathFromRepoRoot(relativePath));
     if (sourceFile) {

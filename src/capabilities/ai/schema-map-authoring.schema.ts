@@ -1,7 +1,6 @@
 import { z } from "zod";
 
-import { MapAuthoringAiOutputSchema } from "../../map-plugins/authoring/map-authoring-ai-output.schema.js";
-import { MapAuthoringInputPackageSchema } from "../../map-plugins/authoring/map-authoring-input-package.schema.js";
+import { MapAuthoringAiOutputSchema, MapAuthoringInputPackageSchema } from "./shared/ai-map-authoring-schemas.js";
 import { AiBaseInputSchema } from "./schema-foundation.schema.js";
 
 const AiMapAuthoringOutputSchema = MapAuthoringAiOutputSchema;

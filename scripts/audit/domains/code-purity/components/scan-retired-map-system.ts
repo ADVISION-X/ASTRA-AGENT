@@ -111,7 +111,7 @@ const createRetiredMapFinding = (input: {
   line: input.line,
   severity: "fatal",
   message: input.message,
-  detail: input.detail,
+  ...(input.detail ? { detail: input.detail } : {}),
   zombieKind: "retired-map-system-reference",
   recommendedAction: input.recommendedAction,
 });

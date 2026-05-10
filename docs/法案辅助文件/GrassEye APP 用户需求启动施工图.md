@@ -10,6 +10,17 @@
 Owner boundary: commander-console-capability
 Forbidden startup owners: retired package chain, retired template flow, retired deterministic flow planning, retired branch-token field
 
+## Retired Vocabulary Table
+
+| 抽象词 | 实际禁止字段 |
+| --- | --- |
+| retired branch-token field | routeLabel |
+| legacy route-plan field | routePlanId |
+| retired selection field | selectedMapId / selectedMapVersion |
+| retired binding field | activationId / activationSnapshotRef |
+| retired package chain | mapPackageId / mapPackageVersion / map-plugin-package |
+| retired template flow | taskTemplateId / taskTemplate |
+
 ## 允许输入
 
 APP 启动页只允许以下字段：
