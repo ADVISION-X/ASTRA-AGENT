@@ -26,6 +26,7 @@ const TEXT_INPUT_ALLOWED_KEYS = new Set<TextInputKey | TextInputCommitKey>([
   "Escape",
   "Backspace",
   "Delete",
+  "L",
   "ArrowUp",
   "ArrowDown",
   "ArrowLeft",

@@ -39,6 +39,12 @@ type TextInputExecutionPort = {
   execute(input: TextInputExecutionRequest): Promise<TextInputExecutionResult>;
 };
 
+type NavigationFocusProof = {
+  focusAttempted: boolean;
+  pageClickAttempted: boolean;
+  focusClickRef: string | null;
+};
+
 function hashText(text: string): string {
   return `sha256:${createHash("sha256").update(text).digest("hex")}`;
 }
@@ -61,14 +67,27 @@ function buildFailureReason(message: string): "primitive_timeout" | "primitive_a
   return "primitive_failed";
 }
 
-function buildSuccessResult(value: TextInputExecutionRequest, result: Awaited<ReturnType<BrowserController["textInput"]>>, startedAt: string): TextInputExecutionResult {
+function buildNavigationProofMessage(value: TextInputExecutionRequest, message: string, focusProof: NavigationFocusProof | null): string {
+  if (value.childCapabilityId !== "press-navigation-key") {
+    return message;
+  }
+
+  return `${message}; focusAttempted=${focusProof?.focusAttempted === true}; pageClickAttempted=${focusProof?.pageClickAttempted === true}; key=${value.key ?? "none"}; keyPressAttempted=true`;
+}
+
+function buildSuccessResult(
+  value: TextInputExecutionRequest,
+  result: Awaited<ReturnType<BrowserController["textInput"]>>,
+  startedAt: string,
+  focusProof: NavigationFocusProof | null,
+): TextInputExecutionResult {
   return {
     ok: result.ok,
     primitiveExecutionRef: result.browserActionId ?? createExecutionRef("text_input_primitive"),
     operationRef: createExecutionRef("text_input_operation"),
     typedTextHash: hashOptionalText(value.inputText),
     keySequenceHash: value.key === null ? null : hashText(String(value.key)),
-    message: result.message,
+    message: buildNavigationProofMessage(value, result.message, focusProof),
     startedAt,
     endedAt: new Date().toISOString(),
     portKind: "browser-controller",
@@ -76,7 +95,12 @@ function buildSuccessResult(value: TextInputExecutionRequest, result: Awaited<Re
   };
 }
 
-function buildFailureResult(value: TextInputExecutionRequest, startedAt: string, error: unknown): TextInputExecutionResult {
+function buildFailureResult(
+  value: TextInputExecutionRequest,
+  startedAt: string,
+  error: unknown,
+  focusProof: NavigationFocusProof | null = null,
+): TextInputExecutionResult {
   const message = error instanceof Error ? error.message : "text input primitive failed";
   return {
     ok: false,
@@ -84,7 +108,7 @@ function buildFailureResult(value: TextInputExecutionRequest, startedAt: string,
     operationRef: createExecutionRef("text_input_operation"),
     typedTextHash: hashOptionalText(value.inputText),
     keySequenceHash: value.key === null ? null : hashText(String(value.key)),
-    message,
+    message: buildNavigationProofMessage(value, message, focusProof),
     startedAt,
     endedAt: new Date().toISOString(),
     portKind: "browser-controller",
@@ -94,6 +118,43 @@ function buildFailureResult(value: TextInputExecutionRequest, startedAt: string,
 
 function resolveBrowserTextInputAction(childCapabilityId: TextInputExecutionRequest["childCapabilityId"]): BrowserTextInputAction {
   return childCapabilityId === "press-navigation-key" ? "press-key" : childCapabilityId;
+}
+
+async function focusCurrentPageForNavigationKey(
+  browserController: BrowserController,
+  value: TextInputExecutionRequest,
+): Promise<NavigationFocusProof> {
+  if (value.childCapabilityId !== "press-navigation-key") {
+    return {
+      focusAttempted: false,
+      pageClickAttempted: false,
+      focusClickRef: null,
+    };
+  }
+
+  const geometry = await browserController.getGeometrySnapshot();
+  const centerPoint = {
+    x: Math.round(geometry.visibleContentBounds.x + (geometry.visibleContentBounds.width / 2)),
+    y: Math.round(geometry.visibleContentBounds.y + (geometry.visibleContentBounds.height / 2)),
+  };
+  const result = await browserController.click({
+    targetLabel: `${value.targetLabel}:focus-current-page`,
+    point: centerPoint,
+    coordinateSpace: "browserViewport",
+    button: "left",
+    clickCount: 1,
+    fallbackUsed: false,
+  });
+
+  if (!result.ok) {
+    throw new Error(`focus page click failed: ${result.message}`);
+  }
+
+  return {
+    focusAttempted: true,
+    pageClickAttempted: true,
+    focusClickRef: result.browserActionId,
+  };
 }
 
 type CreateBrowserControllerTextInputExecutionPortInput = {
@@ -121,16 +182,19 @@ export function createBrowserControllerTextInputExecutionPort(
       }
 
       const startedAt = new Date().toISOString();
-      return input.browserController.textInput({
-        targetLabel: value.targetLabel,
-        action: resolveBrowserTextInputAction(value.childCapabilityId),
-        text: value.inputText,
-        key: value.key,
-        fallbackUsed: false,
-        abortSignal: value.abortSignal,
-      }).then(
-        (result) => buildSuccessResult(value, result, startedAt),
-        (error) => buildFailureResult(value, startedAt, error),
+      return focusCurrentPageForNavigationKey(input.browserController, value).then(
+        (focusProof) => input.browserController.textInput({
+          targetLabel: value.targetLabel,
+          action: resolveBrowserTextInputAction(value.childCapabilityId),
+          text: value.inputText,
+          key: value.key,
+          fallbackUsed: false,
+          abortSignal: value.abortSignal,
+        }).then(
+          (result) => buildSuccessResult(value, result, startedAt, focusProof),
+          (error) => buildFailureResult(value, startedAt, error, focusProof),
+        ),
+        (error) => buildFailureResult(value, startedAt, error, null),
       );
     },
   };

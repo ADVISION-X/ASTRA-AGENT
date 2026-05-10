@@ -144,6 +144,30 @@ const collectPromptBindingFindings = (record: BuiltinPackageRecord): Finding[] =
 const hasRefs = (actual: readonly string[] | undefined, expected: readonly string[]): boolean =>
   expected.every((ref) => actual?.includes(ref) === true);
 
+const storesRefs = (actual: readonly string[] | undefined, forbidden: readonly string[]): boolean =>
+  forbidden.some((ref) => actual?.includes(ref) === true);
+
+type RefCheckedStep = {
+  inputRefs: readonly string[];
+  outputRefPolicy: {
+    storeAs: readonly string[];
+  };
+};
+
+const collectStepTargetRefFailures = (
+  failures: string[],
+  stepId: string,
+  step: RefCheckedStep | undefined,
+  requiredInputRefs: readonly string[],
+): void => {
+  if (!hasRefs(step?.inputRefs, requiredInputRefs)) {
+    failures.push(`${stepId}.inputRefs`);
+  }
+  if (storesRefs(step?.outputRefPolicy.storeAs, PERSISTENT_TARGET_REFS)) {
+    failures.push(`${stepId}.outputRefPolicy.storeAs`);
+  }
+};
+
 const collectPersistentTargetRefFindings = (record: BuiltinPackageRecord, entryStepId: string): Finding[] => {
   const mapPackage = record.mapPackage;
   if (!mapPackage) {
@@ -157,21 +181,17 @@ const collectPersistentTargetRefFindings = (record: BuiltinPackageRecord, entryS
   if (!hasRefs(mapPackage.operationalMap.persistentPayloadRefs, PERSISTENT_TARGET_REFS)) {
     failures.push("operationalMap.persistentPayloadRefs");
   }
-  if (!hasRefs(entryStep?.inputRefs, PERSISTENT_TARGET_REFS)) {
-    failures.push(`${entryStepId}.inputRefs`);
-  }
+  collectStepTargetRefFailures(failures, entryStepId, entryStep, PERSISTENT_TARGET_REFS);
   for (const requirement of PRODUCT_PRESENCE_REF_REQUIREMENTS) {
     const routePlanStep = routePlan?.steps.find((step) => step.stepId === requirement.stepId);
-    if (!hasRefs(routePlanStep?.inputRefs, requirement.inputRefs)) {
-      failures.push(`${requirement.stepId}.inputRefs`);
-    }
+    collectStepTargetRefFailures(failures, requirement.stepId, routePlanStep, requirement.inputRefs);
   }
 
   return failures.length === 0
     ? []
     : [createLifecycleFinding(
       record,
-      "Seeding routePlanBoundMap must preserve targetUrl/targetTitle as persistent mission refs from the open entry spine into the product presence Route Plan chain.",
+      "Seeding routePlanBoundMap must preserve targetUrl/targetTitle as persistent mission refs from the open entry spine into the product presence Route Plan chain and must not fabricate them as step outputs.",
       failures.join(", "),
     )];
 };

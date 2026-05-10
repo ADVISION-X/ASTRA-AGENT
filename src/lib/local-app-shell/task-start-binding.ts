@@ -1,3 +1,4 @@
+import { resolveOpenTargetDefaults } from "../../capabilities/open/registry.js";
 import { getLocalAppShellMapRegistry } from "../../map-plugins/registry/local-app-shell-map-registry.js";
 
 type ActiveRegistry = ReturnType<typeof getLocalAppShellMapRegistry>["active"];
@@ -37,6 +38,8 @@ type MissionStartBindingSuccess = {
   requestedPlatformId: RequestedPlatformId;
   selectedMapId: string;
   targetProfileRef: string;
+  targetUrl: string;
+  targetTitle: string;
 };
 
 export type MissionStartBinding = MissionStartBindingFailure | MissionStartBindingSuccess;
@@ -45,10 +48,28 @@ const createBindingFailure = (failureReason: string, actionableMessage: string, 
   return { ok: false, failureReason, actionableMessage, nextAction };
 };
 
-const createBindingSuccess = (binding: TaskTemplateLaunchRecord | ActiveMapRecord, requestedPlatformId: RequestedPlatformId, selectedMapId: string): MissionStartBindingSuccess => {
+const resolveMissingTargetDefaults = (selectedMapId: string, targetProfileRef: string): MissionStartBindingFailure => (
+  createBindingFailure(
+    `selectedMapId=${selectedMapId} targetProfileRef=${targetProfileRef} cannot resolve governed target defaults before mission start.`,
+    "任务无法启动，因为激活地图的 targetProfileRef 不能解析出受治理 targetUrl/targetTitle；禁止把目标字段留空后再进入运行时。",
+    "修复该地图绑定的 Open target profile，使 start-mission 在派发前拿到显式 targetUrl 和 targetTitle。",
+  )
+);
+
+const createBindingSuccess = (
+  binding: TaskTemplateLaunchRecord | ActiveMapRecord,
+  requestedPlatformId: RequestedPlatformId,
+  selectedMapId: string,
+): MissionStartBinding => {
   if (!binding.targetProfileRef) {
     throw new Error(`Active launch record ${selectedMapId} is missing targetProfileRef after binding validation.`);
   }
+
+  const targetDefaults = resolveOpenTargetDefaults(binding.targetProfileRef);
+  if (!targetDefaults) {
+    return resolveMissingTargetDefaults(selectedMapId, binding.targetProfileRef);
+  }
+
   return {
     ok: true,
     taskTemplateId: binding.taskTemplateId,
@@ -56,7 +77,9 @@ const createBindingSuccess = (binding: TaskTemplateLaunchRecord | ActiveMapRecor
     activationSnapshotRef: binding.activationSnapshotRef,
     requestedPlatformId,
     selectedMapId,
-    targetProfileRef: binding.targetProfileRef,
+    targetProfileRef: targetDefaults.targetProfileRef,
+    targetUrl: targetDefaults.targetUrl,
+    targetTitle: targetDefaults.targetTitle,
   };
 };
 

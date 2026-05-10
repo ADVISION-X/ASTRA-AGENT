@@ -96,27 +96,73 @@ function validateTextInputDryRun(
     return [];
   }
 
-  return textInputSteps.flatMap(({ step: textInputStep, index: textInputStepIndex }) => {
-    const hasInputTarget = hasPrecedingStep(steps, textInputStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "visual-target") || isTargetAbilityGroup(step.targetAbilityGroupId, "page-state"));
+  return textInputSteps.flatMap(({ step, index }) => validateTextInputStep(steps, step, index));
+}
 
-    if (textInputStep.childCapabilityId === "press-navigation-key") {
-      const hasPageStateProof = textInputStep.inputRefs.includes("pageStateRef");
-      return hasInputTarget && hasPageStateProof
-        ? []
-        : [createIssue("press-navigation-key step requires preceding page-state context and pageStateRef input.", `operationalMap.steps.${textInputStep.stepId}`)];
-    }
+function hasTextInputTargetContext(
+  steps: MapPackage["operationalMap"]["steps"],
+  textInputStepIndex: number,
+): boolean {
+  return hasPrecedingStep(
+    steps,
+    textInputStepIndex,
+    (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "visual-target") || isTargetAbilityGroup(step.targetAbilityGroupId, "page-state"),
+  );
+}
 
-    const issues: MapPackageValidationIssue[] = [];
-    const hasTextSource = textInputStep.inputRefs.includes("commandInputRef") || textInputStep.inputRefs.includes("promptInputRef");
-    const hasGeometryGuard = hasPrecedingStep(steps, textInputStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "geometry-guard"));
-    if (!hasTextSource) {
-      issues.push(createIssue("text-input step requires commandInputRef or promptInputRef as approved text source.", `operationalMap.steps.${textInputStep.stepId}`));
-    }
-    if (!hasInputTarget || !hasGeometryGuard) {
-      issues.push(createIssue("text-input step requires preceding input-target context and geometry-guard normalization.", `operationalMap.steps.${textInputStep.stepId}`));
-    }
-    return issues;
-  });
+function validatePageStateKeyStep(
+  textInputStep: MapPackage["operationalMap"]["steps"][number],
+  hasInputTarget: boolean,
+  issueMessage: string,
+): MapPackageValidationIssue[] {
+  const hasPageStateProof = textInputStep.inputRefs.includes("pageStateRef");
+  return hasInputTarget && hasPageStateProof
+    ? []
+    : [createIssue(issueMessage, `operationalMap.steps.${textInputStep.stepId}`)];
+}
+
+function validateGeneralTextInputStep(
+  steps: MapPackage["operationalMap"]["steps"],
+  textInputStep: MapPackage["operationalMap"]["steps"][number],
+  textInputStepIndex: number,
+  hasInputTarget: boolean,
+): MapPackageValidationIssue[] {
+  const issues: MapPackageValidationIssue[] = [];
+  const hasTextSource = textInputStep.inputRefs.includes("commandInputRef") || textInputStep.inputRefs.includes("promptInputRef");
+  const hasGeometryGuard = hasPrecedingStep(steps, textInputStepIndex, (step) => isTargetAbilityGroup(step.targetAbilityGroupId, "geometry-guard"));
+  if (!hasTextSource) {
+    issues.push(createIssue("text-input step requires commandInputRef or promptInputRef as approved text source.", `operationalMap.steps.${textInputStep.stepId}`));
+  }
+  if (!hasInputTarget || !hasGeometryGuard) {
+    issues.push(createIssue("text-input step requires preceding input-target context and geometry-guard normalization.", `operationalMap.steps.${textInputStep.stepId}`));
+  }
+  return issues;
+}
+
+function validateTextInputStep(
+  steps: MapPackage["operationalMap"]["steps"],
+  textInputStep: MapPackage["operationalMap"]["steps"][number],
+  textInputStepIndex: number,
+): MapPackageValidationIssue[] {
+  const hasInputTarget = hasTextInputTargetContext(steps, textInputStepIndex);
+
+  if (textInputStep.stepId === "like-current-video-keyboard" && textInputStep.childCapabilityId === "press-key") {
+    return validatePageStateKeyStep(
+      textInputStep,
+      hasInputTarget,
+      "like-current-video-keyboard step requires preceding page-state context and pageStateRef input.",
+    );
+  }
+
+  if (textInputStep.childCapabilityId === "press-navigation-key") {
+    return validatePageStateKeyStep(
+      textInputStep,
+      hasInputTarget,
+      "press-navigation-key step requires preceding page-state context and pageStateRef input.",
+    );
+  }
+
+  return validateGeneralTextInputStep(steps, textInputStep, textInputStepIndex, hasInputTarget);
 }
 
 function validateForensicsPresence(steps: MapPackage["operationalMap"]["steps"]): MapPackageValidationIssue[] {

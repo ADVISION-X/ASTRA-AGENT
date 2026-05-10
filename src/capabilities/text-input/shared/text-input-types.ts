@@ -27,6 +27,7 @@ export const TEXT_INPUT_KEYS = [
   "Escape",
   "Backspace",
   "Delete",
+  "L",
   "ArrowUp",
   "ArrowDown",
   "ArrowLeft",

@@ -142,14 +142,14 @@ const collectTransitionRoundBoundaryFinding = (input: {
 }): Finding[] => {
   const guardsRoundIncrementByInitialStep = input.roundBoundaryText.includes("nextStepId === input.initialStepId")
     && input.roundBoundaryText.includes("currentStepId !== input.initialStepId");
-  const guardsClickNextVideoCaptureBoundary = input.roundBoundaryText.includes("verify-next-item-advanced")
-    && input.roundBoundaryText.includes("capture-video-viewport");
+  const guardsClickNextVideoCaptureBoundary = input.roundBoundaryText.includes("press-next-video-key")
+    && input.roundBoundaryText.includes("observe-current-video-page-state");
   const usesPerStepRoundIncrement = input.transitionStateText.includes("currentRoundIndex: input.state.currentRoundIndex + 1");
 
   return !hasSuccessProofClosure(input.transitionSuccessSource)
     ? [createFatalFinding({ file: TRANSITION_SUCCESS_OUTCOME_PATH, message: "Transition success path must persist lastRuntimeProofRef and runtimeProofRefs before Commander reads mission state." })]
     : !guardsRoundIncrementByInitialStep || !guardsClickNextVideoCaptureBoundary || usesPerStepRoundIncrement
-      ? [createFatalFinding({ file: TRANSITION_SUCCESS_OUTCOME_PATH, message: "Transition success state must increment currentRoundIndex only at governed round boundaries: map initial-step return or verify-next-item-advanced returning to capture-video-viewport." })]
+      ? [createFatalFinding({ file: TRANSITION_SUCCESS_OUTCOME_PATH, message: "Transition success state must increment currentRoundIndex only at governed round boundaries: map initial-step return or press-next-video-key returning to observe-current-video-page-state." })]
       : [];
 };
 

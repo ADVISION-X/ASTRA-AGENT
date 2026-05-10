@@ -41,10 +41,10 @@ function shouldAdvanceMissionRound(input: {
 
   const returnedToInitialStep = input.nextStepId === input.initialStepId
     && input.currentStepId !== input.initialStepId;
-  const verifiedNextItemReturnedToCapture = input.currentStepId === "verify-next-item-advanced"
-    && input.nextStepId === "capture-video-viewport";
+  const directNextItemActionReturnedToObserve = input.currentStepId === "press-next-video-key"
+    && input.nextStepId === "observe-current-video-page-state";
 
-  return returnedToInitialStep || verifiedNextItemReturnedToCapture
+  return returnedToInitialStep || directNextItemActionReturnedToObserve
     ? input.currentRoundIndex + 1
     : input.currentRoundIndex;
 }

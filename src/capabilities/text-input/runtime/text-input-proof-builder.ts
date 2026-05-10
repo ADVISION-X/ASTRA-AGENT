@@ -56,7 +56,7 @@ export function buildTextInputRuntimeProof(input: {
   targetKind: "textField" | "searchField" | "commentComposer" | "editableArea" | "feedSurface" | null;
   targetEvidenceRefs: string[];
   actionKind: "type-text" | "paste-text" | "clear-input" | "replace-input" | "press-key" | "press-navigation-key" | "commit-input" | null;
-  key: "Tab" | "Escape" | "Backspace" | "Delete" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight" | "Enter" | null;
+  key: "Tab" | "Escape" | "Backspace" | "Delete" | "L" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight" | "Enter" | null;
   textLength: number;
   policyDecision: "allow" | "block" | "review_required";
   sensitiveTextDecision: "allowed" | "blocked" | "review_required";

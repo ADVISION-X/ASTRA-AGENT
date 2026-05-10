@@ -172,6 +172,16 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS: RoutePlan["steps"] = [
     promptContractId: null,
   },
   {
+    stepId: "like-current-video-keyboard",
+    capabilityId: "orchestration",
+    childCapabilityId: "press-key",
+    stepKind: "ability",
+    targetAbilityGroupId: "text-input",
+    inputRefs: ["pageStateRef", "screenshotEvidenceRef"],
+    outputRefPolicy: { storeAs: ["abilityResultRef"] },
+    promptContractId: null,
+  },
+  {
     stepId: "observe-next-item-page-state",
     capabilityId: "orchestration",
     childCapabilityId: "observe-video-surface",

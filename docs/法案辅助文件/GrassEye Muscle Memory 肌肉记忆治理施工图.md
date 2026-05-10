@@ -93,7 +93,7 @@ Mac 差异由 local window profile、targetProfile、surfaceProfile 和 ability 
 - Visible State: `capture-video-viewport` 作为当前可视状态采集点，由 map 入口和 Route Plan 回环共同使用。
 - Target Action: `observe-comments-button`, `normalize-comments-target`, `click-comments-button`, `verify-comments-open`, `normalize-next-video-arrow`, `click-next-video-arrow`。
 - Evidence Analysis: `capture-comments-panel`, `analyze-comment-intent`, `persist-seeding-candidate-record`。
-- Advance Next Item: `normalize-next-video-arrow`, `click-next-video-arrow`, `capture-next-item-verification-viewport`, `prepare-next-item-verification-ai-input`, `verify-next-item-advanced`, `capture-video-viewport`。`normalize-next-video-arrow` must consume governed target-candidate evidence, `click-next-video-arrow` is only mechanical execution, and deterministic next-arrow geometry is fallback-only, high-risk, and requires post-click AI verification before the chain may return to `capture-video-viewport`.
+- Advance Next Item: V1 active chain is `observe-next-item-page-state -> press-next-video-key -> observe-current-video-page-state`。`press-next-video-key` uses `text-input/press-navigation-key` to attempt page focus, click the current page/video area once, and press `ArrowDown`; it only proves the action attempt, not semantic video-change success. `normalize-next-video-arrow`, `click-next-video-arrow`, `capture-next-item-verification-viewport`, `prepare-next-item-verification-ai-input`, and `verify-next-item-advanced` are dormant diagnostic/V2 pieces and must not be required by the V1 main chain.
 
 同一个 step 处在两个概念边界时，按 muscle segment 包裹解释，不重复 step，不把 Route Plan 复制成第二张地图。
 

@@ -653,12 +653,10 @@ V1 实际动作不是读评论，而是保存轻量 product lead record 后进�
 
 ```txt
 write-product-lead-record
+-> like-current-video-keyboard
 -> observe-next-item-page-state
 -> press-next-video-key
--> capture-next-item-verification-viewport
--> prepare-next-item-verification-ai-input
--> verify-next-item-advanced
--> capture-current-video-viewport
+-> observe-current-video-page-state
 ```
 
 ### 8.2 product_no
@@ -674,10 +672,7 @@ routeLabel = skip-current-video
 ```txt
 observe-next-item-page-state
 -> press-next-video-key
--> capture-next-item-verification-viewport
--> prepare-next-item-verification-ai-input
--> verify-next-item-advanced
--> capture-current-video-viewport
+-> observe-current-video-page-state
 ```
 
 ### 8.3 product_yes 线索记录结果链
@@ -731,19 +726,24 @@ finalize-seeding-evidence-packet
 
 - `press-next-video-key` 必须使用 `text-input/press-navigation-key`。
 - `press-next-video-key` 必须消费 `pageStateRef` + `screenshotEvidenceRef`。
-- `press-next-video-key:success` 后必须进入截图与 AI 验证链，不能把机械成功当成下一条视频语义成功。
+- `press-next-video-key` 必须先尝试让当前页面获得焦点，再点击当前页面/视频区域一次，然后输入 `ArrowDown`。
+- `press-next-video-key:success/failed/review_required` 后必须回到 `observe-current-video-page-state`，由下一轮观察自然处理当前画面。
+- `press-next-video-key` 只证明 focus/page click/ArrowDown 动作尝试，不证明下一条视频一定切换成功。
+- V1 主链不得使用 AI、截图验证或 PAV 来确认下一条视频是否成功切换。
 - loop guard block must not be finalized as normal completed unless reason is run limit reached.
 
-当前 V1 下一条视频验证链：
+当前 V1 下一条视频动作证明链：
 
 ```txt
 pageStateRef
 -> press-next-video-key
 -> nextItemAdvanceProofRef
--> capture-next-item-verification-viewport
--> prepare-next-item-verification-ai-input
--> verify-next-item-advanced
+-> observe-current-video-page-state
 ```
+
+`capture-next-item-verification-viewport`、`prepare-next-item-verification-ai-input`、`verify-next-item-advanced` 可以作为 dormant diagnostic steps 保留，但不得出现在 V1 Advance Next Item active transitions 中。
+
+`vision.nextItemAdvanced.v1` 不属于 V1 next-item main chain 的门禁。下一轮 `capture-current-video-viewport + judge-seeding-video` 会自然处理当前可见画面；如果平台偶发没有切换成功，系统最多重复判断当前画面，不改变 Route Plan 主权。
 
 ---
 

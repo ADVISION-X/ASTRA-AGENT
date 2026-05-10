@@ -117,8 +117,7 @@
     ],
     "requiredPromptContracts": [
       "vision.pagePreparation.v1",
-      "vision.productPresence.v1",
-      "vision.nextItemAdvanced.v1"
+      "vision.productPresence.v1"
     ],
     "requiredPlatformProfiles": [
       "tiktok-web:persistent-local-profile"
@@ -141,8 +140,7 @@
     ],
     "requiresPromptRegistry": [
       "vision.pagePreparation.v1",
-      "vision.productPresence.v1",
-      "vision.nextItemAdvanced.v1"
+      "vision.productPresence.v1"
     ],
     "requiresPlatformProfileRegistry": [
       "tiktok-web:persistent-local-profile"

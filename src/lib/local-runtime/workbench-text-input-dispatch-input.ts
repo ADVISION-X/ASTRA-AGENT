@@ -87,47 +87,49 @@ const buildNavigationKeyPurpose = (
     return "press_next_video_key";
   }
 
+  if (envelope.stepId === "like-current-video-keyboard") {
+    return "like_current_video_keyboard";
+  }
+
   return inputPayload.summary;
 };
 
-const buildNavigationKeyValue = (envelope: AbilityCommandEnvelope) => {
-  return "ArrowDown";
-};
-
-const buildNavigationTextInputCommand = (
-  envelope: AbilityCommandEnvelope,
-  inputPayload: NerveBusPayloadDocument,
-) => {
-  const payload = toDispatchPayload(inputPayload);
-  const pageStateRef = resolvePayloadRef(payload, ["pageStateRef"], envelope.inputRef);
+const buildFeedSurfaceTextInputCommand = (input: {
+  envelope: AbilityCommandEnvelope;
+  inputPayload: NerveBusPayloadDocument;
+  childCapabilityId: "press-navigation-key" | "press-key";
+  key: "ArrowDown" | "L";
+}) => {
+  const payload = toDispatchPayload(input.inputPayload);
+  const pageStateRef = resolvePayloadRef(payload, ["pageStateRef"], input.envelope.inputRef);
 
   return JSON.parse(JSON.stringify({
     abilityGroupId: "text-input",
-    childCapabilityId: "press-navigation-key",
-    missionId: envelope.missionId,
-    runId: envelope.runId,
-    sessionId: envelope.sessionId,
-    roundId: envelope.roundId,
-    videoVisitId: envelope.videoVisitId,
-    stepId: envelope.stepId,
-    mapPackageId: envelope.mapPackageId,
-    mapPackageVersion: envelope.mapPackageVersion,
-    selectedMapId: envelope.selectedMapId,
-    selectedMapVersion: envelope.selectedMapVersion,
-    activationId: envelope.activationId,
-    activationSnapshotRef: envelope.activationSnapshotRef,
-    capabilityCallId: envelope.capabilityCallId,
-    nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
+    childCapabilityId: input.childCapabilityId,
+    missionId: input.envelope.missionId,
+    runId: input.envelope.runId,
+    sessionId: input.envelope.sessionId,
+    roundId: input.envelope.roundId,
+    videoVisitId: input.envelope.videoVisitId,
+    stepId: input.envelope.stepId,
+    mapPackageId: input.envelope.mapPackageId,
+    mapPackageVersion: input.envelope.mapPackageVersion,
+    selectedMapId: input.envelope.selectedMapId,
+    selectedMapVersion: input.envelope.selectedMapVersion,
+    activationId: input.envelope.activationId,
+    activationSnapshotRef: input.envelope.activationSnapshotRef,
+    capabilityCallId: input.envelope.capabilityCallId,
+    nerveBusEnvelopeId: input.envelope.nerveBusEnvelopeId,
     requestedBy: "orchestration",
-    purpose: buildNavigationKeyPurpose(envelope, inputPayload),
+    purpose: buildNavigationKeyPurpose(input.envelope, input.inputPayload),
     sourceAbilityGroupId: "orchestration",
-    sourceChildCapabilityId: envelope.commandName,
+    sourceChildCapabilityId: input.envelope.commandName,
     sourceOwner: "orchestration",
-    sourceProofRef: envelope.inputRef,
+    sourceProofRef: input.envelope.inputRef,
     sourceRef: pageStateRef,
-    inputRef: envelope.inputRef,
-    idempotencyKey: envelope.idempotencyKey,
-    ...buildNavigationTargetProofFields({ envelope, payload, pageStateRef }),
+    inputRef: input.envelope.inputRef,
+    idempotencyKey: input.envelope.idempotencyKey,
+    ...buildNavigationTargetProofFields({ envelope: input.envelope, payload, pageStateRef }),
     inputText: null,
     inputTextRef: null,
     inputTextHash: null,
@@ -137,14 +139,38 @@ const buildNavigationTextInputCommand = (
     approvedTextSourceRef: null,
     approvedTextApprovalRef: null,
     approvedCommitRef: null,
-    key: buildNavigationKeyValue(envelope),
+    key: input.key,
   }));
 };
+
+const buildNavigationTextInputCommand = (
+  envelope: AbilityCommandEnvelope,
+  inputPayload: NerveBusPayloadDocument,
+) => buildFeedSurfaceTextInputCommand({
+  envelope,
+  inputPayload,
+  childCapabilityId: "press-navigation-key",
+  key: "ArrowDown",
+});
+
+const buildLikeTextInputCommand = (
+  envelope: AbilityCommandEnvelope,
+  inputPayload: NerveBusPayloadDocument,
+) => buildFeedSurfaceTextInputCommand({
+  envelope,
+  inputPayload,
+  childCapabilityId: "press-key",
+  key: "L",
+});
 
 export const buildTextInputCommand = (
   envelope: AbilityCommandEnvelope,
   inputPayload: NerveBusPayloadDocument,
 ) => {
+  if (envelope.stepId === "like-current-video-keyboard" && envelope.commandName === "press-key") {
+    return buildLikeTextInputCommand(envelope, inputPayload);
+  }
+
   if (envelope.commandName === "press-navigation-key") {
     return buildNavigationTextInputCommand(envelope, inputPayload);
   }

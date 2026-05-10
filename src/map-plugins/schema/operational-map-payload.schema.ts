@@ -43,5 +43,5 @@ export const MapPluginPayloadRefKeySchema = z.enum([
 ] as const);
 
 export const MapPluginStepKindSchema = z.enum(["ability", "ai", "finalize"]);
-export const MapPluginTransitionStatusSchema = z.enum(["success", "failed"]);
+export const MapPluginTransitionStatusSchema = z.enum(["success", "failed", "review_required"]);
 export const MapPluginMissionTerminalStatusSchema = z.enum(["completed", "failed", "stopped"]);

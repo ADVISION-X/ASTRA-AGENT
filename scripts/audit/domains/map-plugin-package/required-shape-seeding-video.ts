@@ -163,7 +163,9 @@ const hasProductLeadTransitionChain = (context: SeedingVideoContext): boolean =>
     toStepId: "write-product-lead-record",
     transitionId: "judge-seeding-video:read-comments-and-save-evidence",
   })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "write-product-lead-record", toStepId: "observe-next-item-page-state" })
+  && hasTransition(context.routePlanTransitions, { fromStepId: "write-product-lead-record", toStepId: "like-current-video-keyboard" })
+  && hasTransition(context.routePlanTransitions, { fromStepId: "like-current-video-keyboard", toStepId: "observe-next-item-page-state" })
+  && hasTransition(context.routePlanTransitions, { fromStepId: "like-current-video-keyboard", onStatus: "failed", toStepId: "observe-next-item-page-state" })
   && !hasTransition(context.routePlanTransitions, { fromStepId: "judge-seeding-video", toStepId: "observe-comments-entry-page-state" });
 
 const hasProductLeadStepShape = (context: SeedingVideoContext): boolean => {
@@ -172,6 +174,14 @@ const hasProductLeadStepShape = (context: SeedingVideoContext): boolean => {
     && writeProductLeadRecord.childCapabilityId === "write-product-lead-record"
     && hasInputRefs(writeProductLeadRecord, ["requestedPlatformId", "targetUrl", "targetTitle", "screenshotEvidenceRef", "productPresenceAiResultRef"])
     && hasOutputRefs(writeProductLeadRecord, ["abilityResultRef", "productLeadRecordRef"]);
+};
+
+const hasKeyboardLikeStepShape = (context: SeedingVideoContext): boolean => {
+  const likeCurrentVideo = getStep(context, "like-current-video-keyboard");
+  return likeCurrentVideo?.targetAbilityGroupId === "text-input"
+    && likeCurrentVideo.childCapabilityId === "press-key"
+    && hasInputRefs(likeCurrentVideo, ["pageStateRef", "screenshotEvidenceRef"])
+    && hasOutputRefs(likeCurrentVideo, ["abilityResultRef"]);
 };
 
 const hasFrozenCommentsDependencies = (context: SeedingVideoContext): boolean =>
@@ -191,6 +201,7 @@ const hasFrozenCommentsDependencies = (context: SeedingVideoContext): boolean =>
 const hasGovernedPositiveLeadPath = (context: SeedingVideoContext): boolean =>
   hasProductLeadTransitionChain(context)
   && hasProductLeadStepShape(context)
+  && hasKeyboardLikeStepShape(context)
   && hasFrozenCommentsDependencies(context);
 
 const hasForbiddenUncertainBranch = (context: SeedingVideoContext): boolean =>
@@ -206,31 +217,37 @@ const usesLegacyNextVideoScrollPath = (context: SeedingVideoContext): boolean =>
 const hasForbiddenMapSamplingInternals = (context: SeedingVideoContext): boolean =>
   FORBIDDEN_PRODUCT_PRESENCE_FRAME_TOKENS.some((token) => context.record.text.includes(token));
 
-const hasAutomaticNonProductAdvanceTransitions = (context: SeedingVideoContext): boolean =>
+const hasObserveNextItemEntryTransitions = (context: SeedingVideoContext): boolean =>
   hasTransition(context.routePlanTransitions, { fromStepId: "judge-seeding-video", toStepId: "observe-next-item-page-state" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "finalize-seeding-browse-ledger", toStepId: "observe-next-item-page-state" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "observe-next-item-page-state", toStepId: "press-next-video-key" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "press-next-video-key", toStepId: "capture-next-item-verification-viewport" })
-  && hasTransition(context.routePlanTransitions, {
-    fromStepId: "verify-next-item-advanced",
-    toStepId: PRODUCT_PRESENCE_OBSERVE_STEP_ID,
-    transitionId: "verify-next-item-advanced:next-item-advanced",
-  })
-  && hasTransition(context.routePlanTransitions, {
-    fromStepId: "verify-next-item-advanced",
-    toStepId: PRODUCT_PRESENCE_OBSERVE_STEP_ID,
-    transitionId: "verify-next-item-advanced:next-item-not-advanced",
-  });
+  && hasTransition(context.routePlanTransitions, { fromStepId: "finalize-seeding-browse-ledger", toStepId: "observe-next-item-page-state" });
 
-const hasAutomaticNonProductAdvanceStepShapes = (context: SeedingVideoContext): boolean => {
+const hasDirectNextItemTransitions = (context: SeedingVideoContext): boolean =>
+  hasTransition(context.routePlanTransitions, { fromStepId: "observe-next-item-page-state", toStepId: "press-next-video-key" })
+  && hasTransition(context.routePlanTransitions, { fromStepId: "press-next-video-key", toStepId: PRODUCT_PRESENCE_OBSERVE_STEP_ID })
+  && hasTransition(context.routePlanTransitions, { fromStepId: "press-next-video-key", onStatus: "failed", toStepId: PRODUCT_PRESENCE_OBSERVE_STEP_ID })
+  && hasTransition(context.routePlanTransitions, { fromStepId: "press-next-video-key", onStatus: "review_required", toStepId: PRODUCT_PRESENCE_OBSERVE_STEP_ID });
+
+const hasForbiddenNextItemVerificationTransitions = (context: SeedingVideoContext): boolean =>
+  hasTransition(context.routePlanTransitions, { fromStepId: "press-next-video-key", toStepId: "capture-next-item-verification-viewport" })
+  || hasTransition(context.routePlanTransitions, { fromStepId: "capture-next-item-verification-viewport", toStepId: "prepare-next-item-verification-ai-input" })
+  || hasTransition(context.routePlanTransitions, { fromStepId: "prepare-next-item-verification-ai-input", toStepId: "verify-next-item-advanced" })
+  || hasTransition(context.routePlanTransitions, { fromStepId: "verify-next-item-advanced", toStepId: PRODUCT_PRESENCE_OBSERVE_STEP_ID });
+
+const hasAutomaticNonProductAdvanceTransitions = (context: SeedingVideoContext): boolean =>
+  hasObserveNextItemEntryTransitions(context)
+  && hasDirectNextItemTransitions(context)
+  && !hasForbiddenNextItemVerificationTransitions(context);
+
+const hasPressNextVideoKeyStepShape = (context: SeedingVideoContext): boolean => {
   const pressNext = getStep(context, "press-next-video-key");
-  const verifyNext = getStep(context, "verify-next-item-advanced");
   return pressNext?.targetAbilityGroupId === "text-input"
     && pressNext.childCapabilityId === "press-navigation-key"
     && hasInputRefs(pressNext, ["pageStateRef", "screenshotEvidenceRef"])
-    && hasOutputRefs(pressNext, ["abilityResultRef", "nextItemAdvanceProofRef"])
-    && verifyNext?.stepKind === "ai"
-    && verifyNext.promptContractId === "vision.nextItemAdvanced.v1";
+    && hasOutputRefs(pressNext, ["abilityResultRef", "nextItemAdvanceProofRef"]);
+};
+
+const hasAutomaticNonProductAdvanceStepShapes = (context: SeedingVideoContext): boolean => {
+  return hasPressNextVideoKeyStepShape(context);
 };
 
 const hasAutomaticNonProductAdvancePath = (context: SeedingVideoContext): boolean =>

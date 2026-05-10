@@ -74,12 +74,15 @@ const GEOMETRY_PROOF_GROUPS = new Set(["mouse-scroll", "text-input", "geometry-g
 const GEOMETRY_GUARD_RESULT_GROUPS = new Set(["mouse-click"]);
 const TARGET_PROOF_GROUPS = new Set(["text-input"]);
 
+const isKeyOnlyTextInputChild = (childCapabilityId: string): boolean =>
+  childCapabilityId === "press-navigation-key" || childCapabilityId === "press-key";
+
 const buildProducedOutputRefs = (abilityGroupId: string): string[] => {
   return PRODUCED_OUTPUT_REFS_BY_ABILITY_GROUP[abilityGroupId] ?? ["runtimeProofRef"];
 };
 
 const buildRequiredInputRefs = (abilityGroupId: string, childCapabilityId: string): string[] => {
-  if (abilityGroupId === "text-input" && childCapabilityId === "press-navigation-key") {
+  if (abilityGroupId === "text-input" && isKeyOnlyTextInputChild(childCapabilityId)) {
     return ["targetProofRef", "focusProofRef"];
   }
   return REQUIRED_INPUT_REFS_BY_ABILITY_GROUP[abilityGroupId] ?? [];
@@ -111,7 +114,7 @@ const includeProofRequirements = (condition: boolean, refs: string[]): string[] 
 };
 
 const buildProofRequirements = (abilityGroupId: string, childCapabilityId: string): string[] => {
-  if (abilityGroupId === "text-input" && childCapabilityId === "press-navigation-key") {
+  if (abilityGroupId === "text-input" && isKeyOnlyTextInputChild(childCapabilityId)) {
     return ["runtimeProofRef", "targetProofRef", "focusProofRef"];
   }
   return [
@@ -146,7 +149,7 @@ const buildCapabilityChild = (
     requiresGeometryProof: entry.requiresGeometryProof,
     requiresTargetProof: entry.abilityGroupId === "mouse-click" || entry.abilityGroupId === "text-input",
     requiresFocusProof: entry.abilityGroupId === "text-input",
-    requiresApprovedText: entry.abilityGroupId === "text-input" && entry.childCapabilityId !== "press-navigation-key",
+    requiresApprovedText: entry.abilityGroupId === "text-input" && !isKeyOnlyTextInputChild(entry.childCapabilityId),
     requiresPostActionVerification: entry.requiresPostActionVerification,
     requiresAutomationGate: entry.requiresAutomationGate || ["submit", "delete", "purchase"].includes(sideEffectLevel),
     sensitiveOperation: entry.sensitiveOperation,

@@ -71,6 +71,8 @@ const buildStartMissionInput = (approval: StartApproval) => {
       taskTemplateId: approval.binding.taskTemplateId,
       activationId: approval.binding.activationId,
       activationSnapshotRef: approval.binding.activationSnapshotRef,
+      targetUrl: approval.binding.targetUrl,
+      targetTitle: approval.binding.targetTitle,
       targetProfileRef: approval.binding.targetProfileRef,
       ...(approval.humanGoal ? { humanGoal: approval.humanGoal } : {}),
       ...(approval.maxRounds ? { maxRounds: approval.maxRounds } : {}),

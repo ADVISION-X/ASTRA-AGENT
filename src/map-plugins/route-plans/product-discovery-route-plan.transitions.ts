@@ -212,7 +212,7 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     transitionId: "write-product-lead-record:success",
     fromStepId: "write-product-lead-record",
     onStatus: "success",
-    toStepId: "observe-next-item-page-state",
+    toStepId: "like-current-video-keyboard",
     finalStatus: null,
   },
   {
@@ -221,6 +221,27 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     onStatus: "failed",
     toStepId: null,
     finalStatus: "failed",
+  },
+  {
+    transitionId: "like-current-video-keyboard:success",
+    fromStepId: "like-current-video-keyboard",
+    onStatus: "success",
+    toStepId: "observe-next-item-page-state",
+    finalStatus: null,
+  },
+  {
+    transitionId: "like-current-video-keyboard:failed",
+    fromStepId: "like-current-video-keyboard",
+    onStatus: "failed",
+    toStepId: "observe-next-item-page-state",
+    finalStatus: null,
+  },
+  {
+    transitionId: "like-current-video-keyboard:review_required",
+    fromStepId: "like-current-video-keyboard",
+    onStatus: "review_required",
+    toStepId: "observe-next-item-page-state",
+    finalStatus: null,
   },
   ...PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS,
   {

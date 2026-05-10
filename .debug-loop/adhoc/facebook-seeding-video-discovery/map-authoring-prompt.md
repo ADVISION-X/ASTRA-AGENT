@@ -1,5 +1,5 @@
 You are GrassEye Map Authoring Agent.
-Input Package ID: map-authoring-input:debug-loop:facebook-seeding-video-discovery:6fba43396dd6
+Input Package ID: map-authoring-input:debug-loop:facebook-seeding-video-discovery:8843c0f407af
 Prompt Contract ID: map-authoring-from-user-requirement-v1
 Task Type: map_authoring
 Output Schema Ref: ai.map_authoring.v1
@@ -18,9 +18,9 @@ Static Governance Rules:
 - Never request credentials, cookies, hidden tokens, or anti-abuse bypass instructions.
 Complete Map Authoring Input Package JSON:
 {
-  "inputPackageId": "map-authoring-input:debug-loop:facebook-seeding-video-discovery:6fba43396dd6",
+  "inputPackageId": "map-authoring-input:debug-loop:facebook-seeding-video-discovery:8843c0f407af",
   "inputPackageVersion": "map-authoring-input-package.v1",
-  "generatedAt": "2026-05-09T22:54:09.903Z",
+  "generatedAt": "2026-05-10T01:39:10.984Z",
   "requesterRef": "debug-loop:facebook-seeding-video-discovery",
   "userRequirement": {
     "goal": "Open Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, extract visible comments with comments.ocr_cleanup.v1, persist evidence refs, and stop or review on gated states.",
@@ -39,19 +39,19 @@ Complete Map Authoring Input Package JSON:
           "optionId": "read_comments",
           "label": "1. 读取评论",
           "routeLabel": "read-comments",
-          "description": "产品成立时进入评论读取链路。"
+          "description": "V2 dormant: 产品成立时进入评论读取链路。"
         },
         {
           "optionId": "save_evidence",
           "label": "2. 保存证据",
           "routeLabel": "save-evidence",
-          "description": "产品成立时保留当前视频的选品证据。"
+          "description": "V2 dormant: 产品成立时保留当前视频的扩展证据。"
         },
         {
           "optionId": "read_comments_and_save_evidence",
-          "label": "3. 读取评论并保存证据",
+          "label": "3. 保存产品线索并继续",
           "routeLabel": "read-comments-and-save-evidence",
-          "description": "产品成立时读取评论并保留当前视频的选品证据。"
+          "description": "V1 当前生产主链：保存截图、URL 和 AI 判断摘要为产品线索记录，然后继续下一个视频。"
         },
         {
           "optionId": "finish_current_video",
@@ -99,8 +99,8 @@ Complete Map Authoring Input Package JSON:
     "operatorNotes": "scenarioId: facebook-seeding-video-discovery\n\nplatformId: facebook-web\n\ngeneratedMapPath: src/map-plugins/builtins/facebook-seeding-video-discovery.meta.map-package.json\n\nrawRequirement:\nUse a local authorized browser session to inspect public Facebook Reels, identify product-seeding video candidates, capture viewport and comment evidence, extract visible comments with OCR cleanup only, scroll to the next video, and persist governed evidence refs.\n\nsafeExecutableRequirement:\nOpen Facebook Reels in a governed real Chrome session, verify page and safety state, classify the current reel with vision.productPresence.v1, open visible public comments only after geometry proof and PAV, extract visible comments with comments.ocr_cleanup.v1, persist evidence refs, and stop or review on gated states.",
     "outputLanguage": "zh-CN"
   },
-  "userRequirementRef": "user-requirement:debug-loop:facebook-seeding-video-discovery:6fba43396dd6",
-  "sourceRequirementHash": "sha256:3dde58bd20d7cdeadf41ded91e00ea8df8e7198fa4fac029f581fbe543066c45",
+  "userRequirementRef": "user-requirement:debug-loop:facebook-seeding-video-discovery:8843c0f407af",
+  "sourceRequirementHash": "sha256:ea17aa92e6abd81e296a8ff3ed37685a66245f8b6169db322bddb63888455b6f",
   "targetPlatformProfileRef": "facebook-web:map-authoring-profile:v1",
   "targetPlatformProfile": {
     "platformProfileRef": "facebook-web:map-authoring-profile:v1",
@@ -141,7 +141,7 @@ Complete Map Authoring Input Package JSON:
   },
   "capabilityCatalog": {
     "version": "2026-04-map-prompt-contract-v1",
-    "generatedAt": "2026-05-09T22:54:09.903Z",
+    "generatedAt": "2026-05-10T01:39:10.984Z",
     "generatedFrom": "src/map-plugins/authoring/map-authoring-input-package-builder.ts",
     "activeAbilityGroupCount": 14,
     "abilityGroups": [
@@ -3091,6 +3091,50 @@ Complete Map Authoring Input Package JSON:
             "description": "Persist governed forensic record for write evidence record.",
             "inputSchemaRef": "forensics-persistence.write-evidence-record.input",
             "outputSchemaRef": "forensics-persistence.write-evidence-record.output",
+            "requiredInputRefs": [
+              "proofRef"
+            ],
+            "producedOutputRefs": [
+              "forensicsRecordRef"
+            ],
+            "requiresGeometryProof": false,
+            "requiresTargetProof": false,
+            "requiresFocusProof": false,
+            "requiresApprovedText": false,
+            "requiresPostActionVerification": false,
+            "requiresAutomationGate": false,
+            "sensitiveOperation": true,
+            "sideEffectLevel": "write",
+            "allowedStepKinds": [
+              "evidence"
+            ],
+            "supportedTargetKinds": [
+              "structured-log",
+              "evidence-ledger",
+              "artifact-store"
+            ],
+            "forbiddenResponsibilities": [
+              "execute browser actions",
+              "classify page state",
+              "author prompts"
+            ],
+            "proofRequirements": [
+              "runtimeProofRef",
+              "evidencePacketRef"
+            ],
+            "failureModes": [
+              "precondition_failed",
+              "timeout",
+              "failed"
+            ]
+          },
+          {
+            "childCapabilityId": "write-product-lead-record",
+            "childCapabilityCode": "write-product-lead-record",
+            "displayName": "write product lead record",
+            "description": "Persist governed forensic record for write product lead record.",
+            "inputSchemaRef": "forensics-persistence.write-product-lead-record.input",
+            "outputSchemaRef": "forensics-persistence.write-product-lead-record.output",
             "requiredInputRefs": [
               "proofRef"
             ],
@@ -6214,6 +6258,50 @@ Complete Map Authoring Input Package JSON:
         ]
       },
       {
+        "childCapabilityId": "write-product-lead-record",
+        "childCapabilityCode": "write-product-lead-record",
+        "displayName": "write product lead record",
+        "description": "Persist governed forensic record for write product lead record.",
+        "inputSchemaRef": "forensics-persistence.write-product-lead-record.input",
+        "outputSchemaRef": "forensics-persistence.write-product-lead-record.output",
+        "requiredInputRefs": [
+          "proofRef"
+        ],
+        "producedOutputRefs": [
+          "forensicsRecordRef"
+        ],
+        "requiresGeometryProof": false,
+        "requiresTargetProof": false,
+        "requiresFocusProof": false,
+        "requiresApprovedText": false,
+        "requiresPostActionVerification": false,
+        "requiresAutomationGate": false,
+        "sensitiveOperation": true,
+        "sideEffectLevel": "write",
+        "allowedStepKinds": [
+          "evidence"
+        ],
+        "supportedTargetKinds": [
+          "structured-log",
+          "evidence-ledger",
+          "artifact-store"
+        ],
+        "forbiddenResponsibilities": [
+          "execute browser actions",
+          "classify page state",
+          "author prompts"
+        ],
+        "proofRequirements": [
+          "runtimeProofRef",
+          "evidencePacketRef"
+        ],
+        "failureModes": [
+          "precondition_failed",
+          "timeout",
+          "failed"
+        ]
+      },
+      {
         "childCapabilityId": "write-structured-action-log",
         "childCapabilityCode": "write-structured-action-log",
         "displayName": "write structured action log",
@@ -6981,12 +7069,12 @@ Complete Map Authoring Input Package JSON:
       {
         "promptContractId": "vision.productPresence.v1",
         "promptContractVersion": "v1",
-        "promptHash": "sha256:4d81a0204eeafeead8f1611a155fead2acd703018b73b61dd89d28c900ed7fc9",
+        "promptHash": "sha256:a9da824f0f4579a64d544585974013e53e14e4b1566b4975073838d075f6f820",
         "displayName": "vision.productPresence.v1",
-        "description": "Autonomously classify whether sampled short-video frames visibly prove product-presenting content for binary downstream routing.",
+        "description": "Autonomously classify whether sampled short-video frames visibly prove product-presenting content so V1 can save a lightweight product lead record and continue browsing.",
         "inputSchemaRef": "image_collection.ai_input",
         "outputSchemaRef": "ai.product_presence_judgment.v1",
-        "promptContractHash": "sha256:4d81a0204eeafeead8f1611a155fead2acd703018b73b61dd89d28c900ed7fc9",
+        "promptContractHash": "sha256:a9da824f0f4579a64d544585974013e53e14e4b1566b4975073838d075f6f820",
         "allowedInputRefs": [
           "promptInputRef"
         ],

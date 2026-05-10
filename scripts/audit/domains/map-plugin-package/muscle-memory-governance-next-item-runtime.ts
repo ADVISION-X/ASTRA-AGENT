@@ -9,6 +9,7 @@ const PRODUCT_DISCOVERY_ROUTE_PLAN_PATH = "src/map-plugins/route-plans/product-d
 const PRODUCT_DISCOVERY_ROUTE_PLAN_PRODUCT_PRESENCE_TRANSITIONS_PATH = "src/map-plugins/route-plans/product-discovery-route-plan.transitions.product-presence.ts";
 const PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS_PATH = "src/map-plugins/route-plans/product-discovery-route-plan.transitions.next-item.ts";
 const WORKBENCH_TEXT_INPUT_DISPATCH_PATH = "src/lib/local-runtime/workbench-text-input-dispatch-input.ts";
+const TEXT_INPUT_PRIMITIVE_PORT_PATH = "src/lib/browser/text-input-primitive-port.ts";
 const WORKBENCH_VISUAL_DISPATCH_PATH = "src/lib/local-runtime/workbench-visual-dispatch-input.ts";
 const WORKBENCH_NEXT_ITEM_DISPATCH_PATH = "src/lib/local-runtime/workbench-visual-dispatch-input-next-item.ts";
 const LOOP_GUARD_PATH = "src/capabilities/orchestration/runtime/loop-guard.ts";
@@ -28,6 +29,7 @@ type NextItemRuntimeTexts = {
   routePlanRuntimeText: string;
   routePlanAllTransitionsText: string;
   textInputDispatchText: string;
+  textInputPrimitiveText: string;
   visualRuntimeText: string;
   loopGuardText: string;
   loopGuardProofText: string;
@@ -52,6 +54,7 @@ const readAdvanceNextItemRuntimeTexts = async (): Promise<NextItemRuntimeTexts> 
   const routePlanProductPresenceTransitionsText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_PRODUCT_PRESENCE_TRANSITIONS_PATH);
   const routePlanNextItemTransitionsText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS_PATH);
   const textInputDispatchText = await readRepoFile(WORKBENCH_TEXT_INPUT_DISPATCH_PATH);
+  const textInputPrimitiveText = await readRepoFile(TEXT_INPUT_PRIMITIVE_PORT_PATH);
   const visualDispatchText = await readRepoFile(WORKBENCH_VISUAL_DISPATCH_PATH);
   const nextItemDispatchText = await readRepoFile(WORKBENCH_NEXT_ITEM_DISPATCH_PATH);
   const loopGuardText = await readRepoFile(LOOP_GUARD_PATH);
@@ -62,6 +65,7 @@ const readAdvanceNextItemRuntimeTexts = async (): Promise<NextItemRuntimeTexts> 
     routePlanRuntimeText: `${routePlanText}\n${routePlanStepsText}\n${routePlanTransitionsText}\n${routePlanProductPresenceTransitionsText}\n${routePlanNextItemTransitionsText}`,
     routePlanAllTransitionsText: `${routePlanTransitionsText}\n${routePlanProductPresenceTransitionsText}\n${routePlanNextItemTransitionsText}`,
     textInputDispatchText,
+    textInputPrimitiveText,
     visualRuntimeText: `${visualDispatchText}\n${nextItemDispatchText}`,
     loopGuardText,
     loopGuardProofText,
@@ -82,23 +86,28 @@ const collectPressNavigationStepFindings = (texts: NextItemRuntimeTexts): Findin
 
 const collectPressNavigationTransitionFindings = (texts: NextItemRuntimeTexts): Finding[] =>
   !texts.routePlanAllTransitionsText.includes('fromStepId: "observe-next-item-page-state",\n    onStatus: "success",\n    toStepId: "press-next-video-key"')
-  || !texts.routePlanAllTransitionsText.includes('fromStepId: "press-next-video-key",\n    onStatus: "success",\n    toStepId: "capture-next-item-verification-viewport"')
-    ? [toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH, "Advance Next Item transitions must route observe-next-item-page-state -> press-next-video-key -> capture-next-item-verification-viewport.")]
+  || !texts.routePlanAllTransitionsText.includes('fromStepId: "press-next-video-key",\n    onStatus: "success",\n    toStepId: "observe-current-video-page-state"')
+  || !texts.routePlanAllTransitionsText.includes('fromStepId: "press-next-video-key",\n    onStatus: "failed",\n    toStepId: "observe-current-video-page-state"')
+  || !texts.routePlanAllTransitionsText.includes('fromStepId: "press-next-video-key",\n    onStatus: "review_required",\n    toStepId: "observe-current-video-page-state"')
+    ? [toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH, "Advance Next Item transitions must route observe-next-item-page-state -> press-next-video-key -> observe-current-video-page-state for success/failed/review_required action outcomes.")]
     : [];
 
 const collectMuscleMetadataFindings = (texts: NextItemRuntimeTexts): Finding[] =>
-  !texts.routePlanText.includes('allowedAbilityGroups: ["page-state", "text-input", "screenshot", "ai"]')
+  !texts.routePlanText.includes('allowedAbilityGroups: ["page-state", "text-input"]')
   || !texts.routePlanText.includes("requiresTargetCandidateRef: false")
-  || !texts.routePlanText.includes('fallbackPolicy: "fallback-only-with-post-click-observation"')
-    ? [toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH, "Advance Next Item muscle metadata must reflect page-state + text-input ownership and mandatory post-action observation.")]
+  || !texts.routePlanText.includes('fallbackPolicy: "direct-action-proof-only"')
+    ? [toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH, "Advance Next Item muscle metadata must reflect page-state + text-input ownership and direct action proof only.")]
     : [];
 
 const collectTextInputDispatchFindings = (texts: NextItemRuntimeTexts): Finding[] =>
   !texts.textInputDispatchText.includes('childCapabilityId: "press-navigation-key"')
   || !texts.textInputDispatchText.includes('targetProofOwner: "page-state"')
   || !texts.textInputDispatchText.includes('focusProofOwner: "page-state"')
-  || !texts.textInputDispatchText.includes('return "ArrowDown"')
-    ? [toFinding(WORKBENCH_TEXT_INPUT_DISPATCH_PATH, "press-navigation-key dispatch must bind page-state proof/focus and emit ArrowDown for press-next-video-key.")]
+  || !texts.textInputDispatchText.includes('key: "ArrowDown"')
+  || !texts.textInputPrimitiveText.includes("focusCurrentPageForNavigationKey")
+  || !texts.textInputPrimitiveText.includes("pageClickAttempted=${")
+  || !texts.textInputPrimitiveText.includes("keyPressAttempted=true")
+    ? [toFinding(WORKBENCH_TEXT_INPUT_DISPATCH_PATH, "press-navigation-key dispatch must bind page-state proof/focus, click the current page, and emit ArrowDown for press-next-video-key.")]
     : [];
 
 const collectProductLeadChainFindings = (texts: NextItemRuntimeTexts): Finding[] =>
@@ -111,17 +120,13 @@ const collectProductLeadChainFindings = (texts: NextItemRuntimeTexts): Finding[]
     ? [toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Product-yes must persist a lightweight product lead record and must not re-enter the comments chain.")]
     : [];
 
-const collectVerificationChainFindings = (texts: NextItemRuntimeTexts): Finding[] =>
-  !texts.routePlanRuntimeText.includes('stepId: "verify-next-item-advanced"')
-  || !texts.routePlanAllTransitionsText.includes('toStepId: "verify-next-item-advanced"')
-    ? [toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Route Plan must include verify-next-item-advanced so AI judges whether a new video is visible after press-navigation-key.")]
-    : [];
-
-const collectVerificationContractFindings = (texts: NextItemRuntimeTexts): Finding[] =>
-  !texts.routePlanRuntimeText.includes('promptContractId: "vision.nextItemAdvanced.v1"')
-  || !texts.routePlanAllTransitionsText.includes("NEXT_ITEM_ADVANCED_ROUTE_LABEL")
-  || !texts.routePlanAllTransitionsText.includes("NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL")
-    ? [toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH, "verify-next-item-advanced must use the dedicated vision.nextItemAdvanced.v1 contract and dedicated next-item route labels.")]
+const collectNoNextItemAiMainChainFindings = (texts: NextItemRuntimeTexts): Finding[] =>
+  texts.routePlanAllTransitionsText.includes('toStepId: "capture-next-item-verification-viewport"')
+  || texts.routePlanAllTransitionsText.includes('toStepId: "prepare-next-item-verification-ai-input"')
+  || texts.routePlanAllTransitionsText.includes('toStepId: "verify-next-item-advanced"')
+  || texts.routePlanAllTransitionsText.includes("NEXT_ITEM_ADVANCED_ROUTE_LABEL")
+  || texts.routePlanAllTransitionsText.includes("NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL")
+    ? [toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH, "V1 Advance Next Item main transitions must not require screenshot/AI next-item verification; verify-next-item-advanced may only remain dormant.")]
     : [];
 
 const collectVisualDispatchFindings = (texts: NextItemRuntimeTexts): Finding[] =>
@@ -152,8 +157,7 @@ const NEXT_ITEM_RUNTIME_FINDING_COLLECTORS = [
   collectMuscleMetadataFindings,
   collectTextInputDispatchFindings,
   collectProductLeadChainFindings,
-  collectVerificationChainFindings,
-  collectVerificationContractFindings,
+  collectNoNextItemAiMainChainFindings,
   collectVisualDispatchFindings,
   collectNextItemDispatchFindings,
   collectLoopGuardFindings,

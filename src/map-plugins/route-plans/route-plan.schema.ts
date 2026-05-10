@@ -29,7 +29,7 @@ type MuscleSegmentValue = {
   semanticOwner: "ai" | "none";
   requiresTargetCandidateRef?: boolean | undefined;
   postClickObservation?: boolean | undefined;
-  fallbackPolicy?: "forbidden" | "fallback-only-with-post-click-observation" | undefined;
+  fallbackPolicy?: "forbidden" | "fallback-only-with-post-click-observation" | "direct-action-proof-only" | undefined;
   description: string;
 };
 
@@ -82,6 +82,9 @@ const validateMuscleSegmentFallbackPolicy = (value: MuscleSegmentValue, context:
   if (value.fallbackPolicy === "fallback-only-with-post-click-observation" && value.postClickObservation !== true) {
     addMuscleSegmentIssue(context, ["fallbackPolicy"], "Fallback-only muscle segments must declare postClickObservation as a non-blocking quality signal.");
   }
+  if (value.fallbackPolicy === "direct-action-proof-only" && value.postClickObservation !== true) {
+    addMuscleSegmentIssue(context, ["fallbackPolicy"], "Direct-action proof muscle segments must return to observation instead of claiming semantic success.");
+  }
 };
 
 const validateMuscleSegmentTargetCandidates = (value: MuscleSegmentValue, context: z.RefinementCtx) => {
@@ -109,7 +112,7 @@ export const MuscleSegmentSchema = z.object({
   semanticOwner: z.enum(["ai", "none"]),
   requiresTargetCandidateRef: z.boolean().optional(),
   postClickObservation: z.boolean().optional(),
-  fallbackPolicy: z.enum(["forbidden", "fallback-only-with-post-click-observation"]).optional(),
+  fallbackPolicy: z.enum(["forbidden", "fallback-only-with-post-click-observation", "direct-action-proof-only"]).optional(),
   description: z.string().min(1),
 }).strict().superRefine((value, context) => {
   validateMuscleSegment(value, context);

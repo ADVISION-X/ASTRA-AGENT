@@ -26,6 +26,7 @@ const BROWSER_TEXT_INPUT_KEY_CODES: Record<BrowserTextInputKey, number> = {
   Escape: 53,
   Backspace: 51,
   Delete: 117,
+  L: 37,
   ArrowUp: 126,
   ArrowDown: 125,
   ArrowLeft: 123,

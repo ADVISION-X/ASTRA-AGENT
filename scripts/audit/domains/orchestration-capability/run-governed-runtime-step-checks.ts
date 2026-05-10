@@ -74,8 +74,8 @@ export function inspectRoundAndVideoVisitChain(project: ReturnType<typeof create
   if (!sharedText.includes("video-visit") || !sharedText.includes("state.currentRoundIndex")) {
     findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: STEP_DISPATCH_SHARED_PATH, line: 1, message: "Orchestration dispatch chain must derive videoVisitId from mission identity and currentRoundIndex." }));
   }
-  if (!transitionSuccessText.includes("shouldAdvanceMissionRound") || !transitionSuccessText.includes("verify-next-item-advanced") || !transitionSuccessText.includes("capture-video-viewport")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: LOOP_TRANSITION_SUCCESS_PATH, line: 1, message: "Mission round advancement must treat verify-next-item-advanced returning to capture-video-viewport as the governed round boundary." }));
+  if (!transitionSuccessText.includes("shouldAdvanceMissionRound") || !transitionSuccessText.includes("press-next-video-key") || !transitionSuccessText.includes("observe-current-video-page-state")) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V3", file: LOOP_TRANSITION_SUCCESS_PATH, line: 1, message: "Mission round advancement must treat press-next-video-key returning to observe-current-video-page-state as the governed direct-action round boundary." }));
   }
 
   return {
@@ -83,8 +83,8 @@ export function inspectRoundAndVideoVisitChain(project: ReturnType<typeof create
     phase: createRuntimePhase(
       "round-video-visit-chain",
       findings,
-      "Orchestration binds non-null per-round videoVisitId and advances rounds after governed next-item AI verification.",
-      "Orchestration can still dispatch no-video loops or fail to advance rounds after verified next-video scroll.",
+      "Orchestration binds non-null per-round videoVisitId and advances rounds after governed next-item direct action proof.",
+      "Orchestration can still dispatch no-video loops or fail to advance rounds after next-video direct action proof.",
     ),
   };
 }
