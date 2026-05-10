@@ -21,6 +21,25 @@ const {
 } = forensicsPersistenceInspectionConstants;
 const EVIDENCE_PACKET_SCHEMA_PATH = "src/types/evidence-packet.ts";
 const WORKBENCH_FINALIZATION_PATH = "src/lib/local-runtime/workbench-forensics-finalization-dispatch.ts";
+const WORKBENCH_FORENSICS_DISPATCH_INPUT_PATH = "src/lib/local-runtime/workbench-forensics-dispatch-input.ts";
+const PRODUCT_LEAD_DISPATCH_SNIPPETS = [
+  'childCapabilityId: "write-product-lead-record"',
+  'recordType: "product_lead_record"',
+  "platformId: requestedPlatformId",
+  "targetUrl,",
+  "targetTitle,",
+  "screenshotEvidenceRef,",
+  "productPresenceAiResultRef,",
+  'decision: productPresenceSummary.output.decision === "product_yes" ? "product_yes" : "product_no"',
+  "routeLabel: productPresenceSummary.output.routeLabel",
+  "confidence: productPresenceSummary.output.confidence",
+  "visibleProductTypes: productPresenceSummary.output.visibleProductTypes",
+  "reason: productPresenceSummary.output.reason",
+  "capturedAt: productPresenceSummary.capturedAt",
+  "createdAt: new Date().toISOString()",
+  "runId: envelope.runId",
+  "missionId: envelope.missionId",
+] as const;
 const {
   getFunctionLine,
   getIdentifierReferencePaths,
@@ -209,6 +228,22 @@ const collectCommentEvidencePacketFindings = (project: import("ts-morph").Projec
   return findings;
 };
 
+const hasProductLeadDispatchShape = (dispatchText: string): boolean =>
+  PRODUCT_LEAD_DISPATCH_SNIPPETS.every((snippet) => dispatchText.includes(snippet));
+
+const collectProductLeadDispatchFindings = (project: import("ts-morph").Project): Finding[] => {
+  const dispatchSource = getSourceFileOrThrow(project, WORKBENCH_FORENSICS_DISPATCH_INPUT_PATH);
+  return hasProductLeadDispatchShape(dispatchSource.getFullText())
+    ? []
+    : [createFinding({
+        lawId: LAW_RUNTIME,
+        file: WORKBENCH_FORENSICS_DISPATCH_INPUT_PATH,
+        line: 1,
+        severity: "fatal",
+        message: "Product lead dispatch must persist screenshot/url/title plus decision, routeLabel, confidence, visibleProductTypes, reason, capturedAt, createdAt, runId, and missionId.",
+      })];
+};
+
 const collectRetiredRootFindings = async (project: import("ts-morph").Project): Promise<Finding[]> => {
   const findings: Finding[] = [];
   const indexSource = getSourceFileOrThrow(project, INDEX_PATH);
@@ -232,6 +267,7 @@ export async function runForensicsRuntimeChecks(project: import("ts-morph").Proj
     ...collectHashBuilderFindings(project),
     ...collectStorageFindings(project),
     ...collectCommentEvidencePacketFindings(project),
+    ...collectProductLeadDispatchFindings(project),
     ...(await collectRetiredRootFindings(project)),
   ];
 }

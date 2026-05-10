@@ -52,7 +52,7 @@ const resolveRouteLabelForDecision = (decision: "product_yes" | "product_no") =>
 
 const resolveNonExecutableSummaryForRouteLabel = (routeLabel: string) =>
   routeLabel === PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL
-    ? "当前证据支持产品展示，选择产品证据路线标签。"
+    ? "当前证据支持产品展示，选择产品线索记录路线标签。"
     : "当前证据未证明产品展示，选择非产品路线标签。";
 
 const normalizeDecisionConsistency = (input: {

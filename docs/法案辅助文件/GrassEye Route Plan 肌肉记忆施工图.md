@@ -10,7 +10,7 @@
 - 地图与 Route Plan 的边界。
 - 肌肉记忆与能力组的边界。
 - 能力组之间的结果交接合同。
-- 产品发现路线中的评论链、下一条视频链、证据链。
+- 产品发现路线中的 V1 产品线索链、V2 dormant 评论链、下一条视频链、取证结果合同。
 
 本文件不治理：
 
@@ -130,7 +130,7 @@ capture-startup-video-viewport
 -> judge-seeding-video
 ```
 
-其中 `capture-current-video-viewport -> prepare-current-video-ai-input` 只允许承载轻量观察输入；不得把 3s / 6s / 10s 多帧采样重新拆回 Route Plan。AI 只消费轻量输入，只有 `product_yes` / `read-comments-and-save-evidence` 分支成立后，后续高质量证据截图链才允许展开。
+其中 `capture-current-video-viewport -> prepare-current-video-ai-input` 只允许承载轻量观察输入；不得把 3s / 6s / 10s 多帧采样重新拆回 Route Plan。AI 只消费轻量输入。当前 V1 中，`product_yes` / `read-comments-and-save-evidence` 只允许进入 `write-product-lead-record -> observe-next-item-page-state`。评论截图、评论 OCR、evidence packet 链统一降为 V2 dormant chain，不属于 V1 生产主链。
 
 TikTok、Facebook 等平台必须共享同一类弱地图边界。不得为了某个平台单独把动作链写进地图。
 
@@ -630,7 +630,7 @@ businessTruth
 
 ---
 
-## 8. 当前产品发现默认路线
+## 8. 当前产品发现默认路线（V1 生产主链）
 
 ### 8.1 product_yes
 
@@ -640,20 +640,17 @@ AI 默认输出：
 routeLabel = read-comments-and-save-evidence
 ```
 
+说明：
+
+```txt
+这是保留的兼容 routeLabel 名称。
+V1 实际动作不是读评论，而是保存轻量 product lead record 后进入下一条视频链。
+```
+
 匹配肌肉链：
 
 ```txt
-observe-comments-entry-page-state
--> analyze-comments-entry-target-candidate
--> observe-comments-button
--> normalize-comments-target
--> click-comments-button
--> verify-comments-open
--> capture-comments-panel
--> extract-visible-comments
--> write-seeding-evidence-record
--> finalize-seeding-evidence-packet
--> finalize-seeding-browse-ledger
+write-product-lead-record
 -> observe-next-item-page-state
 -> press-next-video-key
 -> capture-next-item-verification-viewport
@@ -681,67 +678,69 @@ observe-next-item-page-state
 -> capture-current-video-viewport
 ```
 
-### 8.3 product_yes 关节结果链
+### 8.3 product_yes 线索记录结果链
 
 `read-comments-and-save-evidence` 必须满足：
 
 ```txt
-AI Candidate Result
--> Visual Target Result
--> Geometry Guard Result
--> Mouse Click Result
--> Post Action Verification Result
--> Screenshot / Evidence Capture Result
--> Forensics Evidence Record
+Screenshot Evidence Ref
+-> Product Presence AI Result
+-> write-product-lead-record
+-> productLeadRecordRef
 ```
 
 不允许：
 
 ```txt
-AI Candidate Result -> Mouse Click
-Visual Target Result -> Mouse Click
-Mouse Click Result -> capture-comments-panel
-Mouse Click success -> comments panel opened
+judge-seeding-video:read-comments-and-save-evidence -> observe-comments-entry-page-state
+judge-seeding-video:read-comments-and-save-evidence -> observe-comments-button
+judge-seeding-video:read-comments-and-save-evidence -> click-comments-button
+judge-seeding-video:read-comments-and-save-evidence -> capture-comments-panel
+V1 主链中的评论 OCR
+V1 主链中的 finalize-seeding-evidence-packet
 ```
 
-`click-comments-button:success` 必须后接：
+### 8.4 V2 dormant comments chain
+
+以下步骤允许作为 V2 dormant chain 保留代码，但 V1 Route Plan 主链不得进入：
 
 ```txt
+observe-comments-entry-page-state
+analyze-comments-entry-target-candidate
+observe-comments-button
+normalize-comments-target
+click-comments-button
 verify-comments-open
-```
-
-只有动作后观察包或 AI 语义验证链确认后，才能进入：
-
-```txt
 capture-comments-panel
+extract-visible-comments
+write-seeding-evidence-record
+finalize-seeding-evidence-packet
 ```
 
 ---
 
 ## 9. Advance Next Item Muscle
 
-`click-next-video-arrow` 是当前 product_no 的肌肉记忆意图名。
+`press-next-video-key` 是当前 V1 的下一条视频肌肉记忆意图名。
 
-Route Plan 不为 Facebook / TikTok 分叉第二条平台动作链。
+`click-next-video-arrow` 属于 V2 dormant click-based chain，不属于当前 V1 生产主链。
 
 下一条视频肌肉必须遵守：
 
-- `normalize-next-video-arrow` 不得只靠 `screenshotEvidenceRef` + deterministic viewport geometry。
-- Next-item target identity must come from AI target candidate, governed visual target result, or fallback policy explicitly marked high-risk.
-- deterministic next-arrow geometry is fallback-only, never normal path.
-- fallback must require post-click AI verification.
-- `click-next-video-arrow` mechanical success does not equal next-item semantic success.
-- `click-next-video-arrow:success` must be followed by visible-state capture and verification before the next round is treated as advanced.
+- `press-next-video-key` 必须使用 `text-input/press-navigation-key`。
+- `press-next-video-key` 必须消费 `pageStateRef` + `screenshotEvidenceRef`。
+- `press-next-video-key:success` 后必须进入截图与 AI 验证链，不能把机械成功当成下一条视频语义成功。
 - loop guard block must not be finalized as normal completed unless reason is run limit reached.
 
-下一条视频肌肉也必须逐步迁移到同一关节结果合同：
+当前 V1 下一条视频验证链：
 
 ```txt
-AI Candidate Result
--> Visual Target Result
--> Geometry Guard Result
--> Mouse Click Result
--> Post Action Verification Result
+pageStateRef
+-> press-next-video-key
+-> nextItemAdvanceProofRef
+-> capture-next-item-verification-viewport
+-> prepare-next-item-verification-ai-input
+-> verify-next-item-advanced
 ```
 
 ---

@@ -7,6 +7,7 @@ export {
   type ForensicsFailedRecordInput,
   type ForensicsImageEvidenceInput,
   type ForensicsOcrEvidenceInput,
+  type ForensicsProductLeadRecordInput,
   type ForensicsPersistenceAbilityGroup,
   type ForensicsPersistenceAbilityGroupId,
   type ForensicsPersistenceAbilityInput,

@@ -1,12 +1,14 @@
 import {
   BrowseLedgerEntrySchema,
   ProductDiscoveryEvidencePacketSchema,
+  ProductLeadRecordSchema,
   ProductOpportunityCandidateSchema,
   RoundLifecycleEventSchema,
   RoundStructuralLogSchema,
   type AdvancedAIExportSet,
   type BrowseLedgerEntry,
   type ProductDiscoveryEvidencePacket,
+  type ProductLeadRecord,
   type ProductOpportunityCandidate,
   type RoundLifecycleEvent,
   type RoundStructuralLog,
@@ -21,6 +23,17 @@ export async function saveCandidateRecord(
   const state = await ctx.listState();
   const parsed = ProductOpportunityCandidateSchema.parse(input);
   replaceOrAppend(state.candidates, parsed, (item) => item.sourceVideoId === parsed.sourceVideoId);
+  await ctx.stateStore.write(state);
+  return parsed;
+}
+
+export async function saveProductLeadRecordRecord(
+  ctx: EvidenceStoreRecordsContext,
+  input: ProductLeadRecord,
+): Promise<ProductLeadRecord> {
+  const state = await ctx.listState();
+  const parsed = ProductLeadRecordSchema.parse(input);
+  replaceOrAppend(state.productLeadRecords, parsed, (item) => item.recordId === parsed.recordId);
   await ctx.stateStore.write(state);
   return parsed;
 }

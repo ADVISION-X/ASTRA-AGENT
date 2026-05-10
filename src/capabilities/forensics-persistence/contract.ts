@@ -9,6 +9,7 @@ import type {
   UpdateRuntimeSnapshotInput,
   WriteAiResultRecordInput,
   WriteEvidenceRecordInput,
+  WriteProductLeadRecordInput,
   WriteStructuredActionLogInput,
   WriteStructuredRuntimeEventInput,
 } from "./schema.js";
@@ -25,6 +26,7 @@ type ForensicsStructuredRuntimeEventInput = WriteStructuredRuntimeEventInput;
 type ForensicsStructuredActionLogInput = WriteStructuredActionLogInput;
 type ForensicsImageEvidenceInput = WriteEvidenceRecordInput;
 type ForensicsOcrEvidenceInput = WriteEvidenceRecordInput;
+type ForensicsProductLeadRecordInput = WriteProductLeadRecordInput;
 type ForensicsAiResultRecordInput = WriteAiResultRecordInput;
 type ForensicsBrowseLedgerInput = FinalizeBrowseLedgerInput;
 type ForensicsEvidencePacketInput = FinalizeEvidencePacketInput;
@@ -45,6 +47,7 @@ interface ForensicsPersistenceAbilityGroup {
   writeStructuredActionLog(input: ForensicsStructuredActionLogInput): Promise<ForensicsPersistenceAbilityResult>;
   writeImageEvidence(input: ForensicsImageEvidenceInput): Promise<ForensicsPersistenceAbilityResult>;
   writeOcrEvidence(input: ForensicsOcrEvidenceInput): Promise<ForensicsPersistenceAbilityResult>;
+  writeProductLeadRecord(input: ForensicsProductLeadRecordInput): Promise<ForensicsPersistenceAbilityResult>;
   writeAiResultRecord(input: ForensicsAiResultRecordInput): Promise<ForensicsPersistenceAbilityResult>;
   finalizeBrowseLedger(input: ForensicsBrowseLedgerInput): Promise<ForensicsPersistenceAbilityResult>;
   finalizeEvidencePacket(input: ForensicsEvidencePacketInput): Promise<ForensicsPersistenceAbilityResult>;
@@ -64,6 +67,7 @@ export type {
   ForensicsStructuredActionLogInput,
   ForensicsImageEvidenceInput,
   ForensicsOcrEvidenceInput,
+  ForensicsProductLeadRecordInput,
   ForensicsAiResultRecordInput,
   ForensicsBrowseLedgerInput,
   ForensicsEvidencePacketInput,

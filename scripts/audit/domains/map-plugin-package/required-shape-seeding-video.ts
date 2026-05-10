@@ -4,15 +4,7 @@ import { findRoutePlanById } from "../../../../src/map-plugins/route-plans/index
 import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
 import { MAP_PLUGIN_LAWS } from "./constants.js";
 import {
-  hasCaptureCommentsPanelStep,
-  hasCommentsCleanupStep,
-  hasCommentsClickStep,
-  hasCommentsOpenVerificationStep,
-  hasCommentsObservationPageStateStep,
-  hasCommentsPersistenceSteps,
-  hasCommentsTargetCandidateSteps,
-} from "./required-shape-seeding-video-comments.js";
-import {
+  PRODUCT_PRESENCE_OBSERVE_STEP_ID,
   FORBIDDEN_PRODUCT_PRESENCE_FRAME_TOKENS,
   PRODUCT_PRESENCE_CAPTURE_STEP_ID,
   PRODUCT_PRESENCE_PREPARE_STEP_ID,
@@ -156,7 +148,7 @@ const judgeLeaksNextTargetCandidate = (context: SeedingVideoContext): boolean =>
 const routePlanOwnsProductYesNoRouting = (context: SeedingVideoContext): boolean =>
   hasTransition(context.routePlanTransitions, {
     fromStepId: "judge-seeding-video",
-    toStepId: "observe-comments-entry-page-state",
+    toStepId: "write-product-lead-record",
     transitionId: "judge-seeding-video:read-comments-and-save-evidence",
   })
   && hasTransition(context.routePlanTransitions, {
@@ -165,62 +157,41 @@ const routePlanOwnsProductYesNoRouting = (context: SeedingVideoContext): boolean
     transitionId: "judge-seeding-video:skip-current-video",
   });
 
-const hasCommentsObservationTransitions = (context: SeedingVideoContext): boolean =>
-  hasTransition(context.routePlanTransitions, { fromStepId: "judge-seeding-video", toStepId: "observe-comments-entry-page-state" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "observe-comments-entry-page-state", toStepId: "analyze-comments-entry-target-candidate" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "analyze-comments-entry-target-candidate", toStepId: "observe-comments-button" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "observe-comments-button", toStepId: "normalize-comments-target" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "normalize-comments-target", toStepId: "click-comments-button" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "click-comments-button", toStepId: "verify-comments-open" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "verify-comments-open", toStepId: "capture-comments-panel" });
-
-const hasCommentsObservationChain = (context: SeedingVideoContext): boolean => {
-  const observeCommentsState = getStep(context, "observe-comments-entry-page-state");
-  const analyzeComments = getStep(context, "analyze-comments-entry-target-candidate");
-  const observeCommentsButton = getStep(context, "observe-comments-button");
-  const normalizeComments = getStep(context, "normalize-comments-target");
-  const clickComments = getStep(context, "click-comments-button");
-  const verifyCommentsOpen = getStep(context, "verify-comments-open");
-  return hasCommentsObservationTransitions(context)
-    && hasCommentsObservationPageStateStep(observeCommentsState)
-    && hasCommentsTargetCandidateSteps({ analyzeComments, locateComments: observeCommentsButton, normalizeComments })
-    && hasCommentsClickStep(clickComments)
-    && hasCommentsOpenVerificationStep(verifyCommentsOpen);
-};
-
-const hasCommentsEvidenceTransitions = (context: SeedingVideoContext): boolean =>
-  hasTransition(context.routePlanTransitions, { fromStepId: "capture-comments-panel", toStepId: "extract-visible-comments" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "extract-visible-comments", toStepId: "write-seeding-evidence-record" })
-  && hasTransition(context.routePlanTransitions, {
-    fromStepId: "extract-visible-comments",
-    onStatus: "failed",
-    toStepId: "write-seeding-evidence-record",
+const hasProductLeadTransitionChain = (context: SeedingVideoContext): boolean =>
+  hasTransition(context.routePlanTransitions, {
+    fromStepId: "judge-seeding-video",
+    toStepId: "write-product-lead-record",
+    transitionId: "judge-seeding-video:read-comments-and-save-evidence",
   })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "write-seeding-evidence-record", toStepId: "finalize-seeding-evidence-packet" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "finalize-seeding-evidence-packet", toStepId: "finalize-seeding-browse-ledger" });
+  && hasTransition(context.routePlanTransitions, { fromStepId: "write-product-lead-record", toStepId: "observe-next-item-page-state" })
+  && !hasTransition(context.routePlanTransitions, { fromStepId: "judge-seeding-video", toStepId: "observe-comments-entry-page-state" });
 
-const hasCommentsEvidenceChain = (context: SeedingVideoContext): boolean => {
-  const captureCommentsPanel = getStep(context, "capture-comments-panel");
-  const extractVisibleComments = getStep(context, "extract-visible-comments");
-  const writeSeedingEvidence = getStep(context, "write-seeding-evidence-record");
-  const finalizeSeedingPacket = getStep(context, "finalize-seeding-evidence-packet");
-  const finalizeSeedingBrowseLedger = getStep(context, "finalize-seeding-browse-ledger");
-  return hasCommentsEvidenceTransitions(context)
-    && hasCaptureCommentsPanelStep(captureCommentsPanel)
-    && hasCommentsCleanupStep(extractVisibleComments)
-    && hasCommentsPersistenceSteps({ writeSeedingEvidence, finalizeSeedingPacket, finalizeSeedingBrowseLedger });
+const hasProductLeadStepShape = (context: SeedingVideoContext): boolean => {
+  const writeProductLeadRecord = getStep(context, "write-product-lead-record");
+  return writeProductLeadRecord?.targetAbilityGroupId === "forensics-persistence"
+    && writeProductLeadRecord.childCapabilityId === "write-product-lead-record"
+    && hasInputRefs(writeProductLeadRecord, ["requestedPlatformId", "targetUrl", "targetTitle", "screenshotEvidenceRef", "productPresenceAiResultRef"])
+    && hasOutputRefs(writeProductLeadRecord, ["abilityResultRef", "productLeadRecordRef"]);
 };
 
-const hasNoCommentIntentLeak = (context: SeedingVideoContext): boolean =>
-  !context.steps.some((step) => step.stepId === "analyze-comment-intent" || step.childCapabilityId === "comment-intent-analysis")
-  && !context.routePlanTransitions.some((transition) => transition.fromStepId === "analyze-comment-intent" || transition.toStepId === "analyze-comment-intent")
-  && !context.requiredChildCapabilities.includes("comment-intent-analysis")
-  && !context.mapPackage.dependencies.requiredPromptContracts.includes("comments.intent_analysis.v1");
+const hasFrozenCommentsDependencies = (context: SeedingVideoContext): boolean =>
+  !context.requiredCapabilities.some((capabilityId) => capabilityId === "visual-target" || capabilityId === "geometry-guard" || capabilityId === "mouse-click")
+  && context.requiredChildCapabilities.includes("write-product-lead-record")
+  && !context.requiredChildCapabilities.some((childCapabilityId) =>
+    childCapabilityId === "observe-comments-button"
+    || childCapabilityId === "normalize-coordinate-geometry"
+    || childCapabilityId === "click-browser-coordinate"
+    || childCapabilityId === "capture-region"
+    || childCapabilityId === "comment-text-cleanup"
+    || childCapabilityId === "write-evidence-record",
+  )
+  && context.mapPackage.dependencies.requiredForensicsRecords.includes("product_lead_record")
+  && !context.mapPackage.dependencies.requiredPromptContracts.includes("comments.ocr_cleanup.v1");
 
-const hasGovernedPositiveCommentsPath = (context: SeedingVideoContext): boolean =>
-  hasCommentsObservationChain(context)
-  && hasCommentsEvidenceChain(context)
-  && hasNoCommentIntentLeak(context);
+const hasGovernedPositiveLeadPath = (context: SeedingVideoContext): boolean =>
+  hasProductLeadTransitionChain(context)
+  && hasProductLeadStepShape(context)
+  && hasFrozenCommentsDependencies(context);
 
 const hasForbiddenUncertainBranch = (context: SeedingVideoContext): boolean =>
   context.transitions
@@ -242,12 +213,12 @@ const hasAutomaticNonProductAdvanceTransitions = (context: SeedingVideoContext):
   && hasTransition(context.routePlanTransitions, { fromStepId: "press-next-video-key", toStepId: "capture-next-item-verification-viewport" })
   && hasTransition(context.routePlanTransitions, {
     fromStepId: "verify-next-item-advanced",
-    toStepId: PRODUCT_PRESENCE_CAPTURE_STEP_ID,
+    toStepId: PRODUCT_PRESENCE_OBSERVE_STEP_ID,
     transitionId: "verify-next-item-advanced:next-item-advanced",
   })
   && hasTransition(context.routePlanTransitions, {
     fromStepId: "verify-next-item-advanced",
-    toStepId: PRODUCT_PRESENCE_CAPTURE_STEP_ID,
+    toStepId: PRODUCT_PRESENCE_OBSERVE_STEP_ID,
     transitionId: "verify-next-item-advanced:next-item-not-advanced",
   });
 
@@ -289,7 +260,8 @@ const hasStartupAndCurrentCaptureShapes = (context: SeedingVideoContext): boolea
 const hasStartupAndCurrentCaptureTransitions = (context: SeedingVideoContext): boolean =>
   hasTransition(context.routePlanTransitions, { fromStepId: "capture-startup-video-viewport", toStepId: "prepare-startup-ai-input" })
   && hasTransition(context.routePlanTransitions, { fromStepId: "prepare-startup-ai-input", toStepId: "startup-preparation" })
-  && hasTransition(context.routePlanTransitions, { fromStepId: "startup-preparation", toStepId: PRODUCT_PRESENCE_CAPTURE_STEP_ID })
+  && hasTransition(context.routePlanTransitions, { fromStepId: "startup-preparation", toStepId: PRODUCT_PRESENCE_OBSERVE_STEP_ID })
+  && hasTransition(context.routePlanTransitions, { fromStepId: PRODUCT_PRESENCE_OBSERVE_STEP_ID, toStepId: PRODUCT_PRESENCE_CAPTURE_STEP_ID })
   && hasTransition(context.routePlanTransitions, { fromStepId: PRODUCT_PRESENCE_CAPTURE_STEP_ID, toStepId: PRODUCT_PRESENCE_PREPARE_STEP_ID })
   && hasTransition(context.routePlanTransitions, { fromStepId: PRODUCT_PRESENCE_PREPARE_STEP_ID, toStepId: "judge-seeding-video" });
 
@@ -317,7 +289,7 @@ const hasSeedingVideoBoundaryGuards = (context: SeedingVideoContext): boolean =>
 
 const hasSeedingVideoRoutePlanChains = (context: SeedingVideoContext): boolean =>
   routePlanOwnsProductYesNoRouting(context)
-  && hasGovernedPositiveCommentsPath(context)
+  && hasGovernedPositiveLeadPath(context)
   && hasAutomaticNonProductAdvancePath(context);
 
 const hasSeedingVideoAiInputChain = (context: SeedingVideoContext): boolean => {

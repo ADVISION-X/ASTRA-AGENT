@@ -57,6 +57,7 @@ const ROUTE_PLAN_OWNED_ACTION_STEP_IDS = new Set([
   "write-seeding-evidence-record",
   "finalize-seeding-evidence-packet",
   "finalize-seeding-browse-ledger",
+  "write-product-lead-record",
   "observe-next-video-region",
   "normalize-next-video-region",
   "scroll-next-video",

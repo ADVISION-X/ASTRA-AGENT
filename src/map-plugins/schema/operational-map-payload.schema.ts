@@ -33,6 +33,7 @@ export const MapPluginPayloadRefKeySchema = z.enum([
   "commentsOpenVerificationRef",
   "postActionVerificationResultRef",
   "seedingEvidenceRecordRef",
+  "productLeadRecordRef",
   "evidencePacketRecordRef",
   "browseLedgerRecordRef",
   "promptInputRef",

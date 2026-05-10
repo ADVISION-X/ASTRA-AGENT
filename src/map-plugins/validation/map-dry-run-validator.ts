@@ -1,6 +1,6 @@
 import type { MapPackageValidationIssue } from "../shared/map-package-failure.js";
 import type { MapPackage } from "../shared/map-package-types.js";
-import { findRoutePlanById } from "../route-plans/index.js";
+import { getEffectiveSteps, getEffectiveTransitions } from "./effective-route-plan.js";
 
 function isTargetAbilityGroup(
   targetAbilityGroupId: MapPackage["operationalMap"]["steps"][number]["targetAbilityGroupId"],
@@ -11,16 +11,6 @@ function isTargetAbilityGroup(
 
 function buildStepIndexMap(steps: MapPackage["operationalMap"]["steps"]): Map<string, number> {
   return new Map(steps.map((step, index) => [step.stepId, index]));
-}
-
-function getEffectiveSteps(mapPackage: MapPackage): MapPackage["operationalMap"]["steps"] {
-  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
-  return routePlan ? [...mapPackage.operationalMap.steps, ...routePlan.steps] : mapPackage.operationalMap.steps;
-}
-
-function getEffectiveTransitions(mapPackage: MapPackage): MapPackage["operationalMap"]["transitions"] {
-  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
-  return routePlan ? [...mapPackage.operationalMap.transitions, ...routePlan.transitions] : mapPackage.operationalMap.transitions;
 }
 
 function buildAdjacency(mapPackage: MapPackage, steps: MapPackage["operationalMap"]["steps"]): Map<string, string[]> {

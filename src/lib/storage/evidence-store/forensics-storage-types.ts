@@ -5,6 +5,7 @@ import {
   ForensicsEvidencePacketPayloadSchema as ExternalForensicsEvidencePacketPayloadSchema,
   ForensicsEvidenceRecordPayloadSchema as ExternalForensicsEvidenceRecordPayloadSchema,
   ForensicsFailedRecordPayloadSchema as ExternalForensicsFailedRecordPayloadSchema,
+  ForensicsProductLeadRecordPayloadSchema as ExternalForensicsProductLeadRecordPayloadSchema,
   ForensicsRuntimeSnapshotPayloadSchema as ExternalForensicsRuntimeSnapshotPayloadSchema,
   ForensicsStructuredActionLogPayloadSchema as ExternalForensicsStructuredActionLogPayloadSchema,
   ForensicsStructuredRuntimeEventPayloadSchema as ExternalForensicsStructuredRuntimeEventPayloadSchema,
@@ -25,6 +26,7 @@ const ForensicsBrowseLedgerPayloadSchema = ExternalForensicsBrowseLedgerPayloadS
 const ForensicsEvidencePacketPayloadSchema = ExternalForensicsEvidencePacketPayloadSchema;
 const ForensicsEvidenceRecordPayloadSchema = ExternalForensicsEvidenceRecordPayloadSchema;
 const ForensicsFailedRecordPayloadSchema = ExternalForensicsFailedRecordPayloadSchema;
+const ForensicsProductLeadRecordPayloadSchema = ExternalForensicsProductLeadRecordPayloadSchema;
 const ForensicsRuntimeSnapshotPayloadSchema = ExternalForensicsRuntimeSnapshotPayloadSchema;
 const ForensicsStructuredActionLogPayloadSchema = ExternalForensicsStructuredActionLogPayloadSchema;
 const ForensicsStructuredRuntimeEventPayloadSchema = ExternalForensicsStructuredRuntimeEventPayloadSchema;
@@ -44,6 +46,7 @@ export {
   ForensicsEvidencePacketPayloadSchema,
   ForensicsEvidenceRecordPayloadSchema,
   ForensicsFailedRecordPayloadSchema,
+  ForensicsProductLeadRecordPayloadSchema,
   ForensicsRuntimeSnapshotPayloadSchema,
   ForensicsStructuredActionLogPayloadSchema,
   ForensicsStructuredRuntimeEventPayloadSchema,

@@ -13,6 +13,7 @@ import {
   buildForensicsBrowseLedgerInput,
   buildForensicsEvidencePacketInput,
   buildForensicsEvidenceRecordInput,
+  buildForensicsProductLeadRecordInput,
   buildForensicsRuntimeEventInput,
 } from "./workbench-forensics-dispatch-input.js";
 import { buildOpenAbilityInput } from "./workbench-open-dispatch-input.js";
@@ -72,6 +73,8 @@ const executeForensicsAbilityCommand = (
       return Promise.resolve(runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent(buildForensicsRuntimeEventInput(envelope)));
     case "write-evidence-record":
       return Promise.resolve(runtime.forensicsPersistenceAbilityGroup.writeImageEvidence(buildForensicsEvidenceRecordInput(envelope, inputPayload)));
+    case "write-product-lead-record":
+      return Promise.resolve(runtime.forensicsPersistenceAbilityGroup.writeProductLeadRecord(buildForensicsProductLeadRecordInput(envelope, inputPayload)));
     case "finalize-evidence-packet":
       return Promise.resolve(runtime.forensicsPersistenceAbilityGroup.finalizeEvidencePacket(buildForensicsEvidencePacketInput(envelope, inputPayload)));
     case "finalize-browse-ledger":

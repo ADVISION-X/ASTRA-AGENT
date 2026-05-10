@@ -6,6 +6,7 @@ const ForensicsBrowseLedgerPayloadSchema = externalForensicsSchema.ForensicsBrow
 const ForensicsEvidencePacketPayloadSchema = externalForensicsSchema.ForensicsEvidencePacketPayloadSchema;
 const ForensicsEvidenceRecordPayloadSchema = externalForensicsSchema.ForensicsEvidenceRecordPayloadSchema;
 const ForensicsFailedRecordPayloadSchema = externalForensicsSchema.ForensicsFailedRecordPayloadSchema;
+const ForensicsProductLeadRecordPayloadSchema = externalForensicsSchema.ForensicsProductLeadRecordPayloadSchema;
 const ForensicsRuntimeSnapshotPayloadSchema = externalForensicsSchema.ForensicsRuntimeSnapshotPayloadSchema;
 const ForensicsStructuredActionLogPayloadSchema = externalForensicsSchema.ForensicsStructuredActionLogPayloadSchema;
 const ForensicsStructuredRuntimeEventPayloadSchema = externalForensicsSchema.ForensicsStructuredRuntimeEventPayloadSchema;
@@ -23,6 +24,7 @@ export {
   ForensicsEvidencePacketPayloadSchema,
   ForensicsEvidenceRecordPayloadSchema,
   ForensicsFailedRecordPayloadSchema,
+  ForensicsProductLeadRecordPayloadSchema,
   ForensicsRuntimeSnapshotPayloadSchema,
   ForensicsStructuredActionLogPayloadSchema,
   ForensicsStructuredRuntimeEventPayloadSchema,

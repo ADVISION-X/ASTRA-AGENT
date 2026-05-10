@@ -137,6 +137,15 @@ GrassEye 的骨架，是固定的核心能力组。
 
 它可以刷 Facebook 看种草视频。
 
+在当前第一生产版里，它的任务被刻意收窄成“种草视频线索采集器”：
+
+- 打开 Facebook / TikTok 视频流。
+- 轻量截图。
+- 交给 AI 做 `product_yes / product_no` 判断。
+- `product_yes` 只保存截图、URL、标题和 AI 判断摘要为产品线索记录，然后下一条。
+- `product_no` 直接下一条。
+- 不打开评论，不点击评论，不做评论 OCR。
+
 它可以打开 Amazon 看 Listing。
 
 它可以打开 Gmail 整理邮件。
@@ -447,12 +456,13 @@ Agent 的原则之一就是自动化完成。
 
 用户需求进入地图生成时，不能只有一句自然语言。
 
-它必须同时带上系统提供的二元默认选项：
+它必须同时带上当前第一生产版的固定默认策略：
 
 ```txt
-如果是产品：1 读取评论 / 2 保存证据 / 3 读取评论并保存证据 / 4 结束当前视频
-如果不是产品：1 跳过当前视频 / 2 点不感兴趣后继续 / 3 发布默认笑脸评论后继续 / 4 直接结束任务
-默认：产品 = 读取评论并保存证据；非产品 = 跳过当前视频
+如果是产品：保存当前截图、URL、标题和 AI 判断摘要为产品线索记录，然后下一条
+如果不是产品：跳过当前视频，然后下一条
+兼容 routeLabel：product_yes -> read-comments-and-save-evidence；product_no -> skip-current-video
+评论点击链保留为 V2 dormant chain，不属于当前 V1 生产主链
 ```
 
 这些选项最终进入 Prompt Contract。AI 输出 `decision + routeLabel`，调度只按 `routeLabel` 搬运路线，不能自己理解 `product_yes/product_no`。

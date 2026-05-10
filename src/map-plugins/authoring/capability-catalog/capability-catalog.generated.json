@@ -301,6 +301,31 @@
     },
     {
       "abilityGroupId": "forensics-persistence",
+      "childCapabilityId": "write-product-lead-record",
+      "description": "Persist governed forensic record for write product lead record.",
+      "inputSchemaRef": "forensics-persistence.write-product-lead-record.input",
+      "outputSchemaRef": "forensics-persistence.write-product-lead-record.output",
+      "platformId": null,
+      "targetKind": null,
+      "supportedTargets": [
+        "structured-log",
+        "evidence-ledger",
+        "artifact-store"
+      ],
+      "routableByMap": true,
+      "requiresPostOpenWindowHandoff": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "requiresAutomationGate": false,
+      "sensitiveOperation": true,
+      "forbiddenResponsibilities": [
+        "execute browser actions",
+        "classify page state",
+        "author prompts"
+      ]
+    },
+    {
+      "abilityGroupId": "forensics-persistence",
       "childCapabilityId": "write-structured-action-log",
       "description": "Persist governed forensic record for write structured action log.",
       "inputSchemaRef": "forensics-persistence.write-structured-action-log.input",

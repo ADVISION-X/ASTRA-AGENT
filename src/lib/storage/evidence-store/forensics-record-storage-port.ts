@@ -9,12 +9,14 @@ import { persistStructuredActionLog } from "./forensics-record-storage-action.js
 import { persistAiResultRecord } from "./forensics-record-storage-ai.js";
 import { persistEvidenceRecord } from "./forensics-record-storage-evidence.js";
 import { persistBrowseLedgerRecord, persistEvidencePacketRecord, persistFailedRecord } from "./forensics-record-storage-ledger.js";
+import { persistProductLeadRecord } from "./forensics-record-storage-product-lead.js";
 import { persistRuntimeSnapshot, persistStructuredRuntimeEvent } from "./forensics-record-storage-runtime.js";
 
 const RECORD_PERSISTERS = {
   structured_runtime_event: persistStructuredRuntimeEvent,
   structured_action_log: persistStructuredActionLog,
   evidence_record: persistEvidenceRecord,
+  product_lead_record: persistProductLeadRecord,
   ai_result_record: persistAiResultRecord,
   browse_ledger_entry: persistBrowseLedgerRecord,
   evidence_packet: persistEvidencePacketRecord,

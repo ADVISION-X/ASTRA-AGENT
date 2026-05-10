@@ -61,7 +61,7 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_PRODUCT_PRESENCE_TRANSITIONS: RoutePla
     transitionId: `judge-seeding-video:${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}`,
     fromStepId: "judge-seeding-video",
     onStatus: "success",
-    toStepId: "observe-comments-entry-page-state",
+    toStepId: "write-product-lead-record",
     finalStatus: null,
   },
   {

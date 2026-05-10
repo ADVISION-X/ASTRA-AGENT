@@ -119,6 +119,7 @@ const PayloadRefBundleSchema = z.object({
   commentsOpenVerificationRef: z.string().min(1).nullable().optional().default(null),
   postActionVerificationResultRef: z.string().min(1).nullable().optional().default(null),
   seedingEvidenceRecordRef: z.string().min(1).nullable().optional().default(null),
+  productLeadRecordRef: z.string().min(1).nullable().optional().default(null),
   evidencePacketRecordRef: z.string().min(1).nullable().optional().default(null),
   browseLedgerRecordRef: z.string().min(1).nullable().optional().default(null),
   previousPromptInputRef: z.string().min(1).nullable().optional().default(null),

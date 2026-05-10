@@ -7,7 +7,11 @@ import {
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 import { MAP_PLUGIN_LAWS, MAP_PLUGIN_PATHS } from "./constants.js";
-import { PRODUCT_PRESENCE_CAPTURE_STEP_ID } from "./product-presence-route-plan-governance.js";
+import {
+  PRODUCT_PRESENCE_CAPTURE_STEP_ID,
+  PRODUCT_PRESENCE_OBSERVE_STEP_ID,
+} from "./product-presence-route-plan-governance.js";
+import { collectForbiddenFrameFindings } from "./startup-preparation-entry-spine-frame-checks.js";
 
 const { ROOT } = MAP_PLUGIN_PATHS;
 
@@ -51,15 +55,12 @@ const ROUTE_PLAN_OWNED_ACTION_STEP_IDS = new Set([
 ]);
 
 type MapPackage = ReturnType<typeof loadBuiltinMapPackages>[number];
-type MapStep = MapPackage["operationalMap"]["steps"][number];
-type MapTransition = MapPackage["operationalMap"]["transitions"][number];
-type PromptBinding = MapPackage["promptBindings"]["bindings"][number];
 type RoutePlan = NonNullable<ReturnType<typeof findRoutePlanById>>;
 
 const toMapFile = (packageId: string) => `${ROOT}/builtins/${packageId.replace("builtin.", "")}.meta.map-package.json`;
 
 const hasTransition = (
-  transitions: MapTransition[],
+  transitions: MapPackage["operationalMap"]["transitions"],
   expected: { transitionId: string; fromStepId: string; onStatus: string; toStepId?: string | null; finalStatus?: string | null },
 ): boolean => transitions.some((transition) =>
   transition.transitionId === expected.transitionId
@@ -68,75 +69,6 @@ const hasTransition = (
   && (transition.toStepId ?? null) === (expected.toStepId ?? null)
   && (transition.finalStatus ?? null) === (expected.finalStatus ?? null),
 );
-
-const collectStepRefValues = (step: MapStep): string[] => [
-  step.stepId,
-  step.childCapabilityId,
-  ...step.inputRefs,
-  ...step.outputRefPolicy.storeAs,
-];
-
-const collectBindingRefValues = (binding: PromptBinding): string[] => [
-  binding.stepId,
-  binding.promptContractId,
-  ...binding.requiredInputRefs,
-  binding.outputSchemaRef,
-];
-
-const collectTransitionValues = (transition: MapTransition): string[] => [
-  transition.transitionId,
-  transition.fromStepId,
-  transition.toStepId ?? "",
-];
-
-const findForbiddenFrameTokens = (values: string[]): string[] =>
-  values.filter((value) => value.includes("frame-3s") || value.includes("frame-6s") || value.includes("frame-10s") || value.includes("Frame3s") || value.includes("Frame6s") || value.includes("Frame10s"));
-
-const collectForbiddenFrameFindings = (mapPackage: MapPackage, file: string): Finding[] => {
-  const stepFindings = mapPackage.operationalMap.steps.flatMap((step) => {
-    const forbidden = findForbiddenFrameTokens(collectStepRefValues(step));
-    return forbidden.length === 0
-      ? []
-      : [createFinding({
-        lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT,
-        file,
-        line: 1,
-        severity: "fatal",
-        message: "Production seeding map must not declare frame-specific sampling steps or refs.",
-        detail: `${step.stepId}: ${forbidden.join(", ")}`,
-      })];
-  });
-
-  const transitionFindings = mapPackage.operationalMap.transitions.flatMap((transition) => {
-    const forbidden = findForbiddenFrameTokens(collectTransitionValues(transition));
-    return forbidden.length === 0
-      ? []
-      : [createFinding({
-        lawId: MAP_PLUGIN_LAWS.LIFECYCLE,
-        file,
-        line: 1,
-        severity: "fatal",
-        message: "Production seeding map transitions must not route through frame-specific sampling internals.",
-        detail: `${transition.transitionId}: ${forbidden.join(", ")}`,
-      })];
-  });
-
-  const bindingFindings = mapPackage.promptBindings.bindings.flatMap((binding) => {
-    const forbidden = findForbiddenFrameTokens(collectBindingRefValues(binding));
-    return forbidden.length === 0
-      ? []
-      : [createFinding({
-        lawId: MAP_PLUGIN_LAWS.PROMPT_CONTRACT,
-        file,
-        line: 1,
-        severity: "fatal",
-        message: "Production seeding map prompt bindings must not require frame-specific refs.",
-        detail: `${binding.stepId}: ${forbidden.join(", ")}`,
-      })];
-  });
-
-  return [...stepFindings, ...transitionFindings, ...bindingFindings];
-};
 
 const collectAllowedStepFindings = (mapPackage: MapPackage, file: string): Finding[] =>
   mapPackage.operationalMap.steps.flatMap((step) =>
@@ -192,7 +124,7 @@ const collectStartupPreparationTransitionFindings = (routePlan: RoutePlan | null
       transitionId: `startup-preparation:${STARTUP_PREPARATION_READY_ROUTE_LABEL}`,
       fromStepId: "startup-preparation",
       onStatus: "success",
-      toStepId: PRODUCT_PRESENCE_CAPTURE_STEP_ID,
+      toStepId: PRODUCT_PRESENCE_OBSERVE_STEP_ID,
       finalStatus: null,
     },
     {

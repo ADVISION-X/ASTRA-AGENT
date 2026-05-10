@@ -6,6 +6,7 @@ import type { Finding } from "../../core/schema.js";
 import { MAP_PLUGIN_LAWS } from "./constants.js";
 
 const PRODUCT_DISCOVERY_ROUTE_PLAN_PATH = "src/map-plugins/route-plans/product-discovery-route-plan.v1.ts";
+const PRODUCT_DISCOVERY_ROUTE_PLAN_PRODUCT_PRESENCE_TRANSITIONS_PATH = "src/map-plugins/route-plans/product-discovery-route-plan.transitions.product-presence.ts";
 const PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS_PATH = "src/map-plugins/route-plans/product-discovery-route-plan.transitions.next-item.ts";
 const WORKBENCH_TEXT_INPUT_DISPATCH_PATH = "src/lib/local-runtime/workbench-text-input-dispatch-input.ts";
 const WORKBENCH_VISUAL_DISPATCH_PATH = "src/lib/local-runtime/workbench-visual-dispatch-input.ts";
@@ -48,6 +49,7 @@ const readAdvanceNextItemRuntimeTexts = async (): Promise<NextItemRuntimeTexts> 
   const routePlanText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_PATH);
   const routePlanStepsText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH);
   const routePlanTransitionsText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS_PATH);
+  const routePlanProductPresenceTransitionsText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_PRODUCT_PRESENCE_TRANSITIONS_PATH);
   const routePlanNextItemTransitionsText = await readRepoFile(PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS_PATH);
   const textInputDispatchText = await readRepoFile(WORKBENCH_TEXT_INPUT_DISPATCH_PATH);
   const visualDispatchText = await readRepoFile(WORKBENCH_VISUAL_DISPATCH_PATH);
@@ -57,8 +59,8 @@ const readAdvanceNextItemRuntimeTexts = async (): Promise<NextItemRuntimeTexts> 
 
   return {
     routePlanText,
-    routePlanRuntimeText: `${routePlanText}\n${routePlanStepsText}\n${routePlanTransitionsText}\n${routePlanNextItemTransitionsText}`,
-    routePlanAllTransitionsText: `${routePlanTransitionsText}\n${routePlanNextItemTransitionsText}`,
+    routePlanRuntimeText: `${routePlanText}\n${routePlanStepsText}\n${routePlanTransitionsText}\n${routePlanProductPresenceTransitionsText}\n${routePlanNextItemTransitionsText}`,
+    routePlanAllTransitionsText: `${routePlanTransitionsText}\n${routePlanProductPresenceTransitionsText}\n${routePlanNextItemTransitionsText}`,
     textInputDispatchText,
     visualRuntimeText: `${visualDispatchText}\n${nextItemDispatchText}`,
     loopGuardText,
@@ -99,12 +101,14 @@ const collectTextInputDispatchFindings = (texts: NextItemRuntimeTexts): Finding[
     ? [toFinding(WORKBENCH_TEXT_INPUT_DISPATCH_PATH, "press-navigation-key dispatch must bind page-state proof/focus and emit ArrowDown for press-next-video-key.")]
     : [];
 
-const collectCommentsEntryChainFindings = (texts: NextItemRuntimeTexts): Finding[] =>
-  !texts.routePlanRuntimeText.includes('stepId: "observe-comments-entry-page-state"')
-  || !texts.routePlanRuntimeText.includes('stepId: "analyze-comments-entry-target-candidate"')
-  || !texts.routePlanRuntimeText.includes('stepId: "observe-comments-button"')
-  || !texts.routePlanRuntimeText.includes('promptContractId: "vision.commentsEntryTargetCandidate.v1"')
-    ? [toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Product-yes must be governed by the comments-entry AI candidate chain and bind vision.commentsEntryTargetCandidate.v1.")]
+const collectProductLeadChainFindings = (texts: NextItemRuntimeTexts): Finding[] =>
+  !texts.routePlanRuntimeText.includes('stepId: "write-product-lead-record"')
+  || !texts.routePlanRuntimeText.includes('childCapabilityId: "write-product-lead-record"')
+  || !texts.routePlanRuntimeText.includes('targetAbilityGroupId: "forensics-persistence"')
+  || !texts.routePlanRuntimeText.includes('productLeadRecordRef')
+  || !texts.routePlanRuntimeText.includes('transitionId: `judge-seeding-video:${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}`,\n    fromStepId: "judge-seeding-video",\n    onStatus: "success",\n    toStepId: "write-product-lead-record"')
+  || texts.routePlanRuntimeText.includes('transitionId: `judge-seeding-video:${PRODUCT_DISCOVERY_POSITIVE_ROUTE_LABEL}`,\n    fromStepId: "judge-seeding-video",\n    onStatus: "success",\n    toStepId: "observe-comments-entry-page-state"')
+    ? [toFinding(PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS_PATH, "Product-yes must persist a lightweight product lead record and must not re-enter the comments chain.")]
     : [];
 
 const collectVerificationChainFindings = (texts: NextItemRuntimeTexts): Finding[] =>
@@ -147,7 +151,7 @@ const NEXT_ITEM_RUNTIME_FINDING_COLLECTORS = [
   collectPressNavigationTransitionFindings,
   collectMuscleMetadataFindings,
   collectTextInputDispatchFindings,
-  collectCommentsEntryChainFindings,
+  collectProductLeadChainFindings,
   collectVerificationChainFindings,
   collectVerificationContractFindings,
   collectVisualDispatchFindings,

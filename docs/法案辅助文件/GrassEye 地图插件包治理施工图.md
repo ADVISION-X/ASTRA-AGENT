@@ -123,6 +123,16 @@ selected/default:
 
 这些选项进入 Map Authoring Input Package 的 `userRequirement.binaryOutcomePolicy`，再进入运行期 Prompt Contract。地图只暴露路线标签；调度只机械匹配 AI 输出的 `routeLabel`，不得把 `product_yes/product_no` 硬编码成下一步。
 
+对于当前第一生产版 builtin seeding-video-discovery 地图，必须额外写死：
+
+```txt
+GrassEye V1 = 种草视频线索采集器。
+product_yes 兼容 routeLabel 仍为 read-comments-and-save-evidence，
+但 Route Plan 主链只允许 write-product-lead-record -> observe-next-item-page-state。
+comments chain / comment OCR / evidence packet finalization 属于 V2 dormant chain，
+不得出现在当前 V1 map dependencies 中。
+```
+
 二元选项到动作链的匹配表不写在地图中，必须写入 Route Plan。地图只声明 `routePlanId`。生产调度读取 Route Plan 后机械执行 `routeLabel -> step chain`，不得在 Orchestration 内新增第二套匹配表。
 
 ---

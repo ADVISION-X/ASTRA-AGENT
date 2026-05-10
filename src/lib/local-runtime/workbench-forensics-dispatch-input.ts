@@ -1,4 +1,5 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
+import { resolveAiProductPresenceOutputSummary } from "../../capabilities/ai/index.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { getActiveMapChain } from "./workbench-map-chain-support.js";
 import { payloadDocumentToObject } from "./workbench-payload.js";
@@ -21,8 +22,19 @@ import {
 } from "./workbench-forensics-dispatch-values.js";
 import {
   type WorkbenchForensicsImageEvidenceInput,
+  type WorkbenchForensicsProductLeadRecordInput,
   type WorkbenchForensicsRuntimeEventInput,
 } from "./workbench-forensics-dispatch-types.js";
+
+type ProductLeadDispatchRequest = {
+  requestedPlatformId: string;
+  targetUrl: string;
+  targetTitle: string;
+  screenshotEvidenceRef: string;
+  productPresenceAiResultRef: string;
+};
+
+type ProductPresenceSummary = NonNullable<ReturnType<typeof resolveAiProductPresenceOutputSummary>>;
 
 export const buildForensicsRuntimeEventInput = (
   envelope: AbilityCommandEnvelope,
@@ -98,6 +110,76 @@ export const buildForensicsEvidenceRecordInput = (
         sourceFilePath: commentsHandoff.sourceStorageRef,
       },
     },
+  }));
+};
+
+const readProductLeadDispatchRequest = (
+  inputPayload: Parameters<typeof payloadDocumentToObject>[0],
+): ProductLeadDispatchRequest => {
+  const payload = payloadDocumentToObject(inputPayload);
+  return {
+    requestedPlatformId: requireString(resolvePayloadString(payload, "requestedPlatformId"), "requestedPlatformId"),
+    targetUrl: requireString(resolvePayloadString(payload, "targetUrl"), "targetUrl"),
+    targetTitle: requireString(resolvePayloadString(payload, "targetTitle"), "targetTitle"),
+    screenshotEvidenceRef: requireString(resolvePayloadString(payload, "screenshotEvidenceRef"), "screenshotEvidenceRef"),
+    productPresenceAiResultRef: requireString(resolvePayloadString(payload, "productPresenceAiResultRef"), "productPresenceAiResultRef"),
+  };
+};
+
+const resolveProductLeadSummary = (request: ProductLeadDispatchRequest): ProductPresenceSummary => {
+  const productPresenceSummary = resolveAiProductPresenceOutputSummary(request.productPresenceAiResultRef);
+  if (!productPresenceSummary) {
+    throw new Error("Workbench forensics dispatch could not resolve product presence AI summary for product lead record.");
+  }
+  if (!resolveScreenshotSourceHandoff([request.screenshotEvidenceRef])) {
+    throw new Error("Workbench forensics dispatch could not resolve video screenshot handoff for product lead record.");
+  }
+  return productPresenceSummary;
+};
+
+const buildProductLeadRecordPayload = (
+  envelope: AbilityCommandEnvelope,
+  request: ProductLeadDispatchRequest,
+  productPresenceSummary: ProductPresenceSummary,
+) => ({
+  productLeadRecord: {
+    platformId: request.requestedPlatformId,
+    targetUrl: request.targetUrl,
+    targetTitle: request.targetTitle,
+    screenshotEvidenceRef: request.screenshotEvidenceRef,
+    productPresenceAiResultRef: request.productPresenceAiResultRef,
+    decision: productPresenceSummary.output.decision === "product_yes" ? "product_yes" : "product_no",
+    routeLabel: productPresenceSummary.output.routeLabel,
+    confidence: productPresenceSummary.output.confidence,
+    visibleProductTypes: productPresenceSummary.output.visibleProductTypes,
+    reason: productPresenceSummary.output.reason,
+    capturedAt: productPresenceSummary.capturedAt,
+    createdAt: new Date().toISOString(),
+    runId: envelope.runId,
+    missionId: envelope.missionId,
+  },
+});
+
+export const buildForensicsProductLeadRecordInput = (
+  envelope: AbilityCommandEnvelope,
+  inputPayload: Parameters<typeof payloadDocumentToObject>[0],
+): WorkbenchForensicsProductLeadRecordInput => {
+  const request = readProductLeadDispatchRequest(inputPayload);
+  const productPresenceSummary = resolveProductLeadSummary(request);
+
+  return JSON.parse(JSON.stringify({
+    ...buildForensicsBaseInput({
+      envelope,
+      childCapabilityId: "write-product-lead-record",
+      recordType: "product_lead_record",
+      inputRefs: [request.screenshotEvidenceRef, request.productPresenceAiResultRef],
+      promptContractId: productPresenceSummary.promptContractId,
+      promptContractVersion: productPresenceSummary.promptContractVersion,
+      promptCatalogVersion: productPresenceSummary.promptCatalogVersion,
+      decisionRef: productPresenceSummary.aiProofRef,
+      dataQualityFlags: ["video_screenshot_ok", "local_ai_ok", "product_lead_record_v1"],
+    }),
+    payload: buildProductLeadRecordPayload(envelope, request, productPresenceSummary),
   }));
 };
 

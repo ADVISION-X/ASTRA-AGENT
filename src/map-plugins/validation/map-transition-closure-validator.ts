@@ -1,26 +1,8 @@
 import type { MapPackageValidationIssue } from "../shared/map-package-failure.js";
 import type { MapPackage } from "../shared/map-package-types.js";
-import { findRoutePlanById } from "../route-plans/index.js";
+import { getEffectiveSteps, getEffectiveTransitions } from "./effective-route-plan.js";
 
 type Transition = MapPackage["operationalMap"]["transitions"][number];
-
-const getEffectiveSteps = (mapPackage: MapPackage): MapPackage["operationalMap"]["steps"] => {
-  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
-  return routePlan ? [...mapPackage.operationalMap.steps, ...routePlan.steps] : mapPackage.operationalMap.steps;
-};
-
-const getEffectiveTransitions = (mapPackage: MapPackage): MapPackage["operationalMap"]["transitions"] => {
-  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
-  if (!routePlan) {
-    return mapPackage.operationalMap.transitions;
-  }
-
-  const mapTransitionIds = new Set(mapPackage.operationalMap.transitions.map((transition) => transition.transitionId));
-  return [
-    ...mapPackage.operationalMap.transitions,
-    ...routePlan.transitions.filter((transition) => !mapTransitionIds.has(transition.transitionId)),
-  ];
-};
 
 const issue = (input: { message: string; path: string }): MapPackageValidationIssue => ({
   code: "transition_not_closed",

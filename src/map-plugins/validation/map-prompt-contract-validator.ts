@@ -1,7 +1,7 @@
 import type { MapPackageValidationIssue } from "../shared/map-package-failure.js";
 import type { MapPackage } from "../shared/map-package-types.js";
-import { findRoutePlanById } from "../route-plans/index.js";
 import { validatePromptContractStep } from "./prompt-contract-step-validator.js";
+import { getEffectiveSteps, getEffectiveTransitions } from "./effective-route-plan.js";
 
 const INITIAL_INPUT_REFS = new Set([
   "requestedPlatformId",
@@ -21,16 +21,6 @@ const recordProducedRefs = (step: MapPackage["operationalMap"]["steps"][number],
   for (const outputRef of step.outputRefPolicy.storeAs) {
     producedRefs.add(outputRef);
   }
-};
-
-const getEffectiveSteps = (mapPackage: MapPackage): MapPackage["operationalMap"]["steps"] => {
-  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
-  return routePlan ? [...mapPackage.operationalMap.steps, ...routePlan.steps] : mapPackage.operationalMap.steps;
-};
-
-const getEffectiveTransitions = (mapPackage: MapPackage): MapPackage["operationalMap"]["transitions"] => {
-  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
-  return routePlan ? [...mapPackage.operationalMap.transitions, ...routePlan.transitions] : mapPackage.operationalMap.transitions;
 };
 
 const validateAiSteps = (mapPackage: MapPackage): MapPackageValidationIssue[] => {

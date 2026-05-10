@@ -67,7 +67,7 @@ export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
     "Do not invent hidden product details or judge profitability, sourcing, advertising, or product quality.",
     "Return structured JSON only and keep the JSON internally consistent.",
   ].join(" "),
-  purpose: "Determine whether the sampled frames from the current video visibly demonstrate a product so browse flow can decide whether to open comments.",
+  purpose: "Determine whether the sampled frames from the current video visibly demonstrate a product so V1 can decide whether to save a lightweight product lead record and continue browsing.",
 } as const;
 
 export type VisionProductPresencePromptContract = typeof VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT;

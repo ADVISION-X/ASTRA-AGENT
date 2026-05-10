@@ -63,6 +63,10 @@ import {
   ForensicsEvidenceRecordPayloadSchema,
 } from "./children/write-evidence-record/schema.js";
 import {
+  WriteProductLeadRecordInputSchema,
+  ForensicsProductLeadRecordPayloadSchema,
+} from "./children/write-product-lead-record/schema.js";
+import {
   WriteStructuredActionLogInputSchema,
   ForensicsStructuredActionLogPayloadSchema,
 } from "./children/write-structured-action-log/schema.js";
@@ -75,6 +79,7 @@ const ForensicsAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
   WriteStructuredRuntimeEventInputSchema,
   WriteStructuredActionLogInputSchema,
   WriteEvidenceRecordInputSchema,
+  WriteProductLeadRecordInputSchema,
   WriteAiResultRecordInputSchema,
   FinalizeBrowseLedgerInputSchema,
   FinalizeEvidencePacketInputSchema,
@@ -89,6 +94,7 @@ type ForensicsAbilityInputRequest = z.input<typeof ForensicsAbilityInputSchema>;
 type WriteStructuredRuntimeEventInput = z.input<typeof WriteStructuredRuntimeEventInputSchema>;
 type WriteStructuredActionLogInput = z.input<typeof WriteStructuredActionLogInputSchema>;
 type WriteEvidenceRecordInput = z.input<typeof WriteEvidenceRecordInputSchema>;
+type WriteProductLeadRecordInput = z.input<typeof WriteProductLeadRecordInputSchema>;
 type WriteAiResultRecordInput = z.input<typeof WriteAiResultRecordInputSchema>;
 type FinalizeBrowseLedgerInput = z.input<typeof FinalizeBrowseLedgerInputSchema>;
 type FinalizeEvidencePacketInput = z.input<typeof FinalizeEvidencePacketInputSchema>;
@@ -117,6 +123,7 @@ export {
   ForensicsStructuredRuntimeEventPayloadSchema,
   ForensicsStructuredActionLogPayloadSchema,
   ForensicsEvidenceRecordPayloadSchema,
+  ForensicsProductLeadRecordPayloadSchema,
   ForensicsAiResultRecordPayloadSchema,
   ForensicsBrowseLedgerPayloadSchema,
   ForensicsEvidencePacketPayloadSchema,
@@ -125,6 +132,7 @@ export {
   WriteStructuredRuntimeEventInputSchema,
   WriteStructuredActionLogInputSchema,
   WriteEvidenceRecordInputSchema,
+  WriteProductLeadRecordInputSchema,
   WriteAiResultRecordInputSchema,
   FinalizeBrowseLedgerInputSchema,
   FinalizeEvidencePacketInputSchema,
@@ -155,6 +163,7 @@ export type {
   WriteStructuredRuntimeEventInput,
   WriteStructuredActionLogInput,
   WriteEvidenceRecordInput,
+  WriteProductLeadRecordInput,
   WriteAiResultRecordInput,
   FinalizeBrowseLedgerInput,
   FinalizeEvidencePacketInput,

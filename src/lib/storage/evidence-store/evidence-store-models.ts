@@ -26,6 +26,10 @@ import {
   type ProductOpportunityCandidate as ExternalProductOpportunityCandidate,
 } from "./evidence-store-candidate-types.js";
 import {
+  ProductLeadRecordSchema as ExternalProductLeadRecordSchema,
+  type ProductLeadRecord as ExternalProductLeadRecord,
+} from "./evidence-store-product-lead-types.js";
+import {
   StoredAiResultSchema as ExternalStoredAiResultSchema,
   type StoredAiResult as ExternalStoredAiResult,
 } from "./evidence-store-ai-result-types.js";
@@ -53,6 +57,7 @@ const RoundLifecycleEventSchema = ExternalRoundLifecycleEventSchema;
 const RoundStructuralLogSchema = ExternalRoundStructuralLogSchema;
 const ActionLogSchema = ExternalActionLogSchema;
 const ProductOpportunityCandidateSchema = ExternalProductOpportunityCandidateSchema;
+const ProductLeadRecordSchema = ExternalProductLeadRecordSchema;
 const StoredAiResultSchema = ExternalStoredAiResultSchema;
 const AgentRoundSchema = ExternalAgentRoundSchema;
 const TaskRunSchema = ExternalTaskRunSchema;
@@ -69,6 +74,7 @@ type RoundLifecycleEvent = ExternalRoundLifecycleEvent;
 type RoundStructuralLog = ExternalRoundStructuralLog;
 type ActionLog = ExternalActionLog;
 type ProductOpportunityCandidate = ExternalProductOpportunityCandidate;
+type ProductLeadRecord = ExternalProductLeadRecord;
 type StoredAiResult = ExternalStoredAiResult;
 type AgentRound = ExternalAgentRound;
 type ReviewDisposition = ExternalReviewDisposition;
@@ -85,6 +91,7 @@ export {
   ImageEvidenceSchema,
   OcrTextResultSchema,
   ProductDiscoveryEvidencePacketSchema,
+  ProductLeadRecordSchema,
   ProductOpportunityCandidateSchema,
   RoundLifecycleEventSchema,
   RoundStructuralLogSchema,
@@ -103,6 +110,7 @@ export type {
   ImageEvidence,
   OcrTextResult,
   ProductDiscoveryEvidencePacket,
+  ProductLeadRecord,
   ProductOpportunityCandidate,
   ReviewDisposition,
   RoundLifecycleEvent,

@@ -133,6 +133,7 @@ src/capabilities/forensics-persistence/
     ├── write-structured-runtime-event/
     ├── write-structured-action-log/
     ├── write-evidence-record/
+  ├── write-product-lead-record/
     ├── write-ai-result-record/
     ├── finalize-browse-ledger/
     ├── finalize-evidence-packet/
@@ -208,6 +209,7 @@ execute(input)
 writeStructuredRuntimeEvent()
 writeStructuredActionLog()
 writeEvidenceRecord()
+writeProductLeadRecord()
 writeAiResultRecord()
 finalizeBrowseLedger()
 finalizeEvidencePacket()
@@ -333,6 +335,7 @@ runtimeProof chain different from envelope chain
 structured_runtime_event
 structured_action_log
 evidence_record
+product_lead_record
 ai_result_record
 browse_ledger_entry
 evidence_packet
@@ -347,11 +350,46 @@ runtime_snapshot
 | structured_runtime_event | stepId, capabilityCallId, sourceAbilityGroupId |
 | structured_action_log | actionRef, postActionVerificationRef, capabilityCallId |
 | evidence_record | artifactRefs or inputRefs, capabilityCallId |
+| product_lead_record | screenshotEvidenceRef, productPresenceAiResultRef, targetUrl, targetTitle, decision, routeLabel |
 | ai_result_record | promptContractId, promptContractVersion, promptCatalogVersion, capabilityCallId |
 | browse_ledger_entry | decisionRef, parentRefs |
 | evidence_packet | parentRefs, artifactRefs, decisionRef |
 | failed_record | failureReason, parentRefs |
 | runtime_snapshot | runId, missionId, resumeCheckpointRef if applicable |
+
+### 7.1 V1 Product Lead Record 最小字段
+
+`product_lead_record` 是当前第一生产版种草视频主链的轻量 Forensics record。
+
+必须保存：
+
+```txt
+platformId
+targetUrl
+targetTitle
+screenshotEvidenceRef
+productPresenceAiResultRef
+decision
+routeLabel
+confidence
+visibleProductTypes
+reason
+capturedAt
+createdAt
+runId
+missionId
+```
+
+禁止保存：
+
+```txt
+商业最终判断
+采购判断
+利润判断
+上架判断
+评论判断
+坐标点击结论
+```
 
 ---
 

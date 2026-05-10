@@ -88,6 +88,7 @@ type WorkbenchForensicsAbilityGroup = {
   writeStructuredActionLog(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
   writeImageEvidence(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
   writeOcrEvidence(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
+  writeProductLeadRecord(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
   writeAiResultRecord(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
   finalizeBrowseLedger(input: unknown): Promise<WorkbenchAbilityExecutionResult>;
   finalizeEvidencePacket(input: unknown): Promise<WorkbenchAbilityExecutionResult>;

@@ -208,6 +208,20 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_TRANSITIONS: RoutePlan["transitions"] 
     toStepId: null,
     finalStatus: "failed",
   },
+  {
+    transitionId: "write-product-lead-record:success",
+    fromStepId: "write-product-lead-record",
+    onStatus: "success",
+    toStepId: "observe-next-item-page-state",
+    finalStatus: null,
+  },
+  {
+    transitionId: "write-product-lead-record:failed",
+    fromStepId: "write-product-lead-record",
+    onStatus: "failed",
+    toStepId: null,
+    finalStatus: "failed",
+  },
   ...PRODUCT_DISCOVERY_ROUTE_PLAN_NEXT_ITEM_TRANSITIONS,
   {
     transitionId: "finalize-mission:success",

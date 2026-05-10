@@ -5,6 +5,7 @@ import { finalizeFailedRecordCapability } from "./children/finalize-failed-recor
 import { updateRuntimeSnapshotCapability } from "./children/update-runtime-snapshot/implementation.js";
 import { writeAiResultRecordCapability } from "./children/write-ai-result-record/implementation.js";
 import { writeEvidenceRecordCapability } from "./children/write-evidence-record/implementation.js";
+import { writeProductLeadRecordCapability } from "./children/write-product-lead-record/implementation.js";
 import { writeStructuredActionLogCapability } from "./children/write-structured-action-log/implementation.js";
 import { writeStructuredRuntimeEventCapability } from "./children/write-structured-runtime-event/implementation.js";
 
@@ -12,6 +13,7 @@ const CHILDREN = [
   writeStructuredRuntimeEventCapability,
   writeStructuredActionLogCapability,
   writeEvidenceRecordCapability,
+  writeProductLeadRecordCapability,
   writeAiResultRecordCapability,
   finalizeBrowseLedgerCapability,
   finalizeEvidencePacketCapability,

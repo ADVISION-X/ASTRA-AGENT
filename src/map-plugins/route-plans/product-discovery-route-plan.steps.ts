@@ -162,6 +162,16 @@ export const PRODUCT_DISCOVERY_ROUTE_PLAN_STEPS: RoutePlan["steps"] = [
     promptContractId: null,
   },
   {
+    stepId: "write-product-lead-record",
+    capabilityId: "orchestration",
+    childCapabilityId: "write-product-lead-record",
+    stepKind: "ability",
+    targetAbilityGroupId: "forensics-persistence",
+    inputRefs: ["requestedPlatformId", "targetUrl", "targetTitle", "screenshotEvidenceRef", "productPresenceAiResultRef"],
+    outputRefPolicy: { storeAs: ["abilityResultRef", "productLeadRecordRef"] },
+    promptContractId: null,
+  },
+  {
     stepId: "observe-next-item-page-state",
     capabilityId: "orchestration",
     childCapabilityId: "observe-video-surface",

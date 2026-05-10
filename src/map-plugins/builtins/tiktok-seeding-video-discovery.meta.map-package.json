@@ -20,7 +20,7 @@
   "taskTemplate": {
     "taskTemplateId": "tiktok-seeding-video-discovery",
     "displayName": "TikTok 种草视频挖掘",
-    "description": "Open TikTok feed, judge product-seeding video evidence, capture visible comments, summarize comment intent, continue discovery through the governed Route Plan, and persist governed evidence.",
+    "description": "Open TikTok feed, judge product-seeding videos, save lightweight product lead records for product_yes, and continue discovery through the governed Route Plan.",
     "recommended": true,
     "taskCategory": "product-discovery",
     "version": "1.0.0",
@@ -28,21 +28,20 @@
     "userVisibleCapabilities": [
       "Open TikTok feed",
       "Judge product-seeding videos",
-      "Capture visible comment evidence",
-      "Summarize public comment signals",
-      "Preserve governed evidence records"
+      "Save governed product lead records",
+      "Advance to the next video"
     ],
     "availabilityPolicy": "active",
     "requestedPlatformId": "tiktok-web",
     "platformProfileRef": "tiktok-web:persistent-local-profile",
     "targetProfileRef": "open-target-profile:open-tiktok",
-    "defaultHumanGoal": "Browse TikTok feed, identify product-seeding candidates, capture public evidence, and preserve candidate summaries."
+    "defaultHumanGoal": "Browse TikTok feed, identify product-seeding candidates, save lightweight product lead records, and continue discovery without opening comments."
   },
   "operationalMap": {
     "mapKind": "routePlanBoundMap",
     "mapId": "tiktok.seeding-video.discovery.meta.v1",
     "displayName": "TikTok 种草视频挖掘",
-    "humanGoal": "Detect TikTok product-seeding video candidates and preserve public evidence without sending, posting, or modifying account data.",
+    "humanGoal": "Detect TikTok product-seeding video candidates, save lightweight product lead records, and continue discovery without opening comments or modifying account data.",
     "initialStepId": "open-tiktok-feed",
     "steps": [
       {
@@ -98,9 +97,8 @@
       "open",
       "screenshot",
       "ai",
-      "visual-target",
-      "geometry-guard",
-      "mouse-click",
+      "page-state",
+      "text-input",
       "forensics-persistence"
     ],
     "requiredChildCapabilities": [
@@ -108,24 +106,21 @@
       "capture-browser-viewport",
       "prepare-ai-input",
       "page-preparation-judgment",
+      "observe-video-surface",
       "product-presence-judgment",
-      "observe-comments-button",
-      "normalize-coordinate-geometry",
-      "click-browser-coordinate",
-      "capture-region",
-      "comment-text-cleanup",
-      "write-evidence-record"
+      "press-navigation-key",
+      "write-product-lead-record"
     ],
     "requiredPromptContracts": [
       "vision.pagePreparation.v1",
       "vision.productPresence.v1",
-      "comments.ocr_cleanup.v1"
+      "vision.nextItemAdvanced.v1"
     ],
     "requiredPlatformProfiles": [
       "tiktok-web:persistent-local-profile"
     ],
     "requiredForensicsRecords": [
-      "evidence_record",
+      "product_lead_record",
       "structured_runtime_event"
     ]
   },
@@ -136,16 +131,14 @@
       "open",
       "screenshot",
       "ai",
-      "visual-target",
-      "geometry-guard",
-      "mouse-click",
-      "mouse-scroll",
+      "page-state",
+      "text-input",
       "forensics-persistence"
     ],
     "requiresPromptRegistry": [
       "vision.pagePreparation.v1",
       "vision.productPresence.v1",
-      "comments.ocr_cleanup.v1"
+      "vision.nextItemAdvanced.v1"
     ],
     "requiresPlatformProfileRegistry": [
       "tiktok-web:persistent-local-profile"
@@ -171,6 +164,6 @@
       }
     ]
   },
-  "changelog": "Initial governed TikTok seeding-video discovery meta map. Replaces legacy builtin maps and exercises only map-routable capability groups while relying on Commander, Orchestration, and Nerve Bus through the governed runtime chain. Startup preparation emits AI-owned yes/no routeLabel before product judgment; product-discovery-route-plan.v1 remains the single muscle-memory source for post-judgment action chains.",
+  "changelog": "Governed TikTok seeding-video discovery meta map for V1 product lead collection. Startup preparation emits AI-owned yes/no routeLabel before product judgment; product-discovery-route-plan.v1 persists screenshot/url/AI summary as a lightweight product lead record and advances without opening comments.",
   "signature": null
 }

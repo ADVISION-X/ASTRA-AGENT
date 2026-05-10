@@ -129,6 +129,7 @@ export const RoutePlanSchema = z.object({
   outcomeOptions: z.array(RoutePlanOutcomeOptionSchema).min(1),
   selectedPositiveRouteLabel: z.string().min(1),
   selectedNegativeRouteLabel: z.string().min(1),
+  inactiveStepIds: z.array(z.string().min(1)).default([]),
   steps: z.array(MapPluginOperationalMapStepSchema).min(1),
   transitions: z.array(MapPluginTransitionSchema).min(1),
 }).strict().superRefine((value, context) => {

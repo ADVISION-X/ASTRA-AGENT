@@ -17,7 +17,7 @@
   ],
   "systemPromptTemplateRef": "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
   "userPromptTemplateRef": "src/lib/local-ai/prompts/vision-product-presence.v1.ts",
-  "purpose": "Autonomously classify whether sampled short-video frames visibly prove product-presenting content for binary downstream routing.",
+  "purpose": "Autonomously classify whether sampled short-video frames visibly prove product-presenting content so V1 can save a lightweight product lead record and continue browsing.",
   "forbiddenOutputs": [
     "profitability judgment",
     "supply chain judgment",
@@ -64,9 +64,9 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:4d81a0204eeafeead8f1611a155fead2acd703018b73b61dd89d28c900ed7fc9",
+  "promptHash": "sha256:a9da824f0f4579a64d544585974013e53e14e4b1566b4975073838d075f6f820",
   "sensitiveOperation": false,
-  "promptContractHash": "sha256:4d81a0204eeafeead8f1611a155fead2acd703018b73b61dd89d28c900ed7fc9",
+  "promptContractHash": "sha256:a9da824f0f4579a64d544585974013e53e14e4b1566b4975073838d075f6f820",
   "dataPolicy": {
     "productPresenceDecisionMode": "binary_yes_no",
     "ambiguousEvidenceRouting": "product_no",
@@ -78,8 +78,8 @@
     "promptVersion": "v1",
     "schemaVersion": "vision.productPresence.schema.v1",
     "decision": "product_yes | product_no only",
-    "routeLabel": "product_yes => read-comments-and-save-evidence | product_no => skip-current-video",
-    "nonExecutableSummary": "short human-readable summary for logging only; not an action instruction",
+    "routeLabel": "product_yes => read-comments-and-save-evidence (compatibility label; runtime writes product lead record and advances) | product_no => skip-current-video",
+    "nonExecutableSummary": "short human-readable summary for product lead logging only; not an action instruction",
     "isProductVideo": "boolean; true iff decision=product_yes",
     "confidence": "number 0..1; never used to request human review for this binary route",
     "visibleProductTypes": "string[]; empty when decision=product_no unless a visible object is mentioned as insufficient evidence",
