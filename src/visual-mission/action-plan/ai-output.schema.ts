@@ -6,13 +6,14 @@ import {
 } from "../../muscle-memory/catalog/muscle-memory-catalog.js";
 import type { AtomicMuscleMemoryEntry } from "../../muscle-memory/catalog/muscle-memory-catalog.schema.js";
 import { MuscleMemoryGridCellSchema, MuscleMemoryPressKeySchema } from "../../muscle-memory/schema.js";
+import { VISUAL_MISSION_PLATFORM_IDS } from "../platform-target-registry.js";
 import {
   getAiVisibleActionFields,
   isAiForbiddenActionField,
   isSystemInjectedActionField,
 } from "./action-field-policy.js";
 
-const VisualMissionPlatformSchema = z.enum(["facebook-web", "tiktok-web"]);
+const VisualMissionPlatformSchema = z.enum(VISUAL_MISSION_PLATFORM_IDS);
 const VisualMissionActionInputSchema = z.record(z.string().min(1), z.unknown());
 
 function resolveAtomicActionEntry(actionCode: string): AtomicMuscleMemoryEntry | null {
@@ -102,7 +103,7 @@ const VisualMissionActionSchema = z.object({
   reason: z.string().min(1),
 }).strict().superRefine(validateVisualMissionActionInput);
 
-const VisualMissionClickTargetSchema = z.object({
+const VisualMissionVisualClickTargetHintSchema = z.object({
   gridCell: MuscleMemoryGridCellSchema,
   targetName: z.string().min(1),
 }).strict();
@@ -143,7 +144,7 @@ const VisualMissionActionPlanOutputSchema = z.object({
   visualEvidence: z.array(z.string().min(1)).min(1),
   reason: z.string().min(1),
   actions: z.array(VisualMissionActionSchema).min(1),
-  clickTargets: z.array(VisualMissionClickTargetSchema).default([]),
+  nonExecutableClickTargets: z.array(VisualMissionVisualClickTargetHintSchema).default([]),
   riskFlags: z.array(z.string().min(1)).default([]),
   nonExecutableSummary: z.string().min(1),
 }).strict();

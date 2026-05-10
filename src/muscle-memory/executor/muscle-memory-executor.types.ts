@@ -7,6 +7,8 @@ export type PayloadRefs = Record<string, unknown> & {
   reviewRequiredRef?: string | null;
 };
 
+export type DispatchInputValue = string | number | boolean | null | undefined;
+
 type ExecutionChain = {
   runId: string;
   sessionId: string;
@@ -43,6 +45,8 @@ type AbilityDispatchCommand = {
   expectedOutputSchemaRef: string;
   postClickObservation: boolean;
   payloadRefs: PayloadRefs;
+  actionInputRef?: string | null;
+  dispatchInput?: Record<string, DispatchInputValue>;
   sequenceNo: number;
   idempotencyKey: string;
   timeoutMs: number;

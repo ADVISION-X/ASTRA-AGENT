@@ -1,313 +1,6 @@
 {
   "findings": [
     {
-      "lawId": "GRASSEYE-CODE-PURITY-005-V1",
-      "file": "scripts/audit/domains/ai-capability/runtime-contract-debug-transparency-checks.ts",
-      "line": 1,
-      "severity": "error",
-      "message": "File crosses too many real owner boundaries or cross-owner imports."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 12,
-      "severity": "fatal",
-      "message": "Retired map-system token map-plugin-package must not survive in the active start/runtime chain.",
-      "detail": "scripts/audit/domains/map-plugin-package",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-plugin-package from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 13,
-      "severity": "fatal",
-      "message": "Retired map-system token map-plugin-package must not survive in the active start/runtime chain.",
-      "detail": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-plugin-package from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 21,
-      "severity": "fatal",
-      "message": "Retired map-system token routePlanId must not survive in the active start/runtime chain.",
-      "detail": "routePlanId",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE routePlanId from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 22,
-      "severity": "fatal",
-      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
-      "detail": "selectedMapId",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE selectedMapId from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 23,
-      "severity": "fatal",
-      "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
-      "detail": "taskTemplateId",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE taskTemplateId from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 24,
-      "severity": "fatal",
-      "message": "Retired map-system token activationId must not survive in the active start/runtime chain.",
-      "detail": "activationId",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE activationId from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 25,
-      "severity": "fatal",
-      "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
-      "detail": "activationSnapshotRef",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE activationSnapshotRef from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 26,
-      "severity": "fatal",
-      "message": "Retired map-system token routeLabel must not survive in the active start/runtime chain.",
-      "detail": "routeLabel",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE routeLabel from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 27,
-      "severity": "fatal",
-      "message": "Retired map-system token map-layer must not survive in the active start/runtime chain.",
-      "detail": "map-layer",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-layer from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 28,
-      "severity": "fatal",
-      "message": "Retired map-system token map-plugin-package must not survive in the active start/runtime chain.",
-      "detail": "map-plugin-package",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-plugin-package from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 29,
-      "severity": "fatal",
-      "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
-      "detail": "mapPackage",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE mapPackage from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 30,
-      "severity": "fatal",
-      "message": "Retired map-system token operationalMap must not survive in the active start/runtime chain.",
-      "detail": "operationalMap",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE operationalMap from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 31,
-      "severity": "fatal",
-      "message": "Retired map-system token routePlanBoundMap must not survive in the active start/runtime chain.",
-      "detail": "routePlanBoundMap",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE routePlanBoundMap from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 32,
-      "severity": "fatal",
-      "message": "Retired map-system token genericDiagnosticMap must not survive in the active start/runtime chain.",
-      "detail": "genericDiagnosticMap",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE genericDiagnosticMap from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 33,
-      "severity": "fatal",
-      "message": "Retired map-system token MapAuthoring must not survive in the active start/runtime chain.",
-      "detail": "MapAuthoring",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE MapAuthoring from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 34,
-      "severity": "fatal",
-      "message": "Retired map-system token MapPlugin must not survive in the active start/runtime chain.",
-      "detail": "MapPlugin",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE MapPlugin from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 35,
-      "severity": "fatal",
-      "message": "Retired map-system token activeMapRegistry must not survive in the active start/runtime chain.",
-      "detail": "activeMapRegistry",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE activeMapRegistry from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 41,
-      "severity": "fatal",
-      "message": "Retired map-system token map-layer must not survive in the active start/runtime chain.",
-      "detail": "map-layer",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-layer from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 42,
-      "severity": "fatal",
-      "message": "Retired map-system token map-layer must not survive in the active start/runtime chain.",
-      "detail": "Generated CI summary must not include retired owner map-layer.",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-layer from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 43,
-      "severity": "fatal",
-      "message": "Retired map-system token map-layer must not survive in the active start/runtime chain.",
-      "detail": "Rebuild CI-FULL generated artifacts after deleting the map-layer owner step.",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-layer from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 47,
-      "severity": "fatal",
-      "message": "Retired map-system token map-plugin-package must not survive in the active start/runtime chain.",
-      "detail": "map-plugin-package",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-plugin-package from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 48,
-      "severity": "fatal",
-      "message": "Retired map-system token map-plugin-package must not survive in the active start/runtime chain.",
-      "detail": "Generated audit plan must not include retired owner map-plugin-package.",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-plugin-package from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 49,
-      "severity": "fatal",
-      "message": "Retired map-system token map-plugin-package must not survive in the active start/runtime chain.",
-      "detail": "Rebuild audit-plan.generated.json after deleting the map-plugin-package audit domain.",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-plugin-package from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 53,
-      "severity": "fatal",
-      "message": "Retired map-system token map-plugin-package must not survive in the active start/runtime chain.",
-      "detail": "module-map-plugin-package.instructions.md",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-plugin-package from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 55,
-      "severity": "fatal",
-      "message": "Retired map-system token map-plugin-package must not survive in the active start/runtime chain.",
-      "detail": "Rebuild the enforcement matrix after removing module-map-plugin-package from active law routing.",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-plugin-package from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 59,
-      "severity": "fatal",
-      "message": "Retired map-system token map-plugin-package must not survive in the active start/runtime chain.",
-      "detail": "module-map-plugin-package.instructions.md",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-plugin-package from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 61,
-      "severity": "fatal",
-      "message": "Retired map-system token map-plugin-package must not survive in the active start/runtime chain.",
-      "detail": "Rebuild the enforcement matrix YAML after removing module-map-plugin-package from active law routing.",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-plugin-package from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 65,
-      "severity": "fatal",
-      "message": "Retired map-system token map-plugin-package must not survive in the active start/runtime chain.",
-      "detail": "module-map-plugin-package.instructions.md",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-plugin-package from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 67,
-      "severity": "fatal",
-      "message": "Retired map-system token map-plugin-package must not survive in the active start/runtime chain.",
-      "detail": "Rebuild law-registry.generated.json after deleting module-map-plugin-package from active law sources.",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-plugin-package from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "scripts/audit/domains/code-purity/components/scan-retired-map-system.ts",
-      "line": 95,
-      "severity": "fatal",
-      "message": "Retired map-system token map-plugin-package must not survive in the active start/runtime chain.",
-      "detail": "scripts/audit/domains/map-plugin-package/",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE map-plugin-package from scripts/audit/domains/code-purity/components/scan-retired-map-system.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "scripts/audit/domains/code-purity/components/scan-visual-story-coherence-prompt-checks.ts",
       "line": 119,
@@ -4780,7 +4473,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
-      "line": 20,
+      "line": 21,
       "severity": "fatal",
       "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
       "detail": "mapPackageId",
@@ -4790,7 +4483,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
-      "line": 21,
+      "line": 22,
       "severity": "fatal",
       "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
       "detail": "mapPackageVersion",
@@ -4800,7 +4493,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
-      "line": 23,
+      "line": 24,
       "severity": "fatal",
       "message": "Retired map-system token activationId must not survive in the active start/runtime chain.",
       "detail": "activationId",
@@ -4810,22 +4503,12 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
-      "line": 24,
+      "line": 25,
       "severity": "fatal",
       "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
       "detail": "activationSnapshotRef",
       "zombieKind": "retired-map-system-reference",
       "recommendedAction": "DELETE activationSnapshotRef from src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
-      "line": 47,
-      "severity": "fatal",
-      "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
-      "detail": "mapPackageId",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE mapPackage from src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
@@ -4833,6 +4516,16 @@
       "line": 48,
       "severity": "fatal",
       "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
+      "detail": "mapPackageId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE mapPackage from src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
+      "line": 49,
+      "severity": "fatal",
+      "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
       "detail": "mapPackageVersion",
       "zombieKind": "retired-map-system-reference",
       "recommendedAction": "DELETE mapPackage from src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
@@ -4840,7 +4533,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
-      "line": 50,
+      "line": 51,
       "severity": "fatal",
       "message": "Retired map-system token activationId must not survive in the active start/runtime chain.",
       "detail": "activationId",
@@ -4850,7 +4543,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
-      "line": 51,
+      "line": 52,
       "severity": "fatal",
       "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
       "detail": "activationSnapshotRef",
@@ -4860,7 +4553,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
-      "line": 70,
+      "line": 73,
       "severity": "fatal",
       "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
       "detail": "mapPackageId",
@@ -4870,7 +4563,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
-      "line": 71,
+      "line": 74,
       "severity": "fatal",
       "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
       "detail": "mapPackageVersion",
@@ -4880,7 +4573,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
-      "line": 73,
+      "line": 76,
       "severity": "fatal",
       "message": "Retired map-system token activationId must not survive in the active start/runtime chain.",
       "detail": "activationId",
@@ -4890,7 +4583,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/ports/orchestration-nerve-bus-port.ts",
-      "line": 74,
+      "line": 77,
       "severity": "fatal",
       "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
       "detail": "activationSnapshotRef",
@@ -5310,7 +5003,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
-      "line": 77,
+      "line": 88,
       "severity": "fatal",
       "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
       "detail": "mapPackageId",
@@ -5320,7 +5013,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
-      "line": 78,
+      "line": 89,
       "severity": "fatal",
       "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
       "detail": "mapPackageVersion",
@@ -5330,7 +5023,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
-      "line": 80,
+      "line": 91,
       "severity": "fatal",
       "message": "Retired map-system token activationId must not survive in the active start/runtime chain.",
       "detail": "activationId",
@@ -5340,7 +5033,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
-      "line": 81,
+      "line": 92,
       "severity": "fatal",
       "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
       "detail": "activationSnapshotRef",
@@ -5350,7 +5043,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
-      "line": 136,
+      "line": 147,
       "severity": "fatal",
       "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
       "detail": "mapPackageId",
@@ -5360,7 +5053,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
-      "line": 137,
+      "line": 148,
       "severity": "fatal",
       "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
       "detail": "mapPackageVersion",
@@ -5370,7 +5063,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
-      "line": 139,
+      "line": 150,
       "severity": "fatal",
       "message": "Retired map-system token activationId must not survive in the active start/runtime chain.",
       "detail": "activationId",
@@ -5380,7 +5073,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
-      "line": 140,
+      "line": 151,
       "severity": "fatal",
       "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
       "detail": "activationSnapshotRef",
@@ -5390,7 +5083,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
-      "line": 168,
+      "line": 179,
       "severity": "fatal",
       "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
       "detail": "mapPackageId",
@@ -5400,7 +5093,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
-      "line": 169,
+      "line": 180,
       "severity": "fatal",
       "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
       "detail": "mapPackageVersion",
@@ -5410,7 +5103,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
-      "line": 170,
+      "line": 181,
       "severity": "fatal",
       "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
       "detail": "selectedMapId",
@@ -5420,7 +5113,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
-      "line": 172,
+      "line": 183,
       "severity": "fatal",
       "message": "Retired map-system token activationId must not survive in the active start/runtime chain.",
       "detail": "activationId",
@@ -5430,7 +5123,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/capabilities/orchestration/runtime/orchestration-nerve-bus-envelope-builders.ts",
-      "line": 173,
+      "line": 184,
       "severity": "fatal",
       "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
       "detail": "activationSnapshotRef",
@@ -6416,6 +6109,86 @@
       "detail": "地图工坊",
       "zombieKind": "retired-map-system-reference",
       "recommendedAction": "Delete 地图工坊 from the active APP shell and replace it with the UserRequirementLauncher flow."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-app-shell/task-start-binding-contract.ts",
+      "line": 24,
+      "severity": "fatal",
+      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
+      "detail": "selectedMapId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE selectedMapId from src/lib/local-app-shell/task-start-binding-contract.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-app-shell/task-start-binding-contract.ts",
+      "line": 25,
+      "severity": "fatal",
+      "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
+      "detail": "taskTemplateId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE taskTemplateId from src/lib/local-app-shell/task-start-binding-contract.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-app-shell/task-start-binding-contract.ts",
+      "line": 26,
+      "severity": "fatal",
+      "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
+      "detail": "activationSnapshotRef",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE activationSnapshotRef from src/lib/local-app-shell/task-start-binding-contract.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "line": 35,
+      "severity": "fatal",
+      "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
+      "detail": "taskTemplateId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE taskTemplateId from src/lib/local-app-shell/task-start-flow.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "line": 37,
+      "severity": "fatal",
+      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
+      "detail": "selectedMapId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE selectedMapId from src/lib/local-app-shell/task-start-flow.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "line": 69,
+      "severity": "fatal",
+      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
+      "detail": "selectedMapId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE selectedMapId from src/lib/local-app-shell/task-start-flow.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "line": 167,
+      "severity": "fatal",
+      "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
+      "detail": "taskTemplateId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE taskTemplateId from src/lib/local-app-shell/task-start-flow.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "line": 169,
+      "severity": "fatal",
+      "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
+      "detail": "taskTemplateId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE taskTemplateId from src/lib/local-app-shell/task-start-flow.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
@@ -8910,7 +8683,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 107,
+      "line": 89,
       "severity": "fatal",
       "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
       "detail": "selectedMapId",
@@ -8920,7 +8693,27 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 108,
+      "line": 92,
+      "severity": "fatal",
+      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
+      "detail": "selectedMapId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE selectedMapId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
+      "line": 109,
+      "severity": "fatal",
+      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
+      "detail": "selectedMapId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE selectedMapId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
+      "line": 110,
       "severity": "fatal",
       "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
       "detail": "taskTemplateId",
@@ -8930,7 +8723,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 120,
+      "line": 122,
       "severity": "fatal",
       "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
       "detail": "selectedMapId",
@@ -8940,7 +8733,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 121,
+      "line": 123,
       "severity": "fatal",
       "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
       "detail": "taskTemplateId",
@@ -8950,7 +8743,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 128,
+      "line": 130,
       "severity": "fatal",
       "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
       "detail": "selectedMapId",
@@ -8960,97 +8753,37 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 129,
+      "line": 131,
       "severity": "fatal",
       "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
       "detail": "taskTemplateId",
       "zombieKind": "retired-map-system-reference",
       "recommendedAction": "DELETE taskTemplateId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 146,
-      "severity": "fatal",
-      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
-      "detail": "selectedMapId",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE selectedMapId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 147,
-      "severity": "fatal",
-      "message": "Retired map-system token activationId must not survive in the active start/runtime chain.",
-      "detail": "activationId",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE activationId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
       "line": 148,
       "severity": "fatal",
-      "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
-      "detail": "activationSnapshotRef",
+      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
+      "detail": "selectedMapId",
       "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE activationSnapshotRef from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+      "recommendedAction": "DELETE selectedMapId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
       "line": 149,
       "severity": "fatal",
-      "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
-      "detail": "taskTemplateId",
+      "message": "Retired map-system token activationId must not survive in the active start/runtime chain.",
+      "detail": "activationId",
       "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE taskTemplateId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+      "recommendedAction": "DELETE activationId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 151,
-      "severity": "fatal",
-      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
-      "detail": "selectedMapId",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE selectedMapId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 151,
-      "severity": "fatal",
-      "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
-      "detail": "taskTemplateId",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE taskTemplateId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 152,
-      "severity": "fatal",
-      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
-      "detail": "selectedMapId",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE selectedMapId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 152,
-      "severity": "fatal",
-      "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
-      "detail": "taskTemplateId",
-      "zombieKind": "retired-map-system-reference",
-      "recommendedAction": "DELETE taskTemplateId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 152,
+      "line": 150,
       "severity": "fatal",
       "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
       "detail": "activationSnapshotRef",
@@ -9060,6 +8793,16 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
+      "line": 151,
+      "severity": "fatal",
+      "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
+      "detail": "taskTemplateId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE taskTemplateId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
       "line": 153,
       "severity": "fatal",
       "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
@@ -9080,7 +8823,27 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 153,
+      "line": 154,
+      "severity": "fatal",
+      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
+      "detail": "selectedMapId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE selectedMapId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
+      "line": 154,
+      "severity": "fatal",
+      "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
+      "detail": "taskTemplateId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE taskTemplateId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
+      "line": 154,
       "severity": "fatal",
       "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
       "detail": "activationSnapshotRef",
@@ -9110,7 +8873,27 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 162,
+      "line": 155,
+      "severity": "fatal",
+      "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
+      "detail": "activationSnapshotRef",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE activationSnapshotRef from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
+      "line": 157,
+      "severity": "fatal",
+      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
+      "detail": "selectedMapId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE selectedMapId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
+      "line": 157,
       "severity": "fatal",
       "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
       "detail": "taskTemplateId",
@@ -9120,12 +8903,32 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
-      "line": 163,
+      "line": 164,
+      "severity": "fatal",
+      "message": "Retired map-system token taskTemplateId must not survive in the active start/runtime chain.",
+      "detail": "taskTemplateId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE taskTemplateId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
+      "line": 165,
       "severity": "fatal",
       "message": "Retired map-system token activationId must not survive in the active start/runtime chain.",
       "detail": "activationId",
       "zombieKind": "retired-map-system-reference",
       "recommendedAction": "DELETE activationId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-runtime/workbench-human-command-start-mission.ts",
+      "line": 168,
+      "severity": "fatal",
+      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
+      "detail": "selectedMapId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE selectedMapId from src/lib/local-runtime/workbench-human-command-start-mission.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
@@ -10300,7 +10103,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-visual-dispatch-input.ts",
-      "line": 79,
+      "line": 95,
       "severity": "fatal",
       "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
       "detail": "mapPackageId",
@@ -10310,7 +10113,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-visual-dispatch-input.ts",
-      "line": 80,
+      "line": 96,
       "severity": "fatal",
       "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
       "detail": "mapPackageVersion",
@@ -10320,7 +10123,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-visual-dispatch-input.ts",
-      "line": 81,
+      "line": 97,
       "severity": "fatal",
       "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
       "detail": "selectedMapId",
@@ -10330,7 +10133,47 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
       "file": "src/lib/local-runtime/workbench-visual-dispatch-input.ts",
-      "line": 83,
+      "line": 99,
+      "severity": "fatal",
+      "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
+      "detail": "activationSnapshotRef",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE activationSnapshotRef from src/lib/local-runtime/workbench-visual-dispatch-input.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-runtime/workbench-visual-dispatch-input.ts",
+      "line": 201,
+      "severity": "fatal",
+      "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
+      "detail": "mapPackageId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE mapPackage from src/lib/local-runtime/workbench-visual-dispatch-input.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-runtime/workbench-visual-dispatch-input.ts",
+      "line": 202,
+      "severity": "fatal",
+      "message": "Retired map-system token mapPackage must not survive in the active start/runtime chain.",
+      "detail": "mapPackageVersion",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE mapPackage from src/lib/local-runtime/workbench-visual-dispatch-input.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-runtime/workbench-visual-dispatch-input.ts",
+      "line": 203,
+      "severity": "fatal",
+      "message": "Retired map-system token selectedMapId must not survive in the active start/runtime chain.",
+      "detail": "selectedMapId",
+      "zombieKind": "retired-map-system-reference",
+      "recommendedAction": "DELETE selectedMapId from src/lib/local-runtime/workbench-visual-dispatch-input.ts or migrate the behavior to PlatformRegistry, UserRequirementHistory, VisualMissionPromptContract, or MuscleMemoryCatalog."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "file": "src/lib/local-runtime/workbench-visual-dispatch-input.ts",
+      "line": 205,
       "severity": "fatal",
       "message": "Retired map-system token activationSnapshotRef must not survive in the active start/runtime chain.",
       "detail": "activationSnapshotRef",
@@ -10376,6 +10219,26 @@
       "detail": "routeLabel + actionCode",
       "zombieKind": "route-label-survivor",
       "recommendedAction": "Delete routeLabel from src/lib/local-ai/prompts/vision-product-presence.v1.ts and keep the APP -> PlatformRegistry -> actionCode visual-story chain only."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1",
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "line": 37,
+      "severity": "fatal",
+      "message": "Active source must not keep selectedMapId and selectedPlatforms as dual task-entry chains.",
+      "detail": "selectedMapId + selectedPlatforms",
+      "zombieKind": "dual-entry-chain",
+      "recommendedAction": "Delete selectedMapId from src/lib/local-app-shell/task-start-flow.ts and keep the APP -> PlatformRegistry -> actionCode visual-story chain only."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1",
+      "file": "src/lib/local-app-shell/task-start-flow.ts",
+      "line": 35,
+      "severity": "fatal",
+      "message": "Active source must not keep taskTemplateId and userRequirementText as dual task-entry sources.",
+      "detail": "taskTemplateId + userRequirementText",
+      "zombieKind": "dual-entry-chain",
+      "recommendedAction": "Delete taskTemplateId from src/lib/local-app-shell/task-start-flow.ts and keep the APP -> PlatformRegistry -> actionCode visual-story chain only."
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1",
@@ -10513,6 +10376,162 @@
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "scripts/audit/domains/_shared/retired-map-flow-token-names.ts",
+      "line": 3,
+      "severity": "fatal",
+      "message": "Export RETIRED_ROUTE_PLAN_ID_FIELD has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "RETIRED_ROUTE_PLAN_ID_FIELD",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove RETIRED_ROUTE_PLAN_ID_FIELD or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "scripts/audit/domains/_shared/retired-map-flow-token-names.ts",
+      "line": 4,
+      "severity": "fatal",
+      "message": "Export RETIRED_TASK_TEMPLATE_ID_FIELD has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "RETIRED_TASK_TEMPLATE_ID_FIELD",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove RETIRED_TASK_TEMPLATE_ID_FIELD or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "scripts/audit/domains/_shared/retired-map-flow-token-names.ts",
+      "line": 5,
+      "severity": "fatal",
+      "message": "Export RETIRED_ACTIVATION_ID_FIELD has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "RETIRED_ACTIVATION_ID_FIELD",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove RETIRED_ACTIVATION_ID_FIELD or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "scripts/audit/domains/_shared/retired-map-flow-token-names.ts",
+      "line": 6,
+      "severity": "fatal",
+      "message": "Export RETIRED_ROUTE_LABEL_FIELD has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "RETIRED_ROUTE_LABEL_FIELD",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove RETIRED_ROUTE_LABEL_FIELD or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "scripts/audit/domains/_shared/retired-map-flow-token-names.ts",
+      "line": 7,
+      "severity": "fatal",
+      "message": "Export RETIRED_MAP_PACKAGE_TOKEN has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "RETIRED_MAP_PACKAGE_TOKEN",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove RETIRED_MAP_PACKAGE_TOKEN or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "scripts/audit/domains/_shared/retired-map-flow-token-names.ts",
+      "line": 8,
+      "severity": "fatal",
+      "message": "Export RETIRED_OPERATIONAL_MAP_TOKEN has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "RETIRED_OPERATIONAL_MAP_TOKEN",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove RETIRED_OPERATIONAL_MAP_TOKEN or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "scripts/audit/domains/_shared/retired-map-flow-token-names.ts",
+      "line": 9,
+      "severity": "fatal",
+      "message": "Export RETIRED_ROUTE_PLAN_BOUND_MAP_TOKEN has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "RETIRED_ROUTE_PLAN_BOUND_MAP_TOKEN",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove RETIRED_ROUTE_PLAN_BOUND_MAP_TOKEN or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "scripts/audit/domains/_shared/retired-map-flow-token-names.ts",
+      "line": 10,
+      "severity": "fatal",
+      "message": "Export RETIRED_GENERIC_DIAGNOSTIC_MAP_TOKEN has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "RETIRED_GENERIC_DIAGNOSTIC_MAP_TOKEN",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove RETIRED_GENERIC_DIAGNOSTIC_MAP_TOKEN or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "scripts/audit/domains/_shared/retired-map-story-token-names.ts",
+      "line": 4,
+      "severity": "fatal",
+      "message": "Export RETIRED_MAP_LAYER_OWNER has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "RETIRED_MAP_LAYER_OWNER",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove RETIRED_MAP_LAYER_OWNER or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "scripts/audit/domains/_shared/retired-map-story-token-names.ts",
+      "line": 5,
+      "severity": "fatal",
+      "message": "Export RETIRED_MAP_PLUGIN_PACKAGE_OWNER has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "RETIRED_MAP_PLUGIN_PACKAGE_OWNER",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove RETIRED_MAP_PLUGIN_PACKAGE_OWNER or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "scripts/audit/domains/_shared/retired-map-story-token-names.ts",
+      "line": 6,
+      "severity": "fatal",
+      "message": "Export RETIRED_MAP_AUTHORING_TOKEN has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "RETIRED_MAP_AUTHORING_TOKEN",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove RETIRED_MAP_AUTHORING_TOKEN or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "scripts/audit/domains/_shared/retired-map-story-token-names.ts",
+      "line": 7,
+      "severity": "fatal",
+      "message": "Export RETIRED_MAP_PLUGIN_TOKEN has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "RETIRED_MAP_PLUGIN_TOKEN",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove RETIRED_MAP_PLUGIN_TOKEN or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "scripts/audit/domains/_shared/retired-map-story-token-names.ts",
+      "line": 8,
+      "severity": "fatal",
+      "message": "Export RETIRED_ACTIVE_MAP_REGISTRY_TOKEN has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "RETIRED_ACTIVE_MAP_REGISTRY_TOKEN",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove RETIRED_ACTIVE_MAP_REGISTRY_TOKEN or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
       "file": "scripts/audit/domains/ai-capability/run-ai-proof-chain-checks.ts",
       "line": 277,
       "severity": "fatal",
@@ -10538,7 +10557,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
       "file": "scripts/audit/domains/ai-capability/runtime-contract-debug-transparency-checks.ts",
-      "line": 115,
+      "line": 104,
       "severity": "fatal",
       "message": "Export findRuntimeDiagnosticTransparencyViolations has no lawful callers.",
       "zombieKind": "dead-export",
@@ -10549,8 +10568,8 @@
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
-      "file": "scripts/audit/domains/ai-capability/runtime-contract-debug-transparency-checks.ts",
-      "line": 173,
+      "file": "scripts/audit/domains/ai-capability/runtime-contract-local-debug-checks.ts",
+      "line": 88,
       "severity": "fatal",
       "message": "Export findAiDebugTransparencyViolations has no lawful callers.",
       "zombieKind": "dead-export",
@@ -10561,8 +10580,8 @@
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
-      "file": "scripts/audit/domains/ai-capability/runtime-contract-debug-transparency-checks.ts",
-      "line": 196,
+      "file": "scripts/audit/domains/ai-capability/runtime-contract-local-debug-checks.ts",
+      "line": 111,
       "severity": "fatal",
       "message": "Export collectWorkbenchAiDebugChainFindings has no lawful callers.",
       "zombieKind": "dead-export",
@@ -11846,7 +11865,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
       "file": "src/lib/local-runtime/workbench-visual-dispatch-input.ts",
-      "line": 119,
+      "line": 247,
       "severity": "fatal",
       "message": "Export buildVisualTargetCommand has no lawful callers.",
       "zombieKind": "dead-export",
@@ -11858,7 +11877,7 @@
     {
       "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
       "file": "src/lib/local-runtime/workbench-visual-dispatch-input.ts",
-      "line": 146,
+      "line": 274,
       "severity": "fatal",
       "message": "Export buildGeometryGuardCommand has no lawful callers.",
       "zombieKind": "dead-export",
@@ -12025,6 +12044,18 @@
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "file": "src/muscle-memory/decoder/grid-cell-decoder.ts",
+      "line": 4,
+      "severity": "fatal",
+      "message": "Export decodeMuscleMemoryGridCell has no lawful callers.",
+      "zombieKind": "dead-export",
+      "symbolName": "decodeMuscleMemoryGridCell",
+      "lawfulCallerCount": 0,
+      "protectedSeam": "none",
+      "recommendedAction": "Remove decodeMuscleMemoryGridCell or import it from a lawful caller."
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
       "file": "src/platforms/platform-registry.ts",
       "line": 14,
       "severity": "fatal",
@@ -12060,76 +12091,11 @@
       "recommendedAction": "Remove resolvePlatformProfiles or import it from a lawful caller."
     },
     {
-      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
-      "file": "src/visual-mission/runtime-envelope.ts",
-      "line": 3,
-      "severity": "fatal",
-      "message": "Export VISUAL_MISSION_RUNTIME_ID has no lawful callers.",
-      "zombieKind": "dead-export",
-      "symbolName": "VISUAL_MISSION_RUNTIME_ID",
-      "lawfulCallerCount": 0,
-      "protectedSeam": "none",
-      "recommendedAction": "Remove VISUAL_MISSION_RUNTIME_ID or import it from a lawful caller."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
-      "file": "src/visual-mission/runtime-envelope.ts",
-      "line": 4,
-      "severity": "fatal",
-      "message": "Export VISUAL_MISSION_RUNTIME_ENVELOPE_MAP_ID has no lawful callers.",
-      "zombieKind": "dead-export",
-      "symbolName": "VISUAL_MISSION_RUNTIME_ENVELOPE_MAP_ID",
-      "lawfulCallerCount": 0,
-      "protectedSeam": "none",
-      "recommendedAction": "Remove VISUAL_MISSION_RUNTIME_ENVELOPE_MAP_ID or import it from a lawful caller."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
-      "file": "src/visual-mission/runtime-envelope.ts",
-      "line": 5,
-      "severity": "fatal",
-      "message": "Export VISUAL_MISSION_RUNTIME_ACTIVATION_ID has no lawful callers.",
-      "zombieKind": "dead-export",
-      "symbolName": "VISUAL_MISSION_RUNTIME_ACTIVATION_ID",
-      "lawfulCallerCount": 0,
-      "protectedSeam": "none",
-      "recommendedAction": "Remove VISUAL_MISSION_RUNTIME_ACTIVATION_ID or import it from a lawful caller."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
-      "file": "src/visual-mission/runtime-envelope.ts",
-      "line": 7,
-      "severity": "fatal",
-      "message": "Export isVisualMissionRuntimeEnvelopeMapId has no lawful callers.",
-      "zombieKind": "dead-export",
-      "symbolName": "isVisualMissionRuntimeEnvelopeMapId",
-      "lawfulCallerCount": 0,
-      "protectedSeam": "none",
-      "recommendedAction": "Remove isVisualMissionRuntimeEnvelopeMapId or import it from a lawful caller."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
-      "file": "src/visual-mission/runtime-envelope.ts",
-      "line": 10,
-      "severity": "fatal",
-      "message": "Export buildVisualMissionTaskTemplateId has no lawful callers.",
-      "zombieKind": "dead-export",
-      "symbolName": "buildVisualMissionTaskTemplateId",
-      "lawfulCallerCount": 0,
-      "protectedSeam": "none",
-      "recommendedAction": "Remove buildVisualMissionTaskTemplateId or import it from a lawful caller."
-    },
-    {
-      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
-      "file": "src/visual-mission/runtime-envelope.ts",
-      "line": 13,
-      "severity": "fatal",
-      "message": "Export buildVisualMissionActivationSnapshotRef has no lawful callers.",
-      "zombieKind": "dead-export",
-      "symbolName": "buildVisualMissionActivationSnapshotRef",
-      "lawfulCallerCount": 0,
-      "protectedSeam": "none",
-      "recommendedAction": "Remove buildVisualMissionActivationSnapshotRef or import it from a lawful caller."
+      "lawId": "GRASSEYE-CODE-PURITY-013-V1",
+      "file": "scripts/audit/domains/code-purity/components/purity-report.ts",
+      "line": 1,
+      "severity": "error",
+      "message": "Code-purity report did not produce the required remediation queue and first physical split plan."
     }
   ]
 }

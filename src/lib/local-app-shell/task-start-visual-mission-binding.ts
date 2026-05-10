@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 
-import { resolveVisualMissionPlatformTarget } from "../../visual-mission/platform-target-registry.js";
+import {
+  isVisualMissionPlatformId,
+  resolveVisualMissionPlatformTarget,
+} from "../../visual-mission/platform-target-registry.js";
+import { buildVisualMissionRuntimeCompatibilityEnvelope } from "../../visual-mission/runtime-envelope.js";
 import {
   createBindingFailure,
   type MissionStartBinding,
@@ -26,7 +30,7 @@ type RunLimitInput = {
 };
 
 function isUserRequirementSelectedPlatformId(value: unknown): value is UserRequirementSelectedPlatformId {
-  return value === "facebook-web" || value === "tiktok-web";
+  return isVisualMissionPlatformId(value);
 }
 
 function buildUserRequirementRef(text: string): string {
@@ -157,5 +161,6 @@ export function resolveVisualMissionStartBinding(input: VisualMissionStartBindin
     targetUrl: primaryBinding.targetUrl,
     targetTitle: primaryBinding.targetTitle,
     userRequirementRef: buildUserRequirementRef(validated.userRequirementText),
+    ...buildVisualMissionRuntimeCompatibilityEnvelope(primaryBinding.requestedPlatformId),
   };
 }

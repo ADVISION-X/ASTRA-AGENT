@@ -16,7 +16,7 @@ const OUTPUT_FORMAT_GUIDE = [
   '"visualEvidence":["grounded observation"],',
   '"reason":"grounded reason",',
   '"actions":[{"actionCode":"SAVE_LEAD","required":true,"reason":"..."}],',
-  '"clickTargets":[{"gridCell":"B48","targetName":"close_popup"}],',
+  '"nonExecutableClickTargets":[{"gridCell":"B48","targetName":"close_popup"}],',
   '"riskFlags":[],',
   '"nonExecutableSummary":"..."}',
 ].join("\n");
@@ -47,7 +47,7 @@ function buildSystemManualSection(systemManualText: string): string {
 function buildOutputFormatSection(): string {
   return [
     "## 3. Output Format",
-    "Return one JSON object only. CLICK_CELL must use input.gridCell. PRESS_KEY must use input.key. Never output raw x/y, mouseX, or mouseY.",
+    "Return one JSON object only. Execution uses actions[] only. nonExecutableClickTargets is visual hinting only and must never replace actions[]. CLICK_CELL must use input.gridCell. PRESS_KEY must use input.key. Never output raw x/y, mouseX, or mouseY.",
     OUTPUT_FORMAT_GUIDE,
   ].join("\n\n");
 }

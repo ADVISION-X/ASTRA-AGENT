@@ -42,6 +42,16 @@ const CAPABILITY_METADATA_BY_ABILITY_GROUP: Record<string, CapabilityMetadata> =
       "read credentials or cookies",
     ],
   },
+  "geometry-guard": {
+    requiresGeometryProof: false,
+    requiresPostActionVerification: false,
+    sensitiveOperation: false,
+    forbiddenResponsibilities: [
+      "execute browser primitives directly",
+      "decide business meaning",
+      "invent source geometry",
+    ],
+  },
   "forensics-persistence": {
     requiresGeometryProof: false,
     requiresPostActionVerification: false,

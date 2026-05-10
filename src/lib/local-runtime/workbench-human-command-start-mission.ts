@@ -86,8 +86,10 @@ export const buildHumanCommandResultEnvelope = (input: {
 
 const buildStartMissionInitialPayload = (
   payload: Record<string, string | number | boolean | null>,
+  selectedMapId: string | null,
 ) => ({
   requestedBy: "commander-console",
+  selectedMapId,
   maxRounds: payloadValueToInteger(payload.maxRounds),
   maxMinutes: payloadValueToInteger(payload.maxMinutes),
   operatorNote: payloadValueToString(payload.operatorNote),
@@ -143,7 +145,7 @@ export const handleStartMission = async (
     return buildHumanCommandResultEnvelope({ envelope, status: "failed", summary: "requestedPlatformId is required for start-mission.", failureReason: "requestedPlatformId is required for start-mission." });
   }
 
-  const selectedMapId = null;
+  const selectedMapId = envelope.selectedMapId ?? payloadValueToString(payload.selectedMapId);
   const activationId = null;
   const activationSnapshotRef = envelope.activationSnapshotRef;
   const taskTemplateId = null;
@@ -163,7 +165,7 @@ export const handleStartMission = async (
     activationId,
     maxRounds: payloadValueToInteger(payload.maxRounds),
     maxMinutes: payloadValueToInteger(payload.maxMinutes),
-    initialPayload: buildStartMissionInitialPayload(payload),
+    initialPayload: buildStartMissionInitialPayload(payload, selectedMapId),
   });
 
   void missionStartPromise.catch(createBackgroundMissionFailureHandler(runtime, backgroundMissionInput));

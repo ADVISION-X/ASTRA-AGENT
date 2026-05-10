@@ -1,6 +1,7 @@
 import { type LocalAiVisionTaskRequest } from "../../types/local-ai-runtime-vision-contract.js";
 import { loadMuscleMemoryCatalog } from "../../muscle-memory/catalog/muscle-memory-catalog.js";
 import type { VisualMissionActionPlan } from "../../muscle-memory/decoder/action-plan.schema.js";
+import { buildVisualMissionContextRefs } from "../../visual-mission/action-plan/normalize-ai-output.js";
 
 type JsonRecord = Record<string, unknown>;
 type VisionProductPresenceRequest = Extract<LocalAiVisionTaskRequest, { taskType: "vision.productPresence" }>;
@@ -111,7 +112,7 @@ const resolvePlatform = (sourceUrl: string): VisualMissionActionPlan["platform"]
   if (normalized.includes("tiktok")) {
     return "tiktok-web";
   }
-  return "unknown";
+  throw new Error(`Unsupported visual mission sourceUrl for governed platform resolution: ${sourceUrl}`);
 };
 
 const buildActionPlan = (input: {
@@ -140,6 +141,7 @@ const buildActionPlan = (input: {
   ],
   riskFlags: input.uncertainty,
   nonExecutableSummary: input.nonExecutableSummary,
+  contextRefs: buildVisualMissionContextRefs(),
 });
 
 const resolveDecisionReason = (value: JsonRecord, nonExecutableSummary: string): string => {

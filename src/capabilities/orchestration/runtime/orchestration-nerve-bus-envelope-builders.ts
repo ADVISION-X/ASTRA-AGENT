@@ -4,13 +4,14 @@ type SendAbilityInput = Parameters<OrchestrationNerveBusPort["sendCommandToAbili
 type SendAiInput = Parameters<OrchestrationNerveBusPort["sendRequestToAi"]>[0];
 
 type DispatchPayloadRefs = SendAbilityInput["payloadRefs"];
+type DispatchInputValue = NonNullable<SendAbilityInput["dispatchInput"]>[string];
 type SharedChannelId = "orchestration-to-ability" | "orchestration-to-ai";
 type SharedEnvelopeInput = SendAbilityInput | SendAiInput;
 
 const MAX_TRANSPORT_SUMMARY_LENGTH = 400;
 
-function collectPayloadRefs(input: DispatchPayloadRefs, inputRef: string) {
-  const refs = [inputRef, ...Object.values(input)].filter(
+function collectPayloadRefs(input: DispatchPayloadRefs, inputRef: string, extraRefs: Array<string | null | undefined> = []) {
+  const refs = [inputRef, ...extraRefs, ...Object.values(input)].filter(
     (value): value is string => typeof value === "string" && value.length > 0,
   );
   return Array.from(new Set(refs));
@@ -47,9 +48,19 @@ function buildEnvelopePayload(summary: string, refs: string[], tags: string[]) {
   };
 }
 
-function buildDispatchDocumentContent(payloadRefs: DispatchPayloadRefs) {
+function buildDispatchDocumentContent(
+  payloadRefs: DispatchPayloadRefs,
+  options?: {
+    dispatchInput?: Record<string, DispatchInputValue>;
+    actionInputRef?: string | null;
+  },
+) {
   return Object.fromEntries(
-    Object.entries(payloadRefs).filter(([, value]) => value !== undefined),
+    Object.entries({
+      ...payloadRefs,
+      ...(options?.dispatchInput ?? {}),
+      ...(options?.actionInputRef ? { actionInputRef: options.actionInputRef } : {}),
+    }).filter(([, value]) => value !== undefined),
   );
 }
 
@@ -187,7 +198,7 @@ function buildSharedEnvelopeBase<TChannelId extends SharedChannelId>(input: {
 export function buildAbilityDispatchEnvelope(input: SendAbilityInput, envelopeId: string, createdAt: string, expiresAt: string) {
   const inputRef = `${input.missionId}:${input.stepId}:input`;
   const capabilityCallId = buildCapabilityCallId(input, "ability");
-  const payloadRefs = collectPayloadRefs(input.payloadRefs, inputRef);
+  const payloadRefs = collectPayloadRefs(input.payloadRefs, inputRef, [input.actionInputRef ?? null]);
   return {
     ...buildOrchestrationSharedEnvelope({
       transportInput: input,
@@ -212,7 +223,13 @@ export function buildAbilityDispatchDocument(input: SendAbilityInput) {
     summary: clampTransportSummary(`Dispatch ${input.childCapabilityId} to ${input.targetAbilityGroupId}`),
     entityRefs: [],
     evidenceRefs: [],
-    contentBlocks: Object.entries(buildDispatchDocumentContent(input.payloadRefs)).map(([key, value]) => ({ key, value })),
+    contentBlocks: Object.entries(buildDispatchDocumentContent(
+      input.payloadRefs,
+      {
+        ...(input.dispatchInput ? { dispatchInput: input.dispatchInput } : {}),
+        ...(input.actionInputRef ? { actionInputRef: input.actionInputRef } : {}),
+      },
+    )).map(([key, value]) => ({ key, value })),
   };
 }
 

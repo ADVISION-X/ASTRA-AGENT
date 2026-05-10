@@ -187,9 +187,9 @@ export const MUSCLE_MEMORY_ATOMIC_SEEDS: AtomicSeed[] = [
   {
     actionCode: "CLICK_CELL",
     displayName: "Click Grid Cell",
-    description: "Decode a governed visual-mission grid cell into browser coordinates and click it.",
-    abilityGroupId: "mouse-click",
-    childCapabilityId: "click-browser-coordinate",
+    description: "Validate a governed visual-mission grid cell through Geometry Guard before a low-level click runs.",
+    abilityGroupId: "geometry-guard",
+    childCapabilityId: "validate-click-point",
     allowedForAiActionPlan: true,
     allowedForUserRequirement: false,
     requiresGridSpecRef: true,
@@ -199,11 +199,11 @@ export const MUSCLE_MEMORY_ATOMIC_SEEDS: AtomicSeed[] = [
     requiresPostActionVerification: false,
     sensitiveOperation: false,
     inputContract: {
-      requiredFields: ["gridCell", "gridSpec"],
+      requiredFields: ["gridCell", "gridSpecRef"],
       optionalFields: ["coordinateSpace"],
       forbiddenFields: FORBIDDEN_RAW_COORDINATES,
     },
-    successOutputRefs: ["clickResultRef"],
+    successOutputRefs: ["geometryGuardResultRef", "geometryProofRef"],
     failurePolicy: "continue",
   },
   {

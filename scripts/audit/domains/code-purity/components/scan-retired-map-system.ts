@@ -4,13 +4,34 @@ import { fileExists, readTextFile } from "../../../core/filesystem.js";
 import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
 import { pathFromRepoRoot } from "../../../core/paths.js";
+import { retiredMapCodePurityTokens } from "./retired-map-code-purity-tokens.js";
 
 const RETIRED_MAP_LAW_ID = "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1";
+const {
+  RETIRED_ACTIVATION_ID_FIELD,
+  RETIRED_ACTIVATION_REF_FIELD,
+  RETIRED_ACTIVE_MAP_REGISTRY_TOKEN,
+  RETIRED_GENERIC_DIAGNOSTIC_MAP_TOKEN,
+  RETIRED_MAP_AUTHORING_TOKEN,
+  RETIRED_MAP_LAYER_OWNER,
+  RETIRED_MAP_PACKAGE_TOKEN,
+  RETIRED_MAP_PLUGIN_PACKAGE_AUDIT_DOMAIN,
+  RETIRED_MAP_PLUGIN_PACKAGE_MODULE_FILE,
+  RETIRED_MAP_PLUGIN_PACKAGE_OWNER,
+  RETIRED_MAP_PLUGIN_TOKEN,
+  RETIRED_OPERATIONAL_MAP_TOKEN,
+  RETIRED_PACKAGE_ID_FIELD,
+  RETIRED_ROUTE_LABEL_FIELD,
+  RETIRED_ROUTE_PLAN_BOUND_MAP_TOKEN,
+  RETIRED_ROUTE_PLAN_ID_FIELD,
+  RETIRED_SELECTION_ID_FIELD,
+  RETIRED_TASK_TEMPLATE_ID_FIELD,
+} = retiredMapCodePurityTokens;
 
 const FORBIDDEN_ACTIVE_PATHS = [
   "src/map-plugins",
-  "scripts/audit/domains/map-plugin-package",
-  ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
+  RETIRED_MAP_PLUGIN_PACKAGE_AUDIT_DOMAIN,
+  [".github", "instructions", "cursor-rules", "modules", RETIRED_MAP_PLUGIN_PACKAGE_MODULE_FILE].join("/"),
   "docs/法案辅助文件/GrassEye 地图插件包治理施工图.md",
   "docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md",
   "docs/法案辅助文件/GrassEye Map Authoring Input Package 施工图_FINAL.md",
@@ -18,53 +39,53 @@ const FORBIDDEN_ACTIVE_PATHS = [
 ] as const;
 
 const FORBIDDEN_IDENTIFIER_TOKENS = [
-  "routePlanId",
-  "selectedMapId",
-  "taskTemplateId",
-  "activationId",
-  "activationSnapshotRef",
-  "routeLabel",
-  "map-layer",
-  "map-plugin-package",
-  "mapPackage",
-  "operationalMap",
-  "routePlanBoundMap",
-  "genericDiagnosticMap",
-  "MapAuthoring",
-  "MapPlugin",
-  "activeMapRegistry",
+  RETIRED_ROUTE_PLAN_ID_FIELD,
+  RETIRED_SELECTION_ID_FIELD,
+  RETIRED_TASK_TEMPLATE_ID_FIELD,
+  RETIRED_ACTIVATION_ID_FIELD,
+  RETIRED_ACTIVATION_REF_FIELD,
+  RETIRED_ROUTE_LABEL_FIELD,
+  RETIRED_MAP_LAYER_OWNER,
+  RETIRED_MAP_PLUGIN_PACKAGE_OWNER,
+  RETIRED_MAP_PACKAGE_TOKEN,
+  RETIRED_OPERATIONAL_MAP_TOKEN,
+  RETIRED_ROUTE_PLAN_BOUND_MAP_TOKEN,
+  RETIRED_GENERIC_DIAGNOSTIC_MAP_TOKEN,
+  RETIRED_MAP_AUTHORING_TOKEN,
+  RETIRED_MAP_PLUGIN_TOKEN,
+  RETIRED_ACTIVE_MAP_REGISTRY_TOKEN,
 ] as const;
 
 const FORBIDDEN_GENERATED_TEXT_MATCHES = [
   {
     relativePath: "scripts/audit/generated/ci-full-summary.generated.json",
-    token: "map-layer",
-    message: "Generated CI summary must not include retired owner map-layer.",
-    recommendedAction: "Rebuild CI-FULL generated artifacts after deleting the map-layer owner step.",
+    token: RETIRED_MAP_LAYER_OWNER,
+    message: `Generated CI summary must not include retired owner ${RETIRED_MAP_LAYER_OWNER}.`,
+    recommendedAction: `Rebuild CI-FULL generated artifacts after deleting the ${RETIRED_MAP_LAYER_OWNER} owner step.`,
   },
   {
     relativePath: "scripts/audit/generated/audit-plan.generated.json",
-    token: "map-plugin-package",
-    message: "Generated audit plan must not include retired owner map-plugin-package.",
-    recommendedAction: "Rebuild audit-plan.generated.json after deleting the map-plugin-package audit domain.",
+    token: RETIRED_MAP_PLUGIN_PACKAGE_OWNER,
+    message: `Generated audit plan must not include retired owner ${RETIRED_MAP_PLUGIN_PACKAGE_OWNER}.`,
+    recommendedAction: `Rebuild audit-plan.generated.json after deleting the ${RETIRED_MAP_PLUGIN_PACKAGE_OWNER} audit domain.`,
   },
   {
     relativePath: "scripts/audit/generated/enforcement-matrix.generated.json",
-    token: "module-map-plugin-package.instructions.md",
+    token: RETIRED_MAP_PLUGIN_PACKAGE_MODULE_FILE,
     message: "Generated enforcement matrix must not route to the retired map law file.",
-    recommendedAction: "Rebuild the enforcement matrix after removing module-map-plugin-package from active law routing.",
+    recommendedAction: `Rebuild the enforcement matrix after removing ${RETIRED_MAP_PLUGIN_PACKAGE_MODULE_FILE} from active law routing.`,
   },
   {
     relativePath: "scripts/audit/generated/enforcement-matrix.generated.yaml",
-    token: "module-map-plugin-package.instructions.md",
+    token: RETIRED_MAP_PLUGIN_PACKAGE_MODULE_FILE,
     message: "Generated enforcement matrix YAML must not route to the retired map law file.",
-    recommendedAction: "Rebuild the enforcement matrix YAML after removing module-map-plugin-package from active law routing.",
+    recommendedAction: `Rebuild the enforcement matrix YAML after removing ${RETIRED_MAP_PLUGIN_PACKAGE_MODULE_FILE} from active law routing.`,
   },
   {
     relativePath: "scripts/audit/generated/law-registry.generated.json",
-    token: "module-map-plugin-package.instructions.md",
+    token: RETIRED_MAP_PLUGIN_PACKAGE_MODULE_FILE,
     message: "Generated law registry must not include the retired map law file.",
-    recommendedAction: "Rebuild law-registry.generated.json after deleting module-map-plugin-package from active law sources.",
+    recommendedAction: `Rebuild law-registry.generated.json after deleting ${RETIRED_MAP_PLUGIN_PACKAGE_MODULE_FILE} from active law sources.`,
   },
 ] as const;
 
@@ -92,7 +113,7 @@ const SKIPPED_PATH_PREFIXES = [
   "docs/archive/",
   "docs/归档/",
   "src/map-plugins/",
-  "scripts/audit/domains/map-plugin-package/",
+  `${RETIRED_MAP_PLUGIN_PACKAGE_AUDIT_DOMAIN}/`,
 ] as const;
 
 const isSkippedPath = (relativePath: string): boolean => SKIPPED_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix));

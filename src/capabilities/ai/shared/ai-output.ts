@@ -117,7 +117,7 @@ function buildVisualMissionActionPlanFallback(reason: string): AiVisualMissionAc
     visualEvidence: [reason],
     reason,
     actions: [{ actionCode: "STOP_REVIEW_REQUIRED", required: true, reason }],
-    clickTargets: [],
+    nonExecutableClickTargets: [],
     riskFlags: ["visual_mission_fallback"],
     nonExecutableSummary: reason,
   };

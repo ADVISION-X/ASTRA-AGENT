@@ -1,6 +1,8 @@
 import { resolveOpenTargetDefaults } from "../capabilities/open/registry.js";
 
-type VisualMissionPlatformId = "facebook-web" | "tiktok-web";
+export const VISUAL_MISSION_PLATFORM_IDS = ["facebook-web", "tiktok-web"] as const;
+
+type VisualMissionPlatformId = (typeof VISUAL_MISSION_PLATFORM_IDS)[number];
 
 type VisualMissionPlatformTargetBinding = {
   platformId: VisualMissionPlatformId;
@@ -39,6 +41,11 @@ const PLATFORM_TARGET_BINDINGS = {
   "facebook-web": buildPlatformTargetBinding("facebook-web"),
   "tiktok-web": buildPlatformTargetBinding("tiktok-web"),
 } as const;
+
+export const isVisualMissionPlatformId = (value: unknown): value is VisualMissionPlatformId => (
+  typeof value === "string"
+  && (VISUAL_MISSION_PLATFORM_IDS as readonly string[]).includes(value)
+);
 
 export function listVisualMissionPlatformTargets(): VisualMissionPlatformTargetBinding[] {
   return Object.values(PLATFORM_TARGET_BINDINGS);

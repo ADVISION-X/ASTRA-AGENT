@@ -10,7 +10,7 @@ import {
   RETIRED_PACKAGE_VERSION_FIELD,
   RETIRED_SELECTION_ID_FIELD,
   RETIRED_SELECTION_VERSION_FIELD,
-} from "./retired-map-field-names.js";
+} from "./retired-map-chain-field-names.js";
 
 const FORBIDDEN_SOURCE_PROOF_FIELDS = [
   "missionId",

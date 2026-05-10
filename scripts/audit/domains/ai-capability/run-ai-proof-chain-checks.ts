@@ -9,7 +9,7 @@ import {
   RETIRED_PACKAGE_VERSION_FIELD,
   RETIRED_SELECTION_ID_FIELD,
   RETIRED_SELECTION_VERSION_FIELD,
-} from "../_shared/retired-map-field-names.js";
+} from "../_shared/retired-map-chain-field-names.js";
 
 import { aiInspectionConstants } from "./inspection-constants.js";
 import { aiInspectionUtils } from "./inspection-utils.js";

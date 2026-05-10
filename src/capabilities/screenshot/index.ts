@@ -33,3 +33,9 @@ export {
 export {
   listScreenshotChildren,
 } from "./registry.js";
+export {
+  resolveScreenshotStructuredDataRefPayload,
+} from "./runtime/screenshot-structured-data-ref.js";
+export {
+  decodeGridCell,
+} from "./shared/visual-mission-grid.js";

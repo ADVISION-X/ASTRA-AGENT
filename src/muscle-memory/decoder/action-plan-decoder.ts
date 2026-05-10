@@ -1,8 +1,6 @@
-import type { ScreenshotGridSpec } from "../../capabilities/screenshot/contract.js";
 import type { AtomicMuscleMemoryEntry, CompositeMuscleMemoryStep, MuscleMemoryEntry } from "../catalog/muscle-memory-catalog.schema.js";
 import { findMuscleMemoryEntry, loadMuscleMemoryCatalog } from "../catalog/muscle-memory-catalog.js";
 import { VisualMissionActionPlanSchema, type VisualMissionActionPlan } from "./action-plan.schema.js";
-import { decodeMuscleMemoryGridCell } from "./grid-cell-decoder.js";
 import {
   buildVisualMissionActionRuntimeContext,
   enrichVisualMissionActionInput,
@@ -21,6 +19,7 @@ type ExecutionAction = {
   successOutputRefs: string[];
   required: boolean;
   onFailure: "continue" | "stop" | "review_required";
+  requiredPayloadRefs?: string[];
 };
 
 type ExecutionPlan = {
@@ -75,21 +74,12 @@ function mergeMappedInput(step: CompositeMuscleMemoryStep, actionInput: Record<s
   );
 }
 
-function decodeClickCellInput(input: Record<string, unknown>): Record<string, unknown> {
-  const gridCell = typeof input.gridCell === "string" ? input.gridCell : null;
-  const gridSpec = (input.gridSpec ?? null) as ScreenshotGridSpec | null;
-  if (!gridCell || !gridSpec) {
-    throw new Error("CLICK_CELL requires gridCell and gridSpec before decode.");
+function resolveAtomicEntry(actionCode: string): AtomicMuscleMemoryEntry {
+  const entry = findMuscleMemoryEntry(actionCode);
+  if (!entry || entry.type !== "atomic") {
+    throw new Error(`Expected atomic actionCode ${actionCode} in muscle-memory catalog.`);
   }
-
-  const cell = decodeMuscleMemoryGridCell({ gridSpec, gridCell });
-  return {
-    x: cell.centerX,
-    y: cell.centerY,
-    coordinateSpace: cell.sourceCoordinateSpace,
-    gridCell,
-    gridSpecRef: gridSpec.gridSpecRef,
-  };
+  return entry;
 }
 
 function buildAtomicExecutionAction(input: {
@@ -108,9 +98,6 @@ function buildAtomicExecutionAction(input: {
     runtimeContext: input.runtimeContext,
   });
   assertRequiredFields(enrichedInput, input.entry);
-  const normalizedInput = input.entry.actionCode === "CLICK_CELL"
-    ? decodeClickCellInput(enrichedInput)
-    : enrichedInput;
 
   return {
     resolvedActionId: `resolved-action-${input.index}`,
@@ -119,12 +106,60 @@ function buildAtomicExecutionAction(input: {
     abilityGroupId: input.entry.abilityGroupId,
     childCapabilityId: input.entry.childCapabilityId,
     outputSchemaRef: input.entry.outputSchemaRef,
-    input: normalizedInput,
+    input: enrichedInput,
     requiresPostActionVerification: input.entry.requiresPostActionVerification,
     successOutputRefs: input.entry.successOutputRefs,
     required: input.required,
     onFailure: input.onFailure,
   };
+}
+
+function buildClickCellFollowUpAction(input: {
+  sourceActionCode: string;
+  resolvedActionId: string;
+  required: boolean;
+  onFailure: "continue" | "stop" | "review_required";
+}): ExecutionAction {
+  const clickEntry = resolveAtomicEntry("CLICK_BROWSER_COORDINATE");
+  return {
+    resolvedActionId: `${input.resolvedActionId}:mouse-click`,
+    sourceActionCode: input.sourceActionCode,
+    type: "atomic",
+    abilityGroupId: clickEntry.abilityGroupId,
+    childCapabilityId: clickEntry.childCapabilityId,
+    outputSchemaRef: clickEntry.outputSchemaRef,
+    input: {},
+    requiresPostActionVerification: clickEntry.requiresPostActionVerification,
+    successOutputRefs: clickEntry.successOutputRefs,
+    required: input.required,
+    onFailure: input.onFailure,
+    requiredPayloadRefs: ["geometryGuardResultRef"],
+  };
+}
+
+function buildAtomicExecutionActions(input: {
+  actionCode: string;
+  entry: AtomicMuscleMemoryEntry;
+  actionInput: Record<string, unknown>;
+  runtimeContext: VisualMissionActionRuntimeContext;
+  index: number;
+  required: boolean;
+  onFailure: "continue" | "stop" | "review_required";
+}): ExecutionAction[] {
+  const baseAction = buildAtomicExecutionAction(input);
+  if (input.entry.actionCode !== "CLICK_CELL") {
+    return [baseAction];
+  }
+
+  return [
+    baseAction,
+    buildClickCellFollowUpAction({
+      sourceActionCode: baseAction.sourceActionCode,
+      resolvedActionId: baseAction.resolvedActionId,
+      required: input.required,
+      onFailure: input.onFailure,
+    }),
+  ];
 }
 
 function expandEntry(input: {
@@ -143,7 +178,7 @@ function expandEntry(input: {
   }
 
   if (input.entry.type === "atomic") {
-    input.actions.push(buildAtomicExecutionAction({
+    input.actions.push(...buildAtomicExecutionActions({
       actionCode: input.actionCode,
       entry: input.entry,
       actionInput: input.actionInput,
@@ -187,7 +222,7 @@ export function decodeVisualMissionActionPlan(input: {
   assertCatalogVersion(plan);
   const runtimeContext = buildVisualMissionActionRuntimeContext({
     plan,
-    payloadRefs: input.runtimeContext?.payloadRefs,
+    ...(input.runtimeContext?.payloadRefs ? { payloadRefs: input.runtimeContext.payloadRefs } : {}),
     sourceAiResultRef: input.sourceAiResultRef ?? null,
   });
 

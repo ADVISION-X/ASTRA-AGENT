@@ -93,7 +93,7 @@
     "promptVersion": "v1",
     "schemaVersion": "visualMissionActionPlan.v1",
     "actions": "array of governed actionCode records only",
-    "clickTargets": "gridCell + targetName only",
+    "nonExecutableClickTargets": "gridCell + targetName only; visual hint only, never execution source",
     "forbidden": [
       "routeLabel",
       "routePlanId",

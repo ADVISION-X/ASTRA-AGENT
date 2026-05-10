@@ -11,6 +11,7 @@ import type {
 export type AbilityDispatchTarget = Exclude<z.output<typeof AllowedAbilityGroupIdSchema>, "ai">;
 export type AbilityDispatchStatus = z.output<typeof TransitionStatusSchema>;
 export type OrchestrationDispatchPayload = z.output<typeof PayloadRefBundleSchema>;
+export type DispatchInputValue = string | number | boolean | null | undefined;
 
 type OrchestrationDispatchChain = {
   runId: string;
@@ -54,6 +55,8 @@ export interface OrchestrationNerveBusPort {
     expectedOutputSchemaRef: string;
     postClickObservation: boolean;
     payloadRefs: OrchestrationDispatchPayload;
+    actionInputRef?: string | null;
+    dispatchInput?: Record<string, DispatchInputValue>;
     sequenceNo: number;
     idempotencyKey: string;
     timeoutMs: number;

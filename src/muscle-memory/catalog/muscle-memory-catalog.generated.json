@@ -1,7 +1,7 @@
 {
   "catalogId": "grasseye-muscle-memory-catalog",
   "catalogVersion": "2026-05-10",
-  "generatedAt": "2026-05-10T07:33:24.492Z",
+  "generatedAt": "2026-05-10T21:15:49.773Z",
   "entries": [
     {
       "actionCode": "CAPTURE_REGION",
@@ -120,23 +120,23 @@
       "actionCode": "CLICK_CELL",
       "type": "atomic",
       "displayName": "Click Grid Cell",
-      "description": "Decode a governed visual-mission grid cell into browser coordinates and click it.",
-      "abilityGroupId": "mouse-click",
-      "childCapabilityId": "click-browser-coordinate",
-      "inputSchemaRef": "mouse-click.click-browser-coordinate.input",
-      "outputSchemaRef": "mouse-click.click-browser-coordinate.output",
+      "description": "Validate a governed visual-mission grid cell through Geometry Guard before a low-level click runs.",
+      "abilityGroupId": "geometry-guard",
+      "childCapabilityId": "validate-click-point",
+      "inputSchemaRef": "geometry-guard.validate-click-point.input",
+      "outputSchemaRef": "geometry-guard.validate-click-point.output",
       "allowedForAiActionPlan": true,
       "allowedForUserRequirement": false,
       "requiresGridSpecRef": true,
       "requiresScreenshotRef": false,
       "requiresPageStateRef": false,
-      "requiresGeometryProof": true,
-      "requiresPostActionVerification": true,
-      "sensitiveOperation": true,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "sensitiveOperation": false,
       "inputContract": {
         "requiredFields": [
           "gridCell",
-          "gridSpec"
+          "gridSpecRef"
         ],
         "optionalFields": [
           "coordinateSpace"
@@ -151,13 +151,14 @@
         ]
       },
       "successOutputRefs": [
-        "clickResultRef"
+        "geometryGuardResultRef",
+        "geometryProofRef"
       ],
       "failurePolicy": "continue",
       "forbiddenResponsibilities": [
-        "invent geometry",
-        "skip post-click observation",
-        "read page state"
+        "execute browser primitives directly",
+        "decide business meaning",
+        "invent source geometry"
       ]
     },
     {
