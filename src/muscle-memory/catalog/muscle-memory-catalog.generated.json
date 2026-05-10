@@ -1,7 +1,7 @@
 {
   "catalogId": "grasseye-muscle-memory-catalog",
   "catalogVersion": "2026-05-11",
-  "generatedAt": "2026-05-10T21:57:33.926Z",
+  "generatedAt": "2026-05-10T23:37:52.262Z",
   "entries": [
     {
       "actionCode": "CAPTURE_REGION",
@@ -165,16 +165,33 @@
       "actionCode": "DISMISS_OVERLAY",
       "type": "composite",
       "displayName": "Dismiss Overlay",
-      "description": "Dismiss a lightweight overlay or modal by sending the governed Escape key.",
+      "description": "Click the visible close or dismiss target selected on the coordinate grid.",
       "allowedForAiActionPlan": true,
       "allowedForUserRequirement": false,
       "sensitiveOperation": false,
+      "inputContract": {
+        "requiredFields": [
+          "gridCell"
+        ],
+        "optionalFields": [
+          "targetName"
+        ],
+        "forbiddenFields": [
+          "abilityGroupId",
+          "childCapabilityId",
+          "x",
+          "y",
+          "clientX",
+          "clientY"
+        ]
+      },
       "steps": [
         {
-          "stepCode": "press-escape",
-          "actionCode": "PRESS_KEY",
+          "stepCode": "click-close-overlay-target",
+          "actionCode": "CLICK_CELL",
           "inputMapping": {
-            "key": "$const:Escape"
+            "gridCell": "gridCell",
+            "targetName": "$const:close_overlay"
           },
           "required": true,
           "onFailure": "continue"
@@ -182,7 +199,7 @@
       ],
       "maxExpansionDepth": 3,
       "successOutputRefs": [
-        "abilityResultRef"
+        "clickResultRef"
       ],
       "failurePolicy": "continue"
     },
@@ -190,16 +207,33 @@
       "actionCode": "LIKE_CURRENT_VIDEO",
       "type": "composite",
       "displayName": "Like Current Video",
-      "description": "Press the like hotkey on the current focused video surface.",
+      "description": "Click the visible like button selected on the coordinate grid.",
       "allowedForAiActionPlan": true,
       "allowedForUserRequirement": false,
       "sensitiveOperation": false,
+      "inputContract": {
+        "requiredFields": [
+          "gridCell"
+        ],
+        "optionalFields": [
+          "targetName"
+        ],
+        "forbiddenFields": [
+          "abilityGroupId",
+          "childCapabilityId",
+          "x",
+          "y",
+          "clientX",
+          "clientY"
+        ]
+      },
       "steps": [
         {
-          "stepCode": "press-like-key",
-          "actionCode": "PRESS_KEY",
+          "stepCode": "click-like-button",
+          "actionCode": "CLICK_CELL",
           "inputMapping": {
-            "key": "$const:L"
+            "gridCell": "gridCell",
+            "targetName": "$const:like_button"
           },
           "required": true,
           "onFailure": "continue"
@@ -207,7 +241,7 @@
       ],
       "maxExpansionDepth": 3,
       "successOutputRefs": [
-        "abilityResultRef"
+        "clickResultRef"
       ],
       "failurePolicy": "continue"
     },
@@ -215,16 +249,33 @@
       "actionCode": "NEXT_VIDEO",
       "type": "composite",
       "displayName": "Next Video",
-      "description": "Focus the current page and advance to the next video item.",
+      "description": "Click the visible next-video target selected on the coordinate grid.",
       "allowedForAiActionPlan": true,
       "allowedForUserRequirement": false,
       "sensitiveOperation": false,
+      "inputContract": {
+        "requiredFields": [
+          "gridCell"
+        ],
+        "optionalFields": [
+          "targetName"
+        ],
+        "forbiddenFields": [
+          "abilityGroupId",
+          "childCapabilityId",
+          "x",
+          "y",
+          "clientX",
+          "clientY"
+        ]
+      },
       "steps": [
         {
-          "stepCode": "press-arrow-down",
-          "actionCode": "PRESS_NAVIGATION_KEY",
+          "stepCode": "click-next-video-target",
+          "actionCode": "CLICK_CELL",
           "inputMapping": {
-            "key": "$const:ArrowDown"
+            "gridCell": "gridCell",
+            "targetName": "$const:next_video_target"
           },
           "required": true,
           "onFailure": "continue"
@@ -232,6 +283,7 @@
       ],
       "maxExpansionDepth": 3,
       "successOutputRefs": [
+        "clickResultRef",
         "nextItemAdvanceProofRef"
       ],
       "failurePolicy": "continue"
@@ -240,21 +292,82 @@
       "actionCode": "NO_SEEDING_VIDEO_FLOW",
       "type": "composite",
       "displayName": "No Seeding Video Flow",
-      "description": "Skip the current video and continue browsing.",
+      "description": "Click the visible next-video target selected on the coordinate grid and continue browsing.",
       "allowedForAiActionPlan": true,
       "allowedForUserRequirement": true,
       "sensitiveOperation": false,
+      "inputContract": {
+        "requiredFields": [
+          "nextGridCell"
+        ],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "abilityGroupId",
+          "childCapabilityId",
+          "x",
+          "y",
+          "clientX",
+          "clientY"
+        ]
+      },
       "steps": [
         {
           "stepCode": "next-video",
           "actionCode": "NEXT_VIDEO",
+          "inputMapping": {
+            "gridCell": "nextGridCell",
+            "targetName": "$const:next_video_target"
+          },
           "required": true,
           "onFailure": "continue"
         }
       ],
       "maxExpansionDepth": 3,
       "successOutputRefs": [
+        "clickResultRef",
         "nextItemAdvanceProofRef"
+      ],
+      "failurePolicy": "continue"
+    },
+    {
+      "actionCode": "OPEN_COMMENTS",
+      "type": "composite",
+      "displayName": "Open Comments",
+      "description": "Click the visible comments button selected on the coordinate grid.",
+      "allowedForAiActionPlan": true,
+      "allowedForUserRequirement": false,
+      "sensitiveOperation": false,
+      "inputContract": {
+        "requiredFields": [
+          "gridCell"
+        ],
+        "optionalFields": [
+          "targetName"
+        ],
+        "forbiddenFields": [
+          "abilityGroupId",
+          "childCapabilityId",
+          "x",
+          "y",
+          "clientX",
+          "clientY"
+        ]
+      },
+      "steps": [
+        {
+          "stepCode": "click-comments-button",
+          "actionCode": "CLICK_CELL",
+          "inputMapping": {
+            "gridCell": "gridCell",
+            "targetName": "$const:comments_button"
+          },
+          "required": true,
+          "onFailure": "continue"
+        }
+      ],
+      "maxExpansionDepth": 3,
+      "successOutputRefs": [
+        "clickResultRef"
       ],
       "failurePolicy": "continue"
     },
@@ -492,27 +605,47 @@
       "actionCode": "SAVE_PRODUCT_AND_LIKE",
       "type": "composite",
       "displayName": "Save Product And Like",
-      "description": "Persist the lead record and like the current video.",
+      "description": "Persist the lead record, then click the visible like button selected on the coordinate grid.",
       "allowedForAiActionPlan": true,
       "allowedForUserRequirement": true,
       "sensitiveOperation": true,
+      "inputContract": {
+        "requiredFields": [
+          "likeGridCell"
+        ],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "abilityGroupId",
+          "childCapabilityId",
+          "x",
+          "y",
+          "clientX",
+          "clientY"
+        ]
+      },
       "steps": [
         {
           "stepCode": "save-lead",
           "actionCode": "SAVE_LEAD",
+          "inputMapping": {},
           "required": true,
           "onFailure": "review_required"
         },
         {
           "stepCode": "like-video",
           "actionCode": "LIKE_CURRENT_VIDEO",
+          "inputMapping": {
+            "gridCell": "likeGridCell",
+            "targetName": "$const:like_button"
+          },
           "required": false,
           "onFailure": "continue"
         }
       ],
       "maxExpansionDepth": 4,
       "successOutputRefs": [
-        "productLeadRecordRef"
+        "productLeadRecordRef",
+        "clickResultRef"
       ],
       "failurePolicy": "review_required"
     },
@@ -677,26 +810,50 @@
       "actionCode": "YES_SEEDING_VIDEO_FLOW",
       "type": "composite",
       "displayName": "Yes Seeding Video Flow",
-      "description": "Persist the lead, optionally like the current video, then advance.",
+      "description": "Persist the lead, click like, then click the next-video target selected on the coordinate grid.",
       "allowedForAiActionPlan": true,
       "allowedForUserRequirement": true,
       "sensitiveOperation": true,
+      "inputContract": {
+        "requiredFields": [
+          "likeGridCell",
+          "nextGridCell"
+        ],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "abilityGroupId",
+          "childCapabilityId",
+          "x",
+          "y",
+          "clientX",
+          "clientY"
+        ]
+      },
       "steps": [
         {
           "stepCode": "save-lead",
           "actionCode": "SAVE_LEAD",
+          "inputMapping": {},
           "required": true,
           "onFailure": "review_required"
         },
         {
           "stepCode": "like-video",
           "actionCode": "LIKE_CURRENT_VIDEO",
+          "inputMapping": {
+            "gridCell": "likeGridCell",
+            "targetName": "$const:like_button"
+          },
           "required": false,
           "onFailure": "continue"
         },
         {
           "stepCode": "next-video",
           "actionCode": "NEXT_VIDEO",
+          "inputMapping": {
+            "gridCell": "nextGridCell",
+            "targetName": "$const:next_video_target"
+          },
           "required": true,
           "onFailure": "continue"
         }
@@ -704,6 +861,7 @@
       "maxExpansionDepth": 5,
       "successOutputRefs": [
         "productLeadRecordRef",
+        "clickResultRef",
         "nextItemAdvanceProofRef"
       ],
       "failurePolicy": "continue"

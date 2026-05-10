@@ -21,9 +21,7 @@ export type StartDraft = {
   userRequirementText: string;
   selectedPlatforms: UserRequirementSelectedPlatformId[];
   historyEntryId: string | null;
-  taskTemplateId: string | null;
   requestedPlatformId: RequestedPlatformId | null;
-  selectedMapId: string | null;
   maxRounds: number | undefined;
   maxMinutes: number | undefined;
   operatorNote: string | null;

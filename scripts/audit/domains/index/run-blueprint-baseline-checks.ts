@@ -38,7 +38,7 @@ const FOUNDATION_LAWS = [
 ] as const;
 
 const SUPPORT_GOVERNANCE_DOMAINS = [] as const;
-const LOCAL_DEVELOPMENT_TOOLING = ["debug-loop-controller"] as const;
+const LOCAL_DEVELOPMENT_TOOLING = [] as const;
 const CURRENT_PARENT_OWNERS = [
   ...ACTIVE_ABILITY_GROUPS.map((group) => `${group}-capability`),
   ...FOUNDATION_LAWS,
@@ -187,7 +187,7 @@ const collectExactBaselineSectionFindings = (input: {
     section002Findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-003", message: "Index blueprint support-governance section must remain empty after map retirement." }));
   }
   if (JSON.stringify(input.localDevelopmentTooling) !== JSON.stringify(LOCAL_DEVELOPMENT_TOOLING)) {
-    debugLoopFindings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-006-REQ-001", message: "Index blueprint local development tooling must remain debug-loop-controller only." }));
+    debugLoopFindings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-006-REQ-001", message: "Index blueprint local development tooling must match the frozen baseline." }));
   }
 
   return { section002Findings, activeSectionFindings, foundationSectionFindings, debugLoopFindings };
@@ -226,7 +226,7 @@ const buildBlueprintBaselinePhases = (input: {
   createBlueprintBaselinePhase("blueprint-frozen-conclusion", input.section002Findings, "Index blueprint frozen conclusion keeps the active, foundation, support, and child-contract freeze statements intact.", "Index blueprint frozen conclusion drifted away from the governed freeze statements."),
   createBlueprintBaselinePhase("blueprint-active-ability-groups", input.activeSectionFindings, "Index blueprint active-ability-group section stays exact and contains no extra machine rules.", "Index blueprint active-ability-group section drifted away from the governed baseline."),
   createBlueprintBaselinePhase("blueprint-foundation-laws", input.foundationSectionFindings, "Index blueprint foundation-law section stays exact and contains no extra machine rules.", "Index blueprint foundation-law section drifted away from the governed baseline."),
-  createBlueprintBaselinePhase("blueprint-local-development-tooling", input.debugLoopFindings, "Index blueprint local development tooling stays frozen at debug-loop-controller.", "Index blueprint local development tooling drifted away from debug-loop-controller."),
+  createBlueprintBaselinePhase("blueprint-local-development-tooling", input.debugLoopFindings, "Index blueprint local development tooling stays frozen at the defined baseline.", "Index blueprint local development tooling drifted away from the defined baseline."),
 ];
 
 export async function runBlueprintBaselineChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {

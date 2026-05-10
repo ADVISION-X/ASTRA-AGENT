@@ -44,7 +44,7 @@ const PLATFORM_MODE_INFO = {
   "iphone-mirroring-facebook-app": {
     platformLabel: "iPhone Mirroring Facebook app governed visual runtime",
     executionMode: "Open Local Program handoff followed by capability-owned visual chain",
-    fallbackMode: "No web URL, workbench, or debug-loop local app fallback",
+    fallbackMode: "No web URL, workbench, or local app fallback",
     geometryGuard: "Desktop geometry owned by Geometry Guard runtime proof",
     viewport: "Derived from governed local app window handoff and screenshots",
     calibration: "Held by Geometry Guard runtime proof",
@@ -53,7 +53,7 @@ const PLATFORM_MODE_INFO = {
   "iphone-mirroring-tiktok-app": {
     platformLabel: "iPhone Mirroring TikTok app governed visual runtime",
     executionMode: "Open Local Program handoff followed by capability-owned visual chain",
-    fallbackMode: "No web URL, workbench, or debug-loop local app fallback",
+    fallbackMode: "No web URL, workbench, or local app fallback",
     geometryGuard: "Desktop geometry owned by Geometry Guard runtime proof",
     viewport: "Derived from governed local app window handoff and screenshots",
     calibration: "Held by Geometry Guard runtime proof",

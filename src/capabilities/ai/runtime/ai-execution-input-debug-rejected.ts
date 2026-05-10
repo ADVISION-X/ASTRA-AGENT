@@ -9,11 +9,6 @@ type InputDebugShapeIssue = {
   roundId: string | null;
   videoVisitId: string | null;
   stepId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationSnapshotRef: string | null;
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   inputRef: string | null;
@@ -90,11 +85,6 @@ const buildInputDebugShapeIssue = (value: unknown): InputDebugShapeIssue => {
     roundId: readString(readNestedField(value, "roundId")),
     videoVisitId: readString(readNestedField(value, "videoVisitId")),
     stepId,
-    mapPackageId: readString(readNestedField(value, "mapPackageId")),
-    mapPackageVersion: readString(readNestedField(value, "mapPackageVersion")),
-    selectedMapId: readString(readNestedField(value, "selectedMapId")),
-    selectedMapVersion: readString(readNestedField(value, "selectedMapVersion")),
-    activationSnapshotRef: readString(readNestedField(value, "activationSnapshotRef")),
     capabilityCallId,
     nerveBusEnvelopeId: readString(readNestedField(value, "nerveBusEnvelopeId")),
     inputRef: readString(readNestedField(value, "inputRef")),
@@ -129,13 +119,12 @@ const emptyCatalogFields = () => ({
   inputPackageHash: null,
   capabilityCatalogVersion: null,
   outputSchemaCatalogVersion: null,
-  mapPackageSchemaVersion: null,
 });
 
 const buildRejectedBaseFields = (
   issue: InputDebugShapeIssue,
   identity: ReturnType<typeof buildRejectedIdentity>,
-): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "runId" | "roundId" | "videoVisitId" | "stepId" | "mapPackageId" | "mapPackageVersion" | "selectedMapId" | "selectedMapVersion" | "activationSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId" | "inputRef" | "idempotencyKey" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => {
+): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "runId" | "roundId" | "videoVisitId" | "stepId" | "capabilityCallId" | "nerveBusEnvelopeId" | "inputRef" | "idempotencyKey" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => {
   return {
     eventType: "AI_INPUT_DEBUG_REJECTED",
     level: "DEBUG",
@@ -146,11 +135,6 @@ const buildRejectedBaseFields = (
     roundId: issue.roundId,
     videoVisitId: issue.videoVisitId,
     stepId: issue.stepId,
-    mapPackageId: issue.mapPackageId,
-    mapPackageVersion: issue.mapPackageVersion,
-    selectedMapId: issue.selectedMapId,
-    selectedMapVersion: issue.selectedMapVersion,
-    activationSnapshotRef: issue.activationSnapshotRef,
     capabilityCallId: issue.capabilityCallId,
     nerveBusEnvelopeId: issue.nerveBusEnvelopeId,
     inputRef: issue.inputRef ?? issue.refs[0] ?? null,

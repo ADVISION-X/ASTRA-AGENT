@@ -47,7 +47,7 @@ Retired references:
 - Any GrassEye_系统运行逻辑示意图_V2 runtime diagram is retired/superseded and must not route current architecture decisions.
 
 Local development tooling:
-- debug-loop-controller stays outside active law routing and must not be revived as an active ability group.
+- local development tooling stays outside active law routing and must not be revived as an active ability group.
 
 ---
 

@@ -5,7 +5,6 @@ const ZOMBIE_PROTECTED_FILE_PATHS = [
 const ZOMBIE_PROTECTED_PATH_PREFIXES = [
   "scripts/audit/generated/",
   "scripts/acceptance/",
-  "scripts/debug-loop/",
   "scripts/startup/",
   "src/types/",
 ] as const;

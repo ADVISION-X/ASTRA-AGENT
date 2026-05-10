@@ -29,7 +29,7 @@ const buildRequestDebugRefs = (input: ExecutionRequestDebugInput) => {
 const buildRequestDebugBase = (
   input: ExecutionRequestDebugInput,
   runtimeCallId: string,
-): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "runId" | "roundId" | "videoVisitId" | "stepId" | "mapPackageId" | "mapPackageVersion" | "selectedMapId" | "selectedMapVersion" | "activationSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId" | "inputRef" | "idempotencyKey" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => ({
+): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "runId" | "roundId" | "videoVisitId" | "stepId" | "capabilityCallId" | "nerveBusEnvelopeId" | "inputRef" | "idempotencyKey" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => ({
   eventType: "AI_PROMPT_REQUEST_DEBUG",
   level: "DEBUG",
   status: "started",
@@ -39,11 +39,6 @@ const buildRequestDebugBase = (
   roundId: input.request.roundId,
   videoVisitId: input.request.videoVisitId,
   stepId: input.request.stepId,
-  mapPackageId: input.request.mapPackageId,
-  mapPackageVersion: input.request.mapPackageVersion,
-  selectedMapId: input.request.selectedMapId,
-  selectedMapVersion: input.request.selectedMapVersion,
-  activationSnapshotRef: input.request.activationSnapshotRef,
   capabilityCallId: input.request.capabilityCallId,
   nerveBusEnvelopeId: input.request.nerveBusEnvelopeId,
   inputRef: input.request.inputRefs[0]?.id ?? null,
@@ -121,13 +116,12 @@ const buildRequestDebugOutput = (
   };
 };
 
-const buildRequestDebugCatalog = (): Pick<AiRuntimeStructuredDebugEvent, "inputPackageId" | "inputPackageVersion" | "inputPackageHash" | "capabilityCatalogVersion" | "outputSchemaCatalogVersion" | "mapPackageSchemaVersion"> => ({
+const buildRequestDebugCatalog = (): Pick<AiRuntimeStructuredDebugEvent, "inputPackageId" | "inputPackageVersion" | "inputPackageHash" | "capabilityCatalogVersion" | "outputSchemaCatalogVersion"> => ({
   inputPackageId: null,
   inputPackageVersion: null,
   inputPackageHash: null,
   capabilityCatalogVersion: null,
   outputSchemaCatalogVersion: null,
-  mapPackageSchemaVersion: null,
 });
 
 export const emitAiExecutionRequestDebug = async (input: ExecutionRequestDebugInput) => {

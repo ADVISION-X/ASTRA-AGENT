@@ -21,9 +21,6 @@ export type MissionStartBindingSuccess = {
   targetUrl: string;
   targetTitle: string;
   userRequirementRef: string;
-  selectedMapId: string;
-  taskTemplateId: string;
-  activationSnapshotRef: string;
 };
 
 export type MissionStartBinding = MissionStartBindingFailure | MissionStartBindingSuccess;

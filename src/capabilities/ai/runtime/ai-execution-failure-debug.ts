@@ -117,13 +117,12 @@ const buildExecutionFailureDebugOutput = (
   tokenEstimate: null,
 });
 
-const buildExecutionFailureDebugCatalog = (): Pick<AiRuntimeStructuredDebugEvent, "inputPackageId" | "inputPackageVersion" | "inputPackageHash" | "capabilityCatalogVersion" | "outputSchemaCatalogVersion" | "mapPackageSchemaVersion"> => ({
+const buildExecutionFailureDebugCatalog = (): Pick<AiRuntimeStructuredDebugEvent, "inputPackageId" | "inputPackageVersion" | "inputPackageHash" | "capabilityCatalogVersion" | "outputSchemaCatalogVersion"> => ({
   inputPackageId: null,
   inputPackageVersion: null,
   inputPackageHash: null,
   capabilityCatalogVersion: null,
   outputSchemaCatalogVersion: null,
-  mapPackageSchemaVersion: null,
 });
 
 export const emitAiExecutionFailureDebug = async (input: ExecutionFailureDebugInput) => {

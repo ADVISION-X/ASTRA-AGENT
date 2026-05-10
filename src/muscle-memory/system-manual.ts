@@ -12,8 +12,9 @@ function formatFieldList(fields: string[]): string {
 }
 
 function buildActionBlock(action: MuscleMemoryEntry): string {
+  const inputPolicy = resolveAiActionInputPolicy(action);
+
   if (action.type === "atomic") {
-    const inputPolicy = resolveAiActionInputPolicy(action);
     return [
       `actionCode: ${action.actionCode}`,
       "type: atomic",
@@ -35,10 +36,10 @@ function buildActionBlock(action: MuscleMemoryEntry): string {
     "type: composite",
     `displayName: ${action.displayName}`,
     `description: ${action.description}`,
-    "aiRequiredInput: (none)",
-    "aiOptionalInput: (none)",
-    "systemInjectedInput: (none)",
-    "forbiddenInput: abilityGroupId, childCapabilityId, x, y, clientX, clientY",
+    `aiRequiredInput: ${formatFieldList(inputPolicy.aiRequiredInput)}`,
+    `aiOptionalInput: ${formatFieldList(inputPolicy.aiOptionalInput)}`,
+    `systemInjectedInput: ${formatFieldList(inputPolicy.systemInjectedInput)}`,
+    `forbiddenInput: ${formatFieldList(inputPolicy.forbiddenInput)}`,
     `failurePolicy: ${action.failurePolicy}`,
     `maxExpansionDepth: ${String(action.maxExpansionDepth)}`,
     "steps:",

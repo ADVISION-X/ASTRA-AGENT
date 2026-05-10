@@ -1,0 +1,93 @@
+
+> grasseye-local-workbench@0.1.0 ci:full
+> node --import tsx scripts/audit/ci-full.ts
+
+[CI FULL] stage foundation-layer starting (serial).
+[CI FULL] before stage foundation-layer memory runnerRssMB=359 childRssMB=0 totalRssMB=359 heapUsedMB=88.9 externalMB=37.2 activeChildren=0.
+[CI FULL] foundation-layer starting audit-build...
+[CI FULL] before foundation-layer/audit-build memory runnerRssMB=359 childRssMB=0 totalRssMB=359 heapUsedMB=89 externalMB=37.2 activeChildren=0.
+Generated 84 active laws, 20 owners, 18 planned inspections, 0 conflicts.
+[AUDIT-BUILD PASS] generated artifacts with zero conflicts.
+[CI FULL] after foundation-layer/audit-build memory runnerRssMB=359 childRssMB=0 totalRssMB=359 heapUsedMB=89.5 externalMB=37.2 activeChildren=0.
+[CI FULL] audit-build passed.
+[CI FULL] foundation-layer starting code-purity...
+[CI FULL] before foundation-layer/code-purity memory runnerRssMB=359 childRssMB=0 totalRssMB=359 heapUsedMB=89.1 externalMB=37.2 activeChildren=0.
+[CODE PURITY] orchestrator:start rssMB=95.4 heapUsedMB=9.1 scannedFileCount=0 findingsCount=0
+[AUDIT] starting code-purity:scan...
+[CODE PURITY] scan:start rssMB=227.4 heapUsedMB=53.7 scannedFileCount=0 findingsCount=0
+[CODE PURITY] scan:progress rssMB=593.8 heapUsedMB=348.2 scannedFileCount=25 findingsCount=0
+[CODE PURITY] scan:progress rssMB=599 heapUsedMB=319.5 scannedFileCount=50 findingsCount=0
+[CODE PURITY] scan:progress rssMB=644.2 heapUsedMB=352 scannedFileCount=75 findingsCount=0
+[CODE PURITY] scan:progress rssMB=682.3 heapUsedMB=428.1 scannedFileCount=100 findingsCount=0
+[CODE PURITY] scan:progress rssMB=696.7 heapUsedMB=435.5 scannedFileCount=125 findingsCount=0
+[CODE PURITY] scan:progress rssMB=795.8 heapUsedMB=526 scannedFileCount=150 findingsCount=0
+[CODE PURITY] scan:progress rssMB=811.1 heapUsedMB=506 scannedFileCount=175 findingsCount=0
+[CODE PURITY] scan:progress rssMB=852 heapUsedMB=591.4 scannedFileCount=200 findingsCount=0
+[CODE PURITY] scan:progress rssMB=921.1 heapUsedMB=625.3 scannedFileCount=225 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1029.3 heapUsedMB=731.6 scannedFileCount=250 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1067.4 heapUsedMB=775.3 scannedFileCount=275 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1090.6 heapUsedMB=796.7 scannedFileCount=300 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1134.1 heapUsedMB=844.5 scannedFileCount=325 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1258.1 heapUsedMB=965 scannedFileCount=350 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1375.1 heapUsedMB=1103.6 scannedFileCount=375 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1475.4 heapUsedMB=1197.4 scannedFileCount=400 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1494.7 heapUsedMB=480.1 scannedFileCount=425 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1495.4 heapUsedMB=529.6 scannedFileCount=450 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1497.5 heapUsedMB=595.6 scannedFileCount=475 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1499 heapUsedMB=695.7 scannedFileCount=500 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1499.9 heapUsedMB=728.6 scannedFileCount=525 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1500.6 heapUsedMB=838.1 scannedFileCount=550 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1500.6 heapUsedMB=857.8 scannedFileCount=575 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1500.8 heapUsedMB=838.1 scannedFileCount=600 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1502.7 heapUsedMB=834.4 scannedFileCount=625 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1503.6 heapUsedMB=851.5 scannedFileCount=650 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1504.6 heapUsedMB=913 scannedFileCount=675 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1504.8 heapUsedMB=931.1 scannedFileCount=700 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1505 heapUsedMB=942.7 scannedFileCount=725 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1505 heapUsedMB=896.6 scannedFileCount=750 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1506 heapUsedMB=908.6 scannedFileCount=775 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1506.2 heapUsedMB=948.9 scannedFileCount=800 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1506.4 heapUsedMB=904.5 scannedFileCount=825 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1506.9 heapUsedMB=954.7 scannedFileCount=850 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1507.6 heapUsedMB=918.7 scannedFileCount=875 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1508.5 heapUsedMB=939.8 scannedFileCount=900 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1509.3 heapUsedMB=979.6 scannedFileCount=925 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1509.5 heapUsedMB=952.9 scannedFileCount=950 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1510.2 heapUsedMB=932.3 scannedFileCount=975 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1510.7 heapUsedMB=962.5 scannedFileCount=1000 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1511 heapUsedMB=941.2 scannedFileCount=1025 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1512.4 heapUsedMB=1010 scannedFileCount=1050 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1512.7 heapUsedMB=1021.9 scannedFileCount=1075 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1513.4 heapUsedMB=1022.7 scannedFileCount=1100 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1514.1 heapUsedMB=1003.4 scannedFileCount=1125 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1514.3 heapUsedMB=1047.1 scannedFileCount=1150 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1514.6 heapUsedMB=1016.5 scannedFileCount=1175 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1515.8 heapUsedMB=1068.5 scannedFileCount=1200 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1516.7 heapUsedMB=1066.6 scannedFileCount=1225 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1517.2 heapUsedMB=1075.8 scannedFileCount=1250 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1519 heapUsedMB=1148.1 scannedFileCount=1275 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1519 heapUsedMB=1151.7 scannedFileCount=1300 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1520.8 heapUsedMB=1149.2 scannedFileCount=1325 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1522 heapUsedMB=1156.8 scannedFileCount=1350 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1522.2 heapUsedMB=1162.3 scannedFileCount=1375 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1522.7 heapUsedMB=1154.2 scannedFileCount=1400 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1555.4 heapUsedMB=1187.7 scannedFileCount=1425 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1555.7 heapUsedMB=1192.1 scannedFileCount=1450 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1556.8 heapUsedMB=1203.5 scannedFileCount=1475 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1557.6 heapUsedMB=1203.1 scannedFileCount=1500 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1558.5 heapUsedMB=1261.4 scannedFileCount=1525 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1560.6 heapUsedMB=1274.2 scannedFileCount=1550 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1565.7 heapUsedMB=1257.2 scannedFileCount=1575 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1646.3 heapUsedMB=1346.8 scannedFileCount=1600 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1647.7 heapUsedMB=589.2 scannedFileCount=1625 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1648.4 heapUsedMB=639.3 scannedFileCount=1650 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1649.1 heapUsedMB=657 scannedFileCount=1675 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1651.2 heapUsedMB=687.5 scannedFileCount=1700 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1652.4 heapUsedMB=687.6 scannedFileCount=1725 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1652.9 heapUsedMB=682.4 scannedFileCount=1750 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1654 heapUsedMB=676.3 scannedFileCount=1775 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1655.4 heapUsedMB=686.4 scannedFileCount=1800 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1656.5 heapUsedMB=733.5 scannedFileCount=1825 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1657 heapUsedMB=804.1 scannedFileCount=1850 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1657.2 heapUsedMB=806.8 scannedFileCount=1875 findingsCount=0
+[CODE PURITY] scan:progress rssMB=1657.9 heapUsedMB=797.7 scannedFileCount=1900 findingsCount=0

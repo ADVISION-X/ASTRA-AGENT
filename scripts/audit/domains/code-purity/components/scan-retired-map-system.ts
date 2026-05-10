@@ -116,6 +116,9 @@ const SKIPPED_PATH_PREFIXES = [
   `${RETIRED_MAP_PLUGIN_PACKAGE_AUDIT_DOMAIN}/`,
 ] as const;
 
+const AI_PROMPT_CONTRACT_PATH_PREFIX = "src/capabilities/ai/prompt-contracts/";
+const PROMPT_CONTRACT_JSON_SUFFIX = ".prompt-contract.json";
+
 const isSkippedPath = (relativePath: string): boolean => SKIPPED_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
 
 const isStartChainPath = (relativePath: string): boolean => START_CHAIN_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
@@ -192,6 +195,30 @@ const getNodeText = (node: Node): string | null => {
   return null;
 };
 
+const getPropertyAssignmentName = (node: Node): string | null => {
+  if (!Node.isPropertyAssignment(node)) {
+    return null;
+  }
+  return getNodeText(node.getNameNode());
+};
+
+const isGovernedPromptContractNegativeRule = (node: Node, relativePath: string): boolean => {
+  if (!relativePath.startsWith(AI_PROMPT_CONTRACT_PATH_PREFIX) || !relativePath.endsWith(PROMPT_CONTRACT_JSON_SUFFIX)) {
+    return false;
+  }
+
+  const propertyNames = node
+    .getAncestors()
+    .map(getPropertyAssignmentName)
+    .filter((name): name is string => name !== null);
+
+  if (propertyNames.includes("forbiddenOutputs")) {
+    return true;
+  }
+
+  return propertyNames.includes("outputSchema") && propertyNames.includes("forbidden");
+};
+
 const inspectForbiddenTokensInSourceFile = (sourceFile: SourceFile, relativePath: string): Finding[] => {
   if (isSkippedPath(relativePath) || !isStartChainPath(relativePath)) {
     return [];
@@ -213,6 +240,9 @@ const inspectForbiddenTokensInSourceFile = (sourceFile: SourceFile, relativePath
 
     const forbiddenToken = FORBIDDEN_IDENTIFIER_TOKENS.find((token) => text.includes(token));
     if (!forbiddenToken) {
+      continue;
+    }
+    if (isGovernedPromptContractNegativeRule(node, relativePath)) {
       continue;
     }
 

@@ -12,11 +12,6 @@ type AiRuntimeStructuredDebugEvent = {
   roundId: string | null;
   videoVisitId: string | null;
   stepId?: string | null;
-  mapPackageId?: string | null;
-  mapPackageVersion?: string | null;
-  selectedMapId?: string | null;
-  selectedMapVersion?: string | null;
-  activationSnapshotRef?: string | null;
   capabilityCallId?: string | null;
   nerveBusEnvelopeId?: string | null;
   inputRef?: string | null;
@@ -55,7 +50,6 @@ type AiRuntimeStructuredDebugEvent = {
   inputPackageHash: string | null;
   capabilityCatalogVersion: string | null;
   outputSchemaCatalogVersion: string | null;
-  mapPackageSchemaVersion: string | null;
   promptDebugBundleRef: string | null;
   providerRequestBodyRedacted: unknown | null;
   providerRequestDebugRef: string | null;

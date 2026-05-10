@@ -11,11 +11,6 @@ type InputDebugFields = {
   roundId: string | null;
   videoVisitId: string | null;
   stepId: string;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationSnapshotRef: string | null;
   capabilityCallId: string;
   nerveBusEnvelopeId: string | null;
   inputRef: string | null;
@@ -75,11 +70,6 @@ const readInputDebugFields = (value: unknown): InputDebugFields | null => {
     roundId: readString(readNestedField(record, "roundId")),
     videoVisitId: readString(readNestedField(record, "videoVisitId")),
     stepId,
-    mapPackageId: readString(readNestedField(record, "mapPackageId")),
-    mapPackageVersion: readString(readNestedField(record, "mapPackageVersion")),
-    selectedMapId: readString(readNestedField(record, "selectedMapId")),
-    selectedMapVersion: readString(readNestedField(record, "selectedMapVersion")),
-    activationSnapshotRef: readString(readNestedField(record, "activationSnapshotRef")),
     capabilityCallId,
     nerveBusEnvelopeId: readString(readNestedField(record, "nerveBusEnvelopeId")),
     inputRef: readString(readNestedField(record, "inputRef")),
@@ -109,7 +99,7 @@ const buildInputDebugIdentity = (fields: InputDebugFields) => {
 const buildInputDebugBase = (
   fields: InputDebugFields,
   identity: ReturnType<typeof buildInputDebugIdentity>,
-): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "runId" | "roundId" | "videoVisitId" | "stepId" | "mapPackageId" | "mapPackageVersion" | "selectedMapId" | "selectedMapVersion" | "activationSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId" | "inputRef" | "idempotencyKey" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => ({
+): Pick<AiRuntimeStructuredDebugEvent, "eventType" | "level" | "status" | "sessionId" | "missionId" | "runId" | "roundId" | "videoVisitId" | "stepId" | "capabilityCallId" | "nerveBusEnvelopeId" | "inputRef" | "idempotencyKey" | "traceId" | "spanId" | "attemptId" | "taskType" | "refs"> => ({
   eventType: "AI_INPUT_REQUEST_DEBUG",
   level: "DEBUG",
   status: "started",
@@ -119,11 +109,6 @@ const buildInputDebugBase = (
   roundId: fields.roundId,
   videoVisitId: fields.videoVisitId,
   stepId: fields.stepId,
-  mapPackageId: fields.mapPackageId,
-  mapPackageVersion: fields.mapPackageVersion,
-  selectedMapId: fields.selectedMapId,
-  selectedMapVersion: fields.selectedMapVersion,
-  activationSnapshotRef: fields.activationSnapshotRef,
   capabilityCallId: fields.capabilityCallId,
   nerveBusEnvelopeId: fields.nerveBusEnvelopeId,
   inputRef: fields.inputRef ?? fields.refs[0] ?? null,
@@ -201,13 +186,12 @@ const buildInputDebugOutput = (
   };
 };
 
-const buildInputDebugCatalog = (): Pick<AiRuntimeStructuredDebugEvent, "inputPackageId" | "inputPackageVersion" | "inputPackageHash" | "capabilityCatalogVersion" | "outputSchemaCatalogVersion" | "mapPackageSchemaVersion"> => ({
+const buildInputDebugCatalog = (): Pick<AiRuntimeStructuredDebugEvent, "inputPackageId" | "inputPackageVersion" | "inputPackageHash" | "capabilityCatalogVersion" | "outputSchemaCatalogVersion"> => ({
   inputPackageId: null,
   inputPackageVersion: null,
   inputPackageHash: null,
   capabilityCatalogVersion: null,
   outputSchemaCatalogVersion: null,
-  mapPackageSchemaVersion: null,
 });
 
 export const emitAiExecutionInputDebug = async (context: AiExecutionContext, inputValue: unknown) => {

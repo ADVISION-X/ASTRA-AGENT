@@ -51,7 +51,7 @@ function collectStartupImportFindings(launchSource: import("ts-morph").SourceFil
     findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must import ensureStartupCatalogReadiness through the governed startup catalog helper." }));
   }
   if (!hasNamedImport(launchSource, "./lib/startup-failure-handler.mjs", "handleStartupBootstrapFailure")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must import handleStartupBootstrapFailure so hard failures are correlated with a current debug-loop bundle." }));
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must import handleStartupBootstrapFailure so hard failures are correlated with a current startup failure bundle." }));
   }
 
   return findings;
@@ -272,7 +272,6 @@ async function collectHelperDelegationFindings(project: import("ts-morph").Proje
 async function collectScatteredBootstrapFindings(): Promise<Finding[]> {
   const findings: Finding[] = [];
   const candidateFiles = [
-    ...(await listFilesRecursive(pathFromRepoRoot("scripts/debug-loop"), { extensions: [".ts", ".js", ".mjs"] })),
     ...(await listFilesRecursive(pathFromRepoRoot("src"), { extensions: [".ts", ".js", ".mjs"] })),
   ];
 

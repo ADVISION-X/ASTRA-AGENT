@@ -33,9 +33,7 @@ const buildStartDraft = async (request: IncomingMessage): Promise<StartDraft> =>
     userRequirementText: body.userRequirementText?.trim() || "",
     selectedPlatforms: normalizeSelectedPlatforms(body.selectedPlatforms),
     historyEntryId: body.historyEntryId?.trim() || null,
-    taskTemplateId: null,
     requestedPlatformId: null,
-    selectedMapId: null,
     maxRounds: normalizePositiveInteger(body.maxRounds),
     maxMinutes: normalizePositiveInteger(body.maxMinutes),
     operatorNote: body.operatorNote?.trim() || null,
@@ -69,7 +67,6 @@ const buildStartMissionInput = (approval: StartApproval) => {
   return {
     commandType: "start-mission" as const,
     requestedPlatformId: approval.binding.requestedPlatformId,
-    selectedMapId: approval.binding.selectedMapId,
     humanGoal: approval.userRequirementText,
     maxRounds: approval.maxRounds,
     maxMinutes: approval.maxMinutes,
@@ -168,9 +165,9 @@ export async function runTaskStartFlow(request: IncomingMessage, response: Serve
     selectedPlatforms: draft.selectedPlatforms,
     userRequirementText: draft.userRequirementText,
   });
-  await recordTaskStartDraftEvents(activeWorkbench, draft, draft.taskTemplateId);
+  await recordTaskStartDraftEvents(activeWorkbench, draft);
   if (!binding.ok) {
-    await sendTaskStartBindingFailure({ response, activeWorkbench, draft, taskTemplateId: draft.taskTemplateId, binding });
+    await sendTaskStartBindingFailure({ response, activeWorkbench, draft, binding });
     return true;
   }
 

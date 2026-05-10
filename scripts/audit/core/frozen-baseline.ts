@@ -31,9 +31,7 @@ const FOUNDATION_LAW_DOMAIN_MAP: Record<string, string> = {
 
 const SUPPORT_GOVERNANCE_DOMAIN_MAP: Record<string, string> = {};
 
-const LOCAL_DEVELOPMENT_GOVERNANCE_DOMAIN_MAP: Record<string, string> = {
-  "debug-loop-boundary": "debug-loop-boundary",
-};
+const LOCAL_DEVELOPMENT_GOVERNANCE_DOMAIN_MAP: Record<string, string> = {};
 
 const DELETED_OWNER_DOMAIN_MAP: Record<string, string> = {
   "local-data": "local-data",

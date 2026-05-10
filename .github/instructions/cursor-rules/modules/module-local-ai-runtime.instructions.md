@@ -196,12 +196,12 @@ Required direction:
 - missing model role must fail with LOCAL_AI_MODEL_MISSING.
 - unhealthy model role must fail with LOCAL_AI_MODEL_UNHEALTHY.
 - startup may call the readiness contract through the governed startup helper and probe.
-- business owners, debug-loop, and capability consumers must not start local AI runtime directly.
+- business owners and capability consumers must not start local AI runtime directly.
 
 ### 禁止
 
 FORBIDDEN:
-- ad-hoc ollama serve or local runtime startup in debug-loop, app handlers, workbench consumers, or ability groups.
+- ad-hoc ollama serve or local runtime startup in app handlers, workbench consumers, or ability groups.
 - ad-hoc model health checks scattered across consumers as bootstrap truth.
 - fake local AI readiness success.
 - model inference used as startup health proof.
@@ -211,11 +211,11 @@ FORBIDDEN:
 Required inspector:
 - exactly one governed local-ai startup readiness contract.
 - startup probe imports the governed local-ai startup readiness contract.
-- no consumers or debug-loop start local AI runtime directly.
+- no consumers start local AI runtime directly.
 - readiness result includes modelRole, modelName, provider, runtime, health, failureReason, and missionRuntimeAvailable.
 
 Required real-code-inspection:
-- consumer or debug-loop starts local AI runtime -> FAIL.
+- consumer starts local AI runtime -> FAIL.
 - readiness returns success without full required model-role roster -> FAIL.
 - readiness uses business inference as startup proof -> FAIL.
 - readiness contract drifts away from the governed probe path -> FAIL.

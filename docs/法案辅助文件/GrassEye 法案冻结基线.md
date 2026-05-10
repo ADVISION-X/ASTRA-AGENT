@@ -38,11 +38,7 @@
 
 ## 本地开发治理 allowlist
 
-1. debug-loop-boundary
-
 ## 本地开发工具
-
-- debug-loop-controller
 
 ## 子契约归属表
 

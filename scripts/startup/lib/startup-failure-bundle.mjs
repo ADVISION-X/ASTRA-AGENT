@@ -11,7 +11,7 @@ export async function writeStartupFailureBundle({
   actionableMessage,
   ownerResponsible,
 }) {
-  const bundleDir = path.join(rootDir, "tmp", "debug-loop", "startup-failures", sanitizeTimestamp(runId));
+  const bundleDir = path.join(rootDir, "tmp", "startup-failures", sanitizeTimestamp(runId));
   await mkdir(bundleDir, { recursive: true });
   const payload = {
     runId,

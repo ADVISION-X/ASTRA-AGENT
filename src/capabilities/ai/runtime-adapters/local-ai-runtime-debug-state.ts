@@ -192,11 +192,6 @@ const buildDebugTraceFields = (args: {
     roundId: args.request.roundId,
     videoVisitId: args.request.videoVisitId,
     stepId: args.request.stepId,
-    mapPackageId: args.request.mapPackageId,
-    mapPackageVersion: args.request.mapPackageVersion,
-    selectedMapId: args.request.selectedMapId,
-    selectedMapVersion: args.request.selectedMapVersion,
-    activationSnapshotRef: args.request.activationSnapshotRef,
     capabilityCallId: args.request.capabilityCallId,
     nerveBusEnvelopeId: args.request.nerveBusEnvelopeId,
     inputRef: args.request.inputRefs[0]?.id ?? null,
@@ -246,13 +241,12 @@ const buildDebugResponseFields = (args: {
     parserErrors: [...args.state.parserErrors],
 });
 
-const buildMapAuthoringDebugRefs = (request: ParsedAiAbilityInput) => ({
+const buildDebugCatalogRefs = (request: ParsedAiAbilityInput) => ({
   inputPackageId: request.taskType === "map_authoring" ? request.input.inputPackageId : null,
   inputPackageVersion: request.taskType === "map_authoring" ? request.input.inputPackageVersion : null,
   inputPackageHash: request.taskType === "map_authoring" ? `sha256:${hashValue(request.input)}` : null,
   capabilityCatalogVersion: request.taskType === "map_authoring" ? request.input.capabilityCatalog.version : null,
   outputSchemaCatalogVersion: request.taskType === "map_authoring" ? request.input.outputSchemaCatalog.version : null,
-  mapPackageSchemaVersion: request.taskType === "map_authoring" ? request.input.mapPackageSchema.schemaVersion : null,
 });
 
 function buildBaseDebugEvent(args: {
@@ -270,7 +264,7 @@ function buildBaseDebugEvent(args: {
     promptCatalogVersion: args.request.promptCatalogVersion,
     providerConfigRef: args.request.providerPolicy.providerConfigRef,
     secretRef: args.request.providerPolicy.secretRef,
-    ...buildMapAuthoringDebugRefs(args.request),
+    ...buildDebugCatalogRefs(args.request),
     promptDebugBundleRef: args.promptDebugRef,
     providerRequestBodyRedacted: args.state.providerRequestBodyRedacted,
     providerRequestDebugRef: args.promptDebugRef,

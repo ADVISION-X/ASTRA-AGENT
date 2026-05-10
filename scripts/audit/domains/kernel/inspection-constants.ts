@@ -48,7 +48,7 @@ const FOUNDATION_LAWS = [
   "security-privacy",
 ] as const;
 const SUPPORT_GOVERNANCE_DOMAINS = [] as const;
-const LOCAL_DEVELOPMENT_TOOLING = ["debug-loop-controller"] as const;
+const LOCAL_DEVELOPMENT_TOOLING = [] as const;
 
 const FORBIDDEN_TOP_LEVEL_OWNER_LITERALS = new Set([
   "kernel",

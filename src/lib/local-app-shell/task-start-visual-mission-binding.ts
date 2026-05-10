@@ -4,7 +4,6 @@ import {
   isVisualMissionPlatformId,
   resolveVisualMissionPlatformTarget,
 } from "../../visual-mission/platform-target-registry.js";
-import { buildVisualMissionRuntimeCompatibilityEnvelope } from "../../visual-mission/runtime-envelope.js";
 import {
   createBindingFailure,
   type MissionStartBinding,
@@ -161,6 +160,5 @@ export function resolveVisualMissionStartBinding(input: VisualMissionStartBindin
     targetUrl: primaryBinding.targetUrl,
     targetTitle: primaryBinding.targetTitle,
     userRequirementRef: buildUserRequirementRef(validated.userRequirementText),
-    ...buildVisualMissionRuntimeCompatibilityEnvelope(primaryBinding.requestedPlatformId),
   };
 }

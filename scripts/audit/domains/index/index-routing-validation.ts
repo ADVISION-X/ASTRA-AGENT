@@ -104,7 +104,7 @@ export const buildParseFailureRoutingFindings = (): IndexRoutingFindingGroups =>
   historicalRemapFindings: [createIndexRoutingFinding({ lawId: REQUIREMENT_ID_005, line: 1, message: "Index routing law must stay parseable before historical-remap checks can run." })],
   absentHistoricalPathFindings: [createIndexRoutingFinding({ lawId: REQUIREMENT_ID_006, line: 1, message: "Index routing law must stay parseable before absent-historical-path checks can run." })],
   futurePatternFindings: [createIndexRoutingFinding({ lawId: REQUIREMENT_ID_007, line: 1, message: "Index routing law must stay parseable before future-pattern checks can run." })],
-  debugLoopFindings: [createIndexRoutingFinding({ lawId: REQUIREMENT_ID_008, line: 1, message: "Index routing law must stay parseable before debug-loop-controller checks can run." })],
+  debugLoopFindings: [createIndexRoutingFinding({ lawId: REQUIREMENT_ID_008, line: 1, message: "Index routing law must stay parseable before local-development-tooling checks can run." })],
   routeRowFindings: ROUTE_ROW_REQUIREMENTS.map((requirement) => createIndexRoutingFinding({ lawId: requirement.requirementId, line: 1, message: `Index routing law must stay parseable before ${requirement.requirementId} row checks can run.` })),
   deletedOwnerCatalogFindings: [createIndexRoutingFinding({ lawId: "K02-ROUTE-REQ-027", line: 1, message: "Index routing law must stay parseable before deleted-owner catalog checks can run." })],
 });
@@ -236,7 +236,7 @@ const validateDebugLoopRoutes = (parsed: ParsedIndexLawDocument): Finding[] => {
     findings.push(createIndexRoutingFinding({ lawId: REQUIREMENT_ID_008, line: 1, message: DEBUG_LOOP_NEEDLE }));
   }
   for (const moduleTarget of parsed.moduleTargets) {
-    if (moduleTarget.triggerText.toLowerCase().includes("debug-loop-controller")) {
+    if (moduleTarget.triggerText.toLowerCase().includes("local-development-tooling")) {
       findings.push(createIndexRoutingFinding({ lawId: REQUIREMENT_ID_008, line: moduleTarget.lineNumber, message: DEBUG_LOOP_TARGET_NEEDLE, detail: moduleTarget.triggerText }));
     }
   }
@@ -306,7 +306,7 @@ export const buildIndexRoutingPhases = (input: {
     createRoutingPhase("historical-remap-only", input.groups.historicalRemapFindings, "Deleted historical owner names stay constrained to remap-only routing toward current module laws.", "Deleted historical owner names drifted into absent-module routing or lost the remap-only boundary."),
     createRoutingPhase("absent-historical-path-ban", input.groups.absentHistoricalPathFindings, "Index routing law does not activate absent historical paths.", "Index routing law drifted into activating absent historical paths."),
     createRoutingPhase("future-capability-broad-pattern-ban", input.groups.futurePatternFindings, "Index routing law does not use broad patterns to revive future capabilities.", "Index routing law drifted into broad future-capability revival patterns."),
-    createRoutingPhase("debug-loop-outside-routing", input.groups.debugLoopFindings, "debug-loop-controller remains outside active law routing.", "debug-loop-controller drifted back into active law routing."),
+    createRoutingPhase("local-development-tooling-outside-routing", input.groups.debugLoopFindings, "local-development-tooling remains outside active law routing.", "local-development-tooling drifted back into active law routing."),
     ...routeRowPhases,
     createRoutingPhase("deleted-owner-catalog", input.groups.deletedOwnerCatalogFindings, "Index routing boundary statement keeps the deleted-owner catalog exact.", "Index routing boundary statement drifted away from the deleted-owner catalog."),
   ];

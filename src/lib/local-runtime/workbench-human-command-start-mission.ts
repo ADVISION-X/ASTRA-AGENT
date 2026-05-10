@@ -21,8 +21,6 @@ export type HumanCommandHandledResult = {
 
 type StartMissionBackgroundInput = {
   envelope: HumanCommandEnvelope;
-  selectedMapId: string | null;
-  taskTemplateId: string | null;
 };
 
 const DEFAULT_START_MISSION_GOAL = "Discover evidence-backed product opportunities from the active social feed.";
@@ -86,10 +84,8 @@ export const buildHumanCommandResultEnvelope = (input: {
 
 const buildStartMissionInitialPayload = (
   payload: Record<string, string | number | boolean | null>,
-  selectedMapId: string | null,
 ) => ({
   requestedBy: "commander-console",
-  selectedMapId,
   maxRounds: payloadValueToInteger(payload.maxRounds),
   maxMinutes: payloadValueToInteger(payload.maxMinutes),
   operatorNote: payloadValueToString(payload.operatorNote),
@@ -106,8 +102,6 @@ const createBackgroundMissionFailureHandler = (runtime: WorkbenchRuntime, input:
   logBackgroundMissionFailure(error);
   recordHumanCommandDebug(recordMissionBackgroundFailed(runtime, {
     envelope: input.envelope,
-    selectedMapId: input.selectedMapId,
-    taskTemplateId: input.taskTemplateId,
     error,
   }));
 };
@@ -119,16 +113,12 @@ const watchBackgroundMissionStart = (runtime: WorkbenchRuntime, input: StartMiss
         if (state.status === "idle" || state.missionId !== input.envelope.missionId) {
           recordHumanCommandDebug(recordMissionBackgroundStalled(runtime, {
             envelope: input.envelope,
-            selectedMapId: input.selectedMapId,
-            taskTemplateId: input.taskTemplateId,
           }));
         }
       })
       .catch((error) => {
         recordHumanCommandDebug(recordMissionBackgroundFailed(runtime, {
           envelope: input.envelope,
-          selectedMapId: input.selectedMapId,
-          taskTemplateId: input.taskTemplateId,
           error,
         }));
       });
@@ -145,27 +135,19 @@ export const handleStartMission = async (
     return buildHumanCommandResultEnvelope({ envelope, status: "failed", summary: "requestedPlatformId is required for start-mission.", failureReason: "requestedPlatformId is required for start-mission." });
   }
 
-  const selectedMapId = envelope.selectedMapId ?? payloadValueToString(payload.selectedMapId);
-  const activationId = null;
-  const activationSnapshotRef = envelope.activationSnapshotRef;
-  const taskTemplateId = null;
+  recordHumanCommandDebug(recordOrchestrationStartReceived(runtime, { envelope }));
+  recordHumanCommandDebug(recordMissionActivationSnapshotFrozen(runtime, { envelope }));
+  recordHumanCommandDebug(recordCommandAccepted(runtime, { envelope }));
 
-  recordHumanCommandDebug(recordOrchestrationStartReceived(runtime, { envelope, selectedMapId, taskTemplateId }));
-  recordHumanCommandDebug(recordMissionActivationSnapshotFrozen(runtime, { envelope, selectedMapId, taskTemplateId, activationSnapshotRef }));
-  recordHumanCommandDebug(recordCommandAccepted(runtime, { envelope, selectedMapId, taskTemplateId, activationSnapshotRef }));
-
-  const backgroundMissionInput: StartMissionBackgroundInput = { envelope, selectedMapId, taskTemplateId };
+  const backgroundMissionInput: StartMissionBackgroundInput = { envelope };
   const missionStartPromise = runtime.orchestrationAbilityGroup.startMission({
     missionId: envelope.missionId,
     runId: envelope.runId,
     humanGoal: payloadValueToString(payload.humanGoal) ?? DEFAULT_START_MISSION_GOAL,
     requestedPlatform: requestedPlatformId,
-    preferredMapId: null,
-    taskTemplateId,
-    activationId,
     maxRounds: payloadValueToInteger(payload.maxRounds),
     maxMinutes: payloadValueToInteger(payload.maxMinutes),
-    initialPayload: buildStartMissionInitialPayload(payload, selectedMapId),
+    initialPayload: buildStartMissionInitialPayload(payload),
   });
 
   void missionStartPromise.catch(createBackgroundMissionFailureHandler(runtime, backgroundMissionInput));

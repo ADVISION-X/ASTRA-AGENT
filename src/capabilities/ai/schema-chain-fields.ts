@@ -7,11 +7,6 @@ export const AiChainFieldSchemas = {
   stepId: requiredChainField,
   capabilityCallId: requiredChainField,
   nerveBusEnvelopeId: requiredChainField,
-  mapPackageId: requiredChainField,
-  mapPackageVersion: requiredChainField,
-  selectedMapId: requiredChainField,
-  selectedMapVersion: requiredChainField,
-  activationSnapshotRef: requiredChainField,
   promptCatalogVersion: requiredChainField,
 } as const;
 

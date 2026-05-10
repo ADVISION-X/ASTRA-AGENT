@@ -50,8 +50,8 @@ const KERNEL_CHECK_PHASE_DEFINITIONS: KernelCheckPhaseDefinition[] = [
   {
     name: "local-development-tooling-baseline",
     findingsKey: "localDevelopmentToolingFindings",
-    passSummary: "Kernel and frozen baseline keep the fixed local development tooling set.",
-    failSummary: "Kernel or frozen baseline local development tooling drifted away from the fixed debug-loop-controller baseline.",
+    passSummary: "Kernel and frozen baseline keep the retired local development tooling set empty.",
+    failSummary: "Kernel or frozen baseline reintroduced retired local development tooling after retirement.",
   },
   {
     name: "capability-root-top-level-owners",

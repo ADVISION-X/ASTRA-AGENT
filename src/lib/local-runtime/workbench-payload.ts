@@ -22,7 +22,7 @@ type MirroredRequestEnvelope = {
   roundId: string | null;
   videoVisitId: string | null;
   mapId: string | null;
-  mapPackageId: string | null;
+  bindingPackageId: string | null;
   mapPackageVersion: string | null;
   selectedMapId: string | null;
   selectedMapVersion: string | null;
@@ -152,7 +152,7 @@ export const buildMirroredEnvelopeBase = <TChannelId extends TransportChannelId>
     roundId: input.requestEnvelope.roundId,
     videoVisitId: input.requestEnvelope.videoVisitId,
     mapId: input.requestEnvelope.mapId,
-    mapPackageId: input.requestEnvelope.mapPackageId,
+    mapPackageId: input.requestEnvelope.bindingPackageId,
     mapPackageVersion: input.requestEnvelope.mapPackageVersion,
     selectedMapId: input.requestEnvelope.selectedMapId,
     selectedMapVersion: input.requestEnvelope.selectedMapVersion,

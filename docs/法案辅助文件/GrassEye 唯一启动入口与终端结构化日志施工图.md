@@ -127,7 +127,7 @@ Commander 展示 AI readiness 状态，但不绕过门禁。
 
 ```txt
 业务能力组自己启动本地 AI。
-Debug Loop 自己启动本地 AI 来代替生产启动链。
+本地开发工具不得绕过生产启动链。
 Commander 在 AI 未就绪时开放可运行 mission surface。
 AI 不可用时 fallback 到 fake success。
 启动程序直接做 AI 判断或 prompt inference。

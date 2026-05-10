@@ -21,11 +21,6 @@ function buildAiRequestHash(request: ParsedAiAbilityInput): string {
     capabilityCallId: request.capabilityCallId,
     nerveBusEnvelopeId: request.nerveBusEnvelopeId,
     promptContractId: request.promptContractId,
-    mapPackageId: request.mapPackageId,
-    mapPackageVersion: request.mapPackageVersion,
-    selectedMapId: request.selectedMapId,
-    selectedMapVersion: request.selectedMapVersion,
-    activationSnapshotRef: request.activationSnapshotRef,
     promptCatalogVersion: request.promptCatalogVersion,
   });
 }
@@ -47,7 +42,7 @@ function buildAiProofIds(input: {
   childContract: AiChildContract;
 }) {
   return {
-    proofId: buildStableAiRef("ai-proof", [input.request.missionId, input.request.selectedMapId, input.request.stepId, input.childContract.childCapabilityId, input.request.capabilityCallId]),
+    proofId: buildStableAiRef("ai-proof", [input.request.missionId, input.request.promptContractId, input.request.stepId, input.childContract.childCapabilityId, input.request.capabilityCallId]),
     runId: input.request.runId,
   };
 }
@@ -99,11 +94,6 @@ function buildAiRuntimeProofIdentityFields(input: AiRuntimeProofInput, proofIds:
 function buildAiRuntimeProofChainFields(input: AiRuntimeProofInput) {
   return {
     nerveBusEnvelopeId: input.request.nerveBusEnvelopeId,
-    mapPackageId: input.request.mapPackageId,
-    mapPackageVersion: input.request.mapPackageVersion,
-    selectedMapId: input.request.selectedMapId,
-    selectedMapVersion: input.request.selectedMapVersion,
-    activationSnapshotRef: input.request.activationSnapshotRef,
     promptContractVersion: input.promptContract.promptVersion,
     promptCatalogVersion: input.request.promptCatalogVersion,
     abilityGroupId: "ai",

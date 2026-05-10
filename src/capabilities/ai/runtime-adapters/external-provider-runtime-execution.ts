@@ -47,30 +47,6 @@ const buildTaskTypeMismatchOutput = (modelName: string): AiRuntimeExecutionOutpu
     failureReason: "task_type_mismatch",
   });
 
-const isMapAuthoringProviderDryRun = () =>
-  process.env.GRASSEYE_MAP_AUTHORING_PROMPT_SELF_CHECK === "1"
-  && process.env.GRASSEYE_AI_PROVIDER_DRY_RUN === "1";
-
-const buildDryRunProviderConfig = (request: ParsedAiAbilityInput, clock: AiClockPort) => ({
-  providerId: "openai-compatible",
-  displayName: "Dry-run map authoring provider",
-  providerKind: "openai-compatible",
-  providerCompany: "openai",
-  model: "dry-run-map-authoring-model",
-  configRef: request.providerPolicy.providerConfigRef ?? "provider-config:map-authoring-self-check",
-  secretRef: request.providerPolicy.secretRef ?? "provider-secret:map-authoring-self-check",
-  baseUrl: "dry-run://blocked-before-external-provider-call",
-  apiKey: "[REDACTED]",
-  allowPaidProvider: true,
-  providerAllowlist: ["paid-analysis-ai"] as ["paid-analysis-ai"],
-  dataPolicy: { allowExternalTransmission: false },
-  costPolicy: { maxEstimatedCost: 1 },
-  operatorApprovalRef: request.providerPolicy.operatorApprovalRef,
-  approvalReason: "dry-run map authoring self-check",
-  enabled: true,
-  updatedAt: clock.finishRun(clock.startRun()).endedAt,
-}) as const;
-
 const buildExternalProviderOutput = (
   request: ParsedAiAbilityInput,
   configModel: string,
@@ -162,18 +138,6 @@ async function emitExternalResponseDebug(input: {
   });
 }
 
-const executeDryRunMapAuthoring = async (input: {
-  request: ParsedAiAbilityInput;
-  runtimeInput: ExternalProviderRuntimeInput;
-  clock: AiClockPort;
-}): Promise<AiRuntimeExecutionOutput> => {
-  const config = buildDryRunProviderConfig(input.request, input.clock);
-  const messages = buildExternalProviderMessages(input.request);
-  if (messages === null) return buildTaskTypeMismatchOutput(config.model);
-  await emitExternalRequestDebug({ runtimeInput: input.runtimeInput, request: input.request, config, messages });
-  return buildDryRunCapturedOutput(config.model);
-};
-
 const executeConfiguredProvider = async (input: {
   request: ParsedAiAbilityInput;
   runtimeInput: ExternalProviderRuntimeInput;
@@ -203,9 +167,6 @@ export async function callExternalProvider(input: {
   clock: AiClockPort;
   options?: AiRuntimeExecuteOptions;
 }): Promise<AiRuntimeExecutionOutput> {
-  if (isMapAuthoringProviderDryRun() && input.request.taskType === "map_authoring") {
-    return executeDryRunMapAuthoring(input);
-  }
   if (!input.runtimeInput.dataDir) return buildProviderNotConfiguredOutput();
   const config = await resolveAiExternalProviderRuntimeConfig(input.runtimeInput.dataDir, {
     providerConfigRef: input.request.providerPolicy.providerConfigRef,

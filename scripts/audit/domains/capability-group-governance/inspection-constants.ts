@@ -38,10 +38,10 @@ const FOUNDATION_LAWS = [
   "security-privacy",
 ] as const;
 const SUPPORT_GOVERNANCE_DOMAINS = [] as const;
-const LOCAL_DEVELOPMENT_TOOLING = ["debug-loop-controller"] as const;
+const LOCAL_DEVELOPMENT_TOOLING = [] as const;
 const INDEX_SUPPORT_GOVERNANCE_BULLETS = [] as const;
 const INDEX_LOCAL_DEVELOPMENT_BULLETS = [
-  "debug-loop-controller stays outside active law routing and must not be revived as an active ability group.",
+  "local development tooling stays outside active law routing and must not be revived as an active ability group.",
 ] as const;
 const CODE_PURITY_ROUTE = {
   pathOrTrigger: "file length, function length, code purity, atomicity, nesting depth, complexity, dead code, commented-out code, debug leftovers, TODO hygiene, compatibility bridge, god function, giant function, god file, owner mixing",

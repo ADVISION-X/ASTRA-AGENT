@@ -98,8 +98,6 @@ One issue has one active owner plus any directly governing shared foundation.
 
 ## Local Development Tooling
 
-- debug-loop-controller
-
 ## Global Red Lines
 
 - Do not reintroduce agent-runtime, browse-flow, mechanical-skills, operator-control, visual-action, visual-only-runtime, evidence-packet, product-signal, comment-intelligence, or vision-boundary as active owners.

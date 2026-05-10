@@ -6,7 +6,7 @@ import { pathFromRepoRoot } from "./paths.js";
 import type { TouchedFilesArtifact, TouchedFilesBaselineSource } from "./touched-files.js";
 
 const repoRoot = pathFromRepoRoot(".");
-const IGNORED_TOUCHED_FILE_PREFIXES = ["tmp/", ".debug-loop/", "dist/", "node_modules/", "scripts/audit/generated/"] as const;
+const IGNORED_TOUCHED_FILE_PREFIXES = ["tmp/", "dist/", "node_modules/", "scripts/audit/generated/"] as const;
 
 const normalizePath = (value: string): string => value.trim().replace(/\\/g, "/");
 

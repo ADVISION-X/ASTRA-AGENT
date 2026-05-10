@@ -37,7 +37,7 @@ export const indexRoutingRuleConstants = {
   EXPECTED_HISTORICAL_REMAP_LINE: "- Deleted historical owner names may appear only as remap triggers to a current owner; they must never route to absent modules.",
   EXPECTED_ABSENT_HISTORICAL_PATH_LINE: "- Do not activate absent historical paths.",
   EXPECTED_FUTURE_PATTERN_LINE: "- Do not use broad patterns to revive future capabilities.",
-  EXPECTED_DEBUG_LOOP_LINE: "- debug-loop-controller stays outside active law routing and must not be revived as an active ability group.",
+  EXPECTED_DEBUG_LOOP_LINE: "- local-development-tooling stays outside active law routing and must not be revived as an active ability group.",
   EXPECTED_DELETED_OWNER_CATALOG_LINE: "- Deleted owner names such as agent-runtime, agent-mechanical-skills, agent-browse-flow, evidence-packet, vision-boundary, visual-only-runtime, visual-action-capability, comment-intelligence, product-signal, and operator-control.",
   MODULE_LAW_ROOT: ".github/instructions/cursor-rules/modules",
   APPLY_TO_NEEDLE: "Index routing law must scope applyTo to the local GrassEye instruction tree.",
@@ -54,8 +54,8 @@ export const indexRoutingRuleConstants = {
   ABSENT_HISTORICAL_PATH_TARGET_NEEDLE: "Index routing file must not activate absent historical paths.",
   FUTURE_PATTERN_NEEDLE: "Index routing law must keep the anti-future-capability broad-pattern ban intact.",
   FUTURE_PATTERN_TARGET_NEEDLE: "Index route triggers must not use broad future-capability revival patterns.",
-  DEBUG_LOOP_NEEDLE: "Index routing law must keep debug-loop-controller outside active law routing.",
-  DEBUG_LOOP_TARGET_NEEDLE: "Index routing table must not revive debug-loop-controller as an active routed trigger.",
+  DEBUG_LOOP_NEEDLE: "Index routing law must keep local-development-tooling outside active law routing.",
+  DEBUG_LOOP_TARGET_NEEDLE: "Index routing table must not revive local-development-tooling as an active routed trigger.",
   DELETED_OWNER_CATALOG_NEEDLE: "Index routing law must keep the deleted-owner catalog line intact.",
 } as const;
 

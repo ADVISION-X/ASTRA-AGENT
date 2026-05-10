@@ -47,6 +47,7 @@ const CompositeMuscleMemoryEntrySchema = z.object({
   allowedForAiActionPlan: z.boolean(),
   allowedForUserRequirement: z.boolean(),
   sensitiveOperation: z.boolean(),
+  inputContract: MuscleMemoryInputContractSchema,
   steps: z.array(CompositeMuscleMemoryStepSchema).min(1),
   maxExpansionDepth: z.number().int().positive(),
   successOutputRefs: z.array(z.string().min(1)).default([]),

@@ -232,7 +232,7 @@ const collectLocalDevelopmentToolingBaselineFindings = (kernelSections: Map<stri
       sections: kernelSections,
       expected: LOCAL_DEVELOPMENT_TOOLING,
       missingMessage: "Kernel must declare the Local Development Tooling section.",
-      driftMessage: "Kernel local development tooling must match the fixed debug-loop-controller baseline.",
+      driftMessage: "Kernel local development tooling must stay empty after retirement.",
     }),
     ...collectExactListFindings({
       requirementId: REQUIREMENT_ID_001,
@@ -241,7 +241,7 @@ const collectLocalDevelopmentToolingBaselineFindings = (kernelSections: Map<stri
       sections: blueprintSections,
       expected: LOCAL_DEVELOPMENT_TOOLING,
       missingMessage: "Frozen baseline must declare the 本地开发工具 section.",
-      driftMessage: "Frozen baseline local development tooling must match the fixed debug-loop-controller baseline.",
+      driftMessage: "Frozen baseline local development tooling must stay empty after retirement.",
     }),
   ];
 };

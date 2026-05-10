@@ -1,4 +1,4 @@
-generatedAt: 2026-05-10T22:31:32.538Z
+generatedAt: 2026-05-10T23:40:36.892Z
 owners:
   - inspectorId: ai-capability-owner
     capabilityDomain: ai-capability
@@ -121,20 +121,6 @@ owners:
       - docs/audit/commander-console-mac-app-shell-scorecard.md
       - "docs/法案辅助文件/GrassEye 本地应用形态与运行壳施工图.md"
       - "docs/法案辅助文件/GrassEye 唯一启动入口与终端结构化日志施工图.md"
-  - inspectorId: debug-loop-boundary-owner
-    capabilityDomain: debug-loop-boundary
-    ownerKind: local-development-governance
-    manifestPath: scripts/audit/domains/debug-loop-boundary/manifest.json
-    entry: scripts/audit/domains/debug-loop-boundary/inspector.ts
-    engine: hybrid
-    supportsEvidenceModes:
-      - "law+blueprint+real-code-inspection"
-    lawIds:
-      - GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V2
-    readsLawFiles:
-      - .github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md
-    readsBlueprintFiles:
-      - "docs/法案辅助文件/GrassEye Debug Loop Boundary 调试程序边界施工图.md"
   - inspectorId: forensics-persistence-owner
     capabilityDomain: forensics-persistence-capability
     ownerKind: ability-group

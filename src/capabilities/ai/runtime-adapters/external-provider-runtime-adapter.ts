@@ -19,10 +19,6 @@ type RuntimeState = {
   lastFailureReason: string | null;
 };
 
-const isMapAuthoringProviderDryRun = () =>
-  process.env.GRASSEYE_MAP_AUTHORING_PROMPT_SELF_CHECK === "1"
-  && process.env.GRASSEYE_AI_PROVIDER_DRY_RUN === "1";
-
 function createRuntimeState(): RuntimeState {
   return {
     lastTaskType: null,
@@ -66,18 +62,6 @@ function buildHealth(input: {
 
 async function loadExternalProviderHealth(input: ExternalProviderRuntimeInput, clock: AiClockPort, state: RuntimeState) {
   const checkedAt = clock.finishRun(clock.startRun()).endedAt;
-
-  if (isMapAuthoringProviderDryRun()) {
-    const health = buildHealth({
-      implementationStatus: "DRY_RUN_CAPTURED",
-      overallStatus: "ready",
-      model: "dry-run-map-authoring-model",
-      detail: "openai-compatible:dry-run-block-before-external-provider-call",
-      state,
-      checkedAt,
-    });
-    return { ok: true, detail: health.dependencies.gateway, health };
-  }
 
   if (!input.dataDir) {
     const health = buildHealth({

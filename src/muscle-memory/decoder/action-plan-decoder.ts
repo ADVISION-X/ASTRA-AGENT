@@ -1,11 +1,17 @@
 import type { AtomicMuscleMemoryEntry, CompositeMuscleMemoryStep, MuscleMemoryEntry } from "../catalog/muscle-memory-catalog.schema.js";
 import { findMuscleMemoryEntry, loadMuscleMemoryCatalog } from "../catalog/muscle-memory-catalog.js";
+import { MuscleMemoryGridCellSchema, MuscleMemoryPressKeySchema } from "../schema.js";
 import { VisualMissionActionPlanSchema, type VisualMissionActionPlan } from "./action-plan.schema.js";
 import {
   buildVisualMissionActionRuntimeContext,
   enrichVisualMissionActionInput,
   type VisualMissionActionRuntimeContext,
 } from "../../visual-mission/action-plan/action-context-enricher.js";
+import {
+  getAiRequiredActionFields,
+  getAiVisibleActionFields,
+  isAiForbiddenActionField,
+} from "../../visual-mission/action-plan/action-field-policy.js";
 
 type ExecutionAction = {
   resolvedActionId: string;
@@ -28,7 +34,9 @@ type ExecutionPlan = {
   actions: ExecutionAction[];
 };
 
-const FORBIDDEN_AI_FIELDS = new Set(["abilityGroupId", "childCapabilityId", "x", "y", "clientX", "clientY"]);
+function isGridCellInputField(field: string): boolean {
+  return field === "gridCell" || field.endsWith("GridCell");
+}
 
 function assertCatalogVersion(plan: VisualMissionActionPlan) {
   if (plan.muscleMemoryCatalogVersion !== loadMuscleMemoryCatalog().catalogVersion) {
@@ -36,17 +44,41 @@ function assertCatalogVersion(plan: VisualMissionActionPlan) {
   }
 }
 
-function assertNoForbiddenInputFields(input: Record<string, unknown>, entry: AtomicMuscleMemoryEntry) {
-  for (const field of entry.inputContract.forbiddenFields) {
-    if (field in input) {
-      throw new Error(`${entry.actionCode} received forbidden input field ${field}.`);
+function assertAiRequiredFields(actionCode: string, input: Record<string, unknown>, entry: MuscleMemoryEntry) {
+  for (const field of getAiRequiredActionFields(entry)) {
+    if (!(field in input)) {
+      throw new Error(`${actionCode} is missing required input field ${field}.`);
     }
   }
+}
+
+function assertAiVisibleInputFields(actionCode: string, input: Record<string, unknown>, entry: MuscleMemoryEntry) {
+  const visibleFields = getAiVisibleActionFields(entry);
   for (const field of Object.keys(input)) {
-    if (FORBIDDEN_AI_FIELDS.has(field)) {
-      throw new Error(`${entry.actionCode} must not receive raw execution field ${field} from AI output.`);
+    if (entry.inputContract.forbiddenFields.includes(field) || isAiForbiddenActionField(field)) {
+      throw new Error(`${actionCode} received forbidden input field ${field}.`);
+    }
+    if (!visibleFields.has(field)) {
+      throw new Error(`${actionCode} does not allow input field ${field}.`);
     }
   }
+}
+
+function assertGovernedInputValues(actionCode: string, input: Record<string, unknown>) {
+  for (const [field, value] of Object.entries(input)) {
+    if (field === "key" && !MuscleMemoryPressKeySchema.safeParse(value).success) {
+      throw new Error(`${actionCode} requires a governed input.key value.`);
+    }
+    if (isGridCellInputField(field) && !MuscleMemoryGridCellSchema.safeParse(value).success) {
+      throw new Error(`${actionCode} requires a governed input.${field} value.`);
+    }
+  }
+}
+
+function assertActionPlanInput(actionCode: string, input: Record<string, unknown>, entry: MuscleMemoryEntry) {
+  assertAiRequiredFields(actionCode, input, entry);
+  assertAiVisibleInputFields(actionCode, input, entry);
+  assertGovernedInputValues(actionCode, input);
 }
 
 function assertRequiredFields(input: Record<string, unknown>, entry: AtomicMuscleMemoryEntry) {
@@ -91,7 +123,7 @@ function buildAtomicExecutionAction(input: {
   required: boolean;
   onFailure: "continue" | "stop" | "review_required";
 }): ExecutionAction {
-  assertNoForbiddenInputFields(input.actionInput, input.entry);
+  assertActionPlanInput(input.actionCode, input.actionInput, input.entry);
   const enrichedInput = enrichVisualMissionActionInput({
     entry: input.entry,
     actionInput: input.actionInput,
@@ -193,6 +225,8 @@ function expandEntry(input: {
   if (input.depth >= input.entry.maxExpansionDepth) {
     throw new Error(`${input.actionCode} exceeded maxExpansionDepth ${input.entry.maxExpansionDepth}.`);
   }
+
+  assertActionPlanInput(input.actionCode, input.actionInput, input.entry);
 
   for (const step of input.entry.steps) {
     const nestedEntry = findMuscleMemoryEntry(step.actionCode);

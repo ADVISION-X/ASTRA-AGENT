@@ -1,8 +1,6 @@
 {
 	"phase": "phase-05-final-delivery-debug",
-	"localDevelopmentGovernanceDomains": [
-		"debug-loop-boundary"
-	],
+	"localDevelopmentGovernanceDomains": [],
 	"activeLawDomains": [
 		"audit-system",
 		"capability-group-governance",

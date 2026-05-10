@@ -16,7 +16,7 @@ const OUTPUT_FORMAT_GUIDE = [
   '"visibleProductTypes":["..."],',
   '"visualEvidence":["grounded observation"],',
   '"reason":"grounded reason",',
-  '"actions":[{"actionCode":"SAVE_LEAD","required":true,"reason":"..."}],',
+  '"actions":[{"actionCode":"LIKE_CURRENT_VIDEO","required":true,"input":{"gridCell":"D42"},"reason":"The visible like button is at D42."}],',
   '"nonExecutableClickTargets":[{"gridCell":"B48","targetName":"close_popup"}],',
   '"riskFlags":[],',
   '"nonExecutableSummary":"..."}',
@@ -57,7 +57,7 @@ function buildUserRequirementSection(input: VisualMissionActionPlanRequestInput)
 function buildSystemManualSection(systemManualText: string): string {
   return [
     "## 2. System Manual",
-    "Choose actionCode values only from this governed catalog. Never invent actionCode, childCapabilityId, or raw x/y.",
+    "Choose actionCode values only from this governed catalog. For visual interaction actions, provide the required gridCell fields shown below. Never invent actionCode, childCapabilityId, or raw x/y.",
     systemManualText,
   ].join("\n\n");
 }
@@ -65,7 +65,7 @@ function buildSystemManualSection(systemManualText: string): string {
 function buildOutputFormatSection(): string {
   return [
     "## 3. Output Format",
-    "Return one JSON object only. Execution uses actions[] only. nonExecutableClickTargets is visual hinting only and must never replace actions[]. CLICK_CELL must use input.gridCell. PRESS_KEY must use input.key. Never output raw x/y, mouseX, or mouseY.",
+    "Return one JSON object only. Execution uses actions[] only. For visual interaction actions, provide the required gridCell fields shown in the System Manual. CLICK_CELL and click-based composite actions must use grid cells from the coordinate-grid image. nonExecutableClickTargets is visual hinting only and must never replace actions[]. Never output raw x/y, mouseX, mouseY, clientX, or clientY. Never invent actionCode, abilityGroupId, or childCapabilityId. If a required visual target is not visible, use STOP_REVIEW_REQUIRED or another explicit recovery actionCode from the System Manual; do not guess.",
     OUTPUT_FORMAT_GUIDE,
   ].join("\n\n");
 }

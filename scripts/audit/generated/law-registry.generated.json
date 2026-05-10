@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T22:31:32.538Z",
+  "generatedAt": "2026-05-10T23:40:36.892Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -517,17 +517,6 @@
       "summary": "Commander Console is the only owner of human command entry and review-disposition entry.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md",
       "line": 21
-    },
-    {
-      "lawId": "GRASSEYE-DEBUG-LOOP-BOUNDARY-001-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "debug-loop-boundary",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "debug-loop may act only as operator harness and must not become a second runtime.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-debug-loop-boundary.instructions.md",
-      "line": 19
     },
     {
       "lawId": "GRASSEYE-FORENSICS-PERSISTENCE-CAPABILITY-001-V3",
