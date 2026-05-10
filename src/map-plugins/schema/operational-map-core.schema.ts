@@ -22,6 +22,7 @@ export const MapPluginOperationalMapSchema = z.object({
   displayName: z.string().min(1),
   humanGoal: z.string().min(1),
   routePlanId: z.string().min(1).nullable().optional().default(null),
+  persistentPayloadRefs: z.array(MapPluginPayloadRefKeySchema).default([]),
   initialStepId: z.string().min(1),
   steps: z.array(MapPluginOperationalMapStepSchema).min(1),
   transitions: z.array(MapPluginTransitionSchema).min(1),

@@ -109,7 +109,7 @@ const LIFECYCLE_REQUIREMENTS: readonly LifecycleRequirement[] = [
     evidence: [
       { path: PATHS.EPHEMERAL_FILE_CLEANUP, snippets: EPHEMERAL_CLEANUP_SNIPPETS },
       {
-        path: PATHS.EXECUTION_PHASES,
+        path: PATHS.EXECUTION_ARTIFACT_PHASE,
         snippets: [
           "burnEphemeralScreenshotFile",
           "ephemeral_cleanup_failed",

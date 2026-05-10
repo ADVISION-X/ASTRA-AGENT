@@ -42,6 +42,10 @@
     "mapId": "tiktok.seeding-video.discovery.meta.v1",
     "displayName": "TikTok 种草视频挖掘",
     "humanGoal": "Detect TikTok product-seeding video candidates, save lightweight product lead records, and continue discovery without opening comments or modifying account data.",
+    "persistentPayloadRefs": [
+      "targetUrl",
+      "targetTitle"
+    ],
     "initialStepId": "open-tiktok-feed",
     "steps": [
       {

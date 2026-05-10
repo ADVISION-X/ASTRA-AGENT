@@ -42,6 +42,10 @@
     "mapId": "facebook.seeding-video.discovery.meta.v1",
     "displayName": "Facebook 种草视频挖掘",
     "humanGoal": "Detect Facebook product-seeding video candidates, save lightweight product lead records, and continue discovery without opening comments or modifying account data.",
+    "persistentPayloadRefs": [
+      "targetUrl",
+      "targetTitle"
+    ],
     "initialStepId": "open-facebook-reels",
     "steps": [
       {

@@ -114,7 +114,8 @@ function collectEncoderFindings(project: Project): Finding[] {
 
 function collectTimingFindings(project: Project): Finding[] {
   const schemaSource = getSource(project, PATHS.SCHEMA);
-  const executionPhasesSource = getSource(project, PATHS.EXECUTION_PHASES);
+  const captureImagePhaseSource = getSource(project, PATHS.EXECUTION_CAPTURE_IMAGE_PHASE);
+  const artifactPhaseSource = getSource(project, PATHS.EXECUTION_ARTIFACT_PHASE);
   const executionSuccessSource = getSource(project, PATHS.EXECUTION_SUCCESS);
   const successResultSource = getSource(project, PATHS.EXECUTION_SUCCESS_RESULT);
 
@@ -124,10 +125,11 @@ function collectTimingFindings(project: Project): Finding[] {
     'artifactStoragePhaseMs:',
     'outputBoundaryPhaseMs:',
     'totalScreenshotStepMs:',
-  ]) && sourceIncludesAll(executionPhasesSource, [
-    'measureScreenshotPhaseMs',
+  ]) && sourceIncludesAll(captureImagePhaseSource, [
     'capturePhaseMs: captureMeasurement.durationMs',
     'imageProcessingPhaseMs: imageMeasurement.durationMs',
+  ]) && sourceIncludesAll(artifactPhaseSource, [
+    'measureScreenshotPhaseMs',
     'artifactStoragePhaseMs: artifactStorageMeasurement.durationMs',
   ]) && sourceIncludesAll(executionSuccessSource, [
     'outputBoundaryPhaseMs: outputBoundaryMeasurement.durationMs',

@@ -15,8 +15,7 @@ import {
   resolveTransformCoordinateSpace,
   resolveTransformScaleMapping,
 } from "./screenshot-transform-truth.js";
-import { createScreenshotFailure } from "../shared/screenshot-failure.js";
-import { dispatchScreenshotExecutionFailure, type ScreenshotExecutionScope } from "./screenshot-execution-failure.js";
+import type { ScreenshotExecutionScope } from "./screenshot-execution-failure.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 import type { ScreenshotExecutionPlan, ScreenshotChildRegistryEntry } from "./screenshot-child-contract.js";
 import { buildScreenshotSuccessOutput } from "./screenshot-result-builder.js";
@@ -37,11 +36,6 @@ type ScreenshotArtifactGate = Awaited<ReturnType<typeof runArtifactStorageGate>>
 type ScreenshotRegionGate = {
   failure: ScreenshotGateFailure | null;
   decision: ScreenshotDecision;
-};
-
-type ScreenshotOutputBoundaryGate = {
-  decision: ScreenshotRuntimeProof["outputBoundaryDecision"];
-  failure: ReturnType<typeof createScreenshotFailure> | null;
 };
 
 export type ScreenshotSuccessPathInput = {
@@ -212,45 +206,6 @@ const resolveScreenshotOutputDimensions = (input: ScreenshotSuccessPathInput): {
   outputHeight: input.captureRun?.captureResult?.capture.height ?? input.imageRun?.output?.height ?? null,
 });
 
-const buildScreenshotOutputBoundaryFailureResult = (input: {
-  request: ScreenshotAbilityInput;
-  context: ScreenshotRuntimeContext;
-  scope: ScreenshotExecutionScope;
-  clockStart: ScreenshotSuccessPathInput["clockStart"];
-  gates: ScreenshotSuccessPathInput["gates"];
-  captureRun: ScreenshotCaptureRun | null;
-  imageRun: ScreenshotImageRun | null;
-  outputBoundaryGate: ScreenshotOutputBoundaryGate;
-}): Promise<ScreenshotAbilityResult> =>
-  dispatchScreenshotExecutionFailure({
-    request: input.request,
-    context: input.context,
-    scope: input.scope,
-    status: "failed",
-    message: input.outputBoundaryGate.failure?.message ?? "Screenshot output boundary validation failed.",
-    failureReason: input.outputBoundaryGate.failure ?? createScreenshotFailure({
-      code: "output_schema_invalid",
-      message: "Screenshot output boundary validation failed.",
-    }),
-    reviewRequiredReason: null,
-    startedAt: input.clockStart.startedAt,
-    startedMonotonicMs: input.clockStart.startedMonotonicMs,
-    sourceProof: input.gates.sourceGate.sourceProof,
-    browserSessionRef: input.gates.browserSessionGate.browserSessionRef,
-    pageStateProofRef: input.gates.pageStateGate.pageStateProofRef,
-    dataQualityFlags: [],
-    decisions: {
-      privacyDecision: input.gates.privacyGate.decision,
-      sourceDecision: input.gates.sourceGate.decision,
-      browserSessionDecision: input.gates.browserSessionGate.decision,
-      pageStateDecision: input.gates.pageStateGate.decision,
-      captureDecision: input.captureRun?.decision ?? { status: "not_applicable", reason: null },
-      imageProcessingDecision: input.imageRun?.decision ?? { status: "not_applicable", reason: null },
-      artifactDecision: input.outputBoundaryGate.decision,
-      outputBoundaryDecision: input.outputBoundaryGate.decision,
-    },
-  });
-
 export const resolveScreenshotSuccessOutput = (input: ScreenshotSuccessOutputInput): NonNullable<ScreenshotAbilityResult["output"]> =>
   buildScreenshotSuccessOutput({
     ...buildScreenshotSuccessOutputIdentityFields(input),
@@ -258,7 +213,6 @@ export const resolveScreenshotSuccessOutput = (input: ScreenshotSuccessOutputInp
   });
 
 export {
-  buildScreenshotOutputBoundaryFailureResult,
   resolveScreenshotCoordinateSpace,
   resolveScreenshotOutputDimensions,
   resolveScreenshotScaleMapping,

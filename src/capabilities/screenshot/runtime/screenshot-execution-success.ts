@@ -1,8 +1,8 @@
 import type { ScreenshotAbilityResult } from "../contract.js";
 import { runScreenshotOutputBoundaryGate } from "./screenshot-output-boundary-gate.js";
 import { measureScreenshotPhaseMs } from "./screenshot-clock.js";
+import { buildScreenshotOutputBoundaryFailureResult } from "./screenshot-execution-output-boundary-failure.js";
 import {
-  buildScreenshotOutputBoundaryFailureResult,
   resolveScreenshotCoordinateSpace,
   resolveScreenshotOutputDimensions,
   resolveScreenshotScaleMapping,
@@ -12,7 +12,7 @@ import {
 } from "./screenshot-execution-success-helpers.js";
 import { buildScreenshotSuccessResult } from "./screenshot-execution-success-result.js";
 
-async function executeScreenshotSuccessPath(input: ScreenshotSuccessPathInput): Promise<ScreenshotAbilityResult> {
+async function resolveScreenshotSuccessOutputPayload(input: ScreenshotSuccessPathInput) {
   const sourceHash = await resolveScreenshotSourceHash(input);
   const scaleMapping = resolveScreenshotScaleMapping(input);
   const coordinateSpace = resolveScreenshotCoordinateSpace(input);
@@ -25,22 +25,41 @@ async function executeScreenshotSuccessPath(input: ScreenshotSuccessPathInput): 
     outputWidth,
     outputHeight,
   });
+
+  return { sourceHash, scaleMapping, coordinateSpace, outputWidth, outputHeight, successOutput };
+}
+
+async function resolveOutputBoundaryMeasurement(input: {
+  pathInput: ScreenshotSuccessPathInput;
+  successOutput: NonNullable<ScreenshotAbilityResult["output"]>;
+}) {
   const outputBoundaryMeasurement = await measureScreenshotPhaseMs({
-    clockPort: input.context.clockPort,
+    clockPort: input.pathInput.context.clockPort,
     invoke: () => runScreenshotOutputBoundaryGate({
-      context: input.context,
-      registryEntry: input.registryEntry,
-      output: successOutput,
+      context: input.pathInput.context,
+      registryEntry: input.pathInput.registryEntry,
+      output: input.successOutput,
     }),
   });
-  const outputBoundaryGate = outputBoundaryMeasurement.result;
-  const pathInputWithTimings = {
-    ...input,
-    phaseTimings: {
-      ...input.phaseTimings,
-      outputBoundaryPhaseMs: outputBoundaryMeasurement.durationMs,
+
+  return {
+    outputBoundaryGate: outputBoundaryMeasurement.result,
+    pathInputWithTimings: {
+      ...input.pathInput,
+      phaseTimings: {
+        ...input.pathInput.phaseTimings,
+        outputBoundaryPhaseMs: outputBoundaryMeasurement.durationMs,
+      },
     },
   };
+}
+
+async function executeScreenshotSuccessPath(input: ScreenshotSuccessPathInput): Promise<ScreenshotAbilityResult> {
+  const successOutputPayload = await resolveScreenshotSuccessOutputPayload(input);
+  const { outputBoundaryGate, pathInputWithTimings } = await resolveOutputBoundaryMeasurement({
+    pathInput: input,
+    successOutput: successOutputPayload.successOutput,
+  });
 
   if (outputBoundaryGate.failure || outputBoundaryGate.decision.status !== "passed") {
     return await buildScreenshotOutputBoundaryFailureResult({
@@ -57,12 +76,12 @@ async function executeScreenshotSuccessPath(input: ScreenshotSuccessPathInput): 
 
   return buildScreenshotSuccessResult({
     pathInput: pathInputWithTimings,
-    sourceHash,
-    scaleMapping,
-    coordinateSpace,
-    outputWidth,
-    outputHeight,
-    successOutput,
+    sourceHash: successOutputPayload.sourceHash,
+    scaleMapping: successOutputPayload.scaleMapping,
+    coordinateSpace: successOutputPayload.coordinateSpace,
+    outputWidth: successOutputPayload.outputWidth,
+    outputHeight: successOutputPayload.outputHeight,
+    successOutput: successOutputPayload.successOutput,
     outputBoundaryDecision: outputBoundaryGate.decision,
   });
 }

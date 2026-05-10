@@ -35,7 +35,11 @@ const usesDelegatedScreenCapture = (
     screenshotMethod
     && hasCallByIdentifier(screenshotMethod, "captureCurrentChromeScreenshot")
     && screenshotHelper
-    && hasCallByIdentifier(screenshotHelper, "runSpawn")
+    && screenshotHelperSource.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
+      const expression = callExpression.getExpression();
+      const firstArgument = callExpression.getArguments()[0];
+      return Node.isIdentifier(expression) && expression.getText() === "runSpawn" && Boolean(firstArgument && Node.isStringLiteral(firstArgument) && firstArgument.getLiteralText() === "screencapture");
+    })
     && hasLiteralTextFragment(screenshotHelperSource, "screencapture"),
   );
 };

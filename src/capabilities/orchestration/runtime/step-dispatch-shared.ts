@@ -12,16 +12,48 @@ type FinalizeStep = OperationalStep & { stepKind: "finalize" };
 type AiStep = OperationalStep & { stepKind: "ai" };
 type AbilityStep = OperationalStep & { stepKind: "ability" };
 
+type StepPayloadRefs = z.output<typeof MissionStepResultSchema>["payloadRefs"];
+type MutableStepPayloadRefs = Record<keyof StepPayloadRefs, string | null>;
+
+const RESERVED_PERSISTENT_PAYLOAD_REF_KEYS = ["requestedPlatformId"] as const;
+
+const resolvePersistentMissionPayloadRefKeys = (map: OperationalMap): Set<keyof StepPayloadRefs> => {
+  return new Set<keyof StepPayloadRefs>([
+    ...RESERVED_PERSISTENT_PAYLOAD_REF_KEYS,
+    ...map.persistentPayloadRefs,
+  ]);
+};
+
+const mergeDispatchPayloadRefs = (
+  previousPayloadRefs: StepPayloadRefs,
+  dispatchPayloadRefs: StepPayloadRefs,
+  persistentKeys: ReadonlySet<keyof StepPayloadRefs>,
+): StepPayloadRefs => {
+  const mergedPayloadRefs = { ...previousPayloadRefs };
+  const mergedPayloadRefRecord = mergedPayloadRefs as MutableStepPayloadRefs;
+
+  for (const [key, value] of Object.entries(dispatchPayloadRefs) as [keyof StepPayloadRefs, StepPayloadRefs[keyof StepPayloadRefs]][]) {
+    if (persistentKeys.has(key) || value === null) {
+      continue;
+    }
+    mergedPayloadRefRecord[key] = value;
+  }
+
+  return mergedPayloadRefs;
+};
+
 const applyStepOutputRefPolicy = (
   step: OperationalStep,
-  payloadRefs: z.output<typeof MissionStepResultSchema>["payloadRefs"],
+  payloadRefs: StepPayloadRefs,
   outputRef: string | null,
-): z.output<typeof MissionStepResultSchema>["payloadRefs"] => {
+  persistentKeys: ReadonlySet<keyof StepPayloadRefs>,
+): StepPayloadRefs => {
   if (!outputRef || step.outputRefPolicy.storeAs.length === 0) {
     return payloadRefs;
   }
 
   const nextPayloadRefs = { ...payloadRefs };
+  const nextPayloadRefRecord = nextPayloadRefs as MutableStepPayloadRefs;
   if (
     step.stepId === "prepare-next-item-verification-ai-input"
     && payloadRefs.promptInputRef
@@ -30,10 +62,10 @@ const applyStepOutputRefPolicy = (
     nextPayloadRefs.previousPromptInputRef = payloadRefs.promptInputRef;
   }
   for (const key of step.outputRefPolicy.storeAs) {
-    if (key === "requestedPlatformId") {
+    if (persistentKeys.has(key)) {
       continue;
     }
-    nextPayloadRefs[key] = outputRef;
+    nextPayloadRefRecord[key] = outputRef;
   }
   return nextPayloadRefs;
 };
@@ -152,7 +184,9 @@ export {
   DEFAULT_STEP_TIMEOUT_MS,
   buildAbilityOutputSchemaRef,
   buildBranchFieldValues,
+  mergeDispatchPayloadRefs,
   resolveDispatchChain,
+  resolvePersistentMissionPayloadRefKeys,
   resolveStepTimeoutMs,
 };
 

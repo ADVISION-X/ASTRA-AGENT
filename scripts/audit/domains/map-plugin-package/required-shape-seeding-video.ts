@@ -241,21 +241,31 @@ const hasAutomaticNonProductAdvancePath = (context: SeedingVideoContext): boolea
   && !hasForbiddenVideoChangePav(context)
   && !usesLegacyNextVideoScrollPath(context);
 
-const hasStartupAndCurrentCaptureShapes = (context: SeedingVideoContext): boolean => {
+const hasStartupCaptureShapes = (context: SeedingVideoContext): boolean => {
   const startupCapture = getStep(context, "capture-startup-video-viewport");
   const startupPrepare = getStep(context, "prepare-startup-ai-input");
   const startupPreparation = getStep(context, "startup-preparation");
-  const currentCapture = getStep(context, PRODUCT_PRESENCE_CAPTURE_STEP_ID);
-  const currentPrepare = getStep(context, PRODUCT_PRESENCE_PREPARE_STEP_ID);
-  return hasOutputRef(startupCapture, "screenshotEvidenceRef")
+  return hasInputRefs(startupCapture, ["targetUrl", "targetTitle"])
+    && hasOutputRef(startupCapture, "screenshotEvidenceRef")
     && hasInputRefs(startupPrepare, ["screenshotEvidenceRef"])
     && hasOutputRef(startupPrepare, "promptInputRef")
-    && hasInputRefs(startupPreparation, ["promptInputRef"])
-    && hasInputRefs(currentCapture, ["targetUrl", "targetTitle"])
+    && hasInputRefs(startupPreparation, ["promptInputRef"]);
+};
+
+const hasCurrentProductPresenceCaptureShapes = (context: SeedingVideoContext): boolean => {
+  const currentObserve = getStep(context, PRODUCT_PRESENCE_OBSERVE_STEP_ID);
+  const currentCapture = getStep(context, PRODUCT_PRESENCE_CAPTURE_STEP_ID);
+  const currentPrepare = getStep(context, PRODUCT_PRESENCE_PREPARE_STEP_ID);
+  return hasInputRefs(currentObserve, ["screenshotEvidenceRef", "targetUrl", "targetTitle"])
+    && hasOutputRef(currentObserve, "pageStateRef")
+    && hasInputRefs(currentCapture, ["targetUrl", "targetTitle", "pageStateRef"])
     && hasOutputRef(currentCapture, "screenshotEvidenceRef")
     && hasInputRefs(currentPrepare, ["screenshotEvidenceRef"])
     && hasOutputRef(currentPrepare, "promptInputRef");
 };
+
+const hasStartupAndCurrentCaptureShapes = (context: SeedingVideoContext): boolean =>
+  hasStartupCaptureShapes(context) && hasCurrentProductPresenceCaptureShapes(context);
 
 const hasStartupAndCurrentCaptureTransitions = (context: SeedingVideoContext): boolean =>
   hasTransition(context.routePlanTransitions, { fromStepId: "capture-startup-video-viewport", toStepId: "prepare-startup-ai-input" })

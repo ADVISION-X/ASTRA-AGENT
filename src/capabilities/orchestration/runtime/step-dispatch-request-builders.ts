@@ -5,6 +5,8 @@ import {
   applyStepOutputRefPolicy,
   buildAbilityOutputSchemaRef,
   buildBranchFieldValues,
+  mergeDispatchPayloadRefs,
+  resolvePersistentMissionPayloadRefKeys,
   resolveStepTimeoutMs,
   type AbilityDispatchInput,
   type AiStep,
@@ -61,6 +63,8 @@ export function buildAbilityDispatchResult(
   dispatchResult: Awaited<ReturnType<OrchestrationRuntimeContext["nerveBus"]["sendCommandToAbility"]>>,
 ): StepDispatchResult {
   const outputRef = dispatchResult.payloadRefs.abilityResultRef ?? null;
+  const persistentPayloadRefKeys = resolvePersistentMissionPayloadRefKeys(input.map);
+  const mergedPayloadRefs = mergeDispatchPayloadRefs(input.state.payloadRefs, dispatchResult.payloadRefs, persistentPayloadRefKeys);
   return {
     dispatched: true,
     stepResult: MissionStepResultSchema.parse({
@@ -80,7 +84,7 @@ export function buildAbilityDispatchResult(
       }),
       failureReason: dispatchResult.failureReason,
       reviewRequiredReason: null,
-      payloadRefs: applyStepOutputRefPolicy(input.step, { ...input.state.payloadRefs, ...dispatchResult.payloadRefs }, outputRef),
+      payloadRefs: applyStepOutputRefPolicy(input.step, mergedPayloadRefs, outputRef, persistentPayloadRefKeys),
     }),
   };
 }

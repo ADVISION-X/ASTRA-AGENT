@@ -2,6 +2,7 @@ import { loadBuiltinPackageRecords } from "./builtin-package-records.js";
 import { MAP_PLUGIN_LAWS } from "./constants.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
+import { findRoutePlanById } from "../../../../src/map-plugins/route-plans/index.js";
 
 const TARGET_ENTRY_STEPS: Readonly<Record<string, string>> = {
   "builtin.facebook-seeding-video-discovery": "open-facebook-reels",
@@ -19,6 +20,13 @@ const PRODUCT_BINDING = {
   promptContractId: "vision.productPresence.v1",
   outputSchemaRef: "ai.product_presence_judgment.v1",
 };
+const PERSISTENT_TARGET_REFS = ["targetUrl", "targetTitle"] as const;
+const PRODUCT_PRESENCE_REF_REQUIREMENTS = [
+  { stepId: "capture-startup-video-viewport", inputRefs: ["targetUrl", "targetTitle"] },
+  { stepId: "observe-current-video-page-state", inputRefs: ["targetUrl", "targetTitle"] },
+  { stepId: "capture-current-video-viewport", inputRefs: ["targetUrl", "targetTitle", "pageStateRef"] },
+  { stepId: "write-product-lead-record", inputRefs: ["targetUrl", "targetTitle"] },
+] as const;
 
 type BuiltinPackageRecord = Awaited<ReturnType<typeof loadBuiltinPackageRecords>>[number];
 
@@ -133,6 +141,41 @@ const collectPromptBindingFindings = (record: BuiltinPackageRecord): Finding[] =
     )];
 };
 
+const hasRefs = (actual: readonly string[] | undefined, expected: readonly string[]): boolean =>
+  expected.every((ref) => actual?.includes(ref) === true);
+
+const collectPersistentTargetRefFindings = (record: BuiltinPackageRecord, entryStepId: string): Finding[] => {
+  const mapPackage = record.mapPackage;
+  if (!mapPackage) {
+    return [];
+  }
+
+  const failures: string[] = [];
+  const entryStep = mapPackage.operationalMap.steps.find((step) => step.stepId === entryStepId);
+  const routePlan = findRoutePlanById(mapPackage.operationalMap.routePlanId);
+
+  if (!hasRefs(mapPackage.operationalMap.persistentPayloadRefs, PERSISTENT_TARGET_REFS)) {
+    failures.push("operationalMap.persistentPayloadRefs");
+  }
+  if (!hasRefs(entryStep?.inputRefs, PERSISTENT_TARGET_REFS)) {
+    failures.push(`${entryStepId}.inputRefs`);
+  }
+  for (const requirement of PRODUCT_PRESENCE_REF_REQUIREMENTS) {
+    const routePlanStep = routePlan?.steps.find((step) => step.stepId === requirement.stepId);
+    if (!hasRefs(routePlanStep?.inputRefs, requirement.inputRefs)) {
+      failures.push(`${requirement.stepId}.inputRefs`);
+    }
+  }
+
+  return failures.length === 0
+    ? []
+    : [createLifecycleFinding(
+      record,
+      "Seeding routePlanBoundMap must preserve targetUrl/targetTitle as persistent mission refs from the open entry spine into the product presence Route Plan chain.",
+      failures.join(", "),
+    )];
+};
+
 const collectRecordFindings = (record: BuiltinPackageRecord): Finding[] => {
   const packageId = record.mapPackage?.manifest.packageId ?? null;
   if (!packageId) {
@@ -148,6 +191,7 @@ const collectRecordFindings = (record: BuiltinPackageRecord): Finding[] => {
     ...collectEntryStepFindings(record, entryStepId),
     ...collectEntryTransitionFindings(record, entryStepId),
     ...collectPromptBindingFindings(record),
+    ...collectPersistentTargetRefFindings(record, entryStepId),
   ];
 };
 
@@ -162,13 +206,13 @@ export async function runRoutePlanEntrySpine(): Promise<{ findings: Finding[]; p
         "route-plan-entry-spine",
         "PASS",
         true,
-        "Seeding routePlanBoundMap packages stay at the open-entry spine while Route Plan owns startup and recurring AI judgment chains.",
+        "Seeding routePlanBoundMap packages stay at the open-entry spine while Route Plan owns startup and recurring AI judgment chains and preserves persistent target refs.",
       )
       : createPhase(
         "route-plan-entry-spine",
         "CODE VIOLATION",
         false,
-        "Seeding routePlanBoundMap packages drifted back into local startup/current-video judgment ownership.",
+        "Seeding routePlanBoundMap packages drifted on entry-spine ownership or target ref continuity into the product presence chain.",
       ),
   };
 }

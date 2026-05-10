@@ -30,18 +30,34 @@ type ScreenshotSuccessRuntimeProofInput = {
   outputBoundaryDecision: ScreenshotRuntimeProof["outputBoundaryDecision"];
 };
 
+function compactDataQualityFlags(input: Array<ScreenshotRuntimeProof["dataQualityFlags"][number] | null>) {
+  return input.filter((value): value is ScreenshotRuntimeProof["dataQualityFlags"][number] => value !== null);
+}
+
+function buildBaselineSuccessDataQualityFlags(input: ScreenshotSuccessPathInput) {
+  return compactDataQualityFlags([
+    "artifact_persisted",
+    "artifact_budget_verified",
+    "artifact_lifecycle_manifest_written",
+    isProductPresenceLightweightObservation(input.request) ? "observation_lightweight_applied" : null,
+    input.plan.kind === "capture" ? "capture_fresh" : "scale_mapping_verified",
+  ]);
+}
+
+function buildConditionalSuccessDataQualityFlags(input: ScreenshotSuccessPathInput) {
+  return compactDataQualityFlags([
+    input.gates.browserSessionGate.decision.status === "passed" ? "browser_session_verified" : null,
+    input.gates.pageStateGate.pageStateProofRef ? "page_state_verified" : "page_state_unverified",
+    input.regionGate.decision.status === "passed" ? "region_proof_verified" : null,
+    input.plan.kind === "image-processing" && input.plan.operation === "optimize-lossless" ? "lossless_equivalence_verified" : null,
+    input.request.childCapabilityId === "capture-desktop-screen" ? "desktop_capture_requested" : null,
+  ]);
+}
+
 const buildScreenshotSuccessDataQualityFlags = (input: ScreenshotSuccessPathInput): ScreenshotRuntimeProof["dataQualityFlags"] => [
-  "artifact_persisted",
-  "artifact_budget_verified",
-  "artifact_lifecycle_manifest_written",
-  isProductPresenceLightweightObservation(input.request) ? "observation_lightweight_applied" : null,
-  input.plan.kind === "capture" ? "capture_fresh" : "scale_mapping_verified",
-  input.gates.browserSessionGate.decision.status === "passed" ? "browser_session_verified" : null,
-  input.gates.pageStateGate.pageStateProofRef ? "page_state_verified" : "page_state_unverified",
-  input.regionGate.decision.status === "passed" ? "region_proof_verified" : null,
-  input.plan.kind === "image-processing" && input.plan.operation === "optimize-lossless" ? "lossless_equivalence_verified" : null,
-  input.request.childCapabilityId === "capture-desktop-screen" ? "desktop_capture_requested" : null,
-].filter((value): value is ScreenshotRuntimeProof["dataQualityFlags"][number] => value !== null);
+  ...buildBaselineSuccessDataQualityFlags(input),
+  ...buildConditionalSuccessDataQualityFlags(input),
+];
 
 const buildScreenshotSuccessRuntimeProofIdentityFields = (input: ScreenshotSuccessRuntimeProofInput) => ({
   proofId: buildRef("screenshot-proof", `${input.pathInput.scope.inputRef}:${input.pathInput.scope.idempotencyKey}:success`),

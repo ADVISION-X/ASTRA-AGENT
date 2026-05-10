@@ -7,6 +7,7 @@ import { inspectForensicsRetentionBoundary } from "./forensics-retention-boundar
 import { inspectAiPromptContractTaskTypeDispatch } from "./ai-prompt-contract-tasktype-dispatch-checks.js";
 import { orchestrationInspectionConstants as config } from "./inspection-constants.js";
 import { inspectMissionLoopTraceability } from "./mission-loop-traceability-phase.js";
+import { inspectPersistentMissionRefChain } from "./persistent-mission-ref-chain-phase.js";
 import { inspectStartMissionCommandBoundary } from "./start-mission-boundary-checks.js";
 import { inspectAiStepTimeoutChain, inspectRoundAndVideoVisitChain } from "./run-governed-runtime-step-checks.js";
 import { collectChildRunnerFindings, collectExecuteBoundaryFindings, collectForbiddenRoutingFindings } from "./run-governed-runtime-public-surface-checks.js";
@@ -256,6 +257,7 @@ export async function runOrchestrationGovernedRuntimeChecks(project: ReturnType<
     inspectFrozenActivation(project),
     Promise.resolve(inspectUnifiedChildEnvelope(project)),
     Promise.resolve(inspectRuntimeProofRunIdChain(project)),
+    Promise.resolve(inspectPersistentMissionRefChain(project)),
     Promise.resolve(inspectTypedFailureBoundary(project)),
     Promise.resolve(inspectPostActionVerificationChain(project)),
     Promise.resolve(inspectRoundAndVideoVisitChain(project)),

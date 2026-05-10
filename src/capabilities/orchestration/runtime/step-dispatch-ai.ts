@@ -4,6 +4,8 @@ import type { OrchestrationRuntimeContext } from "./orchestration-runtime-contex
 import {
   applyStepOutputRefPolicy,
   buildBranchFieldValues,
+  mergeDispatchPayloadRefs,
+  resolvePersistentMissionPayloadRefKeys,
   type AiStep,
   type StepDispatchResult,
 } from "./step-dispatch-shared.js";
@@ -16,6 +18,8 @@ export function buildAiStepResult(input: {
   dispatchResult: Awaited<ReturnType<OrchestrationRuntimeContext["nerveBus"]["sendRequestToAi"]>>;
 }): StepDispatchResult {
   const outputRef = input.dispatchResult.payloadRefs.aiResultRef ?? null;
+  const persistentPayloadRefKeys = resolvePersistentMissionPayloadRefKeys(input.map);
+  const mergedPayloadRefs = mergeDispatchPayloadRefs(input.state.payloadRefs, input.dispatchResult.payloadRefs, persistentPayloadRefKeys);
   return {
     dispatched: true,
     stepResult: MissionStepResultSchema.parse({
@@ -32,7 +36,7 @@ export function buildAiStepResult(input: {
       branchFieldValues: buildBranchFieldValues({ decision: input.dispatchResult.decision, branchFieldValues: input.dispatchResult.branchFieldValues }),
       failureReason: input.dispatchResult.failureReason,
       reviewRequiredReason: null,
-      payloadRefs: applyStepOutputRefPolicy(input.step, { ...input.state.payloadRefs, ...input.dispatchResult.payloadRefs }, outputRef),
+      payloadRefs: applyStepOutputRefPolicy(input.step, mergedPayloadRefs, outputRef, persistentPayloadRefKeys),
     }),
   };
 }
