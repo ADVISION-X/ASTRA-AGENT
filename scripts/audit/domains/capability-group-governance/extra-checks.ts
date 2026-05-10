@@ -6,6 +6,7 @@ import { runAbilityContractChecks } from "./run-ability-contract-checks.js";
 import { runAiOnlyCognitionSurfaceChecks } from "./run-ai-only-cognition-surface-checks.js";
 import { runAiOnlyMediaChangeChecks } from "./run-ai-only-media-change-checks.js";
 import { runBoundaryImportChecks } from "./run-boundary-import-checks.js";
+import { runChildCapabilityStrengthInspector } from "./child-capability-strength-inspector.js";
 import { runOwnerRuntimeProofChecks } from "./run-owner-runtime-proof-checks.js";
 import { runPackageAuditScriptChecks } from "./run-package-audit-script-checks.js";
 import { runRetiredRootChecks } from "./run-retired-root-checks.js";
@@ -54,6 +55,7 @@ export const runCapabilityGroupGovernanceExtraChecks = async (
   await runAsyncCheckIf(true, runPackageAuditScriptChecks, checks);
   await runAsyncCheckIf(true, () => runRetiredRootChecks(project), checks);
   await runAsyncCheckIf(true, runAbilityContractChecks, checks);
+  await runAsyncCheckIf(true, runChildCapabilityStrengthInspector, checks);
   runSyncCheckIf(true, () => runBoundaryImportChecks(project), checks);
   runSyncCheckIf(true, () => runAiOnlyMediaChangeChecks(project), checks);
   runSyncCheckIf(true, () => runAiOnlyCognitionSurfaceChecks(project), checks);

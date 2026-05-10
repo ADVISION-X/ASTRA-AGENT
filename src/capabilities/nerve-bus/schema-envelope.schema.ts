@@ -1,12 +1,17 @@
 import { z, type RefinementCtx } from "zod";
 
 import {
+  ActivationIdSchema,
+  ActivationSnapshotRefSchema,
   AbilityTargetIdSchema,
   AiInputRefsSchema,
   CapabilityCallIdSchema,
   CommanderTargetIdSchema,
   EnvelopeIdSchema,
   EnvelopeStatusSchema,
+  MapIdSchema,
+  MapPackageIdSchema,
+  MapPackageVersionSchema,
   InputRefSchema,
   NerveBusEnvelopeBaseCoreSchema,
   OutputRefSchema,
@@ -14,6 +19,8 @@ import {
   PolicyRefSchema,
   ProofRefSchema,
   RequestedPlatformIdSchema,
+  SelectedMapIdSchema,
+  SelectedMapVersionSchema,
   TargetChildCapabilityIdSchema,
   TargetRecordRefSchema,
   validateNerveBusEnvelopeBase,
@@ -79,6 +86,36 @@ function validateGovernedResultEnvelope(value: ResultEnvelopeBaseValue, context:
   validateNerveBusEnvelopeBase(value, context);
   validateResultEnvelopeBase(value, context);
 }
+
+const NullableHumanCommandChainFields = {
+  mapId: MapIdSchema.nullable().default(null),
+  mapPackageId: MapPackageIdSchema.nullable().default(null),
+  mapPackageVersion: MapPackageVersionSchema.nullable().default(null),
+  selectedMapId: SelectedMapIdSchema.nullable().default(null),
+  selectedMapVersion: SelectedMapVersionSchema.nullable().default(null),
+  activationId: ActivationIdSchema.nullable().default(null),
+  activationSnapshotRef: ActivationSnapshotRefSchema.nullable().default(null),
+};
+
+const HumanCommandEnvelopeBaseCoreSchema = NerveBusEnvelopeBaseCoreSchema.omit({
+  mapId: true,
+  mapPackageId: true,
+  mapPackageVersion: true,
+  selectedMapId: true,
+  selectedMapVersion: true,
+  activationId: true,
+  activationSnapshotRef: true,
+}).extend(NullableHumanCommandChainFields);
+
+const HumanCommandResultEnvelopeBaseCoreSchema = ResultEnvelopeBaseCoreSchema.omit({
+  mapId: true,
+  mapPackageId: true,
+  mapPackageVersion: true,
+  selectedMapId: true,
+  selectedMapVersion: true,
+  activationId: true,
+  activationSnapshotRef: true,
+}).extend(NullableHumanCommandChainFields);
 
 export const ResultEnvelopeBaseSchema = ResultEnvelopeBaseCoreSchema.superRefine(validateGovernedResultEnvelope);
 
@@ -169,7 +206,7 @@ export const AiResponseEnvelopeSchema = ResultEnvelopeBaseCoreSchema.extend({
   parsedDecision: z.string().min(1).nullable().default(null),
 }).strict().superRefine(validateGovernedResultEnvelope);
 
-export const HumanCommandEnvelopeSchema = NerveBusEnvelopeBaseCoreSchema.extend({
+export const HumanCommandEnvelopeSchema = HumanCommandEnvelopeBaseCoreSchema.extend({
   envelopeKind: z.literal("human_command"),
   channelId: z.literal("commander-to-orchestration"),
   commandId: z.string().min(1),
@@ -188,10 +225,13 @@ export const HumanCommandEnvelopeSchema = NerveBusEnvelopeBaseCoreSchema.extend(
   }
 });
 
-export const HumanCommandResultEnvelopeSchema = ResultEnvelopeBaseCoreSchema.extend({
+export const HumanCommandResultEnvelopeSchema = HumanCommandResultEnvelopeBaseCoreSchema.extend({
   envelopeKind: z.literal("human_command_result"),
   channelId: z.literal("orchestration-to-commander"),
   resultId: z.string().min(1),
   from: z.literal("orchestration"),
   to: z.literal("commander-console"),
-}).strict().superRefine(validateGovernedResultEnvelope);
+}).strict().superRefine((value, context) => {
+  validateNerveBusEnvelopeBase(value, context);
+  validateResultEnvelopeBase(value as ResultEnvelopeBaseValue, context);
+});

@@ -1,0 +1,16 @@
+{
+  "findingCount": 60,
+  "firstFinding": {
+    "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
+    "file": "src/capabilities/ai/children/future-api-ai/implementation.ts",
+    "line": 1,
+    "severity": "fatal",
+    "message": "CHILD_HAS_NO_EXECUTE: ai.future-api-ai implementation does not expose execute."
+  },
+  "firstPhase": {
+    "name": "child-capability-strength",
+    "classification": "CODE VIOLATION",
+    "passed": false,
+    "summary": "AI-reachable child orchestration.emergency-stop is only level 1; see scripts/audit/generated/child-capability-strength-inventory.generated.json."
+  }
+}

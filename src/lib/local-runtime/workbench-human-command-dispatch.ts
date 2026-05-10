@@ -14,7 +14,6 @@ type HumanCommandDispatchCommand = {
   timeoutMs: number;
   commandType: string;
   targetMissionId: string | null;
-  selectedMapId: string | null;
   requestedPlatformId: string | null;
   humanGoal: string | null;
   maxRounds: number | null;
@@ -34,7 +33,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 const readStartMissionPayloadField = (
   command: HumanCommandDispatchCommand,
-  key: "targetUrl" | "targetTitle" | "targetProfileRef" | "sourceEvidenceRef" | "sourceTargetRef" | "promptInputRef" | "commandInputRef" | "taskTemplateId" | "activationId" | "activationSnapshotRef",
+  key: "targetUrl" | "targetTitle" | "targetProfileRef" | "sourceEvidenceRef" | "sourceTargetRef" | "promptInputRef" | "commandInputRef",
 ) => {
   if (!isRecord(command.payload) || command.payload.kind !== "start-mission") {
     return null;
@@ -50,12 +49,12 @@ type HumanCommandChain = {
   sessionId: string;
   roundId: string;
   videoVisitId: string | null;
-  mapId: string;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapVersion: string;
-  activationId: string;
-  activationSnapshotRef: string;
+  mapId: string | null;
+  mapPackageId: string | null;
+  mapPackageVersion: string | null;
+  selectedMapVersion: string | null;
+  activationId: string | null;
+  activationSnapshotRef: string | null;
   capabilityCallId: string;
   sequenceNo: number;
 };
@@ -75,15 +74,11 @@ const buildHumanCommandInputContent = (command: HumanCommandDispatchCommand) => 
   idempotencyKey: command.idempotencyKey,
   timeoutMs: command.timeoutMs,
   targetMissionId: command.targetMissionId ?? null,
-  selectedMapId: command.selectedMapId ?? null,
   requestedPlatformId: command.requestedPlatformId ?? null,
   humanGoal: command.humanGoal ?? null,
   maxRounds: command.maxRounds ?? null,
   maxMinutes: command.maxMinutes ?? null,
   operatorNote: command.operatorNote ?? null,
-  taskTemplateId: readStartMissionPayloadField(command, "taskTemplateId"),
-  activationId: readStartMissionPayloadField(command, "activationId"),
-  activationSnapshotRef: readStartMissionPayloadField(command, "activationSnapshotRef"),
   targetRecordId: command.targetRecordRef?.recordId ?? null,
   targetUrl: readStartMissionPayloadField(command, "targetUrl"),
   targetTitle: readStartMissionPayloadField(command, "targetTitle"),
@@ -124,24 +119,18 @@ const resolveRequiredMapChain = (mapId: string | null, missingChainMessage: stri
 const resolveStartMissionChain = (
   command: HumanCommandDispatchCommand,
 ): HumanCommandChain => {
-  if (!command.selectedMapId) {
-    throw new Error("start-mission requires selectedMapId.");
-  }
-
-  const mapChain = resolveRequiredMapChain(command.selectedMapId, `Selected map ${command.selectedMapId} is not active.`);
-
   return {
     missionId: command.targetMissionId ?? command.commandId,
     runId: `${command.commandId}:run`,
     sessionId: command.targetMissionId ?? command.commandId,
     roundId: "0",
     videoVisitId: null,
-    mapId: mapChain.mapId,
-    mapPackageId: mapChain.mapPackageId,
-    mapPackageVersion: mapChain.mapPackageVersion,
-    selectedMapVersion: mapChain.selectedMapVersion,
-    activationId: mapChain.activationId,
-    activationSnapshotRef: mapChain.activationSnapshotRef,
+    mapId: null,
+    mapPackageId: null,
+    mapPackageVersion: null,
+    selectedMapVersion: null,
+    activationId: null,
+    activationSnapshotRef: null,
     capabilityCallId: command.commandId,
     sequenceNo: 0,
   };
@@ -226,7 +215,7 @@ const buildHumanCommandEnvelope = (
     commanderCommandRef: inputPayload.documentRef,
     commanderEnvelopeRef: envelopeId,
     requestedPlatformId: command.requestedPlatformId,
-    taskTemplateId: readStartMissionPayloadField(command, "taskTemplateId"),
+    taskTemplateId: null,
     targetRecordRef: command.targetRecordRef?.recordId ?? null,
   };
 };

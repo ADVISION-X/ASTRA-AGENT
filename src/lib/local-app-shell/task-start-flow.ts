@@ -32,9 +32,6 @@ const buildStartDraft = async (request: IncomingMessage): Promise<StartDraft> =>
     userRequirementText: body.userRequirementText?.trim() || "",
     selectedPlatforms: normalizeSelectedPlatforms(body.selectedPlatforms),
     historyEntryId: body.historyEntryId?.trim() || null,
-    taskTemplateId: null,
-    requestedPlatformId: null,
-    selectedMapId: null,
     maxRounds: normalizePositiveInteger(body.maxRounds),
     maxMinutes: normalizePositiveInteger(body.maxMinutes),
     operatorNote: body.operatorNote?.trim() || null,
@@ -66,7 +63,6 @@ const buildStartMissionInput = (approval: StartApproval) => {
   return {
     commandType: "start-mission" as const,
     requestedPlatformId: approval.binding.requestedPlatformId,
-    selectedMapId: approval.binding.selectedMapId,
     humanGoal: approval.userRequirementText,
     maxRounds: approval.maxRounds,
     maxMinutes: approval.maxMinutes,
@@ -74,19 +70,13 @@ const buildStartMissionInput = (approval: StartApproval) => {
       kind: "start-mission" as const,
       requestedBy: "commander-console" as const,
       requestedPlatformId: approval.binding.requestedPlatformId,
-      selectedMapId: approval.binding.selectedMapId,
-      taskTemplateId: approval.binding.taskTemplateId,
-      activationId: approval.binding.activationId,
-      activationSnapshotRef: approval.binding.activationSnapshotRef,
+      selectedPlatforms: approval.selectedPlatforms,
+      primaryPlatformId: approval.binding.requestedPlatformId,
+      userRequirementRef: approval.binding.userRequirementRef,
+      historyEntryId: approval.historyEntryId,
       targetUrl: approval.binding.targetUrl,
       targetTitle: approval.binding.targetTitle,
       targetProfileRef: approval.binding.targetProfileRef,
-      selectedRuntimeId: approval.binding.selectedRuntimeId ?? "visual-mission-runtime-v1",
-      selectedPlatforms: approval.selectedPlatforms,
-      targetProfiles: approval.binding.targetProfiles ?? null,
-      userRequirementRef: approval.binding.userRequirementRef ?? null,
-      userRequirementText: approval.userRequirementText,
-      historyEntryId: approval.historyEntryId,
       ...(approval.userRequirementText ? { humanGoal: approval.userRequirementText } : {}),
       ...(approval.maxRounds ? { maxRounds: approval.maxRounds } : {}),
       ...(approval.maxMinutes ? { maxMinutes: approval.maxMinutes } : {}),
@@ -120,11 +110,10 @@ const getApprovedTaskStartPreflight = async (
   await recordTaskStartPreflightStart(activeWorkbench, approval);
   const preflight = await activeWorkbench.getMissionStartPreflight({
     requestedPlatformId: approval.binding.requestedPlatformId,
-    selectedMapId: approval.binding.selectedMapId,
-    taskTemplateId: approval.binding.taskTemplateId,
-    activationId: approval.binding.activationId,
-    activationSnapshotRef: approval.binding.activationSnapshotRef,
     targetProfileRef: approval.binding.targetProfileRef,
+    targetUrl: approval.binding.targetUrl,
+    targetTitle: approval.binding.targetTitle,
+    userRequirementRef: approval.binding.userRequirementRef,
   });
   await recordTaskStartLocalAiReadiness(activeWorkbench, approval, preflight.components.find((component) => component.name === "localAi"));
   return preflight;
@@ -141,8 +130,6 @@ const recordMissionPreflightPassed = async (
     traceId: approval.traceId,
     spanId: "mission-preflight-passed",
     attemptId: approval.attemptId,
-    mapId: approval.binding.selectedMapId,
-    taskTemplateId: approval.binding.taskTemplateId,
     reason,
     actionableMessage: "Dispatch the governed human command through Commander Console and Nerve Bus.",
     ownerResponsible: "Commander Console / Nerve Bus",
@@ -173,10 +160,9 @@ export async function runTaskStartFlow(request: IncomingMessage, response: Serve
     selectedPlatforms: draft.selectedPlatforms,
     userRequirementText: draft.userRequirementText,
   });
-  const taskTemplateId = binding.ok ? binding.taskTemplateId : draft.taskTemplateId;
-  await recordTaskStartDraftEvents(activeWorkbench, draft, taskTemplateId);
+  await recordTaskStartDraftEvents(activeWorkbench, draft);
   if (!binding.ok) {
-    await sendTaskStartBindingFailure({ response, activeWorkbench, draft, taskTemplateId, binding });
+    await sendTaskStartBindingFailure({ response, activeWorkbench, draft, binding });
     return true;
   }
 

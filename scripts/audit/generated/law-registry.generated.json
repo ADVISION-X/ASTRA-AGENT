@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T06:24:14.164Z",
+  "generatedAt": "2026-05-10T07:38:43.440Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -373,7 +373,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "imports and exports must not create hidden broad ownership or barrel laundering.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-      "line": 343
+      "line": 342
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-007-V1",
@@ -384,7 +384,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "files must have one role and must not mix schema, runtime, validation, execution, persistence and decision responsibilities.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-      "line": 382
+      "line": 381
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-008-V1",
@@ -395,7 +395,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "dead code, fake runtime paths, mocks, placeholders and temporary bypasses must not survive in active source truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-      "line": 442
+      "line": 441
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-009-V1",
@@ -406,7 +406,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "refactors must reduce ownership, file size, complexity and active paths rather than adding compatibility bridges.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-      "line": 487
+      "line": 486
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-010-V1",
@@ -417,7 +417,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "disaster files must be identified, blocked and physically split before meaningful feature debugging continues.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-      "line": 529
+      "line": 528
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-011-V1",
@@ -428,7 +428,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "all active code-purity laws must be enforced by CI-FULL, generated audit artifacts and real-code-inspection.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-      "line": 572
+      "line": 571
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-012-V1",
@@ -439,7 +439,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "type-safety and escape hatches must not be used to bypass purity enforcement.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-      "line": 614
+      "line": 613
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-013-V1",
@@ -450,7 +450,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "code-purity enforcement must produce inventories, remediation queues and physical split plans.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-      "line": 656
+      "line": 655
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-014-V1",
@@ -461,7 +461,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "code-purity remediation must use physical deletion and physical splitting, not cosmetic renaming.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-      "line": 715
+      "line": 714
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
@@ -472,7 +472,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "orphan files, dead exports, unused child capabilities, unused prompt contracts, unused route-plan steps, unused map packages, unused inspector components and unused muscle-memory action codes must be detected as fatal zombie findings.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-      "line": 755
+      "line": 754
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
@@ -483,7 +483,18 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "retired map-system paths, startup identifiers and APP shell UI residues must be detected as fatal active-source violations.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-      "line": 798
+      "line": 797
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "active law, blueprint, prompt and startup code must express one visual-story authority chain without dual entry, dual action sources, or retired vocabulary survivors.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 835
     },
     {
       "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
@@ -869,204 +880,6 @@
       "summary": "local-ai-runtime must expose one governed startup readiness contract and must not be started ad hoc by consumers.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md",
       "line": 172
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-001-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "map packages are declarative route data consumed by Orchestration, not runtime code, child abilities, or new owners.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 109
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-002-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "map packages must pass import, quarantine, validation, automation gate, activation, active registry and re-inspect lifecycle before runtime consumption.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 185
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-003-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "map package schema must contain complete governance metadata and must not depend on runtime truth as package authority.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 304
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-004-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "map packages must never carry executable payloads, runtime code, prompt text, shell scripts, dynamic imports, handlers, or direct ability control.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 411
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-005-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "map packages may reference prompt contracts but must not own prompt content or create prompt double-truth.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 532
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-006-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "AI-generated map packages must be authored against governed catalogs and remain draft/quarantine until all gates and automation gate pass.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 604
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-007-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "capability catalog is a generated read model used for authoring and validation; it must not become runtime truth or a second ability registry.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 756
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-008-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "branch condition DSL must be schema-declared, closed, non-executable and able to reference declared outputSchemaRef fields.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 833
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-009-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "ordinary and developer map surfaces must stay separate and Commander must not activate or mutate maps without governed validation/automation-gate path.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 932
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-010-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "map activation, validation, automation gate, prompt binding and authoring must produce Forensics-compatible proof records.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1030
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-011-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "user-facing map explanation must translate route data into understandable task flow without exposing runtime internals in ordinary mode.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1131
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-012-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "map-plugin-package enforcement must close through owner-local AST/schema/reference inspector, runner and real-code-inspection.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1201
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-013-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "advanced AI map generation must receive a complete Map Authoring Input Package; missing catalogs or policies must block generation.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1379
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-014-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "capability catalog must be detailed enough for advanced AI to generate maps without inventing abilities.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1500
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-015-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "prompt contract and output schema catalogs must define every AI step and branchable field used by maps.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1606
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-016-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "safety, automation gate, evidence, PAV, Forensics, privacy, secret, rate-limit and platform policies must be first-class inputs to map authoring.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1702
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-018-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "GrassEye Muscle Memory is the reusable visible-surface instinct layer, constrained to four first-level muscles and separated from Map, AI, Ability Group and Surface Profile authority.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1798
-    },
-    {
-      "lawId": "GRASSEYE-MAP-PLUGIN-017-V2",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "map-plugin-package",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "map-plugin-package enforcement must prove Map Authoring Input Package completeness, generated-map safety and lifecycle boundaries in addition to existing map package governance.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md",
-      "line": 1855
     },
     {
       "lawId": "GRASSEYE-MOUSE-CLICK-CAPABILITY-RESULT-CONTRACT-V1",

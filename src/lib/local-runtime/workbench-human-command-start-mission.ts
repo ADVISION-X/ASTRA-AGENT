@@ -86,10 +86,8 @@ export const buildHumanCommandResultEnvelope = (input: {
 
 const buildStartMissionInitialPayload = (
   payload: Record<string, string | number | boolean | null>,
-  parsedSelectedMapId: string | null,
 ) => ({
   requestedBy: "commander-console",
-  selectedMapId: parsedSelectedMapId,
   maxRounds: payloadValueToInteger(payload.maxRounds),
   maxMinutes: payloadValueToInteger(payload.maxMinutes),
   operatorNote: payloadValueToString(payload.operatorNote),
@@ -145,27 +143,27 @@ export const handleStartMission = async (
     return buildHumanCommandResultEnvelope({ envelope, status: "failed", summary: "requestedPlatformId is required for start-mission.", failureReason: "requestedPlatformId is required for start-mission." });
   }
 
-  const parsedSelectedMapId = payloadValueToString(payload.selectedMapId);
-  const activationId = payloadValueToString(payload.activationId) ?? envelope.activationId;
-  const activationSnapshotRef = payloadValueToString(payload.activationSnapshotRef) ?? envelope.activationSnapshotRef;
-  const taskTemplateId = payloadValueToString(payload.taskTemplateId);
+  const selectedMapId = null;
+  const activationId = null;
+  const activationSnapshotRef = envelope.activationSnapshotRef;
+  const taskTemplateId = null;
 
-  recordHumanCommandDebug(recordOrchestrationStartReceived(runtime, { envelope, selectedMapId: parsedSelectedMapId, taskTemplateId }));
-  recordHumanCommandDebug(recordMissionActivationSnapshotFrozen(runtime, { envelope, selectedMapId: parsedSelectedMapId, taskTemplateId, activationSnapshotRef }));
-  recordHumanCommandDebug(recordCommandAccepted(runtime, { envelope, selectedMapId: parsedSelectedMapId, taskTemplateId, activationSnapshotRef }));
+  recordHumanCommandDebug(recordOrchestrationStartReceived(runtime, { envelope, selectedMapId, taskTemplateId }));
+  recordHumanCommandDebug(recordMissionActivationSnapshotFrozen(runtime, { envelope, selectedMapId, taskTemplateId, activationSnapshotRef }));
+  recordHumanCommandDebug(recordCommandAccepted(runtime, { envelope, selectedMapId, taskTemplateId, activationSnapshotRef }));
 
-  const backgroundMissionInput: StartMissionBackgroundInput = { envelope, selectedMapId: parsedSelectedMapId, taskTemplateId };
+  const backgroundMissionInput: StartMissionBackgroundInput = { envelope, selectedMapId, taskTemplateId };
   const missionStartPromise = runtime.orchestrationAbilityGroup.startMission({
     missionId: envelope.missionId,
     runId: envelope.runId,
     humanGoal: payloadValueToString(payload.humanGoal) ?? DEFAULT_START_MISSION_GOAL,
     requestedPlatform: requestedPlatformId,
-    preferredMapId: parsedSelectedMapId,
+    preferredMapId: null,
     taskTemplateId,
     activationId,
     maxRounds: payloadValueToInteger(payload.maxRounds),
     maxMinutes: payloadValueToInteger(payload.maxMinutes),
-    initialPayload: buildStartMissionInitialPayload(payload, parsedSelectedMapId),
+    initialPayload: buildStartMissionInitialPayload(payload),
   });
 
   void missionStartPromise.catch(createBackgroundMissionFailureHandler(runtime, backgroundMissionInput));

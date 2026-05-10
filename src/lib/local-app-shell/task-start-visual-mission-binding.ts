@@ -2,13 +2,6 @@ import { createHash } from "node:crypto";
 
 import { resolveVisualMissionPlatformTarget } from "../../visual-mission/platform-target-registry.js";
 import {
-  buildVisualMissionActivationSnapshotRef,
-  buildVisualMissionTaskTemplateId,
-  VISUAL_MISSION_RUNTIME_ACTIVATION_ID,
-  VISUAL_MISSION_RUNTIME_ENVELOPE_MAP_ID,
-  VISUAL_MISSION_RUNTIME_ID,
-} from "../../visual-mission/runtime-envelope.js";
-import {
   createBindingFailure,
   type MissionStartBinding,
   type MissionStartBindingFailure,
@@ -17,10 +10,6 @@ import {
 
 type VisualMissionTargetProfileBinding = {
   requestedPlatformId: UserRequirementSelectedPlatformId;
-  selectedMapId: string;
-  taskTemplateId: string;
-  activationId: string;
-  activationSnapshotRef: string;
   targetProfileRef: string;
   targetUrl: string;
   targetTitle: string;
@@ -58,10 +47,6 @@ function resolveVisualMissionTargetBinding(
 
   return {
     requestedPlatformId: platformId,
-    selectedMapId: VISUAL_MISSION_RUNTIME_ENVELOPE_MAP_ID,
-    taskTemplateId: buildVisualMissionTaskTemplateId(platformId),
-    activationId: VISUAL_MISSION_RUNTIME_ACTIVATION_ID,
-    activationSnapshotRef: buildVisualMissionActivationSnapshotRef(platformId),
     targetProfileRef: targetBinding.targetProfileRef,
     targetUrl: targetBinding.targetUrl,
     targetTitle: targetBinding.targetTitle,
@@ -128,7 +113,7 @@ function resolveVisualMissionTargetProfiles(selectedPlatforms: UserRequirementSe
 function resolvePrimaryVisualMissionBinding(input: {
   selectedPlatforms: UserRequirementSelectedPlatformId[];
   targetProfiles: Partial<Record<UserRequirementSelectedPlatformId, VisualMissionTargetProfileBinding>>;
-}): { primaryPlatformId: UserRequirementSelectedPlatformId; primaryBinding: VisualMissionTargetProfileBinding } | MissionStartBindingFailure {
+}): VisualMissionTargetProfileBinding | MissionStartBindingFailure {
   const [primaryPlatformId] = input.selectedPlatforms;
   if (!primaryPlatformId) {
     return createBindingFailure(
@@ -145,7 +130,7 @@ function resolvePrimaryVisualMissionBinding(input: {
       "重新选择平台并重试；如果仍失败，检查 visual mission platform target registry。",
     );
   }
-  return { primaryPlatformId, primaryBinding };
+  return primaryBinding;
 }
 
 export function resolveVisualMissionStartBinding(input: VisualMissionStartBindingInput): MissionStartBinding {
@@ -157,29 +142,20 @@ export function resolveVisualMissionStartBinding(input: VisualMissionStartBindin
   if ("ok" in targetProfiles) {
     return targetProfiles;
   }
-  const primary = resolvePrimaryVisualMissionBinding({
+  const primaryBinding = resolvePrimaryVisualMissionBinding({
     selectedPlatforms: validated.selectedPlatforms,
     targetProfiles,
   });
-  if ("ok" in primary) {
-    return primary;
+  if ("ok" in primaryBinding) {
+    return primaryBinding;
   }
 
   return {
     ok: true,
-    taskTemplateId: primary.primaryBinding.taskTemplateId,
-    activationId: primary.primaryBinding.activationId,
-    activationSnapshotRef: primary.primaryBinding.activationSnapshotRef,
-    requestedPlatformId: primary.primaryBinding.requestedPlatformId,
-    selectedMapId: primary.primaryBinding.selectedMapId,
-    targetProfileRef: primary.primaryBinding.targetProfileRef,
-    targetUrl: primary.primaryBinding.targetUrl,
-    targetTitle: primary.primaryBinding.targetTitle,
-    selectedRuntimeId: VISUAL_MISSION_RUNTIME_ID,
-    selectedPlatforms: validated.selectedPlatforms,
-    primaryPlatformId: primary.primaryPlatformId,
+    requestedPlatformId: primaryBinding.requestedPlatformId,
+    targetProfileRef: primaryBinding.targetProfileRef,
+    targetUrl: primaryBinding.targetUrl,
+    targetTitle: primaryBinding.targetTitle,
     userRequirementRef: buildUserRequirementRef(validated.userRequirementText),
-    userRequirementText: validated.userRequirementText,
-    targetProfiles,
   };
 }

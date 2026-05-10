@@ -1,0 +1,72 @@
+{
+  "findingCount": 60,
+  "clickCellFindings": [
+    {
+      "lawId": "GRASSEYE-CAPABILITY-GROUP-003-V1",
+      "file": "src/muscle-memory/catalog/muscle-memory-catalog.generated.json",
+      "line": 1,
+      "severity": "fatal",
+      "message": "CLICK_CELL_BYPASSES_GEOMETRY_GUARD: CLICK_CELL must terminate at a Geometry Guard child before Mouse Click executes coordinates.",
+      "detail": "mouse-click.click-browser-coordinate"
+    },
+    {
+      "lawId": "GRASSEYE-CAPABILITY-GROUP-003-V1",
+      "file": "src/muscle-memory/catalog/muscle-memory-catalog.generated.json",
+      "line": 1,
+      "severity": "fatal",
+      "message": "MOUSE_CLICK_ACCEPTS_AI_GRIDCELL_DIRECTLY: AI CLICK_CELL currently resolves straight to mouse-click instead of a geometry proof child.",
+      "detail": "mouse-click.click-browser-coordinate"
+    }
+  ],
+  "weakestAiReachableChildren": [
+    {
+      "abilityGroupId": "orchestration",
+      "childCapabilityId": "emergency-stop",
+      "strengthLevel": 1,
+      "aiActionCodes": [
+        "STOP_REVIEW_REQUIRED"
+      ],
+      "blockingReasons": [
+        "CHILD_RETURNS_FAKE_SUCCESS"
+      ]
+    },
+    {
+      "abilityGroupId": "forensics-persistence",
+      "childCapabilityId": "write-product-lead-record",
+      "strengthLevel": 4,
+      "aiActionCodes": [
+        "SAVE_LEAD",
+        "SAVE_PRODUCT_AND_LIKE",
+        "YES_SEEDING_VIDEO_FLOW"
+      ],
+      "blockingReasons": []
+    },
+    {
+      "abilityGroupId": "mouse-click",
+      "childCapabilityId": "click-browser-coordinate",
+      "strengthLevel": 4,
+      "aiActionCodes": [
+        "CLICK_CELL"
+      ],
+      "blockingReasons": []
+    },
+    {
+      "abilityGroupId": "open",
+      "childCapabilityId": "open-facebook",
+      "strengthLevel": 4,
+      "aiActionCodes": [
+        "OPEN_FACEBOOK_ENTRY"
+      ],
+      "blockingReasons": []
+    },
+    {
+      "abilityGroupId": "open",
+      "childCapabilityId": "open-tiktok",
+      "strengthLevel": 4,
+      "aiActionCodes": [
+        "OPEN_TIKTOK_ENTRY"
+      ],
+      "blockingReasons": []
+    }
+  ]
+}

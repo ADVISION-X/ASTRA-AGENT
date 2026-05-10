@@ -1,0 +1,386 @@
+scripts/audit/domains/capability-group-governance/child-capability-strength-builder.ts(85,18): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+scripts/audit/domains/code-purity/components/scan-retired-map-system.ts(108,30): error TS2379: Argument of type '{ lawId: string; file: string; line: number; severity: "fatal"; message: string; detail: string | undefined; zombieKind: string; recommendedAction: string; }' is not assignable to parameter of type 'Finding' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'detail' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+scripts/audit/domains/code-purity/components/scan-visual-story-coherence.ts(63,30): error TS2379: Argument of type '{ lawId: string; file: string; line: number; severity: "fatal"; message: string; detail: string | undefined; zombieKind: string; recommendedAction: string; }' is not assignable to parameter of type 'Finding' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'detail' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+scripts/audit/domains/code-purity/components/scan-visual-story-coherence.ts(130,42): error TS2379: Argument of type '{ file: string; line: number; message: string; detail: string | undefined; coherenceKind: string; recommendedAction: string; }' is not assignable to parameter of type '{ file: string; line: number; message: string; detail?: string; coherenceKind: string; recommendedAction: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'detail' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+scripts/audit/domains/code-purity/components/scan-visual-story-coherence.ts(156,42): error TS2379: Argument of type '{ file: string; line: number; message: string; detail: string | undefined; coherenceKind: string; recommendedAction: string; }' is not assignable to parameter of type '{ file: string; line: number; message: string; detail?: string; coherenceKind: string; recommendedAction: string; }' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'detail' are incompatible.
+    Type 'string | undefined' is not assignable to type 'string'.
+      Type 'undefined' is not assignable to type 'string'.
+scripts/audit/domains/code-purity/run-scan.ts(99,75): error TS2345: Argument of type 'Map<string, SourceFile | undefined>' is not assignable to parameter of type 'Map<string, SourceFile>'.
+  Type 'SourceFile | undefined' is not assignable to type 'SourceFile'.
+    Type 'undefined' is not assignable to type 'SourceFile'.
+scripts/audit/domains/code-purity/run-scan.ts(103,80): error TS2345: Argument of type 'Map<string, SourceFile | undefined>' is not assignable to parameter of type 'Map<string, SourceFile>'.
+  Type 'SourceFile | undefined' is not assignable to type 'SourceFile'.
+    Type 'undefined' is not assignable to type 'SourceFile'.
+scripts/audit/domains/kernel/map-package-prompt-checks.ts(17,9): error TS2339: Property 'MAP_PLUGIN_ROOT' does not exist on type '{ readonly REQUIREMENT_ID_001: "K01-ROUTE-REQ-001"; readonly REQUIREMENT_ID_002: "K01-ROUTE-REQ-002"; readonly REQUIREMENT_ID_003: "K01-ROUTE-REQ-003"; readonly REQUIREMENT_ID_009: "K01-ROUTE-REQ-009"; ... 26 more ...; readonly OWNER_LITERAL_PROPERTIES: Set<...>; }'.
+scripts/startup/lib/map-package-readiness-probe.ts(1,40): error TS2307: Cannot find module '../../../src/map-plugins/builtins/index.js' or its corresponding type declarations.
+scripts/startup/lib/map-package-readiness-probe.ts(2,41): error TS2307: Cannot find module '../../../src/map-plugins/registry/map-plugin-registry.js' or its corresponding type declarations.
+scripts/startup/lib/map-package-readiness-probe.ts(61,27): error TS7006: Parameter 'mapPackage' implicitly has an 'any' type.
+src/capabilities/ai/ability-group.ts(108,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/ability-group.ts(109,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/ability-group.ts(110,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/ability-group.ts(114,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/ability-group.ts(115,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/ability-group.ts(116,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/ability-group.ts(117,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/ability-group.ts(175,49): error TS2345: Argument of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { userRequirementRef: string | null; ... 14 more ...; tags: string[]; }; ... 21 more ...; inputModality: "image_collection"; } | ... 9 more ... | { ...; }' is not assignable to parameter of type '{ taskType: unknown; }'.
+  Type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to type '{ taskType: unknown; }'.
+    Property 'taskType' is optional in type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' but required in type '{ taskType: unknown; }'.
+src/capabilities/ai/ability-group.ts(179,49): error TS2345: Argument of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { userRequirementRef: string | null; ... 14 more ...; tags: string[]; }; ... 21 more ...; inputModality: "image_collection"; } | ... 9 more ... | { ...; }' is not assignable to parameter of type '{ taskType: unknown; }'.
+  Type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to type '{ taskType: unknown; }'.
+    Property 'taskType' is optional in type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' but required in type '{ taskType: unknown; }'.
+src/capabilities/ai/ability-group.ts(201,51): error TS2345: Argument of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { userRequirementRef: string | null; ... 14 more ...; tags: string[]; }; ... 21 more ...; inputModality: "image_collection"; } | ... 9 more ... | { ...; }' is not assignable to parameter of type '{ taskType: unknown; }'.
+  Type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to type '{ taskType: unknown; }'.
+    Property 'taskType' is optional in type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' but required in type '{ taskType: unknown; }'.
+src/capabilities/ai/ability-group.ts(235,5): error TS2322: Type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to type '{ createdAt: string; status: "success"; reviewRequiredReason: null; failureReason: null; debugLogRef: string | null; abilityGroupId: "ai"; runtime: string; runtimeProof: { status: "review_required" | "success" | "failed"; ... 62 more ...; missionIdSource: "unavailable" | "explicit"; }; ... 15 more ...; output?: any;...'.
+  Type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to type '{ createdAt: string; status: "success"; reviewRequiredReason: null; failureReason: null; debugLogRef: string | null; abilityGroupId: "ai"; runtime: string; runtimeProof: { status: "review_required" | "success" | "failed"; ... 62 more ...; missionIdSource: "unavailable" | "explicit"; }; ... 15 more ...; output?: any;...'.
+src/capabilities/ai/prompt-contracts/registry.ts(9,8): error TS2307: Cannot find module '../../../map-plugins/authoring/map-authoring-template.js' or its corresponding type declarations.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts(85,7): error TS18046: 'request.input' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts(85,57): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts(101,21): error TS18046: 'input' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts(102,26): error TS18046: 'input' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts(104,31): error TS18046: 'input' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts(105,33): error TS18046: 'input' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts(106,30): error TS18046: 'input' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts(149,9): error TS18046: 'request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts(149,32): error TS7006: Parameter 'ref' implicitly has an 'any' type.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-debug.ts(195,25): error TS18046: 'input.request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-execution.ts(60,14): error TS18046: 'request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-execution.ts(61,14): error TS18046: 'request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-execution.ts(68,24): error TS18046: 'request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-execution.ts(87,5): error TS2322: Type 'unknown' is not assignable to type 'string'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-execution.ts(103,67): error TS2345: Argument of type '{ failureReason: null; errorKind: null; actionableMessage: null; ownerResponsible: string; durationMs: null; sourceScreenshotEvidenceId: null; aiInputArtifactRef: any; imageInputs: never[]; ... 57 more ...; status: "started"; } | { ...; }' is not assignable to parameter of type 'AiRuntimeStructuredDebugEvent'.
+  Type '{ failureReason: null; errorKind: null; actionableMessage: null; ownerResponsible: string; durationMs: null; sourceScreenshotEvidenceId: null; aiInputArtifactRef: any; imageInputs: never[]; ... 57 more ...; status: "started"; }' is not assignable to type 'AiRuntimeStructuredDebugEvent'.
+    Types of property 'sessionId' are incompatible.
+      Type 'unknown' is not assignable to type 'string'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-execution.ts(124,67): error TS2345: Argument of type '{ failureReason: string; errorKind: string; actionableMessage: string; ownerResponsible: string; durationMs: number; sourceScreenshotEvidenceId: null; aiInputArtifactRef: any; imageInputs: never[]; ... 57 more ...; status: "failed"; } | { ...; }' is not assignable to parameter of type 'AiRuntimeStructuredDebugEvent'.
+  Type '{ failureReason: string; errorKind: string; actionableMessage: string; ownerResponsible: string; durationMs: number; sourceScreenshotEvidenceId: null; aiInputArtifactRef: any; imageInputs: never[]; ... 57 more ...; status: "failed"; }' is not assignable to type 'AiRuntimeStructuredDebugEvent'.
+    Types of property 'sessionId' are incompatible.
+      Type 'unknown' is not assignable to type 'string'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-execution.ts(147,67): error TS2345: Argument of type '{ failureReason: null; errorKind: null; actionableMessage: null; ownerResponsible: string; durationMs: number; sourceScreenshotEvidenceId: null; aiInputArtifactRef: any; imageInputs: never[]; ... 57 more ...; status: "success"; } | { ...; }' is not assignable to parameter of type 'AiRuntimeStructuredDebugEvent'.
+  Type '{ failureReason: null; errorKind: null; actionableMessage: null; ownerResponsible: string; durationMs: number; sourceScreenshotEvidenceId: null; aiInputArtifactRef: any; imageInputs: never[]; ... 57 more ...; status: "success"; }' is not assignable to type 'AiRuntimeStructuredDebugEvent'.
+    Types of property 'sessionId' are incompatible.
+      Type 'unknown' is not assignable to type 'string'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-execution.ts(211,24): error TS18046: 'input.request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-execution.ts(212,16): error TS18046: 'input.request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-messages.ts(6,8): error TS2307: Cannot find module '../../../map-plugins/authoring/map-authoring-template.js' or its corresponding type declarations.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-messages.ts(15,37): error TS2339: Property 'input' does not exist on type 'never'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-messages.ts(49,40): error TS2345: Argument of type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to parameter of type 'never'.
+src/capabilities/ai/runtime-adapters/external-provider-runtime-messages.ts(51,42): error TS2345: Argument of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { notes: string[]; packetSummary: string; evidenceIds: string[]; }; ... 21 more ...; inputModality: "structured_record"; } | { ...; }' is not assignable to parameter of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { notes: string[]; packetSummary: string; evidenceIds: string[]; }; ... 21 more ...; inputModality: "structured_record"; }'.
+  Type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { notes: string[]; packetSummary: string; evidenceIds: string[]; }; ... 21 more ...; inputModality: "structured_record"; }'.
+    Types of property 'requestedBy' are incompatible.
+      Type 'unknown' is not assignable to type '"commander-console" | "orchestration"'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts(108,69): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts(108,88): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts(108,106): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts(109,73): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts(109,92): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts(109,110): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts(161,5): error TS2322: Type 'unknown' is not assignable to type 'string'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(35,10): error TS18046: 'request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(35,37): error TS7006: Parameter 'ref' implicitly has an 'any' type.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(105,8): error TS18046: 'request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(105,31): error TS7006: Parameter 'ref' implicitly has an 'any' type.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(120,22): error TS18046: 'request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(120,45): error TS7006: Parameter 'ref' implicitly has an 'any' type.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(120,95): error TS7006: Parameter 'proof' implicitly has an 'any' type.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(131,5): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(133,5): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(146,59): error TS18046: 'request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(202,15): error TS18046: 'args.request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(250,58): error TS18046: 'request.input' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(251,63): error TS18046: 'request.input' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(253,68): error TS18046: 'request.input' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(254,70): error TS18046: 'request.input' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(255,67): error TS18046: 'request.input' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(270,5): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(271,24): error TS18046: 'args.request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-debug-state.ts(272,16): error TS18046: 'args.request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-mapper.ts(245,43): error TS2345: Argument of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { userRequirementRef: string | null; ... 14 more ...; tags: string[]; }; ... 21 more ...; inputModality: "image_collection"; } | { ...; }' is not assignable to parameter of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { userRequirementRef: string | null; ... 14 more ...; tags: string[]; }; ... 21 more ...; inputModality: "image_collection"; }'.
+  Type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { userRequirementRef: string | null; ... 14 more ...; tags: string[]; }; ... 21 more ...; inputModality: "image_collection"; }'.
+    Types of property 'requestedBy' are incompatible.
+      Type 'unknown' is not assignable to type '"commander-console" | "orchestration"'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-mapper.ts(248,34): error TS2345: Argument of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { userRequirementRef: string | null; ... 14 more ...; tags: string[]; }; ... 21 more ...; inputModality: "image_collection"; } | { ...; } | { ...; }' is not assignable to parameter of type 'VisionBridgeInput'.
+  Type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to type 'VisionBridgeInput'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-mapper.ts(250,51): error TS2345: Argument of type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to parameter of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { userRequirementRef: string; outputSchemaRef: "ai.visual_mission_action_plan.v1"; ... 6 more ...; platformContext: { ...; }; }; ... 21 more ...; inputModality: "image_co...'.
+  Type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { userRequirementRef: string; outputSchemaRef: "ai.visual_mission_action_plan.v1"; ... 6 more ...; platformContext: { ...; }; }; ... 21 more ...; inputModality: "image_co...'.
+    Types of property 'requestedBy' are incompatible.
+      Type 'unknown' is not assignable to type '"commander-console" | "orchestration"'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-mapper.ts(252,49): error TS2345: Argument of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { userRequirementRef: string | null; ... 14 more ...; tags: string[]; }; ... 21 more ...; inputModality: "image_collection"; } | { ...; }' is not assignable to parameter of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { userRequirementRef: string | null; ... 14 more ...; tags: string[]; }; ... 21 more ...; inputModality: "image_collection"; }'.
+  Type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { userRequirementRef: string | null; ... 14 more ...; tags: string[]; }; ... 21 more ...; inputModality: "image_collection"; }'.
+    Types of property 'requestedBy' are incompatible.
+      Type 'unknown' is not assignable to type '"commander-console" | "orchestration"'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-mapper.ts(261,31): error TS2345: Argument of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { rawCommentBlocks: string[]; }; roundId: string | null; ... 20 more ...; inputModality: "text_blocks"; } | { ...; }' is not assignable to parameter of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { rawCommentBlocks: string[]; }; roundId: string | null; ... 20 more ...; inputModality: "text_blocks"; }'.
+  Type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { rawCommentBlocks: string[]; }; roundId: string | null; ... 20 more ...; inputModality: "text_blocks"; }'.
+    Types of property 'requestedBy' are incompatible.
+      Type 'unknown' is not assignable to type '"commander-console" | "orchestration"'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-mapper.ts(263,41): error TS2345: Argument of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { cleanedComments: string[]; }; roundId: string | null; ... 20 more ...; inputModality: "text_blocks"; } | { ...; }' is not assignable to parameter of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { cleanedComments: string[]; }; roundId: string | null; ... 20 more ...; inputModality: "text_blocks"; }'.
+  Type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { cleanedComments: string[]; }; roundId: string | null; ... 20 more ...; inputModality: "text_blocks"; }'.
+    Types of property 'requestedBy' are incompatible.
+      Type 'unknown' is not assignable to type '"commander-console" | "orchestration"'.
+src/capabilities/ai/runtime-adapters/local-ai-runtime-mapper.ts(265,41): error TS2345: Argument of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { videoSummary: string; productPresence: { ...; }; commentSignals: { ...; }; }; ... 21 more ...; inputModality: "structured_record"; } | { ...; }' is not assignable to parameter of type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { videoSummary: string; productPresence: { ...; }; commentSignals: { ...; }; }; ... 21 more ...; inputModality: "structured_record"; }'.
+  Type '{ [x: string]: any; qualityPolicy?: unknown; providerPolicy?: unknown; costPolicy?: unknown; dataPolicy?: unknown; safetyPolicy?: unknown; runId?: unknown; stepId?: unknown; capabilityCallId?: unknown; nerveBusEnvelopeId?: unknown; mapPackageId?: unknown; mapPackageVersion?: unknown; selectedMapId?: unknown; ... 15 ...' is not assignable to type '{ requestedBy: "commander-console" | "orchestration"; selectedMapId: string; runId: string; missionId: string | null; abilityGroupId: "ai"; input: { videoSummary: string; productPresence: { ...; }; commentSignals: { ...; }; }; ... 21 more ...; inputModality: "structured_record"; }'.
+    Types of property 'requestedBy' are incompatible.
+      Type 'unknown' is not assignable to type '"commander-console" | "orchestration"'.
+src/capabilities/ai/runtime/ai-cost-policy-gate.ts(8,7): error TS18046: 'request.costPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-cost-policy-gate.ts(12,7): error TS18046: 'request.costPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-data-policy-gate.ts(8,8): error TS18046: 'request.dataPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-data-policy-gate.ts(12,8): error TS18046: 'request.dataPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-dispatch-failure.ts(39,7): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-dispatch-failure.ts(41,7): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-dispatch-failure.ts(87,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-dispatch-failure.ts(109,99): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-dispatch-failure.ts(110,95): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-dispatch-failure.ts(167,91): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(31,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(32,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(33,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(34,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(38,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(39,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(40,7): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(53,3): error TS2322: Type 'unknown' is not assignable to type 'string'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(54,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(55,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(56,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(57,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(58,3): error TS2322: Type 'unknown' is not assignable to type 'string'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(62,9): error TS18046: 'input.rawInput.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(62,39): error TS7006: Parameter 'ref' implicitly has an 'any' type.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(87,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(89,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(95,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(96,22): error TS18046: 'input.rawInput.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(97,14): error TS18046: 'input.rawInput.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(114,31): error TS18046: 'input.rawInput.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-execution-failure-debug.ts(115,23): error TS18046: 'input.rawInput.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-execution-input-debug-rejected.ts(118,5): error TS2322: Type '{}' is not assignable to type 'string'.
+src/capabilities/ai/runtime/ai-execution-input-debug.ts(98,5): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(36,3): error TS2322: Type 'unknown' is not assignable to type 'string'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(37,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(38,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(39,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(40,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(41,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(42,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(43,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(44,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(45,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(46,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(47,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(48,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(49,13): error TS18046: 'input.request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(51,3): error TS2322: Type 'unknown' is not assignable to type 'string'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(55,9): error TS18046: 'input.request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(55,38): error TS7006: Parameter 'ref' implicitly has an 'any' type.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(80,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(82,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(88,3): error TS2322: Type 'unknown' is not assignable to type 'string | null'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(89,22): error TS18046: 'input.request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(90,14): error TS18046: 'input.request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(99,18): error TS18046: 'input.request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(99,47): error TS7006: Parameter 'ref' implicitly has an 'any' type.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(99,99): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/capabilities/ai/runtime/ai-execution-request-debug.ts(111,30): error TS7006: Parameter 'proof' implicitly has an 'any' type.
+src/capabilities/ai/runtime/ai-executor.ts(40,5): error TS2322: Type 'unknown' is not assignable to type 'string'.
+src/capabilities/ai/runtime/ai-idempotency.ts(31,57): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-idempotency.ts(31,76): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-idempotency.ts(31,94): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-idempotency.ts(31,110): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-input-gate.ts(17,28): error TS18046: 'parsed.data.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-output-summary-store.ts(42,23): error TS18046: 'input.request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-payload-budget-gate.ts(112,7): error TS18046: 'request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-pre-runtime-terminal-results.ts(11,5): error TS2322: Type 'unknown' is not assignable to type 'string'.
+src/capabilities/ai/runtime/ai-pre-runtime-terminal-results.ts(13,5): error TS2322: Type 'unknown' is not assignable to type '"page_preparation_judgment" | "product_presence_judgment" | "visual_observation" | "visual_mission_action_plan" | "visual_target_candidate_analysis" | "ocr_cleanup" | ... 4 more ... | "schema_validation_only"'.
+src/capabilities/ai/runtime/ai-pre-runtime-terminal-results.ts(15,5): error TS2322: Type 'unknown' is not assignable to type 'string'.
+src/capabilities/ai/runtime/ai-pre-runtime-terminal-results.ts(20,5): error TS2322: Type 'unknown' is not assignable to type 'string'.
+src/capabilities/ai/runtime/ai-pre-runtime.ts(131,13): error TS18046: 'plan.request.safetyPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-pre-runtime.ts(132,20): error TS18046: 'plan.request.safetyPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-pre-runtime.ts(133,27): error TS18046: 'plan.request.safetyPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-pre-runtime.ts(146,22): error TS18046: 'plan.request.safetyPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-prompt-registry.ts(21,5): error TS2322: Type 'unknown' is not assignable to type '"page_preparation_judgment" | "product_presence_judgment" | "visual_observation" | "visual_mission_action_plan" | "visual_target_candidate_analysis" | "ocr_cleanup" | ... 4 more ... | "schema_validation_only"'.
+src/capabilities/ai/runtime/ai-proof-builder.ts(50,44): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-proof-builder.ts(50,69): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-proof-builder.ts(50,98): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-proof-builder.ts(50,159): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-proof-builder.ts(128,16): error TS18046: 'input.request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-proof-builder.ts(128,45): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/capabilities/ai/runtime/ai-proof-builder.ts(130,19): error TS18046: 'input.request.inputRefs' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-proof-builder.ts(130,48): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/capabilities/ai/runtime/ai-provider-policy-gate.ts(6,10): error TS18046: 'request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-provider-policy-gate.ts(21,10): error TS18046: 'request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-provider-policy-gate.ts(25,51): error TS18046: 'request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-provider-policy-gate.ts(29,51): error TS18046: 'request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-provider-policy-gate.ts(33,51): error TS18046: 'request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-provider-policy-gate.ts(72,7): error TS18046: 'request.providerPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-quality-gate.ts(50,17): error TS18046: 'input.request.safetyPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-quality-gate.ts(63,17): error TS18046: 'input.request.safetyPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-quality-gate.ts(73,17): error TS18046: 'input.request.safetyPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-quality-gate.ts(83,17): error TS18046: 'input.request.safetyPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-quality-gate.ts(96,29): error TS18046: 'input.request.qualityPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-quality-gate.ts(137,29): error TS18046: 'input.request.qualityPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-result-builder.ts(18,41): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-result-builder.ts(18,66): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-result-builder.ts(18,130): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-result-builder.ts(18,154): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-result-builder.ts(18,177): error TS2322: Type 'unknown' is not assignable to type 'string | null | undefined'.
+src/capabilities/ai/runtime/ai-safety-policy-gate.ts(23,7): error TS18046: 'input.request.safetyPolicy' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-schema-gate.ts(17,35): error TS2344: Type 'unknown' does not satisfy the constraint 'string | number | symbol'.
+src/capabilities/ai/runtime/ai-schema-gate.ts(32,30): error TS2538: Type 'unknown' cannot be used as an index type.
+src/capabilities/ai/runtime/ai-schema-gate.ts(56,38): error TS7006: Parameter 'issue' implicitly has an 'any' type.
+src/capabilities/ai/runtime/ai-schema-gate.ts(69,21): error TS18046: 'request.input' is of type 'unknown'.
+src/capabilities/ai/runtime/ai-schema-gate.ts(72,61): error TS7006: Parameter 'issue' implicitly has an 'any' type.
+src/capabilities/ai/runtime/local-ai-runtime-policy.ts(12,45): error TS2344: Type 'unknown' does not satisfy the constraint 'string | number | symbol'.
+src/capabilities/ai/runtime/local-ai-runtime-policy.ts(26,51): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'number'.
+src/capabilities/ai/runtime/local-ai-runtime-policy.ts(31,33): error TS2538: Type 'unknown' cannot be used as an index type.
+src/capabilities/ai/schema-core.schema.ts(99,45): error TS18046: 'value.inputRefs' is of type 'unknown'.
+src/capabilities/ai/schema-map-authoring.schema.ts(3,44): error TS2307: Cannot find module '../../map-plugins/authoring/map-authoring-ai-output.schema.js' or its corresponding type declarations.
+src/capabilities/ai/schema-map-authoring.schema.ts(4,48): error TS2307: Cannot find module '../../map-plugins/authoring/map-authoring-input-package.schema.js' or its corresponding type declarations.
+src/capabilities/ai/shared/ai-map-authoring-schemas.ts(1,44): error TS2307: Cannot find module '../../../map-plugins/authoring/map-authoring-ai-output.schema.js' or its corresponding type declarations.
+src/capabilities/ai/shared/ai-map-authoring-schemas.ts(2,48): error TS2307: Cannot find module '../../../map-plugins/authoring/map-authoring-input-package.schema.js' or its corresponding type declarations.
+src/capabilities/ai/shared/ai-output.ts(126,58): error TS2344: Type 'unknown' does not satisfy the constraint 'string | number | symbol'.
+src/capabilities/ai/shared/ai-output.ts(143,42): error TS2538: Type 'unknown' cannot be used as an index type.
+src/capabilities/ai/task-router.ts(3,31): error TS2344: Type 'unknown' does not satisfy the constraint 'string | number | symbol'.
+src/capabilities/ai/task-router.ts(18,26): error TS2538: Type 'unknown' cannot be used as an index type.
+src/capabilities/ai/task-router.ts(21,44): error TS2344: Type 'unknown' does not satisfy the constraint 'string | number | symbol'.
+src/capabilities/orchestration/contract.ts(27,3): error TS2305: Module '"./schema.js"' has no exported member 'RequestedPlatformIdSchema'.
+src/capabilities/orchestration/runtime/orchestration-default-map-store.ts(1,49): error TS2307: Cannot find module '../../../map-plugins/registry/map-plugin-registry.js' or its corresponding type declarations.
+src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts(77,44): error TS2345: Argument of type 'MissionLoopIterationOutcome' is not assignable to parameter of type 'LoopTerminalOutcome'.
+  Types of property 'lastResult' are incompatible.
+    Type '{ status: "review_required" | "success" | "failed" | "pending"; reviewRequiredReason: string | null; failureReason: string | null; missionId: string; childCapabilityId: string; ... 10 more ...; payloadRefs: { ...; }; } | null' is not assignable to type 'StepResultRecord | null'.
+      Type '{ status: "review_required" | "success" | "failed" | "pending"; reviewRequiredReason: string | null; failureReason: string | null; missionId: string; childCapabilityId: string; ... 10 more ...; payloadRefs: { ...; }; }' is not assignable to type 'StepResultRecord'.
+        Types of property 'status' are incompatible.
+          Type '"review_required" | "success" | "failed" | "pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+            Type '"pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts(103,44): error TS2345: Argument of type 'MissionLoopIterationOutcome' is not assignable to parameter of type 'LoopTerminalOutcome'.
+  Types of property 'lastResult' are incompatible.
+    Type '{ status: "review_required" | "success" | "failed" | "pending"; reviewRequiredReason: string | null; failureReason: string | null; missionId: string; childCapabilityId: string; ... 10 more ...; payloadRefs: { ...; }; } | null' is not assignable to type 'StepResultRecord | null'.
+      Type '{ status: "review_required" | "success" | "failed" | "pending"; reviewRequiredReason: string | null; failureReason: string | null; missionId: string; childCapabilityId: string; ... 10 more ...; payloadRefs: { ...; }; }' is not assignable to type 'StepResultRecord'.
+        Types of property 'status' are incompatible.
+          Type '"review_required" | "success" | "failed" | "pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+            Type '"pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts(115,46): error TS2345: Argument of type 'MissionLoopIterationOutcome' is not assignable to parameter of type 'LoopTerminalOutcome'.
+  Types of property 'lastResult' are incompatible.
+    Type '{ status: "review_required" | "success" | "failed" | "pending"; reviewRequiredReason: string | null; failureReason: string | null; missionId: string; childCapabilityId: string; ... 10 more ...; payloadRefs: { ...; }; } | null' is not assignable to type 'StepResultRecord | null'.
+      Type '{ status: "review_required" | "success" | "failed" | "pending"; reviewRequiredReason: string | null; failureReason: string | null; missionId: string; childCapabilityId: string; ... 10 more ...; payloadRefs: { ...; }; }' is not assignable to type 'StepResultRecord'.
+        Types of property 'status' are incompatible.
+          Type '"review_required" | "success" | "failed" | "pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+            Type '"pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts(138,46): error TS2345: Argument of type 'MissionLoopIterationOutcome' is not assignable to parameter of type 'LoopTerminalOutcome'.
+  Types of property 'lastResult' are incompatible.
+    Type '{ status: "review_required" | "success" | "failed" | "pending"; reviewRequiredReason: string | null; failureReason: string | null; missionId: string; childCapabilityId: string; ... 10 more ...; payloadRefs: { ...; }; } | null' is not assignable to type 'StepResultRecord | null'.
+      Type '{ status: "review_required" | "success" | "failed" | "pending"; reviewRequiredReason: string | null; failureReason: string | null; missionId: string; childCapabilityId: string; ... 10 more ...; payloadRefs: { ...; }; }' is not assignable to type 'StepResultRecord'.
+        Types of property 'status' are incompatible.
+          Type '"review_required" | "success" | "failed" | "pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+            Type '"pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts(162,46): error TS2345: Argument of type 'MissionLoopIterationOutcome' is not assignable to parameter of type 'LoopTerminalOutcome'.
+  Types of property 'lastResult' are incompatible.
+    Type '{ status: "review_required" | "success" | "failed" | "pending"; reviewRequiredReason: string | null; failureReason: string | null; missionId: string; childCapabilityId: string; ... 10 more ...; payloadRefs: { ...; }; } | null' is not assignable to type 'StepResultRecord | null'.
+      Type '{ status: "review_required" | "success" | "failed" | "pending"; reviewRequiredReason: string | null; failureReason: string | null; missionId: string; childCapabilityId: string; ... 10 more ...; payloadRefs: { ...; }; }' is not assignable to type 'StepResultRecord'.
+        Types of property 'status' are incompatible.
+          Type '"review_required" | "success" | "failed" | "pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+            Type '"pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts(200,5): error TS2322: Type '{ status: "review_required" | "success" | "failed" | "pending"; reviewRequiredReason: string | null; failureReason: string | null; missionId: string; childCapabilityId: string; ... 10 more ...; payloadRefs: { ...; }; }' is not assignable to type 'StepResultRecord'.
+  Types of property 'status' are incompatible.
+    Type '"review_required" | "success" | "failed" | "pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+      Type '"pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+src/capabilities/orchestration/runtime/orchestration-executor-loop-iteration.ts(205,5): error TS2322: Type '{ status: "review_required" | "success" | "failed" | "pending"; reviewRequiredReason: string | null; failureReason: string | null; missionId: string; childCapabilityId: string; ... 10 more ...; payloadRefs: { ...; }; }' is not assignable to type 'StepResultRecord'.
+  Types of property 'status' are incompatible.
+    Type '"review_required" | "success" | "failed" | "pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+      Type '"pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+src/capabilities/orchestration/runtime/orchestration-loop-iteration-events.ts(33,27): error TS2322: Type 'unknown' is not assignable to type 'string'.
+src/capabilities/orchestration/runtime/orchestration-loop-iteration-transition-support.ts(34,3): error TS2322: Type '{}' is not assignable to type '"review_required" | "failed" | "running" | "completed" | "stopped"'.
+src/capabilities/orchestration/runtime/orchestration-map-id-list.ts(1,81): error TS2307: Cannot find module '../../../map-plugins/registry/map-plugin-registry.js' or its corresponding type declarations.
+src/capabilities/orchestration/runtime/orchestration-map-store.ts(2,40): error TS2307: Cannot find module '../../../map-plugins/registry/map-plugin-registry.js' or its corresponding type declarations.
+src/capabilities/orchestration/runtime/orchestration-map-store.ts(46,69): error TS7006: Parameter 'record' implicitly has an 'any' type.
+src/capabilities/orchestration/runtime/orchestration-nerve-bus-adapter.ts(104,7): error TS2322: Type '{ envelopeKind: "ability_command"; commandId: string; from: "orchestration"; to: AbilityDispatchTarget; targetAbilityGroupId: AbilityDispatchTarget; ... 34 more ...; expiresAt: string; }' is not assignable to type '{ createdAt: string; selectedMapId: string; commandId: string; runId: string; missionId: string; abilityGroupId: "nerve-bus"; traceId: string; inputRef: string; roundId: string | null; sessionId: string; ... 29 more ...; postClickObservation: boolean; }'.
+  Types of property 'targetAbilityGroupId' are incompatible.
+    Type 'AbilityDispatchTarget' is not assignable to type '"post-action-verification" | "open" | "mouse-click" | "mouse-scroll" | "screenshot" | "page-state" | "visual-target" | "forensics-persistence" | "geometry-guard" | "text-input"'.
+      Type '"commander-console"' is not assignable to type '"post-action-verification" | "open" | "mouse-click" | "mouse-scroll" | "screenshot" | "page-state" | "visual-target" | "forensics-persistence" | "geometry-guard" | "text-input"'.
+src/capabilities/orchestration/runtime/orchestration-post-action-verification.ts(19,10): error TS2367: This comparison appears to be unintentional because the types '"commander-console" | "open" | "mouse-click" | "mouse-scroll" | "screenshot" | "page-state" | "visual-target" | "ai" | "orchestration" | "forensics-persistence" | "nerve-bus" | "geometry-guard" | "text-input" | null' and '"post-action-verification"' have no overlap.
+src/capabilities/orchestration/runtime/orchestration-runtime-context.ts(4,45): error TS2307: Cannot find module '../../../map-plugins/registry/map-plugin-registry.js' or its corresponding type declarations.
+src/capabilities/orchestration/runtime/orchestration-step-trace-fields.ts(48,27): error TS18046: 'step.outputRefPolicy' is of type 'unknown'.
+src/capabilities/orchestration/runtime/orchestration-step-trace-mapper.ts(31,45): error TS2344: Type 'unknown' does not satisfy the constraint 'string | number | symbol'.
+src/capabilities/orchestration/runtime/orchestration-step-trace-mapper.ts(75,50): error TS2538: Type 'unknown' cannot be used as an index type.
+src/capabilities/orchestration/runtime/orchestration-step-trace-mapper.ts(86,33): error TS2538: Type 'null' cannot be used as an index type.
+src/capabilities/orchestration/runtime/orchestration-step-trace-payloads.ts(133,3): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts(146,5): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/capabilities/orchestration/runtime/step-dispatch-ai-requirements.ts(70,79): error TS7006: Parameter 'candidate' implicitly has an 'any' type.
+src/capabilities/orchestration/runtime/step-dispatch-shared.ts(23,8): error TS2488: Type 'unknown' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/capabilities/orchestration/runtime/step-dispatch-shared.ts(51,21): error TS18046: 'step.outputRefPolicy' is of type 'unknown'.
+src/capabilities/orchestration/runtime/step-dispatch-shared.ts(64,21): error TS18046: 'step.outputRefPolicy' is of type 'unknown'.
+src/capabilities/orchestration/runtime/step-dispatch-shared.ts(68,5): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'MutableStepPayloadRefs'.
+src/capabilities/orchestration/runtime/step-dispatcher.ts(59,7): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/capabilities/orchestration/runtime/step-dispatcher.ts(60,82): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/capabilities/orchestration/runtime/step-dispatcher.ts(142,5): error TS2322: Type 'OrchestrationNerveBusPort' is not assignable to type '{ sendCommandToAbility(command: AbilityDispatchCommand): Promise<AbilityDispatchResult>; }'.
+  The types returned by 'sendCommandToAbility(...)' are incompatible between these types.
+    Type 'Promise<OrchestrationDispatchResult>' is not assignable to type 'Promise<AbilityDispatchResult>'.
+      Type 'OrchestrationDispatchResult' is not assignable to type 'AbilityDispatchResult'.
+        Types of property 'status' are incompatible.
+          Type '"review_required" | "success" | "failed" | "pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+            Type '"pending"' is not assignable to type '"review_required" | "success" | "failed"'.
+src/capabilities/orchestration/runtime/transition-evaluator.ts(121,5): error TS2322: Type '{ transitionId: string; fromStepId: string; onStatus: string; toStepId: string; finalStatus: null; }' is not assignable to type 'objectOutputType<{ transitionId: ZodString; fromStepId: ZodString; toStepId: ZodString; status: ZodDefault<ZodOptional<ZodEnum<["success", "failed", "review_required", "pending"]>>>; }, ZodTypeAny, "passthrough">'.
+  Property 'status' is missing in type '{ transitionId: string; fromStepId: string; onStatus: string; toStepId: string; finalStatus: null; }' but required in type '{ status: "review_required" | "success" | "failed" | "pending"; transitionId: string; fromStepId: string; toStepId: string; }'.
+src/lib/local-ai/local-ai-runtime-vision-normalization-decision.ts(114,3): error TS2322: Type '"unknown"' is not assignable to type '"facebook-web" | "tiktok-web"'.
+src/lib/local-ai/local-ai-runtime-vision-normalization-decision.ts(125,33): error TS2741: Property 'contextRefs' is missing in type '{ schemaVersion: "visualMissionActionPlan.v1"; userRequirementRef: string; muscleMemoryCatalogVersion: string; platform: "facebook-web" | "tiktok-web"; pageStateDecision: "ready"; ... 5 more ...; nonExecutableSummary: string; }' but required in type '{ platform: "facebook-web" | "tiktok-web"; userRequirementRef: string | null; confidence: number; schemaVersion: "visualMissionActionPlan.v1"; reason: string; pageStateDecision: "ready" | ... 2 more ... | "stop_review_required"; ... 5 more ...; contextRefs: { ...; }; }'.
+src/lib/local-ai/local-ai-runtime-vision-normalization.ts(20,115): error TS2537: Type 'unknown' has no matching index signature for type 'number'.
+src/lib/local-ai/local-ai-runtime-vision-task-handlers.ts(66,176): error TS18046: 'payload.actionPlan' is of type 'unknown'.
+src/lib/local-ai/local-ai-runtime-vision-task-handlers.ts(66,208): error TS7006: Parameter 'action' implicitly has an 'any' type.
+src/lib/local-ai/local-ai-runtime-vision-task-handlers.ts(66,278): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/lib/local-ai/local-ai-runtime-vision.ts(46,54): error TS18046: 'payload.actionPlan' is of type 'unknown'.
+src/lib/local-ai/local-ai-runtime-vision.ts(72,43): error TS18046: 'input.payload.actionPlan' is of type 'unknown'.
+src/lib/local-ai/local-ai-runtime-vision.ts(73,99): error TS18046: 'input.payload.actionPlan' is of type 'unknown'.
+src/lib/local-ai/local-ai-runtime-vision.ts(115,56): error TS18046: 'payload.actionPlan' is of type 'unknown'.
+src/lib/local-ai/local-ai-runtime-vision.ts(135,29): error TS18046: 'payload.frameLevelObservations' is of type 'unknown'.
+src/lib/local-app-shell/local-app-shell-map-registry.ts(1,85): error TS2307: Cannot find module '../../map-plugins/registry/local-app-shell-map-registry.js' or its corresponding type declarations.
+src/lib/local-app-shell/task-template-registry.ts(2,45): error TS2307: Cannot find module '../../map-plugins/registry/local-app-shell-map-registry.js' or its corresponding type declarations.
+src/lib/local-app-shell/task-template-registry.ts(9,58): error TS7006: Parameter 'definition' implicitly has an 'any' type.
+src/lib/local-app-shell/view-model/map-catalog.ts(26,68): error TS7006: Parameter 'mapPackage' implicitly has an 'any' type.
+src/lib/local-runtime/map-lab/map-lab-draft-generator.ts(1,43): error TS2307: Cannot find module '../../../map-plugins/authoring/map-authoring-request.schema.js' or its corresponding type declarations.
+src/lib/local-runtime/map-lab/map-lab-draft-normalization.ts(1,48): error TS2307: Cannot find module '../../../map-plugins/authoring/map-authoring-input-package.schema.js' or its corresponding type declarations.
+src/lib/local-runtime/map-lab/map-lab-draft-normalization.ts(2,44): error TS2307: Cannot find module '../../../map-plugins/authoring/map-authoring-draft-normalizer.js' or its corresponding type declarations.
+src/lib/local-runtime/map-lab/map-lab-draft-request.ts(3,47): error TS2307: Cannot find module '../../../map-plugins/authoring/map-authoring-input-package-builder.js' or its corresponding type declarations.
+src/lib/local-runtime/map-lab/map-lab-registry-support.ts(1,46): error TS2307: Cannot find module '../../../map-plugins/import/map-package-automation-gate.js' or its corresponding type declarations.
+src/lib/local-runtime/map-lab/map-lab-registry-support.ts(2,49): error TS2307: Cannot find module '../../../map-plugins/registry/map-plugin-registry.js' or its corresponding type declarations.
+src/lib/local-runtime/map-lab/map-lab-types.ts(3,33): error TS2307: Cannot find module '../../../map-plugins/shared/map-package-types.js' or its corresponding type declarations.
+src/lib/local-runtime/map-lab/map-lab-types.ts(4,43): error TS2307: Cannot find module '../../../map-plugins/authoring/map-authoring-request.schema.js' or its corresponding type declarations.
+src/lib/local-runtime/workbench-ai-ability-group.ts(37,53): error TS2379: Argument of type 'AiRuntimeStructuredDebugEvent' is not assignable to parameter of type 'WorkbenchAiDebugEvent' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'taskType' are incompatible.
+    Type 'unknown' is not assignable to type 'string'.
+src/lib/local-runtime/workbench-commander-debug.ts(1,49): error TS2307: Cannot find module '../../map-plugins/registry/map-plugin-registry.js' or its corresponding type declarations.
+src/lib/local-runtime/workbench-forensics-dispatch-input.ts(134,74): error TS2304: Cannot find name 'ProductPresenceSummary'.
+src/lib/local-runtime/workbench-forensics-dispatch-input.ts(151,7): error TS2322: Type 'unknown' is not assignable to type 'string'.
+src/lib/local-runtime/workbench-forensics-dispatch-input.ts(156,7): error TS18046: 'summary.output.actionPlan' is of type 'unknown'.
+src/lib/local-runtime/workbench-forensics-dispatch-input.ts(156,46): error TS7006: Parameter 'action' implicitly has an 'any' type.
+src/lib/local-runtime/workbench-forensics-finalization-browse-ledger.ts(49,114): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'boolean'.
+src/lib/local-runtime/workbench-forensics-finalization-browse-ledger.ts(63,114): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'boolean'.
+src/lib/local-runtime/workbench-forensics-finalization-evidence-packet-builder.ts(138,151): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'boolean'.
+src/lib/local-runtime/workbench-map-chain-support.ts(1,49): error TS2307: Cannot find module '../../map-plugins/registry/map-plugin-registry.js' or its corresponding type declarations.
+src/lib/local-runtime/workbench-nerve-bus-ai-decision.ts(6,10): error TS2459: Module '"./workbench-nerve-bus-ai-decision-visual-mission.js"' declares 'isVisualMissionActionPlanOutput' locally, but it is not exported.
+src/lib/local-runtime/workbench-nerve-bus-ai-decision.ts(217,7): error TS2322: Type 'unknown' is not assignable to type '{ platform: "facebook-web" | "tiktok-web"; confidence: number; schemaVersion: "visualMissionActionPlan.v1"; reason: string; userIntentUnderstanding: { summary: string; matched: boolean; }; ... 11 more ...; nonExecutableSummary: string; }'.
+src/lib/local-runtime/workbench-nerve-bus-ai-request-builder.ts(4,49): error TS2307: Cannot find module '../../map-plugins/registry/map-plugin-registry.js' or its corresponding type declarations.
+src/lib/local-runtime/workbench-status.ts(1,49): error TS2307: Cannot find module '../../map-plugins/registry/map-plugin-registry.js' or its corresponding type declarations.
+src/lib/local-runtime/workbench-status.ts(87,103): error TS7006: Parameter 'template' implicitly has an 'any' type.
+src/muscle-memory/catalog.ts(1,10): error TS2305: Module '"./schema.js"' has no exported member 'MuscleMemoryActionSchema'.
+src/muscle-memory/decoder/action-plan-decoder.ts(188,65): error TS2379: Argument of type '{ plan: { platform: "facebook-web" | "tiktok-web"; userRequirementRef: string | null; confidence: number; schemaVersion: "visualMissionActionPlan.v1"; reason: string; pageStateDecision: "ready" | ... 2 more ... | "stop_review_required"; ... 5 more ...; contextRefs: { ...; }; }; payloadRefs: Record<...> | undefined; ...' is not assignable to parameter of type '{ plan: { platform: "facebook-web" | "tiktok-web"; userRequirementRef: string | null; confidence: number; schemaVersion: "visualMissionActionPlan.v1"; reason: string; pageStateDecision: "ready" | ... 2 more ... | "stop_review_required"; ... 5 more ...; contextRefs: { ...; }; }; payloadRefs?: PayloadRefRecord; source...' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.
+  Types of property 'payloadRefs' are incompatible.
+    Type 'Record<string, unknown> | undefined' is not assignable to type 'PayloadRefRecord'.
+      Type 'undefined' is not assignable to type 'PayloadRefRecord'.
+src/muscle-memory/executor/muscle-memory-execution-dispatch.ts(140,30): error TS2304: Cannot find name 'action'.
+src/muscle-memory/executor/muscle-memory-executor.ts(34,9): error TS2322: Type '"review_required" | "success" | "failed" | "pending"' is not assignable to type '"review_required" | "failed"'.
+  Type '"success"' is not assignable to type '"review_required" | "failed"'.
+src/types/vision-product-presence.ts(10,3): error TS2724: '"../muscle-memory/decoder/action-plan.schema.js"' has no exported member named 'VisualMissionPageStateDecisionSchema'. Did you mean 'VisualMissionActionSchema'?

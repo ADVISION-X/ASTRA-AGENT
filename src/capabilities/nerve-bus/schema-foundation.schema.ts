@@ -196,7 +196,12 @@ const NerveBusEnvelopeBaseCoreSchema = z.object({
   expiresAt: IsoDateTimeSchema,
 }).strict();
 
-function validateNerveBusEnvelopeBase(value: z.infer<typeof NerveBusEnvelopeBaseCoreSchema>, context: RefinementCtx) {
+function validateNerveBusEnvelopeBase(value: {
+  nerveBusEnvelopeId: string;
+  envelopeId: string;
+  mapId: string | null;
+  selectedMapId: string | null;
+}, context: RefinementCtx) {
   if (value.nerveBusEnvelopeId !== value.envelopeId) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "nerveBusEnvelopeId must match envelopeId.", path: ["nerveBusEnvelopeId"] });
   }

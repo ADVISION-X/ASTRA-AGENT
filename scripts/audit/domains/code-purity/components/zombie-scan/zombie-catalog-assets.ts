@@ -1,6 +1,6 @@
-import { readJsonFile } from "../../../../core/filesystem.js";
-import { pathFromRepoRoot } from "../../../../core/paths.js";
-import { getNodeLine } from "../../../../core/ts-morph.js";
+import { readJsonFile } from "../../../core/filesystem.js";
+import { pathFromRepoRoot } from "../../../core/paths.js";
+import { getNodeLine } from "../../../core/ts-morph.js";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { getZombieProtectedSeamForPath } from "../../../../../../src/audit-support/code-purity/protected-seams.js";

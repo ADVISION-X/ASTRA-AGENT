@@ -142,7 +142,7 @@ type WorkbenchOrchestrationAbilityGroup = {
 };
 
 export type MissionStartPreflightComponent = {
-  name: "requestedPlatform" | "selectedMap" | "commandTransportContract" | "missionCommandSchema" | "browserController" | "openLocalProgram" | "localAi" | "dataStore";
+  name: "requestedPlatform" | "targetBinding" | "missionCommandSchema" | "browserController" | "openLocalProgram" | "localAi" | "dataStore";
   ok: boolean;
   detail: string;
   ownerResponsible: string;
@@ -177,11 +177,10 @@ export type WorkbenchRuntime = WorkbenchBaseRuntime & {
   getMissionReadinessReport(): Promise<MissionReadinessReport>;
   getMissionStartPreflight(input: {
     requestedPlatformId: RequestedPlatformId;
-    selectedMapId: string;
-    taskTemplateId?: string | null;
-    activationId?: string | null;
-    activationSnapshotRef?: string | null;
     targetProfileRef?: string | null;
+    targetUrl?: string | null;
+    targetTitle?: string | null;
+    userRequirementRef?: string | null;
   }): Promise<{
     status: "passed" | "blocked";
     actionableMessage: string;

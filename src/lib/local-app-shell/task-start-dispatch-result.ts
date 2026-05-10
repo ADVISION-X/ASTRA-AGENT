@@ -80,8 +80,6 @@ const recordRejectedDispatch = async (input: {
     spanId: "command-rejected",
     attemptId: input.approval.attemptId,
     missionId: input.context.targetMissionId,
-    mapId: input.approval.binding.selectedMapId,
-    taskTemplateId: input.approval.binding.taskTemplateId,
     failureReason: input.context.failureReason,
     actionableMessage: input.result.reviewRequiredReason
       ? "Open the review queue and inspect the guarded command result before retrying."
@@ -106,8 +104,6 @@ const recordAcceptedObserverTimeout = async (input: {
     spanId: "command-receipt-timeout-after-accepted",
     attemptId: input.approval.attemptId,
     missionId: input.context.targetMissionId,
-    mapId: input.approval.binding.selectedMapId,
-    taskTemplateId: input.approval.binding.taskTemplateId,
     failureReason: input.context.failureReason,
     actionableMessage: "Command was already accepted; continue tracking mission runtime events instead of treating this observer timeout as command rejection.",
     ownerResponsible: "Commander Console / Nerve Bus / Orchestration",
@@ -136,8 +132,6 @@ const recordAcceptedDispatch = async (input: {
     spanId: "command-response-sent",
     attemptId: input.approval.attemptId,
     missionId: input.context.targetMissionId,
-    mapId: input.approval.binding.selectedMapId,
-    taskTemplateId: input.approval.binding.taskTemplateId,
     reason: input.context.resultMessage,
     actionableMessage: "Follow the returned mission refs and persisted runtime proof for downstream audit.",
     ownerResponsible: "Commander Console / Nerve Bus / Orchestration",

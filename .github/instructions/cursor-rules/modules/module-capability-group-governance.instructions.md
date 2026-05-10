@@ -322,3 +322,37 @@ FORBIDDEN:
 - `login_wall`, `wrong_domain`, or `security_wall` as exported non-AI verdict literals.
 - Hand-written readiness, safety, stability, freshness, login, domain, sensitive-text, platform-kind, target-ranking, or ambiguity-threshold truth being published by non-AI groups.
 - Product-presence low-confidence or frame-count based truth being decided by production code. Production code may fail mechanically when required evidence is missing, but only AI output may decide product_yes/product_no.
+
+## Law GRASSEYE-CAPABILITY-STRENGTH-001-V1
+
+status: active
+tier: P0
+capabilityDomain: capability-group-governance
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: every child capability exposed to MuscleMemoryCatalog or AI action planning must prove executable strength.
+
+### 主题
+
+子能力强度准入
+
+### 法条
+
+Every child capability that is exposed to MuscleMemoryCatalog or AI action planning must prove strength through owner contract, owner schema, owner runtime registry, implementation, governed dispatch reachability, and audit evidence.
+
+Required direction:
+- A child capability is not eligible for AI action planning unless it is declared in owner contract, declared in owner schema union, registered in owner runtime registry, implemented, reachable through governed dispatch, and able to return governed success, failed, or review_required output.
+- A child capability that performs side effects must also prove a Forensics record path.
+- Capability-group-governance audit must generate a child capability strength inventory and machine findings for missing registry, schema drift, missing execute, fake success, naked public throw, missing dispatch coverage, and AI action child gaps.
+- MuscleMemoryCatalog and AI action planning must not expose metadata-only or non-executable children.
+
+### 禁止
+
+FORBIDDEN:
+- metadata-only child capability in MuscleMemoryCatalog.
+- fake success child capability.
+- throw-only public execute boundary.
+- child existing in catalog but missing from runtime.
+- AI-allowed action path without executable child coverage.
+- side-effecting child without a Forensics record path.

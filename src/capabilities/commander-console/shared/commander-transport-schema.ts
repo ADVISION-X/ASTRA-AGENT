@@ -33,10 +33,6 @@ const StartMissionTransportPayloadBaseSchema = z.object({
   kind: z.literal("start-mission"),
   requestedBy: z.literal("commander-console"),
   requestedPlatformId: RequestedPlatformIdSchema.optional(),
-  selectedMapId: NonEmptyStringSchema.optional(),
-  taskTemplateId: NonEmptyStringSchema.optional(),
-  activationId: NonEmptyStringSchema.optional(),
-  activationSnapshotRef: NonEmptyStringSchema.optional(),
   selectedPlatforms: z.array(RequestedPlatformIdSchema).min(1).optional(),
   primaryPlatformId: RequestedPlatformIdSchema.optional(),
   platformProfiles: z.record(RequestedPlatformIdSchema, StartMissionPlatformProfileSchema).optional(),
@@ -59,8 +55,8 @@ const validateStartMissionPayload = (
   value: z.infer<typeof StartMissionTransportPayloadBaseSchema>,
   ctx: RefinementCtx,
 ) => {
-  if (!value.requestedPlatformId || !value.targetUrl || !value.targetTitle) {
-    addCommanderIssue(ctx, "start-mission payload requires requestedPlatformId, targetUrl, and targetTitle");
+  if (!value.requestedPlatformId || !value.targetUrl || !value.targetTitle || !value.targetProfileRef) {
+    addCommanderIssue(ctx, "start-mission payload requires requestedPlatformId, targetUrl, targetTitle, and targetProfileRef");
   }
 };
 
@@ -147,8 +143,11 @@ const validateStartMissionCommand = (
   value: z.infer<typeof HumanCommandInputSchemaBase>,
   ctx: RefinementCtx,
 ) => {
-  if (!value.requestedPlatformId || !value.selectedMapId) {
-    addCommanderIssue(ctx, "start-mission requires both requestedPlatformId and selectedMapId");
+  if (!value.requestedPlatformId) {
+    addCommanderIssue(ctx, "start-mission requires requestedPlatformId");
+  }
+  if (!value.initialPayload || value.initialPayload.kind !== "start-mission") {
+    addCommanderIssue(ctx, "start-mission requires governed initialPayload");
   }
   if (value.targetRecordRef) {
     addCommanderIssue(ctx, "start-mission must not carry targetRecordRef");

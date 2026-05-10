@@ -1,31 +1,8 @@
 {
-  "generatedAt": "2026-05-10T06:24:14.222Z",
+  "generatedAt": "2026-05-10T07:38:43.478Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    ".github/instructions/cursor-rules.zip",
-    ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
-    "\"docs//345/275/222/346/241/243.zip\"",
-    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye /344/273/243/347/240/201/347/272/257/346/264/201/345/272/246/346/226/275/345/267/245/345/233/276.md\"",
-    "scripts/audit.zip",
-    "scripts/audit/core/schema.ts",
     "scripts/audit/domains/audit-system/manifest.json",
-    "scripts/audit/domains/code-purity/components/inspect-code-purity.ts",
-    "scripts/audit/domains/code-purity/components/purity-law-phase-data.ts",
-    "scripts/audit/domains/code-purity/run-scan.ts",
-    "src/capabilities/ai/prompt-contracts/visual-mission-action-plan/prompt-builder.ts",
-    "src/capabilities/orchestration/runtime/step-dispatcher.ts",
-    "src/lib/local-ai/local-ai-runtime-vision-normalization-decision.ts",
-    "src/lib/local-ai/local-ai-runtime-vision.ts",
-    "src/lib/local-app-shell/task-start-flow.ts",
-    "src/lib/local-app-shell/task-start-support.ts",
-    "src/lib/local-app-shell/task-start-types.ts",
-    "src/lib/local-app-shell/task-start-visual-mission-binding.ts",
-    "src/lib/local-runtime/workbench-nerve-bus-ai-decision.ts",
-    "src/lib/local-runtime/workbench-nerve-bus-ai-request.ts",
-    "src/muscle-memory/catalog/catalog-seed.ts",
-    "src/muscle-memory/catalog/muscle-memory-catalog.ts",
-    "src/muscle-memory/executor/muscle-memory-executor.ts",
-    "src/muscle-memory/schema.ts",
-    "src/types/visual-mission-action-plan.ts"
+    "scripts/audit/domains/commander-console-capability/manifest.json"
   ]
 }

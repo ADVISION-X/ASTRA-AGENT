@@ -148,13 +148,11 @@ export const getMissionReadinessReport = async (
 
 const buildMissionStartPreflightComponents = (input: {
   requestedPlatformId: RequestedPlatformId;
-  selectedMapId: string;
-  taskTemplateId?: string | null;
-  activationId?: string | null;
-  activationSnapshotRef?: string | null;
   targetProfileRef?: string | null;
-  selectedMapOk: boolean;
-  commandContractOk: boolean;
+  targetUrl?: string | null;
+  targetTitle?: string | null;
+  userRequirementRef?: string | null;
+  targetBindingOk: boolean;
   commandSchemaOk: boolean;
   commandSchemaDetail: string;
   browserDetail: string;
@@ -168,8 +166,7 @@ const buildMissionStartPreflightComponents = (input: {
   dataStoreOk: boolean;
 }): MissionStartPreflightComponent[] => [
   { name: "requestedPlatform", ok: true, detail: `requestedPlatformId=${input.requestedPlatformId}`, ownerResponsible: "Commander Console / Orchestration", actionableMessage: "Provide an explicit requestedPlatformId before dispatching the mission command." },
-  { name: "selectedMap", ok: input.selectedMapOk, detail: input.selectedMapOk ? `selectedMapId=${input.selectedMapId}` : `selectedMapId=${input.selectedMapId} is not an active approved map`, ownerResponsible: "Commander Console / Orchestration", actionableMessage: "Choose an active approved task template or map binding before retrying mission start." },
-  { name: "commandTransportContract", ok: input.commandContractOk, detail: input.commandContractOk ? `taskTemplateId=${input.taskTemplateId}; activationId=${input.activationId}; activationSnapshotRef=${input.activationSnapshotRef}; targetProfileRef=${input.targetProfileRef}; runId=generated-before-transport` : "selected task binding is missing taskTemplateId, activationId, activationSnapshotRef, or targetProfileRef before command dispatch", ownerResponsible: "Commander Console / Nerve Bus / Orchestration", actionableMessage: "Repair the selected task binding so command envelope, transport result, and runtime proof can preserve explicit runId and activation refs before dispatch." },
+  { name: "targetBinding", ok: input.targetBindingOk, detail: input.targetBindingOk ? `targetProfileRef=${input.targetProfileRef}; targetUrl=${input.targetUrl}; targetTitle=${input.targetTitle}; userRequirementRef=${input.userRequirementRef}` : "start-mission is missing targetProfileRef, targetUrl, targetTitle, or userRequirementRef before command dispatch", ownerResponsible: "Commander Console / PlatformRegistry / Open", actionableMessage: "Repair the governed platform target binding and user requirement binding before retrying mission start." },
   { name: "missionCommandSchema", ok: input.commandSchemaOk, detail: input.commandSchemaOk ? "MissionCommandSchema accepts the final start-mission command shape before dispatch." : `MissionCommandSchema rejected the final start-mission command shape before dispatch: ${input.commandSchemaDetail}`, ownerResponsible: "Commander Console / Orchestration", actionableMessage: "Repair start-mission command construction before dispatch so COMMAND_REJECTED is not discovered after Nerve Bus dispatch." },
   { name: "browserController", ok: input.browserOk, detail: input.browserDetail, ownerResponsible: "Commander Console / Local Browser Session", actionableMessage: "Restore the governed local browser session before retrying mission start." },
   ...(input.requiresOpenLocalProgram ? [{ name: "openLocalProgram" as const, ok: input.openLocalProgramOk, detail: input.openLocalProgramDetail, ownerResponsible: "Open Capability / Local Runtime", actionableMessage: "Repair BLOCKED_OPEN_LOCAL_PROGRAM_PORT_NOT_CONFIGURED or install the governed iPhone Mirroring profile before starting this mission." }] : []),
@@ -201,7 +198,6 @@ const readMissionStartPreflightDependencies = async (runtime: WorkbenchRuntime) 
     localAiRuntimeHealth,
     browserHealth: runtime.browserController.getHealth(),
     openLocalProgramReadiness: getOpenLocalProgramAdapterReadiness(),
-    availableMapIds: new Set(runtime.orchestrationAbilityGroup.listMapIds()),
   };
 };
 
@@ -217,11 +213,10 @@ export const getMissionStartPreflight = async (
   runtime: WorkbenchRuntime,
   input: {
     requestedPlatformId: RequestedPlatformId;
-    selectedMapId: string;
-    taskTemplateId?: string | null;
-    activationId?: string | null;
-    activationSnapshotRef?: string | null;
     targetProfileRef?: string | null;
+    targetUrl?: string | null;
+    targetTitle?: string | null;
+    userRequirementRef?: string | null;
   },
 ): Promise<{
   status: "passed" | "blocked";
@@ -233,19 +228,16 @@ export const getMissionStartPreflight = async (
 }> => {
   const dependencies = await readMissionStartPreflightDependencies(runtime);
   const localProgramRequired = requiresOpenLocalProgram(input.requestedPlatformId);
-  const selectedMapOk = dependencies.availableMapIds.has(input.selectedMapId);
-  const commandContractOk = Boolean(input.taskTemplateId && input.activationId && input.activationSnapshotRef && input.targetProfileRef);
+  const targetBindingOk = Boolean(input.targetProfileRef && input.targetUrl && input.targetTitle && input.userRequirementRef);
   const commandSchemaCheck = checkMissionCommandSchemaPreflight(input);
-  const commandSchemaOk = commandContractOk && commandSchemaCheck.success;
+  const commandSchemaOk = targetBindingOk && commandSchemaCheck.success;
   const components = buildMissionStartPreflightComponents({
     requestedPlatformId: input.requestedPlatformId,
-    selectedMapId: input.selectedMapId,
-    taskTemplateId: input.taskTemplateId ?? null,
-    activationId: input.activationId ?? null,
-    activationSnapshotRef: input.activationSnapshotRef ?? null,
     targetProfileRef: input.targetProfileRef ?? null,
-    selectedMapOk,
-    commandContractOk,
+    targetUrl: input.targetUrl ?? null,
+    targetTitle: input.targetTitle ?? null,
+    userRequirementRef: input.userRequirementRef ?? null,
+    targetBindingOk,
     commandSchemaOk,
     commandSchemaDetail: describeMissionCommandSchemaPreflight(commandSchemaCheck),
     browserDetail: dependencies.browserHealth.detail,

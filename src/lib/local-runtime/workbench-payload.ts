@@ -21,13 +21,13 @@ type MirroredRequestEnvelope = {
   sessionId: string;
   roundId: string | null;
   videoVisitId: string | null;
-  mapId: string;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapId: string;
-  selectedMapVersion: string;
-  activationId: string;
-  activationSnapshotRef: string;
+  mapId: string | null;
+  mapPackageId: string | null;
+  mapPackageVersion: string | null;
+  selectedMapId: string | null;
+  selectedMapVersion: string | null;
+  activationId: string | null;
+  activationSnapshotRef: string | null;
   stepId: string;
   capabilityCallId: string;
   sourceRef: string;
@@ -45,12 +45,12 @@ type TransportEnvelopeBaseInput<TChannelId extends TransportChannelId> = {
   sessionId: string;
   roundId?: string | null;
   videoVisitId?: string | null;
-  mapId: string;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapVersion: string;
-  activationId: string;
-  activationSnapshotRef: string;
+  mapId: string | null;
+  mapPackageId: string | null;
+  mapPackageVersion: string | null;
+  selectedMapVersion: string | null;
+  activationId: string | null;
+  activationSnapshotRef: string | null;
   stepId: string;
   capabilityCallId: string;
   sourceRef: string;
@@ -106,7 +106,7 @@ export const buildTransportEnvelopeBase = <TChannelId extends TransportChannelId
     envelopeId: input.envelopeId,
     nerveBusEnvelopeId: input.envelopeId,
     transportId: `${input.envelopeId}:transport`,
-    traceId: `${input.missionId}:${input.mapId}:${input.runId}`,
+    traceId: `${input.missionId}:${input.mapId ?? "pending-start-chain"}:${input.runId}`,
     spanId: `${input.stepId}:${input.channelId}`,
     attemptId: `${input.envelopeId}:attempt:1`,
     missionId: input.missionId,

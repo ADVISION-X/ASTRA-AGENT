@@ -1,4 +1,4 @@
-generatedAt: 2026-05-10T06:24:14.164Z
+generatedAt: 2026-05-10T07:38:43.440Z
 owners:
   - inspectorId: ai-capability-owner
     capabilityDomain: ai-capability
@@ -64,6 +64,7 @@ owners:
       - GRASSEYE-CODE-PURITY-014-V1
       - GRASSEYE-CODE-PURITY-ZOMBIE-001-V1
       - GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1
+      - GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-audit-system.instructions.md
       - .github/instructions/cursor-rules/modules/module-code-purity.instructions.md
@@ -119,7 +120,6 @@ owners:
       - .github/instructions/cursor-rules/modules/module-code-topology.instructions.md
     readsBlueprintFiles:
       - "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md"
-      - docs/audit/map-plugin-package-scorecard.md
       - docs/audit/commander-console-ui-atomic-quality.md
       - docs/audit/commander-console-mac-app-shell-scorecard.md
       - "docs/法案辅助文件/GrassEye 本地应用形态与运行壳施工图.md"
@@ -222,49 +222,7 @@ owners:
       - .github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md
     readsBlueprintFiles:
       - "docs/法案辅助文件/GrassEye 法案冻结基线.md"
-      - "docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md"
-  - inspectorId: map-plugin-package-governance
-    capabilityDomain: map-plugin-package
-    ownerKind: support-governance
-    manifestPath: scripts/audit/domains/map-plugin-package/manifest.json
-    entry: scripts/audit/domains/map-plugin-package/inspector.ts
-    engine: hybrid
-    supportsEvidenceModes:
-      - "law+blueprint+real-code-inspection"
-    lawIds:
-      - GRASSEYE-MAP-PLUGIN-001-V2
-      - GRASSEYE-MAP-PLUGIN-002-V2
-      - GRASSEYE-MAP-PLUGIN-003-V2
-      - GRASSEYE-MAP-PLUGIN-004-V2
-      - GRASSEYE-MAP-PLUGIN-005-V2
-      - GRASSEYE-MAP-PLUGIN-006-V2
-      - GRASSEYE-MAP-PLUGIN-007-V2
-      - GRASSEYE-MAP-PLUGIN-008-V2
-      - GRASSEYE-MAP-PLUGIN-009-V2
-      - GRASSEYE-MAP-PLUGIN-010-V2
-      - GRASSEYE-MAP-PLUGIN-011-V2
-      - GRASSEYE-MAP-PLUGIN-012-V2
-      - GRASSEYE-MAP-PLUGIN-013-V2
-      - GRASSEYE-MAP-PLUGIN-014-V2
-      - GRASSEYE-MAP-PLUGIN-015-V2
-      - GRASSEYE-MAP-PLUGIN-016-V2
-      - GRASSEYE-MAP-PLUGIN-018-V2
-      - GRASSEYE-MAP-PLUGIN-017-V2
-    readsLawFiles:
-      - .github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md
-      - .github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md
-      - .github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md
-      - .github/instructions/cursor-rules/modules/module-audit-system.instructions.md
-    readsBlueprintFiles:
-      - "docs/法案辅助文件/GrassEye 地图插件包治理施工图.md"
-      - "docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md"
-      - "docs/法案辅助文件/GrassEye Map Authoring Input Package 施工图_FINAL.md"
-      - "docs/法案辅助文件/GrassEye Muscle Memory 肌肉记忆治理施工图.md"
-      - "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md"
-      - "docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md"
-      - "docs/法案辅助文件/GrassEye 执法系统施工图.md"
-      - docs/why/map-plugin-package.WHY.md
-      - docs/audit/map-plugin-package-scorecard.md
+      - "docs/法案辅助文件/GrassEye Visual Mission Prompt Contract 施工图.md"
   - inspectorId: mouse-click-capability-owner
     capabilityDomain: mouse-click-capability
     ownerKind: ability-group
