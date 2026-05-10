@@ -6,7 +6,7 @@
 
 - 14 个 active ability groups
 - 5 个 foundation laws
-- 1 个 support governance domain
+- 0 个 support governance domains
 - 若干父 owner 子契约法案
 
 ## 14 个 active ability groups
@@ -34,9 +34,7 @@
 4. type-safety
 5. security-privacy
 
-## 1 个 support governance domain
-
-1. map-plugin-package
+## 0 个 support governance domains
 
 ## 本地开发治理 allowlist
 

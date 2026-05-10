@@ -4,7 +4,8 @@ import { buildAiStepResult } from "./step-dispatch-ai.js";
 import { findEffectiveOperationalStep } from "./route-plan-resolver.js";
 import { buildAbilityDispatchResult, buildAiDispatchRequest } from "./step-dispatch-request-builders.js";
 import { buildFinalizeStepResult } from "./step-dispatch-review.js";
-import { decodeVisualMissionActionPlan, executeMuscleMemoryPlan } from "../../../muscle-memory/index.js";
+import { decodeVisualMissionActionPlan } from "../../../muscle-memory/decoder/action-plan-decoder.js";
+import { executeMuscleMemoryPlan } from "../../../muscle-memory/executor/muscle-memory-executor.js";
 import {
   allowsPostClickObservationAbilityGroup,
   ensurePostActionVerificationDispatchGate,
@@ -17,6 +18,7 @@ import {
   type AbilityDispatchTarget,
   type AbilityStep,
   type AiStep,
+  type DispatchChain,
   type FinalizeStep,
   type OperationalStep,
   type StepDispatchResult,
@@ -107,6 +109,45 @@ function prepareAiDispatch(input: {
     : { ok: false as const, failureReason: aiDispatchRequirements.failureReason };
 }
 
+async function executeAiDispatchActionPlan(input: {
+  state: MissionState;
+  map: OperationalMap;
+  step: AiStep;
+  missionId: string;
+  sequenceNo: number;
+  idempotencyKey: string;
+  chain: DispatchChain;
+  dispatchResult: Awaited<ReturnType<OrchestrationRuntimeContext["nerveBus"]["sendRequestToAi"]>>;
+  context: Pick<OrchestrationRuntimeContext, "nerveBus">;
+}) {
+  const decodedPlan = decodeVisualMissionActionPlan({
+    plan: input.dispatchResult.actionPlan,
+    sourceAiResultRef: input.dispatchResult.payloadRefs.aiResultRef ?? null,
+  });
+  const executionResult = await executeMuscleMemoryPlan({
+    state: input.state,
+    map: input.map,
+    missionId: input.missionId,
+    chain: input.chain,
+    sequenceNo: input.sequenceNo + 1,
+    idempotencyKey: `${input.idempotencyKey}:muscle-memory`,
+    plan: decodedPlan,
+    nerveBus: input.context.nerveBus,
+  });
+
+  return {
+    ...input.dispatchResult,
+    status: executionResult.status,
+    failureReason: executionResult.failureReason,
+    payloadRefs: executionResult.payloadRefs,
+    branchFieldValues: {
+      ...input.dispatchResult.branchFieldValues,
+      muscleMemoryExecuted: true,
+      actionExecutionCount: executionResult.actionResults.length,
+    },
+  };
+}
+
 async function dispatchAiStep(input: {
   state: MissionState;
   map: OperationalMap;
@@ -136,39 +177,26 @@ async function dispatchAiStep(input: {
 
   const dispatchResult = timeoutResult.result;
   if (dispatchResult.actionPlan !== null) {
-    const decodedPlan = decodeVisualMissionActionPlan({
-      plan: dispatchResult.actionPlan,
-      sourceAiResultRef: dispatchResult.payloadRefs.aiResultRef ?? null,
-    });
-    const executionResult = await executeMuscleMemoryPlan({
+    const executedDispatchResult = await executeAiDispatchActionPlan({
       state: input.state,
       map: input.map,
+      step: input.step,
       missionId: input.missionId,
+      sequenceNo: input.sequenceNo,
+      idempotencyKey: input.idempotencyKey,
       chain: prepared.value.chain,
-      sequenceNo: input.sequenceNo + 1,
-      idempotencyKey: `${input.idempotencyKey}:muscle-memory`,
-      plan: decodedPlan,
-      nerveBus: input.context.nerveBus,
+      dispatchResult,
+      context: input.context,
     });
     return buildAiStepResult({
       state: {
         ...input.state,
-        payloadRefs: executionResult.payloadRefs,
+        payloadRefs: executedDispatchResult.payloadRefs,
       },
       map: input.map,
       step: input.step,
       missionId: input.missionId,
-      dispatchResult: {
-        ...dispatchResult,
-        status: executionResult.status,
-        failureReason: executionResult.failureReason,
-        payloadRefs: executionResult.payloadRefs,
-        branchFieldValues: {
-          ...dispatchResult.branchFieldValues,
-          muscleMemoryExecuted: true,
-          actionExecutionCount: executionResult.actionResults.length,
-        },
-      },
+      dispatchResult: executedDispatchResult,
     });
   }
 

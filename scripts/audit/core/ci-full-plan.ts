@@ -12,13 +12,12 @@ import {
   QUICK_STEP_TIMEOUT_MS,
 } from "./ci-full-timeouts.js";
 
-export type CiFullLayerLabel = "foundation-layer" | "map-layer" | "ability-group-layer";
+export type CiFullLayerLabel = "foundation-layer" | "ability-group-layer";
 
-export const CI_FULL_LAYER_ORDER = ["foundation-layer", "map-layer", "ability-group-layer"] as const;
+export const CI_FULL_LAYER_ORDER = ["foundation-layer", "ability-group-layer"] as const;
 
 export const CI_FULL_LAYER_EXECUTION = {
   "foundation-layer": { executionMode: "serial" as const },
-  "map-layer": { executionMode: "serial" as const },
   "ability-group-layer": { executionMode: "bounded" as const, maxConcurrency: ABILITY_GROUP_SAFE_MAX_CONCURRENCY },
 } as const;
 
@@ -96,13 +95,6 @@ export const CI_FULL_STEPS = [
     name: "audit-system",
     layer: "foundation-layer",
     command: ["node", "--import", "tsx", "scripts/audit/domains/audit-system/run-inspector.ts"],
-    timeoutMs: OWNER_STEP_TIMEOUT_MS,
-    artifactPaths: [],
-  }),
-  createStep({
-    name: "map-plugin-package",
-    layer: "map-layer",
-    command: ["node", "--import", "tsx", "scripts/audit/domains/map-plugin-package/run-inspector.ts"],
     timeoutMs: OWNER_STEP_TIMEOUT_MS,
     artifactPaths: [],
   }),

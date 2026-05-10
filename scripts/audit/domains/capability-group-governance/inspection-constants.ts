@@ -37,11 +37,9 @@ const FOUNDATION_LAWS = [
   "type-safety",
   "security-privacy",
 ] as const;
-const SUPPORT_GOVERNANCE_DOMAINS = ["map-plugin-package"] as const;
+const SUPPORT_GOVERNANCE_DOMAINS = [] as const;
 const LOCAL_DEVELOPMENT_TOOLING = ["debug-loop-controller"] as const;
-const INDEX_SUPPORT_GOVERNANCE_BULLETS = [
-  "map-plugin-package routes as support governance, not as an active ability group.",
-] as const;
+const INDEX_SUPPORT_GOVERNANCE_BULLETS = [] as const;
 const INDEX_LOCAL_DEVELOPMENT_BULLETS = [
   "debug-loop-controller stays outside active law routing and must not be revived as an active ability group.",
 ] as const;

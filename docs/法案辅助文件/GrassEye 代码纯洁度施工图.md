@@ -95,6 +95,7 @@ owner-boundary detection
 import/export purity
 forbidden escape detection
 fake/mock/dead-code detection
+zombie graph cleanup
 compat-bridge detection
 real-code-inspection
 inventory and remediation queue
@@ -718,6 +719,41 @@ BLOCKING
 DISASTER
 REMEDIATION
 ```
+
+---
+
+## Zombie Finding 输出要求
+
+zombie scanner 必须把每个 fatal zombie finding 输出成结构化记录，而不是只塞进 message。
+
+每条 zombie finding 必须包含：
+
+```txt
+lawId
+file
+line
+severity
+zombieKind
+symbolName
+lawfulCallerCount
+protectedSeam
+recommendedAction
+```
+
+zombieKind 只能取下列值：
+
+```txt
+orphan-file
+dead-export
+unused-child-capability
+unused-prompt-contract
+unused-route-plan-step
+unused-map-package
+unused-inspector-component
+unused-muscle-memory-action-code
+```
+
+protectedSeam 只能用于说明已被明确豁免的守门 seam，不能用来掩盖真实 zombie。
 
 ---
 

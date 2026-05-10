@@ -752,6 +752,85 @@ FORBIDDEN:
 
 ---
 
+## Law GRASSEYE-CODE-PURITY-ZOMBIE-001-V1
+
+status: active  
+tier: P0  
+capabilityDomain: audit-system  
+enforcementMode: machine-blocking  
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: orphan files, dead exports, unused child capabilities, unused prompt contracts, unused route-plan steps, unused map packages, unused inspector components, and unused muscle-memory action codes must be detected as fatal zombie findings.
+
+### 主题
+
+Zombie Graph Cleanup
+
+### 法条
+
+Code-purity must detect inactive active-source truth through AST, symbol reference, and import/export graph analysis.
+
+Required direction:
+- Orphan files must be identified when they have no lawful callers and no protected seam.
+- Dead exports must be identified when exported declarations have no lawful callers.
+- Unused child capabilities must be identified when registry-declared childCapabilityId values have no lawful callers outside their declaration bundle.
+- Unused prompt contracts must be identified when promptContractId values have no lawful callers outside their declaration bundle.
+- Unused route-plan steps must be identified when stepId values have no lawful callers outside their route-plan bundle.
+- Unused map packages must be identified when map package files are not loaded by a lawful owner.
+- Unused inspector components must be identified when audit component files have no lawful callers.
+- Unused muscle-memory action codes must be identified when actionCode values have no lawful callers outside their declaration bundle.
+- Protected seams must be encoded explicitly and must not be inferred by grep or regex.
+- Inspectors must use AST, symbol references, import/export graphs, and structured JSON parsing to prove zombie status.
+- Final judgments must not rely on grep / regex / includes / text search as the deciding evidence.
+
+### 禁止
+
+FORBIDDEN:
+- Treating zombie assets as harmless legacy.
+- Warning-only zombie findings.
+- Allowing disabled prompt contracts to hide as active truth.
+- Allowing dormant route-plan steps to leak without protected-seam registration.
+- Allowing unused registries or catalogs to survive without a lawful caller.
+- Using grep, regex, includes, or plain text search as the final structural verdict.
+
+---
+
+## Law GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1
+
+status: active  
+tier: P0  
+capabilityDomain: audit-system  
+enforcementMode: machine-blocking  
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: retired map-system paths, startup identifiers, and APP shell UI residues must be detected as fatal active-source violations.
+
+### 主题
+
+Retired Map System Cleanup
+
+### 法条
+
+Code-purity must detect retired map-system residue through file-existence checks plus AST-backed source inspection.
+
+Required direction:
+- src/map-plugins and scripts/audit/domains/map-plugin-package must not survive as active paths.
+- Active map blueprints must not survive under docs/法案辅助文件 after map retirement.
+- routePlanId, selectedMapId, taskTemplateId, routeLabel, mapPackage, operationalMap, routePlanBoundMap, genericDiagnosticMap, MapAuthoring, MapPlugin, and activeMapRegistry must not survive in the active startup/runtime chain.
+- APP shell must not retain TaskTemplateLauncher or map/task-template UX tokens in active start surfaces.
+- Archive paths may retain historical references only when they are outside active source truth and CI-FULL does not scan them.
+- Final judgments for source residue must use AST-backed identifier/string inspection, not grep-only verdicts.
+
+### 禁止
+
+FORBIDDEN:
+- Keeping retired map paths alive as "temporary" active sources.
+- Reintroducing map/task-template startup UI after retirement.
+- Allowing selectedMapId/taskTemplateId/routeLabel to survive in the production startup chain.
+- Treating active blueprint residue as documentation-only harmless drift.
+
+---
+
 ## Module Boundary Declaration
 
 This law file governs:

@@ -23,6 +23,11 @@ export interface Finding {
   message: string;
   detail?: string;
   hint?: string;
+  zombieKind?: string;
+  symbolName?: string;
+  lawfulCallerCount?: number;
+  protectedSeam?: string | null;
+  recommendedAction?: string;
 }
 
 export interface InspectorPhase {

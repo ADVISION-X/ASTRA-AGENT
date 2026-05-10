@@ -29,9 +29,7 @@ const FOUNDATION_LAW_DOMAIN_MAP: Record<string, string> = {
   "security-privacy": "security-privacy",
 };
 
-const SUPPORT_GOVERNANCE_DOMAIN_MAP: Record<string, string> = {
-  "map-plugin-package": "map-plugin-package",
-};
+const SUPPORT_GOVERNANCE_DOMAIN_MAP: Record<string, string> = {};
 
 const LOCAL_DEVELOPMENT_GOVERNANCE_DOMAIN_MAP: Record<string, string> = {
   "debug-loop-boundary": "debug-loop-boundary",
@@ -65,8 +63,8 @@ const FROZEN_BASELINE_SECTION_BY_HEADING: Record<string, Exclude<FrozenBaselineS
   "## 14 个 active ability groups": "active-ability-groups",
   "## 4 个 active support laws": "foundation-laws",
   "## 5 个 foundation laws": "foundation-laws",
-  "## 1 个 support governance domain": "support-governance-domains",
-  "## 1 个 support governance domains": "support-governance-domains",
+  "## 0 个 support governance domain": "support-governance-domains",
+  "## 0 个 support governance domains": "support-governance-domains",
   "## support governance domains": "support-governance-domains",
   "## 本地开发治理 allowlist": "local-development-governance-domains",
   "## 已删除 active owner": "deleted-active-owners",

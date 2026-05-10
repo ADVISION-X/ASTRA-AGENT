@@ -6,7 +6,6 @@ import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 
 import { kernelInspectionConstants } from "./inspection-constants.js";
-import { collectMapPackagePromptFindings } from "./map-package-prompt-checks.js";
 import { collectPromptContractCatalogFindings } from "./prompt-contract-catalog-checks.js";
 
 type BlueprintIdentity = {
@@ -17,7 +16,6 @@ type BlueprintIdentity = {
 
 const REQUIRED_BLUEPRINT_FIELDS = {
   owner: "ai-capability",
-  relatedSupportDomain: "map-plugin-package",
   notAbilityGroup: "true",
 } as const;
 
@@ -93,7 +91,7 @@ async function collectBlueprintIdentityFindings(): Promise<Finding[]> {
     return [createRequirementFinding({
       file: relativeFile,
       line: 1,
-      message: "Prompt contract governance blueprint must declare ai-capability ownership and map-plugin-package reference-only status.",
+      message: "Prompt contract governance blueprint must declare ai-capability ownership and retired-map-free identity.",
       detail: "Missing or malformed YAML identity fence.",
     })];
   }
@@ -112,23 +110,21 @@ async function collectBlueprintIdentityFindings(): Promise<Finding[]> {
   return [createRequirementFinding({
     file: relativeFile,
     line: firstMismatchedKey ? (identity.lineByKey.get(firstMismatchedKey) ?? identity.line) : identity.line,
-    message: "Prompt contract governance blueprint must declare ai-capability ownership and map-plugin-package reference-only status.",
+    message: "Prompt contract governance blueprint must declare ai-capability ownership and retired-map-free identity.",
     detail: mismatches.join("; "),
   })];
 }
 
 export async function runPromptContractRoutingChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
-  const [blueprintFindings, promptContractFindings, mapPackageFindings] = await Promise.all([
+  const [blueprintFindings, promptContractFindings] = await Promise.all([
     collectBlueprintIdentityFindings(),
     collectPromptContractCatalogFindings(),
-    collectMapPackagePromptFindings(),
   ]);
 
   return {
     findings: [
       ...blueprintFindings,
       ...promptContractFindings,
-      ...mapPackageFindings,
     ],
     phases: [
       createPhase(
@@ -136,8 +132,8 @@ export async function runPromptContractRoutingChecks(): Promise<{ findings: Find
         blueprintFindings.length === 0 ? "PASS" : "CODE VIOLATION",
         blueprintFindings.length === 0,
         blueprintFindings.length === 0
-          ? "Prompt contract governance blueprint keeps AI ownership and map reference-only identity."
-          : "Prompt contract governance blueprint drifted away from the required AI owner and map reference-only identity.",
+          ? "Prompt contract governance blueprint keeps AI ownership and retired-map-free identity."
+          : "Prompt contract governance blueprint drifted away from the required AI owner and retired-map-free identity.",
       ),
       createPhase(
         "prompt-contract-catalog-routing",
@@ -146,14 +142,6 @@ export async function runPromptContractRoutingChecks(): Promise<{ findings: Find
         promptContractFindings.length === 0
           ? "Prompt contracts stay inside AI-owned catalog files and explicitly prohibit action execution."
           : "Prompt contract files drifted outside AI ownership or lost action-execution prohibitions.",
-      ),
-      createPhase(
-        "map-package-prompt-reference-only",
-        mapPackageFindings.length === 0 ? "PASS" : "CODE VIOLATION",
-        mapPackageFindings.length === 0,
-        mapPackageFindings.length === 0
-          ? "Map packages keep prompt bindings reference-only and do not embed prompt bodies."
-          : "Map packages embed prompt bodies or drift away from reference-only prompt bindings.",
       ),
     ],
   };

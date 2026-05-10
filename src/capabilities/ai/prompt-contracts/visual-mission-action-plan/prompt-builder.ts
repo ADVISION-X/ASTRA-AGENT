@@ -1,4 +1,4 @@
-import { buildMuscleMemorySystemManual } from "../../../../muscle-memory/index.js";
+import { buildMuscleMemorySystemManual } from "../../../../muscle-memory/system-manual.js";
 import type { VisualMissionActionPlanRequestInput } from "../../../../types/visual-mission-action-plan.js";
 
 const OUTPUT_FORMAT_GUIDE = [

@@ -39,22 +39,26 @@ const normalizeNullableBoolean = (value: unknown): boolean | null | undefined =>
     : undefined;
 };
 
+const resolveTaskDecisionFromActionPlan = (rawActionPlan: unknown): "YES_SEEDING_VIDEO_FLOW" | "NO_SEEDING_VIDEO_FLOW" | null => {
+  if (!rawActionPlan || typeof rawActionPlan !== "object" || !Array.isArray((rawActionPlan as { actions?: unknown[] }).actions)) {
+    return null;
+  }
+
+  const firstActionCode = (rawActionPlan as { actions: Array<{ actionCode?: unknown }> }).actions[0]?.actionCode;
+  return firstActionCode === "YES_SEEDING_VIDEO_FLOW" || firstActionCode === "NO_SEEDING_VIDEO_FLOW"
+    ? firstActionCode
+    : null;
+};
+
 const resolveTaskDecision = (value: JsonRecord, isProductVideo: boolean | null): "YES_SEEDING_VIDEO_FLOW" | "NO_SEEDING_VIDEO_FLOW" => {
   const rawTaskDecision = typeof value.taskDecision === "string" ? value.taskDecision : null;
   if (rawTaskDecision === "YES_SEEDING_VIDEO_FLOW" || rawTaskDecision === "NO_SEEDING_VIDEO_FLOW") {
     return rawTaskDecision;
   }
 
-  const rawActionPlan = value.actionPlan;
-  if (
-    rawActionPlan
-    && typeof rawActionPlan === "object"
-    && Array.isArray((rawActionPlan as { actions?: unknown[] }).actions)
-  ) {
-    const firstActionCode = (rawActionPlan as { actions: Array<{ actionCode?: unknown }> }).actions[0]?.actionCode;
-    if (firstActionCode === "YES_SEEDING_VIDEO_FLOW" || firstActionCode === "NO_SEEDING_VIDEO_FLOW") {
-      return firstActionCode;
-    }
+  const actionPlanDecision = resolveTaskDecisionFromActionPlan(value.actionPlan);
+  if (actionPlanDecision) {
+    return actionPlanDecision;
   }
 
   return isProductVideo === true ? "YES_SEEDING_VIDEO_FLOW" : "NO_SEEDING_VIDEO_FLOW";
@@ -138,29 +142,52 @@ const buildActionPlan = (input: {
   nonExecutableSummary: input.nonExecutableSummary,
 });
 
-const resolveVisionRuntimeDecisionLabels = (
-  request: VisionProductPresenceRequest,
+const resolveDecisionReason = (value: JsonRecord, nonExecutableSummary: string): string => {
+  if (typeof value.reason === "string" && value.reason.length > 0) {
+    return value.reason;
+  }
+  if (typeof value.aggregateReason === "string" && value.aggregateReason.length > 0) {
+    return value.aggregateReason;
+  }
+  return nonExecutableSummary;
+};
+
+const resolveDecisionSummaryFields = (
   value: JsonRecord,
-  rootIsProductVideo: boolean | null,
-  confidence: number,
-  uncertainty: string[],
-): Pick<VisionRuntimeDecisionState, "taskDecision" | "pageStateDecision" | "actionPlan" | "nonExecutableSummary"> => {
-  const taskDecision = resolveTaskDecision(value, rootIsProductVideo);
-  const pageStateDecision = "ready" as const;
-  const nonExecutableSummary = typeof value.nonExecutableSummary === "string" && value.nonExecutableSummary.length > 0
-    ? value.nonExecutableSummary
-    : resolveNonExecutableSummary(taskDecision);
-  const reason = typeof value.reason === "string" && value.reason.length > 0
-    ? value.reason
-    : (typeof value.aggregateReason === "string" && value.aggregateReason.length > 0
-      ? value.aggregateReason
-      : nonExecutableSummary);
+  taskDecision: "YES_SEEDING_VIDEO_FLOW" | "NO_SEEDING_VIDEO_FLOW",
+): Pick<VisionRuntimeDecisionState, "pageStateDecision" | "nonExecutableSummary"> => {
+  return {
+    pageStateDecision: "ready",
+    nonExecutableSummary: typeof value.nonExecutableSummary === "string" && value.nonExecutableSummary.length > 0
+      ? value.nonExecutableSummary
+      : resolveNonExecutableSummary(taskDecision),
+  };
+};
+
+const resolveVisionRuntimeDecisionLabels = (input: {
+  request: VisionProductPresenceRequest;
+  value: JsonRecord;
+  rootIsProductVideo: boolean | null;
+  confidence: number;
+  uncertainty: string[];
+}): Pick<VisionRuntimeDecisionState, "taskDecision" | "pageStateDecision" | "actionPlan" | "nonExecutableSummary"> => {
+  const taskDecision = resolveTaskDecision(input.value, input.rootIsProductVideo);
+  const summaryFields = resolveDecisionSummaryFields(input.value, taskDecision);
+  const reason = resolveDecisionReason(input.value, summaryFields.nonExecutableSummary);
 
   return {
     taskDecision,
-    pageStateDecision,
-    actionPlan: buildActionPlan({ request, taskDecision, pageStateDecision, confidence, uncertainty, reason, nonExecutableSummary }),
-    nonExecutableSummary,
+    pageStateDecision: summaryFields.pageStateDecision,
+    actionPlan: buildActionPlan({
+      request: input.request,
+      taskDecision,
+      pageStateDecision: summaryFields.pageStateDecision,
+      confidence: input.confidence,
+      uncertainty: input.uncertainty,
+      reason,
+      nonExecutableSummary: summaryFields.nonExecutableSummary,
+    }),
+    nonExecutableSummary: summaryFields.nonExecutableSummary,
   };
 };
 
@@ -175,7 +202,13 @@ export const resolveVisionRuntimeDecisionState = (value: JsonRecord, request: Vi
         return Number.isFinite(parsed) && parsed >= 0 && parsed <= 1 ? parsed : 0;
       })()
       : 0;
-  const labels = resolveVisionRuntimeDecisionLabels(request, value, inputs.rootIsProductVideo, confidence, uncertainty);
+  const labels = resolveVisionRuntimeDecisionLabels({
+    request,
+    value,
+    rootIsProductVideo: inputs.rootIsProductVideo,
+    confidence,
+    uncertainty,
+  });
   const consistentDecision = normalizeDecisionConsistency({
     decision: labels.taskDecision === "YES_SEEDING_VIDEO_FLOW" ? "product_yes" : "product_no",
     isProductVideo: inputs.rootIsProductVideo,

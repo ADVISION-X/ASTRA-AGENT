@@ -8,8 +8,8 @@ import {
   normalizeSelectedPlatforms,
   resolveStartRunLimits,
   resolveVisualMissionStartBinding,
-  type MissionStartBinding,
-} from "./task-start-binding.js";
+} from "./task-start-visual-mission-binding.js";
+import type { MissionStartBinding } from "./task-start-binding-contract.js";
 import {
   recordTaskStartDraftEvents,
   recordTaskStartLocalAiReadiness,

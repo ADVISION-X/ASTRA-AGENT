@@ -3,7 +3,7 @@ import type { ServerResponse } from "node:http";
 import type { GrassEyeWorkbenchHandle } from "../local-runtime/workbench-handle.js";
 import { writeTaskJsonResponse } from "./task-http-helpers.js";
 import { recordTaskStartDebugEvent } from "./task-start-debug-writer.js";
-import type { MissionStartBinding } from "./task-start-binding.js";
+import type { MissionStartBinding } from "./task-start-binding-contract.js";
 import type { StartApproval, StartDraft } from "./task-start-types.js";
 
 const toNullableString = (value: string | undefined): string | null => value ?? null;

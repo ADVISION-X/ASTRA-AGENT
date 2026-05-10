@@ -9,6 +9,8 @@ import { CODE_PURITY_LAW_IDS, LAW_PHASE_SUMMARIES } from "./purity-law-phase-dat
 import { ACTIVE_FILES, ACTIVE_ROOTS, BLUEPRINT_PATH, CODE_PURITY_SCAN_EXTENSIONS, CODE_PURITY_SCAN_SCOPE } from "./purity-runtime-constants.js";
 import { createEmptyPurityReport, inspectPurityMetrics } from "./purity-metric-inspection.js";
 import { finalizePurityReport, writePurityReport } from "./purity-report.js";
+import { inspectRetiredMapSystem } from "./scan-retired-map-system.js";
+import { inspectZombieScan } from "./zombie-scan/index.js";
 
 const REQUIRED_COMPONENT_EXPORTS = [
   {
@@ -104,6 +106,17 @@ const inspectSourcePaths = (project: Project, relativePaths: string[], touchedPa
     sourceFile.forget();
   }
   return findings;
+};
+
+const collectSourceFileMap = (project: Project, relativePaths: string[]): Map<string, SourceFile> => {
+  const sourceFilesByPath = new Map<string, SourceFile>();
+  for (const relativePath of relativePaths) {
+    const sourceFile = project.addSourceFileAtPathIfExists(pathFromRepoRoot(relativePath));
+    if (sourceFile) {
+      sourceFilesByPath.set(relativePath, sourceFile);
+    }
+  }
+  return sourceFilesByPath;
 };
 
 const hasNamedExportSyntax = (sourceFile: SourceFile, exportName: string): boolean => {
@@ -218,6 +231,8 @@ export const inspectCodePurity = async (context: InspectorContext): Promise<{ fi
     ...inspectRequiredComponentExports(project),
     ...inspectCodePurityLawCoverage(context),
     ...(await inspectReportOutputs(reportDraft)),
+    ...(await inspectRetiredMapSystem(relativePaths, collectSourceFileMap(project, relativePaths))),
+    ...(await inspectZombieScan(context.repoRoot, relativePaths)),
   ];
 
   debug(`findings=${findings.length}`);

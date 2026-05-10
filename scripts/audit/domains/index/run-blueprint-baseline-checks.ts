@@ -37,7 +37,7 @@ const FOUNDATION_LAWS = [
   "security-privacy",
 ] as const;
 
-const SUPPORT_GOVERNANCE_DOMAINS = ["map-plugin-package"] as const;
+const SUPPORT_GOVERNANCE_DOMAINS = [] as const;
 const LOCAL_DEVELOPMENT_TOOLING = ["debug-loop-controller"] as const;
 const CURRENT_PARENT_OWNERS = [
   ...ACTIVE_ABILITY_GROUPS.map((group) => `${group}-capability`),
@@ -145,8 +145,8 @@ const collectFrozenConclusionFindings = (input: {
   if (!input.frozenConclusion.includes("5 个 foundation laws")) {
     findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-002", message: "Index blueprint must keep the frozen conclusion foundation-law count at 5." }));
   }
-  if (!input.frozenConclusion.includes("1 个 support governance domain")) {
-    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-003", message: "Index blueprint must keep the frozen conclusion support-governance count at 1." }));
+  if (!input.frozenConclusion.includes("0 个 support governance domains")) {
+    findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-003", message: "Index blueprint must keep the frozen conclusion support-governance count at 0." }));
   }
   if (!input.frozenConclusion.includes("若干父 owner 子契约法案") || input.childContractRows.length === 0) {
     findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-004", message: "Index blueprint must keep the frozen conclusion child-contract-law statement and a non-empty child-contract table." }));
@@ -184,7 +184,7 @@ const collectExactBaselineSectionFindings = (input: {
     foundationSectionFindings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-004-REQ-001", message: "Index blueprint foundation-law section must keep the exact five-law baseline and contain no extra machine rules." }));
   }
   if (JSON.stringify(input.supportGovernanceDomains) !== JSON.stringify(SUPPORT_GOVERNANCE_DOMAINS)) {
-    section002Findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-003", message: "Index blueprint support-governance section must keep the exact single-domain baseline." }));
+    section002Findings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-002-REQ-003", message: "Index blueprint support-governance section must remain empty after map retirement." }));
   }
   if (JSON.stringify(input.localDevelopmentTooling) !== JSON.stringify(LOCAL_DEVELOPMENT_TOOLING)) {
     debugLoopFindings.push(createBlueprintFinding({ lawId: "K02-BLUEPRINT-01-SECTION-006-REQ-001", message: "Index blueprint local development tooling must remain debug-loop-controller only." }));
@@ -202,7 +202,7 @@ const loadBlueprintBaselineState = async () => {
     frozenConclusion: parseBulletList(extractSectionLines(lines, "## 冻结结论")),
     activeAbilityGroups: parseOrderedList(extractSectionLines(lines, "## 14 个 active ability groups")),
     foundationLaws: parseOrderedList(extractSectionLines(lines, "## 5 个 foundation laws")),
-    supportGovernanceDomains: parseOrderedList(extractSectionLines(lines, "## 1 个 support governance domain")),
+    supportGovernanceDomains: parseOrderedList(extractSectionLines(lines, "## 0 个 support governance domains")),
     localDevelopmentTooling: parseBulletList(extractSectionLines(lines, "## 本地开发工具")),
     childContractRows: parseChildContractRows(extractSectionLines(lines, "## 子契约归属表")),
   };

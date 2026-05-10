@@ -2,7 +2,7 @@ import type {
   MissionStartBinding,
   RequestedPlatformId,
   UserRequirementSelectedPlatformId,
-} from "./task-start-binding.js";
+} from "./task-start-binding-contract.js";
 
 export type StartVisualMissionBody = {
   commandSource?: string;

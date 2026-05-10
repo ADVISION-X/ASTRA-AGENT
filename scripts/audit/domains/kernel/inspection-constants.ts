@@ -17,13 +17,12 @@ const REQUIREMENT_ID_BLUEPRINT_007_001 = "K01-BLUEPRINT-01-SECTION-007-REQ-001";
 
 const KERNEL_FILE = ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md";
 const BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye 法案冻结基线.md";
-const PROMPT_CONTRACT_GOVERNANCE_BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye Map Prompt Contract Governance 施工图.md";
+const PROMPT_CONTRACT_GOVERNANCE_BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye Visual Mission Prompt Contract 施工图.md";
 const MANIFEST_FILE = "scripts/audit/domains/kernel/manifest.json";
 const INSPECTOR_ENTRY = "scripts/audit/domains/kernel/inspector.ts";
 const RUN_INSPECTOR_FILE = "scripts/audit/domains/kernel/run-inspector.ts";
 const CAPABILITY_ROOT = "src/capabilities";
 const AI_PROMPT_CONTRACT_ROOT = "src/capabilities/ai/prompt-contracts";
-const MAP_PLUGIN_ROOT = "src/map-plugins";
 const GOVERNED_SURFACES = ["src/capabilities/", "src/lib/local-runtime/"] as const;
 const ACTIVE_ABILITY_GROUPS = [
   "commander-console",
@@ -48,13 +47,12 @@ const FOUNDATION_LAWS = [
   "type-safety",
   "security-privacy",
 ] as const;
-const SUPPORT_GOVERNANCE_DOMAINS = ["map-plugin-package"] as const;
+const SUPPORT_GOVERNANCE_DOMAINS = [] as const;
 const LOCAL_DEVELOPMENT_TOOLING = ["debug-loop-controller"] as const;
 
 const FORBIDDEN_TOP_LEVEL_OWNER_LITERALS = new Set([
   "kernel",
   "index",
-  "map-plugin-package",
   "audit-system",
   "capability-group-governance",
   "code-purity",
@@ -129,7 +127,6 @@ export const kernelInspectionConstants = {
   RUN_INSPECTOR_FILE,
   CAPABILITY_ROOT,
   AI_PROMPT_CONTRACT_ROOT,
-  MAP_PLUGIN_ROOT,
   GOVERNED_SURFACES,
   ACTIVE_ABILITY_GROUPS,
   FOUNDATION_LAWS,

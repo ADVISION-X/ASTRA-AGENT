@@ -103,7 +103,7 @@ function renderPlatformSelector(viewModel: CommanderConsoleViewModel, t: Localiz
   return `<section class="cc-start-platforms">
       <div class="cc-section-copy">
         <p class="cc-section-title">${escapeHtml(t("平台勾选", "Platforms"))}</p>
-        <p class="cc-note">${escapeHtml(t("用户只选择目标平台，内部 runtime / map / profile 不在启动页暴露。", "The operator only chooses target platforms. Internal runtime, map, and profile bindings stay hidden from the start page."))}</p>
+        <p class="cc-note">${escapeHtml(t("用户只选择目标平台；内部绑定字段和退役地图字段都不在启动页暴露。", "The operator only chooses target platforms. Internal binding fields and retired map fields stay hidden from the start page."))}</p>
       </div>
       <div class="cc-platform-option-grid" data-platform-selector>
         ${START_PLATFORMS.map((platform) => renderPlatformOption({
@@ -177,7 +177,7 @@ export function renderVisualMissionPromptLauncher(viewModel: CommanderConsoleVie
         ${renderHistoryList(viewModel, t)}
         <div class="cc-selected-task">
           <h3>${escapeHtml(t("启动边界", "Launch Boundary"))}</h3>
-          <p>${escapeHtml(t("启动页只收集目标、平台和运行限制，不暴露 taskTemplateId 或 selectedMapId。", "The start page collects goal, platforms, and run limits only. It does not expose taskTemplateId or selectedMapId."))}</p>
+          <p>${escapeHtml(t("启动页只收集目标、平台和运行限制，不暴露任何退役地图字段。", "The start page collects goal, platforms, and run limits only. It does not expose any retired map fields."))}</p>
         </div>
         ${renderActionDock(launchLocked, t)}
       </aside>

@@ -4,7 +4,6 @@
 		"debug-loop-boundary"
 	],
 	"activeLawDomains": [
-		"map-plugin-package",
 		"audit-system",
 		"capability-group-governance",
 		"type-safety",

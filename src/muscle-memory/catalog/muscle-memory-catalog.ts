@@ -13,7 +13,7 @@ const GENERATED_CATALOG_PATH = new URL("./muscle-memory-catalog.generated.json",
 let catalogCache: MuscleMemoryCatalog | null = null;
 
 function readCatalog(): MuscleMemoryCatalog {
-  const raw = JSON.parse(readFileSync(GENERATED_CATALOG_PATH, "utf8")) as unknown;
+  const raw = JSON.parse(readFileSync(GENERATED_CATALOG_PATH, "utf8"));
   return MuscleMemoryCatalogSchema.parse(raw);
 }
 

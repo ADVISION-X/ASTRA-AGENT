@@ -19,9 +19,6 @@ const getDirectSrcOwner = (parts: string[]): string | undefined => {
   if (parts[0] !== "src") {
     return undefined;
   }
-  if (parts[1] === "map-plugins") {
-    return "map-plugin-package";
-  }
   if (parts[1] === "app") {
     return "commander-console";
   }

@@ -19,6 +19,72 @@ const MuscleMemoryPlatformBindingSchema = z.object({
   childCapabilityId: z.string().min(1),
 }).strict();
 
+const validateAtomicBindingPresence = (
+  value: { abilityGroupId?: string | undefined; childCapabilityId?: string | undefined; platformBindings?: Record<string, unknown> | undefined },
+  context: z.RefinementCtx,
+) => {
+  const hasDirectBinding = typeof value.abilityGroupId === "string" && typeof value.childCapabilityId === "string";
+  const hasPlatformBindings = value.platformBindings && Object.keys(value.platformBindings).length > 0;
+  if (!hasDirectBinding && !hasPlatformBindings) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Atomic muscle-memory actions require a direct child binding or platform bindings.",
+      path: ["childCapabilityId"],
+    });
+  }
+};
+
+const validateAtomicRecipeExclusion = (value: { steps: unknown[] }, context: z.RefinementCtx) => {
+  if (value.steps.length > 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Atomic muscle-memory actions must not contain recipe steps.",
+      path: ["steps"],
+    });
+  }
+};
+
+const validateRecipeHasSteps = (value: { steps: unknown[] }, context: z.RefinementCtx) => {
+  if (value.steps.length === 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Recipe muscle-memory actions require at least one registered step.",
+      path: ["steps"],
+    });
+  }
+};
+
+const validateAtomicActionShape = (
+  value: {
+    abilityGroupId?: string | undefined;
+    childCapabilityId?: string | undefined;
+    platformBindings?: Record<string, unknown> | undefined;
+    steps: unknown[];
+  },
+  context: z.RefinementCtx,
+) => {
+  validateAtomicBindingPresence(value, context);
+  validateAtomicRecipeExclusion(value, context);
+};
+
+const validateMuscleMemoryActionShape = (
+  value: {
+    kind: "atomic" | "recipe";
+    abilityGroupId?: string | undefined;
+    childCapabilityId?: string | undefined;
+    platformBindings?: Record<string, unknown> | undefined;
+    steps: unknown[];
+  },
+  context: z.RefinementCtx,
+) => {
+  if (value.kind === "atomic") {
+    validateAtomicActionShape(value, context);
+    return;
+  }
+
+  validateRecipeHasSteps(value, context);
+};
+
 const MuscleMemoryActionSchema = z.object({
   actionCode: MuscleMemoryActionCodeSchema,
   kind: MuscleMemoryActionKindSchema,
@@ -34,33 +100,7 @@ const MuscleMemoryActionSchema = z.object({
   requiresGridSpec: z.boolean(),
   riskLevel: MuscleMemoryRiskLevelSchema,
   steps: z.array(MuscleMemoryRecipeStepSchema).default([]),
-}).strict().superRefine((value, context) => {
-  const hasDirectBinding = typeof value.abilityGroupId === "string" && typeof value.childCapabilityId === "string";
-  const hasPlatformBindings = value.platformBindings && Object.keys(value.platformBindings).length > 0;
-  if (value.kind === "atomic") {
-    if (!hasDirectBinding && !hasPlatformBindings) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Atomic muscle-memory actions require a direct child binding or platform bindings.",
-        path: ["childCapabilityId"],
-      });
-    }
-    if (value.steps.length > 0) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Atomic muscle-memory actions must not contain recipe steps.",
-        path: ["steps"],
-      });
-    }
-  }
-  if (value.kind === "recipe" && value.steps.length === 0) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Recipe muscle-memory actions require at least one registered step.",
-      path: ["steps"],
-    });
-  }
-});
+}).strict().superRefine(validateMuscleMemoryActionShape);
 
 export {
   MUSCLE_MEMORY_PRESS_KEY_ALLOWLIST,

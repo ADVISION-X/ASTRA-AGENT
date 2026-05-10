@@ -10,26 +10,55 @@ const VisualMissionActionInputSchema = z.object({
   targetName: z.string().min(1).optional(),
 }).strict();
 
+const validateRequiredPressKeyInput = (
+  value: { actionCode: string; input?: { key?: z.infer<typeof MuscleMemoryPressKeySchema> | undefined } | undefined },
+  context: z.RefinementCtx,
+) => {
+  if (value.actionCode === "PRESS_KEY" && !value.input?.key) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "PRESS_KEY requires input.key from the governed key allowlist.", path: ["input", "key"] });
+  }
+};
+
+const validateRequiredClickCellInput = (
+  value: { actionCode: string; input?: { gridCell?: z.infer<typeof MuscleMemoryGridCellSchema> | undefined } | undefined },
+  context: z.RefinementCtx,
+) => {
+  if (value.actionCode === "CLICK_CELL" && !value.input?.gridCell) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "CLICK_CELL requires input.gridCell in governed cell format.", path: ["input", "gridCell"] });
+  }
+};
+
+const validateUnexpectedActionInput = (
+  value: { actionCode: string; input?: { key?: z.infer<typeof MuscleMemoryPressKeySchema> | undefined; gridCell?: z.infer<typeof MuscleMemoryGridCellSchema> | undefined } | undefined },
+  context: z.RefinementCtx,
+) => {
+  if (value.actionCode !== "PRESS_KEY" && value.input?.key) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Only PRESS_KEY may carry input.key.", path: ["input", "key"] });
+  }
+  if (value.actionCode !== "CLICK_CELL" && value.input?.gridCell) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Only CLICK_CELL may carry input.gridCell.", path: ["input", "gridCell"] });
+  }
+};
+
+const validateVisualMissionActionInput = (value: {
+  actionCode: string;
+  input?: {
+    key?: z.infer<typeof MuscleMemoryPressKeySchema> | undefined;
+    gridCell?: z.infer<typeof MuscleMemoryGridCellSchema> | undefined;
+    targetName?: string | undefined;
+  } | undefined;
+}, context: z.RefinementCtx) => {
+  validateRequiredPressKeyInput(value, context);
+  validateRequiredClickCellInput(value, context);
+  validateUnexpectedActionInput(value, context);
+};
+
 const VisualMissionActionSchema = z.object({
   actionCode: z.string().min(1).refine(isAiPlanEligibleActionCode, "actionCode must be registered in MuscleMemoryCatalog and allowed for AI planning."),
   required: z.boolean().default(true),
   input: VisualMissionActionInputSchema.optional(),
   reason: z.string().min(1),
-}).strict().superRefine((value, context) => {
-  const input = value.input ?? null;
-  if (value.actionCode === "PRESS_KEY" && (!input || !input.key)) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "PRESS_KEY requires input.key from the governed key allowlist.", path: ["input", "key"] });
-  }
-  if (value.actionCode === "CLICK_CELL" && (!input || !input.gridCell)) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "CLICK_CELL requires input.gridCell in governed cell format.", path: ["input", "gridCell"] });
-  }
-  if (value.actionCode !== "PRESS_KEY" && input?.key) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "Only PRESS_KEY may carry input.key.", path: ["input", "key"] });
-  }
-  if (value.actionCode !== "CLICK_CELL" && input?.gridCell) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "Only CLICK_CELL may carry input.gridCell.", path: ["input", "gridCell"] });
-  }
-});
+}).strict().superRefine(validateVisualMissionActionInput);
 
 const VisualMissionClickTargetSchema = z.object({
   gridCell: MuscleMemoryGridCellSchema,

@@ -24,7 +24,9 @@
     "GRASSEYE-CODE-PURITY-011-V1",
     "GRASSEYE-CODE-PURITY-012-V1",
     "GRASSEYE-CODE-PURITY-013-V1",
-    "GRASSEYE-CODE-PURITY-014-V1"
+    "GRASSEYE-CODE-PURITY-014-V1",
+    "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+    "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1"
   ],
   "readsLawFiles": [
     ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",

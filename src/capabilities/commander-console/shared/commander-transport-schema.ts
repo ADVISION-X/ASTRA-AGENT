@@ -19,6 +19,16 @@ const addCommanderIssue = (ctx: RefinementCtx, message: string) => {
   ctx.addIssue({ code: z.ZodIssueCode.custom, message });
 };
 
+const StartMissionPlatformProfileSchema = z.object({
+  platformId: RequestedPlatformIdSchema,
+  displayName: NonEmptyStringSchema,
+  entryUrl: z.string().url(),
+  targetTitle: NonEmptyStringSchema,
+  allowedHosts: z.array(NonEmptyStringSchema).min(1),
+  defaultRecoveryActionCode: NonEmptyStringSchema,
+  supportedActionCodes: z.array(NonEmptyStringSchema).min(1),
+}).strict();
+
 const StartMissionTransportPayloadBaseSchema = z.object({
   kind: z.literal("start-mission"),
   requestedBy: z.literal("commander-console"),
@@ -27,6 +37,11 @@ const StartMissionTransportPayloadBaseSchema = z.object({
   taskTemplateId: NonEmptyStringSchema.optional(),
   activationId: NonEmptyStringSchema.optional(),
   activationSnapshotRef: NonEmptyStringSchema.optional(),
+  selectedPlatforms: z.array(RequestedPlatformIdSchema).min(1).optional(),
+  primaryPlatformId: RequestedPlatformIdSchema.optional(),
+  platformProfiles: z.record(RequestedPlatformIdSchema, StartMissionPlatformProfileSchema).optional(),
+  userRequirementRef: NonEmptyStringSchema.nullable().optional(),
+  historyEntryId: NonEmptyStringSchema.nullable().optional(),
   humanGoal: CommanderGoalSchema.optional(),
   maxRounds: CommanderMaxRoundsSchema.optional(),
   maxMinutes: CommanderMaxMinutesSchema.optional(),
@@ -44,8 +59,8 @@ const validateStartMissionPayload = (
   value: z.infer<typeof StartMissionTransportPayloadBaseSchema>,
   ctx: RefinementCtx,
 ) => {
-  if (!value.requestedPlatformId || !value.selectedMapId) {
-    addCommanderIssue(ctx, "start-mission payload requires both requestedPlatformId and selectedMapId");
+  if (!value.requestedPlatformId || !value.targetUrl || !value.targetTitle) {
+    addCommanderIssue(ctx, "start-mission payload requires requestedPlatformId, targetUrl, and targetTitle");
   }
 };
 

@@ -8,7 +8,7 @@ import {
   type MissionStartBinding,
   type MissionStartBindingFailure,
   type UserRequirementSelectedPlatformId,
-} from "./task-start-legacy-binding.js";
+} from "./task-start-binding-contract.js";
 
 type ActiveRegistry = ReturnType<typeof getLocalAppShellMapRegistry>["active"];
 
@@ -90,14 +90,17 @@ export function resolveStartRunLimits(input: {
   defaultMaxRounds: number;
   defaultMaxMinutes: number;
   draft: RunLimitInput;
-}): Required<RunLimitInput> {
+}): { maxRounds: number; maxMinutes: number } {
   return {
     maxRounds: input.draft.maxRounds ?? input.defaultMaxRounds,
     maxMinutes: input.draft.maxMinutes ?? input.defaultMaxMinutes,
   };
 }
 
-export function resolveVisualMissionStartBinding(input: VisualMissionStartBindingInput): MissionStartBinding {
+function validateVisualMissionStartInput(input: VisualMissionStartBindingInput): {
+  selectedPlatforms: UserRequirementSelectedPlatformId[];
+  userRequirementText: string;
+} | MissionStartBindingFailure {
   const selectedPlatforms = input.selectedPlatforms.filter(isUserRequirementSelectedPlatformId);
   const userRequirementText = input.userRequirementText.trim();
   if (!userRequirementText) {
@@ -114,7 +117,10 @@ export function resolveVisualMissionStartBinding(input: VisualMissionStartBindin
       "至少勾选一个受治理平台后再启动。",
     );
   }
+  return { selectedPlatforms, userRequirementText };
+}
 
+function resolveVisualMissionTargetProfiles(selectedPlatforms: UserRequirementSelectedPlatformId[]): Partial<Record<UserRequirementSelectedPlatformId, VisualMissionTargetProfileBinding>> | MissionStartBindingFailure {
   const activeRegistry = getLocalAppShellMapRegistry().active;
   const targetProfiles: Partial<Record<UserRequirementSelectedPlatformId, VisualMissionTargetProfileBinding>> = {};
   for (const platformId of selectedPlatforms) {
@@ -124,8 +130,14 @@ export function resolveVisualMissionStartBinding(input: VisualMissionStartBindin
     }
     targetProfiles[platformId] = binding;
   }
+  return targetProfiles;
+}
 
-  const [primaryPlatformId] = selectedPlatforms;
+function resolvePrimaryVisualMissionBinding(input: {
+  selectedPlatforms: UserRequirementSelectedPlatformId[];
+  targetProfiles: Partial<Record<UserRequirementSelectedPlatformId, VisualMissionTargetProfileBinding>>;
+}): { primaryPlatformId: UserRequirementSelectedPlatformId; primaryBinding: VisualMissionTargetProfileBinding } | MissionStartBindingFailure {
+  const [primaryPlatformId] = input.selectedPlatforms;
   if (!primaryPlatformId) {
     return createBindingFailure(
       "visual mission primary platform binding is missing.",
@@ -133,7 +145,7 @@ export function resolveVisualMissionStartBinding(input: VisualMissionStartBindin
       "重新选择平台并重试；如果仍失败，检查 active map registry。",
     );
   }
-  const primaryBinding = targetProfiles[primaryPlatformId];
+  const primaryBinding = input.targetProfiles[primaryPlatformId];
   if (!primaryBinding) {
     return createBindingFailure(
       "visual mission primary platform binding is missing.",
@@ -141,22 +153,41 @@ export function resolveVisualMissionStartBinding(input: VisualMissionStartBindin
       "重新选择平台并重试；如果仍失败，检查 active map registry。",
     );
   }
+  return { primaryPlatformId, primaryBinding };
+}
+
+export function resolveVisualMissionStartBinding(input: VisualMissionStartBindingInput): MissionStartBinding {
+  const validated = validateVisualMissionStartInput(input);
+  if ("ok" in validated) {
+    return validated;
+  }
+  const targetProfiles = resolveVisualMissionTargetProfiles(validated.selectedPlatforms);
+  if ("ok" in targetProfiles) {
+    return targetProfiles;
+  }
+  const primary = resolvePrimaryVisualMissionBinding({
+    selectedPlatforms: validated.selectedPlatforms,
+    targetProfiles,
+  });
+  if ("ok" in primary) {
+    return primary;
+  }
 
   return {
     ok: true,
-    taskTemplateId: primaryBinding.taskTemplateId,
-    activationId: primaryBinding.activationId,
-    activationSnapshotRef: primaryBinding.activationSnapshotRef,
-    requestedPlatformId: primaryBinding.requestedPlatformId,
-    selectedMapId: primaryBinding.selectedMapId,
-    targetProfileRef: primaryBinding.targetProfileRef,
-    targetUrl: primaryBinding.targetUrl,
-    targetTitle: primaryBinding.targetTitle,
+    taskTemplateId: primary.primaryBinding.taskTemplateId,
+    activationId: primary.primaryBinding.activationId,
+    activationSnapshotRef: primary.primaryBinding.activationSnapshotRef,
+    requestedPlatformId: primary.primaryBinding.requestedPlatformId,
+    selectedMapId: primary.primaryBinding.selectedMapId,
+    targetProfileRef: primary.primaryBinding.targetProfileRef,
+    targetUrl: primary.primaryBinding.targetUrl,
+    targetTitle: primary.primaryBinding.targetTitle,
     selectedRuntimeId: VISUAL_MISSION_RUNTIME_ID,
-    selectedPlatforms,
-    primaryPlatformId,
-    userRequirementRef: buildUserRequirementRef(userRequirementText),
-    userRequirementText,
+    selectedPlatforms: validated.selectedPlatforms,
+    primaryPlatformId: primary.primaryPlatformId,
+    userRequirementRef: buildUserRequirementRef(validated.userRequirementText),
+    userRequirementText: validated.userRequirementText,
     targetProfiles,
   };
 }

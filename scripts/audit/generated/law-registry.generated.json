@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T05:55:53.868Z",
+  "generatedAt": "2026-05-10T06:24:14.164Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -462,6 +462,28 @@
       "summary": "code-purity remediation must use physical deletion and physical splitting, not cosmetic renaming.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "line": 715
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "orphan files, dead exports, unused child capabilities, unused prompt contracts, unused route-plan steps, unused map packages, unused inspector components and unused muscle-memory action codes must be detected as fatal zombie findings.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 755
+    },
+    {
+      "lawId": "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "retired map-system paths, startup identifiers and APP shell UI residues must be detected as fatal active-source violations.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
+      "line": 798
     },
     {
       "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V2",
