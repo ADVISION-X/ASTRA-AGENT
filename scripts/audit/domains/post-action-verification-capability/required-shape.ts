@@ -35,9 +35,9 @@ function collectSchemaFindings(project: Project): Finding[] {
   const findings = childIds.sort().join(",") !== [...CHILDREN].sort().join(",")
     ? [createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Schema child ids must match the frozen child registry." })]
     : [];
-  for (const snippet of ["missionId: requiredString", "runId: requiredString", "stepId: requiredString", "activationSnapshotRef: requiredString", "capabilityCallId: requiredString", "nerveBusEnvelopeId: requiredString", "verificationPolicy: PostActionVerificationPolicySchema", "inputRef: requiredString", "idempotencyKey: requiredString"]) {
+  for (const snippet of ["missionId: requiredString", "runId: requiredString", "stepId: requiredString", "capabilityCallId: requiredString", "nerveBusEnvelopeId: requiredString", "verificationPolicy: PostActionVerificationPolicySchema", "inputRef: requiredString", "idempotencyKey: requiredString"]) {
     if (!schemaText.includes(snippet)) {
-      findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Post Action Verification input schema must keep the full mission/map/step chain fields machine-required." }));
+      findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: PATHS.SCHEMA, line: 1, severity: "fatal", message: "Post Action Verification input schema must keep the governed mission/step chain fields machine-required." }));
       break;
     }
   }
@@ -101,7 +101,6 @@ const hasRequiredProofBuilderChainFields = (proofBuilderText: string): boolean =
   return [
     "missionId: request?.missionId ?? null",
     "runId: request?.runId ?? \"invalid:post-action-run\"",
-    "activationSnapshotRef: request?.activationSnapshotRef ?? null",
     "capabilityCallId: request?.capabilityCallId ?? null",
     "nerveBusEnvelopeId: request?.nerveBusEnvelopeId ?? null",
   ].every((snippet) => proofBuilderText.includes(snippet));

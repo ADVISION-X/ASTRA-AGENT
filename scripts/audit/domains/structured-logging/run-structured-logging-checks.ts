@@ -189,7 +189,7 @@ const inspectTerminalCommandRejectionPayload = (sources: StructuredLoggingSource
   const passed = payloadFields && terminalRelayUsesPayloadBuilders;
 
   return {
-    findings: passed ? [] : [createFinding({ lawId: config.LAW_DISCIPLINE, file: config.TERMINAL_STRUCTURED_LOG_PATH, line: 1, severity: "fatal", message: "Terminal structured runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, selectedMapId, and activationSnapshotRef for blocking command events." })],
+    findings: passed ? [] : [createFinding({ lawId: config.LAW_DISCIPLINE, file: config.TERMINAL_STRUCTURED_LOG_PATH, line: 1, severity: "fatal", message: "Terminal structured runtime relay must preserve runId, ownerResponsible, actionableMessage, and traceId for blocking command events." })],
     passed,
   };
 };

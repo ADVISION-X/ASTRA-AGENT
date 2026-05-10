@@ -30,18 +30,21 @@ const TRANSPORT_DISPATCH_PATH = `${PATHS.ROOT}/ability-group-transport-dispatch.
 const ORCHESTRATION_TO_AI_CHILD_PATH = `${PATHS.ROOT}/children/orchestration-to-ai/implementation.ts`;
 
 const REQUIRED_SCHEMA_FIELDS = [
+  "missionId",
   "runId",
   "sessionId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationId",
-  "activationSnapshotRef",
+  "stepId",
+  "nerveBusEnvelopeId",
   "capabilityCallId",
+  "requestedBy",
   "sourceRef",
   "inputRef",
   "payloadRef",
+  "outputRef",
+  "status",
+  "failureReason",
+  "reviewRequiredReason",
+  "idempotencyKey",
   "commanderCommandRef",
   "commanderEnvelopeRef",
   "requestedPlatformId",
@@ -200,14 +203,15 @@ function collectEnvelopeBuilderTransportFindings(project: ReturnType<typeof make
   const envelopeBuilderSource = getSourceFile(project, PATHS.ORCHESTRATION_ENVELOPE_BUILDERS);
   return !sourceHasProperties(envelopeBuilderSource, [
     "runId",
-    "activationSnapshotRef",
+    "stepId",
     "capabilityCallId",
+    "idempotencyKey",
     "expectedOutputSchemaRef",
     "promptContractVersion",
     "outputSchemaRef",
     "aiInputRefs",
   ])
-    ? [createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.ORCHESTRATION_ENVELOPE_BUILDERS, line: 1, severity: "fatal", message: "Orchestration envelope builders must preserve full-chain ability and AI envelope fields without runtime Commander review dispatch." })]
+    ? [createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.ORCHESTRATION_ENVELOPE_BUILDERS, line: 1, severity: "fatal", message: "Orchestration envelope builders must preserve governed transport and AI envelope fields without runtime Commander review dispatch." })]
     : [];
 }
 
@@ -218,8 +222,8 @@ function collectStepDispatcherTransportFindings(project: ReturnType<typeof makeP
   if (!stepDispatcherSource || !hasCallExpression(stepDispatcherSource, "sendCommandToAbility") || !hasCallExpression(stepDispatcherSource, "sendRequestToAi") || stepDispatcherSource.getFullText().includes("sendReviewRequestToCommander")) {
     findings.push(createFinding({ lawId: LAW_IDS.PUBLIC, file: PATHS.STEP_DISPATCHER, line: 1, severity: "fatal", message: "Orchestration step dispatcher must use governed Nerve Bus port methods for ability and AI dispatch only; runtime review dispatch is forbidden." }));
   }
-  if (!sourceHasProperties(stepDispatchRequestBuildersSource, ["runId", "activationSnapshotRef", "promptContractVersion", "outputSchemaRef", "aiInputRefs"])) {
-    findings.push(createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.STEP_DISPATCH_REQUEST_BUILDERS, line: 1, severity: "fatal", message: "Orchestration step dispatcher must preserve frozen activation chain and AI prompt binding refs." }));
+  if (!sourceHasProperties(stepDispatchRequestBuildersSource, ["runId", "stepId", "idempotencyKey", "promptContractVersion", "outputSchemaRef", "aiInputRefs"])) {
+    findings.push(createFinding({ lawId: LAW_IDS.CHAIN, file: PATHS.STEP_DISPATCH_REQUEST_BUILDERS, line: 1, severity: "fatal", message: "Orchestration step dispatcher must preserve governed step/idempotency and AI prompt binding refs." }));
   }
   return findings;
 }

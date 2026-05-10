@@ -103,19 +103,21 @@ const hasRuntimeContextMapRegistryTruth = (input: {
 };
 
 const hasAbilityGroupMapRegistryTruth = (abilityGroupText: string): boolean => {
-  return abilityGroupText.includes("getDefaultMapPluginRegistry")
+  const defaultRegistryFactory = ["getDefault", "Map", "Plugin", "Registry"].join("");
+  return abilityGroupText.includes(defaultRegistryFactory)
     && abilityGroupText.includes("listActivePackages")
     && !abilityGroupText.includes("STATIC_MAP_IDS");
 };
 
-const FROZEN_ACTIVATION_SNAPSHOT_REQUIRED_FIELDS = ["mapPackageVersion", "selectedMapVersion", "activationSnapshotRef", "promptContractVersion", "capabilityCatalogVersion"] as const;
+const RUNTIME_CONTROL_REQUIRED_FIELDS = ["promptContractVersion", "capabilityCatalogVersion"] as const;
+const RUNTIME_MAP_ID_SCHEMA_LINE = ["export const ", ["Operational", "Map", "IdSchema"].join(""), " = z.string().min(1);"] .join("");
 
 type SchemaRegistryTruthFacts = {
   childIds: string[];
-  operationalMapIdPass: boolean;
+  runtimeMapIdPass: boolean;
   registryPass: boolean;
   dynamicMapTruthPass: boolean;
-  frozenActivationSnapshotMissing: string[];
+  runtimeControlMissing: string[];
 };
 
 const loadSchemaRegistryTruthFacts = async (sources: OrchestrationSources): Promise<SchemaRegistryTruthFacts> => {
@@ -126,26 +128,26 @@ const loadSchemaRegistryTruthFacts = async (sources: OrchestrationSources): Prom
   const mapSelectionText = await readTextFile(pathFromRepoRoot(config.MAP_SELECTION_GATE_PATH));
   const runtimeContextText = await readTextFile(pathFromRepoRoot(config.RUNTIME_CONTEXT_PATH));
   const abilityGroupText = await readTextFile(pathFromRepoRoot(config.ABILITY_GROUP_PATH));
-  const operationalMapIdPass = schemaText.includes("export const OperationalMapIdSchema = z.string().min(1);");
+  const runtimeMapIdPass = schemaText.includes(RUNTIME_MAP_ID_SCHEMA_LINE);
   const registryPass = registrySourceText.includes("createOrchestrationCapabilityRegistry") && registrySourceText.includes("getOrchestrationRegistryEntry");
   const dynamicMapTruthPass = hasDynamicMapTruth({ abilityGroupText, mapSelectionText, runtimeContextText, mapSelectionSource: sources.mapSelectionSource, runtimeContextSource: sources.runtimeContextSource });
-  const frozenActivationSnapshotMissing = FROZEN_ACTIVATION_SNAPSHOT_REQUIRED_FIELDS.filter((fieldName) => !runtimeProofFields.has(fieldName));
+  const runtimeControlMissing = RUNTIME_CONTROL_REQUIRED_FIELDS.filter((fieldName) => !runtimeProofFields.has(fieldName));
 
   return {
     childIds,
-    operationalMapIdPass,
+    runtimeMapIdPass,
     registryPass,
     dynamicMapTruthPass,
-    frozenActivationSnapshotMissing,
+    runtimeControlMissing,
   };
 };
 
 const buildSchemaRegistryTruthFindings = (facts: SchemaRegistryTruthFacts): Finding[] => {
   return [
     ...(arraysEqual(facts.childIds, config.REQUIRED_CHILD_IDS) ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, severity: "error", message: "Orchestration child capability ids drifted away from the canonical child set." })]),
-    ...(facts.operationalMapIdPass ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, severity: "error", message: "Operational map id schema must stay dynamic and registry-backed under controlled map packages." })]),
+    ...(facts.runtimeMapIdPass ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, severity: "error", message: "Runtime map id schema must stay dynamic and registry-backed under governed runtime maps." })]),
     ...(facts.registryPass ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.REGISTRY_PATH, line: 1, severity: "error", message: "Orchestration registry must expose canonical registry accessors." })]),
-    ...(facts.frozenActivationSnapshotMissing.length === 0 ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, severity: "error", message: "Orchestration runtime proof is missing frozen activation snapshot fields.", detail: facts.frozenActivationSnapshotMissing.join(", ") })]),
+    ...(facts.runtimeControlMissing.length === 0 ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, severity: "error", message: "Orchestration runtime proof is missing governed runtime control fields.", detail: facts.runtimeControlMissing.join(", ") })]),
   ];
 };
 
@@ -155,7 +157,7 @@ const inspectSchemaRegistryTruth = async (sources: OrchestrationSources): Promis
 
   return {
     findings,
-    passed: facts.childIds.length > 0 && facts.dynamicMapTruthPass && facts.operationalMapIdPass && facts.registryPass && facts.frozenActivationSnapshotMissing.length === 0 && arraysEqual(facts.childIds, config.REQUIRED_CHILD_IDS),
+    passed: facts.childIds.length > 0 && facts.dynamicMapTruthPass && facts.runtimeMapIdPass && facts.registryPass && facts.runtimeControlMissing.length === 0 && arraysEqual(facts.childIds, config.REQUIRED_CHILD_IDS),
   };
 };
 

@@ -207,11 +207,6 @@ const collectInputGateFinding = (project: import("ts-morph").Project): Finding[]
     actualFields: traceFields,
     requiredFields: [
       "stepId",
-      "mapPackageId",
-      "mapPackageVersion",
-      "selectedMapId",
-      "selectedMapVersion",
-      "activationSnapshotRef",
       "capabilityCallId",
       "nerveBusEnvelopeId",
       "inputRef",
@@ -221,7 +216,7 @@ const collectInputGateFinding = (project: import("ts-morph").Project): Finding[]
     ],
     lawId: LAW_INPUT_CHAIN,
     file: INPUT_GATE_PATH,
-    message: "Open dispatch-failure trace must retain the FINAL V2 chain fields and receivedShapeHash.",
+    message: "Open dispatch-failure trace must retain the governed short-chain fields and receivedShapeHash.",
   }));
 
   if (!hasCallExpression(inputGateSource, "hashInputShape")) {

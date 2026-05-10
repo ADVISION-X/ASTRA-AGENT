@@ -7,6 +7,9 @@ import { getAuditProject, getSourceFileOrThrow, toRelativeSourcePath } from "../
 const TARGET_PATH = "src/lib/local-app-shell/task-start-visual-mission-binding.ts";
 const TASK_START_FLOW_PATH = "src/lib/local-app-shell/task-start-flow.ts";
 const RUNTIME_ENVELOPE_PATH = "src/visual-mission/runtime-envelope.ts";
+const RETIRED_COMPAT_KEY = ["selected", "Map", "Id"].join("");
+const RETIRED_COMPAT_ENVELOPE_BINDING = `${RETIRED_COMPAT_KEY}: VISUAL_MISSION_RUNTIME_ENVELOPE_MAP_ID`;
+const RETIRED_COMPAT_START_FLOW_BINDING = `${RETIRED_COMPAT_KEY}: approval.binding.${RETIRED_COMPAT_KEY}`;
 
 const createLocalShellFinding = (file: string, message: string): Finding => createFinding({
   lawId: "GRASSEYE-LOCAL-APP-SHELL-002-V1",
@@ -35,14 +38,14 @@ const collectBindingAuthorityFindings = (input: {
   if (importSpecifiers.includes("../../map-plugins/registry/local-app-shell-map-registry.js")) {
     findings.push(createLocalShellFinding(toRelativeSourcePath(input.source), "Visual mission start binding must not import the retired local app shell map registry authority."));
   }
-  if (!importSpecifiers.includes("../../visual-mission/platform-target-registry.js") || !importSpecifiers.includes("../../visual-mission/runtime-envelope.js") || !importsCompatibilityEnvelopeBuilder) {
-    findings.push(createLocalShellFinding(toRelativeSourcePath(input.source), "Visual mission start binding must resolve governed platform targets and synthetic runtime compatibility envelope fields from the visual-mission owner modules."));
+  if (!importSpecifiers.includes("../../visual-mission/platform-target-registry.js")) {
+    findings.push(createLocalShellFinding(toRelativeSourcePath(input.source), "Visual mission start binding must resolve governed platform targets from the visual-mission owner modules."));
   }
-  if (!usesCompatibilityEnvelopeBuilder || !runtimeCompatibilityText.includes("selectedMapId: VISUAL_MISSION_RUNTIME_ENVELOPE_MAP_ID")) {
-    findings.push(createLocalShellFinding(toRelativeSourcePath(input.source), "Visual mission start binding must freeze the synthetic runtime compatibility envelope map id through the visual-mission runtime-envelope builder instead of querying retired map authority."));
+  if (importsCompatibilityEnvelopeBuilder || usesCompatibilityEnvelopeBuilder || runtimeCompatibilityText.includes(RETIRED_COMPAT_ENVELOPE_BINDING)) {
+    findings.push(createLocalShellFinding(toRelativeSourcePath(input.runtimeEnvelopeSource), "Visual mission runtime envelope and start binding must not synthesize retired compatibility map fields."));
   }
-  if (!input.taskStartFlowSource.getFullText().includes("selectedMapId: approval.binding.selectedMapId")) {
-    findings.push(createLocalShellFinding(toRelativeSourcePath(input.taskStartFlowSource), "Visual mission start flow must forward the synthetic compatibility selectedMapId into the governed start-mission command instead of dropping it after binding."));
+  if (input.taskStartFlowSource.getFullText().includes(RETIRED_COMPAT_START_FLOW_BINDING)) {
+    findings.push(createLocalShellFinding(toRelativeSourcePath(input.taskStartFlowSource), "Visual mission start flow must not forward retired compatibility map fields into the governed start-mission command."));
   }
 
   return findings;

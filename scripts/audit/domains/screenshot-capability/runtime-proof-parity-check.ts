@@ -12,11 +12,6 @@ const EXPECTED_PROOF_REQUIRED_FIELDS = [
   "runId",
   "sessionId",
   "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
   "capabilityCallId",
   "nerveBusEnvelopeId",
 ] as const;

@@ -304,7 +304,6 @@ function collectProofChainFindings(project: ReturnType<typeof makeProject>): Fin
     snippets: [
       "missionId: input.missionId",
       "runId: input.runId",
-      "activationSnapshotRef: input.activationSnapshotRef",
       "capabilityCallId: input.capabilityCallId",
       "nerveBusEnvelopeId: input.nerveBusEnvelopeId",
       "sourceRef: input.sourceRef",

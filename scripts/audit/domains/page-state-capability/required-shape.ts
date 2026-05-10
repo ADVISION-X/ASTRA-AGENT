@@ -14,11 +14,6 @@ const INPUT_CHAIN_FIELDS = [
   "abilityGroupId",
   "requestedBy",
   "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
   "capabilityCallId",
   "nerveBusEnvelopeId",
   "inputRef",
@@ -27,22 +22,12 @@ const INPUT_CHAIN_FIELDS = [
 
 const RUNTIME_PROOF_CHAIN_FIELDS = [
   "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
   "capabilityCallId",
   "nerveBusEnvelopeId",
 ] as const;
 
 const RESULT_CHAIN_FIELDS = [
   "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
   "capabilityCallId",
   "nerveBusEnvelopeId",
 ] as const;

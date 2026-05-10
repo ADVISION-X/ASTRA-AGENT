@@ -8,7 +8,7 @@ import { collectTouchedFilesArtifact } from "../../../core/touched-files-collect
 import { CODE_PURITY_LAW_IDS, LAW_PHASE_SUMMARIES } from "./purity-law-phase-data.js";
 import { ACTIVE_FILES, ACTIVE_ROOTS, BLUEPRINT_PATH, CODE_PURITY_SCAN_EXTENSIONS, CODE_PURITY_SCAN_SCOPE } from "./purity-runtime-constants.js";
 import { createEmptyPurityReport, inspectPurityMetrics } from "./purity-metric-inspection.js";
-import { finalizePurityReport, writePurityReport } from "./purity-report.js";
+import { finalizePurityReport, validatePurityReportArtifacts, writePurityReport } from "./purity-report.js";
 import { inspectSecondaryCodePurityScans } from "./inspect-code-purity-secondary-scans.js";
 
 const REQUIRED_COMPONENT_EXPORTS = [
@@ -118,6 +118,11 @@ const collectSourceFileMap = (project: Project, relativePaths: string[]): Map<st
   return sourceFilesByPath;
 };
 
+const createSecondaryScanSourceFileMap = (relativePaths: string[]): Map<string, SourceFile> => {
+  const secondaryScanProject = createPurityProject();
+  return collectSourceFileMap(secondaryScanProject, relativePaths);
+};
+
 const hasNamedExportSyntax = (sourceFile: SourceFile, exportName: string): boolean => {
   if (sourceFile.getFunctions().some((statement) => statement.getName() === exportName && statement.hasExportKeyword())) {
     return true;
@@ -174,34 +179,13 @@ export const inspectCodePurityLawCoverage = (context: Pick<InspectorContext, "la
 const inspectReportOutputs = async (reportDraft: ReturnType<typeof createEmptyPurityReport>): Promise<Finding[]> => {
   const report = finalizePurityReport(reportDraft);
   await writePurityReport(report);
-  if (report.scanScope.length === 0) {
-    return [createFinding({
-      lawId: "GRASSEYE-CODE-PURITY-011-V1",
-      file: "scripts/audit/domains/code-purity/components/purity-report.ts",
-      line: 1,
-      severity: "error",
-      message: "Code-purity report did not record its scan scope.",
-    })];
-  }
-  if (report.touchedBaselineSource === "none") {
-    return [createFinding({
-      lawId: "GRASSEYE-CODE-PURITY-002-V1",
-      file: "scripts/audit/domains/code-purity/components/purity-report.ts",
-      line: 1,
-      severity: "error",
-      message: "Code-purity could not establish a touched-file baseline source.",
-    })];
-  }
-  if (report.remediationQueue.length > 0 && report.firstPhysicalSplitPlan.length > 0) {
-    return [];
-  }
-  return [createFinding({
-    lawId: "GRASSEYE-CODE-PURITY-013-V1",
+  return validatePurityReportArtifacts(report).map((issue) => createFinding({
+    lawId: issue.lawId,
     file: "scripts/audit/domains/code-purity/components/purity-report.ts",
     line: 1,
     severity: "error",
-    message: "Code-purity report did not produce the required remediation queue and first physical split plan.",
-  })];
+    message: issue.message,
+  }));
 };
 
 const createInspectorPhases = (sourceFileCount: number, findings: Finding[]): InspectorPhase[] => [
@@ -225,7 +209,7 @@ export const inspectCodePurity = async (context: InspectorContext): Promise<{ fi
     };
   }
 
-  const sourceFilesByPath = collectSourceFileMap(project, relativePaths);
+  const sourceFilesByPath = createSecondaryScanSourceFileMap(relativePaths);
 
   const findings = [
     ...inspectSourcePaths(project, relativePaths, touchedPaths, reportDraft),

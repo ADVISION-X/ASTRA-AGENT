@@ -99,7 +99,7 @@ function hasValidationGuardMessages(project: Project): boolean {
 }
 
 function hasProofBuilderChainBindings(project: Project): boolean {
-  return hasPropertyPath(project, `${ROOT}/runtime/page-state-runtime-proof-builder.ts`, "request?.activationSnapshotRef")
+  return hasPropertyPath(project, `${ROOT}/runtime/page-state-runtime-proof-builder.ts`, "request?.capabilityCallId")
     && hasPropertyPath(project, `${ROOT}/runtime/page-state-runtime-proof-builder.ts`, "request?.inputRef");
 }
 

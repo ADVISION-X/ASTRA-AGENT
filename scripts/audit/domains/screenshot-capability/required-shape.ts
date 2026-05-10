@@ -25,11 +25,6 @@ const STRICT_GOVERNANCE_SNIPPETS = [
   "missionId: limitedString(200)",
   "runId: limitedString(200)",
   "stepId: limitedString(200)",
-  "mapPackageId: limitedString(200)",
-  "mapPackageVersion: limitedString(120)",
-  "selectedMapId: limitedString(200)",
-  "selectedMapVersion: limitedString(120)",
-  "activationSnapshotRef: limitedString(200)",
   "capabilityCallId: limitedString(200)",
   "nerveBusEnvelopeId: limitedString(200)",
   "inputRef: limitedString(200)",
@@ -88,7 +83,6 @@ const TRANSFORM_SUCCESS_SNIPPETS = [
 ] as const;
 
 const STRICT_GOVERNANCE_COUNT_RULES = [
-  { snippet: "activationSnapshotRef: limitedString(200),", expected: 3 },
   { snippet: "capabilityCallId: limitedString(200),", expected: 3 },
   { snippet: "nerveBusEnvelopeId: limitedString(200),", expected: 3 },
 ] as const;

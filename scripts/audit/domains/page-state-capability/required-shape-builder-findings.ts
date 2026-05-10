@@ -105,11 +105,6 @@ function collectProofBuilderPathFindings(project: Project): Finding[] {
   const proofPaths = [
     "request?.runId",
     "request?.stepId",
-    "request?.mapPackageId",
-    "request?.mapPackageVersion",
-    "request?.selectedMapId",
-    "request?.selectedMapVersion",
-    "request?.activationSnapshotRef",
     "request?.capabilityCallId",
     "request?.nerveBusEnvelopeId",
     "request?.inputRef",
@@ -126,7 +121,6 @@ function collectProofBuilderAssignmentFindings(project: Project): Finding[] {
   const proofBuilder = getSource(project, `${ROOT}/runtime/page-state-runtime-proof-builder.ts`);
   const proofAssignments = [
     { propertyName: "runId", expectedInitializer: "request?.runId ?? null" },
-    { propertyName: "activationSnapshotRef", expectedInitializer: "request?.activationSnapshotRef ?? null" },
     { propertyName: "capabilityCallId", expectedInitializer: "request?.capabilityCallId ?? null" },
     { propertyName: "nerveBusEnvelopeId", expectedInitializer: "request?.nerveBusEnvelopeId ?? null" },
   ] as const;
@@ -142,11 +136,6 @@ function collectResultBuilderPathFindings(project: Project): Finding[] {
   const resultBuilder = getSource(project, `${ROOT}/runtime/page-state-result-builders.ts`);
   const resultPaths = [
     "request.stepId",
-    "request.mapPackageId",
-    "request.mapPackageVersion",
-    "request.selectedMapId",
-    "request.selectedMapVersion",
-    "request.activationSnapshotRef",
     "request.capabilityCallId",
     "request.nerveBusEnvelopeId",
   ] as const;
@@ -177,11 +166,6 @@ function collectLocalRuntimeDispatchBuilderFindings(project: Project): Finding[]
     { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "runId", expectedInitializers: ["envelope.runId", "input.envelope.runId"], message: "Local runtime page-state dispatch must propagate envelope.runId." },
     { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "sessionId", expectedInitializers: ["envelope.sessionId", "input.envelope.sessionId"], message: "Local runtime page-state dispatch must propagate envelope.sessionId." },
     { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "stepId", expectedInitializers: ["envelope.stepId", "input.envelope.stepId"], message: "Local runtime page-state dispatch must propagate envelope.stepId." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "mapPackageId", expectedInitializers: ["envelope.mapPackageId", "input.envelope.mapPackageId"], message: "Local runtime page-state dispatch must propagate envelope.mapPackageId." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "mapPackageVersion", expectedInitializers: ["envelope.mapPackageVersion", "input.envelope.mapPackageVersion"], message: "Local runtime page-state dispatch must propagate envelope.mapPackageVersion." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "selectedMapId", expectedInitializers: ["envelope.selectedMapId", "input.envelope.selectedMapId"], message: "Local runtime page-state dispatch must propagate envelope.selectedMapId." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "selectedMapVersion", expectedInitializers: ["envelope.selectedMapVersion", "input.envelope.selectedMapVersion"], message: "Local runtime page-state dispatch must propagate envelope.selectedMapVersion." },
-    { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "activationSnapshotRef", expectedInitializers: ["envelope.activationSnapshotRef", "input.envelope.activationSnapshotRef"], message: "Local runtime page-state dispatch must propagate envelope.activationSnapshotRef." },
     { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "capabilityCallId", expectedInitializers: ["envelope.capabilityCallId", "input.envelope.capabilityCallId"], message: "Local runtime page-state dispatch must propagate envelope.capabilityCallId." },
     { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "nerveBusEnvelopeId", expectedInitializers: ["envelope.nerveBusEnvelopeId", "input.envelope.nerveBusEnvelopeId"], message: "Local runtime page-state dispatch must propagate envelope.nerveBusEnvelopeId." },
     { lawId: "GRASSEYE-PAGE-STATE-CAPABILITY-003-V2", propertyName: "inputRef", expectedInitializers: ["envelope.inputRef", "input.envelope.inputRef"], message: "Local runtime page-state dispatch must propagate envelope.inputRef." },

@@ -106,8 +106,13 @@ const collectSourceFileMap = (project: Project, relativePaths: string[]): Map<st
   return sourceFilesByPath;
 };
 
+const createSupplementalSourceFileMap = (relativePaths: string[]): Map<string, SourceFile> => {
+  const supplementalProject = createScanProject();
+  return collectSourceFileMap(supplementalProject, relativePaths);
+};
+
 const appendSupplementalFindings = async (project: Project, relativePaths: string[]): Promise<number> => {
-  const sourceFilesByPath = collectSourceFileMap(project, relativePaths);
+  const sourceFilesByPath = createSupplementalSourceFileMap(relativePaths);
   const findings = await runSupplementalScans(process.cwd(), relativePaths, sourceFilesByPath);
   await appendFindings(findings);
   return findings.length;

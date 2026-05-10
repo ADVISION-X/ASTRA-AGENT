@@ -20,21 +20,18 @@ const MAP_VALIDATION_GATE_PATH = "src/capabilities/orchestration/runtime/map-val
 const NERVE_BUS_ADAPTER_PATH = "src/capabilities/orchestration/runtime/orchestration-nerve-bus-adapter.ts";
 const TRANSITION_EVALUATOR_PATH = "src/capabilities/orchestration/runtime/transition-evaluator.ts";
 const FORBIDDEN_HUMAN_REVIEW_CHILD_PATH = "src/capabilities/orchestration/children/request-human-review/implementation.ts";
-const FROZEN_STATE_FIELDS = [
-  "activationSnapshotRef",
-  "selectedMapVersion",
-  "mapPackageVersion",
+const RUNTIME_CONTROL_STATE_FIELDS = [
   "capabilityCatalogVersion",
   "runLockId",
   "cancellationTokenRef",
   "resumeCheckpointRef",
 ] as const;
-const FROZEN_PROOF_FIELDS = [
+const RUNTIME_CONTROL_PROOF_FIELDS = [
   "runId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
+  "stepId",
   "promptContractVersion",
   "capabilityCatalogVersion",
+  "idempotencyKey",
 ] as const;
 const CHILD_OUTPUT_SCHEMA_NAMES = [
   "StartMissionChildOutputSchema",
@@ -122,20 +119,20 @@ async function inspectForbiddenHumanReviewChildDeleted(): Promise<PhaseResult> {
 async function inspectFrozenActivation(project: ReturnType<typeof createAuditProject>): Promise<PhaseResult> {
   const schemaSource = getSourceFileOrThrow(project, config.SCHEMA_PATH);
   const missionStateFields = getZodObjectPropertyNames(schemaSource, "MissionStateSchema");
-  const missingStateFields = FROZEN_STATE_FIELDS.filter((fieldName) => !missionStateFields.has(fieldName));
+  const missingStateFields = RUNTIME_CONTROL_STATE_FIELDS.filter((fieldName) => !missionStateFields.has(fieldName));
   const resumeText = await readTextFile(pathFromRepoRoot(RESUME_PATH));
   const proofBuilderText = await readTextFile(pathFromRepoRoot(PROOF_BUILDER_PATH));
-  const missingProofFields = FROZEN_PROOF_FIELDS.filter((fieldName) => !proofBuilderText.includes(fieldName));
+  const missingProofFields = RUNTIME_CONTROL_PROOF_FIELDS.filter((fieldName) => !proofBuilderText.includes(fieldName));
   const findings: Finding[] = [];
 
   if (missingStateFields.length > 0) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, message: "MissionState must freeze activation snapshot, map version, and loop-governance fields.", detail: missingStateFields.join(", ") }));
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, message: "MissionState must retain governed runtime control and loop-governance fields.", detail: missingStateFields.join(", ") }));
   }
   if (resumeText.includes("getActiveMapRecord(state.mapId)")) {
     findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: RESUME_PATH, line: collectLineNumber(resumeText, "getActiveMapRecord(state.mapId)"), message: "Resume must not reread the floating active map registry by state.mapId; it must resume from a frozen activation snapshot." }));
   }
   if (missingProofFields.length > 0) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: PROOF_BUILDER_PATH, line: 1, message: "Runtime proof builder must emit frozen activation snapshot fields for replayable orchestration proof.", detail: missingProofFields.join(", ") }));
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: PROOF_BUILDER_PATH, line: 1, message: "Runtime proof builder must emit governed runtime control fields for replayable orchestration proof.", detail: missingProofFields.join(", ") }));
   }
 
   return {
@@ -143,7 +140,7 @@ async function inspectFrozenActivation(project: ReturnType<typeof createAuditPro
     phase: createRuntimePhase(
       "frozen-activation-snapshot",
       findings,
-      "Mission state and runtime proof both freeze activation snapshot state, and resume avoids floating active-map lookup.",
+      "Mission state and runtime proof both retain governed runtime control state, and resume avoids floating active-map lookup.",
       "Mission state, runtime proof, or resume logic still permit floating active-map drift.",
     ),
   };

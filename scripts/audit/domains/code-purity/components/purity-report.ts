@@ -19,6 +19,21 @@ export type PurityReport = {
   firstPhysicalSplitPlan: PurityInventoryItem[];
 };
 
+export type PurityReportValidationIssue = {
+  lawId: "GRASSEYE-CODE-PURITY-002-V1" | "GRASSEYE-CODE-PURITY-011-V1" | "GRASSEYE-CODE-PURITY-013-V1";
+  message: string;
+};
+
+const INVENTORY_KEYS = [
+  "godFileInventory",
+  "disasterFileInventory",
+  "ownerMixingInventory",
+  "oversizedTouchedFileInventory",
+  "functionOverLimitInventory",
+  "classObjectOverLimitInventory",
+  "importExportOverLimitInventory",
+] as const;
+
 const compareSeverity = (left: PurityInventoryItem, right: PurityInventoryItem): number => {
   const order = { DISASTER: 0, BLOCKING: 1, REMEDIATION: 2 } as const;
   const severityDelta = order[left.severity] - order[right.severity];
@@ -36,6 +51,45 @@ const dedupeItems = (items: PurityInventoryItem[]): PurityInventoryItem[] => {
     }
   }
   return [...byFile.values()];
+};
+
+const collectInventoryItems = (report: Pick<PurityReport, typeof INVENTORY_KEYS[number]>): PurityInventoryItem[] =>
+  INVENTORY_KEYS.flatMap((key) => report[key]);
+
+const hasInvalidQueueItem = (item: PurityInventoryItem): boolean =>
+  item.severity.trim().length === 0 || item.recommendedSplit.trim().length === 0;
+
+export const validatePurityReportArtifacts = (report: PurityReport): PurityReportValidationIssue[] => {
+  if (report.scanScope.length === 0) {
+    return [{
+      lawId: "GRASSEYE-CODE-PURITY-011-V1",
+      message: "Code-purity report did not record its scan scope.",
+    }];
+  }
+  if (report.touchedBaselineSource === "none") {
+    return [{
+      lawId: "GRASSEYE-CODE-PURITY-002-V1",
+      message: "Code-purity could not establish a touched-file baseline source.",
+    }];
+  }
+
+  const issues: PurityReportValidationIssue[] = [];
+  const inventoryItems = collectInventoryItems(report);
+  if (inventoryItems.length > 0 && (report.remediationQueue.length === 0 || report.firstPhysicalSplitPlan.length === 0)) {
+    issues.push({
+      lawId: "GRASSEYE-CODE-PURITY-013-V1",
+      message: "Code-purity report has blocking inventory items but did not produce the required remediation queue and first physical split plan.",
+    });
+  }
+
+  if (report.remediationQueue.some(hasInvalidQueueItem) || report.firstPhysicalSplitPlan.some(hasInvalidQueueItem)) {
+    issues.push({
+      lawId: "GRASSEYE-CODE-PURITY-013-V1",
+      message: "Code-purity remediation queue items must include severity and recommended split direction.",
+    });
+  }
+
+  return issues;
 };
 
 export const finalizePurityReport = (draft: PurityReportDraft): PurityReport => {

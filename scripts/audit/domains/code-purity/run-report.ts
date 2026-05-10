@@ -1,7 +1,7 @@
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 import { inspectCodePurityLawCoverage } from "./components/inspect-code-purity.js";
-import { finalizePurityReport, writePurityReport } from "./components/purity-report.js";
+import { finalizePurityReport, validatePurityReportArtifacts, writePurityReport } from "./components/purity-report.js";
 import type { PurityInventoryItem, PurityReportDraft } from "./components/purity-report-types.js";
 import {
   assertCodePurityMemoryBoundary,
@@ -34,34 +34,13 @@ const createDraftFromInventory = (summary: Awaited<ReturnType<typeof readScanSum
 });
 
 const inspectReportOutputs = (report: ReturnType<typeof finalizePurityReport>): Finding[] => {
-  if (report.scanScope.length === 0) {
-    return [createFinding({
-      lawId: "GRASSEYE-CODE-PURITY-011-V1",
-      file: "scripts/audit/domains/code-purity/components/purity-report.ts",
-      line: 1,
-      severity: "error",
-      message: "Code-purity report did not record its scan scope.",
-    })];
-  }
-  if (report.touchedBaselineSource === "none") {
-    return [createFinding({
-      lawId: "GRASSEYE-CODE-PURITY-002-V1",
-      file: "scripts/audit/domains/code-purity/components/purity-report.ts",
-      line: 1,
-      severity: "error",
-      message: "Code-purity could not establish a touched-file baseline source.",
-    })];
-  }
-  if (report.remediationQueue.length > 0 && report.firstPhysicalSplitPlan.length > 0) {
-    return [];
-  }
-  return [createFinding({
-    lawId: "GRASSEYE-CODE-PURITY-013-V1",
+  return validatePurityReportArtifacts(report).map((issue) => createFinding({
+    lawId: issue.lawId,
     file: "scripts/audit/domains/code-purity/components/purity-report.ts",
     line: 1,
     severity: "error",
-    message: "Code-purity report did not produce the required remediation queue and first physical split plan.",
-  })];
+    message: issue.message,
+  }));
 };
 
 export const createReportPhase = (findings: Finding[]): InspectorPhase =>

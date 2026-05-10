@@ -7,10 +7,14 @@ import { LAW_IDS, PATHS } from "./config.js";
 import { getSourceFile, makeProject } from "./project-access.js";
 
 const PROOF_FIELDS = [
-  "activationSnapshotRef",
+  "missionId",
+  "runId",
+  "stepId",
   "capabilityCallId",
   "promptContractId",
   "outputSchemaRef",
+  "status",
+  "outputRef",
   "semanticDecision",
   "handlerCallId",
   "sequenceDecision",
@@ -49,7 +53,7 @@ const sourceTextIncludesAll = (sourceTextOwner: ReturnType<typeof getSourceFile>
 function collectProofBuilderFindings(project: ReturnType<typeof makeProject>): Finding[] {
   const proofBuilderSource = getSourceFile(project, PATHS.PROOF_BUILDER);
   return !proofBuilderSource || !hasCallExpressionPath(proofBuilderSource, ["NerveBusTransportProofSchema", "parse"]) || !sourceHasProperties(proofBuilderSource, PROOF_FIELDS)
-    ? [createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Nerve Bus proof builder must parse and preserve full-chain proof fields." })]
+    ? [createFinding({ lawId: LAW_IDS.PROOF, file: PATHS.PROOF_BUILDER, line: 1, severity: "fatal", message: "Nerve Bus proof builder must parse and preserve governed short-chain proof fields." })]
     : [];
 }
 

@@ -15,7 +15,7 @@ function sourceHasModuleLevelSequenceMap(relativePath: string, sourceFile: Param
 }
 
 function isDefaultInjectedProperty(propertyName: string): boolean {
-  return ["requestedPlatformId", "selectedMapId", "targetRecordRef", "activationId"].includes(propertyName);
+  return ["requestedPlatformId", "targetRecordRef", "promptContractId", "outputSchemaRef", "idempotencyKey"].includes(propertyName);
 }
 
 function isSupportedDefaultLiteral(node: Node): boolean {
