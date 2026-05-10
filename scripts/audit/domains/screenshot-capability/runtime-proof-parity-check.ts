@@ -127,6 +127,7 @@ export function inspectScreenshotRuntimeProofParity(project: Project): Finding[]
     ...collectRefinementFieldFindings(refinementsSource),
     ...collectPrepareAiInputScaleMappingFindings(refinementsSource),
     ...collectBrowserViewportCaptureTruthFindings(project, schemaSource),
+    ...collectVisualMissionGridTruthFindings(project),
   ];
 }
 
@@ -212,4 +213,23 @@ const collectBrowserViewportCaptureTruthFindings = (project: Project, schemaSour
   }
 
   return findings;
+};
+
+const collectVisualMissionGridTruthFindings = (project: Project): Finding[] => {
+  const visualMissionGridSource = getSource(project, "src/capabilities/screenshot/shared/visual-mission-grid.ts");
+  const imageProcessingRunnerSource = getSource(project, "src/capabilities/screenshot/runtime/image-processing-runner.ts");
+  const gridBoundarySource = getSource(project, "src/capabilities/screenshot/runtime/visual-mission-grid-boundary.ts");
+  const outputBoundarySource = getSource(project, PATHS.OUTPUT_BOUNDARY_GATE);
+
+  if (!hasRequiredText(visualMissionGridSource.getFullText(), ["MIN_VISUAL_MISSION_GRID_CELL_WIDTH_PX = 32", "MIN_VISUAL_MISSION_GRID_CELL_HEIGHT_PX = 32", "resolveReadableVisualMissionGridDensity"]) || !hasRequiredText(imageProcessingRunnerSource.getFullText(), ["resolveReadableVisualMissionGridDensity", "inspectImage(input.plan.sourceFilePath)"]) || !hasRequiredText(gridBoundarySource.getFullText(), ["gridSpec.cells.length", "coordinateGridScreenshotRef.width", "originalScreenshotRef.width", "MIN_VISUAL_MISSION_GRID_CELL_WIDTH_PX"]) || !hasRequiredText(outputBoundarySource.getFullText(), ["resolveVisualMissionGridMathBoundaryFailure", "resolveVisualMissionGridMathFailure"])) {
+    return [createFinding({
+      lawId: LAW_IDS.TRANSFORM,
+      file: PATHS.OUTPUT_BOUNDARY_GATE,
+      line: 1,
+      severity: "fatal",
+      message: "Screenshot visual mission path must enforce readable grid density and fail closed on grid math parity drift before coordinate-grid output leaves Screenshot.",
+    })];
+  }
+
+  return [];
 };

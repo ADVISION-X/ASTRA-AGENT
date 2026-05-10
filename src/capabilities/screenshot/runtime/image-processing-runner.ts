@@ -1,6 +1,6 @@
 import type { ScreenshotAbilityInput } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
-import { projectGridSpecToSourceCoordinates } from "../shared/visual-mission-grid.js";
+import { projectGridSpecToSourceCoordinates, resolveReadableVisualMissionGridDensity } from "../shared/visual-mission-grid.js";
 import type { ScreenshotExecutionPlan } from "./screenshot-child-contract.js";
 import { resolveScreenshotAiInputEncodeProfile } from "./screenshot-lightweight-observation.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
@@ -155,6 +155,14 @@ async function resolvePrepareVisualMissionInputProcessing(input: {
     throw new Error("prepare-visual-mission-input requires sourceProof sourceScreenshotEvidenceId, sourceStorageRef, and coordinateSpace.");
   }
 
+  const sourceMetadata = await input.context.imageProcessingPort.inspectImage(input.plan.sourceFilePath);
+  const readableGrid = resolveReadableVisualMissionGridDensity({
+    gridImageWidth: sourceMetadata.width,
+    gridImageHeight: sourceMetadata.height,
+    requestedRowCount: input.plan.rowCount,
+    requestedColumnCount: input.plan.columnCount,
+  });
+
   const output = await withTimeout(
     input.context.imageProcessingPort.renderCoordinateGrid({
       sourceFilePath: input.plan.sourceFilePath,
@@ -163,8 +171,8 @@ async function resolvePrepareVisualMissionInputProcessing(input: {
       sourceCoordinateSpace,
       sourceWidth: input.plan.sourceProof.sourceWidth ?? 0,
       sourceHeight: input.plan.sourceProof.sourceHeight ?? 0,
-      rowCount: input.plan.rowCount,
-      columnCount: input.plan.columnCount,
+      rowCount: readableGrid.rowCount,
+      columnCount: readableGrid.columnCount,
       axisMode: "y_letters_x_numbers",
       createdAt: input.createdAt,
     }).then((result) => ({

@@ -41,7 +41,7 @@ function normalize(text: string) {
   return text.replace(/\s+/g, " ").trim();
 }
 
-function hasBinding(objectLiteral: ObjectLiteralExpression, binding: PropertyBinding) {
+export function hasBinding(objectLiteral: ObjectLiteralExpression, binding: PropertyBinding) {
   const property = objectLiteral.getProperty(binding.name);
   if (!property || !Node.isPropertyAssignment(property)) {
     return false;

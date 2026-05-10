@@ -31,7 +31,8 @@ const PRODUCT_LEAD_DISPATCH_SNIPPETS = [
   "screenshotEvidenceRef,",
   "productPresenceAiResultRef,",
   'decision: productPresenceSummary.output.decision === "product_yes" ? "product_yes" : "product_no"',
-  "routeLabel: productPresenceSummary.output.routeLabel",
+  "taskDecision: resolveProductLeadTaskDecision(productLeadSummary)",
+  "actionCodes: resolveProductLeadActionCodes(productLeadSummary)",
   "confidence: productPresenceSummary.output.confidence",
   "visibleProductTypes: productPresenceSummary.output.visibleProductTypes",
   "reason: productPresenceSummary.output.reason",
@@ -240,7 +241,7 @@ const collectProductLeadDispatchFindings = (project: import("ts-morph").Project)
         file: WORKBENCH_FORENSICS_DISPATCH_INPUT_PATH,
         line: 1,
         severity: "fatal",
-        message: "Product lead dispatch must persist screenshot/url/title plus decision, routeLabel, confidence, visibleProductTypes, reason, capturedAt, createdAt, runId, and missionId.",
+        message: "Product lead dispatch must persist screenshot/url/title plus decision, taskDecision, actionCodes, confidence, visibleProductTypes, reason, capturedAt, createdAt, runId, and missionId.",
       })];
 };
 

@@ -6,6 +6,7 @@ import { getSourceFileOrThrow } from "./ast-helpers.js";
 import { getFunctionLike } from "./ast-schema-queries.js";
 import {
   getMissingScreenshotShortChainFinding,
+  hasBinding,
   getScreenshotShortChainBindingFindings,
 } from "./screenshot-dispatch-short-chain-check.js";
 import { getSourceProofPollutionFindings } from "./screenshot-source-proof-pollution-check.js";

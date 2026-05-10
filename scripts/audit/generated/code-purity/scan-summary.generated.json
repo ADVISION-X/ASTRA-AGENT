@@ -1,24 +1,17 @@
 {
-  "generatedAt": "2026-05-10T21:33:31.200Z",
+  "generatedAt": "2026-05-10T21:39:34.032Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/ai-capability/inspect_visual_mission_catalog_ssot.ts",
-    "scripts/audit/domains/ai-capability/inspect_visual_mission_context_injection.ts",
-    "scripts/audit/domains/ai-capability/inspect_visual_mission_runtime_path.ts",
-    "scripts/audit/domains/code-purity/components/scan-visual-story-coherence-prompt-checks.ts",
-    "scripts/audit/domains/code-purity/components/scan-visual-story-coherence.ts",
-    "scripts/audit/domains/code-purity/components/zombie-scan/zombie-catalog-assets.ts",
-    "scripts/audit/domains/code-purity/components/zombie-scan/zombie-catalog-exports.ts",
-    "scripts/audit/domains/code-purity/components/zombie-scan/zombie-catalog-main.ts",
-    "scripts/audit/domains/commander-console-capability/run-commander-runtime-checks.ts",
-    "scripts/audit/domains/commander-console-capability/run-commander-runtime-runid-checks.ts",
-    "scripts/audit/domains/commander-console-capability/run-startup-readiness-gate-checks.ts",
-    "scripts/audit/domains/local-app-shell/inspect_visual_mission_no_retired_map_authority.ts",
-    "src/capabilities/ai/prompt-contracts/visual-mission-action-plan/prompt-builder.ts",
-    "src/capabilities/open/open-platform-registry-entries.ts",
-    "src/capabilities/open/registry.ts",
-    "src/lib/local-app-shell/task-start-flow.ts",
-    "src/visual-mission/platform-target-registry.ts"
+    "scripts/audit/domains/commander-console-mac-app-shell/boundary-attack.ts",
+    "scripts/audit/domains/commander-console-mac-app-shell/source-rules.ts",
+    "scripts/audit/domains/debug-loop-boundary/inspector.ts",
+    "scripts/audit/domains/forensics-persistence-capability/forensics-p0-check-support.ts",
+    "scripts/audit/domains/forensics-persistence-capability/forensics-p0-checks-metadata.ts",
+    "scripts/audit/domains/forensics-persistence-capability/run-forensics-runtime-checks.ts",
+    "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-schema-checks.ts",
+    "scripts/audit/domains/forensics-persistence-capability/terminal-relay-proof.ts",
+    "src/capabilities/screenshot/runtime/image-processing-runner.ts",
+    "src/capabilities/screenshot/shared/visual-mission-grid.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -27,6 +20,6 @@
     "src/**/prompt-contracts/**/*.{json,jsonc,ts,tsx}",
     "src/capabilities/**/prompt-contracts/**/*.{json,jsonc,ts,tsx}"
   ],
-  "scannedFileCount": 1937,
-  "findingsCount": 1127
+  "scannedFileCount": 1938,
+  "findingsCount": 1116
 }

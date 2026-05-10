@@ -22,7 +22,7 @@ const STRUCTURED_LOG_SCHEMA_RULES = [
     lawId: LAW_STRUCTURED_LOGGING_DEBUG,
     file: STRUCTURED_LOG_PATH,
     message: "StructuredRuntimeEvent schema is missing required DEBUG transparency fields.",
-    requiredFields: ["level", "traceId", "spanId", "eventId", "eventType", "ownerResponsible", "missionId", "mapId", "stepId", "taskTemplateId", "refs", "durationMs"],
+    requiredFields: ["level", "traceId", "spanId", "eventId", "eventType", "ownerResponsible", "missionId", "sessionId", "runId", "roundId", "stepId", "refs", "durationMs"],
   },
   {
     lawId: LAW_STRUCTURED_LOGGING_REFS,
@@ -34,7 +34,7 @@ const STRUCTURED_LOG_SCHEMA_RULES = [
     lawId: LAW_STRUCTURED_LOGGING_COMMAND_FLOW,
     file: STRUCTURED_LOG_PATH,
     message: "StructuredRuntimeEvent schema is missing command-flow refs required for cross-owner traceability.",
-    requiredFields: ["activationSnapshotRef", "capabilityCallId", "capabilityGroupId", "childCapabilityId", "inputRefs", "outputRefs", "actionRef", "postActionVerificationRef", "decisionRef"],
+    requiredFields: ["capabilityCallId", "capabilityGroupId", "childCapabilityId", "inputRefs", "outputRefs", "actionRef", "postActionVerificationRef", "decisionRef"],
   },
   {
     lawId: LAW_STRUCTURED_LOGGING_AI_REQUEST,

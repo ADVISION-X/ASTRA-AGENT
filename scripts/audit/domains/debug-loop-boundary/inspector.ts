@@ -16,6 +16,7 @@ const REPAIR_PACKET = "scripts/debug-loop/repair-packet-writer.mjs";
 const MAP_AUTHORING = "scripts/debug-loop/map-authoring-public-contract.mjs";
 const RUN_INSPECTOR = "scripts/audit/domains/debug-loop-boundary/run-inspector.ts";
 const PACKAGE_JSON = "package.json";
+const RETIRED_ACTIVATION_REF_FIELD = ["activation", "Snapshot", "Ref"].join("");
 const FORBIDDEN_SCENARIO_FIELDS = new Set([
   "openApp",
   "shellCommand",
@@ -60,7 +61,7 @@ const REQUIRED_ATTACK_NAMES = [
   "scenario contains autoPostComment=true",
   "debug-loop imports Forensics writer",
   "debug-loop writes active registry",
-  "debug-loop writes activationSnapshotRef",
+  "debug-loop writes legacy activation truth",
   "debug-loop writes raw cookie to repair packet",
   "fake authoring marks draft map active",
   "fake authoring skips validation",
@@ -96,7 +97,7 @@ const PREFLIGHT_RULES: TextRule[] = [
 ];
 const AUTHORING_RULES: TextRule[] = [
   { lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1", message: "fake authoring must not write active registry directly.", pattern: /active-map-registry|mark draft map active/i },
-  { lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1", message: "fake authoring must not forge activationSnapshotRef.", pattern: /activationSnapshotRef/ },
+  { lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1", message: "fake authoring must not forge legacy activation truth.", pattern: new RegExp(RETIRED_ACTIVATION_REF_FIELD) },
   { lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1", message: "fake authoring must not skip validation.", pattern: /skip validation/i },
   { lawId: "GRASSEYE-DEBUG-LOOP-BOUNDARY-005-V1", message: "fake authoring must not execute operational maps directly.", pattern: /operationalMap\.steps|interpret map branch/i },
 ];

@@ -3,7 +3,7 @@ import type { Finding, InspectorPhase } from "../../core/schema.js";
 
 import { LAW_IDS, PATHS } from "./config.js";
 import { createCommanderConsoleMacShellProject, getMacShellSourceFile } from "./project-access.js";
-import { hasForbiddenImport, hasPropertyAccessPath, hasStartRequiredBothCondition } from "./source-rules.js";
+import { hasForbiddenImport, hasPropertyAccessPath, hasTaskStartRequestDelegation } from "./source-rules.js";
 
 function collectShellBoundaryFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
   const findings: Finding[] = [];
@@ -39,8 +39,8 @@ function collectCandidateBoundaryFindings(project: ReturnType<typeof createComma
 
 function collectTaskBoundaryFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
   const taskSource = getMacShellSourceFile(project, PATHS.TASK_HANDLER);
-  return !hasStartRequiredBothCondition(taskSource)
-    ? [createFinding({ lawId: LAW_IDS.DOMAIN, file: PATHS.TASK_HANDLER, line: 1, severity: "fatal", message: "Task start handler must require both requestedPlatformId and selectedMapId." })]
+  return !hasTaskStartRequestDelegation(taskSource)
+    ? [createFinding({ lawId: LAW_IDS.DOMAIN, file: PATHS.TASK_HANDLER, line: 1, severity: "fatal", message: "Task API routes must delegate start-mission requests through handleTaskStartRequest instead of reviving retired task-entry binding checks." })]
     : [];
 }
 

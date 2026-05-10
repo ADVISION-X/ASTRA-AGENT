@@ -110,7 +110,7 @@ export const collectTerminalRelayFinding = (project: import("ts-morph").Project)
   const localTerminalSource = getSourceFileOrThrow(project, "src/lib/local-runtime/structured-log-terminal.ts");
   const payloadSource = getSourceFileOrThrow(project, STRUCTURED_LOG_PAYLOAD_PATH);
   const payloadFields = ["runId", "ownerResponsible", "actionableMessage"].every((fieldName) => hasObjectProperty(payloadSource, fieldName));
-  const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "selectedMapId", "activationSnapshotRef"].every((fieldName) => hasObjectProperty(terminalSource, fieldName) || hasObjectProperty(relaySource, fieldName));
+  const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "failureReason"].every((fieldName) => hasObjectProperty(terminalSource, fieldName) || hasObjectProperty(relaySource, fieldName));
   const terminalDiagnosticFields = [
     "capabilityCallId",
     "childCapabilityId",
@@ -124,5 +124,5 @@ export const collectTerminalRelayFinding = (project: import("ts-morph").Project)
 
   return payloadFields && terminalFields && terminalDiagnosticFields && hasTerminalPayloadRefsRelay(relaySource) && hasBoundedAiDebugTerminalDedupe(localTerminalSource)
     ? []
-    : [createFinding({ lawId: LAW_STRUCTURED_LOGGING_COMMAND_FLOW, file: TERMINAL_STRUCTURED_LOG_PATH, line: 1, severity: "fatal", message: "Terminal structured runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, selectedMapId, activationSnapshotRef, payload refs, AI runtime diagnostic fields, and bounded AI debug terminal de-duplication." })];
+    : [createFinding({ lawId: LAW_STRUCTURED_LOGGING_COMMAND_FLOW, file: TERMINAL_STRUCTURED_LOG_PATH, line: 1, severity: "fatal", message: "Terminal structured runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, failureReason, payload refs, AI runtime diagnostic fields, and bounded AI debug terminal de-duplication." })];
 };

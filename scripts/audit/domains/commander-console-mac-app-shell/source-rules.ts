@@ -1,4 +1,4 @@
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { SyntaxKind, type SourceFile } from "ts-morph";
 
 import { hasExportModuleSpecifier } from "../_shared/ast-module-path-queries.js";
 import { hasAnyKeyword, hasImportModuleSpecifier, hasPropertyAccessPath } from "../_shared/ast-helpers.js";
@@ -36,30 +36,7 @@ export function hasSourceTextFragment(sourceFile: SourceFile, fragment: string):
   return sourceFile.getFullText().includes(fragment);
 }
 
-export function hasStartRequiredBothCondition(sourceFile: SourceFile): boolean {
-  return sourceFile.getDescendantsOfKind(SyntaxKind.IfStatement).some((statement) => {
-    const expression = statement.getExpression();
-    return Node.isBinaryExpression(expression)
-      && expression.getOperatorToken().getKind() === SyntaxKind.BarBarToken
-      && isNegatedPath(expression.getLeft(), ["requestedPlatformId"])
-      && isNegatedPath(expression.getRight(), ["selectedMapId"]);
-  });
-}
-
-function isNegatedPath(node: Node, pathParts: string[]): boolean {
-  if (!Node.isPrefixUnaryExpression(node) || node.getOperatorToken() !== SyntaxKind.ExclamationToken) {
-    return false;
-  }
-  const parts = flattenPropertyAccess(node.getOperand());
-  return parts.length === pathParts.length && parts.every((part, index) => part === pathParts[index]);
-}
-
-function flattenPropertyAccess(node: Node | undefined): string[] {
-  if (!node) {
-    return [];
-  }
-  if (Node.isPropertyAccessExpression(node)) {
-    return [...flattenPropertyAccess(node.getExpression()), node.getName()];
-  }
-  return Node.isIdentifier(node) ? [node.getText()] : [];
+export function hasTaskStartRequestDelegation(sourceFile: SourceFile): boolean {
+  return hasNamedImport(sourceFile, "./task-start-api-handler.js", "handleTaskStartRequest")
+    && sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => callExpression.getExpression().getText() === "handleTaskStartRequest");
 }

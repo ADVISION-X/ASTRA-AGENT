@@ -6,6 +6,7 @@ import type { ScreenshotChildRegistryEntry } from "./screenshot-child-contract.j
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
 import { ScreenshotArtifactLifecycleManifestSchema } from "../schema.js";
+import { resolveVisualMissionGridMathBoundaryFailure } from "./visual-mission-grid-boundary.js";
 
 type ScreenshotArtifactLifecycleManifest = ReturnType<typeof ScreenshotArtifactLifecycleManifestSchema.parse>;
 
@@ -133,7 +134,8 @@ function resolveVisualMissionOutputShapeFailure(input: { output: ScreenshotExecu
   return resolveVisualMissionRequiredFieldsFailure(input.output)
     ?? resolveVisualMissionCoordinateSpaceFailure(input.output)
     ?? resolveVisualMissionSourceParityFailure(input.output)
-    ?? resolveVisualMissionReferenceParityFailure(input.output);
+    ?? resolveVisualMissionReferenceParityFailure(input.output)
+    ?? resolveVisualMissionGridMathFailure(input.output);
 }
 
 function resolveVisualMissionRequiredFieldsFailure(output: ScreenshotExecutionOutput) {
@@ -176,6 +178,11 @@ function resolveVisualMissionReferenceParityFailure(output: ScreenshotExecutionO
   }
 
   return null;
+}
+
+function resolveVisualMissionGridMathFailure(output: ScreenshotExecutionOutput) {
+  const failure = resolveVisualMissionGridMathBoundaryFailure(output);
+  return failure ? buildScreenshotOutputBoundaryFailure(failure.reason, failure.message) : null;
 }
 
 async function resolveStructuredRefHashFailure(ref: NonNullable<ScreenshotExecutionOutput["gridSpecRef"]> | NonNullable<ScreenshotExecutionOutput["visualMissionInputRef"]>) {

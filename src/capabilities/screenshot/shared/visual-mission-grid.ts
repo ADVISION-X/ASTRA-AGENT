@@ -2,6 +2,8 @@ import type { ScreenshotGridCell, ScreenshotGridSpec, ScreenshotSourceProof } fr
 
 export const DEFAULT_VISUAL_MISSION_GRID_ROW_COUNT = 12;
 export const DEFAULT_VISUAL_MISSION_GRID_COLUMN_COUNT = 50;
+export const MIN_VISUAL_MISSION_GRID_CELL_WIDTH_PX = 32;
+export const MIN_VISUAL_MISSION_GRID_CELL_HEIGHT_PX = 32;
 export const VISUAL_MISSION_GRID_VERSION = "visual-grid.v1" as const;
 export const VISUAL_MISSION_AXIS_MODE = "y_letters_x_numbers" as const;
 export const VISUAL_MISSION_COORDINATE_INSTRUCTION = "Use grid cells only. Y axis is letters. X axis is numbers. Example: A30, C50. Never output raw x/y.";
@@ -80,6 +82,25 @@ export function buildGridAxes(input: { rowCount: number; columnCount: number }):
   return {
     rowLabels: buildGridRowLabels(input.rowCount),
     columnLabels: buildGridColumnLabels(input.columnCount),
+  };
+}
+
+export function resolveReadableVisualMissionGridDensity(input: {
+  gridImageWidth: number;
+  gridImageHeight: number;
+  requestedRowCount: number;
+  requestedColumnCount: number;
+}) {
+  const maxReadableColumns = Math.floor(input.gridImageWidth / MIN_VISUAL_MISSION_GRID_CELL_WIDTH_PX);
+  const maxReadableRows = Math.floor(input.gridImageHeight / MIN_VISUAL_MISSION_GRID_CELL_HEIGHT_PX);
+
+  if (maxReadableColumns < 1 || maxReadableRows < 1) {
+    throw new Error(`visual mission grid requires at least ${MIN_VISUAL_MISSION_GRID_CELL_WIDTH_PX}x${MIN_VISUAL_MISSION_GRID_CELL_HEIGHT_PX} pixels per cell`);
+  }
+
+  return {
+    rowCount: Math.min(input.requestedRowCount, maxReadableRows),
+    columnCount: Math.min(input.requestedColumnCount, maxReadableColumns),
   };
 }
 
