@@ -1,4 +1,4 @@
-import type { OpenChildCapabilityId } from "./contract.js";
+import type { OpenChildCapabilityId, OpenPlatformId } from "./contract.js";
 import { OPEN_LOCAL_CHILDREN } from "./open-local-registry-entries.js";
 import { OPEN_PLATFORM_CHILDREN } from "./open-platform-registry-entries.js";
 import type { OpenRegistryEntry } from "./runtime/open-runtime-types.js";
@@ -13,6 +13,10 @@ export type OpenTargetDefaults = {
   targetUrl: string;
   targetTitle: string;
 };
+
+const isUrlBackedOpenEntry = (entry: OpenRegistryEntry): entry is Exclude<OpenRegistryEntry, { targetKind: "local-program" }> => (
+  entry.targetKind !== "local-program"
+);
 
 const resolveTargetProfileRef = (entry: OpenRegistryEntry): string => (
   entry.targetKind === "local-program"
@@ -35,4 +39,9 @@ export const listOpenChildren = (): OpenChildCapabilityId[] =>
 export const resolveOpenTargetDefaults = (targetProfileRef: string): OpenTargetDefaults | null => {
   const entry = OPEN_CHILDREN.find((candidate) => resolveTargetProfileRef(candidate) === targetProfileRef);
   return entry ? toOpenTargetDefaults(entry) : null;
+};
+
+export const resolveOpenTargetDefaultsForPlatform = (platformId: OpenPlatformId): OpenTargetDefaults | null => {
+  const entry = OPEN_CHILDREN.find((candidate) => candidate.platformId === platformId && isUrlBackedOpenEntry(candidate));
+  return entry && isUrlBackedOpenEntry(entry) ? toOpenTargetDefaults(entry) : null;
 };

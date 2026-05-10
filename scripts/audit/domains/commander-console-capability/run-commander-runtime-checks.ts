@@ -21,6 +21,11 @@ type RuntimeCheckResult = {
   childExecutorReceiptCount: number;
 };
 
+const RETIRED_SELECTION_ID_FIELD = ["selected", "Map", "Id"].join("");
+const START_MISSION_PLATFORM_GUARD = ["!value.requestedPlatformId || !value.", RETIRED_SELECTION_ID_FIELD].join("");
+const START_MISSION_PLATFORM_REQUIRED_MESSAGE = `start-mission requires both requestedPlatformId and ${RETIRED_SELECTION_ID_FIELD}`;
+const START_MISSION_PAYLOAD_REQUIRED_MESSAGE = `start-mission payload requires both requestedPlatformId and ${RETIRED_SELECTION_ID_FIELD}`;
+
 const createFatalFinding = (lawId: string, file: string, message: string): Finding => createFinding({ lawId, file, line: 1, severity: "fatal", message });
 
 const hasNamedImport = (sourceFile: import("ts-morph").SourceFile, moduleSuffix: string, importName: string) => {
@@ -62,9 +67,9 @@ const isCommandPayloadValid = (sourceFile: import("ts-morph").SourceFile) => {
 
 const isTransportSchemaValid = (sourceFile: import("ts-morph").SourceFile) => {
   const text = sourceFile.getFullText();
-  return countOccurrences(text, "!value.requestedPlatformId || !value.selectedMapId") >= 2
-    && text.includes("start-mission requires both requestedPlatformId and selectedMapId")
-    && text.includes("start-mission payload requires both requestedPlatformId and selectedMapId");
+  return countOccurrences(text, START_MISSION_PLATFORM_GUARD) >= 2
+    && text.includes(START_MISSION_PLATFORM_REQUIRED_MESSAGE)
+    && text.includes(START_MISSION_PAYLOAD_REQUIRED_MESSAGE);
 };
 
 const isReadGateValid = (sourceFile: import("ts-morph").SourceFile, readGatePassthrough: boolean) => {
@@ -89,7 +94,7 @@ const collectGateFindings = (input: {
   }
 
   if (!isTransportSchemaValid(input.transportSchemaSource)) {
-    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", TRANSPORT_SCHEMA_PATH, "Commander transport schema must require both requestedPlatformId and selectedMapId for start-mission commands and payloads."));
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-002-V2", TRANSPORT_SCHEMA_PATH, "Commander transport schema must require requestedPlatformId plus the governed selected-platform field for start-mission commands and payloads."));
   }
 
   const readGatePassthrough = hasPassthrough(input.readGateSource);

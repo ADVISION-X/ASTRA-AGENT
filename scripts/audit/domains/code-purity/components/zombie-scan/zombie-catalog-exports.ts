@@ -1,7 +1,7 @@
 import { getNodeLine, getReferencePaths } from "../../../../core/ts-morph.js";
 import { Node, type Identifier, type SourceFile } from "ts-morph";
 
-import { isZombieProtectedPath } from "../../../../../../src/audit-support/code-purity/protected-seams.js";
+import { isZombieProtectedPath } from "./protected-seams.js";
 import type { ZombieCandidate, ZombieGraph, ZombieKind } from "./zombie-scan-types.js";
 
 const INSPECTOR_COMPONENT_ROOT = "scripts/audit/domains/";

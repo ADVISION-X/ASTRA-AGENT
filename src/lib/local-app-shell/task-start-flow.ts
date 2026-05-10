@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { createId } from "../local-runtime/ids.js";
 import type { GrassEyeWorkbenchHandle } from "../local-runtime/workbench-handle.js";
+import { resolvePlatformProfiles } from "../../platforms/index.js";
 import { parseTaskJsonBody } from "./task-http-helpers.js";
 import {
   normalizePositiveInteger,
@@ -63,6 +64,8 @@ const buildApproval = (
 };
 
 const buildStartMissionInput = (approval: StartApproval) => {
+  const platformProfiles = resolvePlatformProfiles(approval.selectedPlatforms);
+
   return {
     commandType: "start-mission" as const,
     requestedPlatformId: approval.binding.requestedPlatformId,
@@ -76,6 +79,7 @@ const buildStartMissionInput = (approval: StartApproval) => {
       requestedPlatformId: approval.binding.requestedPlatformId,
       selectedPlatforms: approval.selectedPlatforms,
       primaryPlatformId: approval.binding.requestedPlatformId,
+      platformProfiles,
       userRequirementRef: approval.binding.userRequirementRef,
       historyEntryId: approval.historyEntryId,
       targetUrl: approval.binding.targetUrl,

@@ -4,9 +4,18 @@ import { fileExists, readTextFile } from "../../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../../core/paths.js";
 import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
+import { retiredMapCodePurityTokens } from "./retired-map-code-purity-tokens.js";
 import { FORBIDDEN_RETIRED_PROMPT_BUILTIN_PATHS, inspectPromptContract, inspectPromptContractRegistry, LOCAL_AI_TASK_TYPES_PATH } from "./scan-visual-story-coherence-prompt-checks.js";
 
 const VISUAL_STORY_COHERENCE_LAW_ID = "GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1";
+const {
+  RETIRED_MAP_LAYER_OWNER,
+  RETIRED_MAP_PLUGIN_PACKAGE_OWNER,
+  RETIRED_ROUTE_LABEL_FIELD,
+  RETIRED_ROUTE_PLAN_ID_FIELD,
+  RETIRED_SELECTION_ID_FIELD,
+  RETIRED_TASK_TEMPLATE_ID_FIELD,
+} = retiredMapCodePurityTokens;
 
 const COHERENCE_PATH_PREFIXES = [
   "src/app/",
@@ -21,28 +30,28 @@ const COHERENCE_PATH_PREFIXES = [
 
 const DUAL_CHAIN_RULES = [
   {
-    oldToken: "selectedMapId",
+    oldToken: RETIRED_SELECTION_ID_FIELD,
     newToken: "selectedPlatforms",
     coherenceKind: "dual-entry-chain",
-    message: "Active source must not keep selectedMapId and selectedPlatforms as dual task-entry chains.",
+    message: `Active source must not keep ${RETIRED_SELECTION_ID_FIELD} and selectedPlatforms as dual task-entry chains.`,
   },
   {
-    oldToken: "taskTemplateId",
+    oldToken: RETIRED_TASK_TEMPLATE_ID_FIELD,
     newToken: "userRequirementText",
     coherenceKind: "dual-entry-chain",
-    message: "Active source must not keep taskTemplateId and userRequirementText as dual task-entry sources.",
+    message: `Active source must not keep ${RETIRED_TASK_TEMPLATE_ID_FIELD} and userRequirementText as dual task-entry sources.`,
   },
   {
-    oldToken: "routePlanId",
+    oldToken: RETIRED_ROUTE_PLAN_ID_FIELD,
     newToken: "actionCode",
     coherenceKind: "dual-action-source",
-    message: "Active source must not keep routePlanId and actionCode as dual action sources.",
+    message: `Active source must not keep ${RETIRED_ROUTE_PLAN_ID_FIELD} and actionCode as dual action sources.`,
   },
   {
-    oldToken: "routeLabel",
+    oldToken: RETIRED_ROUTE_LABEL_FIELD,
     newToken: "actionCode",
     coherenceKind: "route-label-survivor",
-    message: "Active source must not keep routeLabel beside actionCode in the visual-story chain.",
+    message: `Active source must not keep ${RETIRED_ROUTE_LABEL_FIELD} beside actionCode in the visual-story chain.`,
   },
 ] as const;
 
@@ -171,25 +180,25 @@ const inspectCiFullSummary = async (): Promise<Finding[]> => {
     }));
   }
 
-  if (summary.layers?.some((layer) => layer.label === "map-layer")) {
+  if (summary.layers?.some((layer) => layer.label === RETIRED_MAP_LAYER_OWNER)) {
     findings.push(createCoherenceFinding({
       file: CI_FULL_SUMMARY_PATH,
-      line: findLineNumberForToken(text, '"map-layer"'),
-      message: "CI-FULL generated summary must not retain map-layer after the visual-story cutover.",
-      detail: "map-layer",
+      line: findLineNumberForToken(text, JSON.stringify(RETIRED_MAP_LAYER_OWNER)),
+      message: `CI-FULL generated summary must not retain ${RETIRED_MAP_LAYER_OWNER} after the visual-story cutover.`,
+      detail: RETIRED_MAP_LAYER_OWNER,
       coherenceKind: "stale-generated-proof",
-      recommendedAction: "Remove retired map-layer steps from the active CI-FULL plan and regenerate the summary.",
+      recommendedAction: `Remove retired ${RETIRED_MAP_LAYER_OWNER} steps from the active CI-FULL plan and regenerate the summary.`,
     }));
   }
 
-  if (summary.layers?.some((layer) => layer.steps?.some((step) => step.name === "map-plugin-package"))) {
+  if (summary.layers?.some((layer) => layer.steps?.some((step) => step.name === RETIRED_MAP_PLUGIN_PACKAGE_OWNER))) {
     findings.push(createCoherenceFinding({
       file: CI_FULL_SUMMARY_PATH,
-      line: findLineNumberForToken(text, '"map-plugin-package"'),
-      message: "CI-FULL generated summary must not retain map-plugin-package after the visual-story cutover.",
-      detail: "map-plugin-package",
+      line: findLineNumberForToken(text, JSON.stringify(RETIRED_MAP_PLUGIN_PACKAGE_OWNER)),
+      message: `CI-FULL generated summary must not retain ${RETIRED_MAP_PLUGIN_PACKAGE_OWNER} after the visual-story cutover.`,
+      detail: RETIRED_MAP_PLUGIN_PACKAGE_OWNER,
       coherenceKind: "stale-generated-proof",
-      recommendedAction: "Delete map-plugin-package from the active CI-FULL layers and regenerate the summary.",
+      recommendedAction: `Delete ${RETIRED_MAP_PLUGIN_PACKAGE_OWNER} from the active CI-FULL layers and regenerate the summary.`,
     }));
   }
 

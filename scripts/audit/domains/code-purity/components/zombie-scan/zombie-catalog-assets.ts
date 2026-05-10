@@ -3,7 +3,7 @@ import { pathFromRepoRoot } from "../../../../core/paths.js";
 import { getNodeLine } from "../../../../core/ts-morph.js";
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
-import { getZombieProtectedSeamForPath } from "../../../../../../src/audit-support/code-purity/protected-seams.js";
+import { getZombieProtectedSeamForPath } from "./protected-seams.js";
 import type { ZombieCandidate, ZombieGraph } from "./zombie-scan-types.js";
 
 const PROMPT_CONTRACT_ROOT = "src/capabilities/ai/prompt-contracts/builtins/";

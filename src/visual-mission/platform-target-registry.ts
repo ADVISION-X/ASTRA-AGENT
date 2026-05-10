@@ -1,8 +1,15 @@
-import { resolveOpenTargetDefaults } from "../capabilities/open/registry.js";
+import {
+  resolveOpenTargetDefaultsForPlatform,
+} from "../capabilities/open/registry.js";
+import {
+  PlatformIdSchema,
+  type PlatformId,
+} from "../platforms/platform-profile.schema.js";
+import { getPlatformProfile } from "../platforms/platform-registry.js";
 
-export const VISUAL_MISSION_PLATFORM_IDS = ["facebook-web", "tiktok-web"] as const;
+export const VISUAL_MISSION_PLATFORM_IDS = PlatformIdSchema.options;
 
-type VisualMissionPlatformId = (typeof VISUAL_MISSION_PLATFORM_IDS)[number];
+type VisualMissionPlatformId = PlatformId;
 
 type VisualMissionPlatformTargetBinding = {
   platformId: VisualMissionPlatformId;
@@ -11,20 +18,13 @@ type VisualMissionPlatformTargetBinding = {
   targetTitle: string;
 };
 
-const PLATFORM_TARGET_SEEDS = {
-  "facebook-web": {
-    targetProfileRef: "open-target-profile:open-facebook",
-  },
-  "tiktok-web": {
-    targetProfileRef: "open-target-profile:open-tiktok",
-  },
-} as const satisfies Record<VisualMissionPlatformId, {
-  targetProfileRef: string;
-}>;
-
 function buildPlatformTargetBinding(platformId: VisualMissionPlatformId): VisualMissionPlatformTargetBinding {
-  const seed = PLATFORM_TARGET_SEEDS[platformId];
-  const defaults = resolveOpenTargetDefaults(seed.targetProfileRef);
+  const profile = getPlatformProfile(platformId);
+  if (!profile) {
+    throw new Error(`Missing PlatformRegistry profile for ${platformId}.`);
+  }
+
+  const defaults = resolveOpenTargetDefaultsForPlatform(platformId);
   if (!defaults) {
     throw new Error(`Missing governed open target defaults for ${platformId}.`);
   }
@@ -32,8 +32,8 @@ function buildPlatformTargetBinding(platformId: VisualMissionPlatformId): Visual
   return {
     platformId,
     targetProfileRef: defaults.targetProfileRef,
-    targetUrl: defaults.targetUrl,
-    targetTitle: defaults.targetTitle,
+    targetUrl: profile.entryUrl,
+    targetTitle: profile.targetTitle,
   };
 }
 
@@ -43,8 +43,7 @@ const PLATFORM_TARGET_BINDINGS = {
 } as const;
 
 export const isVisualMissionPlatformId = (value: unknown): value is VisualMissionPlatformId => (
-  typeof value === "string"
-  && (VISUAL_MISSION_PLATFORM_IDS as readonly string[]).includes(value)
+  PlatformIdSchema.safeParse(value).success
 );
 
 export function listVisualMissionPlatformTargets(): VisualMissionPlatformTargetBinding[] {

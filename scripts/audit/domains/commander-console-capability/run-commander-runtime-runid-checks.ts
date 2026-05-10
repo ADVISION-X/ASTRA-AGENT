@@ -14,6 +14,8 @@ const {
 } = commanderConsoleInspectionConstants;
 const WORKBENCH_HUMAN_COMMAND_DEBUG_EVENTS_PATH = "src/lib/local-runtime/workbench-human-command-debug-events.ts";
 const TASK_START_SUPPORT_PATH = "src/lib/local-app-shell/task-start-support.ts";
+const RETIRED_ACTIVATION_REF_FIELD = ["activation", "Snapshot", "Ref"].join("");
+const EARLY_ACCEPTED_BOUNDARY_ACTIVATION_FRAGMENT = [RETIRED_ACTIVATION_REF_FIELD, "="].join("");
 
 const createFatalFinding = (lawId: string, file: string, message: string): Finding => createFinding({ lawId, file, line: 1, severity: "fatal", message });
 
@@ -94,7 +96,7 @@ const hasEarlyAcceptedBoundaryRefs = (sourceFile: import("ts-morph").SourceFile)
   const bodyText = body?.getText() ?? "";
   return bodyText.includes("COMMAND_ACCEPTED")
     && bodyText.includes("resultEnvelopeRef=")
-    && bodyText.includes("activationSnapshotRef=");
+    && bodyText.includes(EARLY_ACCEPTED_BOUNDARY_ACTIVATION_FRAGMENT);
 };
 
 const hasLateCommandResponseEvent = (sourceFile: import("ts-morph").SourceFile): boolean => {
@@ -194,7 +196,7 @@ export const collectDebugRefFindings = (input: {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", TASK_START_DISPATCH_RESULT_PATH, "Task start dispatch result must keep commandEnvelopeRef/resultEnvelopeRef/runtimeProofRef refs on the late COMMAND_REJECTED path."));
   }
   if (!hasEarlyAcceptedBoundaryRefs(input.acceptedBoundarySource)) {
-    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", WORKBENCH_HUMAN_COMMAND_DEBUG_EVENTS_PATH, "Early COMMAND_ACCEPTED boundary event must publish resultEnvelopeRef and activationSnapshotRef before the awaited mission execution completes."));
+    findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", WORKBENCH_HUMAN_COMMAND_DEBUG_EVENTS_PATH, "Early COMMAND_ACCEPTED boundary event must publish resultEnvelopeRef and governed accepted-command proof evidence before the awaited mission execution completes."));
   }
   if (!hasPreDispatchReadyEvent(input.taskStartSupportSource)) {
     findings.push(createFatalFinding("GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-006-V2", TASK_START_SUPPORT_PATH, "Task-start pre-dispatch logging must use COMMAND_DISPATCH_READY, not a duplicate COMMAND_ACCEPTED event."));

@@ -1,7 +1,7 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { getNodeLine } from "../../../../core/ts-morph.js";
-import { getZombieProtectedSeamForRouteStepId } from "../../../../../../src/audit-support/code-purity/protected-seams.js";
+import { getZombieProtectedSeamForRouteStepId } from "./protected-seams.js";
 import { collectAssetFamilyCandidates } from "./zombie-catalog-assets.js";
 import { collectLocalCodeZombieCandidates } from "./zombie-catalog-exports.js";
 import type { ZombieCandidate, ZombieGraph } from "./zombie-scan-types.js";

@@ -14,9 +14,32 @@ import {
   OPEN_TIKTOK_PROOF_POLICY,
 } from "./children/open-tiktok/contract.js";
 import { createOpenTikTokCapability } from "./children/open-tiktok/implementation.js";
+import { getPlatformProfile } from "../../platforms/index.js";
 import type { OpenRegistryEntry } from "./runtime/open-runtime-types.js";
 import { DEFAULT_MAX_RESERVATIONS, DEFAULT_IDEMPOTENCY_TTL_MS } from "./open-registry-policy.js";
 import { DEFAULT_OPEN_TIMEOUT_MS } from "./shared/open-policy.js";
+
+const getRequiredPlatformProfile = (platformId: "facebook-web" | "tiktok-web") => {
+  const profile = getPlatformProfile(platformId);
+  if (!profile) {
+    throw new Error(`Missing PlatformRegistry profile for ${platformId}.`);
+  }
+  return profile;
+};
+
+const toNonEmptyHostnames = (
+  allowedHosts: readonly string[],
+  platformId: "facebook-web" | "tiktok-web",
+): [string, ...string[]] => {
+  const [firstHostname, ...remainingHostnames] = allowedHosts;
+  if (!firstHostname) {
+    throw new Error(`PlatformRegistry allowedHosts is empty for ${platformId}.`);
+  }
+  return [firstHostname, ...remainingHostnames];
+};
+
+const TIKTOK_WEB_PROFILE = getRequiredPlatformProfile("tiktok-web");
+const FACEBOOK_WEB_PROFILE = getRequiredPlatformProfile("facebook-web");
 
 export const OPEN_PLATFORM_CHILDREN = [
   {
@@ -28,9 +51,9 @@ export const OPEN_PLATFORM_CHILDREN = [
     purpose: "Open the governed TikTok For You feed through the Open ability-group contract only.",
     allowedCaller: ["orchestration", "nerve-bus"],
     requiresNerveBus: true,
-    allowedHostnames: ["tiktok.com", "www.tiktok.com"],
-    defaultUrl: "https://www.tiktok.com/foryou",
-    defaultTitle: "TikTok For You",
+    allowedHostnames: toNonEmptyHostnames(TIKTOK_WEB_PROFILE.allowedHosts, "tiktok-web"),
+    defaultUrl: TIKTOK_WEB_PROFILE.entryUrl,
+    defaultTitle: TIKTOK_WEB_PROFILE.targetTitle,
     requiresRealChromeSession: true,
     allowsLocalhost: false,
     maxOpenDurationMs: DEFAULT_OPEN_TIMEOUT_MS,
@@ -71,9 +94,9 @@ export const OPEN_PLATFORM_CHILDREN = [
     purpose: "Open the governed Facebook Reels feed through the Open ability-group contract only.",
     allowedCaller: ["orchestration", "nerve-bus"],
     requiresNerveBus: true,
-    allowedHostnames: ["facebook.com", "www.facebook.com", "m.facebook.com"],
-    defaultUrl: "https://www.facebook.com/reel/",
-    defaultTitle: "Facebook Reels",
+    allowedHostnames: toNonEmptyHostnames(FACEBOOK_WEB_PROFILE.allowedHosts, "facebook-web"),
+    defaultUrl: FACEBOOK_WEB_PROFILE.entryUrl,
+    defaultTitle: FACEBOOK_WEB_PROFILE.targetTitle,
     requiresRealChromeSession: true,
     allowsLocalhost: false,
     maxOpenDurationMs: DEFAULT_OPEN_TIMEOUT_MS,

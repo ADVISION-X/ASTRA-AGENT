@@ -4,8 +4,15 @@ import { fileExists, readTextFile } from "../../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../../core/paths.js";
 import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
+import { retiredMapCodePurityTokens } from "./retired-map-code-purity-tokens.js";
 
 const VISUAL_STORY_COHERENCE_LAW_ID = "GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1";
+const {
+  RETIRED_ROUTE_LABEL_FIELD,
+  RETIRED_ROUTE_PLAN_ID_FIELD,
+  RETIRED_SELECTION_ID_FIELD,
+  RETIRED_TASK_TEMPLATE_ID_FIELD,
+} = retiredMapCodePurityTokens;
 
 const PROMPT_CONTRACT_PATH = "src/capabilities/ai/prompt-contracts/builtins/visual-mission-action-plan-v1.prompt-contract.json";
 const PROMPT_CONTRACT_REGISTRY_PATH = "src/capabilities/ai/prompt-contracts/registry.ts";
@@ -16,6 +23,14 @@ const FORBIDDEN_RETIRED_PROMPT_CONTRACT_FILES = [
   "vision.productPresence.v1.prompt-contract.json",
   "vision.nextItemTargetCandidate.v1.prompt-contract.json",
   "vision.commentsEntryTargetCandidate.v1.prompt-contract.json",
+] as const;
+const FORBIDDEN_RETIRED_PROMPT_OUTPUTS = [
+  RETIRED_ROUTE_LABEL_FIELD,
+  RETIRED_ROUTE_PLAN_ID_FIELD,
+  RETIRED_SELECTION_ID_FIELD,
+  RETIRED_TASK_TEMPLATE_ID_FIELD,
+  "raw x",
+  "raw y",
 ] as const;
 
 const createCoherenceFinding = (input: {
@@ -116,7 +131,7 @@ const inspectPromptSchemaVersion = (text: string, contract: PromptContractDocume
 
 const inspectPromptForbiddenOutputs = (text: string, contract: PromptContractDocument): Finding[] => {
   const forbiddenOutputs = new Set(contract.forbiddenOutputs ?? []);
-  return ["routeLabel", "routePlanId", "selectedMapId", "taskTemplateId", "raw x", "raw y"].flatMap((token) =>
+  return FORBIDDEN_RETIRED_PROMPT_OUTPUTS.flatMap((token) =>
     forbiddenOutputs.has(token)
       ? []
       : [createCoherenceFinding({
@@ -124,7 +139,7 @@ const inspectPromptForbiddenOutputs = (text: string, contract: PromptContractDoc
         line: findLineNumberForToken(text, '"forbiddenOutputs"'),
         message: `Visual mission prompt contract must forbid ${token}.`,
         detail: token,
-        coherenceKind: token === "routeLabel" ? "route-label-survivor" : "visual-story-drift",
+        coherenceKind: token === RETIRED_ROUTE_LABEL_FIELD ? "route-label-survivor" : "visual-story-drift",
         recommendedAction: `Add ${token} to forbiddenOutputs and keep visual mission output limited to governed actionCode records.`,
       })],
   );

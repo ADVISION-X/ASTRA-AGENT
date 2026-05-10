@@ -1,6 +1,6 @@
 import { Node, SyntaxKind } from "ts-morph";
 
-import { readTextFile, listFilesRecursive } from "../../core/filesystem.js";
+import { fileExists, listFilesRecursive, readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
@@ -13,8 +13,8 @@ const STARTUP_GATE_LAW_ID = "GRASSEYE-STARTUP-ENTRYPOINT-005-V1";
 const LOCAL_AI_GATE_LAW_ID = "GRASSEYE-LOCAL-AI-RUNTIME-006-V1";
 const STARTUP_HELPER_PATH = "scripts/startup/lib/local-ai-runtime-readiness.mjs";
 const STARTUP_PROBE_PATH = "scripts/startup/lib/local-ai-runtime-readiness-probe.ts";
-const MAP_PACKAGE_HELPER_PATH = "scripts/startup/lib/map-package-readiness.mjs";
-const MAP_PACKAGE_PROBE_PATH = "scripts/startup/lib/map-package-readiness-probe.ts";
+const STARTUP_CATALOG_HELPER_PATH = "scripts/startup/lib/startup-catalog-readiness.mjs";
+const STARTUP_CATALOG_PROBE_PATH = "scripts/startup/lib/startup-catalog-readiness-probe.ts";
 const STARTUP_FAILURE_BUNDLE_PATH = "scripts/startup/lib/startup-failure-bundle.mjs";
 const STARTUP_FAILURE_HANDLER_PATH = "scripts/startup/lib/startup-failure-handler.mjs";
 const STARTUP_MAIN_SUPPORT_PATH = "scripts/startup/lib/startup-main-support.mjs";
@@ -28,22 +28,8 @@ const ORCHESTRATION_SCHEMA_PATH = "src/capabilities/orchestration/schema.ts";
 const TERMINAL_STRUCTURED_LOG_PATH = "scripts/startup/lib/terminal-structured-log.mjs";
 const STRUCTURED_LOG_PAYLOAD_PATH = "src/lib/local-runtime/structured-log-payload.ts";
 
-const ALLOWED_BOOTSTRAP_FILES = new Set([
-  commanderConsoleInspectionConstants.STARTUP_PATH,
-  STARTUP_HELPER_PATH,
-  STARTUP_PROBE_PATH,
-  MAP_PACKAGE_HELPER_PATH,
-  MAP_PACKAGE_PROBE_PATH,
-  STARTUP_FAILURE_BUNDLE_PATH,
-  STARTUP_FAILURE_HANDLER_PATH,
-  STARTUP_MAIN_SUPPORT_PATH,
-  STARTUP_CONTRACT_PATH,
-]);
-const FORBIDDEN_BOOTSTRAP_MARKERS = [
-  "ensureLocalAiRuntimeReady(",
-  'open", ["-a", "Ollama"]',
-  'ollama", ["serve"]',
-];
+const ALLOWED_BOOTSTRAP_FILES = new Set([commanderConsoleInspectionConstants.STARTUP_PATH, STARTUP_HELPER_PATH, STARTUP_PROBE_PATH, STARTUP_CATALOG_HELPER_PATH, STARTUP_CATALOG_PROBE_PATH, STARTUP_FAILURE_BUNDLE_PATH, STARTUP_FAILURE_HANDLER_PATH, STARTUP_MAIN_SUPPORT_PATH, STARTUP_CONTRACT_PATH]);
+const FORBIDDEN_BOOTSTRAP_MARKERS = ["ensureLocalAiRuntimeReady(", 'open", ["-a", "Ollama"]', 'ollama", ["serve"]'];
 
 const createStartupGateFinding = (input: { lawId: string; file: string; message: string; line?: number; severity?: "error" | "fatal"; detail?: string }): Finding => {
   return createFinding({
@@ -61,8 +47,8 @@ function collectStartupImportFindings(launchSource: import("ts-morph").SourceFil
   if (!hasNamedImport(launchSource, "./lib/local-ai-runtime-readiness.mjs", "ensureLocalAiRuntimeReady")) {
     findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must import ensureLocalAiRuntimeReady through the governed startup helper." }));
   }
-  if (!hasNamedImport(launchSource, "./lib/map-package-readiness.mjs", "ensureMapPackageReadiness")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must import ensureMapPackageReadiness through the governed map package startup helper." }));
+  if (!hasNamedImport(launchSource, "./lib/startup-catalog-readiness.mjs", "ensureStartupCatalogReadiness")) {
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must import ensureStartupCatalogReadiness through the governed startup catalog helper." }));
   }
   if (!hasNamedImport(launchSource, "./lib/startup-failure-handler.mjs", "handleStartupBootstrapFailure")) {
     findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must import handleStartupBootstrapFailure so hard failures are correlated with a current debug-loop bundle." }));
@@ -78,28 +64,8 @@ function collectPerformLaunchSequenceFindings(launchSource: import("ts-morph").S
     return [createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must define performLaunch with governed bootstrap ordering." })];
   }
 
-  const orderedCalls = [
-    getIdentifierCallWithin(performLaunch, "ensureDependencies"),
-    getIdentifierCallWithin(performLaunch, "runUpdatePreflight"),
-    getIdentifierCallWithin(performLaunch, "ensureStartupMapPackageReadiness"),
-    getIdentifierCallWithin(performLaunch, "ensureLocalAiReadiness"),
-    getIdentifierCallWithin(performLaunch, "preparePort"),
-    getIdentifierCallWithin(performLaunch, "startService"),
-    getIdentifierCallWithin(performLaunch, "verifyAppHealth"),
-    getIdentifierCallWithin(performLaunch, "openReadyPage"),
-    getIdentifierCallWithin(performLaunch, "markMissionRuntimeAvailable"),
-  ];
-  const callLabels = [
-    "ensureDependencies",
-    "runUpdatePreflight",
-    "ensureStartupMapPackageReadiness",
-    "ensureLocalAiReadiness",
-    "preparePort",
-    "startService",
-    "verifyAppHealth",
-    "openReadyPage",
-    "markMissionRuntimeAvailable",
-  ];
+  const orderedCalls = [getIdentifierCallWithin(performLaunch, "ensureDependencies"), getIdentifierCallWithin(performLaunch, "runUpdatePreflight"), getIdentifierCallWithin(performLaunch, "ensureStartupCatalogReadiness"), getIdentifierCallWithin(performLaunch, "ensureLocalAiReadiness"), getIdentifierCallWithin(performLaunch, "preparePort"), getIdentifierCallWithin(performLaunch, "startService"), getIdentifierCallWithin(performLaunch, "verifyAppHealth"), getIdentifierCallWithin(performLaunch, "openReadyPage"), getIdentifierCallWithin(performLaunch, "markMissionRuntimeAvailable")];
+  const callLabels = ["ensureDependencies", "runUpdatePreflight", "ensureStartupCatalogReadiness", "ensureLocalAiReadiness", "preparePort", "startService", "verifyAppHealth", "openReadyPage", "markMissionRuntimeAvailable"];
 
   orderedCalls.forEach((callNode, index) => {
     if (!callNode) {
@@ -118,21 +84,22 @@ function collectPerformLaunchSequenceFindings(launchSource: import("ts-morph").S
   return findings;
 }
 
-const collectMapPackageGateFindings = (
-  mapPackageReadiness: ReturnType<import("ts-morph").SourceFile["getFunction"]>,
+const collectStartupCatalogGateFindings = (
+  startupCatalogReadiness: ReturnType<import("ts-morph").SourceFile["getFunction"]>,
 ): Finding[] => {
   const findings: Finding[] = [];
-  if (!mapPackageReadiness) {
-    return [createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must define a map package readiness gate before service launch." })];
+  if (!startupCatalogReadiness) {
+    return [createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup must define a governed catalog readiness gate before local AI readiness and service launch." })];
   }
-  if (!getIdentifierCallWithin(mapPackageReadiness, "ensureMapPackageReadiness")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup map package gate must delegate to ensureMapPackageReadiness." }));
+  const readinessText = startupCatalogReadiness.getFullText();
+  if (!getIdentifierCallWithin(startupCatalogReadiness, "ensureStartupCatalogReadiness")) {
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup catalog gate must delegate to ensureStartupCatalogReadiness." }));
   }
-  if (!mapPackageReadiness.getFullText().includes("map_package_readiness_check")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup map package gate must emit map_package_readiness_check structured logs." }));
+  if (!["prompt_contract_registry_check", "muscle_memory_catalog_check", "platform_registry_check"].every((token) => readinessText.includes(token))) {
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup catalog gate must emit prompt_contract_registry_check, muscle_memory_catalog_check, and platform_registry_check before local AI readiness." }));
   }
-  if (!mapPackageReadiness.getFullText().includes("ownerResponsible") || !mapPackageReadiness.getFullText().includes("actionableMessage")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup map package gate must preserve ownerResponsible and actionableMessage in failure logs." }));
+  if (!readinessText.includes("ownerResponsible") || !readinessText.includes("actionableMessage")) {
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup catalog gate must preserve ownerResponsible and actionableMessage in failure logs." }));
   }
   return findings;
 };
@@ -168,11 +135,7 @@ function collectFailClosedFindings(launchSource: import("ts-morph").SourceFile):
   if (!main || !getIdentifierCallWithin(main, "handleStartupBootstrapFailure")) {
     findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: commanderConsoleInspectionConstants.STARTUP_PATH, message: "Startup hard-failure catch path must write a current startup failure bundle." }));
   }
-  return [
-    ...findings,
-    ...collectMapPackageGateFindings(launchSource.getFunction("ensureStartupMapPackageReadiness")),
-    ...collectLocalAiFailClosedFindings(launchSource.getFunction("ensureLocalAiReadiness")),
-  ];
+  return [...findings, ...collectStartupCatalogGateFindings(launchSource.getFunction("ensureStartupCatalogReadiness")), ...collectLocalAiFailClosedFindings(launchSource.getFunction("ensureLocalAiReadiness"))];
 }
 
 const collectLocalAiHelperFindings = (helperText: string, probeText: string): Finding[] => {
@@ -189,16 +152,16 @@ const collectLocalAiHelperFindings = (helperText: string, probeText: string): Fi
   return findings;
 };
 
-const collectMapPackageHelperFindings = (mapPackageHelperText: string, mapPackageProbeText: string): Finding[] => {
+const collectStartupCatalogHelperFindings = (catalogHelperText: string, catalogProbeText: string): Finding[] => {
   const findings: Finding[] = [];
-  if (!mapPackageHelperText.includes("map-package-readiness-probe.ts")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: MAP_PACKAGE_HELPER_PATH, message: "Map package startup helper must delegate readiness evaluation to the governed map package probe script." }));
+  if (!catalogHelperText.includes("startup-catalog-readiness-probe.ts")) {
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: STARTUP_CATALOG_HELPER_PATH, message: "Startup catalog helper must delegate readiness evaluation to the governed startup catalog probe script." }));
   }
-  if (!mapPackageProbeText.includes("src/map-plugins/builtins/index.js") || !mapPackageProbeText.includes("src/map-plugins/registry/map-plugin-registry.js")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: MAP_PACKAGE_PROBE_PATH, message: "Map package startup probe must load builtin packages and exercise registry bootstrap through governed source modules." }));
+  if (!catalogProbeText.includes("prompt-contracts/registry") || !catalogProbeText.includes("muscle-memory/catalog") || !catalogProbeText.includes("platform-target-registry")) {
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: STARTUP_CATALOG_PROBE_PATH, message: "Startup catalog probe must verify Prompt Contract Registry, MuscleMemoryCatalog, and PlatformRegistry through governed source modules." }));
   }
-  if (!mapPackageProbeText.includes("ownerResponsible") || !mapPackageProbeText.includes("actionableMessage")) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: MAP_PACKAGE_PROBE_PATH, message: "Map package startup probe must report ownerResponsible and actionableMessage for pre-service failures." }));
+  if (!catalogProbeText.includes("ownerResponsible") || !catalogProbeText.includes("actionableMessage")) {
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: STARTUP_CATALOG_PROBE_PATH, message: "Startup catalog probe must report ownerResponsible and actionableMessage for pre-service failures." }));
   }
   return findings;
 };
@@ -219,7 +182,7 @@ function collectMissionPreflightContractFindings(project: import("ts-morph").Pro
     return Node.isPropertyAccessExpression(expression) && expression.getName() === "getMissionStartPreflight";
   });
   const callCarriesContract = taskStartCalls.some((callExpression) => {
-    return ["taskTemplateId", "activationId", "activationSnapshotRef", "targetProfileRef"].every((propertyName) => callExpression.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName));
+    return ["userRequirementText", "selectedPlatforms", "targetProfileRef"].every((propertyName) => callExpression.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName));
   });
   const statusHasContractComponent = workbenchStatus.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === "commandTransportContract");
   const statusHasMissionCommandSchemaComponent = workbenchStatus.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === "missionCommandSchema");
@@ -231,14 +194,14 @@ function collectMissionPreflightContractFindings(project: import("ts-morph").Pro
       && expression.getExpression().getText() === "MissionCommandSchema"
       && expression.getName() === "safeParse";
   });
-  const statusChecksBinding = ["taskTemplateId", "activationId", "activationSnapshotRef", "targetProfileRef"].every((propertyName) => workbenchStatus.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === `input.${propertyName}`));
+  const statusChecksBinding = ["userRequirementText", "selectedPlatforms", "targetProfileRef"].every((propertyName) => workbenchStatus.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getText() === `input.${propertyName}`));
   const findings: Finding[] = [];
 
   if (!callCarriesContract) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: TASK_START_FLOW_PATH, message: "Task start flow must pass taskTemplateId, activationId, activationSnapshotRef, and targetProfileRef into MissionStartPreflight before COMMANDER dispatch." }));
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: TASK_START_FLOW_PATH, message: "Task start flow must pass userRequirementText, selectedPlatforms, and targetProfileRef into MissionStartPreflight before COMMANDER dispatch." }));
   }
   if (!statusHasContractComponent || !statusChecksBinding) {
-    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: WORKBENCH_STATUS_PATH, message: "MissionStartPreflight must include a commandTransportContract component that blocks missing task binding, activation id, activation snapshot, or target profile refs." }));
+    findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: WORKBENCH_STATUS_PATH, message: "MissionStartPreflight must include a commandTransportContract component that blocks missing user requirement, selected platform, or target profile refs." }));
   }
   if (!statusHasMissionCommandSchemaComponent || !statusImportsMissionCommandPreflight || !preflightImportsMissionCommandSchema || !statusValidatesMissionCommandSchema) {
     findings.push(createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: WORKBENCH_STATUS_PATH, message: "MissionStartPreflight must dry-run MissionCommandSchema before COMMANDER dispatch so command schema failures cannot appear only after Nerve Bus dispatch." }));
@@ -247,9 +210,7 @@ function collectMissionPreflightContractFindings(project: import("ts-morph").Pro
   return findings;
 }
 
-function sourceExportsMissionCommandSchema(sourceFile: import("ts-morph").SourceFile): boolean {
-  return sourceFile.getExportedDeclarations().has("MissionCommandSchema");
-}
+const sourceExportsMissionCommandSchema = (sourceFile: import("ts-morph").SourceFile): boolean => sourceFile.getExportedDeclarations().has("MissionCommandSchema");
 
 function importsGovernedMissionCommandSchema(
   project: import("ts-morph").Project,
@@ -276,25 +237,36 @@ function collectTerminalRelayFieldFindings(project: import("ts-morph").Project):
   const hasProperty = (sourceFile: import("ts-morph").SourceFile, propertyName: string) =>
     sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === propertyName);
   const payloadFields = ["runId", "ownerResponsible", "actionableMessage"].every((propertyName) => hasProperty(payloadSource, propertyName));
-  const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "selectedMapId", "activationSnapshotRef"].every((propertyName) => terminalSources.some((sourceFile) => hasProperty(sourceFile, propertyName)));
+  const terminalFields = ["runId", "ownerResponsible", "actionableMessage", "traceId", "failureReason"].every((propertyName) => terminalSources.some((sourceFile) => hasProperty(sourceFile, propertyName)));
 
   return payloadFields && terminalFields
     ? []
-    : [createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: TERMINAL_STRUCTURED_LOG_PATH, severity: "fatal", message: "Terminal runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, selectedMapId, and activationSnapshotRef for COMMAND_REJECTED." })];
+    : [createStartupGateFinding({ lawId: STARTUP_GATE_LAW_ID, file: TERMINAL_STRUCTURED_LOG_PATH, severity: "fatal", message: "Terminal runtime relay must preserve runId, ownerResponsible, actionableMessage, traceId, and failureReason for COMMAND_REJECTED." })];
 }
 
 async function collectHelperDelegationFindings(project: import("ts-morph").Project): Promise<Finding[]> {
   const helperText = project.getSourceFile(pathFromRepoRoot(STARTUP_HELPER_PATH))?.getFullText() ?? await readTextFile(pathFromRepoRoot(STARTUP_HELPER_PATH));
-  const mapPackageHelperText = project.getSourceFile(pathFromRepoRoot(MAP_PACKAGE_HELPER_PATH))?.getFullText() ?? await readTextFile(pathFromRepoRoot(MAP_PACKAGE_HELPER_PATH));
   const probeText = await readTextFile(pathFromRepoRoot(STARTUP_PROBE_PATH));
-  const mapPackageProbeText = await readTextFile(pathFromRepoRoot(MAP_PACKAGE_PROBE_PATH));
   const failureBundleText = await readTextFile(pathFromRepoRoot(STARTUP_FAILURE_BUNDLE_PATH));
-
-  return [
+  const findings = [
     ...collectLocalAiHelperFindings(helperText, probeText),
-    ...collectMapPackageHelperFindings(mapPackageHelperText, mapPackageProbeText),
     ...collectFailureBundleHelperFindings(failureBundleText),
   ];
+  const catalogHelperPath = pathFromRepoRoot(STARTUP_CATALOG_HELPER_PATH);
+  const catalogProbePath = pathFromRepoRoot(STARTUP_CATALOG_PROBE_PATH);
+
+  if (!(await fileExists(catalogHelperPath)) || !(await fileExists(catalogProbePath))) {
+    findings.push(createStartupGateFinding({
+      lawId: STARTUP_GATE_LAW_ID,
+      file: STARTUP_CATALOG_HELPER_PATH,
+      message: "Startup must define governed startup-catalog readiness helper and probe files before mission runtime becomes available.",
+    }));
+    return findings;
+  }
+
+  const catalogHelperText = project.getSourceFile(catalogHelperPath)?.getFullText() ?? await readTextFile(catalogHelperPath);
+  const catalogProbeText = await readTextFile(catalogProbePath);
+  return [...findings, ...collectStartupCatalogHelperFindings(catalogHelperText, catalogProbeText)];
 }
 
 async function collectScatteredBootstrapFindings(): Promise<Finding[]> {

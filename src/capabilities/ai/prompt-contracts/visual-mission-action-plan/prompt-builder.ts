@@ -1,4 +1,5 @@
 import { buildMuscleMemorySystemManual } from "../../../../muscle-memory/system-manual.js";
+import { getPlatformProfile } from "../../../../platforms/index.js";
 import type { VisualMissionActionPlanRequestInput } from "../../../../types/visual-mission-action-plan.js";
 
 const OUTPUT_FORMAT_GUIDE = [
@@ -21,12 +22,29 @@ const OUTPUT_FORMAT_GUIDE = [
   '"nonExecutableSummary":"..."}',
 ].join("\n");
 
+function buildPlatformRegistrySection(input: VisualMissionActionPlanRequestInput): string {
+  const platformProfile = getPlatformProfile(input.platformContext.platformId);
+  if (!platformProfile) {
+    throw new Error(`Missing PlatformRegistry profile for ${input.platformContext.platformId}.`);
+  }
+
+  return [
+    "PlatformRegistry Profile:",
+    "supportedActionCodes is a platform allowlist hint only. MuscleMemoryCatalog remains the only actionCode authority.",
+    JSON.stringify(platformProfile),
+    "Resolved Target Binding:",
+    JSON.stringify({
+      platformContextRef: input.platformContextRef,
+      platformContext: input.platformContext,
+    }),
+  ].join("\n\n");
+}
+
 function buildUserRequirementSection(input: VisualMissionActionPlanRequestInput): string {
   return [
     "## 1. User Requirement",
     input.userRequirementText,
-    "Platform Context:",
-    JSON.stringify(input.platformContext),
+    buildPlatformRegistrySection(input),
     "Screenshot Refs:",
     JSON.stringify({
       originalScreenshotRef: input.originalScreenshotRef,
