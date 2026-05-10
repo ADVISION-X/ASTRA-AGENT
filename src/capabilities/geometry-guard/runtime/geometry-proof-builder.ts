@@ -15,11 +15,6 @@ function buildGeometryProofChainFields(input: Parameters<typeof buildGeometryRun
     roundId: input.request.roundId,
     videoVisitId: input.request.videoVisitId,
     stepId: input.request.stepId,
-    mapPackageId: input.request.mapPackageId,
-    mapPackageVersion: input.request.mapPackageVersion,
-    selectedMapId: input.request.selectedMapId,
-    selectedMapVersion: input.request.selectedMapVersion,
-    activationSnapshotRef: input.request.activationSnapshotRef,
     capabilityCallId: input.request.capabilityCallId,
     nerveBusEnvelopeId: input.request.nerveBusEnvelopeId,
   };

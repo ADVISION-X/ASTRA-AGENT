@@ -1,35 +1,7 @@
 {
-  "findingCount": 60,
-  "clickCellFindings": [
-    {
-      "lawId": "GRASSEYE-CAPABILITY-GROUP-003-V1",
-      "file": "src/muscle-memory/catalog/muscle-memory-catalog.generated.json",
-      "line": 1,
-      "severity": "fatal",
-      "message": "CLICK_CELL_BYPASSES_GEOMETRY_GUARD: CLICK_CELL must terminate at a Geometry Guard child before Mouse Click executes coordinates.",
-      "detail": "mouse-click.click-browser-coordinate"
-    },
-    {
-      "lawId": "GRASSEYE-CAPABILITY-GROUP-003-V1",
-      "file": "src/muscle-memory/catalog/muscle-memory-catalog.generated.json",
-      "line": 1,
-      "severity": "fatal",
-      "message": "MOUSE_CLICK_ACCEPTS_AI_GRIDCELL_DIRECTLY: AI CLICK_CELL currently resolves straight to mouse-click instead of a geometry proof child.",
-      "detail": "mouse-click.click-browser-coordinate"
-    }
-  ],
+  "findingCount": 75,
+  "clickCellFindings": [],
   "weakestAiReachableChildren": [
-    {
-      "abilityGroupId": "orchestration",
-      "childCapabilityId": "emergency-stop",
-      "strengthLevel": 1,
-      "aiActionCodes": [
-        "STOP_REVIEW_REQUIRED"
-      ],
-      "blockingReasons": [
-        "CHILD_RETURNS_FAKE_SUCCESS"
-      ]
-    },
     {
       "abilityGroupId": "forensics-persistence",
       "childCapabilityId": "write-product-lead-record",
@@ -42,8 +14,8 @@
       "blockingReasons": []
     },
     {
-      "abilityGroupId": "mouse-click",
-      "childCapabilityId": "click-browser-coordinate",
+      "abilityGroupId": "geometry-guard",
+      "childCapabilityId": "validate-click-point",
       "strengthLevel": 4,
       "aiActionCodes": [
         "CLICK_CELL"
@@ -65,6 +37,15 @@
       "strengthLevel": 4,
       "aiActionCodes": [
         "OPEN_TIKTOK_ENTRY"
+      ],
+      "blockingReasons": []
+    },
+    {
+      "abilityGroupId": "orchestration",
+      "childCapabilityId": "emergency-stop",
+      "strengthLevel": 4,
+      "aiActionCodes": [
+        "STOP_REVIEW_REQUIRED"
       ],
       "blockingReasons": []
     }

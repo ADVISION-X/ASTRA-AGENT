@@ -5,6 +5,8 @@ import type { ScreenshotExecutionPlan } from "./screenshot-child-contract.js";
 import { resolveScreenshotAiInputEncodeProfile } from "./screenshot-lightweight-observation.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 
+type PrepareVisualMissionInputPlan = Extract<ScreenshotExecutionPlan, { kind: "image-processing" }> & { operation: "prepare-visual-mission-input" };
+
 type ImageProcessingRunnerOutput = {
   outputFilePath: string;
   width: number;
@@ -141,20 +143,52 @@ async function resolvePrepareAiInputProcessing(input: {
   };
 }
 
-async function resolvePrepareVisualMissionInputProcessing(input: {
-  plan: Extract<ScreenshotExecutionPlan, { kind: "image-processing" }> & { operation: "prepare-visual-mission-input" };
-  context: ScreenshotRuntimeContext;
-  timeoutMs: number;
-  createdAt: string;
-}) {
-  const sourceScreenshotEvidenceId = input.plan.sourceProof.sourceScreenshotEvidenceId;
-  const sourceStorageRef = input.plan.sourceProof.sourceStorageRef;
-  const sourceCoordinateSpace = input.plan.sourceProof.coordinateSpace;
+function resolvePrepareVisualMissionSourceRequirements(plan: PrepareVisualMissionInputPlan) {
+  const sourceScreenshotEvidenceId = plan.sourceProof.sourceScreenshotEvidenceId;
+  const sourceStorageRef = plan.sourceProof.sourceStorageRef;
+  const sourceCoordinateSpace = plan.sourceProof.coordinateSpace;
 
   if (!sourceScreenshotEvidenceId || !sourceStorageRef || !sourceCoordinateSpace) {
     throw new Error("prepare-visual-mission-input requires sourceProof sourceScreenshotEvidenceId, sourceStorageRef, and coordinateSpace.");
   }
 
+  return { sourceScreenshotEvidenceId, sourceStorageRef, sourceCoordinateSpace };
+}
+
+function buildPrepareVisualMissionGridOutput(input: {
+  plan: PrepareVisualMissionInputPlan;
+  result: {
+    outputFilePath: string;
+    width: number;
+    height: number;
+    mimeType: string;
+    gridSpec: import("../contract.js").ScreenshotGridSpec;
+  };
+}): ImageProcessingRunnerOutput {
+  return {
+    outputFilePath: input.result.outputFilePath,
+    width: input.result.width,
+    height: input.result.height,
+    mimeType: input.result.mimeType,
+    equivalence: null,
+    sourceWidth: input.result.gridSpec.sourceWidth,
+    sourceHeight: input.result.gridSpec.sourceHeight,
+    cropOffsetX: 0,
+    cropOffsetY: 0,
+    gridSpec: projectGridSpecToSourceCoordinates({
+      gridSpec: input.result.gridSpec,
+      sourceProof: input.plan.sourceProof,
+    }),
+  };
+}
+
+async function resolvePrepareVisualMissionInputProcessing(input: {
+  plan: PrepareVisualMissionInputPlan;
+  context: ScreenshotRuntimeContext;
+  timeoutMs: number;
+  createdAt: string;
+}) {
+  const sourceRequirements = resolvePrepareVisualMissionSourceRequirements(input.plan);
   const sourceMetadata = await input.context.imageProcessingPort.inspectImage(input.plan.sourceFilePath);
   const readableGrid = resolveReadableVisualMissionGridDensity({
     gridImageWidth: sourceMetadata.width,
@@ -166,30 +200,16 @@ async function resolvePrepareVisualMissionInputProcessing(input: {
   const output = await withTimeout(
     input.context.imageProcessingPort.renderCoordinateGrid({
       sourceFilePath: input.plan.sourceFilePath,
-      sourceScreenshotEvidenceId,
-      sourceStorageRef,
-      sourceCoordinateSpace,
+      sourceScreenshotEvidenceId: sourceRequirements.sourceScreenshotEvidenceId,
+      sourceStorageRef: sourceRequirements.sourceStorageRef,
+      sourceCoordinateSpace: sourceRequirements.sourceCoordinateSpace,
       sourceWidth: input.plan.sourceProof.sourceWidth ?? 0,
       sourceHeight: input.plan.sourceProof.sourceHeight ?? 0,
       rowCount: readableGrid.rowCount,
       columnCount: readableGrid.columnCount,
       axisMode: "y_letters_x_numbers",
       createdAt: input.createdAt,
-    }).then((result) => ({
-      outputFilePath: result.outputFilePath,
-      width: result.width,
-      height: result.height,
-      mimeType: result.mimeType,
-      equivalence: null,
-      sourceWidth: result.gridSpec.sourceWidth,
-      sourceHeight: result.gridSpec.sourceHeight,
-      cropOffsetX: 0,
-      cropOffsetY: 0,
-      gridSpec: projectGridSpecToSourceCoordinates({
-        gridSpec: result.gridSpec,
-        sourceProof: input.plan.sourceProof,
-      }),
-    })),
+    }).then((result) => buildPrepareVisualMissionGridOutput({ plan: input.plan, result })),
     input.timeoutMs,
   );
 

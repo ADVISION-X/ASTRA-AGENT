@@ -114,7 +114,6 @@ function resolveBrowserSessionGate(input: {
       ?? resolveBrowserSessionRefFailure(expectedBrowserSessionRef, browserSessionRef, resolvedSessionSnapshot)
       ?? resolveBrowserSessionUrlFailure({
         expectedUrl,
-        selectedMapId: input.request.selectedMapId,
         sessionSnapshot: resolvedSessionSnapshot,
         browserSessionRef,
       });

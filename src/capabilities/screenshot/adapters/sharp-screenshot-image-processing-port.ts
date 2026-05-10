@@ -2,14 +2,15 @@ import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-
 import sharp from "sharp";
-
-import { buildGridAxes, VISUAL_MISSION_AXIS_MODE, VISUAL_MISSION_GRID_VERSION } from "../shared/visual-mission-grid.js";
+import {
+  VISUAL_MISSION_AXIS_MODE,
+  VISUAL_MISSION_GRID_VERSION,
+} from "../shared/visual-mission-grid-constants.js";
+import { buildGridAxes } from "../shared/visual-mission-grid.js";
 import type { ScreenshotGridCell, ScreenshotGridSpec } from "../contract.js";
 import type { ImageMetadata, ScreenshotImageProcessingPort } from "../ports/screenshot-image-processing-port.js";
 import { SCREENSHOT_IMAGE_PROCESSING_PORT_KIND } from "../shared/screenshot-result.js";
-
 const DEFAULT_AI_INPUT_JPEG_QUALITY = 82;
 const LIGHTWEIGHT_AI_INPUT_JPEG_QUALITY = 65;
 

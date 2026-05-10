@@ -5,6 +5,7 @@ import {
   loadMuscleMemoryCatalog,
 } from "./catalog/muscle-memory-catalog.js";
 import type { MuscleMemoryEntry } from "./catalog/muscle-memory-catalog.schema.js";
+import { resolveAiActionInputPolicy } from "../visual-mission/action-plan/action-field-policy.js";
 
 function formatFieldList(fields: string[]): string {
   return fields.length > 0 ? fields.join(", ") : "(none)";
@@ -12,6 +13,7 @@ function formatFieldList(fields: string[]): string {
 
 function buildActionBlock(action: MuscleMemoryEntry): string {
   if (action.type === "atomic") {
+    const inputPolicy = resolveAiActionInputPolicy(action);
     return [
       `actionCode: ${action.actionCode}`,
       "type: atomic",
@@ -20,9 +22,10 @@ function buildActionBlock(action: MuscleMemoryEntry): string {
       `description: ${action.description}`,
       `inputSchemaRef: ${action.inputSchemaRef}`,
       `outputSchemaRef: ${action.outputSchemaRef}`,
-      `requiredInput: ${formatFieldList(action.inputContract.requiredFields)}`,
-      `optionalInput: ${formatFieldList(action.inputContract.optionalFields)}`,
-      `forbiddenInput: ${formatFieldList(action.inputContract.forbiddenFields)}`,
+      `aiRequiredInput: ${formatFieldList(inputPolicy.aiRequiredInput)}`,
+      `aiOptionalInput: ${formatFieldList(inputPolicy.aiOptionalInput)}`,
+      `systemInjectedInput: ${formatFieldList(inputPolicy.systemInjectedInput)}`,
+      `forbiddenInput: ${formatFieldList(inputPolicy.forbiddenInput)}`,
       `failurePolicy: ${action.failurePolicy}`,
     ].join("\n");
   }
@@ -32,6 +35,10 @@ function buildActionBlock(action: MuscleMemoryEntry): string {
     "type: composite",
     `displayName: ${action.displayName}`,
     `description: ${action.description}`,
+    "aiRequiredInput: (none)",
+    "aiOptionalInput: (none)",
+    "systemInjectedInput: (none)",
+    "forbiddenInput: abilityGroupId, childCapabilityId, x, y, clientX, clientY",
     `failurePolicy: ${action.failurePolicy}`,
     `maxExpansionDepth: ${String(action.maxExpansionDepth)}`,
     "steps:",

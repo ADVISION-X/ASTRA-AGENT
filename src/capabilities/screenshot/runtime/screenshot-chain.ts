@@ -7,11 +7,6 @@ type ScreenshotChainSnapshot = {
   roundId: string | null;
   videoVisitId: string | null;
   stepId: string;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapId: string;
-  selectedMapVersion: string;
-  activationSnapshotRef: string;
   capabilityCallId: string;
   nerveBusEnvelopeId: string;
 };
@@ -23,11 +18,6 @@ const resolveScreenshotChain = (request: ScreenshotAbilityInput): ScreenshotChai
   roundId: request.roundId,
   videoVisitId: request.videoVisitId,
   stepId: request.stepId,
-  mapPackageId: request.mapPackageId,
-  mapPackageVersion: request.mapPackageVersion,
-  selectedMapId: request.selectedMapId,
-  selectedMapVersion: request.selectedMapVersion,
-  activationSnapshotRef: request.activationSnapshotRef,
   capabilityCallId: request.capabilityCallId,
   nerveBusEnvelopeId: request.nerveBusEnvelopeId,
 });

@@ -5,7 +5,7 @@ import type {
   ScreenshotStructuredRef,
   ScreenshotVisualMissionInput,
 } from "../contract.js";
-import { VISUAL_MISSION_COORDINATE_INSTRUCTION } from "../shared/visual-mission-grid.js";
+import { VISUAL_MISSION_COORDINATE_INSTRUCTION } from "../shared/visual-mission-grid-constants.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 import { persistScreenshotStructuredDataRef } from "./screenshot-structured-data-ref.js";
 

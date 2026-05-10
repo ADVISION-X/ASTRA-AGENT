@@ -6,6 +6,7 @@ import { inspectVisualMissionActionClosure } from "./inspect_visual_mission_acti
 import { inspectVisualMissionCatalogSsot } from "./inspect_visual_mission_catalog_ssot.js";
 import { inspectVisualMissionContextInjection } from "./inspect_visual_mission_context_injection.js";
 import { inspectVisualMissionRuntimePath } from "./inspect_visual_mission_runtime_path.js";
+import { inspectVisualMissionActionSurface } from "./inspect_visual_mission_action_surface.js";
 import { runAiBoundaryChecks } from "./run-ai-boundary-checks.js";
 import { runAiRuntimeContractChecks } from "./run-ai-runtime-contract-checks.js";
 import { runAiStructureChecks } from "./run-ai-structure-checks.js";
@@ -27,6 +28,7 @@ export const aiCapabilityInspector = createPendingDomainInspector({
       ...runAiRuntimeContractChecks(project),
       ...runAiBoundaryChecks(project),
       ...inspectVisualMissionCatalogSsot(project),
+      ...inspectVisualMissionActionSurface(project),
       ...inspectVisualMissionActionClosure(project),
       ...inspectVisualMissionContextInjection(project),
       ...inspectVisualMissionRuntimePath(project),

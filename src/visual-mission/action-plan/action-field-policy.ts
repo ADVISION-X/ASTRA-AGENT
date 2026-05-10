@@ -1,46 +1,65 @@
 import type { AtomicMuscleMemoryEntry } from "../../muscle-memory/catalog/muscle-memory-catalog.schema.js";
-
-const RAW_EXECUTION_ACTION_FIELDS = new Set(["x", "y", "clientX", "clientY"]);
-const OWNER_ONLY_ACTION_FIELDS = new Set(["abilityGroupId", "childCapabilityId"]);
-const SYSTEM_INJECTED_ACTION_FIELDS = new Set([
-  "requestedPlatformId",
-  "targetUrl",
-  "targetTitle",
-  "targetProfileRef",
-  "screenshotEvidenceRef",
-  "productPresenceAiResultRef",
-  "gridSpec",
-  "gridSpecRef",
-  "pageStateRef",
-  "coordinateSpace",
-  "originalScreenshotRef",
-  "coordinateGridScreenshotRef",
-  "visualMissionInputRef",
-  "platformContextRef",
-  "aiResultRef",
-]);
+import {
+  isOwnerOnlyActionField,
+  isRawExecutionActionField,
+  isSystemInjectedActionField,
+} from "./action-field-classifiers.js";
 
 const EXTRA_AI_VISIBLE_FIELDS_BY_ACTION_CODE: Partial<Record<string, readonly string[]>> = {
   CLICK_CELL: ["targetName"],
 };
 
-export const isRawExecutionActionField = (field: string): boolean => RAW_EXECUTION_ACTION_FIELDS.has(field);
-
-export const isSystemInjectedActionField = (field: string): boolean => SYSTEM_INJECTED_ACTION_FIELDS.has(field);
+function dedupeFields(fields: Iterable<string>): string[] {
+  const orderedFields = new Set<string>();
+  for (const field of fields) {
+    orderedFields.add(field);
+  }
+  return [...orderedFields];
+}
 
 export const isAiForbiddenActionField = (field: string): boolean => (
-  OWNER_ONLY_ACTION_FIELDS.has(field)
-  || RAW_EXECUTION_ACTION_FIELDS.has(field)
-  || SYSTEM_INJECTED_ACTION_FIELDS.has(field)
+  isOwnerOnlyActionField(field)
+  || isRawExecutionActionField(field)
+  || isSystemInjectedActionField(field)
 );
 
-export function getAiVisibleActionFields(entry: AtomicMuscleMemoryEntry): Set<string> {
-  const visibleFields = new Set(
-    [...entry.inputContract.requiredFields, ...entry.inputContract.optionalFields]
-      .filter((field) => !isSystemInjectedActionField(field)),
+export function getAiRequiredActionFields(entry: AtomicMuscleMemoryEntry): string[] {
+  return dedupeFields(entry.inputContract.requiredFields.filter((field) => !isSystemInjectedActionField(field)));
+}
+
+export function getAiOptionalActionFields(entry: AtomicMuscleMemoryEntry): string[] {
+  const requiredFields = new Set(getAiRequiredActionFields(entry));
+  return dedupeFields(
+    [
+      ...entry.inputContract.optionalFields.filter((field) => !isSystemInjectedActionField(field)),
+      ...(EXTRA_AI_VISIBLE_FIELDS_BY_ACTION_CODE[entry.actionCode] ?? []),
+    ].filter((field) => !requiredFields.has(field)),
   );
-  for (const field of EXTRA_AI_VISIBLE_FIELDS_BY_ACTION_CODE[entry.actionCode] ?? []) {
-    visibleFields.add(field);
-  }
-  return visibleFields;
+}
+
+export function getSystemInjectedActionFields(entry: AtomicMuscleMemoryEntry): string[] {
+  return dedupeFields(
+    [...entry.inputContract.requiredFields, ...entry.inputContract.optionalFields]
+      .filter((field) => isSystemInjectedActionField(field)),
+  );
+}
+
+export function getAiForbiddenActionFields(entry: AtomicMuscleMemoryEntry): string[] {
+  return dedupeFields(entry.inputContract.forbiddenFields.filter((field) => !isSystemInjectedActionField(field)));
+}
+
+export function resolveAiActionInputPolicy(entry: AtomicMuscleMemoryEntry) {
+  return {
+    aiRequiredInput: getAiRequiredActionFields(entry),
+    aiOptionalInput: getAiOptionalActionFields(entry),
+    systemInjectedInput: getSystemInjectedActionFields(entry),
+    forbiddenInput: getAiForbiddenActionFields(entry),
+  };
+}
+
+export function getAiVisibleActionFields(entry: AtomicMuscleMemoryEntry): Set<string> {
+  return new Set([
+    ...getAiRequiredActionFields(entry),
+    ...getAiOptionalActionFields(entry),
+  ]);
 }

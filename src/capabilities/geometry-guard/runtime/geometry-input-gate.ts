@@ -6,11 +6,6 @@ const REQUIRED_CHAIN_ALLOW_FIELDS = [
   "missionId",
   "runId",
   "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
   "capabilityCallId",
   "nerveBusEnvelopeId",
   "inputRef",
@@ -222,9 +217,8 @@ function createDefaultFailureSafetyPolicy() {
 function buildFailureChainFields(record: Record<string, unknown>) {
   return {
     missionId: readString(record.missionId), runId: readString(record.runId), sessionId: readString(record.sessionId) ?? "geometry-guard:invalid-input",
-    roundId: readString(record.roundId), videoVisitId: readString(record.videoVisitId), stepId: readString(record.stepId), mapPackageId: readString(record.mapPackageId),
-    mapPackageVersion: readString(record.mapPackageVersion), selectedMapId: readString(record.selectedMapId), selectedMapVersion: readString(record.selectedMapVersion),
-    activationSnapshotRef: readString(record.activationSnapshotRef), capabilityCallId: readString(record.capabilityCallId), nerveBusEnvelopeId: readString(record.nerveBusEnvelopeId),
+    roundId: readString(record.roundId), videoVisitId: readString(record.videoVisitId), stepId: readString(record.stepId),
+    capabilityCallId: readString(record.capabilityCallId), nerveBusEnvelopeId: readString(record.nerveBusEnvelopeId),
   };
 }
 

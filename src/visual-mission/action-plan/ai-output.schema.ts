@@ -8,9 +8,9 @@ import type { AtomicMuscleMemoryEntry } from "../../muscle-memory/catalog/muscle
 import { MuscleMemoryGridCellSchema, MuscleMemoryPressKeySchema } from "../../muscle-memory/schema.js";
 import { VISUAL_MISSION_PLATFORM_IDS } from "../platform-target-registry.js";
 import {
+  getAiRequiredActionFields,
   getAiVisibleActionFields,
   isAiForbiddenActionField,
-  isSystemInjectedActionField,
 } from "./action-field-policy.js";
 
 const VisualMissionPlatformSchema = z.enum(VISUAL_MISSION_PLATFORM_IDS);
@@ -27,8 +27,8 @@ function validateAtomicRequiredFields(
   entry: AtomicMuscleMemoryEntry,
   context: z.RefinementCtx,
 ) {
-  for (const field of entry.inputContract.requiredFields) {
-    if (!isSystemInjectedActionField(field) && !(field in actionInput)) {
+  for (const field of getAiRequiredActionFields(entry)) {
+    if (!(field in actionInput)) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: `${actionCode} requires input.${field}.`, path: ["input", field] });
     }
   }
@@ -92,7 +92,9 @@ const validateVisualMissionActionInput = (value: {
   for (const field of Object.keys(actionInput)) {
     if (isAiForbiddenActionField(field)) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: `${value.actionCode} must not expose input.${field}.`, path: ["input", field] });
+      continue;
     }
+    context.addIssue({ code: z.ZodIssueCode.custom, message: `${value.actionCode} does not allow input.${field}.`, path: ["input", field] });
   }
 };
 

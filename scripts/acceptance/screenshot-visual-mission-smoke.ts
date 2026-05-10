@@ -4,12 +4,13 @@ import path from "node:path";
 
 import sharp from "sharp";
 
-import { createScreenshotAbilityGroup } from "../../src/capabilities/screenshot/ability-group.js";
-import type { ScreenshotCapturePort } from "../../src/capabilities/screenshot/ports/screenshot-capture-port.js";
-import { createFilesystemScreenshotArtifactPort } from "../../src/capabilities/screenshot/adapters/filesystem-screenshot-artifact-port.js";
-import { createSharpScreenshotImageProcessingPort } from "../../src/capabilities/screenshot/adapters/sharp-screenshot-image-processing-port.js";
-import { createSystemScreenshotClockPort } from "../../src/capabilities/screenshot/runtime/system-screenshot-clock-port.js";
-import { decodeGridCell } from "../../src/capabilities/screenshot/shared/visual-mission-grid.js";
+import {
+  buildVisualMissionSmokeRequest,
+  createAcceptanceScreenshotAbilityGroup,
+  createSharpScreenshotImageProcessingPort,
+  createSystemScreenshotClockPort,
+  decodeGridCell,
+} from "../../src/capabilities/screenshot/acceptance-support.js";
 
 const FIXTURE_WIDTH = 1280;
 const FIXTURE_HEIGHT = 720;
@@ -23,21 +24,6 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
     throw new Error(message);
   }
-}
-
-function createUnsupportedCapturePort(): ScreenshotCapturePort {
-  return {
-    portKind: "browser-controller-screenshot-capture-port",
-    async getBrowserSessionSnapshot() {
-      throw new Error("visual mission smoke does not use browser session capture");
-    },
-    async captureBrowserViewport() {
-      throw new Error("visual mission smoke does not use browser viewport capture");
-    },
-    async captureDesktopScreen() {
-      throw new Error("visual mission smoke does not use desktop capture");
-    },
-  };
 }
 
 async function createFixtureImage(filePath: string) {
@@ -66,131 +52,95 @@ async function createFixtureImage(filePath: string) {
   await sharp(Buffer.from(svg)).png().toFile(filePath);
 }
 
-async function main() {
-  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "grasseye-visual-mission-smoke-"));
-  const fixturePath = path.join(tempRoot, "source-fixture.png");
-  const artifactRoot = path.join(tempRoot, "artifacts");
+async function buildSourceFixture(input: {
+  fixturePath: string;
+  imageProcessingPort: ReturnType<typeof createSharpScreenshotImageProcessingPort>;
+  createdAt: string;
+}) {
+  await createFixtureImage(input.fixturePath);
+
+  const sourceMetadata = await input.imageProcessingPort.inspectImage(input.fixturePath);
+  const sourceHash = await input.imageProcessingPort.hashFile(input.fixturePath);
+  return {
+    sourceMetadata,
+    sourceHash,
+    sourceArtifactRef: {
+      artifactId: `${SOURCE_EVIDENCE_ID}:artifact`,
+      evidenceId: SOURCE_EVIDENCE_ID,
+      storageRef: input.fixturePath,
+      fileName: path.basename(input.fixturePath),
+      mimeType: sourceMetadata.mimeType,
+      sha256: sourceHash,
+      width: sourceMetadata.width,
+      height: sourceMetadata.height,
+      imageKind: "evidence_original" as const,
+      createdAt: input.createdAt,
+    },
+  };
+}
+
+async function executeVisualMissionSmoke(input: {
+  fixturePath: string;
+  artifactRoot: string;
+}) {
   const imageProcessingPort = createSharpScreenshotImageProcessingPort();
   const clockPort = createSystemScreenshotClockPort();
   const createdAt = clockPort.nowIso();
-
-  await createFixtureImage(fixturePath);
-
-  const sourceMetadata = await imageProcessingPort.inspectImage(fixturePath);
-  const sourceHash = await imageProcessingPort.hashFile(fixturePath);
-  const sourceArtifactRef = {
-    artifactId: `${SOURCE_EVIDENCE_ID}:artifact`,
-    evidenceId: SOURCE_EVIDENCE_ID,
-    storageRef: fixturePath,
-    fileName: path.basename(fixturePath),
-    mimeType: sourceMetadata.mimeType,
-    sha256: sourceHash,
-    width: sourceMetadata.width,
-    height: sourceMetadata.height,
-    imageKind: "evidence_original" as const,
-    createdAt,
-  };
-
-  const screenshotAbilityGroup = createScreenshotAbilityGroup({
-    capturePort: createUnsupportedCapturePort(),
-    artifactPort: createFilesystemScreenshotArtifactPort(artifactRoot),
+  const { sourceMetadata, sourceHash, sourceArtifactRef } = await buildSourceFixture({
+    fixturePath: input.fixturePath,
     imageProcessingPort,
-    clockPort,
+    createdAt,
   });
+  const screenshotAbilityGroup = createAcceptanceScreenshotAbilityGroup({ artifactRoot: input.artifactRoot, imageProcessingPort, clockPort });
 
-  const result = await screenshotAbilityGroup.execute({
-    abilityGroupId: "screenshot",
-    childCapabilityId: "prepare-visual-mission-input",
-    missionId: "mission-visual-mission-smoke",
-    runId: "run-visual-mission-smoke",
-    sessionId: SESSION_ID,
-    roundId: null,
-    videoVisitId: null,
-    stepId: STEP_ID,
-    mapPackageId: "acceptance-map-package",
-    mapPackageVersion: "v1",
-    selectedMapId: "acceptance-map",
-    selectedMapVersion: "v1",
-    activationSnapshotRef: "activation:visual-mission-smoke",
-    capabilityCallId: CAPABILITY_CALL_ID,
-    nerveBusEnvelopeId: "envelope:visual-mission-smoke",
-    inputRef: "input:visual-mission-smoke",
-    idempotencyKey: "idempotency:visual-mission-smoke",
-    timeoutMs: 60_000,
-    requestedBy: "acceptance",
-    purpose: "visual mission smoke",
-    sourceAbilityGroupId: "acceptance",
-    sourceChildCapabilityId: null,
-    maxAiWidth: null,
-    preservePixels: true,
-    evidencePolicy: "evidence_original",
-    contentLines: [],
-    region: null,
-    source: {
-      kind: "stored_image",
-      sourceStorageRef: fixturePath,
+  return {
+    sourceMetadata,
+    result: await screenshotAbilityGroup.execute(buildVisualMissionSmokeRequest({
+      fixturePath: input.fixturePath,
+      sessionId: SESSION_ID,
+      stepId: STEP_ID,
+      capabilityCallId: CAPABILITY_CALL_ID,
+      sourceEvidenceId: SOURCE_EVIDENCE_ID,
       sourceArtifactRef,
-      sourceProof: {
-        proofRef: "proof:visual-mission-smoke-source",
-        sourceKind: "stored_image",
-        sourceStorageRef: fixturePath,
-        sourceArtifactRef,
-        inheritedScaleMapping: null,
-        sourceScreenshotEvidenceId: SOURCE_EVIDENCE_ID,
-        sourceHash,
-        coordinateSpace: "browser_viewport_pixels",
-        sourceWidth: sourceMetadata.width,
-        sourceHeight: sourceMetadata.height,
-        sessionId: SESSION_ID,
-        roundId: null,
-        videoVisitId: null,
-        stepId: STEP_ID,
-        capabilityCallId: CAPABILITY_CALL_ID,
-        pageStateProofRef: null,
-        browserSessionRef: null,
-      },
-      coordinateSpace: "browser_viewport_pixels",
-    },
-  });
+      sourceHash,
+      sourceMetadata,
+    })),
+  };
+}
 
-  assert(result.status === "success" && result.output, `visual mission smoke failed: ${result.failureReason?.message ?? result.reviewRequiredReason ?? result.message}`);
-
-  const output = result.output;
-  const gridSpec = output.gridSpec;
-  const visualMissionInput = output.visualMissionInput;
-  const originalScreenshotRef = output.originalScreenshotRef;
-  const coordinateGridScreenshotRef = output.coordinateGridScreenshotRef;
-  const gridSpecRef = output.gridSpecRef;
-  const visualMissionInputRef = output.visualMissionInputRef;
-
+function assertRequiredOutputArtifacts(output: NonNullable<Awaited<ReturnType<typeof executeVisualMissionSmoke>>["result"]["output"]>) {
+  const { gridSpec, visualMissionInput, originalScreenshotRef, coordinateGridScreenshotRef, gridSpecRef, visualMissionInputRef } = output;
   assert(gridSpec, "prepare-visual-mission-input must emit gridSpec");
   assert(visualMissionInput, "prepare-visual-mission-input must emit visualMissionInput");
   assert(originalScreenshotRef, "prepare-visual-mission-input must emit originalScreenshotRef");
   assert(coordinateGridScreenshotRef, "prepare-visual-mission-input must emit coordinateGridScreenshotRef");
   assert(gridSpecRef, "prepare-visual-mission-input must emit gridSpecRef");
   assert(visualMissionInputRef, "prepare-visual-mission-input must emit visualMissionInputRef");
+  return { gridSpec, visualMissionInput, originalScreenshotRef, coordinateGridScreenshotRef, gridSpecRef, visualMissionInputRef };
+}
 
-  await Promise.all([
-    access(coordinateGridScreenshotRef.storageRef),
-    access(gridSpecRef.storageRef),
-    access(visualMissionInputRef.storageRef),
-  ]);
+function assertGridSpecGeometry(input: {
+  output: NonNullable<Awaited<ReturnType<typeof executeVisualMissionSmoke>>["result"]["output"]>;
+  gridSpec: NonNullable<ReturnType<typeof assertRequiredOutputArtifacts>["gridSpec"]>;
+  originalScreenshotRef: NonNullable<ReturnType<typeof assertRequiredOutputArtifacts>["originalScreenshotRef"]>;
+  coordinateGridScreenshotRef: NonNullable<ReturnType<typeof assertRequiredOutputArtifacts>["coordinateGridScreenshotRef"]>;
+}) {
+  assert(input.output.coordinateSpace === "coordinate_grid_pixels", "coordinate grid output must be in coordinate_grid_pixels");
+  assert(input.gridSpec.sourceCoordinateSpace === "browser_viewport_pixels", "gridSpec must decode to browser_viewport_pixels");
+  assert(input.gridSpec.gridImageWidth === FIXTURE_WIDTH && input.gridSpec.gridImageHeight === FIXTURE_HEIGHT, "gridSpec image dimensions must match fixture dimensions");
+  assert(input.originalScreenshotRef.width === FIXTURE_WIDTH && input.originalScreenshotRef.height === FIXTURE_HEIGHT, "original screenshot ref must preserve source dimensions");
+  assert(input.coordinateGridScreenshotRef.width === FIXTURE_WIDTH && input.coordinateGridScreenshotRef.height === FIXTURE_HEIGHT, "coordinate grid artifact must preserve source dimensions");
+  assert(input.gridSpec.columnLabels.length === 40, `expected readable grid to reduce to 40 columns, received ${input.gridSpec.columnLabels.length}`);
+  assert(input.gridSpec.rowLabels.length === 12, `expected row count to remain 12, received ${input.gridSpec.rowLabels.length}`);
+  assert(input.gridSpec.cellWidthPx >= MIN_CELL_SIZE_PX, `grid cell width must be >= ${MIN_CELL_SIZE_PX}px, received ${input.gridSpec.cellWidthPx}`);
+  assert(input.gridSpec.cellHeightPx >= MIN_CELL_SIZE_PX, `grid cell height must be >= ${MIN_CELL_SIZE_PX}px, received ${input.gridSpec.cellHeightPx}`);
+  assert(input.gridSpec.cells.length === input.gridSpec.rowLabels.length * input.gridSpec.columnLabels.length, "grid cell count must equal rowLabels * columnLabels");
+}
 
-  assert(output.coordinateSpace === "coordinate_grid_pixels", "coordinate grid output must be in coordinate_grid_pixels");
-  assert(gridSpec.sourceCoordinateSpace === "browser_viewport_pixels", "gridSpec must decode to browser_viewport_pixels");
-  assert(gridSpec.gridImageWidth === FIXTURE_WIDTH && gridSpec.gridImageHeight === FIXTURE_HEIGHT, "gridSpec image dimensions must match fixture dimensions");
-  assert(originalScreenshotRef.width === FIXTURE_WIDTH && originalScreenshotRef.height === FIXTURE_HEIGHT, "original screenshot ref must preserve source dimensions");
-  assert(coordinateGridScreenshotRef.width === FIXTURE_WIDTH && coordinateGridScreenshotRef.height === FIXTURE_HEIGHT, "coordinate grid artifact must preserve source dimensions");
-  assert(gridSpec.columnLabels.length === 40, `expected readable grid to reduce to 40 columns, received ${gridSpec.columnLabels.length}`);
-  assert(gridSpec.rowLabels.length === 12, `expected row count to remain 12, received ${gridSpec.rowLabels.length}`);
-  assert(gridSpec.cellWidthPx >= MIN_CELL_SIZE_PX, `grid cell width must be >= ${MIN_CELL_SIZE_PX}px, received ${gridSpec.cellWidthPx}`);
-  assert(gridSpec.cellHeightPx >= MIN_CELL_SIZE_PX, `grid cell height must be >= ${MIN_CELL_SIZE_PX}px, received ${gridSpec.cellHeightPx}`);
-  assert(gridSpec.cells.length === gridSpec.rowLabels.length * gridSpec.columnLabels.length, "grid cell count must equal rowLabels * columnLabels");
-
+function assertGridCornerCells(gridSpec: NonNullable<ReturnType<typeof assertRequiredOutputArtifacts>["gridSpec"]>) {
   const lastRow = gridSpec.rowLabels.at(-1);
   const lastColumn = gridSpec.columnLabels.at(-1);
   assert(lastRow && lastColumn, "gridSpec must expose terminal row/column labels");
-
   for (const cellId of ["A1", `A${lastColumn}`, `${lastRow}1`, `${lastRow}${lastColumn}`]) {
     const cell = decodeGridCell({ gridSpec, cellId });
     assert(cell.x >= 0 && cell.y >= 0, `${cellId} must start inside the source boundary`);
@@ -198,28 +148,75 @@ async function main() {
     assert(cell.x + cell.width <= gridSpec.sourceWidth + 0.000001, `${cellId} width must stay inside sourceWidth`);
     assert(cell.y + cell.height <= gridSpec.sourceHeight + 0.000001, `${cellId} height must stay inside sourceHeight`);
   }
+}
 
-  const persistedGridSpec = JSON.parse(await readFile(gridSpecRef.storageRef, "utf8")) as typeof gridSpec;
-  const persistedVisualMissionInput = JSON.parse(await readFile(visualMissionInputRef.storageRef, "utf8")) as typeof visualMissionInput;
+async function assertPersistedVisualMissionRefs(input: {
+  gridSpec: NonNullable<ReturnType<typeof assertRequiredOutputArtifacts>["gridSpec"]>;
+  visualMissionInput: NonNullable<ReturnType<typeof assertRequiredOutputArtifacts>["visualMissionInput"]>;
+  originalScreenshotRef: NonNullable<ReturnType<typeof assertRequiredOutputArtifacts>["originalScreenshotRef"]>;
+  coordinateGridScreenshotRef: NonNullable<ReturnType<typeof assertRequiredOutputArtifacts>["coordinateGridScreenshotRef"]>;
+  gridSpecRef: NonNullable<ReturnType<typeof assertRequiredOutputArtifacts>["gridSpecRef"]>;
+  visualMissionInputRef: NonNullable<ReturnType<typeof assertRequiredOutputArtifacts>["visualMissionInputRef"]>;
+}) {
+  await Promise.all([
+    access(input.coordinateGridScreenshotRef.storageRef),
+    access(input.gridSpecRef.storageRef),
+    access(input.visualMissionInputRef.storageRef),
+  ]);
+  const persistedGridSpec = JSON.parse(await readFile(input.gridSpecRef.storageRef, "utf8")) as typeof input.gridSpec;
+  const persistedVisualMissionInput = JSON.parse(await readFile(input.visualMissionInputRef.storageRef, "utf8")) as typeof input.visualMissionInput;
   const visualMissionInputKeys = Object.keys(persistedVisualMissionInput).sort().join(",");
-
-  assert(persistedGridSpec.gridSpecRef === gridSpecRef.refId, "persisted gridSpec must retain its governed ref id");
+  assert(persistedGridSpec.gridSpecRef === input.gridSpecRef.refId, "persisted gridSpec must retain its governed ref id");
   assert(visualMissionInputKeys === "coordinateGridScreenshotRef,coordinateInstruction,gridSpecRef,originalScreenshotRef", "visualMissionInput must contain refs and coordinateInstruction only");
-  assert(persistedVisualMissionInput.originalScreenshotRef === originalScreenshotRef.artifactId, "visualMissionInput must point to originalScreenshotRef.artifactId");
-  assert(persistedVisualMissionInput.coordinateGridScreenshotRef === coordinateGridScreenshotRef.artifactId, "visualMissionInput must point to coordinateGridScreenshotRef.artifactId");
-  assert(persistedVisualMissionInput.gridSpecRef === gridSpecRef.refId, "visualMissionInput must point to gridSpecRef.refId");
+  assert(persistedVisualMissionInput.originalScreenshotRef === input.originalScreenshotRef.artifactId, "visualMissionInput must point to originalScreenshotRef.artifactId");
+  assert(persistedVisualMissionInput.coordinateGridScreenshotRef === input.coordinateGridScreenshotRef.artifactId, "visualMissionInput must point to coordinateGridScreenshotRef.artifactId");
+  assert(persistedVisualMissionInput.gridSpecRef === input.gridSpecRef.refId, "visualMissionInput must point to gridSpecRef.refId");
+}
 
-  console.log(JSON.stringify({
+async function assertVisualMissionSmokeResult(input: {
+  tempRoot: string;
+  result: Awaited<ReturnType<typeof executeVisualMissionSmoke>>["result"];
+}) {
+  const { result } = input;
+
+  assert(result.status === "success" && result.output, `visual mission smoke failed: ${result.failureReason?.message ?? result.reviewRequiredReason ?? result.message}`);
+  const outputArtifacts = assertRequiredOutputArtifacts(result.output);
+  assertGridSpecGeometry({
+    output: result.output,
+    gridSpec: outputArtifacts.gridSpec,
+    originalScreenshotRef: outputArtifacts.originalScreenshotRef,
+    coordinateGridScreenshotRef: outputArtifacts.coordinateGridScreenshotRef,
+  });
+  assertGridCornerCells(outputArtifacts.gridSpec);
+  await assertPersistedVisualMissionRefs(outputArtifacts);
+
+  return {
     ok: true,
+    tempRoot: input.tempRoot,
+    gridColumns: outputArtifacts.gridSpec.columnLabels.length,
+    gridRows: outputArtifacts.gridSpec.rowLabels.length,
+    cellWidthPx: outputArtifacts.gridSpec.cellWidthPx,
+    cellHeightPx: outputArtifacts.gridSpec.cellHeightPx,
+    coordinateGridArtifact: outputArtifacts.coordinateGridScreenshotRef.storageRef,
+    gridSpecRef: outputArtifacts.gridSpecRef.storageRef,
+    visualMissionInputRef: outputArtifacts.visualMissionInputRef.storageRef,
+  };
+}
+
+function writeSmokeSummary(summary: Awaited<ReturnType<typeof assertVisualMissionSmokeResult>>) {
+  process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
+}
+
+async function main() {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "grasseye-visual-mission-smoke-"));
+  const fixturePath = path.join(tempRoot, "source-fixture.png");
+  const artifactRoot = path.join(tempRoot, "artifacts");
+  const smokeRun = await executeVisualMissionSmoke({ fixturePath, artifactRoot });
+  const summary = await assertVisualMissionSmokeResult({
     tempRoot,
-    gridColumns: gridSpec.columnLabels.length,
-    gridRows: gridSpec.rowLabels.length,
-    cellWidthPx: gridSpec.cellWidthPx,
-    cellHeightPx: gridSpec.cellHeightPx,
-    coordinateGridArtifact: coordinateGridScreenshotRef.storageRef,
-    gridSpecRef: gridSpecRef.storageRef,
-    visualMissionInputRef: visualMissionInputRef.storageRef,
-  }, null, 2));
+    result: smokeRun.result,
+  });
+  writeSmokeSummary(summary);
 }
 
 await main();

@@ -1,3 +1,5 @@
+import { writeJsonFile } from "../../core/filesystem.js";
+import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 
@@ -7,6 +9,8 @@ const LAW_STRUCTURE = "GRASSEYE-CAPABILITY-GROUP-002-V1";
 const LAW_DISPATCH = "GRASSEYE-CAPABILITY-GROUP-003-V1";
 const LAW_EVIDENCE = "GRASSEYE-CAPABILITY-GROUP-005-V1";
 const CLICK_CELL_ACTION_CODE = "CLICK_CELL";
+const SUMMARY_RELATIVE_PATH = "scripts/audit/generated/child-capability-strength-summary.txt";
+const DIRECT_OUTPUT_RELATIVE_PATH = "scripts/audit/generated/child-capability-strength-direct-output.txt";
 const IMPLEMENTATION_REASONS = new Set(["CHILD_HAS_NO_IMPLEMENTATION", "CHILD_HAS_NO_EXECUTE", "CHILD_RETURNS_FAKE_SUCCESS", "CHILD_PUBLIC_EXECUTE_THROWS"]);
 const CATALOG_REASONS = new Set(["AI_ACTION_WITHOUT_CHILD_PATH", "AI_ACTION_WITHOUT_NERVE_BUS_PATH"]);
 
@@ -90,6 +94,45 @@ const collectClickCellFindings = (entries: ChildCapabilityStrengthEntry[]): Find
   return findings;
 };
 
+const rankWeakestAiReachableEntries = (entries: ChildCapabilityStrengthEntry[]) => entries
+  .filter((entry) => entry.allowedForAiActionPlan)
+  .sort((left, right) => {
+    if (left.strengthLevel !== right.strengthLevel) {
+      return left.strengthLevel - right.strengthLevel;
+    }
+    return `${left.abilityGroupId}.${left.childCapabilityId}`.localeCompare(`${right.abilityGroupId}.${right.childCapabilityId}`);
+  })
+  .slice(0, 5)
+  .map((entry) => ({
+    abilityGroupId: entry.abilityGroupId,
+    childCapabilityId: entry.childCapabilityId,
+    strengthLevel: entry.strengthLevel,
+    aiActionCodes: entry.aiActionCodes,
+    blockingReasons: entry.blockingReasons,
+  }));
+
+const writeChildCapabilityStrengthReports = async (input: {
+  entries: ChildCapabilityStrengthEntry[];
+  findings: Finding[];
+  phases: InspectorPhase[];
+}): Promise<void> => {
+  const summaryPayload = {
+    findingCount: input.findings.length,
+    clickCellFindings: input.findings.filter((finding) => finding.message.startsWith("CLICK_CELL_") || finding.message.startsWith("MOUSE_CLICK_ACCEPTS_AI_GRIDCELL_DIRECTLY")),
+    weakestAiReachableChildren: rankWeakestAiReachableEntries(input.entries),
+  };
+  const directOutputPayload = {
+    findingCount: input.findings.length,
+    firstFinding: input.findings[0] ?? null,
+    firstPhase: input.phases[0] ?? null,
+  };
+
+  await Promise.all([
+    writeJsonFile(pathFromRepoRoot(SUMMARY_RELATIVE_PATH), summaryPayload),
+    writeJsonFile(pathFromRepoRoot(DIRECT_OUTPUT_RELATIVE_PATH), directOutputPayload),
+  ]);
+};
+
 export async function runChildCapabilityStrengthInspector(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
   const inventory = await writeChildCapabilityStrengthInventory();
   const findings = [
@@ -106,6 +149,8 @@ export async function runChildCapabilityStrengthInspector(): Promise<{ findings:
       ? `AI-reachable child ${weakestAiEntry.abilityGroupId}.${weakestAiEntry.childCapabilityId} is only level ${weakestAiEntry.strengthLevel}; see ${INVENTORY_RELATIVE_PATH}.`
       : `Child capability strength inventory written to ${INVENTORY_RELATIVE_PATH}.`,
   )];
+
+  await writeChildCapabilityStrengthReports({ entries: inventory.entries, findings, phases });
 
   return { findings, phases };
 }

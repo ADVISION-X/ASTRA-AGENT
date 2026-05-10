@@ -1,7 +1,7 @@
 {
   "catalogId": "grasseye-muscle-memory-catalog",
-  "catalogVersion": "2026-05-10",
-  "generatedAt": "2026-05-10T21:15:49.773Z",
+  "catalogVersion": "2026-05-11",
+  "generatedAt": "2026-05-10T21:57:33.926Z",
   "entries": [
     {
       "actionCode": "CAPTURE_REGION",
@@ -160,6 +160,31 @@
         "decide business meaning",
         "invent source geometry"
       ]
+    },
+    {
+      "actionCode": "DISMISS_OVERLAY",
+      "type": "composite",
+      "displayName": "Dismiss Overlay",
+      "description": "Dismiss a lightweight overlay or modal by sending the governed Escape key.",
+      "allowedForAiActionPlan": true,
+      "allowedForUserRequirement": false,
+      "sensitiveOperation": false,
+      "steps": [
+        {
+          "stepCode": "press-escape",
+          "actionCode": "PRESS_KEY",
+          "inputMapping": {
+            "key": "$const:Escape"
+          },
+          "required": true,
+          "onFailure": "continue"
+        }
+      ],
+      "maxExpansionDepth": 3,
+      "successOutputRefs": [
+        "abilityResultRef"
+      ],
+      "failurePolicy": "continue"
     },
     {
       "actionCode": "LIKE_CURRENT_VIDEO",
@@ -350,7 +375,7 @@
       "childCapabilityId": "press-key",
       "inputSchemaRef": "text-input.press-key.input",
       "outputSchemaRef": "text-input.press-key.output",
-      "allowedForAiActionPlan": true,
+      "allowedForAiActionPlan": false,
       "allowedForUserRequirement": false,
       "requiresGridSpecRef": false,
       "requiresScreenshotRef": false,
@@ -390,7 +415,7 @@
       "childCapabilityId": "press-navigation-key",
       "inputSchemaRef": "text-input.press-navigation-key.input",
       "outputSchemaRef": "text-input.press-navigation-key.output",
-      "allowedForAiActionPlan": true,
+      "allowedForAiActionPlan": false,
       "allowedForUserRequirement": false,
       "requiresGridSpecRef": false,
       "requiresScreenshotRef": false,

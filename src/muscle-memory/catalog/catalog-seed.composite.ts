@@ -44,6 +44,27 @@ export const MUSCLE_MEMORY_COMPOSITE_SEEDS: CompositeMuscleMemoryEntry[] = [
     failurePolicy: "continue",
   },
   {
+    actionCode: "DISMISS_OVERLAY",
+    type: "composite",
+    displayName: "Dismiss Overlay",
+    description: "Dismiss a lightweight overlay or modal by sending the governed Escape key.",
+    allowedForAiActionPlan: true,
+    allowedForUserRequirement: false,
+    sensitiveOperation: false,
+    steps: [
+      {
+        stepCode: "press-escape",
+        actionCode: "PRESS_KEY",
+        inputMapping: { key: "$const:Escape" },
+        required: true,
+        onFailure: "continue",
+      },
+    ],
+    maxExpansionDepth: 3,
+    successOutputRefs: ["abilityResultRef"],
+    failurePolicy: "continue",
+  },
+  {
     actionCode: "SAVE_PRODUCT_AND_LIKE",
     type: "composite",
     displayName: "Save Product And Like",

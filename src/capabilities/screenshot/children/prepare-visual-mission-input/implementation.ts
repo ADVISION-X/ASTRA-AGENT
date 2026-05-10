@@ -1,4 +1,7 @@
-import { DEFAULT_VISUAL_MISSION_GRID_COLUMN_COUNT, DEFAULT_VISUAL_MISSION_GRID_ROW_COUNT } from "../../shared/visual-mission-grid.js";
+import {
+  DEFAULT_VISUAL_MISSION_GRID_COLUMN_COUNT,
+  DEFAULT_VISUAL_MISSION_GRID_ROW_COUNT,
+} from "../../shared/visual-mission-grid-constants.js";
 import { PrepareVisualMissionInputPlanSchema } from "./schema.js";
 import type { PrepareVisualMissionInputChildCapability } from "./contract.js";
 

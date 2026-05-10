@@ -41,8 +41,14 @@ function parseComparableUrl(value: string | null): URL | null {
   return url;
 }
 
-function resolveUrlDriftPolicy(selectedMapId: string): UrlDriftPolicy | null {
-  if (selectedMapId.includes("facebook")) {
+function resolveUrlDriftPolicy(expectedUrl: string): UrlDriftPolicy | null {
+  const comparableUrl = parseComparableUrl(expectedUrl);
+  const hostname = comparableUrl?.hostname.toLowerCase();
+  if (!hostname) {
+    return null;
+  }
+
+  if (FACEBOOK_ALLOWED_HOSTS.has(hostname)) {
     return {
       platformId: "facebook-web",
       allowedHosts: FACEBOOK_ALLOWED_HOSTS,
@@ -52,7 +58,7 @@ function resolveUrlDriftPolicy(selectedMapId: string): UrlDriftPolicy | null {
     };
   }
 
-  if (selectedMapId.includes("tiktok")) {
+  if (TIKTOK_ALLOWED_HOSTS.has(hostname)) {
     return {
       platformId: "tiktok-web",
       allowedHosts: TIKTOK_ALLOWED_HOSTS,
@@ -178,7 +184,6 @@ function buildSamePlatformUrlDriftOutcome(input: {
 
 export function resolveBrowserSessionUrlFailure(input: {
   expectedUrl: string | null;
-  selectedMapId: string;
   sessionSnapshot: ScreenshotBrowserSessionSnapshot;
   browserSessionRef: string;
 }): BrowserSessionGateResult | null {
@@ -192,7 +197,7 @@ export function resolveBrowserSessionUrlFailure(input: {
     return null;
   }
 
-  const driftPolicy = resolveUrlDriftPolicy(input.selectedMapId);
+  const driftPolicy = resolveUrlDriftPolicy(input.expectedUrl);
   if (!driftPolicy || !isSamePlatformUrlDrift({
     driftPolicy,
     expectedUrl: input.expectedUrl,

@@ -205,17 +205,13 @@ function buildGeometryCoreMissionPayload(input: BuildGeometryGuardResultInput) {
     roundId: input.request.roundId,
     videoVisitId: input.request.videoVisitId,
     stepId: input.request.stepId,
+    capabilityCallId: input.request.capabilityCallId,
   };
 }
 
-function buildGeometryCoreMapPayload(input: BuildGeometryGuardResultInput) {
+function buildGeometryCoreChainPayload(input: BuildGeometryGuardResultInput) {
   return {
-    mapPackageId: input.request.mapPackageId,
-    mapPackageVersion: input.request.mapPackageVersion,
-    selectedMapId: input.request.selectedMapId,
-    selectedMapVersion: input.request.selectedMapVersion,
-    activationSnapshotRef: input.request.activationSnapshotRef,
-    capabilityCallId: input.request.capabilityCallId,
+    nerveBusEnvelopeId: input.request.nerveBusEnvelopeId,
   };
 }
 
@@ -264,7 +260,7 @@ function buildGeometryCorePayload(
   return {
     ...buildGeometryCoreIdentityPayload(input, refs),
     ...buildGeometryCoreMissionPayload(input),
-    ...buildGeometryCoreMapPayload(input),
+    ...buildGeometryCoreChainPayload(input),
     ...buildGeometryCoreOutputPayload(input, refs, decisionState),
     failureReason: input.failureReason,
     reviewRequiredReason: input.reviewRequiredReason,

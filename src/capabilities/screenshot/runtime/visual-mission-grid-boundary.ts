@@ -2,7 +2,7 @@ import type { ScreenshotExecutionOutput, ScreenshotGridCell } from "../contract.
 import {
   MIN_VISUAL_MISSION_GRID_CELL_HEIGHT_PX,
   MIN_VISUAL_MISSION_GRID_CELL_WIDTH_PX,
-} from "../shared/visual-mission-grid.js";
+} from "../shared/visual-mission-grid-constants.js";
 
 const GRID_EPSILON = 0.000001;
 
@@ -66,6 +66,33 @@ function resolveGridCellCountFailure(output: ScreenshotExecutionOutput) {
     : buildFailure("visual_mission_grid_cell_count_mismatch", "gridSpec.cells must match rowLabels x columnLabels for coordinate-grid outputs.");
 }
 
+function resolveCellBoundsFailure(cell: ScreenshotGridCell, output: ScreenshotExecutionOutput) {
+  const gridSpec = output.gridSpec;
+  if (!gridSpec) {
+    return null;
+  }
+
+  const right = cell.x + cell.width;
+  const bottom = cell.y + cell.height;
+  return !isWithinBoundary(cell.x, gridSpec.sourceWidth)
+    || !isWithinBoundary(cell.y, gridSpec.sourceHeight)
+    || !isWithinBoundary(right, gridSpec.sourceWidth)
+    || !isWithinBoundary(bottom, gridSpec.sourceHeight)
+    ? buildFailure("visual_mission_grid_cell_out_of_bounds", `Grid cell ${cell.cellId} must stay inside sourceWidth/sourceHeight.`)
+    : null;
+}
+
+function resolveCellCenterFailure(cell: ScreenshotGridCell) {
+  const right = cell.x + cell.width;
+  const bottom = cell.y + cell.height;
+  return cell.centerX < cell.x - GRID_EPSILON
+    || cell.centerX > right + GRID_EPSILON
+    || cell.centerY < cell.y - GRID_EPSILON
+    || cell.centerY > bottom + GRID_EPSILON
+    ? buildFailure("visual_mission_grid_center_out_of_bounds", `Grid cell ${cell.cellId} center must stay inside its own bounds.`)
+    : null;
+}
+
 function resolveCellBoundaryFailure(cell: ScreenshotGridCell, output: ScreenshotExecutionOutput) {
   if (!output.gridSpec) {
     return null;
@@ -74,18 +101,7 @@ function resolveCellBoundaryFailure(cell: ScreenshotGridCell, output: Screenshot
   if (cell.sourceCoordinateSpace !== output.gridSpec.sourceCoordinateSpace) {
     return buildFailure("visual_mission_grid_coordinate_space_mismatch", "Every visual mission grid cell must preserve gridSpec.sourceCoordinateSpace.");
   }
-
-  const right = cell.x + cell.width;
-  const bottom = cell.y + cell.height;
-  if (!isWithinBoundary(cell.x, output.gridSpec.sourceWidth) || !isWithinBoundary(cell.y, output.gridSpec.sourceHeight) || !isWithinBoundary(right, output.gridSpec.sourceWidth) || !isWithinBoundary(bottom, output.gridSpec.sourceHeight)) {
-    return buildFailure("visual_mission_grid_cell_out_of_bounds", `Grid cell ${cell.cellId} must stay inside sourceWidth/sourceHeight.`);
-  }
-
-  if (cell.centerX < cell.x - GRID_EPSILON || cell.centerX > right + GRID_EPSILON || cell.centerY < cell.y - GRID_EPSILON || cell.centerY > bottom + GRID_EPSILON) {
-    return buildFailure("visual_mission_grid_center_out_of_bounds", `Grid cell ${cell.cellId} center must stay inside its own bounds.`);
-  }
-
-  return null;
+  return resolveCellBoundsFailure(cell, output) ?? resolveCellCenterFailure(cell);
 }
 
 function resolveCornerCellFailure(output: ScreenshotExecutionOutput) {

@@ -25,11 +25,6 @@ export interface ScreenshotArtifactPort {
     roundId: string | null;
     videoVisitId: string | null;
     stepId: string;
-    mapPackageId: string;
-    mapPackageVersion: string;
-    selectedMapId: string;
-    selectedMapVersion: string;
-    activationSnapshotRef: string;
     capabilityCallId: string;
     nerveBusEnvelopeId: string;
     requestedBy: string;

@@ -1,17 +1,39 @@
 {
-  "generatedAt": "2026-05-10T21:39:34.519Z",
+  "generatedAt": "2026-05-10T22:13:04.729Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "scripts/audit/domains/commander-console-mac-app-shell/boundary-attack.ts",
-    "scripts/audit/domains/commander-console-mac-app-shell/source-rules.ts",
-    "scripts/audit/domains/debug-loop-boundary/inspector.ts",
-    "scripts/audit/domains/forensics-persistence-capability/forensics-p0-check-support.ts",
-    "scripts/audit/domains/forensics-persistence-capability/forensics-p0-checks-metadata.ts",
-    "scripts/audit/domains/forensics-persistence-capability/run-forensics-runtime-checks.ts",
-    "scripts/audit/domains/forensics-persistence-capability/run-forensics-structured-log-schema-checks.ts",
-    "scripts/audit/domains/forensics-persistence-capability/terminal-relay-proof.ts",
+    "scripts/acceptance/screenshot-visual-mission-smoke.ts",
+    "scripts/audit/domains/ai-capability/inspector.ts",
+    "scripts/audit/domains/capability-group-governance/child-capability-strength-inspector.ts",
+    "scripts/audit/domains/geometry-guard-capability/inspection-constants.ts",
+    "scripts/audit/domains/index/run-ability-group-expansion-machine-checks.ts",
+    "src/capabilities/geometry-guard/runtime/geometry-input-gate.ts",
+    "src/capabilities/geometry-guard/runtime/geometry-proof-builder.ts",
+    "src/capabilities/geometry-guard/runtime/geometry-result-builder.ts",
+    "src/capabilities/geometry-guard/schema-input.ts",
+    "src/capabilities/geometry-guard/schema-result.ts",
+    "src/capabilities/geometry-guard/schema-runtime-proof.ts",
+    "src/capabilities/screenshot/adapters/filesystem-screenshot-artifact-port.ts",
+    "src/capabilities/screenshot/adapters/sharp-screenshot-image-processing-port.ts",
+    "src/capabilities/screenshot/children/prepare-visual-mission-input/implementation.ts",
+    "src/capabilities/screenshot/ports/screenshot-artifact-port.ts",
+    "src/capabilities/screenshot/runtime/artifact-storage-gate.ts",
+    "src/capabilities/screenshot/runtime/browser-session-gate.ts",
+    "src/capabilities/screenshot/runtime/browser-session-url-drift-policy.ts",
     "src/capabilities/screenshot/runtime/image-processing-runner.ts",
-    "src/capabilities/screenshot/shared/visual-mission-grid.ts"
+    "src/capabilities/screenshot/runtime/screenshot-chain.ts",
+    "src/capabilities/screenshot/runtime/screenshot-visual-mission-output.ts",
+    "src/capabilities/screenshot/runtime/visual-mission-grid-boundary.ts",
+    "src/capabilities/screenshot/shared/screenshot-artifact-lifecycle-schema.ts",
+    "src/capabilities/screenshot/shared/screenshot-governance.ts",
+    "src/capabilities/screenshot/shared/visual-mission-grid.ts",
+    "src/muscle-memory/catalog/catalog-seed.atomic.ts",
+    "src/muscle-memory/catalog/catalog-seed.composite.ts",
+    "src/muscle-memory/catalog/catalog-seed.ts",
+    "src/muscle-memory/catalog/muscle-memory-catalog.generated.json",
+    "src/muscle-memory/system-manual.ts",
+    "src/visual-mission/action-plan/action-field-policy.ts",
+    "src/visual-mission/action-plan/ai-output.schema.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -21,199 +43,12 @@
     "src/capabilities/**/prompt-contracts/**/*.{json,jsonc,ts,tsx}"
   ],
   "godFileInventory": [],
-  "disasterFileInventory": [
-    {
-      "file": "scripts/acceptance/screenshot-visual-mission-smoke.ts",
-      "lines": 225,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "main"
-      ],
-      "classMembers": 0,
-      "importCount": 10,
-      "crossOwnerImports": 6,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    }
-  ],
-  "ownerMixingInventory": [
-    {
-      "file": "scripts/acceptance/screenshot-visual-mission-smoke.ts",
-      "lines": 225,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "main"
-      ],
-      "classMembers": 0,
-      "importCount": 10,
-      "crossOwnerImports": 6,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    }
-  ],
+  "disasterFileInventory": [],
+  "ownerMixingInventory": [],
   "oversizedTouchedFileInventory": [],
-  "functionOverLimitInventory": [
-    {
-      "file": "scripts/acceptance/screenshot-visual-mission-smoke.ts",
-      "lines": 225,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "main"
-      ],
-      "classMembers": 0,
-      "importCount": 10,
-      "crossOwnerImports": 6,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/screenshot/runtime/image-processing-runner.ts",
-      "lines": 259,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "runner",
-      "functionsOverLimit": [
-        "resolvePrepareVisualMissionInputProcessing"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    }
-  ],
+  "functionOverLimitInventory": [],
   "classObjectOverLimitInventory": [],
-  "importExportOverLimitInventory": [
-    {
-      "file": "src/capabilities/screenshot/shared/visual-mission-grid.ts",
-      "lines": 130,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 1,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    }
-  ],
-  "remediationQueue": [
-    {
-      "file": "scripts/acceptance/screenshot-visual-mission-smoke.ts",
-      "lines": 225,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "main"
-      ],
-      "classMembers": 0,
-      "importCount": 10,
-      "crossOwnerImports": 6,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/screenshot/runtime/image-processing-runner.ts",
-      "lines": 259,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "runner",
-      "functionsOverLimit": [
-        "resolvePrepareVisualMissionInputProcessing"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/screenshot/shared/visual-mission-grid.ts",
-      "lines": 130,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 1,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    }
-  ],
-  "firstPhysicalSplitPlan": [
-    {
-      "file": "scripts/acceptance/screenshot-visual-mission-smoke.ts",
-      "lines": 225,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [
-        "main"
-      ],
-      "classMembers": 0,
-      "importCount": 10,
-      "crossOwnerImports": 6,
-      "ownerBoundaries": 1,
-      "roleMixingSignals": [],
-      "severity": "DISASTER",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/screenshot/runtime/image-processing-runner.ts",
-      "lines": 259,
-      "fileType": "runtime/implementation",
-      "overLimitBy": 0,
-      "primaryRole": "runner",
-      "functionsOverLimit": [
-        "resolvePrepareVisualMissionInputProcessing"
-      ],
-      "classMembers": 0,
-      "importCount": 6,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
-    },
-    {
-      "file": "src/capabilities/screenshot/shared/visual-mission-grid.ts",
-      "lines": 130,
-      "fileType": "ordinary implementation",
-      "overLimitBy": 0,
-      "primaryRole": "executor",
-      "functionsOverLimit": [],
-      "classMembers": 0,
-      "importCount": 1,
-      "crossOwnerImports": 0,
-      "ownerBoundaries": 0,
-      "roleMixingSignals": [],
-      "severity": "REMEDIATION",
-      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
-    }
-  ]
+  "importExportOverLimitInventory": [],
+  "remediationQueue": [],
+  "firstPhysicalSplitPlan": []
 }

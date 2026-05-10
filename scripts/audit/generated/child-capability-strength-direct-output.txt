@@ -1,5 +1,5 @@
 {
-  "findingCount": 60,
+  "findingCount": 75,
   "firstFinding": {
     "lawId": "GRASSEYE-CAPABILITY-GROUP-002-V1",
     "file": "src/capabilities/ai/children/future-api-ai/implementation.ts",
@@ -11,6 +11,6 @@
     "name": "child-capability-strength",
     "classification": "CODE VIOLATION",
     "passed": false,
-    "summary": "AI-reachable child orchestration.emergency-stop is only level 1; see scripts/audit/generated/child-capability-strength-inventory.generated.json."
+    "summary": "Child capability strength inventory written to scripts/audit/generated/child-capability-strength-inventory.generated.json."
   }
 }

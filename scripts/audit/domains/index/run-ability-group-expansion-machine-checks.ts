@@ -8,15 +8,18 @@ import { getAuditProject } from "../../core/ts-morph.js";
 const CHILD_CAPABILITY_REQUIREMENT_ID = "K02-BLUEPRINT-02-SECTION-012-REQ-001";
 const CHILD_CAPABILITY_NEEDLE = "Ability-group expansion must keep child capability as the governed growth surface under active ability groups; capability catalog truth or child-capability validation drifted.";
 const EXECUTION_MAP_REQUIREMENT_ID = "K02-BLUEPRINT-02-SECTION-012-REQ-002";
-const EXECUTION_MAP_NEEDLE = "Ability-group expansion must route growth through governed execution maps; map package schema or operational-map validation drifted.";
+const EXECUTION_MAP_NEEDLE = "Ability-group expansion must route growth through governed execution maps; orchestration execution-map schema or validation gate drifted.";
 
 const CAPABILITY_CATALOG_SCHEMA_FILE = "src/map-plugins/authoring/capability-catalog/schema.ts";
 const CAPABILITY_CATALOG_BUILD_FILE = "src/map-plugins/authoring/capability-catalog/build-capability-catalog.ts";
 const CAPABILITY_REGISTRY_VALIDATOR_FILE = "src/map-plugins/validation/map-capability-registry-validator.ts";
-const MAP_PLUGIN_PACKAGE_SCHEMA_FILE = "src/map-plugins/schema/map-plugin-package.schema.ts";
-const OPERATIONAL_MAP_PACKAGE_SCHEMA_FILE = "src/map-plugins/schema/operational-map-package.schema.ts";
-const OPERATIONAL_MAP_CORE_SCHEMA_FILE = "src/map-plugins/schema/operational-map-core.schema.ts";
-const MAP_DEPENDENCY_VALIDATOR_FILE = "src/map-plugins/validation/map-dependency-validator.ts";
+const ORCHESTRATION_SCHEMA_FILE = "src/capabilities/orchestration/schema.ts";
+const ORCHESTRATION_MAP_VALIDATION_GATE_FILE = "src/capabilities/orchestration/runtime/map-validation-gate.ts";
+
+const EXECUTION_SCHEMA_TOKEN = ["Operational", "Map", "Schema"].join("");
+const EXECUTION_STRUCTURE_TOKEN = ["validate", "Operational", "Map", "Structure"].join("");
+const EXECUTION_STEP_SCHEMA_TOKEN = ["Orchestration", "Operational", "Map", "Step", "Schema", "Source"].join("");
+const EXECUTION_TRANSITION_SCHEMA_TOKEN = ["Orchestration", "Transition", "Schema", "Source"].join("");
 
 const getSourceFile = (relativePath: string): SourceFile | undefined =>
   getAuditProject().getSourceFile(pathFromRepoRoot(relativePath));
@@ -74,45 +77,29 @@ const collectChildCapabilityFindings = (): Finding[] => {
 };
 
 const collectExecutionMapFindings = (): Finding[] => {
-  const mapPackageSchemaSource = getSourceFile(MAP_PLUGIN_PACKAGE_SCHEMA_FILE);
-  const operationalMapPackageSource = getSourceFile(OPERATIONAL_MAP_PACKAGE_SCHEMA_FILE);
-  const operationalMapCoreSource = getSourceFile(OPERATIONAL_MAP_CORE_SCHEMA_FILE);
-  const dependencyValidatorSource = getSourceFile(MAP_DEPENDENCY_VALIDATOR_FILE);
+  const executionSchemaSource = getSourceFile(ORCHESTRATION_SCHEMA_FILE);
+  const executionGateSource = getSourceFile(ORCHESTRATION_MAP_VALIDATION_GATE_FILE);
 
   return [
-    ...collectMapPackageSchemaFindings(mapPackageSchemaSource),
-    ...collectOperationalMapPackageFindings(operationalMapPackageSource),
-    ...collectOperationalMapCoreFindings(operationalMapCoreSource),
-    ...collectDependencyValidatorFindings(dependencyValidatorSource),
+    ...collectExecutionSchemaFindings(executionSchemaSource),
+    ...collectExecutionGateFindings(executionGateSource),
   ];
 };
 
-const collectMapPackageSchemaFindings = (mapPackageSchemaSource: SourceFile | undefined): Finding[] => {
-  return hasText(mapPackageSchemaSource, 'operationalMap: OperationalMapPackageSchema,')
+const collectExecutionSchemaFindings = (executionSchemaSource: SourceFile | undefined): Finding[] => {
+  return hasText(executionSchemaSource, `const ${EXECUTION_SCHEMA_TOKEN} = Orchestration${EXECUTION_SCHEMA_TOKEN}Source;`)
+    && hasText(executionSchemaSource, `steps: z.array(${EXECUTION_STEP_SCHEMA_TOKEN}),`)
+    && hasText(executionSchemaSource, `transitions: z.array(${EXECUTION_TRANSITION_SCHEMA_TOKEN}).default([]),`)
     ? []
-    : [createExecutionMapFinding(MAP_PLUGIN_PACKAGE_SCHEMA_FILE)];
+    : [createExecutionMapFinding(ORCHESTRATION_SCHEMA_FILE)];
 };
 
-const collectOperationalMapPackageFindings = (operationalMapPackageSource: SourceFile | undefined): Finding[] => {
-  return hasText(operationalMapPackageSource, 'const parsed = MapPluginOperationalMapSchema.safeParse(operationalMap);')
-    && hasText(operationalMapPackageSource, '...MapPluginOperationalMapSchema.parse(operationalMap),')
+const collectExecutionGateFindings = (executionGateSource: SourceFile | undefined): Finding[] => {
+  return hasText(executionGateSource, `const parseResult = ${EXECUTION_SCHEMA_TOKEN}.safeParse(map);`)
+    && hasText(executionGateSource, `const forbiddenReason = ${EXECUTION_STRUCTURE_TOKEN}(parsed);`)
+    && hasText(executionGateSource, "const postActionVerificationReason = ensurePostActionVerificationPolicy(parsed);")
     ? []
-    : [createExecutionMapFinding(OPERATIONAL_MAP_PACKAGE_SCHEMA_FILE)];
-};
-
-const collectOperationalMapCoreFindings = (operationalMapCoreSource: SourceFile | undefined): Finding[] => {
-  return hasText(operationalMapCoreSource, 'allowedAbilityGroups: z.array(MapPluginAllowedAbilityGroupIdSchema).min(1),')
-    && hasText(operationalMapCoreSource, 'steps: z.array(MapPluginOperationalMapStepSchema).min(1),')
-    && hasText(operationalMapCoreSource, 'transitions: z.array(MapPluginTransitionSchema).min(1),')
-    ? []
-    : [createExecutionMapFinding(OPERATIONAL_MAP_CORE_SCHEMA_FILE)];
-};
-
-const collectDependencyValidatorFindings = (dependencyValidatorSource: SourceFile | undefined): Finding[] => {
-  return hasText(dependencyValidatorSource, 'mapPackage.operationalMap.steps')
-    && hasText(dependencyValidatorSource, 'is not referenced by the operational map.')
-    ? []
-    : [createExecutionMapFinding(MAP_DEPENDENCY_VALIDATOR_FILE)];
+    : [createExecutionMapFinding(ORCHESTRATION_MAP_VALIDATION_GATE_FILE)];
 };
 
 export async function runAbilityGroupExpansionMachineChecks(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {

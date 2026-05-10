@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T21:17:09.550Z",
+  "generatedAt": "2026-05-10T22:02:09.399Z",
   "entries": [
     {
       "abilityGroupId": "ai",
@@ -2665,8 +2665,8 @@
         "PRESS_KEY"
       ],
       "aiActionCodes": [
+        "DISMISS_OVERLAY",
         "LIKE_CURRENT_VIDEO",
-        "PRESS_KEY",
         "SAVE_PRODUCT_AND_LIKE",
         "YES_SEEDING_VIDEO_FLOW"
       ],
@@ -2696,7 +2696,6 @@
       "aiActionCodes": [
         "NEXT_VIDEO",
         "NO_SEEDING_VIDEO_FLOW",
-        "PRESS_NAVIGATION_KEY",
         "YES_SEEDING_VIDEO_FLOW"
       ],
       "strengthLevel": 4,
