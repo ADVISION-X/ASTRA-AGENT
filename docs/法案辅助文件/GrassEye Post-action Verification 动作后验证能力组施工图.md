@@ -62,6 +62,7 @@ businessTruth
 - 只输出 observation package truth
 - semantic success 仍属于下一轮 AI
 - PAV 只能按 policy 启用，不再是所有动作后的必经步骤
+- Final semantic truth belongs to AI Visual Mission Judge, not PAV
 
 ## 漂移信号
 

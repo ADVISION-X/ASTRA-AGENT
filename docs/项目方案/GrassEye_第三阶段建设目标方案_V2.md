@@ -1,5 +1,8 @@
 # GrassEye 第三阶段建设目标方案
 
+status: historical phase plan only; not current delivery authority.
+If this file conflicts with docs/项目方案/GrassEye_视觉裁判_故事情节.md, GRASSEYE-KERNEL.instructions.md, or the current phase-five blueprint, the newer visual-mission authority wins.
+
 版本：2.0  
 定位：第三阶段完成态定义文件  
 文件性质：阶段目标方案，不是 TODO，不是施工图，不是法案，不是验收报告  

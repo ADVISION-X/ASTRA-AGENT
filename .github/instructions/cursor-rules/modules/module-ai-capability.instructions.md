@@ -1,6 +1,6 @@
 ---
 name: "GrassEye AI Capability"
-description: "Use when governing the AI Ability Group, Prompt Contract Registry, AI runtime pipeline, provider routing, local-ai adapter boundary, schema/quality/output gates, disabled provider policy, AI proof chain, and AI anti-action authority."
+description: "Use when governing the AI Ability Group, Prompt Contract Registry, AI runtime pipeline, provider routing, local-ai adapter boundary, schema/quality/output gates, disabled provider policy, AI proof chain, and AI execution-authority boundary."
 applyTo: ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md, .github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md, src/capabilities/ai/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}, src/lib/local-ai/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}, scripts/audit/domains/ai-capability/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}, docs/法案辅助文件/*AI*, docs/法案辅助文件/*Prompt*"
 ---
 
@@ -100,6 +100,18 @@ AI-only interpretation boundary:
 - Forbidden outside AI: `feedReady`, `pageReady`, `pageCorrect`, `safetyWallPresent/Absent`, `captchaPresent/Absent`, `loginSurfacePresent`, `pageStateType = platform_feed`, semantic `decision = allow`, heuristic visual target candidate generation, and confidence scores for page/video/target meaning.
 - AI may return structured `decision`, `reason`, `confidence`, `riskFlags`, and `actions[].actionCode` plus governed action inputs such as grid-cell ids when allowed by the output schema. AI still must not click, scroll, type, open, dispatch Nerve Bus, write Forensics, or advance the mission.
 
+AI action-plan token boundary:
+- AI action-plan tokens are not execution authority.
+- AI may output governed action-plan tokens declared by the active Visual Mission output schema:
+  - `actions[].actionCode`
+  - `actions[].required`
+  - `actions[].reason`
+  - `actions[].input.gridCell` only when the selected actionCode requires a grid cell
+  - `actions[].input.key` only when the selected actionCode is a governed key action declared in MuscleMemoryCatalog
+- These fields are planning tokens only.
+- They must be decoded by Orchestration / ActionPlan Decoder / Scheduler before any capability is called.
+- AI must not output raw browser commands, raw DOM/BOM operations, raw x/y coordinates, free-form click/scroll/type/open instructions, arbitrary URLs to open, Nerve Bus envelopes, Forensics write requests, direct capability invocation payloads, or final execution authority.
+
 ### Required AI Result Status
 
 AI public result status must be one of:
@@ -109,6 +121,12 @@ success
 failed
 review_required
 ```
+
+Review semantics:
+- `review_required` is a governed AI or capability result status.
+- `review_required` means the current round cannot continue automatically.
+- `review_required` is not an automatic continue path.
+- AI may propose `STOP_REVIEW_REQUIRED` as a governed actionCode when the active output schema and MuscleMemoryCatalog allow a hard stop for human intervention.
 
 Forbidden result shapes:
 - boolean result.
@@ -878,7 +896,7 @@ Required direction:
 - Prompt hash must change if prompt body changes.
 - Prompt contract must declare whether low confidence returns failed or review_required.
 - Prompt contract must declare whether raw output capture is required.
-- Prompt contract must declare prohibited action authority.
+- Prompt contract must declare prohibited execution authority.
 
 ### 机器可读不变量
 
@@ -928,24 +946,26 @@ capabilityDomain: ai-capability
 enforcementMode: machine-blocking  
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: Prompt contracts may guide reasoning only and must not command actions, bypass security, or make final mission decisions.
+summary: Prompt contracts may guide reasoning and governed action-plan tokens only; they must not command execution, bypass security, or make final mission decisions.
 
 alias: APEX-AI-010-V1
 
 ### 主题
 
-Prompt 只能提问，不能指挥动作
+Prompt 只能提问和产出计划令牌，不能下执行命令
 
 ### 法条
 
-AI prompt contracts may guide reasoning only. They must not command physical actions, platform actions, browser actions, privacy bypass, credential access, or final mission decisions.
+AI prompt contracts may guide reasoning and governed action-plan token output only. They must not command physical actions, platform actions, browser actions, privacy bypass, credential access, or final mission decisions.
 
 Required direction:
 - Prompt may ask the model to observe, classify, extract, summarize, compare, and produce structured JSON.
 - Prompt may instruct the model to return uncertainty and evidence references.
+- Prompt may ask the model to produce governed action-plan tokens declared by the active output schema, including `actions[].actionCode`, `actions[].required`, `actions[].reason`, `actions[].input.gridCell`, and `actions[].input.key` when the selected actionCode contract allows them.
 - Prompt must not instruct the model to click, scroll, type, open pages, bypass security, read cookies, read credentials, or make final mission decisions.
 - Prompt must not ask the model to produce executable commands.
-- Prompt output schema must not include action authority fields.
+- Prompt output schema must not include execution authority fields.
+- Governed action-plan tokens are planning tokens only and do not grant execution authority.
 
 ### 机器可读不变量
 
@@ -964,7 +984,13 @@ governanceInvariant:
     - execute command
     - dispatch action
     - final mission decision
-  forbiddenOutputAuthority:
+  allowedPlanningTokens:
+    - actions[].actionCode
+    - actions[].required
+    - actions[].reason
+    - actions[].input.gridCell
+    - actions[].input.key
+  forbiddenExecutionAuthority:
     - actionCommand
     - browserAction
     - platformAction
@@ -980,7 +1006,7 @@ FORBIDDEN:
 - Prompt instructing cookie or credential access.
 - Prompt instructing bypass of login/security.
 - Prompt instructing model to decide final mission branch.
-- Prompt output schema containing action execution fields.
+- Prompt output schema containing action execution fields or direct capability invocation payloads.
 - Prompt asking model to generate Nerve Bus envelopes.
 
 ---
@@ -1244,17 +1270,26 @@ capabilityDomain: ai-capability
 enforcementMode: machine-blocking  
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: AI output boundary must recursively block action authority, browser authority, Forensics authority, and command authority.
+summary: AI output boundary must recursively block execution authority, browser authority, Forensics authority, and command authority while allowing declared governed action-plan tokens.
 
 alias: APEX-AI-014-V1
 
 ### 主题
 
-AI 输出边界禁止动作权
+AI 输出边界禁止执行权，不禁止受治理计划令牌
 
 ### 法条
 
-AI output boundary must recursively inspect model output and block action-like authority.
+AI output boundary must recursively inspect model output and block execution authority.
+
+Allowed governed planning tokens when declared by the active output schema:
+- `actions[].actionCode`
+- `actions[].required`
+- `actions[].reason`
+- `actions[].input.gridCell`
+- `actions[].input.key`
+
+These fields are planning tokens only. They do not grant execution authority.
 
 Forbidden output keys, aliases, or semantic intents:
 - click
@@ -1292,7 +1327,7 @@ Required direction:
 - Forbidden keys must fail even when nested.
 - Prompt contract `forbiddenOutputs` must be merged with global forbidden outputs.
 - Output boundary failure must return `failed`, not `review_required`, unless a law explicitly allows review.
-- Allowed observation coordinates are not action commands; any field suggesting execution must be blocked.
+- Allowed observation coordinates and declared action-plan tokens are not execution commands; any field suggesting execution must be blocked.
 
 ### 机器可读不变量
 
@@ -1318,7 +1353,7 @@ governanceInvariant:
 ### 禁止
 
 FORBIDDEN:
-- AI output containing action commands.
+- AI output containing raw action commands.
 - AI output containing Nerve Bus envelopes.
 - AI output containing Forensics write commands.
 - AI output containing platform action commands.
@@ -1407,7 +1442,7 @@ The ai-capability real-code-inspection must prove fail → re-inspect → pass f
 - Detach ai inspector from CI-FULL → FAIL.
 - Gate full raw AI IO behind `GRASSEYE_DEBUG_AI_IO` or emit only rawResponsePreview → FAIL.
 - Collapse raw model output and parser-normalized output into one AI_RESPONSE_DEBUG event → FAIL.
-- Let product_presence_judgment use single_frame_fallback or fewer/more than fixed 3s/6s two-frame input refs → FAIL.
+- Let product_presence_judgment hardcode fixed 3s/6s production truth or reject the default single screenshot + coordinate grid round → FAIL.
 - Reintroduce production low-confidence product judgment outside the AI response contract → FAIL.
 
 No AI audit result is valid unless real-code-inspection executes and reports.
@@ -1434,7 +1469,7 @@ AI Capability Phase 3.5 is READY only when all conditions are true:
 - Bad JSON/schema mismatch/low confidence cannot success.
 - Product-presence routing is AI-owned only: production code may mechanically transport product_yes/product_no from AI output, but must not invent product truth from confidence thresholds.
 - Local debug emits AI_RAW_RESPONSE_DEBUG, AI_NORMALIZED_RESPONSE_DEBUG, then terminal AI_RESPONSE_DEBUG/AI_ERROR_DEBUG with full rawResponseText by default.
-- Output boundary recursively blocks action authority.
+- Output boundary recursively blocks execution authority while allowing declared governed action-plan tokens.
 - Success has rawOutputRef/rawOutputHash and complete proof.
 - Failure/review_required have reasons and proof.
 - AI public surface does not leak private internals.
@@ -1450,5 +1485,5 @@ Prompt Contract is the language contract, not scattered strings.
 Runtime adapter is an executor, not a second AI system.
 A model answer without schema, proof, and boundary gates is not an AI result.
 A disabled provider that succeeds is a governance breach.
-An AI output that commands action is a failed output.
+An AI output that issues raw execution commands is a failed output.
 ```

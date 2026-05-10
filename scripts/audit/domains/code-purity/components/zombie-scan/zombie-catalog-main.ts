@@ -83,19 +83,27 @@ const buildChildCapabilityCandidate = (relativePath: string, entry: RegistryChil
   recommendedAction: `Delete ${entry.value} or wire it into a lawful caller outside its child implementation bundle.`,
 });
 
+const isEnabledRegistryChildCapabilityEntry = (entry: RegistryChildCapabilityEntry): boolean =>
+  !entry.disabledPolicy || entry.disabledPolicy === "enabled";
+
+const mergeChildCapabilityCandidatesForSourceFile = (
+  relativePath: string,
+  sourceFile: SourceFile,
+  candidates: Map<string, ZombieCandidate>,
+): void => {
+  for (const entry of collectRegistryChildCapabilityEntries(sourceFile)) {
+    if (isEnabledRegistryChildCapabilityEntry(entry)) {
+      mergeCandidate(candidates, buildChildCapabilityCandidate(relativePath, entry));
+    }
+  }
+};
+
 const collectChildCapabilityCandidates = (graph: ZombieGraph, candidates: Map<string, ZombieCandidate>): void => {
   for (const [relativePath, sourceFile] of graph.sourceFilesByPath.entries()) {
     if (!isCapabilityRegistryFile(relativePath)) {
       continue;
     }
-
-    for (const entry of collectRegistryChildCapabilityEntries(sourceFile)) {
-      if (entry.disabledPolicy && entry.disabledPolicy !== "enabled") {
-        continue;
-      }
-
-      mergeCandidate(candidates, buildChildCapabilityCandidate(relativePath, entry));
-    }
+    mergeChildCapabilityCandidatesForSourceFile(relativePath, sourceFile, candidates);
   }
 };
 

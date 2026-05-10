@@ -29,8 +29,10 @@ APP Start Page
 -> selectedPlatforms
 -> PlatformRegistry
 -> MuscleMemoryCatalog
+-> screenshot original + coordinate grid
 -> Visual Mission Prompt Builder
 -> Visual Mission Judge
+-> governed decision + actions[].actionCode action-plan tokens
 -> ActionPlan Decoder
 -> Scheduler
 
@@ -57,6 +59,7 @@ APP Start Page
 - confidence
 - actions[].actionCode
 - actions[].required
+- actions[].reason
 - actions[].input
 - riskFlags
 - reason
@@ -64,6 +67,13 @@ APP Start Page
 ## 输出硬规则
 
 AI 只能输出 MuscleMemoryCatalog 中存在的 actionCode。
+`actions[].actionCode` 是 governed planning token，不是 execution authority。
+AI 允许输出：
+- `actions[].actionCode`
+- `actions[].required`
+- `actions[].reason`
+- `actions[].input.gridCell` only when the selected actionCode requires a grid cell
+- `actions[].input.key` only when the selected actionCode is a governed key action declared in MuscleMemoryCatalog
 
 AI 禁止输出：
 - retired branch-token field
@@ -76,9 +86,18 @@ AI 禁止输出：
 - suggestedNextAction
 - raw x/y
 - free-form browser instruction
+- raw browser command
+- DOM / BOM operation
+- arbitrary URL to open
+- Nerve Bus envelope
+- Forensics write request
 
 未知 actionCode = fatal。
 组合 actionCode 只能由系统展开，AI 不得展开为自由动作文本。
+
+Review semantics:
+- `review_required` 是受治理结果状态，不是自动继续路线。
+- `STOP_REVIEW_REQUIRED` 是合法 actionCode，用于要求系统停止本轮并转入 Commander Console 人工处理入口。
 
 ## ActionPlan 示例
 

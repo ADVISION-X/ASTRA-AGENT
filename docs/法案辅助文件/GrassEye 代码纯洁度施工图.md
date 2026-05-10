@@ -4,7 +4,7 @@
 ## 统一身份与冻结边界
 
 - 本文件是 `module-code-purity.instructions.md` 的建设级落地映射，不新增 lawId，不修改冻结法案。
-- 本文件只服从当前 14 个 active ability groups、5 个 foundation laws、1 个 support governance domain；若与 Kernel / Index / 法案冻结基线冲突，以 Kernel / Index / 冻结基线为准。
+- 本文件只服从当前 14 个 active ability groups、5 个 foundation laws、0 个 support governance domains；若与 Kernel / Index / 法案冻结基线冲突，以 Kernel / Index / 冻结基线为准。
 - Code Purity 不是独立运行能力组，而是 `audit-system` 下的强制红线子契约。
 - 若本文档与 `.github/instructions/cursor-rules/modules/module-code-purity.instructions.md` 冲突，以 `module-code-purity.instructions.md` 为最高权威。
 - 若本文档与旧冻结说明、旧施工图、旧 generated artifact、旧 inspector 阈值冲突，以当前 Code Purity Phase 3.5 最终基线为准。
@@ -263,7 +263,7 @@ src/capabilities/post-action-verification = post-action-verification
 src/capabilities/forensics-persistence = forensics-persistence
 src/capabilities/page-state = page-state
 src/capabilities/commander-console = commander-console
-src/map-plugins = map-plugin-package
+src/map-plugins = retired map-plugin-package path
 src/app = local-app-shell / commander-console boundary
 scripts/audit/domains/code-purity = code-purity
 scripts/audit/domains/* = separate audit domain owner

@@ -13,9 +13,11 @@
 ## 当前口径
 
 - 简单任务默认单轮单图。
+- 默认简单视频轮次可以只使用一张原始截图 + 一张坐标网格图。
 - 需要多帧证据时，采样策略只能由 governed visual mission input policy 或 AI request builder 请求。
 - 多帧输入必须形成一个 MultiFrameVideoEvidenceSet，而不是三次互不关联的 AI 调用。
 - contact sheet 仍是优先输入模式；多图直喂仅作为可替换能力。
+- 固定 3s / 6s / 10s 采样不得作为生产真相硬编码。
 
 ## 禁止
 
@@ -40,4 +42,5 @@ retired chain script 写入 3s / 6s / 10s 采样脚本
 ```txt
 多帧真相重新回到 retired chain script
 product_presence_judgment 继续由 retired branch tokens 驱动
+默认单图 + 坐标图轮次被视为非法输入
 ```

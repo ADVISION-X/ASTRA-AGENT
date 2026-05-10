@@ -14,6 +14,20 @@ type UserRequirementHistoryBody = {
   maxMinutes?: number;
 };
 
+type UserRequirementHistoryUpsertInput = {
+  id: string | null;
+  title: string | null;
+  userRequirementText: string;
+  selectedPlatforms: UserRequirementHistoryPlatformId[];
+  maxRounds: number;
+  maxMinutes: number;
+};
+
+const USER_REQUIREMENT_HISTORY_INVALID_RESPONSE = {
+  error: "user_requirement_history_invalid",
+  failureReason: "userRequirementText, selectedPlatforms, maxRounds, and maxMinutes are required.",
+} as const;
+
 function normalizeSelectedPlatforms(value: unknown): UserRequirementHistoryPlatformId[] {
   if (!Array.isArray(value)) {
     return [];
@@ -25,6 +39,29 @@ function normalizeSelectedPlatforms(value: unknown): UserRequirementHistoryPlatf
 
 function normalizePositiveInteger(value: unknown): number | null {
   return typeof value === "number" && Number.isInteger(value) && value >= 1 ? value : null;
+}
+
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  const nextValue = value?.trim();
+  return nextValue ? nextValue : null;
+}
+
+function parseHistoryUpsertInput(body: UserRequirementHistoryBody): UserRequirementHistoryUpsertInput | null {
+  const userRequirementText = body.userRequirementText?.trim();
+  const selectedPlatforms = normalizeSelectedPlatforms(body.selectedPlatforms);
+  const maxRounds = normalizePositiveInteger(body.maxRounds);
+  const maxMinutes = normalizePositiveInteger(body.maxMinutes);
+  if (!userRequirementText || selectedPlatforms.length === 0 || maxRounds === null || maxMinutes === null) {
+    return null;
+  }
+  return {
+    id: normalizeOptionalText(body.id ?? null),
+    title: normalizeOptionalText(body.title ?? null),
+    userRequirementText,
+    selectedPlatforms,
+    maxRounds,
+    maxMinutes,
+  };
 }
 
 async function handleHistoryListRequest(
@@ -51,24 +88,14 @@ async function handleHistoryUpsertRequest(
   }
 
   const body = await parseJsonBody(request) as UserRequirementHistoryBody;
-  const userRequirementText = body.userRequirementText?.trim();
-  const selectedPlatforms = normalizeSelectedPlatforms(body.selectedPlatforms);
-  const maxRounds = normalizePositiveInteger(body.maxRounds);
-  const maxMinutes = normalizePositiveInteger(body.maxMinutes);
-  if (!userRequirementText || selectedPlatforms.length === 0 || maxRounds === null || maxMinutes === null) {
-    writeJsonResponse(response, 400, { error: "user_requirement_history_invalid", failureReason: "userRequirementText, selectedPlatforms, maxRounds, and maxMinutes are required." });
+  const upsertInput = parseHistoryUpsertInput(body);
+  if (!upsertInput) {
+    writeJsonResponse(response, 400, USER_REQUIREMENT_HISTORY_INVALID_RESPONSE);
     return true;
   }
 
   writeJsonResponse(response, 200, {
-    entry: await activeWorkbench.upsertUserRequirementHistory({
-      id: body.id?.trim() || null,
-      title: body.title?.trim() || null,
-      userRequirementText,
-      selectedPlatforms,
-      maxRounds,
-      maxMinutes,
-    }),
+    entry: await activeWorkbench.upsertUserRequirementHistory(upsertInput),
   });
   return true;
 }

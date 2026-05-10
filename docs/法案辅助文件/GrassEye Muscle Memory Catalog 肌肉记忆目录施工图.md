@@ -57,6 +57,11 @@ AI 不得输出 retired branch-token field。
 AI 不得输出原始 x/y。
 Scheduler 只执行解码后的受治理动作。
 
+Review semantics:
+- `STOP_REVIEW_REQUIRED` 是合法停止 actionCode。
+- 它表示系统必须停止当前轮、写入 Forensics，并在 Commander Console 暴露 review_required 原因。
+- runtime 不得边跑边等待人工后自动继续。
+
 ## 强度与执行边界
 
 - 每个 actionCode 都必须绑定到一个受治理的强 child capability，或绑定到只由强 child capability 组成的 composite expansion。

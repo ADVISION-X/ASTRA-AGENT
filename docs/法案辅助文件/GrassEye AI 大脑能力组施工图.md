@@ -4,7 +4,7 @@
 
 - owner: ai-capability
 - 目标：把 AI 固定为 Visual Mission Judge，而不是旧式 retired branch-token field / map branch 解释器
-- 口径：AI 只思考，不执行动作；AI 输出受治理 decision 与 actionCode 计划
+- 口径：AI 只思考，不执行动作；AI 输出受治理 decision 与 actionCode 计划令牌
 
 ## 主链位置
 
@@ -51,6 +51,21 @@ outputRefs
 runtimeProof
 ```
 
+## action-plan token 边界
+
+AI 可以输出以下受治理 planning tokens：
+
+```txt
+actions[].actionCode
+actions[].required
+actions[].reason
+actions[].input.gridCell
+actions[].input.key
+```
+
+这些字段是 action-plan tokens only，不是 execution authority。
+它们必须先经 Orchestration / ActionPlan Decoder / Scheduler 解码，能力组才允许执行。
+
 禁止：
 
 ```txt
@@ -61,7 +76,15 @@ retired selection version field
 retired binding field
 raw x/y
 free-form browser instruction
+raw browser command
+arbitrary URL to open
+Nerve Bus envelope
+Forensics write request
 ```
+
+Review semantics:
+- `review_required` 是受治理状态，不是自动继续路径。
+- `STOP_REVIEW_REQUIRED` 可以作为合法 actionCode 被 AI 提议，用于要求系统停止本轮、写入 Forensics，并交给 Commander Console 暴露人工处理原因。
 
 ## Prompt Contract 真相
 

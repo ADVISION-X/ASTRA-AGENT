@@ -63,6 +63,7 @@ pageCorrect
 - 输出只能是 raw observation package
 - AI 是页面语义唯一真相源
 - PAV / Orchestration / Forensics 只可消费 raw observation refs
+- Final semantic truth belongs to AI Visual Mission Judge
 
 ## 漂移信号
 

@@ -15,6 +15,8 @@ Core doctrine:
 - Commander receives human intent and emits governed command envelopes.
 - Commander start-mission truth is userRequirementText plus selectedPlatforms plus governed run limits.
 - Commander must not revive retired navigation-chain or retired branch-token truth as command truth.
+- Commander owns the human review gate and read-model explanation of review_required reasons.
+- Commander must not create an implicit auto-continue route after review; restart requires a new governed human command.
 
 ## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V3
 
@@ -33,6 +35,11 @@ summary: Commander Console is the only owner of human command entry and review-d
 ### 法条
 
 Human mission commands and human review decisions must enter through Commander Console.
+
+Required review direction:
+- `review_required` reasons from AI or other capability groups must be surfaced in Commander read models.
+- `STOP_REVIEW_REQUIRED` is a legal stop actionCode that must resolve to Commander-visible review handling.
+- Commander review handling belongs to human disposition and a later restart command, not to in-flight runtime continuation.
 
 Required envelope fields:
 - commandId
@@ -58,6 +65,7 @@ Forbidden:
 - legacy activation binding as active command truth.
 - retired branch tokens or retired deterministic flow planning in human command envelopes.
 - Commander directly holding Orchestration or action owners.
+- implicit runtime continue after human review without a new governed command envelope.
 
 ## Final Readiness Gate
 

@@ -1,4 +1,3 @@
-import { buildVisualMissionActionPlanPromptParts } from "../../capabilities/ai/prompt-contracts/visual-mission-action-plan/index.js";
 import { VisualMissionActionPlanOutputSchema } from "../../types/visual-mission-action-plan.js";
 import { LocalAiVisualMissionActionPlanTaskResultSchema } from "../../types/local-ai.js";
 import {
@@ -8,11 +7,12 @@ import {
   toJsonPayload,
   type RuntimeExecutionInput,
 } from "./local-ai-runtime-task-support.js";
+import { buildLocalAiVisualMissionActionPlanPromptParts } from "./local-ai-runtime-visual-mission-action-plan-prompt.js";
 
 type VisualMissionActionPlanRequest = Extract<RuntimeExecutionInput["request"], { taskType: "vision.visualMissionActionPlan" }>;
 
 function resolveArtifacts(request: VisualMissionActionPlanRequest) {
-  const promptParts = buildVisualMissionActionPlanPromptParts(request.input);
+  const promptParts = buildLocalAiVisualMissionActionPlanPromptParts(request.input);
   return {
     imagePaths: request.evidenceRefs.map((ref) => ref.filePath).filter((filePath): filePath is string => typeof filePath === "string" && filePath.length > 0),
     promptParts,

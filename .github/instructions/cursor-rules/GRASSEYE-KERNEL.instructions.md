@@ -24,6 +24,37 @@ applyTo: ".github/instructions/cursor-rules/**"
 - Prompt contracts are governed data contracts owned by AI Capability and assembled from User Requirement, Platform Registry, and MuscleMemoryCatalog context; they are not new ability groups and must not execute actions.
 - Support laws may define shell, storage, logging, topology, privacy, localization, and audit boundaries, but they must not create a second runtime chain.
 
+## Current Runtime Mission Loop
+
+Current runtime mission loop is:
+
+```txt
+userRequirementText + selectedPlatforms
+→ PlatformRegistry + MuscleMemoryCatalog + Visual Mission Prompt Contract
+→ screenshot original + coordinate grid
+→ AI Visual Mission Judge
+→ governed decision + actions[].actionCode action-plan tokens
+→ ActionPlan Decoder / Scheduler
+→ owning capability public contracts
+→ Forensics record
+→ next round
+```
+
+Authority split:
+- AI = semantic judge and action-plan proposer.
+- System = decoder and machine arm.
+- MuscleMemory = executable white-listed actions only.
+- Forensics = mandatory evidence memory.
+- Page State / Visual Target / Post-action Verification = support evidence only, not semantic authority.
+
+Current narrative authority:
+- docs/项目方案/GrassEye_视觉裁判_故事情节.md
+- docs/法案辅助文件/GrassEye 第五阶段高级AI地图生成与WEB本地程序打通施工图.md
+
+Retired runtime references:
+- docs/项目方案/GrassEye_第五阶段建设目标方案.md is historical only and must not be used as current delivery authority.
+- Any GrassEye_系统运行逻辑示意图_V2 runtime diagram is retired/superseded and must not be used as current runtime architecture truth.
+
 ## Authority Chain
 
 1. User instruction

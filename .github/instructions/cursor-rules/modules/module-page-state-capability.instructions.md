@@ -14,6 +14,7 @@ Core doctrine:
 - Page State packages raw observations only.
 - AI is the only owner of current-page, blocker, readiness, and business interpretation.
 - Page State must not revive retired selection choices, retired binding states, retired branch tokens, or page heuristics.
+- Final semantic truth belongs to AI Visual Mission Judge, not Page State.
 
 ## Law GRASSEYE-PAGE-STATE-CAPABILITY-001-V3
 

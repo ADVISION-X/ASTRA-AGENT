@@ -73,9 +73,9 @@ GrassEye 当前法案源头已冻结。
 
 ### 1.3 当前 support governance domains
 
-固定为 1 个：
+固定为 0 个：
 
-1. map-plugin-package
+none
 
 ### 1.4 当前子契约归属
 

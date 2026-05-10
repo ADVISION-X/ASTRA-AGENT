@@ -97,3 +97,13 @@ summary: Sensitive tasks require review gates before mutating user data or high-
 ### 法条
 
 Sensitive tasks must require review gates before sending, deleting, purchasing, submitting, or modifying user data.
+
+Required direction:
+- Sensitive tasks may return `review_required` as a governed status or `STOP_REVIEW_REQUIRED` as a governed actionCode stop path.
+- Runtime must fail/block on sensitive review outcomes; it must not auto-continue after implicit human review.
+- Human review gate belongs to Commander Console and a new human restart/decision, not to an in-flight automatic runtime branch.
+
+Forbidden:
+- silently continuing after sensitive `review_required`.
+- treating `STOP_REVIEW_REQUIRED` as an illegal actionCode.
+- auto-resuming after human review without a new governed Commander command.

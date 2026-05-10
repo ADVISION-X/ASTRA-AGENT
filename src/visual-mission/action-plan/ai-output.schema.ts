@@ -20,20 +20,26 @@ function resolveAtomicActionEntry(actionCode: string): AtomicMuscleMemoryEntry |
   return entry && entry.type === "atomic" ? entry : null;
 }
 
-function validateAtomicActionInput(
+function validateAtomicRequiredFields(
+  actionCode: string,
+  actionInput: Record<string, unknown>,
+  entry: AtomicMuscleMemoryEntry,
+  context: z.RefinementCtx,
+) {
+  for (const field of entry.inputContract.requiredFields) {
+    if (!isSystemInjectedActionField(field) && !(field in actionInput)) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: `${actionCode} requires input.${field}.`, path: ["input", field] });
+    }
+  }
+}
+
+function validateAtomicProvidedFields(
   actionCode: string,
   actionInput: Record<string, unknown>,
   entry: AtomicMuscleMemoryEntry,
   context: z.RefinementCtx,
 ) {
   const visibleFields = getAiVisibleActionFields(entry);
-
-  for (const field of entry.inputContract.requiredFields) {
-    if (!isSystemInjectedActionField(field) && !(field in actionInput)) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: `${actionCode} requires input.${field}.`, path: ["input", field] });
-    }
-  }
-
   for (const field of Object.keys(actionInput)) {
     if (entry.inputContract.forbiddenFields.includes(field) || isAiForbiddenActionField(field)) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: `${actionCode} must not expose input.${field}.`, path: ["input", field] });
@@ -43,13 +49,26 @@ function validateAtomicActionInput(
       context.addIssue({ code: z.ZodIssueCode.custom, message: `${actionCode} does not allow input.${field}.`, path: ["input", field] });
     }
   }
+}
 
+function validateAtomicGovernedValues(actionCode: string, actionInput: Record<string, unknown>, context: z.RefinementCtx) {
   if ("key" in actionInput && !MuscleMemoryPressKeySchema.safeParse(actionInput.key).success) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: `${actionCode} requires a governed input.key value.`, path: ["input", "key"] });
   }
   if ("gridCell" in actionInput && !MuscleMemoryGridCellSchema.safeParse(actionInput.gridCell).success) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: `${actionCode} requires a governed input.gridCell value.`, path: ["input", "gridCell"] });
   }
+}
+
+function validateAtomicActionInput(
+  actionCode: string,
+  actionInput: Record<string, unknown>,
+  entry: AtomicMuscleMemoryEntry,
+  context: z.RefinementCtx,
+) {
+  validateAtomicRequiredFields(actionCode, actionInput, entry, context);
+  validateAtomicProvidedFields(actionCode, actionInput, entry, context);
+  validateAtomicGovernedValues(actionCode, actionInput, context);
 }
 
 const validateVisualMissionActionInput = (value: {

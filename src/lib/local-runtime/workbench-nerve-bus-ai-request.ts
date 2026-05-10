@@ -14,6 +14,7 @@ import {
   buildWorkbenchAiAbilityRequest,
   throwIfAborted,
 } from "./workbench-nerve-bus-ai-request-builder.js";
+import { buildWorkbenchAiResponseEnvelopeFields } from "./workbench-nerve-bus-ai-response-envelope-fields.js";
 
 type WorkbenchAiRequestEnvelope = AiRequestDispatchInput["envelope"];
 type WorkbenchAiPayloadDocument = AiRequestDispatchInput["inputPayload"];
@@ -149,36 +150,15 @@ const buildWorkbenchAiResponseEnvelope = (input: {
   outputPayload: ReturnType<typeof buildAiOutputPayload>;
   diagnostics: ReturnType<typeof buildAiDiagnosticFields>;
 }) => {
-  const responseDecision = {
-    status: input.resolvedDecision.status,
-    decision: input.resolvedDecision.decision,
-    taskDecision: input.resolvedDecision.taskDecision,
-    pageStateDecision: input.resolvedDecision.pageStateDecision,
-    actionPlan: input.resolvedDecision.actionPlan ?? null,
-    nonExecutableSummary: input.resolvedDecision.nonExecutableSummary,
-  };
-  const responseDiagnostics = {
+  const responseFields = buildWorkbenchAiResponseEnvelopeFields({
+    aiTaskType: input.aiTaskType,
     confidence: input.confidence,
-    implementationStatus: input.diagnostics.implementationStatus,
-    runtimeCallId: input.diagnostics.runtimeCallId,
-    rawOutputRef: input.diagnostics.rawOutputRef,
-    rawOutputHash: input.diagnostics.rawOutputHash,
-    schemaIssueCount: input.diagnostics.schemaIssueCount,
-    schemaDecision: input.diagnostics.schemaDecision,
-    schemaValidationStatus: input.diagnostics.schemaValidationStatus,
-    qualityDecision: input.diagnostics.qualityDecision,
-    qualityDecisionReason: input.diagnostics.qualityDecisionReason,
-    outputBoundaryDecision: input.diagnostics.outputBoundaryDecision,
+    failureReason: input.failureReason,
     minimumConfidence: resolveMinimumConfidence(input.aiTaskType),
-    dataQualityFlags: input.diagnostics.dataQualityFlags,
-    parsedDecision: input.resolvedDecision.decision,
-  };
-  const responseResultRefs = {
-    outputRef: input.resolvedDecision.status === "success" ? input.outputPayload.documentRef : null,
-    diagnosticPayloadRef: input.resolvedDecision.status === "success" ? null : input.outputPayload.documentRef,
-    failureReason: input.resolvedDecision.status === "failed" ? input.failureReason : null,
-    reviewRequiredReason: input.resolvedDecision.status === "review_required" ? input.resolvedDecision.reviewRequiredReason : null,
-  };
+    resolvedDecision: input.resolvedDecision,
+    outputPayload: input.outputPayload,
+    diagnostics: input.diagnostics,
+  });
 
   return {
     ...buildMirroredEnvelopeBase({
@@ -197,9 +177,7 @@ const buildWorkbenchAiResponseEnvelope = (input: {
     correlationCapabilityCallId: input.envelope.capabilityCallId,
     correlationInputRef: input.envelope.inputRef,
     proofRef: `${input.envelope.envelopeId}:response:proof`,
-    ...responseDecision,
-    ...responseDiagnostics,
-    ...responseResultRefs,
+    ...responseFields,
   };
 };
 

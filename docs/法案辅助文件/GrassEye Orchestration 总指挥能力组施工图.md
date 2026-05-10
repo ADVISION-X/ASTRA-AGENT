@@ -20,10 +20,11 @@
 ## 新主链
 
 ```txt
-mission command
-→ prepare visual mission input
+userRequirementText + selectedPlatforms
+→ PlatformRegistry + MuscleMemoryCatalog + Visual Mission Prompt Contract
+→ screenshot original + coordinate grid
 → AI Visual Mission Judge
-→ decision + actions[].actionCode
+→ governed decision + actions[].actionCode
 → decoder / scheduler
 → owning capability group
 → Forensics record
@@ -73,6 +74,8 @@ status
 - currentStepId / previousStepId 只表示 visual mission round 内部执行阶段，不得对应 retired packaged step。
 - branchTaken 如果存在，只能来自声明过的 decision / riskFlags / actions 字段，不得来自 routeLabel 或其他 retired branch token。
 - step state 是调度元数据，不是 retired declarative flow package 的回流主权。
+- `review_required` 表示当前轮自动链路必须停止，不得隐式继续。
+- `STOP_REVIEW_REQUIRED` 是合法 actionCode，用于硬停止并把人工处理转交 Commander Console。
 
 禁止字段：
 
@@ -94,6 +97,7 @@ legacy template field
 - composite actionCode 只能由系统展开
 - click / scroll / text-input 必须走 owning capability public contract
 - PAV 只能按 policy 作为 observation packaging，可有可无，不再是动作后必经 gate
+- review_required / STOP_REVIEW_REQUIRED 都必须写入 Forensics，并停止自动继续
 
 ## 审计信号
 

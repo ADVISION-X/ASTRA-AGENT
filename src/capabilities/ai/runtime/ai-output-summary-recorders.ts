@@ -159,28 +159,26 @@ const recordCommentSignalSummary = (input: RecordableAiOutputSummaryInput): bool
   return true;
 };
 
+const AI_OUTPUT_SUMMARY_RECORDERS = [
+  recordVisualTargetCandidateSummary,
+  recordPagePreparationSummary,
+  recordOcrCleanupSummary,
+  recordProductPresenceSummary,
+  recordVisualMissionActionPlanSummary,
+  recordCommentSignalSummary,
+] as const;
+
 export function recordAiOutputSummary(input: RecordAiOutputSummaryInput): void {
   if (!input.outputRef) {
     return;
   }
 
   const recordableInput = { ...input, outputRef: input.outputRef };
-  if (recordVisualTargetCandidateSummary(recordableInput)) {
-    return;
+  for (const recordSummary of AI_OUTPUT_SUMMARY_RECORDERS) {
+    if (recordSummary(recordableInput)) {
+      return;
+    }
   }
-  if (recordPagePreparationSummary(recordableInput)) {
-    return;
-  }
-  if (recordOcrCleanupSummary(recordableInput)) {
-    return;
-  }
-  if (recordProductPresenceSummary(recordableInput)) {
-    return;
-  }
-  if (recordVisualMissionActionPlanSummary(recordableInput)) {
-    return;
-  }
-  recordCommentSignalSummary(recordableInput);
 }
 
 export function recordAiOutputSummaryAlias(input: {

@@ -10,12 +10,27 @@ status: active / current delivery authority under phase-five final-delivery debu
 
 ```txt
 userRequirementText + selectedPlatforms
+→ PlatformRegistry + MuscleMemoryCatalog
+→ screenshot original + coordinate grid
 → Visual Mission Prompt Contract
 → AI Visual Mission Judge
-→ actions[].actionCode
-→ Scheduler / owning capability groups
+→ governed decision + actions[].actionCode action-plan tokens
+→ ActionPlan Decoder / Scheduler
+→ owning capability groups
 → Forensics record
+→ next round
 ```
+
+主权分工：
+- AI = semantic judge and action-plan proposer.
+- System = decoder and machine arm.
+- MuscleMemory = executable white-listed actions only.
+- Page State / Visual Target / PAV = raw or mechanical support only, not semantic authority.
+
+## 2.1 V3 运行逻辑图口径
+
+Any GrassEye_系统运行逻辑示意图_V2 runtime diagram is retired/superseded.
+Current V3 runtime diagram wording must follow this blueprint and the visual-story file rather than any Map Package / Page State semantic judgment / Visual Target business judgment / universal PAV gate chain.
 
 ## 3. Phase-05 debug truth
 

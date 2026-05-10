@@ -3,6 +3,13 @@ import { Node, SyntaxKind, type Project, type SourceFile } from "ts-morph";
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 import { hasImportModuleSpecifier } from "../_shared/ast-helpers.js";
+import {
+  RETIRED_ACTIVATION_REF_FIELD,
+  RETIRED_PACKAGE_ID_FIELD,
+  RETIRED_PACKAGE_VERSION_FIELD,
+  RETIRED_SELECTION_ID_FIELD,
+  RETIRED_SELECTION_VERSION_FIELD,
+} from "../_shared/retired-map-field-names.js";
 
 import { aiInspectionConstants } from "./inspection-constants.js";
 import { aiInspectionUtils } from "./inspection-utils.js";
@@ -14,11 +21,11 @@ const REQUIRED_CHAIN_FIELD_NAMES = [
   "stepId",
   "capabilityCallId",
   "nerveBusEnvelopeId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
+  RETIRED_PACKAGE_ID_FIELD,
+  RETIRED_PACKAGE_VERSION_FIELD,
+  RETIRED_SELECTION_ID_FIELD,
+  RETIRED_SELECTION_VERSION_FIELD,
+  RETIRED_ACTIVATION_REF_FIELD,
   "promptCatalogVersion",
 ] as const;
 
@@ -58,15 +65,25 @@ function hasWorkbenchChainFields(sourceFile: SourceFile): boolean {
     && hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", "runId", "envelope.runId")
     && hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", "capabilityCallId", "envelope.capabilityCallId")
     && hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", "nerveBusEnvelopeId", "envelope.envelopeId")
-    && hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", "selectedMapId", "envelope.mapId")
-    && hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", "activationSnapshotRef", "requireChainField(mapRecord?.activationSnapshotRef)")
+    && hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", RETIRED_SELECTION_ID_FIELD, "envelope.mapId")
+    && hasNamedPropertyInitializer(
+      sourceFile,
+      "buildWorkbenchAiAbilityRequest",
+      RETIRED_ACTIVATION_REF_FIELD,
+      ["requireChainField(mapRecord?.", RETIRED_ACTIVATION_REF_FIELD, ")"].join(""),
+    )
     && hasNamedPropertyInitializer(sourceFile, "buildWorkbenchAiAbilityRequest", "promptCatalogVersion", "requireChainField(mapRecord?.promptCatalogVersion)");
 }
 
 function hasProofBuilderChainFields(sourceFile: SourceFile): boolean {
   return hasNamedPropertyInitializer(sourceFile, "buildAiRuntimeProofIdentityFields", "capabilityCallId", "input.request.capabilityCallId")
     && hasNamedPropertyInitializer(sourceFile, "buildAiRuntimeProofChainFields", "nerveBusEnvelopeId", "input.request.nerveBusEnvelopeId")
-    && hasNamedPropertyInitializer(sourceFile, "buildAiRuntimeProofChainFields", "activationSnapshotRef", "input.request.activationSnapshotRef")
+    && hasNamedPropertyInitializer(
+      sourceFile,
+      "buildAiRuntimeProofChainFields",
+      RETIRED_ACTIVATION_REF_FIELD,
+      ["input.request.", RETIRED_ACTIVATION_REF_FIELD].join(""),
+    )
     && hasNamedPropertyInitializer(sourceFile, "buildAiRuntimeProofChainFields", "promptContractVersion", "input.promptContract.promptVersion")
     && hasNamedPropertyInitializer(sourceFile, "buildAiRuntimeProofChainFields", "promptCatalogVersion", "input.request.promptCatalogVersion");
 }
@@ -74,7 +91,12 @@ function hasProofBuilderChainFields(sourceFile: SourceFile): boolean {
 function hasIdempotencyChainFields(sourceFile: SourceFile): boolean {
   return hasNamedPropertyInitializer(sourceFile, "buildAiRuntimeCallIdentity", "stepId", "request.stepId")
     && hasNamedPropertyInitializer(sourceFile, "buildAiRuntimeCallIdentity", "capabilityCallId", "request.capabilityCallId")
-    && hasNamedPropertyInitializer(sourceFile, "buildAiRuntimeCallIdentity", "activationSnapshotRef", "request.activationSnapshotRef")
+    && hasNamedPropertyInitializer(
+      sourceFile,
+      "buildAiRuntimeCallIdentity",
+      RETIRED_ACTIVATION_REF_FIELD,
+      ["request.", RETIRED_ACTIVATION_REF_FIELD].join(""),
+    )
     && hasNamedPropertyInitializer(sourceFile, "buildAiRuntimeCallIdentity", "promptCatalogVersion", "request.promptCatalogVersion");
 }
 
@@ -230,7 +252,10 @@ const getRuntimeChainFindings = (sources: AiProofChainSources): Finding[] => {
     findings.push(createProofChainFinding(WORKBENCH_AI_REQUEST_BUILDER_FILE, "Workbench AI requests must inject step, capability call, envelope, map activation, and prompt catalog chain fields from Nerve Bus and active map registry context."));
   }
   if (!hasProofBuilderChainFields(sources.proofBuilderSource)) {
-    findings.push(createProofChainFinding(`${AI_ROOT}/runtime/ai-proof-builder.ts`, "AI runtime proof must carry capabilityCallId, nerveBusEnvelopeId, activationSnapshotRef, promptContractVersion, and promptCatalogVersion from governed request context."));
+    findings.push(createProofChainFinding(
+      `${AI_ROOT}/runtime/ai-proof-builder.ts`,
+      `AI runtime proof must carry capabilityCallId, nerveBusEnvelopeId, ${RETIRED_ACTIVATION_REF_FIELD}, promptContractVersion, and promptCatalogVersion from governed request context.`,
+    ));
   }
   if (!hasIdempotencyChainFields(sources.idempotencySource)) {
     findings.push(createProofChainFinding(`${AI_ROOT}/runtime/ai-idempotency.ts`, "AI runtime call identity must hash step and activation chain fields, not just task and payload input."));

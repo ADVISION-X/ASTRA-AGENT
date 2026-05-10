@@ -1,5 +1,8 @@
 # GrassEye 第二阶段建设目标方案
 
+status: historical phase plan only; not current delivery authority.
+If this file conflicts with docs/项目方案/GrassEye_视觉裁判_故事情节.md, GRASSEYE-KERNEL.instructions.md, or the current phase-five blueprint, the newer visual-mission authority wins.
+
 ## 1. 基本身份
 
 - 文档名称：GrassEye 第二阶段建设目标方案

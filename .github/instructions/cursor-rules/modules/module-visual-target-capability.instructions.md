@@ -14,6 +14,7 @@ Core doctrine:
 - Visual Target finds governed candidates.
 - Visual Target does not approve execution.
 - Executable coordinate truth begins only after Geometry Guard.
+- Final semantic truth belongs to AI Visual Mission Judge, not Visual Target.
 
 ## Law GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2
 

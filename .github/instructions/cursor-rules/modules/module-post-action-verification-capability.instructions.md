@@ -14,6 +14,7 @@ Core doctrine:
 - PAV packages governed before/after observations.
 - AI remains the final semantic action-result judgment source when semantic truth is needed.
 - PAV is not a universal mandatory gate after every real action.
+- Final semantic truth belongs to the next AI Visual Mission Judge round, not PAV.
 
 ## Law GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2
 

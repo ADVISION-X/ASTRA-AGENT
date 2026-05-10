@@ -10,25 +10,19 @@ const FILE_SCOPED_ZOMBIE_KINDS = new Set<ZombieCandidate["kind"]>([
   "unused-inspector-component",
 ]);
 
+const ZOMBIE_MESSAGE_BUILDERS: Record<ZombieCandidate["kind"], (symbolName: string) => string> = {
+  "orphan-file": (symbolName) => `Orphan file ${symbolName} has no lawful callers.`,
+  "dead-export": (symbolName) => `Export ${symbolName} has no lawful callers.`,
+  "unused-child-capability": (symbolName) => `Child capability ${symbolName} has no lawful callers.`,
+  "unused-inspector-component": (symbolName) => `Inspector component ${symbolName} has no lawful callers.`,
+  "unused-prompt-contract": (symbolName) => `Prompt contract ${symbolName} has no lawful callers.`,
+  "unused-route-plan-step": (symbolName) => `Route plan step ${symbolName} has no lawful callers.`,
+  "unused-map-package": (symbolName) => `Map package ${symbolName} is not loaded by a lawful owner.`,
+  "unused-muscle-memory-action-code": (symbolName) => `Muscle-memory action code ${symbolName} has no lawful callers.`,
+};
+
 const resolveZombieFindingMessage = (candidate: ZombieCandidate): string => {
-  switch (candidate.kind) {
-    case "orphan-file":
-      return `Orphan file ${candidate.symbolName} has no lawful callers.`;
-    case "dead-export":
-      return `Export ${candidate.symbolName} has no lawful callers.`;
-    case "unused-child-capability":
-      return `Child capability ${candidate.symbolName} has no lawful callers.`;
-    case "unused-inspector-component":
-      return `Inspector component ${candidate.symbolName} has no lawful callers.`;
-    case "unused-prompt-contract":
-      return `Prompt contract ${candidate.symbolName} has no lawful callers.`;
-    case "unused-route-plan-step":
-      return `Route plan step ${candidate.symbolName} has no lawful callers.`;
-    case "unused-map-package":
-      return `Map package ${candidate.symbolName} is not loaded by a lawful owner.`;
-    case "unused-muscle-memory-action-code":
-      return `Muscle-memory action code ${candidate.symbolName} has no lawful callers.`;
-  }
+  return ZOMBIE_MESSAGE_BUILDERS[candidate.kind](candidate.symbolName);
 };
 
 export const resolveZombieCallerCount = (graph: ZombieGraph, candidate: ZombieCandidate): number => {

@@ -4,6 +4,13 @@ import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 import { hasStringLiteral } from "../_shared/ast-literal-queries.js";
 import { hasCallExpression } from "../_shared/ast-helpers.js";
+import {
+  RETIRED_ACTIVATION_REF_FIELD,
+  RETIRED_PACKAGE_ID_FIELD,
+  RETIRED_PACKAGE_VERSION_FIELD,
+  RETIRED_SELECTION_ID_FIELD,
+  RETIRED_SELECTION_VERSION_FIELD,
+} from "../_shared/retired-map-field-names.js";
 
 import { aiInspectionConstants } from "./inspection-constants.js";
 import { aiInspectionUtils } from "./inspection-utils.js";
@@ -126,7 +133,7 @@ const hasAiRuntimeCallIdCapabilityAuthority = (sourceFile: SourceFile): boolean 
   propertyInitializerText(sourceFile, "capabilityCallId").some((initializer) => initializer.includes("runtimeCallId") || initializer.includes("input.spanId"));
 
 const hasSplitTraceIdMapAuthority = (sourceFile: SourceFile): boolean =>
-  propertyInitializerText(sourceFile, "selectedMapId").some((initializer) => initializer.includes("trace.mapId") || initializer.includes("splitTraceId"))
+  propertyInitializerText(sourceFile, RETIRED_SELECTION_ID_FIELD).some((initializer) => initializer.includes("trace.mapId") || initializer.includes("splitTraceId"))
   || propertyInitializerText(sourceFile, "mapId").some((initializer) => initializer === "trace.mapId");
 
 const hasCanonicalChainResolver = (sourceFile: SourceFile): boolean => {
@@ -136,12 +143,12 @@ const hasCanonicalChainResolver = (sourceFile: SourceFile): boolean => {
   }
   const text = resolver.getText();
   return [
-    "input.selectedMapId",
+    ["input.", RETIRED_SELECTION_ID_FIELD].join(""),
     "input.runId",
-    "input.mapPackageId",
-    "input.mapPackageVersion",
-    "input.selectedMapVersion",
-    "input.activationSnapshotRef",
+    ["input.", RETIRED_PACKAGE_ID_FIELD].join(""),
+    ["input.", RETIRED_PACKAGE_VERSION_FIELD].join(""),
+    ["input.", RETIRED_SELECTION_VERSION_FIELD].join(""),
+    ["input.", RETIRED_ACTIVATION_REF_FIELD].join(""),
     "input.capabilityCallId",
     "input.nerveBusEnvelopeId",
     "input.idempotencyKey",
@@ -195,7 +202,11 @@ export const collectWorkbenchAiDebugChainFindings = (project: Project): Finding[
     findings.push(createAiDebugFinding("GRASSEYE-AI-CAPABILITY-007A-V1", WORKBENCH_AI_DEBUG_RECORDER_PATH, "Workbench AI debug recorder must not use input.traceId as governed runId truth."));
   }
   if (hasSplitTraceIdMapAuthority(recorderSource) || hasSplitTraceIdMapAuthority(supportSource)) {
-    findings.push(createAiDebugFinding("GRASSEYE-AI-CAPABILITY-007A-V1", WORKBENCH_AI_DEBUG_RECORDER_PATH, "Workbench AI debug recorder must not derive selectedMapId/mapId from splitTraceId(traceId); use explicit governed chain fields."));
+    findings.push(createAiDebugFinding(
+      "GRASSEYE-AI-CAPABILITY-007A-V1",
+      WORKBENCH_AI_DEBUG_RECORDER_PATH,
+      "Workbench AI debug recorder must not derive retired selection or map identifiers from splitTraceId(traceId); use explicit governed chain fields.",
+    ));
   }
   if (!hasCanonicalChainResolver(recorderSource)) {
     findings.push(createAiDebugFinding("GRASSEYE-AI-CAPABILITY-007A-V1", WORKBENCH_AI_DEBUG_RECORDER_PATH, "Workbench AI debug recorder must resolve mission/run/map/package/activation/capability/idempotency fields from canonical AI debug event fields."));

@@ -6,6 +6,19 @@ import { executePagePreparationRuntimeTask } from "./local-ai-runtime-page-prepa
 import { executeVisualMissionActionPlanRuntimeTask } from "./local-ai-runtime-visual-mission-action-plan-task.js";
 import { executeVisionRuntimeTask } from "./local-ai-runtime-vision-task.js";
 
+type RuntimeTaskType = RuntimeExecutionInput["request"]["taskType"];
+type RuntimeTaskExecutor = (input: RuntimeExecutionInput, createdAt: string) => ReturnType<typeof executePagePreparationRuntimeTask>;
+
+const RUNTIME_TASK_EXECUTORS: Partial<Record<RuntimeTaskType, RuntimeTaskExecutor>> = {
+  "vision.pagePreparation": executePagePreparationRuntimeTask,
+  "vision.nextItemAdvanced": executeNextItemAdvancedRuntimeTask,
+  "vision.productPresence": executeVisionRuntimeTask,
+  "vision.visualMissionActionPlan": executeVisualMissionActionPlanRuntimeTask,
+  "vision.nextItemTargetCandidate": executeVisionRuntimeTask,
+  "vision.commentsEntryTargetCandidate": executeVisionRuntimeTask,
+  "comments.ocr_cleanup": executeOcrCleanupRuntimeTask,
+};
+
 function assertRuntimeTaskAllowed(taskType: RuntimeExecutionInput["request"]["taskType"]): void {
   if (taskType === "comments.intent_analysis") {
     throw new LocalAiRuntimeError("disabled_by_policy", "comments.intent_analysis is not allowed; local AI may clean comments but must not produce commercial analysis.");
@@ -16,23 +29,11 @@ function assertRuntimeTaskAllowed(taskType: RuntimeExecutionInput["request"]["ta
 }
 
 function executeSupportedRuntimeTask(input: RuntimeExecutionInput, createdAt: string) {
-  switch (input.request.taskType) {
-    case "vision.pagePreparation":
-      return executePagePreparationRuntimeTask(input, createdAt);
-    case "vision.nextItemAdvanced":
-      return executeNextItemAdvancedRuntimeTask(input, createdAt);
-    case "vision.productPresence":
-    case "vision.visualMissionActionPlan":
-    case "vision.nextItemTargetCandidate":
-    case "vision.commentsEntryTargetCandidate":
-      return input.request.taskType === "vision.visualMissionActionPlan"
-        ? executeVisualMissionActionPlanRuntimeTask(input, createdAt)
-        : executeVisionRuntimeTask(input, createdAt);
-    case "comments.ocr_cleanup":
-      return executeOcrCleanupRuntimeTask(input, createdAt);
-    default:
-      throw new LocalAiRuntimeError("disabled_by_policy", `${input.request.taskType} is not allowed in the local runtime.`);
+  const executor = RUNTIME_TASK_EXECUTORS[input.request.taskType];
+  if (!executor) {
+    throw new LocalAiRuntimeError("disabled_by_policy", `${input.request.taskType} is not allowed in the local runtime.`);
   }
+  return executor(input, createdAt);
 }
 
 export async function executeRuntimeTask(input: RuntimeExecutionInput) {

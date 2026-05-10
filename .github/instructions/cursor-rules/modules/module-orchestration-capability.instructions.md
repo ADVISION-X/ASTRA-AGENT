@@ -28,6 +28,25 @@ Core doctrine:
 - No Nerve Bus envelope, no governed step dispatch.
 - No active Orchestration law without inspector + runner + real-code-inspection.
 
+Current governed mission loop:
+
+```txt
+userRequirementText + selectedPlatforms
+→ PlatformRegistry + MuscleMemoryCatalog + Visual Mission Prompt Contract
+→ screenshot original + coordinate grid
+→ AI Visual Mission Judge
+→ governed decision + actions[].actionCode action-plan tokens
+→ ActionPlan Decoder / Scheduler
+→ owning ability-group public contracts
+→ Forensics record
+→ next round
+```
+
+Review stop semantics:
+- `review_required` means the current round cannot continue automatically.
+- `STOP_REVIEW_REQUIRED` is a legal governed actionCode when MuscleMemoryCatalog declares a hard-stop handoff to Commander Console.
+- Human review belongs only to Commander Console / human restart; Orchestration must not pause inside runtime and auto-resume after implicit review.
+
 ---
 
 ## Global Orchestration Baseline
@@ -170,6 +189,8 @@ Required:
 - Orchestration may store promptContractId, promptContractVersion, and outputSchemaRef when the active visual-mission contract resolves them.
 - AI output consumed by Orchestration must use governed decision fields and actions[].actionCode.
 - Unknown actionCode must fail closed.
+- `review_required` must stop the current automated round.
+- `STOP_REVIEW_REQUIRED` must be treated as a legal stop actionCode when declared by MuscleMemoryCatalog and must finalize the round into Forensics plus Commander-visible review reasons.
 - Composite actionCode may be expanded only by governed decoders/schedulers.
 - Mission flow must remain data-driven, auditable, and bounded.
 
@@ -220,6 +241,7 @@ FORBIDDEN:
 - hidden next-step logic outside transition evaluation.
 - while true mission loop without loop guard.
 - loop continues after emergency stop.
+- runtime silently continuing after `review_required`.
 - static browse-flow hardcoded decision tree.
 
 ---
@@ -250,6 +272,7 @@ Required:
 - text-input must require approved text and verified input target before primitive execution.
 - Open, Screenshot, Visual Target, Geometry Guard, Mouse Click, Mouse Scroll, Text Input, and Forensics must be called only through their public contracts.
 - Post-action observation packaging may run when the action policy requires it, but it must not replace the next AI round as semantic truth.
+- `STOP_REVIEW_REQUIRED` is a valid actionCode stop path, not a forbidden action command.
 
 ### 禁止
 
@@ -259,6 +282,7 @@ FORBIDDEN:
 - universal mandatory PAV after every real external action.
 - PAV package status replacing the next AI semantic judgment.
 - free-text action instructions bypassing actionCode decoding.
+- implicitly auto-resuming the mission after a review stop without a new Commander command.
 
 ---
 

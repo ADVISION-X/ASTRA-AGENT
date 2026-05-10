@@ -1,21 +1,23 @@
 # GrassEye 第五阶段建设目标方案
 
-status: active / current delivery authority under phase-five final-delivery debugging.
+status: SUPERSEDED / ARCHIVED REFERENCE.
+Superseded by: docs/法案辅助文件/GrassEye 第五阶段高级AI地图生成与WEB本地程序打通施工图.md + docs/项目方案/GrassEye_视觉裁判_故事情节.md
+This file must not be used as current delivery authority.
 
 ## 1. 阶段定位
 
 第五阶段目标是实现高级 AI 生成地图，并打通 WEB 平台与本地程序 / iPhone Mirroring / macOS local 的统一执行链路。
 
-本阶段继续服从冻结基线：
+本文件仅保留历史阶段语义，不代表当前冻结基线：
 
 - 14 个 active ability groups。
 - 5 个 foundation laws。
-- 1 个 support governance domain：map-plugin-package。
+- 历史上曾存在 1 个 retired support governance domain：map-plugin-package（not current）。
 - 不新增 owner，不修改 `.github/instructions/cursor-rules/**` 法案文件。
 
 `local-ai-runtime` 仍归 AI，`local-browser-session` 仍归 Open，`local-app-shell` 仍归 Commander Console，`structured-logging` 父 owner 仍归 Forensics，并由 governance 约束。第五阶段不是新增 runtime，而是把既有能力组按证据链打通。
 
-## 2. 正确主链
+## 2. Retired historical chain
 
 ```txt
 Human / Operator
@@ -44,7 +46,7 @@ Human / Operator
 
 ## 4. 高级 AI 生成地图边界
 
-Map Lab 是 Commander Console / AI / map-plugin-package support domain 的组合入口。AI 只生成结构化 draft map；normalizer 负责把 AI 输出收敛为声明式 package；registry `importPackage()` 负责 quarantine、validation、compatibility proof 和 blocked/failed 结果。激活只能发生在 Commander governed automation gate 之后，由 map-plugin-package 生命周期和 Orchestration activation snapshot 证明。
+Map Lab 是历史上的 Commander Console / AI / map-plugin-package 组合入口。该口径已退役；当前生产主链不再授予 map-plugin-package support 主权，也不再使用 activation snapshot 作为 mission 主链真相。
 
 当前生产方向以 `generateMapLabDraft()` 为准：`buildMapAuthoringAiRequest()` 构造 AI request，`aiAbilityGroup.execute()` 返回结构化结果，`normalizeMapLabDraft()` 归一化，最后 `registry.importPackage()` 导入。非 success、dry-run captured、validation issues 都不得直接 active。
 
@@ -63,7 +65,7 @@ Orchestration
 → Forensics
 ```
 
-Page State dispatch 必须传播 `runId`、`sessionId`、`stepId`、map package/version、selected map/version、`activationSnapshotRef`、`capabilityCallId`、`nerveBusEnvelopeId`、`inputRef`、`idempotencyKey` 和 `openHandoff.browserSessionRef`，确保 WEB / local 状态判断可回连 active map 和 mission run。
+历史方案要求 Page State 回连 map package/version、selected map/version、`activationSnapshotRef`。该口径已退役；当前生产链只允许短链 mission/run/round/step/evidence truth。
 
 ## 6. 阶段验收
 

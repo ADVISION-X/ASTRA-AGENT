@@ -48,6 +48,7 @@ idempotencyKey
 - 输出只能是 non-executable candidates
 - executable truth 必须交给 Geometry Guard
 - Visual Target 不得自造 heuristic target policy
+- Final semantic truth belongs to AI Visual Mission Judge
 
 禁止字段：
 

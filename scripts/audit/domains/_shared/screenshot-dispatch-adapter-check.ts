@@ -4,12 +4,11 @@ import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 import { getSourceFileOrThrow } from "./ast-helpers.js";
 import { getFunctionLike } from "./ast-schema-queries.js";
+import {
+  getMissingScreenshotShortChainFinding,
+  getScreenshotShortChainBindingFindings,
+} from "./screenshot-dispatch-short-chain-check.js";
 import { getSourceProofPollutionFindings } from "./screenshot-source-proof-pollution-check.js";
-
-type PropertyBinding = {
-  name: string;
-  initializer: string;
-};
 
 const DISPATCH_FILE = "src/lib/local-runtime/workbench-screenshot-dispatch-input.ts";
 const RESULT_ENVELOPE_FILE = "src/lib/local-runtime/workbench-ability-result-envelope.ts";
@@ -17,25 +16,6 @@ const RESULT_PROOF_SUMMARY_FILE = "src/lib/local-runtime/workbench-ability-resul
 const RESULT_PREPARE_AI_PROOF_SUMMARY_FILE = "src/lib/local-runtime/workbench-ability-result-proof-summary-prepare-ai-input.ts";
 const HANDOFF_FILE = "src/lib/local-runtime/workbench-screenshot-source-handoff.ts";
 const AI_INPUT_PROOF_REGISTRY_FILE = "src/capabilities/ai/shared/ai-input-proof-registry.ts";
-const COMMON_BINDINGS: PropertyBinding[] = [
-  { name: "missionId", initializer: "envelope.missionId" },
-  { name: "runId", initializer: "envelope.runId" },
-  { name: "sessionId", initializer: "envelope.sessionId" },
-  { name: "roundId", initializer: "envelope.roundId" },
-  { name: "videoVisitId", initializer: "envelope.videoVisitId" },
-  { name: "stepId", initializer: "envelope.stepId" },
-  { name: "mapPackageId", initializer: "envelope.mapPackageId" },
-  { name: "mapPackageVersion", initializer: "envelope.mapPackageVersion" },
-  { name: "selectedMapId", initializer: "envelope.selectedMapId" },
-  { name: "selectedMapVersion", initializer: "envelope.selectedMapVersion" },
-  { name: "activationSnapshotRef", initializer: "envelope.activationSnapshotRef" },
-  { name: "capabilityCallId", initializer: "envelope.capabilityCallId" },
-  { name: "nerveBusEnvelopeId", initializer: "envelope.nerveBusEnvelopeId" },
-  { name: "inputRef", initializer: "envelope.inputRef" },
-  { name: "idempotencyKey", initializer: "envelope.idempotencyKey" },
-  { name: "timeoutMs", initializer: "resolveTransportTimeoutMs(envelope)" },
-] as const;
-
 const PREPARE_AI_INPUT_SNIPPETS = [
   "const source = resolvePrepareAiInputSource(envelope, payload);",
   "PREPARE_AI_INPUT_SOURCE_KEYS_BY_STEP_ID",
@@ -121,15 +101,6 @@ function getReturnedObjectLiteralFromBody(body: import("ts-morph").Node | null |
   return expression && Node.isObjectLiteralExpression(expression) ? expression : null;
 }
 
-function hasBinding(objectLiteral: ObjectLiteralExpression, binding: PropertyBinding) {
-  const property = objectLiteral.getProperty(binding.name);
-  if (!property || !Node.isPropertyAssignment(property)) {
-    return false;
-  }
-
-  return normalize(property.getInitializer()?.getText() ?? "") === normalize(binding.initializer);
-}
-
 function getObjectPropertyLiteral(objectLiteral: ObjectLiteralExpression, propertyName: string): ObjectLiteralExpression | null {
   const property = objectLiteral.getProperty(propertyName);
   if (!property || !Node.isPropertyAssignment(property)) {
@@ -168,29 +139,11 @@ function hasCallExpressionNamed(project: Project, filePath: string, callName: st
   return source.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => call.getExpression().getText() === callName);
 }
 
-const getMissingCommonFieldsFinding = (commonFields: ObjectLiteralExpression | null, lawId: string): Finding[] => {
-  if (!commonFields) {
-    return [createFinding({
-      lawId,
-      file: DISPATCH_FILE,
-      line: 1,
-      severity: "fatal",
-      message: "Screenshot local-runtime dispatch adapter must expose a dedicated governed common-field builder.",
-    })];
-  }
-  return [];
-};
+const getMissingCommonFieldsFinding = (commonFields: ObjectLiteralExpression | null, lawId: string): Finding[] =>
+  getMissingScreenshotShortChainFinding(commonFields, lawId, DISPATCH_FILE);
 
 const getCommonBindingFindings = (commonFields: ObjectLiteralExpression, lawId: string): Finding[] =>
-  COMMON_BINDINGS.every((binding) => hasBinding(commonFields, binding))
-    ? []
-    : [createFinding({
-      lawId,
-      file: DISPATCH_FILE,
-      line: 1,
-      severity: "fatal",
-      message: "Screenshot local-runtime dispatch adapter must preserve governed chain fields, inputRef, idempotencyKey, and timeoutMs before entering the Screenshot owner boundary.",
-    })];
+  getScreenshotShortChainBindingFindings(commonFields, lawId, DISPATCH_FILE);
 
 const hasViewportSourceBindings = (captureBrowserViewport: ObjectLiteralExpression): boolean => {
   const sourceLiteral = getObjectPropertyLiteral(captureBrowserViewport, "source");

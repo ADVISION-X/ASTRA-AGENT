@@ -64,6 +64,11 @@ const ZOMBIE_DORMANT_ROUTE_STEP_IDS = [
   "verify-next-item-advanced",
 ] as const;
 
+type ProtectedPathRule = {
+  seam: string;
+  matches: (relativePath: string) => boolean;
+};
+
 const hasPathPrefix = (relativePath: string, prefix: string): boolean => relativePath.startsWith(prefix);
 
 const hasProtectedSegment = (relativePath: string): boolean =>
@@ -72,23 +77,31 @@ const hasProtectedSegment = (relativePath: string): boolean =>
 const hasProtectedSuffix = (relativePath: string): boolean =>
   ZOMBIE_PROTECTED_PATH_SUFFIXES.some((suffix) => relativePath.endsWith(suffix));
 
+const ZOMBIE_PROTECTED_PATH_RULES: ProtectedPathRule[] = [
+  {
+    seam: "generated-source-artifact",
+    matches: (relativePath) => ZOMBIE_PROTECTED_FILE_PATHS.includes(relativePath as (typeof ZOMBIE_PROTECTED_FILE_PATHS)[number]),
+  },
+  {
+    seam: "generated-artifact-prefix",
+    matches: (relativePath) => ZOMBIE_PROTECTED_PATH_PREFIXES.some((prefix) => hasPathPrefix(relativePath, prefix)),
+  },
+  {
+    seam: "public-support-surface",
+    matches: (relativePath) => hasProtectedSegment(relativePath),
+  },
+  {
+    seam: "public-surface-entrypoint",
+    matches: (relativePath) => hasProtectedSuffix(relativePath),
+  },
+  {
+    seam: "disabled-prompt-contract",
+    matches: (relativePath) => relativePath.endsWith(ZOMBIE_DISABLED_PROMPT_CONTRACT_SUFFIX),
+  },
+];
+
 export const getZombieProtectedSeamForPath = (relativePath: string): string | null => {
-  if (ZOMBIE_PROTECTED_FILE_PATHS.includes(relativePath as (typeof ZOMBIE_PROTECTED_FILE_PATHS)[number])) {
-    return "generated-source-artifact";
-  }
-  if (ZOMBIE_PROTECTED_PATH_PREFIXES.some((prefix) => hasPathPrefix(relativePath, prefix))) {
-    return "generated-artifact-prefix";
-  }
-  if (hasProtectedSegment(relativePath)) {
-    return "public-support-surface";
-  }
-  if (hasProtectedSuffix(relativePath)) {
-    return "public-surface-entrypoint";
-  }
-  if (relativePath.endsWith(ZOMBIE_DISABLED_PROMPT_CONTRACT_SUFFIX)) {
-    return "disabled-prompt-contract";
-  }
-  return null;
+  return ZOMBIE_PROTECTED_PATH_RULES.find((rule) => rule.matches(relativePath))?.seam ?? null;
 };
 
 export const getZombieProtectedSeamForRouteStepId = (stepId: string): string | null =>

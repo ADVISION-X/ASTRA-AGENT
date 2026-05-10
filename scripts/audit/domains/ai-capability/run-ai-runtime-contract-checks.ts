@@ -287,7 +287,7 @@ const findModelOwnedNonProductDecisionViolations = (project: Project): Finding[]
       file: `${AI_ROOT}/runtime/ai-quality-gate.ts`,
       line: 1,
       severity: "fatal",
-      message: "AI quality gate must not consume nextIntent or suggestedNextAction; only routeLabel may drive routing.",
+      message: "AI quality gate must not consume nextIntent or suggestedNextAction; routing must remain downstream of governed decision and actions[].actionCode planning tokens rather than retired or AI-private routing fields.",
     }));
   }
 

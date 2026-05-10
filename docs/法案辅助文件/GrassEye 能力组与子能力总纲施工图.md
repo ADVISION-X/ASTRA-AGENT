@@ -3,7 +3,7 @@
 ## 统一身份与冻结边界
 
 - 本文件是当前主题的建设级落地映射或冻结说明，不新增 lawId，不修改冻结法案。
-- 本文件只服从当前 14 个 active ability groups、5 个 foundation laws、1 个 support governance domain；若与 Kernel / Index / 法案冻结基线冲突，以 Kernel / Index / 冻结基线为准。
+- 本文件只服从当前 14 个 active ability groups、5 个 foundation laws、0 个 support governance domains；若与 Kernel / Index / 法案冻结基线冲突，以 Kernel / Index / 冻结基线为准。
 - 若本文档涉及 support boundary、共享子契约或已退役主题，只能从属于现有父能力组或冻结结论，不得借此恢复独立 owner、phase gate、audit plan 或 runner。
 - 若与 .github/instructions/cursor-rules/** 或 docs/法案辅助文件/GrassEye 法案冻结基线.md 冲突，以冻结法案与现行 owner law 为准。
 
@@ -11,7 +11,7 @@
 
 GrassEye 现在只允许能力组模式。
 
-GrassEye = 14 个能力组 + 5 个 foundation laws + 1 个 support governance domain + Debug 运行证明 + Forensics Persistence。
+GrassEye = 14 个能力组 + 5 个 foundation laws + 0 个 support governance domains + Debug 运行证明 + Forensics Persistence。
 
 ## 总原则
 

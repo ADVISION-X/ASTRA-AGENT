@@ -55,6 +55,8 @@ actions[].actionCode (optional)
 actions[].input (optional)
 ```
 
+这些 `actions[].actionCode` 字段属于 governed planning tokens，不是 execution authority。
+
 允许的启动期动作必须是受治理白名单，例如：
 
 ```txt
@@ -62,6 +64,11 @@ WAIT_SHORT
 REOPEN_ENTRY_PAGE
 STOP_REVIEW_REQUIRED
 ```
+
+Review semantics:
+- `review_required` 是受治理停止状态，不是启动链的自动继续路线。
+- `STOP_REVIEW_REQUIRED` 是合法 actionCode，用于停止当前启动轮并把人工处理交给 Commander Console。
+- human review gate 只属于 Commander Console / 人工再启动层。
 
 禁止：
 

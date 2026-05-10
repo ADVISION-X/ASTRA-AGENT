@@ -24,6 +24,7 @@ Human
 人类命令入口
 review disposition 入口
 mission / evidence / audit read model 展示
+review_required 原因展示与人工再启动入口
 ```
 
 ## Commander 不负责
@@ -34,6 +35,14 @@ legacy activation truth
 retired branch-token scheduling
 AI runtime truth
 browser/action execution
+```
+
+## review gate 语义
+
+```txt
+review_required = 受治理停止状态，不自动继续
+STOP_REVIEW_REQUIRED = 合法 actionCode，要求系统停止并把人工处理交还 Commander
+human review gate = Commander Console / 人工再启动层，不属于自动化链路中的隐式继续节点
 ```
 
 ## start-mission 最小合同

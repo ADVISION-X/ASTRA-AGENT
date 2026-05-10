@@ -4,15 +4,22 @@ import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 import { getSourceFileOrThrow } from "./ast-helpers.js";
 import { getFunctionLike } from "./ast-schema-queries.js";
+import {
+  RETIRED_ACTIVATION_REF_FIELD,
+  RETIRED_PACKAGE_ID_FIELD,
+  RETIRED_PACKAGE_VERSION_FIELD,
+  RETIRED_SELECTION_ID_FIELD,
+  RETIRED_SELECTION_VERSION_FIELD,
+} from "./retired-map-field-names.js";
 
 const FORBIDDEN_SOURCE_PROOF_FIELDS = [
   "missionId",
   "runId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
+  RETIRED_PACKAGE_ID_FIELD,
+  RETIRED_PACKAGE_VERSION_FIELD,
+  RETIRED_SELECTION_ID_FIELD,
+  RETIRED_SELECTION_VERSION_FIELD,
+  RETIRED_ACTIVATION_REF_FIELD,
   "nerveBusEnvelopeId",
   "idempotencyKey",
   "timeoutMs",

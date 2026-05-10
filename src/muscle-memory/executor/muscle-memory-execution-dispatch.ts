@@ -107,6 +107,35 @@ export const resolveFailureStatus = (
   return "failed";
 };
 
+const buildSyntheticDispatchCommandInput = (input: {
+  executionInput: ExecuteMuscleMemoryPlanInput;
+  action: ExecutionAction;
+  actionIndex: number;
+  payloadRefs: PayloadRefs;
+  syntheticDispatch: SyntheticDispatch;
+}) => ({
+  missionId: input.executionInput.missionId,
+  mapId: input.executionInput.map.mapId,
+  stepId: input.syntheticDispatch.stepId,
+  runId: input.executionInput.chain.runId,
+  sessionId: input.executionInput.chain.sessionId,
+  roundId: input.executionInput.chain.roundId,
+  videoVisitId: input.executionInput.chain.videoVisitId,
+  mapPackageId: input.executionInput.chain.mapPackageId,
+  mapPackageVersion: input.executionInput.chain.mapPackageVersion,
+  selectedMapVersion: input.executionInput.chain.selectedMapVersion,
+  activationId: input.executionInput.chain.activationId,
+  activationSnapshotRef: input.executionInput.chain.activationSnapshotRef,
+  targetAbilityGroupId: input.syntheticDispatch.targetAbilityGroupId,
+  childCapabilityId: input.syntheticDispatch.childCapabilityId,
+  expectedOutputSchemaRef: input.action.outputSchemaRef || buildAbilityOutputSchemaRef(input.syntheticDispatch.targetAbilityGroupId, input.syntheticDispatch.childCapabilityId),
+  postClickObservation: input.syntheticDispatch.postClickObservation,
+  payloadRefs: input.payloadRefs,
+  sequenceNo: input.executionInput.sequenceNo + input.actionIndex,
+  idempotencyKey: `${input.executionInput.idempotencyKey}:${input.action.resolvedActionId}`,
+  timeoutMs: input.syntheticDispatch.timeoutMs,
+});
+
 export async function dispatchExecutionAction(input: {
   executionInput: ExecuteMuscleMemoryPlanInput;
   action: ExecutionAction;
@@ -122,28 +151,15 @@ export async function dispatchExecutionAction(input: {
     });
   }
 
-  const dispatchResult = await input.executionInput.nerveBus.sendCommandToAbility({
-    missionId: input.executionInput.missionId,
-    mapId: input.executionInput.map.mapId,
-    stepId: syntheticDispatch.stepId,
-    runId: input.executionInput.chain.runId,
-    sessionId: input.executionInput.chain.sessionId,
-    roundId: input.executionInput.chain.roundId,
-    videoVisitId: input.executionInput.chain.videoVisitId,
-    mapPackageId: input.executionInput.chain.mapPackageId,
-    mapPackageVersion: input.executionInput.chain.mapPackageVersion,
-    selectedMapVersion: input.executionInput.chain.selectedMapVersion,
-    activationId: input.executionInput.chain.activationId,
-    activationSnapshotRef: input.executionInput.chain.activationSnapshotRef,
-    targetAbilityGroupId: syntheticDispatch.targetAbilityGroupId,
-    childCapabilityId: syntheticDispatch.childCapabilityId,
-    expectedOutputSchemaRef: action.outputSchemaRef || buildAbilityOutputSchemaRef(syntheticDispatch.targetAbilityGroupId, syntheticDispatch.childCapabilityId),
-    postClickObservation: syntheticDispatch.postClickObservation,
-    payloadRefs: input.payloadRefs,
-    sequenceNo: input.executionInput.sequenceNo + input.actionIndex,
-    idempotencyKey: `${input.executionInput.idempotencyKey}:${input.action.resolvedActionId}`,
-    timeoutMs: syntheticDispatch.timeoutMs,
-  });
+  const dispatchResult = await input.executionInput.nerveBus.sendCommandToAbility(
+    buildSyntheticDispatchCommandInput({
+      executionInput: input.executionInput,
+      action: input.action,
+      actionIndex: input.actionIndex,
+      payloadRefs: input.payloadRefs,
+      syntheticDispatch,
+    }),
+  );
 
   const nextPayloadRefs = augmentPayloadRefs(input.action, dispatchResult.payloadRefs);
   return {

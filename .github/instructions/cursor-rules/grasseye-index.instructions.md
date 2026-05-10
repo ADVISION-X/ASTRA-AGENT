@@ -38,6 +38,14 @@ Index only locates the narrowest current authority.
 Support-governance domains:
 - none.
 
+Current narrative authority:
+- docs/项目方案/GrassEye_视觉裁判_故事情节.md
+- docs/法案辅助文件/GrassEye 第五阶段高级AI地图生成与WEB本地程序打通施工图.md
+
+Retired references:
+- docs/项目方案/GrassEye_第五阶段建设目标方案.md is superseded historical reference only.
+- Any GrassEye_系统运行逻辑示意图_V2 runtime diagram is retired/superseded and must not route current architecture decisions.
+
 Local development tooling:
 - debug-loop-controller stays outside active law routing and must not be revived as an active ability group.
 
