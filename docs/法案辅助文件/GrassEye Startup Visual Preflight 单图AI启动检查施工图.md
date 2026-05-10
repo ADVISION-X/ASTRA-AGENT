@@ -7,9 +7,9 @@
 ```txt
 Open target
 → Capture one viewport screenshot
-→ Prepare AI input
+→ Prepare visual mission input
 → AI Prompt Contract startup judgment
-→ Orchestration mechanically consumes routeLabel
+→ Orchestration consumes governed decision / optional actionCode
 ```
 
 非 AI 能力组不得在 AI 之前拆出登录面、安全面、Feed 面、视频面等判断步骤。
@@ -19,10 +19,11 @@ Open target
 允许非 AI 做：
 
 ```txt
-结构性 preflight: map/binding/config/local AI readiness
+结构性 preflight: config / registry / local AI readiness
 打开目标
 截图
 打包截图和 raw runtime refs
+生成坐标图与 gridSpecRef
 运输 envelope
 schema/坐标/证据完整性校验
 ```
@@ -41,29 +42,47 @@ PAV 判断页面语义
 
 ## 2. AI 输出
 
-启动 AI Prompt Contract 必须输出二元 routeLabel 和非执行摘要。AI 可以判断页面和业务语义，但不能发出点击、滚动、输入、打开、Nerve Bus dispatch 或 Forensics 写入命令。
+启动 AI Prompt Contract 必须输出受治理 decision、reason 与可选动作；AI 可以判断页面和业务语义，但不能发出原始执行指令。
 
 ```txt
-routeLabel
-pageUnderstanding
+decision
+reason
 blockerStatus
-videoUnderstanding
-targetCandidates
+screenState
 confidence
-nonExecutableSummary
+riskFlags
+actions[].actionCode (optional)
+actions[].input (optional)
 ```
 
-`routeLabel` 是唯一可被调度机械匹配的字段；其他字段只用于证据、日志和后续能力输入。
+允许的启动期动作必须是受治理白名单，例如：
 
-## 3. 地图要求
+```txt
+WAIT_SHORT
+REOPEN_ENTRY_PAGE
+STOP_REVIEW_REQUIRED
+```
 
-生产 `routePlanBoundMap` 的 AI 前入口脊柱只能包含：
+禁止：
+
+```txt
+retired branch-token field
+legacy route-plan field
+retired selection field
+retired binding field
+raw x/y
+free-form browser instruction
+```
+
+## 3. 启动链要求
+
+生产启动前视觉判断链只能包含：
 
 ```txt
 open target
 capture viewport
-prepare AI input
-AI startup/product judgment
+prepare visual mission input
+AI startup judgment
 ```
 
 禁止：
@@ -78,6 +97,7 @@ detect-feed-ready
 verify-page-opened 语义验证
 request-human-review
 review_required route
+retired chain script
 ```
 
 ## 4. 执法
@@ -86,8 +106,9 @@ review_required route
 
 ```txt
 非 AI 文件不得出现 feedReady/pageReady/pageCorrect/urlMatchesFeedPath
-Workbench Page State builder 只能输出 raw_runtime_signal
+启动期不得出现 retired branch-token field/retired selection field/retired binding field 作为调度真相
+Workbench / Page State builder 只能输出 raw runtime signal
 Visual Target builder 不得出现 heuristic_profile/map_profile_heuristic/operator_manual
-生产内置地图 first AI step 前不得出现 page-state/PAV 语义检查
-能力组返回 review_required 时，生产自动化路由必须 fail/block，不得转人审
+生产启动链不得要求 retired package chain readiness
+能力组返回 review_required 时，生产自动化必须 fail/block，不得转人审
 ```

@@ -244,15 +244,15 @@ capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: AI-generated map authoring must use the governed capability catalog.
+summary: AI-generated retired-flow drafting must use the governed capability catalog.
 
 ### 主题
 
-地图生成不得编造能力
+退役流程草案不得编造能力
 
 ### 法条
 
-AI-generated map authoring must use the capability catalog and must not invent unknown ability groups or child capabilities.
+AI-generated retired-flow drafting must use the capability catalog and must not invent unknown ability groups or child capabilities.
 
 ## Law GRASSEYE-CAPABILITY-GROUP-009-V1
 

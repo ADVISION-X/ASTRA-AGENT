@@ -6,21 +6,20 @@ applyTo: ".github/instructions/cursor-rules/modules/module-startup-entrypoint.in
 
 # GrassEye Startup Entrypoint
 
-Scope: governs the unique local bootstrap source, canonical startup command, Commander Console opening handoff, startup health gating, and terminal structured startup log display.
+Scope: governs the unique local bootstrap source, canonical startup command, Commander Console opening handoff, startup readiness gating, and terminal structured startup log display.
 Boundary: this module governs startup bootstrap only as a Commander Console child sub-contract, not as an independent owner.
 Excludes: human command entry, mission execution, command transport, AI task execution, capability-child execution, and record persistence ownership.
 Authority: this file is authoritative only for the commander-console-capability domain as the startup bootstrap child sub-contract.
 
-## Law GRASSEYE-STARTUP-ENTRYPOINT-001-V1
+## Law GRASSEYE-STARTUP-ENTRYPOINT-001-V2
 
-status: retired
+status: active
 tier: P0
 capabilityDomain: commander-console-capability
-enforcementMode: manual-first
-evidenceMode: law
-alias: APEX-STARTUP-001-V1
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: startup-entrypoint is the commander-console bootstrap child sub-contract, not an active owner.
+summary: startup-entrypoint is the only bootstrap source and must never become a second runtime or mission owner.
 
 ### 主题
 
@@ -41,20 +40,72 @@ Required direction:
 FORBIDDEN:
 - multiple competing user-facing startup commands.
 - startup directly starting governed mission flow.
-- startup calling capability children or AI task runtime.
+- startup calling capability children or AI task runtime for business inference.
 - startup writing final evidence, browse ledger, or packet truth.
+- startup invoking retired deterministic flows, retired selection choices, retired binding states, or retired branch tokens.
 - startup invoking scripts/verify or acting as a CI substitute.
 
-## Law GRASSEYE-STARTUP-ENTRYPOINT-002-V1
+## Law GRASSEYE-STARTUP-ENTRYPOINT-002-V2
 
-status: retired
+status: active
 tier: P0
 capabilityDomain: commander-console-capability
-enforcementMode: manual-first
-evidenceMode: law
-alias: APEX-STARTUP-002-V1
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Startup opens Commander Console but does not own Commander Console truth.
+summary: startup readiness must be shell/bootstrap readiness only and must not revive retired package chain gates.
+
+### 主题
+
+启动 readiness 只服务启动壳层
+
+### 法条
+
+Startup must run one governed bootstrap readiness chain before mission runtime becomes available.
+
+Required startup order:
+- dependency_check
+- update_preflight_check
+- prompt_contract_registry_check
+- muscle_memory_catalog_check
+- platform_registry_check
+- local_ai_runtime_presence_check
+- local_ai_model_roster_check
+- local_ai_start_or_connect
+- local_ai_health_probe
+- ai_capability_readiness_gate
+- local_app_service_start
+- commander_console_open
+- mission_runtime_available
+
+Required direction:
+- startup must run update preflight before local app service start or Commander Console open.
+- startup must verify Prompt Contract Registry, MuscleMemoryCatalog, and PlatformRegistry are readable before mission runtime becomes available.
+- startup must obtain local AI readiness only through the governed startup helper and the governed local-ai readiness contract.
+- startup must verify required local AI model roles before mission runtime becomes available.
+- startup terminal structured logs must include phase, component, eventType, status, message, refs, durationMs, and failureReason.
+- startup must not invoke AI business inference, AI judgment, mission flow, or fake/mock/heuristic fallback as success.
+
+### 禁止
+
+FORBIDDEN:
+- legacy startup chain-readiness check as startup truth.
+- route-plan or selected-map readiness as startup truth.
+- starting local app service or opening Commander before ai_capability_readiness_gate passes.
+- marking mission runtime available while governed readiness failed.
+- silently skipping registry or model checks.
+- startup directly importing AI runtime internals outside the governed startup helper or readiness contract.
+- scattered local AI startup paths across ability groups or consumers.
+
+## Law GRASSEYE-STARTUP-ENTRYPOINT-003-V2
+
+status: active
+tier: P0
+capabilityDomain: commander-console-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: startup may open Commander Console but must not own mission truth, platform truth, or visual judgment truth.
 
 ### 主题
 
@@ -66,8 +117,9 @@ Startup may open the Commander Console URL after the Commander Console shell pro
 
 Required direction:
 - startup may open only the Commander Console local URL.
-- Commander Console owns human command entry, review entry, and console read models.
-- Local App Shell renders the Commander Console page but does not delegate command truth to startup.
+- startup remains shell-neutral and must not require Facebook/TikTok platform choice during bootstrap.
+- startup may surface missionRuntimeAvailable and failureReason, but it must not manufacture mission context.
+- mission platform truth begins only when a governed mission command is created.
 
 ### 禁止
 
@@ -75,18 +127,18 @@ FORBIDDEN:
 - startup owning human command truth.
 - startup owning mission state truth.
 - startup owning evidence truth.
-- startup opening deleted historical console routes as active roots.
+- startup reconstructing requestedPlatform, retired selection, taskTemplate, or retired chain truth.
+- startup doing page semantics, target semantics, or product semantics.
 
-## Law GRASSEYE-STARTUP-ENTRYPOINT-003-V1
+## Law GRASSEYE-STARTUP-ENTRYPOINT-004-V2
 
-status: retired
+status: active
 tier: P0
 capabilityDomain: commander-console-capability
-enforcementMode: manual-first
-evidenceMode: law
-alias: APEX-STARTUP-003-V1
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
 
-summary: Terminal structured logs are display channel only.
+summary: terminal structured logs are display channel only and must show bootstrap readiness truth without becoming a second record system.
 
 ### 主题
 
@@ -110,107 +162,12 @@ FORBIDDEN:
 - terminal logs hiding hard failures as warnings or exit code 0.
 - startup inventing a second runtime truth that cannot be traced to governed logs.
 
-## Law GRASSEYE-STARTUP-ENTRYPOINT-004-V1
+## Final Readiness Gate
 
-status: retired
-tier: P0
-capabilityDomain: commander-console-capability
-enforcementMode: manual-first
-evidenceMode: law
-alias: APEX-STARTUP-004-V1
+The startup-entrypoint law is ready only when all of the following are true:
 
-summary: startup governance is enforced through the commander-console-capability inspector as a child-contract check.
-
-### 主题
-
-启动执法走 CI-FULL owner step，不走 verify
-
-### 法条
-
-Startup-entrypoint enforcement must close through its owner inspector under CI-FULL only.
-
-Required direction:
-- startup bootstrap checks are enforced by the commander-console-capability inspector as the startup child-contract checker.
-- startup-entrypoint checks must use AST, symbol, or import-graph analysis for decisive boundary checks.
-- any startup-specific helper checks remain subordinate evidence for the commander-console-capability inspector rather than a separate owner root.
-- startup validation may include controlled manual launch checks, but release truth remains audit plus repository gates.
-
-### 禁止
-
-FORBIDDEN:
-- scripts/verify as startup health proof.
-- smoke or acceptance scripts acting as startup enforcement truth.
-- startup audit falling back to regex-only, grep-only, or includes-only final verdicts.
-
-## Law GRASSEYE-STARTUP-ENTRYPOINT-005-V1
-
-status: active
-tier: P0
-capabilityDomain: commander-console-capability
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: startup must complete update preflight and local AI readiness gate before mission runtime becomes available.
-
-### 主题
-
-启动前更新检查与本地 AI 就绪门禁
-
-### 法条
-
-GrassEye startup must run one governed bootstrap readiness chain before mission runtime becomes available.
-
-Required startup order:
-- dependency_check
-- update_preflight_check
-- local_ai_runtime_presence_check
-- local_ai_model_roster_check
-- local_ai_start_or_connect
-- local_ai_health_probe
-- ai_capability_readiness_gate
-- local_app_service_start
-- commander_console_open
-- mission_runtime_available
-
-Required direction:
-- scripts/startup/launch-grasseye.mjs remains the only canonical startup entrypoint.
-- startup must run update preflight before local app service start or Commander Console open.
-- update preflight must be explicit, structured-logged, and real-code-inspection-backed.
-- startup must obtain local AI readiness only through the governed startup helper and the governed local-ai readiness contract.
-- startup must verify required local AI model roles before mission runtime becomes available.
-- startup must use typed failureReason values for local AI startup failure:
-	- LOCAL_AI_RUNTIME_NOT_FOUND
-	- LOCAL_AI_RUNTIME_START_FAILED
-	- LOCAL_AI_MODEL_MISSING
-	- LOCAL_AI_MODEL_UNHEALTHY
-	- LOCAL_AI_READINESS_TIMEOUT
-	- UPDATE_PREFLIGHT_FAILED
-- Commander Console may open only after the Commander Console shell probe passes.
-- mission runtime must remain unavailable when local AI readiness fails.
-- startup terminal structured logs must include phase, component, eventType, status, message, refs, durationMs, and failureReason.
-- startup must not invoke AI business inference, AI judgement, mission flow, or fake/mock/heuristic AI fallback as success.
-
-### 禁止
-
-FORBIDDEN:
-- starting local app service or opening Commander before ai_capability_readiness_gate passes.
-- marking mission runtime available while local AI readiness failed.
-- silently skipping update preflight or model roster check.
-- silently degrading local AI startup into fake success.
-- startup directly importing AI runtime internals outside the governed startup helper or readiness contract.
-- debug-loop replacing startup as the local AI bootstrap owner.
-- scattered local AI startup paths across ability groups or consumers.
-
-Required inspector:
-- check startup launch order keeps update preflight and local AI readiness before service start and mission runtime availability.
-- check startup reads typed local AI readiness result and fail-closes when readiness fails.
-- check startup helper delegates to the governed local AI readiness probe.
-- check debug-loop and consumers do not start local AI runtime ad hoc.
-
-Required real-code-inspection:
-- move local AI readiness after service start or Commander open -> FAIL.
-- remove update_preflight_check -> FAIL.
-- remove local_ai_model_roster_check -> FAIL.
-- remove fail-closed throw from startup readiness gate -> FAIL.
-- bypass the governed local AI readiness probe -> FAIL.
-- debug-loop starts local AI runtime directly -> FAIL.
+1. One canonical startup script and one user-facing startup command exist.
+2. Startup readiness checks Prompt Contract Registry, MuscleMemoryCatalog, PlatformRegistry, and local AI readiness instead of any retired package chain gate.
+3. Startup does not emit retired branch tokens, retired selection choices, retired binding states, or business judgments.
+4. Commander Console opens only after governed bootstrap readiness passes.
+5. Terminal logs remain display-only and do not replace Forensics or mission truth.

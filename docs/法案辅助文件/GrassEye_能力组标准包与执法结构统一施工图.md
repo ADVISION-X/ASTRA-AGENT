@@ -823,7 +823,7 @@ outputRefs
 
 地图插件包只能被 Orchestration 读取、校验、选择和执行，不得成为 owner，不得执行代码。
 
-Orchestration 只消费 active approved map package。
+Orchestration 只消费 active approved retired package chain。
 
 ### 10.2 Prompt 不立组
 

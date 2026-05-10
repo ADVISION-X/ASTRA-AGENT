@@ -97,7 +97,7 @@ GrassEye runtime must support structured DEBUG events that expose not only that 
 Required direction:
 - StructuredRuntimeEvent must support level: DEBUG, INFO, WARN, and ERROR.
 - DEBUG events must be structured payloads, not free text.
-- DEBUG events must carry traceId, spanId, eventId, eventType, owner, ownerResponsible when applicable, abilityGroupId when applicable, childAbilityId when applicable, missionId when applicable, roundId when applicable, videoVisitId when applicable, mapId when applicable, stepId when applicable, taskTemplateId when applicable, status, reason, refs, timestamps, and durationMs.
+- DEBUG events must carry traceId, spanId, eventId, eventType, owner, ownerResponsible when applicable, abilityGroupId when applicable, childAbilityId when applicable, missionId when applicable, roundId when applicable, videoVisitId when applicable, platformId when applicable, visualMissionInputRef when applicable, stepId when applicable, status, reason, refs, timestamps, and durationMs.
 - terminal relay may display DEBUG events, but persisted truth must flow through Forensics Persistence.
 - DEBUG payloads must include enough context for root-cause analysis without relying on hidden in-memory state.
 

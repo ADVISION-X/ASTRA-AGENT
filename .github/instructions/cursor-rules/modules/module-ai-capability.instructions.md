@@ -10,7 +10,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-ai-capability.instruc
 
 Scope: governs the independent AI Ability Group, AI child provider registry, Prompt Contract Registry, AI runtime pipeline, AI-local-runtime adapter boundary, AI result/proof contract, and AI-only reasoning boundary.
 
-Boundary: this module governs AI ownership only. It does not own map selection, Orchestration branch control, Nerve Bus transport, browser actions, physical actions, or Forensics persistence.
+Boundary: this module governs AI ownership only. It does not own legacy navigation selection, Orchestration branch control, Nerve Bus transport, browser actions, physical actions, or Forensics persistence.
 
 Authority: this file is the single authoritative AI Capability Phase 3.5 baseline. Any older blueprint, generated artifact, inspector, implementation path, or working-tree rule that conflicts with this file is invalid until updated to match this file.
 
@@ -21,10 +21,10 @@ Future architecture: Pluggable Capability Architecture. Future plugin capability
 Core doctrine:
 - AI is the brain, not the emperor.
 - AI reasons; it does not act.
-- AI is the only owner of visual, page, blocker, readiness, target-identity, comment-understanding, product/business, and routeLabel interpretation.
+- AI is the only owner of visual, page, blocker, readiness, target-identity, comment-understanding, product/business, and governed action-plan interpretation.
 - Prompt Contract Registry is the single prompt truth.
-- Startup page-preparation yes/no judgment belongs to AI Prompt Contract execution, not Page State or runtime heuristics.
-- Maps reference Prompt Contracts; maps do not contain prompt bodies.
+- Startup page-preparation judgment belongs to AI Prompt Contract execution, not Page State or runtime heuristics.
+- Prompt Contracts drive AI reasoning inputs and governed output schemas; retired package chains and retired deterministic flows do not own prompt truth.
 - Orchestration controls flow; AI does not advance steps.
 - Nerve Bus transports requests; AI does not dispatch Nerve Bus envelopes.
 - Forensics stores evidence; AI does not persist evidence.
@@ -90,15 +90,15 @@ No child implementation may bypass this pipeline.
 
 Startup doctrine:
 - AI must own the startup page-preparation judgment that decides whether the entry spine may continue.
-- The governed startup preparation prompt must return binary yes/no semantics plus routeLabel and nonExecutableSummary for logging.
+- The governed startup preparation prompt must return one governed decision plus optional governed action codes and reason fields for logging and execution handoff.
 - Non-AI code must not substitute login, safety, captcha, or feed-ready heuristics for that startup judgment.
 - Startup visual/page checks must use one governed evidence bundle from screenshot/raw runtime refs and one AI Prompt Contract judgment. Page State, PAV, Visual Target, Workbench, DOM, URL, hash, or runtime heuristics must not split startup page meaning into pre-AI checks.
 
 AI-only interpretation boundary:
-- AI-only judgments include current page correctness, login/captcha/safety/abnormal blockers, feed/video/comment-surface meaning, page readiness, semantic stability, product-seeding judgment, visible UI target identity, comment content/intent, and routeLabel after visual/page/business interpretation.
+- AI-only judgments include current page correctness, login/captcha/safety/abnormal blockers, feed/video/comment-surface meaning, page readiness, semantic stability, product-seeding judgment, visible UI target identity, comment content/intent, and the governed next-action decision after visual/page/business interpretation.
 - Non-AI capability groups may only open targets, capture screenshots, package raw observations, transport envelopes, validate schemas, validate coordinates, execute click/scroll/type/open primitives, verify mechanical post-action effects, and persist evidence refs/proofs.
 - Forbidden outside AI: `feedReady`, `pageReady`, `pageCorrect`, `safetyWallPresent/Absent`, `captchaPresent/Absent`, `loginSurfacePresent`, `pageStateType = platform_feed`, semantic `decision = allow`, heuristic visual target candidate generation, and confidence scores for page/video/target meaning.
-- AI may return structured `routeLabel`, nonExecutableSummary, confidence, and targetCandidates. AI still must not click, scroll, type, open, dispatch Nerve Bus, write Forensics, or advance the mission.
+- AI may return structured `decision`, `reason`, `confidence`, `riskFlags`, and `actions[].actionCode` plus governed action inputs such as grid-cell ids when allowed by the output schema. AI still must not click, scroll, type, open, dispatch Nerve Bus, write Forensics, or advance the mission.
 
 ### Required AI Result Status
 
@@ -130,28 +130,31 @@ AI input or AI owner evidence must include:
 
 ```txt
 missionId
-runId or sessionId
-roundId or visitId
+runId
+sessionId
+roundId
+videoVisitId
+platformId
 stepId
 capabilityCallId
 nerveBusEnvelopeId
-mapPackageId
-mapPackageVersion
-selectedMapId
-selectedMapVersion
-activationSnapshotRef
+userRequirementRef
+platformProfileRef
+visualMissionInputRef
+originalScreenshotRef
+coordinateGridScreenshotRef
+gridSpecRef
 promptContractId
 promptContractVersion
 promptCatalogVersion
+systemManualRef
+muscleMemoryCatalogVersion
+outputSchemaRef
 inputRefs
 expectedOutputSchema
-requestedBy = orchestration
+requestedBy = orchestration or scheduler
 transportedBy = nerve-bus
 ```
-
-Exception:
-- `taskType = map_authoring` may use `requestedBy = commander-console` and `transportedBy = commander-console` only for Commander Map Lab draft generation.
-- This exception does not allow Commander, Local App Shell, or Map Lab routes to bypass AI pipeline gates, Nerve Bus authority, or Orchestration mission-flow ownership.
 
 If a field is not available at an early stage, the result must be `failed` or `review_required`; it must not be `success`.
 
@@ -227,8 +230,7 @@ Required direction:
   - `AiDataPolicy`
   - `AiQualityPolicy`
   - `AiRuntimeProof`
-- AI requests must preserve `requestedBy = orchestration` and `transportedBy = nerve-bus`.
-  - Exception: `taskType = map_authoring` may preserve `requestedBy = commander-console` and `transportedBy = commander-console` only for Commander Map Lab draft generation; it must not be reused for mission step execution.
+- AI requests must preserve governed requester truth from Orchestration or Scheduler and `transportedBy = nerve-bus`.
 - `src/lib/local-ai` may remain an internal local runtime boundary, but must not reclaim AI public ownership.
 - LocalAi task contracts may exist only inside `src/capabilities/ai/runtime-adapters/**` or governed `src/lib/local-ai/**` internals.
 
@@ -300,14 +302,12 @@ Required direction:
   - `paid-vision-ai`
   - `future-api-ai`
 - Public task type set:
-  - `product_presence_judgment`
-  - `visual_observation`
-  - `visual_target_candidate_analysis`
+  - `visual_mission_judgment`
+  - `visual_mission_action_plan`
   - `ocr_cleanup`
   - `comment_signal_summary`
   - `product_signal_summary`
   - `evidence_packet_analysis`
-  - `map_authoring`
   - `schema_validation_only`
 - AI owns the routing matrix from taskType to childCapabilityId.
 - Child readiness is inspectable only through governed readiness contract.
@@ -376,6 +376,9 @@ Required direction:
   - modelProvider
   - modelName
   - output
+  - decision
+  - reason
+  - actions[].actionCode when the prompt contract expects action planning
   - schemaValidationStatus
   - confidence / uncertainty
   - inputRefs
@@ -517,7 +520,7 @@ Paid and future API AI providers may exist only as named child capabilities unde
 Required direction:
 - `paid-vision-ai`, `paid-analysis-ai`, and `future-api-ai` may exist only as explicit children under `src/capabilities/ai/children`.
 - `paid-vision-ai` and `future-api-ai` default policy is `disabled_by_policy`.
-- `paid-analysis-ai` may be `policy_guarded` only for explicitly operator-approved external analysis tasks such as `evidence_packet_analysis` and `map_authoring`.
+- `paid-analysis-ai` may be `policy_guarded` only for explicitly operator-approved external analysis tasks such as `evidence_packet_analysis`.
 - Paid providers require:
   - `allowPaidProvider = true`
   - explicit provider allowlist
@@ -1340,7 +1343,7 @@ Required inspector dimensions:
 - Prompt contract hash validation.
 - Unknown prompt contract typed failure.
 - Prompt body only inside governed Prompt Contract files.
-- No prompt body in runtime/adapter/orchestration/nerve-bus/map package.
+- No prompt body in runtime/adapter/orchestration/nerve-bus/retired package chain.
 - Runtime pipeline calls required gates in order.
 - Timeout AbortSignal reaches runtime adapter.
 - Bad JSON/schema mismatch/low confidence cannot success.
@@ -1381,7 +1384,7 @@ The ai-capability real-code-inspection must prove fail → re-inspect → pass f
 - Add LocalAiGateway public export → FAIL.
 - Add hardcoded prompt body in AI runtime → FAIL.
 - Add hardcoded prompt body in runtime adapter → FAIL.
-- Add prompt body to map package fixture → FAIL.
+- Add prompt body to retired package chain fixture → FAIL.
 - Add unknown promptContractId success path → FAIL.
 - Add duplicate promptContractId → FAIL.
 - Remove prompt hash → FAIL.
@@ -1396,7 +1399,7 @@ The ai-capability real-code-inspection must prove fail → re-inspect → pass f
 - Return action-like output as success → FAIL.
 - Remove rawOutputRef/rawOutputHash from success → FAIL.
 - Set runtimeProof:null → FAIL.
-- Remove stepId/capabilityCallId/activationSnapshotRef from proof → FAIL.
+- Remove mission/round/prompt core chain fields from proof → FAIL.
 - Add module-level unmanaged `activeRuns` → FAIL.
 - Add module-level unmanaged `circuitBreaker` → FAIL.
 - Convert ai inspector to warning-only → FAIL.

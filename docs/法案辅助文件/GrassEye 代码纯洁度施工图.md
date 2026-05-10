@@ -748,7 +748,7 @@ dead-export
 unused-child-capability
 unused-prompt-contract
 unused-route-plan-step
-unused-map-package
+unused-retired package chain
 unused-inspector-component
 unused-muscle-memory-action-code
 ```

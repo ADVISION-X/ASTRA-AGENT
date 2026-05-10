@@ -1,6 +1,6 @@
 # GrassEye PlatformRegistry 平台资料施工图
 
-本施工图替代 map-package / task-template / routePlan / routeLabel 生产主权。
+本施工图替代 retired package chain / retired template flow / retired deterministic flow planning / retired branch-token field 生产主权。
 凡旧施工图与本文件冲突，以本文件为准。
 
 ## 文件身份
@@ -33,10 +33,10 @@ PlatformRegistry 只保存环境资料：
 - supportedActionCodes
 
 PlatformRegistry 禁止保存：
-- routePlanId
-- routeLabel
-- taskTemplateId
+- legacy route-plan field
+- retired branch-token field
+- legacy template field
 - prompt text
-- map lifecycle
-- activation snapshot
+- legacy package lifecycle
+- retired binding state
 - action chain

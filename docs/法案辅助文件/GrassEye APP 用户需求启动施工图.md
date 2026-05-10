@@ -1,6 +1,6 @@
 # GrassEye APP 用户需求启动施工图
 
-本施工图替代 map-package / task-template / routePlan / routeLabel 生产主权。
+本施工图替代 retired package chain / retired template flow / retired deterministic flow planning / retired branch-token field 生产主权。
 凡旧施工图与本文件冲突，以本文件为准。
 
 ## 文件身份
@@ -8,7 +8,7 @@
 本施工图定义普通用户的唯一任务入口。
 
 Owner boundary: commander-console-capability
-Forbidden startup owners: map-package, task-template, routePlan, routeLabel
+Forbidden startup owners: retired package chain, retired template flow, retired deterministic flow planning, retired branch-token field
 
 ## 允许输入
 
@@ -22,12 +22,12 @@ APP 启动页只允许以下字段：
 ## 禁止输入
 
 APP 启动页不得暴露：
-- taskTemplateId
-- selectedMapId
-- routePlanId
+- legacy template field
+- retired selection field
+- legacy route-plan field
 - activationId
-- activationSnapshotRef
-- routeLabel
+- retired binding field
+- retired branch-token field
 
 ## 启动 payload
 

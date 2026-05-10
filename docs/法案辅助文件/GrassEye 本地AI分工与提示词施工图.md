@@ -46,7 +46,7 @@ AI Ability Group public execute
 
 ```txt
 app/workbench/orchestration/nerve-bus → src/lib/local-ai
-map package → src/lib/local-ai prompt registry
+retired package chain → src/lib/local-ai prompt registry
 local-ai → final AiAbilityResult
 local-ai → Forensics writer
 local-ai → browser/action ability

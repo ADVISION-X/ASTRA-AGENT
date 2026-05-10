@@ -1,15 +1,15 @@
 # GrassEye Visual Mission Prompt Contract 施工图
 
-本施工图替代 map-package / task-template / routePlan / routeLabel 生产主权。
+本施工图替代 retired package chain / retired template flow / retired deterministic flow planning / retired branch-token field 生产主权。
 凡旧施工图与本文件冲突，以本文件为准。
 
 ## 文件身份
 
-本施工图定义地图退场后的 Visual Mission Prompt Contract。
+本施工图定义旧流程包退场后的 Visual Mission Prompt Contract。
 
 Prompt owner: ai-capability
 Runtime consumers: commander-console-capability, orchestration-capability
-Retired systems: map-package, task-template, routePlan, routeLabel
+Retired systems: retired package chain, retired template flow, retired deterministic flow planning, retired branch-token field
 
 ## 主权链
 
@@ -55,10 +55,10 @@ APP Start Page
 AI 只能输出 MuscleMemoryCatalog 中存在的 actionCode。
 
 AI 禁止输出：
-- routeLabel
-- routePlanId
-- taskTemplateId
-- selectedMapId
+- retired branch-token field
+- legacy route-plan field
+- legacy template field
+- retired selection field
 - nextIntent
 - suggestedNextAction
 - raw x/y

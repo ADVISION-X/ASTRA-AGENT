@@ -759,7 +759,7 @@ capabilityDomain: audit-system
 enforcementMode: machine-blocking  
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: orphan files, dead exports, unused child capabilities, unused prompt contracts, unused route-plan steps, unused map packages, unused inspector components, and unused muscle-memory action codes must be detected as fatal zombie findings.
+summary: orphan files, dead exports, unused child capabilities, unused prompt contracts, unused route-plan steps, unused retired package chains, unused inspector components, and unused muscle-memory action codes must be detected as fatal zombie findings.
 
 ### 主题
 
@@ -775,7 +775,7 @@ Required direction:
 - Unused child capabilities must be identified when registry-declared childCapabilityId values have no lawful callers outside their declaration bundle.
 - Unused prompt contracts must be identified when promptContractId values have no lawful callers outside their declaration bundle.
 - Unused route-plan steps must be identified when stepId values have no lawful callers outside their route-plan bundle.
-- Unused map packages must be identified when map package files are not loaded by a lawful owner.
+- Unused retired package chains must be identified when retired package chain files are not loaded by a lawful owner.
 - Unused inspector components must be identified when audit component files have no lawful callers.
 - Unused muscle-memory action codes must be identified when actionCode values have no lawful callers outside their declaration bundle.
 - Protected seams must be encoded explicitly and must not be inferred by grep or regex.
@@ -817,8 +817,8 @@ Required direction:
 - .github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md must not survive as an active law file.
 - Active map blueprints must not survive under docs/法案辅助文件 after map retirement, including Route Plan production blueprints.
 - Generated audit artifacts and CI summaries must not retain map-layer or map-plugin-package owner truth after retirement.
-- routePlanId, selectedMapId, taskTemplateId, activationId, activationSnapshotRef, routeLabel, mapPackage, operationalMap, routePlanBoundMap, genericDiagnosticMap, MapAuthoring, MapPlugin, and activeMapRegistry must not survive in the active startup/runtime chain.
-- APP shell must not retain TaskTemplateLauncher or map/task-template UX tokens in active start surfaces.
+- legacy route-planning field, retired selection field, taskTemplateId, activationId, retired binding field, retired branch-token field, retired package chain, operationalMap, retired chain script, genericDiagnosticMap, MapAuthoring, MapPlugin, and activeMapRegistry must not survive in the active startup/runtime chain.
+- APP shell must not retain TaskTemplateLauncher or map/retired template flow UX tokens in active start surfaces.
 - Archive paths may retain historical references only when they are outside active source truth and CI-FULL does not scan them.
 - Final judgments for source residue must use AST-backed identifier/string inspection, not grep-only verdicts.
 
@@ -826,8 +826,8 @@ Required direction:
 
 FORBIDDEN:
 - Keeping retired map paths alive as "temporary" active sources.
-- Reintroducing map/task-template startup UI after retirement.
-- Allowing selectedMapId/taskTemplateId/activationId/activationSnapshotRef/routeLabel to survive in the production startup chain.
+- Reintroducing map/retired template flow startup UI after retirement.
+- Allowing retired selection field/taskTemplateId/activationId/retired binding field/retired branch-token field to survive in the production startup chain.
 - Treating active blueprint residue as documentation-only harmless drift.
 
 ---
@@ -857,20 +857,20 @@ Required direction:
 - MuscleMemoryCatalog is the only active action-code authority.
 - Scheduler executes only decoded MuscleMemoryCatalog actions.
 - Unknown actionCode is fatal.
-- routeLabel, routePlanId, selectedMapId, taskTemplateId, activationId, and activationSnapshotRef are retired vocabulary in active startup, prompt, and scheduling paths.
-- Active prompt contracts and output schemas must require actions[].actionCode and must forbid routeLabel plus raw x/y.
+- retired branch-token field, legacy route-plan field, retired selection field, taskTemplateId, activationId, and retired binding field are retired vocabulary in active startup, prompt, and scheduling paths.
+- Active prompt contracts and output schemas must require actions[].actionCode and must forbid retired branch-token field plus raw x/y.
 - Active start payloads must not carry retired map fields.
-- Active PlatformRegistry code must not own route plans, prompt text, activation snapshots, or action chains.
+- Active PlatformRegistry code must not own retired deterministic flows, prompt text, retired binding states, or action chains.
 - Active MuscleMemoryCatalog code must not own entryUrl, targetUrl, targetTitle, or allowedHosts platform profile facts.
 
 ### 禁止
 
 FORBIDDEN:
-- Keeping selectedPlatforms and selectedMapId as dual active start chains.
+- Keeping selectedPlatforms and retired selection field as dual active start chains.
 - Keeping userRequirementText and taskTemplateId as dual active entry sources.
-- Keeping routePlanId/routeLabel and actionCode as dual action sources.
-- Letting AI prompt contracts or output schemas accept routeLabel.
-- Letting Scheduler read routePlan, routeLabel, or map activation truth.
+- Keeping legacy route-plan field/retired branch-token field and actionCode as dual action sources.
+- Letting AI prompt contracts or output schemas accept retired branch-token field.
+- Letting Scheduler read retired deterministic flow planning, retired branch-token field, or map activation truth.
 - Treating visual-story drift as documentation-only debt.
 
 ---

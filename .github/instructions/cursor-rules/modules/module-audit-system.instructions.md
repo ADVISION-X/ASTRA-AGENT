@@ -53,7 +53,7 @@ FORBIDDEN:
 - Compatibility, legacy, or bridge enforcement chains beside CI-FULL.
 - A second complete quality gate entrypoint.
 - Treating capability-check.ts, self-check, smoke-check, or child readiness helpers as accepted audit owners.
-- map-package enforcement that stops at filename checks, string includes, or unparsed JSON scans.
+- retired package chain enforcement that stops at filename checks, string includes, or unparsed JSON scans.
 
 ## Law GRASSEYE-AUDIT-SYSTEM-002-V1
 

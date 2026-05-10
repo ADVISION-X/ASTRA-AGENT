@@ -1,11 +1,11 @@
 # GrassEye Muscle Memory Catalog 肌肉记忆目录施工图
 
-本施工图替代 map-package / task-template / routePlan / routeLabel 生产主权。
+本施工图替代 retired package chain / retired template flow / retired deterministic flow planning / retired branch-token field 生产主权。
 凡旧施工图与本文件冲突，以本文件为准。
 
 ## 文件身份
 
-本施工图定义地图退场后的动作编号主权。
+本施工图定义旧流程包退场后的动作编号主权。
 
 Owner boundary: capability-group-governance
 Runtime consumers: ai-capability, orchestration-capability
@@ -42,6 +42,6 @@ Runtime consumers: ai-capability, orchestration-capability
 AI 只能输出 actionCode。
 未知 actionCode = fatal。
 组合 actionCode 必须由系统展开。
-AI 不得输出 routeLabel。
+AI 不得输出 retired branch-token field。
 AI 不得输出原始 x/y。
 Scheduler 只执行解码后的受治理动作。
