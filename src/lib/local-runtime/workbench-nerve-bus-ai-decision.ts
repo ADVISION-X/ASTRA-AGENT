@@ -1,7 +1,7 @@
 import {
   STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
   STARTUP_PREPARATION_READY_ROUTE_LABEL,
-} from "../../map-plugins/shared/startup-preparation.constants.js";
+} from "../../types/vision-page-preparation.js";
 import type { VisualMissionActionPlan } from "../../muscle-memory/decoder/action-plan.schema.js";
 import { isVisualMissionActionPlanOutput, resolveVisualMissionDecision } from "./workbench-nerve-bus-ai-decision-visual-mission.js";
 

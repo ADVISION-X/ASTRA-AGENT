@@ -10,10 +10,12 @@ export {
   resolveAiOcrCleanupOutputSummary,
   resolveAiPagePreparationOutputSummary,
   resolveAiProductPresenceOutputSummary,
+  resolveAiVisualMissionActionPlanOutputSummary,
   resolveAiVisualTargetCandidateOutputSummary,
   type AiCommentSignalOutputSummary,
   type AiOcrCleanupOutputSummary,
   type AiPagePreparationOutputSummary,
   type AiProductPresenceOutputSummary,
+  type AiVisualMissionActionPlanOutputSummary,
   type AiVisualTargetCandidateOutputSummary,
 } from "./runtime/ai-output-summary-registry.js";

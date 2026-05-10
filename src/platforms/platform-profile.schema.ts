@@ -8,7 +8,7 @@ const PlatformProfileSchema = z.object({
   entryUrl: z.string().url(),
   targetTitle: z.string().min(1),
   allowedHosts: z.array(z.string().min(1)).min(1),
-  defaultRecoveryActionCode: z.literal("REOPEN_ENTRY_PAGE"),
+  defaultRecoveryActionCode: z.string().min(1),
   supportedActionCodes: z.array(z.string().min(1)).min(1),
 }).strict();
 

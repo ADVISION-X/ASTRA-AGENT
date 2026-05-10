@@ -4,6 +4,8 @@ import path from "node:path";
 
 import type { ScreenshotStructuredRef } from "../contract.js";
 
+const structuredDataPayloads = new Map<string, unknown>();
+
 function assertInsideRoot(rootDir: string, candidatePath: string): string {
   const resolvedRootDir = path.resolve(rootDir);
   const resolvedPath = path.resolve(candidatePath);
@@ -29,6 +31,8 @@ export async function persistScreenshotStructuredDataRef(input: {
   const sha256 = createHash("sha256").update(json).digest("hex");
   const storageRef = assertInsideRoot(input.rootDir, path.join(dir, input.fileName));
   await writeFile(storageRef, json, "utf8");
+  structuredDataPayloads.set(input.refId, input.payload);
+  structuredDataPayloads.set(storageRef, input.payload);
 
   return {
     refId: input.refId,
@@ -37,4 +41,8 @@ export async function persistScreenshotStructuredDataRef(input: {
     mimeType: "application/json",
     createdAt: input.createdAt,
   };
+}
+
+export function resolveScreenshotStructuredDataRefPayload<T>(ref: string | null | undefined): T | null {
+  return ref ? (structuredDataPayloads.get(ref) as T | null) ?? null : null;
 }

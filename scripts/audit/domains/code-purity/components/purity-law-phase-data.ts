@@ -16,6 +16,7 @@ export const CODE_PURITY_LAW_IDS = [
   "GRASSEYE-CODE-PURITY-013-V1",
   "GRASSEYE-CODE-PURITY-014-V1",
   "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
+  "GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1",
   "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
 ] as const;
 
@@ -109,6 +110,12 @@ export const LAW_PHASE_SUMMARIES: PurityPhaseSummary[] = [
     name: "retired-map-system",
     okSummary: "Retired map-system paths and identifiers are gone from active source truth.",
     failedSummary: "Retired map-system paths or identifiers still survive in active source truth.",
+  },
+  {
+    lawId: "GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1",
+    name: "visual-story-coherence",
+    okSummary: "Active law, blueprint, prompt, and startup code follow one visual-story authority chain.",
+    failedSummary: "Dual entry chains, dual action sources, or retired visual-story vocabulary still survive in active source truth.",
   },
   {
     lawId: "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",

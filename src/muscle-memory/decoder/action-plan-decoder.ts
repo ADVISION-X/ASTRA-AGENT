@@ -3,6 +3,11 @@ import type { AtomicMuscleMemoryEntry, CompositeMuscleMemoryStep, MuscleMemoryEn
 import { findMuscleMemoryEntry, loadMuscleMemoryCatalog } from "../catalog/muscle-memory-catalog.js";
 import { VisualMissionActionPlanSchema, type VisualMissionActionPlan } from "./action-plan.schema.js";
 import { decodeMuscleMemoryGridCell } from "./grid-cell-decoder.js";
+import {
+  buildVisualMissionActionRuntimeContext,
+  enrichVisualMissionActionInput,
+  type VisualMissionActionRuntimeContext,
+} from "../../visual-mission/action-plan/action-context-enricher.js";
 
 type ExecutionAction = {
   resolvedActionId: string;
@@ -10,7 +15,10 @@ type ExecutionAction = {
   type: "atomic";
   abilityGroupId: string;
   childCapabilityId: string;
+  outputSchemaRef: string;
   input: Record<string, unknown>;
+  requiresPostActionVerification: boolean;
+  successOutputRefs: string[];
   required: boolean;
   onFailure: "continue" | "stop" | "review_required";
 };
@@ -29,20 +37,23 @@ function assertCatalogVersion(plan: VisualMissionActionPlan) {
   }
 }
 
-function assertAllowedFields(input: Record<string, unknown>, entry: AtomicMuscleMemoryEntry) {
-  for (const field of entry.inputContract.requiredFields) {
-    if (!(field in input)) {
-      throw new Error(`${entry.actionCode} is missing required input field ${field}.`);
-    }
-  }
+function assertNoForbiddenInputFields(input: Record<string, unknown>, entry: AtomicMuscleMemoryEntry) {
   for (const field of entry.inputContract.forbiddenFields) {
     if (field in input) {
       throw new Error(`${entry.actionCode} received forbidden input field ${field}.`);
     }
   }
   for (const field of Object.keys(input)) {
-    if (FORBIDDEN_AI_FIELDS.has(field) && entry.actionCode !== "CLICK_BROWSER_COORDINATE") {
+    if (FORBIDDEN_AI_FIELDS.has(field)) {
       throw new Error(`${entry.actionCode} must not receive raw execution field ${field} from AI output.`);
+    }
+  }
+}
+
+function assertRequiredFields(input: Record<string, unknown>, entry: AtomicMuscleMemoryEntry) {
+  for (const field of entry.inputContract.requiredFields) {
+    if (!(field in input)) {
+      throw new Error(`${entry.actionCode} is missing required input field ${field}.`);
     }
   }
 }
@@ -85,14 +96,21 @@ function buildAtomicExecutionAction(input: {
   actionCode: string;
   entry: AtomicMuscleMemoryEntry;
   actionInput: Record<string, unknown>;
+  runtimeContext: VisualMissionActionRuntimeContext;
   index: number;
   required: boolean;
   onFailure: "continue" | "stop" | "review_required";
 }): ExecutionAction {
+  assertNoForbiddenInputFields(input.actionInput, input.entry);
+  const enrichedInput = enrichVisualMissionActionInput({
+    entry: input.entry,
+    actionInput: input.actionInput,
+    runtimeContext: input.runtimeContext,
+  });
+  assertRequiredFields(enrichedInput, input.entry);
   const normalizedInput = input.entry.actionCode === "CLICK_CELL"
-    ? decodeClickCellInput(input.actionInput)
-    : input.actionInput;
-  assertAllowedFields(normalizedInput, input.entry);
+    ? decodeClickCellInput(enrichedInput)
+    : enrichedInput;
 
   return {
     resolvedActionId: `resolved-action-${input.index}`,
@@ -100,7 +118,10 @@ function buildAtomicExecutionAction(input: {
     type: "atomic",
     abilityGroupId: input.entry.abilityGroupId,
     childCapabilityId: input.entry.childCapabilityId,
+    outputSchemaRef: input.entry.outputSchemaRef,
     input: normalizedInput,
+    requiresPostActionVerification: input.entry.requiresPostActionVerification,
+    successOutputRefs: input.entry.successOutputRefs,
     required: input.required,
     onFailure: input.onFailure,
   };
@@ -113,6 +134,7 @@ function expandEntry(input: {
   actions: ExecutionAction[];
   stack: string[];
   depth: number;
+  runtimeContext: VisualMissionActionRuntimeContext;
   required: boolean;
   onFailure: "continue" | "stop" | "review_required";
 }) {
@@ -125,6 +147,7 @@ function expandEntry(input: {
       actionCode: input.actionCode,
       entry: input.entry,
       actionInput: input.actionInput,
+      runtimeContext: input.runtimeContext,
       index: input.actions.length + 1,
       required: input.required,
       onFailure: input.onFailure,
@@ -148,15 +171,25 @@ function expandEntry(input: {
       actions: input.actions,
       stack: [...input.stack, input.actionCode],
       depth: input.depth + 1,
+      runtimeContext: input.runtimeContext,
       required: step.required,
       onFailure: step.onFailure,
     });
   }
 }
 
-export function decodeVisualMissionActionPlan(input: { plan: unknown; sourceAiResultRef?: string | null }): ExecutionPlan {
+export function decodeVisualMissionActionPlan(input: {
+  plan: unknown;
+  sourceAiResultRef?: string | null;
+  runtimeContext?: { payloadRefs?: Record<string, unknown> };
+}): ExecutionPlan {
   const plan = VisualMissionActionPlanSchema.parse(input.plan);
   assertCatalogVersion(plan);
+  const runtimeContext = buildVisualMissionActionRuntimeContext({
+    plan,
+    payloadRefs: input.runtimeContext?.payloadRefs,
+    sourceAiResultRef: input.sourceAiResultRef ?? null,
+  });
 
   const actions: ExecutionAction[] = [];
   for (const action of plan.actions) {
@@ -174,6 +207,7 @@ export function decodeVisualMissionActionPlan(input: { plan: unknown; sourceAiRe
       actions,
       stack: [],
       depth: 0,
+      runtimeContext,
       required: action.required,
       onFailure: entry.failurePolicy,
     });

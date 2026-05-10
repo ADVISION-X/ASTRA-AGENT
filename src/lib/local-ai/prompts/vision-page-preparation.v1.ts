@@ -1,7 +1,7 @@
 import {
   STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
   STARTUP_PREPARATION_READY_ROUTE_LABEL,
-} from "../../../map-plugins/shared/startup-preparation.constants.js";
+} from "../../../types/vision-page-preparation.js";
 
 export const VISION_PAGE_PREPARATION_PROMPT_CONTRACT = {
   promptId: "vision.pagePreparation.v1",

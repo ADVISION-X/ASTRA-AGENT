@@ -1,7 +1,7 @@
 {
   "catalogId": "grasseye-muscle-memory-catalog",
   "catalogVersion": "2026-05-10",
-  "generatedAt": "2026-05-10T05:33:50.707Z",
+  "generatedAt": "2026-05-10T07:33:24.492Z",
   "entries": [
     {
       "actionCode": "CAPTURE_REGION",
@@ -303,9 +303,9 @@
       ]
     },
     {
-      "actionCode": "PREPARE_VISUAL_INPUT",
+      "actionCode": "PREPARE_VISUAL_MISSION_INPUT",
       "type": "atomic",
-      "displayName": "Prepare Visual Input",
+      "displayName": "Prepare Visual Mission Input",
       "description": "Prepare original image, coordinate-grid image, and grid spec for governed visual missions.",
       "abilityGroupId": "screenshot",
       "childCapabilityId": "prepare-visual-mission-input",
@@ -489,6 +489,41 @@
         "productLeadRecordRef"
       ],
       "failurePolicy": "review_required"
+    },
+    {
+      "actionCode": "STOP_REVIEW_REQUIRED",
+      "type": "atomic",
+      "displayName": "Stop Review Required",
+      "description": "Fail closed and hand the current visual mission back to human review.",
+      "abilityGroupId": "orchestration",
+      "childCapabilityId": "emergency-stop",
+      "inputSchemaRef": "orchestration.emergency-stop.input",
+      "outputSchemaRef": "orchestration.emergency-stop.output",
+      "allowedForAiActionPlan": true,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": false,
+      "requiresScreenshotRef": false,
+      "requiresPageStateRef": false,
+      "requiresGeometryProof": false,
+      "requiresPostActionVerification": false,
+      "sensitiveOperation": true,
+      "inputContract": {
+        "requiredFields": [],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "reviewRequiredRef"
+      ],
+      "failurePolicy": "review_required",
+      "forbiddenResponsibilities": [
+        "execute browser primitives directly",
+        "invent user goals",
+        "bypass human review"
+      ]
     },
     {
       "actionCode": "VISUAL_MISSION_JUDGE",

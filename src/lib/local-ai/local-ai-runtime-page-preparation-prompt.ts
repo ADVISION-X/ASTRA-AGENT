@@ -2,7 +2,7 @@ import type { LocalAiTaskRequest } from "../../types/local-ai.js";
 import {
   STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
   STARTUP_PREPARATION_READY_ROUTE_LABEL,
-} from "../../map-plugins/shared/startup-preparation.constants.js";
+} from "../../types/vision-page-preparation.js";
 import { VISION_PAGE_PREPARATION_PROMPT_CONTRACT } from "./prompts/vision-page-preparation.v1.js";
 
 type VisionPagePreparationRequest = Extract<LocalAiTaskRequest, { taskType: "vision.pagePreparation" }>;

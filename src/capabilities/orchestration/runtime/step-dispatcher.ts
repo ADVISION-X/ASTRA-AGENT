@@ -120,12 +120,19 @@ async function executeAiDispatchActionPlan(input: {
   dispatchResult: Awaited<ReturnType<OrchestrationRuntimeContext["nerveBus"]["sendRequestToAi"]>>;
   context: Pick<OrchestrationRuntimeContext, "nerveBus">;
 }) {
+  const runtimePayloadRefs = {
+    ...input.state.payloadRefs,
+    ...input.dispatchResult.payloadRefs,
+  };
   const decodedPlan = decodeVisualMissionActionPlan({
     plan: input.dispatchResult.actionPlan,
     sourceAiResultRef: input.dispatchResult.payloadRefs.aiResultRef ?? null,
+    runtimeContext: {
+      payloadRefs: runtimePayloadRefs,
+    },
   });
   const executionResult = await executeMuscleMemoryPlan({
-    state: input.state,
+    state: { payloadRefs: runtimePayloadRefs },
     map: input.map,
     missionId: input.missionId,
     chain: input.chain,

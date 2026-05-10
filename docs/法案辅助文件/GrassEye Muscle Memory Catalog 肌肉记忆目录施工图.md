@@ -1,5 +1,8 @@
 # GrassEye Muscle Memory Catalog 肌肉记忆目录施工图
 
+本施工图替代 map-package / task-template / routePlan / routeLabel 生产主权。
+凡旧施工图与本文件冲突，以本文件为准。
+
 ## 文件身份
 
 本施工图定义地图退场后的动作编号主权。

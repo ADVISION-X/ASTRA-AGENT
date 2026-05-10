@@ -1,11 +1,13 @@
 import { z } from "zod";
 
-import {
-  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
-  STARTUP_PREPARATION_READY_ROUTE_LABEL,
-  STARTUP_PREPARATION_ROUTE_LABELS,
-} from "../map-plugins/shared/startup-preparation.constants.js";
 import { VisionProductPresenceRequestInputSchema } from "./vision-product-presence.js";
+
+const STARTUP_PREPARATION_READY_ROUTE_LABEL = "startup-ready-for-seeding-judgment";
+const STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL = "startup-fail-closed";
+const STARTUP_PREPARATION_ROUTE_LABELS = [
+  STARTUP_PREPARATION_READY_ROUTE_LABEL,
+  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
+] as const;
 
 const VisionPagePreparationPromptIdSchema = z.literal("vision.pagePreparation.v1");
 const VisionPagePreparationTaskTypeSchema = z.literal("vision.pagePreparation");

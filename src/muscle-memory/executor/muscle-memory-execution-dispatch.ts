@@ -3,6 +3,7 @@ import type { MuscleMemoryExecutionActionResult } from "./muscle-memory-executio
 import type { ExecuteMuscleMemoryPlanInput, ExecutionAction, PayloadRefs } from "./muscle-memory-executor.types.js";
 
 type SyntheticDispatch = {
+  mode: "nerve-bus" | "local-review-required";
   stepId: string;
   targetAbilityGroupId: Exclude<Parameters<ExecuteMuscleMemoryPlanInput["nerveBus"]["sendCommandToAbility"]>[0]["targetAbilityGroupId"], null>;
   childCapabilityId: string;
@@ -10,48 +11,75 @@ type SyntheticDispatch = {
   timeoutMs: number;
 };
 
+const toSyntheticStepId = (action: ExecutionAction): string =>
+  `muscle-memory:${action.sourceActionCode.toLowerCase().replaceAll("_", "-")}:${action.resolvedActionId}`;
+
 const resolveSyntheticDispatch = (action: ExecutionAction): SyntheticDispatch => {
-  if (action.childCapabilityId === "write-product-lead-record") {
+  if (action.sourceActionCode === "STOP_REVIEW_REQUIRED" || (action.abilityGroupId === "orchestration" && action.childCapabilityId === "emergency-stop")) {
     return {
-      stepId: "write-product-lead-record",
-      targetAbilityGroupId: "forensics-persistence",
-      childCapabilityId: "write-product-lead-record",
+      mode: "local-review-required",
+      stepId: "stop-review-required",
+      targetAbilityGroupId: "orchestration",
+      childCapabilityId: "emergency-stop",
       postClickObservation: false,
-      timeoutMs: 60_000,
+      timeoutMs: 0,
     };
   }
-  if (action.childCapabilityId === "press-key" && action.input.key === "L") {
-    return {
-      stepId: "like-current-video-keyboard",
-      targetAbilityGroupId: "text-input",
-      childCapabilityId: "press-key",
-      postClickObservation: false,
-      timeoutMs: 60_000,
-    };
-  }
-  if (action.childCapabilityId === "press-navigation-key" && action.input.key === "ArrowDown") {
-    return {
-      stepId: "press-next-video-key",
-      targetAbilityGroupId: "text-input",
-      childCapabilityId: "press-navigation-key",
-      postClickObservation: false,
-      timeoutMs: 60_000,
-    };
-  }
-  throw new Error(`Unsupported muscle-memory execution action ${action.sourceActionCode} -> ${action.childCapabilityId}.`);
+
+  return {
+    mode: "nerve-bus",
+    stepId: toSyntheticStepId(action),
+    targetAbilityGroupId: action.abilityGroupId,
+    childCapabilityId: action.childCapabilityId,
+    postClickObservation: action.requiresPostActionVerification,
+    timeoutMs: 60_000,
+  };
 };
 
 const augmentPayloadRefs = (action: ExecutionAction, payloadRefs: PayloadRefs): PayloadRefs => {
   if (!payloadRefs.abilityResultRef) {
     return payloadRefs;
   }
-  if (action.childCapabilityId === "write-product-lead-record") {
-    return { ...payloadRefs, productLeadRecordRef: payloadRefs.abilityResultRef };
+  let nextPayloadRefs = payloadRefs;
+  for (const refKey of action.successOutputRefs) {
+    if (refKey === "abilityResultRef" || nextPayloadRefs[refKey] != null) {
+      continue;
+    }
+    nextPayloadRefs = {
+      ...nextPayloadRefs,
+      [refKey]: payloadRefs.abilityResultRef,
+    };
   }
-  if (action.childCapabilityId === "press-navigation-key") {
-    return { ...payloadRefs, nextItemAdvanceProofRef: payloadRefs.abilityResultRef };
-  }
-  return payloadRefs;
+  return nextPayloadRefs;
+};
+
+const buildLocalReviewRequiredResult = (input: {
+  action: ExecutionAction;
+  payloadRefs: PayloadRefs;
+  syntheticDispatch: SyntheticDispatch;
+}) => {
+  const failureReason = "Muscle-memory action STOP_REVIEW_REQUIRED requested fail-closed human review.";
+  const reviewRequiredRef = `${input.action.resolvedActionId}:review-required`;
+  const nextPayloadRefs = {
+    ...input.payloadRefs,
+    reviewRequiredRef,
+  };
+
+  return {
+    dispatchResult: {
+      status: "review_required" as const,
+      failureReason,
+      payloadRefs: nextPayloadRefs,
+    },
+    nextPayloadRefs,
+    actionResult: buildActionResult({
+      action: input.action,
+      syntheticDispatch: input.syntheticDispatch,
+      status: "review_required",
+      outputRef: reviewRequiredRef,
+      failureReason,
+    }),
+  };
 };
 
 const buildActionResult = (input: {
@@ -86,6 +114,14 @@ export async function dispatchExecutionAction(input: {
   payloadRefs: PayloadRefs;
 }) {
   const syntheticDispatch = resolveSyntheticDispatch(input.action);
+  if (syntheticDispatch.mode === "local-review-required") {
+    return buildLocalReviewRequiredResult({
+      action: input.action,
+      payloadRefs: input.payloadRefs,
+      syntheticDispatch,
+    });
+  }
+
   const dispatchResult = await input.executionInput.nerveBus.sendCommandToAbility({
     missionId: input.executionInput.missionId,
     mapId: input.executionInput.map.mapId,
@@ -101,7 +137,7 @@ export async function dispatchExecutionAction(input: {
     activationSnapshotRef: input.executionInput.chain.activationSnapshotRef,
     targetAbilityGroupId: syntheticDispatch.targetAbilityGroupId,
     childCapabilityId: syntheticDispatch.childCapabilityId,
-    expectedOutputSchemaRef: buildAbilityOutputSchemaRef(syntheticDispatch.targetAbilityGroupId, syntheticDispatch.childCapabilityId),
+    expectedOutputSchemaRef: action.outputSchemaRef || buildAbilityOutputSchemaRef(syntheticDispatch.targetAbilityGroupId, syntheticDispatch.childCapabilityId),
     postClickObservation: syntheticDispatch.postClickObservation,
     payloadRefs: input.payloadRefs,
     sequenceNo: input.executionInput.sequenceNo + input.actionIndex,

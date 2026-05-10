@@ -9,6 +9,10 @@ import type {
   PagePreparationJudgmentInput,
   ProductPresenceJudgmentInput,
 } from "../contract.js";
+import type {
+  VisualMissionActionPlanRequestInput,
+  VisualMissionActionPlanOutput,
+} from "../../../types/visual-mission-action-plan.js";
 
 export type AiOutputSummaryBase = {
   aiResultRef: string;
@@ -56,6 +60,12 @@ export type AiProductPresenceOutputSummary = AiOutputSummaryBase & {
   output: AiVisualOutput;
 };
 
+export type AiVisualMissionActionPlanOutputSummary = AiOutputSummaryBase & {
+  taskType: "visual_mission_action_plan";
+  input: VisualMissionActionPlanRequestInput;
+  output: VisualMissionActionPlanOutput;
+};
+
 export type AiCommentSignalOutputSummary = AiOutputSummaryBase & {
   taskType: "comment_signal_summary";
   input: CommentSignalSummaryInput["input"];
@@ -67,4 +77,5 @@ export type RecordedAiOutputSummary =
   | AiPagePreparationOutputSummary
   | AiOcrCleanupOutputSummary
   | AiProductPresenceOutputSummary
+  | AiVisualMissionActionPlanOutputSummary
   | AiCommentSignalOutputSummary;

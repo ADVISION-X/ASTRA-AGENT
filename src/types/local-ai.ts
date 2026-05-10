@@ -80,7 +80,7 @@ const VisionTaskRequestSchema = z.object({
   evidenceRefs: z.array(EvidenceRefSchema).min(1),
   input: VisionProductPresenceRequestInputSchema,
 });
-const VisualMissionActionPlanTaskRequestSchema = z.object({ id: z.string().min(1), taskType: z.literal("vision.visualMissionActionPlan"), modelRole: z.literal("vision"), promptVersion: z.literal("v1"), schemaVersion: z.literal("visual-mission-action-plan.schema.v1"), evidenceRefs: z.array(EvidenceRefSchema).min(2), input: VisualMissionActionPlanRequestInputSchema });
+const VisualMissionActionPlanTaskRequestSchema = z.object({ id: z.string().min(1), taskType: z.literal("vision.visualMissionActionPlan"), modelRole: z.literal("vision"), promptVersion: z.literal("v1"), schemaVersion: z.literal("visualMissionActionPlan.v1"), evidenceRefs: z.array(EvidenceRefSchema).min(2), input: VisualMissionActionPlanRequestInputSchema });
 const NextItemTargetCandidateTaskRequestSchema = z.object({
   id: z.string().min(1),
   taskType: z.literal("vision.nextItemTargetCandidate"),

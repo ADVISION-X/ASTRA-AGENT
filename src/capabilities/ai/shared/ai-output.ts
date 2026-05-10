@@ -17,7 +17,7 @@ import { buildMapAuthoringFallback } from "./ai-map-authoring-fallback.js";
 import { loadMuscleMemoryCatalog } from "../../../muscle-memory/catalog/muscle-memory-catalog.js";
 import {
   STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
-} from "../../../map-plugins/shared/startup-preparation.constants.js";
+} from "../../../types/vision-page-preparation.js";
 
 function buildPagePreparationFallback(reason: string): AiPagePreparationOutput {
   return {

@@ -4,6 +4,7 @@ export type PayloadRefs = Record<string, unknown> & {
   abilityResultRef?: string | null;
   productLeadRecordRef?: string | null;
   nextItemAdvanceProofRef?: string | null;
+  reviewRequiredRef?: string | null;
 };
 
 type ExecutionChain = {

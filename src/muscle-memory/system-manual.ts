@@ -1,31 +1,46 @@
 import { createHash } from "node:crypto";
 
-import { MUSCLE_MEMORY_CATALOG_VERSION, listAiPlanEligibleActions } from "./catalog.js";
+import {
+  listAiActionPlanEntries,
+  loadMuscleMemoryCatalog,
+} from "./catalog/muscle-memory-catalog.js";
+import type { MuscleMemoryEntry } from "./catalog/muscle-memory-catalog.schema.js";
 
-function buildActionBlock(action: ReturnType<typeof listAiPlanEligibleActions>[number]): string {
-  const binding = action.platformBindings
-    ? `platformBindings:\n${Object.entries(action.platformBindings).map(([platformId, value]) => `  ${platformId}: ${value.abilityGroupId}/${value.childCapabilityId}`).join("\n")}`
-    : `abilityGroupId: ${action.abilityGroupId}\nchildCapabilityId: ${action.childCapabilityId}`;
-  const steps = action.kind === "recipe"
-    ? `\nsteps:\n${action.steps.map((step) => `  - actionCode: ${step.actionCode}${step.input ? `\n    input: ${JSON.stringify(step.input)}` : ""}`).join("\n")}`
-    : "";
+function formatFieldList(fields: string[]): string {
+  return fields.length > 0 ? fields.join(", ") : "(none)";
+}
+
+function buildActionBlock(action: MuscleMemoryEntry): string {
+  if (action.type === "atomic") {
+    return [
+      `actionCode: ${action.actionCode}`,
+      "type: atomic",
+      `binding: ${action.abilityGroupId}/${action.childCapabilityId}`,
+      `displayName: ${action.displayName}`,
+      `description: ${action.description}`,
+      `inputSchemaRef: ${action.inputSchemaRef}`,
+      `outputSchemaRef: ${action.outputSchemaRef}`,
+      `requiredInput: ${formatFieldList(action.inputContract.requiredFields)}`,
+      `optionalInput: ${formatFieldList(action.inputContract.optionalFields)}`,
+      `forbiddenInput: ${formatFieldList(action.inputContract.forbiddenFields)}`,
+      `failurePolicy: ${action.failurePolicy}`,
+    ].join("\n");
+  }
+
   return [
     `actionCode: ${action.actionCode}`,
-    `kind: ${action.kind}`,
-    binding,
+    "type: composite",
     `displayName: ${action.displayName}`,
     `description: ${action.description}`,
-    `inputSchemaRef: ${action.inputSchemaRef}`,
-    `allowedForAiPlan: ${String(action.allowedForAiPlan)}`,
-    `modifiesExternalWorld: ${String(action.modifiesExternalWorld)}`,
-    `requiresGridSpec: ${String(action.requiresGridSpec)}`,
-    `riskLevel: ${action.riskLevel}`,
-    steps,
-  ].filter(Boolean).join("\n");
+    `failurePolicy: ${action.failurePolicy}`,
+    `maxExpansionDepth: ${String(action.maxExpansionDepth)}`,
+    "steps:",
+    ...action.steps.map((step) => `  - ${step.stepCode}: ${step.actionCode} [required=${String(step.required)} onFailure=${step.onFailure}]`),
+  ].join("\n");
 }
 
 function buildSystemManualText(): string {
-  return listAiPlanEligibleActions().map((action) => buildActionBlock(action)).join("\n\n");
+  return listAiActionPlanEntries().map((action) => buildActionBlock(action)).join("\n\n");
 }
 
 function buildSystemManualRef(text: string): string {
@@ -36,9 +51,9 @@ function buildMuscleMemorySystemManual() {
   const text = buildSystemManualText();
   return {
     systemManualRef: buildSystemManualRef(text),
-    catalogVersion: MUSCLE_MEMORY_CATALOG_VERSION,
+    catalogVersion: loadMuscleMemoryCatalog().catalogVersion,
     text,
-    actions: listAiPlanEligibleActions(),
+    actions: listAiActionPlanEntries(),
   };
 }
 

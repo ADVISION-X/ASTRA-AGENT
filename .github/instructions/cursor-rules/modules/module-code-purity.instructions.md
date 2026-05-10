@@ -321,7 +321,6 @@ Required direction:
 - `src/capabilities/forensics-persistence` is owner `forensics-persistence`.
 - `src/capabilities/page-state` is owner `page-state`.
 - `src/capabilities/commander-console` is owner `commander-console`.
-- `src/map-plugins` is owner `map-plugin-package`.
 - `scripts/audit/domains/code-purity` is owner `code-purity`.
 - `scripts/audit/domains/*` must be treated as separate audit-domain owners when crossing domain boundaries.
 - A file must not cross more than 3 owner boundaries.
@@ -815,8 +814,10 @@ Code-purity must detect retired map-system residue through file-existence checks
 
 Required direction:
 - src/map-plugins and scripts/audit/domains/map-plugin-package must not survive as active paths.
-- Active map blueprints must not survive under docs/法案辅助文件 after map retirement.
-- routePlanId, selectedMapId, taskTemplateId, routeLabel, mapPackage, operationalMap, routePlanBoundMap, genericDiagnosticMap, MapAuthoring, MapPlugin, and activeMapRegistry must not survive in the active startup/runtime chain.
+- .github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md must not survive as an active law file.
+- Active map blueprints must not survive under docs/法案辅助文件 after map retirement, including Route Plan production blueprints.
+- Generated audit artifacts and CI summaries must not retain map-layer or map-plugin-package owner truth after retirement.
+- routePlanId, selectedMapId, taskTemplateId, activationId, activationSnapshotRef, routeLabel, mapPackage, operationalMap, routePlanBoundMap, genericDiagnosticMap, MapAuthoring, MapPlugin, and activeMapRegistry must not survive in the active startup/runtime chain.
 - APP shell must not retain TaskTemplateLauncher or map/task-template UX tokens in active start surfaces.
 - Archive paths may retain historical references only when they are outside active source truth and CI-FULL does not scan them.
 - Final judgments for source residue must use AST-backed identifier/string inspection, not grep-only verdicts.
@@ -826,8 +827,51 @@ Required direction:
 FORBIDDEN:
 - Keeping retired map paths alive as "temporary" active sources.
 - Reintroducing map/task-template startup UI after retirement.
-- Allowing selectedMapId/taskTemplateId/routeLabel to survive in the production startup chain.
+- Allowing selectedMapId/taskTemplateId/activationId/activationSnapshotRef/routeLabel to survive in the production startup chain.
 - Treating active blueprint residue as documentation-only harmless drift.
+
+---
+
+## Law GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1
+
+status: active  
+tier: P0  
+capabilityDomain: audit-system  
+enforcementMode: machine-blocking  
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: active law, blueprint, prompt, and startup code must express one visual-story authority chain without dual entry, dual action sources, or retired vocabulary survivors.
+
+### 主题
+
+Visual Story Coherence
+
+### 法条
+
+Code-purity must block any active-source slice that keeps both the retired map story and the user-requirement visual story alive at the same time.
+
+Required direction:
+- APP is the only task entry and must use userRequirementText plus selectedPlatforms.
+- PlatformRegistry owns platform profile facts only.
+- AI outputs governed actionCode values only.
+- MuscleMemoryCatalog is the only active action-code authority.
+- Scheduler executes only decoded MuscleMemoryCatalog actions.
+- Unknown actionCode is fatal.
+- routeLabel, routePlanId, selectedMapId, taskTemplateId, activationId, and activationSnapshotRef are retired vocabulary in active startup, prompt, and scheduling paths.
+- Active prompt contracts and output schemas must require actions[].actionCode and must forbid routeLabel plus raw x/y.
+- Active start payloads must not carry retired map fields.
+- Active PlatformRegistry code must not own route plans, prompt text, activation snapshots, or action chains.
+- Active MuscleMemoryCatalog code must not own entryUrl, targetUrl, targetTitle, or allowedHosts platform profile facts.
+
+### 禁止
+
+FORBIDDEN:
+- Keeping selectedPlatforms and selectedMapId as dual active start chains.
+- Keeping userRequirementText and taskTemplateId as dual active entry sources.
+- Keeping routePlanId/routeLabel and actionCode as dual action sources.
+- Letting AI prompt contracts or output schemas accept routeLabel.
+- Letting Scheduler read routePlan, routeLabel, or map activation truth.
+- Treating visual-story drift as documentation-only debt.
 
 ---
 

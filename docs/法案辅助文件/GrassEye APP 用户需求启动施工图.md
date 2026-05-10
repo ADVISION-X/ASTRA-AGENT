@@ -1,5 +1,8 @@
 # GrassEye APP 用户需求启动施工图
 
+本施工图替代 map-package / task-template / routePlan / routeLabel 生产主权。
+凡旧施工图与本文件冲突，以本文件为准。
+
 ## 文件身份
 
 本施工图定义普通用户的唯一任务入口。
@@ -48,7 +51,9 @@ Runtime initial payload must carry:
 - targetTitle
 - userRequirementRef
 - userRequirementText
+- selectedRuntimeId
 - maxRounds
 - maxMinutes
+- operatorNote
 
 Runtime initial payload must not carry retired map fields.

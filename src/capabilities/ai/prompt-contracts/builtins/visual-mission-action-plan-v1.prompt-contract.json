@@ -5,7 +5,7 @@
   "legacyTaskType": "vision.visualMissionActionPlan",
   "modelRole": "vision",
   "promptVersion": "v1",
-  "schemaVersion": "visual-mission-action-plan.schema.v1",
+  "schemaVersion": "visualMissionActionPlan.v1",
   "inputContract": "image_collection.visual_mission_action_plan",
   "requiredInputRefs": [
     "userRequirementRef",
@@ -26,6 +26,10 @@
   "userPromptTemplateRef": "src/capabilities/ai/prompt-contracts/visual-mission-action-plan/prompt-builder.ts#user",
   "purpose": "Compose a governed three-part visual mission prompt and return a strict action plan that only uses MuscleMemoryCatalog actionCode values.",
   "forbiddenOutputs": [
+    "routeLabel",
+    "routePlanId",
+    "selectedMapId",
+    "taskTemplateId",
     "raw x",
     "raw y",
     "mouseX",
@@ -66,8 +70,8 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:75b33d73040bd3752d1b8ef47097478c11157b01dfcec462889e747ca75eb7e6",
-  "promptContractHash": "sha256:75b33d73040bd3752d1b8ef47097478c11157b01dfcec462889e747ca75eb7e6",
+  "promptHash": "sha256:3a2f7a04cf008235021d2700b0b1c08b167d9b6e89f368e1c16554de807d9fd8",
+  "promptContractHash": "sha256:3a2f7a04cf008235021d2700b0b1c08b167d9b6e89f368e1c16554de807d9fd8",
   "sensitiveOperation": false,
   "dataPolicy": {
     "promptSections": [
@@ -87,10 +91,14 @@
     "taskType": "visual_mission_action_plan",
     "promptId": "visual-mission-action-plan-v1",
     "promptVersion": "v1",
-    "schemaVersion": "visual-mission-action-plan.schema.v1",
+    "schemaVersion": "visualMissionActionPlan.v1",
     "actions": "array of governed actionCode records only",
     "clickTargets": "gridCell + targetName only",
     "forbidden": [
+      "routeLabel",
+      "routePlanId",
+      "selectedMapId",
+      "taskTemplateId",
       "raw x",
       "raw y",
       "mouseX",

@@ -15,6 +15,8 @@ import { appendCodePurityFinding, appendCodePurityInventory, resetCodePurityStre
 import { writeScanSummary } from "./components/purity-stage-results.js";
 import type { CodePurityInventoryRecord } from "./components/purity-stage-types.js";
 import { inspectRetiredMapSystem } from "./components/scan-retired-map-system.js";
+import { inspectVisualStoryCoherence } from "./components/scan-visual-story-coherence.js";
+import { inspectZombieScan } from "./components/zombie-scan/index.js";
 
 const createScanProject = (): Project =>
   new Project({
@@ -98,6 +100,10 @@ const main = async (): Promise<void> => {
   await appendFindings(retiredMapFindings);
   findingsCount += retiredMapFindings.length;
 
+  const visualStoryFindings = await inspectVisualStoryCoherence(relativePaths, sourceFilesByPath);
+  await appendFindings(visualStoryFindings);
+  findingsCount += visualStoryFindings.length;
+
   const zombieFindings = await inspectZombieScan(process.cwd(), relativePaths);
   await appendFindings(zombieFindings);
   findingsCount += zombieFindings.length;
@@ -112,7 +118,6 @@ const main = async (): Promise<void> => {
   });
   assertCodePurityMemoryBoundary("scan", scannedFileCount, findingsCount);
   logCodePurityStageMetrics("scan:done", scannedFileCount, findingsCount);
-  const { inspectZombieScan } = await import("./components/zombie-scan/index.js");
 };
 
 void main().catch((error) => {

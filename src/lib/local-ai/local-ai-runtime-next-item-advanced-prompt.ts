@@ -2,7 +2,7 @@ import type { LocalAiTaskRequest } from "../../types/local-ai.js";
 import {
   NEXT_ITEM_ADVANCED_ROUTE_LABEL,
   NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
-} from "../../map-plugins/route-plans/product-discovery-route-plan.constants.js";
+} from "../../types/vision-next-item-advanced.js";
 import { VISION_NEXT_ITEM_ADVANCED_PROMPT_CONTRACT } from "./prompts/vision-next-item-advanced.v1.js";
 
 type VisionNextItemAdvancedRequest = Extract<LocalAiTaskRequest, { taskType: "vision.nextItemAdvanced" }>;

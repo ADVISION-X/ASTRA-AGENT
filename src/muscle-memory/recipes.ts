@@ -24,6 +24,28 @@ const MUSCLE_MEMORY_RECIPES: readonly MuscleMemoryRecipeDefinition[] = [
       { actionCode: "PRESS_KEY", input: { key: "ArrowDown" } },
     ],
   },
+  {
+    actionCode: "SAVE_PRODUCT_AND_LIKE",
+    steps: [
+      { actionCode: "SAVE_LEAD" },
+      { actionCode: "LIKE_CURRENT_VIDEO" },
+    ],
+  },
+  {
+    actionCode: "YES_SEEDING_VIDEO_FLOW",
+    steps: [
+      { actionCode: "SAVE_LEAD" },
+      { actionCode: "LIKE_CURRENT_VIDEO" },
+      { actionCode: "NEXT_VIDEO" },
+    ],
+  },
+  {
+    actionCode: "CLOSE_POPUP_AND_WAIT",
+    steps: [
+      { actionCode: "CLICK_CELL" },
+      { actionCode: "WAIT_SHORT" },
+    ],
+  },
 ] as const;
 
 export { MUSCLE_MEMORY_RECIPES };

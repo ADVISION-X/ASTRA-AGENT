@@ -1,12 +1,14 @@
 import { createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
+import { inspectVisualMissionNoRetiredMapAuthority } from "./inspect_visual_mission_no_retired_map_authority.js";
 import { runLocalShellBoundaryChecks } from "./run-local-shell-boundary-checks.js";
 import { runStartupBootstrapChecks } from "./run-startup-bootstrap-checks.js";
 
 export const inspectLocalAppShellBoundary = async (): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> => {
   const shellBoundaryFindings = await runLocalShellBoundaryChecks();
   const startupFindings = await runStartupBootstrapChecks();
-  const findings = [...shellBoundaryFindings, ...startupFindings];
+  const visualMissionBindingFindings = inspectVisualMissionNoRetiredMapAuthority();
+  const findings = [...shellBoundaryFindings, ...startupFindings, ...visualMissionBindingFindings];
   const hasShellBoundaryViolations = findings.some((finding) => {
     return finding.lawId === "GRASSEYE-LOCAL-APP-SHELL-001-V1" || finding.lawId === "GRASSEYE-LOCAL-APP-SHELL-002-V1";
   });

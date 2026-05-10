@@ -12,6 +12,7 @@ import type {
   ProductPresenceJudgmentInput,
   VisualTargetCandidateAnalysisInput,
 } from "../contract.js";
+import type { VisualMissionActionPlanOutput } from "../../../types/visual-mission-action-plan.js";
 import { aliasAiOutputSummary, buildSummaryBase, storeAiOutputSummary } from "./ai-output-summary-store.js";
 
 type SuccessfulSummaryInput<TRequest extends ParsedAiAbilityInput, TOutput> = RecordableAiOutputSummaryInput & {
@@ -30,6 +31,8 @@ type RecordableAiOutputSummaryInput = {
   request: ParsedAiAbilityInput;
   result: AiAbilityResult;
 };
+
+type VisualMissionActionPlanInput = Extract<ParsedAiAbilityInput, { taskType: "visual_mission_action_plan" }>;
 
 const isSuccessfulVisualTargetCandidateAnalysis = (
   input: RecordableAiOutputSummaryInput,
@@ -59,6 +62,14 @@ const isSuccessfulProductPresenceJudgment = (
   input: RecordableAiOutputSummaryInput,
 ): input is SuccessfulSummaryInput<ProductPresenceJudgmentInput, AiVisualOutput> => {
   return input.request.taskType === "product_presence_judgment"
+    && input.result.status === "success"
+    && input.result.output !== null;
+};
+
+const isSuccessfulVisualMissionActionPlan = (
+  input: RecordableAiOutputSummaryInput,
+): input is SuccessfulSummaryInput<VisualMissionActionPlanInput, VisualMissionActionPlanOutput> => {
+  return input.request.taskType === "visual_mission_action_plan"
     && input.result.status === "success"
     && input.result.output !== null;
 };
@@ -122,6 +133,19 @@ const recordProductPresenceSummary = (input: RecordableAiOutputSummaryInput): bo
   return true;
 };
 
+const recordVisualMissionActionPlanSummary = (input: RecordableAiOutputSummaryInput): boolean => {
+  if (!isSuccessfulVisualMissionActionPlan(input)) {
+    return false;
+  }
+  storeAiOutputSummary({
+    ...buildSummaryBase({ outputRef: input.outputRef, request: input.request, result: input.result, output: input.result.output }),
+    taskType: "visual_mission_action_plan",
+    input: input.request.input,
+    output: input.result.output,
+  });
+  return true;
+};
+
 const recordCommentSignalSummary = (input: RecordableAiOutputSummaryInput): boolean => {
   if (!isSuccessfulCommentSignalSummary(input)) {
     return false;
@@ -151,6 +175,9 @@ export function recordAiOutputSummary(input: RecordAiOutputSummaryInput): void {
     return;
   }
   if (recordProductPresenceSummary(recordableInput)) {
+    return;
+  }
+  if (recordVisualMissionActionPlanSummary(recordableInput)) {
     return;
   }
   recordCommentSignalSummary(recordableInput);

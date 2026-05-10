@@ -12,60 +12,131 @@ import {
   type AtomicSeed,
 } from "./catalog-seed.js";
 
-type CapabilityCatalogEntry = {
-  abilityGroupId: string;
-  childCapabilityId: string;
-  description: string;
-  inputSchemaRef: string;
-  outputSchemaRef: string;
+const GENERATED_OUTPUT_PATH = new URL("./muscle-memory-catalog.generated.json", import.meta.url);
+
+type CapabilityMetadata = {
   requiresGeometryProof: boolean;
   requiresPostActionVerification: boolean;
   sensitiveOperation: boolean;
   forbiddenResponsibilities: string[];
 };
 
-const CAPABILITY_CATALOG_PATH = new URL("../../map-plugins/authoring/capability-catalog/capability-catalog.generated.json", import.meta.url);
-const GENERATED_OUTPUT_PATH = new URL("./muscle-memory-catalog.generated.json", import.meta.url);
+const CAPABILITY_METADATA_BY_ABILITY_GROUP: Record<string, CapabilityMetadata> = {
+  screenshot: {
+    requiresGeometryProof: false,
+    requiresPostActionVerification: false,
+    sensitiveOperation: false,
+    forbiddenResponsibilities: [
+      "execute actions",
+      "author prompt contracts",
+      "persist evidence records directly",
+    ],
+  },
+  ai: {
+    requiresGeometryProof: false,
+    requiresPostActionVerification: false,
+    sensitiveOperation: false,
+    forbiddenResponsibilities: [
+      "execute browser actions",
+      "invent prompt text",
+      "read credentials or cookies",
+    ],
+  },
+  "forensics-persistence": {
+    requiresGeometryProof: false,
+    requiresPostActionVerification: false,
+    sensitiveOperation: true,
+    forbiddenResponsibilities: [
+      "execute browser actions",
+      "classify page state",
+      "author prompts",
+    ],
+  },
+  "text-input": {
+    requiresGeometryProof: false,
+    requiresPostActionVerification: true,
+    sensitiveOperation: true,
+    forbiddenResponsibilities: [
+      "invent credentials",
+      "click targets",
+      "decide map branching",
+    ],
+  },
+  "mouse-click": {
+    requiresGeometryProof: true,
+    requiresPostActionVerification: true,
+    sensitiveOperation: true,
+    forbiddenResponsibilities: [
+      "invent geometry",
+      "skip post-click observation",
+      "read page state",
+    ],
+  },
+  open: {
+    requiresGeometryProof: false,
+    requiresPostActionVerification: true,
+    sensitiveOperation: false,
+    forbiddenResponsibilities: [
+      "click page elements",
+      "skip page-state handoff",
+      "reuse ungoverned URLs",
+    ],
+  },
+  orchestration: {
+    requiresGeometryProof: false,
+    requiresPostActionVerification: false,
+    sensitiveOperation: true,
+    forbiddenResponsibilities: [
+      "execute browser primitives directly",
+      "invent user goals",
+      "bypass human review",
+    ],
+  },
+};
 
-function readCapabilityCatalog(): Map<string, CapabilityCatalogEntry> {
-  const parsed = JSON.parse(readFileSync(CAPABILITY_CATALOG_PATH, "utf8")) as { entries: CapabilityCatalogEntry[] };
-  return new Map(parsed.entries.map((entry) => [`${entry.abilityGroupId}:${entry.childCapabilityId}`, entry]));
+function buildSchemaRef(seed: AtomicSeed, kind: "input" | "output"): string {
+  return `${seed.abilityGroupId}.${seed.childCapabilityId}.${kind}`;
 }
 
-function buildAtomicEntry(seed: AtomicSeed, catalog: Map<string, CapabilityCatalogEntry>): AtomicMuscleMemoryEntry {
-  const capability = catalog.get(`${seed.abilityGroupId}:${seed.childCapabilityId}`);
-  if (!capability) {
-    throw new Error(`Missing capability catalog entry for ${seed.actionCode} -> ${seed.abilityGroupId}:${seed.childCapabilityId}.`);
+function resolveCapabilityMetadata(seed: AtomicSeed): CapabilityMetadata {
+  const metadata = CAPABILITY_METADATA_BY_ABILITY_GROUP[seed.abilityGroupId];
+  if (!metadata) {
+    throw new Error(`Missing capability metadata for ${seed.actionCode} -> ${seed.abilityGroupId}:${seed.childCapabilityId}.`);
   }
+
+  return metadata;
+}
+
+function buildAtomicEntry(seed: AtomicSeed): AtomicMuscleMemoryEntry {
+  const metadata = resolveCapabilityMetadata(seed);
 
   return {
     actionCode: seed.actionCode,
     type: "atomic",
     displayName: seed.displayName,
-    description: seed.description || capability.description,
+    description: seed.description,
     abilityGroupId: seed.abilityGroupId,
     childCapabilityId: seed.childCapabilityId,
-    inputSchemaRef: capability.inputSchemaRef,
-    outputSchemaRef: capability.outputSchemaRef,
+    inputSchemaRef: buildSchemaRef(seed, "input"),
+    outputSchemaRef: buildSchemaRef(seed, "output"),
     allowedForAiActionPlan: seed.allowedForAiActionPlan,
     allowedForUserRequirement: seed.allowedForUserRequirement,
     requiresGridSpecRef: seed.requiresGridSpecRef,
     requiresScreenshotRef: seed.requiresScreenshotRef,
     requiresPageStateRef: seed.requiresPageStateRef,
-    requiresGeometryProof: seed.requiresGeometryProof || capability.requiresGeometryProof,
-    requiresPostActionVerification: seed.requiresPostActionVerification || capability.requiresPostActionVerification,
-    sensitiveOperation: seed.sensitiveOperation || capability.sensitiveOperation,
+    requiresGeometryProof: seed.requiresGeometryProof || metadata.requiresGeometryProof,
+    requiresPostActionVerification: seed.requiresPostActionVerification || metadata.requiresPostActionVerification,
+    sensitiveOperation: seed.sensitiveOperation || metadata.sensitiveOperation,
     inputContract: seed.inputContract,
     successOutputRefs: seed.successOutputRefs,
     failurePolicy: seed.failurePolicy,
-    forbiddenResponsibilities: capability.forbiddenResponsibilities,
+    forbiddenResponsibilities: metadata.forbiddenResponsibilities,
   };
 }
 
 function buildCatalog() {
-  const capabilityCatalog = readCapabilityCatalog();
   const entries = [
-    ...MUSCLE_MEMORY_ATOMIC_SEEDS.map((seed) => buildAtomicEntry(seed, capabilityCatalog)),
+    ...MUSCLE_MEMORY_ATOMIC_SEEDS.map((seed) => buildAtomicEntry(seed)),
     ...MUSCLE_MEMORY_COMPOSITE_SEEDS,
   ].sort((left, right) => left.actionCode.localeCompare(right.actionCode));
 

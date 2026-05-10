@@ -1,16 +1,19 @@
 import { createHash } from "node:crypto";
 
-import { resolveOpenTargetDefaults } from "../../capabilities/open/registry.js";
-import { getLocalAppShellMapRegistry } from "../../map-plugins/registry/local-app-shell-map-registry.js";
+import { resolveVisualMissionPlatformTarget } from "../../visual-mission/platform-target-registry.js";
+import {
+  buildVisualMissionActivationSnapshotRef,
+  buildVisualMissionTaskTemplateId,
+  VISUAL_MISSION_RUNTIME_ACTIVATION_ID,
+  VISUAL_MISSION_RUNTIME_ENVELOPE_MAP_ID,
+  VISUAL_MISSION_RUNTIME_ID,
+} from "../../visual-mission/runtime-envelope.js";
 import {
   createBindingFailure,
-  resolveMissingTargetDefaults,
   type MissionStartBinding,
   type MissionStartBindingFailure,
   type UserRequirementSelectedPlatformId,
 } from "./task-start-binding-contract.js";
-
-type ActiveRegistry = ReturnType<typeof getLocalAppShellMapRegistry>["active"];
 
 type VisualMissionTargetProfileBinding = {
   requestedPlatformId: UserRequirementSelectedPlatformId;
@@ -33,8 +36,6 @@ type RunLimitInput = {
   maxMinutes: number | undefined;
 };
 
-const VISUAL_MISSION_RUNTIME_ID = "visual-mission-runtime-v1";
-
 function isUserRequirementSelectedPlatformId(value: unknown): value is UserRequirementSelectedPlatformId {
   return value === "facebook-web" || value === "tiktok-web";
 }
@@ -44,34 +45,26 @@ function buildUserRequirementRef(text: string): string {
 }
 
 function resolveVisualMissionTargetBinding(
-  activeRegistry: ActiveRegistry,
   platformId: UserRequirementSelectedPlatformId,
 ): VisualMissionTargetProfileBinding | MissionStartBindingFailure {
-  const record = [...activeRegistry.listActiveOperationalMapRecords()]
-    .filter((entry) => entry.requestedPlatformId === platformId && entry.targetProfileRef)
-    .sort((left, right) => left.mapId.localeCompare(right.mapId))[0] ?? null;
-  if (!record || !record.targetProfileRef) {
+  const targetBinding = resolveVisualMissionPlatformTarget(platformId);
+  if (!targetBinding) {
     return createBindingFailure(
-      `requestedPlatformId=${platformId} has no active approved visual mission binding.`,
+      `requestedPlatformId=${platformId} has no governed visual mission platform target binding.`,
       `任务无法启动，因为 ${platformId} 还没有可用的受治理视觉任务绑定。`,
-      "先激活该平台的受治理 visual mission map/runtime 绑定，再重新启动。",
+      "先补齐该平台的 visual mission platform target registry 绑定，再重新启动。",
     );
-  }
-
-  const targetDefaults = resolveOpenTargetDefaults(record.targetProfileRef);
-  if (!targetDefaults) {
-    return resolveMissingTargetDefaults(record.mapId, record.targetProfileRef);
   }
 
   return {
     requestedPlatformId: platformId,
-    selectedMapId: record.mapId,
-    taskTemplateId: record.taskTemplateId,
-    activationId: record.activationId,
-    activationSnapshotRef: record.activationSnapshotRef,
-    targetProfileRef: targetDefaults.targetProfileRef,
-    targetUrl: targetDefaults.targetUrl,
-    targetTitle: targetDefaults.targetTitle,
+    selectedMapId: VISUAL_MISSION_RUNTIME_ENVELOPE_MAP_ID,
+    taskTemplateId: buildVisualMissionTaskTemplateId(platformId),
+    activationId: VISUAL_MISSION_RUNTIME_ACTIVATION_ID,
+    activationSnapshotRef: buildVisualMissionActivationSnapshotRef(platformId),
+    targetProfileRef: targetBinding.targetProfileRef,
+    targetUrl: targetBinding.targetUrl,
+    targetTitle: targetBinding.targetTitle,
   };
 }
 
@@ -121,10 +114,9 @@ function validateVisualMissionStartInput(input: VisualMissionStartBindingInput):
 }
 
 function resolveVisualMissionTargetProfiles(selectedPlatforms: UserRequirementSelectedPlatformId[]): Partial<Record<UserRequirementSelectedPlatformId, VisualMissionTargetProfileBinding>> | MissionStartBindingFailure {
-  const activeRegistry = getLocalAppShellMapRegistry().active;
   const targetProfiles: Partial<Record<UserRequirementSelectedPlatformId, VisualMissionTargetProfileBinding>> = {};
   for (const platformId of selectedPlatforms) {
-    const binding = resolveVisualMissionTargetBinding(activeRegistry, platformId);
+    const binding = resolveVisualMissionTargetBinding(platformId);
     if ("ok" in binding) {
       return binding;
     }
@@ -142,7 +134,7 @@ function resolvePrimaryVisualMissionBinding(input: {
     return createBindingFailure(
       "visual mission primary platform binding is missing.",
       "任务无法启动，因为主平台绑定丢失。",
-      "重新选择平台并重试；如果仍失败，检查 active map registry。",
+      "重新选择平台并重试；如果仍失败，检查 visual mission platform target registry。",
     );
   }
   const primaryBinding = input.targetProfiles[primaryPlatformId];
@@ -150,7 +142,7 @@ function resolvePrimaryVisualMissionBinding(input: {
     return createBindingFailure(
       "visual mission primary platform binding is missing.",
       "任务无法启动，因为主平台绑定丢失。",
-      "重新选择平台并重试；如果仍失败，检查 active map registry。",
+      "重新选择平台并重试；如果仍失败，检查 visual mission platform target registry。",
     );
   }
   return { primaryPlatformId, primaryBinding };

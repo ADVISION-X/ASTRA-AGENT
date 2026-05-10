@@ -10,6 +10,7 @@ import { ACTIVE_FILES, ACTIVE_ROOTS, BLUEPRINT_PATH, CODE_PURITY_SCAN_EXTENSIONS
 import { createEmptyPurityReport, inspectPurityMetrics } from "./purity-metric-inspection.js";
 import { finalizePurityReport, writePurityReport } from "./purity-report.js";
 import { inspectRetiredMapSystem } from "./scan-retired-map-system.js";
+import { inspectVisualStoryCoherence } from "./scan-visual-story-coherence.js";
 import { inspectZombieScan } from "./zombie-scan/index.js";
 
 const REQUIRED_COMPONENT_EXPORTS = [
@@ -232,6 +233,7 @@ export const inspectCodePurity = async (context: InspectorContext): Promise<{ fi
     ...inspectCodePurityLawCoverage(context),
     ...(await inspectReportOutputs(reportDraft)),
     ...(await inspectRetiredMapSystem(relativePaths, collectSourceFileMap(project, relativePaths))),
+    ...(await inspectVisualStoryCoherence(relativePaths, collectSourceFileMap(project, relativePaths))),
     ...(await inspectZombieScan(context.repoRoot, relativePaths)),
   ];
 

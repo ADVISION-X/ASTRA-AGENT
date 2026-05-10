@@ -1,5 +1,4 @@
 import type { z } from "zod";
-import { RequestedPlatformIdSchema } from "../../map-plugins/schema/platform-id.schema.js";
 
 import {
   EmergencyStopChildInputSchema,
@@ -25,6 +24,7 @@ import {
   PauseMissionChildInputSchema,
   PauseMissionChildOutputSchema,
   PayloadRefBundleSchema,
+  RequestedPlatformIdSchema,
   ResumeMissionChildInputSchema,
   ResumeMissionChildOutputSchema,
   RuntimeProofSchema,

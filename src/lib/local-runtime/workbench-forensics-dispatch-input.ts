@@ -1,5 +1,10 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
-import { resolveAiProductPresenceOutputSummary } from "../../capabilities/ai/index.js";
+import {
+  resolveAiProductPresenceOutputSummary,
+  resolveAiVisualMissionActionPlanOutputSummary,
+  type AiProductPresenceOutputSummary,
+  type AiVisualMissionActionPlanOutputSummary,
+} from "../../capabilities/ai/index.js";
 import type { WorkbenchRuntime } from "./workbench-contract.js";
 import { getActiveMapChain } from "./workbench-map-chain-support.js";
 import { payloadDocumentToObject } from "./workbench-payload.js";
@@ -34,7 +39,7 @@ type ProductLeadDispatchRequest = {
   productPresenceAiResultRef: string;
 };
 
-type ProductPresenceSummary = NonNullable<ReturnType<typeof resolveAiProductPresenceOutputSummary>>;
+type ProductLeadSummary = AiProductPresenceOutputSummary | AiVisualMissionActionPlanOutputSummary;
 
 export const buildForensicsRuntimeEventInput = (
   envelope: AbilityCommandEnvelope,
@@ -127,20 +132,34 @@ const readProductLeadDispatchRequest = (
 };
 
 const resolveProductLeadSummary = (request: ProductLeadDispatchRequest): ProductPresenceSummary => {
-  const productPresenceSummary = resolveAiProductPresenceOutputSummary(request.productPresenceAiResultRef);
-  if (!productPresenceSummary) {
+  const productLeadSummary = resolveAiProductPresenceOutputSummary(request.productPresenceAiResultRef)
+    ?? resolveAiVisualMissionActionPlanOutputSummary(request.productPresenceAiResultRef);
+  if (!productLeadSummary) {
     throw new Error("Workbench forensics dispatch could not resolve product presence AI summary for product lead record.");
   }
   if (!resolveScreenshotSourceHandoff([request.screenshotEvidenceRef])) {
     throw new Error("Workbench forensics dispatch could not resolve video screenshot handoff for product lead record.");
   }
-  return productPresenceSummary;
+  return productLeadSummary;
 };
+
+const resolveProductLeadDecision = (summary: ProductLeadSummary): "product_yes" | "product_no" =>
+  summary.output.isProductVideo === true ? "product_yes" : "product_no";
+
+const resolveProductLeadTaskDecision = (summary: ProductLeadSummary): string =>
+  summary.taskType === "product_presence_judgment"
+    ? summary.output.taskDecision
+    : summary.output.actions[0]?.actionCode ?? "SAVE_LEAD";
+
+const resolveProductLeadActionCodes = (summary: ProductLeadSummary): string[] =>
+  summary.taskType === "product_presence_judgment"
+    ? summary.output.actionPlan.actions.map((action) => action.actionCode)
+    : summary.output.actions.map((action) => action.actionCode);
 
 const buildProductLeadRecordPayload = (
   envelope: AbilityCommandEnvelope,
   request: ProductLeadDispatchRequest,
-  productPresenceSummary: ProductPresenceSummary,
+  productLeadSummary: ProductLeadSummary,
 ) => ({
   productLeadRecord: {
     platformId: request.requestedPlatformId,
@@ -148,13 +167,13 @@ const buildProductLeadRecordPayload = (
     targetTitle: request.targetTitle,
     screenshotEvidenceRef: request.screenshotEvidenceRef,
     productPresenceAiResultRef: request.productPresenceAiResultRef,
-    decision: productPresenceSummary.output.isProductVideo === true ? "product_yes" : "product_no",
-    taskDecision: productPresenceSummary.output.taskDecision,
-    actionCodes: productPresenceSummary.output.actionPlan.actions.map((action) => action.actionCode),
-    confidence: productPresenceSummary.output.confidence,
-    visibleProductTypes: productPresenceSummary.output.visibleProductTypes,
-    reason: productPresenceSummary.output.reason,
-    capturedAt: productPresenceSummary.capturedAt,
+    decision: resolveProductLeadDecision(productLeadSummary),
+    taskDecision: resolveProductLeadTaskDecision(productLeadSummary),
+    actionCodes: resolveProductLeadActionCodes(productLeadSummary),
+    confidence: productLeadSummary.output.confidence,
+    visibleProductTypes: productLeadSummary.output.visibleProductTypes,
+    reason: productLeadSummary.output.reason,
+    capturedAt: productLeadSummary.capturedAt,
     createdAt: new Date().toISOString(),
     runId: envelope.runId,
     missionId: envelope.missionId,
@@ -166,7 +185,7 @@ export const buildForensicsProductLeadRecordInput = (
   inputPayload: Parameters<typeof payloadDocumentToObject>[0],
 ): WorkbenchForensicsProductLeadRecordInput => {
   const request = readProductLeadDispatchRequest(inputPayload);
-  const productPresenceSummary = resolveProductLeadSummary(request);
+  const productLeadSummary = resolveProductLeadSummary(request);
 
   return JSON.parse(JSON.stringify({
     ...buildForensicsBaseInput({
@@ -174,13 +193,13 @@ export const buildForensicsProductLeadRecordInput = (
       childCapabilityId: "write-product-lead-record",
       recordType: "product_lead_record",
       inputRefs: [request.screenshotEvidenceRef, request.productPresenceAiResultRef],
-      promptContractId: productPresenceSummary.promptContractId,
-      promptContractVersion: productPresenceSummary.promptContractVersion,
-      promptCatalogVersion: productPresenceSummary.promptCatalogVersion,
-      decisionRef: productPresenceSummary.aiProofRef,
+      promptContractId: productLeadSummary.promptContractId,
+      promptContractVersion: productLeadSummary.promptContractVersion,
+      promptCatalogVersion: productLeadSummary.promptCatalogVersion,
+      decisionRef: productLeadSummary.aiProofRef,
       dataQualityFlags: ["video_screenshot_ok", "local_ai_ok", "product_lead_record_v1"],
     }),
-    payload: buildProductLeadRecordPayload(envelope, request, productPresenceSummary),
+    payload: buildProductLeadRecordPayload(envelope, request, productLeadSummary),
   }));
 };
 

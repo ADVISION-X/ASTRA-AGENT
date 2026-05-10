@@ -3,6 +3,7 @@ export type {
   AiOcrCleanupOutputSummary,
   AiPagePreparationOutputSummary,
   AiProductPresenceOutputSummary,
+  AiVisualMissionActionPlanOutputSummary,
   AiVisualTargetCandidateOutputSummary,
 } from "./ai-output-summary-types.js";
 
@@ -16,5 +17,6 @@ export {
   resolveAiPagePreparationOutputSummary,
   resolveAiOcrCleanupOutputSummary,
   resolveAiProductPresenceOutputSummary,
+  resolveAiVisualMissionActionPlanOutputSummary,
   resolveAiCommentSignalOutputSummary,
 } from "./ai-output-summary-resolvers.js";

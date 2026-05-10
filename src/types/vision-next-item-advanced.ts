@@ -1,10 +1,9 @@
 import { z } from "zod";
 
-import {
-  NEXT_ITEM_ADVANCED_ROUTE_LABEL,
-  NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
-} from "../map-plugins/route-plans/product-discovery-route-plan.constants.js";
 import { VisionProductPresenceRequestInputSchema } from "./vision-product-presence.js";
+
+const NEXT_ITEM_ADVANCED_ROUTE_LABEL = "next-item-advanced";
+const NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL = "next-item-not-advanced";
 
 const VisionNextItemAdvancedPromptIdSchema = z.literal("vision.nextItemAdvanced.v1");
 const VisionNextItemAdvancedTaskTypeSchema = z.literal("vision.nextItemAdvanced");

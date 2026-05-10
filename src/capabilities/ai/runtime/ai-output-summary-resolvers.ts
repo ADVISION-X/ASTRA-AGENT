@@ -4,6 +4,7 @@ import type {
   AiOcrCleanupOutputSummary,
   AiPagePreparationOutputSummary,
   AiProductPresenceOutputSummary,
+  AiVisualMissionActionPlanOutputSummary,
   AiVisualTargetCandidateOutputSummary,
 } from "./ai-output-summary-types.js";
 
@@ -36,6 +37,13 @@ export function resolveAiProductPresenceOutputSummary(
 ): AiProductPresenceOutputSummary | null {
   const summary = readAiOutputSummary(ref);
   return summary?.taskType === "product_presence_judgment" ? summary : null;
+}
+
+export function resolveAiVisualMissionActionPlanOutputSummary(
+  ref: string | null | undefined,
+): AiVisualMissionActionPlanOutputSummary | null {
+  const summary = readAiOutputSummary(ref);
+  return summary?.taskType === "visual_mission_action_plan" ? summary : null;
 }
 
 export function resolveAiCommentSignalOutputSummary(

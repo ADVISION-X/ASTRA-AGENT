@@ -30,6 +30,15 @@ export function findMuscleMemoryEntry(actionCode: string): MuscleMemoryEntry | n
   return loadMuscleMemoryCatalog().entries.find((entry) => entry.actionCode === actionCode) ?? null;
 }
 
+export function listAiActionPlanEntries(): MuscleMemoryEntry[] {
+  return loadMuscleMemoryCatalog().entries.filter((entry) => entry.allowedForAiActionPlan);
+}
+
+export function isAiActionPlanAllowedActionCode(actionCode: unknown): actionCode is string {
+  return typeof actionCode === "string"
+    && findMuscleMemoryEntry(actionCode)?.allowedForAiActionPlan === true;
+}
+
 export function requireAtomicMuscleMemoryEntry(actionCode: string): AtomicMuscleMemoryEntry {
   const entry = findMuscleMemoryEntry(actionCode);
   if (!entry || entry.type !== "atomic") {
