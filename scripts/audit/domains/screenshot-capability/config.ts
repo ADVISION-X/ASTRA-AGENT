@@ -16,7 +16,9 @@ export const PATHS = {
   ABILITY_GROUP: "src/capabilities/screenshot/ability-group.ts",
   CONTRACT: "src/capabilities/screenshot/contract.ts",
   SCHEMA: "src/capabilities/screenshot/schema.ts",
+  VISUAL_MISSION_SCHEMA: "src/capabilities/screenshot/visual-mission-schema.ts",
   TYPES: "src/capabilities/screenshot/shared/screenshot-types.ts",
+  VISUAL_MISSION_GRID: "src/capabilities/screenshot/shared/visual-mission-grid.ts",
   REGISTRY: "src/capabilities/screenshot/registry.ts",
   INDEX: "src/capabilities/screenshot/index.ts",
   WORKBENCH_ABILITY_GROUP: "src/capabilities/screenshot/workbench-screenshot-ability-group.ts",
@@ -35,10 +37,13 @@ export const PATHS = {
   ARTIFACT_STORAGE_GATE: "src/capabilities/screenshot/runtime/artifact-storage-gate.ts",
   EPHEMERAL_FILE_CLEANUP: "src/capabilities/screenshot/runtime/screenshot-ephemeral-file-cleanup.ts",
   CAPTURE_RUNNER: "src/capabilities/screenshot/runtime/capture-runner.ts",
+  IMAGE_PROCESSING_PORT: "src/capabilities/screenshot/ports/screenshot-image-processing-port.ts",
   OUTPUT_BOUNDARY_GATE: "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
   PROOF_BUILDER: "src/capabilities/screenshot/runtime/screenshot-proof-builder.ts",
   RESULT_BUILDER: "src/capabilities/screenshot/runtime/screenshot-result-builder.ts",
   DISPATCH_FAILURE: "src/capabilities/screenshot/runtime/screenshot-dispatch-failure.ts",
+  STRUCTURED_DATA_REF: "src/capabilities/screenshot/runtime/screenshot-structured-data-ref.ts",
+  VISUAL_MISSION_OUTPUT: "src/capabilities/screenshot/runtime/screenshot-visual-mission-output.ts",
   INPUT_GATE: "src/capabilities/screenshot/runtime/screenshot-input-gate.ts",
   PHASE_HELPERS: "src/capabilities/screenshot/runtime/screenshot-execution-phase-helpers.ts",
   IDEMPOTENCY: "src/capabilities/screenshot/runtime/screenshot-idempotency.ts",
@@ -51,6 +56,8 @@ export const PATHS = {
   BROWSER_CONTROLLER_CONTRACT: "src/lib/browser/browser-controller.ts",
   CURRENT_CHROME_CONTROLLER: "src/lib/browser/current-chrome-browser-controller.ts",
   CURRENT_CHROME_SCREENSHOT: "src/lib/browser/current-chrome-browser-screenshot.ts",
+  MOUSE_CLICK_SCHEMA: "src/capabilities/mouse-click/schema.ts",
+  MOUSE_CLICK_PRIMITIVE_PORT: "src/capabilities/mouse-click/ports/mouse-click-primitive-port.ts",
 } as const;
 
 export const CHILDREN = [
@@ -59,12 +66,14 @@ export const CHILDREN = [
   "capture-region",
   "optimize-lossless",
   "prepare-ai-input",
+  "prepare-visual-mission-input",
 ] as const;
 
 export const CANONICAL_FILES = [
   `${PATHS.ROOT}/ability-group.ts`,
   `${PATHS.ROOT}/contract.ts`,
   `${PATHS.ROOT}/schema.ts`,
+  PATHS.VISUAL_MISSION_SCHEMA,
   `${PATHS.ROOT}/registry.ts`,
   `${PATHS.ROOT}/index.ts`,
   `${PATHS.ROOT}/workbench-screenshot-ability-group.ts`,
@@ -103,6 +112,7 @@ export const CANONICAL_FILES = [
   `${PATHS.ROOT}/ports/screenshot-clock-port.ts`,
   `${PATHS.ROOT}/ports/screenshot-image-processing-port.ts`,
   `${PATHS.ROOT}/shared/screenshot-types.ts`,
+  PATHS.VISUAL_MISSION_GRID,
   `${PATHS.ROOT}/shared/screenshot-governance.ts`,
   `${PATHS.ROOT}/shared/screenshot-policy.ts`,
   `${PATHS.ROOT}/shared/screenshot-result.ts`,
@@ -112,6 +122,8 @@ export const CANONICAL_FILES = [
   `${PATHS.ROOT}/shared/screenshot-artifact-lifecycle-schema.ts`,
   `${PATHS.ROOT}/shared/screenshot-scale-mapping.ts`,
   `${PATHS.ROOT}/runtime/screenshot-artifact-lifecycle.ts`,
+  PATHS.STRUCTURED_DATA_REF,
+  PATHS.VISUAL_MISSION_OUTPUT,
 ] as const;
 
 export const PUBLIC_INDEX_ALLOWED_SPECIFIERS = ["./ability-group.js", "./contract.js", "./schema.js", "./registry.js"] as const;

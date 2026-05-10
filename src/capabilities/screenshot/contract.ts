@@ -6,6 +6,7 @@ import {
   CaptureRegionInputSchema,
   OptimizeLosslessInputSchema,
   PrepareAiInputInputSchema,
+  PrepareVisualMissionInputInputSchema,
   ScreenshotAbilityInputSchema,
   ScreenshotArtifactRefSchema,
   ScreenshotArtifactBudgetPolicySchema,
@@ -27,6 +28,10 @@ import {
   ScreenshotScaleMappingSchema,
   ScreenshotStoredArtifactSchema,
   ScreenshotSourceProofSchema,
+  ScreenshotStructuredRefSchema,
+  ScreenshotGridCellSchema,
+  ScreenshotGridSpecSchema,
+  ScreenshotVisualMissionInputSchema,
 } from "./schema.js";
 import { SCREENSHOT_ABILITY_GROUP_ID } from "./shared/screenshot-types.js";
 
@@ -40,6 +45,7 @@ type CaptureDesktopScreenInput = z.infer<typeof CaptureDesktopScreenInputSchema>
 type CaptureRegionInput = z.infer<typeof CaptureRegionInputSchema>;
 type OptimizeLosslessInput = z.infer<typeof OptimizeLosslessInputSchema>;
 type PrepareAiInputInput = z.infer<typeof PrepareAiInputInputSchema>;
+type PrepareVisualMissionInput = z.infer<typeof PrepareVisualMissionInputInputSchema>;
 type ScreenshotAbilityResult = z.infer<typeof ScreenshotResultSchema>;
 type ScreenshotRuntimeProof = z.infer<typeof ScreenshotRuntimeProofSchema>;
 type ScreenshotExecutionOutput = z.infer<typeof ScreenshotExecutionOutputSchema>;
@@ -60,6 +66,10 @@ type ScreenshotBrowserSessionSnapshot = z.infer<typeof ScreenshotBrowserSessionS
 type ScreenshotBrowserCapture = z.infer<typeof ScreenshotBrowserCaptureSchema>;
 type ScreenshotDesktopCapture = z.infer<typeof ScreenshotDesktopCaptureSchema>;
 type ScreenshotStoredArtifact = z.infer<typeof ScreenshotStoredArtifactSchema>;
+type ScreenshotStructuredRef = z.infer<typeof ScreenshotStructuredRefSchema>;
+type ScreenshotGridCell = z.infer<typeof ScreenshotGridCellSchema>;
+type ScreenshotGridSpec = z.infer<typeof ScreenshotGridSpecSchema>;
+type ScreenshotVisualMissionInput = z.infer<typeof ScreenshotVisualMissionInputSchema>;
 type ScreenshotChildCapabilityId = ScreenshotAbilityInput["childCapabilityId"];
 type ScreenshotStatus = ScreenshotAbilityResult["status"];
 type ScreenshotCoordinateSpace = ScreenshotExecutionOutput["coordinateSpace"];
@@ -71,4 +81,4 @@ interface ScreenshotAbilityGroup {
 }
 
 
-export type { ScreenshotAbilityGroupId, ScreenshotAbilityInputCandidate, ScreenshotAbilityInput, CaptureBrowserViewportInput, CaptureDesktopScreenInput, CaptureRegionInput, OptimizeLosslessInput, PrepareAiInputInput, ScreenshotAbilityResult, ScreenshotRuntimeProof, ScreenshotExecutionOutput, ScreenshotArtifactRef, ScreenshotArtifactBudgetPolicy, ScreenshotArtifactBudgetSnapshot, ScreenshotArtifactCleanupGate, ScreenshotArtifactLifecycleManifest, ScreenshotBoundingBox, ScreenshotScaleMapping, ScreenshotSourceProof, ScreenshotFailure, ScreenshotPageStateProof, ScreenshotPromotionStatus, ScreenshotPrivacyPolicy, ScreenshotRetentionClass, ScreenshotBrowserSessionSnapshot, ScreenshotBrowserCapture, ScreenshotDesktopCapture, ScreenshotStoredArtifact, ScreenshotChildCapabilityId, ScreenshotStatus, ScreenshotCoordinateSpace, ScreenshotImageKind, ScreenshotAbilityGroup };
+export type { ScreenshotAbilityGroupId, ScreenshotAbilityInputCandidate, ScreenshotAbilityInput, CaptureBrowserViewportInput, CaptureDesktopScreenInput, CaptureRegionInput, OptimizeLosslessInput, PrepareAiInputInput, PrepareVisualMissionInput, ScreenshotAbilityResult, ScreenshotRuntimeProof, ScreenshotExecutionOutput, ScreenshotArtifactRef, ScreenshotArtifactBudgetPolicy, ScreenshotArtifactBudgetSnapshot, ScreenshotArtifactCleanupGate, ScreenshotArtifactLifecycleManifest, ScreenshotBoundingBox, ScreenshotScaleMapping, ScreenshotSourceProof, ScreenshotFailure, ScreenshotPageStateProof, ScreenshotPromotionStatus, ScreenshotPrivacyPolicy, ScreenshotRetentionClass, ScreenshotBrowserSessionSnapshot, ScreenshotBrowserCapture, ScreenshotDesktopCapture, ScreenshotStoredArtifact, ScreenshotStructuredRef, ScreenshotGridCell, ScreenshotGridSpec, ScreenshotVisualMissionInput, ScreenshotChildCapabilityId, ScreenshotStatus, ScreenshotCoordinateSpace, ScreenshotImageKind, ScreenshotAbilityGroup };

@@ -1,4 +1,4 @@
-import type { ScreenshotAbilityInput, ScreenshotArtifactRef, ScreenshotRuntimeProof, ScreenshotScaleMapping, ScreenshotSourceProof, ScreenshotStatus } from "../contract.js";
+import type { ScreenshotAbilityInput, ScreenshotArtifactRef, ScreenshotRuntimeProof, ScreenshotScaleMapping, ScreenshotSourceProof, ScreenshotStatus, ScreenshotStructuredRef } from "../contract.js";
 import { ScreenshotRuntimeProofSchema } from "../schema.js";
 import { SCREENSHOT_ABILITY_GROUP_ID } from "../shared/screenshot-types.js";
 import { resolveScreenshotChain } from "./screenshot-chain.js";
@@ -62,6 +62,10 @@ function buildScreenshotRuntimeProofIdentityFields(input: {
   sourceProof: ScreenshotSourceProof | null;
   artifactRef: ScreenshotArtifactRef | null;
   sourceArtifactRef: ScreenshotArtifactRef | null;
+  originalScreenshotRef?: ScreenshotArtifactRef | null;
+  coordinateGridScreenshotRef?: ScreenshotArtifactRef | null;
+  gridSpecRef?: ScreenshotStructuredRef | null;
+  visualMissionInputRef?: ScreenshotStructuredRef | null;
   sourceHash: string | null;
   outputHash: string | null;
   sourceWidth: number | null;
@@ -99,6 +103,10 @@ function buildScreenshotRuntimeProofIdentityFields(input: {
     screenshotEvidenceId: input.screenshotEvidenceId,
     artifactRef: input.artifactRef,
     sourceArtifactRef: input.sourceArtifactRef,
+    originalScreenshotRef: input.originalScreenshotRef ?? null,
+    coordinateGridScreenshotRef: input.coordinateGridScreenshotRef ?? null,
+    gridSpecRef: input.gridSpecRef ?? null,
+    visualMissionInputRef: input.visualMissionInputRef ?? null,
     artifactLifecycleManifestRef: input.artifactLifecycleManifestRef ?? null,
     retentionClass: input.retentionClass ?? null,
     promotionStatus: input.promotionStatus ?? null,
@@ -208,6 +216,10 @@ export function buildScreenshotRuntimeProof(input: {
   sourceProof: ScreenshotSourceProof | null;
   artifactRef: ScreenshotArtifactRef | null;
   sourceArtifactRef: ScreenshotArtifactRef | null;
+  originalScreenshotRef?: ScreenshotArtifactRef | null;
+  coordinateGridScreenshotRef?: ScreenshotArtifactRef | null;
+  gridSpecRef?: ScreenshotStructuredRef | null;
+  visualMissionInputRef?: ScreenshotStructuredRef | null;
   sourceHash: string | null;
   outputHash: string | null;
   sourceWidth: number | null;

@@ -1,18 +1,32 @@
 {
-  "generatedAt": "2026-05-10T03:39:13.323Z",
+  "generatedAt": "2026-05-10T04:40:51.934Z",
   "touchedBaselineSource": "git diff --name-only HEAD",
   "touchedFiles": [
-    "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Route Plan /350/202/214/350/202/211/350/256/260/345/277/206/346/226/275/345/267/245/345/233/276.md\"",
+    ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
     "\"docs//346/263/225/346/241/210/350/276/205/345/212/251/346/226/207/344/273/266/GrassEye Screenshot /350/203/275/345/212/233/347/273/204/346/226/275/345/267/245/345/233/276.md\"",
-    "scripts/audit/domains/map-plugin-package/product-presence-route-plan-governance.ts",
-    "scripts/audit/domains/orchestration-capability/run-governed-runtime-checks.ts",
-    "scripts/audit/domains/screenshot-capability/required-shape.ts",
-    "src/capabilities/orchestration/runtime/orchestration-nerve-bus-adapter.ts",
-    "src/capabilities/orchestration/runtime/step-dispatch-request-builders.ts",
-    "src/capabilities/orchestration/runtime/transition-evaluator.ts",
-    "src/capabilities/screenshot/runtime/browser-session-gate.ts",
-    "src/capabilities/screenshot/runtime/screenshot-execution-failure-builders.ts",
-    "src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts"
+    "scripts/audit/domains/screenshot-capability/config.ts",
+    "scripts/audit/domains/screenshot-capability/inspector.ts",
+    "scripts/audit/domains/screenshot-capability/project-access.ts",
+    "src/capabilities/screenshot/adapters/sharp-screenshot-image-processing-port.ts",
+    "src/capabilities/screenshot/contract.ts",
+    "src/capabilities/screenshot/index.ts",
+    "src/capabilities/screenshot/ports/screenshot-image-processing-port.ts",
+    "src/capabilities/screenshot/registry.ts",
+    "src/capabilities/screenshot/runtime/artifact-storage-gate.ts",
+    "src/capabilities/screenshot/runtime/image-processing-runner.ts",
+    "src/capabilities/screenshot/runtime/screenshot-artifact-lifecycle.ts",
+    "src/capabilities/screenshot/runtime/screenshot-child-contract.ts",
+    "src/capabilities/screenshot/runtime/screenshot-child-registry.ts",
+    "src/capabilities/screenshot/runtime/screenshot-execution-artifact-phase.ts",
+    "src/capabilities/screenshot/runtime/screenshot-execution-success-helpers.ts",
+    "src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts",
+    "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
+    "src/capabilities/screenshot/runtime/screenshot-proof-builder.ts",
+    "src/capabilities/screenshot/runtime/screenshot-result-builder.ts",
+    "src/capabilities/screenshot/runtime/screenshot-transform-truth.ts",
+    "src/capabilities/screenshot/schema.ts",
+    "src/capabilities/screenshot/screenshot-schema-refinements.ts",
+    "src/capabilities/screenshot/shared/screenshot-types.ts"
   ],
   "scanScope": [
     "src/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}",
@@ -56,9 +70,109 @@
   ],
   "ownerMixingInventory": [],
   "oversizedTouchedFileInventory": [],
-  "functionOverLimitInventory": [],
+  "functionOverLimitInventory": [
+    {
+      "file": "src/capabilities/screenshot/adapters/sharp-screenshot-image-processing-port.ts",
+      "lines": 247,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "adapter",
+      "functionsOverLimit": [
+        "buildGridSpec"
+      ],
+      "classMembers": 0,
+      "importCount": 9,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts",
+      "lines": 278,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "buildScreenshotSuccessRuntimeProofIdentityFields"
+      ],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
+      "lines": 266,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveVisualMissionOutputShapeFailure"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/screenshot/screenshot-schema-refinements.ts",
+      "lines": 239,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "validateResultOutput"
+      ],
+      "classMembers": 0,
+      "importCount": 2,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    }
+  ],
   "classObjectOverLimitInventory": [],
-  "importExportOverLimitInventory": [],
+  "importExportOverLimitInventory": [
+    {
+      "file": "scripts/audit/domains/screenshot-capability/inspector.ts",
+      "lines": 82,
+      "fileType": "audit inspector",
+      "overLimitBy": 0,
+      "primaryRole": "inspector",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 13,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/screenshot/shared/visual-mission-grid.ts",
+      "lines": 84,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    }
+  ],
   "remediationQueue": [
     {
       "file": "src/map-plugins/builtins/iphone-mirroring-facebook-seeding-video-discovery.meta.map-package.json",
@@ -89,6 +203,104 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts",
+      "lines": 278,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "buildScreenshotSuccessRuntimeProofIdentityFields"
+      ],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
+      "lines": 266,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveVisualMissionOutputShapeFailure"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/screenshot/adapters/sharp-screenshot-image-processing-port.ts",
+      "lines": 247,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "adapter",
+      "functionsOverLimit": [
+        "buildGridSpec"
+      ],
+      "classMembers": 0,
+      "importCount": 9,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/screenshot/screenshot-schema-refinements.ts",
+      "lines": 239,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "validateResultOutput"
+      ],
+      "classMembers": 0,
+      "importCount": 2,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/screenshot/shared/visual-mission-grid.ts",
+      "lines": 84,
+      "fileType": "ordinary implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 1,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split ordinary implementation by owner-local collaborators."
+    },
+    {
+      "file": "scripts/audit/domains/screenshot-capability/inspector.ts",
+      "lines": 82,
+      "fileType": "audit inspector",
+      "overLimitBy": 0,
+      "primaryRole": "inspector",
+      "functionsOverLimit": [],
+      "classMembers": 0,
+      "importCount": 13,
+      "crossOwnerImports": 1,
+      "ownerBoundaries": 1,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split audit inspector by owner-local collaborators."
     }
   ],
   "firstPhysicalSplitPlan": [
@@ -121,6 +333,57 @@
       "roleMixingSignals": [],
       "severity": "DISASTER",
       "recommendedSplit": "Split json map/prompt contract by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts",
+      "lines": 278,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "result-builder",
+      "functionsOverLimit": [
+        "buildScreenshotSuccessRuntimeProofIdentityFields"
+      ],
+      "classMembers": 0,
+      "importCount": 8,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts",
+      "lines": 266,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "executor",
+      "functionsOverLimit": [
+        "resolveVisualMissionOutputShapeFailure"
+      ],
+      "classMembers": 0,
+      "importCount": 7,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
+    },
+    {
+      "file": "src/capabilities/screenshot/adapters/sharp-screenshot-image-processing-port.ts",
+      "lines": 247,
+      "fileType": "runtime/implementation",
+      "overLimitBy": 0,
+      "primaryRole": "adapter",
+      "functionsOverLimit": [
+        "buildGridSpec"
+      ],
+      "classMembers": 0,
+      "importCount": 9,
+      "crossOwnerImports": 0,
+      "ownerBoundaries": 0,
+      "roleMixingSignals": [],
+      "severity": "REMEDIATION",
+      "recommendedSplit": "Split runtime/implementation by owner-local collaborators."
     }
   ]
 }

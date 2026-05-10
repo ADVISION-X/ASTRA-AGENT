@@ -6,6 +6,7 @@ const SCREENSHOT_CHILD_CAPABILITY_IDS = [
   "capture-region",
   "optimize-lossless",
   "prepare-ai-input",
+  "prepare-visual-mission-input",
 ] as const;
 
 const SCREENSHOT_RESULT_STATUSES = [
@@ -28,6 +29,8 @@ const SCREENSHOT_COORDINATE_SPACES = [
   "optimized_equivalent_pixels",
   "ai_input_pixels",
   "contact_sheet_pixels",
+  "coordinate_grid_pixels",
+  "grid_cell_index_space",
 ] as const;
 
 const SCREENSHOT_IMAGE_KINDS = [
@@ -36,6 +39,8 @@ const SCREENSHOT_IMAGE_KINDS = [
   "region_crop",
   "ai_input",
   "contact_sheet",
+  "coordinate_grid",
+  "visual_mission_input",
 ] as const;
 
 const SCREENSHOT_EVIDENCE_POLICIES = [
@@ -92,6 +97,7 @@ const SCREENSHOT_DATA_QUALITY_FLAGS = [
   "artifact_persisted",
   "lossless_equivalence_verified",
   "scale_mapping_verified",
+  "visual_mission_input_prepared",
   "desktop_capture_requested",
   "desktop_full_screen_requested",
   "privacy_review_required",

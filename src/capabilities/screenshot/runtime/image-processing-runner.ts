@@ -1,8 +1,22 @@
 import type { ScreenshotAbilityInput } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
+import { projectGridSpecToSourceCoordinates } from "../shared/visual-mission-grid.js";
 import type { ScreenshotExecutionPlan } from "./screenshot-child-contract.js";
 import { resolveScreenshotAiInputEncodeProfile } from "./screenshot-lightweight-observation.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
+
+type ImageProcessingRunnerOutput = {
+  outputFilePath: string;
+  width: number;
+  height: number;
+  mimeType: string;
+  equivalence: "dimensions_preserved" | null;
+  sourceWidth: number | null;
+  sourceHeight: number | null;
+  cropOffsetX: number;
+  cropOffsetY: number;
+  gridSpec: import("../contract.js").ScreenshotGridSpec | null;
+};
 
 function buildImageProcessingFailure(timeout: boolean, detail: string) {
   return {
@@ -48,6 +62,7 @@ async function resolveCaptureRegionProcessing(input: {
       sourceHeight: input.plan.region.height,
       cropOffsetX: input.plan.region.x,
       cropOffsetY: input.plan.region.y,
+      gridSpec: null,
     })),
     input.timeoutMs,
   );
@@ -79,6 +94,7 @@ async function resolveOptimizeLosslessProcessing(input: {
         sourceHeight: sourceMeta.height,
         cropOffsetX: 0,
         cropOffsetY: 0,
+        gridSpec: null,
       };
     }),
     input.timeoutMs,
@@ -113,6 +129,49 @@ async function resolvePrepareAiInputProcessing(input: {
       sourceHeight: result.sourceHeight,
       cropOffsetX: result.cropOffsetX,
       cropOffsetY: result.cropOffsetY,
+      gridSpec: null,
+    })),
+    input.timeoutMs,
+  );
+
+  return {
+    decision: { status: "passed" as const, reason: null },
+    output,
+    failure: null,
+  };
+}
+
+async function resolvePrepareVisualMissionInputProcessing(input: {
+  plan: Extract<ScreenshotExecutionPlan, { kind: "image-processing" }> & { operation: "prepare-visual-mission-input" };
+  context: ScreenshotRuntimeContext;
+  timeoutMs: number;
+}) {
+  const output = await withTimeout(
+    input.context.imageProcessingPort.renderCoordinateGrid({
+      sourceFilePath: input.plan.sourceFilePath,
+      sourceWidth: input.plan.sourceProof.sourceWidth ?? 0,
+      sourceHeight: input.plan.sourceProof.sourceHeight ?? 0,
+      rowCount: input.plan.rowCount,
+      columnCount: input.plan.columnCount,
+      axisMode: "y_letters_x_numbers",
+    }).then((result) => ({
+      outputFilePath: result.outputFilePath,
+      width: result.width,
+      height: result.height,
+      mimeType: result.mimeType,
+      equivalence: null,
+      sourceWidth: result.gridSpec.sourceWidth,
+      sourceHeight: result.gridSpec.sourceHeight,
+      cropOffsetX: 0,
+      cropOffsetY: 0,
+      gridSpec: projectGridSpecToSourceCoordinates({
+        gridSpec: {
+          ...result.gridSpec,
+          sourceScreenshotEvidenceId: input.plan.sourceProof.sourceScreenshotEvidenceId ?? result.gridSpec.sourceScreenshotEvidenceId,
+          sourceStorageRef: input.plan.sourceProof.sourceStorageRef ?? result.gridSpec.sourceStorageRef,
+        },
+        sourceProof: input.plan.sourceProof,
+      }),
     })),
     input.timeoutMs,
   );
@@ -150,6 +209,12 @@ async function resolveImageProcessingRunner(input: {
         context: input.context,
         timeoutMs: input.timeoutMs,
       });
+    case "prepare-visual-mission-input":
+      return resolvePrepareVisualMissionInputProcessing({
+        plan: input.plan,
+        context: input.context,
+        timeoutMs: input.timeoutMs,
+      });
   }
 }
 
@@ -160,19 +225,7 @@ export async function runImageProcessingRunner(input: {
   timeoutMs: number;
 }): Promise<{
   decision: { status: "passed" | "failed" | "review_required"; reason: string | null };
-  output:
-    | {
-        outputFilePath: string;
-        width: number;
-        height: number;
-        mimeType: string;
-        equivalence: "dimensions_preserved" | null;
-        sourceWidth: number | null;
-        sourceHeight: number | null;
-        cropOffsetX: number;
-        cropOffsetY: number;
-      }
-    | null;
+  output: ImageProcessingRunnerOutput | null;
   failure: ReturnType<typeof createScreenshotFailure> | null;
 }> {
   try {

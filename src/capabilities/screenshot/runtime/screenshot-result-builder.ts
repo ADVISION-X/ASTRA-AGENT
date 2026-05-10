@@ -4,10 +4,13 @@ import type {
   ScreenshotAbilityResult,
   ScreenshotArtifactRef,
   ScreenshotCoordinateSpace,
+  ScreenshotGridSpec,
   ScreenshotImageKind,
   ScreenshotRuntimeProof,
   ScreenshotScaleMapping,
   ScreenshotStatus,
+  ScreenshotStructuredRef,
+  ScreenshotVisualMissionInput,
 } from "../contract.js";
 import { SCREENSHOT_ABILITY_GROUP_ID } from "../shared/screenshot-types.js";
 import { resolveScreenshotChain } from "./screenshot-chain.js";
@@ -39,6 +42,12 @@ export function buildScreenshotSuccessOutput(input: {
   cleanupEligible: boolean;
   regionLabel: string;
   regionType: string;
+  originalScreenshotRef?: ScreenshotArtifactRef | null;
+  coordinateGridScreenshotRef?: ScreenshotArtifactRef | null;
+  gridSpecRef?: ScreenshotStructuredRef | null;
+  visualMissionInputRef?: ScreenshotStructuredRef | null;
+  visualMissionInput?: ScreenshotVisualMissionInput | null;
+  gridSpec?: ScreenshotGridSpec | null;
 }): ReturnType<typeof ScreenshotExecutionOutputSchema.parse> {
   return ScreenshotExecutionOutputSchema.parse({
     artifactRef: input.artifactRef,
@@ -66,6 +75,12 @@ export function buildScreenshotSuccessOutput(input: {
     cleanupEligible: input.cleanupEligible,
     regionLabel: input.regionLabel,
     regionType: input.regionType,
+    originalScreenshotRef: input.originalScreenshotRef ?? null,
+    coordinateGridScreenshotRef: input.coordinateGridScreenshotRef ?? null,
+    gridSpecRef: input.gridSpecRef ?? null,
+    visualMissionInputRef: input.visualMissionInputRef ?? null,
+    visualMissionInput: input.visualMissionInput ?? null,
+    gridSpec: input.gridSpec ?? null,
     contentLines: input.request.contentLines,
   });
 }

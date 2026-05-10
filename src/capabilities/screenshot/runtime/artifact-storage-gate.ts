@@ -3,8 +3,12 @@ import path from "node:path";
 
 import type {
   ScreenshotAbilityInput,
+  ScreenshotArtifactRef,
   ScreenshotChildCapabilityId,
+  ScreenshotGridSpec,
   ScreenshotImageKind,
+  ScreenshotStructuredRef,
+  ScreenshotVisualMissionInput,
 } from "../contract.js";
 import { createScreenshotFailure } from "../shared/screenshot-failure.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
@@ -27,6 +31,12 @@ type ArtifactStorageGateResult = {
   promotionStatus: StoredArtifact["promotionStatus"] | null;
   cleanupEligible: boolean | null;
   outputHash: string | null;
+  originalScreenshotRef: ScreenshotArtifactRef | null;
+  coordinateGridScreenshotRef: ScreenshotArtifactRef | null;
+  gridSpecRef: ScreenshotStructuredRef | null;
+  visualMissionInputRef: ScreenshotStructuredRef | null;
+  visualMissionInput: ScreenshotVisualMissionInput | null;
+  gridSpec: ScreenshotGridSpec | null;
   failure: ReturnType<typeof createScreenshotFailure> | null;
 };
 
@@ -51,6 +61,12 @@ function buildArtifactStorageFailure(reason: string, message: string, detail: st
     promotionStatus: null,
     cleanupEligible: null,
     outputHash: null,
+    originalScreenshotRef: null,
+    coordinateGridScreenshotRef: null,
+    gridSpecRef: null,
+    visualMissionInputRef: null,
+    visualMissionInput: null,
+    gridSpec: null,
     failure: createScreenshotFailure({
       code,
       message,
@@ -82,6 +98,12 @@ function buildArtifactStorageSuccess(storedArtifact: StoredArtifact, outputHash:
     promotionStatus: storedArtifact.promotionStatus,
     cleanupEligible: storedArtifact.cleanupEligible,
     outputHash,
+    originalScreenshotRef: null,
+    coordinateGridScreenshotRef: null,
+    gridSpecRef: null,
+    visualMissionInputRef: null,
+    visualMissionInput: null,
+    gridSpec: null,
     failure: null,
   };
 }

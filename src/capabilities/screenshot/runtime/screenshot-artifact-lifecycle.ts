@@ -50,7 +50,7 @@ const buildCleanupGate = (input: {
     manifestExists: true,
     expired: false,
     missionActive: true,
-    aiPending: input.childCapabilityId === "prepare-ai-input",
+    aiPending: input.childCapabilityId === "prepare-ai-input" || input.childCapabilityId === "prepare-visual-mission-input",
     visualTargetPending: input.childCapabilityId === "capture-region",
     postActionVerificationPending: false,
     promoted: false,
@@ -112,6 +112,7 @@ export function resolveScreenshotRetentionClass(childCapabilityId: ScreenshotChi
     case "capture-region":
       return "transient-region";
     case "prepare-ai-input":
+    case "prepare-visual-mission-input":
       return "transient-ai-input";
   }
 }

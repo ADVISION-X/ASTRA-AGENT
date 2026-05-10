@@ -2,7 +2,7 @@ import type { ScreenshotScaleMapping } from "../contract.js";
 import { buildDerivedScaleMapping, buildIdentityScaleMapping } from "../shared/screenshot-scale-mapping.js";
 
 type TransformScaleMappingInput = {
-  operation: "capture-region" | "optimize-lossless" | "prepare-ai-input";
+  operation: "capture-region" | "optimize-lossless" | "prepare-ai-input" | "prepare-visual-mission-input";
   sourceProof: {
     sourceScreenshotEvidenceId: string | null;
     sourceStorageRef: string | null;
@@ -55,6 +55,8 @@ export function resolveTransformScaleMapping(input: TransformScaleMappingInput):
       return resolveDerivedTransformScaleMapping(input, "region_crop_pixels");
     case "prepare-ai-input":
       return resolveDerivedTransformScaleMapping(input, "ai_input_pixels");
+    case "prepare-visual-mission-input":
+      return resolveDerivedTransformScaleMapping(input, "coordinate_grid_pixels");
     case "optimize-lossless":
       return buildIdentityScaleMapping({
         sourceScreenshotEvidenceId: input.sourceProof.sourceScreenshotEvidenceId,
@@ -76,5 +78,7 @@ export function resolveTransformCoordinateSpace(input: {
       return input.sourceCoordinateSpace ?? "source_image_pixels";
     case "prepare-ai-input":
       return "ai_input_pixels";
+    case "prepare-visual-mission-input":
+      return "coordinate_grid_pixels";
   }
 }

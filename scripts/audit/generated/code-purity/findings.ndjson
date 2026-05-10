@@ -1,0 +1,6 @@
+{"lawId":"GRASSEYE-CODE-PURITY-006-V1","file":"scripts/audit/domains/screenshot-capability/inspector.ts","line":1,"severity":"error","message":"Import or export structure exceeds code-purity limits."}
+{"lawId":"GRASSEYE-CODE-PURITY-003-V1","file":"src/capabilities/screenshot/adapters/sharp-screenshot-image-processing-port.ts","line":35,"severity":"error","message":"Function buildGridSpec exceeds code-purity function limits."}
+{"lawId":"GRASSEYE-CODE-PURITY-003-V1","file":"src/capabilities/screenshot/runtime/screenshot-execution-success-result.ts","line":86,"severity":"error","message":"Function buildScreenshotSuccessRuntimeProofIdentityFields exceeds code-purity function limits."}
+{"lawId":"GRASSEYE-CODE-PURITY-003-V1","file":"src/capabilities/screenshot/runtime/screenshot-output-boundary-gate.ts","line":128,"severity":"error","message":"Function resolveVisualMissionOutputShapeFailure exceeds code-purity function limits."}
+{"lawId":"GRASSEYE-CODE-PURITY-003-V1","file":"src/capabilities/screenshot/screenshot-schema-refinements.ts","line":219,"severity":"error","message":"Function validateResultOutput exceeds code-purity function limits."}
+{"lawId":"GRASSEYE-CODE-PURITY-006-V1","file":"src/capabilities/screenshot/shared/visual-mission-grid.ts","line":1,"severity":"error","message":"Import or export structure exceeds code-purity limits."}

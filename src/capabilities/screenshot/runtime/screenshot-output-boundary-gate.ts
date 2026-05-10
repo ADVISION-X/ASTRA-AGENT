@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { access, readFile } from "node:fs/promises";
 
 import type { ScreenshotExecutionOutput, ScreenshotRuntimeProof } from "../contract.js";
@@ -124,6 +125,58 @@ function resolveTransformedOutputSourceEvidenceFailure(input: { output: Screensh
   return buildScreenshotOutputBoundaryFailure("transformed_output_source_evidence_required", "Transformed screenshot outputs must retain sourceScreenshotEvidenceId.");
 }
 
+function resolveVisualMissionOutputShapeFailure(input: { output: ScreenshotExecutionOutput }) {
+  if (input.output.imageKind !== "coordinate_grid") {
+    return null;
+  }
+
+  if (!input.output.originalScreenshotRef || !input.output.coordinateGridScreenshotRef || !input.output.gridSpecRef || !input.output.visualMissionInputRef || !input.output.gridSpec || !input.output.visualMissionInput) {
+    return buildScreenshotOutputBoundaryFailure("visual_mission_output_required", "Coordinate grid success output requires originalScreenshotRef, coordinateGridScreenshotRef, gridSpecRef, visualMissionInputRef, gridSpec, and visualMissionInput.");
+  }
+
+  if (input.output.gridSpec.sourceCoordinateSpace !== "browser_viewport_pixels") {
+    return buildScreenshotOutputBoundaryFailure("visual_mission_coordinate_space_invalid", "gridSpec must decode to browser_viewport_pixels before it leaves Screenshot.");
+  }
+
+  if (input.output.originalScreenshotRef.evidenceId !== input.output.sourceScreenshotEvidenceId) {
+    return buildScreenshotOutputBoundaryFailure("visual_mission_source_evidence_mismatch", "originalScreenshotRef.evidenceId must match sourceScreenshotEvidenceId for coordinate-grid outputs.");
+  }
+
+  if (input.output.coordinateGridScreenshotRef.artifactId !== input.output.artifactRef.artifactId) {
+    return buildScreenshotOutputBoundaryFailure("coordinate_grid_artifact_mismatch", "coordinateGridScreenshotRef must match the stored coordinate-grid artifactRef.");
+  }
+
+  if (input.output.gridSpec.gridSpecRef !== input.output.gridSpecRef.refId) {
+    return buildScreenshotOutputBoundaryFailure("grid_spec_ref_mismatch", "gridSpec.gridSpecRef must match gridSpecRef.refId.");
+  }
+
+  if (input.output.visualMissionInput.gridSpecRef !== input.output.gridSpecRef.refId
+    || input.output.visualMissionInput.originalScreenshotRef !== input.output.originalScreenshotRef.artifactId
+    || input.output.visualMissionInput.coordinateGridScreenshotRef !== input.output.coordinateGridScreenshotRef.artifactId) {
+    return buildScreenshotOutputBoundaryFailure("visual_mission_bundle_mismatch", "visualMissionInput must reference the governed original screenshot, coordinate grid, and gridSpec refs.");
+  }
+
+  return null;
+}
+
+async function resolveStructuredRefHashFailure(ref: NonNullable<ScreenshotExecutionOutput["gridSpecRef"]> | NonNullable<ScreenshotExecutionOutput["visualMissionInputRef"]>) {
+  await access(ref.storageRef);
+  const persisted = await readFile(ref.storageRef, "utf8");
+  const sha256 = createHash("sha256").update(persisted).digest("hex");
+  return sha256 === ref.sha256
+    ? null
+    : buildScreenshotOutputBoundaryFailure("structured_ref_hash_mismatch", "Structured visual mission ref hash must match persisted JSON content.");
+}
+
+async function resolveVisualMissionStructuredRefFailure(input: { output: ScreenshotExecutionOutput }) {
+  if (input.output.imageKind !== "coordinate_grid" || !input.output.gridSpecRef || !input.output.visualMissionInputRef) {
+    return null;
+  }
+
+  return await resolveStructuredRefHashFailure(input.output.gridSpecRef)
+    ?? await resolveStructuredRefHashFailure(input.output.visualMissionInputRef);
+}
+
 async function resolveArtifactFileHashFailure(input: {
   context: ScreenshotRuntimeContext;
   output: ScreenshotExecutionOutput;
@@ -187,8 +240,10 @@ async function resolveScreenshotOutputBoundaryGate(input: {
     ?? resolveOutputCoordinateSpaceFailure(input)
     ?? resolveOutputAiInputMappingFailure(input)
     ?? resolveTransformedOutputSourceEvidenceFailure(input)
+    ?? resolveVisualMissionOutputShapeFailure(input)
     ?? resolveOutputArtifactLifecycleSovereigntyFailure(input)
     ?? resolveOutputArtifactByteSizeFailure(input)
+    ?? await resolveVisualMissionStructuredRefFailure(input)
     ?? await resolveLifecycleManifestFailure(input)
     ?? await resolveArtifactFileHashFailure(input)
     ?? {

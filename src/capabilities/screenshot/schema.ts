@@ -33,6 +33,7 @@ import {
   DEFAULT_SCREENSHOT_ARTIFACT_BUDGET_POLICY,
   DEFAULT_SCREENSHOT_ARTIFACT_BUDGET_SNAPSHOT,
 } from "./shared/screenshot-policy.js";
+import { ScreenshotGridCellSchema, ScreenshotGridSpecSchema, ScreenshotStructuredRefSchema, ScreenshotVisualMissionInputSchema } from "./visual-mission-schema.js";
 import { validateScreenshotResult, validateScreenshotRuntimeProofCore, validateScreenshotRuntimeProofPrepareAiInput } from "./screenshot-schema-refinements.js";
 
 const nullableString = z.string().min(1).nullable().optional().default(null);
@@ -126,6 +127,7 @@ const ScreenshotSourceProofSchema = z.object({
   sourceKind: ScreenshotSourceKindSchema,
   sourceStorageRef: sourceStorageRefString.nullable().optional().default(null),
   sourceArtifactRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
+  inheritedScaleMapping: ScreenshotScaleMappingSchema.nullable().optional().default(null),
   sourceScreenshotEvidenceId: nullableString,
   sourceHash: nullableString,
   coordinateSpace: ScreenshotCoordinateSpaceSchema.exclude(["ai_input_pixels"]).nullable().optional().default(null),
@@ -327,12 +329,19 @@ const PrepareAiInputInputSchema = ScreenshotBaseInputSchema.extend({
   region: ScreenshotBoundingBoxSchema.nullable().optional().default(null),
 }).strict();
 
+const PrepareVisualMissionInputInputSchema = ScreenshotBaseInputSchema.extend({
+  childCapabilityId: z.literal("prepare-visual-mission-input"),
+  source: ScreenshotStoredImageSourceSchema,
+  region: z.null().optional().default(null),
+}).strict();
+
 const ScreenshotAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
   CaptureBrowserViewportInputSchema,
   CaptureDesktopScreenInputSchema,
   CaptureRegionInputSchema,
   OptimizeLosslessInputSchema,
   PrepareAiInputInputSchema,
+  PrepareVisualMissionInputInputSchema,
 ]);
 
 const ScreenshotExecutionOutputSchema = z.object({
@@ -361,6 +370,12 @@ const ScreenshotExecutionOutputSchema = z.object({
   cleanupEligible: z.boolean(),
   regionLabel: z.string().min(1),
   regionType: z.string().min(1),
+  originalScreenshotRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
+  coordinateGridScreenshotRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
+  gridSpecRef: ScreenshotStructuredRefSchema.nullable().optional().default(null),
+  visualMissionInputRef: ScreenshotStructuredRefSchema.nullable().optional().default(null),
+  visualMissionInput: ScreenshotVisualMissionInputSchema.nullable().optional().default(null),
+  gridSpec: ScreenshotGridSpecSchema.nullable().optional().default(null),
   contentLines: z.array(z.string().min(1)).default([]),
 }).strict();
 
@@ -397,6 +412,10 @@ const ScreenshotRuntimeProofIdentitySchema = z.object({
   screenshotEvidenceId: nullableString,
   artifactRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
   sourceArtifactRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
+  originalScreenshotRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
+  coordinateGridScreenshotRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
+  gridSpecRef: ScreenshotStructuredRefSchema.nullable().optional().default(null),
+  visualMissionInputRef: ScreenshotStructuredRefSchema.nullable().optional().default(null),
   artifactLifecycleManifestRef: z.string().min(1).nullable().optional().default(null),
   retentionClass: ScreenshotRetentionClassSchema.nullable().optional().default(null),
   promotionStatus: ScreenshotPromotionStatusSchema.nullable().optional().default(null),
@@ -447,17 +466,7 @@ const ScreenshotRuntimeProofBaseSchema = ScreenshotRuntimeProofIdentitySchema
   .merge(ScreenshotRuntimeProofTimingSchema)
   .strict();
 
-export const SCREENSHOT_SCHEMA_VALIDATION_MARKERS = [
-  "success proof requires outputRef",
-  "non-success proof must not expose outputRef",
-  "non-success result must not expose output",
-  "diagnosticPayloadRef",
-  "prepare-ai-input proof requires scaleMapping",
-  "capture-region success proof requires sourceScreenshotEvidenceId in scaleMapping",
-  "success proof requires lifecycle manifest",
-  "SCREENSHOT_PROOF_CHAIN_FIELD_NAMES",
-  "SCREENSHOT_RESULT_CHAIN_FIELD_NAMES",
-] as const;
+export const SCREENSHOT_SCHEMA_VALIDATION_MARKERS = ["success proof requires outputRef", "non-success proof must not expose outputRef", "non-success result must not expose output", "diagnosticPayloadRef", "prepare-ai-input proof requires scaleMapping", "prepare-visual-mission-input proof requires gridSpecRef", "capture-region success proof requires sourceScreenshotEvidenceId in scaleMapping", "success proof requires lifecycle manifest", "SCREENSHOT_PROOF_CHAIN_FIELD_NAMES", "SCREENSHOT_RESULT_CHAIN_FIELD_NAMES"] as const;
 
 function validateScreenshotRuntimeProof(value: z.infer<typeof ScreenshotRuntimeProofBaseSchema>, context: z.RefinementCtx) {
   validateScreenshotRuntimeProofCore(value, context);
@@ -480,4 +489,4 @@ const ScreenshotResultSchema = z.object({
 }).strict().superRefine(validateScreenshotResult);
 
 
-export { ScreenshotChildCapabilityIdSchema, ScreenshotStatusSchema, ScreenshotSourceKindSchema, ScreenshotCoordinateSpaceSchema, ScreenshotImageKindSchema, ScreenshotEvidencePolicySchema, ScreenshotRetentionClassSchema, ScreenshotPromotionStatusSchema, ScreenshotFailureCodeSchema, ScreenshotDataQualityFlagSchema, ScreenshotDecisionStatusSchema, ScreenshotPageStateStatusSchema, ScreenshotFailureSchema, ScreenshotBoundingBoxSchema, ScreenshotCaptureBoundsSchema, ScreenshotScaleMappingSchema, ScreenshotArtifactRefSchema, ScreenshotStoredArtifactSchema, ScreenshotSourceProofSchema, ScreenshotCapturePolicySchema, ScreenshotPrivacyPolicySchema, ScreenshotPageStateProofSchema, ScreenshotDecisionSchema, ScreenshotBrowserSessionSnapshotSchema, ScreenshotBrowserCaptureSchema, ScreenshotDesktopCaptureSchema, ScreenshotStoredImageSourceSchema, ScreenshotBrowserViewportSourceSchema, ScreenshotDesktopScreenSourceSchema, ScreenshotArtifactBudgetPolicySchema, ScreenshotArtifactBudgetSnapshotSchema, ScreenshotArtifactCleanupGateSchema, ScreenshotArtifactLifecycleManifestSchema, CaptureBrowserViewportInputSchema, CaptureDesktopScreenInputSchema, CaptureRegionInputSchema, OptimizeLosslessInputSchema, PrepareAiInputInputSchema, ScreenshotAbilityInputSchema, ScreenshotExecutionOutputSchema, ScreenshotRuntimeProofSchema, ScreenshotResultSchema };
+export { ScreenshotChildCapabilityIdSchema, ScreenshotStatusSchema, ScreenshotSourceKindSchema, ScreenshotCoordinateSpaceSchema, ScreenshotImageKindSchema, ScreenshotEvidencePolicySchema, ScreenshotRetentionClassSchema, ScreenshotPromotionStatusSchema, ScreenshotFailureCodeSchema, ScreenshotDataQualityFlagSchema, ScreenshotDecisionStatusSchema, ScreenshotPageStateStatusSchema, ScreenshotFailureSchema, ScreenshotBoundingBoxSchema, ScreenshotCaptureBoundsSchema, ScreenshotScaleMappingSchema, ScreenshotArtifactRefSchema, ScreenshotStoredArtifactSchema, ScreenshotSourceProofSchema, ScreenshotCapturePolicySchema, ScreenshotPrivacyPolicySchema, ScreenshotPageStateProofSchema, ScreenshotDecisionSchema, ScreenshotBrowserSessionSnapshotSchema, ScreenshotBrowserCaptureSchema, ScreenshotDesktopCaptureSchema, ScreenshotStoredImageSourceSchema, ScreenshotBrowserViewportSourceSchema, ScreenshotDesktopScreenSourceSchema, ScreenshotArtifactBudgetPolicySchema, ScreenshotArtifactBudgetSnapshotSchema, ScreenshotArtifactCleanupGateSchema, ScreenshotArtifactLifecycleManifestSchema, CaptureBrowserViewportInputSchema, CaptureDesktopScreenInputSchema, CaptureRegionInputSchema, OptimizeLosslessInputSchema, PrepareAiInputInputSchema, PrepareVisualMissionInputInputSchema, ScreenshotAbilityInputSchema, ScreenshotExecutionOutputSchema, ScreenshotRuntimeProofSchema, ScreenshotResultSchema, ScreenshotStructuredRefSchema, ScreenshotGridCellSchema, ScreenshotGridSpecSchema, ScreenshotVisualMissionInputSchema };

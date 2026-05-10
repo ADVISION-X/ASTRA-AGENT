@@ -67,6 +67,14 @@ export type ScreenshotExecutionPlan =
       sourceProof: ScreenshotSourceProof;
       region: ScreenshotBoundingBox | null;
       maxAiWidth: number;
+    }
+  | {
+      kind: "image-processing";
+      operation: "prepare-visual-mission-input";
+      sourceFilePath: string;
+      sourceProof: ScreenshotSourceProof;
+      rowCount: number;
+      columnCount: number;
     };
 
 export type ScreenshotChildCapability<TInput extends ScreenshotAbilityInput = ScreenshotAbilityInput> = {

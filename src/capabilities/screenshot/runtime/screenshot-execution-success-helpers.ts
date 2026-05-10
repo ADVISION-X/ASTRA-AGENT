@@ -210,6 +210,12 @@ export const resolveScreenshotSuccessOutput = (input: ScreenshotSuccessOutputInp
   buildScreenshotSuccessOutput({
     ...buildScreenshotSuccessOutputIdentityFields(input),
     ...buildScreenshotSuccessOutputLayoutFields(input),
+    originalScreenshotRef: input.pathInput.artifactGate.originalScreenshotRef,
+    coordinateGridScreenshotRef: input.pathInput.artifactGate.coordinateGridScreenshotRef,
+    gridSpecRef: input.pathInput.artifactGate.gridSpecRef,
+    visualMissionInputRef: input.pathInput.artifactGate.visualMissionInputRef,
+    visualMissionInput: input.pathInput.artifactGate.visualMissionInput,
+    gridSpec: input.pathInput.artifactGate.gridSpec,
   });
 
 export {

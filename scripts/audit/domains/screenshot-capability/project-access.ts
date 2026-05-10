@@ -13,6 +13,8 @@ export function createScreenshotAuditProject(): Project {
   project.addSourceFileAtPath(pathFromRepoRoot(PATHS.BROWSER_CONTROLLER_CONTRACT));
   project.addSourceFileAtPath(pathFromRepoRoot(PATHS.CURRENT_CHROME_CONTROLLER));
   project.addSourceFileAtPath(pathFromRepoRoot(PATHS.CURRENT_CHROME_SCREENSHOT));
+  project.addSourceFileAtPath(pathFromRepoRoot(PATHS.MOUSE_CLICK_SCHEMA));
+  project.addSourceFileAtPath(pathFromRepoRoot(PATHS.MOUSE_CLICK_PRIMITIVE_PORT));
   return project;
 }
 

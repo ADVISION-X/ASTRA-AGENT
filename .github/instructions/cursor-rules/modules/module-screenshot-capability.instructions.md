@@ -20,7 +20,9 @@ Core doctrine:
 - Screenshot must preserve coordinate truth whenever pixels are cropped, resized, optimized, or prepared for AI.
 - Screenshot may prepare AI input but must never perform AI judgement.
 - Screenshot may output artifacts but must not decide targets, geometry safety, action success, page state, or business truth.
-- `ai_input`, contact sheet, crop, and resize outputs are non-executable evidence until Visual Target and Geometry Guard process them through their own laws.
+- `ai_input`, contact sheet, crop, resize, and coordinate-grid outputs are non-executable screenshot evidence.
+- Screenshot must own coordinate-grid rendering and `gridSpecRef` generation for visual mission input.
+- AI may output grid cell ids such as `A30` or `C50`, never raw executable `x/y`; `gridSpecRef` is the only decoder contract from AI grid cells to source viewport coordinates before Mouse Click, Text Input, and Forensics own execution and recording.
 - Product-presence observation on the current video must stay lightweight: current-video capture/prepare flows use `ai_input` evidence policy, `preservePixels=false`, max AI width <= 720, and timeout/budget <= 1500ms.
 - Product-presence `observation_lightweight` must prefer direct viewport region screencapture, must not fall back to full-screen source capture on the lightweight path, and must not keep full-screen source files as governed artifacts.
 - Product-presence `observation_lightweight` prepare-ai-input must use lightweight JPEG encoding with quality in the 60-70 range and `mozjpeg=false`; evidence-grade encoding belongs only after a positive governed evidence branch.
@@ -70,6 +72,7 @@ capture-desktop-screen
 capture-region
 optimize-lossless
 prepare-ai-input
+prepare-visual-mission-input
 ```
 
 Required enforcement:
@@ -337,6 +340,8 @@ evidence_optimized
 ai_input
 region_crop
 contact_sheet
+coordinate_grid
+visual_mission_input
 ```
 
 Allowed coordinate spaces:
@@ -349,6 +354,8 @@ region_crop_pixels
 ai_input_pixels
 optimized_equivalent_pixels
 contact_sheet_pixels
+coordinate_grid_pixels
+grid_cell_index_space
 ```
 
 Required:
@@ -357,16 +364,25 @@ Required:
 - `optimize-lossless` must not change width/height/coordinate space.
 - `region_crop` must carry sourceScreenshotEvidenceId, crop offset, source dimensions, target dimensions, scaleX, scaleY.
 - `prepare-ai-input` must carry sourceScreenshotEvidenceId, scaleMapping, source dimensions, target dimensions, crop offset, scaleX, scaleY.
-- `ai_input_pixels` and `contact_sheet_pixels` are never executable coordinate truth.
+- `prepare-visual-mission-input` must carry sourceScreenshotEvidenceId, inherited source scale mapping, coordinate-grid artifact proof, `gridSpecRef`, and `visualMissionInputRef`.
+- `ai_input_pixels`, `contact_sheet_pixels`, and `coordinate_grid_pixels` are never executable coordinate truth.
+- `grid_cell_index_space` is a governed AI-to-system location language, never executable mouse truth by itself.
 - Any resize/crop that changes coordinate meaning must produce scaleMapping.
 - Visual Target and Geometry Guard must use scaleMapping before executable coordinate reasoning.
+- Mouse Click must continue to consume Geometry Guard proof-gated executable coordinates, never AI raw `x/y`.
 
 Forbidden:
 - `prepare-ai-input` success without scaleMapping.
+- `prepare-visual-mission-input` success without `gridSpecRef` / `visualMissionInputRef` / coordinate-grid artifact proof.
 - crop/region success without sourceScreenshotEvidenceId.
 - lossless optimize changing dimensions.
 - contactSheet used as executable coordinate space.
 - ai_input used as executable coordinate space.
+- coordinate_grid used as executable coordinate space.
+- gridSpec generated outside Screenshot.
+- coordinate grid rendered outside Screenshot.
+- AI raw `x/y` accepted as executable mouse coordinate.
+- Mouse Click consuming AI raw coordinates without Screenshot decoder + Geometry Guard proof.
 - hidden resizing/cropping policies outside Screenshot.
 - scaleMapping with null sourceScreenshotEvidenceId for transformed artifacts.
 
@@ -643,6 +659,7 @@ capture-desktop-screen
 capture-region
 optimize-lossless
 prepare-ai-input
+prepare-visual-mission-input
 ```
 
 Required:
@@ -654,6 +671,7 @@ Required:
 - `capture-browser-viewport` must use browser capture port only.
 - `capture-desktop-screen` must use governed capture port and privacy gate.
 - `capture-region`, `optimize-lossless`, and `prepare-ai-input` must use source proof and image-processing port.
+- `prepare-visual-mission-input` must use source proof, image-processing port, governed coordinate-grid artifact storage, and Screenshot-owned structured refs.
 
 Forbidden:
 - child returning boolean.
@@ -674,6 +692,7 @@ Required real-code-inspection:
 - Child imports BrowserController → FAIL.
 - Child imports sibling implementation → FAIL.
 - prepare-ai-input hardcodes resize without scaleMapping → FAIL.
+- prepare-visual-mission-input returns raw executable `x/y` instead of grid-cell decoder material → FAIL.
 
 ---
 

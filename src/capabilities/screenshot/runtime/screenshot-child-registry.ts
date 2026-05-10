@@ -1,9 +1,10 @@
-import type { PrepareAiInputInput, ScreenshotAbilityInput } from "../contract.js";
+import type { PrepareAiInputInput, PrepareVisualMissionInput, ScreenshotAbilityInput } from "../contract.js";
 import { captureBrowserViewportChildCapability } from "../children/capture-browser-viewport/implementation.js";
 import { captureDesktopScreenChildCapability } from "../children/capture-desktop-screen/implementation.js";
 import { captureRegionChildCapability } from "../children/capture-region/implementation.js";
 import { optimizeLosslessChildCapability } from "../children/optimize-lossless/implementation.js";
 import { prepareAiInputChildCapability } from "../children/prepare-ai-input/implementation.js";
+import { prepareVisualMissionInputChildCapability } from "../children/prepare-visual-mission-input/implementation.js";
 import type { ScreenshotChildCapability, ScreenshotExecutionPlan } from "./screenshot-child-contract.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
 
@@ -13,6 +14,7 @@ const screenshotChildCapabilities = new Map<ScreenshotAbilityInput["childCapabil
   [captureRegionChildCapability.childCapabilityId, captureRegionChildCapability],
   [optimizeLosslessChildCapability.childCapabilityId, optimizeLosslessChildCapability],
   [prepareAiInputChildCapability.childCapabilityId, prepareAiInputChildCapability],
+  [prepareVisualMissionInputChildCapability.childCapabilityId, prepareVisualMissionInputChildCapability],
 ]);
 
 type ScreenshotChildPlanInput = {
@@ -31,6 +33,16 @@ function executePrepareAiInputPlan(input: {
       ...input.request,
       maxAiWidth: input.resolvedMaxAiWidth,
     },
+    context: input.context,
+  });
+}
+
+function executePrepareVisualMissionInputPlan(input: {
+  request: PrepareVisualMissionInput;
+  context: ScreenshotRuntimeContext;
+}): Promise<ScreenshotExecutionPlan> {
+  return prepareVisualMissionInputChildCapability.execute({
+    request: input.request,
     context: input.context,
   });
 }
@@ -62,6 +74,12 @@ export async function executeRegisteredScreenshotChildPlan(
         request: input.request,
         context: input.context,
         resolvedMaxAiWidth: input.resolvedMaxAiWidth,
+      });
+      break;
+    case "prepare-visual-mission-input":
+      plan = await executePrepareVisualMissionInputPlan({
+        request: input.request,
+        context: input.context,
       });
       break;
     default:

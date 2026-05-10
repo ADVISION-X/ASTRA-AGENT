@@ -44,6 +44,7 @@ type ScreenshotRuntimeProofValidationTarget = {
 
 type ScreenshotAbilityResultValidationTarget = {
   failureReason: ScreenshotFailureLike | null;
+  childCapabilityId: string;
   runtimeProof: ScreenshotRuntimeProofValidationTarget;
   dataQualityFlags: string[];
   status: string;
@@ -165,10 +166,21 @@ const validateOptimizeLosslessProof = (value: ScreenshotRuntimeProofValidationTa
   }
 };
 
+const validatePrepareVisualMissionProof = (value: ScreenshotRuntimeProofValidationTarget, context: z.RefinementCtx): void => {
+  if (value.status !== "success" || value.childCapabilityId !== "prepare-visual-mission-input") {
+    return;
+  }
+
+  if ((value as Record<string, unknown>).gridSpecRef == null || (value as Record<string, unknown>).visualMissionInputRef == null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "prepare-visual-mission-input proof requires gridSpecRef and visualMissionInputRef", path: ["gridSpecRef"] });
+  }
+};
+
 export const validateScreenshotRuntimeProofPrepareAiInput = (value: ScreenshotRuntimeProofValidationTarget, context: z.RefinementCtx): void => {
   validatePrepareAiInputScaleMapping(value, context);
   validateCaptureRegionScaleMapping(value, context);
   validateOptimizeLosslessProof(value, context);
+  validatePrepareVisualMissionProof(value, context);
 };
 
 export const validateScreenshotRuntimeProofCore = (value: ScreenshotRuntimeProofValidationTarget, context: z.RefinementCtx): void => {
@@ -210,6 +222,12 @@ const validateResultOutput = (value: ScreenshotAbilityResultValidationTarget, co
   }
   if (value.status !== "success" && value.output) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "non-success result must not expose output", path: ["output"] });
+  }
+  if (value.status === "success" && value.childCapabilityId === "prepare-visual-mission-input") {
+    const output = value.output as Record<string, unknown> | null;
+    if (!output || output.gridSpecRef == null || output.visualMissionInputRef == null || output.originalScreenshotRef == null || output.coordinateGridScreenshotRef == null) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "prepare-visual-mission-input result requires originalScreenshotRef, coordinateGridScreenshotRef, gridSpecRef, and visualMissionInputRef", path: ["output"] });
+    }
   }
 };
 

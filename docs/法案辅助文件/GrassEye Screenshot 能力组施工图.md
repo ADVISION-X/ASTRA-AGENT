@@ -105,6 +105,7 @@ src/capabilities/screenshot/
 ├── ability-group.ts
 ├── contract.ts
 ├── schema.ts
+├── visual-mission-schema.ts
 ├── registry.ts
 ├── index.ts
 ├── ports/
@@ -125,6 +126,7 @@ src/capabilities/screenshot/
 │   ├── screenshot-proof.ts
 │   ├── screenshot-result.ts
 │   ├── screenshot-scale-mapping.ts
+│   ├── visual-mission-grid.ts
 │   └── screenshot-types.ts
 ├── runtime/
 │   ├── screenshot-executor.ts
@@ -144,13 +146,16 @@ src/capabilities/screenshot/
 │   ├── screenshot-output-boundary-gate.ts
 │   ├── screenshot-proof-builder.ts
 │   ├── screenshot-result-builder.ts
+│   ├── screenshot-structured-data-ref.ts
+│   ├── screenshot-visual-mission-output.ts
 │   └── screenshot-dispatch-failure.ts
 └── children/
     ├── capture-browser-viewport/
     ├── capture-desktop-screen/
     ├── capture-region/
     ├── optimize-lossless/
-    └── prepare-ai-input/
+  ├── prepare-ai-input/
+  └── prepare-visual-mission-input/
 ```
 
 ---
@@ -338,6 +343,8 @@ evidence_optimized
 ai_input
 region_crop
 contact_sheet
+coordinate_grid
+visual_mission_input
 ```
 
 Rules：
@@ -348,6 +355,8 @@ evidence_optimized 必须保持与 source 等价的像素尺寸和 coordinateSpa
 ai_input 可以 crop/resize，但必须保留 scaleMapping。
 region_crop 必须保留 sourceScreenshotEvidenceId + crop offsets。
 contact_sheet 永远是非可执行 evidence representation。
+coordinate_grid 是 Screenshot 派生的可视定位语言，不是可执行鼠标真相。
+visual_mission_input 是 Screenshot bundle ref，不是 AI judgement。
 ```
 
 ---
@@ -364,6 +373,8 @@ region_crop_pixels
 ai_input_pixels
 optimized_equivalent_pixels
 contact_sheet_pixels
+coordinate_grid_pixels
+grid_cell_index_space
 ```
 
 禁止：
@@ -371,8 +382,58 @@ contact_sheet_pixels
 ```txt
 ai_input_pixels 被当成可执行坐标
 contact_sheet_pixels 被当成可执行坐标
+coordinate_grid_pixels 被当成可执行坐标
+grid_cell_index_space 被跳过 decoder 直接执行
 lossless optimize 改变尺寸
 crop/resize 不保留 scaleMapping
+```
+
+## 9.1 Coordinate Grid / Visual Mission Input Path
+
+新故事链路下，Screenshot 必须直接产出：
+
+```txt
+capture-current-video-viewport
+-> originalScreenshotRef
+-> prepare-visual-mission-input
+-> coordinateGridScreenshotRef
+-> gridSpecRef
+-> visualMissionInputRef
+```
+
+`prepare-visual-mission-input` 输入：
+
+```txt
+screenshotEvidenceRef / stored image sourceProof
+```
+
+`prepare-visual-mission-input` 输出：
+
+```txt
+originalScreenshotRef
+coordinateGridScreenshotRef
+gridSpecRef
+visualMissionInputRef
+```
+
+grid 规则：
+
+```txt
+Y 轴 = 字母
+X 轴 = 数字
+格子例子：A1 / A30 / C50 / K12
+AI 只能返回格子 ID，不得返回 raw x/y
+gridSpecRef 是格子到 source viewport 坐标的唯一 decoder contract
+```
+
+禁止：
+
+```txt
+prepare-visual-mission-input 做 AI 判断
+prepare-visual-mission-input 做业务判断
+prepare-visual-mission-input 输出 safeToClick
+prepare-visual-mission-input 直接输出 executableCoordinate
+AI 直接解释或重算 gridSpec
 ```
 
 ---
@@ -799,6 +860,7 @@ CAPABILITY_CALL_STARTED / CAPABILITY_CALL_FAILED / MISSION_FAILED 必须同时�
 | capture-region | 从 source 截区域 | sourceProof + region proof | 缺 sourceScreenshotEvidenceId |
 | optimize-lossless | 无损优化 | 尺寸/坐标等价 | 改变 coordinateSpace |
 | prepare-ai-input | 准备 AI 输入图 | scaleMapping | 直接变可执行坐标 |
+| prepare-visual-mission-input | 生成坐标图与 visual mission bundle | sourceProof + coordinateGridScreenshotRef + gridSpecRef | 输出 raw x/y / 直接点击 |
 
 每个 child 必须：
 
@@ -817,8 +879,9 @@ not return boolean
 
 ### AI
 
-AI 消费 `ai_input`。
+AI 消费 `ai_input` 或 `visualMissionInputRef` 指向的原图 + 坐标图组合。
 AI 不自己 resize/crop governed screenshot artifact。
+AI 不得返回 raw x/y；AI 只允许返回 grid cell id。
 
 ### Visual Target
 

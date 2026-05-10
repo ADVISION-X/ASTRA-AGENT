@@ -6,6 +6,7 @@ import { screenshotExecutionPhaseSupport } from "./screenshot-execution-phase-su
 import { screenshotExecutionRuntimeSupport } from "./screenshot-execution-runtime-support.js";
 import type { ScreenshotExecutionGates } from "./screenshot-execution-phases.js";
 import type { ScreenshotRuntimeContext } from "./screenshot-runtime-context.js";
+import { buildVisualMissionSupplementalOutput } from "./screenshot-visual-mission-output.js";
 
 type ScreenshotArtifactGate = Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runArtifactStorageGate>>;
 
@@ -27,6 +28,46 @@ function hasArtifactStorageGateFailure(artifactGate: ScreenshotArtifactGate) {
     || artifactGate.decision.status !== "passed"
     || hasArtifactStorageGateRefs(artifactGate)
     || hasArtifactStorageGateMetrics(artifactGate);
+}
+
+async function enrichVisualMissionArtifactGate(input: {
+  request: ScreenshotAbilityInput;
+  context: ScreenshotRuntimeContext;
+  scope: ScreenshotExecutionScope;
+  metadata: { createdAt: string };
+  imageRun: Awaited<ReturnType<typeof screenshotExecutionRuntimeSupport.runImageProcessingRunner>> | null;
+  artifactGate: ScreenshotArtifactGate;
+}): Promise<ScreenshotArtifactGate> {
+  if (input.request.childCapabilityId !== "prepare-visual-mission-input"
+    || !input.artifactGate.artifactRef
+    || !input.imageRun?.output?.gridSpec) {
+    return input.artifactGate;
+  }
+
+  try {
+    const visualMissionOutput = await buildVisualMissionSupplementalOutput({
+      context: input.context,
+      request: input.request,
+      evidenceId: input.scope.evidenceId,
+      createdAt: input.metadata.createdAt,
+      coordinateGridScreenshotRef: input.artifactGate.artifactRef,
+      gridSpec: input.imageRun.output.gridSpec,
+    });
+    return {
+      ...input.artifactGate,
+      ...visualMissionOutput,
+    };
+  } catch (error) {
+    return {
+      ...input.artifactGate,
+      decision: { status: "failed", reason: "visual_mission_bundle_write_failed" },
+      failure: screenshotExecutionRuntimeSupport.createScreenshotFailure({
+        code: "artifact_write_failed",
+        message: "Screenshot visual mission bundle persistence failed.",
+        detail: error instanceof Error ? error.message : String(error),
+      }),
+    };
+  }
 }
 
 async function buildArtifactStorageFailureResult(input: {
@@ -159,5 +200,18 @@ export async function executeScreenshotArtifactStoragePhase(input: {
     return buildArtifactStorageFailureResult({ ...input, phaseTimings, artifactGate });
   }
 
-  return buildArtifactStorageSuccessResult({ ...input, phaseTimings, artifactGate });
+  const enrichedArtifactGate = await enrichVisualMissionArtifactGate({
+    request: input.request,
+    context: input.context,
+    scope: input.scope,
+    metadata: input.metadata,
+    imageRun: input.imageRun,
+    artifactGate,
+  });
+
+  if (hasArtifactStorageGateFailure(enrichedArtifactGate)) {
+    return buildArtifactStorageFailureResult({ ...input, phaseTimings, artifactGate: enrichedArtifactGate });
+  }
+
+  return buildArtifactStorageSuccessResult({ ...input, phaseTimings, artifactGate: enrichedArtifactGate });
 }

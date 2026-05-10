@@ -10,11 +10,12 @@ import { runLawBaselineCheck } from "./law-baseline-check.js";
 import { runOwnershipBoundary } from "./ownership-boundary.js";
 import { runProductPresenceLightweightCheck } from "./run-product-presence-lightweight-check.js";
 import { runRequiredShape } from "./required-shape.js";
+import { runVisualMissionShape } from "./visual-mission-shape.js";
 
 const runScreenshotChecks = async (_context: InspectorContext) => {
   const project = createScreenshotAuditProject();
   const ownershipBoundary = runOwnershipBoundary(project);
-  const [lawBaseline, required, forbidden, boundary, childRuntime, antiEscape, productPresenceLightweight] = await Promise.all([
+  const [lawBaseline, required, forbidden, boundary, childRuntime, antiEscape, productPresenceLightweight, visualMission] = await Promise.all([
     runLawBaselineCheck(),
     runRequiredShape(project),
     runForbiddenShape(project),
@@ -22,8 +23,9 @@ const runScreenshotChecks = async (_context: InspectorContext) => {
     Promise.resolve(runChildRuntimeCheck(project)),
     runAntiEscape(project),
     Promise.resolve(runProductPresenceLightweightCheck(project)),
+    Promise.resolve(runVisualMissionShape(project)),
   ]);
-  return { lawBaseline, required, forbidden, boundary, childRuntime, ownershipBoundary, antiEscape, productPresenceLightweight };
+  return { lawBaseline, required, forbidden, boundary, childRuntime, ownershipBoundary, antiEscape, productPresenceLightweight, visualMission };
 };
 
 const buildInspectorResult = (
@@ -40,6 +42,7 @@ const buildInspectorResult = (
     ...checks.ownershipBoundary.findings,
     ...checks.antiEscape.findings,
     ...checks.productPresenceLightweight.findings,
+    ...checks.visualMission.findings,
   ];
 
   return {
@@ -57,9 +60,10 @@ const buildInspectorResult = (
       checks.ownershipBoundary.phase,
       checks.antiEscape.phase,
       checks.productPresenceLightweight.phase,
+      checks.visualMission.phase,
     ],
     summary: findings.length === 0
-      ? "screenshot-capability owner inspector passed owner-foundation, required-shape, forbidden-shape, boundary, ownership-boundary, and anti-escape phases"
+      ? "screenshot-capability owner inspector passed owner-foundation, required-shape, visual-mission-shape, forbidden-shape, boundary, ownership-boundary, and anti-escape phases"
       : "screenshot-capability owner inspector found capability-boundary, chain-truth, or enforcement violations",
   };
 };
