@@ -30,20 +30,20 @@ const CLOCK_PORT_PATH = `${ROOT}/ports/commander-clock-port.ts`;
 const CLOCK_PATH = `${ROOT}/runtime/commander-clock.ts`;
 const MANIFEST_PATH = "scripts/audit/domains/commander-console-capability/manifest.json";
 const TASK_HANDLER_PATH = "src/app/task-api-handlers.ts";
-const CANDIDATE_HANDLER_PATH = "src/app/candidate-api-handlers.ts";
 const WORKBENCH_PATH = "src/lib/local-runtime/workbench.ts";
 const WORKBENCH_COMMANDER_DEBUG_PATH = "src/lib/local-runtime/workbench-commander-debug.ts";
 const TASK_START_DISPATCH_RESULT_PATH = "src/lib/local-app-shell/task-start-dispatch-result.ts";
 const SHELL_RENDER_PATH = "src/lib/local-app-shell/render-commander-console-page.ts";
 const SHELL_PAGE_CLIENT_PATH = "src/lib/local-app-shell/commander-console-shell-client.ts";
 const STARTUP_PATH = "scripts/startup/launch-grasseye.mjs";
+const ISSUE_HUMAN_COMMAND_CONTRACT_PATH = `${CHILDREN_ROOT}/issue-human-command/contract.ts`;
+const ISSUE_HUMAN_COMMAND_SCHEMA_PATH = `${CHILDREN_ROOT}/issue-human-command/schema.ts`;
 
 const CHILD_IDS = [
   "issue-human-command",
   "show-mission-dashboard",
   "show-capability-roster",
   "show-capability-health",
-  "show-operational-map-progress",
   "show-runtime-proof-timeline",
   "show-evidence-packets",
   "show-browse-ledger",
@@ -54,8 +54,6 @@ const CHILD_IDS = [
   "resume-mission",
   "stop-mission",
   "emergency-stop",
-  "approve-candidate",
-  "reject-candidate",
   "mark-review-required",
   "inspect-record-detail",
 ] as const;
@@ -66,8 +64,6 @@ const COMMAND_CHILD_IDS = new Set([
   "resume-mission",
   "stop-mission",
   "emergency-stop",
-  "approve-candidate",
-  "reject-candidate",
   "mark-review-required",
 ]);
 
@@ -159,13 +155,14 @@ export const commanderConsoleInspectionConstants = {
   CLOCK_PATH,
   MANIFEST_PATH,
   TASK_HANDLER_PATH,
-  CANDIDATE_HANDLER_PATH,
   WORKBENCH_PATH,
   WORKBENCH_COMMANDER_DEBUG_PATH,
   TASK_START_DISPATCH_RESULT_PATH,
   SHELL_RENDER_PATH,
   SHELL_PAGE_CLIENT_PATH,
   STARTUP_PATH,
+  ISSUE_HUMAN_COMMAND_CONTRACT_PATH,
+  ISSUE_HUMAN_COMMAND_SCHEMA_PATH,
   CHILD_IDS,
   COMMAND_CHILD_IDS,
   REQUIRED_FILES,

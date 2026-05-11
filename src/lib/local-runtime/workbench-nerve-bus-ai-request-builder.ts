@@ -1,7 +1,6 @@
 import type {
   AiRequestDispatchInput,
 } from "../../capabilities/nerve-bus/contract.js";
-import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 
 import {
   payloadDocumentToObject,
@@ -51,7 +50,7 @@ const resolveAiTaskType = (envelope: WorkbenchAiRequestEnvelope): (typeof SUPPOR
 
 const requireChainField = (value: string | null | undefined): string => {
   if (!value) {
-    throw new Error("Workbench AI request is missing required active binding chain fields.");
+    throw new Error("Workbench AI request is missing required governed visual-mission chain fields.");
   }
 
   return value;
@@ -129,19 +128,27 @@ const buildSchemaValidationInputPayload = (
   validationContextRef: `${envelope.envelopeId}:schema-validation-only`,
 });
 
+const isVisionImageCollectionTask = (taskType: SupportedWorkbenchAiTaskType): boolean => (
+  taskType === PAGE_PREPARATION_TASK_TYPE
+  || taskType === PRODUCT_PRESENCE_TASK_TYPE
+  || taskType === VISUAL_TARGET_CANDIDATE_TASK_TYPE
+);
+
 const buildWorkbenchAiInputPayload = (
   envelope: WorkbenchAiRequestEnvelope,
   inputPayload: WorkbenchAiPayloadDocument,
 ) => {
-  return envelope.taskType === "schema_validation_only"
-    ? buildSchemaValidationInputPayload(envelope, inputPayload)
-    : envelope.taskType === VISUAL_MISSION_ACTION_PLAN_TASK_TYPE
-    ? buildWorkbenchVisualMissionActionPlanInput(inputPayload)
-    : envelope.taskType === PAGE_PREPARATION_TASK_TYPE
-      || envelope.taskType === PRODUCT_PRESENCE_TASK_TYPE
-      || envelope.taskType === VISUAL_TARGET_CANDIDATE_TASK_TYPE
-    ? buildVisionImageCollectionInputPayload(envelope, inputPayload)
-    : buildDefaultAiInputPayload(inputPayload);
+  if (envelope.taskType === "schema_validation_only") {
+    return buildSchemaValidationInputPayload(envelope, inputPayload);
+  }
+  if (envelope.taskType === VISUAL_MISSION_ACTION_PLAN_TASK_TYPE) {
+    return buildWorkbenchVisualMissionActionPlanInput(inputPayload);
+  }
+  if (isVisionImageCollectionTask(envelope.taskType)) {
+    return buildVisionImageCollectionInputPayload(envelope, inputPayload);
+  }
+
+  return buildDefaultAiInputPayload(inputPayload);
 };
 
 const resolveWorkbenchAiInputModality = (taskType: SupportedWorkbenchAiTaskType) =>
@@ -172,7 +179,6 @@ export const buildWorkbenchAiAbilityRequest = (
   envelope: WorkbenchAiRequestEnvelope,
   inputPayload: WorkbenchAiPayloadDocument,
 ): WorkbenchAiExecuteInput => {
-  const mapRecord = getDevelopmentMapPluginRegistry().active.getActiveOperationalMapRecord(envelope.mapId);
   const taskType = resolveAiTaskType(envelope);
   ensureWorkbenchAiInputProof(envelope, inputPayload);
 
@@ -199,7 +205,7 @@ export const buildWorkbenchAiAbilityRequest = (
     bindingVersion: envelope.bindingVersion,
     bindingActivationRef: envelope.bindingActivationRef,
     bindingSnapshotRef: requireChainField(envelope.bindingSnapshotRef),
-    promptCatalogVersion: requireChainField(mapRecord?.promptCatalogVersion),
+    promptCatalogVersion: requireChainField(envelope.promptContractVersion),
     qualityPolicy: resolveWorkbenchAiQualityPolicy(taskType),
     providerPolicy: resolveWorkbenchAiProviderPolicy(taskType),
     costPolicy: { maxEstimatedCost: 0 },

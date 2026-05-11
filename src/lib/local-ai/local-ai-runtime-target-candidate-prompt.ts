@@ -51,7 +51,7 @@ export const buildNextItemTargetCandidatePromptParts = (
     "Every key in the required schema is mandatory.",
     "Return targetCandidates as a JSON array. Use an empty array when no governed candidate is visible.",
     "If no reliable next-item control is visible, return targetCandidates as [] instead of inventing placeholder coordinates.",
-    "Never return product_yes/product_no, routeLabel, review_required, or any executable instruction.",
+    "Never return product_yes/product_no, any retired branch token, review_required, or any executable instruction.",
     "confidence must be a JSON number from 0 to 1 based only on visible evidence.",
     "All coordinates must be finite numbers within the visible image bounds and clickPoint must land inside the candidate boundingBox.",
     "Never copy template placeholder numbers such as x=0, y=0, width=10, height=10, clickPoint=(5,5), or any tiny upper-left corner box unless the visible next-item affordance is actually there.",

@@ -14,6 +14,7 @@ const SYSTEM_MANUAL_FILE = "src/muscle-memory/system-manual.ts";
 const AI_OUTPUT_SCHEMA_FILE = "src/visual-mission/action-plan/ai-output.schema.ts";
 const CATALOG_FILE = "src/muscle-memory/catalog/muscle-memory-catalog.generated.json";
 const ATTACK_DOC_FILE = "audit/muscle-memory-action-four-way-attack.md";
+const PROMPT_BUILDER_FILE = "src/capabilities/ai/prompt-contracts/visual-mission-action-plan/prompt-builder.ts";
 const HIDDEN_ACTION_CODES = [
   "PRESS_KEY",
   "PRESS_NAVIGATION_KEY",
@@ -24,6 +25,16 @@ const HIDDEN_ACTION_CODES = [
   "VISUAL_MISSION_JUDGE",
   "WRITE_ACTION_LOG",
   "WRITE_AI_RESULT",
+] as const;
+const HUMAN_IN_LOOP_ACTION_CODES = [
+  "approve-candidate",
+  "reject-candidate",
+  "mark-review-required",
+  "ASK_HUMAN",
+  "WAIT_FOR_HUMAN",
+  "HUMAN_APPROVE",
+  "HUMAN_REJECT",
+  "REQUEST_OPERATOR_CLICK",
 ] as const;
 const REQUIRED_VISIBLE_ACTION_CODES = [
   "OPEN_FACEBOOK_ENTRY",
@@ -71,6 +82,9 @@ function collectCatalogVisibilityFindings(): Finding[] {
     ...REQUIRED_VISIBLE_ACTION_CODES.flatMap((actionCode) => !visibleActionCodes.has(actionCode)
       ? [createActionSurfaceFinding(CATALOG_FILE, `${actionCode} must remain AI-visible as a governed semantic action.`)]
       : []),
+    ...HUMAN_IN_LOOP_ACTION_CODES.flatMap((actionCode) => visibleActionCodes.has(actionCode)
+      ? [createActionSurfaceFinding(CATALOG_FILE, `${actionCode} must stay out of the AI-visible action surface because ordinary human-in-loop actions are fail-closed.`)]
+      : []),
   ];
 }
 
@@ -113,6 +127,24 @@ function collectManualOutputFindings(): Finding[] {
   }
   if (!hasValidSaveLeadManualBlock(saveLeadBlock)) {
     findings.push(createActionSurfaceFinding(SYSTEM_MANUAL_FILE, "SAVE_LEAD manual block must keep targetUrl, targetTitle, screenshotEvidenceRef, and productPresenceAiResultRef in systemInjectedInput instead of AI-required input."));
+  }
+
+  return findings;
+}
+
+function collectNoHumanInLoopPromptFindings(): Finding[] {
+  const findings: Finding[] = [];
+  const promptBuilderText = readFileSync(pathFromRepoRoot(PROMPT_BUILDER_FILE), "utf8");
+
+  if (!promptBuilderText.includes("Do not ask the human to choose ordinary next actions")
+    || !promptBuilderText.includes("STOP_REVIEW_REQUIRED")) {
+    findings.push(createActionSurfaceFinding(PROMPT_BUILDER_FILE, "Visual mission prompt must explicitly forbid ordinary human-in-loop action selection and direct the model to STOP_REVIEW_REQUIRED when blocked."));
+  }
+
+  for (const actionCode of HUMAN_IN_LOOP_ACTION_CODES) {
+    if (!promptBuilderText.includes(actionCode)) {
+      findings.push(createActionSurfaceFinding(PROMPT_BUILDER_FILE, `Visual mission prompt must explicitly forbid ${actionCode} from the AI-visible output surface.`));
+    }
   }
 
   return findings;
@@ -217,6 +249,7 @@ function collectFourWayAttackFindings(): Finding[] {
 export const inspectVisualMissionActionSurface = (_project: Project): Finding[] => [
   ...collectCatalogVisibilityFindings(),
   ...collectManualOutputFindings(),
+  ...collectNoHumanInLoopPromptFindings(),
   ...collectDecoderClosureFindings(),
   ...collectFourWayAttackFindings(),
 ];

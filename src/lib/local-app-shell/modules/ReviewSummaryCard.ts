@@ -20,9 +20,6 @@ export function renderReviewSummaryCard(viewModel: CommanderConsoleViewModel): s
           </div>
           <div class="cc-inline-actions">
             <button type="button" class="cc-inline-button" data-inspect-kind="record" data-inspect-id="${escapeHtml(candidate.id)}">${escapeHtml(t("检查", "Inspect"))}</button>
-            <button type="button" class="cc-button cc-button-tight cc-button-primary" data-review-candidate="${escapeHtml(candidate.id)}" data-review-disposition="approve">${escapeHtml(t("批准", "Approve"))}</button>
-            <button type="button" class="cc-button cc-button-tight" data-review-candidate="${escapeHtml(candidate.id)}" data-review-disposition="pending">${escapeHtml(t("继续待复核", "Keep Pending"))}</button>
-            <button type="button" class="cc-button cc-button-tight cc-button-danger" data-review-candidate="${escapeHtml(candidate.id)}" data-review-disposition="reject">${escapeHtml(t("拒绝", "Reject"))}</button>
           </div>
         </article>`).join("")}</div>`,
     `<button type="button" class="cc-button cc-button-tight" data-command-action="stop-mission"${stopAvailable ? "" : ' disabled="disabled"'}>${escapeHtml(t("停止任务", "Stop Mission"))}</button>`,

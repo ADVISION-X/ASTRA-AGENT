@@ -50,7 +50,7 @@ export const buildCommentsEntryTargetCandidatePromptParts = (
   const userPrompt = [
     "Every key in the required schema is mandatory.",
     "Return targetCandidates as a JSON array. Use an empty array when no governed candidate is visible.",
-    "Never return routeLabel, review_required, or any executable instruction.",
+    "Never return any retired branch token, review_required, or any executable instruction.",
     "confidence must be a JSON number from 0 to 1 based only on visible evidence.",
     "All coordinates must be finite numbers within the visible image bounds and clickPoint must land inside the candidate boundingBox.",
     `Return JSON matching this schema: ${JSON.stringify(contract.requiredOutputSchema)}`,

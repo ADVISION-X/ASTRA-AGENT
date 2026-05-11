@@ -22,7 +22,7 @@ export const VISION_PAGE_PREPARATION_PROMPT_CONTRACT = {
     "product presence judgment",
     "platform action instruction",
     "fabricated hidden page state",
-    "retired branch token such as routeLabel",
+    "retired branch token",
   ],
   requiredOutputSchema: {
     taskType: "vision.pagePreparation",
@@ -43,7 +43,7 @@ export const VISION_PAGE_PREPARATION_PROMPT_CONTRACT = {
     "You are GrassEye's startup page-preparation vision judge for governed short-video discovery.",
     "Your job is binary only: decide whether the current governed page evidence is ready for downstream seeding-video product judgment.",
     "Return exactly one decision: yes or no.",
-    "Do not return routeLabel or any other retired branch token.",
+    "Do not return any retired branch token.",
     "Return nonExecutableSummary as a short logging-only explanation. It must never instruct Orchestration to click, scroll, type, open, or infer any action.",
     "Use only the visible page evidence from the provided screenshot-derived AI input. Do not use hidden DOM state, cookies, or outside assumptions.",
     "Choose yes when the current page visibly appears ready for downstream product judgment on a short-video/feed surface.",

@@ -1,17 +1,17 @@
 import type { MissionState } from "../contract.js";
 import { buildOrchestrationRuntimeProof, type BuildProofInput } from "./orchestration-proof-builder.js";
 import { toMapProofMetadata, toRuntimeProofStatus } from "./orchestration-state-support.js";
-import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 
 export type OrchestrationLoopProofContext = {
   missionId: string;
   runId: string;
   mapId: string;
-  selectedMapSource: "preferred_map_id" | "initial_payload_map_id" | "task_template_id" | "activation_id";
+  runtimePlanSource: "preferred_map_id" | "initial_payload_map_id" | "task_template_id" | "activation_id";
   commandKind: "start-mission" | "resume-mission";
   caller: "commander-console" | "orchestration";
   idempotencyKey: string;
-  mapRecord: ActiveOperationalMapRecord | null;
+  mapRecord: ActiveRuntimePlanRecord | null;
 };
 
 type ProofTiming = {
@@ -35,7 +35,7 @@ function buildProofBase(input: OrchestrationLoopProofContext, currentStepId: str
     runId: input.runId,
     mapId: input.mapId,
     ...toMapProofMetadata(input.mapRecord),
-    selectedMapSource: input.selectedMapSource,
+    runtimePlanSource: input.runtimePlanSource,
     stepId: currentStepId,
     commandKind: input.commandKind,
     caller: input.caller,

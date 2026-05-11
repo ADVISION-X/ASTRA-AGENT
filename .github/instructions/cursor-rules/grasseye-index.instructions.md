@@ -43,7 +43,7 @@ Current narrative authority:
 - docs/法案辅助文件/GrassEye 第五阶段高级AI地图生成与WEB本地程序打通施工图.md
 
 Retired references:
-- docs/项目方案/GrassEye_第五阶段建设目标方案.md is superseded historical reference only.
+- docs/archive/retired-map-system/GrassEye_第五阶段建设目标方案.md is superseded historical reference only.
 - Any GrassEye_系统运行逻辑示意图_V2 runtime diagram is retired/superseded and must not route current architecture decisions.
 
 Local development tooling:
@@ -58,7 +58,7 @@ Local development tooling:
 | commander console, human command, mission dashboard, owner evidence timeline, review queue, audit summary, manual override, candidate pool, operator review | module-commander-console-capability.instructions.md | Human entry and console reads only |
 | ability group, child ability, shared ability contract, currentStrength, debug proof contract, forbidden responsibilities, orchestration matrix, capability catalog, catalog generated from abilities | module-capability-group-governance.instructions.md | Shared ability-group governance only |
 | orchestration ability group, mission state, mission command execution, step state, branch, runtime loop, observe, classify, act, record, orchestrator | module-orchestration-capability.instructions.md | Active mission-flow vocabulary routes to Orchestration only when it does not revive retired map-system ownership |
-| operational map, map registry, branch after AI output, map plugin, map package, operational map package, retired template package, route plan, routePlanId, routeLabel, selectedMapId, taskTemplateId, activationId, activationSnapshotRef, map import, map activation, map re-inspect, map quarantine, map compatibility, map validator, AI draft map, retired packaged step, prompt binding, map-driven prompt, map authoring prompt builder, AI-generated map prompt | module-code-purity.instructions.md | Retired map-system vocabulary routes to physical cleanup and owner cutover first; it must never route back into active runtime ownership |
+| retired map-system vocabulary, retired route identifiers, retired branch tokens, retired selection identifiers, retired activation refs, retired package-governance chain, retired prompt-binding chain, retired authoring prompt chain | module-code-purity.instructions.md | Retired map-system vocabulary routes to physical cleanup and owner cutover first; it must never route back into active runtime ownership |
 | nerve bus, command transport, command envelope, result envelope, ai request envelope, ai response envelope, transfer proof, channel routing | module-nerve-bus-capability.instructions.md | Governed transport authority only |
 | ai ability group, first AI question, product presence judgment, comments OCR, intent analysis, pain point, complaint signal, opportunity synthesis, product signal, score, local model, prompt registry, prompt contract, prompt content, output schema ref | module-ai-capability.instructions.md | AI owns judgment; load Forensics or Commander only when persistence or review is the real boundary |
 | src/capabilities/open, open ability group, open capability, open-tiktok, open-facebook, open-local-workbench, open result, capability-check, open proof | module-open-capability.instructions.md | Open capability authority only |

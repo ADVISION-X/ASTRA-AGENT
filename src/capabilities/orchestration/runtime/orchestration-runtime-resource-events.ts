@@ -46,7 +46,7 @@ function isRuntimeResourceEvent(eventType: string): boolean {
 
 function shouldForceResourceCheckpoint(input: RuntimeEventInput): boolean {
   return TERMINAL_RESOURCE_EVENT_TYPES.has(input.eventType)
-    || (input.eventType === "MAP_STEP_SELECTED" && input.step.stepId === ROUND_START_STEP_ID);
+    || (input.eventType === "RUNTIME_STEP_SELECTED" && input.step.stepId === ROUND_START_STEP_ID);
 }
 
 function shouldRecordPeriodicResourceCheckpoint(input: RuntimeEventInput, missionKey: string): boolean {

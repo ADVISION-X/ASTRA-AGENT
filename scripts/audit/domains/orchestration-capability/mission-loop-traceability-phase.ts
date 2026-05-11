@@ -16,7 +16,7 @@ const STEP_TRACE_RECORDER_PATH = "src/capabilities/orchestration/runtime/orchest
 const WORKBENCH_ORCHESTRATION_PATH = "src/lib/local-runtime/workbench-orchestration.ts";
 
 const REQUIRED_RUNTIME_EVENT_TYPES = [
-  "MAP_STEP_SELECTED",
+  "RUNTIME_STEP_SELECTED",
   "STEP_PRECONDITION_CHECKED",
   "STEP_DISPATCH_STARTED",
   "STEP_TRANSITION_EVALUATED",

@@ -51,13 +51,6 @@ export const commanderConsoleShellClientEvents = `  document.addEventListener("c
     if (commandAction === "emergency-stop") { handlers.onEmergencyStop().catch((error) => showToast(error.message)); return; }
     const exportTrigger = target.closest("[data-export-type]");
     if (exportTrigger instanceof HTMLElement) { handlers.onRequestExport(); return; }
-    const reviewTrigger = target.closest("[data-review-candidate][data-review-disposition]");
-    const reviewCandidateId = reviewTrigger instanceof HTMLElement ? reviewTrigger.getAttribute("data-review-candidate") : null;
-    const reviewDisposition = reviewTrigger instanceof HTMLElement ? reviewTrigger.getAttribute("data-review-disposition") : null;
-    if (reviewCandidateId && (reviewDisposition === "approve" || reviewDisposition === "reject" || reviewDisposition === "pending")) {
-      handlers.onSubmitReviewDecision({ candidateId: reviewCandidateId, disposition: reviewDisposition }).catch((error) => showToast(error.message));
-      return;
-    }
     const historyReuse = target.closest("[data-history-reuse]");
     if (historyReuse instanceof HTMLElement) {
       populateHistoryDraft(historyReuse);

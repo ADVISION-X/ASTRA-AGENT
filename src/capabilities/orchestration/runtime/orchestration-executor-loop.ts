@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { MissionExecutionResult, MissionState, OperationalMap } from "../contract.js";
-import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
+import type { MissionExecutionResult, MissionState, RuntimePlan } from "../contract.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 import { buildOrchestrationRuntimeProof } from "./orchestration-proof-builder.js";
 import { buildMissionExecutionResult } from "./orchestration-result-builder.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
@@ -9,13 +9,13 @@ import { toMapProofMetadata, toRuntimeProofStatus } from "./orchestration-state-
 
 type OrchestrationLoopInput = {
   state: MissionState;
-  map: OperationalMap;
-  mapRecord: ActiveOperationalMapRecord | null;
+  map: RuntimePlan;
+  mapRecord: ActiveRuntimePlanRecord | null;
   context: OrchestrationRuntimeContext;
   commandKind: "start-mission" | "resume-mission";
   caller: "commander-console" | "orchestration";
   idempotencyKey: string;
-  selectedMapSource: "preferred_map_id" | "initial_payload_map_id" | "task_template_id" | "activation_id";
+  runtimePlanSource: "preferred_map_id" | "initial_payload_map_id" | "task_template_id" | "activation_id";
 };
 
 function buildMissionLoopFallbackProof(input: OrchestrationLoopInput, state: MissionState) {
@@ -25,7 +25,7 @@ function buildMissionLoopFallbackProof(input: OrchestrationLoopInput, state: Mis
     runId: state.activeTaskRunId ?? `${state.missionId ?? "unknown-mission"}:fallback-run`,
     mapId: state.mapId ?? input.map.mapId,
     ...toMapProofMetadata(input.mapRecord),
-    selectedMapSource: input.selectedMapSource,
+    runtimePlanSource: input.runtimePlanSource,
     stepId: state.currentStepId ?? "finalize-mission",
     childCapabilityId: "finalize-mission",
     commandKind: input.commandKind,
@@ -54,7 +54,7 @@ function createLoopProofContext(input: OrchestrationLoopInput) {
     missionId: input.state.missionId ?? "unknown-mission",
     runId: input.state.activeTaskRunId ?? `${input.state.missionId ?? "unknown-mission"}:fallback-run`,
     mapId: input.state.mapId ?? input.map.mapId,
-    selectedMapSource: input.selectedMapSource,
+    runtimePlanSource: input.runtimePlanSource,
     commandKind: input.commandKind,
     caller: input.caller,
     idempotencyKey: input.idempotencyKey,
@@ -77,7 +77,7 @@ export async function runMissionLoop(input: OrchestrationLoopInput): Promise<Mis
       commandKind: input.commandKind,
       caller: input.caller,
       idempotencyKey: input.idempotencyKey,
-      selectedMapSource: input.selectedMapSource,
+      runtimePlanSource: input.runtimePlanSource,
       proofContext,
       lastResult,
       stepDispatchCallId: randomUUID(),

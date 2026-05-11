@@ -1,6 +1,7 @@
 import {
   RoundMissionPacketSchema,
   type RoundMissionPacket,
+  type RoundMissionPacketAllowedActions,
   type RoundMissionPacketConstraints,
   type RoundMissionPacketCurrentEvidence,
   type RoundMissionPacketLastAction,
@@ -10,13 +11,13 @@ import {
   type RoundMissionPacketRound,
 } from "./round-mission-packet.schema.js";
 
-const dedupePlatforms = (platforms: string[]) => Array.from(new Set(platforms));
+const dedupeStrings = (values: string[]) => Array.from(new Set(values));
 
 const normalizeSelectedPlatforms = (input: {
   requestedPlatformId: RoundMissionPacketMission["requestedPlatformId"];
   selectedPlatforms: RoundMissionPacketMission["selectedPlatforms"];
 }): RoundMissionPacketMission["selectedPlatforms"] => {
-  const mergedPlatforms = dedupePlatforms([input.requestedPlatformId, ...input.selectedPlatforms]);
+  const mergedPlatforms = dedupeStrings([input.requestedPlatformId, ...input.selectedPlatforms]);
   return mergedPlatforms as RoundMissionPacketMission["selectedPlatforms"];
 };
 
@@ -39,25 +40,35 @@ const buildProgress = (progress?: Partial<RoundMissionPacketProgress>): RoundMis
 const buildLastAction = (lastAction?: Partial<RoundMissionPacketLastAction>): RoundMissionPacketLastAction => ({
   sourceActionCode: lastAction?.sourceActionCode ?? null,
   status: lastAction?.status ?? "pending",
+  failureReason: lastAction?.failureReason ?? null,
+  outputRef: lastAction?.outputRef ?? null,
   gridCell: lastAction?.gridCell ?? null,
   targetName: lastAction?.targetName ?? null,
   summary: lastAction?.summary ?? null,
   actionInputRef: lastAction?.actionInputRef ?? null,
-  outputRef: lastAction?.outputRef ?? null,
-  failureReason: lastAction?.failureReason ?? null,
   completedAt: lastAction?.completedAt ?? null,
 });
 
-const buildCurrentEvidence = (currentEvidence: RoundMissionPacketCurrentEvidence): RoundMissionPacketCurrentEvidence => currentEvidence;
-const buildPlatformContext = (platformContext: RoundMissionPacketPlatformContext): RoundMissionPacketPlatformContext => ({
-  ...platformContext,
-  selectedPlatforms: normalizeSelectedPlatforms({
-    requestedPlatformId: platformContext.platformId,
-    selectedPlatforms: platformContext.selectedPlatforms,
-  }),
+const buildCurrentEvidence = (currentEvidence: RoundMissionPacketCurrentEvidence): RoundMissionPacketCurrentEvidence => ({
+  originalScreenshotRef: currentEvidence.originalScreenshotRef ?? null,
+  coordinateGridScreenshotRef: currentEvidence.coordinateGridScreenshotRef ?? null,
+  gridSpecRef: currentEvidence.gridSpecRef ?? null,
+  visualMissionInputRef: currentEvidence.visualMissionInputRef ?? null,
+  pageStateRef: currentEvidence.pageStateRef ?? null,
+  aiResultRef: currentEvidence.aiResultRef ?? null,
+  postActionVerificationResultRef: currentEvidence.postActionVerificationResultRef ?? null,
 });
+
+const buildPlatformContext = (platformContext: RoundMissionPacketPlatformContext): RoundMissionPacketPlatformContext => ({
+  platformContextRef: platformContext.platformContextRef ?? null,
+  platformId: platformContext.platformId,
+  targetUrl: platformContext.targetUrl ?? null,
+  targetTitle: platformContext.targetTitle ?? null,
+  targetProfileRef: platformContext.targetProfileRef ?? null,
+});
+
 const buildConstraints = (constraints: RoundMissionPacketConstraints): RoundMissionPacketConstraints => constraints;
-const buildAllowedActions = (allowedActions?: string[]) => dedupePlatforms(allowedActions ?? []);
+const buildAllowedActions = (allowedActions: RoundMissionPacketAllowedActions): RoundMissionPacketAllowedActions => allowedActions;
 
 export function buildRoundMissionPacket(input: {
   mission: RoundMissionPacketMission;
@@ -67,7 +78,7 @@ export function buildRoundMissionPacket(input: {
   currentEvidence: RoundMissionPacketCurrentEvidence;
   platformContext: RoundMissionPacketPlatformContext;
   constraints: RoundMissionPacketConstraints;
-  allowedActions?: string[];
+  allowedActions: RoundMissionPacketAllowedActions;
 }): RoundMissionPacket {
   return RoundMissionPacketSchema.parse({
     schemaVersion: "roundMissionPacket.v1",

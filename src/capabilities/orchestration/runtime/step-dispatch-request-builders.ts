@@ -1,5 +1,5 @@
 import { MissionStepResultSchema } from "../schema.js";
-import type { MissionState, OperationalMap } from "../contract.js";
+import type { MissionState, RuntimePlan } from "../contract.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import {
   applyStepOutputRefPolicy,
@@ -18,7 +18,7 @@ import { buildAiDispatchAugmentation } from "./visual-mission-ai-dispatch-contex
 
 export function buildAiDispatchRequest(input: {
   state: MissionState;
-  map: OperationalMap;
+  map: RuntimePlan;
   step: AiStep & { promptContractId: string };
   capabilityCallId: string;
   sequenceNo: number;

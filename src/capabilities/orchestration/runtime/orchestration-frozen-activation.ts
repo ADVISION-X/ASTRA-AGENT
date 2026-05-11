@@ -1,5 +1,5 @@
 import type { MissionState } from "../contract.js";
-import type { ActiveOperationalMapRecord, OrchestrationMapStorePort } from "../ports/orchestration-map-store-port.js";
+import type { ActiveRuntimePlanRecord, OrchestrationRuntimePlanStorePort } from "../ports/orchestration-runtime-plan-store-port.js";
 
 export function buildRunLockId(missionId: string, isoTimestamp: string): string {
   return `${missionId}:run-lock:${isoTimestamp}`;
@@ -13,7 +13,7 @@ export function buildResumeCheckpointRef(state: MissionState): string {
   return `${state.missionId ?? "unknown-mission"}:checkpoint:${state.sequenceNo}:${state.stateRevision}`;
 }
 
-export function toFrozenActivationState(record: ActiveOperationalMapRecord) {
+export function toFrozenActivationState(record: ActiveRuntimePlanRecord) {
   return {
     promptContractVersion: record.promptContractVersion,
     capabilityCatalogVersion: record.capabilityCatalogVersion,
@@ -21,9 +21,9 @@ export function toFrozenActivationState(record: ActiveOperationalMapRecord) {
 }
 
 export async function resolveFrozenActivationMapRecord(
-  mapStore: OrchestrationMapStorePort,
+  mapStore: OrchestrationRuntimePlanStorePort,
   state: MissionState,
-): Promise<ActiveOperationalMapRecord | null> {
+): Promise<ActiveRuntimePlanRecord | null> {
   if (!state.mapId) {
     return null;
   }

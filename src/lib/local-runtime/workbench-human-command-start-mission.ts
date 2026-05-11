@@ -2,7 +2,7 @@ import {
   recordCommandAccepted,
   recordMissionBackgroundFailed,
   recordMissionBackgroundStalled,
-  recordMissionActivationSnapshotFrozen,
+  recordMissionStartContextConfirmed,
   recordOrchestrationStartReceived,
 } from "./workbench-human-command-debug-events.js";
 import {
@@ -166,7 +166,7 @@ export const handleStartMission = async (
   }
 
   recordHumanCommandDebug(recordOrchestrationStartReceived(runtime, { envelope }));
-  recordHumanCommandDebug(recordMissionActivationSnapshotFrozen(runtime, { envelope }));
+  recordHumanCommandDebug(recordMissionStartContextConfirmed(runtime, { envelope }));
   recordHumanCommandDebug(recordCommandAccepted(runtime, { envelope }));
 
   const backgroundMissionInput: StartMissionBackgroundInput = { envelope };

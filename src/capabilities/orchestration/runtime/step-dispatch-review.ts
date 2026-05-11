@@ -1,4 +1,4 @@
-import type { OperationalMap } from "../contract.js";
+import type { RuntimePlan } from "../contract.js";
 import { MissionStepResultSchema } from "../schema.js";
 import {
   type FinalizeStep,
@@ -6,7 +6,7 @@ import {
 } from "./step-dispatch-shared.js";
 
 export function buildFinalizeStepResult(input: {
-  map: OperationalMap;
+  map: RuntimePlan;
   missionId: string;
   step: FinalizeStep;
 }): StepDispatchResult {

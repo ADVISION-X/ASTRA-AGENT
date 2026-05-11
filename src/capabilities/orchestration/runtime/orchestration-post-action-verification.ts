@@ -1,6 +1,6 @@
-import type { OperationalMap } from "../contract.js";
+import type { RuntimePlan } from "../contract.js";
 
-type OperationalStep = OperationalMap["steps"][number];
+type OperationalStep = RuntimePlan["steps"][number];
 
 const POST_CLICK_OBSERVATION_GROUPS = new Set([
   "open",
@@ -19,12 +19,12 @@ export function isPostActionVerificationStep(step: OperationalStep): boolean {
   return step.targetAbilityGroupId === "post-action-verification";
 }
 
-export function ensurePostActionVerificationPolicy(map: OperationalMap): string | null {
+export function ensurePostActionVerificationPolicy(map: RuntimePlan): string | null {
   void map;
   return null;
 }
 
-export function ensurePostActionVerificationDispatchGate(map: OperationalMap, stepId: string): string | null {
+export function ensurePostActionVerificationDispatchGate(map: RuntimePlan, stepId: string): string | null {
   void map;
   void stepId;
   return null;

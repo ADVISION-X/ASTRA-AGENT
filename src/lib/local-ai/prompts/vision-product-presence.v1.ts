@@ -53,7 +53,7 @@ export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
     "Decide whether the sampled frames visibly show a concrete product as the subject of demonstration, display, use, unboxing, comparison, wearing, holding, installation, assembly, or sale presentation.",
     "Return exactly one governed taskDecision: YES_SEEDING_VIDEO_FLOW or NO_SEEDING_VIDEO_FLOW.",
     "Return actionPlan.actions[0].actionCode equal to the governed taskDecision. The action plan must contain exactly one action.",
-    "Never return routeLabel, suggestedNextAction, nextIntent, actionIntent, action_intent, or raw browser instructions.",
+    "Never return any retired branch token, suggestedNextAction, nextIntent, actionIntent, action_intent, or raw browser instructions.",
     "Use only visible sampled-frame evidence. Treat contact-sheet or multi-image input as one governed decision, not separate votes.",
     "One clearly visible product frame is enough for YES_SEEDING_VIDEO_FLOW; do not require every frame to show the product.",
     "Choose NO_SEEDING_VIDEO_FLOW only when the sampled evidence does not visibly show a concrete product presentation, or when the frames are scenery-only, person-only, text-only, blocked, or too weak to identify a product safely.",

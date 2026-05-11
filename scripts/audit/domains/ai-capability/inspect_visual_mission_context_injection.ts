@@ -12,12 +12,25 @@ const createContextInjectionFinding = (file: string, message: string): Finding =
   message,
 });
 
-const collectRuntimeContextSourceFindings = (input: {
+const createAiNoMemoryFinding = (file: string, message: string): Finding => createFinding({
+  lawId: "GRASSEYE-AI-NO-MEMORY-V1",
+  file,
+  line: 1,
+  severity: "fatal",
+  message,
+});
+
+type RuntimeContextSourceInput = {
   decoderSource: ReturnType<typeof getSourceFileOrThrow>;
   stepDispatcherSource: ReturnType<typeof getSourceFileOrThrow>;
   screenshotRefSource: ReturnType<typeof getSourceFileOrThrow>;
   actionContextSource: ReturnType<typeof getSourceFileOrThrow>;
-}): Finding[] => {
+  aiDispatchContextSource: ReturnType<typeof getSourceFileOrThrow>;
+  promptBuilderSource: ReturnType<typeof getSourceFileOrThrow>;
+  roundMissionPacketSchemaSource: ReturnType<typeof getSourceFileOrThrow>;
+};
+
+const collectDecoderContextFindings = (input: RuntimeContextSourceInput): Finding[] => {
   const findings: Finding[] = [];
 
   if (!input.decoderSource.getFullText().includes("buildVisualMissionActionRuntimeContext")) {
@@ -29,12 +42,60 @@ const collectRuntimeContextSourceFindings = (input: {
   if (!input.screenshotRefSource.getFullText().includes("resolveScreenshotStructuredDataRefPayload")) {
     findings.push(createContextInjectionFinding(toRelativeSourcePath(input.screenshotRefSource), "Screenshot structured refs must expose a governed payload resolver for visual mission runtime context injection."));
   }
+
+  return findings;
+};
+
+const collectActionRuntimeContextFindings = (input: RuntimeContextSourceInput): Finding[] => {
+  const findings: Finding[] = [];
+
   if (!input.actionContextSource.getFullText().includes("productPresenceAiResultRef") || !input.actionContextSource.getFullText().includes("resolveScreenshotStructuredDataRefPayload")) {
     findings.push(createContextInjectionFinding(toRelativeSourcePath(input.actionContextSource), "Visual mission action context enricher must inject governed AI result refs and screenshot-derived grid truth."));
+  }
+  if (!input.aiDispatchContextSource.getFullText().includes("buildRoundMissionPacket(")
+    || !input.aiDispatchContextSource.getFullText().includes("recordRoundMissionPacket(")
+    || !input.aiDispatchContextSource.getFullText().includes("roundMissionPacketJson:")
+    || !input.aiDispatchContextSource.getFullText().includes("roundMissionPacketRef")) {
+    findings.push(createContextInjectionFinding(toRelativeSourcePath(input.aiDispatchContextSource), "Visual mission AI dispatch augmentation must build, record, and inject Round Mission Packet truth before the AI request."));
   }
 
   return findings;
 };
+
+const collectPromptBuilderContinuityFindings = (input: RuntimeContextSourceInput): Finding[] => {
+  const findings: Finding[] = [];
+
+  if (!input.promptBuilderSource.getFullText().includes("buildRoundMissionPacketSection")
+    || !input.promptBuilderSource.getFullText().includes("buildCurrentVisualEvidenceSection")
+    || !input.promptBuilderSource.getFullText().includes("You are stateless across rounds.")
+    || !input.promptBuilderSource.getFullText().includes("Do not assume memory from previous AI calls.")) {
+    findings.push(createAiNoMemoryFinding(toRelativeSourcePath(input.promptBuilderSource), "Visual mission prompt builder must explicitly inject Round Mission Packet continuity and stateless-across-rounds wording."));
+  }
+
+  return findings;
+};
+
+const collectRoundMissionPacketSchemaContinuityFindings = (input: RuntimeContextSourceInput): Finding[] => {
+  const findings: Finding[] = [];
+
+  if (!input.roundMissionPacketSchemaSource.getFullText().includes("schemaVersion: z.literal(\"roundMissionPacket.v1\")")
+    || !input.roundMissionPacketSchemaSource.getFullText().includes("noHumanInLoop: z.literal(true)")
+    || !input.roundMissionPacketSchemaSource.getFullText().includes("requireCoordinateGridForVisualActions: z.literal(true)")
+    || !input.roundMissionPacketSchemaSource.getFullText().includes("noRawCoordinates: z.literal(true)")
+    || !input.roundMissionPacketSchemaSource.getFullText().includes("systemManualRef: z.string().min(1)")
+    || !input.roundMissionPacketSchemaSource.getFullText().includes("catalogVersion: z.string().min(1)")) {
+    findings.push(createContextInjectionFinding(toRelativeSourcePath(input.roundMissionPacketSchemaSource), "Round Mission Packet schema must preserve no-human-in-loop, coordinate-grid, and governed catalog continuity fields."));
+  }
+
+  return findings;
+};
+
+const collectRuntimeContextSourceFindings = (input: RuntimeContextSourceInput): Finding[] => [
+  ...collectDecoderContextFindings(input),
+  ...collectActionRuntimeContextFindings(input),
+  ...collectPromptBuilderContinuityFindings(input),
+  ...collectRoundMissionPacketSchemaContinuityFindings(input),
+];
 
 const collectActionContextBoundaryFindings = (actionContextSource: ReturnType<typeof getSourceFileOrThrow>): Finding[] => {
   const findings: Finding[] = [];
@@ -72,8 +133,19 @@ export const inspectVisualMissionContextInjection = (project: Project): Finding[
   const stepDispatcherSource = getSourceFileOrThrow(project, "src/capabilities/orchestration/runtime/step-dispatcher.ts");
   const screenshotRefSource = getSourceFileOrThrow(project, "src/capabilities/screenshot/runtime/screenshot-structured-data-ref.ts");
   const actionContextSource = getSourceFileOrThrow(project, "src/visual-mission/action-plan/action-context-enricher.ts");
+  const aiDispatchContextSource = getSourceFileOrThrow(project, "src/capabilities/orchestration/runtime/visual-mission-ai-dispatch-context.ts");
+  const promptBuilderSource = getSourceFileOrThrow(project, "src/capabilities/ai/prompt-contracts/visual-mission-action-plan/prompt-builder.ts");
+  const roundMissionPacketSchemaSource = getSourceFileOrThrow(project, "src/visual-mission/round-mission-packet.schema.ts");
   return [
-    ...collectRuntimeContextSourceFindings({ decoderSource, stepDispatcherSource, screenshotRefSource, actionContextSource }),
+    ...collectRuntimeContextSourceFindings({
+      decoderSource,
+      stepDispatcherSource,
+      screenshotRefSource,
+      actionContextSource,
+      aiDispatchContextSource,
+      promptBuilderSource,
+      roundMissionPacketSchemaSource,
+    }),
     ...collectActionContextBoundaryFindings(actionContextSource),
   ];
 };

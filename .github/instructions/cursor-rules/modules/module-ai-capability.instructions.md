@@ -367,6 +367,39 @@ FORBIDDEN:
 
 ---
 
+## Law GRASSEYE-AI-NO-MEMORY-V1
+
+status: active
+tier: P0
+capabilityDomain: ai-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: Visual Mission AI must stay stateless across rounds and consume only system-injected continuity through Round Mission Packet plus current evidence.
+
+### 主题
+
+AI 无记忆，系统有记忆
+
+### 法条
+
+Visual Mission AI must not rely on prior chat memory, prior AI memory, or implicit human continuation between rounds.
+
+Required:
+- Visual Mission prompt must explicitly state that the model is stateless across rounds.
+- Visual Mission prompt must explicitly instruct the model not to assume memory from previous AI calls.
+- The governed prompt must inject Round Mission Packet plus current screenshot/grid evidence as the only continuity source.
+- Prompt sections for Visual Mission action planning must include Round Mission Packet, Current Visual Evidence, Platform Registry, System Manual, and Output Format.
+- System continuity must arrive through governed refs such as `roundMissionPacketRef`, screenshot refs, grid refs, and platform context refs.
+
+Forbidden:
+- relying on prior chat memory as mission continuity truth.
+- inventing continuity from previous AI calls when the current round input does not carry it.
+- replacing Round Mission Packet continuity with free-form prompt prose only.
+- asking the human to replay ordinary round history because the system failed to inject governed continuity.
+
+---
+
 ## Law GRASSEYE-AI-CAPABILITY-003-V1
 
 status: active  

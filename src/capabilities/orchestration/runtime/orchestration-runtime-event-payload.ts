@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { MissionState } from "../contract.js";
 import type { OrchestrationForensicsPort } from "../internal.js";
-import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 import {
   StructuredRuntimeEventSchema,
   type StructuredFailureSnapshot,
@@ -40,7 +40,7 @@ type RuntimeEventProofSummary = Partial<Pick<
 type RuntimeEventInput = {
   context: { forensics: OrchestrationForensicsPort };
   state: MissionState;
-  mapRecord: ActiveOperationalMapRecord | null;
+  mapRecord: ActiveRuntimePlanRecord | null;
   step: OperationalStep;
   eventType: string;
   status: "started" | "success" | "failed" | "review_required";
@@ -138,7 +138,6 @@ export const buildStructuredRuntimeEvent = (input: RuntimeEventInput) =>
     childCapabilityId: input.step.childCapabilityId,
     videoVisitId: resolveVideoVisitId(input.state),
     stepId: input.step.stepId,
-    taskBindingId: null,
     spanId: input.capabilityCallId ?? null,
     bindingSnapshotRef: input.state.bindingSnapshotRef ?? null,
     capabilityCallId: input.capabilityCallId ?? null,

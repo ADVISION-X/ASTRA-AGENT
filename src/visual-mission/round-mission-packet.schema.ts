@@ -1,26 +1,27 @@
 import { z } from "zod";
 
-import { VisualMissionPlatformSchema } from "./action-plan/ai-output.schema.js";
+import { VISUAL_MISSION_PLATFORM_IDS } from "./platform-target-registry.js";
 
 const nullableString = z.string().min(1).nullable().default(null);
 const nonNegativeInteger = z.number().int().nonnegative();
+const VisualMissionPlatformSchema = z.enum(VISUAL_MISSION_PLATFORM_IDS);
+const nullablePositiveInteger = z.number().int().positive().nullable().default(null);
 
 const RoundMissionPacketMissionSchema = z.object({
   missionId: z.string().min(1),
-  userRequirementRef: z.string().min(1),
+  userRequirementRef: nullableString,
   userRequirementText: z.string().min(1),
   requestedPlatformId: VisualMissionPlatformSchema,
   selectedPlatforms: z.array(VisualMissionPlatformSchema).min(1),
-  targetUrl: nullableString,
-  targetTitle: nullableString,
-  targetProfileRef: nullableString,
+  maxRounds: nullablePositiveInteger,
+  maxMinutes: nullablePositiveInteger,
 }).strict();
 
 const RoundMissionPacketRoundSchema = z.object({
-  currentRoundIndex: nonNegativeInteger,
-  currentStepId: nullableString,
-  previousStepId: nullableString,
-  hopCount: nonNegativeInteger,
+  roundId: nullableString,
+  roundIndex: nonNegativeInteger,
+  previousRoundId: nullableString,
+  currentPhase: nullableString,
 }).strict();
 
 const RoundMissionPacketProgressSchema = z.object({
@@ -33,13 +34,13 @@ const RoundMissionPacketProgressSchema = z.object({
 
 const RoundMissionPacketLastActionSchema = z.object({
   sourceActionCode: nullableString,
-  status: z.enum(["success", "failed", "review_required", "pending"]).default("pending"),
+  status: z.enum(["success", "failed", "review_required", "pending"]).nullable().default("pending"),
+  failureReason: nullableString,
+  outputRef: nullableString,
   gridCell: nullableString,
   targetName: nullableString,
   summary: nullableString,
   actionInputRef: nullableString,
-  outputRef: nullableString,
-  failureReason: nullableString,
   completedAt: nullableString,
 }).strict();
 
@@ -49,23 +50,29 @@ const RoundMissionPacketCurrentEvidenceSchema = z.object({
   gridSpecRef: nullableString,
   visualMissionInputRef: nullableString,
   pageStateRef: nullableString,
-  sourceAiResultRef: nullableString,
+  aiResultRef: nullableString,
   postActionVerificationResultRef: nullableString,
 }).strict();
 
 const RoundMissionPacketPlatformContextSchema = z.object({
+  platformContextRef: nullableString,
   platformId: VisualMissionPlatformSchema,
-  selectedPlatforms: z.array(VisualMissionPlatformSchema).min(1),
-  targetUrl: z.string().url(),
-  targetTitle: z.string().min(1),
+  targetUrl: nullableString,
+  targetTitle: nullableString,
   targetProfileRef: nullableString,
 }).strict();
 
 const RoundMissionPacketConstraintsSchema = z.object({
-  maxRounds: nonNegativeInteger.nullable().default(null),
-  maxMinutes: nonNegativeInteger.nullable().default(null),
-  failClosedOnReviewRequired: z.literal(true),
-  humanMayOnlyRestartFromCommander: z.literal(true),
+  noHumanInLoop: z.literal(true),
+  requireCoordinateGridForVisualActions: z.literal(true),
+  noRawCoordinates: z.literal(true),
+  stopWhenBlocked: z.literal(true),
+  stopWhenUnsafe: z.literal(true),
+}).strict();
+
+const RoundMissionPacketAllowedActionsSchema = z.object({
+  systemManualRef: z.string().min(1),
+  catalogVersion: z.string().min(1),
 }).strict();
 
 const RoundMissionPacketSchema = z.object({
@@ -77,7 +84,7 @@ const RoundMissionPacketSchema = z.object({
   currentEvidence: RoundMissionPacketCurrentEvidenceSchema,
   platformContext: RoundMissionPacketPlatformContextSchema,
   constraints: RoundMissionPacketConstraintsSchema,
-  allowedActions: z.array(z.string().min(1)).default([]),
+  allowedActions: RoundMissionPacketAllowedActionsSchema,
 }).strict();
 
 type RoundMissionPacket = z.infer<typeof RoundMissionPacketSchema>;
@@ -88,6 +95,7 @@ type RoundMissionPacketLastAction = z.infer<typeof RoundMissionPacketLastActionS
 type RoundMissionPacketCurrentEvidence = z.infer<typeof RoundMissionPacketCurrentEvidenceSchema>;
 type RoundMissionPacketPlatformContext = z.infer<typeof RoundMissionPacketPlatformContextSchema>;
 type RoundMissionPacketConstraints = z.infer<typeof RoundMissionPacketConstraintsSchema>;
+type RoundMissionPacketAllowedActions = z.infer<typeof RoundMissionPacketAllowedActionsSchema>;
 
 export {
   RoundMissionPacketMissionSchema,
@@ -97,6 +105,7 @@ export {
   RoundMissionPacketCurrentEvidenceSchema,
   RoundMissionPacketPlatformContextSchema,
   RoundMissionPacketConstraintsSchema,
+  RoundMissionPacketAllowedActionsSchema,
   RoundMissionPacketSchema,
 };
 
@@ -109,4 +118,5 @@ export type {
   RoundMissionPacketCurrentEvidence,
   RoundMissionPacketPlatformContext,
   RoundMissionPacketConstraints,
+  RoundMissionPacketAllowedActions,
 };

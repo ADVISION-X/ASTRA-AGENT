@@ -1,13 +1,13 @@
 import type { MissionState } from "../contract.js";
-import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 import { buildOrchestrationRuntimeProof, type BuildProofInput } from "./orchestration-proof-builder.js";
 import { toMapProofMetadata, toRuntimeProofStatus } from "./orchestration-state-support.js";
 
 type TransitionSuccessProofInput = {
   state: MissionState;
   map: { mapId: string };
-  mapRecord: ActiveOperationalMapRecord | null;
-  selectedMapSource: "preferred_map_id" | "initial_payload_map_id" | "task_template_id" | "activation_id";
+  mapRecord: ActiveRuntimePlanRecord | null;
+  runtimePlanSource: "preferred_map_id" | "initial_payload_map_id" | "task_template_id" | "activation_id";
   commandKind: "start-mission" | "resume-mission";
   caller: "commander-console" | "orchestration";
 };
@@ -57,7 +57,7 @@ function buildTransitionSuccessIdentityFields(input: TransitionSuccessProofInput
     missionId: input.state.missionId ?? "unknown-mission",
     runId: input.state.activeTaskRunId ?? `${input.state.missionId ?? "unknown-mission"}:transition-run`,
     mapId: input.map.mapId,
-    selectedMapSource: input.selectedMapSource,
+    runtimePlanSource: input.runtimePlanSource,
     stepId: details.currentStepId,
     childCapabilityId: details.lastResult.childCapabilityId,
     commandKind: input.commandKind,

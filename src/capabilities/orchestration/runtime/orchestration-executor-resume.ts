@@ -1,5 +1,5 @@
 import type { MissionExecutionResult, MissionState } from "../contract.js";
-import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 import { buildDispatchFailure } from "./orchestration-dispatch-failure.js";
 import { runMissionLoop } from "./orchestration-executor-loop.js";
 import { IDEMPOTENCY_TTL_MS, createFailedMissionState } from "./orchestration-executor-command-support.js";
@@ -8,7 +8,7 @@ import { parseMissionControlCommand } from "./mission-command-gate.js";
 import { checkCanResume } from "./mission-state-policy-gate.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import { toMissionControlState } from "./orchestration-state-support.js";
-import { validateOperationalMapGate } from "./map-validation-gate.js";
+import { validateRuntimePlanGate } from "./runtime-plan-validation-gate.js";
 
 type ResumeMissionCommandInput = {
   command: unknown;
@@ -25,7 +25,7 @@ type ResumeMissionFailureDetails = {
   durationMs: number;
   idempotencyKey: string;
   stateRevisionBefore?: number;
-  mapRecord?: ActiveOperationalMapRecord;
+  mapRecord?: ActiveRuntimePlanRecord;
 };
 
 type ResumeStateFailureDetails = {
@@ -35,7 +35,7 @@ type ResumeStateFailureDetails = {
   stepId: string;
   childCapabilityId: string;
   idempotencySuffix: string;
-  mapRecord?: ActiveOperationalMapRecord;
+  mapRecord?: ActiveRuntimePlanRecord;
 };
 
 type ResumeFailureStateInput = {
@@ -167,9 +167,9 @@ async function runResumeMissionPlanWithState(
   if (!state.mapId) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: `Mission ${command.missionId} has no stored runtime plan. Legacy mapId-based resume is retired.`, stepId: "runtime-plan-lookup", childCapabilityId: "runtime-plan-lookup", idempotencySuffix: "no-runtime-plan" });
 
   const mapRecord = await resolveFrozenActivationMapRecord(input.context.mapStore, state);
-  if (!mapRecord) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: `Stored runtime plan is unavailable for resume of mission ${command.missionId}. Retired operational-map activation cannot be recovered.`, stepId: "runtime-plan-lookup", childCapabilityId: "runtime-plan-lookup", idempotencySuffix: "runtime-plan-missing" });
+  if (!mapRecord) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: `Stored runtime plan is unavailable for resume of mission ${command.missionId}. Retired predecessor activation cannot be recovered.`, stepId: "runtime-plan-lookup", childCapabilityId: "runtime-plan-lookup", idempotencySuffix: "runtime-plan-missing" });
 
-  const mapValidation = validateOperationalMapGate(mapRecord.missionFlow);
+  const mapValidation = validateRuntimePlanGate(mapRecord.missionFlow);
   if (!mapValidation.valid) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: `Stored runtime plan validation failed: ${mapValidation.failureReason}`, stepId: "runtime-plan-validation", childCapabilityId: "runtime-plan-validation", idempotencySuffix: "runtime-plan-invalid", mapRecord });
 
   const resumedAt = input.context.clock.now().isoTimestamp;
@@ -193,9 +193,9 @@ async function runResumeMissionPlanWithState(
     commandKind: "resume-mission",
     caller: input.caller,
     idempotencyKey,
-    selectedMapSource: resumedState.selectedMapSource && resumedState.selectedMapSource !== "rejected_missing"
-      ? resumedState.selectedMapSource
-      : "preferred_map_id",
+    runtimePlanSource: resumedState.runtimePlanSource && resumedState.runtimePlanSource !== "rejected_missing"
+      ? resumedState.runtimePlanSource
+      : "preferred_runtime_plan",
   });
 }
 

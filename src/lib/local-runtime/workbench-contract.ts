@@ -100,10 +100,7 @@ type WorkbenchLastHumanCommand =
   | "resume-mission"
   | "stop-mission"
   | "emergency-stop"
-  | "approve-candidate"
-  | "reject-candidate"
   | "mark-review-required"
-  | "submit-review-decision"
   | null;
 
 type WorkbenchMissionState = {
@@ -189,7 +186,6 @@ export type WorkbenchRuntime = WorkbenchBaseRuntime & {
     missionId?: string | null;
     runId?: string | null;
     mapId?: string | null;
-    taskBindingId?: string | null;
     reason?: string | null;
     failureReason?: string | null;
     actionableMessage?: string | null;

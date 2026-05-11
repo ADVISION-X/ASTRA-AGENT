@@ -1,5 +1,5 @@
 import type { MissionState } from "../contract.js";
-import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import type { OperationalStep } from "./step-dispatch-shared.js";
 import { resolveRuntimeStepForOperationalStep } from "./orchestration-step-trace-mapper.js";
@@ -102,7 +102,7 @@ function resolveVideoVisitId(state: MissionState): string | null {
     : null;
 }
 
-function resolveMapChain(state: MissionState, mapRecord: ActiveOperationalMapRecord | null) {
+function resolveMapChain(state: MissionState, mapRecord: ActiveRuntimePlanRecord | null) {
   return {
     bindingPackageId: state.bindingPackageId ?? mapRecord?.packageId ?? null,
     bindingPackageVersion: state.bindingPackageVersion ?? mapRecord?.packageVersion ?? null,

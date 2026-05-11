@@ -1,7 +1,7 @@
 import type { MissionState } from "../contract.js";
 import type { z } from "zod";
-import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
-import type { MissionHumanCommandKindSchema, SelectedMapSourceSchema } from "../schema.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
+import type { MissionHumanCommandKindSchema, RuntimePlanSourceSchema } from "../schema.js";
 import { buildMissionExecutionResult, buildMissionStateUpdate } from "./orchestration-result-builder.js";
 import { buildOrchestrationRuntimeProof } from "./orchestration-proof-builder.js";
 
@@ -29,19 +29,18 @@ const buildDispatchFailureRuntimeProof = (input: {
   endedAt: string;
   durationMs: number;
   idempotencyKey: string;
-  selectedMapSource?: z.output<typeof SelectedMapSourceSchema> | null;
+  runtimePlanSource?: z.output<typeof RuntimePlanSourceSchema> | null;
   stateRevisionBefore?: number | null;
-  mapRecord?: ActiveOperationalMapRecord | null;
+  mapRecord?: ActiveRuntimePlanRecord | null;
 }) => buildOrchestrationRuntimeProof({
   missionId: input.missionState.missionId ?? "unknown-mission",
   runId: input.missionState.activeTaskRunId ?? input.idempotencyKey,
   mapId: input.missionState.mapId ?? "recovery",
-  taskBindingId: input.mapRecord?.taskBindingId ?? null,
   bindingActivationRef: input.mapRecord?.bindingActivationRef ?? null,
   bindingPackageId: input.mapRecord?.packageId ?? null,
   bindingPackageVersion: input.mapRecord?.packageVersion ?? null,
   mapVersion: input.mapRecord?.mapVersion ?? null,
-  selectedMapSource: input.selectedMapSource ?? null,
+  runtimePlanSource: input.runtimePlanSource ?? null,
   stepId: input.stepId,
   childCapabilityId: input.childCapabilityId,
   commandKind: input.commandKind,
@@ -82,9 +81,9 @@ export function buildDispatchFailure(input: {
   endedAt: string;
   durationMs: number;
   idempotencyKey: string;
-  selectedMapSource?: z.output<typeof SelectedMapSourceSchema> | null;
+  runtimePlanSource?: z.output<typeof RuntimePlanSourceSchema> | null;
   stateRevisionBefore?: number | null;
-  mapRecord?: ActiveOperationalMapRecord | null;
+  mapRecord?: ActiveRuntimePlanRecord | null;
 }) {
   const missionState = buildDispatchFailureMissionState({
     state: input.state,
@@ -102,7 +101,7 @@ export function buildDispatchFailure(input: {
     endedAt: input.endedAt,
     durationMs: input.durationMs,
     idempotencyKey: input.idempotencyKey,
-    selectedMapSource: input.selectedMapSource ?? null,
+    runtimePlanSource: input.runtimePlanSource ?? null,
     stateRevisionBefore: input.stateRevisionBefore ?? null,
     mapRecord: input.mapRecord ?? null,
   });

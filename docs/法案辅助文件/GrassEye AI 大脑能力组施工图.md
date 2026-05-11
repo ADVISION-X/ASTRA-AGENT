@@ -17,6 +17,15 @@ userRequirementText + selectedPlatforms
 → governed decision + actions[].actionCode + reason
 ```
 
+## 无记忆连续性
+
+```txt
+AI 在每一轮都是 stateless across rounds
+系统连续性只能来自 Round Mission Packet + Current Visual Evidence
+Prompt 必须显式声明：Do not assume memory from previous AI calls
+如果当前轮证据不足，AI 不得向人类索要普通下一步决策；应返回 STOP_REVIEW_REQUIRED 或其他受治理恢复 actionCode
+```
+
 ## AI 必须负责
 
 ```txt

@@ -11,7 +11,7 @@ import {
   NonEmptyStringSchema,
   NullableMissionIdSchema,
   NullableOperatorNoteSchema,
-  NullableSelectedMapIdSchema,
+  NullableSelectedBindingIdSchema,
   RequestedPlatformIdSchema,
 } from "./commander-schema-foundation.js";
 
@@ -90,20 +90,6 @@ const EmergencyStopTransportPayloadSchema = z.object({
   operatorNote: NullableOperatorNoteSchema,
 }).strict();
 
-const ApproveCandidateTransportPayloadSchema = z.object({
-  kind: z.literal("approve-candidate"),
-  requestedBy: z.literal("commander-console"),
-  candidateId: NonEmptyStringSchema,
-  operatorNote: NullableOperatorNoteSchema,
-}).strict();
-
-const RejectCandidateTransportPayloadSchema = z.object({
-  kind: z.literal("reject-candidate"),
-  requestedBy: z.literal("commander-console"),
-  candidateId: NonEmptyStringSchema,
-  operatorNote: NullableOperatorNoteSchema,
-}).strict();
-
 const MarkReviewRequiredTransportPayloadSchema = z.object({
   kind: z.literal("mark-review-required"),
   requestedBy: z.literal("commander-console"),
@@ -117,8 +103,6 @@ const CommanderTransportPayloadSchema = z.discriminatedUnion("kind", [
   ResumeMissionTransportPayloadSchema,
   StopMissionTransportPayloadSchema,
   EmergencyStopTransportPayloadSchema,
-  ApproveCandidateTransportPayloadSchema,
-  RejectCandidateTransportPayloadSchema,
   MarkReviewRequiredTransportPayloadSchema,
 ]).superRefine((value, ctx) => {
   if (value.kind === "start-mission") {
@@ -129,7 +113,7 @@ const CommanderTransportPayloadSchema = z.discriminatedUnion("kind", [
 const HumanCommandInputSchemaBase = z.object({
   commandType: CommanderCommandTypeSchema,
   targetMissionId: NullableMissionIdSchema.optional(),
-  selectedBindingId: NullableSelectedMapIdSchema.optional(),
+  selectedBindingId: NullableSelectedBindingIdSchema.optional(),
   targetRecordRef: CommanderTargetRecordRefSchema.nullable().optional(),
   requestedPlatformId: RequestedPlatformIdSchema.nullable().optional(),
   humanGoal: CommanderGoalSchema.nullable().optional(),
@@ -198,7 +182,7 @@ const validateHumanCommandInput = (
   if (value.commandType === "start-mission") {
     validateStartMissionCommand(value, ctx);
   }
-  if (["approve-candidate", "reject-candidate", "mark-review-required"].includes(value.commandType)) {
+  if (value.commandType === "mark-review-required") {
     validateReviewCommand(value, ctx);
   }
   validateNonStartMissionFields(value, ctx);
@@ -258,7 +242,6 @@ const CommanderCommandReceiptSchema = z.object({
 }).strict();
 
 export {
-  ApproveCandidateTransportPayloadSchema,
   CommandTransportResultSchema,
   CommanderCommandReceiptSchema,
   CommanderTransportPayloadSchema,
@@ -271,7 +254,6 @@ export {
   MissionControlInputSchema,
   PauseMissionTransportPayloadSchema,
   ReadRequestInputSchema,
-  RejectCandidateTransportPayloadSchema,
   ResumeMissionTransportPayloadSchema,
   ReviewDecisionInputSchema,
   StartMissionTransportPayloadSchema,

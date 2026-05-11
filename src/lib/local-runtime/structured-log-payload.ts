@@ -79,7 +79,6 @@ const buildEventIdentityPayload = (entry: StructuredRuntimeEvent): Record<string
   videoVisitId: entry.videoVisitId,
   mapId: entry.mapId,
   stepId: entry.stepId,
-  taskBindingId: entry.taskBindingId,
   bindingSnapshotRef: entry.bindingSnapshotRef,
   capabilityCallId: entry.capabilityCallId,
   childCapabilityId: entry.childCapabilityId,

@@ -5,7 +5,6 @@ const COMMANDER_CONSOLE_CHILD_ABILITY_IDS = [
   "show-mission-dashboard",
   "show-capability-roster",
   "show-capability-health",
-  "show-operational-map-progress",
   "show-runtime-proof-timeline",
   "show-evidence-packets",
   "show-browse-ledger",
@@ -16,8 +15,6 @@ const COMMANDER_CONSOLE_CHILD_ABILITY_IDS = [
   "resume-mission",
   "stop-mission",
   "emergency-stop",
-  "approve-candidate",
-  "reject-candidate",
   "mark-review-required",
   "inspect-record-detail",
 ] as const;
@@ -28,8 +25,6 @@ const COMMANDER_COMMAND_CHILD_IDS = [
   "resume-mission",
   "stop-mission",
   "emergency-stop",
-  "approve-candidate",
-  "reject-candidate",
   "mark-review-required",
 ] as const;
 
@@ -37,7 +32,6 @@ const COMMANDER_READ_CHILD_IDS = [
   "show-mission-dashboard",
   "show-capability-roster",
   "show-capability-health",
-  "show-operational-map-progress",
   "show-runtime-proof-timeline",
   "show-evidence-packets",
   "show-browse-ledger",
@@ -96,8 +90,6 @@ const CommanderCommandTypeSchema = z.enum([
   "resume-mission",
   "stop-mission",
   "emergency-stop",
-  "approve-candidate",
-  "reject-candidate",
   "mark-review-required",
 ]);
 const CommanderMissionStatusSchema = z.enum(["idle", "running", "paused", "review_required", "failed", "completed", "stopped"]);
@@ -144,7 +136,7 @@ const CommanderNoteSchema = NonEmptyStringSchema.max(400);
 const CommanderMaxRoundsSchema = z.number().int().positive();
 const CommanderMaxMinutesSchema = z.number().int().positive();
 const NullableMissionIdSchema = NonEmptyStringSchema.nullable();
-const NullableSelectedMapIdSchema = NonEmptyStringSchema.nullable();
+const NullableSelectedBindingIdSchema = NonEmptyStringSchema.nullable();
 const NullableCommanderGoalSchema = CommanderGoalSchema.nullable();
 const NullableOperatorNoteSchema = CommanderNoteSchema.nullable();
 
@@ -264,6 +256,6 @@ export {
   NullableCommanderGoalSchema,
   NullableMissionIdSchema,
   NullableOperatorNoteSchema,
-  NullableSelectedMapIdSchema,
+  NullableSelectedBindingIdSchema as NullableSelectedBindingIdSchema,
   RequestedPlatformIdSchema,
 };

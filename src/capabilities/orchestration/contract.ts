@@ -16,8 +16,8 @@ import {
   MissionStepResultSchema,
   OrchestrationExecuteInputSchema,
   OrchestrationExecuteResultSchema,
-  OperationalMapIdSchema,
-  OperationalMapSchema,
+  RuntimePlanIdSchema,
+  RuntimePlanSchema,
   ORCHESTRATION_ABILITY_GROUP_ID,
   OrchestrationChildCapabilityIdSchema,
   OrchestrationSequencePolicySchema,
@@ -39,7 +39,7 @@ export { ORCHESTRATION_ABILITY_GROUP_ID };
 type OrchestrationAbilityGroupId = typeof ORCHESTRATION_ABILITY_GROUP_ID;
 type RequestedPlatformId = z.output<typeof RequestedPlatformIdSchema>;
 type OrchestrationChildCapabilityId = z.output<typeof OrchestrationChildCapabilityIdSchema>;
-type OperationalMapId = z.output<typeof OperationalMapIdSchema>;
+type RuntimePlanId = z.output<typeof RuntimePlanIdSchema>;
 type PayloadRefBundle = z.output<typeof PayloadRefBundleSchema>;
 type OrchestrationSequencePolicy = z.output<typeof OrchestrationSequencePolicySchema>;
 type MissionCommand = z.output<typeof MissionCommandSchema>;
@@ -51,7 +51,7 @@ type MissionStepResult = z.output<typeof MissionStepResultSchema>;
 type OrchestrationExecuteInput = z.output<typeof OrchestrationExecuteInputSchema>;
 type OrchestrationExecuteResult = z.output<typeof OrchestrationExecuteResultSchema>;
 type RuntimeProof = z.output<typeof RuntimeProofSchema>;
-type OperationalMap = z.output<typeof OperationalMapSchema>;
+type RuntimePlan = z.output<typeof RuntimePlanSchema>;
 
 type StartMissionChildInput = z.output<typeof StartMissionChildInputSchema>;
 type PauseMissionChildInput = z.output<typeof PauseMissionChildInputSchema>;
@@ -100,8 +100,8 @@ export type {
   MissionStepResult,
   OrchestrationExecuteInput,
   OrchestrationExecuteResult,
-  OperationalMap,
-  OperationalMapId,
+  RuntimePlan as RuntimePlan,
+  RuntimePlanId,
   OrchestrationAbilityGroup,
   OrchestrationAbilityGroupId,
   OrchestrationChildCapabilityId,

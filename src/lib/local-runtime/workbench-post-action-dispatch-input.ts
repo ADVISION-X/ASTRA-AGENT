@@ -9,7 +9,6 @@ import {
   buildPostActionChainFields,
   buildVerificationPolicy,
   normalizePageStateLogin,
-  resolveCanonicalPlatformUrl,
   resolvePostActionInputPolicy,
   type PostActionInputPolicy,
 } from "./workbench-post-action-dispatch-policy.js";
@@ -49,7 +48,6 @@ const buildPageStateObservation = (
   summary: string,
 ) => {
   const session = runtime.browserController.getSessionState();
-  const currentUrl = session.currentUrl || resolveCanonicalPlatformUrl(envelope.selectedBindingId) || null;
   return {
     ref: `${envelope.inputRef}:page-state`,
     kind: "page_state" as const,
@@ -64,7 +62,7 @@ const buildPageStateObservation = (
     videoVisitId: envelope.videoVisitId,
     payload: {
       kind: "page_state" as const,
-      currentUrl,
+      currentUrl: session.currentUrl || null,
       loginState: normalizePageStateLogin(session.loginState),
       commentsPanelOpen: null,
       modalOverlayPresent: null,

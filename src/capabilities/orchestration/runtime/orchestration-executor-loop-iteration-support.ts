@@ -1,5 +1,5 @@
-import type { MissionExecutionResult, MissionState, OperationalMap } from "../contract.js";
-import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
+import type { MissionExecutionResult, MissionState, RuntimePlan } from "../contract.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import {
   checkCanDispatchStep,
@@ -27,13 +27,13 @@ type MissionLoopIterationOutcome = {
 
 type RunMissionLoopIterationInput = {
   state: MissionState;
-  map: OperationalMap;
-  mapRecord: ActiveOperationalMapRecord | null;
+  map: RuntimePlan;
+  mapRecord: ActiveRuntimePlanRecord | null;
   context: OrchestrationRuntimeContext;
   commandKind: "start-mission" | "resume-mission";
   caller: "commander-console" | "orchestration";
   idempotencyKey: string;
-  selectedMapSource: "preferred_map_id" | "initial_payload_map_id" | "task_template_id" | "activation_id";
+  runtimePlanSource: "preferred_map_id" | "initial_payload_map_id" | "task_template_id" | "activation_id";
   proofContext: OrchestrationLoopProofContext;
   lastResult: OrchestrationStepResultRecord | null;
   stepDispatchCallId: string;
@@ -102,7 +102,7 @@ const createPreparedMissionLoopIterationContext = (
   stateRevisionBefore: input.state.stateRevision ?? 0,
 });
 
-const findOperationalStep = (map: OperationalMap, stepId: string): OperationalStep | null =>
+const findOperationalStep = (map: RuntimePlan, stepId: string): OperationalStep | null =>
   findEffectiveOperationalStep(map, stepId);
 
 const buildMissingStepPreparation = (

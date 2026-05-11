@@ -1,4 +1,4 @@
-import type { MissionState, OperationalMap } from "../contract.js";
+import type { MissionState, RuntimePlan } from "../contract.js";
 import { MissionStepResultSchema } from "../schema.js";
 import { decodeVisualMissionActionPlan } from "../../../muscle-memory/decoder/action-plan-decoder.js";
 import { executeMuscleMemoryPlan } from "../../../muscle-memory/executor/muscle-memory-executor.js";
@@ -16,7 +16,7 @@ import {
 
 export async function executeAiDispatchActionPlan(input: {
   state: MissionState;
-  map: OperationalMap;
+  map: RuntimePlan;
   step: AiStep;
   missionId: string;
   sequenceNo: number;
@@ -61,7 +61,7 @@ export async function executeAiDispatchActionPlan(input: {
 
 export function buildAiStepResult(input: {
   state: MissionState;
-  map: OperationalMap;
+  map: RuntimePlan;
   step: AiStep;
   missionId: string;
   dispatchResult: Awaited<ReturnType<OrchestrationRuntimeContext["nerveBus"]["sendRequestToAi"]>>;

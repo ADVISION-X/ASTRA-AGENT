@@ -12,7 +12,6 @@ export const checkMissionCommandSchemaPreflight = (input: {
   humanGoal: "Mission preflight verifies the final start-mission command schema before dispatch.",
   requestedPlatform: input.requestedPlatformId,
   preferredBindingId: null,
-  taskBindingId: null,
   bindingActivationRef: null,
   maxRounds: null,
   maxMinutes: null,

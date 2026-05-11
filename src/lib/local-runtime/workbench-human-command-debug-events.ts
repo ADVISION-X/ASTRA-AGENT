@@ -28,7 +28,7 @@ export const recordOrchestrationStartReceived = (
   refs: [`commandEnvelopeRef=${input.envelope.envelopeId}`, `inputRef=${input.envelope.inputRef}`],
 });
 
-export const recordMissionActivationSnapshotFrozen = (
+export const recordMissionStartContextConfirmed = (
   runtime: WorkbenchRuntime,
   input: {
     envelope: HumanCommandEnvelope;
@@ -44,18 +44,18 @@ export const recordMissionActivationSnapshotFrozen = (
   const runId = input.missionState?.activeTaskRunId ?? input.envelope.runId;
 
   return runtime.recordCommanderDebugEvent({
-    eventType: "MISSION_BINDING_CONFIRMED",
+    eventType: "MISSION_START_CONTEXT_CONFIRMED",
     status,
     traceId: input.envelope.traceId,
-    spanId: `${input.envelope.envelopeId}:mission-binding`,
+    spanId: `${input.envelope.envelopeId}:mission-start-context`,
     attemptId: input.envelope.attemptId,
     missionId,
     runId,
-    reason: `requestedPlatformId=${input.envelope.requestedPlatformId}; mission binding confirmed before mission execution.`,
+    reason: `requestedPlatformId=${input.envelope.requestedPlatformId}; mission start context confirmed before mission execution.`,
     failureReason: input.missionState?.failureReason ?? null,
     actionableMessage: input.missionState?.status === "failed"
-      ? "Inspect orchestration binding and mission start proof before retrying."
-      : "Continue the governed mission loop with the confirmed binding.",
+      ? "Inspect the governed mission start context and mission start proof before retrying."
+      : "Continue the governed mission loop with the confirmed mission start context.",
     ownerResponsible: "Orchestration",
     refs: [
       `commandEnvelopeRef=${input.envelope.envelopeId}`,

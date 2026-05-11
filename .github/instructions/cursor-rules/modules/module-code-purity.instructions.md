@@ -813,11 +813,11 @@ Retired Map System Cleanup
 Code-purity must detect retired map-system residue through file-existence checks plus AST-backed source inspection.
 
 Required direction:
-- src/map-plugins and scripts/audit/domains/map-plugin-package must not survive as active paths.
-- .github/instructions/cursor-rules/modules/module-map-plugin-package.instructions.md must not survive as an active law file.
+- The retired package-governance source path and its retired audit-domain path must not survive as active paths.
+- The retired map law module file under .github/instructions/cursor-rules/modules must not survive as an active law file.
 - Active map blueprints must not survive under docs/法案辅助文件 after map retirement, including Route Plan production blueprints.
-- Generated audit artifacts and CI summaries must not retain map-layer or map-plugin-package owner truth after retirement.
-- legacy route-planning field, retired selection field, taskTemplateId, activationId, retired binding field, retired branch-token field, retired package chain, operationalMap, retired chain script, genericDiagnosticMap, MapAuthoring, MapPlugin, and activeMapRegistry must not survive in the active startup/runtime chain.
+- Generated audit artifacts and CI summaries must not retain retired layer-owner or retired package-governance owner truth after retirement.
+- legacy route-planning field, retired selection field, retired template identifier, retired activation identifier, retired binding field, retired branch-token field, retired package chain, retired plan record, retired chain script, generic diagnostic token, retired authoring owner, retired plugin owner, and active registry truth must not survive in the active startup/runtime chain.
 - APP shell must not retain TaskTemplateLauncher or map/retired template flow UX tokens in active start surfaces.
 - Archive paths may retain historical references only when they are outside active source truth and CI-FULL does not scan them.
 - Final judgments for source residue must use AST-backed identifier/string inspection, not grep-only verdicts.
@@ -827,7 +827,7 @@ Required direction:
 FORBIDDEN:
 - Keeping retired map paths alive as "temporary" active sources.
 - Reintroducing map/retired template flow startup UI after retirement.
-- Allowing retired selection field/taskTemplateId/activationId/retired binding field/retired branch-token field to survive in the production startup chain.
+- Allowing retired selection field, retired template identifier, retired activation identifier, retired binding field, or retired branch-token field to survive in the production startup chain.
 - Treating active blueprint residue as documentation-only harmless drift.
 
 ---
@@ -857,7 +857,7 @@ Required direction:
 - MuscleMemoryCatalog is the only active action-code authority.
 - Scheduler executes only decoded MuscleMemoryCatalog actions.
 - Unknown actionCode is fatal.
-- retired branch-token field, legacy route-plan field, retired selection field, taskTemplateId, activationId, and retired binding field are retired vocabulary in active startup, prompt, and scheduling paths.
+- retired branch-token field, legacy route-plan field, retired selection field, retired template identifier, retired activation identifier, and retired binding field are retired vocabulary in active startup, prompt, and scheduling paths.
 - Active prompt contracts and output schemas must require actions[].actionCode and must forbid retired branch-token field plus raw x/y.
 - Active start payloads must not carry retired map fields.
 - Active PlatformRegistry code must not own retired deterministic flows, prompt text, retired binding states, or action chains.
@@ -867,10 +867,10 @@ Required direction:
 
 FORBIDDEN:
 - Keeping selectedPlatforms and retired selection field as dual active start chains.
-- Keeping userRequirementText and taskTemplateId as dual active entry sources.
+- Keeping userRequirementText and retired template identifier as dual active entry sources.
 - Keeping legacy route-plan field/retired branch-token field and actionCode as dual action sources.
 - Letting AI prompt contracts or output schemas accept retired branch-token field.
-- Letting Scheduler read retired deterministic flow planning, retired branch-token field, or map activation truth.
+- Letting Scheduler read retired deterministic flow planning, retired branch-token field, or retired activation truth.
 - Treating visual-story drift as documentation-only debt.
 
 ---

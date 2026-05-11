@@ -16,10 +16,11 @@ const RESUME_PATH = "src/capabilities/orchestration/runtime/orchestration-execut
 const PROOF_BUILDER_PATH = "src/capabilities/orchestration/runtime/orchestration-proof-builder.ts";
 const STEP_DISPATCHER_PATH = "src/capabilities/orchestration/runtime/step-dispatcher.ts";
 const STEP_DISPATCH_REQUEST_BUILDERS_PATH = "src/capabilities/orchestration/runtime/step-dispatch-request-builders.ts";
-const MAP_VALIDATION_GATE_PATH = "src/capabilities/orchestration/runtime/map-validation-gate.ts";
+const RUNTIME_PLAN_VALIDATION_GATE_PATH = "src/capabilities/orchestration/runtime/runtime-plan-validation-gate.ts";
 const NERVE_BUS_ADAPTER_PATH = "src/capabilities/orchestration/runtime/orchestration-nerve-bus-adapter.ts";
 const TRANSITION_EVALUATOR_PATH = "src/capabilities/orchestration/runtime/transition-evaluator.ts";
 const FORBIDDEN_HUMAN_REVIEW_CHILD_PATH = "src/capabilities/orchestration/children/request-human-review/implementation.ts";
+const HUMAN_REVIEW_FAIL_CLOSED_LAW_ID = "GRASSEYE-HUMAN-REVIEW-FAIL-CLOSED-V1";
 const RUNTIME_CONTROL_STATE_FIELDS = [
   "capabilityCatalogVersion",
   "runLockId",
@@ -39,7 +40,7 @@ const CHILD_OUTPUT_SCHEMA_NAMES = [
   "ResumeMissionChildOutputSchema",
   "StopMissionChildOutputSchema",
   "EmergencyStopChildOutputSchema",
-  "ExecuteMapStepChildOutputSchema",
+  "ExecuteRuntimeStepChildOutputSchema",
   "EvaluateStepTransitionChildOutputSchema",
   "FinalizeMissionChildOutputSchema",
 ] as const;
@@ -99,7 +100,7 @@ async function inspectForbiddenHumanReviewChildDeleted(): Promise<PhaseResult> {
   const exists = await fileExists(pathFromRepoRoot(FORBIDDEN_HUMAN_REVIEW_CHILD_PATH));
   const findings = exists
     ? [createFatalFinding({
-      lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1",
+      lawId: HUMAN_REVIEW_FAIL_CLOSED_LAW_ID,
       file: FORBIDDEN_HUMAN_REVIEW_CHILD_PATH,
       line: 1,
       message: "request-human-review child must stay physically deleted; automated agents cannot route into human review.",
@@ -224,16 +225,16 @@ function inspectTypedFailureBoundary(project: ReturnType<typeof createAuditProje
 }
 
 function inspectPostActionVerificationChain(project: ReturnType<typeof createAuditProject>): PhaseResult {
-  const mapValidationSource = getSourceFileOrThrow(project, MAP_VALIDATION_GATE_PATH);
+  const runtimePlanValidationSource = getSourceFileOrThrow(project, RUNTIME_PLAN_VALIDATION_GATE_PATH);
   const stepDispatcherSource = getSourceFileOrThrow(project, STEP_DISPATCHER_PATH);
   const findings: Finding[] = [];
-  const hasMapValidationCall = mapValidationSource.getDescendantsOfKind(SyntaxKind.CallExpression)
+  const hasRuntimePlanValidationCall = runtimePlanValidationSource.getDescendantsOfKind(SyntaxKind.CallExpression)
     .some((callExpression) => callExpression.getExpression().getText() === "ensurePostActionVerificationPolicy");
   const hasStepDispatchCall = stepDispatcherSource.getDescendantsOfKind(SyntaxKind.CallExpression)
     .some((callExpression) => callExpression.getExpression().getText() === "ensurePostActionVerificationDispatchGate");
 
-  if (!hasMapValidationCall) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: MAP_VALIDATION_GATE_PATH, line: 1, message: "Map validation gate must enforce postActionVerification policy on state-changing action steps." }));
+  if (!hasRuntimePlanValidationCall) {
+    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: RUNTIME_PLAN_VALIDATION_GATE_PATH, line: 1, message: "Runtime-plan validation gate must enforce postActionVerification policy on state-changing action steps." }));
   }
   if (!hasStepDispatchCall) {
     findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCHER_PATH, line: 1, message: "Step dispatcher must force post-action verification after state-changing action steps." }));
@@ -257,15 +258,15 @@ async function inspectScreenshotUrlDriftRecoveryChain(): Promise<PhaseResult> {
   const findings: Finding[] = [];
 
   if (!adapterText.includes('targetAbilityGroupId === "screenshot"') || !adapterText.includes("? input.status")) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: NERVE_BUS_ADAPTER_PATH, line: 1, message: "Orchestration Nerve Bus adapter must preserve Screenshot review_required instead of universally normalizing every ability review to failed." }));
+    findings.push(createFatalFinding({ lawId: HUMAN_REVIEW_FAIL_CLOSED_LAW_ID, file: NERVE_BUS_ADAPTER_PATH, line: 1, message: "Orchestration Nerve Bus adapter must preserve Screenshot review_required instead of universally normalizing every ability review to failed." }));
   }
 
   if (!stepDispatchText.includes('reviewRequiredReason: dispatchResult.status === "review_required" ? dispatchResult.failureReason : null')) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: STEP_DISPATCH_REQUEST_BUILDERS_PATH, line: 1, message: "Ability step result builder must preserve reviewRequiredReason when an ability returns review_required." }));
+    findings.push(createFatalFinding({ lawId: HUMAN_REVIEW_FAIL_CLOSED_LAW_ID, file: STEP_DISPATCH_REQUEST_BUILDERS_PATH, line: 1, message: "Ability step result builder must preserve reviewRequiredReason when an ability returns review_required." }));
   }
 
   if (!transitionText.includes("tiktok_url_drift_reopen_entry") || !transitionText.includes("input.map.initialStepId") || !transitionText.includes('onStatus: "review_required"')) {
-    findings.push(createFatalFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: TRANSITION_EVALUATOR_PATH, line: 1, message: "Transition evaluator must recognize TikTok screenshot URL drift recovery and route review_required back to the map initialStepId without pushing platform-specific recovery into Route Plan." }));
+    findings.push(createFatalFinding({ lawId: HUMAN_REVIEW_FAIL_CLOSED_LAW_ID, file: TRANSITION_EVALUATOR_PATH, line: 1, message: "Transition evaluator must recognize TikTok screenshot URL drift recovery and route review_required back to the runtime-plan initialStepId without pushing platform-specific recovery into Route Plan." }));
   }
 
   return {

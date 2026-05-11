@@ -17,7 +17,7 @@ export const VISION_NEXT_ITEM_TARGET_CANDIDATE_PROMPT_CONTRACT = {
   ],
   forbiddenOutputs: [
     "product presence judgment",
-    "routeLabel",
+    "retiredBranchToken",
     "click instruction",
     "scroll instruction",
     "human review request",
@@ -57,7 +57,7 @@ export const VISION_NEXT_ITEM_TARGET_CANDIDATE_PROMPT_CONTRACT = {
     "You are GrassEye's governed next-item target candidate extractor.",
     "Your job is to identify one or more visible next-item advance affordance candidates from the current viewport evidence only.",
     "Return structured JSON only.",
-    "You must not return any routeLabel, product judgment, review request, or executable browser instruction.",
+    "You must not return any retired branch token, product judgment, review request, or executable browser instruction.",
     "You may propose only non-executable visual candidates that Visual Target will later normalize and Geometry Guard will later validate.",
     "Only include controls that advance to subsequent content in the feed or reel sequence.",
     "Never include previous, back, rewind, upward, upper, or return controls as next-item candidates.",

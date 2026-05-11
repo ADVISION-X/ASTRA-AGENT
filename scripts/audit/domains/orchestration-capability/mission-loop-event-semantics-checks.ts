@@ -17,7 +17,7 @@ const LOOP_EVENTS_PATH = "src/capabilities/orchestration/runtime/orchestration-l
 const LOOP_EVENTS_SHARED_PATH = "src/capabilities/orchestration/runtime/orchestration-loop-iteration-event-shared.ts";
 const STEP_TRACE_RECORDER_PATH = "src/capabilities/orchestration/runtime/orchestration-step-trace-recorder.ts";
 const WORKBENCH_ORCHESTRATION_PATH = "src/lib/local-runtime/workbench-orchestration.ts";
-const REQUIRED_RUNTIME_EVENT_TYPES = ["MAP_STEP_SELECTED", "STEP_PRECONDITION_CHECKED", "STEP_DISPATCH_STARTED", "CAPABILITY_CALL_STARTED", "STEP_TRANSITION_EVALUATED"] as const;
+const REQUIRED_RUNTIME_EVENT_TYPES = ["RUNTIME_STEP_SELECTED", "STEP_PRECONDITION_CHECKED", "STEP_DISPATCH_STARTED", "CAPABILITY_CALL_STARTED", "STEP_TRANSITION_EVALUATED"] as const;
 const TERMINAL_RUNTIME_EVENT_TYPES = ["MISSION_FAILED", "MISSION_FINALIZED", "MISSION_REVIEW_REQUIRED", "MISSION_STOPPED"] as const;
 
 type PhaseResult = {

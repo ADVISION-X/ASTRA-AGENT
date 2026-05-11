@@ -17,6 +17,8 @@ type PresenceEntry = { filePath: string; exists: boolean };
 type OrchestrationSources = ReturnType<typeof loadOrchestrationSources>;
 type PhaseCheck = { findings: Finding[]; passed: boolean };
 
+const ROUND_MISSION_PACKET_DISPATCH_PATH = "src/capabilities/orchestration/runtime/visual-mission-ai-dispatch-context.ts";
+
 const loadPresenceEntries = async (paths: readonly string[]): Promise<PresenceEntry[]> => {
   return Promise.all(paths.map(async (filePath) => ({ filePath, exists: await fileExists(pathFromRepoRoot(filePath)) })));
 };
@@ -25,9 +27,9 @@ const loadOrchestrationSources = (project: ReturnType<typeof createAuditProject>
   const contractSource = getSourceFileOrThrow(project, config.CONTRACT_PATH);
   const schemaSource = getSourceFileOrThrow(project, config.SCHEMA_PATH);
   const abilityGroupSource = getSourceFileOrThrow(project, config.ABILITY_GROUP_PATH);
-  const mapSelectionSource = getSourceFileOrThrow(project, config.MAP_SELECTION_GATE_PATH);
+  const runtimePlanResolutionSource = getSourceFileOrThrow(project, config.RUNTIME_PLAN_RESOLUTION_GATE_PATH);
   const runtimeContextSource = getSourceFileOrThrow(project, config.RUNTIME_CONTEXT_PATH);
-  return { project, contractSource, schemaSource, abilityGroupSource, mapSelectionSource, runtimeContextSource };
+  return { project, contractSource, schemaSource, abilityGroupSource, runtimePlanResolutionSource, runtimeContextSource };
 };
 
 const getMissingRequiredPathFindings = (entries: PresenceEntry[]): Finding[] => {
@@ -72,51 +74,50 @@ const inspectStandardPackageShape = async (sources: OrchestrationSources): Promi
 
 const hasDynamicMapTruth = (input: {
   abilityGroupText: string;
-  mapSelectionText: string;
+  runtimePlanResolutionText: string;
   runtimeContextText: string;
-  mapSelectionSource: import("ts-morph").SourceFile;
+  runtimePlanResolutionSource: import("ts-morph").SourceFile;
   runtimeContextSource: import("ts-morph").SourceFile;
 }): boolean => {
-  return hasMapSelectionLookupTruth(input)
-    && hasRuntimeContextMapRegistryTruth(input)
-    && hasAbilityGroupMapRegistryTruth(input.abilityGroupText);
+  return hasRuntimePlanResolutionTruth(input)
+    && hasRuntimeContextRuntimePlanStoreTruth(input)
+    && hasAbilityGroupRuntimePlanStoreTruth(input.abilityGroupText);
 };
 
-const hasMapSelectionLookupTruth = (input: {
-  mapSelectionText: string;
-  mapSelectionSource: import("ts-morph").SourceFile;
+const hasRuntimePlanResolutionTruth = (input: {
+  runtimePlanResolutionText: string;
+  runtimePlanResolutionSource: import("ts-morph").SourceFile;
 }): boolean => {
-  return hasCallExpressionPath(input.mapSelectionSource, ["input", "mapStore", "getActiveMapRecordByTaskTemplateId"])
-    && hasCallExpressionPath(input.mapSelectionSource, ["input", "mapStore", "getActiveMapRecordByActivationId"])
-    && !input.mapSelectionText.includes("resolvePreferredMapId")
-    && !input.mapSelectionText.includes("platform_policy")
-    && !input.mapSelectionText.includes("product-video-detection");
+  return hasIdentifier(input.runtimePlanResolutionSource, "resolveRuntimePlan")
+    && input.runtimePlanResolutionText.includes("userRequirementText")
+    && input.runtimePlanResolutionText.includes("selectedPlatforms")
+    && !input.runtimePlanResolutionText.includes("platform_policy")
+    && !input.runtimePlanResolutionText.includes("product-video-detection");
 };
 
-const hasRuntimeContextMapRegistryTruth = (input: {
+const hasRuntimeContextRuntimePlanStoreTruth = (input: {
   runtimeContextText: string;
   runtimeContextSource: import("ts-morph").SourceFile;
 }): boolean => {
-  return hasImportModuleSpecifier(input.runtimeContextSource, "map-plugin-registry")
-    && input.runtimeContextText.includes("listActivePackages")
+  return hasImportModuleSpecifier(input.runtimeContextSource, "orchestration-runtime-plan-store-port")
+    && input.runtimeContextText.includes("OrchestrationRuntimePlanStorePort")
     && !input.runtimeContextText.includes("../maps/");
 };
 
-const hasAbilityGroupMapRegistryTruth = (abilityGroupText: string): boolean => {
-  const defaultRegistryFactory = ["getDefault", "Map", "Plugin", "Registry"].join("");
-  return abilityGroupText.includes(defaultRegistryFactory)
-    && abilityGroupText.includes("listActivePackages")
+const hasAbilityGroupRuntimePlanStoreTruth = (abilityGroupText: string): boolean => {
+  return abilityGroupText.includes("createDefaultOrchestrationRuntimePlanStore")
     && !abilityGroupText.includes("STATIC_MAP_IDS");
 };
 
 const RUNTIME_CONTROL_REQUIRED_FIELDS = ["promptContractVersion", "capabilityCatalogVersion"] as const;
-const RUNTIME_MAP_ID_SCHEMA_LINE = ["export const ", ["Operational", "Map", "IdSchema"].join(""), " = z.string().min(1);"] .join("");
+const RUNTIME_PLAN_ID_SCHEMA_LINE = ["export const ", ["Runtime", "Plan", "IdSchema"].join(""), " = z.string().min(1);"] .join("");
 
 type SchemaRegistryTruthFacts = {
   childIds: string[];
-  runtimeMapIdPass: boolean;
+  runtimePlanIdPass: boolean;
   registryPass: boolean;
   dynamicMapTruthPass: boolean;
+  roundMissionPacketTruthPass: boolean;
   runtimeControlMissing: string[];
 };
 
@@ -125,19 +126,31 @@ const loadSchemaRegistryTruthFacts = async (sources: OrchestrationSources): Prom
   const runtimeProofFields = getZodObjectPropertyNames(sources.schemaSource, "RuntimeProofSchema");
   const schemaText = await readTextFile(pathFromRepoRoot(config.SCHEMA_PATH));
   const registrySourceText = await readTextFile(pathFromRepoRoot(config.REGISTRY_PATH));
-  const mapSelectionText = await readTextFile(pathFromRepoRoot(config.MAP_SELECTION_GATE_PATH));
+  const runtimePlanResolutionText = await readTextFile(pathFromRepoRoot(config.RUNTIME_PLAN_RESOLUTION_GATE_PATH));
   const runtimeContextText = await readTextFile(pathFromRepoRoot(config.RUNTIME_CONTEXT_PATH));
+  const roundMissionPacketDispatchText = await readTextFile(pathFromRepoRoot(ROUND_MISSION_PACKET_DISPATCH_PATH));
   const abilityGroupText = await readTextFile(pathFromRepoRoot(config.ABILITY_GROUP_PATH));
-  const runtimeMapIdPass = schemaText.includes(RUNTIME_MAP_ID_SCHEMA_LINE);
+  const runtimePlanIdPass = schemaText.includes(RUNTIME_PLAN_ID_SCHEMA_LINE);
   const registryPass = registrySourceText.includes("createOrchestrationCapabilityRegistry") && registrySourceText.includes("getOrchestrationRegistryEntry");
-  const dynamicMapTruthPass = hasDynamicMapTruth({ abilityGroupText, mapSelectionText, runtimeContextText, mapSelectionSource: sources.mapSelectionSource, runtimeContextSource: sources.runtimeContextSource });
+  const dynamicMapTruthPass = hasDynamicMapTruth({
+    abilityGroupText,
+    runtimePlanResolutionText,
+    runtimeContextText,
+    runtimePlanResolutionSource: sources.runtimePlanResolutionSource,
+    runtimeContextSource: sources.runtimeContextSource,
+  });
+  const roundMissionPacketTruthPass = roundMissionPacketDispatchText.includes("buildRoundMissionPacket(")
+    && roundMissionPacketDispatchText.includes("recordRoundMissionPacket(")
+    && roundMissionPacketDispatchText.includes("roundMissionPacketJson")
+    && roundMissionPacketDispatchText.includes("roundMissionPacketRef");
   const runtimeControlMissing = RUNTIME_CONTROL_REQUIRED_FIELDS.filter((fieldName) => !runtimeProofFields.has(fieldName));
 
   return {
     childIds,
-    runtimeMapIdPass,
+    runtimePlanIdPass,
     registryPass,
     dynamicMapTruthPass,
+    roundMissionPacketTruthPass,
     runtimeControlMissing,
   };
 };
@@ -145,8 +158,9 @@ const loadSchemaRegistryTruthFacts = async (sources: OrchestrationSources): Prom
 const buildSchemaRegistryTruthFindings = (facts: SchemaRegistryTruthFacts): Finding[] => {
   return [
     ...(arraysEqual(facts.childIds, config.REQUIRED_CHILD_IDS) ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, severity: "error", message: "Orchestration child capability ids drifted away from the canonical child set." })]),
-    ...(facts.runtimeMapIdPass ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, severity: "error", message: "Runtime map id schema must stay dynamic and registry-backed under governed runtime maps." })]),
+    ...(facts.runtimePlanIdPass ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, severity: "error", message: "Runtime plan id schema must stay governed under the runtime-plan contract." })]),
     ...(facts.registryPass ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.REGISTRY_PATH, line: 1, severity: "error", message: "Orchestration registry must expose canonical registry accessors." })]),
+    ...(facts.roundMissionPacketTruthPass ? [] : [createFinding({ lawId: "GRASSEYE-ROUND-MISSION-PACKET-V1", file: ROUND_MISSION_PACKET_DISPATCH_PATH, line: 1, severity: "error", message: "Orchestration must build, record, and inject Round Mission Packet refs before the Visual Mission AI request." })]),
     ...(facts.runtimeControlMissing.length === 0 ? [] : [createFinding({ lawId: "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V1", file: config.SCHEMA_PATH, line: 1, severity: "error", message: "Orchestration runtime proof is missing governed runtime control fields.", detail: facts.runtimeControlMissing.join(", ") })]),
   ];
 };
@@ -157,7 +171,13 @@ const inspectSchemaRegistryTruth = async (sources: OrchestrationSources): Promis
 
   return {
     findings,
-    passed: facts.childIds.length > 0 && facts.dynamicMapTruthPass && facts.runtimeMapIdPass && facts.registryPass && facts.runtimeControlMissing.length === 0 && arraysEqual(facts.childIds, config.REQUIRED_CHILD_IDS),
+    passed: facts.childIds.length > 0
+      && facts.dynamicMapTruthPass
+      && facts.runtimePlanIdPass
+      && facts.registryPass
+      && facts.roundMissionPacketTruthPass
+      && facts.runtimeControlMissing.length === 0
+      && arraysEqual(facts.childIds, config.REQUIRED_CHILD_IDS),
   };
 };
 

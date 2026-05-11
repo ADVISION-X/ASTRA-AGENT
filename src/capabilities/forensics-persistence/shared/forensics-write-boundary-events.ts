@@ -47,7 +47,6 @@ function resolveStructuredWritePayload(request: StructuredWriteRequest) {
   if (request.childCapabilityId === "write-structured-runtime-event") {
     return {
       step: request.payload.structuredRuntimeEvent.step,
-      taskBindingId: request.payload.structuredRuntimeEvent.taskBindingId,
       traceId: request.payload.structuredRuntimeEvent.traceId,
       spanId: request.payload.structuredRuntimeEvent.spanId,
       attemptId: request.payload.structuredRuntimeEvent.attemptId,
@@ -58,7 +57,6 @@ function resolveStructuredWritePayload(request: StructuredWriteRequest) {
 
   return {
     step: request.payload.structuredActionLog.step,
-    taskBindingId: null,
     traceId: request.sessionId,
     spanId: request.capabilityCallId ?? null,
     attemptId: request.roundId,
@@ -106,7 +104,6 @@ function buildBoundaryEventIdentity(
     videoVisitId: request.videoVisitId,
     mapId: request.selectedBindingId,
     stepId: request.stepId,
-    taskBindingId: payload.taskBindingId,
     traceId: payload.traceId,
     spanId: payload.spanId,
     attemptId: payload.attemptId,

@@ -251,6 +251,7 @@ const inspectTargetedTextFile = async (input: {
   message: string;
   coherenceKind: string;
   recommendedAction: string;
+  requirePresence?: boolean;
 }): Promise<Finding[]> => {
   const absolutePath = pathFromRepoRoot(input.relativePath);
   if (!(await fileExists(absolutePath))) {
@@ -258,13 +259,14 @@ const inspectTargetedTextFile = async (input: {
   }
 
   const text = await readTextFile(absolutePath);
-  if (!text.includes(input.token)) {
+  const hasToken = text.includes(input.token);
+  if (input.requirePresence ? hasToken : !hasToken) {
     return [];
   }
 
   return [createCoherenceFinding({
     file: input.relativePath,
-    line: findLineNumberForToken(text, input.token),
+    line: input.requirePresence ? 1 : findLineNumberForToken(text, input.token),
     message: input.message,
     detail: input.token,
     coherenceKind: input.coherenceKind,
@@ -297,6 +299,7 @@ const inspectTargetedVisualStoryFiles = async (): Promise<Finding[]> => [
     message: "Local AI visual mission task request schemaVersion must use visualMissionActionPlan.v1.",
     coherenceKind: "visual-story-drift",
     recommendedAction: "Align src/types/local-ai.ts with the governed visual mission output schemaVersion.",
+    requirePresence: true,
   }),
   ...await inspectTargetedTextFile({
     relativePath: GENERATED_CATALOG_PATH,

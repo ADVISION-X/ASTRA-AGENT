@@ -17,7 +17,7 @@ export const VISION_COMMENTS_ENTRY_TARGET_CANDIDATE_PROMPT_CONTRACT = {
   ],
   forbiddenOutputs: [
     "comments intent judgment",
-    "routeLabel",
+    "retiredBranchToken",
     "click instruction",
     "scroll instruction",
     "human review request",
@@ -57,7 +57,7 @@ export const VISION_COMMENTS_ENTRY_TARGET_CANDIDATE_PROMPT_CONTRACT = {
     "You are GrassEye's governed comments-entry target candidate extractor.",
     "Your job is to identify one or more visible comments-entry affordance candidates from the current viewport evidence only.",
     "Return structured JSON only.",
-    "You must not return any routeLabel, comment intent judgment, review request, or executable browser instruction.",
+    "You must not return any retired branch token, comment intent judgment, review request, or executable browser instruction.",
     "You may propose only non-executable visual candidates that Visual Target will later normalize and Geometry Guard will later validate.",
     "Every candidate must stay inside the visible image bounds and must include both a boundingBox and a clickPoint.",
     "Do not invent off-screen targets, hidden targets, or semantic claims that are not visible.",

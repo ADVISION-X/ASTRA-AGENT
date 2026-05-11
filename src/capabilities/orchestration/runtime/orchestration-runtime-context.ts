@@ -1,6 +1,6 @@
 import type { OrchestrationRuntimeContext } from "../internal.js";
 export type { OrchestrationRuntimeContext } from "../internal.js";
-import type { OrchestrationMapStorePort } from "../ports/orchestration-map-store-port.js";
+import type { OrchestrationRuntimePlanStorePort } from "../ports/orchestration-runtime-plan-store-port.js";
 import { createSystemOrchestrationClock } from "./orchestration-clock.js";
 import { createInMemoryOrchestrationIdempotencyPort } from "./orchestration-idempotency.js";
 import { createInMemoryOrchestrationStatePort } from "./mission-state-store.js";
@@ -23,7 +23,7 @@ function createNerveBusTransportSurface(nerveBus: OrchestrationRuntimeNerveBus):
 }
 
 export function createOrchestrationRuntimeContext(input: {
-  mapStore: OrchestrationMapStorePort;
+  mapStore: OrchestrationRuntimePlanStorePort;
   nerveBus: OrchestrationRuntimeNerveBus;
   forensics: OrchestrationRuntimeContext["forensics"];
 }): OrchestrationRuntimeContext {

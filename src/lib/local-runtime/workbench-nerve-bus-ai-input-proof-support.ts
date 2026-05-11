@@ -100,17 +100,29 @@ export function ensureWorkbenchAiInputProof(
   }
 }
 
+const resolveWorkbenchEvidenceFilePath = (ref: string): string | null => {
+  const proof = resolveWorkbenchAiInputProofSummary(ref);
+  if (proof?.aiInputStorageRef) {
+    return proof.aiInputStorageRef;
+  }
+
+  const summary = resolveAbilityResultProofSummary(ref);
+  return payloadValueToString(summary?.artifactStorageRef)
+    ?? payloadValueToString(summary?.aiInputStorageRef)
+    ?? payloadValueToString(summary?.sourceStorageRef);
+};
+
 export function buildWorkbenchAiInputRefs(
   envelope: WorkbenchAiProofEnvelope,
   inputPayload: WorkbenchAiProofPayload,
 ) {
   return envelope.aiInputRefs.map((ref) => {
-    const proof = resolveWorkbenchAiInputProofSummary(ref);
+    const filePath = resolveWorkbenchEvidenceFilePath(ref);
     return {
       id: ref,
       kind: "video-screenshot" as const,
       summary: inputPayload.summary,
-      ...(proof?.aiInputStorageRef ? { filePath: proof.aiInputStorageRef } : {}),
+      ...(filePath ? { filePath } : {}),
     };
   });
 }

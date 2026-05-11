@@ -61,6 +61,27 @@ idempotencyKey
 timeoutMs
 ```
 
+## Human Command Boundary
+
+```txt
+issue-human-command = start-mission only
+boundaryDecision = command-transport-only
+schema requires requestedPlatformId + governed initialPayload
+Commander 活跃 command surface = issue-human-command / pause-mission / resume-mission / stop-mission / emergency-stop / mark-review-required
+```
+
+禁止：
+
+```txt
+roundId
+roundIndex
+previousRoundId
+currentPhase
+aiResultRef
+approve-candidate 重新回流到 command surface
+reject-candidate 重新回流到 command surface
+```
+
 禁止字段：
 
 ```txt

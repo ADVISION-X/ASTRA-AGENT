@@ -42,16 +42,16 @@ export function inspectStartMissionCommandBoundary(project: ReturnType<typeof cr
   const callPreservesEnvelopeRunId = startMissionCalls.some((callExpression) =>
     callExpression.getDescendantsOfKind(SyntaxKind.PropertyAssignment).some((property) => property.getName() === "runId" && property.getInitializer()?.getText() === "envelope.runId"),
   );
-  const emitsStartBoundaryLogs = ["ORCHESTRATION_START_RECEIVED", "MISSION_ACTIVATION_SNAPSHOT_FROZEN", "COMMAND_ACCEPTED"].every((eventType) =>
+  const emitsStartBoundaryLogs = ["ORCHESTRATION_START_RECEIVED", "MISSION_START_CONTEXT_CONFIRMED", "COMMAND_ACCEPTED"].every((eventType) =>
     debugEventsSource.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralText() === eventType),
   );
   const startReceivedCallStart = getCallStart("recordOrchestrationStartReceived");
-  const activationFrozenCallStart = getCallStart("recordMissionActivationSnapshotFrozen");
+  const startContextConfirmedCallStart = getCallStart("recordMissionStartContextConfirmed");
   const commandAcceptedCallStart = getCallStart("recordCommandAccepted");
   const startMissionCallStart = getCallStart("orchestrationAbilityGroup.startMission");
   const preservesBoundaryOrder = startReceivedCallStart >= 0
-    && activationFrozenCallStart > startReceivedCallStart
-    && commandAcceptedCallStart > activationFrozenCallStart
+    && startContextConfirmedCallStart > startReceivedCallStart
+    && commandAcceptedCallStart > startContextConfirmedCallStart
     && startMissionCallStart > commandAcceptedCallStart;
   const preflightDryRunsMissionCommand = commandPreflightSource.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => callExpression.getExpression().getText() === "MissionCommandSchema.safeParse");
   const findings: Finding[] = [];
@@ -63,10 +63,10 @@ export function inspectStartMissionCommandBoundary(project: ReturnType<typeof cr
     findings.push(createFatalFinding({ file: WORKBENCH_STATUS_PATH, message: "MissionStartPreflight must dry-run MissionCommandSchema before Nerve Bus dispatch." }));
   }
   if (!emitsStartBoundaryLogs) {
-    findings.push(createFatalFinding({ file: WORKBENCH_HUMAN_COMMAND_START_MISSION_PATH, message: "Human command start boundary must emit ORCHESTRATION_START_RECEIVED, MISSION_ACTIVATION_SNAPSHOT_FROZEN, and COMMAND_ACCEPTED structured runtime events." }));
+    findings.push(createFatalFinding({ file: WORKBENCH_HUMAN_COMMAND_START_MISSION_PATH, message: "Human command start boundary must emit ORCHESTRATION_START_RECEIVED, MISSION_START_CONTEXT_CONFIRMED, and COMMAND_ACCEPTED structured runtime events." }));
   }
   if (!preservesBoundaryOrder) {
-    findings.push(createFatalFinding({ file: WORKBENCH_HUMAN_COMMAND_START_MISSION_PATH, message: "Human command start boundary must emit start-received, activation-snapshot-frozen, and command-accepted before Orchestration startMission begins." }));
+    findings.push(createFatalFinding({ file: WORKBENCH_HUMAN_COMMAND_START_MISSION_PATH, message: "Human command start boundary must emit start-received, mission-start-context-confirmed, and command-accepted before Orchestration startMission begins." }));
   }
 
   return { findings, phase: createRuntimePhase(findings) };

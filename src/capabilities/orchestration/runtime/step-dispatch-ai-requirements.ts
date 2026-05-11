@@ -1,4 +1,4 @@
-import type { MissionState, OperationalMap } from "../contract.js";
+import type { MissionState, RuntimePlan } from "../contract.js";
 import { findAiPromptContractCatalogEntry } from "../../ai/index.js";
 import type { AiStep } from "./step-dispatch-shared.js";
 import { resolveAiDispatchPayloadRefValue } from "./visual-mission-ai-dispatch-context.js";
@@ -95,7 +95,7 @@ const buildAiDispatchRequirements = (input: {
   },
 });
 
-const resolveAiStepContractBinding = (input: { map: OperationalMap; step: AiStep }) => {
+const resolveAiStepContractBinding = (input: { map: RuntimePlan; step: AiStep }) => {
   const promptContractResult = resolvePromptContractForAiStep(input.step);
   if (!promptContractResult.ok) {
     return promptContractResult;
@@ -112,7 +112,7 @@ const resolveAiStepContractBinding = (input: { map: OperationalMap; step: AiStep
 
 export const resolveAiDispatchRequirements = (input: {
   state: MissionState;
-  map: OperationalMap;
+  map: RuntimePlan;
   step: AiStep;
 }): { ok: true; value: AiDispatchRequirements } | { ok: false; failureReason: string } => {
   const contractBinding = resolveAiStepContractBinding({ map: input.map, step: input.step });

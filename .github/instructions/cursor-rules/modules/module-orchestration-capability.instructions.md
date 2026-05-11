@@ -323,6 +323,69 @@ FORBIDDEN:
 
 ---
 
+## Law GRASSEYE-ROUND-MISSION-PACKET-V1
+
+status: active
+tier: P0
+capabilityDomain: orchestration-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: Orchestration must build and inject Round Mission Packet as the only governed continuity artifact before each Visual Mission AI round.
+
+### 主题
+
+Round Mission Packet 连续性主权
+
+### 法条
+
+Before each Visual Mission AI request, Orchestration must materialize Round Mission Packet as the governed continuity artifact for the next round.
+
+Required:
+- Orchestration builds Round Mission Packet before the AI request leaves Orchestration.
+- Orchestration records a governed `roundMissionPacketRef` before dispatch.
+- AI dispatch input includes `roundMissionPacketJson` or an equivalent governed Round Mission Packet payload plus `roundMissionPacketRef`.
+- Round Mission Packet carries mission truth, round truth, current evidence, governed constraints, and governed allowed-action catalog continuity.
+- Round Mission Packet constraints must preserve no-human-in-loop, no-raw-coordinates, and coordinate-grid-required truth.
+
+Forbidden:
+- reconstructing round continuity from raw prompt text without Round Mission Packet refs.
+- sending a Visual Mission AI round without current Round Mission Packet injection.
+- letting AI infer continuity from previous rounds when the packet was not injected.
+
+---
+
+## Law GRASSEYE-HUMAN-REVIEW-FAIL-CLOSED-V1
+
+status: active
+tier: P0
+capabilityDomain: orchestration-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: review_required and STOP_REVIEW_REQUIRED must fail closed, stop the automated round, and hand control back to Commander without hidden runtime continuation.
+
+### 主题
+
+人工复核必须 fail-closed
+
+### 法条
+
+Human review is a stop boundary, not an in-loop runtime continuation primitive.
+
+Required:
+- `review_required` stops the current automated round.
+- `STOP_REVIEW_REQUIRED` is treated as a legal governed stop actionCode when declared by MuscleMemoryCatalog.
+- review reasons remain visible to Commander-facing read models and Forensics.
+- runtime must preserve `reviewRequiredReason` instead of collapsing review into silent failure or success.
+
+Forbidden:
+- any active `request-human-review` child in the Orchestration command surface.
+- implicitly resuming the mission after review without a new governed Commander command.
+- downgrading `review_required` into a hidden retry, fallback success, or silent continue path.
+
+---
+
 ## Law GRASSEYE-ORCHESTRATION-CAPABILITY-006-V4
 
 status: active

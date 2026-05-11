@@ -117,12 +117,12 @@ const SessionIdSchema = z.string().min(1);
 const RoundIdSchema = NullableRefSchema;
 const VideoVisitIdSchema = NullableRefSchema;
 const MapIdSchema = z.string().min(1);
-const MapPackageIdSchema = z.string().min(1);
-const MapPackageVersionSchema = z.string().min(1);
-const SelectedMapIdSchema = z.string().min(1);
-const SelectedMapVersionSchema = z.string().min(1);
+const BindingPackageIdSchema = z.string().min(1);
+const BindingPackageVersionSchema = z.string().min(1);
+const SelectedBindingIdSchema = z.string().min(1);
+const BindingVersionSchema = z.string().min(1);
 const BindingActivationRefSchema = z.string().min(1);
-const ActivationSnapshotRefSchema = z.string().min(1);
+const BindingSnapshotRefSchema = z.string().min(1);
 const CapabilityCallIdSchema = z.string().min(1);
 const SourceRefSchema = z.string().min(1);
 const StepIdSchema = z.string().min(1);
@@ -178,12 +178,12 @@ const NerveBusEnvelopeBaseCoreSchema = z.object({
   roundId: RoundIdSchema,
   videoVisitId: VideoVisitIdSchema,
   mapId: MapIdSchema,
-  bindingPackageId: MapPackageIdSchema,
-  bindingPackageVersion: MapPackageVersionSchema,
-  selectedBindingId: SelectedMapIdSchema,
-  bindingVersion: SelectedMapVersionSchema,
+  bindingPackageId: BindingPackageIdSchema,
+  bindingPackageVersion: BindingPackageVersionSchema,
+  selectedBindingId: SelectedBindingIdSchema,
+  bindingVersion: BindingVersionSchema,
   bindingActivationRef: BindingActivationRefSchema,
-  bindingSnapshotRef: ActivationSnapshotRefSchema,
+  bindingSnapshotRef: BindingSnapshotRefSchema,
   stepId: StepIdSchema,
   capabilityCallId: CapabilityCallIdSchema,
   sourceRef: SourceRefSchema,
@@ -264,12 +264,12 @@ export {
   RoundIdSchema,
   VideoVisitIdSchema,
   MapIdSchema,
-  MapPackageIdSchema,
-  MapPackageVersionSchema,
-  SelectedMapIdSchema,
-  SelectedMapVersionSchema,
-  BindingActivationRefSchema as ActivationIdSchema,
-  ActivationSnapshotRefSchema,
+  BindingPackageIdSchema,
+  BindingPackageVersionSchema,
+  SelectedBindingIdSchema,
+  BindingVersionSchema,
+  BindingActivationRefSchema,
+  BindingSnapshotRefSchema,
   CapabilityCallIdSchema,
   SourceRefSchema,
   StepIdSchema,

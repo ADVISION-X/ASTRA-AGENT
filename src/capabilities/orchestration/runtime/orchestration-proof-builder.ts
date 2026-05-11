@@ -3,7 +3,7 @@ import {
   RuntimeProofSchema,
   type MissionHumanCommandKindSchema,
   type MissionInternalOperationKindSchema,
-  type SelectedMapSourceSchema,
+  type RuntimePlanSourceSchema,
   type AllowedAbilityGroupIdSchema,
   type AbortDecisionSchema,
   type NerveBusDispatchDecisionSchema,
@@ -11,13 +11,12 @@ import {
   type TransitionConditionSourceSchema,
 } from "../schema.js";
 
-import type { OperationalMapId } from "../contract.js";
+import type { RuntimePlanId } from "../contract.js";
 
 export type BuildProofInput = {
   missionId: string;
   runId: string;
-  mapId: OperationalMapId;
-  taskBindingId?: string | null;
+  mapId: RuntimePlanId;
   bindingActivationRef?: string | null;
   bindingPackageId?: string | null;
   bindingPackageVersion?: string | null;
@@ -26,7 +25,7 @@ export type BuildProofInput = {
   bindingSnapshotRef?: string | null;
   promptContractVersion?: string | null;
   capabilityCatalogVersion?: string | null;
-  selectedMapSource?: z.output<typeof SelectedMapSourceSchema> | null;
+  runtimePlanSource?: z.output<typeof RuntimePlanSourceSchema> | null;
   stepId: string;
   targetAbilityGroupId?: z.output<typeof AllowedAbilityGroupIdSchema> | null;
   targetChildCapabilityId?: string | null;
@@ -78,7 +77,6 @@ function buildOrchestrationProofIdentityFields(input: BuildProofInput): Pick<z.o
 	  | "runId"
 	  | "missionId"
   | "mapId"
-  | "taskBindingId"
   | "bindingActivationRef"
   | "bindingPackageId"
   | "bindingPackageVersion"
@@ -87,7 +85,7 @@ function buildOrchestrationProofIdentityFields(input: BuildProofInput): Pick<z.o
   | "bindingSnapshotRef"
   | "promptContractVersion"
   | "capabilityCatalogVersion"
-  | "selectedMapSource"
+  | "runtimePlanSource"
   | "stepId"
   | "targetAbilityGroupId"
   | "targetChildCapabilityId"
@@ -97,7 +95,7 @@ function buildOrchestrationProofIdentityFields(input: BuildProofInput): Pick<z.o
   | "caller"
   | "idempotencyKey"
   | "sequenceNo"> {
-	  return { proofId: `${input.runId}:${input.sequenceNo}:${input.stepId}`, runId: input.runId, missionId: input.missionId, mapId: input.mapId, taskBindingId: input.taskBindingId ?? null, bindingActivationRef: input.bindingActivationRef ?? null, bindingPackageId: input.bindingPackageId ?? null, bindingPackageVersion: input.bindingPackageVersion ?? null, mapVersion: input.mapVersion ?? null, bindingVersion: input.bindingVersion ?? null, bindingSnapshotRef: input.bindingSnapshotRef ?? null, promptContractVersion: input.promptContractVersion ?? null, capabilityCatalogVersion: input.capabilityCatalogVersion ?? null, selectedMapSource: input.selectedMapSource ?? null, stepId: input.stepId, targetAbilityGroupId: input.targetAbilityGroupId ?? null, targetChildCapabilityId: input.targetChildCapabilityId ?? null, childCapabilityId: input.childCapabilityId, commandKind: input.commandKind, internalOperationKind: input.internalOperationKind ?? null, caller: input.caller, idempotencyKey: input.idempotencyKey, sequenceNo: input.sequenceNo };
+	  return { proofId: `${input.runId}:${input.sequenceNo}:${input.stepId}`, runId: input.runId, missionId: input.missionId, mapId: input.mapId, bindingActivationRef: input.bindingActivationRef ?? null, bindingPackageId: input.bindingPackageId ?? null, bindingPackageVersion: input.bindingPackageVersion ?? null, mapVersion: input.mapVersion ?? null, bindingVersion: input.bindingVersion ?? null, bindingSnapshotRef: input.bindingSnapshotRef ?? null, promptContractVersion: input.promptContractVersion ?? null, capabilityCatalogVersion: input.capabilityCatalogVersion ?? null, runtimePlanSource: input.runtimePlanSource ?? null, stepId: input.stepId, targetAbilityGroupId: input.targetAbilityGroupId ?? null, targetChildCapabilityId: input.targetChildCapabilityId ?? null, childCapabilityId: input.childCapabilityId, commandKind: input.commandKind, internalOperationKind: input.internalOperationKind ?? null, caller: input.caller, idempotencyKey: input.idempotencyKey, sequenceNo: input.sequenceNo };
 }
 
 function buildOrchestrationProofStateFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
@@ -140,7 +138,6 @@ function buildOrchestrationProofCoreFields(input: BuildProofInput): Pick<z.outpu
 	  | "runId"
 	  | "missionId"
   | "mapId"
-  | "taskBindingId"
   | "bindingActivationRef"
   | "bindingPackageId"
   | "bindingPackageVersion"
@@ -149,7 +146,7 @@ function buildOrchestrationProofCoreFields(input: BuildProofInput): Pick<z.outpu
   | "bindingSnapshotRef"
   | "promptContractVersion"
   | "capabilityCatalogVersion"
-  | "selectedMapSource"
+  | "runtimePlanSource"
   | "stepId"
   | "targetAbilityGroupId"
   | "targetChildCapabilityId"

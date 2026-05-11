@@ -16,8 +16,6 @@ const PRIORITY_BY_COMMAND: Record<CommanderCommandType, CommanderCommandPriority
   "resume-mission": "normal",
   "stop-mission": "normal",
   "emergency-stop": "emergency",
-  "approve-candidate": "normal",
-  "reject-candidate": "normal",
   "mark-review-required": "normal",
 };
 
@@ -27,8 +25,6 @@ const OWNED_COMMAND_BY_CHILD: Record<CommanderCommandChildAbilityId, CommanderCo
   "resume-mission": "resume-mission",
   "stop-mission": "stop-mission",
   "emergency-stop": "emergency-stop",
-  "approve-candidate": "approve-candidate",
-  "reject-candidate": "reject-candidate",
   "mark-review-required": "mark-review-required",
 };
 

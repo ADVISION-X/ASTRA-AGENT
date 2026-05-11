@@ -1,1 +1,0 @@
-export type { OperationalMap, OperationalMapId } from "../contract.js";

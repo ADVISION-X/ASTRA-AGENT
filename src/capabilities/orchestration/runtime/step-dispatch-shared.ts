@@ -1,13 +1,13 @@
 import type { z } from "zod";
 
-import type { MissionState, OperationalMap } from "../contract.js";
+import type { MissionState, RuntimePlan } from "../contract.js";
 import { MissionStepResultSchema } from "../schema.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import { findAiPromptContractCatalogEntry, resolveAiDispatchTimeoutMs } from "../../ai/index.js";
 
 const DEFAULT_STEP_TIMEOUT_MS = 60_000;
 
-type OperationalStep = OperationalMap["steps"][number];
+type OperationalStep = RuntimePlan["steps"][number];
 type FinalizeStep = OperationalStep & { stepKind: "finalize" };
 type AiStep = OperationalStep & { stepKind: "ai" };
 type AbilityStep = OperationalStep & { stepKind: "ability" };
@@ -17,7 +17,7 @@ type MutableStepPayloadRefs = Record<keyof StepPayloadRefs, string | null>;
 
 const RESERVED_PERSISTENT_PAYLOAD_REF_KEYS = ["requestedPlatformId"] as const;
 
-const resolvePersistentMissionPayloadRefKeys = (map: OperationalMap): Set<keyof StepPayloadRefs> => {
+const resolvePersistentMissionPayloadRefKeys = (map: RuntimePlan): Set<keyof StepPayloadRefs> => {
   return new Set<keyof StepPayloadRefs>([
     ...RESERVED_PERSISTENT_PAYLOAD_REF_KEYS,
     ...map.persistentPayloadRefs,
@@ -76,7 +76,7 @@ type StepDispatchResult =
 
 type AbilityDispatchInput = {
   state: MissionState;
-  map: OperationalMap;
+  map: RuntimePlan;
   step: AbilityStep;
   sequenceNo: number;
   idempotencyKey: string;

@@ -1,4 +1,4 @@
-generatedAt: 2026-05-11T00:18:59.215Z
+generatedAt: 2026-05-11T01:16:52.942Z
 owners:
   - inspectorId: ai-capability-owner
     capabilityDomain: ai-capability
@@ -11,6 +11,7 @@ owners:
     lawIds:
       - GRASSEYE-AI-CAPABILITY-001-V1
       - GRASSEYE-AI-CAPABILITY-002-V1
+      - GRASSEYE-AI-NO-MEMORY-V1
       - GRASSEYE-AI-CAPABILITY-003-V1
       - GRASSEYE-AI-CAPABILITY-004-V1
       - GRASSEYE-AI-CAPABILITY-005-V1
@@ -33,6 +34,7 @@ owners:
       - .github/instructions/cursor-rules/modules/module-audit-system.instructions.md
     readsBlueprintFiles:
       - "docs/法案辅助文件/GrassEye AI 大脑能力组施工图.md"
+      - "docs/法案辅助文件/GrassEye Visual Mission Prompt Contract 施工图.md"
       - "docs/法案辅助文件/GrassEye 本地AI分工与提示词施工图.md"
       - "docs/法案辅助文件/GrassEye 本地模型选型施工图.md"
       - "docs/法案辅助文件/GrassEye 多帧视频取证施工图.md"
@@ -106,6 +108,7 @@ owners:
       - "law+blueprint+real-code-inspection"
     lawIds:
       - GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V3
+      - GRASSEYE-HUMAN-COMMAND-BOUNDARY-V1
       - GRASSEYE-STARTUP-ENTRYPOINT-001-V2
       - GRASSEYE-STARTUP-ENTRYPOINT-002-V2
       - GRASSEYE-STARTUP-ENTRYPOINT-003-V2
@@ -271,12 +274,15 @@ owners:
       - GRASSEYE-ORCHESTRATION-CAPABILITY-003-V4
       - GRASSEYE-ORCHESTRATION-CAPABILITY-004-V4
       - GRASSEYE-ORCHESTRATION-CAPABILITY-005-V4
+      - GRASSEYE-ROUND-MISSION-PACKET-V1
+      - GRASSEYE-HUMAN-REVIEW-FAIL-CLOSED-V1
       - GRASSEYE-ORCHESTRATION-CAPABILITY-006-V4
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md
     readsBlueprintFiles:
       - "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md"
-      - "docs/法案辅助文件/GrassEye Route Plan 肌肉记忆施工图.md"
+      - "docs/法案辅助文件/GrassEye Visual Mission Prompt Contract 施工图.md"
+      - "docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md"
   - inspectorId: page-state-capability-owner
     capabilityDomain: page-state-capability
     ownerKind: ability-group

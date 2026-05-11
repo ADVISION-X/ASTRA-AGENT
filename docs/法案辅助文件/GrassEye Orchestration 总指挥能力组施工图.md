@@ -8,14 +8,14 @@
 
 ## Retired Vocabulary Table
 
-| 抽象词 | 实际禁止字段 |
+| 抽象词 | 代表性禁止口径 |
 | --- | --- |
-| retired branch-token field | routeLabel |
-| legacy route-plan field | routePlanId |
-| retired selection field | selectedMapId / selectedMapVersion |
-| retired binding field | activationId / activationSnapshotRef |
-| retired package chain | mapPackageId / mapPackageVersion / map-plugin-package |
-| retired template flow | taskTemplateId / taskTemplate |
+| retired branch-token field | retired AI branch token |
+| legacy route-plan field | retired route identifier |
+| retired selection field | retired binding selection identifier |
+| retired binding field | retired binding snapshot identifier |
+| retired package chain | retired package-governance chain |
+| retired template flow | retired template entry flow |
 
 ## 新主链
 
@@ -69,10 +69,28 @@ selectedPlatforms
 status
 ```
 
+## Round Mission Packet 连续性
+
+```txt
+每轮 Visual Mission AI 调用前，Orchestration 必须 build + record + inject Round Mission Packet
+dispatchInput 必须带 roundMissionPacketJson
+payloadRefs 必须带 roundMissionPacketRef
+Round Mission Packet 必须包含 mission / round / currentEvidence / constraints / allowedActions
+constraints 必须保留 noHumanInLoop / requireCoordinateGridForVisualActions / noRawCoordinates / stopWhenBlocked / stopWhenUnsafe
+```
+
+禁止：
+
+```txt
+不注入 Round Mission Packet 就发起下一轮 AI
+让 AI 靠上一轮记忆接任务
+review_required 后隐式继续自动链路
+```
+
 ## 执行阶段语义
 
 - currentStepId / previousStepId 只表示 visual mission round 内部执行阶段，不得对应 retired packaged step。
-- branchTaken 如果存在，只能来自声明过的 decision / riskFlags / actions 字段，不得来自 routeLabel 或其他 retired branch token。
+- branchTaken 如果存在，只能来自声明过的 decision / riskFlags / actions 字段，不得来自任何 retired branch token。
 - step state 是调度元数据，不是 retired declarative flow package 的回流主权。
 - `review_required` 表示当前轮自动链路必须停止，不得隐式继续。
 - `STOP_REVIEW_REQUIRED` 是合法 actionCode，用于硬停止并把人工处理转交 Commander Console。

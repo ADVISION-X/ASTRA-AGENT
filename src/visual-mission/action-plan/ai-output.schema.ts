@@ -104,9 +104,8 @@ const VisualMissionVisualClickTargetHintSchema = z.object({
 
 const VisualMissionPlatformContextSchema = z.object({
   platformId: VisualMissionPlatformSchema,
-  selectedPlatforms: z.array(VisualMissionPlatformSchema).min(1),
-  targetUrl: z.string().url(),
-  targetTitle: z.string().min(1),
+  targetUrl: z.string().min(1).nullable().default(null),
+  targetTitle: z.string().min(1).nullable().default(null),
   targetProfileRef: z.string().min(1).nullable().default(null),
 }).strict();
 

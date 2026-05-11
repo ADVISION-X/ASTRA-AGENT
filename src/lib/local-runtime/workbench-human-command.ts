@@ -65,12 +65,7 @@ const handleCandidateReview = async (
   if (candidateId === null) {
     return buildHumanCommandResultEnvelope({ envelope, status: "failed", summary: "Candidate review commands require a target candidate id.", failureReason: "Candidate review commands require a target candidate id." });
   }
-  const disposition = envelope.commandType === "approve-candidate"
-    ? "approve"
-    : envelope.commandType === "reject-candidate"
-      ? "reject"
-      : "hold";
-  const candidate = await runtime.evidenceStore.setCandidateDisposition(candidateId, disposition, payloadValueToString(payload.operatorNote) ?? undefined);
+  const candidate = await runtime.evidenceStore.setCandidateDisposition(candidateId, "hold", payloadValueToString(payload.operatorNote) ?? undefined);
   return buildHumanCommandResultEnvelope({ envelope, status: "success", summary: `Candidate ${candidate.id} is now ${candidate.reviewStatus}.` });
 };
 
@@ -98,10 +93,7 @@ const routeCandidateCommand = (
   payload: Record<string, string | number | boolean | null>,
 ): Promise<HumanCommandHandledResult> => {
   switch (envelope.commandType) {
-    case "approve-candidate":
-    case "reject-candidate":
     case "mark-review-required":
-    case "hold-candidate":
       return handleCandidateReview(runtime, envelope, payload);
     default:
       return Promise.resolve(buildHumanCommandResultEnvelope({ envelope, status: "failed", summary: `Unsupported candidate command: ${envelope.commandType}.`, failureReason: `Unsupported candidate command: ${envelope.commandType}.` }));

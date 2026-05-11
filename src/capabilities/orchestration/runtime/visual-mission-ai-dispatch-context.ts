@@ -1,4 +1,3 @@
-import { listAiPlanEligibleActions } from "../../../muscle-memory/catalog.js";
 import { buildMuscleMemorySystemManual } from "../../../muscle-memory/system-manual.js";
 import { buildRoundMissionPacket } from "../../../visual-mission/round-mission-packet-builder.js";
 import { recordRoundMissionPacket } from "../../../visual-mission/round-mission-packet-store.js";
@@ -24,31 +23,78 @@ const buildPlatformContextRef = (state: MissionState) =>
 const buildRoundMissionPacketRef = (state: MissionState) =>
   state.missionId ? `${state.missionId}:round-mission-packet:${state.currentRoundIndex}:${state.stateRevision}` : null;
 
+const buildRoundId = (state: MissionState) => (
+  state.missionId ? `${state.missionId}:round:${state.currentRoundIndex}` : null
+);
+
+const buildPreviousRoundId = (state: MissionState) => (
+  state.missionId && state.currentRoundIndex > 0
+    ? `${state.missionId}:round:${state.currentRoundIndex - 1}`
+    : null
+);
+
 const buildPlatformContext = (state: MissionState) => {
   if (!state.requestedPlatform) {
     return null;
   }
 
-  const targetUrl = readPayloadRefString(state, "targetUrl");
-  const targetTitle = readPayloadRefString(state, "targetTitle");
-  if (!targetUrl || !targetTitle) {
-    return null;
-  }
-
   return {
+    platformContextRef: buildPlatformContextRef(state),
     platformId: state.requestedPlatform,
-    selectedPlatforms: resolveSelectedPlatforms(state),
-    targetUrl,
-    targetTitle,
+    targetUrl: readPayloadRefString(state, "targetUrl"),
+    targetTitle: readPayloadRefString(state, "targetTitle"),
     targetProfileRef: readPayloadRefString(state, "targetProfileRef"),
   };
 };
 
+const hasRoundMissionPacketPrereqs = (state: MissionState) =>
+  Boolean(state.missionId && state.requestedPlatform && state.humanGoal);
+
+const buildRoundMissionMissionPayload = (state: MissionState) => ({
+  missionId: state.missionId!,
+  userRequirementRef: state.userRequirementRef ?? null,
+  userRequirementText: state.humanGoal!,
+  requestedPlatformId: state.requestedPlatform!,
+  selectedPlatforms: resolveSelectedPlatforms(state),
+  maxRounds: state.configuredMaxRounds,
+  maxMinutes: state.configuredMaxMinutes,
+});
+
+const buildRoundMissionRoundPayload = (state: MissionState) => ({
+  roundId: buildRoundId(state),
+  roundIndex: state.currentRoundIndex,
+  previousRoundId: buildPreviousRoundId(state),
+  currentPhase: state.currentStepId,
+});
+
+const buildRoundMissionCurrentEvidencePayload = (state: MissionState) => ({
+  originalScreenshotRef: readPayloadRefString(state, "originalScreenshotRef"),
+  coordinateGridScreenshotRef: readPayloadRefString(state, "coordinateGridScreenshotRef"),
+  gridSpecRef: readPayloadRefString(state, "gridSpecRef"),
+  visualMissionInputRef: readPayloadRefString(state, "visualMissionInputRef"),
+  pageStateRef: readPayloadRefString(state, "pageStateRef"),
+  aiResultRef: readPayloadRefString(state, "sourceAiResultRef") ?? readPayloadRefString(state, "aiResultRef"),
+  postActionVerificationResultRef: readPayloadRefString(state, "postActionVerificationResultRef"),
+});
+
+const buildRoundMissionConstraintsPayload = () => ({
+  noHumanInLoop: true as const,
+  requireCoordinateGridForVisualActions: true as const,
+  noRawCoordinates: true as const,
+  stopWhenBlocked: true as const,
+  stopWhenUnsafe: true as const,
+});
+
+const buildAllowedActions = (systemManual: ReturnType<typeof buildMuscleMemorySystemManual>) => ({
+  systemManualRef: systemManual.systemManualRef,
+  catalogVersion: systemManual.catalogVersion,
+});
+
 const buildRoundMissionPacketValue = (input: {
   state: MissionState;
-  promptContract: PromptContractCatalogEntry;
+  systemManual?: ReturnType<typeof buildMuscleMemorySystemManual>;
 }) => {
-  if (!input.state.missionId || !input.state.requestedPlatform || !input.state.userRequirementRef || !input.state.humanGoal) {
+  if (!hasRoundMissionPacketPrereqs(input.state)) {
     return null;
   }
 
@@ -58,42 +104,36 @@ const buildRoundMissionPacketValue = (input: {
   }
 
   return buildRoundMissionPacket({
-    mission: {
-      missionId: input.state.missionId,
-      userRequirementRef: input.state.userRequirementRef,
-      userRequirementText: input.state.humanGoal,
-      requestedPlatformId: input.state.requestedPlatform,
-      selectedPlatforms: resolveSelectedPlatforms(input.state),
-      targetUrl: readPayloadRefString(input.state, "targetUrl"),
-      targetTitle: readPayloadRefString(input.state, "targetTitle"),
-      targetProfileRef: readPayloadRefString(input.state, "targetProfileRef"),
-    },
-    round: {
-      currentRoundIndex: input.state.currentRoundIndex,
-      currentStepId: input.state.currentStepId,
-      previousStepId: input.state.previousStepId,
-      hopCount: input.state.hopCount,
-    },
+    mission: buildRoundMissionMissionPayload(input.state),
+    round: buildRoundMissionRoundPayload(input.state),
     progress: input.state.roundProgress,
     lastAction: input.state.lastActionSummary,
-    currentEvidence: {
-      originalScreenshotRef: readPayloadRefString(input.state, "originalScreenshotRef"),
-      coordinateGridScreenshotRef: readPayloadRefString(input.state, "coordinateGridScreenshotRef"),
-      gridSpecRef: readPayloadRefString(input.state, "gridSpecRef"),
-      visualMissionInputRef: readPayloadRefString(input.state, "visualMissionInputRef"),
-      pageStateRef: readPayloadRefString(input.state, "pageStateRef"),
-      sourceAiResultRef: readPayloadRefString(input.state, "sourceAiResultRef"),
-      postActionVerificationResultRef: readPayloadRefString(input.state, "postActionVerificationResultRef"),
-    },
+    currentEvidence: buildRoundMissionCurrentEvidencePayload(input.state),
     platformContext,
-    constraints: {
-      maxRounds: input.state.configuredMaxRounds,
-      maxMinutes: input.state.configuredMaxMinutes,
-      failClosedOnReviewRequired: true,
-      humanMayOnlyRestartFromCommander: true,
-    },
-    allowedActions: listAiPlanEligibleActions().map((entry) => entry.actionCode),
+    constraints: buildRoundMissionConstraintsPayload(),
+    allowedActions: buildAllowedActions(input.systemManual ?? buildMuscleMemorySystemManual()),
   });
+};
+
+const resolveVisualMissionPayloadRefValue = (input: {
+  state: MissionState;
+  promptContract: PromptContractCatalogEntry;
+  key: string;
+}) => {
+  if (input.key === "systemManualRef") {
+    return buildMuscleMemorySystemManual().systemManualRef;
+  }
+  if (input.key === "outputSchemaRef") {
+    return input.promptContract.outputSchemaRef;
+  }
+  if (input.key === "platformContextRef") {
+    return buildPlatformContext(input.state) ? buildPlatformContextRef(input.state) : null;
+  }
+  if (input.key === "roundMissionPacketRef") {
+    return buildRoundMissionPacketValue({ state: input.state }) ? buildRoundMissionPacketRef(input.state) : null;
+  }
+
+  return null;
 };
 
 export function resolveAiDispatchPayloadRefValue(input: {
@@ -111,20 +151,7 @@ export function resolveAiDispatchPayloadRefValue(input: {
     return null;
   }
 
-  if (input.key === "systemManualRef") {
-    return buildMuscleMemorySystemManual().systemManualRef;
-  }
-  if (input.key === "outputSchemaRef") {
-    return input.promptContract.outputSchemaRef;
-  }
-  if (input.key === "platformContextRef") {
-    return buildPlatformContext(input.state) ? buildPlatformContextRef(input.state) : null;
-  }
-  if (input.key === "roundMissionPacketRef") {
-    return buildRoundMissionPacketValue(input) ? buildRoundMissionPacketRef(input.state) : null;
-  }
-
-  return null;
+  return resolveVisualMissionPayloadRefValue(input);
 }
 
 export function buildAiDispatchAugmentation(input: {
@@ -140,7 +167,10 @@ export function buildAiDispatchAugmentation(input: {
 
   const systemManual = buildMuscleMemorySystemManual();
   const platformContext = buildPlatformContext(input.state);
-  const roundMissionPacket = buildRoundMissionPacketValue(input);
+  const roundMissionPacket = buildRoundMissionPacketValue({
+    state: input.state,
+    systemManual,
+  });
   const roundMissionPacketRef = roundMissionPacket ? buildRoundMissionPacketRef(input.state) : null;
   if (roundMissionPacketRef && roundMissionPacket) {
     recordRoundMissionPacket(roundMissionPacketRef, roundMissionPacket);

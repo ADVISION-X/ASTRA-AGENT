@@ -1,10 +1,10 @@
-import type { OperationalMap } from "../contract.js";
-import { OperationalMapSchema } from "../schema.js";
+import type { RuntimePlan } from "../contract.js";
+import { RuntimePlanSchema } from "../schema.js";
 import { ensurePostActionVerificationPolicy } from "./orchestration-post-action-verification.js";
 
 const FORBIDDEN_OWNER_VALUES = ["local-ai-decision"];
 
-function buildAdjacency(map: OperationalMap): Map<string, string[]> {
+function buildAdjacency(map: RuntimePlan): Map<string, string[]> {
   const adjacency = new Map<string, string[]>();
   for (const step of map.steps) {
     adjacency.set(step.stepId, []);
@@ -17,7 +17,7 @@ function buildAdjacency(map: OperationalMap): Map<string, string[]> {
   return adjacency;
 }
 
-function collectReachableSteps(map: OperationalMap): Set<string> {
+function collectReachableSteps(map: RuntimePlan): Set<string> {
   const adjacency = buildAdjacency(map);
   const queue = [map.initialStepId];
   const visited = new Set<string>();
@@ -36,15 +36,15 @@ function collectReachableSteps(map: OperationalMap): Set<string> {
   return visited;
 }
 
-function validateReachableSteps(map: OperationalMap): string | null {
+function validateReachableSteps(map: RuntimePlan): string | null {
   const reachableSteps = collectReachableSteps(map);
   if (!reachableSteps.has(map.initialStepId)) {
-    return `Operational map ${map.mapId} cannot reach its initial step.`;
+    return `Runtime plan ${map.mapId} cannot reach its initial step.`;
   }
 
   for (const step of map.steps) {
     if (!reachableSteps.has(step.stepId)) {
-      return `Operational map ${map.mapId} contains unreachable step ${step.stepId}.`;
+      return `Runtime plan ${map.mapId} contains unreachable step ${step.stepId}.`;
     }
   }
 
@@ -66,7 +66,7 @@ function resolveForbiddenOwnerValue(candidate: string | null | undefined, matchM
   return null;
 }
 
-function resolveForbiddenStepOwnerReason(step: OperationalMap["steps"][number]): string | null {
+function resolveForbiddenStepOwnerReason(step: RuntimePlan["steps"][number]): string | null {
   const targetAbilityGroupId = "targetAbilityGroupId" in step ? step.targetAbilityGroupId : null;
   const targetForbiddenOwner = resolveForbiddenOwnerValue(targetAbilityGroupId as string | null | undefined, "equals");
   if (targetForbiddenOwner) {
@@ -88,7 +88,7 @@ function resolveForbiddenStepOwnerReason(step: OperationalMap["steps"][number]):
   return null;
 }
 
-function resolveForbiddenTransitionOwnerReason(transition: OperationalMap["transitions"][number]): string | null {
+function resolveForbiddenTransitionOwnerReason(transition: RuntimePlan["transitions"][number]): string | null {
   const decisionOwner = "decisionOwner" in transition ? transition.decisionOwner : null;
   const forbiddenOwner = resolveForbiddenOwnerValue(decisionOwner as string | null | undefined, "equals");
   if (forbiddenOwner) {
@@ -98,7 +98,7 @@ function resolveForbiddenTransitionOwnerReason(transition: OperationalMap["trans
   return null;
 }
 
-function checkForbiddenStepOwnerValues(map: OperationalMap): string | null {
+function checkForbiddenStepOwnerValues(map: RuntimePlan): string | null {
   for (const step of map.steps) {
     const forbiddenReason = resolveForbiddenStepOwnerReason(step);
     if (forbiddenReason) {
@@ -109,7 +109,7 @@ function checkForbiddenStepOwnerValues(map: OperationalMap): string | null {
   return null;
 }
 
-function checkForbiddenTransitionOwnerValues(map: OperationalMap): string | null {
+function checkForbiddenTransitionOwnerValues(map: RuntimePlan): string | null {
   for (const transition of map.transitions) {
     const forbiddenReason = resolveForbiddenTransitionOwnerReason(transition);
     if (forbiddenReason) {
@@ -119,7 +119,7 @@ function checkForbiddenTransitionOwnerValues(map: OperationalMap): string | null
   return null;
 }
 
-function validateOperationalMapStructure(map: OperationalMap): string | null {
+function validateRuntimePlanStructure(map: RuntimePlan): string | null {
   const reachableReason = validateReachableSteps(map);
   if (reachableReason) {
     return reachableReason;
@@ -129,18 +129,18 @@ function validateOperationalMapStructure(map: OperationalMap): string | null {
     ?? checkForbiddenTransitionOwnerValues(map);
 }
 
-export type MapValidationResult =
-  | { valid: true; map: OperationalMap }
+export type RuntimePlanValidationResult =
+  | { valid: true; map: RuntimePlan }
   | { valid: false; failureReason: string };
 
-export function validateOperationalMapGate(map: OperationalMap): MapValidationResult {
-  const parseResult = OperationalMapSchema.safeParse(map);
+export function validateRuntimePlanGate(map: RuntimePlan): RuntimePlanValidationResult {
+  const parseResult = RuntimePlanSchema.safeParse(map);
   if (!parseResult.success) {
     return { valid: false, failureReason: parseResult.error.message };
   }
   const parsed = parseResult.data;
 
-  const forbiddenReason = validateOperationalMapStructure(parsed);
+  const forbiddenReason = validateRuntimePlanStructure(parsed);
   if (forbiddenReason) {
     return { valid: false, failureReason: forbiddenReason };
   }

@@ -21,7 +21,6 @@ export const commanderConsoleShellClient = `(function () {
     resumeSubmitted: locale === "zh" ? "继续命令已提交" : "Resume mission command submitted",
     stopSubmitted: locale === "zh" ? "停止命令已提交" : "Stop mission command submitted",
     emergencySubmitted: locale === "zh" ? "急停命令已提交" : "Emergency stop command submitted",
-    reviewSubmitted: locale === "zh" ? "复核决定已提交" : "Review decision submitted",
     exportUnavailable: locale === "zh" ? "当前构建未开放导出请求" : "Export requests are unavailable in this build",
     requirementRequired: locale === "zh" ? "请先填写用户需求" : "Provide a user requirement first",
     platformRequired: locale === "zh" ? "至少选择一个平台" : "Select at least one platform",
@@ -91,7 +90,6 @@ ${commanderConsoleShellClientSupport}
     async onResumeMission() { await requestJson("POST", "/api/tasks/resume"); showToast(text.resumeSubmitted); },
     async onStopMission() { await requestJson("POST", "/api/tasks/stop", { reason: "operator_stop" }); showToast(text.stopSubmitted); },
     async onEmergencyStop() { await requestJson("POST", "/api/tasks/emergency-stop", { reason: "operator_emergency_stop" }); showToast(text.emergencySubmitted); },
-    async onSubmitReviewDecision(payload) { await requestJson("POST", "/api/candidates/review-decision", payload); showToast(text.reviewSubmitted); },
     async onReuseHistoryEntry(historyId) { await requestJson("POST", "/api/user-requirements/history/" + encodeURIComponent(historyId) + "/reuse"); },
     async onDeleteHistoryEntry(historyId) {
       await requestJson("DELETE", "/api/user-requirements/history/" + encodeURIComponent(historyId));

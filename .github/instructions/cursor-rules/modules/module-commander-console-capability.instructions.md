@@ -67,6 +67,36 @@ Forbidden:
 - Commander directly holding Orchestration or action owners.
 - implicit runtime continue after human review without a new governed command envelope.
 
+## Law GRASSEYE-HUMAN-COMMAND-BOUNDARY-V1
+
+status: active
+tier: P0
+capabilityDomain: commander-console-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: issue-human-command is start-mission-only and Commander command entry must not absorb round continuity or revive approve/reject command routes.
+
+### 主题
+
+Human Command 降权边界
+
+### 法条
+
+Commander human command entry must stay minimal and must not absorb runtime continuity or in-loop review control.
+
+Required:
+- `issue-human-command` owns only `start-mission`.
+- `issue-human-command` boundaryDecision stays `command-transport-only`.
+- `issue-human-command` schema requires governed `requestedPlatformId` and governed `initialPayload`.
+- Commander active command children may expose only `issue-human-command`, `pause-mission`, `resume-mission`, `stop-mission`, `emergency-stop`, and `mark-review-required`.
+- Review stop handling remains Commander-visible, but ordinary round progression remains outside the human command surface.
+
+Forbidden:
+- `issue-human-command` accepting `roundId`, `roundIndex`, `previousRoundId`, `currentPhase`, `aiResultRef`, or other per-round continuity fields.
+- reviving `approve-candidate` or `reject-candidate` as Commander command routes.
+- rebuilding deleted candidate-handler transport shortcuts after the command boundary has been collapsed into Commander + governed runtime routing.
+
 ## Final Readiness Gate
 
 The Commander law is ready only when start-mission envelopes use userRequirementText plus selectedPlatforms and contain no retired map truth.

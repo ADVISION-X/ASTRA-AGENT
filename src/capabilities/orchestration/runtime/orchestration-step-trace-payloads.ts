@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { MissionState } from "../contract.js";
 import type { OrchestrationForensicsPort } from "../internal.js";
-import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 import type { ForensicsStructuredActionLogInput } from "../../forensics-persistence/contract.js";
 import {
   StructuredActionLogSchema,
@@ -29,7 +29,7 @@ export type StepResultRecord = {
 export type ActionLogInput = {
   context: { forensics: OrchestrationForensicsPort };
   state: MissionState;
-  mapRecord: ActiveOperationalMapRecord | null;
+  mapRecord: ActiveRuntimePlanRecord | null;
   step: OperationalStep;
   stepResult: StepResultRecord;
   createdAt: string;

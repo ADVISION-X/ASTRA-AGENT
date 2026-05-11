@@ -1,6 +1,6 @@
 import { createEmergencyStopCapability } from "../children/emergency-stop/implementation.js";
 import { createEvaluateStepTransitionCapability } from "../children/evaluate-step-transition/implementation.js";
-import { createExecuteRuntimeStepCapability } from "../children/execute-map-step/implementation.js";
+import { createExecuteRuntimeStepCapability } from "../children/execute-runtime-step/implementation.js";
 import { createFinalizeMissionCapability } from "../children/finalize-mission/implementation.js";
 import { createPauseMissionCapability } from "../children/pause-mission/implementation.js";
 import { createResumeMissionCapability } from "../children/resume-mission/implementation.js";

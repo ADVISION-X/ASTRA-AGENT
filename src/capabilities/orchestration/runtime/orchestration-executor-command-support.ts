@@ -1,5 +1,5 @@
 import type { MissionCommand, MissionState } from "../contract.js";
-import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 import { PayloadRefBundleSchema } from "../schema.js";
 import { buildMissionStateUpdate } from "./orchestration-result-builder.js";
 import { buildCancellationTokenRef, buildRunLockId, toFrozenActivationState } from "./orchestration-frozen-activation.js";
@@ -10,7 +10,7 @@ export function createEmptyPayloadRefs() {
   return PayloadRefBundleSchema.parse({});
 }
 
-function buildInitialPayloadRefs(command: MissionCommand, mapRecord: ActiveOperationalMapRecord) {
+function buildInitialPayloadRefs(command: MissionCommand, mapRecord: ActiveRuntimePlanRecord) {
   return PayloadRefBundleSchema.parse({
     requestedPlatformId: command.requestedPlatform,
     selectedBindingId: mapRecord.mapId,
@@ -28,14 +28,14 @@ function buildInitialPayloadRefs(command: MissionCommand, mapRecord: ActiveOpera
 
 function buildInitialMissionRuntimeState(
   command: MissionCommand,
-  mapRecord: ActiveOperationalMapRecord,
-  selectedMapSource: MissionState["selectedMapSource"],
+  mapRecord: ActiveRuntimePlanRecord,
+  runtimePlanSource: MissionState["runtimePlanSource"],
   startedAt: string,
 ) {
   const runLockId = buildRunLockId(command.missionId, startedAt);
   return {
     ...toFrozenActivationState(mapRecord),
-    selectedMapSource,
+    runtimePlanSource,
     requestedPlatform: command.requestedPlatform,
     userRequirementRef: command.initialPayload.userRequirementRef,
     selectedPlatforms: command.initialPayload.selectedPlatforms,
@@ -85,7 +85,7 @@ export function createFailedMissionState(input: {
     mapId: input.mapId,
     promptContractVersion: null,
     capabilityCatalogVersion: null,
-    selectedMapSource: null,
+    runtimePlanSource: null,
     requestedPlatform: input.requestedPlatform,
     humanGoal: input.humanGoal,
     status: "failed",
@@ -116,13 +116,13 @@ export function createFailedMissionState(input: {
 
 export function createInitialMissionState(
   command: MissionCommand,
-  mapRecord: ActiveOperationalMapRecord,
-  selectedMapSource: MissionState["selectedMapSource"],
+  mapRecord: ActiveRuntimePlanRecord,
+  runtimePlanSource: MissionState["runtimePlanSource"],
   startedAt: string,
 ): MissionState {
   return buildMissionStateUpdate({
     missionId: command.missionId,
     mapId: mapRecord.mapId,
-    ...buildInitialMissionRuntimeState(command, mapRecord, selectedMapSource, startedAt),
+    ...buildInitialMissionRuntimeState(command, mapRecord, runtimePlanSource, startedAt),
   });
 }

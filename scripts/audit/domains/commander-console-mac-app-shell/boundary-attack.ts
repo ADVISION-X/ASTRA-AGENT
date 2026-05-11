@@ -30,13 +30,6 @@ function collectRuntimeBoundaryFindings(project: ReturnType<typeof createCommand
     : [];
 }
 
-function collectCandidateBoundaryFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
-  const candidateSource = getMacShellSourceFile(project, PATHS.CANDIDATE_HANDLER);
-  return hasPropertyAccessPath(candidateSource, ["activeWorkbench", "deleteCandidate"]) || hasPropertyAccessPath(candidateSource, ["activeWorkbench", "exportCandidateSummaries"])
-    ? [createFinding({ lawId: LAW_IDS.APP_SHELL, file: PATHS.CANDIDATE_HANDLER, line: 1, severity: "fatal", message: "Candidate handlers must not bypass Commander public boundaries for delete/export operations." })]
-    : [];
-}
-
 function collectTaskBoundaryFindings(project: ReturnType<typeof createCommanderConsoleMacShellProject>): Finding[] {
   const taskSource = getMacShellSourceFile(project, PATHS.TASK_HANDLER);
   return !hasTaskStartRequestDelegation(taskSource)
@@ -50,7 +43,6 @@ export function runBoundaryAttack(): { findings: Finding[]; phase: InspectorPhas
     ...collectShellBoundaryFindings(project),
     ...collectServerBoundaryFindings(project),
     ...collectRuntimeBoundaryFindings(project),
-    ...collectCandidateBoundaryFindings(project),
     ...collectTaskBoundaryFindings(project),
   ];
 

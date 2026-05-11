@@ -1,5 +1,5 @@
 import type { MissionState } from "../contract.js";
-import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import type { OperationalStep } from "./step-dispatch-shared.js";
 import { isPostActionVerificationStep } from "./orchestration-post-action-verification.js";
@@ -27,7 +27,7 @@ type RuntimeProofLike = {
 type LoopIterationEventInput = {
   context: OrchestrationRuntimeContext;
   state: MissionState;
-  mapRecord: ActiveOperationalMapRecord | null;
+  mapRecord: ActiveRuntimePlanRecord | null;
   stepDispatchCallId: string;
 };
 

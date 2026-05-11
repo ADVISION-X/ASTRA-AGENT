@@ -14,7 +14,8 @@
     "originalScreenshotRef",
     "coordinateGridScreenshotRef",
     "gridSpecRef",
-    "platformContextRef"
+    "platformContextRef",
+    "roundMissionPacketRef"
   ],
   "outputSchemaRef": "ai.visual_mission_action_plan.v1",
   "allowedBranchFields": [
@@ -24,12 +25,12 @@
   ],
   "systemPromptTemplateRef": "src/capabilities/ai/prompt-contracts/visual-mission-action-plan/prompt-builder.ts#system",
   "userPromptTemplateRef": "src/capabilities/ai/prompt-contracts/visual-mission-action-plan/prompt-builder.ts#user",
-  "purpose": "Compose a governed three-part visual mission prompt and return a strict action plan that only uses MuscleMemoryCatalog actionCode values.",
+  "purpose": "Compose a governed stateless visual mission prompt with roundMissionPacket continuity, forbid ordinary human-in-loop action requests, and return a strict action plan that only uses MuscleMemoryCatalog actionCode values.",
   "forbiddenOutputs": [
-    "routeLabel",
-    "routePlanId",
-    "selectedMapId",
-    "taskTemplateId",
+    "retiredBranchToken",
+    "retiredRouteIdentifier",
+    "retiredSelectionIdentifier",
+    "retiredTemplateIdentifier",
     "selectedBindingId",
     "taskBindingId",
     "raw x",
@@ -39,7 +40,15 @@
     "free-form execute",
     "unknown actionCode",
     "arbitrary url open",
-    "unrestricted text input"
+    "unrestricted text input",
+    "approve-candidate",
+    "reject-candidate",
+    "mark-review-required",
+    "ASK_HUMAN",
+    "WAIT_FOR_HUMAN",
+    "HUMAN_APPROVE",
+    "HUMAN_REJECT",
+    "REQUEST_OPERATOR_CLICK"
   ],
   "prohibitedActions": [
     "click",
@@ -72,12 +81,14 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:fd1c5cd3447e0277e0d3834f54d44592d4123768fd564f3c800a4bef76ec4605",
-  "promptContractHash": "sha256:fd1c5cd3447e0277e0d3834f54d44592d4123768fd564f3c800a4bef76ec4605",
+    "promptHash": "sha256:e0b2e1aeda5517069a61d0dea88aa2c36e55aa4149efee004e59cd28c5850d78",
+    "promptContractHash": "sha256:e0b2e1aeda5517069a61d0dea88aa2c36e55aa4149efee004e59cd28c5850d78",
   "sensitiveOperation": false,
   "dataPolicy": {
     "promptSections": [
-      "user_requirement",
+      "round_mission_packet",
+      "current_visual_evidence",
+      "platform_registry",
       "system_manual",
       "output_format"
     ],
@@ -97,10 +108,10 @@
     "actions": "array of governed actionCode records only",
     "nonExecutableClickTargets": "gridCell + targetName only; visual hint only, never execution source",
     "forbidden": [
-      "routeLabel",
-      "routePlanId",
-      "selectedMapId",
-      "taskTemplateId",
+      "retiredBranchToken",
+      "retiredRouteIdentifier",
+      "retiredSelectionIdentifier",
+      "retiredTemplateIdentifier",
       "selectedBindingId",
       "taskBindingId",
       "raw x",

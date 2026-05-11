@@ -1,4 +1,4 @@
-import type { MissionState, OperationalMap } from "../contract.js";
+import type { MissionState, RuntimePlan as RuntimePlan } from "../contract.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import { buildAiStepResult, executeAiDispatchActionPlan } from "./step-dispatch-ai.js";
 import { findEffectiveOperationalStep } from "./route-plan-resolver.js";
@@ -80,7 +80,7 @@ async function dispatchAbilityStep(input: AbilityDispatchInput): Promise<StepDis
 function prepareAiDispatch(input: {
   state: MissionState;
   step: AiStep;
-  map: OperationalMap;
+  map: RuntimePlan;
   sequenceNo: number;
   idempotencyKey: string;
   context: Pick<OrchestrationRuntimeContext, "nerveBus">;
@@ -103,7 +103,7 @@ function prepareAiDispatch(input: {
 
 async function dispatchAiStep(input: {
   state: MissionState;
-  map: OperationalMap;
+  map: RuntimePlan;
   step: AiStep;
   capabilityCallId: string;
   sequenceNo: number;
@@ -158,7 +158,7 @@ async function dispatchAiStep(input: {
 
 async function dispatchOperationalStepCore(input: {
   state: MissionState;
-  map: OperationalMap;
+  map: RuntimePlan;
   step: OperationalStep;
   reason: string | undefined;
   capabilityCallId: string;
@@ -197,7 +197,7 @@ async function dispatchOperationalStepCore(input: {
 
 export async function dispatchOperationalStep(input: {
   state: MissionState;
-  map: OperationalMap;
+  map: RuntimePlan;
   stepId: string;
   reason?: string;
   capabilityCallId: string;

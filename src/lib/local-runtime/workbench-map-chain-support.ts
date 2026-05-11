@@ -1,5 +1,3 @@
-import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
-
 export type WorkbenchMapChain = {
   bindingPackageId: string | null;
   bindingPackageVersion: string | null;
@@ -8,23 +6,12 @@ export type WorkbenchMapChain = {
   bindingSnapshotRef: string | null;
 };
 
-export const getActiveMapChain = (mapId: string | null): WorkbenchMapChain => {
-  if (!mapId) {
-    return {
-      bindingPackageId: null,
-      bindingPackageVersion: null,
-      bindingVersion: null,
-      bindingActivationRef: null,
-      bindingSnapshotRef: null,
-    };
-  }
-
-  const record = getDevelopmentMapPluginRegistry().active.getActiveOperationalMapRecord(mapId);
+export const getActiveMapChain = (_mapId: string | null): WorkbenchMapChain => {
   return {
-    bindingPackageId: record?.packageId ?? null,
-    bindingPackageVersion: record?.packageVersion ?? null,
-    bindingVersion: record?.mapVersion ?? null,
-    bindingActivationRef: record?.bindingActivationRef ?? null,
-    bindingSnapshotRef: record?.bindingSnapshotRef ?? null,
+    bindingPackageId: null,
+    bindingPackageVersion: null,
+    bindingVersion: null,
+    bindingActivationRef: null,
+    bindingSnapshotRef: null,
   };
 };

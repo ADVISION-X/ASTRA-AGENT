@@ -13,14 +13,14 @@ Retired systems: retired package chain, retired template flow, retired determini
 
 ## Retired Vocabulary Table
 
-| 抽象词 | 实际禁止字段 |
+| 抽象词 | 代表性禁止口径 |
 | --- | --- |
-| retired branch-token field | routeLabel |
-| legacy route-plan field | routePlanId |
-| retired selection field | selectedMapId / selectedMapVersion |
-| retired binding field | activationId / activationSnapshotRef |
-| retired package chain | mapPackageId / mapPackageVersion / map-plugin-package |
-| retired template flow | taskTemplateId / taskTemplate |
+| retired branch-token field | retired AI branch token |
+| legacy route-plan field | retired route identifier |
+| retired selection field | retired binding selection identifier |
+| retired binding field | retired binding snapshot identifier |
+| retired package chain | retired package-governance chain |
+| retired template flow | retired template entry flow |
 
 ## 主权链
 
@@ -36,33 +36,56 @@ APP Start Page
 -> ActionPlan Decoder
 -> Scheduler
 
-## 三段式 Prompt
+## 五段式 Prompt
 
-第一段：用户需求
-- userRequirementText
-- selectedPlatforms
-- optional historyEntryId
-- maxRounds
-- maxMinutes
+第一段：Round Mission Packet
+- mission.userRequirementText
+- mission.requestedPlatformId
+- mission.selectedPlatforms
+- round.roundId / round.roundIndex / round.currentPhase
+- progress / lastAction / currentEvidence 摘要
 
-第二段：系统手册
+第二段：Current Visual Evidence
+- originalScreenshotRef
+- coordinateGridScreenshotRef
+- gridSpecRef
+- visualMissionInputRef
+- pageStateRef
+
+第三段：Platform Registry
 - PlatformRegistry profile
+- governed platformContextRef + platformContext
+
+第四段：System Manual
 - MuscleMemoryCatalog single action codes
 - MuscleMemoryCatalog composite action codes
 - allowed action input policy
+- STOP_REVIEW_REQUIRED fail-closed 语义
 
-第三段：输出格式
-- schemaVersion=visualMissionJudge.v1
-- decision
+第五段：Output Format
+- schemaVersion=visualMissionActionPlan.v1
+- userIntentUnderstanding
 - platform
-- screenState
+- isTargetPlatform
+- surface
+- isTargetFeed
+- pageStateDecision
+- productDecision
 - confidence
+- visualEvidence
 - actions[].actionCode
 - actions[].required
 - actions[].reason
 - actions[].input
 - riskFlags
-- reason
+- nonExecutableSummary
+
+## Stateless Continuity
+
+- AI 在每轮都必须被视为 stateless across rounds。
+- Round Mission Packet 是唯一连续性来源，不得假设 previous AI calls 记忆仍然有效。
+- Current Visual Evidence 必须重新评估，不得把上一轮截图理解当成当前轮真相。
+- AI 不得向人类索要普通下一步动作、审批、拒绝、恢复点击或浏览决策。
 
 ## 输出硬规则
 
@@ -103,29 +126,46 @@ Review semantics:
 
 ```json
 {
-  "schemaVersion": "visualMissionJudge.v1",
-  "decision": "continue",
+  "schemaVersion": "visualMissionActionPlan.v1",
+  "userIntentUnderstanding": { "matched": true, "summary": "继续在当前平台判断是否为产品视频并决定下一步受治理动作" },
   "platform": "facebook-web",
-  "screenState": "feed_ready",
+  "isTargetPlatform": true,
+  "surface": "reels_video",
+  "isTargetFeed": true,
+  "pageStateDecision": "ready",
+  "isProductVideo": true,
+  "productDecision": "product_yes",
   "confidence": 0.88,
+  "visibleProductTypes": ["shirt"],
+  "visualEvidence": ["当前画面主体是服饰产品视频，点赞按钮可见。"],
   "actions": [
     {
       "actionCode": "SAVE_LEAD",
       "required": true,
+      "reason": "当前画面满足产品线索保存条件。",
       "input": {}
     },
     {
       "actionCode": "LIKE_CURRENT_VIDEO",
       "required": false,
-      "input": {}
+      "reason": "点赞作为次要受治理动作。",
+      "input": { "gridCell": "D42" }
     },
     {
       "actionCode": "NEXT_VIDEO",
       "required": true,
+      "reason": "完成当前轮后进入下一条视频。",
       "input": {}
     }
   ],
+  "nonExecutableClickTargets": [
+    {
+      "gridCell": "B48",
+      "targetName": "close_popup"
+    }
+  ],
   "riskFlags": [],
-  "reason": "Current screen matches the requested product-discovery flow."
+  "reason": "Current screen matches the requested product-discovery flow.",
+  "nonExecutableSummary": "当前轮可继续执行 SAVE_LEAD 与后续滚动。"
 }
 ```

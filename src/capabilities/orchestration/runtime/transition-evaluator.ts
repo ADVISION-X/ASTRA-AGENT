@@ -1,6 +1,6 @@
 import type { z } from "zod";
 
-import type { OperationalMap } from "../contract.js";
+import type { RuntimePlan } from "../contract.js";
 import { MissionStepResultSchema } from "../schema.js";
 import { getEffectiveOperationalTransitions } from "./route-plan-resolver.js";
 
@@ -11,7 +11,7 @@ export type TransitionEvaluationDecision =
   | "invalid_decision";
 
 export type TransitionEvaluationResult =
-  | { decision: "matched"; transition: OperationalMap["transitions"][number] }
+  | { decision: "matched"; transition: RuntimePlan["transitions"][number] }
   | { decision: Exclude<TransitionEvaluationDecision, "matched">; failureReason: string };
 
 type MissionStepResultRecord = z.output<typeof MissionStepResultSchema>;
@@ -41,7 +41,7 @@ const readDecisionToken = (result: MissionStepResultRecord): string | null => {
 };
 
 const transitionMatchesDecisionToken = (
-  transition: OperationalMap["transitions"][number],
+  transition: RuntimePlan["transitions"][number],
   decisionToken: string,
 ): boolean => {
   const routeToken = transition.transitionId.split(":").pop() ?? transition.transitionId;
@@ -49,19 +49,19 @@ const transitionMatchesDecisionToken = (
 };
 
 const findMatchingStatusTransitions = (input: {
-  map: OperationalMap;
+  map: RuntimePlan;
   currentStepId: string;
   result: MissionStepResultRecord;
-}): OperationalMap["transitions"] =>
+}): RuntimePlan["transitions"] =>
   getEffectiveOperationalTransitions(input.map).filter((candidate) =>
     candidate.fromStepId === input.currentStepId
     && candidate.onStatus === input.result.status,
   );
 
 const filterByDecisionToken = (input: {
-  candidates: OperationalMap["transitions"];
+  candidates: RuntimePlan["transitions"];
   result: MissionStepResultRecord;
-}): TransitionEvaluationResult | { decision: "candidates"; candidates: OperationalMap["transitions"] } => {
+}): TransitionEvaluationResult | { decision: "candidates"; candidates: RuntimePlan["transitions"] } => {
   if (input.candidates.length <= 1) {
     return { decision: "candidates", candidates: input.candidates };
   }
@@ -90,13 +90,13 @@ const filterByDecisionToken = (input: {
 const buildNoValidTransitionFailure = (mapId: string, currentStepId: string, status: string): string =>
   `Map "${mapId}" has no matching transition from step "${currentStepId}" for status "${status}".`;
 
-const buildAmbiguousTransitionFailure = (mapId: string, currentStepId: string, transitions: OperationalMap["transitions"]): string => {
+const buildAmbiguousTransitionFailure = (mapId: string, currentStepId: string, transitions: RuntimePlan["transitions"]): string => {
   const ids = transitions.map((t) => t.transitionId).join(", ");
   return `Map "${mapId}" step "${currentStepId}" matched ${transitions.length} transitions: [${ids}]. Exactly one must match.`;
 };
 
 function resolveSyntheticTikTokUrlDriftRecovery(input: {
-  map: OperationalMap;
+  map: RuntimePlan;
   currentStepId: string;
   result: MissionStepResultRecord;
 }): TransitionEvaluationResult | null {
@@ -129,9 +129,9 @@ function resolveSyntheticTikTokUrlDriftRecovery(input: {
 }
 
 const selectSingleTransition = (input: {
-  map: OperationalMap;
+  map: RuntimePlan;
   currentStepId: string;
-  candidates: OperationalMap["transitions"];
+  candidates: RuntimePlan["transitions"];
   status: string;
 }): TransitionEvaluationResult => {
   if (input.candidates.length === 0) {
@@ -152,7 +152,7 @@ const selectSingleTransition = (input: {
 };
 
 export function evaluateStepTransition(input: {
-  map: OperationalMap;
+  map: RuntimePlan;
   currentStepId: string;
   result: MissionStepResultRecord;
 }): TransitionEvaluationResult {

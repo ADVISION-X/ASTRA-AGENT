@@ -1,5 +1,6 @@
 import type { AbilityCommandEnvelope } from "../../capabilities/nerve-bus/shared/nerve-bus-envelope.js";
 import type { WorkbenchPayloadDocument as NerveBusPayloadDocument } from "./workbench-payload.js";
+import { payloadDocumentToObject, payloadValueToString } from "./workbench-payload.js";
 
 type SupportedPostActionChildCapabilityId =
   | "observe-page-open-attempt"
@@ -21,11 +22,6 @@ export type PostActionInputPolicy = {
   requiresVisualEvidence: boolean;
   executionRefField: "primitiveExecutionRef" | "scrollExecutionRef";
 };
-
-const DEFAULT_PAGE_URL_BY_MAP = {
-  "facebook.seeding-video.discovery.meta.v1": "https://www.facebook.com/reel/",
-  "tiktok.seeding-video.discovery.meta.v1": "https://www.tiktok.com/foryou",
-} as const;
 
 const POST_ACTION_POLICY_BY_COMMAND: Partial<Record<string, PostActionInputPolicy>> = {
   "observe-page-open-attempt": {
@@ -101,12 +97,17 @@ export const normalizePageStateLogin = (loginState: string | null | undefined) =
   return "unknown" as const;
 };
 
-export const resolveCanonicalPlatformUrl = (bindingId: string | null | undefined): string | null =>
-  DEFAULT_PAGE_URL_BY_MAP[bindingId as keyof typeof DEFAULT_PAGE_URL_BY_MAP] ?? null;
+const resolveExpectedOpenHost = (inputPayload: NerveBusPayloadDocument): string | null => {
+  const targetUrl = payloadValueToString(payloadDocumentToObject(inputPayload).targetUrl);
+  if (!targetUrl) {
+    return null;
+  }
 
-const resolveCanonicalPlatformHost = (bindingId: string | null | undefined): string | null => {
-  const canonicalUrl = resolveCanonicalPlatformUrl(bindingId);
-  return canonicalUrl ? new URL(canonicalUrl).hostname : null;
+  try {
+    return new URL(targetUrl).hostname;
+  } catch {
+    return null;
+  }
 };
 
 export const resolvePostActionInputPolicy = (envelope: AbilityCommandEnvelope): PostActionInputPolicy => {
@@ -120,7 +121,7 @@ export const buildExpectedOutcome = (
 ) => ({
   outcomeType: policy.outcomeType,
   description: inputPayload.summary,
-  expectedUrlHost: policy.childCapabilityId === "observe-page-open-attempt" ? resolveCanonicalPlatformHost(envelope.mapId) : null,
+  expectedUrlHost: policy.childCapabilityId === "observe-page-open-attempt" ? resolveExpectedOpenHost(inputPayload) : null,
   expectedUrlPrefix: null,
   expectedState: null,
   expectedTargetType: null,

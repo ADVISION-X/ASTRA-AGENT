@@ -1,4 +1,4 @@
-import type { MissionState, OperationalMap } from "../contract.js";
+import type { MissionState, RuntimePlan } from "../contract.js";
 
 const PRODUCTION_MAX_HOPS = 500;
 
@@ -7,7 +7,7 @@ export type LoopGuardStopReason =
   | "completed_by_time_limit"
   | "blocked_by_loop_guard";
 
-export function evaluateLoopGuard(input: { state: MissionState; map: OperationalMap; nowIsoTimestamp: string }) {
+export function evaluateLoopGuard(input: { state: MissionState; map: RuntimePlan; nowIsoTimestamp: string }) {
   if (input.state.configuredMaxRounds !== null && input.state.currentRoundIndex >= input.state.configuredMaxRounds) {
     return { loopDecision: "stop_completed" as const, nextHopCount: input.state.hopCount, reason: "completed_by_run_limit" as const };
   }

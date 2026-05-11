@@ -84,7 +84,6 @@ type CommanderConsolePreflightCheck = {
 };
 
 type CommanderConsoleTaskTemplate = {
-  taskBindingId: string;
   displayName: string;
   description: string;
   version: string;

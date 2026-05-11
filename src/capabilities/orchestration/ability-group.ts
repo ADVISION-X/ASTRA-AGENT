@@ -8,7 +8,7 @@ import type {
 import { listOrchestrationChildren } from "./registry.js";
 import { readCurrentMissionState } from "./runtime/orchestration-ability-support.js";
 import { createOrchestrationChildren, executeOrchestrationChild } from "./runtime/orchestration-child-runner.js";
-import { createDefaultOrchestrationMapStore } from "./runtime/orchestration-default-map-store.js";
+import { createDefaultOrchestrationRuntimePlanStore } from "./runtime/orchestration-default-runtime-plan-store.js";
 import { createOrchestrationRuntimeContext } from "./runtime/orchestration-runtime-context.js";
 
 type OrchestrationForensicsSurface = {
@@ -80,7 +80,7 @@ function assembleOrchestrationAbilityGroup(context: OrchestrationRuntime, execut
 
 export function createOrchestrationAbilityGroup(input: CreateOrchestrationAbilityGroupInput): OrchestrationAbilityGroup {
   const context = createOrchestrationRuntimeContext({
-    mapStore: createDefaultOrchestrationMapStore(),
+    mapStore: createDefaultOrchestrationRuntimePlanStore(),
     nerveBus: input.nerveBus,
     forensics: input.forensics,
   });

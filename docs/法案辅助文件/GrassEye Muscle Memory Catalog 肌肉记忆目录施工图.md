@@ -12,14 +12,14 @@ Runtime consumers: ai-capability, orchestration-capability
 
 ## Retired Vocabulary Table
 
-| 抽象词 | 实际禁止字段 |
+| 抽象词 | 代表性禁止口径 |
 | --- | --- |
-| retired branch-token field | routeLabel |
-| legacy route-plan field | routePlanId |
-| retired selection field | selectedMapId / selectedMapVersion |
-| retired binding field | activationId / activationSnapshotRef |
-| retired package chain | mapPackageId / mapPackageVersion / map-plugin-package |
-| retired template flow | taskTemplateId / taskTemplate |
+| retired branch-token field | retired AI branch token |
+| legacy route-plan field | retired route identifier |
+| retired selection field | retired binding selection identifier |
+| retired binding field | retired binding snapshot identifier |
+| retired package chain | retired package-governance chain |
+| retired template flow | retired template entry flow |
 
 ## 目录结构
 

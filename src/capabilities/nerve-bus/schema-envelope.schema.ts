@@ -1,8 +1,8 @@
 import { z, type RefinementCtx } from "zod";
 
 import {
-  ActivationIdSchema,
-  ActivationSnapshotRefSchema,
+  BindingActivationRefSchema,
+  BindingSnapshotRefSchema,
   AbilityTargetIdSchema,
   AiInputRefsSchema,
   CapabilityCallIdSchema,
@@ -10,8 +10,8 @@ import {
   EnvelopeIdSchema,
   EnvelopeStatusSchema,
   MapIdSchema,
-  MapPackageIdSchema,
-  MapPackageVersionSchema,
+  BindingPackageIdSchema,
+  BindingPackageVersionSchema,
   InputRefSchema,
   NerveBusEnvelopeBaseCoreSchema,
   OutputRefSchema,
@@ -19,8 +19,8 @@ import {
   PolicyRefSchema,
   ProofRefSchema,
   RequestedPlatformIdSchema,
-  SelectedMapIdSchema,
-  SelectedMapVersionSchema,
+  SelectedBindingIdSchema,
+  BindingVersionSchema,
   TargetChildCapabilityIdSchema,
   TargetRecordRefSchema,
   validateNerveBusEnvelopeBase,
@@ -89,12 +89,12 @@ function validateGovernedResultEnvelope(value: ResultEnvelopeBaseValue, context:
 
 const NullableHumanCommandChainFields = {
   mapId: MapIdSchema.nullable().default(null),
-  bindingPackageId: MapPackageIdSchema.nullable().default(null),
-  bindingPackageVersion: MapPackageVersionSchema.nullable().default(null),
-  selectedBindingId: SelectedMapIdSchema.nullable().default(null),
-  bindingVersion: SelectedMapVersionSchema.nullable().default(null),
-  bindingActivationRef: ActivationIdSchema.nullable().default(null),
-  bindingSnapshotRef: ActivationSnapshotRefSchema.nullable().default(null),
+  bindingPackageId: BindingPackageIdSchema.nullable().default(null),
+  bindingPackageVersion: BindingPackageVersionSchema.nullable().default(null),
+  selectedBindingId: SelectedBindingIdSchema.nullable().default(null),
+  bindingVersion: BindingVersionSchema.nullable().default(null),
+  bindingActivationRef: BindingActivationRefSchema.nullable().default(null),
+  bindingSnapshotRef: BindingSnapshotRefSchema.nullable().default(null),
 };
 
 const HumanCommandEnvelopeBaseCoreSchema = NerveBusEnvelopeBaseCoreSchema.omit({

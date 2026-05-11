@@ -13,6 +13,8 @@
     "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V4",
     "GRASSEYE-ORCHESTRATION-CAPABILITY-004-V4",
     "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V4",
+    "GRASSEYE-ROUND-MISSION-PACKET-V1",
+    "GRASSEYE-HUMAN-REVIEW-FAIL-CLOSED-V1",
     "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V4"
   ],
   "readsLawFiles": [
@@ -20,6 +22,7 @@
   ],
   "readsBlueprintFiles": [
     "docs/法案辅助文件/GrassEye Orchestration 总指挥能力组施工图.md",
-    "docs/法案辅助文件/GrassEye Route Plan 肌肉记忆施工图.md"
+    "docs/法案辅助文件/GrassEye Visual Mission Prompt Contract 施工图.md",
+    "docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md"
   ]
 }

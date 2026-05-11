@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T22:02:09.399Z",
+  "generatedAt": "2026-05-11T01:02:55.053Z",
   "entries": [
     {
       "abilityGroupId": "ai",
@@ -192,26 +192,24 @@
     {
       "abilityGroupId": "commander-console",
       "childCapabilityId": "approve-candidate",
-      "declaredInContract": true,
-      "declaredInSchema": true,
+      "declaredInContract": false,
+      "declaredInSchema": false,
       "registered": false,
-      "hasChildContract": true,
-      "hasChildSchema": true,
-      "hasChildImplementation": true,
-      "hasExecute": true,
-      "returnsGovernedResult": true,
+      "hasChildContract": false,
+      "hasChildSchema": false,
+      "hasChildImplementation": false,
+      "hasExecute": false,
+      "returnsGovernedResult": false,
       "publicExecuteThrows": false,
-      "hasNerveBusDispatchBuilder": true,
+      "hasNerveBusDispatchBuilder": false,
       "hasCapabilityCatalogEntry": false,
       "hasMuscleMemoryAction": false,
       "allowedForAiActionPlan": false,
       "hasForensicsRecordPath": true,
       "actionCodes": [],
       "aiActionCodes": [],
-      "strengthLevel": 3,
-      "blockingReasons": [
-        "CHILD_NOT_REGISTERED"
-      ]
+      "strengthLevel": 0,
+      "blockingReasons": []
     },
     {
       "abilityGroupId": "commander-console",
@@ -336,26 +334,24 @@
     {
       "abilityGroupId": "commander-console",
       "childCapabilityId": "reject-candidate",
-      "declaredInContract": true,
-      "declaredInSchema": true,
+      "declaredInContract": false,
+      "declaredInSchema": false,
       "registered": false,
-      "hasChildContract": true,
-      "hasChildSchema": true,
-      "hasChildImplementation": true,
-      "hasExecute": true,
-      "returnsGovernedResult": true,
+      "hasChildContract": false,
+      "hasChildSchema": false,
+      "hasChildImplementation": false,
+      "hasExecute": false,
+      "returnsGovernedResult": false,
       "publicExecuteThrows": false,
-      "hasNerveBusDispatchBuilder": true,
+      "hasNerveBusDispatchBuilder": false,
       "hasCapabilityCatalogEntry": false,
       "hasMuscleMemoryAction": false,
       "allowedForAiActionPlan": false,
       "hasForensicsRecordPath": true,
       "actionCodes": [],
       "aiActionCodes": [],
-      "strengthLevel": 3,
-      "blockingReasons": [
-        "CHILD_NOT_REGISTERED"
-      ]
+      "strengthLevel": 0,
+      "blockingReasons": []
     },
     {
       "abilityGroupId": "commander-console",
@@ -552,14 +548,14 @@
     {
       "abilityGroupId": "commander-console",
       "childCapabilityId": "show-operational-map-progress",
-      "declaredInContract": true,
-      "declaredInSchema": true,
+      "declaredInContract": false,
+      "declaredInSchema": false,
       "registered": false,
-      "hasChildContract": true,
-      "hasChildSchema": true,
-      "hasChildImplementation": true,
-      "hasExecute": true,
-      "returnsGovernedResult": true,
+      "hasChildContract": false,
+      "hasChildSchema": false,
+      "hasChildImplementation": false,
+      "hasExecute": false,
+      "returnsGovernedResult": false,
       "publicExecuteThrows": false,
       "hasNerveBusDispatchBuilder": false,
       "hasCapabilityCatalogEntry": false,
@@ -568,10 +564,8 @@
       "hasForensicsRecordPath": true,
       "actionCodes": [],
       "aiActionCodes": [],
-      "strengthLevel": 2,
-      "blockingReasons": [
-        "CHILD_NOT_REGISTERED"
-      ]
+      "strengthLevel": 0,
+      "blockingReasons": []
     },
     {
       "abilityGroupId": "commander-console",
@@ -970,7 +964,14 @@
         "CLICK_CELL"
       ],
       "aiActionCodes": [
-        "CLICK_CELL"
+        "CLICK_CELL",
+        "DISMISS_OVERLAY",
+        "LIKE_CURRENT_VIDEO",
+        "NEXT_VIDEO",
+        "NO_SEEDING_VIDEO_FLOW",
+        "OPEN_COMMENTS",
+        "SAVE_PRODUCT_AND_LIKE",
+        "YES_SEEDING_VIDEO_FLOW"
       ],
       "strengthLevel": 4,
       "blockingReasons": []
@@ -1456,7 +1457,7 @@
     },
     {
       "abilityGroupId": "orchestration",
-      "childCapabilityId": "execute-map-step",
+      "childCapabilityId": "execute-runtime-step",
       "declaredInContract": true,
       "declaredInSchema": true,
       "registered": true,
@@ -2659,18 +2660,13 @@
       "hasNerveBusDispatchBuilder": true,
       "hasCapabilityCatalogEntry": true,
       "hasMuscleMemoryAction": true,
-      "allowedForAiActionPlan": true,
+      "allowedForAiActionPlan": false,
       "hasForensicsRecordPath": true,
       "actionCodes": [
         "PRESS_KEY"
       ],
-      "aiActionCodes": [
-        "DISMISS_OVERLAY",
-        "LIKE_CURRENT_VIDEO",
-        "SAVE_PRODUCT_AND_LIKE",
-        "YES_SEEDING_VIDEO_FLOW"
-      ],
-      "strengthLevel": 4,
+      "aiActionCodes": [],
+      "strengthLevel": 3,
       "blockingReasons": []
     },
     {
@@ -2688,17 +2684,13 @@
       "hasNerveBusDispatchBuilder": true,
       "hasCapabilityCatalogEntry": true,
       "hasMuscleMemoryAction": true,
-      "allowedForAiActionPlan": true,
+      "allowedForAiActionPlan": false,
       "hasForensicsRecordPath": true,
       "actionCodes": [
         "PRESS_NAVIGATION_KEY"
       ],
-      "aiActionCodes": [
-        "NEXT_VIDEO",
-        "NO_SEEDING_VIDEO_FLOW",
-        "YES_SEEDING_VIDEO_FLOW"
-      ],
-      "strengthLevel": 4,
+      "aiActionCodes": [],
+      "strengthLevel": 3,
       "blockingReasons": []
     },
     {

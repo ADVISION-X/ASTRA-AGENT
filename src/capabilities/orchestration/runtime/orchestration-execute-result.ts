@@ -25,7 +25,7 @@ type BuildResultInput = {
   failureReason?: string | null;
   reviewRequiredReason?: string | null;
   stateDecision: ResultStateDecision;
-  internalOperationKind?: "execute-map-step" | "evaluate-step-transition" | "finalize-mission" | null;
+  internalOperationKind?: "execute-runtime-step" | "evaluate-step-transition" | "finalize-mission" | null;
   dataQualityFlags?: string[];
 };
 
@@ -39,7 +39,7 @@ type BuildFailureInput = {
   startedAt: string;
   endedAt: string;
   failureReason: string;
-  internalOperationKind?: "execute-map-step" | "evaluate-step-transition" | "finalize-mission" | null;
+  internalOperationKind?: "execute-runtime-step" | "evaluate-step-transition" | "finalize-mission" | null;
   dataQualityFlags?: string[];
 };
 
@@ -87,7 +87,6 @@ function buildRuntimeProofIdentity(input: BuildResultInput) {
     missionId: input.state.missionId ?? "unknown-mission",
     runId: input.state.activeTaskRunId ?? `${input.state.missionId ?? "unknown-mission"}:${input.childCapabilityId}:failure-run`,
     mapId: input.state.mapId ?? "recovery",
-    taskBindingId: input.state.taskBindingId ?? null,
     bindingActivationRef: input.state.bindingActivationRef ?? null,
     bindingPackageId: input.state.bindingPackageId ?? null,
     bindingPackageVersion: input.state.bindingPackageVersion ?? null,
@@ -95,7 +94,7 @@ function buildRuntimeProofIdentity(input: BuildResultInput) {
     bindingSnapshotRef: input.state.bindingSnapshotRef ?? null,
     promptContractVersion: input.state.promptContractVersion ?? null,
     capabilityCatalogVersion: input.state.capabilityCatalogVersion ?? null,
-    selectedMapSource: input.state.selectedMapSource ?? null,
+    runtimePlanSource: input.state.runtimePlanSource ?? null,
     stepId: input.state.currentStepId ?? input.childCapabilityId,
     childCapabilityId: input.childCapabilityId,
     commandKind: resolveCommandKind(input.state, input.childCapabilityId),

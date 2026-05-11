@@ -30,7 +30,7 @@ export const buildPagePreparationPromptParts = (
   const contract = VISION_PAGE_PREPARATION_PROMPT_CONTRACT;
   const userPrompt = [
     "Every key in the required schema is mandatory. The startup preparation route is binary: decision must be yes or no.",
-    "Do not return routeLabel or any other retired branch token.",
+    "Do not return any retired branch token.",
     "nonExecutableSummary is mandatory and may only summarize evidence for logging. It must not introduce a third path, a human-review path, or any executable click/scroll/type instruction.",
     "confidence must be your own calibrated estimate as a JSON number from 0 to 1 based only on visible evidence; do not copy any placeholder or example value.",
     "If evidence is ambiguous, blocked, loading, wrong-page, login-gated, captcha-gated, or insufficient to proceed, choose no and explain the blocking evidence.",

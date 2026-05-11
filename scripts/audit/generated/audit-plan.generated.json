@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T00:18:59.215Z",
+  "generatedAt": "2026-05-11T01:16:52.942Z",
   "phase": "phase-05-final-delivery-debug",
   "phaseGateFile": "scripts/audit/phase-gates/phase-05-final-delivery-debug.json",
   "owners": [
@@ -46,6 +46,7 @@
       "lawIds": [
         "GRASSEYE-AI-CAPABILITY-001-V1",
         "GRASSEYE-AI-CAPABILITY-002-V1",
+        "GRASSEYE-AI-NO-MEMORY-V1",
         "GRASSEYE-AI-CAPABILITY-003-V1",
         "GRASSEYE-AI-CAPABILITY-004-V1",
         "GRASSEYE-AI-CAPABILITY-005-V1",
@@ -72,6 +73,8 @@
         "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V4",
         "GRASSEYE-ORCHESTRATION-CAPABILITY-004-V4",
         "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V4",
+        "GRASSEYE-ROUND-MISSION-PACKET-V1",
+        "GRASSEYE-HUMAN-REVIEW-FAIL-CLOSED-V1",
         "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V4"
       ]
     },
@@ -81,6 +84,7 @@
       "entry": "scripts/audit/domains/commander-console-capability/inspector.ts",
       "lawIds": [
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V3",
+        "GRASSEYE-HUMAN-COMMAND-BOUNDARY-V1",
         "GRASSEYE-STARTUP-ENTRYPOINT-001-V2",
         "GRASSEYE-STARTUP-ENTRYPOINT-002-V2",
         "GRASSEYE-STARTUP-ENTRYPOINT-003-V2",

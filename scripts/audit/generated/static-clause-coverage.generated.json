@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T00:18:59.318Z",
+  "generatedAt": "2026-05-11T01:16:53.069Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -17,7 +17,7 @@
     "forensics-persistence-capability",
     "page-state-capability"
   ],
-  "totalActiveLaws": 49,
+  "totalActiveLaws": 53,
   "globalChain": {
     "observed": false,
     "passed": false,
@@ -72,6 +72,25 @@
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-002-V1",
+      "capabilityDomain": "ai-capability",
+      "abilityGroupId": "ai",
+      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-AI-NO-MEMORY-V1",
       "capabilityDomain": "ai-capability",
       "abilityGroupId": "ai",
       "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
@@ -338,6 +357,25 @@
     },
     {
       "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V3",
+      "capabilityDomain": "commander-console-capability",
+      "abilityGroupId": "commander-console",
+      "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/commander-console-capability/inspector.ts",
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-HUMAN-COMMAND-BOUNDARY-V1",
       "capabilityDomain": "commander-console-capability",
       "abilityGroupId": "commander-console",
       "ownerManifestPath": "scripts/audit/domains/commander-console-capability/manifest.json",
@@ -680,6 +718,44 @@
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V4",
+      "capabilityDomain": "orchestration-capability",
+      "abilityGroupId": "orchestration",
+      "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/orchestration-capability/inspector.ts",
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-ROUND-MISSION-PACKET-V1",
+      "capabilityDomain": "orchestration-capability",
+      "abilityGroupId": "orchestration",
+      "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/orchestration-capability/inspector.ts",
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-HUMAN-REVIEW-FAIL-CLOSED-V1",
       "capabilityDomain": "orchestration-capability",
       "abilityGroupId": "orchestration",
       "ownerManifestPath": "scripts/audit/domains/orchestration-capability/manifest.json",

@@ -142,7 +142,6 @@ const StructuredRuntimeEventSchema = z.object({
   videoVisitId: nullableString,
   mapId: nullableString,
   stepId: nullableString,
-  taskBindingId: nullableString,
   traceId: nullableString,
   spanId: nullableString,
   attemptId: nullableString,

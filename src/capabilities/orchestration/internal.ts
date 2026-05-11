@@ -4,7 +4,7 @@
  */
 import type { OrchestrationClockPort } from "./ports/orchestration-clock-port.js";
 import type { OrchestrationIdempotencyPort } from "./ports/orchestration-idempotency-port.js";
-import type { OrchestrationMapStorePort } from "./ports/orchestration-map-store-port.js";
+import type { OrchestrationRuntimePlanStorePort } from "./ports/orchestration-runtime-plan-store-port.js";
 import type { OrchestrationNerveBusPort } from "./ports/orchestration-nerve-bus-port.js";
 import type { OrchestrationStatePort } from "./ports/orchestration-state-port.js";
 import type { OrchestrationAbilityGroupId, OrchestrationChildCapabilityId } from "./contract.js";
@@ -22,7 +22,7 @@ export type OrchestrationForensicsPort = {
 export type OrchestrationRuntimeContext = {
   readonly clock: OrchestrationClockPort;
   readonly idempotency: OrchestrationIdempotencyPort;
-  readonly mapStore: OrchestrationMapStorePort;
+  readonly mapStore: OrchestrationRuntimePlanStorePort;
   readonly nerveBus: OrchestrationNerveBusPort;
   readonly statePort: OrchestrationStatePort;
   readonly forensics: OrchestrationForensicsPort;

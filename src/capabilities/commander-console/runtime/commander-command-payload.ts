@@ -8,11 +8,9 @@ import type {
 } from "../contract.js";
 import type { CommanderHumanCommand } from "../ports/command-transport-port.js";
 import {
-  ApproveCandidateTransportPayloadSchema,
   EmergencyStopTransportPayloadSchema,
   MarkReviewRequiredTransportPayloadSchema,
   PauseMissionTransportPayloadSchema,
-  RejectCandidateTransportPayloadSchema,
   ResumeMissionTransportPayloadSchema,
   StartMissionTransportPayloadSchema,
   StopMissionTransportPayloadSchema,
@@ -60,20 +58,6 @@ const buildEmergencyStopPayloadInput = (commandInput: CommanderHumanCommandInput
   kind: "emergency-stop",
   requestedBy: "commander-console",
   targetMissionId: commandInput.targetMissionId ?? null,
-  operatorNote: commandInput.operatorNote ?? null,
-});
-
-const buildApproveCandidatePayloadInput = (commandInput: CommanderHumanCommandInput) => ({
-  kind: "approve-candidate",
-  requestedBy: "commander-console",
-  candidateId: commandInput.targetRecordRef!.recordId,
-  operatorNote: commandInput.operatorNote ?? null,
-});
-
-const buildRejectCandidatePayloadInput = (commandInput: CommanderHumanCommandInput) => ({
-  kind: "reject-candidate",
-  requestedBy: "commander-console",
-  candidateId: commandInput.targetRecordRef!.recordId,
   operatorNote: commandInput.operatorNote ?? null,
 });
 
@@ -128,16 +112,6 @@ const PAYLOAD_BUILDERS = {
     schema: EmergencyStopTransportPayloadSchema,
     value: buildEmergencyStopPayloadInput(commandInput),
     reason: "emergency-stop payload failed validation.",
-  }),
-  "approve-candidate": (commandInput: CommanderHumanCommandInput) => safeParsePayload({
-    schema: ApproveCandidateTransportPayloadSchema,
-    value: buildApproveCandidatePayloadInput(commandInput),
-    reason: "approve-candidate payload failed validation.",
-  }),
-  "reject-candidate": (commandInput: CommanderHumanCommandInput) => safeParsePayload({
-    schema: RejectCandidateTransportPayloadSchema,
-    value: buildRejectCandidatePayloadInput(commandInput),
-    reason: "reject-candidate payload failed validation.",
   }),
   "mark-review-required": (commandInput: CommanderHumanCommandInput) => safeParsePayload({
     schema: MarkReviewRequiredTransportPayloadSchema,

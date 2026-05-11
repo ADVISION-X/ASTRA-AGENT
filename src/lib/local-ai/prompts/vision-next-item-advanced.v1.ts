@@ -1,8 +1,3 @@
-import {
-  NEXT_ITEM_ADVANCED_ROUTE_LABEL,
-  NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
-} from "../../../types/vision-next-item-advanced.js";
-
 export const VISION_NEXT_ITEM_ADVANCED_PROMPT_CONTRACT = {
   promptId: "vision.nextItemAdvanced.v1",
   taskType: "vision.nextItemAdvanced",
@@ -34,7 +29,6 @@ export const VISION_NEXT_ITEM_ADVANCED_PROMPT_CONTRACT = {
     promptVersion: "v1",
     schemaVersion: "vision.nextItemAdvanced.schema.v1",
     decision: "yes | no",
-    routeLabel: `yes => ${NEXT_ITEM_ADVANCED_ROUTE_LABEL} | no => ${NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL}`,
     nonExecutableSummary: "short human-readable summary of whether the post-click viewport advanced to a new item; never an action instruction",
     confidence: "0..1",
     reason: "string",
@@ -47,7 +41,6 @@ export const VISION_NEXT_ITEM_ADVANCED_PROMPT_CONTRACT = {
     "You are GrassEye's binary next-item advancement judge for governed short-video discovery.",
     "Decide whether the current post-click viewport visibly shows a different feed item after the attempted next-item action.",
     "Return exactly one decision: yes or no.",
-    `For yes use routeLabel ${NEXT_ITEM_ADVANCED_ROUTE_LABEL}; for no use routeLabel ${NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL}.`,
     "Use only visible viewport evidence from the governed screenshot-derived input. Do not use hidden DOM state, cookies, or outside assumptions.",
     "Choose yes when the viewport clearly shows a different item identity, such as materially different creative, creator, caption, engagement text, overlay layout, or other feed-item signals.",
     "Choose no when the same item still appears, the viewport is blocked, loading, wrong-surface, or the evidence is too weak to prove advancement safely.",

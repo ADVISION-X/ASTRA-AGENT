@@ -239,7 +239,7 @@ const buildAiDebugResponseFields = (input: WorkbenchAiDebugEvent) => ({
   parserErrors: input.parserErrors,
 });
 
-const buildAiDebugMapAuthoringFields = (input: WorkbenchAiDebugEvent) => ({
+const buildAiDebugAuthoringFields = (input: WorkbenchAiDebugEvent) => ({
   inputPackageId: input.inputPackageId,
   inputPackageVersion: input.inputPackageVersion,
   inputPackageHash: input.inputPackageHash,
@@ -271,7 +271,7 @@ const buildAiDebugPayloadFields = (input: WorkbenchAiDebugEvent, artifactRefs: L
   ...buildAiDebugModelFields(input),
   ...buildAiDebugPromptFields(input),
   ...buildAiDebugResponseFields(input),
-  ...buildAiDebugMapAuthoringFields(input),
+  ...buildAiDebugAuthoringFields(input),
   ...buildAiDebugRefFields(input, artifactRefs),
 });
 

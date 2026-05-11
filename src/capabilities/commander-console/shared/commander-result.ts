@@ -65,7 +65,7 @@ export type CommanderHumanCommandResult = {
 
 export type CommanderReviewDecisionResult = {
   commandId: string;
-  commandType: Extract<CommanderCommandType, "approve-candidate" | "reject-candidate" | "mark-review-required">;
+  commandType: Extract<CommanderCommandType, "mark-review-required">;
   status: CommanderCommandResultStatus;
   envelopeRef: string | null;
   targetRecordId: string;

@@ -42,12 +42,11 @@ export {
   NullableCommanderGoalSchema,
   NullableMissionIdSchema,
   NullableOperatorNoteSchema,
-  NullableSelectedMapIdSchema,
+  NullableSelectedBindingIdSchema,
   RequestedPlatformIdSchema,
 } from "./commander-schema-foundation.js";
 
 export {
-  ApproveCandidateTransportPayloadSchema,
   CommandTransportResultSchema,
   CommanderCommandReceiptSchema,
   CommanderTransportPayloadSchema,
@@ -60,7 +59,6 @@ export {
   MissionControlInputSchema,
   PauseMissionTransportPayloadSchema,
   ReadRequestInputSchema,
-  RejectCandidateTransportPayloadSchema,
   ResumeMissionTransportPayloadSchema,
   ReviewDecisionInputSchema,
   StartMissionTransportPayloadSchema,

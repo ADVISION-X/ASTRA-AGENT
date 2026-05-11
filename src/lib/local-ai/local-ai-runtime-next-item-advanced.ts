@@ -1,7 +1,5 @@
 import type { LocalAiTaskRequest } from "../../types/local-ai.js";
 import {
-  NEXT_ITEM_ADVANCED_ROUTE_LABEL,
-  NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
   VisionNextItemAdvancedPayloadSchema,
 } from "../../types/vision-next-item-advanced.js";
 import { LocalAiRuntimeError } from "./local-ai-runtime-error.js";
@@ -15,8 +13,6 @@ const toStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.length > 0) : [];
 
 const resolveDecision = (value: JsonRecord): "yes" | "no" => value.decision === "yes" ? "yes" : "no";
-const resolveRouteLabel = (decision: "yes" | "no") =>
-  decision === "yes" ? NEXT_ITEM_ADVANCED_ROUTE_LABEL : NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL;
 const resolveSummary = (value: JsonRecord, decision: "yes" | "no") => {
   if (typeof value.nonExecutableSummary === "string" && value.nonExecutableSummary.length > 0) {
     return value.nonExecutableSummary;
@@ -54,7 +50,6 @@ export function parseNextItemAdvancedRuntimeOutput(
     promptVersion: "v1",
     schemaVersion: "vision.nextItemAdvanced.schema.v1",
     decision,
-    routeLabel: resolveRouteLabel(decision),
     nonExecutableSummary: resolveSummary(raw, decision),
     confidence: resolveConfidence(raw),
     reason: resolveReason(raw, decision),

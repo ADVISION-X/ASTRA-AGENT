@@ -4,7 +4,7 @@ import type { WorkbenchAiDebugEvent } from "./workbench-ai-debug-support.js";
 const AI_DEBUG_DURABLE_ENV = "GRASSEYE_AI_DEBUG_DURABLE";
 
 const DURABLE_COMMANDER_DEBUG_EVENT_TYPES = new Set([
-  "MISSION_ACTIVATION_SNAPSHOT_FROZEN",
+  "MISSION_START_CONTEXT_CONFIRMED",
 ]);
 
 const DEFAULT_DURABLE_AI_DEBUG_EVENT_TYPES = new Set<WorkbenchAiDebugEvent["eventType"]>([

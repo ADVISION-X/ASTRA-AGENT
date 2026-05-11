@@ -15,8 +15,6 @@ export function renderReviewQueuePanel(viewModel: CommanderConsoleViewModel): st
           </div>
           <div class="cc-inline-actions">
             <button type="button" class="cc-inline-button" data-inspect-kind="record" data-inspect-id="${escapeHtml(candidate.id)}">${escapeHtml(t("检查", "Inspect"))}</button>
-            <button type="button" class="cc-button cc-button-primary" data-review-candidate="${escapeHtml(candidate.id)}" data-review-disposition="approve">${escapeHtml(t("批准", "Approve"))}</button>
-            <button type="button" class="cc-button cc-button-danger" data-review-candidate="${escapeHtml(candidate.id)}" data-review-disposition="reject">${escapeHtml(t("拒绝", "Reject"))}</button>
           </div>
         </article>
       `).join("")}</div>`;

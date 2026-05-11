@@ -2,15 +2,11 @@ import { z } from "zod";
 
 import { VisionProductPresenceRequestInputSchema } from "./vision-product-presence.js";
 
-const NEXT_ITEM_ADVANCED_ROUTE_LABEL = "next-item-advanced";
-const NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL = "next-item-not-advanced";
-
 const VisionNextItemAdvancedPromptIdSchema = z.literal("vision.nextItemAdvanced.v1");
 const VisionNextItemAdvancedTaskTypeSchema = z.literal("vision.nextItemAdvanced");
 const VisionNextItemAdvancedPromptVersionSchema = z.literal("v1");
 const VisionNextItemAdvancedSchemaVersionSchema = z.literal("vision.nextItemAdvanced.schema.v1");
 const VisionNextItemAdvancedDecisionSchema = z.enum(["yes", "no"]);
-const VisionNextItemAdvancedRouteLabelSchema = z.enum([NEXT_ITEM_ADVANCED_ROUTE_LABEL, NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL]);
 const VisionNextItemAdvancedRequestInputSchema = VisionProductPresenceRequestInputSchema;
 
 const VisionNextItemAdvancedPayloadSchema = z.object({
@@ -19,7 +15,6 @@ const VisionNextItemAdvancedPayloadSchema = z.object({
   promptVersion: VisionNextItemAdvancedPromptVersionSchema,
   schemaVersion: VisionNextItemAdvancedSchemaVersionSchema,
   decision: VisionNextItemAdvancedDecisionSchema,
-  routeLabel: VisionNextItemAdvancedRouteLabelSchema,
   nonExecutableSummary: z.string().min(1),
   confidence: z.number().min(0).max(1),
   reason: z.string().min(1),
@@ -36,14 +31,11 @@ type VisionNextItemAdvancedPayload = z.infer<typeof VisionNextItemAdvancedPayloa
 type VisionNextItemAdvancedResult = VisionNextItemAdvancedPayload;
 
 export {
-  NEXT_ITEM_ADVANCED_ROUTE_LABEL,
-  NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
   VisionNextItemAdvancedPromptIdSchema,
   VisionNextItemAdvancedTaskTypeSchema,
   VisionNextItemAdvancedPromptVersionSchema,
   VisionNextItemAdvancedSchemaVersionSchema,
   VisionNextItemAdvancedDecisionSchema,
-  VisionNextItemAdvancedRouteLabelSchema,
   VisionNextItemAdvancedRequestInputSchema,
   VisionNextItemAdvancedPayloadSchema,
   validateVisionNextItemAdvancedResult,

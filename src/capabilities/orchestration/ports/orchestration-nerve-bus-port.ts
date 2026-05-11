@@ -3,7 +3,7 @@ import type { z } from "zod";
 import type {
   AllowedAbilityGroupIdSchema,
   BranchFieldValuesSchema,
-  OperationalMapIdSchema,
+  RuntimePlanIdSchema,
   PayloadRefBundleSchema,
   TransitionStatusSchema,
 } from "../schema.js";
@@ -27,7 +27,7 @@ export type OrchestrationDispatchResult = {
 export interface OrchestrationNerveBusPort {
   sendCommandToAbility(input: {
     missionId: string;
-    mapId: z.output<typeof OperationalMapIdSchema>;
+    mapId: z.output<typeof RuntimePlanIdSchema>;
     stepId: string;
     runId: string;
     sessionId: string;
@@ -46,7 +46,7 @@ export interface OrchestrationNerveBusPort {
   }): Promise<OrchestrationDispatchResult>;
   sendRequestToAi(input: {
     missionId: string;
-    mapId: z.output<typeof OperationalMapIdSchema>;
+    mapId: z.output<typeof RuntimePlanIdSchema>;
     stepId: string;
     capabilityCallId: string;
     runId: string;

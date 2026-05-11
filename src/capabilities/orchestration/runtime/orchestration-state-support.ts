@@ -1,9 +1,9 @@
-import type { MissionCommand, MissionState, OperationalMap } from "../contract.js";
+import type { MissionCommand, MissionState, RuntimePlan } from "../contract.js";
 import { PayloadRefBundleSchema } from "../schema.js";
 import { buildMissionStateUpdate } from "./orchestration-result-builder.js";
-import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 
-export function createInitialMissionState(command: MissionCommand, map: OperationalMap, startedAt: string): MissionState {
+export function createInitialMissionState(command: MissionCommand, map: RuntimePlan, startedAt: string): MissionState {
   return buildMissionStateUpdate({
     missionId: command.missionId,
     mapId: map.mapId,
@@ -66,9 +66,8 @@ export function toRuntimeProofStatus(status: MissionState["status"]): "completed
   return status === "running" ? "completed" : "stopped";
 }
 
-export function toMapProofMetadata(record: ActiveOperationalMapRecord | null | undefined) {
+export function toMapProofMetadata(record: ActiveRuntimePlanRecord | null | undefined) {
   return {
-    taskBindingId: record?.taskBindingId ?? null,
     bindingActivationRef: record?.bindingActivationRef ?? null,
     bindingPackageId: record?.packageId ?? null,
     bindingPackageVersion: record?.packageVersion ?? null,

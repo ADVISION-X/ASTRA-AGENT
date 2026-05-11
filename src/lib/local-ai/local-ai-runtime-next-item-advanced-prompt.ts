@@ -1,8 +1,4 @@
 import type { LocalAiTaskRequest } from "../../types/local-ai.js";
-import {
-  NEXT_ITEM_ADVANCED_ROUTE_LABEL,
-  NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
-} from "../../types/vision-next-item-advanced.js";
 import { VISION_NEXT_ITEM_ADVANCED_PROMPT_CONTRACT } from "./prompts/vision-next-item-advanced.v1.js";
 
 type VisionNextItemAdvancedRequest = Extract<LocalAiTaskRequest, { taskType: "vision.nextItemAdvanced" }>;
@@ -19,7 +15,6 @@ const buildNextItemAdvancedOutputTemplate = () => ({
   promptVersion: "v1",
   schemaVersion: "vision.nextItemAdvanced.schema.v1",
   decision: "no",
-  routeLabel: NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL,
   nonExecutableSummary: "当前证据未证明已经推进到下一条视频，必须 fail-closed。",
   confidence: 0.22,
   reason: "one sentence explaining whether the next-item action advanced to a new item",
@@ -40,8 +35,7 @@ export const buildNextItemAdvancedPromptParts = (
     expectedFrameCount: request.input.expectedFrameCount,
   };
   const userPrompt = [
-    "Binary route only: decision must be yes or no, and every required key must be present.",
-    `routeLabel is mandatory: yes => ${NEXT_ITEM_ADVANCED_ROUTE_LABEL}; no => ${NEXT_ITEM_NOT_ADVANCED_ROUTE_LABEL}.`,
+    "Binary decision only: decision must be yes or no, and every required key must be present.",
     "Use only the visible post-click viewport evidence. If the viewport clearly shows a different feed item, return yes. If the same item may still be present, or the evidence is blocked, loading, wrong-surface, or weak, return no.",
     "nonExecutableSummary is logging-only. confidence must be a JSON number from 0 to 1. mustReview must stay false. Never return maybe, unknown, or a review path.",
     `Evidence metadata: ${JSON.stringify(evidenceMetadata)}`,

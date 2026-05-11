@@ -24,13 +24,49 @@ const FORBIDDEN_RETIRED_PROMPT_CONTRACT_FILES = [
   "vision.nextItemTargetCandidate.v1.prompt-contract.json",
   "vision.commentsEntryTargetCandidate.v1.prompt-contract.json",
 ] as const;
-const FORBIDDEN_RETIRED_PROMPT_OUTPUTS = [
-  RETIRED_ROUTE_LABEL_FIELD,
-  RETIRED_ROUTE_PLAN_ID_FIELD,
-  RETIRED_SELECTION_ID_FIELD,
-  RETIRED_TASK_TEMPLATE_ID_FIELD,
-  "raw x",
-  "raw y",
+const FORBIDDEN_RETIRED_PROMPT_OUTPUT_REQUIREMENTS = [
+  {
+    legacyToken: RETIRED_ROUTE_LABEL_FIELD,
+    acceptedMarkers: [RETIRED_ROUTE_LABEL_FIELD, "retiredBranchToken"],
+    message: "Visual mission prompt contract must forbid retired branch-token fields.",
+    recommendedAction: "Keep forbiddenOutputs covering the retired branch-token marker and keep visual mission output limited to governed actionCode records.",
+    coherenceKind: "route-label-survivor",
+  },
+  {
+    legacyToken: RETIRED_ROUTE_PLAN_ID_FIELD,
+    acceptedMarkers: [RETIRED_ROUTE_PLAN_ID_FIELD, "retiredRouteIdentifier"],
+    message: "Visual mission prompt contract must forbid retired route identifier fields.",
+    recommendedAction: "Keep forbiddenOutputs covering the retired route identifier marker and keep visual mission output limited to governed actionCode records.",
+    coherenceKind: "visual-story-drift",
+  },
+  {
+    legacyToken: RETIRED_SELECTION_ID_FIELD,
+    acceptedMarkers: [RETIRED_SELECTION_ID_FIELD, "retiredSelectionIdentifier"],
+    message: "Visual mission prompt contract must forbid retired selection identifier fields.",
+    recommendedAction: "Keep forbiddenOutputs covering the retired selection marker and keep visual mission output limited to governed actionCode records.",
+    coherenceKind: "visual-story-drift",
+  },
+  {
+    legacyToken: RETIRED_TASK_TEMPLATE_ID_FIELD,
+    acceptedMarkers: [RETIRED_TASK_TEMPLATE_ID_FIELD, "retiredTemplateIdentifier"],
+    message: "Visual mission prompt contract must forbid retired template identifier fields.",
+    recommendedAction: "Keep forbiddenOutputs covering the retired template marker and keep visual mission output limited to governed actionCode records.",
+    coherenceKind: "visual-story-drift",
+  },
+  {
+    legacyToken: "raw x",
+    acceptedMarkers: ["raw x"],
+    message: "Visual mission prompt contract must forbid raw x.",
+    recommendedAction: "Keep raw x in forbiddenOutputs and keep visual mission output limited to governed actionCode records.",
+    coherenceKind: "visual-story-drift",
+  },
+  {
+    legacyToken: "raw y",
+    acceptedMarkers: ["raw y"],
+    message: "Visual mission prompt contract must forbid raw y.",
+    recommendedAction: "Keep raw y in forbiddenOutputs and keep visual mission output limited to governed actionCode records.",
+    coherenceKind: "visual-story-drift",
+  },
 ] as const;
 
 const createCoherenceFinding = (input: {
@@ -131,16 +167,16 @@ const inspectPromptSchemaVersion = (text: string, contract: PromptContractDocume
 
 const inspectPromptForbiddenOutputs = (text: string, contract: PromptContractDocument): Finding[] => {
   const forbiddenOutputs = new Set(contract.forbiddenOutputs ?? []);
-  return FORBIDDEN_RETIRED_PROMPT_OUTPUTS.flatMap((token) =>
-    forbiddenOutputs.has(token)
+  return FORBIDDEN_RETIRED_PROMPT_OUTPUT_REQUIREMENTS.flatMap((requirement) =>
+    requirement.acceptedMarkers.some((token) => forbiddenOutputs.has(token))
       ? []
       : [createCoherenceFinding({
         file: PROMPT_CONTRACT_PATH,
         line: findLineNumberForToken(text, '"forbiddenOutputs"'),
-        message: `Visual mission prompt contract must forbid ${token}.`,
-        detail: token,
-        coherenceKind: token === RETIRED_ROUTE_LABEL_FIELD ? "route-label-survivor" : "visual-story-drift",
-        recommendedAction: `Add ${token} to forbiddenOutputs and keep visual mission output limited to governed actionCode records.`,
+        message: requirement.message,
+        detail: requirement.legacyToken,
+        coherenceKind: requirement.coherenceKind,
+        recommendedAction: requirement.recommendedAction,
       })],
   );
 };

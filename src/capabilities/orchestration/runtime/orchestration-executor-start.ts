@@ -1,5 +1,5 @@
-import type { MissionCommand, MissionExecutionResult, MissionState, OperationalMap } from "../contract.js";
-import type { ActiveOperationalMapRecord } from "../ports/orchestration-map-store-port.js";
+import type { MissionCommand, MissionExecutionResult, MissionState, RuntimePlan } from "../contract.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 import { buildDispatchFailure } from "./orchestration-dispatch-failure.js";
 import { runMissionLoop } from "./orchestration-executor-loop.js";
 import {
@@ -7,16 +7,16 @@ import {
   createFailedMissionState,
   createInitialMissionState,
 } from "./orchestration-executor-command-support.js";
-import type { MapSelectionResult, SelectedMapSource } from "./map-selection-gate.js";
+import type { RuntimePlanResolutionResult, RuntimePlanSource } from "./runtime-plan-resolution-gate.js";
 import { parseMissionCommand } from "./mission-command-gate.js";
-import { selectOperationalMap } from "./map-selection-gate.js";
-import type { MapValidationResult } from "./map-validation-gate.js";
-import { validateOperationalMapGate } from "./map-validation-gate.js";
+import { resolveRuntimePlan } from "./runtime-plan-resolution-gate.js";
+import type { RuntimePlanValidationResult } from "./runtime-plan-validation-gate.js";
+import { validateRuntimePlanGate } from "./runtime-plan-validation-gate.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 
-type SuccessfulMapSelection = Extract<MapSelectionResult, { selected: true }>;
-type FailedMapSelection = Extract<MapSelectionResult, { selected: false }>;
-type FailedMapValidation = Extract<MapValidationResult, { valid: false }>;
+type SuccessfulMapSelection = Extract<RuntimePlanResolutionResult, { selected: true }>;
+type FailedMapSelection = Extract<RuntimePlanResolutionResult, { selected: false }>;
+type FailedMapValidation = Extract<RuntimePlanValidationResult, { valid: false }>;
 
 type StartMissionCommandInput = {
   command: unknown;
@@ -32,8 +32,8 @@ type StartMissionFailureDetails = {
   endedAt: string;
   durationMs: number;
   idempotencyKey: string;
-  selectedMapSource?: SelectedMapSource | null;
-  mapRecord?: ActiveOperationalMapRecord | null;
+  runtimePlanSource?: RuntimePlanSource | null;
+  mapRecord?: ActiveRuntimePlanRecord | null;
 };
 
 type StartMapSelectionFailureDetails = {
@@ -52,9 +52,9 @@ type StartMapValidationFailureDetails = {
 type StartIdempotencyFailureDetails = {
   startedAt: string;
   idempotencyKey: string;
-  map: OperationalMap;
-  selectedMapSource: SelectedMapSource | null;
-  mapRecord: ActiveOperationalMapRecord;
+  map: RuntimePlan;
+  runtimePlanSource: RuntimePlanSource | null;
+  mapRecord: ActiveRuntimePlanRecord;
 };
 
 type StartFailureStateInput = {
@@ -96,7 +96,7 @@ function buildStartFailureResult(input: StartMissionCommandInput, state: Mission
 
   return buildDispatchFailure({
     ...dispatchFailureInput,
-    ...(details.selectedMapSource === undefined ? {} : { selectedMapSource: details.selectedMapSource }),
+    ...(details.runtimePlanSource === undefined ? {} : { runtimePlanSource: details.runtimePlanSource }),
     ...(details.mapRecord === undefined ? {} : { mapRecord: details.mapRecord }),
   });
 }
@@ -127,7 +127,7 @@ function buildStartMapSelectionFailure(
       endedAt,
       durationMs: 0,
       idempotencyKey: fallbackIdempotencyKey,
-      selectedMapSource: mapSelection.selectedMapSource,
+      runtimePlanSource: mapSelection.runtimePlanSource,
     },
   );
 }
@@ -159,7 +159,7 @@ function buildStartMapValidationFailure(
       endedAt,
       durationMs: 0,
       idempotencyKey: fallbackIdempotencyKey,
-      selectedMapSource: mapSelection.selectedMapSource,
+      runtimePlanSource: mapSelection.runtimePlanSource,
       mapRecord: mapSelection.record,
     },
   );
@@ -171,7 +171,7 @@ function buildStartIdempotencyFailure(
   details: StartIdempotencyFailureDetails,
 ): MissionExecutionResult {
   const endedAt = input.context.clock.now().isoTimestamp;
-  const { startedAt, idempotencyKey, map, selectedMapSource, mapRecord } = details;
+  const { startedAt, idempotencyKey, map, runtimePlanSource, mapRecord } = details;
   const failureReason = `Mission ${command.missionId} idempotency conflict.`;
   return buildStartFailureResult(
     input,
@@ -192,7 +192,7 @@ function buildStartIdempotencyFailure(
       endedAt,
       durationMs: 0,
       idempotencyKey,
-      selectedMapSource,
+      runtimePlanSource,
       mapRecord,
     },
   );
@@ -237,7 +237,7 @@ async function runStartMissionPlan(
   const command = parseMissionCommand(input.command);
   updateFallbackIdempotencyKey(`start:${command.missionId}:${startedSnapshot.isoTimestamp}`);
 
-  const mapSelection = await selectOperationalMap({ command, mapStore: input.context.mapStore });
+  const mapSelection = await resolveRuntimePlan({ command, mapStore: input.context.mapStore });
   if (!mapSelection.selected) {
     return buildStartMapSelectionFailure(input, command, {
       startedAt: startedSnapshot.isoTimestamp,
@@ -246,7 +246,7 @@ async function runStartMissionPlan(
     });
   }
 
-  const mapValidation = validateOperationalMapGate(mapSelection.map);
+  const mapValidation = validateRuntimePlanGate(mapSelection.map);
   if (!mapValidation.valid) {
     return buildStartMapValidationFailure(input, command, {
       startedAt: startedSnapshot.isoTimestamp,
@@ -264,12 +264,12 @@ async function runStartMissionPlan(
       startedAt: startedSnapshot.isoTimestamp,
       idempotencyKey,
       map,
-      selectedMapSource: mapSelection.selectedMapSource,
+      runtimePlanSource: mapSelection.runtimePlanSource,
       mapRecord: mapSelection.record,
     });
   }
 
-  const initialState = createInitialMissionState(command, mapSelection.record, mapSelection.selectedMapSource, startedSnapshot.isoTimestamp);
+  const initialState = createInitialMissionState(command, mapSelection.record, mapSelection.runtimePlanSource, startedSnapshot.isoTimestamp);
   await input.context.statePort.putMissionState(initialState);
   return runMissionLoop({
     state: initialState,
@@ -279,7 +279,7 @@ async function runStartMissionPlan(
     commandKind: "start-mission",
     caller: input.caller,
     idempotencyKey,
-    selectedMapSource: mapSelection.selectedMapSource,
+    runtimePlanSource: mapSelection.runtimePlanSource,
   });
 }
 

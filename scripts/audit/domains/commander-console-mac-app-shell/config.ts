@@ -28,7 +28,6 @@ export const PATHS = {
   RUNTIME_STATUS_STRIP: "src/lib/local-app-shell/layout/RuntimeStatusStrip.ts",
   CREATE_SERVER: "src/app/create-workbench-server.ts",
   TASK_HANDLER: "src/app/task-api-handlers.ts",
-  CANDIDATE_HANDLER: "src/app/candidate-api-handlers.ts",
   RUNTIME_HANDLER: "src/app/runtime-api-handlers.ts",
 } as const;
 
