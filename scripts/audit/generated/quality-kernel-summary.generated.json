@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-11T14:32:26.042Z",
+  "timestamp": "2026-05-11T14:58:12.458Z",
   "pass": true,
   "hardRetiredSurface": {
     "count": 0,
@@ -100,7 +100,7 @@
       },
       {
         "file": "src/capabilities/orchestration/runtime/mission-loop-runner.ts",
-        "line": 201,
+        "line": 229,
         "pattern": "postActionVerification",
         "severity": "soft"
       },
@@ -477,7 +477,7 @@
     },
     {
       "module": "src/capabilities/orchestration",
-      "actual": 11,
+      "actual": 12,
       "limit": 30,
       "status": "ok"
     },
@@ -543,7 +543,7 @@
     },
     {
       "module": "scripts/audit (total)",
-      "actual": 27,
+      "actual": 30,
       "limit": 30,
       "status": "ok"
     },

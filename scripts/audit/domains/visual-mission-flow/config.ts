@@ -16,7 +16,11 @@ export const VISUAL_MISSION_FLOW_CONFIG = {
 
   // mission-loop-runner.ts must have screenshot → grid → AI → dispatch order
   // Uses childCapabilityId "render-coordinate-grid" (called directly, not via actionCode)
-  roundLoopKeywords: ["screenshotAbilityGroup", "render-coordinate-grid", "aiAbilityGroup", "dispatchAbilityCommand"] as string[],
+  // Uses 'childCapabilityId: "dispatch-registered-ability-sequence"' as the final dispatch step token
+  roundLoopKeywords: ["screenshotAbilityGroup", "render-coordinate-grid", "aiAbilityGroup", "dispatch-registered-ability-sequence"] as string[],
+
+  // Token used for ORDER check of the dispatch step (more specific than the capability name alone)
+  roundLoopDispatchOrderToken: 'childCapabilityId: "dispatch-registered-ability-sequence"' as string,
 
   // dispatch-sequence.ts must use findMuscleMemoryEntry (not hardcoded IDs)
   dispatchMuscleMemoryToken: "findMuscleMemoryEntry" as string,

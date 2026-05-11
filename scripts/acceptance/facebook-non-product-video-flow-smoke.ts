@@ -128,7 +128,11 @@ const input: DispatchRegisteredAbilitySequenceInput = {
   actions: [
     {
       actionCode: "SCROLL_BROWSER_VIEWPORT_ONCE",
+      abilityGroupId: null,
+      childCapabilityId: null,
+      gridCell: null,
       required: true,
+      requiresGeometryProof: false,
       inputOverrides: {
         scrollDeltaY: 900,
         reason: "Not a product video — scrolling to next",

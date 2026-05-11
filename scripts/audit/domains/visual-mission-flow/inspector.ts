@@ -56,11 +56,11 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     } else {
       const missing = CFG.roundLoopKeywords.filter((kw) => !src.includes(kw));
       if (missing.length === 0) {
-        // Verify order: screenshot < grid < AI < dispatch
+        // Verify order: screenshot < grid < AI < dispatch-registered-ability-sequence (actual call, not comment)
         const idxScreenshot = src.indexOf("screenshotAbilityGroup");
         const idxGrid = src.indexOf("render-coordinate-grid");
         const idxAi = src.indexOf("aiAbilityGroup");
-        const idxDispatch = src.indexOf("dispatchAbilityCommand");
+        const idxDispatch = src.indexOf(CFG.roundLoopDispatchOrderToken);
         const inOrder = idxScreenshot < idxGrid && idxGrid < idxAi && idxAi < idxDispatch;
         if (inOrder) {
           checks.push({ checkId: "VMF-02", question: "Round loop has screenshot → grid → AI → dispatch order?", status: "PASS", detail: "All 4 phase tokens present and in correct order." });

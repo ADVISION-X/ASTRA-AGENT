@@ -33,8 +33,14 @@ const buildOutputSchemaBlock = (platformId: string) => {
       {
         actionCode: clickAction,
         required: true,
-        reason: "string — why this action",
-        input: { gridCell: "B3" },
+        reason: "click like button — identify gridCell from coordinate grid",
+        input: { gridCell: "C3" },
+      },
+      {
+        actionCode: clickAction,
+        required: false,
+        reason: "click comments button — identify gridCell from coordinate grid",
+        input: { gridCell: "C4" },
       },
       {
         actionCode: saveAction,
@@ -45,11 +51,14 @@ const buildOutputSchemaBlock = (platformId: string) => {
       {
         actionCode: scrollAction,
         required: true,
-        reason: "move to next video",
+        reason: "advance to next video",
         input: { scrollDeltaY: 900 },
       },
     ],
-    nonExecutableClickTargets: [{ gridCell: "B3", targetName: "like button" }],
+    nonExecutableClickTargets: [
+      { gridCell: "C3", targetName: "like button" },
+      { gridCell: "C4", targetName: "comments button" },
+    ],
     riskFlags: ["string"],
     nonExecutableSummary: "string — brief description of what will happen",
   }, null, 2);
@@ -74,8 +83,9 @@ const buildSystemPrompt = (platformId: string) => [
   "You must NEVER return raw coordinates (x, y, clientX, clientY), DOM selectors, browser commands, Nerve Bus payloads, or Forensics payloads.",
   "You must NEVER include abilityGroupId or childCapabilityId in your output.",
   "Choose actionCode values ONLY from the capability manual (allowedForAiActionPlan=true entries).",
-  "For product_yes: output like -> comments -> screenshot -> save-evidence -> next-video action sequence.",
-  "For product_no: output only the next-video action.",
+  "For product_yes: compose these atomic actions in order — (1) LEFT_CLICK_GRID_CELL_ONCE on the like button gridCell, (2) LEFT_CLICK_GRID_CELL_ONCE on the comments button gridCell (omit if no comments visible), (3) SAVE_CURRENT_VIDEO_EVIDENCE_ONCE, (4) SCROLL_BROWSER_VIEWPORT_ONCE to advance to next video.",
+  "IMPORTANT: Do NOT include a screenshot action — screenshots are injected by the system automatically after clicks and are not an AI-outputtable actionCode.",
+  "For product_no: output only SCROLL_BROWSER_VIEWPORT_ONCE to advance to the next video.",
   "If the evidence is insufficient or unsafe, set pageStateDecision to review_required or blocked and keep the output non-executable.",
 ].join("\n");
 

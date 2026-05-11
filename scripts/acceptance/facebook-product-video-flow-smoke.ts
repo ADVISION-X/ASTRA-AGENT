@@ -129,15 +129,22 @@ const input: DispatchRegisteredAbilitySequenceInput = {
   actions: [
     {
       actionCode: "LEFT_CLICK_GRID_CELL_ONCE",
+      abilityGroupId: null,
+      childCapabilityId: null,
       gridCell: "C4",
       required: true,
+      requiresGeometryProof: true,
       inputOverrides: {
         reason: "Click to open comments",
       },
     },
     {
       actionCode: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE",
+      abilityGroupId: null,
+      childCapabilityId: null,
+      gridCell: null,
       required: true,
+      requiresGeometryProof: false,
       inputOverrides: {
         evidenceLabel: "product-video-1",
         reason: "Identified as product video with skincare items",

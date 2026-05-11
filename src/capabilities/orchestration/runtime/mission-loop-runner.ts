@@ -83,7 +83,6 @@ export async function runMissionRoundLoop(
     // ── OPEN GATE: Navigate to platform entry on round 0 if targetProfileRef is set ──
     if ((state.roundIndex ?? 0) === 0 && state.targetProfileRef && !state.openResultRef) {
       const openEnvelopeId = randomUUID();
-      const openStepId = randomUUID();
       await ctx.nerveBus.dispatchAbilityCommand({
         abilityGroupId: "open",
         childCapabilityId: "open-platform-entry-once",
@@ -91,15 +90,10 @@ export async function runMissionRoundLoop(
         runId,
         sessionId,
         roundId,
-        nerveBusEnvelopeId: openEnvelopeId,
-        stepId: openStepId,
-        capabilityCallId: randomUUID(),
-        inputRef: randomUUID(),
-        requestedBy: "orchestration",
-        transportedBy: "nerve-bus",
-        idempotencyKey: `open-entry:${missionId}:${runId}`,
-        videoVisitId: null,
-        inputOverrides: { platformId },
+        inputOverrides: {
+          platformId,
+          idempotencyKey: `open-entry:${missionId}:${runId}`,
+        },
       });
       // Mark openResultRef so we don't re-open on subsequent rounds
       upsertMissionState({ ...getMissionState(missionId), openResultRef: openEnvelopeId });
