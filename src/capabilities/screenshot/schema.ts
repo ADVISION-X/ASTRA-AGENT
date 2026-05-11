@@ -18,8 +18,8 @@ export type ScreenshotStatus = (typeof SCREENSHOT_STATUSES)[number];
 
 export const VISUAL_MISSION_GRID_VERSION = "visual-grid.v1" as const;
 export const VISUAL_MISSION_AXIS_MODE = "y_letters_x_numbers" as const;
-export const MIN_GRID_CELL_WIDTH_PX = 40 as const;
-export const MIN_GRID_CELL_HEIGHT_PX = 30 as const;
+export const MIN_GRID_CELL_WIDTH_PX = 20 as const;
+export const MIN_GRID_CELL_HEIGHT_PX = 15 as const;
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 

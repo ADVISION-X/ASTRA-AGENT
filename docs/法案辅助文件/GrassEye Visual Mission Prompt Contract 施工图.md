@@ -191,3 +191,27 @@ Review semantics:
   "nonExecutableSummary": "当前轮可继续执行登记册中的原子能力。"
 }
 ```
+
+## Prompt 模板质量强制规范（施工图细节，防止复发）
+
+### 枚举值示例必须使用具体值
+- **禁止**在 Output Schema 示例中使用管道符分隔的枚举选项，例如：`"ready|recover|review_required|blocked"`
+  - 小模型（如 qwen2.5vl:3b）会将管道符分隔的值逐字复制到输出中，导致 Zod 枚举验证失败
+- **必须**使用单一具体的枚举值作为示例：`"pageStateDecision": "ready"`, `"productDecision": "product_yes"`
+- 枚举选项说明应在 System Prompt 文字描述中体现，不在 JSON 示例中使用管道符
+
+### 示例字符串字段必须使用真实内容
+- **禁止**使用描述性占位符，例如：`"surface": "string — e.g. reels feed"`
+  - 小模型会将占位符原文复制为输出，导致字段含义丢失
+- **必须**使用实际内容示例：`"surface": "reels feed"`
+
+### 视觉输入：仅发送坐标格图片到模型
+- AI 推理调用只发送**坐标格截图（coordinate grid screenshot）**作为物理图片字节
+- 原始截图（original screenshot）仅以 ID 引用（ref）形式出现在 Prompt 文本中，不发送图片字节
+- 理由：坐标格截图已包含原始视口的全部视觉内容（原始截图 + 格子叠加）。同时发送两张大图会导致 qwen2.5vl:3b 视觉上下文超载，输出破损 JSON（如 `{ "type=":0`，无闭合括号），`extractFirstJsonObject` 抛出"no JSON object"错误
+- 质检：VMF-28 检查 mission-loop-runner 只为 inputRef 中的坐标格截图提供 filePath
+
+### 执法脚本卡点（VMF-27, VMF-28）
+- VMF-27：检查 AI prompt 示例中不含管道符枚举值和字符串描述符占位符
+- VMF-28：检查 mission-loop-runner 只发送坐标格图片给模型（原始截图无 filePath）
+

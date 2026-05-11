@@ -19,15 +19,27 @@ import sharp from "sharp";
 /** Maximum long edge (px) accepted by qwen2.5vl:3b without GGML patch overflow. */
 export const MAX_VISION_IMAGE_LONG_EDGE_PX = 1120;
 
-/** Maximum byte size gate — applied to the post-resize model input buffer. */
-const MAX_VISION_IMAGE_BYTES = 1_000_000;
+/**
+ * Maximum byte size gate — applied to the post-resize model input buffer.
+ * NOTE: grid-overlay PNG (coordinate lines + numbers) resists compression more than plain
+ * screenshots. 1120×1099 grid PNG ≈ 1 MB after resize — do NOT lower this below 1.5 MB.
+ * When PNG exceeds this gate, JPEG fallback (MAX_VISION_IMAGE_JPEG_QUALITY) is applied.
+ */
+const MAX_VISION_IMAGE_BYTES = 3_000_000;
+
+/**
+ * JPEG quality used when PNG resized output still exceeds MAX_VISION_IMAGE_BYTES.
+ * quality=80 produces ~150-250 KB for a 1120px image — far below any byte limit.
+ */
+const MAX_VISION_IMAGE_JPEG_QUALITY = 80;
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export type ModelSafeImageInput = {
   /** Base64-encoded model-input image (resized if necessary). */
   base64: string;
-  mimeType: "image/png";
+  /** PNG for normal inputs; JPEG when PNG post-resize still exceeded MAX_VISION_IMAGE_BYTES. */
+  mimeType: "image/png" | "image/jpeg";
   /** Original image dimensions (from the source file). */
   originalWidth: number;
   originalHeight: number;
@@ -144,12 +156,39 @@ export async function prepareModelSafeImage(filePath: string): Promise<ModelSafe
       );
     }
 
-    // Post-resize byte gate — fail closed if the PNG is still too large.
+    // Post-resize byte gate — try JPEG fallback before failing.
+    // Grid-overlay PNG (coordinate lines + numbers) resists compression more than plain
+    // screenshots; JPEG fallback reliably fits any 1120px image under 300 KB.
     if (resizedBuffer.length > MAX_VISION_IMAGE_BYTES) {
-      throw new Error(
-        `MODEL_IMAGE_NORMALIZATION_FAILED: Resized image still exceeds ${MAX_VISION_IMAGE_BYTES} bytes` +
-          ` (${resizedBuffer.length}). Refusing to send oversized model input.`,
-      );
+      let jpegBuffer: Buffer;
+      try {
+        jpegBuffer = await sharp(resizedBuffer).jpeg({ quality: MAX_VISION_IMAGE_JPEG_QUALITY }).toBuffer();
+      } catch (jpegErr) {
+        throw new Error(
+          `MODEL_IMAGE_NORMALIZATION_FAILED: PNG too large (${resizedBuffer.length} bytes) and JPEG fallback failed: ` +
+            `${jpegErr instanceof Error ? jpegErr.message : String(jpegErr)}`,
+        );
+      }
+      if (jpegBuffer.length > MAX_VISION_IMAGE_BYTES) {
+        throw new Error(
+          `MODEL_IMAGE_NORMALIZATION_FAILED: JPEG fallback still exceeds ${MAX_VISION_IMAGE_BYTES} bytes` +
+            ` (${jpegBuffer.length}). Refusing to send oversized model input.`,
+        );
+      }
+      const modelInputHash2 = sha256(jpegBuffer);
+      return {
+        base64: jpegBuffer.toString("base64"),
+        mimeType: "image/jpeg",
+        originalWidth,
+        originalHeight,
+        modelInputWidth: resizedMeta.width,
+        modelInputHeight: resizedMeta.height,
+        wasResized: true,
+        originalBytes,
+        modelInputBytes: jpegBuffer.length,
+        originalHash,
+        modelInputHash: modelInputHash2,
+      };
     }
 
     modelInputBuffer = resizedBuffer;

@@ -46,8 +46,8 @@ export async function renderCoordinateGrid(
     };
   }
 
-  const rowCount = input.gridPolicy?.rowCount ?? 8;
-  const columnCount = input.gridPolicy?.columnCount ?? 12;
+  const rowCount = input.gridPolicy?.rowCount ?? 16;
+  const columnCount = input.gridPolicy?.columnCount ?? 24;
 
   const gridArtifactId = randomUUID();
   const gridRenderStart = Date.now();

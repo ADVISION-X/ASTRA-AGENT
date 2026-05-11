@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { checkLocalAiReadiness, loadLocalAiConfig } from "../../lib/local-ai/index.js";
 import type {
   AiAbilityGroup,
@@ -25,7 +26,11 @@ const createConfiguredAiAbilityGroup = (input: CreateConfiguredAiAbilityGroupInp
         request,
         ...(options?.signal ? { signal: options.signal } : {}),
         ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
-        ...(input.traceContext ? { traceContext: input.traceContext } : {}),
+        traceContext: input.traceContext ?? {
+          traceId: request.missionId,
+          spanId: request.roundId ?? request.capabilityCallId,
+          parentSpanId: request.nerveBusEnvelopeId,
+        },
       });
 
       lastTaskType = result.taskType;

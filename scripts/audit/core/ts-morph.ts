@@ -15,6 +15,10 @@ export const getAuditProject = (): Project => {
   return cachedProject;
 };
 
+export const clearAuditProjectCache = (): void => {
+  cachedProject = undefined;
+};
+
 export const getSourceFileOrThrow = (project: Project, relativePath: string): SourceFile => {
   const absolutePath = pathFromRepoRoot(relativePath);
   const sourceFile = project.getSourceFile(absolutePath) ?? project.addSourceFileAtPathIfExists(absolutePath);

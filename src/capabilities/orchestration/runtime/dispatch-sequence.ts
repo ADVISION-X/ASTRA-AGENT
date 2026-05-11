@@ -110,7 +110,7 @@ async function dispatchSingleAction(
   action: Action,
   input: DispatchRegisteredAbilitySequenceInput,
   ctx: DispatchSequenceContext,
-  extras?: { freshScreenshotRef?: string | null },
+  extras?: { freshScreenshotRef?: string | null; commentPanelOpenAttempted?: boolean },
 ): Promise<{ status: "success" | "failed" | "review_required"; failureReason: string | null }> {
   // ── 1. Resolve abilityGroupId + childCapabilityId from MuscleMemory ────────
   const entry = findMuscleMemoryEntry(action.actionCode);
@@ -145,6 +145,7 @@ async function dispatchSingleAction(
           coordinateGridScreenshotRef: input.currentEvidenceRefs?.["coordinateGridScreenshotRef"] ?? null,
           gridSpecRef: input.currentEvidenceRefs?.["gridSpecRef"] ?? null,
           ...(extras?.freshScreenshotRef ? { freshScreenshotRef: extras.freshScreenshotRef } : {}),
+          ...(extras?.commentPanelOpenAttempted && extras.freshScreenshotRef ? { postCommentScreenshotRef: extras.freshScreenshotRef } : {}),
           missionId: input.missionId,
           runId: input.runId,
           roundId: input.roundId ?? null,
@@ -291,6 +292,9 @@ export async function dispatchRegisteredAbilitySequence(
   input: DispatchRegisteredAbilitySequenceInput,
   ctx: DispatchSequenceContext,
 ): Promise<DispatchSequenceResult> {
+  // Track whether a comments_button click was requested — used to tag postCommentScreenshotRef in SAVE evidence.
+  const commentPanelOpenAttempted = input.actions.some(a => a.targetRole === "comments_button");
+
   for (const action of input.actions) {
     // ── Take fresh screenshot before SAVE when captureMode='fresh_current_viewport' ──
     let freshScreenshotRef: string | null = null;
@@ -337,7 +341,7 @@ export async function dispatchRegisteredAbilitySequence(
       }
     }
 
-    const { status, failureReason } = await dispatchSingleAction(action, input, ctx, { freshScreenshotRef });
+    const { status, failureReason } = await dispatchSingleAction(action, input, ctx, { freshScreenshotRef, commentPanelOpenAttempted });
 
     void ctx.forensics.appendRecord({
       childCapabilityId: "append-record",

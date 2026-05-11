@@ -111,8 +111,9 @@ export async function runMissionRoundLoop(
     });
 
     // ── OPEN GATE: Navigate to platform entry on round 0 if targetProfileRef is set ──
-    // Direct call (not through Nerve Bus) — Open schema is strict and rejects
-    // the extra tracking fields that the Nerve Bus dispatcher injects.
+    // Direct call (not through Nerve Bus) — Open returns its own openResultRef and
+    // Nerve Bus is pure transport; this avoids unnecessary envelope wrapping for the
+    // initial platform navigation which precedes all ability-group rounds.
     if ((state.roundIndex ?? 0) === 0 && state.targetUrl && !state.openResultRef) {
       const openCallId = randomUUID();
       const openResult = await ctx.openAbilityGroup.execute({
@@ -153,7 +154,7 @@ export async function runMissionRoundLoop(
         setActiveMission(null);
         return;
       }
-      upsertMissionState({ ...getMissionState(missionId), openResultRef: openCallId });
+      upsertMissionState({ ...getMissionState(missionId), openResultRef: openResult.openResultRef });
     }
 
     // ── STEP 1: Capture browser viewport ───────────────────────────────────
@@ -325,12 +326,17 @@ export async function runMissionRoundLoop(
         expectedOutputSchema: "ai.visual_mission_judgment.v1",
         inputRefs: [
           {
+            // originalScreenshotRef is included as an evidence-chain ID only.
+            // Its file bytes are NOT sent to the model — the grid screenshot below
+            // already contains the same visual content with coordinate cells overlaid.
+            // Sending both images overwhelms qwen2.5vl:3b (context overload → broken JSON).
             id: originalScreenshotRef,
             kind: "screenshot",
-            summary: "original screenshot",
-            filePath: originalAiPath,
+            summary: "original screenshot (ref only — not sent as image bytes to model)",
           },
           {
+            // Grid screenshot is the ONLY physical image sent to the AI model.
+            // It contains the original viewport + coordinate grid overlay.
             id: coordinateGridScreenshotRef,
             kind: "coordinate-grid-screenshot",
             summary: "coordinate grid overlay",

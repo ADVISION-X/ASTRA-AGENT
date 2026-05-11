@@ -396,10 +396,9 @@
       "requiresGeometryProof": false,
       "sensitiveOperation": false,
       "inputContract": {
-        "requiredFields": [
-          "scrollDeltaY"
-        ],
+        "requiredFields": [],
         "optionalFields": [
+          "scrollDeltaY",
           "scrollDeltaX"
         ],
         "forbiddenFields": [

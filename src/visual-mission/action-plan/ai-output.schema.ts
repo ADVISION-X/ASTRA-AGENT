@@ -99,7 +99,7 @@ const TargetRoleSchema = z.enum([
 ]).nullable().optional().default(null);
 
 const VisualMissionActionSchema = z.object({
-  actionCode: z.string().min(1).refine(isAiActionPlanAllowedActionCode, "actionCode must be registered in MuscleMemoryCatalog and allowed for AI planning."),
+  actionCode: z.string().min(1).transform((v) => v.toUpperCase()).refine(isAiActionPlanAllowedActionCode, "actionCode must be registered in MuscleMemoryCatalog and allowed for AI planning."),
   required: z.boolean().default(true),
   targetRole: TargetRoleSchema,
   input: VisualMissionActionInputSchema.optional(),
@@ -192,6 +192,9 @@ const VisualMissionActionPlanOutputSchema = z.object({
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: SAVE_CURRENT_VIDEO_EVIDENCE_ONCE must come after all click actions.", path: ["actions"] });
     }
     const scrollIdx = actions.findIndex(a => a.actionCode === "SCROLL_BROWSER_VIEWPORT_ONCE");
+    if (saveIdx !== -1 && scrollIdx === -1) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires SCROLL_BROWSER_VIEWPORT_ONCE after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE to advance to the next video.", path: ["actions"] });
+    }
     if (saveIdx !== -1 && scrollIdx !== -1 && scrollIdx < saveIdx) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: SCROLL_BROWSER_VIEWPORT_ONCE must come after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
     }

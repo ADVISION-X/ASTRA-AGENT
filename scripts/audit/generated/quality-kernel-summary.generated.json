@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-11T18:05:27.085Z",
+  "timestamp": "2026-05-11T21:59:09.083Z",
   "pass": true,
   "hardRetiredSurface": {
     "count": 0,
@@ -100,7 +100,7 @@
       },
       {
         "file": "src/capabilities/orchestration/runtime/mission-loop-runner.ts",
-        "line": 288,
+        "line": 289,
         "pattern": "postActionVerification",
         "severity": "soft"
       },

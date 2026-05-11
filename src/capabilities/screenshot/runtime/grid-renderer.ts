@@ -48,7 +48,11 @@ function resolveReadableGridDensity(input: {
 
 function buildGridOverlaySvg(gridSpec: ScreenshotGridSpec): string {
   const strokeWidth = Math.max(1, Math.round(Math.min(gridSpec.gridImageWidth, gridSpec.gridImageHeight) / 600));
-  const fontSize = Math.max(7, Math.min(12, Math.floor(Math.min(gridSpec.cellWidthPx, gridSpec.cellHeightPx) * 0.4)));
+  // Font size: minimum 16px so AI can reliably read labels; capped at 22px.
+  // Previous formula was capped at 12px which made labels unreadable on dense grids.
+  const fontSize = Math.max(16, Math.min(22, Math.floor(Math.min(gridSpec.cellWidthPx, gridSpec.cellHeightPx) * 0.55)));
+  // Label pill height = fontSize + 4px vertical padding
+  const labelH = fontSize + 4;
 
   const vLines = gridSpec.columnLabels.map((_, i) => {
     const x = Math.round(i * gridSpec.cellWidthPx);
@@ -70,9 +74,17 @@ function buildGridOverlaySvg(gridSpec: ScreenshotGridSpec): string {
     `<text x="${Math.round(i * gridSpec.cellWidthPx + 4)}" y="${fontSize + 2}" fill="rgba(255,255,255,0.95)" font-size="${fontSize}" font-family="Menlo,monospace">${label}</text>`,
   ).join("");
 
-  const cellLabels = gridSpec.cells.map((cell) =>
-    `<text x="${Math.round(cell.x + 2)}" y="${Math.round(cell.y + fontSize + 2)}" fill="rgba(255,230,140,0.98)" font-size="${fontSize - 1}" font-family="Menlo,monospace">${cell.cellId}</text>`,
-  ).join("");
+  // Each cell label gets a dark semi-transparent background pill for legibility
+  // on any background color (bright or dark video frame).
+  const cellLabels = gridSpec.cells.map((cell) => {
+    const cx = Math.round(cell.x + 2);
+    const cy = Math.round(cell.y + 2);
+    const labelW = Math.round(cell.cellId.length * fontSize * 0.65 + 4);
+    return [
+      `<rect x="${cx}" y="${cy}" width="${labelW}" height="${labelH}" fill="rgba(0,0,0,0.72)" rx="2" ry="2"/>`,
+      `<text x="${cx + 2}" y="${cy + labelH - 3}" fill="rgba(255,230,80,1.0)" font-size="${fontSize}" font-weight="bold" font-family="Menlo,monospace">${cell.cellId}</text>`,
+    ].join("");
+  }).join("");
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${gridSpec.gridImageWidth}" height="${gridSpec.gridImageHeight}" viewBox="0 0 ${gridSpec.gridImageWidth} ${gridSpec.gridImageHeight}">
     <rect x="0" y="0" width="${gridSpec.gridImageWidth}" height="${gridSpec.gridImageHeight}" fill="rgba(0,0,0,0.08)"/>
