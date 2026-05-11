@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T04:33:15.304Z",
+  "generatedAt": "2026-05-11T05:39:11.336Z",
   "abilityGroupCount": 14,
   "abilityGroupDomains": [
     "commander-console-capability",
@@ -17,7 +17,7 @@
     "forensics-persistence-capability",
     "page-state-capability"
   ],
-  "totalActiveLaws": 55,
+  "totalActiveLaws": 47,
   "globalChain": {
     "observed": false,
     "passed": false,
@@ -52,7 +52,7 @@
   },
   "laws": [
     {
-      "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
+      "lawId": "GRASSEYE-AI-CAPABILITY-001-V2",
       "capabilityDomain": "ai-capability",
       "abilityGroupId": "ai",
       "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
@@ -71,7 +71,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-AI-CAPABILITY-002-V1",
+      "lawId": "GRASSEYE-AI-CAPABILITY-002-V2",
       "capabilityDomain": "ai-capability",
       "abilityGroupId": "ai",
       "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
@@ -90,7 +90,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-AI-NO-MEMORY-V1",
+      "lawId": "GRASSEYE-AI-CAPABILITY-003-V2",
       "capabilityDomain": "ai-capability",
       "abilityGroupId": "ai",
       "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
@@ -109,7 +109,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-AI-CAPABILITY-003-V1",
+      "lawId": "GRASSEYE-AI-CAPABILITY-004-V2",
       "capabilityDomain": "ai-capability",
       "abilityGroupId": "ai",
       "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
@@ -128,7 +128,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-AI-CAPABILITY-004-V1",
+      "lawId": "GRASSEYE-AI-CAPABILITY-005-V2",
       "capabilityDomain": "ai-capability",
       "abilityGroupId": "ai",
       "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
@@ -147,216 +147,7 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-AI-CAPABILITY-005-V1",
-      "capabilityDomain": "ai-capability",
-      "abilityGroupId": "ai",
-      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-AI-CAPABILITY-005B-V2",
-      "capabilityDomain": "ai-capability",
-      "abilityGroupId": "ai",
-      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-AI-CAPABILITY-006-V1",
-      "capabilityDomain": "ai-capability",
-      "abilityGroupId": "ai",
-      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-AI-CAPABILITY-007-V1",
-      "capabilityDomain": "ai-capability",
-      "abilityGroupId": "ai",
-      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-AI-CAPABILITY-008-V1",
-      "capabilityDomain": "ai-capability",
-      "abilityGroupId": "ai",
-      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-AI-CAPABILITY-009-V1",
-      "capabilityDomain": "ai-capability",
-      "abilityGroupId": "ai",
-      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-AI-CAPABILITY-010-V1",
-      "capabilityDomain": "ai-capability",
-      "abilityGroupId": "ai",
-      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-AI-CAPABILITY-011-V1",
-      "capabilityDomain": "ai-capability",
-      "abilityGroupId": "ai",
-      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-AI-CAPABILITY-012-V1",
-      "capabilityDomain": "ai-capability",
-      "abilityGroupId": "ai",
-      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-AI-CAPABILITY-013-V1",
-      "capabilityDomain": "ai-capability",
-      "abilityGroupId": "ai",
-      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-AI-CAPABILITY-014-V1",
-      "capabilityDomain": "ai-capability",
-      "abilityGroupId": "ai",
-      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
-      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
-      "coverageStatus": "NOT_COVERED",
-      "matrixMapped": true,
-      "auditPlanMapped": true,
-      "inspectorMapped": false,
-      "globalChainPassed": false,
-      "sourceEvidence": [],
-      "blockers": [
-        "Owner inspector source does not expose concrete law coverage evidence.",
-        "typecheck failed or is missing fresh evidence.",
-        "lint failed or is missing fresh evidence.",
-        "ci:full failed or is missing fresh evidence."
-      ]
-    },
-    {
-      "lawId": "GRASSEYE-AI-CAPABILITY-015-V1",
+      "lawId": "GRASSEYE-AI-CAPABILITY-006-V2",
       "capabilityDomain": "ai-capability",
       "abilityGroupId": "ai",
       "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
@@ -489,7 +280,64 @@
       ]
     },
     {
-      "lawId": "GRASSEYE-LOCAL-AI-RUNTIME-006-V1",
+      "lawId": "GRASSEYE-LOCAL-AI-RUNTIME-001-V2",
+      "capabilityDomain": "ai-capability",
+      "abilityGroupId": "ai",
+      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-AI-RUNTIME-002-V2",
+      "capabilityDomain": "ai-capability",
+      "abilityGroupId": "ai",
+      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-AI-RUNTIME-003-V2",
+      "capabilityDomain": "ai-capability",
+      "abilityGroupId": "ai",
+      "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",
+      "ownerInspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
+      "coverageStatus": "NOT_COVERED",
+      "matrixMapped": true,
+      "auditPlanMapped": true,
+      "inspectorMapped": false,
+      "globalChainPassed": false,
+      "sourceEvidence": [],
+      "blockers": [
+        "Owner inspector source does not expose concrete law coverage evidence.",
+        "typecheck failed or is missing fresh evidence.",
+        "lint failed or is missing fresh evidence.",
+        "ci:full failed or is missing fresh evidence."
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-AI-RUNTIME-006-V2",
       "capabilityDomain": "ai-capability",
       "abilityGroupId": "ai",
       "ownerManifestPath": "scripts/audit/domains/ai-capability/manifest.json",

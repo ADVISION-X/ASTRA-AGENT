@@ -1,74 +1,44 @@
-import { createForensicsPersistenceRegistry } from "./registry.js";
-import {
-  type ForensicsAiResultRecordInput,
-  type ForensicsBrowseLedgerInput,
-  type ForensicsEvidencePacketInput,
-  type ForensicsFailedRecordInput,
-  type ForensicsImageEvidenceInput,
-  type ForensicsOcrEvidenceInput,
-  type ForensicsProductLeadRecordInput,
-  type ForensicsPersistenceAbilityGroup,
-  type ForensicsPersistenceAbilityInput,
-  type ForensicsRuntimeSnapshotInput,
-  type ForensicsStructuredActionLogInput,
-  type ForensicsStructuredRuntimeEventInput,
-} from "./contract.js";
-import {
-  emitForensicsRecordWriteRequested,
-  emitForensicsRecordWritten,
-  type ForensicsRuntimeEventEmitter,
-} from "./shared/forensics-write-boundary-events.js";
-import { createForensicsExecutionContext, type CreateForensicsExecutionContextInput } from "./shared/create-forensics-execution-context.js";
-import { buildUnknownForensicsChildResult } from "./shared/forensics-unknown-child-result.js";
+import { executeAppendArtifact } from "./children/append-artifact.js";
+import { executeAppendRecord } from "./children/append-record.js";
+import { executeReadRecordRef } from "./children/read-record-ref.js";
+import type { ForensicsPersistenceAbilityGroup } from "./contract.js";
+import type {
+  ForensicsAbilityInput,
+  ForensicsAppendArtifactInput,
+  ForensicsAppendRecordInput,
+  ForensicsReadRecordRefInput,
+  ForensicsResult,
+} from "./schema.js";
+import { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID } from "./schema.js";
+import type { ForensicsStoragePort } from "./storage-port.js";
 
-type CreateForensicsPersistenceAbilityGroupInput = CreateForensicsExecutionContextInput & {
-  structuredLogBus?: ForensicsRuntimeEventEmitter;
-};
-
-const createStructuredWriteWrapper = (
-  execute: ForensicsPersistenceAbilityGroup["execute"],
-  structuredLogBus: ForensicsRuntimeEventEmitter | undefined,
-) => async (request: ForensicsStructuredRuntimeEventInput | ForensicsStructuredActionLogInput) => {
-  await emitForensicsRecordWriteRequested(structuredLogBus, request);
-  const result = await execute(request);
-  await emitForensicsRecordWritten(structuredLogBus, request, result);
-  return result;
-};
-
-const createForensicsChildWriters = (
-  execute: ForensicsPersistenceAbilityGroup["execute"],
-  structuredLogBus: ForensicsRuntimeEventEmitter | undefined,
-) => ({
-  writeStructuredRuntimeEvent: createStructuredWriteWrapper(execute, structuredLogBus) as (request: ForensicsStructuredRuntimeEventInput) => ReturnType<ForensicsPersistenceAbilityGroup["execute"]>,
-  writeStructuredActionLog: createStructuredWriteWrapper(execute, structuredLogBus) as (request: ForensicsStructuredActionLogInput) => ReturnType<ForensicsPersistenceAbilityGroup["execute"]>,
-  writeImageEvidence: (request: ForensicsImageEvidenceInput) => execute(request),
-  writeOcrEvidence: (request: ForensicsOcrEvidenceInput) => execute(request),
-  writeProductLeadRecord: (request: ForensicsProductLeadRecordInput) => execute(request),
-  writeAiResultRecord: (request: ForensicsAiResultRecordInput) => execute(request),
-  finalizeBrowseLedger: (request: ForensicsBrowseLedgerInput) => execute(request),
-  finalizeEvidencePacket: (request: ForensicsEvidencePacketInput) => execute(request),
-  finalizeFailedRecord: (request: ForensicsFailedRecordInput) => execute(request),
-  updateRuntimeSnapshot: (request: ForensicsRuntimeSnapshotInput) => execute(request),
-});
-
-export function createForensicsPersistenceAbilityGroup(input: CreateForensicsPersistenceAbilityGroupInput): ForensicsPersistenceAbilityGroup {
-  const registry = createForensicsPersistenceRegistry();
-  const context = createForensicsExecutionContext(input);
-
-  const execute: ForensicsPersistenceAbilityGroup["execute"] = async (request) => {
-    const capability = registry.get(request.childCapabilityId);
-    if (!capability) {
-      return buildUnknownForensicsChildResult({ request, clock: context.clock });
-    }
-
-    return capability.execute(request, context);
-  };
-
+export function createForensicsPersistenceAbilityGroup(
+  storage: ForensicsStoragePort,
+): ForensicsPersistenceAbilityGroup {
   return {
-    listChildCapabilityIds() {
-      return [...registry.keys()];
+    abilityGroupId: FORENSICS_PERSISTENCE_ABILITY_GROUP_ID,
+
+    async execute(input: ForensicsAbilityInput): Promise<ForensicsResult> {
+      switch (input.childCapabilityId) {
+        case "append-record":
+          return executeAppendRecord(input, storage);
+        case "append-artifact":
+          return executeAppendArtifact(input, storage);
+        case "read-record-ref":
+          return executeReadRecordRef(input, storage);
+      }
     },
-    execute,
-    ...createForensicsChildWriters(execute, input.structuredLogBus),
+
+    appendRecord(input: ForensicsAppendRecordInput): Promise<ForensicsResult> {
+      return executeAppendRecord(input, storage);
+    },
+
+    appendArtifact(input: ForensicsAppendArtifactInput): Promise<ForensicsResult> {
+      return executeAppendArtifact(input, storage);
+    },
+
+    readRecordRef(input: ForensicsReadRecordRefInput): Promise<ForensicsResult> {
+      return executeReadRecordRef(input, storage);
+    },
   };
 }

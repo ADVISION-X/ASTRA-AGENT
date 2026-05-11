@@ -1,9 +1,14 @@
-import { runOwnerInspector } from "../../core/owner-audit-runner.js";
+import { runGeometryGuardInspector } from "./inspector.js";
 
-void runOwnerInspector({
-  capabilityDomain: "geometry-guard-capability",
-  inspectorEntry: "scripts/audit/domains/geometry-guard-capability/inspector.ts",
-}).catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  process.exitCode = 1;
-});
+const { pass, results } = runGeometryGuardInspector();
+
+console.log("\n=== Geometry Guard Capability Inspector ===\n");
+for (const result of results) {
+  console.log(result.message);
+}
+
+console.log(`\nOverall: ${pass ? "✅ PASS" : "❌ FAIL"}\n`);
+
+if (!pass) {
+  process.exit(1);
+}

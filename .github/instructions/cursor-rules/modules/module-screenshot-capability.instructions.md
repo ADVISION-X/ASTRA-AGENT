@@ -1,19 +1,25 @@
 ---
 name: "GrassEye Screenshot Capability"
-description: "Use when governing the independent Screenshot Ability Group, governed screenshot capture, screenshot artifact truth, coordinate-space truth, scale mapping, AI-input preparation, privacy/session gates, artifact persistence handoff, and the boundary that prevents AI, Visual Target, Geometry Guard, Page State, PAV, browser helpers, or platform adapters from owning screenshot truth."
+description: "Use when governing the independent Screenshot Ability Group, governed screenshot capture, coordinate-grid rendering, gridSpecRef generation, minimal artifact refs, and image proof. Screenshot is the image-and-grid provider only — not AI, page-state, business semantic, or visual-target owner."
 applyTo: ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md, src/capabilities/screenshot/**, docs/法案辅助文件/GrassEye Screenshot 能力组施工图.md, scripts/audit/domains/screenshot-capability/**"
 ---
 
 # GrassEye Screenshot Capability FINAL
 
-Scope: governs governed screenshot capture, screenshot artifact truth, coordinate-space truth, scale mapping, AI-input preparation, coordinate-grid rendering, and artifact handoff.
-Boundary: this module governs image truth only. It does not govern AI reasoning, retired chain truth, retired selection choices, or action execution.
+Scope: governs governed screenshot capture, coordinate-grid rendering, gridSpecRef generation, and minimal artifact refs.
+Boundary: this module governs image truth only. It does not govern AI reasoning, page-state truth, visual-target truth, PAV, business semantics, action planning, or artifact lifecycle universes.
 Authority: this file is authoritative only for the screenshot-capability domain.
 
 Core doctrine:
 - Screenshot is image truth, not image meaning.
 - Screenshot owns coordinate-grid rendering and gridSpecRef generation.
 - AI may return grid cell ids; Screenshot never turns them into executable action truth by itself.
+- Screenshot implementation must remain a small image-capture and coordinate-grid provider.
+- Screenshot must NOT contain page-state handoff, visual-target truth, post-action verification, AI prompt preparation, business semantic output, artifact lifecycle universe, or multi-phase executor systems.
+- Active children: capture-browser-viewport, capture-grid-region, render-coordinate-grid ONLY.
+- Forbidden children: capture-desktop-screen, prepare-ai-input, prepare-visual-mission-input, optimize-lossless.
+- src/capabilities/screenshot file count MUST remain <= 20. Exceeding 25 is a hard FAIL.
+- scripts/audit/domains/screenshot-capability file count MUST remain <= 3.
 
 ## Law GRASSEYE-SCREENSHOT-CAPABILITY-001-V2
 

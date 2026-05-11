@@ -38,7 +38,7 @@ Startup Entrypoint 不是：
 | Orchestration | 不直接接触 | start mission、pause、resume、stop、改 mission state |
 | Nerve Bus | 不直接接触 | 发送 command envelope、处理 result envelope |
 | AI Runtime | 检查本地 runtime readiness | 执行业务推理任务 |
-| Registry Truth | 检查 Prompt Contract Registry / MuscleMemoryCatalog / PlatformRegistry 可读 | 选图、选 route、造 prompt body |
+| Registry Truth | 检查 single AI prompt contract / MuscleMemoryCatalog / PlatformRegistry 可读 | 选图、选 route、造 prompt body |
 | Capability Groups | 不直接接触 | 直接调用 open、screenshot、click、scroll 等子能力 |
 | Forensics Persistence | 只读消费 runtime logs API | 写 evidence packet、browse ledger、failed record |
 | Structured Logging | 显示结构化摘要 | 夺取 schema 或持久化主权 |
@@ -47,7 +47,7 @@ Startup Entrypoint 不是：
 
 1. 检查 Node / npm / package 依赖状态。
 2. 执行 update_preflight_check。
-3. 执行 prompt_contract_registry_check。
+3. 执行 ai_prompt_contract_check。
 4. 执行 muscle_memory_catalog_check。
 5. 执行 platform_registry_check。
 6. 检查本地 AI runtime presence。
@@ -65,7 +65,7 @@ Startup Entrypoint 不是：
 
 ### 目标
 
-启动链必须在 app server 子进程启动前证明 Prompt Contract Registry、MuscleMemoryCatalog、PlatformRegistry 三个现役治理真相可读。坏 registry 不得等到运行期才以隐式错误形式暴露。
+启动链必须在 app server 子进程启动前证明单一 AI prompt contract、MuscleMemoryCatalog、PlatformRegistry 三个现役治理真相可读。坏治理真相不得等到运行期才以隐式错误形式暴露。
 
 ### 正确链路
 
@@ -73,7 +73,7 @@ Startup Entrypoint 不是：
 grasseye:start
 → dependency_check
 → update_preflight_check
-→ prompt_contract_registry_check
+→ ai_prompt_contract_check
 → muscle_memory_catalog_check
 → platform_registry_check
 → local_ai_runtime_presence_check

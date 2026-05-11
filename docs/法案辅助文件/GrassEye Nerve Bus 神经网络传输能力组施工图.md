@@ -60,3 +60,33 @@ transport without promptContractId
 transport proof with retired binding field
 retired branch-token field 成为 envelope branch truth
 ```
+
+
+## 附录：极简化施工补充（Phase 5 Final Delivery）
+
+### 核心原则补充
+
+Nerve Bus 不按方向拆 child。
+- 禁止: orchestration-to-ai, ai-to-orchestration, commander-to-orchestration, orchestration-to-commander, orchestration-to-ability, ability-to-orchestration
+- 方向属于 envelope 字段 (requestedBy / targetAbilityGroupId / targetChildCapabilityId)，不是 child capability
+
+Nerve Bus 不维护 queue / sequence store / retry / fallback 系统。
+- 当前阶段只提供 generic governed envelope transport (synchronous path)
+- 任何 queue/sequence 系统须另开法案和施工图后才能启用
+
+当前阶段 active child surface:
+- dispatch-governed-envelope
+- return-governed-result
+或合并为一个: transport-governed-envelope
+
+目标文件数:
+- src/capabilities/nerve-bus/**/* <= 14 files
+- scripts/audit/domains/nerve-bus-capability/**/* <= 3 files
+
+Nerve Bus 只负责:
+1. 接收 governed command envelope
+2. 校验短链字段
+3. 校验 forbidden retired fields 不存在
+4. 调用目标能力组 public dispatcher
+5. 包装 governed result envelope
+6. 输出 transfer proof

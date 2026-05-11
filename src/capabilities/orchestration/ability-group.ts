@@ -1,86 +1,112 @@
-import type { MissionCommand, OrchestrationAbilityGroup, OrchestrationExecuteInput, OrchestrationExecuteResult } from "./contract.js";
 import type { NerveBusAbilityGroup } from "../nerve-bus/contract.js";
 import type {
-  ForensicsPersistenceAbilityResult,
-  ForensicsStructuredActionLogInput,
-  ForensicsStructuredRuntimeEventInput,
-} from "../forensics-persistence/contract.js";
+  OrchestrationAbilityGroup,
+  MissionCommand,
+  MissionControlState,
+  OrchestrationExecuteInput,
+  OrchestrationExecuteResult,
+  OrchestrationChildCapabilityId,
+} from "./contract.js";
 import { listOrchestrationChildren } from "./registry.js";
-import { readCurrentMissionState } from "./runtime/orchestration-ability-support.js";
-import { createOrchestrationChildren, executeOrchestrationChild } from "./runtime/orchestration-child-runner.js";
-import { createOrchestrationRuntimeContext } from "./runtime/orchestration-runtime-context.js";
+import { getMissionState } from "./runtime/mission-state.js";
+import {
+  handleStartMission,
+  handlePauseMission,
+  handleResumeMission,
+  handleStopMission,
+  handleEmergencyStop,
+  handleDispatchRegisteredAbilitySequence,
+  handleFinalizeMission,
+  type OrchestrationChildrenContext,
+} from "./children.js";
 
-type OrchestrationForensicsSurface = {
-  writeStructuredRuntimeEvent(input: ForensicsStructuredRuntimeEventInput): Promise<ForensicsPersistenceAbilityResult>;
-  writeStructuredActionLog(input: ForensicsStructuredActionLogInput): Promise<ForensicsPersistenceAbilityResult>;
+type ForensicsSurface = OrchestrationChildrenContext["forensics"];
+
+type OrchestrationDeps = {
+  nerveBus: NerveBusAbilityGroup;
+  forensics: ForensicsSurface;
 };
 
-type OrchestrationRuntime = ReturnType<typeof createOrchestrationRuntimeContext>;
-type ExecuteEnvelope = (inputValue: OrchestrationExecuteInput) => Promise<OrchestrationExecuteResult>;
-
-function readStateSnapshot(executeEnvelope: ExecuteEnvelope, inputValue: OrchestrationExecuteInput) {
-  return executeEnvelope(inputValue).then((result) => result.stateSnapshot);
+async function executeChild(
+  childCapabilityId: OrchestrationChildCapabilityId,
+  payload: unknown,
+  ctx: OrchestrationChildrenContext,
+): Promise<OrchestrationExecuteResult> {
+  let raw: { status: "success" | "failed" | "review_required"; stateSnapshot: MissionControlState; failureReason?: string | null; reviewRequiredReason?: string | null };
+  switch (childCapabilityId) {
+    case "start-mission": raw = await handleStartMission(payload, ctx); break;
+    case "pause-mission": raw = await handlePauseMission(payload, ctx); break;
+    case "resume-mission": raw = await handleResumeMission(payload, ctx); break;
+    case "stop-mission": raw = await handleStopMission(payload, ctx); break;
+    case "emergency-stop": raw = await handleEmergencyStop(payload, ctx); break;
+    case "dispatch-registered-ability-sequence": raw = await handleDispatchRegisteredAbilitySequence(payload, ctx); break;
+    case "finalize-mission": raw = await handleFinalizeMission(payload, ctx); break;
+    default: {
+      const _exhaustive: never = childCapabilityId;
+      void _exhaustive;
+      const idle = getMissionState();
+      raw = { status: "failed", stateSnapshot: idle, failureReason: "Unknown childCapabilityId", reviewRequiredReason: null };
+    }
+  }
+  return {
+    status: raw.status,
+    stateSnapshot: raw.stateSnapshot,
+    failureReason: raw.failureReason ?? null,
+    reviewRequiredReason: raw.reviewRequiredReason ?? null,
+  };
 }
 
-function createCatalogMethods(context: OrchestrationRuntime): Pick<OrchestrationAbilityGroup, "listChildCapabilityIds" | "getMissionState"> {
+export function createOrchestrationAbilityGroup(deps: OrchestrationDeps): OrchestrationAbilityGroup {
+  const ctx: OrchestrationChildrenContext = { nerveBus: deps.nerveBus, forensics: deps.forensics };
+
+  async function execute(input: OrchestrationExecuteInput): Promise<OrchestrationExecuteResult> {
+    return executeChild(input.childCapabilityId, input.payload, ctx);
+  }
+
+  async function startMission(command: MissionCommand): Promise<MissionControlState> {
+    const result = await execute({ childCapabilityId: "start-mission", payload: command });
+    return result.stateSnapshot;
+  }
+
+  async function executeMission(command: MissionCommand): Promise<MissionControlState> {
+    return startMission(command);
+  }
+
+  async function pauseMission(missionId: string): Promise<MissionControlState> {
+    const result = await execute({ childCapabilityId: "pause-mission", payload: { missionId, reason: null, note: null } });
+    return result.stateSnapshot;
+  }
+
+  async function resumeMission(missionId: string): Promise<MissionControlState> {
+    const result = await execute({ childCapabilityId: "resume-mission", payload: { missionId, reason: null, note: null } });
+    return result.stateSnapshot;
+  }
+
+  async function stopMission(input: { missionId: string; reason?: string | null }): Promise<MissionControlState> {
+    const result = await execute({ childCapabilityId: "stop-mission", payload: { missionId: input.missionId, reason: input.reason ?? null, note: null } });
+    return result.stateSnapshot;
+  }
+
+  async function emergencyStop(input: { missionId: string; reason?: string | null }): Promise<MissionControlState> {
+    const result = await execute({ childCapabilityId: "emergency-stop", payload: { missionId: input.missionId, reason: input.reason ?? null, note: null } });
+    return result.stateSnapshot;
+  }
+
+  async function getMissionStateMethod(missionId?: string | null): Promise<MissionControlState> {
+    return getMissionState(missionId);
+  }
+
   return {
-    listChildCapabilityIds() {
+    listChildCapabilityIds(): OrchestrationChildCapabilityId[] {
       return listOrchestrationChildren();
     },
-    getMissionState(missionId?: string | null) {
-      return readCurrentMissionState(context, missionId);
-    },
+    execute,
+    executeMission,
+    startMission,
+    pauseMission,
+    resumeMission,
+    stopMission,
+    emergencyStop,
+    getMissionState: getMissionStateMethod,
   };
-}
-
-function createExecutionMethods(executeEnvelope: ExecuteEnvelope): Pick<OrchestrationAbilityGroup, "execute" | "executeMission" | "startMission"> {
-  return {
-    execute(inputValue) {
-      return executeEnvelope(inputValue);
-    },
-    executeMission(command: MissionCommand) {
-      return executeEnvelope({ childCapabilityId: "start-mission", payload: command });
-    },
-    startMission(command: MissionCommand) {
-      return readStateSnapshot(executeEnvelope, { childCapabilityId: "start-mission", payload: command });
-    },
-  };
-}
-
-function createControlMethods(executeEnvelope: ExecuteEnvelope): Pick<OrchestrationAbilityGroup, "pauseMission" | "resumeMission" | "stopMission" | "emergencyStop"> {
-  return {
-    pauseMission(missionId: string) {
-      return readStateSnapshot(executeEnvelope, { childCapabilityId: "pause-mission", payload: { missionId, reason: null, note: null } });
-    },
-    resumeMission(missionId: string) {
-      return readStateSnapshot(executeEnvelope, { childCapabilityId: "resume-mission", payload: { missionId, reason: null, note: null } });
-    },
-    stopMission(inputValue: { missionId: string; reason?: string }) {
-      return readStateSnapshot(executeEnvelope, { childCapabilityId: "stop-mission", payload: { missionId: inputValue.missionId, reason: inputValue.reason ?? null, note: null } });
-    },
-    emergencyStop(inputValue: { missionId: string; reason?: string }) {
-      return readStateSnapshot(executeEnvelope, { childCapabilityId: "emergency-stop", payload: { missionId: inputValue.missionId, reason: inputValue.reason ?? null, note: null } });
-    },
-  };
-}
-
-function assembleOrchestrationAbilityGroup(context: OrchestrationRuntime, executeEnvelope: ExecuteEnvelope): OrchestrationAbilityGroup {
-  return {
-    ...createCatalogMethods(context),
-    ...createExecutionMethods(executeEnvelope),
-    ...createControlMethods(executeEnvelope),
-  };
-}
-
-export function createOrchestrationAbilityGroup(input: {
-  nerveBus: NerveBusAbilityGroup;
-  forensics: OrchestrationForensicsSurface;
-}): OrchestrationAbilityGroup {
-  const context = createOrchestrationRuntimeContext({
-    nerveBus: input.nerveBus,
-    forensics: input.forensics,
-  });
-  const children = createOrchestrationChildren();
-  const executeEnvelope: ExecuteEnvelope = (inputValue) => executeOrchestrationChild(inputValue, context, children);
-  return assembleOrchestrationAbilityGroup(context, executeEnvelope);
 }

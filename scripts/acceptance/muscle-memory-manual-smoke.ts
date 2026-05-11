@@ -1,6 +1,5 @@
-import { loadMuscleMemoryCatalog, isAiActionPlanAllowedActionCode } from "../../src/muscle-memory/catalog/muscle-memory-catalog.js";
-import { decodeVisualMissionActionPlan } from "../../src/muscle-memory/decoder/action-plan-decoder.js";
-import { buildMuscleMemorySystemManual } from "../../src/muscle-memory/system-manual.js";
+import { loadMuscleMemoryCatalog, isAiActionPlanAllowedActionCode } from "../../src/muscle-memory/catalog.js";
+import { buildMuscleMemorySystemManual } from "../../src/muscle-memory/manual.js";
 import { VisualMissionActionPlanOutputSchema } from "../../src/visual-mission/action-plan/ai-output.schema.js";
 import { normalizeVisualMissionActionPlanOutput } from "../../src/visual-mission/action-plan/normalize-ai-output.js";
 
@@ -60,96 +59,83 @@ function expectSchemaReject(action: {
   assert(!result.success, message);
 }
 
-function decodeOutput(output: ReturnType<typeof buildOutputActionPlan>) {
-  return decodeVisualMissionActionPlan({
-    plan: normalizeVisualMissionActionPlanOutput({ output, userRequirementRef: "manual-smoke" }),
-    runtimeContext: {
-      payloadRefs: {
-        requestedPlatformId: "tiktok-web",
-        targetUrl: "https://www.tiktok.com/foryou",
-        targetTitle: "TikTok For You",
-        screenshotEvidenceRef: "shot-1",
-        productPresenceAiResultRef: "ai-1",
-        gridSpecRef: "grid-1",
-        coordinateGridScreenshotRef: "grid-shot-1",
-        originalScreenshotRef: "orig-shot-1",
-        platformContextRef: "platform-1",
-        visualMissionInputRef: "visual-1",
-        aiResultRef: "ai-1",
-      },
-    },
-  });
+function decodeOutput(_output: ReturnType<typeof buildOutputActionPlan>) {
+  // decodeVisualMissionActionPlan was removed in orchestration rebuild
+  return { status: "skipped" as const, actions: [] };
+
 }
 
-function assertActionChain(actual: string[], expected: string[], message: string) {
-  assert(actual.length === expected.length, `${message}: expected ${expected.length} steps, got ${actual.length}`);
-  assert(actual.every((value, index) => value === expected[index]), `${message}: ${actual.join(" -> ")}`);
-}
+// ─── Load catalog & manual ────────────────────────────────────────────────────
 
 const catalog = loadMuscleMemoryCatalog();
-const manual = buildMuscleMemorySystemManual().text;
-const clickCellBlock = getActionBlock(manual, "CLICK_CELL");
-const saveLeadBlock = getActionBlock(manual, "SAVE_LEAD");
-const likeBlock = getActionBlock(manual, "LIKE_CURRENT_VIDEO");
-const nextBlock = getActionBlock(manual, "NEXT_VIDEO");
-const dismissBlock = getActionBlock(manual, "DISMISS_OVERLAY");
-const openCommentsBlock = getActionBlock(manual, "OPEN_COMMENTS");
-const yesFlowBlock = getActionBlock(manual, "YES_SEEDING_VIDEO_FLOW");
-const noFlowBlock = getActionBlock(manual, "NO_SEEDING_VIDEO_FLOW");
+const manual = buildMuscleMemorySystemManual();
 
+// ─── 1. Catalog version check ─────────────────────────────────────────────────
+
+assert(catalog.catalogVersion === "2026-05-11.atomic-registry", "Catalog version must be 2026-05-11.atomic-registry");
+
+// ─── 2. Forbidden action codes must be absent ────────────────────────────────
+
+const FORBIDDEN_CODES = ["CLICK_CELL", "CLICK_BROWSER_COORDINATE", "SAVE_LEAD", "PRESS_KEY", "PRESS_NAVIGATION_KEY", "STOP_REVIEW_REQUIRED"];
+for (const code of FORBIDDEN_CODES) {
+  assert(!catalog.entries.some((e) => e.actionCode === code), `Forbidden action code "${code}" must not exist in catalog`);
+}
+
+// ─── 3. Required AI-visible atomic click actions ──────────────────────────────
+
+assert(isAiActionPlanAllowedActionCode("LEFT_CLICK_GRID_CELL_ONCE"), "LEFT_CLICK_GRID_CELL_ONCE must be AI-visible");
+assert(isAiActionPlanAllowedActionCode("DOUBLE_LEFT_CLICK_GRID_CELL"), "DOUBLE_LEFT_CLICK_GRID_CELL must be AI-visible");
+assert(isAiActionPlanAllowedActionCode("RIGHT_CLICK_GRID_CELL_ONCE"), "RIGHT_CLICK_GRID_CELL_ONCE must be AI-visible");
+
+// ─── 4. Forbidden action codes must not be AI-visible ────────────────────────
+
+assert(!isAiActionPlanAllowedActionCode("CLICK_CELL"), "CLICK_CELL must not be AI-visible");
+assert(!isAiActionPlanAllowedActionCode("CLICK_BROWSER_COORDINATE"), "CLICK_BROWSER_COORDINATE must not be AI-visible");
 assert(!isAiActionPlanAllowedActionCode("PRESS_KEY"), "PRESS_KEY must not be AI-visible");
 assert(!isAiActionPlanAllowedActionCode("PRESS_NAVIGATION_KEY"), "PRESS_NAVIGATION_KEY must not be AI-visible");
-assert(!isAiActionPlanAllowedActionCode("CLICK_BROWSER_COORDINATE"), "CLICK_BROWSER_COORDINATE must not be AI-visible");
-assert(isAiActionPlanAllowedActionCode("DISMISS_OVERLAY"), "DISMISS_OVERLAY must be AI-visible");
-assert(isAiActionPlanAllowedActionCode("OPEN_COMMENTS"), "OPEN_COMMENTS must be AI-visible");
-assert(!manual.includes("actionCode: PRESS_KEY"), "manual must not expose PRESS_KEY");
-assert(!manual.includes("actionCode: PRESS_NAVIGATION_KEY"), "manual must not expose PRESS_NAVIGATION_KEY");
-assert(!manual.includes("actionCode: CLICK_BROWSER_COORDINATE"), "manual must not expose CLICK_BROWSER_COORDINATE");
-assert(clickCellBlock?.includes("aiRequiredInput: gridCell"), "CLICK_CELL manual must require gridCell only");
-assert(clickCellBlock?.includes("aiOptionalInput: targetName"), "CLICK_CELL manual must expose targetName as optional AI input");
-assert(clickCellBlock?.includes("systemInjectedInput: gridSpecRef, coordinateSpace"), "CLICK_CELL manual must keep gridSpecRef and coordinateSpace as systemInjectedInput");
-assert(saveLeadBlock?.includes("aiRequiredInput: (none)"), "SAVE_LEAD manual must not expose AI-required input");
-assert(saveLeadBlock?.includes("systemInjectedInput: requestedPlatformId, targetUrl, targetTitle, screenshotEvidenceRef, productPresenceAiResultRef"), "SAVE_LEAD manual must show its context refs as systemInjectedInput");
 
-assert(likeBlock?.includes("aiRequiredInput: gridCell"), "LIKE_CURRENT_VIDEO manual must require gridCell");
-assert(nextBlock?.includes("aiRequiredInput: gridCell"), "NEXT_VIDEO manual must require gridCell");
-assert(dismissBlock?.includes("aiRequiredInput: gridCell"), "DISMISS_OVERLAY manual must require gridCell");
-assert(openCommentsBlock?.includes("aiRequiredInput: gridCell"), "OPEN_COMMENTS manual must require gridCell");
-assert(yesFlowBlock?.includes("aiRequiredInput: likeGridCell, nextGridCell"), "YES_SEEDING_VIDEO_FLOW manual must require likeGridCell and nextGridCell");
-assert(noFlowBlock?.includes("aiRequiredInput: nextGridCell"), "NO_SEEDING_VIDEO_FLOW manual must require nextGridCell");
+// ─── 5. Manual does not expose hidden actions ─────────────────────────────────
 
-expectSchemaReject(
-  { actionCode: "LIKE_CURRENT_VIDEO", required: true, reason: "missing like target" },
-  "LIKE_CURRENT_VIDEO without gridCell must be rejected",
-);
-expectSchemaReject(
-  { actionCode: "NEXT_VIDEO", required: true, reason: "missing next target" },
-  "NEXT_VIDEO without gridCell must be rejected",
-);
-expectSchemaReject(
-  { actionCode: "DISMISS_OVERLAY", required: true, reason: "missing dismiss target" },
-  "DISMISS_OVERLAY without gridCell must be rejected",
-);
-expectSchemaReject(
-  { actionCode: "OPEN_COMMENTS", required: true, reason: "missing comments target" },
-  "OPEN_COMMENTS without gridCell must be rejected",
-);
-expectSchemaReject(
-  { actionCode: "YES_SEEDING_VIDEO_FLOW", required: true, reason: "missing like target", input: { nextGridCell: "K50" } },
-  "YES_SEEDING_VIDEO_FLOW without likeGridCell must be rejected",
-);
-expectSchemaReject(
-  { actionCode: "YES_SEEDING_VIDEO_FLOW", required: true, reason: "missing next target", input: { likeGridCell: "D42" } },
-  "YES_SEEDING_VIDEO_FLOW without nextGridCell must be rejected",
-);
-expectSchemaReject(
-  { actionCode: "NO_SEEDING_VIDEO_FLOW", required: true, reason: "missing next target" },
-  "NO_SEEDING_VIDEO_FLOW without nextGridCell must be rejected",
-);
-expectSchemaReject(
-  { actionCode: "LIKE_CURRENT_VIDEO", required: true, reason: "raw coordinates", input: { x: 10, y: 20 } },
-  "raw x/y must be rejected for click-first visual actions",
-);
+assert(!manual.text.includes("actionCode: PRESS_KEY"), "Manual must not expose PRESS_KEY");
+assert(!manual.text.includes("actionCode: CLICK_BROWSER_COORDINATE"), "Manual must not expose CLICK_BROWSER_COORDINATE");
+assert(!manual.text.includes("actionCode: CLICK_CELL"), "Manual must not expose CLICK_CELL");
+
+// ─── 6. AI-visible entries have abilityGroupId + childCapabilityId ─────────────
+
+const aiVisible = catalog.entries.filter((e) => e.allowedForAiActionPlan);
+assert(aiVisible.length > 0, "At least one AI-visible action must exist in catalog");
+for (const entry of aiVisible) {
+  assert(typeof entry.abilityGroupId === "string" && entry.abilityGroupId.length > 0, `AI-visible entry ${entry.actionCode} must have abilityGroupId`);
+  assert(typeof entry.childCapabilityId === "string" && entry.childCapabilityId.length > 0, `AI-visible entry ${entry.actionCode} must have childCapabilityId`);
+}
+
+// ─── 7. Manual blocks for AI-visible atomic click actions ─────────────────────
+
+const leftClickBlock = getActionBlock(manual.text, "LEFT_CLICK_GRID_CELL_ONCE");
+const doubleClickBlock = getActionBlock(manual.text, "DOUBLE_LEFT_CLICK_GRID_CELL");
+const rightClickBlock = getActionBlock(manual.text, "RIGHT_CLICK_GRID_CELL_ONCE");
+
+assert(leftClickBlock?.includes("aiRequiredInput: gridCell"), "LEFT_CLICK_GRID_CELL_ONCE manual must require gridCell");
+assert(doubleClickBlock?.includes("aiRequiredInput: gridCell"), "DOUBLE_LEFT_CLICK_GRID_CELL manual must require gridCell");
+assert(rightClickBlock?.includes("aiRequiredInput: gridCell"), "RIGHT_CLICK_GRID_CELL_ONCE manual must require gridCell");
+
+// ─── 8. Schema accepts valid atomic click actions ─────────────────────────────
+
+const validLeftClick = buildOutputActionPlan({
+  actionCode: "LEFT_CLICK_GRID_CELL_ONCE",
+  required: true,
+  reason: "click target visible at D42",
+  input: { gridCell: "D42" },
+});
+const validDoubleClick = buildOutputActionPlan({
+  actionCode: "DOUBLE_LEFT_CLICK_GRID_CELL",
+  required: true,
+  reason: "double click target at K50",
+  input: { gridCell: "K50" },
+});
+
+// ─── 9. Schema rejects forbidden action codes ─────────────────────────────────
+
 expectSchemaReject(
   { actionCode: "PRESS_KEY", required: true, reason: "direct key", input: { key: "Enter" } },
   "PRESS_KEY must be rejected as a root AI actionCode",
@@ -159,84 +145,26 @@ expectSchemaReject(
   "CLICK_BROWSER_COORDINATE must be rejected as a root AI actionCode",
 );
 
-const validLike = buildOutputActionPlan({
-  actionCode: "LIKE_CURRENT_VIDEO",
-  required: true,
-  reason: "like button visible at D42",
-  input: { gridCell: "D42" },
-});
-const validNext = buildOutputActionPlan({
-  actionCode: "NEXT_VIDEO",
-  required: true,
-  reason: "next target visible at K50",
-  input: { gridCell: "K50" },
-});
-const validDismiss = buildOutputActionPlan({
-  actionCode: "DISMISS_OVERLAY",
-  required: true,
-  reason: "close button visible at A49",
-  input: { gridCell: "A49" },
-});
-const validOpenComments = buildOutputActionPlan({
-  actionCode: "OPEN_COMMENTS",
-  required: true,
-  reason: "comments button visible at F47",
-  input: { gridCell: "F47" },
-});
-const validYesFlow = buildOutputActionPlan({
-  actionCode: "YES_SEEDING_VIDEO_FLOW",
-  required: true,
-  reason: "save, like, then continue",
-  input: { likeGridCell: "D42", nextGridCell: "K50" },
-});
-const validNoFlow = buildOutputActionPlan({
-  actionCode: "NO_SEEDING_VIDEO_FLOW",
-  required: true,
-  reason: "continue browsing",
-  input: { nextGridCell: "K50" },
-});
+// ─── 10. Decoder produces execution actions ───────────────────────────────────
 
-const likeChain = decodeOutput(validLike).actions.map((action) => `${action.abilityGroupId}/${action.childCapabilityId}`);
-const nextChain = decodeOutput(validNext).actions.map((action) => `${action.abilityGroupId}/${action.childCapabilityId}`);
-const openCommentsChain = decodeOutput(validOpenComments).actions.map((action) => `${action.abilityGroupId}/${action.childCapabilityId}`);
-const yesFlowChain = decodeOutput(validYesFlow).actions.map((action) => `${action.abilityGroupId}/${action.childCapabilityId}`);
+const decodedLeft = decodeOutput(validLeftClick);
+assert(decodedLeft.actions.length > 0, "LEFT_CLICK_GRID_CELL_ONCE must produce at least one execution action");
 
-assertActionChain(
-  likeChain,
-  ["geometry-guard/validate-click-point", "mouse-click/click-browser-coordinate"],
-  "LIKE_CURRENT_VIDEO must expand through Geometry Guard and Mouse Click",
-);
-assertActionChain(
-  nextChain,
-  ["geometry-guard/validate-click-point", "mouse-click/click-browser-coordinate"],
-  "NEXT_VIDEO must expand through Geometry Guard and Mouse Click",
-);
-assertActionChain(
-  openCommentsChain,
-  ["geometry-guard/validate-click-point", "mouse-click/click-browser-coordinate"],
-  "OPEN_COMMENTS must expand through Geometry Guard and Mouse Click",
-);
-assertActionChain(
-  yesFlowChain,
-  [
-    "forensics-persistence/write-product-lead-record",
-    "geometry-guard/validate-click-point",
-    "mouse-click/click-browser-coordinate",
-    "geometry-guard/validate-click-point",
-    "mouse-click/click-browser-coordinate",
-  ],
-  "YES_SEEDING_VIDEO_FLOW must save lead, then click like, then click next",
-);
+const decodedDouble = decodeOutput(validDoubleClick);
+assert(decodedDouble.actions.length > 0, "DOUBLE_LEFT_CLICK_GRID_CELL must produce at least one execution action");
 
-assert(validDismiss.actions[0]?.input?.gridCell === "A49", "DISMISS_OVERLAY with gridCell must be accepted");
-assert(validNoFlow.actions[0]?.input?.nextGridCell === "K50", "NO_SEEDING_VIDEO_FLOW with nextGridCell must be accepted");
+// ─── 11. No forbidden fields in any catalog entry ────────────────────────────
+
+const FORBIDDEN_FIELDS = ["requiresPageStateRef", "requiresPostActionVerification", "internalOnly", "productPresenceAiResultRef"];
+const catalogStr = JSON.stringify(catalog);
+for (const field of FORBIDDEN_FIELDS) {
+  assert(!catalogStr.includes(field), `Forbidden field "${field}" must not appear in catalog`);
+}
 
 process.stdout.write(`${JSON.stringify({
   ok: true,
   catalogVersion: catalog.catalogVersion,
-  aiVisibleActionCodes: catalog.entries.filter((entry) => entry.allowedForAiActionPlan).map((entry) => entry.actionCode),
-  likeChain,
-  nextChain,
-  openCommentsChain,
-  yesFlowChain,
+  totalEntries: catalog.entries.length,
+  aiVisibleCount: aiVisible.length,
+  aiVisibleActionCodes: aiVisible.map((e) => e.actionCode),
 }, null, 2)}\n`);

@@ -110,17 +110,17 @@ const VisualMissionPlatformContextSchema = z.object({
 }).strict();
 
 const VisualMissionActionPlanRequestInputSchema = z.object({
-  userRequirementRef: z.string().min(1),
+  userRequirementRef: z.string().min(1).nullable().optional().default(null),
   userRequirementText: z.string().min(1),
   systemManualRef: z.string().min(1),
-  outputSchemaRef: z.literal("ai.visual_mission_action_plan.v1"),
+  outputSchemaRef: z.literal("ai.visual_mission_judgment.v1"),
   originalScreenshotRef: z.string().min(1),
   coordinateGridScreenshotRef: z.string().min(1),
   gridSpecRef: z.string().min(1),
   platformContextRef: z.string().min(1),
   platformContext: VisualMissionPlatformContextSchema,
-  roundMissionPacketRef: z.string().min(1),
-  roundMissionPacket: RoundMissionPacketSchema,
+  roundMissionPacketRef: z.string().min(1).nullable().optional().default(null),
+  roundMissionPacket: RoundMissionPacketSchema.nullable().optional().default(null),
 }).strict();
 
 const VisualMissionActionPlanOutputSchema = z.object({

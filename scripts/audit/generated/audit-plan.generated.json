@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T04:33:15.176Z",
+  "generatedAt": "2026-05-11T05:39:11.227Z",
   "phase": "phase-05-final-delivery-debug",
   "phaseGateFile": "scripts/audit/phase-gates/phase-05-final-delivery-debug.json",
   "owners": [
@@ -49,24 +49,16 @@
       "inspectorId": "ai-capability-owner",
       "entry": "scripts/audit/domains/ai-capability/inspector.ts",
       "lawIds": [
-        "GRASSEYE-AI-CAPABILITY-001-V1",
-        "GRASSEYE-AI-CAPABILITY-002-V1",
-        "GRASSEYE-AI-NO-MEMORY-V1",
-        "GRASSEYE-AI-CAPABILITY-003-V1",
-        "GRASSEYE-AI-CAPABILITY-004-V1",
-        "GRASSEYE-AI-CAPABILITY-005-V1",
-        "GRASSEYE-AI-CAPABILITY-005B-V2",
-        "GRASSEYE-AI-CAPABILITY-006-V1",
-        "GRASSEYE-AI-CAPABILITY-007-V1",
-        "GRASSEYE-AI-CAPABILITY-008-V1",
-        "GRASSEYE-AI-CAPABILITY-009-V1",
-        "GRASSEYE-AI-CAPABILITY-010-V1",
-        "GRASSEYE-AI-CAPABILITY-011-V1",
-        "GRASSEYE-AI-CAPABILITY-012-V1",
-        "GRASSEYE-AI-CAPABILITY-013-V1",
-        "GRASSEYE-AI-CAPABILITY-014-V1",
-        "GRASSEYE-AI-CAPABILITY-015-V1",
-        "GRASSEYE-LOCAL-AI-RUNTIME-006-V1"
+        "GRASSEYE-AI-CAPABILITY-001-V2",
+        "GRASSEYE-AI-CAPABILITY-002-V2",
+        "GRASSEYE-AI-CAPABILITY-003-V2",
+        "GRASSEYE-AI-CAPABILITY-004-V2",
+        "GRASSEYE-AI-CAPABILITY-005-V2",
+        "GRASSEYE-AI-CAPABILITY-006-V2",
+        "GRASSEYE-LOCAL-AI-RUNTIME-001-V2",
+        "GRASSEYE-LOCAL-AI-RUNTIME-002-V2",
+        "GRASSEYE-LOCAL-AI-RUNTIME-003-V2",
+        "GRASSEYE-LOCAL-AI-RUNTIME-006-V2"
       ]
     },
     {

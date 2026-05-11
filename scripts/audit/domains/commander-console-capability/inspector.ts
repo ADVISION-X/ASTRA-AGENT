@@ -1,159 +1,86 @@
-import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { createPhase } from "../../core/result.js";
-import { createAuditProject } from "../_shared/ast-helpers.js";
 import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
-
-import { commanderConsoleInspectionConstants } from "./inspection-constants.js";
+import { COMMANDER_CONSOLE_PRODUCTION_ROOT } from "./config.js";
 import {
-  runAppRunLimitSettingsGovernanceChecks,
-  runCommanderBoundaryChecks,
-  runCommanderChildChecks,
-  runCommanderRuntimeChecks,
-  runCommanderStructureChecks,
-  runStartupExitClassificationChecks,
-  runStartupReadinessGateChecks,
-  runTemplateRunLimitGovernanceChecks,
-} from "./inspection-check-groups.js";
+  checkRequiredChildIdsPresent,
+  checkForbiddenChildIdsAbsent,
+  checkForbiddenFieldsAbsentFromSchema,
+  checkProductionFileCount,
+  checkIndexExportsFactory,
+  checkAbilityGroupImports,
+  checkNoDeletedSharedViewTypesImport,
+  checkEnvelopeDefinesTransportPort,
+} from "./run-inspector.js";
 
-const { ROOT } = commanderConsoleInspectionConstants;
-
-const createRequiredPhase = (findings: Finding[]): InspectorPhase =>
-  createPhase(
-    "commander-required-shape",
-    findings.length === 0 ? "PASS" : "CODE VIOLATION",
-    findings.length === 0,
-    findings.length === 0
-      ? "Required Commander production shape passed: package, child modules, strict gates, proof, and harness all exist."
-      : "Required Commander production shape is incomplete or structurally invalid.",
-  );
-
-const createForbiddenPhase = (input: {
-  exportStarPresent: boolean;
-  registryThrows: boolean;
-  readGatePassthrough: boolean;
-  childExecutorReceiptCount: number;
-}): InspectorPhase => {
-  const forbiddenPassed = !input.exportStarPresent
-    && !input.registryThrows
-    && !input.readGatePassthrough
-    && input.childExecutorReceiptCount >= 3;
-
-  return createPhase(
-    "commander-forbidden-shape",
-    forbiddenPassed ? "PASS" : "CODE VIOLATION",
-    forbiddenPassed,
-    forbiddenPassed ? "Forbidden residue checks passed." : "Forbidden residue still exists inside Commander surfaces.",
-  );
-};
-
-const createBoundaryPhase = (boundaryViolation: boolean): InspectorPhase =>
-  createPhase(
-    "commander-boundary-attack",
-    boundaryViolation ? "CODE VIOLATION" : "PASS",
-    !boundaryViolation,
-    boundaryViolation
-      ? "Boundary attack checks failed: direct imports or bypass paths still exist."
-      : "Boundary checks passed: shell stays render-only and startup stays bootstrap-only.",
-  );
-
-const createAntiEscapePhase = (antiEscapeViolation: boolean): InspectorPhase =>
-  createPhase(
-    "commander-anti-escape",
-    antiEscapeViolation ? "CODE VIOLATION" : "PASS",
-    !antiEscapeViolation,
-    antiEscapeViolation ? "Anti-escape violations were detected inside Commander sources." : "Anti-escape checks passed.",
-  );
-
-const createStartupGatePhase = (startupGateViolation: boolean): InspectorPhase =>
-  createPhase(
-    "commander-startup-readiness-gate",
-    startupGateViolation ? "CODE VIOLATION" : "PASS",
-    !startupGateViolation,
-    startupGateViolation
-      ? "Startup local-AI readiness gate drifted: update/preflight, fail-closed ordering, or bootstrap boundaries are no longer enforced."
-      : "Startup local-AI readiness gate remains enforced through the Commander owner inspector.",
-  );
-
-const createStartupExitPhase = (startupExitViolation: boolean): InspectorPhase =>
-  createPhase(
-    "commander-startup-exit-classification",
-    startupExitViolation ? "CODE VIOLATION" : "PASS",
-    !startupExitViolation,
-    startupExitViolation
-      ? "Startup exit classification drifted and can still mislabel controlled shutdown as failure."
-      : "Startup exit classification remains governed and rejects controlled-shutdown regressions.",
-  );
-
-function createCommanderPhases(input: {
-  findings: Finding[];
-  exportStarPresent: boolean;
-  registryThrows: boolean;
-  readGatePassthrough: boolean;
-  childExecutorReceiptCount: number;
-  boundaryViolation: boolean;
-  antiEscapeViolation: boolean;
-  startupGateViolation: boolean;
-  startupExitViolation: boolean;
-  appRunLimitSettingsPhase: InspectorPhase;
-}): InspectorPhase[] {
-  return [
-    createRequiredPhase(input.findings),
-    createForbiddenPhase(input),
-    createBoundaryPhase(input.boundaryViolation),
-    createAntiEscapePhase(input.antiEscapeViolation),
-    input.appRunLimitSettingsPhase,
-    createStartupGatePhase(input.startupGateViolation),
-    createStartupExitPhase(input.startupExitViolation),
-  ];
-}
-
-const runCommanderExtraChecks = async () => {
-  const project = createAuditProject();
-  const structure = await runCommanderStructureChecks(project);
-  const childFindings = runCommanderChildChecks(project);
-  const runtime = runCommanderRuntimeChecks(project);
-  const appRunLimitSettings = runAppRunLimitSettingsGovernanceChecks(project);
-  const templateRunLimits = runTemplateRunLimitGovernanceChecks(project);
-  const boundary = await runCommanderBoundaryChecks(project);
-  const [startupGateFindings, startupExitChecks] = await Promise.all([
-    runStartupReadinessGateChecks(),
-    runStartupExitClassificationChecks(),
-  ]);
-  const findings: Finding[] = [
-    ...structure.findings,
-    ...childFindings,
-    ...runtime.findings,
-    ...appRunLimitSettings.findings,
-    ...templateRunLimits.findings,
-    ...boundary.findings,
-    ...startupGateFindings,
-    ...startupExitChecks.findings,
-  ];
-
-  return {
-    findings,
-    phases: createCommanderPhases({
-      findings,
-      exportStarPresent: structure.exportStarPresent,
-      registryThrows: structure.registryThrows,
-      readGatePassthrough: runtime.readGatePassthrough,
-      childExecutorReceiptCount: runtime.childExecutorReceiptCount,
-      boundaryViolation: boundary.boundaryViolation,
-      antiEscapeViolation: boundary.antiEscapeViolation,
-      appRunLimitSettingsPhase: appRunLimitSettings.phase,
-      startupGateViolation: startupGateFindings.length > 0,
-      startupExitViolation: startupExitChecks.findings.length > 0,
-    }),
-  };
-};
-
+/**
+ * Commander Console Capability Inspector
+ *
+ * Answers 8 governance questions:
+ *   1. Are all 7 required child IDs present in children.ts?
+ *   2. Are all forbidden child IDs absent from the production root?
+ *   3. Are forbidden fields absent from schema.ts?
+ *   4. Does the production root have at most 18 files?
+ *   5. Does index.ts export createCommanderConsoleAbilityGroup?
+ *   6. Does ability-group.ts import from registry.js and not from read-models?
+ *   7. Are there no imports from deleted shared/commander-view-types?
+ *   8. Does envelope.ts define CommandTransportPort with sendHumanCommandEnvelope?
+ *
+ * Governance:
+ *   - Commander is the human cockpit, not the system engine.
+ *   - 7 atomic children only.
+ *   - No read-model imports in ability-group.ts.
+ *   - No forbidden fields (candidateId, mapId, disposition, etc.).
+ */
 export const commanderConsoleCapabilityInspector = createPendingDomainInspector({
-  inspector: "GrassEye Commander Console Capability Owner Inspector",
+  inspector: "GrassEye Commander Console Capability Inspector",
   inspectorId: "commander-console-capability-owner",
   capabilityDomain: "commander-console-capability",
   inspectorEntry: "scripts/audit/domains/commander-console-capability/inspector.ts",
-  ownedPaths: [ROOT],
-  pendingSummary: "commander-console-capability requires hard production enforcement for execute-only routing, child privacy, and strict gates",
-  implementedSummary: "commander-console-capability is enforced as the execute-only human command and command-facing read-console owner",
-  extraChecks: runCommanderExtraChecks,
+  ownedPaths: [COMMANDER_CONSOLE_PRODUCTION_ROOT],
+  pendingSummary: "commander-console-capability law exists; atomic rebuild of 7-child cockpit pending",
+  implementedSummary:
+    "commander-console-capability is the human cockpit with exactly 7 atomic children; no read-model universe; no forbidden fields",
+  extraChecks: async () => {
+    const [
+      requiredChildren,
+      forbiddenChildren,
+      forbiddenFields,
+      fileCount,
+      indexExports,
+      abilityGroupImports,
+      noDeletedViewTypes,
+      envelopePort,
+    ] = await Promise.all([
+      checkRequiredChildIdsPresent(),
+      checkForbiddenChildIdsAbsent(),
+      checkForbiddenFieldsAbsentFromSchema(),
+      checkProductionFileCount(),
+      checkIndexExportsFactory(),
+      checkAbilityGroupImports(),
+      checkNoDeletedSharedViewTypesImport(),
+      checkEnvelopeDefinesTransportPort(),
+    ]);
+
+    return {
+      findings: [
+        ...requiredChildren.findings,
+        ...forbiddenChildren.findings,
+        ...forbiddenFields.findings,
+        ...fileCount.findings,
+        ...indexExports.findings,
+        ...abilityGroupImports.findings,
+        ...noDeletedViewTypes.findings,
+        ...envelopePort.findings,
+      ],
+      phases: [
+        requiredChildren.phase,
+        forbiddenChildren.phase,
+        forbiddenFields.phase,
+        fileCount.phase,
+        indexExports.phase,
+        abilityGroupImports.phase,
+        noDeletedViewTypes.phase,
+        envelopePort.phase,
+      ],
+    };
+  },
 });

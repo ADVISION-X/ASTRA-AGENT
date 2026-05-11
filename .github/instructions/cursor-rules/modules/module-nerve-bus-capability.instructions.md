@@ -98,6 +98,71 @@ Forbidden:
 - retired package field or retired package version field in transfer proof.
 - retired deterministic flow planning or retired branch-token field as transport truth.
 
+## Law GRASSEYE-NERVE-BUS-CAPABILITY-003-V1
+
+status: active
+tier: P0
+capabilityDomain: nerve-bus-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: Nerve Bus active child surface must be generic envelope transport, not directional channel taxonomy.
+
+### 主题
+
+禁止方向 Channel 子能力
+
+### 法条
+
+Nerve Bus must not create source-to-target directional child capabilities.
+
+Forbidden child capability IDs:
+- orchestration-to-ai
+- ai-to-orchestration
+- commander-to-orchestration
+- orchestration-to-commander
+- orchestration-to-ability
+- ability-to-orchestration
+
+Allowed child capability IDs (current phase):
+- dispatch-governed-envelope
+- return-governed-result
+- or a single merged: transport-governed-envelope
+
+Reason: direction belongs to envelope fields (requestedBy / targetAbilityGroupId / targetChildCapabilityId), not to child capability taxonomy.
+
+## Law GRASSEYE-NERVE-BUS-CAPABILITY-004-V1
+
+status: active
+tier: P0
+capabilityDomain: nerve-bus-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: Queue, sequence, retry, and fallback infrastructure are not active Nerve Bus truth in the current simple-machine phase.
+
+### 主题
+
+禁止 Queue/Sequence/Retry/Fallback 系统
+
+### 法条
+
+A simple synchronous transport path is the only authorized Nerve Bus transport in the current phase.
+
+Forbidden active infrastructure:
+- queue store or queue port
+- sequence store or sequence port
+- retry policy or retry loop
+- fallback path or fallback handler
+- transport dispatch log system
+- return boundary policy system
+- event stream or transport history database
+
+Any future queue or sequence system requires a separate law and blueprint before activation.
+
 ## Final Readiness Gate
 
-The Nerve Bus law is ready only when active envelopes and proofs use mission/run/round/step/prompt truth without retired map fields.
+The Nerve Bus law is ready only when:
+1. Active envelopes and proofs use mission/run/round/step/prompt truth without retired map fields.
+2. Active child surface contains only generic transport children, not directional channel taxonomy.
+3. No queue, sequence, retry, or fallback infrastructure is active.

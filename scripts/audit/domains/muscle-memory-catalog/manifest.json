@@ -1,0 +1,17 @@
+{
+  "inspectorId": "muscle-memory-catalog-owner",
+  "capabilityDomain": "muscle-memory-catalog",
+  "owner": true,
+  "entry": "scripts/audit/domains/muscle-memory-catalog/run-inspector.ts",
+  "engine": "hybrid",
+  "supportsEvidenceModes": [
+    "law+blueprint+real-code-inspection"
+  ],
+  "allowedLawIds": [],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md"
+  ],
+  "readsBlueprintFiles": [
+    "docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md"
+  ]
+}

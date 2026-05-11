@@ -9,7 +9,7 @@ import { renderRightInspector } from "./layout/RightInspector.js";
 import { commanderConsoleStyles } from "./styles/commander-console-styles.js";
 import type { AppRunLimitSettings } from "../local-runtime/app-run-limit-settings-types.js";
 import type { CommanderConsoleViewModel } from "./types.js";
-import type { CommanderMissionDashboardView } from "../../capabilities/commander-console/shared/commander-view-types.js";
+import type { CommanderMissionDashboardView } from "./commander-console-dashboard.types.js";
 
 type CommanderMacShellInput = {
   dashboard: CommanderMissionDashboardView;

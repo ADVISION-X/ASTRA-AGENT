@@ -63,23 +63,17 @@ enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 ```
 
-Required package:
+Required implementation:
 
 ```txt
-src/capabilities/orchestration/
-├── ability-group.ts
-├── contract.ts
-├── schema.ts
-├── registry.ts
-├── index.ts
-├── internal.ts
-├── ports/
-├── shared/
-├── runtime/
-└── children/
+Orchestration must remain a small mission-flow dispatcher.
+It must contain schema, contract, registry, ability-group, minimal runtime helpers, and small child command handlers.
+It must NOT require ports/shared/runtime/children directory universe when a smaller structure is enough.
+Target file count: <= 25 files. Exceeding 30 files is FAIL.
+Recommended: <= 20 files.
 ```
 
-Required children:
+Required active children (exactly 7):
 
 ```txt
 start-mission
@@ -87,9 +81,20 @@ pause-mission
 resume-mission
 stop-mission
 emergency-stop
-dispatch-governed-action
-evaluate-round-transition (transitional internal name only; it must remain a declared round-output evaluation helper, not a second semantic court)
+dispatch-registered-ability-sequence
 finalize-mission
+```
+
+Forbidden children:
+
+```txt
+execute-runtime-step
+evaluate-step-transition
+execute-map-step
+resolve-runtime-plan
+validate-runtime-plan
+request-human-review
+post-action-verification
 ```
 
 Child-capability classification:
@@ -98,29 +103,27 @@ Child-capability classification:
 Mission control commands (Orchestration/Commander control boundary):
   start-mission, pause-mission, resume-mission, stop-mission, emergency-stop, finalize-mission
   - These are control-flow commands, not business-semantic packages.
-  - Control commands must remain narrow boundary handlers, never workflow packages.
-  - Control command existence does not prove that business-semantic packages are valid atomic child capabilities.
 
-Governed action dispatch:
-  dispatch-governed-action
-  - Executes an atomic child capability declared by a core ability-group owner.
-  - Must resolve only registry-backed atomic capability references.
-  - Must not own capability execution; it delegates to the owning ability group.
+Governed ability sequence dispatch:
+  dispatch-registered-ability-sequence
+  - Validates AI output against MuscleMemoryCatalog.
+  - Injects system refs.
+  - Calls Geometry Guard for grid-based targets.
+  - Delegates execution to owning ability-group public contract.
+  - Records result via Forensics.
 
-Mission-control command != atomic execution child capability.
-Mission-control command != business-flow child.
-Mission-control command != semantic shortcut.
-Control commands are a control boundary, not a business-flow action package.
+Internal functions only (NOT child capabilities):
+  run-round, evaluate-decision, inject-refs, loop-guard
 ```
 
 Required enforcement:
 
 ```txt
 scripts/audit/domains/orchestration-capability/
-├── manifest.json
+├── config.ts
 ├── inspector.ts
-├── run-inspector.ts
-└── owner-inspection-harness.ts
+└── run-inspector.ts
+(max 3 files; exceeding 5 files is FAIL)
 ```
 
 Forbidden:
@@ -162,9 +165,7 @@ Required:
   - mission command consumption
   - mission state
   - round state
-  - currentStepId
-  - previousStepId
-  - branchTaken
+  - roundIndex
   - loop guard state
   - review-required stop semantics
   - mission finalization

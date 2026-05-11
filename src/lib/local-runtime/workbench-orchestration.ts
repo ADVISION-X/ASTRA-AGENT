@@ -5,5 +5,5 @@ import type { WorkbenchRuntime } from "./workbench-contract.js";
 export const createWorkbenchOrchestration = (runtime: WorkbenchRuntime) =>
   createOrchestrationAbilityGroup({
     nerveBus: runtime.nerveBusAbilityGroup,
-    forensics: runtime.forensicsPersistenceAbilityGroup as ForensicsPersistenceAbilityGroup,
+    forensics: runtime.forensicsPersistenceAbilityGroup,
   });

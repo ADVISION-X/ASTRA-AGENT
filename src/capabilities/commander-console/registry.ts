@@ -1,62 +1,41 @@
-import { COMMANDER_COMMAND_CHILDREN } from "./children/command-children.js";
-import { COMMANDER_READ_CHILDREN } from "./children/read-children.js";
-import type { CommanderConsoleChildAbilityId, CommanderDispatchChildId } from "./contract.js";
-import { CommanderConsoleChildAbilityIdSchema } from "./schema.js";
-import type { CommanderConsoleChildDefinition } from "./runtime/commander-console-executor.js";
+/**
+ * Commander Console Registry
+ *
+ * Maps childCapabilityId → execute function.
+ * Exactly 7 children. No legacy read-model children.
+ */
 
-export type CommanderConsoleChildRegistryEntry<TInput, TOutput> = {
-  childCapabilityId: CommanderConsoleChildAbilityId;
-  childKind: "command" | "read";
-  inputSchema: CommanderConsoleChildDefinition<TInput, TOutput>["inputSchema"];
-  outputSchema: CommanderConsoleChildDefinition<TInput, TOutput>["outputSchema"];
-  implementation: CommanderConsoleChildDefinition<TInput, TOutput>;
-  allowedCaller: "commander-console";
-  boundaryDecision: "command-transport-only" | "read-port-only";
-  ownedCommandType: CommanderConsoleChildDefinition<TInput, TOutput>["ownedCommandType"];
-  readModelSource: CommanderConsoleChildDefinition<TInput, TOutput>["readModelSource"];
-  requiresOperatorRef: true;
-  hardStopPriority: CommanderConsoleChildDefinition<TInput, TOutput>["hardStopPriority"];
-  maxDurationMs: number;
-  idempotencyPolicy: CommanderConsoleChildDefinition<TInput, TOutput>["idempotencyPolicy"];
-  boundaryPolicy: CommanderConsoleChildDefinition<TInput, TOutput>["boundaryPolicy"];
-  evidencePolicy: CommanderConsoleChildDefinition<TInput, TOutput>["evidencePolicy"];
-  proofPolicy: CommanderConsoleChildDefinition<TInput, TOutput>["proofPolicy"];
-};
+import type { CommanderChildContext } from "./children.js";
+import {
+  executeIssueHumanCommand,
+  executePauseMission,
+  executeResumeMission,
+  executeStopMission,
+  executeEmergencyStop,
+  executeMarkReviewRequired,
+  executeShowMissionStatus,
+} from "./children.js";
+import type { CommanderChildCapabilityId, CommanderConsoleResult } from "./schema.js";
+import { COMMANDER_CHILD_CAPABILITY_IDS } from "./schema.js";
 
-const COMMANDER_CONSOLE_CHILD_REGISTRY = [
-  ...COMMANDER_READ_CHILDREN,
-  ...COMMANDER_COMMAND_CHILDREN,
-].map((implementation) => ({
-  childCapabilityId: implementation.childCapabilityId,
-  childKind: implementation.childKind,
-  inputSchema: implementation.inputSchema,
-  outputSchema: implementation.outputSchema,
-  implementation,
-  allowedCaller: implementation.allowedCaller,
-  boundaryDecision: implementation.boundaryDecision,
-  ownedCommandType: implementation.ownedCommandType,
-  readModelSource: implementation.readModelSource,
-  requiresOperatorRef: implementation.requiresOperatorRef,
-  hardStopPriority: implementation.hardStopPriority,
-  maxDurationMs: implementation.maxDurationMs,
-  idempotencyPolicy: implementation.idempotencyPolicy,
-  boundaryPolicy: implementation.boundaryPolicy,
-  evidencePolicy: implementation.evidencePolicy,
-  proofPolicy: implementation.proofPolicy,
-}));
+type ChildExecuteFn = (
+  rawInput: Record<string, unknown>,
+  operatorRef: string,
+  context: CommanderChildContext,
+) => Promise<CommanderConsoleResult>;
 
-const COMMANDER_CONSOLE_CHILD_MAP = new Map(
-  COMMANDER_CONSOLE_CHILD_REGISTRY.map((entry) => [
-    entry.childCapabilityId,
-    entry.implementation as CommanderConsoleChildDefinition<unknown, unknown>,
-  ]),
-);
+type CommanderRegistry = Map<CommanderChildCapabilityId, ChildExecuteFn>;
 
-export function listCommanderConsoleChildMetadata() {
-  return [...COMMANDER_CONSOLE_CHILD_REGISTRY];
-}
+export const createCommanderRegistry = (): CommanderRegistry =>
+  new Map<CommanderChildCapabilityId, ChildExecuteFn>([
+    ["issue-human-command", executeIssueHumanCommand],
+    ["pause-mission", executePauseMission],
+    ["resume-mission", executeResumeMission],
+    ["stop-mission", executeStopMission],
+    ["emergency-stop", executeEmergencyStop],
+    ["mark-review-required", executeMarkReviewRequired],
+    ["show-mission-status", executeShowMissionStatus],
+  ]);
 
-export function getCommanderConsoleChild(childCapabilityId: CommanderDispatchChildId) {
-  const parsed = CommanderConsoleChildAbilityIdSchema.safeParse(childCapabilityId);
-  return parsed.success ? COMMANDER_CONSOLE_CHILD_MAP.get(parsed.data) ?? null : null;
-}
+export const listCommanderChildren = (): readonly CommanderChildCapabilityId[] =>
+  COMMANDER_CHILD_CAPABILITY_IDS;

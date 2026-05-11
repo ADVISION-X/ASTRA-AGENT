@@ -18,7 +18,7 @@ GrassEye 是本地优先工作台，不是公开 SaaS，也不是浏览器插件
 - Operator UI：控制、复核、状态呈现
 - Commander Console：人工命令入口与控制台真相
 - local-app-shell：Commander Console 的本地承载壳层
-- Orchestration：mission 与地图调度
+- Orchestration：mission 与原子能力序列调度
 - Browser session / browser primitives：本地真实浏览器基础设施
 - AI Ability Group：本地 AI 执行与结构化输出
 - Forensics Persistence：公共写账
@@ -27,6 +27,11 @@ GrassEye 是本地优先工作台，不是公开 SaaS，也不是浏览器插件
 
 - open-local-workbench 是 Open Ability Group 的子能力
 - 本地壳只能调用它，不能把它改造成第二调度链
+
+## Local Runtime 边界
+
+`src/lib/local-runtime` is only a local dependency assembly and thin workbench facade.
+It must not host mission runtime, AI routing, Forensics finalization, Commander read-model universe, map-chain support, page-state/visual-target/PAV support systems, or Nerve Bus special routes.
 
 ## 禁止边界
 

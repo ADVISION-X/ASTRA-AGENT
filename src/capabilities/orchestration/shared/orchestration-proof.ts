@@ -1,1 +1,0 @@
-export type { RuntimeProof } from "../contract.js";

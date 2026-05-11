@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T04:33:15.176Z",
+  "generatedAt": "2026-05-11T05:39:11.227Z",
   "owners": [
     {
       "inspectorId": "ai-capability-owner",
@@ -12,38 +12,25 @@
         "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
-        "GRASSEYE-AI-CAPABILITY-001-V1",
-        "GRASSEYE-AI-CAPABILITY-002-V1",
-        "GRASSEYE-AI-NO-MEMORY-V1",
-        "GRASSEYE-AI-CAPABILITY-003-V1",
-        "GRASSEYE-AI-CAPABILITY-004-V1",
-        "GRASSEYE-AI-CAPABILITY-005-V1",
-        "GRASSEYE-AI-CAPABILITY-005B-V2",
-        "GRASSEYE-AI-CAPABILITY-006-V1",
-        "GRASSEYE-AI-CAPABILITY-007-V1",
-        "GRASSEYE-AI-CAPABILITY-008-V1",
-        "GRASSEYE-AI-CAPABILITY-009-V1",
-        "GRASSEYE-AI-CAPABILITY-010-V1",
-        "GRASSEYE-AI-CAPABILITY-011-V1",
-        "GRASSEYE-AI-CAPABILITY-012-V1",
-        "GRASSEYE-AI-CAPABILITY-013-V1",
-        "GRASSEYE-AI-CAPABILITY-014-V1",
-        "GRASSEYE-AI-CAPABILITY-015-V1",
-        "GRASSEYE-LOCAL-AI-RUNTIME-006-V1"
+        "GRASSEYE-AI-CAPABILITY-001-V2",
+        "GRASSEYE-AI-CAPABILITY-002-V2",
+        "GRASSEYE-AI-CAPABILITY-003-V2",
+        "GRASSEYE-AI-CAPABILITY-004-V2",
+        "GRASSEYE-AI-CAPABILITY-005-V2",
+        "GRASSEYE-AI-CAPABILITY-006-V2",
+        "GRASSEYE-LOCAL-AI-RUNTIME-001-V2",
+        "GRASSEYE-LOCAL-AI-RUNTIME-002-V2",
+        "GRASSEYE-LOCAL-AI-RUNTIME-003-V2",
+        "GRASSEYE-LOCAL-AI-RUNTIME-006-V2"
       ],
       "readsLawFiles": [
         ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md",
-        ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md"
+        ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md"
       ],
       "readsBlueprintFiles": [
         "docs/法案辅助文件/GrassEye AI 大脑能力组施工图.md",
-        "docs/法案辅助文件/GrassEye Visual Mission Prompt Contract 施工图.md",
         "docs/法案辅助文件/GrassEye 本地AI分工与提示词施工图.md",
-        "docs/法案辅助文件/GrassEye 本地模型选型施工图.md",
-        "docs/法案辅助文件/GrassEye 多帧视频取证施工图.md"
+        "docs/法案辅助文件/GrassEye 本地模型选型施工图.md"
       ]
     },
     {
@@ -294,6 +281,24 @@
         "docs/法案辅助文件/GrassEye Geometry Guard 几何安全守卫能力组施工图.md",
         "docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图.md",
         "docs/法案辅助文件/GrassEye 结构化日志与运行证明施工图.md"
+      ]
+    },
+    {
+      "inspectorId": "muscle-memory-catalog-owner",
+      "capabilityDomain": "muscle-memory-catalog",
+      "ownerKind": "standalone-audit",
+      "manifestPath": "scripts/audit/domains/muscle-memory-catalog/manifest.json",
+      "entry": "scripts/audit/domains/muscle-memory-catalog/run-inspector.ts",
+      "engine": "hybrid",
+      "supportsEvidenceModes": [
+        "law+blueprint+real-code-inspection"
+      ],
+      "lawIds": [],
+      "readsLawFiles": [
+        ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md"
+      ],
+      "readsBlueprintFiles": [
+        "docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md"
       ]
     },
     {

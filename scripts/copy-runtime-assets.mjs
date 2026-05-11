@@ -5,10 +5,6 @@ const repoRoot = process.cwd();
 
 const runtimeAssetDirs = [
   [
-    "src/capabilities/ai/prompt-contracts/builtins",
-    "dist/src/capabilities/ai/prompt-contracts/builtins",
-  ],
-  [
     "src/map-plugins/builtins",
     "dist/src/map-plugins/builtins",
   ],

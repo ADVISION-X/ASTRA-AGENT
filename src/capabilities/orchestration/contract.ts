@@ -1,120 +1,33 @@
 import type { z } from "zod";
-
-import {
-  EmergencyStopChildInputSchema,
-  EmergencyStopChildOutputSchema,
-  EvaluateStepTransitionChildInputSchema,
-  EvaluateStepTransitionChildOutputSchema,
-  ExecuteRuntimeStepChildInputSchema,
-  ExecuteRuntimeStepChildOutputSchema,
-  FinalizeMissionChildInputSchema,
-  FinalizeMissionChildOutputSchema,
-  MissionCommandSchema,
-  MissionControlCommandSchema,
-  MissionExecutionResultSchema,
+import type {
   MissionStateSchema,
-  MissionStepResultSchema,
-  OrchestrationSequencePolicySchema,
+  MissionCommandSchema,
+  OrchestrationChildCapabilityIdSchema,
   OrchestrationExecuteInputSchema,
   OrchestrationExecuteResultSchema,
-  ORCHESTRATION_ABILITY_GROUP_ID,
-  OrchestrationChildCapabilityIdSchema,
   OrchestrationRequestedPlatformIdSchema,
-  PauseMissionChildInputSchema,
-  PauseMissionChildOutputSchema,
-  PayloadRefBundleSchema,
-  ResumeMissionChildInputSchema,
-  ResumeMissionChildOutputSchema,
-  RuntimePlanIdSchema,
-  RuntimePlanSchema,
-  RuntimeProofSchema,
-  StartMissionChildInputSchema,
-  StartMissionChildOutputSchema,
-  StopMissionChildInputSchema,
-  StopMissionChildOutputSchema,
+  DispatchRegisteredAbilitySequenceInputSchema,
 } from "./schema.js";
 
-export { ORCHESTRATION_ABILITY_GROUP_ID };
+export { ORCHESTRATION_ABILITY_GROUP_ID } from "./schema.js";
 
-type OrchestrationAbilityGroupId = typeof ORCHESTRATION_ABILITY_GROUP_ID;
-type RequestedPlatformId = z.output<typeof OrchestrationRequestedPlatformIdSchema>;
-type OrchestrationChildCapabilityId = z.output<typeof OrchestrationChildCapabilityIdSchema>;
-type RuntimePlanId = z.output<typeof RuntimePlanIdSchema>;
-type PayloadRefBundle = z.output<typeof PayloadRefBundleSchema>;
-type OrchestrationSequencePolicy = z.output<typeof OrchestrationSequencePolicySchema>;
-type MissionCommand = z.output<typeof MissionCommandSchema>;
-type MissionControlCommand = z.output<typeof MissionControlCommandSchema>;
-type MissionState = z.output<typeof MissionStateSchema>;
-type MissionControlState = MissionState;
-type MissionExecutionResult = z.output<typeof MissionExecutionResultSchema>;
-type MissionStepResult = z.output<typeof MissionStepResultSchema>;
-type OrchestrationExecuteInput = z.output<typeof OrchestrationExecuteInputSchema>;
-type OrchestrationExecuteResult = z.output<typeof OrchestrationExecuteResultSchema>;
-type RuntimeProof = z.output<typeof RuntimeProofSchema>;
-type RuntimePlan = z.output<typeof RuntimePlanSchema>;
+export type MissionState = z.infer<typeof MissionStateSchema>;
+export type MissionControlState = MissionState;
+export type MissionCommand = z.infer<typeof MissionCommandSchema>;
+export type OrchestrationChildCapabilityId = z.infer<typeof OrchestrationChildCapabilityIdSchema>;
+export type RequestedPlatformId = z.infer<typeof OrchestrationRequestedPlatformIdSchema>;
+export type OrchestrationExecuteInput = z.infer<typeof OrchestrationExecuteInputSchema>;
+export type OrchestrationExecuteResult = z.infer<typeof OrchestrationExecuteResultSchema>;
+export type DispatchRegisteredAbilitySequenceInput = z.infer<typeof DispatchRegisteredAbilitySequenceInputSchema>;
 
-type StartMissionChildInput = z.output<typeof StartMissionChildInputSchema>;
-type PauseMissionChildInput = z.output<typeof PauseMissionChildInputSchema>;
-type ResumeMissionChildInput = z.output<typeof ResumeMissionChildInputSchema>;
-type StopMissionChildInput = z.output<typeof StopMissionChildInputSchema>;
-type EmergencyStopChildInput = z.output<typeof EmergencyStopChildInputSchema>;
-type ExecuteRuntimeStepChildInput = z.output<typeof ExecuteRuntimeStepChildInputSchema>;
-type EvaluateStepTransitionChildInput = z.output<typeof EvaluateStepTransitionChildInputSchema>;
-type FinalizeMissionChildInput = z.output<typeof FinalizeMissionChildInputSchema>;
-
-type StartMissionChildOutput = z.output<typeof StartMissionChildOutputSchema>;
-type PauseMissionChildOutput = z.output<typeof PauseMissionChildOutputSchema>;
-type ResumeMissionChildOutput = z.output<typeof ResumeMissionChildOutputSchema>;
-type StopMissionChildOutput = z.output<typeof StopMissionChildOutputSchema>;
-type EmergencyStopChildOutput = z.output<typeof EmergencyStopChildOutputSchema>;
-type ExecuteRuntimeStepChildOutput = z.output<typeof ExecuteRuntimeStepChildOutputSchema>;
-type EvaluateStepTransitionChildOutput = z.output<typeof EvaluateStepTransitionChildOutputSchema>;
-type FinalizeMissionChildOutput = z.output<typeof FinalizeMissionChildOutputSchema>;
-
-interface OrchestrationAbilityGroup {
+export interface OrchestrationAbilityGroup {
   listChildCapabilityIds(): OrchestrationChildCapabilityId[];
   execute(input: OrchestrationExecuteInput): Promise<OrchestrationExecuteResult>;
+  executeMission(command: MissionCommand): Promise<MissionControlState>;
   startMission(command: MissionCommand): Promise<MissionControlState>;
   pauseMission(missionId: string): Promise<MissionControlState>;
   resumeMission(missionId: string): Promise<MissionControlState>;
-  stopMission(input: { missionId: string; reason?: string }): Promise<MissionControlState>;
-  emergencyStop(input: { missionId: string; reason?: string }): Promise<MissionControlState>;
+  stopMission(input: { missionId: string; reason?: string | null }): Promise<MissionControlState>;
+  emergencyStop(input: { missionId: string; reason?: string | null }): Promise<MissionControlState>;
   getMissionState(missionId?: string | null): Promise<MissionControlState>;
-  executeMission(command: MissionCommand): Promise<OrchestrationExecuteResult>;
 }
-
-export type {
-  EmergencyStopChildInput,
-  EmergencyStopChildOutput,
-  EvaluateStepTransitionChildInput,
-  EvaluateStepTransitionChildOutput,
-  ExecuteRuntimeStepChildInput,
-  ExecuteRuntimeStepChildOutput,
-  FinalizeMissionChildInput,
-  FinalizeMissionChildOutput,
-  MissionCommand,
-  MissionControlCommand,
-  MissionControlState,
-  MissionExecutionResult,
-  MissionState,
-  MissionStepResult,
-  OrchestrationSequencePolicy,
-  OrchestrationExecuteInput,
-  OrchestrationExecuteResult,
-  OrchestrationAbilityGroup,
-  OrchestrationAbilityGroupId,
-  OrchestrationChildCapabilityId,
-  PauseMissionChildInput,
-  PauseMissionChildOutput,
-  PayloadRefBundle,
-  RequestedPlatformId,
-  ResumeMissionChildInput,
-  ResumeMissionChildOutput,
-  RuntimePlan,
-  RuntimePlanId,
-  RuntimeProof,
-  StartMissionChildInput,
-  StartMissionChildOutput,
-  StopMissionChildInput,
-  StopMissionChildOutput,
-};

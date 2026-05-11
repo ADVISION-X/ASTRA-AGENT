@@ -132,3 +132,17 @@ FORBIDDEN:
 - Local App Shell owning startup command truth or canonical startup process supervision.
 - startup owning mission decisions, AI reasoning, or persistence truth.
 - startup or shell code directly issuing governed start, pause, stop, reset-store, or review commands outside Commander Console public methods.
+
+## src/lib/local-runtime assembly boundary
+
+src/lib/local-runtime must remain a small local assembly/facade layer and must not exceed the responsibilities of wiring public capability contracts into the local workbench.
+
+FORBIDDEN in src/lib/local-runtime:
+- mission flow or round loop logic
+- AI prompt construction or AI judgment
+- Nerve Bus AI special routes
+- Forensics finalization or evidence packet building
+- Commander read-model universe
+- map-chain, binding, or RuntimePlan support
+- page-state, visual-target, or PAV support systems
+- candidate approval, review continuation, or audit dashboard logic

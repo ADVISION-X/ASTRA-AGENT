@@ -2,8 +2,8 @@ import {
   getPromptContractCatalogIntegrity,
   listPromptContractCatalogEntries,
   PROMPT_CONTRACT_CATALOG_VERSION,
-} from "../../../src/capabilities/ai/prompt-contracts/registry.js";
-import { loadMuscleMemoryCatalog } from "../../../src/muscle-memory/catalog/muscle-memory-catalog.js";
+} from "../../../src/capabilities/ai/index.js";
+import { loadMuscleMemoryCatalog } from "../../../src/muscle-memory/catalog.js";
 import { listPlatformProfiles } from "../../../src/platforms/index.js";
 
 type ReadinessResult = {

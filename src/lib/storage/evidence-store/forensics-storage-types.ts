@@ -1,44 +1,4 @@
-import {
-  ForensicsAiResultRecordPayloadSchema as ExternalForensicsAiResultRecordPayloadSchema,
-  ForensicsArtifactRefSchema as ExternalForensicsArtifactRefSchema,
-  ForensicsBrowseLedgerPayloadSchema as ExternalForensicsBrowseLedgerPayloadSchema,
-  ForensicsEvidencePacketPayloadSchema as ExternalForensicsEvidencePacketPayloadSchema,
-  ForensicsEvidenceRecordPayloadSchema as ExternalForensicsEvidenceRecordPayloadSchema,
-  ForensicsFailedRecordPayloadSchema as ExternalForensicsFailedRecordPayloadSchema,
-  ForensicsProductLeadRecordPayloadSchema as ExternalForensicsProductLeadRecordPayloadSchema,
-  ForensicsRuntimeSnapshotPayloadSchema as ExternalForensicsRuntimeSnapshotPayloadSchema,
-  ForensicsStructuredActionLogPayloadSchema as ExternalForensicsStructuredActionLogPayloadSchema,
-  ForensicsStructuredRuntimeEventPayloadSchema as ExternalForensicsStructuredRuntimeEventPayloadSchema,
-  type ForensicsArtifactRef as ExternalForensicsArtifactRef,
-  type ForensicsRecordEnvelope as ExternalForensicsRecordEnvelope,
-  type ForensicsRecordQuery as ExternalForensicsRecordQuery,
-  type ForensicsRecordRef as ExternalForensicsRecordRef,
-  type StoredForensicsRecord as ExternalStoredForensicsRecord,
-} from "./forensics-storage-schema-types.js";
-import type {
-  ForensicsArtifactStoragePort as ExternalForensicsArtifactStoragePort,
-  ForensicsStoragePort as ExternalForensicsStoragePort,
-} from "./forensics-storage-port-types.js";
-
-const ForensicsAiResultRecordPayloadSchema = ExternalForensicsAiResultRecordPayloadSchema;
-const ForensicsArtifactRefSchema = ExternalForensicsArtifactRefSchema;
-const ForensicsBrowseLedgerPayloadSchema = ExternalForensicsBrowseLedgerPayloadSchema;
-const ForensicsEvidencePacketPayloadSchema = ExternalForensicsEvidencePacketPayloadSchema;
-const ForensicsEvidenceRecordPayloadSchema = ExternalForensicsEvidenceRecordPayloadSchema;
-const ForensicsFailedRecordPayloadSchema = ExternalForensicsFailedRecordPayloadSchema;
-const ForensicsProductLeadRecordPayloadSchema = ExternalForensicsProductLeadRecordPayloadSchema;
-const ForensicsRuntimeSnapshotPayloadSchema = ExternalForensicsRuntimeSnapshotPayloadSchema;
-const ForensicsStructuredActionLogPayloadSchema = ExternalForensicsStructuredActionLogPayloadSchema;
-const ForensicsStructuredRuntimeEventPayloadSchema = ExternalForensicsStructuredRuntimeEventPayloadSchema;
-
-type ForensicsArtifactRef = ExternalForensicsArtifactRef;
-type ForensicsArtifactStoragePort = ExternalForensicsArtifactStoragePort;
-type ForensicsRecordEnvelope = ExternalForensicsRecordEnvelope;
-type ForensicsRecordQuery = ExternalForensicsRecordQuery;
-type ForensicsRecordRef = ExternalForensicsRecordRef;
-type ForensicsStoragePort = ExternalForensicsStoragePort;
-type StoredForensicsRecord = ExternalStoredForensicsRecord;
-
+/** Barrel for storage-layer forensics types. All definitions are local to the storage layer. */
 export {
   ForensicsAiResultRecordPayloadSchema,
   ForensicsArtifactRefSchema,
@@ -50,14 +10,18 @@ export {
   ForensicsRuntimeSnapshotPayloadSchema,
   ForensicsStructuredActionLogPayloadSchema,
   ForensicsStructuredRuntimeEventPayloadSchema,
-};
+} from "./forensics-storage-schema-types.js";
 
 export type {
   ForensicsArtifactRef,
-  ForensicsArtifactStoragePort,
   ForensicsRecordEnvelope,
   ForensicsRecordQuery,
   ForensicsRecordRef,
-  ForensicsStoragePort,
   StoredForensicsRecord,
-};
+} from "./forensics-storage-schema-types.js";
+
+export type {
+  ForensicsArtifactStoragePort,
+  ForensicsStoragePort,
+  ForensicsWriteRecordInput,
+} from "./forensics-storage-port-types.js";

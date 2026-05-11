@@ -1,10 +1,27 @@
-import type { ForensicsArtifactStoragePort as ExternalForensicsArtifactStoragePort } from "../../../capabilities/forensics-persistence/ports/forensics-artifact-storage-port.js";
-import type { ForensicsStoragePort as ExternalForensicsStoragePort } from "../../../capabilities/forensics-persistence/ports/forensics-storage-port.js";
+/**
+ * Storage-layer port interfaces for legacy evidence-store record/artifact storage.
+ * Defined locally — does NOT import from the forensics-persistence capability.
+ */
+import type {
+  ForensicsArtifactRef,
+  ForensicsRecordEnvelope,
+  ForensicsRecordQuery,
+  ForensicsRecordRef,
+  StoredForensicsRecord,
+} from "./forensics-storage-schema-types.js";
 
-type ForensicsArtifactStoragePort = ExternalForensicsArtifactStoragePort;
-type ForensicsStoragePort = ExternalForensicsStoragePort;
-
-export type {
-  ForensicsArtifactStoragePort,
-  ForensicsStoragePort,
+export type ForensicsWriteRecordInput = {
+  envelope: ForensicsRecordEnvelope;
+  operation: "append-record" | "replace-record-by-round" | "replace-record-by-session";
 };
+
+export interface ForensicsStoragePort {
+  writeRecord(input: ForensicsWriteRecordInput): Promise<StoredForensicsRecord>;
+  updateRuntimeSnapshot(envelope: ForensicsRecordEnvelope): Promise<StoredForensicsRecord>;
+  readRecord(ref: ForensicsRecordRef): Promise<StoredForensicsRecord | null>;
+  listRecords(query: ForensicsRecordQuery): Promise<StoredForensicsRecord[]>;
+}
+
+export interface ForensicsArtifactStoragePort {
+  writeArtifactRef(input: ForensicsArtifactRef): Promise<ForensicsArtifactRef>;
+}

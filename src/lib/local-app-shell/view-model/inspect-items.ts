@@ -1,4 +1,4 @@
-import type { CommanderMissionDashboardView } from "../../../capabilities/commander-console/shared/commander-view-types.js";
+import type { CommanderMissionDashboardView } from "../commander-console-dashboard.types.js";
 import type { Locale } from "../../localization/dictionaries.js";
 
 import { localizeCommanderText } from "../locale.js";

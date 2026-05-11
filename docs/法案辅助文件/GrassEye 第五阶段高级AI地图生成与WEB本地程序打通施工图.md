@@ -11,7 +11,7 @@ status: future-draft / inactive
 
 ## 1. 施工边界
 
-本施工图只补第五阶段建设细节，不新增 lawId，不修改冻结法案。第五阶段不再以 retired package chain / retired binding state / retired selection choice 为生产真相，而以 visual mission context、Prompt Contract Registry、MuscleMemoryCatalog、PlatformRegistry 与 AI action plan 为主链。
+本施工图只补第五阶段建设细节，不新增 lawId，不修改冻结法案。第五阶段不再以 retired package chain / retired binding state / retired selection choice 为生产真相，而以 visual mission context、single governed prompt contract、MuscleMemoryCatalog、PlatformRegistry 与 AI action plan 为主链。
 
 ## 2. Phase-05 主链
 

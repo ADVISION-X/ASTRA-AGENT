@@ -152,7 +152,7 @@ async function ensureLocalAiReadiness() {
 
 async function ensureStartupRegistryReadinessGate() {
   const startedAt = Date.now();
-  logEvent("STARTUP", "prompt_contract_registry", "prompt_contract_registry_check", "started", "checking Prompt Contract Registry readability");
+  logEvent("STARTUP", "ai_prompt_contract", "ai_prompt_contract_check", "started", "checking AI prompt contract readability");
   logEvent("STARTUP", "muscle_memory_catalog", "muscle_memory_catalog_check", "started", "checking MuscleMemoryCatalog readability");
   logEvent("STARTUP", "platform_registry", "platform_registry_check", "started", "checking PlatformRegistry readability");
   const readiness = await ensureStartupRegistryReadiness({
@@ -168,13 +168,13 @@ async function ensureStartupRegistryReadinessGate() {
   };
 
   if (readiness.status !== "ready") {
-    logFail("STARTUP", "prompt_contract_registry", "prompt_contract_registry_check", "failed", "Prompt Contract Registry check failed before app shell start", extra);
+    logFail("STARTUP", "ai_prompt_contract", "ai_prompt_contract_check", "failed", "AI prompt contract check failed before app shell start", extra);
     logFail("STARTUP", "muscle_memory_catalog", "muscle_memory_catalog_check", "failed", "MuscleMemoryCatalog check failed before app shell start", extra);
     logFail("STARTUP", "platform_registry", "platform_registry_check", "failed", "PlatformRegistry check failed before app shell start", extra);
     throw new Error(`${readiness.failureReason ?? "STARTUP_REGISTRY_READINESS_FAILED"} actionableMessage=${readiness.actionableMessage ?? "Fix startup registry readiness."}`);
   }
 
-  logPass("STARTUP", "prompt_contract_registry", "prompt_contract_registry_check", "passed", "Prompt Contract Registry check passed", extra);
+  logPass("STARTUP", "ai_prompt_contract", "ai_prompt_contract_check", "passed", "AI prompt contract check passed", extra);
   logPass("STARTUP", "muscle_memory_catalog", "muscle_memory_catalog_check", "passed", "MuscleMemoryCatalog check passed", extra);
   logPass("STARTUP", "platform_registry", "platform_registry_check", "passed", "PlatformRegistry check passed", extra);
   return readiness;

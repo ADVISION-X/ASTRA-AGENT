@@ -1,22 +1,48 @@
 ---
 name: "GrassEye Commander Console Capability"
-description: "Use when governing the Commander Console Ability Group, human command entry, governed HumanCommandEnvelope transport, mission dashboard read models, owner evidence timeline, review queue, retired template flow UX, map import UX, and the boundary that prevents Commander from becoming Orchestration, Forensics, AI, or browser/action owner."
-applyTo: ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md, src/capabilities/commander-console/**, src/app/task-api-handlers.ts, src/app/candidate-api-handlers.ts, src/lib/local-runtime/workbench.ts, src/lib/local-app-shell/**, scripts/audit/domains/commander-console-capability/**, docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md"
+description: "Use when governing the Commander Console Ability Group, human command entry, mission-control commands (pause/resume/stop/emergency-stop/mark-review-required), minimal mission status read, and the boundary that prevents Commander from becoming Orchestration, Forensics, AI, browser/action owner, or read-model universe."
+applyTo: ".github/instructions/cursor-rules/modules/module-commander-console-capability.instructions.md, src/capabilities/commander-console/**, src/app/task-api-handlers.ts, src/lib/local-runtime/workbench.ts, src/lib/local-app-shell/**, scripts/audit/domains/commander-console-capability/**, docs/法案辅助文件/GrassEye Commander Console 总司令控制台能力组施工图.md"
 ---
 
 # GrassEye Commander Console Capability FINAL
 
-Scope: governs human command entry, governed command envelope creation, review-disposition entry, and commander read models.
-Boundary: Commander governs only human entry and read-model presentation. It does not own mission flow, prompt truth, AI runtime truth, browser/action execution, or persistence truth.
+Scope: governs human command entry, mission-control commands, review_required visible stop, and minimal mission status read.
+Boundary: Commander governs only human entry and minimal status read. It does not own mission flow, prompt truth, AI runtime truth, browser/action execution, persistence truth, read-model universes, evidence/audit/browse ledger display, or candidate disposition.
 Authority: this file is authoritative only for the commander-console-capability domain.
 
 Core doctrine:
 - Commander Console is the cockpit for humans, not the engine.
-- Commander receives human intent and emits governed command envelopes.
-- Commander start-mission truth is userRequirementText plus selectedPlatforms plus governed run limits.
+- Commander receives initial human intent and explicit human control commands.
+- Commander emits governed HumanCommandEnvelope.
+- Commander does not own read-model universes.
+- Commander does not own candidate disposition.
+- Commander does not own evidence/audit/browse ledgers.
+- Commander does not own review continuation.
 - Commander must not revive retired navigation-chain or retired branch-token truth as command truth.
-- Commander owns the human review gate and read-model explanation of review_required reasons.
 - Commander must not create an implicit auto-continue route after review; restart requires a new governed human command.
+
+Active command surface — exactly:
+- issue-human-command (start-mission only)
+- pause-mission
+- resume-mission
+- stop-mission
+- emergency-stop
+- mark-review-required
+- show-mission-status (minimal read, not a dashboard universe)
+
+Forbidden children (physically deleted):
+- show-mission-dashboard
+- show-audit-summary
+- show-browse-ledger
+- show-evidence-packets
+- show-failed-records
+- show-runtime-proof-timeline
+- show-capability-roster
+- show-capability-health
+- inspect-record-detail
+- show-review-queue
+- approve-candidate
+- reject-candidate
 
 ## Law GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V3
 
@@ -89,7 +115,8 @@ Required:
 - `issue-human-command` owns only `start-mission`.
 - `issue-human-command` boundaryDecision stays `command-transport-only`.
 - `issue-human-command` schema requires governed `requestedPlatformId` and governed `initialPayload`.
-- Commander active command children may expose only `issue-human-command`, `pause-mission`, `resume-mission`, `stop-mission`, `emergency-stop`, and `mark-review-required`.
+- Commander active children may expose only `issue-human-command`, `pause-mission`, `resume-mission`, `stop-mission`, `emergency-stop`, `mark-review-required`, and `show-mission-status`.
+- `show-mission-status` returns only missionId, status, currentPlatform, userRequirementSummary, startedAt, updatedAt, lastStopReason, reviewRequiredReason, savedEvidenceCount, failedActionCount.
 - Review stop handling remains Commander-visible, but ordinary round progression remains outside the human command surface.
 
 Forbidden:
@@ -99,4 +126,9 @@ Forbidden:
 
 ## Final Readiness Gate
 
-The Commander law is ready only when start-mission envelopes use userRequirementText plus selectedPlatforms and contain no retired map truth.
+The Commander law is ready only when:
+- start-mission envelopes use userRequirementText plus selectedPlatforms and contain no retired map truth.
+- active children number exactly 7: issue-human-command, pause-mission, resume-mission, stop-mission, emergency-stop, mark-review-required, show-mission-status.
+- no read-model universe children exist in the capability group.
+- no candidate dispose/approve/reject children exist.
+- src/capabilities/commander-console file count is ≤ 18.

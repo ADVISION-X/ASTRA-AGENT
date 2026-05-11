@@ -73,31 +73,38 @@ selectedPlatforms
 status
 ```
 
-## Round Mission Packet 连续性
+## Round 连续性策略
 
 ```txt
-每轮 Visual Mission AI 调用前，Orchestration 必须 build + record + inject Round Mission Packet
-dispatchInput 必须带 roundMissionPacketJson
-payloadRefs 必须带 roundMissionPacketRef
-Round Mission Packet 必须包含 mission / round / currentEvidence / constraints / allowedActions
-constraints 必须保留 noHumanInLoop / requireCoordinateGridForVisualActions / noRawCoordinates / stopWhenBlocked / stopWhenUnsafe
+Independent feed-mining rounds（种草视频挖掘）默认每轮独立判断：
+  每轮 AI 输入：userRequirementText + selectedPlatforms + platformProfileRef
+              + originalScreenshotRef + coordinateGridScreenshotRef
+              + gridSpecRef + muscleMemoryManualRef + outputSchemaRef
+              + optional progress counters
+  不默认携带：full N-1 history / 全量 RoundMissionPacket / previous AI outputs
+
+Round Mission Packet / continuity bundle 是可选项，仅在以下场景使用：
+  - open local app（打开本地程序）
+  - login recovery（登录恢复）
+  - multi-page setup（多页面初始化）
+  - blocked recovery（被阻断后恢复）
+  - explicit task carry-over（需要跨轮上下文传递）
 ```
 
 禁止：
 
 ```txt
-不注入 Round Mission Packet 就发起下一轮 AI
-让 AI 靠上一轮记忆接任务
+每轮强制注入 RoundMissionPacket 作为默认要求
+dispatchInput 必须带 roundMissionPacketJson 作为强制字段
+让 AI 靠全量 N-1 历史决策下一轮
 review_required 后隐式继续自动链路
 ```
 
 ## 执行阶段语义
 
-- currentStepId / previousStepId 只表示 visual mission round 内部执行阶段，不得对应 retired packaged step。
-- branchTaken 如果存在，只能来自声明过的 decision / riskFlags / actions 字段，不得来自任何 retired branch token。
-- step state 是调度元数据，不是 retired declarative flow package 的回流主权。
+- roundIndex 记录当前执行轮次，不对应 retired packaged step。
 - `review_required` 表示当前轮自动链路必须停止，不得隐式继续。
-- `STOP_REVIEW_REQUIRED_ONCE` 或等价的登记停止条目，用于硬停止并把人工处理转交 Commander Console。
+- `STOP_REVIEW_REQUIRED` 或等价的登记停止条目，用于硬停止并把人工处理转交 Commander Console。
 
 禁止字段：
 

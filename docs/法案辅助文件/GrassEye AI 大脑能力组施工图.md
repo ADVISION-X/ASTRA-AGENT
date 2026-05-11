@@ -12,7 +12,7 @@
 userRequirementText + selectedPlatforms
 → PlatformRegistry
 → MuscleMemoryCatalog
-→ Prompt Contract Registry
+→ visual-mission-judge-v1
 → Visual Mission Judge
 → governed decision + actions[].actionCode + reason
 ```
@@ -97,7 +97,7 @@ Review semantics:
 
 ## Prompt Contract 真相
 
-- promptContractId 来自 Prompt Contract Registry 与 visual mission context
+- promptContractId 来自单一受治理 prompt contract：visual-mission-judge-v1
 - 不得来自 retired packaged step、retired deterministic flow 或 retired binding state
 - outputSchemaRef 必须与 promptContractId 同步受治理
 

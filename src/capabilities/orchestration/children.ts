@@ -1,0 +1,161 @@
+import type { MissionState } from "./contract.js";
+import type { NerveBusAbilityGroup } from "../nerve-bus/contract.js";
+import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/contract.js";
+import type { DispatchRegisteredAbilitySequenceInput } from "./contract.js";
+import {
+  getMissionState,
+  upsertMissionState,
+  setActiveMission,
+  createInitialMissionState,
+  applyStatusTransition,
+  now,
+} from "./runtime/mission-state.js";
+import { dispatchRegisteredAbilitySequence } from "./runtime/dispatch-sequence.js";
+import {
+  StartMissionChildInputSchema,
+  PauseMissionChildInputSchema,
+  ResumeMissionChildInputSchema,
+  StopMissionChildInputSchema,
+  EmergencyStopChildInputSchema,
+  DispatchRegisteredAbilitySequenceInputSchema,
+  FinalizeMissionChildInputSchema,
+} from "./schema.js";
+
+type OrchestrationForensics = ForensicsPersistenceAbilityGroup;
+
+export type OrchestrationChildrenContext = {
+  nerveBus: NerveBusAbilityGroup;
+  forensics: OrchestrationForensics;
+};
+
+type ChildResult = {
+  status: "success" | "failed" | "review_required";
+  stateSnapshot: MissionState;
+  failureReason?: string | null;
+  reviewRequiredReason?: string | null;
+};
+
+export async function handleStartMission(rawInput: unknown, ctx: OrchestrationChildrenContext): Promise<ChildResult> {
+  const parsed = StartMissionChildInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    const idle = getMissionState();
+    return { status: "failed", stateSnapshot: idle, failureReason: `Invalid start-mission input: ${parsed.error.message}` };
+  }
+  const cmd = parsed.data;
+  const existing = getMissionState(cmd.missionId);
+  if (existing.status === "running" || existing.status === "pending") {
+    return { status: "success", stateSnapshot: existing };
+  }
+  const initial = createInitialMissionState({
+    missionId: cmd.missionId,
+    runId: cmd.runId,
+    humanGoal: cmd.humanGoal,
+    requestedPlatform: cmd.requestedPlatform,
+    selectedPlatforms: cmd.selectedPlatforms ?? [],
+    maxRounds: cmd.maxRounds ?? null,
+    maxMinutes: cmd.maxMinutes ?? null,
+  });
+  const running = applyStatusTransition(initial, { status: "running", lastHumanCommand: "start-mission" });
+  upsertMissionState(running);
+  setActiveMission(cmd.missionId);
+  return { status: "success", stateSnapshot: running };
+}
+
+export async function handlePauseMission(rawInput: unknown, _ctx: OrchestrationChildrenContext): Promise<ChildResult> {
+  const parsed = PauseMissionChildInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { status: "failed", stateSnapshot: getMissionState(), failureReason: `Invalid pause-mission input` };
+  }
+  const current = getMissionState(parsed.data.missionId);
+  if (current.status !== "running") {
+    return { status: "failed", stateSnapshot: current, failureReason: `Cannot pause: mission is ${current.status}` };
+  }
+  const updated = applyStatusTransition(current, { status: "paused", lastHumanCommand: "pause-mission" });
+  upsertMissionState(updated);
+  return { status: "success", stateSnapshot: updated };
+}
+
+export async function handleResumeMission(rawInput: unknown, _ctx: OrchestrationChildrenContext): Promise<ChildResult> {
+  const parsed = ResumeMissionChildInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { status: "failed", stateSnapshot: getMissionState(), failureReason: `Invalid resume-mission input` };
+  }
+  const current = getMissionState(parsed.data.missionId);
+  if (current.status !== "paused") {
+    return { status: "failed", stateSnapshot: current, failureReason: `Cannot resume: mission is ${current.status}` };
+  }
+  const updated = applyStatusTransition(current, { status: "running", lastHumanCommand: "resume-mission" });
+  upsertMissionState(updated);
+  return { status: "success", stateSnapshot: updated };
+}
+
+export async function handleStopMission(rawInput: unknown, _ctx: OrchestrationChildrenContext): Promise<ChildResult> {
+  const parsed = StopMissionChildInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { status: "failed", stateSnapshot: getMissionState(), failureReason: `Invalid stop-mission input` };
+  }
+  const { missionId, reason } = parsed.data;
+  const current = getMissionState(missionId);
+  const updated = applyStatusTransition(current, {
+    status: "stopped",
+    stopReason: reason ?? "operator stopped",
+    endedAt: now(),
+    lastHumanCommand: "stop-mission",
+  });
+  upsertMissionState(updated);
+  setActiveMission(null);
+  return { status: "success", stateSnapshot: updated };
+}
+
+export async function handleEmergencyStop(rawInput: unknown, _ctx: OrchestrationChildrenContext): Promise<ChildResult> {
+  const parsed = EmergencyStopChildInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { status: "failed", stateSnapshot: getMissionState(), failureReason: `Invalid emergency-stop input` };
+  }
+  const { missionId, reason } = parsed.data;
+  const current = getMissionState(missionId);
+  const updated = applyStatusTransition(current, {
+    status: "stopped",
+    stopReason: reason ?? "emergency stop",
+    endedAt: now(),
+    lastHumanCommand: "emergency-stop",
+  });
+  upsertMissionState(updated);
+  setActiveMission(null);
+  return { status: "success", stateSnapshot: updated };
+}
+
+export async function handleDispatchRegisteredAbilitySequence(rawInput: unknown, ctx: OrchestrationChildrenContext): Promise<ChildResult> {
+  const parsed = DispatchRegisteredAbilitySequenceInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { status: "failed", stateSnapshot: getMissionState(), failureReason: `Invalid dispatch input: ${parsed.error.message}` };
+  }
+  const input = parsed.data as DispatchRegisteredAbilitySequenceInput;
+  const result = await dispatchRegisteredAbilitySequence(input, {
+    nerveBus: ctx.nerveBus,
+    forensics: ctx.forensics,
+  });
+  return {
+    status: result.status,
+    stateSnapshot: result.stateSnapshot,
+    failureReason: result.failureReason,
+    reviewRequiredReason: result.reviewRequiredReason,
+  };
+}
+
+export async function handleFinalizeMission(rawInput: unknown, _ctx: OrchestrationChildrenContext): Promise<ChildResult> {
+  const parsed = FinalizeMissionChildInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return { status: "failed", stateSnapshot: getMissionState(), failureReason: `Invalid finalize-mission input` };
+  }
+  const { missionId, reason } = parsed.data;
+  const current = getMissionState(missionId);
+  const updated = applyStatusTransition(current, {
+    status: "completed",
+    stopReason: reason ?? null,
+    endedAt: now(),
+  });
+  upsertMissionState(updated);
+  setActiveMission(null);
+  return { status: "success", stateSnapshot: updated };
+}

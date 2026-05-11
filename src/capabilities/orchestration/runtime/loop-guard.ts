@@ -1,31 +1,41 @@
-import type { MissionState, RuntimePlan } from "../contract.js";
+import type { MissionState } from "../contract.js";
 
-const PRODUCTION_MAX_HOPS = 500;
+export type LoopGuardResult =
+  | { shouldStop: false }
+  | { shouldStop: true; reason: "max-rounds-reached" | "max-minutes-reached" | "mission-not-running" };
 
-type LoopGuardStopReason =
-  | "completed_by_run_limit"
-  | "completed_by_time_limit"
-  | "blocked_by_loop_guard";
+const MAX_ROUNDS_DEFAULT = 20;
 
-export function evaluateLoopGuard(input: { state: MissionState; map: RuntimePlan; nowIsoTimestamp: string }) {
-  if (input.state.configuredMaxRounds !== null && input.state.currentRoundIndex >= input.state.configuredMaxRounds) {
-    return { loopDecision: "stop_completed" as const, nextHopCount: input.state.hopCount, reason: "completed_by_run_limit" as const };
+function elapsedMinutes(startedAt: string | null | undefined): number {
+  if (!startedAt) return 0;
+  return (Date.now() - new Date(startedAt).getTime()) / 60_000;
+}
+
+export function checkLoopGuardBeforeRound(state: MissionState): LoopGuardResult {
+  if (state.status !== "running") {
+    return { shouldStop: true, reason: "mission-not-running" };
   }
-
-  if (input.state.configuredMaxMinutes !== null && input.state.startedAt) {
-    const elapsedMs = Date.parse(input.nowIsoTimestamp) - Date.parse(input.state.startedAt);
-    if (elapsedMs >= input.state.configuredMaxMinutes * 60_000) {
-      return { loopDecision: "stop_completed" as const, nextHopCount: input.state.hopCount, reason: "completed_by_time_limit" as const };
+  const maxRounds = state.maxRounds ?? MAX_ROUNDS_DEFAULT;
+  if ((state.roundIndex ?? 0) >= maxRounds) {
+    return { shouldStop: true, reason: "max-rounds-reached" };
+  }
+  if (state.maxMinutes != null) {
+    const elapsed = elapsedMinutes(state.startedAt);
+    if (elapsed >= state.maxMinutes) {
+      return { shouldStop: true, reason: "max-minutes-reached" };
     }
   }
+  return { shouldStop: false };
+}
 
-  const nextHopCount = input.state.hopCount + 1;
-  if (nextHopCount <= PRODUCTION_MAX_HOPS) {
-    return { loopDecision: "continue" as const, nextHopCount, reason: null };
+export function checkLoopGuardAfterRound(state: MissionState): LoopGuardResult {
+  if (
+    state.status === "stopped" ||
+    state.status === "failed" ||
+    state.status === "completed" ||
+    state.status === "paused"
+  ) {
+    return { shouldStop: true, reason: "mission-not-running" };
   }
-  return {
-    loopDecision: "stop_failed" as const,
-    nextHopCount,
-    reason: "blocked_by_loop_guard" as const,
-  };
+  return checkLoopGuardBeforeRound(state);
 }

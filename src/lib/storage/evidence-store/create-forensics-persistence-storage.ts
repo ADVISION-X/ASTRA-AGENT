@@ -1,7 +1,6 @@
-import { createEvidenceStoreForensicsArtifactStoragePort } from "./forensics-artifact-storage-port.js";
-import { createEvidenceStoreForensicsRecordStoragePort } from "./forensics-record-storage-port.js";
 import { createEvidenceStoreService } from "./evidence-store-service.js";
 import { assertForensicsDurabilityReady } from "./forensics-durability-mode.js";
+import { createForensicsStoragePortAdapter } from "./forensics-storage-port-adapter.js";
 import type { StructuredLogBus } from "../../local-runtime/structured-log-bus.js";
 
 export function createForensicsPersistenceStorage(input: {
@@ -10,9 +9,9 @@ export function createForensicsPersistenceStorage(input: {
 }) {
   assertForensicsDurabilityReady();
   const evidenceStore = createEvidenceStoreService(input.dataDir, input.structuredLogBus);
+  const forensicsStorage = createForensicsStoragePortAdapter(input.dataDir);
   return {
     evidenceStore,
-    recordStorage: createEvidenceStoreForensicsRecordStoragePort(evidenceStore),
-    artifactStorage: createEvidenceStoreForensicsArtifactStoragePort(),
+    forensicsStorage,
   };
 }
