@@ -425,23 +425,22 @@
       "childCapabilityId": "open-platform-entry-once",
       "inputSchemaRef": "open.open-platform-entry-once.input",
       "outputSchemaRef": "open.open-platform-entry-once.output",
-      "allowedForAiActionPlan": true,
+      "allowedForAiActionPlan": false,
       "allowedForUserRequirement": false,
       "requiresGridSpecRef": false,
       "requiresScreenshotRef": false,
       "requiresGeometryProof": false,
       "sensitiveOperation": true,
       "inputContract": {
-        "requiredFields": [
-          "platformId"
-        ],
+        "requiredFields": [],
         "optionalFields": [],
         "forbiddenFields": [
           "url",
           "rawUrl",
           "fallbackUrl",
           "abilityGroupId",
-          "childCapabilityId"
+          "childCapabilityId",
+          "platformId"
         ]
       },
       "successOutputRefs": [
@@ -642,7 +641,8 @@
         "requiredFields": [],
         "optionalFields": [
           "evidenceLabel",
-          "reason"
+          "reason",
+          "captureMode"
         ],
         "forbiddenFields": [
           "recordPayload",

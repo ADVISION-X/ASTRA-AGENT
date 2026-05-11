@@ -55,6 +55,12 @@ export async function invokeOllama(input: {
   imageBase64s?: string[];
   timeoutMs: number;
   abortSignal?: AbortSignal;
+  /**
+   * Ollama structured output schema (JSON Schema object).
+   * When provided, Ollama uses grammar-constrained decoding to enforce the exact output structure.
+   * Falls back to format:"json" (syntax-only constraint) when not provided.
+   */
+  outputSchema?: Record<string, unknown>;
 }): Promise<{ rawText: string; imageCount: number }> {
   const images = input.imageBase64s && input.imageBase64s.length > 0 ? input.imageBase64s : undefined;
 
@@ -72,6 +78,11 @@ export async function invokeOllama(input: {
       model: input.modelName,
       messages: [userMessage],
       stream: false,
+      // Ollama constrained decoding:
+      //   - When outputSchema is provided: grammar-constrained to the exact JSON Schema (structure + types).
+      //   - Fallback "json": only guarantees syntactically valid JSON — does NOT constrain schema structure.
+      //   Never omit this field: qwen2.5vl:3b (3B) cannot reliably output governed JSON without token-level constraints.
+      format: input.outputSchema !== undefined ? input.outputSchema : "json",
     }),
   }) as OllamaChatResponse;
 

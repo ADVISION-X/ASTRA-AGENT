@@ -9,6 +9,82 @@ import { RuntimeLogEventType } from "../../../lib/runtime-logs/index.js";
 
 const buildHash = (value: string) => createHash("sha256").update(value).digest("hex");
 
+/**
+ * JSON Schema for VisualMissionActionPlanOutput.
+ * Passed to Ollama as `format` for grammar-constrained structured output.
+ * Ollama uses this to force the model to generate tokens that match the exact schema structure.
+ * This is strictly stronger than format:"json" — it constrains both syntax AND structure.
+ * Derived from VisualMissionActionPlanOutputSchema (src/visual-mission/action-plan/ai-output.schema.ts).
+ * Must be kept in sync with the Zod schema when fields are added/removed.
+ */
+const VISUAL_MISSION_OUTPUT_JSON_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    schemaVersion: { type: "string", enum: ["visualMissionActionPlan.v1"] },
+    userIntentUnderstanding: {
+      type: "object",
+      properties: {
+        matched: { type: "boolean" },
+        summary: { type: "string" },
+      },
+      required: ["matched", "summary"],
+    },
+    platform: { type: "string", enum: ["facebook-web", "tiktok-web"] },
+    isTargetPlatform: { type: "boolean" },
+    surface: { type: "string" },
+    isTargetFeed: { type: "boolean" },
+    pageStateDecision: { type: "string", enum: ["ready", "recover", "review_required", "blocked"] },
+    isProductVideo: { type: "boolean" },
+    productDecision: { type: "string", enum: ["product_yes", "product_no", "uncertain"] },
+    confidence: { type: "number" },
+    visibleProductTypes: { type: "array", items: { type: "string" } },
+    visualEvidence: { type: "array", items: { type: "string" } },
+    reason: { type: "string" },
+    actions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          actionCode: { type: "string" },
+          required: { type: "boolean" },
+          input: { type: "object" },
+          reason: { type: "string" },
+        },
+        required: ["actionCode", "reason"],
+      },
+    },
+    nonExecutableClickTargets: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          gridCell: { type: "string" },
+          targetName: { type: "string" },
+        },
+        required: ["gridCell", "targetName"],
+      },
+    },
+    riskFlags: { type: "array", items: { type: "string" } },
+    nonExecutableSummary: { type: "string" },
+  },
+  required: [
+    "schemaVersion",
+    "userIntentUnderstanding",
+    "platform",
+    "isTargetPlatform",
+    "surface",
+    "isTargetFeed",
+    "pageStateDecision",
+    "isProductVideo",
+    "productDecision",
+    "confidence",
+    "visualEvidence",
+    "reason",
+    "actions",
+    "nonExecutableSummary",
+  ],
+};
+
 const resolveImagePaths = (input: AiAbilityInput) =>
   input.inputRefs
     .map((entry) => entry.filePath)
@@ -70,6 +146,7 @@ async function callLocalVisualMissionModel(input: {
     promptText: prompt.fullPrompt,
     imagePaths,
     timeoutMs,
+    outputSchema: VISUAL_MISSION_OUTPUT_JSON_SCHEMA,
     ...(input.signal ? { abortSignal: input.signal } : {}),
     ...(logger ? { runtimeLogger: logger } : {}),
     ...(trace ? { traceContext: { ...trace, spanId } } : {}),

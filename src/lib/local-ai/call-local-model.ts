@@ -135,6 +135,7 @@ export async function callLocalModel(input: LocalModelCallInput): Promise<LocalM
       timeoutMs,
       ...(preparedImages.length > 0 ? { imageBase64s: preparedImages.map((img) => img.base64) } : {}),
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
+      ...(input.outputSchema !== undefined ? { outputSchema: input.outputSchema } : {}),
     });
 
     const durationMs = Date.now() - startedAt;

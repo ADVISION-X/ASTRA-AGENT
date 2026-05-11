@@ -95,15 +95,23 @@ Screenshot 取证产物保持原始真相不变，归一化仅在内存中进行
 
 | 项目 | `/api/generate`（❌ 禁止） | `/api/chat`（✅ 唯一合法） |
 |---|---|---|
-| 输入格式 | `{ model, prompt, images, stream }` | `{ model, messages:[{role,content,images}], stream }` |
+| 输入格式 | `{ model, prompt, images, stream }` | `{ model, messages:[{role,content,images}], stream, format:"json" }` |
 | 响应字段 | `{ response: string }` | `{ message: { role, content } }` |
-| 模型输出质量 | chat token 泄漏 → 垃圾输出 | 正常 JSON 输出 |
+| 模型输出质量 | chat token 泄漏 → 垃圾输出 | JSON mode 约束解码 → 合法 JSON |
+
+### format:"json" 强制规定
+
+- **`/api/chat` 请求体必须包含 `"format": "json"`**
+- Ollama JSON mode（约束解码）在 token 生成层面强制输出合法 JSON。
+- 仅凭 prompt 中的文字指令（"Return JSON only"）对 3B 小模型不可靠，模型可能输出自然语言（如 "The restaurant is located in the序号"）。
+- `format: "json"` 是防止 `json_parse_failed → review_required` 的 API 层强制保障。
 
 ### 执法约束
 
 - `invokeOllama` 必须调用 `/api/chat` URL。
 - `invokeOllama` 禁止出现 `/api/generate` 字符串。
-- 执法脚本 CHECK-12 / CHECK-13 负责 AST 级强制执行。
+- `invokeOllama` 的请求体必须包含 `format: "json"` 字段。
+- 执法脚本 CHECK-12 / CHECK-13 / CHECK-14 负责 AST 级强制执行。
 
 ### 归一化失败行为
 

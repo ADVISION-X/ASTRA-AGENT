@@ -11,7 +11,7 @@
 //   At 2446 px: 11×11 patches/image × 2 = 242 patches → GGML_ASSERT crash.
 
 import { createHash } from "node:crypto";
-import { readFile, stat } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import sharp from "sharp";
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -19,7 +19,7 @@ import sharp from "sharp";
 /** Maximum long edge (px) accepted by qwen2.5vl:3b without GGML patch overflow. */
 export const MAX_VISION_IMAGE_LONG_EDGE_PX = 1120;
 
-/** Maximum byte size gate — rejects abnormally large source files before processing. */
+/** Maximum byte size gate — applied to the post-resize model input buffer. */
 const MAX_VISION_IMAGE_BYTES = 1_000_000;
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -61,18 +61,18 @@ function sha256(buf: Buffer): string {
  * Throws an error prefixed "MODEL_IMAGE_NORMALIZATION_FAILED:" on any failure — fail closed.
  */
 export async function prepareModelSafeImage(filePath: string): Promise<ModelSafeImageInput> {
-  // ── Byte gate: reject abnormally large source files ───────────────────────
-  const fileStat = await stat(filePath);
-  if (fileStat.size > MAX_VISION_IMAGE_BYTES) {
-    throw new Error(
-      `MODEL_IMAGE_NORMALIZATION_FAILED: Vision input exceeds ${MAX_VISION_IMAGE_BYTES} bytes` +
-        ` (${fileStat.size}). Original artifact too large for model input boundary.`,
-    );
-  }
-  const originalBytes = fileStat.size;
-
   // ── Read original buffer ──────────────────────────────────────────────────
-  const originalBuffer = await readFile(filePath);
+  // NOTE: pre-resize byte gate is intentionally absent.
+  // Original screenshots can be 4-10MB (retina PNG). The resize step below
+  // brings the model input well below MAX_VISION_IMAGE_BYTES. Only the
+  // post-resize model input buffer is byte-gated (inside the resize branch).
+  const originalBuffer = await readFile(filePath).catch((err) => {
+    throw new Error(
+      `MODEL_IMAGE_NORMALIZATION_FAILED: Cannot read file: ` +
+        `${err instanceof Error ? err.message : String(err)}`,
+    );
+  });
+  const originalBytes = originalBuffer.length;
   const originalHash = sha256(originalBuffer);
 
   // ── Read pixel dimensions ─────────────────────────────────────────────────

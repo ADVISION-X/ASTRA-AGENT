@@ -21,6 +21,9 @@
  *   CHECK-11 call-local-model.ts AI_REQUEST_DEBUG contains wasResized image dimension info
  *   CHECK-12 ollama-client.ts contains the string literal "/api/chat" (AST symbol-level)
  *   CHECK-13 ollama-client.ts does NOT contain the string literal "/api/generate" (AST symbol-level)
+ *   CHECK-14 ollama-client.ts invokeOllama body has a `format` PropertyAssignment (constrained decoding — string or schema object)
+ *   CHECK-15 src/capabilities/ai/runtime/model-call.ts declares VISUAL_MISSION_OUTPUT_JSON_SCHEMA constant (structured output schema for grammar-constrained decoding)
+ *   CHECK-16 model-safe-image.ts does NOT import `stat` from "node:fs/promises" (pre-resize byte gate is forbidden)
  *
  * All checks use AST traversal.  No regex.  No string-content heuristics on comment lines.
  */
@@ -339,6 +342,35 @@ export function runLocalAiStartupRecoveryInspector(): LocalAiStartupRecoveryInsp
           : fail("CHECK-10", q, `Forbidden disk-write calls found in ${MODEL_SAFE_IMAGE_REL_PATH}: ${found.join(", ")}. Model input must not be written to disk.`)
       );
     }
+
+    // ── CHECK-16: stat NOT imported in model-safe-image.ts ────────────────
+    // Law: pre-resize byte gate is forbidden — original screenshots can be
+    // 4-10MB retina PNG. Only the post-resize model input buffer may be byte-gated.
+    // If `stat` appears as an import binding from "node:fs/promises", the
+    // pre-resize gate has been (re-)introduced and must be removed.
+    {
+      const q16 = "model-safe-image.ts does NOT import `stat` from \"node:fs/promises\" (pre-resize byte gate is forbidden)";
+      let statImportFound = false;
+      msiSf.getImportDeclarations().forEach((decl) => {
+        if (statImportFound) return;
+        const mod = decl.getModuleSpecifierValue();
+        if (mod !== "node:fs/promises") return;
+        decl.getNamedImports().forEach((named) => {
+          if (named.getNameNode().getText() === "stat") {
+            statImportFound = true;
+          }
+        });
+      });
+      checks.push(
+        !statImportFound
+          ? pass("CHECK-16", q16, "`stat` is NOT imported from node:fs/promises — pre-resize byte gate absent (AST import-binding level)")
+          : fail("CHECK-16", q16,
+              `\`stat\` is imported from "node:fs/promises" in ${MODEL_SAFE_IMAGE_REL_PATH}. ` +
+              `This indicates a pre-resize byte gate exists. Original screenshots can be 4-10MB PNG. ` +
+              `The byte gate must only apply to the post-resize model input buffer, never to the original file.`
+            )
+      );
+    }
   }
 
   // ── CHECK-11: call-local-model.ts AI_REQUEST_DEBUG includes wasResized ───
@@ -429,6 +461,67 @@ export function runLocalAiStartupRecoveryInspector(): LocalAiStartupRecoveryInsp
           : fail("CHECK-13", q13,
               `Forbidden \"/api/generate\" string literal found in ${OLLAMA_CLIENT_REL_PATH}. ` +
               `qwen2.5vl:3b is a Chat-Instruct model. /api/generate causes <|im_start|> token bleed — model outputs garbage instead of JSON.`
+            )
+      );
+
+      // ── CHECK-14: /api/chat body must have a `format` PropertyAssignment ─
+      // Law: ollama-client.ts must always include `format:` in the request body.
+      // Value may be string "json" (syntax-only) or an object (JSON Schema / structured output).
+      {
+        const q14 = "ollama-client.ts invokeOllama request body has a `format` PropertyAssignment (constrained decoding — string or schema object)";
+        let formatPropFound = false;
+        ocSf.forEachDescendant((node) => {
+          if (formatPropFound) return;
+          if (!Node.isPropertyAssignment(node)) return;
+          const keyNode = node.getNameNode();
+          if (Node.isIdentifier(keyNode) && keyNode.getText() === "format") {
+            formatPropFound = true;
+          }
+        });
+        checks.push(
+          formatPropFound
+            ? pass("CHECK-14", q14, "`format:` PropertyAssignment found in ollama-client.ts (AST symbol-level)")
+            : fail("CHECK-14", q14,
+                `No \`format:\` PropertyAssignment found in ${OLLAMA_CLIENT_REL_PATH}. ` +
+                `Ollama constrained decoding must always be present: qwen2.5vl:3b (3B) cannot reliably produce ` +
+                `governed JSON without token-level constraints (format:"json" or format:<JSON Schema>).`
+              )
+        );
+      }
+    }
+  }
+
+  // ── CHECK-15: VISUAL_MISSION_OUTPUT_JSON_SCHEMA declared in model-call.ts ──
+  // Law: grammar-constrained structured output schema must be declared as a named constant
+  // in the AI capability model-call layer and passed to Ollama as `format`.
+  // Without it, format:"json" only constrains syntax — the 3B model outputs a flat action
+  // object instead of the full visualMissionActionPlan.v1 schema.
+  const MODEL_CALL_REL_PATH = "src/capabilities/ai/runtime/model-call.ts";
+  const modelCallAbsPath = join(repoRoot, MODEL_CALL_REL_PATH);
+  const modelCallSf = project.addSourceFileAtPathIfExists(modelCallAbsPath);
+  {
+    const q15 = "model-call.ts declares VISUAL_MISSION_OUTPUT_JSON_SCHEMA constant (Ollama structured output schema for grammar-constrained decoding)";
+    if (!modelCallSf) {
+      checks.push(fail("CHECK-15", q15, `Cannot open ${MODEL_CALL_REL_PATH}.`));
+    } else {
+      let schemaConstFound = false;
+      modelCallSf.forEachDescendant((node) => {
+        if (schemaConstFound) return;
+        if (Node.isVariableDeclaration(node)) {
+          const nameNode = node.getNameNode();
+          if (Node.isIdentifier(nameNode) && nameNode.getText() === "VISUAL_MISSION_OUTPUT_JSON_SCHEMA") {
+            schemaConstFound = true;
+          }
+        }
+      });
+      checks.push(
+        schemaConstFound
+          ? pass("CHECK-15", q15, "VISUAL_MISSION_OUTPUT_JSON_SCHEMA VariableDeclaration found in model-call.ts (AST symbol-level)")
+          : fail("CHECK-15", q15,
+              `VISUAL_MISSION_OUTPUT_JSON_SCHEMA constant not found in ${MODEL_CALL_REL_PATH}. ` +
+              `format:"json" only constrains JSON syntax — a JSON Schema is required for qwen2.5vl:3b (3B) ` +
+              `to produce the correct visualMissionActionPlan.v1 structure. ` +
+              `Without grammar-constrained decoding the model outputs a flat action object instead of the full schema.`
             )
       );
     }

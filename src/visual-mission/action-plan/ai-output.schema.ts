@@ -90,9 +90,18 @@ const validateVisualMissionActionInput = (value: {
   validateActionInput(value.actionCode, actionInput, entry, context);
 };
 
+const TargetRoleSchema = z.enum([
+  "like_button",
+  "comments_button",
+  "comments_panel_close",
+  "next_video_surface",
+  "unknown",
+]).nullable().optional().default(null);
+
 const VisualMissionActionSchema = z.object({
   actionCode: z.string().min(1).refine(isAiActionPlanAllowedActionCode, "actionCode must be registered in MuscleMemoryCatalog and allowed for AI planning."),
   required: z.boolean().default(true),
+  targetRole: TargetRoleSchema,
   input: VisualMissionActionInputSchema.optional(),
   reason: z.string().min(1),
 }).strict().superRefine(validateVisualMissionActionInput);
@@ -156,29 +165,33 @@ const VisualMissionActionPlanOutputSchema = z.object({
     if (clicks.length < 2) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires at least 2 click actions (like + comments).", path: ["actions"] });
     }
-    const hasLikeClick = clicks.some(a => /like/i.test(a.reason ?? ""));
+    const hasLikeClick = clicks.some(a => a.targetRole === "like_button");
     if (!hasLikeClick) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires a click action with reason containing 'like'.", path: ["actions"] });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires a click action with targetRole='like_button'.", path: ["actions"] });
     }
-    const hasCommentClick = clicks.some(a => /comment/i.test(a.reason ?? ""));
+    const hasCommentClick = clicks.some(a => a.targetRole === "comments_button");
     if (!hasCommentClick) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires a click action with reason containing 'comment'.", path: ["actions"] });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires a click action with targetRole='comments_button'.", path: ["actions"] });
     }
     const saveIdx = actions.findIndex(a => a.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
     if (saveIdx === -1) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
     }
-    const scrollIdx = actions.findIndex(a => a.actionCode === "SCROLL_BROWSER_VIEWPORT_ONCE");
-    if (scrollIdx === -1) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires SCROLL_BROWSER_VIEWPORT_ONCE.", path: ["actions"] });
+    if (saveIdx !== -1) {
+      const saveAction = actions[saveIdx];
+      const captureMode = (saveAction.input as Record<string, unknown> | undefined)?.["captureMode"];
+      if (captureMode !== "fresh_current_viewport") {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: SAVE_CURRENT_VIDEO_EVIDENCE_ONCE must have input.captureMode='fresh_current_viewport'.", path: ["actions"] });
+      }
     }
-    // Order: all clicks before SAVE, SAVE before SCROLL
+    // Order: all clicks before SAVE
     const lastClickIdx = clicks.length > 0
       ? Math.max(...clicks.map(c => actions.indexOf(c)))
       : -1;
     if (saveIdx !== -1 && lastClickIdx !== -1 && saveIdx < lastClickIdx) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: SAVE_CURRENT_VIDEO_EVIDENCE_ONCE must come after all click actions.", path: ["actions"] });
     }
+    const scrollIdx = actions.findIndex(a => a.actionCode === "SCROLL_BROWSER_VIEWPORT_ONCE");
     if (saveIdx !== -1 && scrollIdx !== -1 && scrollIdx < saveIdx) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: SCROLL_BROWSER_VIEWPORT_ONCE must come after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
     }
