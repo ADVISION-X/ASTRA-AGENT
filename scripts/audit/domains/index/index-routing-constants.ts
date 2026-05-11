@@ -33,7 +33,7 @@ export const indexRoutingRuleConstants = {
   EXPECTED_NARROWEST_LINE: "Index only locates the narrowest current authority.",
   EXPECTED_MATCH_RULE: "- Match the narrowest domain by path and task keywords.",
   EXPECTED_TIE_BREAK_RULE: "- When two modules appear close, choose the one that directly owns the decision or record boundary.",
-  EXPECTED_ALLOWED_ROUTE_LINE: "- Index may route only to the 14 active ability groups and foundation laws.",
+  EXPECTED_ALLOWED_ROUTE_LINE: "- Index may route only to the current execution owners, support evidence surfaces, and foundation laws declared by Kernel.",
   EXPECTED_HISTORICAL_REMAP_LINE: "- Deleted historical owner names may appear only as remap triggers to a current owner; they must never route to absent modules.",
   EXPECTED_ABSENT_HISTORICAL_PATH_LINE: "- Do not activate absent historical paths.",
   EXPECTED_FUTURE_PATTERN_LINE: "- Do not use broad patterns to revive future capabilities.",
@@ -117,15 +117,15 @@ export const indexRoutingRouteCatalog = {
   routeRowRequirements: [
     {
       requirementId: "K02-ROUTE-REQ-009",
-      triggerText: "commander console, human command, mission dashboard, runtime proof timeline, review queue, audit summary, manual override, candidate pool, operator review",
+      triggerText: "commander console, human command, mission dashboard, owner evidence timeline, review queue, audit summary, manual override, candidate pool, operator review",
       moduleFile: "module-commander-console-capability.instructions.md",
       noteText: "Human entry and console reads only",
     },
     {
       requirementId: "K02-ROUTE-REQ-010",
-      triggerText: "ability group, child ability, shared ability contract, currentStrength, debug proof contract, forbidden responsibilities, orchestration matrix, capability catalog, catalog generated from abilities",
+      triggerText: "ability group, child ability, atomic action, muscle memory, capability registry, shared ability contract, currentStrength, debug proof contract, forbidden responsibilities, orchestration matrix, capability catalog, catalog generated from abilities",
       moduleFile: "module-capability-group-governance.instructions.md",
-      noteText: "Shared ability-group governance only",
+      noteText: "Shared ability-group governance and registry definition only",
     },
     {
       requirementId: "K02-ROUTE-REQ-011",
@@ -135,7 +135,7 @@ export const indexRoutingRouteCatalog = {
     },
     {
       requirementId: "K02-ROUTE-REQ-012",
-      triggerText: "ai ability group, first AI question, product presence judgment, comments OCR, intent analysis, pain point, complaint signal, opportunity synthesis, product signal, score, local model, prompt registry, prompt contract, prompt content, output schema ref",
+      triggerText: "ai ability group, first AI question, visual mission judge, visual mission action plan, current page meaning, blocker judgment, target identity, prompt registry, prompt contract, prompt content, output schema ref, ability manual, compose registered capabilities, local model, OCR provider, provider routing",
       moduleFile: "module-ai-capability.instructions.md",
       noteText: "AI owns judgment; load Forensics or Commander only when persistence or review is the real boundary",
     },
@@ -177,15 +177,15 @@ export const indexRoutingRouteCatalog = {
     },
     {
       requirementId: "K02-ROUTE-REQ-019",
-      triggerText: "post-action verification, action result verification, verification decision, result proof, after-click verification, after-scroll verification",
+      triggerText: "post-action verification, action result verification, verification packaging, result proof, after-click verification, after-scroll verification",
       moduleFile: "module-post-action-verification-capability.instructions.md",
-      noteText: "Verification truth only",
+      noteText: "Observation packaging and proof packaging only",
     },
     {
       requirementId: "K02-ROUTE-REQ-020",
-      triggerText: "page state, page readiness, login wall, modal overlay, platform page kind, comment panel state, safety page",
+      triggerText: "page state, page observation, login wall observation, modal overlay observation, platform page kind observation, comment panel state observation, safety page observation",
       moduleFile: "module-page-state-capability.instructions.md",
-      noteText: "Page-state truth only",
+      noteText: "Page-state observation packaging only",
     },
     {
       requirementId: "K02-ROUTE-REQ-021",
@@ -221,7 +221,7 @@ export const indexRoutingRouteCatalog = {
       requirementId: "K02-ROUTE-REQ-026",
       triggerText: "scripts/audit, owner boundary, report format, generated artifacts, inspector, enforcement",
       moduleFile: "module-audit-system.instructions.md",
-      noteText: "Audit governance only",
+      noteText: "Audit governance only; generated artifacts are support evidence, not authority truth",
     },
   ] as RouteRowRequirement[],
 } as const;

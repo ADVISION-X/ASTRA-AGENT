@@ -6,6 +6,7 @@
 
 本施工图定义“子能力强度”的最终口径。
 强度不再围绕套餐动作是否能展开，而是围绕子能力是否真实存在、是否原子、是否可执行、是否有清晰输入输出、是否有证据、是否有失败策略。
+本施工图是当前最高定义，不是未来愿景。
 
 唯一目标：
 - 任何进入 MuscleMemoryCatalog 的条目，都必须能追到真实原子 child capability。
@@ -71,7 +72,8 @@
 
 ## 4. Inventory Schema
 
-generated artifact 未来必须表达 child capability 真相，而不是套餐动作真相。
+generated artifact 若存在，只能表达 child capability 真相，而不是套餐动作真相。
+inventory 只能是 support evidence；只有出现 violation 或定向审计明确需要时才应输出。
 
 每条 entry 至少记录：
 - abilityGroupId
@@ -91,7 +93,7 @@ generated artifact 未来必须表达 child capability 真相，而不是套餐�
 - strengthLevel
 - blockingReasons[]
 
-当前代码若仍保留 actionCode 字段，它只能作为 transitional transport alias，不改变 child capability strength 的最终定义。
+当前代码若仍保留 actionCode 字段，它只能作为 transitional transport alias，不改变 child capability strength 的当前最高定义。
 
 ## 5. Inspector 责任
 
@@ -133,6 +135,7 @@ AI 使用能力时，允许的是“登记能力”，不是“自由执行”�
 AI-visible 条目必须同时满足：
 - 来自 capability registry。
 - 对应原子 child capability，而非 composite business flow。
+- 能一跳映射到真实 child capability path；当前 `actions[].actionCode` 只能作为 transport alias。
 - 明确声明输入边界。
 - 不允许 raw coordinate。
 - side effect 动作可回链到 Forensics。
@@ -176,7 +179,8 @@ side-effecting child 至少要满足其一：
 ## 11. CI-FULL Acceptance
 
 CI-FULL 必须能够证明，而不是假定：
-- inventory 可生成。
+- PASS/FAIL 输出可直接指向 lawId、file、最小原因与修复方向。
+- inventory 仅在 violation 或 targeted audit 模式下生成。
 - inspector 已接入 capability-group-governance owner audit。
 - AI-visible registry entry 可追到 executable child。
 - 任何 gridCell 执行都不会跳过 Geometry Guard。

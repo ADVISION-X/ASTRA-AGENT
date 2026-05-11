@@ -3,7 +3,7 @@ import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 
-import { INVENTORY_RELATIVE_PATH, writeChildCapabilityStrengthInventory, type ChildCapabilityStrengthEntry } from "./child-capability-strength-builder.js";
+import { INVENTORY_RELATIVE_PATH, buildChildCapabilityStrengthInventory, writeChildCapabilityStrengthInventory, type ChildCapabilityStrengthEntry } from "./child-capability-strength-builder.js";
 
 const LAW_STRUCTURE = "GRASSEYE-CAPABILITY-GROUP-002-V1";
 const LAW_DISPATCH = "GRASSEYE-CAPABILITY-GROUP-003-V1";
@@ -134,20 +134,21 @@ const writeChildCapabilityStrengthReports = async (input: {
 };
 
 export async function runChildCapabilityStrengthInspector(): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
-  const inventory = await writeChildCapabilityStrengthInventory();
+  const inventory = await buildChildCapabilityStrengthInventory();
   const findings = [
     ...collectBlockingFindings(inventory.entries),
     ...collectClickCellFindings(inventory.entries),
   ];
-  const aiReachableEntries = inventory.entries.filter((entry) => entry.allowedForAiActionPlan);
-  const weakestAiEntry = aiReachableEntries.find((entry) => entry.strengthLevel < 4);
+  if (findings.length > 0) {
+    await writeChildCapabilityStrengthInventory();
+  }
   const phases = [createPhase(
     "child-capability-strength",
     findings.length === 0 ? "PASS" : "CODE VIOLATION",
     findings.length === 0,
-    weakestAiEntry
-      ? `AI-reachable child ${weakestAiEntry.abilityGroupId}.${weakestAiEntry.childCapabilityId} is only level ${weakestAiEntry.strengthLevel}; see ${INVENTORY_RELATIVE_PATH}.`
-      : `Child capability strength inventory written to ${INVENTORY_RELATIVE_PATH}.`,
+    findings.length === 0
+      ? "AI-reachable child capabilities meet the current executable-strength minimum without emitting support inventory."
+      : `Child capability strength support inventory written to ${INVENTORY_RELATIVE_PATH}.`,
   )];
 
   await writeChildCapabilityStrengthReports({ entries: inventory.entries, findings, phases });

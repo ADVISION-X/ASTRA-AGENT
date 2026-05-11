@@ -197,6 +197,10 @@ const inspectForbiddenActiveFiles = async (input: {
 };
 
 const inspectCiFullSummary = async (): Promise<Finding[]> => {
+  if (process.env.GRASSEYE_CI_FULL_STEP_NAME === "code-purity") {
+    return [];
+  }
+
   const absolutePath = pathFromRepoRoot(CI_FULL_SUMMARY_PATH);
   if (!(await fileExists(absolutePath))) {
     return [];

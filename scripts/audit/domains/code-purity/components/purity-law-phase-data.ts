@@ -1,6 +1,7 @@
 import type { PurityPhaseSummary } from "./purity-types.js";
 
 export const CODE_PURITY_LAW_IDS = [
+  "GRASSEYE-QUALITY-GATE-SIMPLE-GUARDRAIL-V1",
   "GRASSEYE-CODE-PURITY-001-V1",
   "GRASSEYE-CODE-PURITY-002-V1",
   "GRASSEYE-CODE-PURITY-003-V1",
@@ -21,6 +22,12 @@ export const CODE_PURITY_LAW_IDS = [
 ] as const;
 
 export const LAW_PHASE_SUMMARIES: PurityPhaseSummary[] = [
+  {
+    lawId: "GRASSEYE-QUALITY-GATE-SIMPLE-GUARDRAIL-V1",
+    name: "quality-gate-simple-guardrail",
+    okSummary: "Quality inspection stays small, blocking, and mainline-protective.",
+    failedSummary: "Quality inspection still behaves like a second runtime, architecture model, or report universe.",
+  },
   {
     lawId: "GRASSEYE-CODE-PURITY-001-V1",
     name: "file-size-limits",
@@ -79,7 +86,7 @@ export const LAW_PHASE_SUMMARIES: PurityPhaseSummary[] = [
     lawId: "GRASSEYE-CODE-PURITY-010-V1",
     name: "disaster-file-queue",
     okSummary: "Disaster files are identified and queued for physical split.",
-    failedSummary: "Disaster files still exist without blocking inventory or remediation queue evidence.",
+    failedSummary: "Disaster files still exist without a blocking finding and concrete split direction.",
   },
   {
     lawId: "GRASSEYE-CODE-PURITY-011-V1",
@@ -95,9 +102,9 @@ export const LAW_PHASE_SUMMARIES: PurityPhaseSummary[] = [
   },
   {
     lawId: "GRASSEYE-CODE-PURITY-013-V1",
-    name: "inventory-output",
-    okSummary: "Code-purity writes actionable inventories and split plans.",
-    failedSummary: "Code-purity did not produce the required inventories, remediation queue, or split plan.",
+    name: "support-evidence-output",
+    okSummary: "Code-purity emits minimal violation-driven support evidence when needed.",
+    failedSummary: "Code-purity still depends on default inventories or non-actionable report output.",
   },
   {
     lawId: "GRASSEYE-CODE-PURITY-014-V1",

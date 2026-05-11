@@ -117,7 +117,7 @@ export function resolveScreenshotRetentionClass(childCapabilityId: ScreenshotChi
   }
 }
 
-export function isTransientScreenshotRetentionClass(retentionClass: ScreenshotRetentionClass): boolean {
+function isTransientScreenshotRetentionClass(retentionClass: ScreenshotRetentionClass): boolean {
   return TRANSIENT_RETENTION_CLASSES.has(retentionClass);
 }
 

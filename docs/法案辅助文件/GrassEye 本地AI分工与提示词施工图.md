@@ -115,17 +115,25 @@ vision.productPresence
 
 ## 4. AI TaskType 与 Local Runtime Task 的映射
 
-Public AI taskType：
+Public AI taskType（当前最终口径）：
 
 ```txt
-product_presence_judgment
-visual_observation
-visual_target_candidate_analysis
-ocr_cleanup
-comment_signal_summary
-product_signal_summary
-evidence_packet_analysis
+visual_mission_judgment
+visual_mission_action_plan
 schema_validation_only
+```
+
+以下历史 taskType 只能作为 local-ai-runtime-adapter 内部 bridge 映射的源端，不得出现在 AI public contract 或 Orchestration / Nerve Bus 中：
+
+```txt
+# 已退役 / 过渡残留，不得成为 AI 主权口径
+# product_presence_judgment    → 已并入 visual_mission_judgment
+# visual_observation           → 已并入 visual_mission_judgment
+# visual_target_candidate_analysis → 已并入 visual_mission_judgment
+# ocr_cleanup                  → 已并入 visual_mission_judgment / local-ocr-ai bridge
+# comment_signal_summary       → 已并入 visual_mission_judgment
+# product_signal_summary       → 已并入 visual_mission_judgment
+# evidence_packet_analysis     → paid-analysis-ai provider_disabled，未来另行解锁
 ```
 
 Local runtime 内部可以存在旧任务名，但只能在 bridge 内映射。

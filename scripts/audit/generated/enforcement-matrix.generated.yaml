@@ -1,4 +1,4 @@
-generatedAt: 2026-05-11T03:02:01.513Z
+generatedAt: 2026-05-11T03:39:37.944Z
 owners:
   - inspectorId: ai-capability-owner
     capabilityDomain: ai-capability
@@ -51,6 +51,7 @@ owners:
       - GRASSEYE-AUDIT-SYSTEM-001-V1
       - GRASSEYE-AUDIT-SYSTEM-002-V1
       - GRASSEYE-AUDIT-SYSTEM-003-V1
+      - GRASSEYE-QUALITY-GATE-SIMPLE-GUARDRAIL-V1
       - GRASSEYE-CODE-PURITY-001-V1
       - GRASSEYE-CODE-PURITY-002-V1
       - GRASSEYE-CODE-PURITY-003-V1
@@ -102,6 +103,7 @@ owners:
     readsLawFiles:
       - .github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md
     readsBlueprintFiles:
+      - "docs/法案辅助文件/GrassEye 简单能力机器总纲施工图.md"
       - "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md"
       - "docs/法案辅助文件/GrassEye 文件路径与阶段目录施工图.md"
       - "docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md"
@@ -179,8 +181,9 @@ owners:
       - .github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md
       - .github/instructions/cursor-rules/grasseye-index.instructions.md
     readsBlueprintFiles:
-      - "docs/法案辅助文件/GrassEye 法案冻结基线.md"
-      - "docs/法案辅助文件/GrassEye_能力组标准包与执法结构统一施工图.md"
+      - "docs/法案辅助文件/GrassEye 简单能力机器总纲施工图.md"
+      - "docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md"
+      - "docs/法案辅助文件/GrassEye Child Capability Strength 子能力强度施工图.md"
   - inspectorId: kernel-owner
     capabilityDomain: kernel
     ownerKind: standalone-audit
@@ -195,6 +198,9 @@ owners:
       - .github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md
     readsBlueprintFiles:
       - "docs/法案辅助文件/GrassEye 法案冻结基线.md"
+      - "docs/法案辅助文件/GrassEye 简单能力机器总纲施工图.md"
+      - "docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md"
+      - "docs/法案辅助文件/GrassEye Child Capability Strength 子能力强度施工图.md"
       - "docs/法案辅助文件/GrassEye Visual Mission Prompt Contract 施工图.md"
   - inspectorId: mouse-click-capability-owner
     capabilityDomain: mouse-click-capability

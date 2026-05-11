@@ -15,8 +15,3 @@ export function createSystemVisualTargetClock(): VisualTargetClockPort {
     },
   };
 }
-
-export function parseVisualTargetIsoTimestamp(isoTimestamp: string): number {
-  const parsed = Date.parse(isoTimestamp);
-  return Number.isFinite(parsed) ? parsed : 0;
-}

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { OpenRequestSchema } from "../schema.js";
+import { OpenRequestSchema } from "../schema-core.js";
 
 const VALID_CHILD_ID_VALUES = ["open-tiktok", "open-facebook", "open-local-workbench"] as const;
 const VALID_PLATFORM_ID_VALUES = ["tiktok-web", "facebook-web", "local-workbench"] as const;

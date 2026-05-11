@@ -9,7 +9,9 @@ const REQUIREMENT_ID_008 = "K02-ROUTE-REQ-008";
 
 const KERNEL_FILE = ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md";
 const INDEX_FILE = ".github/instructions/cursor-rules/grasseye-index.instructions.md";
-const BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye 法案冻结基线.md";
+const BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye 简单能力机器总纲施工图.md";
+const MUSCLE_MEMORY_BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md";
+const CHILD_CAPABILITY_STRENGTH_BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye Child Capability Strength 子能力强度施工图.md";
 const MANIFEST_FILE = "scripts/audit/domains/index/manifest.json";
 const INSPECTOR_ENTRY = "scripts/audit/domains/index/inspector.ts";
 const RUN_INSPECTOR_FILE = "scripts/audit/domains/index/run-inspector.ts";
@@ -27,6 +29,8 @@ export const indexInspectionConstants = {
   KERNEL_FILE,
   INDEX_FILE,
   BLUEPRINT_FILE,
+  MUSCLE_MEMORY_BLUEPRINT_FILE,
+  CHILD_CAPABILITY_STRENGTH_BLUEPRINT_FILE,
   MANIFEST_FILE,
   INSPECTOR_ENTRY,
   RUN_INSPECTOR_FILE,

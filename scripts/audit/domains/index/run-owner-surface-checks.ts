@@ -15,14 +15,15 @@ type IndexManifest = {
 
 const {
   BLUEPRINT_FILE,
+  CHILD_CAPABILITY_STRENGTH_BLUEPRINT_FILE,
   INSPECTOR_ENTRY,
   INDEX_FILE,
   KERNEL_FILE,
   MANIFEST_FILE,
+  MUSCLE_MEMORY_BLUEPRINT_FILE,
   REQUIREMENT_ID_001,
   RUN_INSPECTOR_FILE,
 } = indexInspectionConstants;
-const STANDARD_PACKAGE_BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye_能力组标准包与执法结构统一施工图.md";
 
 const addMissingFileFinding = (findings: Finding[], file: string, message: string): void => {
   findings.push(createFinding({
@@ -68,8 +69,9 @@ const collectManifestFindings = async (): Promise<Finding[]> => {
     ...(manifest.entry === INSPECTOR_ENTRY ? [] : [createManifestFinding("Index manifest entry must point at the index inspector.")]),
     ...collectManifestReadFindings({ values: manifest.readsLawFiles ?? [], expectedPath: KERNEL_FILE, message: "Index manifest must read the kernel routing law file." }),
     ...collectManifestReadFindings({ values: manifest.readsLawFiles ?? [], expectedPath: INDEX_FILE, message: "Index manifest must read the index routing law file." }),
-    ...collectManifestReadFindings({ values: manifest.readsBlueprintFiles ?? [], expectedPath: BLUEPRINT_FILE, message: "Index manifest must read the frozen baseline blueprint file." }),
-    ...collectManifestReadFindings({ values: manifest.readsBlueprintFiles ?? [], expectedPath: STANDARD_PACKAGE_BLUEPRINT_FILE, message: "Index manifest must read the standard package blueprint file." }),
+    ...collectManifestReadFindings({ values: manifest.readsBlueprintFiles ?? [], expectedPath: BLUEPRINT_FILE, message: "Index manifest must read the simple capability-machine blueprint file." }),
+    ...collectManifestReadFindings({ values: manifest.readsBlueprintFiles ?? [], expectedPath: MUSCLE_MEMORY_BLUEPRINT_FILE, message: "Index manifest must read the MuscleMemory capability-registry blueprint file." }),
+    ...collectManifestReadFindings({ values: manifest.readsBlueprintFiles ?? [], expectedPath: CHILD_CAPABILITY_STRENGTH_BLUEPRINT_FILE, message: "Index manifest must read the child-capability-strength blueprint file." }),
   ];
 };
 

@@ -113,7 +113,7 @@ async function loadAiExternalProviderConfig(dataDir: string): Promise<AiExternal
   return AiExternalProviderConfigSchema.parse(JSON.parse(content));
 }
 
-export async function saveAiExternalProviderConfig(
+async function saveAiExternalProviderConfig(
   dataDir: string,
   input: {
     displayName?: string | null;

@@ -29,11 +29,6 @@ export type ScreenshotChildRegistryEntry = {
   coordinateSpacePolicy: ScreenshotCoordinateSpace | "derived";
 };
 
-export type ScreenshotClockSnapshot = {
-  startedAt: string;
-  startedMonotonicMs: number;
-};
-
 export type ScreenshotExecutionPlan =
   | {
       kind: "capture";

@@ -1,2 +1,2 @@
 export { buildForensicsBrowseLedgerInput } from "./workbench-forensics-finalization-browse-ledger.js";
-export { buildForensicsEvidencePacketInput } from "./workbench-forensics-finalization-evidence-packet.js";
+export { buildForensicsEvidencePacketInput } from "./workbench-forensics-finalization-evidence-packet-builder.js";

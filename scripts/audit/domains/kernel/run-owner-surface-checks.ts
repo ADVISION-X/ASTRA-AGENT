@@ -15,9 +15,11 @@ type KernelManifest = {
 
 const {
   BLUEPRINT_FILE,
+  CHILD_CAPABILITY_STRENGTH_BLUEPRINT_FILE,
   INSPECTOR_ENTRY,
   KERNEL_FILE,
   MANIFEST_FILE,
+  MUSCLE_MEMORY_BLUEPRINT_FILE,
   PROMPT_CONTRACT_GOVERNANCE_BLUEPRINT_FILE,
   REQUIREMENT_ID_001,
   RUN_INSPECTOR_FILE,
@@ -71,6 +73,8 @@ const collectManifestFindings = async (): Promise<Finding[]> => {
     ...(manifest.entry === INSPECTOR_ENTRY ? [] : [createManifestFinding("Kernel manifest entry must point at the kernel inspector.")]),
     ...collectManifestReadFindings({ values: manifest.readsLawFiles ?? [], expectedPath: KERNEL_FILE, message: "Kernel manifest must read the kernel law file." }),
     ...collectManifestReadFindings({ values: manifest.readsBlueprintFiles ?? [], expectedPath: BLUEPRINT_FILE, message: "Kernel manifest must read the frozen baseline blueprint." }),
+    ...collectManifestReadFindings({ values: manifest.readsBlueprintFiles ?? [], expectedPath: MUSCLE_MEMORY_BLUEPRINT_FILE, message: "Kernel manifest must read the MuscleMemory capability-registry blueprint." }),
+    ...collectManifestReadFindings({ values: manifest.readsBlueprintFiles ?? [], expectedPath: CHILD_CAPABILITY_STRENGTH_BLUEPRINT_FILE, message: "Kernel manifest must read the child-capability-strength blueprint." }),
     ...collectManifestReadFindings({ values: manifest.readsBlueprintFiles ?? [], expectedPath: PROMPT_CONTRACT_GOVERNANCE_BLUEPRINT_FILE, message: "Kernel manifest must read the prompt contract governance blueprint." }),
   ];
 };

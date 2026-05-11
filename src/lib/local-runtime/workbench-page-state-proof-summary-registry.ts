@@ -2,7 +2,7 @@ import type { WorkbenchAbilityExecutionResult } from "./workbench-contract.js";
 
 type JsonObject = Record<string, unknown>;
 
-export type WorkbenchPageStateProofSummary = {
+type WorkbenchPageStateProofSummary = {
   outputRef: string;
   pageStateProofRef: string;
   pageStateChildCapabilityId: string;
@@ -175,7 +175,7 @@ export function recordPageStateProofSummary(input: {
 
 export function resolvePageStateProofSummary(
   ref: string | null | undefined,
-): WorkbenchPageStateProofSummary | null {
+) {
   if (!ref) {
     return null;
   }

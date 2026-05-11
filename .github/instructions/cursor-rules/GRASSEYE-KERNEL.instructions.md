@@ -17,7 +17,7 @@ applyTo: ".github/instructions/cursor-rules/**"
 
 ## Fixed Formula
 
-- GrassEye = Ability Groups + Child Abilities + Commander Console + Orchestration + Nerve Bus + User Requirement + Platform Registry + MuscleMemoryCatalog + AI Prompt Contracts + Debug owner evidence + Forensics Persistence.
+- GrassEye = User Requirement + Platform Registry + MuscleMemoryCatalog + AI + Orchestration + Nerve Bus + Capability Groups + Forensics Persistence + Commander Console.
 - MuscleMemoryCatalog = the governed capability registry.
 - It is not a workflow library.
 - It is not a package library.
@@ -27,8 +27,10 @@ applyTo: ".github/instructions/cursor-rules/**"
 - Child Abilities = the smallest governed atomic actions owned by one parent capability group.
 - AI = the reasoning brain that composes registered atomic abilities from user requirement and current visual evidence.
 - System = the governed validator, ref injector, geometry resolver, dispatcher, and evidence recorder; it does not replace AI business judgment.
+- Prompt contracts are governed AI support contracts, not new owners.
+- Support evidence surfaces may observe, package, or verify machine-side context, but they do not replace AI semantic judgment and do not become permanent top-level authority by default.
 - Startup Entrypoint is a support boundary that bootstraps the local shell; it is not an ability group, not Commander Console, and not mission truth.
-- Ability groups are the only allowed top-level execution owners.
+- Only capability groups that expose governed atomic child abilities are allowed top-level execution owners.
 - Child abilities exist only inside one parent ability group.
 - Prompt contracts are governed data contracts owned by AI Capability and assembled from User Requirement, Platform Registry, and MuscleMemoryCatalog context; they are not new ability groups and must not execute actions.
 - Support laws may define shell, storage, logging, topology, privacy, localization, and audit boundaries, but they must not create a second runtime chain.
@@ -38,7 +40,7 @@ applyTo: ".github/instructions/cursor-rules/**"
 - Muscle Memory = governed capability registry.
 - Capability Group = owner department of one class of executable abilities.
 - Child Ability = smallest atomic executable action that cannot be further split without changing execution truth.
-- AI = composes registered abilities only; it must not invent abilities or output raw coordinates.
+- AI = composes registered abilities only from current evidence and the capability registry; it must not invent abilities or output raw coordinates.
 - System = validates registry compliance, injects system refs, resolves gridCell through Geometry Guard, dispatches owning capability groups, and records evidence.
 
 ## Current Runtime Mission Loop
@@ -65,8 +67,9 @@ Authority split:
 - Page State / Visual Target / Post-action Verification = support evidence only, not semantic authority.
 
 Current narrative authority:
-- .github/instructions/cursor-rules/**
-- docs/法案辅助文件/GrassEye 第五阶段高级AI地图生成与WEB本地程序打通施工图.md
+- docs/法案辅助文件/GrassEye 简单能力机器总纲施工图.md
+- docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md
+- docs/法案辅助文件/GrassEye Child Capability Strength 子能力强度施工图.md
 
 Retired runtime references:
 - docs/项目方案/GrassEye_视觉裁判_故事情节.md is historical narrative reference only and must not define current MuscleMemoryCatalog or atomic-child-capability truth.
@@ -87,19 +90,26 @@ One issue has one active owner plus any directly governing shared foundation.
 
 ## Active Ability Groups
 
+Current implementation inventory of top-level roots:
+- The current 14 roots remain the implementation inventory, but they are not equal semantic authority.
+- Support and transition evidence surfaces must be folded or retired when they stop providing independent atomic child abilities.
+
+Core ability providers and control owners:
 - commander-console
 - orchestration
 - nerve-bus
 - ai
 - open
 - screenshot
-- visual-target
 - geometry-guard
 - mouse-click
 - text-input
 - mouse-scroll
-- post-action-verification
 - forensics-persistence
+
+Support / transition evidence surfaces:
+- visual-target
+- post-action-verification
 - page-state
 
 ## Foundation Laws
@@ -112,8 +122,6 @@ One issue has one active owner plus any directly governing shared foundation.
 
 ## Support Governance Domains
 
-- none
-
 ## Local Development Tooling
 
 ## Global Red Lines
@@ -124,7 +132,7 @@ One issue has one active owner plus any directly governing shared foundation.
 - Do not keep src/features/local-data or src/features/platform-action as active runtime roots after capability-group cutover.
 - Do not let local-data own evidence, ledger, AI-result, snapshot, or operator-snapshot truth.
 - Do not let platform-action own open, screenshot, visual target, geometry, click, scroll, page-state, or post-action verification truth.
-- Do not treat verify scripts, ad-hoc quality scripts, or test files as enforcement truth.
+- Do not treat verify scripts, ad-hoc quality scripts, generated matrices/summaries, or test files as architecture or enforcement truth.
 - Do not silently fall back to cloud AI, remote automation, DOM scraping, selector action paths, or hidden compatibility bridges.
 
 ## Canonical Paths
@@ -143,7 +151,7 @@ One issue has one active owner plus any directly governing shared foundation.
 
 ## Core Fingerprint Index
 
-- This is the core routing index, not a full inventory of every support file, child boundary, local runtime helper, or generated audit object. Full coverage belongs to the generated audit matrix and domain inspectors.
+- This is the core routing index, not a full inventory of every support file, child boundary, local runtime helper, or generated audit object. Generated artifacts may support inspection, but no generated artifact outranks laws, blueprints, or owner inspectors.
 
 - kernel: GRASSEYE-KERNEL.instructions.md
 - router: grasseye-index.instructions.md

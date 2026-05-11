@@ -92,21 +92,3 @@ export async function resetLocalStoreRecord(ctx: EvidenceStoreMaintenanceContext
   await rm(ctx.artifactsDir, { recursive: true, force: true });
   await ctx.init();
 }
-
-export type OperatorSnapshotRecord = {
-  taskRuns: TaskRun[];
-  agentRounds: AgentRound[];
-  actionLogs: ActionLog[];
-  structuredRuntimeEvents: StructuredRuntimeEvent[];
-  structuredActionLogs: StructuredActionLog[];
-  candidates: ProductOpportunityCandidate[];
-  videoEvidence: PersistedState["videoEvidence"];
-  commentEvidence: PersistedState["commentEvidence"];
-  aiResults: StoredAiResult[];
-  ocrResults: PersistedState["ocrResults"];
-  evidencePackets: ProductDiscoveryEvidencePacket[];
-  browseLedgerEntries: PersistedState["browseLedgerEntries"];
-  roundLifecycleEvents: PersistedState["roundLifecycleEvents"];
-  roundStructuralLogs: PersistedState["roundStructuralLogs"];
-  advancedAiExports: PersistedState["advancedAiExports"];
-};

@@ -28,7 +28,7 @@ Index only locates the narrowest current authority.
 
 - Load GRASSEYE-KERNEL before any module match.
 - Load module-capability-group-governance when the task defines ability groups, child abilities, MuscleMemoryCatalog as a capability registry, atomic child-capability rules, semantic/package retirement, shared contracts, currentStrength, forbiddenResponsibilities, or debug owner evidence.
-- Index may route only to the 14 active ability groups and foundation laws.
+- Index may route only to the current execution owners, support evidence surfaces, and foundation laws declared by Kernel.
 - Match the narrowest domain by path and task keywords.
 - Deleted historical owner names may appear only as remap triggers to a current owner; they must never route to absent modules.
 - Do not activate absent historical paths.
@@ -39,7 +39,9 @@ Support-governance domains:
 - none.
 
 Current narrative authority:
-- docs/法案辅助文件/GrassEye 第五阶段高级AI地图生成与WEB本地程序打通施工图.md
+- docs/法案辅助文件/GrassEye 简单能力机器总纲施工图.md
+- docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md
+- docs/法案辅助文件/GrassEye Child Capability Strength 子能力强度施工图.md
 
 Retired references:
 - docs/项目方案/GrassEye_视觉裁判_故事情节.md is historical narrative reference only and must not route current capability-registry or atomic-child-capability decisions.
@@ -61,7 +63,7 @@ Local development tooling:
 | orchestration ability group, mission state, mission command execution, step state, branch, runtime loop, observe, classify, act, record, orchestrator, validate capability sequence, inject refs, dispatch registry entry | module-orchestration-capability.instructions.md | Active mission-flow vocabulary routes to Orchestration only when it does not revive retired map-system ownership or business-package ownership |
 | retired map-system vocabulary, retired route identifiers, retired branch tokens, retired selection identifiers, retired activation refs, retired package-governance chain, retired prompt-binding chain, retired authoring prompt chain | module-code-purity.instructions.md | Retired map-system vocabulary routes to physical cleanup and owner cutover first; it must never route back into active runtime ownership |
 | nerve bus, command transport, command envelope, result envelope, ai request envelope, ai response envelope, transfer proof, channel routing | module-nerve-bus-capability.instructions.md | Governed transport authority only |
-| ai ability group, first AI question, product presence judgment, comments OCR, intent analysis, pain point, complaint signal, opportunity synthesis, product signal, score, local model, prompt registry, prompt contract, prompt content, output schema ref, ability manual, compose registered capabilities | module-ai-capability.instructions.md | AI owns judgment and registry-backed capability composition; load Forensics or Commander only when persistence or review is the real boundary |
+| ai ability group, first AI question, visual mission judge, visual mission action plan, current page meaning, blocker judgment, target identity, prompt registry, prompt contract, prompt content, output schema ref, ability manual, compose registered capabilities, local model, OCR provider, provider routing | module-ai-capability.instructions.md | AI owns judgment and registry-backed capability composition; load Forensics or Commander only when persistence or review is the real boundary |
 | src/capabilities/open, open ability group, open capability, open-tiktok, open-facebook, open-local-workbench, open result, capability-check, open proof | module-open-capability.instructions.md | Open capability authority only |
 | src/capabilities/screenshot, screenshot ability group, screenshot capability, imageKind, coordinateSpace, scaleMapping, ai_input, evidence_original, evidence_optimized, capture-region, optimize-lossless, prepare-ai-input | module-screenshot-capability.instructions.md | Screenshot capability authority only |
 | visual target, target bbox, target confidence, target catalog, candidate selection, clickPoint | module-visual-target-capability.instructions.md | Visual target authority only |
@@ -69,8 +71,8 @@ Local development tooling:
 | src/capabilities/mouse-click, mouse click, click capability, primitive click, browser click, screen click | module-mouse-click-capability.instructions.md | Mouse click primitive authority only |
 | src/capabilities/text-input, text input, type text, paste text, clear input, replace input, press key, commit input, keyboard input, input target | module-text-input-capability.instructions.md | Text input write authority only |
 | src/capabilities/mouse-scroll, mouse scroll ability group, scroll capability, wheel scroll, scroll magnitude, region-wheel-scroll, browser-viewport-scroll, desktop-screen-scroll | module-mouse-scroll-capability.instructions.md | Mouse scroll capability authority only |
-| post-action verification, action result verification, verification decision, result proof, after-click verification, after-scroll verification | module-post-action-verification-capability.instructions.md | Verification truth only |
-| page state, page readiness, login wall, modal overlay, platform page kind, comment panel state, safety page | module-page-state-capability.instructions.md | Page-state truth only |
+| post-action verification, action result verification, verification packaging, result proof, after-click verification, after-scroll verification | module-post-action-verification-capability.instructions.md | Observation packaging and proof packaging only |
+| page state, page observation, login wall observation, modal overlay observation, platform page kind observation, comment panel state observation, safety page observation | module-page-state-capability.instructions.md | Page-state observation packaging only |
 | multi-frame evidence, contact sheet, sample video frames, frame_3s, frame_6s, frame_10s, validFrameCount, samplingStrategy | module-screenshot-capability.instructions.md | Shared multi-frame packaging now starts from Screenshot and continues through AI and Forensics |
 | evidence packet, browse ledger, failed record, runtime snapshot, forensics handoff, record envelope, record ref, artifact ref, packet schema, operator snapshot, review record | module-forensics-persistence-capability.instructions.md | Forensics record ownership only |
 | platform profile, platform metadata, rate limit, adapter hint, view hint, identity rules, URL rules | module-open-capability.instructions.md | Platform profile and hints now route through Open capability as a sub-contract |
@@ -86,7 +88,7 @@ Local development tooling:
 | src/types, strict mode, unknown, schema validation, action payload, no any | module-type-safety.instructions.md | Type boundary only |
 | src/lib/local-ai, local model, local AI, model router, prompt registry, prompt version, AI output schema, paid API, cloud AI fallback, model config, local model config, model role, vision model, OCR engine, model provider, ollama, llama.cpp, PaddleOCR, Apple Vision | module-ai-capability.instructions.md | Local model runtime now routes through AI capability as a child sub-contract |
 | test file, tests directory, npm test, mock gate, quality gate authority | module-audit-system.instructions.md | Audit authority over quality gates only |
-| scripts/audit, owner boundary, report format, generated artifacts, inspector, enforcement | module-audit-system.instructions.md | Audit governance only |
+| scripts/audit, owner boundary, report format, generated artifacts, inspector, enforcement | module-audit-system.instructions.md | Audit governance only; generated artifacts are support evidence, not authority truth |
 
 ---
 

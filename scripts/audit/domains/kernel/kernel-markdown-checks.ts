@@ -115,3 +115,35 @@ export const collectExactListFindings = (input: {
         message: `${input.driftMessage} Details: ${details.join("; ")}`,
       })];
 };
+
+/**
+ * Checks that all expected items appear somewhere in the section list.
+ * Unlike collectExactListFindings, extra items in the section are allowed.
+ * Use this when the section may contain governance context items alongside the required entries.
+ */
+const collectContainsAllListFindings = (input: {
+  requirementId: string;
+  file: string;
+  heading: string;
+  sections: Map<string, MarkdownSection>;
+  expected: readonly string[];
+  missingMessage: string;
+  driftMessage: string;
+}): Finding[] => {
+  const section = input.sections.get(input.heading);
+  if (!section) {
+    return [createFinding({ lawId: input.requirementId, file: input.file, line: 1, severity: "fatal", message: input.missingMessage })];
+  }
+
+  const actual = new Set(collectSectionListItems(section).map((item) => item.value));
+  const missing = input.expected.filter((item) => !actual.has(item));
+  return missing.length === 0
+    ? []
+    : [createFinding({
+        lawId: input.requirementId,
+        file: input.file,
+        line: section.line,
+        severity: "fatal",
+        message: `${input.driftMessage} Missing: ${missing.join(", ")}`,
+      })];
+};

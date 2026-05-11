@@ -14,9 +14,9 @@ Boundary: this module governs AI ownership only. It does not own legacy navigati
 
 Authority: this file is the single authoritative AI Capability Phase 3.5 baseline. Any older blueprint, generated artifact, inspector, implementation path, or working-tree rule that conflicts with this file is invalid until updated to match this file.
 
-Current architecture: Static Capability Package Architecture.
+Current architecture: Static Capability Registry Architecture.
 
-Future architecture: Pluggable Capability Architecture. Future plugin capability architecture must not be implemented by this module unless a later explicit phase gate authorizes it.
+Future architecture: Pluggable Capability Registry Architecture. Future plugin capability architecture must not be implemented by this module unless a later explicit phase gate authorizes it.
 
 Core doctrine:
 - AI is the brain, not the emperor.
@@ -25,7 +25,7 @@ Core doctrine:
 - AI reasons; it does not act.
 - AI is the only owner of visual, page, blocker, readiness, target-identity, comment-understanding, product/business, and governed action-plan interpretation.
 - Prompt Contract Registry is the single prompt truth.
-- Startup page-preparation judgment belongs to AI Prompt Contract execution, not Page State or runtime heuristics.
+- Startup must not create a separate mandatory AI court; when startup truly needs semantic page judgment, it may reuse the same governed AI prompt-contract discipline as ordinary mission judgment.
 - Prompt Contracts drive AI reasoning inputs and governed output schemas; retired package chains and retired deterministic flows do not own prompt truth.
 - Orchestration controls flow; AI does not advance steps.
 - Nerve Bus transports requests; AI does not dispatch Nerve Bus envelopes.
@@ -91,10 +91,10 @@ input schema gate
 No child implementation may bypass this pipeline.
 
 Startup doctrine:
-- AI must own the startup page-preparation judgment that decides whether the entry spine may continue.
-- The governed startup preparation prompt must return one governed decision plus optional governed action codes and reason fields for logging and execution handoff.
-- Non-AI code must not substitute login, safety, captcha, or feed-ready heuristics for that startup judgment.
-- Startup visual/page checks must use one governed evidence bundle from screenshot/raw runtime refs and one AI Prompt Contract judgment. Page State, PAV, Visual Target, Workbench, DOM, URL, hash, or runtime heuristics must not split startup page meaning into pre-AI checks.
+- Startup must not create a separate mandatory page-preparation judgment chain.
+- When startup truly needs semantic page meaning, it may call governed AI using one governed evidence bundle and the same prompt-contract discipline used by ordinary mission rounds.
+- Pure shell/bootstrap/readiness mechanics stay in startup, open, or page-state owners and must not be inflated into AI business-package truth.
+- Non-AI code must not substitute login, safety, captcha, or feed-ready heuristics when a governed semantic startup judgment is actually required.
 
 AI-only interpretation boundary:
 - AI-only judgments include current page correctness, login/captcha/safety/abnormal blockers, feed/video/comment-surface meaning, page readiness, semantic stability, product-seeding judgment, visible UI target identity, comment content/intent, and the governed next-action decision after visual/page/business interpretation.
@@ -326,10 +326,6 @@ Required direction:
 - Public task type set:
   - `visual_mission_judgment`
   - `visual_mission_action_plan`
-  - `ocr_cleanup`
-  - `comment_signal_summary`
-  - `product_signal_summary`
-  - `evidence_packet_analysis`
   - `schema_validation_only`
 - AI owns the routing matrix from taskType to childCapabilityId.
 - Child readiness is inspectable only through governed readiness contract.
@@ -379,7 +375,7 @@ capabilityDomain: ai-capability
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: Visual Mission AI must stay stateless across rounds and consume only system-injected continuity through Round Mission Packet plus current evidence.
+summary: Visual Mission AI must stay stateless across rounds and consume only explicit task-needed continuity plus current evidence.
 
 ### 主题
 
@@ -392,14 +388,16 @@ Visual Mission AI must not rely on prior chat memory, prior AI memory, or implic
 Required:
 - Visual Mission prompt must explicitly state that the model is stateless across rounds.
 - Visual Mission prompt must explicitly instruct the model not to assume memory from previous AI calls.
-- The governed prompt must inject Round Mission Packet plus current screenshot/grid evidence as the only continuity source.
-- Prompt sections for Visual Mission action planning must include Round Mission Packet, Current Visual Evidence, Platform Registry, System Manual, and Output Format.
-- System continuity must arrive through governed refs such as `roundMissionPacketRef`, screenshot refs, grid refs, and platform context refs.
+- System continuity must arrive only through explicit governed refs such as current screenshot refs, grid refs, platform context refs, prior-step refs, Round Mission Packet refs, or an equivalent task-scoped continuity bundle.
+- Independent feed-mining rounds should be judged from current evidence plus stable mission constraints and must not require a universal full continuity packet.
+- Multi-step tasks such as login recovery, open verification, or guarded recovery may carry minimal previous-step context when the current round truly depends on it.
+- Prompt sections for Visual Mission action planning must include Current Visual Evidence, Platform Registry, System Manual, Output Format, and only the explicit continuity bundle actually required by the task.
 
 Forbidden:
 - relying on prior chat memory as mission continuity truth.
 - inventing continuity from previous AI calls when the current round input does not carry it.
-- replacing Round Mission Packet continuity with free-form prompt prose only.
+- replacing explicit governed continuity with free-form prompt prose only.
+- treating full Round Mission Packet injection as a universal mandatory default for every AI round regardless of task shape.
 - asking the human to replay ordinary round history because the system failed to inject governed continuity.
 
 ---
@@ -575,7 +573,7 @@ Paid and future API AI providers may exist only as named child capabilities unde
 Required direction:
 - `paid-vision-ai`, `paid-analysis-ai`, and `future-api-ai` may exist only as explicit children under `src/capabilities/ai/children`.
 - `paid-vision-ai` and `future-api-ai` default policy is `disabled_by_policy`.
-- `paid-analysis-ai` may be `policy_guarded` only for explicitly operator-approved external analysis tasks such as `evidence_packet_analysis`.
+- `paid-analysis-ai` may be `policy_guarded` only for explicitly operator-approved external analysis tasks that are separately governed and cannot be satisfied by the local AI path.
 - Paid providers require:
   - `allowPaidProvider = true`
   - explicit provider allowlist

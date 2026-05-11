@@ -12,7 +12,7 @@ Boundary: this module governs only mission flow. It does not own retired package
 
 Authority: this file is authoritative only for the orchestration-capability domain.
 
-Architecture phase: Static Capability Package Architecture.
+Architecture phase: Static Capability Registry Architecture.
 
 Core doctrine:
 - Orchestration is the commander of mission flow, not the human console.
@@ -21,6 +21,7 @@ Core doctrine:
 - Orchestration consumes AI decisions and registry-backed governed action plans; it does not revive retired deterministic flows, retired branch tokens, retired selection choices, retired binding states, or business-process packages.
 - Current transport may serialize registry references as `actions[].actionCode`, but Orchestration must treat those values as registry entries, not workflow/package truth.
 - Orchestration dispatches only through Nerve Bus or the owning ability-group public contract.
+- Round continuity is explicit and task-scoped; it must not default to a universal heavy packet or a second semantic court.
 - Orchestration must never build raw prompts.
 - Orchestration must never infer page meaning, product meaning, or target meaning outside AI-owned contracts.
 - Orchestration must never silently default platform or mission truth.
@@ -87,7 +88,7 @@ resume-mission
 stop-mission
 emergency-stop
 dispatch-governed-action
-evaluate-round-transition
+evaluate-round-transition (transitional internal name only; it must remain a declared round-output evaluation helper, not a second semantic court)
 finalize-mission
 ```
 
@@ -229,8 +230,9 @@ Orchestration must execute the governed mission loop as one bounded round at a t
 
 Required:
 - AI vision step must consume governed screenshot evidence or visual-mission bundle produced before the AI call.
-- Transition evaluation must consume only declared output schema fields.
+- Round output evaluation must consume only declared output schema fields.
 - Orchestration may branch on governed decision, status, riskFlags, and actions[].required only when declared by the output schema.
+- Independent feed-mining rounds may move directly from the current AI decision and declared action refs to governed dispatch; they must not create a second transition-meaning layer.
 - Loop guard must enforce maxRounds, maxMinutes, and maxStepCount.
 - Emergency-stop must short-circuit loop and latch state.
 - Evidence output must route to Forensics Persistence through governed request.
@@ -241,7 +243,7 @@ FORBIDDEN:
 - branch decision reading undeclared payload fields.
 - branch decision over raw natural-language reasoning.
 - retired branch-token field-driven branch restoration.
-- hidden next-step logic outside transition evaluation.
+- hidden next-step logic outside declared round output evaluation.
 - while true mission loop without loop guard.
 - loop continues after emergency stop.
 - runtime silently continuing after `review_required`.
@@ -274,7 +276,7 @@ Required:
 - mouse-scroll must require governed executable geometry before primitive execution.
 - text-input must require approved text and verified input target before primitive execution.
 - Open, Screenshot, Visual Target, Geometry Guard, Mouse Click, Mouse Scroll, Text Input, and Forensics must be called only through their public contracts.
-- Post-action observation packaging may run when the action policy requires it, but it must not replace the next AI round as semantic truth.
+- Post-action observation packaging may run when the action policy requires it, but it must remain optional, task-scoped, and subordinate to the next AI round as semantic truth.
 - `STOP_REVIEW_REQUIRED` is a valid actionCode stop path, not a forbidden action command.
 
 ### 禁止
@@ -282,7 +284,8 @@ Required:
 FORBIDDEN:
 - direct primitive dispatch from Orchestration.
 - action scheduling through retired deterministic flows, retired branch tokens, or retired selection choices.
-- universal mandatory PAV after every real external action.
+- treating PAV as a universal mandatory gate for every real external action.
+- turning PAV into a global second semantic judgment chain for otherwise independent rounds.
 - PAV package status replacing the next AI semantic judgment.
 - free-text action instructions bypassing actionCode decoding.
 - implicitly auto-resuming the mission after a review stop without a new Commander command.
@@ -334,7 +337,7 @@ capabilityDomain: orchestration-capability
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: Orchestration must build and inject Round Mission Packet as the only governed continuity artifact before each Visual Mission AI round.
+summary: Orchestration must inject explicit task-needed continuity and may use Round Mission Packet when the next AI round truly depends on prior-step context.
 
 ### 主题
 
@@ -342,18 +345,19 @@ Round Mission Packet 连续性主权
 
 ### 法条
 
-Before each Visual Mission AI request, Orchestration must materialize Round Mission Packet as the governed continuity artifact for the next round.
+Before a Visual Mission AI request that depends on prior-step context, Orchestration must inject explicit governed continuity for the next round.
 
 Required:
-- Orchestration builds Round Mission Packet before the AI request leaves Orchestration.
-- Orchestration records a governed `roundMissionPacketRef` before dispatch.
-- AI dispatch input includes `roundMissionPacketJson` or an equivalent governed Round Mission Packet payload plus `roundMissionPacketRef`.
-- Round Mission Packet carries mission truth, round truth, current evidence, governed constraints, and governed allowed-action catalog continuity.
-- Round Mission Packet constraints must preserve no-human-in-loop, no-raw-coordinates, and coordinate-grid-required truth.
+- Orchestration must inject explicit continuity before dispatch when the next AI round depends on prior-step state, carried constraints, or recovery context.
+- Independent feed-mining rounds may proceed from current evidence plus stable mission constraints without a universal full continuity packet.
+- When Orchestration uses Round Mission Packet, it must record a governed `roundMissionPacketRef` before dispatch.
+- AI dispatch input may include `roundMissionPacketJson` or an equivalent governed continuity payload plus the relevant continuity ref.
+- Any continuity payload must preserve no-human-in-loop, no-raw-coordinates, and coordinate-grid-required truth.
 
 Forbidden:
-- reconstructing round continuity from raw prompt text without Round Mission Packet refs.
-- sending a Visual Mission AI round without current Round Mission Packet injection.
+- reconstructing round continuity from raw prompt text without governed continuity refs.
+- omitting required governed continuity when the next round truly depends on prior-step state.
+- treating full Round Mission Packet injection as a universal mandatory default when the current round is independent.
 - letting AI infer continuity from previous rounds when the packet was not injected.
 
 ---
@@ -475,5 +479,6 @@ The Orchestration law is ready only when all of the following are true:
 2. Mission start truth is userRequirementText plus selectedPlatforms, not map identity.
 3. AI dispatch truth is promptContractId/outputSchemaRef from governed visual-mission context, not from maps.
 4. Action scheduling truth is registry-backed capability decoding; current `actions[].actionCode` transport must resolve to registry entries, not business-flow packages.
-5. Real external actions are not universally gated by mandatory PAV.
+5. Real external actions are not universally gated by mandatory PAV, and PAV does not become a second semantic judgment chain.
 6. Proof and state keep mission/run/round/step/action refs without retired map fields.
+7. Round continuity is explicit and task-dependent; there is no universal full Round Mission Packet default.

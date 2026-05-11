@@ -1,6 +1,13 @@
 # GrassEye 第五阶段高级AI视觉任务与WEB本地程序打通施工图
 
-status: active / current delivery authority under phase-five final-delivery debugging.
+status: future-draft / inactive
+
+> 本施工图为历史过渡文档，不再是 current narrative authority。
+> 当前最高叙事权威已移交：
+> - docs/法案辅助文件/GrassEye 简单能力机器总纲施工图.md
+> - docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md
+> - docs/法案辅助文件/GrassEye Child Capability Strength 子能力强度施工图.md
+> 本文档仅作历史参考，不得用于驱动当前系统治理或质检决策。
 
 ## 1. 施工边界
 

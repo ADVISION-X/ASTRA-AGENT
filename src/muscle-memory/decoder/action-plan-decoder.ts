@@ -289,4 +289,4 @@ export function decodeVisualMissionActionPlan(input: {
   };
 }
 
-export type { ExecutionAction, ExecutionPlan };
+export type { ExecutionPlan };

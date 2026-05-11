@@ -85,8 +85,6 @@ export {
 };
 
 export type {
-  FailurePolicy,
-  MuscleMemoryInputContract,
   AtomicMuscleMemoryEntry,
   CompositeMuscleMemoryStep,
   CompositeMuscleMemoryEntry,

@@ -166,7 +166,7 @@ function buildGridOverlay(gridSpec: ScreenshotGridSpec): string {
   `;
 }
 
-export async function inspectImage(filePath: string): Promise<ImageMetadata> {
+async function inspectImage(filePath: string): Promise<ImageMetadata> {
   const metadata = await sharp(filePath).metadata();
   if (!metadata.width || !metadata.height) {
     throw new Error(`Unable to read image dimensions for ${filePath}.`);

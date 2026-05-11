@@ -20,7 +20,7 @@ const BLOCKED_OUTCOMES = new Set([
 
 const countWhere = <TItem>(items: TItem[], predicate: (item: TItem) => boolean): number => items.filter(predicate).length;
 
-export function buildBrowseSummary(input: {
+function buildBrowseSummary(input: {
   sessionId: string;
   roundLogs: RoundStructuralLog[];
   evidencePackets: ProductDiscoveryEvidencePacket[];

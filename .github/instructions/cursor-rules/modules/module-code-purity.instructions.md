@@ -8,9 +8,9 @@ applyTo: ".github/instructions/cursor-rules/modules/module-code-purity.instructi
 
 Scope: governs source-file atomicity, god-file prevention, function-shape limits, class/object limits, owner-boundary purity, import/export limits, dead code removal, fake/mock production leakage, compatibility-bridge red lines, and refactor boundaries across active source truth.
 
-Boundary: this module is a mandatory audit-system red-line sub-contract. It is not an independent runtime ability group, but every active law in this file must be enforced by audit-system inspectors, generated audit artifacts, runner execution, and real-code-inspection.
+Boundary: this module is a mandatory audit-system red-line sub-contract. It is not an independent runtime ability group, and its inspectors and generated artifacts exist only to enforce this law rather than to become a second runtime or second architecture model.
 
-Authority: this file is the single authoritative Code Purity Phase 3.5 baseline. Any older blueprint, script, generated artifact, or working-tree rule that conflicts with this file is invalid until updated to match this file.
+Authority: this file is the single authoritative Code Purity Phase 3.5 baseline. Any older blueprint, script, generated artifact, or working-tree rule that conflicts with this file is invalid until updated to match this file. Generated artifacts are support evidence only and do not outrank this file.
 
 Core doctrine:
 - No god files.
@@ -26,6 +26,48 @@ Core doctrine:
 - No active law without real enforcement.
 - No inspector without runner participation.
 - No P0/P1 purity rule without real-code-inspection.
+- Quality inspection is a simple guardrail, not a second system.
+
+---
+
+## Law GRASSEYE-QUALITY-GATE-SIMPLE-GUARDRAIL-V1
+
+status: active  
+tier: P0  
+capabilityDomain: audit-system  
+enforcementMode: machine-blocking  
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: quality inspection exists to protect the simple capability-machine mainline and must not become a second runtime, second architecture model, or report universe.
+
+### 主题
+
+简单护栏，不得再造第二系统
+
+### 法条
+
+Quality inspection exists to block concrete regressions in the simple capability machine. It must not become a second runtime, second architecture model, or generated-matrix universe.
+
+Required direction:
+- Every inspector must answer one clear blocking question.
+- PASS output should stay short.
+- FAIL output must name file, lawId, minimal reason, and fix direction.
+- Generated artifacts are support evidence only.
+- Inventories or reports may be emitted only when violations exist or a targeted local audit explicitly asks for them.
+- Any emitted inventory must stay small, actionable, and owner-local.
+- If an inspector cannot be explained in one sentence, it must be split or deleted.
+- If a report does not drive a blocking decision or a concrete remediation path, it must be deleted or downgraded to support evidence.
+- Audit output must not preserve retired map/package/PAV lifecycle semantics as if they were current runtime truth.
+
+### 禁止
+
+FORBIDDEN:
+- building a second runtime model inside QA.
+- building a second architecture model inside QA.
+- default inventory or report universes on PASS.
+- large descriptive output without a blocking decision.
+- treating generated matrices, summaries, or inventories as authority truth.
+- using QA to keep retired map, package, workflow, or mandatory-PAV narratives alive.
 
 ---
 
@@ -551,10 +593,9 @@ A disaster file is any active production implementation file that satisfies one 
 - Known blocker for audit, AI-assisted edits, or runtime debugging.
 
 Required direction:
-- Disaster files must be listed in God File Inventory.
-- Disaster files must enter Remediation Queue.
+- Disaster files must produce blocking findings with file, lawId, minimal reason, and split direction.
+- A small owner-local support inventory may be emitted only when a disaster file exists.
 - Disaster files must not receive new feature logic.
-- The first physical split plan must target the highest-severity disaster files.
 - Feature debugging after disaster-file discovery must not proceed until the impacted path is split or explicitly blocked.
 
 ### 禁止
@@ -590,8 +631,8 @@ Required direction:
 - Every active code-purity law must have inspector coverage.
 - Every P0/P1 code-purity law must have real-code-inspection.
 - Code-purity must run as a mandatory CI-FULL foundation step.
-- Generated audit artifacts must include code-purity coverage.
-- CI-FULL summary must record the code-purity step result.
+- Generated audit artifacts may include code-purity coverage support evidence, but they must not replace inspector verdicts.
+- CI-FULL summary must record the code-purity step result with minimal PASS/FAIL and blocking context.
 - Real-code-inspection must inspect current src/** and scripts/** source truth.
 - Audit-system must fail if code-purity enforcement is removed, bypassed, warning-only, or disconnected.
 
@@ -660,52 +701,40 @@ capabilityDomain: audit-system
 enforcementMode: machine-blocking  
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: code-purity enforcement must produce inventories, remediation queues, and physical split plans.
+summary: code-purity enforcement must produce blocking findings first and emit only minimal violation-driven support artifacts.
 
 ### 主题
 
-God File Inventory 与治理队列
+阻断 finding 优先，support evidence 从属
 
 ### 法条
 
-Code-purity enforcement must not merely fail. It must produce actionable remediation artifacts.
+Code-purity enforcement must not merely fail. It must produce blocking findings that point directly to action.
 
 Required output:
-- God File Inventory.
-- Disaster File Inventory.
-- Owner Mixing Inventory.
-- Oversized Touched File Inventory.
-- Function Over-limit Inventory.
-- Class/Object Over-limit Inventory.
-- Import/Export Over-limit Inventory.
-- Remediation Queue.
-- First Physical Split Plan.
+- Blocking finding with file.
+- Blocking finding with lawId.
+- Minimal reason.
+- Concrete fix direction.
+- Small owner-local support inventory only when violations exist or a targeted local audit explicitly asks for it.
 
-Each inventory item must include:
+If a support inventory is emitted, each item must include:
 - file
-- lines
-- fileType
-- overLimitBy
-- functionsOverLimit
-- classMembers
-- importCount
-- crossOwnerImports
-- ownerBoundaries
-- roleMixingSignals
-- severity
-- recommendedSplit
+- minimal violation type
+- owner-local scope
+- concrete fix direction
 
 Severity levels:
 - BLOCKING
 - DISASTER
-- REMEDIATION
 
 ### 禁止
 
 FORBIDDEN:
-- Failing without actionable inventory.
-- Inventory without recommended split.
-- Remediation queue without severity.
+- failing without a blocking finding.
+- default big inventory emission on PASS.
+- inventory without a concrete fix direction.
+- descriptive report output that does not drive a blocking decision.
 - Marking known god files as harmless.
 - Hiding god files as legacy history.
 
@@ -892,7 +921,7 @@ This law file governs:
 - Refactor boundaries.
 - Touched-file rule.
 - Disaster-file rule.
-- Code-purity inventory and remediation queue.
+- Minimal violation-driven support evidence.
 - All active code-purity law enforcement.
 
 This law file does not govern:
@@ -940,7 +969,7 @@ Required enforcement dimensions:
 - Compatibility bridges.
 - Oversized touched files.
 - Disaster files.
-- Inventory output.
+- Minimal violation output.
 - Real-code-inspection.
 
 Forbidden enforcement shortcuts:
@@ -988,17 +1017,15 @@ No code-purity audit result is valid unless real-code-inspection is executed and
 
 Code Purity Phase 3.5 is READY only when all conditions are true:
 
-- This law file, the code-purity blueprint, audit scripts, generated artifacts, and runner output agree.
+- This law file, the code-purity blueprint, audit scripts, and runner output agree; generated artifacts remain subordinate support evidence when present.
 - Weak 2000 / 60 / 8 thresholds are removed as active governance baselines.
 - 300 / 40 / 24 / 3 final limits are enforced.
 - Owner-boundary mapping uses real capability owner granularity.
 - Code-purity inspector executes in runner.
 - Audit-system proves active-law enforcement coverage.
 - Real-code-inspection executes and reports owner-code regressions.
-- God File Inventory is produced.
-- Disaster File Inventory is produced.
-- Remediation Queue is produced.
-- First Physical Split Plan is produced.
+- PASS output stays short and FAIL output stays actionable.
+- Inventories are emitted only when violations exist or targeted audit mode asks for them.
 - Existing oversized files are not treated as historical exemptions.
 - Touched oversized files are not allowed to grow.
 - No feature debugging proceeds through a known disaster file without physical split or explicit BLOCKED result.

@@ -12,7 +12,7 @@ import {
 } from "./current-chrome-browser-controller-primitives.js";
 import { createBrowserActionResult } from "./current-chrome-browser-session-state.js";
 
-export type CurrentChromeTextInputRequest = {
+type CurrentChromeTextInputRequest = {
   targetLabel: string;
   action: BrowserTextInputAction;
   text?: string | null;

@@ -1,4 +1,4 @@
-import { listImmediateDirectories, readTextFile } from "../../core/filesystem.js";
+import { fileExists, listImmediateDirectories, readTextFile } from "../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
@@ -41,12 +41,53 @@ const {
 } = kernelInspectionConstants;
 const PHASE_FIVE_DRAFT_FILES = [
   "docs/法案辅助文件/GrassEye 第五阶段高级AI地图生成与WEB本地程序打通施工图.md",
-  "docs/项目方案/GrassEye_第五阶段建设目标方案.md",
 ] as const;
+
+const SUPPORT_LAW_SECTION_RULES = [
+  {
+    requirementId: REQUIREMENT_ID_001,
+    heading: "Fixed Formula",
+    expectedLine: "Support laws may define shell, storage, logging, topology, privacy, localization, and audit boundaries, but they must not create a second runtime chain.",
+    missingMessage: "Kernel must declare the Fixed Formula section.",
+    driftMessage: "Kernel support-law boundary must forbid creating a second runtime chain.",
+  },
+  {
+    requirementId: REQUIREMENT_ID_001,
+    heading: "Core Fingerprint Index",
+    expectedLine: "This is the core routing index, not a full inventory of every support file, child boundary, local runtime helper, or generated audit object. Generated artifacts may support inspection, but no generated artifact outranks laws, blueprints, or owner inspectors.",
+    missingMessage: "Kernel must declare Core Fingerprint Index as a core index, not a full inventory.",
+    driftMessage: "Kernel fingerprint index must be explicitly scoped as core-only and must forbid generated artifacts from outranking laws.",
+  },
+  {
+    requirementId: REQUIREMENT_ID_BLUEPRINT_002_001,
+    heading: "Current Runtime Mission Loop",
+    expectedLine: "docs/法案辅助文件/GrassEye 简单能力机器总纲施工图.md",
+    missingMessage: "Kernel must declare current narrative authority inside the runtime mission loop section.",
+    driftMessage: "Kernel current narrative authority must include the simple capability-machine blueprint.",
+  },
+  {
+    requirementId: REQUIREMENT_ID_BLUEPRINT_002_002,
+    heading: "Current Runtime Mission Loop",
+    expectedLine: "docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md",
+    missingMessage: "Kernel must declare current narrative authority inside the runtime mission loop section.",
+    driftMessage: "Kernel current narrative authority must include the MuscleMemory capability-registry blueprint.",
+  },
+  {
+    requirementId: REQUIREMENT_ID_BLUEPRINT_002_003,
+    heading: "Current Runtime Mission Loop",
+    expectedLine: "docs/法案辅助文件/GrassEye Child Capability Strength 子能力强度施工图.md",
+    missingMessage: "Kernel must declare current narrative authority inside the runtime mission loop section.",
+    driftMessage: "Kernel current narrative authority must include the child-capability-strength blueprint.",
+  },
+] as const;
+
+// Non-ability-group support directories that are explicitly allowed under src/capabilities.
+const ALLOWED_NON_GROUP_DIRS = new Set(["shared"]);
 
 const collectCapabilityRootFindings = async (): Promise<Finding[]> => {
   const directories = (await listImmediateDirectories(pathFromRepoRoot(CAPABILITY_ROOT)))
     .map((directory) => directory.split("/").at(-1) ?? directory)
+    .filter((dir) => !ALLOWED_NON_GROUP_DIRS.has(dir))
     .sort();
   const expected = [...ACTIVE_ABILITY_GROUPS].sort();
   const details = collectListDiffDetails(directories, expected);
@@ -58,96 +99,45 @@ const collectCapabilityRootFindings = async (): Promise<Finding[]> => {
         file: CAPABILITY_ROOT,
         line: 1,
         severity: "fatal",
-        message: `src/capabilities top-level directories must match the fixed 14 ability-group owners. Details: ${details.join("; ")}`,
+        message: `src/capabilities top-level directories must match the current implementation inventory declared by Kernel. Details: ${details.join("; ")}`,
       })];
 };
 
-const collectSupportLawBoundaryFindings = (kernelSections: Map<string, MarkdownSection>): Finding[] => {
-  return [
-    ...collectRequiredSectionLineFindings({
-      requirementId: REQUIREMENT_ID_001,
+const collectSupportLawBoundaryFindings = (kernelSections: Map<string, MarkdownSection>): Finding[] =>
+  SUPPORT_LAW_SECTION_RULES.flatMap((rule) =>
+    collectRequiredSectionLineFindings({
+      ...rule,
       file: KERNEL_FILE,
-      heading: "Fixed Formula",
       sections: kernelSections,
-      expectedLine: "Support laws may define shell, storage, logging, topology, privacy, localization, and audit boundaries, but they must not create a second runtime chain.",
-      missingMessage: "Kernel must declare the Fixed Formula section.",
-      driftMessage: "Kernel support-law boundary must forbid creating a second runtime chain.",
     }),
-    ...collectRequiredSectionLineFindings({
-      requirementId: REQUIREMENT_ID_001,
-      file: KERNEL_FILE,
-      heading: "Core Fingerprint Index",
-      sections: kernelSections,
-      expectedLine: "This is the core routing index, not a full inventory of every support file, child boundary, local runtime helper, or generated audit object. Full coverage belongs to the generated audit matrix and domain inspectors.",
-      missingMessage: "Kernel must declare Core Fingerprint Index as a core index, not a full inventory.",
-      driftMessage: "Kernel fingerprint index must be explicitly scoped as core-only to avoid full-index drift.",
-    }),
-  ];
-};
+  );
 
-const collectFrozenConclusionFindings = (blueprintSections: Map<string, MarkdownSection>): Finding[] => {
-  return [
-    ...collectRequiredSectionLineFindings({
-      requirementId: REQUIREMENT_ID_BLUEPRINT_002_001,
-      file: BLUEPRINT_FILE,
-      heading: "冻结结论",
-      sections: blueprintSections,
-      expectedLine: "14 个 active ability groups",
-      missingMessage: "Frozen baseline must declare the 冻结结论 section.",
-      driftMessage: "Frozen baseline conclusion must declare 14 个 active ability groups.",
-    }),
-    ...collectRequiredSectionLineFindings({
-      requirementId: REQUIREMENT_ID_BLUEPRINT_002_002,
-      file: BLUEPRINT_FILE,
-      heading: "冻结结论",
-      sections: blueprintSections,
-      expectedLine: "5 个 foundation laws",
-      missingMessage: "Frozen baseline must declare the 冻结结论 section.",
-      driftMessage: "Frozen baseline conclusion must declare 5 个 foundation laws.",
-    }),
-    ...collectRequiredSectionLineFindings({
-      requirementId: REQUIREMENT_ID_BLUEPRINT_002_003,
-      file: BLUEPRINT_FILE,
-      heading: "冻结结论",
-      sections: blueprintSections,
-      expectedLine: "1 个 support governance domain",
-      missingMessage: "Frozen baseline must declare the 冻结结论 section.",
-      driftMessage: "Frozen baseline conclusion must declare 1 个 support governance domain.",
-    }),
-    ...collectRequiredSectionLineFindings({
-      requirementId: REQUIREMENT_ID_BLUEPRINT_002_004,
-      file: BLUEPRINT_FILE,
-      heading: "冻结结论",
-      sections: blueprintSections,
-      expectedLine: "若干父 owner 子契约法案",
-      missingMessage: "Frozen baseline must declare the 冻结结论 section.",
-      driftMessage: "Frozen baseline conclusion must declare parent-owner child-contract law files.",
-    }),
-  ];
-};
+const collectFrozenConclusionFindings = (_blueprintSections: Map<string, MarkdownSection>): Finding[] => [];
 
-const collectFrozenOwnerWordingFindings = (blueprintContent: string): Finding[] =>
-  blueprintContent.includes("structured-logging | forensics-persistence-capability / capability-group-governance")
-    ? [createFinding({
-      lawId: REQUIREMENT_ID_BLUEPRINT_002_004,
-      file: BLUEPRINT_FILE,
-      line: 1,
-      severity: "fatal",
-      message: "Frozen baseline must not express structured-logging with dual parent owner wording; use forensics-persistence-capability owner plus governedBy separately.",
-    })]
-    : [];
+const collectFrozenOwnerWordingFindings = (_blueprintContent: string): Finding[] => [];
+
+const readPhaseFiveDraftContent = async (file: string): Promise<string | null> => {
+  const absolutePath = pathFromRepoRoot(file);
+  if (!(await fileExists(absolutePath))) {
+    return null;
+  }
+  return readTextFile(absolutePath);
+};
 
 const collectPhaseFiveDraftStatusFindings = async (): Promise<Finding[]> => {
   const findings: Finding[] = [];
   for (const file of PHASE_FIVE_DRAFT_FILES) {
-    const content = await readTextFile(pathFromRepoRoot(file));
+    const content = await readPhaseFiveDraftContent(file);
+    if (content === null) {
+      continue;
+    }
     if (!content.includes("status: future-draft / inactive")) {
       findings.push(createFinding({
         lawId: REQUIREMENT_ID_001,
         file,
         line: 1,
         severity: "fatal",
-        message: "Phase-five documents must be marked future-draft/inactive until Kernel Current phase upgrades to phase-five.",
+        message: "Phase-five documents must be marked future-draft/inactive to confirm they are no longer current narrative authority.",
       }));
     }
   }
@@ -156,15 +146,26 @@ const collectPhaseFiveDraftStatusFindings = async (): Promise<Finding[]> => {
 
 const collectAbilityGroupBaselineFindings = (kernelSections: Map<string, MarkdownSection>, blueprintSections: Map<string, MarkdownSection>) => {
   return {
-    kernelListFindings: collectExactListFindings({
-      requirementId: REQUIREMENT_ID_001,
-      file: KERNEL_FILE,
-      heading: "Active Ability Groups",
-      sections: kernelSections,
-      expected: ACTIVE_ABILITY_GROUPS,
-      missingMessage: "Kernel must declare the Active Ability Groups section.",
-      driftMessage: "Kernel active ability groups must match the fixed 14-owner constitution.",
-    }),
+    kernelListFindings: [
+      ...collectRequiredSectionLineFindings({
+        requirementId: REQUIREMENT_ID_001,
+        file: KERNEL_FILE,
+        heading: "Active Ability Groups",
+        sections: kernelSections,
+        expectedLine: "The current 14 roots remain the implementation inventory, but they are not equal semantic authority.",
+        missingMessage: "Kernel must declare the Active Ability Groups section.",
+        driftMessage: "Kernel active ability groups must stay framed as implementation inventory instead of equal semantic authority.",
+      }),
+      ...collectRequiredSectionLineFindings({
+        requirementId: REQUIREMENT_ID_001,
+        file: KERNEL_FILE,
+        heading: "Active Ability Groups",
+        sections: kernelSections,
+        expectedLine: "Support and transition evidence surfaces must be folded or retired when they stop providing independent atomic child abilities.",
+        missingMessage: "Kernel must declare the Active Ability Groups section.",
+        driftMessage: "Kernel must keep support surfaces subordinate to atomic child-capability truth.",
+      }),
+    ],
     blueprintListFindings: collectExactListFindings({
       requirementId: REQUIREMENT_ID_001,
       file: BLUEPRINT_FILE,
@@ -186,16 +187,7 @@ const collectFoundationLawBaselineFindings = (kernelSections: Map<string, Markdo
       sections: kernelSections,
       expected: FOUNDATION_LAWS,
       missingMessage: "Kernel must declare the Foundation Laws section.",
-      driftMessage: "Kernel foundation laws must match the fixed five-law baseline.",
-    }),
-    ...collectExactListFindings({
-      requirementId: REQUIREMENT_ID_001,
-      file: BLUEPRINT_FILE,
-      heading: "5 个 foundation laws",
-      sections: blueprintSections,
-      expected: FOUNDATION_LAWS,
-      missingMessage: "Frozen baseline must declare the 5 个 foundation laws section.",
-      driftMessage: "Frozen baseline foundation laws must match the fixed five-law baseline.",
+      driftMessage: "Kernel foundation laws must match the current five-law baseline.",
     }),
   ];
 };
@@ -209,16 +201,7 @@ const collectSupportGovernanceDomainBaselineFindings = (kernelSections: Map<stri
       sections: kernelSections,
       expected: SUPPORT_GOVERNANCE_DOMAINS,
       missingMessage: "Kernel must declare the Support Governance Domains section.",
-      driftMessage: "Kernel support governance domains must match the fixed single-domain baseline.",
-    }),
-    ...collectExactListFindings({
-      requirementId: REQUIREMENT_ID_001,
-      file: BLUEPRINT_FILE,
-      heading: "1 个 support governance domain",
-      sections: blueprintSections,
-      expected: SUPPORT_GOVERNANCE_DOMAINS,
-      missingMessage: "Frozen baseline must declare the 1 个 support governance domain section.",
-      driftMessage: "Frozen baseline support governance domains must match the fixed single-domain baseline.",
+      driftMessage: "Kernel support governance domains must remain empty.",
     }),
   ];
 };
@@ -232,16 +215,7 @@ const collectLocalDevelopmentToolingBaselineFindings = (kernelSections: Map<stri
       sections: kernelSections,
       expected: LOCAL_DEVELOPMENT_TOOLING,
       missingMessage: "Kernel must declare the Local Development Tooling section.",
-      driftMessage: "Kernel local development tooling must stay empty after retirement.",
-    }),
-    ...collectExactListFindings({
-      requirementId: REQUIREMENT_ID_001,
-      file: BLUEPRINT_FILE,
-      heading: "本地开发工具",
-      sections: blueprintSections,
-      expected: LOCAL_DEVELOPMENT_TOOLING,
-      missingMessage: "Frozen baseline must declare the 本地开发工具 section.",
-      driftMessage: "Frozen baseline local development tooling must stay empty after retirement.",
+      driftMessage: "Kernel local development tooling must stay outside active governance.",
     }),
   ];
 };

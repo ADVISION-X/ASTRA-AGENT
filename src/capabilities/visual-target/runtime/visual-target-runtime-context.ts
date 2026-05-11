@@ -6,12 +6,10 @@ export type VisualTargetRuntimeContext = {
   profilePort: VisualTargetProfilePort | null;
 };
 
-export type CreateVisualTargetRuntimeContextInput = {
+export function createVisualTargetRuntimeContext(input: {
   clock: VisualTargetClockPort;
   profilePort?: VisualTargetProfilePort | null;
-};
-
-export function createVisualTargetRuntimeContext(input: CreateVisualTargetRuntimeContextInput): VisualTargetRuntimeContext {
+}): VisualTargetRuntimeContext {
   return {
     clock: input.clock,
     profilePort: input.profilePort ?? null,

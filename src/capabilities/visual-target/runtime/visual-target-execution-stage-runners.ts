@@ -10,7 +10,7 @@ import {
 } from "./visual-target-execution-state.js";
 import type { VisualTargetResolvedCandidate } from "./visual-target-child-contract.js";
 
-export type VisualTargetStageRunner = (state: VisualTargetExecutionState) => VisualTargetAbilityResult | null;
+type VisualTargetStageRunner = (state: VisualTargetExecutionState) => VisualTargetAbilityResult | null;
 
 type SelectionFailureGate = {
   status: VisualTargetAbilityResult["status"];

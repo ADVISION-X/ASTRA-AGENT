@@ -154,4 +154,5 @@ export async function writeChildCapabilityStrengthInventory(project: Project = g
 }
 
 export { INVENTORY_RELATIVE_PATH };
+export { buildChildCapabilityStrengthInventory };
 export type { AtomicCatalogEntry, ChildCapabilityStrengthEntry };

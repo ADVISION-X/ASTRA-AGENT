@@ -1,6 +1,6 @@
 ---
 name: "GrassEye Capability Group Governance"
- description: "Use when defining GrassEye ability groups, child-ability boundaries, shared ability contracts, strength levels, debug evidence, or orchestration-to-ability-group authority."
+description: "Use when defining GrassEye ability groups, child-ability boundaries, shared ability contracts, strength levels, debug evidence, or orchestration-to-ability-group authority."
 applyTo: ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md, .github/instructions/cursor-rules/grasseye-index.instructions.md, .github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md, docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md"
 ---
 
@@ -19,7 +19,7 @@ capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: GrassEye uses one fixed ability-group constitution and one execution chain.
+summary: GrassEye uses one simple capability-machine constitution: AI composes registry-backed atomic abilities and the system dispatches owner groups and records evidence.
 
 ### 主题
 
@@ -27,17 +27,21 @@ summary: GrassEye uses one fixed ability-group constitution and one execution ch
 
 ### 法条
 
-GrassEye = 14 active ability groups + child abilities + Nerve Bus + Orchestration + Commander Console + Forensics Persistence.
+GrassEye = User Requirement + Platform Registry + MuscleMemoryCatalog + AI + Orchestration + Nerve Bus + Capability Groups + Commander Console + Forensics Persistence.
 
 Required direction:
-- Only the following ability groups are active owners: commander-console, orchestration, nerve-bus, ai, open, screenshot, visual-target, geometry-guard, mouse-click, text-input, mouse-scroll, post-action-verification, forensics-persistence, and page-state.
-- Child abilities may exist only under one of the 14 active ability groups.
+- Current top-level roots are implementation inventory, not equal semantic authority.
+- Only capability groups that expose executable atomic child capabilities may remain top-level execution owners.
+- Support surfaces such as visual-target, post-action-verification, and page-state may package observations or evidence, but they do not become semantic authority and must be folded or retired if they stop providing atomic child capabilities.
+- Child abilities may exist only under one current active capability-group owner.
 - Support boundaries may describe shell, topology, schema, logging, privacy, and audit rules, but they do not become active execution owners.
-- The only execution chain is: child capability -> parent capability group -> Nerve Bus -> Orchestration -> Commander Console -> Forensics evidence.
+- The governed execution chain is: Commander Console receives the user mission command -> Orchestration owns the mission loop -> Nerve Bus transports governed envelopes -> the owning capability-group public contract executes an atomic child capability -> Forensics records evidence.
 
 ### 禁止
 
 FORBIDDEN:
+- treating current root inventory as equal semantic authority.
+- support evidence surfaces becoming permanent semantic owners without atomic child-capability truth.
 - coordinate-action as a separate active ability group.
 - agent-runtime, browse-flow, mechanical-skills, visual-action, visual-only-runtime, evidence-packet, operator-control, product-signal, comment-intelligence, or vision-boundary as active owners.
 - compat, legacy, bridge, or dual-truth governance tracks.
@@ -86,7 +90,7 @@ capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: Commander, Nerve Bus, and Orchestration each have one fixed authority boundary.
+summary: Commander, Orchestration, Nerve Bus, and Forensics each have one fixed authority boundary in the capability machine.
 
 ### 主题
 
@@ -94,12 +98,15 @@ summary: Commander, Nerve Bus, and Orchestration each have one fixed authority b
 
 ### 法条
 
-Commander Console issues governed mission commands, Nerve Bus transports governed envelopes, and Orchestration selects the next ability group through public contracts only.
+Commander Console receives the user mission command, Orchestration owns the mission loop, Nerve Bus transports governed envelopes, and capability groups execute atomic child capabilities through public contracts only.
 
 Required direction:
 - Human command enters Commander Console first.
-- Commander Console forwards governed mission commands through Nerve Bus transport.
-- Orchestration may request a named child capability only through the owning group's public interface.
+- Commander Console emits governed mission command into the Orchestration path.
+- Orchestration may request a named child capability only through Nerve Bus and the owning group's public interface.
+- Nerve Bus transports governed envelopes; it does not become an execution owner.
+- The owning capability group executes the named atomic child capability through its public contract.
+- Forensics records evidence after governed execution.
 - Cross-group collaboration must happen through public contracts and structured proof.
 - Cross-group imports must target the owning group's public index or declared public contract only.
 - verify, capability-check, and self-check files do not count as public contract or enforcement truth.
@@ -115,7 +122,6 @@ FORBIDDEN:
 - skill catalogs, helper universes, or adapter layers bypassing group boundaries.
 - child readiness or acceptance being delegated to per-child verify scripts.
 - Commander Console directly executing runtime internals.
-- Orchestration importing child implementations directly.
 - Nerve Bus becoming an execution owner.
 
 ## Law GRASSEYE-CAPABILITY-GROUP-004-V1
@@ -203,6 +209,7 @@ Required direction:
 - No retired feature root, orphan capability directory, or cross-owner implementation import may survive the cutover.
 - Commander Console read-model truth must enter through named Commander-facing ports.
 - Visual Target finds points.
+- Visual Target, Page State, and Post-action Verification may package observations or evidence only; they must not claim semantic authority and must be folded or retired if they stop exposing independent atomic child capabilities.
 - Geometry Guard validates and normalizes executable geometry.
 - Mouse Click and Mouse Scroll execute primitives.
 - Text Input writes approved text into verified input targets through governed ports.
@@ -504,9 +511,10 @@ Every child capability that is exposed to MuscleMemoryCatalog or AI composition 
 
 Required direction:
 - A child capability must be atomic and behaviorally unambiguous before it is eligible for MuscleMemoryCatalog or AI composition.
+- An AI-visible registry entry must map to one real atomic child capability path; current `actions[].actionCode` may survive only as a transitional transport alias.
 - A child capability is not eligible for AI action planning unless it is declared in owner contract, declared in owner schema union, registered in owner runtime registry, implemented, reachable through governed dispatch, and able to return governed success, failed, or review_required output.
 - A child capability that performs side effects must also prove a Forensics record path.
-- Capability-group-governance audit must generate a child capability strength inventory and machine findings for missing registry, schema drift, missing execute, fake success, naked public throw, missing dispatch coverage, and AI action child gaps.
+- Capability-group-governance audit must emit machine findings for missing registry, schema drift, missing execute, fake success, naked public throw, missing dispatch coverage, and AI action child gaps; any inventory is support evidence only and must stay small, local, and violation-driven.
 - MuscleMemoryCatalog and AI action planning must not expose metadata-only or non-executable children.
 
 ### 禁止

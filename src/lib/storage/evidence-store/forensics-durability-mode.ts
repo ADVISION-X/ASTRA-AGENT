@@ -5,7 +5,7 @@ type ForensicsDurabilityMode = "durable" | "memory_only";
 
 const MEMORY_ONLY_DURABILITY = "memory_only";
 
-export function resolveForensicsDurabilityMode(): ForensicsDurabilityMode {
+function resolveForensicsDurabilityMode(): ForensicsDurabilityMode {
   return process.env.GRASSEYE_FORENSICS_DURABILITY_MODE === MEMORY_ONLY_DURABILITY
     ? "memory_only"
     : "durable";

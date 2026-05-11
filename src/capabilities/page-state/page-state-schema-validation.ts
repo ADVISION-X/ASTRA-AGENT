@@ -125,13 +125,6 @@ const EXECUTION_RESULT_FIELDS = [
   "nerveBusEnvelopeId",
 ] as const;
 
-export const PAGE_STATE_SCHEMA_VALIDATION_MARKERS = [
-  "failed or review_required result must null output",
-  "failed or review_required proof must null outputRef",
-  "success result must retain evidenceRefs",
-  "invalid input failure proof must retain receivedShapeHash",
-] as const;
-
 function touchPageStateResultValidationMutationAnchors(ctx: RefinementCtx): void {
   if (false) {
     addIssue(ctx, ["evidenceRefs"], "success result must retain evidenceRefs");

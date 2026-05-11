@@ -1,8 +1,8 @@
 # GrassEye Muscle Memory Catalog 肌肉记忆目录施工图
 
-本施工图定义 GrassEye 对 MuscleMemoryCatalog 的最终治理方向。
-如与当前代码中的 transport 字段、历史 semantic action、旧 actionCode 现状冲突，以本施工图为未来治理方向。
-任何 composite、package、workflow、semantic action 只可作为历史过渡或代码差异记录，不构成最终权威。
+本施工图定义 GrassEye 当前对 MuscleMemoryCatalog 的最高蓝图权威。
+如与当前代码中的 transport 字段、历史 semantic action、旧 actionCode 现状冲突，以本施工图为当前定义，代码与审计必须向它收敛。
+任何 composite、package、workflow、semantic action 只可作为历史过渡、反例或代码差异记录，不构成当前权威。
 
 ## 文件身份
 
@@ -41,7 +41,7 @@ It is not a semantic-shortcut catalog.
 
 | 概念 | 正确定义 | 禁止误解 |
 | --- | --- | --- |
-| 肌肉记忆 | 能力登记册 | 套餐库 / 流程库 / 语义动作库 |
+| 肌肉记忆 | 能力登记册 | 见禁误 A |
 | 能力组 | 能力提供部门 | 业务流程 owner |
 | 子能力 | 最小真实原子动作 | 多步骤业务动作 |
 | AI 手册 | 能力登记册的可见版本 | 预制业务套餐列表 |
@@ -49,6 +49,8 @@ It is not a semantic-shortcut catalog.
 | 系统调度 | 校验、注入、执行、留证 | 替 AI 做业务判断 |
 | Geometry Guard | gridCell 到坐标的保护层 | 业务点击判断器 |
 | Forensics | 证据记录 | 业务流程推进器 |
+
+禁误 A：套餐库 / 流程库 / 语义动作库
 
 ## 能力组职责
 
@@ -80,6 +82,7 @@ It is not a semantic-shortcut catalog.
 - AI 拿到的是能力登记册的可见版本，不是套餐流转库。
 - AI 可以根据用户需求和当前截图，自行组合多个已登记的原子能力。
 - 当前代码若仍使用 `actions[].actionCode` 作为 transport 字段，该字段只可序列化登记册条目 id，不改变“能力登记册”这一最终定义。
+- 任何 AI-visible 条目都必须最终映射到一个真实 atomic child capability，而不是业务套餐动作。
 - AI 不能发明能力名。
 - AI 不能输出 raw coordinate。
 - AI 不能绕过登记册直接调用 owner internals。
@@ -173,8 +176,8 @@ LEFT_CLICK_GRID_CELL_ONCE(nextButtonGridCell)
 - NEXT_VIDEO
 - DISMISS_OVERLAY
 
-它们不是最终子能力定义。
-最终方向是 AI 使用原子能力登记册自行组合动作。
+它们不是当前最终子能力定义。
+当前最高定义是 AI 使用原子能力登记册自行组合动作。
 
 ## 后续执法检查点
 

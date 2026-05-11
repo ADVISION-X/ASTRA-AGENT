@@ -72,7 +72,3 @@ export {
   createEvidenceStoreMaintenanceContext,
   createEvidenceStoreRecordsContext,
 };
-
-export type {
-  EvidenceStoreInternals,
-};

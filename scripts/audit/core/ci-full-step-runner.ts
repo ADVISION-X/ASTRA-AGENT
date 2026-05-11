@@ -93,6 +93,11 @@ const executeCiStepChild = async (options: StepRunOptions, runtimeState: StepRun
     stdio: "inherit",
     detached: process.platform !== "win32",
     shell: process.platform === "win32",
+    env: {
+      ...process.env,
+      GRASSEYE_CI_FULL_RUN_ID: options.runId,
+      GRASSEYE_CI_FULL_STEP_NAME: options.step.name,
+    },
   });
 
   if (typeof child.pid === "number") {

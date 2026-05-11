@@ -2,7 +2,7 @@ import type { ParsedVisualTargetAbilityInput } from "../contract.js";
 
 import type { VisualTargetFailureTrace } from "./visual-target-input-gate.js";
 
-export type VisualTargetChainSnapshot = {
+type VisualTargetChainSnapshot = {
   missionId: string | null;
   runId: string | null;
   stepId: string | null;
@@ -18,7 +18,7 @@ export type VisualTargetChainSnapshot = {
 export function resolveVisualTargetChain(
   request: ParsedVisualTargetAbilityInput | null,
   trace: VisualTargetFailureTrace,
-): VisualTargetChainSnapshot {
+) {
   if (request) {
     return {
       missionId: request.missionId,

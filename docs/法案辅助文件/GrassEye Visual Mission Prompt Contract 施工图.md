@@ -1,5 +1,12 @@
 # GrassEye Visual Mission Prompt Contract 施工图
 
+```yaml
+owner: ai-capability
+notAbilityGroup: true
+narrativeRole: prompt-contract-governance
+retiredMapFreeIdentity: true
+```
+
 本施工图定义 Visual Mission Prompt Contract 的最终方向。
 AI prompt receives capability registry, not package-flow library.
 任何历史 package、workflow、semantic shortcut、composite 口径，如仍存在，只能视为过渡差异。

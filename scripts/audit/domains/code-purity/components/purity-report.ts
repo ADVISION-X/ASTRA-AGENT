@@ -8,15 +8,7 @@ type PurityReport = {
   touchedBaselineSource: string;
   touchedFiles: string[];
   scanScope: string[];
-  godFileInventory: PurityInventoryItem[];
-  disasterFileInventory: PurityInventoryItem[];
-  ownerMixingInventory: PurityInventoryItem[];
-  oversizedTouchedFileInventory: PurityInventoryItem[];
-  functionOverLimitInventory: PurityInventoryItem[];
-  classObjectOverLimitInventory: PurityInventoryItem[];
-  importExportOverLimitInventory: PurityInventoryItem[];
-  remediationQueue: PurityInventoryItem[];
-  firstPhysicalSplitPlan: PurityInventoryItem[];
+  supportInventory: PurityInventoryItem[];
 };
 
 type PurityReportValidationIssue = {
@@ -56,7 +48,7 @@ const dedupeItems = (items: PurityInventoryItem[]): PurityInventoryItem[] => {
 const collectInventoryItems = (report: Pick<PurityReport, typeof INVENTORY_KEYS[number]>): PurityInventoryItem[] =>
   INVENTORY_KEYS.flatMap((key) => report[key]);
 
-const hasInvalidQueueItem = (item: PurityInventoryItem): boolean =>
+const hasInvalidSupportItem = (item: PurityInventoryItem): boolean =>
   item.severity.trim().length === 0 || item.recommendedSplit.trim().length === 0;
 
 export const validatePurityReportArtifacts = (report: PurityReport): PurityReportValidationIssue[] => {
@@ -74,18 +66,10 @@ export const validatePurityReportArtifacts = (report: PurityReport): PurityRepor
   }
 
   const issues: PurityReportValidationIssue[] = [];
-  const inventoryItems = collectInventoryItems(report);
-  if (inventoryItems.length > 0 && (report.remediationQueue.length === 0 || report.firstPhysicalSplitPlan.length === 0)) {
+  if (report.supportInventory.some(hasInvalidSupportItem)) {
     issues.push({
       lawId: "GRASSEYE-CODE-PURITY-013-V1",
-      message: "Code-purity report has blocking inventory items but did not produce the required remediation queue and first physical split plan.",
-    });
-  }
-
-  if (report.remediationQueue.some(hasInvalidQueueItem) || report.firstPhysicalSplitPlan.some(hasInvalidQueueItem)) {
-    issues.push({
-      lawId: "GRASSEYE-CODE-PURITY-013-V1",
-      message: "Code-purity remediation queue items must include severity and recommended split direction.",
+      message: "Code-purity support inventory items must include severity and recommended split direction.",
     });
   }
 
@@ -93,10 +77,11 @@ export const validatePurityReportArtifacts = (report: PurityReport): PurityRepor
 };
 
 export const finalizePurityReport = (draft: PurityReportDraft): PurityReport => {
-  const remediationQueue = dedupeItems([
+  const supportInventory = dedupeItems([
     ...draft.disasterFileInventory,
     ...draft.godFileInventory,
     ...draft.ownerMixingInventory,
+    ...draft.oversizedTouchedFileInventory,
     ...draft.functionOverLimitInventory,
     ...draft.classObjectOverLimitInventory,
     ...draft.importExportOverLimitInventory,
@@ -104,9 +89,10 @@ export const finalizePurityReport = (draft: PurityReportDraft): PurityReport => 
 
   return {
     generatedAt: new Date().toISOString(),
-    ...draft,
-    remediationQueue,
-    firstPhysicalSplitPlan: remediationQueue.slice(0, 5),
+    touchedBaselineSource: draft.touchedBaselineSource,
+    touchedFiles: draft.touchedFiles,
+    scanScope: draft.scanScope,
+    supportInventory,
   };
 };
 

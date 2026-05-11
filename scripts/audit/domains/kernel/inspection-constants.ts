@@ -17,6 +17,8 @@ const REQUIREMENT_ID_BLUEPRINT_007_001 = "K01-BLUEPRINT-01-SECTION-007-REQ-001";
 
 const KERNEL_FILE = ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md";
 const BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye 法案冻结基线.md";
+const MUSCLE_MEMORY_BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md";
+const CHILD_CAPABILITY_STRENGTH_BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye Child Capability Strength 子能力强度施工图.md";
 const PROMPT_CONTRACT_GOVERNANCE_BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye Visual Mission Prompt Contract 施工图.md";
 const MANIFEST_FILE = "scripts/audit/domains/kernel/manifest.json";
 const INSPECTOR_ENTRY = "scripts/audit/domains/kernel/inspector.ts";
@@ -121,6 +123,8 @@ export const kernelInspectionConstants = {
   REQUIREMENT_ID_BLUEPRINT_007_001,
   KERNEL_FILE,
   BLUEPRINT_FILE,
+  MUSCLE_MEMORY_BLUEPRINT_FILE,
+  CHILD_CAPABILITY_STRENGTH_BLUEPRINT_FILE,
   PROMPT_CONTRACT_GOVERNANCE_BLUEPRINT_FILE,
   MANIFEST_FILE,
   INSPECTOR_ENTRY,
