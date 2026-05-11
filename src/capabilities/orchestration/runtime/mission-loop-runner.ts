@@ -543,7 +543,8 @@ export async function runMissionRoundLoop(
       reason: `Round completed`,
     });
 
-    // Brief pause between rounds to avoid hammering the browser/AI
-    await new Promise<void>(r => setTimeout(r, 500));
+    // Wait for Facebook Reels to finish loading the next video before the next screenshot.
+    // 500ms was too short — Reels needs ~2s to transition from blank to loaded video.
+    await new Promise<void>(r => setTimeout(r, 2500));
   }
 }

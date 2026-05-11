@@ -1,9 +1,22 @@
 {
-  "timestamp": "2026-05-11T22:37:22.250Z",
-  "pass": true,
+  "timestamp": "2026-05-11T23:03:54.976Z",
+  "pass": false,
   "hardRetiredSurface": {
-    "count": 0,
-    "findings": []
+    "count": 2,
+    "findings": [
+      {
+        "file": "scripts/audit/domains/code-purity/config.ts",
+        "line": 33,
+        "pattern": "src/capabilities/page-state",
+        "severity": "hard"
+      },
+      {
+        "file": "scripts/audit/domains/code-purity/config.ts",
+        "line": 34,
+        "pattern": "src/capabilities/post-action-verification",
+        "severity": "hard"
+      }
+    ]
   },
   "softRetiredSurface": {
     "count": 70,
@@ -543,9 +556,9 @@
     },
     {
       "module": "scripts/audit (total)",
-      "actual": 32,
+      "actual": 36,
       "limit": 32,
-      "status": "ok"
+      "status": "fail"
     },
     {
       "module": "scripts/audit/domains/quality-kernel",
@@ -561,7 +574,38 @@
     }
   ],
   "codePurity": {
-    "count": 0,
-    "findings": []
+    "count": 6,
+    "findings": [
+      {
+        "file": "scripts/audit/domains/code-purity/inspector.ts",
+        "line": 84,
+        "pattern": "ts-ignore forbidden"
+      },
+      {
+        "file": "scripts/audit/domains/code-purity/inspector.ts",
+        "line": 89,
+        "pattern": "eslint-disable forbidden"
+      },
+      {
+        "file": "scripts/audit/domains/code-purity/inspector.ts",
+        "line": 97,
+        "pattern": ": any type forbidden"
+      },
+      {
+        "file": "scripts/audit/domains/code-purity/inspector.ts",
+        "line": 102,
+        "pattern": "console.log in production path"
+      },
+      {
+        "file": "scripts/audit/domains/code-purity/inspector.ts",
+        "line": 109,
+        "pattern": "TODO/FIXME in production path"
+      },
+      {
+        "file": "scripts/audit/domains/code-purity/inspector.ts",
+        "line": 110,
+        "pattern": "TODO/FIXME in production path"
+      }
+    ]
   }
 }
