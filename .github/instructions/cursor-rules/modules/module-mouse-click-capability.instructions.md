@@ -107,6 +107,26 @@ Forbidden:
 - retired package field or retired package version field in click proof.
 - retired branch-token field or retired deterministic flow planning as click truth.
 
+## Active Child Capabilities (Phase-Five Final)
+
+Mouse Click has exactly three browser-viewport primitive child capabilities in the current stage.
+No other child capabilities are registered. Legacy children are physically deleted.
+
+Active children:
+- left-click-browser-viewport-once (button=left, clickCount=1, coordinateSpace=browserViewport)
+- double-left-click-browser-viewport (button=left, clickCount=2, coordinateSpace=browserViewport)
+- right-click-browser-viewport-once (button=right, clickCount=1, coordinateSpace=browserViewport)
+
+Retired children (physically deleted, must not re-appear):
+- click-browser-coordinate
+- click-desktop-coordinate
+
+Governance:
+- button and clickCount are NOT mere parameter variants when they represent distinct human primitive actions exposed to AI.
+- Left click once, double left click, and right click once are distinct atomic child capabilities because they correspond to distinct human executable actions with distinct safety and idempotency semantics.
+- AI does not pass button, clickCount, x, or y. AI passes only gridCell to MuscleMemory.
+- The system resolves gridCell → Geometry Guard → childCapabilityId + executableCoordinate before Mouse Click is dispatched.
+
 ## Final Readiness Gate
 
-The Mouse Click law is ready only when click execution uses short-chain refs plus Geometry Guard approval and does not revive retired map fields.
+The Mouse Click law is ready only when click execution uses short-chain refs plus Geometry Guard approval, has exactly three registered atomic browser-viewport children, and does not revive retired map or legacy click fields.

@@ -20,7 +20,6 @@ const PRODUCT_LEAD_SCHEMA_SNIPPETS = [
   "targetUrl: z.string().min(1)",
   "targetTitle: z.string().min(1)",
   "screenshotEvidenceRef: z.string().min(1)",
-  "productPresenceAiResultRef: z.string().min(1)",
   "decision: ProductLeadDecisionSchema",
   "taskDecision: z.string().min(1)",
   "actionCodes: z.array(z.string().min(1)).min(1)",

@@ -1,7 +1,7 @@
 import type { MissionState, RuntimePlan } from "../contract.js";
 import { MissionStepResultSchema } from "../schema.js";
-import { decodeVisualMissionActionPlan } from "../../../muscle-memory/decoder/action-plan-decoder.js";
-import { executeMuscleMemoryPlan } from "../../../muscle-memory/executor/muscle-memory-executor.js";
+import { decodeVisualMissionActionPlan } from "./ai-action-plan-decoder.js";
+import { executeAiActionPlan } from "./ai-action-plan-executor.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
 import { buildMuscleMemoryBranchFieldValues } from "./step-dispatch-muscle-memory-branch-fields.js";
 import {
@@ -36,13 +36,13 @@ export async function executeAiDispatchActionPlan(input: {
       payloadRefs: runtimePayloadRefs,
     },
   });
-  const executionResult = await executeMuscleMemoryPlan({
+  const executionResult = await executeAiActionPlan({
     state: { payloadRefs: runtimePayloadRefs },
     map: input.map,
     missionId: input.missionId,
     chain: input.chain,
     sequenceNo: input.sequenceNo + 1,
-    idempotencyKey: `${input.idempotencyKey}:muscle-memory`,
+    idempotencyKey: `${input.idempotencyKey}:ai-plan`,
     plan: decodedPlan,
     nerveBus: input.context.nerveBus,
   });

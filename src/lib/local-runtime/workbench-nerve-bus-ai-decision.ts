@@ -1,4 +1,4 @@
-import type { VisualMissionActionPlan } from "../../muscle-memory/decoder/action-plan.schema.js";
+import type { VisualMissionExecutablePlan as VisualMissionActionPlan } from "../../visual-mission/action-plan/executable-plan.schema.js";
 import { isVisualMissionActionPlanOutput, resolveVisualMissionDecision } from "./workbench-nerve-bus-ai-decision-visual-mission.js";
 
 const PAGE_PREPARATION_TASK_TYPE = "page_preparation_judgment";

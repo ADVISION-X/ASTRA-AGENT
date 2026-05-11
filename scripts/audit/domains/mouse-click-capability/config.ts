@@ -1,93 +1,40 @@
-export const PATHS = {
-  ROOT: "src/capabilities/mouse-click",
-  ABILITY_GROUP: "src/capabilities/mouse-click/ability-group.ts",
-  CONTRACT: "src/capabilities/mouse-click/contract.ts",
-  INDEX: "src/capabilities/mouse-click/index.ts",
-  REGISTRY: "src/capabilities/mouse-click/registry.ts",
-  SCHEMA: "src/capabilities/mouse-click/schema.ts",
-  EXECUTOR: "src/capabilities/mouse-click/runtime/mouse-click-executor.ts",
-  PREFLIGHT_STAGES: "src/capabilities/mouse-click/runtime/mouse-click-preflight-stages.ts",
-  PRIMITIVE_STAGE: "src/capabilities/mouse-click/runtime/mouse-click-primitive-stage.ts",
-  INPUT_GATE: "src/capabilities/mouse-click/runtime/mouse-click-input-gate.ts",
-  BOUNDARY_GATE: "src/capabilities/mouse-click/runtime/mouse-click-boundary-gate.ts",
-  GEOMETRY_GATE: "src/capabilities/mouse-click/runtime/geometry-proof-gate.ts",
-  POLICY_GATE: "src/capabilities/mouse-click/runtime/click-policy-gate.ts",
-  SAFETY_GATE: "src/capabilities/mouse-click/runtime/pre-click-safety-gate.ts",
-  RUNNER: "src/capabilities/mouse-click/runtime/primitive-click-runner.ts",
-  RUNNER_GUARD: "src/capabilities/mouse-click/runtime/primitive-click-runner-guard.ts",
-  RUNNER_STATE: "src/capabilities/mouse-click/runtime/primitive-click-runner-state.ts",
-  IDEMPOTENCY: "src/capabilities/mouse-click/runtime/mouse-click-idempotency.ts",
-  RESULT_BUILDER: "src/capabilities/mouse-click/runtime/mouse-click-result-builder.ts",
-  PROOF_BUILDER: "src/capabilities/mouse-click/runtime/mouse-click-proof-builder.ts",
-  FAILURE: "src/capabilities/mouse-click/runtime/mouse-click-dispatch-failure.ts",
-  CLOCK: "src/capabilities/mouse-click/runtime/mouse-click-clock.ts",
-  CLOCK_PORT: "src/capabilities/mouse-click/ports/mouse-click-clock-port.ts",
-  PRIMITIVE_PORT: "src/capabilities/mouse-click/ports/mouse-click-primitive-port.ts",
-  BROWSER_CHILD_IMPL: "src/capabilities/mouse-click/children/click-browser-coordinate/implementation.ts",
-  DESKTOP_CHILD_IMPL: "src/capabilities/mouse-click/children/click-desktop-coordinate/implementation.ts",
-  LEFT_CLICK_ONCE_IMPL: "src/capabilities/mouse-click/children/left-click-browser-viewport-once/implementation.ts",
-  DOUBLE_LEFT_CLICK_IMPL: "src/capabilities/mouse-click/children/double-left-click-browser-viewport/implementation.ts",
-  RIGHT_CLICK_ONCE_IMPL: "src/capabilities/mouse-click/children/right-click-browser-viewport-once/implementation.ts",
-  WORKBENCH: "src/lib/local-runtime/workbench.ts",
-  WORKBENCH_RUNTIME: "src/lib/local-runtime/workbench-mouse-click-runtime.ts",
-  PRIMITIVE_ADAPTER: "src/lib/browser/mouse-click-primitive-port.ts",
+export const MOUSE_CLICK_LAW_FILE =
+  ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md";
+
+export const MOUSE_CLICK_PRODUCTION_ROOT = "src/capabilities/mouse-click";
+
+/** The three and only registered atomic children. */
+export const REQUIRED_CHILD_IDS = [
+  "left-click-browser-viewport-once",
+  "double-left-click-browser-viewport",
+  "right-click-browser-viewport-once",
+] as const;
+
+/** Legacy children that must not exist. */
+export const FORBIDDEN_CHILD_IDS = [
+  "click-browser-coordinate",
+  "click-desktop-coordinate",
+] as const;
+
+/** Fields that must never appear in mouse-click production source. */
+export const FORBIDDEN_FIELDS = [
+  "bindingPackageId",
+  "bindingPackageVersion",
+  "selectedBindingId",
+  "bindingVersion",
+  "bindingSnapshotRef",
+  "mapId",
+  "routePlanId",
+  "activationId",
+  "packageVersion",
+  "postActionVerificationRequired",
+  "postActionVerificationHandoffRef",
+] as const;
+
+/** Max allowed production TS file count. */
+export const MAX_PRODUCTION_FILE_COUNT = 20;
+
+export const LAW_IDS = {
+  STRUCTURE: "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V3",
+  PROOF: "GRASSEYE-MOUSE-CLICK-CAPABILITY-002-V3",
 } as const;
-
-export const REQUIRED_FILES = [
-  PATHS.ABILITY_GROUP,
-  PATHS.CONTRACT,
-  PATHS.INDEX,
-  PATHS.REGISTRY,
-  PATHS.SCHEMA,
-  PATHS.EXECUTOR,
-  PATHS.PREFLIGHT_STAGES,
-  PATHS.PRIMITIVE_STAGE,
-  PATHS.INPUT_GATE,
-  PATHS.BOUNDARY_GATE,
-  PATHS.GEOMETRY_GATE,
-  PATHS.POLICY_GATE,
-  PATHS.SAFETY_GATE,
-  PATHS.RUNNER,
-  PATHS.RUNNER_GUARD,
-  PATHS.RUNNER_STATE,
-  PATHS.IDEMPOTENCY,
-  PATHS.RESULT_BUILDER,
-  PATHS.PROOF_BUILDER,
-  PATHS.FAILURE,
-  PATHS.CLOCK,
-  PATHS.CLOCK_PORT,
-  PATHS.PRIMITIVE_PORT,
-  `${PATHS.ROOT}/shared/mouse-click-types.ts`,
-  `${PATHS.ROOT}/shared/mouse-click-policy.ts`,
-  `${PATHS.ROOT}/shared/mouse-click-result.ts`,
-  `${PATHS.ROOT}/shared/mouse-click-proof.ts`,
-  `${PATHS.ROOT}/shared/mouse-click-failure.ts`,
-  `${PATHS.ROOT}/children/click-browser-coordinate/contract.ts`,
-  `${PATHS.ROOT}/children/click-browser-coordinate/schema.ts`,
-  PATHS.BROWSER_CHILD_IMPL,
-  `${PATHS.ROOT}/children/click-desktop-coordinate/contract.ts`,
-  `${PATHS.ROOT}/children/click-desktop-coordinate/schema.ts`,
-  PATHS.DESKTOP_CHILD_IMPL,
-  `${PATHS.ROOT}/children/left-click-browser-viewport-once/contract.ts`,
-  `${PATHS.ROOT}/children/left-click-browser-viewport-once/schema.ts`,
-  PATHS.LEFT_CLICK_ONCE_IMPL,
-  `${PATHS.ROOT}/children/double-left-click-browser-viewport/contract.ts`,
-  `${PATHS.ROOT}/children/double-left-click-browser-viewport/schema.ts`,
-  PATHS.DOUBLE_LEFT_CLICK_IMPL,
-  `${PATHS.ROOT}/children/right-click-browser-viewport-once/contract.ts`,
-  `${PATHS.ROOT}/children/right-click-browser-viewport-once/schema.ts`,
-  PATHS.RIGHT_CLICK_ONCE_IMPL,
-] as const;
-
-export const FORBIDDEN_IMPORT_PREFIXES = [
-  "src/capabilities/ai/",
-  "src/capabilities/screenshot/",
-  "src/capabilities/page-state/",
-  "src/capabilities/geometry-guard/",
-  "src/capabilities/forensics-persistence/",
-  "src/capabilities/open/",
-  "src/capabilities/mouse-scroll/",
-  "src/capabilities/post-action-verification/",
-] as const;
-
-export const FORBIDDEN_TEXT_TOKENS = ["as any", "as unknown as", "@ts-ignore", "@ts-expect-error", "eslint-disable"] as const;

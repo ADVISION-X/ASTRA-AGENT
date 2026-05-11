@@ -1,4 +1,4 @@
-import type { MuscleMemoryEntry } from "../../muscle-memory/catalog/muscle-memory-catalog.schema.js";
+import type { MuscleMemoryEntry } from "../../muscle-memory/catalog.js";
 import {
   isOwnerOnlyActionField,
   isRawExecutionActionField,
@@ -6,7 +6,6 @@ import {
 } from "./action-field-classifiers.js";
 
 const EXTRA_AI_VISIBLE_FIELDS_BY_ACTION_CODE: Partial<Record<string, readonly string[]>> = {
-  CLICK_CELL: ["targetName"],
 };
 
 function dedupeFields(fields: Iterable<string>): string[] {

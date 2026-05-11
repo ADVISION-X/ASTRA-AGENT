@@ -1,4 +1,4 @@
-import { buildMuscleMemorySystemManual } from "../../../muscle-memory/system-manual.js";
+import { buildMuscleMemorySystemManual } from "../../../muscle-memory/manual.js";
 import { buildRoundMissionPacket } from "../../../visual-mission/round-mission-packet-builder.js";
 import { recordRoundMissionPacket } from "../../../visual-mission/round-mission-packet-store.js";
 import type { PromptContractCatalogEntry } from "../../ai/prompt-contracts/schema.js";

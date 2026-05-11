@@ -25,7 +25,7 @@ import {
   TargetRecordRefSchema,
   validateNerveBusEnvelopeBase,
 } from "./schema-foundation.schema.js";
-import { VisualMissionActionPlanSchema } from "../../muscle-memory/decoder/action-plan.schema.js";
+import { VisualMissionExecutablePlanSchema as VisualMissionActionPlanSchema } from "../../visual-mission/action-plan/executable-plan.schema.js";
 
 const ResultEnvelopeBaseCoreSchema = NerveBusEnvelopeBaseCoreSchema.extend({
   status: EnvelopeStatusSchema,

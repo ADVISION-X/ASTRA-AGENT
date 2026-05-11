@@ -1,6 +1,6 @@
 import { type LocalAiVisionTaskRequest } from "../../types/local-ai-runtime-vision-contract.js";
-import { loadMuscleMemoryCatalog } from "../../muscle-memory/catalog/muscle-memory-catalog.js";
-import type { VisualMissionActionPlan } from "../../muscle-memory/decoder/action-plan.schema.js";
+import { loadMuscleMemoryCatalog } from "../../muscle-memory/catalog.js";
+import type { VisualMissionExecutablePlan as VisualMissionActionPlan } from "../../visual-mission/action-plan/executable-plan.schema.js";
 import { buildVisualMissionContextRefs } from "../../visual-mission/action-plan/normalize-ai-output.js";
 
 type JsonRecord = Record<string, unknown>;

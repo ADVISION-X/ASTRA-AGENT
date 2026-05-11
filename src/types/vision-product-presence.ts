@@ -6,8 +6,8 @@ import {
   VideoFrameSamplePointLabelSchema,
 } from "./multi-frame-evidence.js";
 import {
-  VisualMissionActionPlanSchema,
-} from "../muscle-memory/decoder/action-plan.schema.js";
+  VisualMissionExecutablePlanSchema as VisualMissionActionPlanSchema,
+} from "../visual-mission/action-plan/executable-plan.schema.js";
 
 const VisualMissionPageStateDecisionSchema = z.string().min(1);
 

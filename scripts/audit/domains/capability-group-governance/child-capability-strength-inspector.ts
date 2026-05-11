@@ -8,7 +8,6 @@ import { INVENTORY_RELATIVE_PATH, buildChildCapabilityStrengthInventory, writeCh
 const LAW_STRUCTURE = "GRASSEYE-CAPABILITY-GROUP-002-V1";
 const LAW_DISPATCH = "GRASSEYE-CAPABILITY-GROUP-003-V1";
 const LAW_EVIDENCE = "GRASSEYE-CAPABILITY-GROUP-005-V1";
-const CLICK_CELL_ACTION_CODE = "CLICK_CELL";
 const SUMMARY_RELATIVE_PATH = "scripts/audit/generated/child-capability-strength-summary.txt";
 const DIRECT_OUTPUT_RELATIVE_PATH = "scripts/audit/generated/child-capability-strength-direct-output.txt";
 const IMPLEMENTATION_REASONS = new Set(["CHILD_HAS_NO_IMPLEMENTATION", "CHILD_HAS_NO_EXECUTE", "CHILD_RETURNS_FAKE_SUCCESS", "CHILD_PUBLIC_EXECUTE_THROWS"]);
@@ -22,7 +21,7 @@ const resolveFindingFile = (entry: ChildCapabilityStrengthEntry, reason: string)
     return `src/capabilities/${entry.abilityGroupId}/children/${entry.childCapabilityId}/implementation.ts`;
   }
   return CATALOG_REASONS.has(reason)
-    ? "src/muscle-memory/catalog/muscle-memory-catalog.generated.json"
+    ? "src/muscle-memory/generated-catalog.json"
     : `src/capabilities/${entry.abilityGroupId}/registry.ts`;
 };
 
@@ -64,36 +63,6 @@ const collectBlockingFindings = (entries: ChildCapabilityStrengthEntry[]): Findi
   return entries.flatMap((entry) => entry.blockingReasons.map((reason) => buildFindingForReason(entry, reason)));
 };
 
-const collectClickCellFindings = (entries: ChildCapabilityStrengthEntry[]): Finding[] => {
-  const clickCellTargets = entries.filter((entry) => entry.aiActionCodes.includes(CLICK_CELL_ACTION_CODE));
-  const findings: Finding[] = [];
-
-  for (const entry of clickCellTargets) {
-    if (entry.abilityGroupId !== "geometry-guard") {
-      findings.push(createFinding({
-        lawId: LAW_DISPATCH,
-        file: "src/muscle-memory/catalog/muscle-memory-catalog.generated.json",
-        line: 1,
-        severity: "fatal",
-        message: "CLICK_CELL_BYPASSES_GEOMETRY_GUARD: CLICK_CELL must terminate at a Geometry Guard child before Mouse Click executes coordinates.",
-        detail: `${entry.abilityGroupId}.${entry.childCapabilityId}`,
-      }));
-    }
-    if (entry.abilityGroupId === "mouse-click") {
-      findings.push(createFinding({
-        lawId: LAW_DISPATCH,
-        file: "src/muscle-memory/catalog/muscle-memory-catalog.generated.json",
-        line: 1,
-        severity: "fatal",
-        message: "MOUSE_CLICK_ACCEPTS_AI_GRIDCELL_DIRECTLY: AI CLICK_CELL currently resolves straight to mouse-click instead of a geometry proof child.",
-        detail: `${entry.abilityGroupId}.${entry.childCapabilityId}`,
-      }));
-    }
-  }
-
-  return findings;
-};
-
 const rankWeakestAiReachableEntries = (entries: ChildCapabilityStrengthEntry[]) => entries
   .filter((entry) => entry.allowedForAiActionPlan)
   .sort((left, right) => {
@@ -118,7 +87,6 @@ const writeChildCapabilityStrengthReports = async (input: {
 }): Promise<void> => {
   const summaryPayload = {
     findingCount: input.findings.length,
-    clickCellFindings: input.findings.filter((finding) => finding.message.startsWith("CLICK_CELL_") || finding.message.startsWith("MOUSE_CLICK_ACCEPTS_AI_GRIDCELL_DIRECTLY")),
     weakestAiReachableChildren: rankWeakestAiReachableEntries(input.entries),
   };
   const directOutputPayload = {
@@ -137,7 +105,6 @@ export async function runChildCapabilityStrengthInspector(): Promise<{ findings:
   const inventory = await buildChildCapabilityStrengthInventory();
   const findings = [
     ...collectBlockingFindings(inventory.entries),
-    ...collectClickCellFindings(inventory.entries),
   ];
   if (findings.length > 0) {
     await writeChildCapabilityStrengthInventory();

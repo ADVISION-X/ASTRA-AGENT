@@ -1,221 +1,121 @@
 ---
 name: "GrassEye Local AI Runtime"
-description: "Use when defining local AI runtime adapters, model-role routing, prompt registry internals, or AI output contract governance inside the AI Ability Group."
+description: "Use when defining the thin local model call used by the AI Ability Group."
 applyTo: ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md, src/lib/local-ai/**, src/capabilities/ai/**, docs/法案辅助文件/GrassEye 本地AI分工与提示词施工图.md, docs/法案辅助文件/GrassEye 本地模型选型施工图.md"
 ---
 
 # GrassEye Local AI Runtime
 
-Scope: governs local AI runtime adapters, model-role routing, prompt registry internals, and AI output contracts.
-Boundary: this module governs only how the AI Ability Group may invoke and trust local AI results as a child sub-contract, not as an independent owner.
-Excludes: browser actions, OCR engine installation, product approval, and UI presentation.
-Authority: this file is authoritative only for the ai-capability domain as the local-model-runtime child sub-contract.
+Scope: governs the local model call path used by the AI Ability Group.
 
-## Law GRASSEYE-LOCAL-AI-RUNTIME-001-V1
+Boundary: local-ai is an internal implementation detail. It is not a public AI owner, not a provider router, and not a second prompt system.
 
-status: retired
-tier: P0
-capabilityDomain: ai-capability
-enforcementMode: manual-first
-evidenceMode: law
+Authority: this file is authoritative only for the local model call boundary inside the AI domain.
 
-summary: local-ai-runtime is an AI child sub-contract and internal runtime adapter, not an active owner.
+Core doctrine:
+- local-ai is implementation detail under AI.
+- one active local model path is enough for the current phase.
+- prompt truth belongs to AI prompt contract code, not to scattered runtime helpers.
+- model selection comes from governed local config.
 
-### 主题
+## Active Baseline
 
-AI 内部运行时边界
+Current allowed local runtime behavior:
+- call the governed local model for visual-mission-judge-once.
+- use timeoutMs and AbortSignal.
+- return raw text, runtime metadata, or a typed failure.
+- report startup readiness through the existing local startup readiness contract.
 
-### 法条
+Forbidden local runtime behavior:
+- provider routing universe.
+- paid or future provider fallback.
+- cloud fallback.
+- role controls as runtime truth.
+- second prompt registry source.
+- action execution, Nerve Bus dispatch, or Forensics write.
 
-Local AI runtime is an internal adapter boundary owned by the AI Ability Group; it does not own AI public sovereignty.
-
-Required direction:
-- Public callers must enter through the AI Ability Group public contract before local runtime internals execute.
-- src/lib/local-ai remains the internal runtime surface.
-- Local AI execution stays local-first.
-- src/capabilities/ai/runtime-adapters/local-ai-runtime-adapter.ts is the only AI-owned runtime adapter allowed to translate public AI contracts into LocalAi runtime contracts.
-- Only the internal bridge may import LocalAiGateway, prompt-registry, LocalAiTaskRequest, LocalAiTaskResult, LocalAiTaskType, or legacy LocalAi task-name literals on behalf of the AI root.
-
-### 禁止
-
-FORBIDDEN:
-- local-ai-runtime being treated as a public ability owner.
-- business domains calling local models directly.
-- hidden cloud or paid fallback.
-- exporting LocalAiTaskRequest, LocalAiTaskResult, or LocalAiTaskType as public AI sovereignty.
-- prompt-contract facades or legacy LocalAi result translators surviving under src/capabilities/ai.
-
-## Law GRASSEYE-LOCAL-AI-RUNTIME-002-V1
-
-status: retired
-tier: P0
-capabilityDomain: ai-capability
-enforcementMode: manual-first
-evidenceMode: law
-
-summary: model-role routing must stay explicit and traceable.
-
-### 主题
-
-模型分工与追踪
-
-### 法条
-
-Local AI calls must be routed through explicit model-role mapping under the AI Ability Group.
-
-Required direction:
-- visual-observation, ocr-extraction, comment-analysis, and evidence-summary roles must remain explicit.
-- AI requests must carry origin abilityGroupId, childAbilityId when applicable, taskType, promptVersion, schemaVersion, and evidence refs.
-- Results must return structured outputs only.
-- Public AiTaskType values may map to legacy LocalAiTaskType values only inside the internal bridge.
-- LocalAi task-name strings must not escape the bridge back into the wider AI root.
-
-### 禁止
-
-FORBIDDEN:
-- ad-hoc local model calls scattered in app, capability consumers, adapters, or workbench files.
-- free-text AI outputs driving platform actions directly.
-- leaking legacy LocalAi task names back out through AI public contract.
-- AI callers importing AI-private prompt helpers instead of the AI public facade.
-
-## Law GRASSEYE-LOCAL-AI-RUNTIME-003-V1
-
-status: retired
-tier: P0
-capabilityDomain: ai-capability
-enforcementMode: manual-first
-evidenceMode: law
-
-summary: prompts are governed task contracts, not hidden strings.
-
-### 主题
-
-提示词注册边界
-
-### 法条
-
-Prompts that drive GrassEye AI behavior must live behind a governed prompt registry or equivalent local-AI contract surface.
-
-Required direction:
-- one prompt serves one narrow task.
-- outputs bind to one expected schema.
-- prompt changes remain reviewable.
-- prompt selection remains behind the bridge or local-ai runtime internals; business callers must not import prompt-registry directly.
-- AI public callers must obtain prompt metadata through getPromptContract on the AI ability group, not through prompt-contract shortcut files.
-
-### 禁止
-
-FORBIDDEN:
-- hidden prompt strings scattered across business code.
-- one prompt serving unrelated tasks.
-- raw prompt-registry helpers exported through AI public index.
-
-## Law GRASSEYE-LOCAL-AI-RUNTIME-004-V1
-
-status: retired
-tier: P0
-capabilityDomain: ai-capability
-enforcementMode: manual-first
-evidenceMode: law
-
-summary: model configuration is local, role-based, and no-fallback.
-
-### 主题
-
-本地模型配置主权
-
-### 法条
-
-Model roles must resolve from governed local configuration so runtime cannot silently drift to mocks, heuristics, or cloud providers.
-
-Required direction:
-- config/local-ai.models.json or equivalent local config remains the model-role source.
-- unavailable local models must route to retry, skip, candidate review, or operator review.
-- paid and future providers remain disabled_by_policy unless a separate AI policy law explicitly opens them.
-
-### 禁止
-
-FORBIDDEN:
-- provider = cloud or paid-api in current phase.
-- allowCloudFallback = true.
-- allowMock = true for phase-four acceptance.
-- hidden paid fallback or implicit provider substitution.
-
-## Law GRASSEYE-LOCAL-AI-RUNTIME-005-V1
-
-status: retired
-tier: P0
-capabilityDomain: ai-capability
-enforcementMode: manual-first
-evidenceMode: law
-
-summary: legacy LocalAi contracts are bridge-only and must not escape back into AI public ownership.
-
-### 主题
-
-旧 LocalAi 合同只允许留在桥接层
-
-### 法条
-
-Legacy LocalAiTaskRequest, LocalAiTaskResult, and LocalAiTaskType may survive only as runtime-internal compatibility contracts.
-
-Required direction:
-- The internal bridge may map AiTaskType to LocalAiTaskType.
-- The internal bridge may map AiAbilityInput to LocalAiTaskRequest and LocalAiTaskResult back to AiAbilityResult.
-
-### 禁止
-
-FORBIDDEN:
-- External modules importing LocalAi contracts through the AI ability group.
-- More than one bridge, compat, or legacy path for LocalAi mapping.
-
-## Law GRASSEYE-LOCAL-AI-RUNTIME-006-V1
+## Law GRASSEYE-LOCAL-AI-RUNTIME-001-V2
 
 status: active
 tier: P0
 capabilityDomain: ai-capability
 enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
+evidenceMode: law+real-code-inspection
 
-summary: local-ai-runtime must expose one governed startup readiness contract and must not be started ad hoc by consumers.
-
-### 主题
-
-本地 AI 启动就绪契约
+summary: local-ai remains an internal call boundary only.
 
 ### 法条
 
-Local AI Runtime must expose a single governed startup readiness contract for startup bootstrap to call.
-
 Required direction:
-- local-ai-runtime must provide one governed readiness contract for runtime presence, model roster availability, model-role mapping, health probe, timeout, and typed failureReason.
-- readiness contract must verify every required local model role explicitly, including productSignal.
-- readiness contract must not execute business inference or AI judgement.
-- readiness contract must not return fake success.
-- model-role config remains the source of required local model roles.
-- missing model role must fail with LOCAL_AI_MODEL_MISSING.
-- unhealthy model role must fail with LOCAL_AI_MODEL_UNHEALTHY.
-- startup may call the readiness contract through the governed startup helper and probe.
-- business owners and capability consumers must not start local AI runtime directly.
-
-### 禁止
+- public callers enter through src/capabilities/ai only.
+- local-ai may expose helpers for model config, startup readiness, and low-level adapters.
+- AI root files must not recreate a runtime-adapter universe.
 
 FORBIDDEN:
-- ad-hoc ollama serve or local runtime startup in app handlers, workbench consumers, or ability groups.
-- ad-hoc model health checks scattered across consumers as bootstrap truth.
-- fake local AI readiness success.
-- model inference used as startup health proof.
-- readiness checks mutating prompt registry or model config.
-- readiness checks silently downloading or updating models.
+- business domains calling local-ai directly.
+- prompt truth duplicated inside local-ai.
+- provider-specific public contracts.
 
-Required inspector:
-- exactly one governed local-ai startup readiness contract.
-- startup probe imports the governed local-ai startup readiness contract.
-- no consumers start local AI runtime directly.
-- readiness result includes modelRole, modelName, provider, runtime, health, failureReason, and missionRuntimeAvailable.
+## Law GRASSEYE-LOCAL-AI-RUNTIME-002-V2
 
-Required real-code-inspection:
-- consumer starts local AI runtime -> FAIL.
-- readiness returns success without full required model-role roster -> FAIL.
-- readiness uses business inference as startup proof -> FAIL.
-- readiness contract drifts away from the governed probe path -> FAIL.
+status: active
+tier: P0
+capabilityDomain: ai-capability
+enforcementMode: machine-blocking
+evidenceMode: law+real-code-inspection
+
+summary: current phase keeps one governed local model path with no fallback universe.
+
+### 法条
+
+Required direction:
+- model name and runtime resolve from config/local-ai.models.json.
+- unavailable model returns failed or review_required.
+- one call path is preferred over routing logic.
+
+FORBIDDEN:
+- paid provider enablement.
+- future provider placeholders.
+- allowCloudFallback = true.
+- hidden retry-to-other-provider behavior.
+
+## Law GRASSEYE-LOCAL-AI-RUNTIME-003-V2
+
+status: active
+tier: P0
+capabilityDomain: ai-capability
+enforcementMode: machine-blocking
+evidenceMode: law+real-code-inspection
+
+summary: local prompt usage must be sourced from the AI prompt contract, not a second registry universe.
+
+### 法条
+
+Required direction:
+- local runtime may read prompt text from AI prompt helpers.
+- one active prompt contract is enough for the current phase.
+
+FORBIDDEN:
+- local-ai-owned prompt registry as separate truth.
+- task-type to provider matrix as public truth.
+- role controls, roster summaries, or prompt shortcut exports.
+
+## Law GRASSEYE-LOCAL-AI-RUNTIME-006-V2
+
+status: active
+tier: P0
+capabilityDomain: ai-capability
+enforcementMode: machine-blocking
+evidenceMode: law+real-code-inspection
+
+summary: local startup readiness stays governed and separate from AI business judgment.
+
+### 法条
+
+Required direction:
+- startup readiness may check runtime presence, configured model, and health.
+- startup readiness must not execute business judgment.
+
+FORBIDDEN:
+- ad-hoc runtime startup from consumers.
+- business inference used as readiness proof.

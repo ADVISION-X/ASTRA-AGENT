@@ -1,4 +1,4 @@
-import type { MuscleMemoryExecutionResult } from "../../../muscle-memory/executor/muscle-memory-execution.schema.js";
+import type { MuscleMemoryExecutionResult } from "./ai-action-plan-execution-result.schema.js";
 
 export function buildMuscleMemoryBranchFieldValues(executionResult: MuscleMemoryExecutionResult) {
   const lastAction = executionResult.actionResults[executionResult.actionResults.length - 1] ?? null;

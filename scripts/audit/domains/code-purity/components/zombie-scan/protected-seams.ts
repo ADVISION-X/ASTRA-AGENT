@@ -1,7 +1,7 @@
 const ZOMBIE_PROTECTED_FILE_PATHS = [
   "scripts/audit/build-audit-artifacts-cli.ts",
   "scripts/audit/ci-full.ts",
-  "src/muscle-memory/catalog/muscle-memory-catalog.generated.json",
+  "src/muscle-memory/generated-catalog.json",
 ] as const;
 
 const ZOMBIE_PACKAGE_SCRIPT_ENTRYPOINTS = [

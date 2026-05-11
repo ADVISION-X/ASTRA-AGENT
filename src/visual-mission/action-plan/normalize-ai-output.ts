@@ -1,4 +1,4 @@
-import { loadMuscleMemoryCatalog } from "../../muscle-memory/catalog/muscle-memory-catalog.js";
+import { loadMuscleMemoryCatalog } from "../../muscle-memory/catalog.js";
 import {
   VisualMissionActionPlanOutputSchema,
   type VisualMissionActionPlanOutput,

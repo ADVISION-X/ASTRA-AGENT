@@ -1,4 +1,4 @@
-import type { VisualMissionActionPlan } from "../../muscle-memory/decoder/action-plan.schema.js";
+import type { VisualMissionExecutablePlan as VisualMissionActionPlan } from "../../visual-mission/action-plan/executable-plan.schema.js";
 import type { VisualMissionActionPlanOutput } from "../../types/visual-mission-action-plan.js";
 import {
   isVisualMissionActionPlanOutput,

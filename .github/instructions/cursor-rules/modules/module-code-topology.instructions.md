@@ -34,7 +34,7 @@ Required direction:
 - Public contracts, child registries, and group-private implementations must live under the owning ability-group root.
 - Laws and blueprints must reference the same canonical root.
 - src/lib must remain infrastructure-only and must not host a replacement execution chain or shell-side runtime execution slice such as src/lib/local-runtime/runtime-executor.ts, runtime-bootstrap.ts, runtime-state.ts, or runtime-step-support.ts.
-- The AI canonical root includes contract.ts, ability-group.ts, registry.ts, task-router.ts, model-roster.ts, schema-validation.ts, runtime-adapters/local-ai-runtime-adapter.ts, shared/*, and children/*/implementation.ts.
+- The AI canonical root is a thin machine and includes only the minimal public contract, prompt contract, one local model call path, and one active child implementation such as contract.ts, schema.ts, registry.ts, ability-group.ts, prompt/*, runtime/*, and children/visual-mission-judge-once.ts.
 - AI prompt-contract shortcut files and AI-local legacy result translators are not canonical topology.
 - Commander Console child abilities must live under src/capabilities/commander-console/children/<child-id>/implementation.ts rather than a flat children.ts pseudo-catalog.
 - Commander Console canonical topology includes contract.ts, ability-group.ts, registry.ts, command-builder.ts, read-models.ts, ports/*, shared/*, and children/*/implementation.ts with no second command or dashboard root.

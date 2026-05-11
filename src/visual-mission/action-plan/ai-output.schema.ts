@@ -3,8 +3,8 @@ import { z } from "zod";
 import {
   findMuscleMemoryEntry,
   isAiActionPlanAllowedActionCode,
-} from "../../muscle-memory/catalog/muscle-memory-catalog.js";
-import type { MuscleMemoryEntry } from "../../muscle-memory/catalog/muscle-memory-catalog.schema.js";
+} from "../../muscle-memory/catalog.js";
+import type { MuscleMemoryEntry } from "../../muscle-memory/catalog.js";
 import { MuscleMemoryGridCellSchema, MuscleMemoryPressKeySchema } from "../../muscle-memory/schema.js";
 import { VISUAL_MISSION_PLATFORM_IDS } from "../platform-target-registry.js";
 import { RoundMissionPacketSchema } from "../round-mission-packet.schema.js";

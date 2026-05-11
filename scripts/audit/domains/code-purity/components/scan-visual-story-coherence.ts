@@ -55,7 +55,7 @@ const DUAL_CHAIN_RULES = [
   },
 ] as const;
 
-const GENERATED_CATALOG_PATH = "src/muscle-memory/catalog/muscle-memory-catalog.generated.json";
+const GENERATED_CATALOG_PATH = "src/muscle-memory/generated-catalog.json";
 const PLATFORM_TARGET_REGISTRY_PATH = "src/visual-mission/platform-target-registry.ts";
 const CI_FULL_SUMMARY_PATH = "scripts/audit/generated/ci-full-summary.generated.json";
 

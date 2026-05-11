@@ -1,10 +1,23 @@
-import { createId } from "../local-runtime/ids.js";
-import type { MouseClickPrimitiveInput, MouseClickPrimitivePort, MouseClickPrimitiveResult } from "../../capabilities/mouse-click/ports/mouse-click-primitive-port.js";
+import { createHash } from "node:crypto";
+
+import type {
+  MouseClickPrimitiveInput,
+  MouseClickPrimitivePort,
+  MouseClickPrimitiveResult,
+} from "../../capabilities/mouse-click/ports/mouse-click-primitive-port.js";
 import type { BrowserController } from "./browser-controller.js";
 
 type CreateBrowserControllerMouseClickPrimitivePortInput = {
   browserController: BrowserController;
 };
+
+function buildPrimitiveExecutionRef(primitiveRef: string): string {
+  return `mc:exec:${createHash("sha1").update(primitiveRef).digest("hex").slice(0, 16)}`;
+}
+
+function buildTargetLabel(value: MouseClickPrimitiveInput): string {
+  return `mouse-click:${value.button}x${value.clickCount}:${Math.round(value.executableCoordinate.x)},${Math.round(value.executableCoordinate.y)}`;
+}
 
 function createAbortedClickResult(): MouseClickPrimitiveResult {
   return {
@@ -19,9 +32,13 @@ function createAbortedClickResult(): MouseClickPrimitiveResult {
 
 function createClickAbortPromise(abortSignal?: AbortSignal): Promise<never> {
   return new Promise<never>((_, reject) => {
-    abortSignal?.addEventListener("abort", () => {
-      reject(new Error("mouse click primitive aborted"));
-    }, { once: true });
+    abortSignal?.addEventListener(
+      "abort",
+      () => {
+        reject(new Error("mouse click primitive aborted"));
+      },
+      { once: true },
+    );
   });
 }
 
@@ -31,7 +48,7 @@ async function executeBrowserClick(
 ) {
   return Promise.race([
     browserController.click({
-      targetLabel: value.targetLabel,
+      targetLabel: buildTargetLabel(value),
       point: value.executableCoordinate,
       coordinateSpace: value.coordinateSpace,
       button: value.button,
@@ -42,10 +59,14 @@ async function executeBrowserClick(
   ]);
 }
 
-function createSuccessfulClickResult(startedAt: string, result: Awaited<ReturnType<BrowserController["click"]>>): MouseClickPrimitiveResult {
+function createSuccessfulClickResult(
+  startedAt: string,
+  primitiveRef: string,
+  result: Awaited<ReturnType<BrowserController["click"]>>,
+): MouseClickPrimitiveResult {
   return {
     ok: result.ok,
-    primitiveExecutionRef: result.browserActionId ?? createId("mouse_click_primitive"),
+    primitiveExecutionRef: result.browserActionId ?? buildPrimitiveExecutionRef(primitiveRef),
     message: result.message,
     startedAt,
     endedAt: new Date().toISOString(),
@@ -53,10 +74,10 @@ function createSuccessfulClickResult(startedAt: string, result: Awaited<ReturnTy
   };
 }
 
-function createFailedClickResult(startedAt: string, error: unknown): MouseClickPrimitiveResult {
+function createFailedClickResult(startedAt: string, primitiveRef: string, error: unknown): MouseClickPrimitiveResult {
   return {
     ok: false,
-    primitiveExecutionRef: createId("mouse_click_primitive"),
+    primitiveExecutionRef: buildPrimitiveExecutionRef(primitiveRef),
     message: error instanceof Error ? error.message : "mouse click primitive failed",
     startedAt,
     endedAt: new Date().toISOString(),
@@ -76,9 +97,9 @@ async function clickWithBrowserController(
 
   try {
     const result = await executeBrowserClick(browserController, value);
-    return createSuccessfulClickResult(startedAt, result);
+    return createSuccessfulClickResult(startedAt, value.primitiveRef, result);
   } catch (error) {
-    return createFailedClickResult(startedAt, error);
+    return createFailedClickResult(startedAt, value.primitiveRef, error);
   }
 }
 

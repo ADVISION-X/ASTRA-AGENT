@@ -1,6 +1,6 @@
 import type { ScreenshotGridSpec } from "../../capabilities/screenshot/contract.js";
 import { resolveScreenshotStructuredDataRefPayload } from "../../capabilities/screenshot/runtime/screenshot-structured-data-ref.js";
-import type { AtomicMuscleMemoryEntry } from "../../muscle-memory/catalog/muscle-memory-catalog.schema.js";
+import type { AtomicMuscleMemoryEntry } from "../../muscle-memory/catalog.js";
 import { resolveVisualMissionPlatformTarget } from "../platform-target-registry.js";
 import type {
   VisualMissionExecutablePlan,
