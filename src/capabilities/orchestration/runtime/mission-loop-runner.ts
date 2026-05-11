@@ -29,15 +29,9 @@ import {
 } from "./mission-state.js";
 import { checkLoopGuardBeforeRound, checkLoopGuardAfterRound } from "./loop-guard.js";
 import { loadMuscleMemoryCatalog } from "../../../muscle-memory/catalog.js";
-import { emitRuntimeLog } from "../../../lib/runtime-logs/logger.js";
 
 const VALID_PLATFORM_IDS = ["facebook-web", "tiktok-web"] as const;
 type ValidPlatformId = (typeof VALID_PLATFORM_IDS)[number];
-
-function resolveValidPlatformId(raw: string | null | undefined): ValidPlatformId {
-  if (raw === "facebook-web" || raw === "tiktok-web") return raw;
-  return "facebook-web";
-}
 
 function resolveSelectedPlatforms(
   platforms: string[],
@@ -78,11 +72,32 @@ export async function runMissionRoundLoop(
     const runId = state.activeRunId ?? state.runId;
     const roundId = randomUUID();
     const sessionId = "local";
-    const platformId = resolveValidPlatformId(state.requestedPlatform);
-    const selectedPlatforms = resolveSelectedPlatforms(state.selectedPlatforms ?? [], platformId);
-    const userRequirementText = state.humanGoal ?? "Mine seed product videos";
 
-    emitRuntimeLog({
+    // Fail closed: missing or invalid platform must not fall back silently
+    const requestedPlatform = state.requestedPlatform;
+    if (requestedPlatform !== "facebook-web" && requestedPlatform !== "tiktok-web") {
+      upsertMissionState(applyStatusTransition(state, {
+        status: "failed",
+        failureReason: `INVALID_PLATFORM: requestedPlatform=${requestedPlatform ?? "missing"}`,
+      }));
+      setActiveMission(null);
+      return;
+    }
+    const platformId: ValidPlatformId = requestedPlatform;
+    const selectedPlatforms = resolveSelectedPlatforms(state.selectedPlatforms ?? [], platformId);
+
+    // Fail closed: missing humanGoal must not fall back to a default
+    const userRequirementText = state.humanGoal;
+    if (!userRequirementText) {
+      upsertMissionState(applyStatusTransition(state, {
+        status: "failed",
+        failureReason: "MISSING_USER_REQUIREMENT: humanGoal is required",
+      }));
+      setActiveMission(null);
+      return;
+    }
+
+    ctx.runtimeLogger.emit({
       traceId: missionId,
       level: "info",
       modeVisibility: ["FLOW", "DEBUG", "TRACE"],
@@ -116,7 +131,7 @@ export async function runMissionRoundLoop(
         targetUrlSource: "platformRegistry",
         ...(state.targetProfileRef ? { targetProfileRef: state.targetProfileRef } : {}),
       });
-      emitRuntimeLog({
+      ctx.runtimeLogger.emit({
         traceId: missionId,
         level: openResult.status === "success" ? "info" : "warn",
         modeVisibility: ["FLOW", "DEBUG", "TRACE"],
@@ -166,14 +181,14 @@ export async function runMissionRoundLoop(
 
     if (captureResult.status !== "success" || !("screenshotRef" in captureResult) || !captureResult.screenshotRef) {
       const msg = ("failureReason" in captureResult ? captureResult.failureReason : null) ?? "screenshot capture failed";
-      emitRuntimeLog({ traceId: missionId, level: "error", modeVisibility: ["FLOW", "DEBUG", "TRACE"], eventType: "SCREENSHOT_CAPTURED", owner: "orchestration", missionId, runId, roundId, status: "failed", reason: msg });
+      ctx.runtimeLogger.emit({ traceId: missionId, level: "error", modeVisibility: ["FLOW", "DEBUG", "TRACE"], eventType: "SCREENSHOT_CAPTURED", owner: "orchestration", missionId, runId, roundId, status: "failed", reason: msg });
       upsertMissionState(applyStatusTransition(getMissionState(missionId), { status: "failed", failureReason: msg }));
       setActiveMission(null);
       return;
     }
 
     const originalScreenshotRef = captureResult.screenshotRef;
-    emitRuntimeLog({ traceId: missionId, level: "debug", modeVisibility: ["DEBUG", "TRACE"], eventType: "SCREENSHOT_CAPTURED", owner: "orchestration", missionId, runId, roundId, status: "success", reason: `screenshot ref=${originalScreenshotRef}` });
+    ctx.runtimeLogger.emit({ traceId: missionId, level: "debug", modeVisibility: ["DEBUG", "TRACE"], eventType: "SCREENSHOT_CAPTURED", owner: "orchestration", missionId, runId, roundId, status: "success", reason: `screenshot ref=${originalScreenshotRef}` });
     const screenshotProofRef =
       "screenshotProof" in captureResult && captureResult.screenshotProof
         ? captureResult.screenshotProof.proofId
@@ -391,6 +406,7 @@ export async function runMissionRoundLoop(
         return {
           actionCode: action.actionCode,
           reason: action.reason ?? null,
+          targetRole: action.targetRole ?? null,
           abilityGroupId: entry?.abilityGroupId ?? null,
           childCapabilityId: entry?.childCapabilityId ?? null,
           inputOverrides: {
@@ -507,7 +523,7 @@ export async function runMissionRoundLoop(
       roundIndex: (getMissionState(missionId).roundIndex ?? 0) + 1,
     });
 
-    emitRuntimeLog({
+    ctx.runtimeLogger.emit({
       traceId: missionId,
       level: "info",
       modeVisibility: ["FLOW", "DEBUG", "TRACE"],

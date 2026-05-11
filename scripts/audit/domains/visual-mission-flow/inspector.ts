@@ -242,38 +242,44 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
-  // ── CHECK 13: NerveBus dispatcher has Open-specific clean input path ──────
+  // ── CHECK 13: NerveBus dispatcher is pure transport (no ability-group-specific branches) ──
   {
     const src = readSrc(CFG.nerveBusDispatcherPath);
     if (!src) {
-      checks.push({ checkId: "VMF-13", question: "NerveBus dispatcher must not inject forbidden fields into strict Open schema?", status: "FAIL", detail: `File not found: ${CFG.nerveBusDispatcherPath}` });
-    } else if (src.includes(CFG.nerveBusOpenCleanToken)) {
-      checks.push({ checkId: "VMF-13", question: "NerveBus dispatcher must not inject forbidden fields into strict Open schema?", status: "PASS", detail: "Open-specific clean input path found in dispatcher." });
+      checks.push({ checkId: "VMF-13", question: "NerveBus dispatcher is pure transport (no per-ability-group enrichment branches)?", status: "FAIL", detail: `File not found: ${CFG.nerveBusDispatcherPath}` });
+    } else if (src.includes('envelope.abilityGroupId === "open"') || src.includes("envelope.abilityGroupId === 'open'")) {
+      checks.push({ checkId: "VMF-13", question: "NerveBus dispatcher is pure transport (no per-ability-group enrichment branches)?", status: "FAIL", detail: "Open-specific branch found — NerveBus is not pure transport; dispatch-sequence must build complete inputs." });
+    } else if (src.includes('envelope.abilityGroupId === "mouse-scroll"') || src.includes("envelope.abilityGroupId === 'mouse-scroll'")) {
+      checks.push({ checkId: "VMF-13", question: "NerveBus dispatcher is pure transport (no per-ability-group enrichment branches)?", status: "FAIL", detail: "Mouse-scroll branch found — NerveBus is not pure transport." });
     } else {
-      checks.push({ checkId: "VMF-13", question: "NerveBus dispatcher must not inject forbidden fields into strict Open schema?", status: "FAIL", detail: "No Open-specific input path — dispatcher injects abilityGroupId/purpose/sourceRef into strict Open schema." });
+      checks.push({ checkId: "VMF-13", question: "NerveBus dispatcher is pure transport (no per-ability-group enrichment branches)?", status: "PASS", detail: "No per-ability-group enrichment branches — pure transport confirmed." });
     }
   }
 
-  // ── CHECK 14: product_yes schema validation in ai-output.schema.ts ────────
+  // ── CHECK 14: product_yes schema uses targetRole + captureMode (not reason regex) ──
   {
     const aiOutputSchemaPath = "src/visual-mission/action-plan/ai-output.schema.ts";
     const src = readSrc(aiOutputSchemaPath);
     if (!src) {
-      checks.push({ checkId: "VMF-14", question: "product_yes output schema requires like click + comments click + save + scroll?", status: "FAIL", detail: `File not found: ${aiOutputSchemaPath}` });
+      checks.push({ checkId: "VMF-14", question: "product_yes output schema requires targetRole-based like/comments checks + SAVE with captureMode?", status: "FAIL", detail: `File not found: ${aiOutputSchemaPath}` });
     } else {
       const hasProductYes = src.includes("product_yes") && src.includes("superRefine");
-      const hasLikeCheck = src.includes("at least 2 click") || src.includes("clicks.length < 2");
+      const hasTargetRoleLike = src.includes("like_button");
+      const hasTargetRoleComment = src.includes("comments_button");
       const hasSaveCheck = src.includes("SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
-      const hasScrollCheck = src.includes("SCROLL_BROWSER_VIEWPORT_ONCE");
-      if (hasProductYes && hasLikeCheck && hasSaveCheck && hasScrollCheck) {
-        checks.push({ checkId: "VMF-14", question: "product_yes output schema requires like click + comments click + save + scroll?", status: "PASS", detail: "product_yes superRefine validates 2+ clicks, SAVE, and SCROLL." });
+      const hasCaptureMode = src.includes("fresh_current_viewport");
+      const hasReasonRegex = src.includes("/like/i") || src.includes("/comment/i");
+      const missing: string[] = [];
+      if (!hasProductYes) missing.push("product_yes superRefine");
+      if (!hasTargetRoleLike) missing.push("targetRole='like_button' check");
+      if (!hasTargetRoleComment) missing.push("targetRole='comments_button' check");
+      if (!hasSaveCheck) missing.push("SAVE check");
+      if (!hasCaptureMode) missing.push("captureMode='fresh_current_viewport' check");
+      if (hasReasonRegex) missing.push("reason regex still present (must be removed)");
+      if (missing.length === 0) {
+        checks.push({ checkId: "VMF-14", question: "product_yes output schema requires targetRole-based like/comments checks + SAVE with captureMode?", status: "PASS", detail: "product_yes superRefine validates targetRole for like/comments, SAVE with captureMode." });
       } else {
-        const missing: string[] = [];
-        if (!hasProductYes) missing.push("product_yes superRefine");
-        if (!hasLikeCheck) missing.push("2-click check");
-        if (!hasSaveCheck) missing.push("SAVE check");
-        if (!hasScrollCheck) missing.push("SCROLL check");
-        checks.push({ checkId: "VMF-14", question: "product_yes output schema requires like click + comments click + save + scroll?", status: "FAIL", detail: `Missing: ${missing.join(", ")}` });
+        checks.push({ checkId: "VMF-14", question: "product_yes output schema requires targetRole-based like/comments checks + SAVE with captureMode?", status: "FAIL", detail: `Issues: ${missing.join(", ")}` });
       }
     }
   }
@@ -300,33 +306,36 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
-  // ── CHECK 16: dispatch-sequence tracks commentPanelOpenAttempted ──────────
+  // ── CHECK 16: dispatch-sequence uses captureMode trigger (not reason regex) for fresh screenshot ──
   {
     const src = readSrc(CFG.dispatchSequencePath);
     if (!src) {
-      checks.push({ checkId: "VMF-16", question: "dispatch-sequence tracks commentPanelOpenAttempted (not just priorClickCount)?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
+      checks.push({ checkId: "VMF-16", question: "dispatch-sequence uses captureMode='fresh_current_viewport' to trigger fresh screenshot (no reason regex)?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
     } else {
-      const hasCommentTrack = src.includes("commentPanelOpenAttempted");
-      const hasOldTrack = src.includes("priorClickCount");
-      if (hasCommentTrack && !hasOldTrack) {
-        checks.push({ checkId: "VMF-16", question: "dispatch-sequence tracks commentPanelOpenAttempted (not just priorClickCount)?", status: "PASS", detail: "commentPanelOpenAttempted tracking found; priorClickCount retired." });
-      } else if (hasOldTrack) {
-        checks.push({ checkId: "VMF-16", question: "dispatch-sequence tracks commentPanelOpenAttempted (not just priorClickCount)?", status: "FAIL", detail: "priorClickCount still present — comment-specific tracking not implemented." });
+      const hasCaptureModeCheck = src.includes("captureMode") && src.includes("fresh_current_viewport");
+      const hasReasonRegex = src.includes("/comment/i") || src.includes("/like/i");
+      const hasOldTracking = src.includes("commentPanelOpenAttempted") || src.includes("priorClickCount");
+      if (hasCaptureModeCheck && !hasReasonRegex && !hasOldTracking) {
+        checks.push({ checkId: "VMF-16", question: "dispatch-sequence uses captureMode='fresh_current_viewport' to trigger fresh screenshot (no reason regex)?", status: "PASS", detail: "captureMode-based fresh screenshot trigger found; no reason-regex flow control." });
       } else {
-        checks.push({ checkId: "VMF-16", question: "dispatch-sequence tracks commentPanelOpenAttempted (not just priorClickCount)?", status: "FAIL", detail: "Neither commentPanelOpenAttempted nor priorClickCount found." });
+        const issues: string[] = [];
+        if (!hasCaptureModeCheck) issues.push("captureMode='fresh_current_viewport' trigger missing");
+        if (hasReasonRegex) issues.push("reason regex still drives flow (/comment/i or /like/i)");
+        if (hasOldTracking) issues.push("old tracking variable still present");
+        checks.push({ checkId: "VMF-16", question: "dispatch-sequence uses captureMode='fresh_current_viewport' to trigger fresh screenshot (no reason regex)?", status: "FAIL", detail: `Issues: ${issues.join(", ")}` });
       }
     }
   }
 
-  // ── CHECK 17: SAVE evidence record includes postCommentScreenshotRef when comment opened ─
+  // ── CHECK 17: SAVE evidence record includes freshScreenshotRef when captureMode=fresh ──
   {
     const src = readSrc(CFG.dispatchSequencePath);
     if (!src) {
-      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts postCommentScreenshotRef in evidence when comment opened?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
-    } else if (src.includes("postCommentScreenshotRef")) {
-      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts postCommentScreenshotRef in evidence when comment opened?", status: "PASS", detail: "postCommentScreenshotRef present in dispatch-sequence evidence record." });
+      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts freshScreenshotRef in evidence when captureMode='fresh_current_viewport'?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
+    } else if (src.includes("freshScreenshotRef")) {
+      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts freshScreenshotRef in evidence when captureMode='fresh_current_viewport'?", status: "PASS", detail: "freshScreenshotRef present in dispatch-sequence evidence record." });
     } else {
-      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts postCommentScreenshotRef in evidence when comment opened?", status: "FAIL", detail: "postCommentScreenshotRef not found — post-comment screenshot not saved to evidence." });
+      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts freshScreenshotRef in evidence when captureMode='fresh_current_viewport'?", status: "FAIL", detail: "freshScreenshotRef not found — fresh viewport screenshot not saved to evidence." });
     }
   }
 
@@ -376,6 +385,117 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
   }
 
   // ─── Compute overall status ──────────────────────────────────────────────
+
+  // ── CHECK 21: No reason-regex flow control in orchestration (P0-1 regression) ──
+  {
+    const files = [CFG.dispatchSequencePath, "src/visual-mission/action-plan/ai-output.schema.ts"];
+    const violations: string[] = [];
+    for (const f of files) {
+      const src = readSrc(f);
+      if (src && (src.includes("/comment/i") || src.includes("/like/i"))) {
+        violations.push(f);
+      }
+    }
+    if (violations.length === 0) {
+      checks.push({ checkId: "VMF-21", question: "No reason-regex (/comment/i, /like/i) flow control in dispatch-sequence or ai-output schema?", status: "PASS", detail: "No reason-regex flow control found." });
+    } else {
+      checks.push({ checkId: "VMF-21", question: "No reason-regex (/comment/i, /like/i) flow control in dispatch-sequence or ai-output schema?", status: "FAIL", detail: `Reason-regex flow control still present in: ${violations.join(", ")}` });
+    }
+  }
+
+  // ── CHECK 22: No silent platform fallback in orchestration runtime (P0-5 regression) ──
+  {
+    const src = readSrc(CFG.missionLoopPath);
+    if (!src) {
+      checks.push({ checkId: "VMF-22", question: "No silent platform fallback ('facebook-web' default) in orchestration runtime?", status: "FAIL", detail: `File not found: ${CFG.missionLoopPath}` });
+    } else if (src.includes('return "facebook-web"') || src.includes("return 'facebook-web'") || src.includes('?? "Mine seed product videos"') || src.includes("?? 'Mine seed product videos'")) {
+      checks.push({ checkId: "VMF-22", question: "No silent platform fallback ('facebook-web' default) in orchestration runtime?", status: "FAIL", detail: "Silent fallback to 'facebook-web' or 'Mine seed product videos' default found — must fail closed." });
+    } else {
+      checks.push({ checkId: "VMF-22", question: "No silent platform fallback ('facebook-web' default) in orchestration runtime?", status: "PASS", detail: "No silent platform fallback found; fail-closed pattern confirmed." });
+    }
+  }
+
+  // ── CHECK 23: roundIndexDelta only in mission-loop-runner, not dispatch-sequence (P0-3) ──
+  {
+    const dsSrc = readSrc(CFG.dispatchSequencePath);
+    const mlSrc = readSrc(CFG.missionLoopPath);
+    if (!dsSrc) {
+      checks.push({ checkId: "VMF-23", question: "roundIndexDelta not in dispatch-sequence (only mission-loop-runner is roundIndex owner)?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
+    } else if (dsSrc.includes("roundIndexDelta")) {
+      checks.push({ checkId: "VMF-23", question: "roundIndexDelta not in dispatch-sequence (only mission-loop-runner is roundIndex owner)?", status: "FAIL", detail: "roundIndexDelta found in dispatch-sequence — double-increment P0-3 violation." });
+    } else if (mlSrc && mlSrc.includes("roundIndex")) {
+      checks.push({ checkId: "VMF-23", question: "roundIndexDelta not in dispatch-sequence (only mission-loop-runner is roundIndex owner)?", status: "PASS", detail: "roundIndexDelta absent in dispatch-sequence; mission-loop-runner owns roundIndex." });
+    } else {
+      checks.push({ checkId: "VMF-23", question: "roundIndexDelta not in dispatch-sequence (only mission-loop-runner is roundIndex owner)?", status: "WARN", detail: "roundIndexDelta absent in dispatch-sequence but mission-loop-runner roundIndex not found." });
+    }
+  }
+
+  // ── CHECK 24: OPEN_PLATFORM_ENTRY_ONCE.allowedForAiActionPlan = false in catalog (P0-6) ──
+  {
+    const catalogPath = "src/muscle-memory/generated-catalog.json";
+    const src = readSrc(catalogPath);
+    if (!src) {
+      checks.push({ checkId: "VMF-24", question: "OPEN_PLATFORM_ENTRY_ONCE.allowedForAiActionPlan=false in catalog?", status: "FAIL", detail: `File not found: ${catalogPath}` });
+    } else {
+      try {
+        const catalog = JSON.parse(src) as { entries: Array<{ actionCode: string; allowedForAiActionPlan: boolean }> };
+        const openEntry = catalog.entries.find(e => e.actionCode === "OPEN_PLATFORM_ENTRY_ONCE");
+        if (!openEntry) {
+          checks.push({ checkId: "VMF-24", question: "OPEN_PLATFORM_ENTRY_ONCE.allowedForAiActionPlan=false in catalog?", status: "FAIL", detail: "OPEN_PLATFORM_ENTRY_ONCE not found in catalog." });
+        } else if (openEntry.allowedForAiActionPlan === false) {
+          checks.push({ checkId: "VMF-24", question: "OPEN_PLATFORM_ENTRY_ONCE.allowedForAiActionPlan=false in catalog?", status: "PASS", detail: "OPEN_PLATFORM_ENTRY_ONCE correctly excluded from AI action plan." });
+        } else {
+          checks.push({ checkId: "VMF-24", question: "OPEN_PLATFORM_ENTRY_ONCE.allowedForAiActionPlan=false in catalog?", status: "FAIL", detail: `OPEN_PLATFORM_ENTRY_ONCE.allowedForAiActionPlan=${openEntry.allowedForAiActionPlan} — AI must not initiate platform opens.` });
+        }
+      } catch {
+        checks.push({ checkId: "VMF-24", question: "OPEN_PLATFORM_ENTRY_ONCE.allowedForAiActionPlan=false in catalog?", status: "FAIL", detail: "Failed to parse catalog JSON." });
+      }
+    }
+  }
+
+  // ── CHECK 25: emitRuntimeLog not directly imported in orchestration capability files (P0-8) ──
+  {
+    const orchFiles = [
+      CFG.missionLoopPath,
+      CFG.dispatchSequencePath,
+      "src/capabilities/orchestration/children.ts",
+      "src/capabilities/orchestration/ability-group.ts",
+    ];
+    const violations: string[] = [];
+    for (const f of orchFiles) {
+      const src = readSrc(f);
+      if (src && src.includes("emitRuntimeLog")) {
+        violations.push(f);
+      }
+    }
+    if (violations.length === 0) {
+      checks.push({ checkId: "VMF-25", question: "emitRuntimeLog not directly used in orchestration capability files (injected runtimeLogger only)?", status: "PASS", detail: "No direct emitRuntimeLog usage in orchestration capability files." });
+    } else {
+      checks.push({ checkId: "VMF-25", question: "emitRuntimeLog not directly used in orchestration capability files (injected runtimeLogger only)?", status: "FAIL", detail: `emitRuntimeLog used directly in: ${violations.join(", ")}` });
+    }
+  }
+
+  // ── CHECK 26: NerveBus dispatcher has no abilityGroupId=== branches (P0-4 regression) ──
+  {
+    const src = readSrc(CFG.nerveBusDispatcherPath);
+    if (!src) {
+      checks.push({ checkId: "VMF-26", question: "NerveBus dispatcher has no abilityGroupId=== per-group branches (pure transport)?", status: "FAIL", detail: `File not found: ${CFG.nerveBusDispatcherPath}` });
+    } else {
+      const hasBranch = /envelope\.abilityGroupId\s*===/.test(src) && !/^\s*\/\//.test(src);
+      const hasOnlyOrchBranch = src.includes('envelope.abilityGroupId === "orchestration"') &&
+        !src.includes('envelope.abilityGroupId === "open"') &&
+        !src.includes('envelope.abilityGroupId === "mouse-scroll"') &&
+        !src.includes('envelope.abilityGroupId === "mouse-click"');
+      if (hasOnlyOrchBranch) {
+        checks.push({ checkId: "VMF-26", question: "NerveBus dispatcher has no abilityGroupId=== per-group branches (pure transport)?", status: "PASS", detail: "Only orchestration self-route branch found — pure transport for all other groups." });
+      } else if (hasBranch) {
+        checks.push({ checkId: "VMF-26", question: "NerveBus dispatcher has no abilityGroupId=== per-group branches (pure transport)?", status: "FAIL", detail: "Per-group abilityGroupId=== branches found in NerveBus dispatcher — not pure transport." });
+      } else {
+        checks.push({ checkId: "VMF-26", question: "NerveBus dispatcher has no abilityGroupId=== per-group branches (pure transport)?", status: "PASS", detail: "No per-group abilityGroupId=== branches found — pure transport confirmed." });
+      }
+    }
+  }
+
   const hasAnyFail = checks.some((c) => c.status === "FAIL");
   const hasAnyWarn = checks.some((c) => c.status === "WARN");
   const overallStatus = hasAnyFail ? "FAIL" : hasAnyWarn ? "WARN" : "PASS";

@@ -96,6 +96,7 @@ export class GrassEyeWorkbench {
       geometryGuard: this._assembly.geometryGuardAbilityGroup,
       open: this._assembly.openAbilityGroup,
       mouseScroll: this._assembly.mouseScrollAbilityGroup,
+      runtimeLogger: this._assembly.runtimeLogger,
     });
     orchestrationRef.instance = this._orchestration;
 

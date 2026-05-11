@@ -4,6 +4,7 @@ import type { AiAbilityGroup } from "../ai/index.js";
 import type { GeometryGuardAbilityGroup } from "../geometry-guard/index.js";
 import type { OpenAbilityGroup } from "../open/index.js";
 import type { MouseScrollAbilityGroup } from "../mouse-scroll/contract.js";
+import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type {
   OrchestrationAbilityGroup,
   MissionCommand,
@@ -35,6 +36,7 @@ type OrchestrationDeps = {
   geometryGuard: GeometryGuardAbilityGroup;
   open: OpenAbilityGroup;
   mouseScroll: MouseScrollAbilityGroup;
+  runtimeLogger: RuntimeLogger;
 };
 
 async function executeChild(
@@ -75,6 +77,7 @@ export function createOrchestrationAbilityGroup(deps: OrchestrationDeps): Orches
     geometryGuard: deps.geometryGuard,
     openAbilityGroup: deps.open,
     mouseScrollAbilityGroup: deps.mouseScroll,
+    runtimeLogger: deps.runtimeLogger,
   };
 
   async function execute(input: OrchestrationExecuteInput): Promise<OrchestrationExecuteResult> {

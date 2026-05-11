@@ -129,6 +129,7 @@ const input: DispatchRegisteredAbilitySequenceInput = {
     {
       actionCode: "SCROLL_BROWSER_VIEWPORT_ONCE",
       reason: "Not a product video — scrolling to next",
+      targetRole: null,
       abilityGroupId: null,
       childCapabilityId: null,
       gridCell: null,

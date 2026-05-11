@@ -6,6 +6,7 @@ import type { AiAbilityGroup } from "../ai/index.js";
 import type { GeometryGuardAbilityGroup } from "../geometry-guard/index.js";
 import type { OpenAbilityGroup } from "../open/index.js";
 import type { MouseScrollAbilityGroup } from "../mouse-scroll/contract.js";
+import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { DispatchRegisteredAbilitySequenceInput } from "./contract.js";
 import {
   getMissionState,
@@ -37,6 +38,7 @@ export type OrchestrationChildrenContext = {
   geometryGuard: GeometryGuardAbilityGroup;
   openAbilityGroup: OpenAbilityGroup;
   mouseScrollAbilityGroup: MouseScrollAbilityGroup;
+  runtimeLogger: RuntimeLogger;
 };
 
 type ChildResult = {

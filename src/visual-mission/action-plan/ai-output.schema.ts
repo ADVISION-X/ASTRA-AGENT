@@ -178,7 +178,7 @@ const VisualMissionActionPlanOutputSchema = z.object({
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
     }
     if (saveIdx !== -1) {
-      const saveAction = actions[saveIdx];
+      const saveAction = actions[saveIdx]!;
       const captureMode = (saveAction.input as Record<string, unknown> | undefined)?.["captureMode"];
       if (captureMode !== "fresh_current_viewport") {
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: SAVE_CURRENT_VIDEO_EVIDENCE_ONCE must have input.captureMode='fresh_current_viewport'.", path: ["actions"] });

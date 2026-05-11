@@ -130,6 +130,7 @@ const input: DispatchRegisteredAbilitySequenceInput = {
     {
       actionCode: "LEFT_CLICK_GRID_CELL_ONCE",
       reason: "like the product video",
+      targetRole: "like_button" as const,
       abilityGroupId: null,
       childCapabilityId: null,
       gridCell: "C2",
@@ -140,6 +141,7 @@ const input: DispatchRegisteredAbilitySequenceInput = {
     {
       actionCode: "LEFT_CLICK_GRID_CELL_ONCE",
       reason: "open comments panel",
+      targetRole: "comments_button" as const,
       abilityGroupId: null,
       childCapabilityId: null,
       gridCell: "C4",
@@ -150,6 +152,7 @@ const input: DispatchRegisteredAbilitySequenceInput = {
     {
       actionCode: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE",
       reason: "Identified as product video with skincare items",
+      targetRole: null,
       abilityGroupId: null,
       childCapabilityId: null,
       gridCell: null,
@@ -157,11 +160,13 @@ const input: DispatchRegisteredAbilitySequenceInput = {
       requiresGeometryProof: false,
       inputOverrides: {
         evidenceLabel: "product-video-1",
+        captureMode: "fresh_current_viewport",
       },
     },
     {
       actionCode: "SCROLL_BROWSER_VIEWPORT_ONCE",
       reason: "move to next video",
+      targetRole: null,
       abilityGroupId: null,
       childCapabilityId: null,
       gridCell: null,
@@ -223,12 +228,12 @@ async function main() {
     process.stdout.write("  [✓] SCROLL_BROWSER_VIEWPORT_ONCE dispatched through nerveBus\n");
   }
 
-  // 3. Post-comment screenshot taken (because click happened before SAVE)
+  // 3. Fresh viewport screenshot taken (because SAVE has captureMode='fresh_current_viewport')
   if (screenshotCaptureCount === 0) {
     passed = false;
-    failures.push("Post-comment screenshot was NOT taken before SAVE (screenshotAbilityGroup.execute never called)");
+    failures.push("Fresh viewport screenshot was NOT taken before SAVE (screenshotAbilityGroup.execute never called)");
   } else {
-    process.stdout.write(`  [✓] Post-comment screenshot taken (${screenshotCaptureCount} capture(s))\n`);
+    process.stdout.write(`  [✓] Fresh viewport screenshot taken (${screenshotCaptureCount} capture(s))\n`);
   }
 
   // 4. Forensics received an evidence record with SAVE_CURRENT_VIDEO_EVIDENCE_ONCE
@@ -243,10 +248,10 @@ async function main() {
     process.stdout.write("  [✓] Forensics received evidence record from SAVE\n");
     const rec = evidenceRecord as Record<string, unknown>;
     const payload = rec["recordPayload"] as Record<string, unknown> | undefined;
-    if (payload?.["postCommentScreenshotRef"]) {
-      process.stdout.write("  [✓] evidence record includes postCommentScreenshotRef\n");
+    if (payload?.["freshScreenshotRef"]) {
+      process.stdout.write("  [✓] evidence record includes freshScreenshotRef\n");
     } else {
-      process.stdout.write("  [⚠] postCommentScreenshotRef not in evidence record payload\n");
+      process.stdout.write("  [⚠] freshScreenshotRef not in evidence record payload\n");
     }
   }
 

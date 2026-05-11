@@ -39,6 +39,7 @@ import {
   resolveStructuredLogLevel,
 } from "./structured-log-terminal.js";
 import { createRuntimeLogger, setDefaultRuntimeLogger } from "../runtime-logs/logger.js";
+import type { RuntimeLogger } from "../runtime-logs/index.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 
 // ─── Local Port Adapters ───────────────────────────────────────────────────────
@@ -96,7 +97,7 @@ export type WorkbenchAssembly = {
     typeof createMouseScrollAbilityGroupWithPrimitivePort
   >;
   textInputAbilityGroup: ReturnType<typeof createTextInputAbilityGroupWithPorts>;
-
+  runtimeLogger: RuntimeLogger;
 };
 
 // ─── Assembly ─────────────────────────────────────────────────────────────────
@@ -205,5 +206,6 @@ export function createWorkbenchAssembly(
     mouseClickAbilityGroup,
     mouseScrollAbilityGroup,
     textInputAbilityGroup,
+    runtimeLogger,
   };
 }
