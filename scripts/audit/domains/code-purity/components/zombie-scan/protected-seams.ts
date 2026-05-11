@@ -1,5 +1,12 @@
 const ZOMBIE_PROTECTED_FILE_PATHS = [
+  "scripts/audit/build-audit-artifacts-cli.ts",
+  "scripts/audit/ci-full.ts",
   "src/muscle-memory/catalog/muscle-memory-catalog.generated.json",
+] as const;
+
+const ZOMBIE_PACKAGE_SCRIPT_ENTRYPOINTS = [
+  "scripts/copy-runtime-assets.mjs",
+  "src/app/server.ts",
 ] as const;
 
 const ZOMBIE_PROTECTED_PATH_PREFIXES = [
@@ -77,6 +84,10 @@ const hasProtectedSuffix = (relativePath: string): boolean =>
   ZOMBIE_PROTECTED_PATH_SUFFIXES.some((suffix) => relativePath.endsWith(suffix));
 
 const ZOMBIE_PROTECTED_PATH_RULES: ProtectedPathRule[] = [
+  {
+    seam: "package-script-entrypoint",
+    matches: (relativePath) => ZOMBIE_PACKAGE_SCRIPT_ENTRYPOINTS.includes(relativePath as (typeof ZOMBIE_PACKAGE_SCRIPT_ENTRYPOINTS)[number]),
+  },
   {
     seam: "generated-source-artifact",
     matches: (relativePath) => ZOMBIE_PROTECTED_FILE_PATHS.includes(relativePath as (typeof ZOMBIE_PROTECTED_FILE_PATHS)[number]),

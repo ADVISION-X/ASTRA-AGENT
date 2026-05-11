@@ -22,10 +22,6 @@ export function loadMuscleMemoryCatalog(): MuscleMemoryCatalog {
   return catalogCache;
 }
 
-export function listMuscleMemoryEntries(): MuscleMemoryEntry[] {
-  return [...loadMuscleMemoryCatalog().entries];
-}
-
 export function findMuscleMemoryEntry(actionCode: string): MuscleMemoryEntry | null {
   return loadMuscleMemoryCatalog().entries.find((entry) => entry.actionCode === actionCode) ?? null;
 }
@@ -37,20 +33,4 @@ export function listAiActionPlanEntries(): MuscleMemoryEntry[] {
 export function isAiActionPlanAllowedActionCode(actionCode: unknown): actionCode is string {
   return typeof actionCode === "string"
     && findMuscleMemoryEntry(actionCode)?.allowedForAiActionPlan === true;
-}
-
-export function requireAtomicMuscleMemoryEntry(actionCode: string): AtomicMuscleMemoryEntry {
-  const entry = findMuscleMemoryEntry(actionCode);
-  if (!entry || entry.type !== "atomic") {
-    throw new Error(`Atomic muscle-memory entry not found: ${actionCode}`);
-  }
-  return entry;
-}
-
-export function requireCompositeMuscleMemoryEntry(actionCode: string): CompositeMuscleMemoryEntry {
-  const entry = findMuscleMemoryEntry(actionCode);
-  if (!entry || entry.type !== "composite") {
-    throw new Error(`Composite muscle-memory entry not found: ${actionCode}`);
-  }
-  return entry;
 }

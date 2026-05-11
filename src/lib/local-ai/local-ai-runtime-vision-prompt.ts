@@ -4,7 +4,7 @@ import { VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT } from "./prompts/vision-produc
 
 type VisionProductPresenceRequest = Extract<LocalAiTaskRequest, { taskType: "vision.productPresence" }>;
 
-export type VisionPromptParts = {
+type VisionPromptParts = {
   systemPrompt: string;
   userPrompt: string;
   fullPrompt: string;
@@ -84,4 +84,4 @@ export const buildVisionPromptParts = (request: VisionProductPresenceRequest): V
   };
 };
 
-export const buildVisionPrompt = (request: VisionProductPresenceRequest): string => buildVisionPromptParts(request).fullPrompt;
+const buildVisionPrompt = (request: VisionProductPresenceRequest): string => buildVisionPromptParts(request).fullPrompt;

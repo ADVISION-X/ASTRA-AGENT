@@ -1,6 +1,6 @@
-export type SourceType = "law" | "blueprint";
+type SourceType = "law" | "blueprint";
 export type RequirementTier = "P0" | "P1" | "P2" | "P3" | "UNKNOWN";
-export type CoverageStatus = "covered" | "partial" | "missing" | "weak";
+type CoverageStatus = "covered" | "partial" | "missing" | "weak";
 
 export type EnforcementStrength =
   | "LEVEL_5_AST_SYMBOL_IMPORT_GRAPH"
@@ -26,7 +26,7 @@ export type CoverageRequirement = {
   blockingReason: string[];
 };
 
-export type StaticCoverageEvidence = {
+type StaticCoverageEvidence = {
   inspectorId: string;
   domain: string;
   manifestPath: string;

@@ -46,15 +46,6 @@ export const isVisualMissionPlatformId = (value: unknown): value is VisualMissio
   PlatformIdSchema.safeParse(value).success
 );
 
-export function listVisualMissionPlatformTargets(): VisualMissionPlatformTargetBinding[] {
-  return Object.values(PLATFORM_TARGET_BINDINGS);
-}
-
 export function resolveVisualMissionPlatformTarget(platformId: VisualMissionPlatformId | null | undefined): VisualMissionPlatformTargetBinding | null {
   return platformId ? PLATFORM_TARGET_BINDINGS[platformId] ?? null : null;
 }
-
-export type {
-  VisualMissionPlatformId,
-  VisualMissionPlatformTargetBinding,
-};

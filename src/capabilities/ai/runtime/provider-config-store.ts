@@ -104,7 +104,7 @@ async function lockFilePermissions(path: string): Promise<void> {
   }
 }
 
-export async function loadAiExternalProviderConfig(dataDir: string): Promise<AiExternalProviderConfig | null> {
+async function loadAiExternalProviderConfig(dataDir: string): Promise<AiExternalProviderConfig | null> {
   const filePath = resolveProviderConfigPath(dataDir);
   const content = await readProviderConfig(filePath);
   if (content === null) {

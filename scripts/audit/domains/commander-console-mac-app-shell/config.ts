@@ -76,7 +76,7 @@ export const FORBIDDEN_IMPORT_MARKERS = [
   "/capabilities/forensics-persistence/",
 ] as const;
 
-export type AuditItem = {
+type AuditItem = {
   name: string;
   score: number;
   evidence: string[];

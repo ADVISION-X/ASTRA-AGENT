@@ -5,10 +5,37 @@ import type { ZombieCandidate, ZombieGraph } from "./zombie-scan-types.js";
 
 const FILE_SCOPED_ZOMBIE_KINDS = new Set<ZombieCandidate["kind"]>([
   "orphan-file",
-  "dead-export",
-  "unused-child-capability",
   "unused-inspector-component",
 ]);
+
+const countLawfulCallerPaths = (paths: Iterable<string>, candidate: ZombieCandidate): number => {
+  const callers = new Set<string>();
+
+  for (const path of paths) {
+    if (candidate.excludedFiles.includes(path)) {
+      continue;
+    }
+    if (candidate.excludedPathPrefixes.some((prefix) => path.startsWith(prefix))) {
+      continue;
+    }
+    callers.add(path);
+  }
+
+  return callers.size;
+};
+
+const collectValueCallerPaths = (graph: ZombieGraph, candidate: ZombieCandidate): Set<string> => {
+  const callers = new Set<string>();
+  const values = candidate.referenceValues ?? (candidate.value ? [candidate.value] : []);
+
+  for (const value of values) {
+    for (const path of graph.stringUsageIndex.get(value) ?? []) {
+      callers.add(path);
+    }
+  }
+
+  return callers;
+};
 
 const ZOMBIE_MESSAGE_BUILDERS: Record<ZombieCandidate["kind"], (symbolName: string) => string> = {
   "orphan-file": (symbolName) => `Orphan file ${symbolName} has no lawful callers.`,
@@ -26,13 +53,16 @@ const resolveZombieFindingMessage = (candidate: ZombieCandidate): string => {
 };
 
 export const resolveZombieCallerCount = (graph: ZombieGraph, candidate: ZombieCandidate): number => {
-  if (FILE_SCOPED_ZOMBIE_KINDS.has(candidate.kind)) {
-    return graph.inboundImportPaths.get(candidate.file)?.size ?? 0;
+  if (candidate.referencePaths?.length) {
+    return countLawfulCallerPaths(candidate.referencePaths ?? [], candidate);
   }
-  if (!candidate.value) {
+  if (FILE_SCOPED_ZOMBIE_KINDS.has(candidate.kind)) {
+    return countLawfulCallerPaths(graph.inboundImportPaths.get(candidate.file) ?? [], candidate);
+  }
+  if (!candidate.value && !candidate.referenceValues?.length) {
     return 0;
   }
-  return graph.stringUsageIndex.get(candidate.value)?.size ?? 0;
+  return countLawfulCallerPaths(collectValueCallerPaths(graph, candidate), candidate);
 };
 
 export const buildZombieFinding = (candidate: ZombieCandidate, lawfulCallerCount: number): Finding =>

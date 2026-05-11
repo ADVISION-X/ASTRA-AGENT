@@ -7,7 +7,7 @@ import {
 } from "./registry.js";
 import type { PromptContractCatalogEntry } from "./schema.js";
 
-export type PromptContractCatalogResolution =
+type PromptContractCatalogResolution =
   | { ok: true; contract: PromptContractCatalogEntry }
   | {
       ok: false;
@@ -74,7 +74,7 @@ function toPromptContract(contract: PromptContractCatalogEntry): PromptContract 
   };
 }
 
-export function getPromptContractCatalogEntryByLocalTaskType(taskType: LocalAiTaskType): PromptContractCatalogEntry {
+function getPromptContractCatalogEntryByLocalTaskType(taskType: LocalAiTaskType): PromptContractCatalogEntry {
   assertPromptCatalogIntegrity();
   const contract = findPromptContractCatalogEntryByLocalTaskType(taskType);
   if (!contract) {

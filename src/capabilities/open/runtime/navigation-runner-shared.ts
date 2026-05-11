@@ -23,7 +23,10 @@ export type OpenNavigationRunResult = {
   decision: OpenNavigationDecision;
 };
 
-export type NavigationDecisionInput = {
+export const buildSessionSnapshotFailureReason = (error: unknown): string =>
+  error instanceof Error ? error.message : "open browser session snapshot failed after navigation";
+
+export const buildNavigationDecision = (input: {
   status: "already_on_target" | "timed_out" | "failed" | "executed";
   reason: string | null;
   browserActionId: string | null;
@@ -36,12 +39,7 @@ export type NavigationDecisionInput = {
   abortDecision: "not_requested" | "timeout_abort_requested";
   browserOpenStillRunningGuard: boolean;
   alreadyOnTargetHandlingMode: "not_applicable" | "session_reused";
-};
-
-export const buildSessionSnapshotFailureReason = (error: unknown): string =>
-  error instanceof Error ? error.message : "open browser session snapshot failed after navigation";
-
-export const buildNavigationDecision = (input: NavigationDecisionInput): OpenNavigationDecision => OpenNavigationDecisionSchema.parse({
+}): OpenNavigationDecision => OpenNavigationDecisionSchema.parse({
   status: input.status,
   reason: input.reason,
   browserActionId: input.browserActionId,

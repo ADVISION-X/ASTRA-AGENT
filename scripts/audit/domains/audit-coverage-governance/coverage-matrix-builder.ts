@@ -141,10 +141,6 @@ export const buildCoverageMatrix = async (requirements: CoverageRequirement[]): 
   return { requirements: coveredRequirements };
 };
 
-export const buildCoverageSummary = (requirements: CoverageRequirement[], generatedAt: string): CoverageSummary => {
-  throw new Error("buildCoverageSummary must be called through buildCoverageSummaryWithIntegrity.");
-};
-
 export const buildCoverageSummaryWithIntegrity = async (input: {
   requirements: CoverageRequirement[];
   generatedAt: string;

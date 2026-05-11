@@ -3,7 +3,7 @@ import { VISION_NEXT_ITEM_ADVANCED_PROMPT_CONTRACT } from "./prompts/vision-next
 
 type VisionNextItemAdvancedRequest = Extract<LocalAiTaskRequest, { taskType: "vision.nextItemAdvanced" }>;
 
-export type VisionNextItemAdvancedPromptParts = {
+type VisionNextItemAdvancedPromptParts = {
   systemPrompt: string;
   userPrompt: string;
   fullPrompt: string;
@@ -49,5 +49,5 @@ export const buildNextItemAdvancedPromptParts = (
   };
 };
 
-export const buildNextItemAdvancedPrompt = (request: VisionNextItemAdvancedRequest): string =>
+const buildNextItemAdvancedPrompt = (request: VisionNextItemAdvancedRequest): string =>
   buildNextItemAdvancedPromptParts(request).fullPrompt;

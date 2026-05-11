@@ -2,8 +2,8 @@ import { writeJsonFile } from "./filesystem.js";
 import { generatedArtifactPaths } from "./generated-artifact-paths.js";
 import type { CiFullLayerLabel } from "./ci-full-plan.js";
 
-export type CiFullStepStatus = "PASS" | "FAIL" | "SKIPPED";
-export type CiFullLayerStatus = "PASS" | "FAIL" | "SKIPPED";
+type CiFullStepStatus = "PASS" | "FAIL" | "SKIPPED";
+type CiFullLayerStatus = "PASS" | "FAIL" | "SKIPPED";
 
 export type CiFullStepSummary = {
   name: string;

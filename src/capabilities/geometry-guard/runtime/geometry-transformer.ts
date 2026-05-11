@@ -2,7 +2,7 @@ import type { GeometryGuardBoundingBox, GeometryGuardCheckDecision, GeometryGuar
 import { createGeometryFailure, type GeometryFailure } from "../shared/geometry-failure.js";
 import { applyBoundingBoxMapping, applyPointMapping, applyRoundingToBoundingBox, applyRoundingToPoint, boxInsideBounds, pointInsideBounds } from "../shared/geometry-transform.js";
 
-export type GeometryTransformResult = {
+type GeometryTransformResult = {
   transformDecision: GeometryGuardCheckDecision;
   failure: GeometryFailure | null;
   normalizedCoordinateSpace: GeometryGuardExecutionSpace | null;
@@ -56,7 +56,7 @@ function hasValidMappedGeometry(input: GeometryTransformInput, normalizedBbox: G
     && pointInsideBounds(normalizedClickPoint, input.targetBounds!);
 }
 
-export function transformGeometry(input: GeometryTransformInput): GeometryTransformResult {
+export function transformGeometry(input: GeometryTransformInput) {
   if (!input.requiresExecutableOutput) {
     return createNotApplicableTransformResult(input);
   }

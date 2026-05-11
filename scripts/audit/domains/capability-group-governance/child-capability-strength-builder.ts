@@ -134,7 +134,7 @@ const buildActionCodeIndexes = (
   return { actionCodesByChildKey, aiActionCodesByChildKey };
 };
 
-export async function buildChildCapabilityStrengthInventory(project: Project = getAuditProject()): Promise<ChildCapabilityStrengthInventory> {
+async function buildChildCapabilityStrengthInventory(project: Project = getAuditProject()): Promise<ChildCapabilityStrengthInventory> {
   const catalog = await readCatalog();
   const atomicEntries = getAtomicEntries(catalog);
   const aiReachableChildKeys = resolveAiReachableChildKeys(catalog);
@@ -154,4 +154,4 @@ export async function writeChildCapabilityStrengthInventory(project: Project = g
 }
 
 export { INVENTORY_RELATIVE_PATH };
-export type { AtomicCatalogEntry, ChildCapabilityStrengthEntry, ChildCapabilityStrengthInventory, CompositeCatalogEntry, MuscleMemoryCatalog };
+export type { AtomicCatalogEntry, ChildCapabilityStrengthEntry };

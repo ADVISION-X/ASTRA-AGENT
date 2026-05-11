@@ -11,7 +11,7 @@ export const WORKBENCH_HUMAN_COMMAND_PATH = "src/lib/local-runtime/workbench-hum
 const TASK_START_SUPPORT_PATH = "src/lib/local-app-shell/task-start-support.ts";
 const COMMANDER_COMMAND_TRANSPORT_PATH = "src/lib/local-runtime/workbench-commander-command-transport.ts";
 
-export type CommanderRuntimeSources = {
+type CommanderRuntimeSources = {
   abilityGroupSource: SourceFile;
   commandGateSource: SourceFile;
   commandPayloadSource: SourceFile;

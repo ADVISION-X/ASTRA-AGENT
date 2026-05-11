@@ -32,7 +32,7 @@ const {
   resolveModuleSourcePath,
 } = openInspectionUtils;
 
-export type OpenBoundaryCheckResult = {
+type OpenBoundaryCheckResult = {
   boundaryFindings: Finding[];
   antiEscapeFindings: Finding[];
 };

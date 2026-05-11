@@ -35,7 +35,7 @@ const createStep = (input: CiFullStepDefinition): CiFullStepDefinition => ({
   artifactPaths: [...input.artifactPaths],
 });
 
-export const CI_FULL_STEPS = [
+const CI_FULL_STEPS = [
   createStep({
     name: "audit-build",
     layer: "foundation-layer",
@@ -197,17 +197,6 @@ export const CI_FULL_STEPS = [
     artifactPaths: [],
   }),
 ] as const;
-
-export const CI_FULL_STEPS_BY_ID = new Map(CI_FULL_STEPS.map((step) => [step.name, step] as const));
-
-export const getCiFullStep = (name: string): CiFullStepDefinition => {
-  const step = CI_FULL_STEPS_BY_ID.get(name);
-  if (!step) {
-    throw new Error(`[CI FULL CONFIG] Missing step definition for ${name}.`);
-  }
-
-  return step;
-};
 
 export const getCiFullStepsByLayer = (layer: CiFullLayerLabel): CiFullStepDefinition[] =>
   CI_FULL_STEPS.filter((step) => step.layer === layer);

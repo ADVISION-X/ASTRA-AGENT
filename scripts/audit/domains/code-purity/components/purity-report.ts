@@ -3,7 +3,7 @@ import { writeJsonFile } from "../../../core/filesystem.js";
 import { REPORT_PATH } from "./purity-runtime-constants.js";
 import type { PurityInventoryItem, PurityReportDraft } from "./purity-metric-inspection.js";
 
-export type PurityReport = {
+type PurityReport = {
   generatedAt: string;
   touchedBaselineSource: string;
   touchedFiles: string[];
@@ -19,7 +19,7 @@ export type PurityReport = {
   firstPhysicalSplitPlan: PurityInventoryItem[];
 };
 
-export type PurityReportValidationIssue = {
+type PurityReportValidationIssue = {
   lawId: "GRASSEYE-CODE-PURITY-002-V1" | "GRASSEYE-CODE-PURITY-011-V1" | "GRASSEYE-CODE-PURITY-013-V1";
   message: string;
 };

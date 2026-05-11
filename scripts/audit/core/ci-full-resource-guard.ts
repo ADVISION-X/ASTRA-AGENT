@@ -1,6 +1,6 @@
 import { readProcessTreeRssMB } from "./owner-audit-runner.js";
 
-export type MemorySnapshot = {
+type MemorySnapshot = {
   runnerRssMb: number;
   childRssMb: number;
   totalRssMb: number;
@@ -84,7 +84,7 @@ export const captureMemorySnapshot = async (activeChildPids: ReadonlySet<number>
   };
 };
 
-export const formatMemorySnapshot = (snapshot: MemorySnapshot): string =>
+const formatMemorySnapshot = (snapshot: MemorySnapshot): string =>
   `runnerRssMB=${snapshot.runnerRssMb} childRssMB=${snapshot.childRssMb} totalRssMB=${snapshot.totalRssMb} heapUsedMB=${snapshot.heapUsedMb} externalMB=${snapshot.externalMb} activeChildren=${snapshot.activeChildCount}`;
 
 export const logMemorySnapshot = async (prefix: string, activeChildPids: ReadonlySet<number>): Promise<void> => {

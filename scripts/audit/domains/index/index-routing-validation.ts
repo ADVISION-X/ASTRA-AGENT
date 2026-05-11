@@ -62,7 +62,7 @@ const {
   routeRowRequirements: ROUTE_ROW_REQUIREMENTS,
 } = indexRoutingRouteCatalog;
 
-export type IndexRoutingFindingGroups = {
+type IndexRoutingFindingGroups = {
   repoLocalScopeFindings: Finding[];
   routingAuthorityFindings: Finding[];
   narrowestAuthorityFindings: Finding[];

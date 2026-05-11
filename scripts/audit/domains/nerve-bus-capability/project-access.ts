@@ -4,7 +4,6 @@ import type { ExportDeclaration, ImportDeclaration, Project, SourceFile } from "
 
 import { fileExists } from "../../core/filesystem.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
-import { getZodEnumValues } from "../_shared/ast-schema-queries.js";
 import { createAuditProject } from "../_shared/ast-helpers.js";
 
 import { PATHS, REQUIRED_FILES } from "./config.js";
@@ -44,11 +43,6 @@ export function getExternalImportsWithPrefix(project: Project, targetPrefix: str
       return importedPath && importedPath.startsWith(targetPrefix) ? [importerPath] : [];
     });
   });
-}
-
-export function getSchemaChannelIds(project: Project): string[] {
-  const schemaSource = getSourceFile(project, PATHS.SCHEMA) ?? getSourceFile(project, `${PATHS.ROOT}/schema-foundation.schema.ts`);
-  return schemaSource ? getZodEnumValues(schemaSource, "NerveBusChannelIdSchema") : [];
 }
 
 export function toRepoPath(sourceFile: SourceFile, project: Project): string {

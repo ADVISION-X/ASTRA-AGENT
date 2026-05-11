@@ -5,7 +5,7 @@ import { evidenceInspectorRegistry } from "./inspector-registry-evidence.js";
 import { platformInspectorRegistry } from "./inspector-registry-platform.js";
 import { runtimeInspectorRegistry } from "./inspector-registry-runtime.js";
 
-export const inspectorRegistry: Record<string, DomainInspector> = {
+const inspectorRegistry: Record<string, DomainInspector> = {
   ...coreInspectorRegistry,
   ...runtimeInspectorRegistry,
   ...platformInspectorRegistry,

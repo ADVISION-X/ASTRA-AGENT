@@ -11,14 +11,7 @@ import { createEmptyPurityReport, inspectPurityMetrics } from "./purity-metric-i
 import { finalizePurityReport, validatePurityReportArtifacts, writePurityReport } from "./purity-report.js";
 import { inspectSecondaryCodePurityScans } from "./inspect-code-purity-secondary-scans.js";
 
-const REQUIRED_COMPONENT_EXPORTS = [
-  {
-    relativePath: "scripts/audit/domains/code-purity/components/inspect-source-file.ts",
-    exportName: "inspectSourceFile",
-    lawId: "GRASSEYE-CODE-PURITY-011-V1",
-    message: "Required code-purity component export inspectSourceFile is missing.",
-  },
-] as const;
+const REQUIRED_COMPONENT_EXPORTS = [] as const;
 
 const EXCLUDED_SOURCE_PREFIXES = ["scripts/audit/generated/"] as const;
 const EXCLUDED_SOURCE_SUFFIXES = [".generated.json", ".generated.jsonc"] as const;

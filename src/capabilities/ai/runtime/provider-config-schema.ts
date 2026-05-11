@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-export const EXTERNAL_AI_PROVIDER_IDS = ["openai-compatible"] as const;
-export const EXTERNAL_AI_PROVIDER_COMPANIES = ["openai", "deepseek", "openrouter"] as const;
+const EXTERNAL_AI_PROVIDER_IDS = ["openai-compatible"] as const;
+const EXTERNAL_AI_PROVIDER_COMPANIES = ["openai", "deepseek", "openrouter"] as const;
 
-export const ExternalAiProviderIdSchema = z.enum(EXTERNAL_AI_PROVIDER_IDS);
-export const ExternalAiProviderCompanySchema = z.enum(EXTERNAL_AI_PROVIDER_COMPANIES);
+const ExternalAiProviderIdSchema = z.enum(EXTERNAL_AI_PROVIDER_IDS);
+const ExternalAiProviderCompanySchema = z.enum(EXTERNAL_AI_PROVIDER_COMPANIES);
 
 export const AiExternalProviderConfigSchema = z.object({
   providerId: ExternalAiProviderIdSchema,

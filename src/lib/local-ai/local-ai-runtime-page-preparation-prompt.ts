@@ -3,7 +3,7 @@ import { VISION_PAGE_PREPARATION_PROMPT_CONTRACT } from "./prompts/vision-page-p
 
 type VisionPagePreparationRequest = Extract<LocalAiTaskRequest, { taskType: "vision.pagePreparation" }>;
 
-export type VisionPagePreparationPromptParts = {
+type VisionPagePreparationPromptParts = {
   systemPrompt: string;
   userPrompt: string;
   fullPrompt: string;
@@ -49,5 +49,5 @@ export const buildPagePreparationPromptParts = (
   };
 };
 
-export const buildPagePreparationPrompt = (request: VisionPagePreparationRequest): string =>
+const buildPagePreparationPrompt = (request: VisionPagePreparationRequest): string =>
   buildPagePreparationPromptParts(request).fullPrompt;

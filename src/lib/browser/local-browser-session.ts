@@ -56,7 +56,7 @@ const resolveProfileVerification = (profileProvisioning: BrowserProfileProvision
       profileVerificationReason: DEFAULT_PROFILE_REJECTION_REASON,
     };
 
-export const getLocalBrowserProfileDir = (platform: string): string =>
+const getLocalBrowserProfileDir = (platform: string): string =>
   path.join(BROWSER_PROFILE_ROOT, platform);
 
 const readLastUsedChromeProfileDirectory = (userDataDir: string): string | null => {
@@ -77,7 +77,7 @@ const readLastUsedChromeProfileDirectory = (userDataDir: string): string | null 
   }
 };
 
-export const resolveLocalChromeProfileDirectory = (input: {
+const resolveLocalChromeProfileDirectory = (input: {
   userDataDir: string;
   profileDirectory?: string;
 }): string => {
@@ -89,7 +89,7 @@ export const resolveLocalChromeProfileDirectory = (input: {
   return readLastUsedChromeProfileDirectory(input.userDataDir) ?? DEFAULT_CHROME_PROFILE_DIRECTORY;
 };
 
-export const resolveLocalChromeExecutablePath = (): string | null => {
+const resolveLocalChromeExecutablePath = (): string | null => {
   const configuredPath = process.env.GRASSEYE_CHROME_EXECUTABLE?.trim();
   if (configuredPath && existsSync(configuredPath)) {
     return configuredPath;
@@ -137,16 +137,7 @@ export const createLocalBrowserSessionConfig = (input: {
   });
 };
 
-export const createOperatorVerifiedLocalBrowserSessionConfig = (input: {
-  platform: string;
-  userDataDir: string;
-  profileRef: string;
-  profileDirectory?: string;
-  chromeExecutablePath?: string | null;
-  createdAt?: string;
-}): LocalBrowserSessionConfig => createLocalBrowserSessionConfig(input);
-
-export const getBrowserProfileStatus = (userDataDir: string): BrowserProfileStatus =>
+const getBrowserProfileStatus = (userDataDir: string): BrowserProfileStatus =>
   existsSync(userDataDir) ? "profile_ready" : "profile_missing";
 
 export const createInitialLocalBrowserSessionState = (

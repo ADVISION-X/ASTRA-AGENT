@@ -2,7 +2,7 @@ import { CODE_PURITY_MAX_RSS_ENV } from "./purity-stage-paths.js";
 
 const DEFAULT_MAX_RSS_MB = 6_000;
 
-export const readCodePurityMaxRssMb = (): number => {
+const readCodePurityMaxRssMb = (): number => {
   const rawValue = process.env[CODE_PURITY_MAX_RSS_ENV]?.trim();
   if (!rawValue) {
     return DEFAULT_MAX_RSS_MB;
@@ -15,7 +15,7 @@ export const readCodePurityMaxRssMb = (): number => {
   return parsed;
 };
 
-export const captureCodePurityMemory = (): { rssMB: number; heapUsedMB: number } => {
+const captureCodePurityMemory = (): { rssMB: number; heapUsedMB: number } => {
   const usage = process.memoryUsage();
   return {
     rssMB: Math.round((usage.rss / 1024 / 1024) * 10) / 10,

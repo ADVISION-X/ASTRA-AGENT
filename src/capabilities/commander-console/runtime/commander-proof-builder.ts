@@ -7,15 +7,13 @@ import { RuntimeProofSchema } from "../schema.js";
 import type { CommanderRuntimeProof } from "../shared/commander-proof.js";
 import type { CommanderExecutionOutcome } from "../shared/commander-result.js";
 
-export type CommanderProofChildDescriptor = {
-  childCapabilityId: CommanderDispatchChildId;
-  childKind: "command" | "read";
-  boundaryDecision: "command-transport-only" | "read-port-only" | "blocked";
-  readModelSource: z.infer<typeof import("../schema.js").CommanderReadModelSourceSchema> | null;
-};
-
 export function buildCommanderRuntimeProof(input: {
-  child: CommanderProofChildDescriptor;
+  child: {
+    childCapabilityId: CommanderDispatchChildId;
+    childKind: "command" | "read";
+    boundaryDecision: "command-transport-only" | "read-port-only" | "blocked";
+    readModelSource: z.infer<typeof import("../schema.js").CommanderReadModelSourceSchema> | null;
+  };
   operatorRef: string;
   startedAt: string;
   endedAt: string;

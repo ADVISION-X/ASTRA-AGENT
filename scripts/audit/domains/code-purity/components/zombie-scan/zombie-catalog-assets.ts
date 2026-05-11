@@ -70,6 +70,20 @@ const isPromptContractFile = (relativePath: string): boolean => relativePath.sta
 
 const isMapPackageFile = (relativePath: string): boolean => relativePath.startsWith(MAP_PACKAGE_ROOT) && relativePath.endsWith(".meta.map-package.json");
 
+const getOptionalStringField = (raw: unknown, key: string): string | null => {
+  return typeof raw === "object" && raw && typeof (raw as Record<string, unknown>)[key] === "string"
+    ? (raw as Record<string, string>)[key]
+    : null;
+};
+
+const collectPromptContractReferenceValues = (raw: unknown, promptContractId: string): string[] => {
+  return [
+    promptContractId,
+    getOptionalStringField(raw, "taskType"),
+    getOptionalStringField(raw, "legacyTaskType"),
+  ].filter((value): value is string => Boolean(value));
+};
+
 const collectPromptContractCandidates = async (graph: ZombieGraph, candidates: Map<string, ZombieCandidate>): Promise<void> => {
   for (const relativePath of graph.jsonPaths) {
     if (!isPromptContractFile(relativePath) || getZombieProtectedSeamForPath(relativePath)) {
@@ -77,9 +91,7 @@ const collectPromptContractCandidates = async (graph: ZombieGraph, candidates: M
     }
 
     const raw = await readJsonFile(pathFromRepoRoot(relativePath));
-    const promptContractId = typeof raw === "object" && raw && typeof (raw as { promptContractId?: unknown }).promptContractId === "string"
-      ? (raw as { promptContractId: string }).promptContractId
-      : null;
+    const promptContractId = getOptionalStringField(raw, "promptContractId");
     if (!promptContractId) {
       continue;
     }
@@ -90,6 +102,7 @@ const collectPromptContractCandidates = async (graph: ZombieGraph, candidates: M
       file: relativePath,
       line: 1,
       value: promptContractId,
+      referenceValues: collectPromptContractReferenceValues(raw, promptContractId),
       excludedFiles: [relativePath, "src/capabilities/ai/prompt-contracts/registry.ts"],
       excludedPathPrefixes: [],
       protectedSeam: null,

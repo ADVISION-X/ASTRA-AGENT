@@ -14,7 +14,7 @@ export type CodePurityReportResult = {
   findings: Finding[];
 };
 
-export type CodePurityInventoryBucket =
+type CodePurityInventoryBucket =
   | "godFileInventory"
   | "disasterFileInventory"
   | "ownerMixingInventory"

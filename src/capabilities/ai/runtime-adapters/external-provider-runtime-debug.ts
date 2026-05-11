@@ -15,7 +15,7 @@ type ExternalDebugMessages = {
   user: string;
 };
 
-export const hashExternalDebugValue = (value: unknown): string =>
+const hashExternalDebugValue = (value: unknown): string =>
   createHash("sha256").update(typeof value === "string" ? value : JSON.stringify(canonicalize(value))).digest("hex");
 
 const canonicalize = (value: unknown): unknown => {
@@ -38,7 +38,7 @@ const previewText = (value: string, maxLength = 500): string =>
 const buildPromptDebugRef = (request: ParsedAiAbilityInput): string =>
   `debug://ai/${request.sessionId}/${request.capabilityCallId}/${request.promptContractId}`;
 
-export const buildExternalRawResponseRef = (request: ParsedAiAbilityInput): string =>
+const buildExternalRawResponseRef = (request: ParsedAiAbilityInput): string =>
   `debug://ai/${request.sessionId}/${request.capabilityCallId}/raw-response`;
 
 const buildRedactedProviderRequestBody = (config: ExternalDebugConfig, messages: ExternalDebugMessages) => ({

@@ -14,13 +14,6 @@ export type MouseScrollIdempotencyReserveInput = {
   ttlMs: number;
 };
 
-export type MouseScrollIdempotencyReserveSuccess = {
-  ok: true;
-  idempotencyKey: string;
-  scrollExecutionRef: string;
-  idempotencyDecision: "reserved";
-};
-
 export type MouseScrollIdempotencyReserveFailure = {
   ok: false;
   idempotencyKey: string;
@@ -35,7 +28,14 @@ export type MouseScrollIdempotencyReserveFailure = {
   dataQualityFlags: string[];
 };
 
-export type MouseScrollIdempotencyReserveResult = MouseScrollIdempotencyReserveSuccess | MouseScrollIdempotencyReserveFailure;
+export type MouseScrollIdempotencyReserveResult =
+  | {
+      ok: true;
+      idempotencyKey: string;
+      scrollExecutionRef: string;
+      idempotencyDecision: "reserved";
+    }
+  | MouseScrollIdempotencyReserveFailure;
 
 export interface MouseScrollIdempotencyRegistry {
   cleanupExpired(nowMs: number): void;

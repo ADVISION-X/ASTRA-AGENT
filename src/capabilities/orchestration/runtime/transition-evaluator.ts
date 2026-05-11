@@ -4,13 +4,13 @@ import type { RuntimePlan } from "../contract.js";
 import { MissionStepResultSchema } from "../schema.js";
 import { getEffectiveOperationalTransitions } from "./route-plan-resolver.js";
 
-export type TransitionEvaluationDecision =
+type TransitionEvaluationDecision =
   | "matched"
   | "no_valid_transition"
   | "ambiguous_transition"
   | "invalid_decision";
 
-export type TransitionEvaluationResult =
+type TransitionEvaluationResult =
   | { decision: "matched"; transition: RuntimePlan["transitions"][number] }
   | { decision: Exclude<TransitionEvaluationDecision, "matched">; failureReason: string };
 
@@ -155,7 +155,7 @@ export function evaluateStepTransition(input: {
   map: RuntimePlan;
   currentStepId: string;
   result: MissionStepResultRecord;
-}): TransitionEvaluationResult {
+}) {
   const syntheticRecovery = resolveSyntheticTikTokUrlDriftRecovery(input);
   if (syntheticRecovery) {
     return syntheticRecovery;

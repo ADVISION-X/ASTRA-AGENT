@@ -23,7 +23,7 @@ const EMPTY_CONTEXT_REFS: VisualMissionExecutablePlanContextRefs = {
 export const isVisualMissionActionPlanOutput = (value: unknown): value is VisualMissionActionPlanOutput =>
   VisualMissionActionPlanOutputSchema.safeParse(value).success;
 
-export const normalizeVisualMissionPageStateDecision = (
+const normalizeVisualMissionPageStateDecision = (
   decision: VisualMissionActionPlanOutput["pageStateDecision"],
 ): VisualMissionExecutablePlan["pageStateDecision"] => {
   switch (decision) {
@@ -37,7 +37,7 @@ export const normalizeVisualMissionPageStateDecision = (
   }
 };
 
-export const resolveVisualMissionTaskDecision = (output: VisualMissionActionPlanOutput): string => {
+const resolveVisualMissionTaskDecision = (output: VisualMissionActionPlanOutput): string => {
   const firstActionCode = output.actions[0]?.actionCode ?? null;
   if (firstActionCode) {
     return firstActionCode;

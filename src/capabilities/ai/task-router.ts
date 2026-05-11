@@ -16,7 +16,3 @@ const AI_TASK_ROUTING: Record<AiTaskType, AiChildCapabilityId | null> = {
 export function routeAiTaskToChild(taskType: AiTaskType): AiChildCapabilityId | null {
   return AI_TASK_ROUTING[taskType] ?? null;
 }
-
-export function listAiTaskRoutes(): Record<AiTaskType, AiChildCapabilityId | null> {
-  return { ...AI_TASK_ROUTING };
-}

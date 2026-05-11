@@ -52,7 +52,7 @@ const workbench = createGrassEyeWorkbenchHandle({
   dataDir: process.env.GRASSEYE_DATA_DIR ?? defaultDataDir,
 });
 
-export function createWorkbenchServer(input?: {
+function createWorkbenchServer(input?: {
   workbench?: ReturnType<typeof createGrassEyeWorkbenchHandle>;
   baseUrl?: string;
 }) {
@@ -61,7 +61,7 @@ export function createWorkbenchServer(input?: {
   return createWorkbenchHttpServer({ workbench: activeWorkbench, baseUrl: activeBaseUrl });
 }
 
-export function startServer(): ReturnType<typeof createServer> {
+function startServer(): ReturnType<typeof createServer> {
   const server = createWorkbenchServer();
   server.listen(port, host);
   return server;

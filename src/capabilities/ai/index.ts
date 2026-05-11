@@ -1,24 +1,34 @@
 export {
   createAiAbilityGroup,
   createConfiguredAiAbilityGroup,
-} from "./public-factories.js";
+} from "./ability-group.js";
+
+export {
+  createConfiguredAiAbilityGroup,
+} from "./runtime-factory.js";
 
 export {
   getAiExternalProviderPublicState,
   saveAiExternalProviderConfig,
+} from "./runtime/provider-config-store.js";
+
+export {
   AI_TRANSPORT_TIMEOUT_MS,
   resolveAiDispatchTimeoutMs,
-} from "./public-provider-governance.js";
+} from "./runtime/local-ai-runtime-policy.js";
 
 export {
   AI_PROMPT_CONTRACT_CATALOG_VERSION,
   findAiPromptContractCatalogEntry,
   listAiPromptContractCatalogEntries,
   type AiPromptContractCatalogEntry,
+} from "./prompt-contract-catalog-port.js";
+
+export {
   findAiOutputSchemaDescriptor,
   requireAiOutputSchemaDescriptor,
   type AiOutputSchemaDescriptor,
-} from "./public-catalogs.js";
+} from "./output-schema-catalog-port.js";
 
 export {
   AI_ABILITY_GROUP_ID,
@@ -35,12 +45,23 @@ export {
   AiDispatchFailureEnvelopeSchema,
   AiResultSchema,
   AiRuntimeProofSchema,
-} from "./public-contracts.js";
+} from "./contract.js";
+
+export {
+  AiInputSchema,
+  AiAbilityOutcomeSchema,
+  AiDispatchFailureEnvelopeSchema,
+  AiResultSchema,
+  AiRuntimeProofSchema,
+} from "./schema.js";
 
 export {
   recordAiInputProofSummary,
   resolveAiInputProofSummary,
   type AiInputProofSummary,
+} from "./shared/ai-input-proof-registry.js";
+
+export {
   recordAiOutputSummaryAlias,
   resolveAiCommentSignalOutputSummary,
   resolveAiOcrCleanupOutputSummary,
@@ -54,4 +75,4 @@ export {
   type AiProductPresenceOutputSummary,
   type AiVisualMissionActionPlanOutputSummary,
   type AiVisualTargetCandidateOutputSummary,
-} from "./public-proof-summaries.js";
+} from "./runtime/ai-output-summary-registry.js";

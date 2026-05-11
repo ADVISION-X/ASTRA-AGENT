@@ -94,4 +94,4 @@ interface BrowserController {
   close(): Promise<BrowserActionResult>;
 }
 
-export type { BrowserActionResult, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserClickButton, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserController, BrowserScreenshotProfile };
+export type { BrowserActionResult, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserController };

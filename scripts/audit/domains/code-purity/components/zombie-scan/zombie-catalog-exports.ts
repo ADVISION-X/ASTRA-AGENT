@@ -15,13 +15,6 @@ const classifyDeadExportKind = (relativePath: string): ZombieKind => {
   if (relativePath.startsWith("src/capabilities/") && relativePath.includes("/children/")) {
     return "unused-child-capability";
   }
-  if (
-    relativePath === "src/muscle-memory/action-code.ts"
-    || relativePath === "src/muscle-memory/catalog.ts"
-    || relativePath === "src/muscle-memory/catalog/catalog-seed.ts"
-  ) {
-    return "unused-muscle-memory-action-code";
-  }
   if (relativePath.startsWith("src/map-plugins/builtins/")) {
     return "unused-map-package";
   }
@@ -124,16 +117,19 @@ const collectLocalExportCandidates = (graph: ZombieGraph, candidates: Map<string
 
     const deadExportKind = classifyDeadExportKind(relativePath);
     const addExportCandidate = (symbolName: string, line: number): void => {
-      mergeCandidate(candidates, {
+      const candidate: ZombieCandidate = {
         kind: deadExportKind,
         symbolName,
         file: relativePath,
         line,
+        referencePaths: [],
         excludedFiles: [relativePath],
         excludedPathPrefixes: [],
         protectedSeam: null,
         recommendedAction: `Remove ${symbolName} or import it from a lawful caller.`,
-      });
+      };
+      candidate.referencePaths = [...resolveDeadExportReferences(candidate, graph.sourceFilesByPath)];
+      mergeCandidate(candidates, candidate);
     };
 
     const exportedNames = new Set<string>();

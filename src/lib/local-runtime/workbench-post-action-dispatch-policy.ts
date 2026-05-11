@@ -103,11 +103,11 @@ const resolveExpectedOpenHost = (inputPayload: NerveBusPayloadDocument): string 
     return null;
   }
 
-  try {
-    return new URL(targetUrl).hostname;
-  } catch {
+  if (!URL.canParse(targetUrl)) {
     return null;
   }
+
+  return new URL(targetUrl).hostname;
 };
 
 export const resolvePostActionInputPolicy = (envelope: AbilityCommandEnvelope): PostActionInputPolicy => {

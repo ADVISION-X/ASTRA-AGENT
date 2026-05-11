@@ -50,4 +50,3 @@ function collectChildExecutorFindings(childExecutorsSource: SourceFile): ChildEx
 }
 
 export { collectChildExecutorFindings, collectReadRuntimeFindings };
-export type { ChildExecutorCheckResult };

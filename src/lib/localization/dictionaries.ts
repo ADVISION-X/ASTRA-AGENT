@@ -120,7 +120,7 @@ const englishDictionary = {
   "agentStatus.reviewRequired": "review required"
 } as const;
 
-export type DictionaryKey = keyof typeof englishDictionary;
+type DictionaryKey = keyof typeof englishDictionary;
 
 const chineseDictionary: { [Key in DictionaryKey]: string } = {
   "app.title": "GrassEye 本地工作台",
@@ -239,7 +239,7 @@ const chineseDictionary: { [Key in DictionaryKey]: string } = {
   "agentStatus.reviewRequired": "需要复核"
 };
 
-export const dictionaries: Record<Locale, Record<DictionaryKey, string>> = {
+const dictionaries: Record<Locale, Record<DictionaryKey, string>> = {
   en: englishDictionary,
   zh: chineseDictionary,
 };

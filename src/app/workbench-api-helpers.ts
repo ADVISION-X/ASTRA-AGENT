@@ -1,21 +1,4 @@
-import path from "node:path";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { URL } from "node:url";
-
-export function getArtifactContentType(filePath: string): string {
-  const extension = path.extname(filePath).toLowerCase();
-  switch (extension) {
-    case ".png":
-      return "image/png";
-    case ".jpg":
-    case ".jpeg":
-      return "image/jpeg";
-    case ".webp":
-      return "image/webp";
-    default:
-      return "image/svg+xml; charset=utf-8";
-  }
-}
 
 export async function parseJsonBody(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
@@ -33,13 +16,4 @@ export async function parseJsonBody(request: IncomingMessage): Promise<unknown> 
 export function writeJsonResponse(response: ServerResponse, statusCode: number, payload: unknown): void {
   response.writeHead(statusCode, { "content-type": "application/json; charset=utf-8" });
   response.end(JSON.stringify(payload, null, 2));
-}
-
-export function parseTailParam(url: URL): number {
-  const requestedTail = Number(url.searchParams.get("tail") ?? "200");
-  if (!Number.isFinite(requestedTail) || requestedTail <= 0) {
-    return 200;
-  }
-
-  return Math.min(Math.trunc(requestedTail), 1000);
 }

@@ -3,7 +3,7 @@ import type { EnforcementMatrix } from "./schema-manifests.js";
 import { ABILITY_GROUP_DOMAINS, buildStaticCoverageRecords } from "./static-clause-coverage-record-builder.js";
 import type { GlobalChainStatus, SourceEvidence } from "./static-clause-coverage-support.js";
 
-export const STATIC_COVERAGE_STATUSES = [
+const STATIC_COVERAGE_STATUSES = [
   "NOT_COVERED",
   "INSPECTOR_MAPPED",
   "OWNER_INSPECTOR_MAPPED",

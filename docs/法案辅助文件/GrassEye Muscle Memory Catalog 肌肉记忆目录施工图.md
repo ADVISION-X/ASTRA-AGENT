@@ -37,7 +37,8 @@ Runtime consumers: ai-capability, orchestration-capability
 - PRESS_KEY
 - CLICK_CELL
 - WAIT_SHORT
-- REOPEN_ENTRY_PAGE
+- OPEN_FACEBOOK_ENTRY
+- OPEN_TIKTOK_ENTRY
 - STOP_REVIEW_REQUIRED
 
 ## 组合 actionCode

@@ -6,13 +6,6 @@ import { deriveLocalProgramFailureCode, type LocalProgramFailureCode } from "./l
 
 type LocalProgramProfile = Extract<OpenTargetProfile, { targetKind: "local-program" }>;
 
-export type LocalProgramLaunchOutcome = {
-  launchResult: OpenLocalProgramLaunchResult | null;
-  timedOut: boolean;
-  reason: string | null;
-  failureCode: LocalProgramFailureCode | null;
-};
-
 const buildLaunchInput = (input: {
   context: OpenChildExecutionContext;
   request: ParsedOpenRequest;
@@ -47,7 +40,7 @@ export async function runLocalProgramLaunch(input: {
   profile: LocalProgramProfile;
   idempotencyKey: string;
   timeoutMs: number;
-}): Promise<LocalProgramLaunchOutcome> {
+}) {
   if (!input.context.localProgram) {
     return {
       launchResult: null,

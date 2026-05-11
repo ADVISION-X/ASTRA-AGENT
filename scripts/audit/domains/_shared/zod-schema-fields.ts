@@ -87,7 +87,7 @@ const collectCallShapePropertyNames = (node: import("ts-morph").CallExpression):
   return getObjectLiteralPropertyNames(node.getArguments()[0]);
 };
 
-export const getZodShapePropertyNamesFromNode = (node: Node | undefined): Set<string> => {
+const getZodShapePropertyNamesFromNode = (node: Node | undefined): Set<string> => {
   if (!node) {
     return new Set();
   }

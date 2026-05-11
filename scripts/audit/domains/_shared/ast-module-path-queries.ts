@@ -22,7 +22,3 @@ export function hasCallExpressionWithStringLiteralArgument(node: Node, pathParts
     });
   });
 }
-
-export function hasPropertyAccessName(node: Node, propertyName: string): boolean {
-  return node.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression).some((expression) => expression.getName() === propertyName);
-}

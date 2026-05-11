@@ -8,12 +8,12 @@ import {
   MACOS_PGREP_BIN,
 } from "./open-local-program-adapter-constants.js";
 
-export type MacOSCommandResult = {
+type MacOSCommandResult = {
   exitCode: number | null;
   stderr: string;
 };
 
-export const waitForLocalProgram = (ms: number, abortSignal?: AbortSignal) =>
+const waitForLocalProgram = (ms: number, abortSignal?: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
     if (abortSignal?.aborted) {
       reject(new Error("LOCAL_PROGRAM_LAUNCH_FAILED: open local program aborted"));

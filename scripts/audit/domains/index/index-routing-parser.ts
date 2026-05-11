@@ -75,7 +75,7 @@ export const extractSectionLines = (lines: string[], heading: string): string[] 
   return sectionLines;
 };
 
-export const parseActiveModuleTargets = (lines: string[]): ModuleTarget[] => {
+const parseActiveModuleTargets = (lines: string[]): ModuleTarget[] => {
   const headingIndex = lines.findIndex((line) => line.trim() === "## Active Module Routes");
   if (headingIndex === -1) {
     return [];

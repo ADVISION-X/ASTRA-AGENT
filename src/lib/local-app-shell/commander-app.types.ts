@@ -8,9 +8,9 @@ export type CommanderAppNavItem = {
   shortLabel: string;
 };
 
-export type CommanderAppTabGroupId = "mission" | "results" | "health";
+type CommanderAppTabGroupId = "mission" | "results" | "health";
 
-export type CommanderAppTabOption = {
+type CommanderAppTabOption = {
   id: string;
   label: string;
 };
@@ -22,7 +22,7 @@ export type CommanderAppTabGroup = {
   options: CommanderAppTabOption[];
 };
 
-export type CommanderAppViewportGate = {
+type CommanderAppViewportGate = {
   minWidth: number;
   maxWidth: number;
   idealWidthMin: number;

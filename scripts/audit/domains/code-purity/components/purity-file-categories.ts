@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { FILE_LIMITS } from "./purity-thresholds.js";
 
-export type PurityFileCategory = {
+type PurityFileCategory = {
   kind: keyof typeof FILE_LIMITS;
   label: string;
   hardLimit: number;

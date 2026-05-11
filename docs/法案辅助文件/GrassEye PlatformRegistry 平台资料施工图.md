@@ -30,7 +30,7 @@ type PlatformProfile = {
   entryUrl: string;
   targetTitle: string;
   allowedHosts: string[];
-  defaultRecoveryActionCode: "REOPEN_ENTRY_PAGE";
+  defaultRecoveryActionCode: "OPEN_FACEBOOK_ENTRY" | "OPEN_TIKTOK_ENTRY";
   supportedActionCodes: string[];
 };
 ```

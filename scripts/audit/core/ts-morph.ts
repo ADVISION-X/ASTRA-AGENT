@@ -4,10 +4,6 @@ import { pathFromRepoRoot, toRepoRelativePath } from "./paths.js";
 
 let cachedProject: Project | undefined;
 
-export const resetAuditProject = (): void => {
-  cachedProject = undefined;
-};
-
 export const getAuditProject = (): Project => {
   if (!cachedProject) {
     cachedProject = new Project({

@@ -4,7 +4,7 @@ import { createProviderAwareAiRuntimePort } from "../runtime-adapters/provider-a
 import { createSystemAiClock } from "./ai-clock.js";
 import { createAiPromptRegistry } from "./ai-prompt-registry.js";
 
-export type CreateAiExecutionContextInput = {
+type CreateAiExecutionContextInput = {
   emitDebugEvent?: NonNullable<Parameters<typeof createProviderAwareAiRuntimePort>[0]>["emitDebugEvent"];
   dataDir?: string | null;
 };

@@ -21,18 +21,23 @@ import type {
 
 type WebOpenTargetProfile = Extract<OpenTargetProfile, { targetKind: "platform-feed" | "local-workbench" }>;
 
-export type OpenChildTargetAndUrlState = {
+type OpenChildTargetAndUrlState = {
   started: ClockSnapshot;
   targetPolicy: TargetPolicyResult;
   urlSafety: UrlSafetyResult;
 };
 
-export type OpenChildSessionGateState = OpenChildTargetAndUrlState & {
+type OpenChildSessionGateState = OpenChildTargetAndUrlState & {
   sessionGate: SessionGateResult;
   normalizedTargetUrl: string;
 };
 
-export type OpenChildPreflightState = OpenChildSessionGateState & {
+export type OpenChildPreflightState = {
+  started: ClockSnapshot;
+  targetPolicy: TargetPolicyResult;
+  urlSafety: UrlSafetyResult;
+  sessionGate: SessionGateResult;
+  normalizedTargetUrl: string;
   idempotency: IdempotencyReservationResult;
 };
 

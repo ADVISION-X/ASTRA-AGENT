@@ -4,7 +4,7 @@ import { runOpenChildShapeChecks } from "./run-open-child-shape-checks.js";
 import { runOpenPublicShapeChecks } from "./run-open-public-shape-checks.js";
 import { runOpenRequiredRootChecks } from "./run-open-required-root-checks.js";
 
-export type OpenRequiredShapeResult = {
+type OpenRequiredShapeResult = {
   findings: Finding[];
   openRootBound: boolean;
 };

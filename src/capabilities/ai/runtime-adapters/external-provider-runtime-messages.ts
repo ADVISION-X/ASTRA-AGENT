@@ -1,7 +1,7 @@
 import type { ParsedAiAbilityInput } from "../contract.js";
 import { AiEvidencePacketAnalysisInputSchema } from "../schema.js";
 
-export type ExternalProviderMessages = {
+type ExternalProviderMessages = {
   system: string;
   user: string;
 };

@@ -254,7 +254,7 @@ const appendFrozenPlanConflicts = (
 
 type BuiltAuditArtifacts = Omit<GeneratedArtifactsWriteInput, "touchedFilesArtifact">;
 
-export const prepareAuditArtifactsSnapshot = async (): Promise<GeneratedArtifactsWriteInput> => {
+const prepareAuditArtifactsSnapshot = async (): Promise<GeneratedArtifactsWriteInput> => {
   const generatedAt = new Date().toISOString();
   const { laws, conflicts: lawConflicts } = await parseModuleLaws();
   const normalizedLaws = laws.map(normalizeLawRecord);

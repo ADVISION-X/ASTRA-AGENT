@@ -1,6 +1,6 @@
 import type { Project, SourceFile } from "ts-morph";
 
-export const ZOMBIE_KINDS = [
+const ZOMBIE_KINDS = [
   "orphan-file",
   "dead-export",
   "unused-child-capability",
@@ -19,6 +19,8 @@ export type ZombieCandidate = {
   file: string;
   line: number;
   value?: string;
+  referenceValues?: string[];
+  referencePaths?: string[];
   excludedFiles: string[];
   excludedPathPrefixes: string[];
   protectedSeam: string | null;

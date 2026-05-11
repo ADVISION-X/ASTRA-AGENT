@@ -7,7 +7,7 @@ import { OPEN_REQUIRED_FILES, openInspectionConstants } from "./inspection-const
 
 const { LAW_PACKAGE_SHAPE, OPEN_ROOT } = openInspectionConstants;
 
-export type OpenRootPresenceResult = {
+type OpenRootPresenceResult = {
   findings: Finding[];
   openRootBound: boolean;
 };
