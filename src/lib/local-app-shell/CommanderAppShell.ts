@@ -2,7 +2,7 @@ import { escapeHtml, safeJsonScript } from "./render-helpers.js";
 
 import { renderCommanderAppRouter } from "./CommanderAppRouter.js";
 import { buildCommanderShellRenderState } from "./commander-shell-render-state.js";
-import { appRunLimitSettingsClient, commanderConsoleShellClient, mapLabClient } from "./clients/index.js";
+import { appRunLimitSettingsClient, commanderConsoleShellClient } from "./clients/index.js";
 import { renderAppFrame, renderBottomNav, renderCompactStatusBar, renderInspectModal } from "./layout/index.js";
 import { commanderConsoleStyles } from "./styles/commander-console-styles.js";
 import type { AppRunLimitSettings } from "./types.js";
@@ -48,7 +48,6 @@ function renderCommanderAppShell(input: CommanderAppShellInput, options: {
     <script>window.__grasseyeCommanderConsolePageHtml = ${safeJsonScript(pageHtmlMap)};</script>
     <script>window.__grasseyeCommanderConsoleInspectHtml = ${safeJsonScript(inspectHtmlMap)};</script>
     <script>${commanderConsoleShellClient}</script>
-    <script>${mapLabClient}</script>
     <script>${appRunLimitSettingsClient}</script>
   </body>
 </html>`;

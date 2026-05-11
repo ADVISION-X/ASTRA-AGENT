@@ -12,6 +12,7 @@ import {
   ensureWorkbenchAiInputProof,
   resolveWorkbenchAiInputProofSummary,
 } from "./workbench-nerve-bus-ai-input-proof-support.js";
+import { buildWorkbenchVisualMissionActionPlanInput } from "./workbench-visual-mission-action-plan-input.js";
 
 type WorkbenchAiRequestEnvelope = AiRequestDispatchInput["envelope"];
 type WorkbenchAiPayloadDocument = AiRequestDispatchInput["inputPayload"];
@@ -19,11 +20,13 @@ type WorkbenchAiExecuteInput = Parameters<import("./workbench-contract.js").Work
 
 const PAGE_PREPARATION_TASK_TYPE = "page_preparation_judgment";
 const PRODUCT_PRESENCE_TASK_TYPE = "product_presence_judgment";
+const VISUAL_MISSION_ACTION_PLAN_TASK_TYPE = "visual_mission_action_plan";
 const VISUAL_TARGET_CANDIDATE_TASK_TYPE = "visual_target_candidate_analysis";
 const SUPPORTED_WORKBENCH_AI_TASK_TYPES = [
   "page_preparation_judgment",
   "product_presence_judgment",
   "visual_observation",
+  "visual_mission_action_plan",
   "visual_target_candidate_analysis",
   "ocr_cleanup",
   "comment_signal_summary",
@@ -48,7 +51,7 @@ const resolveAiTaskType = (envelope: WorkbenchAiRequestEnvelope): (typeof SUPPOR
 
 const requireChainField = (value: string | null | undefined): string => {
   if (!value) {
-    throw new Error("Workbench AI request is missing required active map chain fields.");
+    throw new Error("Workbench AI request is missing required active binding chain fields.");
   }
 
   return value;
@@ -132,6 +135,8 @@ const buildWorkbenchAiInputPayload = (
 ) => {
   return envelope.taskType === "schema_validation_only"
     ? buildSchemaValidationInputPayload(envelope, inputPayload)
+    : envelope.taskType === VISUAL_MISSION_ACTION_PLAN_TASK_TYPE
+    ? buildWorkbenchVisualMissionActionPlanInput(inputPayload)
     : envelope.taskType === PAGE_PREPARATION_TASK_TYPE
       || envelope.taskType === PRODUCT_PRESENCE_TASK_TYPE
       || envelope.taskType === VISUAL_TARGET_CANDIDATE_TASK_TYPE
@@ -148,12 +153,12 @@ const resolveWorkbenchAiProviderPolicy = (taskType: SupportedWorkbenchAiTaskType
     : { requireLocalOnly: true, allowPaidProvider: false, providerAllowlist: ["local-vision-ai"], operatorApprovalRef: null };
 
 const resolveWorkbenchAiQualityPolicy = (taskType: SupportedWorkbenchAiTaskType) =>
-  taskType === PAGE_PREPARATION_TASK_TYPE || taskType === PRODUCT_PRESENCE_TASK_TYPE || taskType === VISUAL_TARGET_CANDIDATE_TASK_TYPE
+  taskType === PAGE_PREPARATION_TASK_TYPE || taskType === PRODUCT_PRESENCE_TASK_TYPE || taskType === VISUAL_MISSION_ACTION_PLAN_TASK_TYPE || taskType === VISUAL_TARGET_CANDIDATE_TASK_TYPE
     ? { minimumConfidence: null, requireSchemaValidation: true }
     : { minimumConfidence: 0.6, requireSchemaValidation: true };
 
 const resolveWorkbenchAiSafetyPolicy = (taskType: SupportedWorkbenchAiTaskType) =>
-  taskType === PAGE_PREPARATION_TASK_TYPE || taskType === PRODUCT_PRESENCE_TASK_TYPE || taskType === VISUAL_TARGET_CANDIDATE_TASK_TYPE
+  taskType === PAGE_PREPARATION_TASK_TYPE || taskType === PRODUCT_PRESENCE_TASK_TYPE || taskType === VISUAL_MISSION_ACTION_PLAN_TASK_TYPE || taskType === VISUAL_TARGET_CANDIDATE_TASK_TYPE
     ? { reviewOnLowConfidence: false, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true }
     : { reviewOnLowConfidence: true, reviewOnSchemaFailure: true, reviewOnPolicyViolation: true };
 
@@ -188,11 +193,12 @@ export const buildWorkbenchAiAbilityRequest = (
     stepId: envelope.stepId,
     capabilityCallId: envelope.capabilityCallId,
     nerveBusEnvelopeId: envelope.envelopeId,
-    mapPackageId: envelope.mapPackageId,
-    mapPackageVersion: envelope.mapPackageVersion,
-    selectedMapId: envelope.mapId,
-    selectedMapVersion: envelope.selectedMapVersion,
-    activationSnapshotRef: requireChainField(mapRecord?.activationSnapshotRef),
+    bindingPackageId: envelope.bindingPackageId,
+    bindingPackageVersion: envelope.bindingPackageVersion,
+    selectedBindingId: envelope.mapId,
+    bindingVersion: envelope.bindingVersion,
+    bindingActivationRef: envelope.bindingActivationRef,
+    bindingSnapshotRef: requireChainField(envelope.bindingSnapshotRef),
     promptCatalogVersion: requireChainField(mapRecord?.promptCatalogVersion),
     qualityPolicy: resolveWorkbenchAiQualityPolicy(taskType),
     providerPolicy: resolveWorkbenchAiProviderPolicy(taskType),

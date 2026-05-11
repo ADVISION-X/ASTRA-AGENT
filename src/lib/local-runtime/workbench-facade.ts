@@ -21,11 +21,6 @@ export type WorkbenchFacade = Pick<
   | "upsertUserRequirementHistory"
   | "deleteUserRequirementHistory"
   | "reuseUserRequirementHistory"
-  | "getMapLabSnapshot"
-  | "saveMapLabProviderConfig"
-  | "generateMapLabDraft"
-  | "passMapLabAutomationGate"
-  | "activateMapLabDraft"
   | "getModeInfo"
 >;
 
@@ -49,10 +44,5 @@ export const createWorkbenchFacade = (runtime: WorkbenchRuntime): WorkbenchFacad
   upsertUserRequirementHistory: (input) => runtime.upsertUserRequirementHistory(input),
   deleteUserRequirementHistory: (id) => runtime.deleteUserRequirementHistory(id),
   reuseUserRequirementHistory: (id) => runtime.reuseUserRequirementHistory(id),
-  getMapLabSnapshot: () => runtime.getMapLabSnapshot(),
-  saveMapLabProviderConfig: (input) => runtime.saveMapLabProviderConfig(input),
-  generateMapLabDraft: (input) => runtime.generateMapLabDraft(input),
-  passMapLabAutomationGate: (input) => runtime.passMapLabAutomationGate(input),
-  activateMapLabDraft: (input) => runtime.activateMapLabDraft(input),
   getModeInfo: () => runtime.getModeInfo(),
 });

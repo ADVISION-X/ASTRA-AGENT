@@ -16,7 +16,7 @@ const CommanderMissionViewSchema = z.object({
   missionRunRef: NonEmptyStringSchema.nullable(),
   currentRoundIndex: z.number().int().min(0),
   requestedPlatform: RequestedPlatformIdSchema.nullable(),
-  selectedMapId: NonEmptyStringSchema.nullable(),
+  selectedBindingId: NonEmptyStringSchema.nullable(),
   lastHumanCommand: CommanderCommandTypeSchema.nullable(),
   reviewRequiredReason: z.string().nullable(),
   failureReason: z.string().nullable(),

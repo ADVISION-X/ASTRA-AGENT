@@ -17,13 +17,13 @@ export type BuildProofInput = {
   missionId: string;
   runId: string;
   mapId: OperationalMapId;
-  taskTemplateId?: string | null;
-  activationId?: string | null;
-  mapPackageId?: string | null;
-  mapPackageVersion?: string | null;
+  taskBindingId?: string | null;
+  bindingActivationRef?: string | null;
+  bindingPackageId?: string | null;
+  bindingPackageVersion?: string | null;
   mapVersion?: string | null;
-  selectedMapVersion?: string | null;
-  activationSnapshotRef?: string | null;
+  bindingVersion?: string | null;
+  bindingSnapshotRef?: string | null;
   promptContractVersion?: string | null;
   capabilityCatalogVersion?: string | null;
   selectedMapSource?: z.output<typeof SelectedMapSourceSchema> | null;
@@ -78,13 +78,13 @@ function buildOrchestrationProofIdentityFields(input: BuildProofInput): Pick<z.o
 	  | "runId"
 	  | "missionId"
   | "mapId"
-  | "taskTemplateId"
-  | "activationId"
-  | "mapPackageId"
-  | "mapPackageVersion"
+  | "taskBindingId"
+  | "bindingActivationRef"
+  | "bindingPackageId"
+  | "bindingPackageVersion"
   | "mapVersion"
-  | "selectedMapVersion"
-  | "activationSnapshotRef"
+  | "bindingVersion"
+  | "bindingSnapshotRef"
   | "promptContractVersion"
   | "capabilityCatalogVersion"
   | "selectedMapSource"
@@ -97,7 +97,7 @@ function buildOrchestrationProofIdentityFields(input: BuildProofInput): Pick<z.o
   | "caller"
   | "idempotencyKey"
   | "sequenceNo"> {
-	  return { proofId: `${input.runId}:${input.sequenceNo}:${input.stepId}`, runId: input.runId, missionId: input.missionId, mapId: input.mapId, taskTemplateId: input.taskTemplateId ?? null, activationId: input.activationId ?? null, mapPackageId: input.mapPackageId ?? null, mapPackageVersion: input.mapPackageVersion ?? null, mapVersion: input.mapVersion ?? null, selectedMapVersion: input.selectedMapVersion ?? null, activationSnapshotRef: input.activationSnapshotRef ?? null, promptContractVersion: input.promptContractVersion ?? null, capabilityCatalogVersion: input.capabilityCatalogVersion ?? null, selectedMapSource: input.selectedMapSource ?? null, stepId: input.stepId, targetAbilityGroupId: input.targetAbilityGroupId ?? null, targetChildCapabilityId: input.targetChildCapabilityId ?? null, childCapabilityId: input.childCapabilityId, commandKind: input.commandKind, internalOperationKind: input.internalOperationKind ?? null, caller: input.caller, idempotencyKey: input.idempotencyKey, sequenceNo: input.sequenceNo };
+	  return { proofId: `${input.runId}:${input.sequenceNo}:${input.stepId}`, runId: input.runId, missionId: input.missionId, mapId: input.mapId, taskBindingId: input.taskBindingId ?? null, bindingActivationRef: input.bindingActivationRef ?? null, bindingPackageId: input.bindingPackageId ?? null, bindingPackageVersion: input.bindingPackageVersion ?? null, mapVersion: input.mapVersion ?? null, bindingVersion: input.bindingVersion ?? null, bindingSnapshotRef: input.bindingSnapshotRef ?? null, promptContractVersion: input.promptContractVersion ?? null, capabilityCatalogVersion: input.capabilityCatalogVersion ?? null, selectedMapSource: input.selectedMapSource ?? null, stepId: input.stepId, targetAbilityGroupId: input.targetAbilityGroupId ?? null, targetChildCapabilityId: input.targetChildCapabilityId ?? null, childCapabilityId: input.childCapabilityId, commandKind: input.commandKind, internalOperationKind: input.internalOperationKind ?? null, caller: input.caller, idempotencyKey: input.idempotencyKey, sequenceNo: input.sequenceNo };
 }
 
 function buildOrchestrationProofStateFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
@@ -140,13 +140,13 @@ function buildOrchestrationProofCoreFields(input: BuildProofInput): Pick<z.outpu
 	  | "runId"
 	  | "missionId"
   | "mapId"
-  | "taskTemplateId"
-  | "activationId"
-  | "mapPackageId"
-  | "mapPackageVersion"
+  | "taskBindingId"
+  | "bindingActivationRef"
+  | "bindingPackageId"
+  | "bindingPackageVersion"
   | "mapVersion"
-  | "selectedMapVersion"
-  | "activationSnapshotRef"
+  | "bindingVersion"
+  | "bindingSnapshotRef"
   | "promptContractVersion"
   | "capabilityCatalogVersion"
   | "selectedMapSource"

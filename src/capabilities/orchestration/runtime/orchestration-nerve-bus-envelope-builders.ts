@@ -85,11 +85,6 @@ function buildOrchestrationSharedEnvelope<TTransportInput extends SharedEnvelope
     roundId: input.transportInput.roundId,
     videoVisitId: input.transportInput.videoVisitId,
     mapId: input.transportInput.mapId,
-    mapPackageId: input.transportInput.mapPackageId,
-    mapPackageVersion: input.transportInput.mapPackageVersion,
-    selectedMapVersion: input.transportInput.selectedMapVersion,
-    activationId: input.transportInput.activationId,
-    activationSnapshotRef: input.transportInput.activationSnapshotRef,
     stepId: input.transportInput.stepId,
     capabilityCallId: input.capabilityCallId,
     sourceRef: resolveSourceRef(input.transportInput.payloadRefs, input.inputRef),
@@ -144,11 +139,6 @@ function buildSharedEnvelopeBase<TChannelId extends SharedChannelId>(input: {
   roundId: string | null;
   videoVisitId: string | null;
   mapId: string;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapVersion: string;
-  activationId: string;
-  activationSnapshotRef: string;
   stepId: string;
   capabilityCallId: string;
   sourceRef: string;
@@ -176,12 +166,6 @@ function buildSharedEnvelopeBase<TChannelId extends SharedChannelId>(input: {
     roundId: input.roundId,
     videoVisitId: input.videoVisitId,
     mapId: input.mapId,
-    mapPackageId: input.mapPackageId,
-    mapPackageVersion: input.mapPackageVersion,
-    selectedMapId: input.mapId,
-    selectedMapVersion: input.selectedMapVersion,
-    activationId: input.activationId,
-    activationSnapshotRef: input.activationSnapshotRef,
     stepId: input.stepId,
     capabilityCallId: input.capabilityCallId,
     sourceRef: input.sourceRef,
@@ -261,6 +245,8 @@ export function buildAiDispatchDocument(input: SendAiInput) {
     summary: clampTransportSummary(`Request AI prompt ${input.promptContractId}`),
     entityRefs: [],
     evidenceRefs: [],
-    contentBlocks: Object.entries(buildDispatchDocumentContent(input.payloadRefs)).map(([key, value]) => ({ key, value })),
+    contentBlocks: Object.entries(buildDispatchDocumentContent(input.payloadRefs, {
+      ...(input.dispatchInput ? { dispatchInput: input.dispatchInput } : {}),
+    })).map(([key, value]) => ({ key, value })),
   };
 }

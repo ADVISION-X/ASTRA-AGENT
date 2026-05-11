@@ -30,11 +30,11 @@ const CORE_CHAIN_FIELDS = [
   "missionId",
   "runId",
   "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
+  "bindingPackageId",
+  "bindingPackageVersion",
+  "selectedBindingId",
+  "bindingVersion",
+  "bindingSnapshotRef",
   "capabilityCallId",
 ] as const;
 

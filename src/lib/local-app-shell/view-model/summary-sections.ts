@@ -2,7 +2,7 @@ import type { CommanderMissionDashboardView } from "../commander-console-dashboa
 import type { AppRunLimitSettings, Locale } from "../types.js";
 
 import { localizeCommanderText } from "../locale.js";
-import type { CommanderConsoleTaskTemplate, CommanderConsoleViewModel } from "../types.js";
+import type { CommanderConsoleViewModel } from "../types.js";
 
 export function buildMissionSummary(dashboard: CommanderMissionDashboardView, locale: Locale): string {
   if (!dashboard.mission.missionId) {
@@ -15,13 +15,12 @@ export function buildMissionSummary(dashboard: CommanderMissionDashboardView, lo
 export function buildActiveMissionSummary(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
-  activeTaskTemplate: CommanderConsoleTaskTemplate | null,
 ): CommanderConsoleViewModel["activeMissionSummary"] {
   return [
     { label: localizeCommanderText(locale, "任务 ID", "Mission ID"), value: dashboard.mission.missionId ?? localizeCommanderText(locale, "待命", "standby"), tone: dashboard.mission.missionId ? "ok" : "attention" },
     { label: localizeCommanderText(locale, "状态", "Status"), value: dashboard.mission.status },
     { label: localizeCommanderText(locale, "平台", "Platform"), value: dashboard.mission.requestedPlatform ?? localizeCommanderText(locale, "未指派", "unassigned"), tone: dashboard.mission.requestedPlatform ? "ok" : "attention" },
-    { label: localizeCommanderText(locale, "任务模板", "Task Template"), value: activeTaskTemplate?.displayName ?? localizeCommanderText(locale, "未选择", "unselected"), tone: activeTaskTemplate ? "ok" : "attention" },
+    { label: localizeCommanderText(locale, "输入来源", "Input Source"), value: dashboard.mission.humanGoal ? localizeCommanderText(locale, "用户需求 + 平台绑定", "User requirement + platform binding") : localizeCommanderText(locale, "待填写", "pending input"), tone: dashboard.mission.humanGoal ? "ok" : "attention" },
     { label: localizeCommanderText(locale, "目标", "Goal"), value: dashboard.mission.humanGoal || localizeCommanderText(locale, "未填写", "unspecified") },
   ];
 }
@@ -41,20 +40,15 @@ export function buildActiveRoundSummary(
 
 export function buildCommandDraft(
   dashboard: CommanderMissionDashboardView,
-  activeTaskTemplate: CommanderConsoleTaskTemplate | null,
   appRunLimitSettings: AppRunLimitSettings,
 ): CommanderConsoleViewModel["commandDraft"] {
   const selectedPlatforms: CommanderConsoleViewModel["commandDraft"]["selectedPlatforms"] = dashboard.mission.requestedPlatform === "facebook-web" || dashboard.mission.requestedPlatform === "tiktok-web"
     ? [dashboard.mission.requestedPlatform]
-    : activeTaskTemplate?.taskCategory.toLowerCase().includes("facebook")
-      ? ["facebook-web"]
-      : activeTaskTemplate?.taskCategory.toLowerCase().includes("tiktok")
-        ? ["tiktok-web"]
-        : [];
+    : [];
   return {
     commandType: "start-mission",
     commandSource: "commander-console:start-form-submit",
-    userRequirementText: dashboard.mission.humanGoal || activeTaskTemplate?.defaultHumanGoal || "",
+    userRequirementText: dashboard.mission.humanGoal || "",
     selectedPlatforms,
     historyEntryId: null,
     maxRounds: appRunLimitSettings.defaultMaxRounds,

@@ -5,7 +5,6 @@ import { renderCommanderConsolePage } from "../lib/local-app-shell/render-comman
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { handleAppSettingsRequest } from "./app-settings-api-handlers.js";
 import { handleCandidateRequest } from "./candidate-api-handlers.js";
-import { handleMapLabRequest } from "./map-lab-api-handlers.js";
 import { handleRuntimeReadRequest } from "./runtime-api-handlers.js";
 import { handleTaskRequest } from "./task-api-handlers.js";
 import { handleUserRequirementHistoryRequest } from "./user-requirement-history-api-handlers.js";
@@ -16,7 +15,6 @@ const WORKBENCH_ROUTE_HANDLERS = [
   handleUserRequirementHistoryRequest,
   handleCandidateRequest,
   handleAppSettingsRequest,
-  handleMapLabRequest,
 ] as const;
 
 async function handleArtifactOrRootRequest(

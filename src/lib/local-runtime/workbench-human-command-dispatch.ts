@@ -1,7 +1,6 @@
 import type { HumanCommandDispatchInput } from "../../capabilities/nerve-bus/contract.js";
 
 import type { WorkbenchRuntime } from "./workbench-contract.js";
-import { getActiveMapChain } from "./workbench-map-chain-support.js";
 import { buildPayloadDocument, buildTransportEnvelopeBase } from "./workbench-payload.js";
 
 type HumanCommandDispatchTargetRecordRef = {
@@ -31,9 +30,18 @@ type HumanCommandTransportResultEnvelope = {
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
 
-const readStartMissionPayloadField = (
+const readStartMissionPayloadStringField = (
   command: HumanCommandDispatchCommand,
-  key: "targetUrl" | "targetTitle" | "targetProfileRef" | "sourceEvidenceRef" | "sourceTargetRef" | "promptInputRef" | "commandInputRef",
+  key:
+    | "targetUrl"
+    | "targetTitle"
+    | "targetProfileRef"
+    | "sourceEvidenceRef"
+    | "sourceTargetRef"
+    | "promptInputRef"
+    | "commandInputRef"
+    | "userRequirementRef"
+    | "primaryPlatformId",
 ) => {
   if (!isRecord(command.payload) || command.payload.kind !== "start-mission") {
     return null;
@@ -43,6 +51,22 @@ const readStartMissionPayloadField = (
   return typeof value === "string" && value.length > 0 ? value : null;
 };
 
+const readStartMissionPayloadStringArrayField = (
+  command: HumanCommandDispatchCommand,
+  key: "selectedPlatforms",
+) => {
+  if (!isRecord(command.payload) || command.payload.kind !== "start-mission") {
+    return null;
+  }
+
+  const value = command.payload[key];
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  return JSON.stringify(value.filter((entry): entry is string => typeof entry === "string" && entry.length > 0));
+};
+
 type HumanCommandChain = {
   missionId: string;
   runId: string;
@@ -50,22 +74,13 @@ type HumanCommandChain = {
   roundId: string;
   videoVisitId: string | null;
   mapId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapVersion: string | null;
-  activationId: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  bindingVersion: string | null;
+  bindingActivationRef: string | null;
+  bindingSnapshotRef: string | null;
   capabilityCallId: string;
   sequenceNo: number;
-};
-
-type RequiredMapChain = {
-  mapId: string;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapVersion: string;
-  activationId: string;
-  activationSnapshotRef: string;
 };
 
 const buildHumanCommandInputContent = (command: HumanCommandDispatchCommand) => ({
@@ -80,13 +95,16 @@ const buildHumanCommandInputContent = (command: HumanCommandDispatchCommand) => 
   maxMinutes: command.maxMinutes ?? null,
   operatorNote: command.operatorNote ?? null,
   targetRecordId: command.targetRecordRef?.recordId ?? null,
-  targetUrl: readStartMissionPayloadField(command, "targetUrl"),
-  targetTitle: readStartMissionPayloadField(command, "targetTitle"),
-  targetProfileRef: readStartMissionPayloadField(command, "targetProfileRef"),
-  sourceEvidenceRef: readStartMissionPayloadField(command, "sourceEvidenceRef"),
-  sourceTargetRef: readStartMissionPayloadField(command, "sourceTargetRef"),
-  promptInputRef: readStartMissionPayloadField(command, "promptInputRef"),
-  commandInputRef: readStartMissionPayloadField(command, "commandInputRef"),
+  targetUrl: readStartMissionPayloadStringField(command, "targetUrl"),
+  targetTitle: readStartMissionPayloadStringField(command, "targetTitle"),
+  targetProfileRef: readStartMissionPayloadStringField(command, "targetProfileRef"),
+  sourceEvidenceRef: readStartMissionPayloadStringField(command, "sourceEvidenceRef"),
+  sourceTargetRef: readStartMissionPayloadStringField(command, "sourceTargetRef"),
+  promptInputRef: readStartMissionPayloadStringField(command, "promptInputRef"),
+  commandInputRef: readStartMissionPayloadStringField(command, "commandInputRef"),
+  userRequirementRef: readStartMissionPayloadStringField(command, "userRequirementRef"),
+  primaryPlatformId: readStartMissionPayloadStringField(command, "primaryPlatformId"),
+  selectedPlatformsJson: readStartMissionPayloadStringArrayField(command, "selectedPlatforms"),
 });
 
 const buildHumanCommandInputPayload = (command: HumanCommandDispatchCommand) => {
@@ -100,22 +118,6 @@ const buildHumanCommandInputPayload = (command: HumanCommandDispatchCommand) => 
 
 const createMissingMissionChainError = (commandType: string) => new Error(`${commandType} requires an active mission chain.`);
 
-const resolveRequiredMapChain = (mapId: string | null, missingChainMessage: string): RequiredMapChain => {
-  const mapChain = getActiveMapChain(mapId);
-  if (!mapId || !mapChain.mapPackageId || !mapChain.mapPackageVersion || !mapChain.selectedMapVersion || !mapChain.activationId || !mapChain.activationSnapshotRef) {
-    throw new Error(missingChainMessage);
-  }
-
-  return {
-    mapId,
-    mapPackageId: mapChain.mapPackageId,
-    mapPackageVersion: mapChain.mapPackageVersion,
-    selectedMapVersion: mapChain.selectedMapVersion,
-    activationId: mapChain.activationId,
-    activationSnapshotRef: mapChain.activationSnapshotRef,
-  };
-};
-
 const resolveStartMissionChain = (
   command: HumanCommandDispatchCommand,
 ): HumanCommandChain => {
@@ -126,11 +128,11 @@ const resolveStartMissionChain = (
     roundId: "0",
     videoVisitId: null,
     mapId: null,
-    mapPackageId: null,
-    mapPackageVersion: null,
-    selectedMapVersion: null,
-    activationId: null,
-    activationSnapshotRef: null,
+    bindingPackageId: null,
+    bindingPackageVersion: null,
+    bindingVersion: null,
+    bindingActivationRef: null,
+    bindingSnapshotRef: null,
     capabilityCallId: command.commandId,
     sequenceNo: 0,
   };
@@ -145,20 +147,18 @@ const resolveExistingMissionChain = async (
     throw createMissingMissionChainError(command.commandType);
   }
 
-  const mapChain = resolveRequiredMapChain(state.mapId, `${command.commandType} requires an active mission chain.`);
-
   return {
     missionId: state.missionId,
     runId: state.activeTaskRunId ?? `${state.missionId}:run`,
     sessionId: state.missionId,
     roundId: String(state.currentRoundIndex),
     videoVisitId: null,
-    mapId: mapChain.mapId,
-    mapPackageId: mapChain.mapPackageId,
-    mapPackageVersion: mapChain.mapPackageVersion,
-    selectedMapVersion: mapChain.selectedMapVersion,
-    activationId: mapChain.activationId,
-    activationSnapshotRef: mapChain.activationSnapshotRef,
+    mapId: state.mapId ?? null,
+    bindingPackageId: null,
+    bindingPackageVersion: null,
+    bindingVersion: null,
+    bindingActivationRef: null,
+    bindingSnapshotRef: null,
     capabilityCallId: command.commandId,
     sequenceNo: state.currentRoundIndex,
   };
@@ -191,11 +191,11 @@ const buildHumanCommandEnvelope = (
       roundId: chain.roundId,
       videoVisitId: chain.videoVisitId,
       mapId: chain.mapId,
-      mapPackageId: chain.mapPackageId,
-      mapPackageVersion: chain.mapPackageVersion,
-      selectedMapVersion: chain.selectedMapVersion,
-      activationId: chain.activationId,
-      activationSnapshotRef: chain.activationSnapshotRef,
+      bindingPackageId: chain.bindingPackageId,
+      bindingPackageVersion: chain.bindingPackageVersion,
+      bindingVersion: chain.bindingVersion,
+      bindingActivationRef: chain.bindingActivationRef,
+      bindingSnapshotRef: chain.bindingSnapshotRef,
       stepId: command.commandType,
       capabilityCallId: chain.capabilityCallId,
       sourceRef: inputPayload.documentRef,
@@ -215,7 +215,6 @@ const buildHumanCommandEnvelope = (
     commanderCommandRef: inputPayload.documentRef,
     commanderEnvelopeRef: envelopeId,
     requestedPlatformId: command.requestedPlatformId,
-    taskTemplateId: null,
     targetRecordRef: command.targetRecordRef?.recordId ?? null,
   };
 };

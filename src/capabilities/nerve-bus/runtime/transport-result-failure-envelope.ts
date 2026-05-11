@@ -82,15 +82,15 @@ const buildTransportChainFields = (input: GovernedFailureEnvelopeInput, channelI
   roundId: input.envelope.roundId,
   videoVisitId: input.envelope.videoVisitId,
   mapId: input.envelope.mapId,
-  mapPackageId: input.envelope.mapPackageId,
-  mapPackageVersion: input.envelope.mapPackageVersion,
-  selectedMapId: input.envelope.selectedMapId,
-  selectedMapVersion: input.envelope.selectedMapVersion,
+  bindingPackageId: input.envelope.bindingPackageId,
+  bindingPackageVersion: input.envelope.bindingPackageVersion,
+  selectedBindingId: input.envelope.selectedBindingId,
+  bindingVersion: input.envelope.bindingVersion,
 });
 
 const buildExecutionChainFields = (input: GovernedFailureEnvelopeInput) => ({
-  activationId: input.envelope.activationId,
-  activationSnapshotRef: input.envelope.activationSnapshotRef,
+  bindingActivationRef: input.envelope.bindingActivationRef,
+  bindingSnapshotRef: input.envelope.bindingSnapshotRef,
   stepId: input.envelope.stepId,
   capabilityCallId: input.envelope.capabilityCallId,
   sourceRef: input.envelope.sourceRef,

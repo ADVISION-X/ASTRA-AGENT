@@ -23,11 +23,11 @@ export type OpenDispatchFailureTrace = {
   runId: OpenTraceValue<string>;
   sessionId: OpenTraceValue<string>;
   stepId: OpenTraceValue<string>;
-  mapPackageId: OpenTraceValue<string>;
-  mapPackageVersion: OpenTraceValue<string>;
-  selectedMapId: OpenTraceValue<string>;
-  selectedMapVersion: OpenTraceValue<string>;
-  activationSnapshotRef: OpenTraceValue<string>;
+  bindingPackageId: OpenTraceValue<string>;
+  bindingPackageVersion: OpenTraceValue<string>;
+  selectedBindingId: OpenTraceValue<string>;
+  bindingVersion: OpenTraceValue<string>;
+  bindingSnapshotRef: OpenTraceValue<string>;
   capabilityCallId: OpenTraceValue<string>;
   nerveBusEnvelopeId: OpenTraceValue<string>;
   targetUrl: OpenTraceValue<string>;
@@ -110,11 +110,11 @@ export function extractOpenFailureTrace(input: unknown): OpenDispatchFailureTrac
     runId: readTraceString(input, "runId"),
     sessionId: readTraceString(input, "sessionId"),
     stepId: readTraceString(input, "stepId"),
-    mapPackageId: readTraceString(input, "mapPackageId"),
-    mapPackageVersion: readTraceString(input, "mapPackageVersion"),
-    selectedMapId: readTraceString(input, "selectedMapId"),
-    selectedMapVersion: readTraceString(input, "selectedMapVersion"),
-    activationSnapshotRef: readTraceString(input, "activationSnapshotRef"),
+    bindingPackageId: readTraceString(input, "bindingPackageId"),
+    bindingPackageVersion: readTraceString(input, "bindingPackageVersion"),
+    selectedBindingId: readTraceString(input, "selectedBindingId"),
+    bindingVersion: readTraceString(input, "bindingVersion"),
+    bindingSnapshotRef: readTraceString(input, "bindingSnapshotRef"),
     capabilityCallId: readTraceString(input, "capabilityCallId"),
     nerveBusEnvelopeId: readTraceString(input, "nerveBusEnvelopeId"),
     targetUrl: readTraceString(input, "targetUrl"),

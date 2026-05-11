@@ -23,18 +23,18 @@ function getReadinessTone(lifecycleStatus: string): CommanderConsoleMapView["rea
 }
 
 export function buildMapCatalog(locale: Locale): CommanderConsoleMapView[] {
-  return getLocalAppShellMapRegistry().listDeveloperCatalog().map((mapPackage) => ({
-    packageId: mapPackage.packageId,
-    version: mapPackage.packageVersion,
-    mapId: mapPackage.mapId,
-    title: mapPackage.title,
-    readiness: getReadinessTone(mapPackage.lifecycleStatus),
-    summary: mapPackage.summary,
-    activationGateStatus: mapPackage.activationGateStatus,
-    lifecycleStatus: mapPackage.lifecycleStatus,
-    validationSummary: getValidationSummary(locale, mapPackage.validationIssues.length),
-    activationId: mapPackage.activationId,
-    draftOnly: mapPackage.draftOnly,
-    chain: mapPackage.chain,
+  return getLocalAppShellMapRegistry().listDeveloperCatalog().map((catalogEntry) => ({
+    packageId: catalogEntry.packageId,
+    version: catalogEntry.packageVersion,
+    mapId: catalogEntry.mapId,
+    title: catalogEntry.title,
+    readiness: getReadinessTone(catalogEntry.lifecycleStatus),
+    summary: catalogEntry.summary,
+    activationGateStatus: catalogEntry.activationGateStatus,
+    lifecycleStatus: catalogEntry.lifecycleStatus,
+    validationSummary: getValidationSummary(locale, catalogEntry.validationIssues.length),
+    bindingActivationRef: catalogEntry.bindingActivationRef,
+    draftOnly: catalogEntry.draftOnly,
+    chain: catalogEntry.chain,
   }));
 }

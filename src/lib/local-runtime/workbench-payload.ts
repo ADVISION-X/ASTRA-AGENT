@@ -23,11 +23,11 @@ type MirroredRequestEnvelope = {
   videoVisitId: string | null;
   mapId: string | null;
   bindingPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationId: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageVersion: string | null;
+  selectedBindingId: string | null;
+  bindingVersion: string | null;
+  bindingActivationRef: string | null;
+  bindingSnapshotRef: string | null;
   stepId: string;
   capabilityCallId: string;
   sourceRef: string;
@@ -46,11 +46,11 @@ type TransportEnvelopeBaseInput<TChannelId extends TransportChannelId> = {
   roundId?: string | null;
   videoVisitId?: string | null;
   mapId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapVersion: string | null;
-  activationId: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  bindingVersion: string | null;
+  bindingActivationRef: string | null;
+  bindingSnapshotRef: string | null;
   stepId: string;
   capabilityCallId: string;
   sourceRef: string;
@@ -115,12 +115,12 @@ export const buildTransportEnvelopeBase = <TChannelId extends TransportChannelId
     roundId: input.roundId ?? null,
     videoVisitId: input.videoVisitId ?? null,
     mapId: input.mapId,
-    mapPackageId: input.mapPackageId,
-    mapPackageVersion: input.mapPackageVersion,
-    selectedMapId: input.mapId,
-    selectedMapVersion: input.selectedMapVersion,
-    activationId: input.activationId,
-    activationSnapshotRef: input.activationSnapshotRef,
+    bindingPackageId: input.bindingPackageId,
+    bindingPackageVersion: input.bindingPackageVersion,
+    selectedBindingId: input.mapId,
+    bindingVersion: input.bindingVersion,
+    bindingActivationRef: input.bindingActivationRef,
+    bindingSnapshotRef: input.bindingSnapshotRef,
     stepId: input.stepId,
     capabilityCallId: input.capabilityCallId,
     sourceRef: input.sourceRef,
@@ -150,14 +150,12 @@ export const buildMirroredEnvelopeBase = <TChannelId extends TransportChannelId>
     runId: input.requestEnvelope.runId,
     sessionId: input.requestEnvelope.sessionId,
     roundId: input.requestEnvelope.roundId,
-    videoVisitId: input.requestEnvelope.videoVisitId,
-    mapId: input.requestEnvelope.mapId,
-    mapPackageId: input.requestEnvelope.bindingPackageId,
-    mapPackageVersion: input.requestEnvelope.mapPackageVersion,
-    selectedMapId: input.requestEnvelope.selectedMapId,
-    selectedMapVersion: input.requestEnvelope.selectedMapVersion,
-    activationId: input.requestEnvelope.activationId,
-    activationSnapshotRef: input.requestEnvelope.activationSnapshotRef,
+    bindingPackageId: input.requestEnvelope.bindingPackageId,
+    bindingPackageVersion: input.requestEnvelope.bindingPackageVersion,
+    selectedBindingId: input.requestEnvelope.selectedBindingId,
+    bindingVersion: input.requestEnvelope.bindingVersion,
+    bindingActivationRef: input.requestEnvelope.bindingActivationRef,
+    bindingSnapshotRef: input.requestEnvelope.bindingSnapshotRef,
     stepId: input.requestEnvelope.stepId,
     capabilityCallId: input.requestEnvelope.capabilityCallId,
     sourceRef: input.requestEnvelope.sourceRef,

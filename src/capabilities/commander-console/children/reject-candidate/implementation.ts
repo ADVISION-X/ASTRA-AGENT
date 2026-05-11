@@ -16,7 +16,7 @@ export const REJECT_CANDIDATE_CHILD: CommanderConsoleChildDefinition<RejectCandi
       buildCommandInput: (commandInput) => ({
         commandType: "reject-candidate",
         targetMissionId: null,
-        selectedMapId: null,
+        selectedBindingId: null,
         targetRecordRef: { recordType: "candidate", recordId: commandInput.candidateId },
         requestedPlatformId: null,
         humanGoal: null,

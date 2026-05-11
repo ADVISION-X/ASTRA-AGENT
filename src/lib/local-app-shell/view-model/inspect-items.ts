@@ -2,23 +2,7 @@ import type { CommanderMissionDashboardView } from "../../../capabilities/comman
 import type { Locale } from "../../localization/dictionaries.js";
 
 import { localizeCommanderText } from "../locale.js";
-import type { CommanderConsoleInspectItem, CommanderConsoleMapView } from "../types.js";
-
-function buildMapInspectItems(locale: Locale, mapCatalog: CommanderConsoleMapView[]): CommanderConsoleInspectItem[] {
-  return mapCatalog.map((map) => ({
-    kind: "map",
-    id: map.mapId,
-    title: map.title,
-    subtitle: localizeCommanderText(locale, "地图详情", "Map details"),
-    summary: map.summary,
-    owner: localizeCommanderText(locale, "编排层", "orchestration"),
-    json: map,
-    references: [
-      { label: localizeCommanderText(locale, "地图包", "Package"), value: map.packageId },
-      { label: localizeCommanderText(locale, "门禁", "Automation Gate"), value: map.activationGateStatus },
-    ],
-  }));
-}
+import type { CommanderConsoleInspectItem } from "../types.js";
 
 function buildEvidenceInspectItems(
   dashboard: CommanderMissionDashboardView,
@@ -82,10 +66,8 @@ function buildHealthInspectItems(
 export function buildInspectItems(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
-  mapCatalog: CommanderConsoleMapView[],
 ): CommanderConsoleInspectItem[] {
   return [
-    ...buildMapInspectItems(locale, mapCatalog),
     ...buildEvidenceInspectItems(dashboard, locale),
     ...buildRoundInspectItems(dashboard, locale),
     ...buildHealthInspectItems(dashboard, locale),

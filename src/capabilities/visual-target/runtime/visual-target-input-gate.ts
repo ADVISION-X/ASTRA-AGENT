@@ -21,11 +21,11 @@ export type VisualTargetFailureTrace = {
   roundId: string | null;
   videoVisitId: string | null;
   stepId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  selectedBindingId: string | null;
+  bindingVersion: string | null;
+  bindingSnapshotRef: string | null;
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   sourceAbilityGroupId: string | null;
@@ -88,11 +88,11 @@ export function extractVisualTargetFailureTrace(input: unknown): VisualTargetFai
     roundId: readNullableString(raw.roundId),
     videoVisitId: readNullableString(raw.videoVisitId),
     stepId: readNullableString(raw.stepId),
-    mapPackageId: readNullableString(raw.mapPackageId),
-    mapPackageVersion: readNullableString(raw.mapPackageVersion),
-    selectedMapId: readNullableString(raw.selectedMapId),
-    selectedMapVersion: readNullableString(raw.selectedMapVersion),
-    activationSnapshotRef: readNullableString(raw.activationSnapshotRef),
+    bindingPackageId: readNullableString(raw.bindingPackageId),
+    bindingPackageVersion: readNullableString(raw.bindingPackageVersion),
+    selectedBindingId: readNullableString(raw.selectedBindingId),
+    bindingVersion: readNullableString(raw.bindingVersion),
+    bindingSnapshotRef: readNullableString(raw.bindingSnapshotRef),
     capabilityCallId: readNullableString(raw.capabilityCallId),
     nerveBusEnvelopeId: readNullableString(raw.nerveBusEnvelopeId),
     sourceAbilityGroupId: readNullableString(raw.sourceAbilityGroupId),

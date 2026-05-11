@@ -241,12 +241,12 @@ const buildDebugResponseFields = (args: {
     parserErrors: [...args.state.parserErrors],
 });
 
-const buildDebugCatalogRefs = (request: ParsedAiAbilityInput) => ({
-  inputPackageId: request.taskType === "map_authoring" ? request.input.inputPackageId : null,
-  inputPackageVersion: request.taskType === "map_authoring" ? request.input.inputPackageVersion : null,
-  inputPackageHash: request.taskType === "map_authoring" ? `sha256:${hashValue(request.input)}` : null,
-  capabilityCatalogVersion: request.taskType === "map_authoring" ? request.input.capabilityCatalog.version : null,
-  outputSchemaCatalogVersion: request.taskType === "map_authoring" ? request.input.outputSchemaCatalog.version : null,
+const buildDebugCatalogRefs = () => ({
+  inputPackageId: null,
+  inputPackageVersion: null,
+  inputPackageHash: null,
+  capabilityCatalogVersion: null,
+  outputSchemaCatalogVersion: null,
 });
 
 function buildBaseDebugEvent(args: {
@@ -264,7 +264,7 @@ function buildBaseDebugEvent(args: {
     promptCatalogVersion: args.request.promptCatalogVersion,
     providerConfigRef: args.request.providerPolicy.providerConfigRef,
     secretRef: args.request.providerPolicy.secretRef,
-    ...buildDebugCatalogRefs(args.request),
+    ...buildDebugCatalogRefs(),
     promptDebugBundleRef: args.promptDebugRef,
     providerRequestBodyRedacted: args.state.providerRequestBodyRedacted,
     providerRequestDebugRef: args.promptDebugRef,

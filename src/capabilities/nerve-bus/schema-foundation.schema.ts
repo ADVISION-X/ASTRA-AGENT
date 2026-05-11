@@ -121,7 +121,7 @@ const MapPackageIdSchema = z.string().min(1);
 const MapPackageVersionSchema = z.string().min(1);
 const SelectedMapIdSchema = z.string().min(1);
 const SelectedMapVersionSchema = z.string().min(1);
-const ActivationIdSchema = z.string().min(1);
+const BindingActivationRefSchema = z.string().min(1);
 const ActivationSnapshotRefSchema = z.string().min(1);
 const CapabilityCallIdSchema = z.string().min(1);
 const SourceRefSchema = z.string().min(1);
@@ -178,12 +178,12 @@ const NerveBusEnvelopeBaseCoreSchema = z.object({
   roundId: RoundIdSchema,
   videoVisitId: VideoVisitIdSchema,
   mapId: MapIdSchema,
-  mapPackageId: MapPackageIdSchema,
-  mapPackageVersion: MapPackageVersionSchema,
-  selectedMapId: SelectedMapIdSchema,
-  selectedMapVersion: SelectedMapVersionSchema,
-  activationId: ActivationIdSchema,
-  activationSnapshotRef: ActivationSnapshotRefSchema,
+  bindingPackageId: MapPackageIdSchema,
+  bindingPackageVersion: MapPackageVersionSchema,
+  selectedBindingId: SelectedMapIdSchema,
+  bindingVersion: SelectedMapVersionSchema,
+  bindingActivationRef: BindingActivationRefSchema,
+  bindingSnapshotRef: ActivationSnapshotRefSchema,
   stepId: StepIdSchema,
   capabilityCallId: CapabilityCallIdSchema,
   sourceRef: SourceRefSchema,
@@ -200,13 +200,13 @@ function validateNerveBusEnvelopeBase(value: {
   nerveBusEnvelopeId: string;
   envelopeId: string;
   mapId: string | null;
-  selectedMapId: string | null;
+  selectedBindingId: string | null;
 }, context: RefinementCtx) {
   if (value.nerveBusEnvelopeId !== value.envelopeId) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "nerveBusEnvelopeId must match envelopeId.", path: ["nerveBusEnvelopeId"] });
   }
-  if (value.mapId !== value.selectedMapId) {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: "mapId must stay aligned with selectedMapId.", path: ["mapId"] });
+  if (value.mapId !== value.selectedBindingId) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "mapId must stay aligned with selectedBindingId.", path: ["mapId"] });
   }
 }
 
@@ -268,7 +268,7 @@ export {
   MapPackageVersionSchema,
   SelectedMapIdSchema,
   SelectedMapVersionSchema,
-  ActivationIdSchema,
+  BindingActivationRefSchema as ActivationIdSchema,
   ActivationSnapshotRefSchema,
   CapabilityCallIdSchema,
   SourceRefSchema,

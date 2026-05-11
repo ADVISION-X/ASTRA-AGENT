@@ -28,7 +28,7 @@ export function createInitialMissionState(command: MissionCommand, map: Operatio
     runtimeProofRefs: [],
     payloadRefs: PayloadRefBundleSchema.parse({
       requestedPlatformId: command.requestedPlatform,
-      selectedMapId: map.mapId,
+      selectedBindingId: map.mapId,
       operatorNote: command.initialPayload.operatorNote,
       targetUrl: command.initialPayload.targetUrl,
       targetTitle: command.initialPayload.targetTitle,
@@ -68,13 +68,13 @@ export function toRuntimeProofStatus(status: MissionState["status"]): "completed
 
 export function toMapProofMetadata(record: ActiveOperationalMapRecord | null | undefined) {
   return {
-    taskTemplateId: record?.taskTemplateId ?? null,
-    activationId: record?.activationId ?? null,
-    mapPackageId: record?.packageId ?? null,
-    mapPackageVersion: record?.packageVersion ?? null,
+    taskBindingId: record?.taskBindingId ?? null,
+    bindingActivationRef: record?.bindingActivationRef ?? null,
+    bindingPackageId: record?.packageId ?? null,
+    bindingPackageVersion: record?.packageVersion ?? null,
     mapVersion: record?.mapVersion ?? null,
-    selectedMapVersion: record?.mapVersion ?? null,
-    activationSnapshotRef: record?.activationSnapshotRef ?? null,
+    bindingVersion: record?.mapVersion ?? null,
+    bindingSnapshotRef: record?.bindingSnapshotRef ?? null,
     promptContractVersion: record?.promptContractVersion ?? null,
     capabilityCatalogVersion: record?.capabilityCatalogVersion ?? null,
   };

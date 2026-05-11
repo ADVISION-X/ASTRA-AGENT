@@ -1,6 +1,6 @@
 import type { ActionableErrorView } from "./view-helpers.js";
 
-export type CommanderAppPageId = "home" | "map-lab" | "mission" | "results" | "review" | "settings" | "health";
+export type CommanderAppPageId = "home" | "mission" | "results" | "review" | "settings" | "health";
 
 export type CommanderAppNavItem = {
   pageId: CommanderAppPageId;

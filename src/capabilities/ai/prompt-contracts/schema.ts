@@ -17,7 +17,6 @@ export const PromptContractCatalogTaskTypeSchema = z.enum([
   "comment_signal_summary",
   "product_signal_summary",
   "evidence_packet_analysis",
-  "map_authoring",
   "schema_validation_only",
 ]);
 
@@ -27,7 +26,6 @@ export const PromptContractCatalogModelRoleSchema = z.enum([
   "commentUnderstanding",
   "productSignal",
   "schemaValidator",
-  "map-authoring",
   "multi-role",
   "future",
 ]);

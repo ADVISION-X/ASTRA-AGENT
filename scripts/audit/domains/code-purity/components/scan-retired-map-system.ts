@@ -109,6 +109,7 @@ const LEGACY_UI_TOKENS = [
 ] as const;
 
 const SKIPPED_PATH_PREFIXES = [
+  "scripts/audit/generated/",
   "docs/archive/retired-map-system/",
   "docs/archive/",
   "docs/归档/",
@@ -122,6 +123,10 @@ const PROMPT_CONTRACT_JSON_SUFFIX = ".prompt-contract.json";
 const isSkippedPath = (relativePath: string): boolean => SKIPPED_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
 
 const isStartChainPath = (relativePath: string): boolean => START_CHAIN_PATH_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
+
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const hasWholeToken = (text: string, token: string): boolean => new RegExp(`(^|[^A-Za-z0-9_])${escapeRegExp(token)}([^A-Za-z0-9_]|$)`).test(text);
 
 const createRetiredMapFinding = (input: {
   file: string;
@@ -238,7 +243,7 @@ const inspectForbiddenTokensInSourceFile = (sourceFile: SourceFile, relativePath
       continue;
     }
 
-    const forbiddenToken = FORBIDDEN_IDENTIFIER_TOKENS.find((token) => text.includes(token));
+    const forbiddenToken = FORBIDDEN_IDENTIFIER_TOKENS.find((token) => hasWholeToken(text, token));
     if (!forbiddenToken) {
       continue;
     }

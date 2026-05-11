@@ -1,14 +1,63 @@
 import type { MissionState, OperationalMap } from "../contract.js";
 import { MissionStepResultSchema } from "../schema.js";
+import { decodeVisualMissionActionPlan } from "../../../muscle-memory/decoder/action-plan-decoder.js";
+import { executeMuscleMemoryPlan } from "../../../muscle-memory/executor/muscle-memory-executor.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
+import { buildMuscleMemoryBranchFieldValues } from "./step-dispatch-muscle-memory-branch-fields.js";
 import {
   applyStepOutputRefPolicy,
   buildBranchFieldValues,
   mergeDispatchPayloadRefs,
   resolvePersistentMissionPayloadRefKeys,
   type AiStep,
+  type DispatchChain,
   type StepDispatchResult,
 } from "./step-dispatch-shared.js";
+
+export async function executeAiDispatchActionPlan(input: {
+  state: MissionState;
+  map: OperationalMap;
+  step: AiStep;
+  missionId: string;
+  sequenceNo: number;
+  idempotencyKey: string;
+  chain: DispatchChain;
+  dispatchResult: Awaited<ReturnType<OrchestrationRuntimeContext["nerveBus"]["sendRequestToAi"]>>;
+  context: Pick<OrchestrationRuntimeContext, "nerveBus">;
+}) {
+  const runtimePayloadRefs = {
+    ...input.state.payloadRefs,
+    ...input.dispatchResult.payloadRefs,
+  };
+  const decodedPlan = decodeVisualMissionActionPlan({
+    plan: input.dispatchResult.actionPlan,
+    sourceAiResultRef: input.dispatchResult.payloadRefs.aiResultRef ?? null,
+    runtimeContext: {
+      payloadRefs: runtimePayloadRefs,
+    },
+  });
+  const executionResult = await executeMuscleMemoryPlan({
+    state: { payloadRefs: runtimePayloadRefs },
+    map: input.map,
+    missionId: input.missionId,
+    chain: input.chain,
+    sequenceNo: input.sequenceNo + 1,
+    idempotencyKey: `${input.idempotencyKey}:muscle-memory`,
+    plan: decodedPlan,
+    nerveBus: input.context.nerveBus,
+  });
+
+  return {
+    ...input.dispatchResult,
+    status: executionResult.status,
+    failureReason: executionResult.failureReason,
+    payloadRefs: executionResult.payloadRefs,
+    branchFieldValues: {
+      ...input.dispatchResult.branchFieldValues,
+      ...buildMuscleMemoryBranchFieldValues(executionResult),
+    },
+  };
+}
 
 export function buildAiStepResult(input: {
   state: MissionState;
@@ -34,8 +83,8 @@ export function buildAiStepResult(input: {
       outputRef,
       decision: input.dispatchResult.decision,
       branchFieldValues: buildBranchFieldValues({ decision: input.dispatchResult.decision, branchFieldValues: input.dispatchResult.branchFieldValues }),
-      failureReason: input.dispatchResult.failureReason,
-      reviewRequiredReason: null,
+      failureReason: input.dispatchResult.status === "review_required" ? null : input.dispatchResult.failureReason,
+      reviewRequiredReason: input.dispatchResult.status === "review_required" ? input.dispatchResult.failureReason : null,
       payloadRefs: applyStepOutputRefPolicy(input.step, mergedPayloadRefs, outputRef, persistentPayloadRefKeys),
     }),
   };

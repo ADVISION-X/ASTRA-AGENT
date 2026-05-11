@@ -8,10 +8,14 @@ const MuscleMemoryExecutionActionResultSchema = z.object({
   syntheticStepId: z.string().min(1),
   targetAbilityGroupId: z.string().min(1),
   childCapabilityId: z.string().min(1),
+  gridCell: z.string().min(1).nullable().default(null),
+  targetName: z.string().min(1).nullable().default(null),
+  summary: z.string().min(1).nullable().default(null),
   actionInputRef: z.string().min(1).nullable().default(null),
   status: TransitionStatusSchema,
   outputRef: z.string().min(1).nullable().default(null),
   failureReason: z.string().min(1).nullable().default(null),
+  completedAt: z.string().datetime().nullable().default(null),
 }).strict();
 
 const MuscleMemoryExecutionResultSchema = z.object({

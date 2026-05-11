@@ -3,6 +3,7 @@ import type { MissionExecutionResult, MissionState } from "../contract.js";
 import { buildMissionExecutionResult } from "./orchestration-result-builder.js";
 import { buildTransitionSuccessProof } from "./orchestration-loop-iteration-dispatch-support.js";
 import type { MatchedTransitionRecord } from "./orchestration-loop-iteration-transition-support.js";
+import { buildNextMissionRoundState } from "./orchestration-round-state.js";
 import { toMissionControlState } from "./orchestration-state-support.js";
 import type {
   MissionLoopIterationOutcome,
@@ -59,9 +60,7 @@ const buildTransitionSuccessState = (
     nextHopCount: number;
   },
 ): MissionState => {
-  const nextStatus = details.transition.finalStatus === "review_required"
-    ? "failed"
-    : details.transition.finalStatus;
+  const nextStatus = details.transition.finalStatus;
   const nextStepId = nextStatus === "running" ? details.transition.toStepId : null;
   const nextRoundIndex = shouldAdvanceMissionRound({
     currentStepId: details.currentStepId,
@@ -70,6 +69,10 @@ const buildTransitionSuccessState = (
     initialStepId: input.map.initialStepId,
     currentRoundIndex: input.state.currentRoundIndex,
   });
+  const nextRoundState = buildNextMissionRoundState({
+    state: input.state,
+    lastResult: details.lastResult,
+  });
   return toMissionControlState(input.state, details.endedAt, {
     previousStepId: details.currentStepId,
     currentStepId: nextStepId,
@@ -77,9 +80,13 @@ const buildTransitionSuccessState = (
     hopCount: details.nextHopCount,
     sequenceNo: input.state.sequenceNo + 1,
     currentRoundIndex: nextRoundIndex,
-    reviewRequiredReason: null,
+    roundProgress: nextRoundState.roundProgress,
+    lastActionSummary: nextRoundState.lastActionSummary,
+    reviewRequiredReason: nextStatus === "review_required"
+      ? (details.lastResult.reviewRequiredReason ?? details.lastResult.failureReason ?? "review_required")
+      : null,
     failureReason: nextStatus === "failed"
-      ? (details.lastResult.failureReason ?? details.lastResult.reviewRequiredReason ?? "review_required_normalized_to_failed")
+      ? (details.lastResult.failureReason ?? details.lastResult.reviewRequiredReason ?? "failed")
       : null,
     lastEnvelopeId: details.lastResult.envelopeId ?? null,
     lastResultRef: details.lastResult.resultRef ?? null,

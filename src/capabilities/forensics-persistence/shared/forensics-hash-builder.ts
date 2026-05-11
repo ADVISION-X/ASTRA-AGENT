@@ -30,11 +30,11 @@ export function buildCanonicalForensicsHash(input: {
   roundId: string;
   videoVisitId: string | null;
   stepId: string;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapId: string;
-  selectedMapVersion: string;
-  activationSnapshotRef: string;
+  bindingPackageId: string;
+  bindingPackageVersion: string;
+  selectedBindingId: string;
+  bindingVersion: string;
+  bindingSnapshotRef: string;
   capabilityCallId: string;
   sourceAbilityGroupId: string;
   sourceChildCapabilityId: string;

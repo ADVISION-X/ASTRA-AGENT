@@ -33,17 +33,18 @@ const isCriticalAiRuntimeProof = (eventType: WorkbenchAiDebugEvent["eventType"])
 );
 
 const resolveCanonicalAiChain = (input: WorkbenchAiDebugEvent) => {
-  const selectedMapId = input.selectedMapId ?? null;
-  const mapChain = getActiveMapChain(selectedMapId);
+  const selectedBindingId = input.selectedBindingId ?? null;
+  const mapChain = getActiveMapChain(selectedBindingId);
   return {
     missionId: input.missionId ?? input.sessionId,
     runId: input.runId ?? input.missionId ?? input.sessionId,
     stepId: input.stepId ?? input.roundId ?? resolveAiDebugStep(input.taskType),
-    mapPackageId: input.mapPackageId ?? mapChain.mapPackageId,
-    mapPackageVersion: input.mapPackageVersion ?? mapChain.mapPackageVersion,
-    selectedMapId,
-    selectedMapVersion: input.selectedMapVersion ?? mapChain.selectedMapVersion,
-    activationSnapshotRef: input.activationSnapshotRef ?? mapChain.activationSnapshotRef,
+    bindingPackageId: input.bindingPackageId ?? mapChain.bindingPackageId,
+    bindingPackageVersion: input.bindingPackageVersion ?? mapChain.bindingPackageVersion,
+    selectedBindingId,
+    bindingVersion: input.bindingVersion ?? mapChain.bindingVersion,
+    bindingActivationRef: input.bindingActivationRef ?? mapChain.bindingActivationRef,
+    bindingSnapshotRef: input.bindingSnapshotRef ?? mapChain.bindingSnapshotRef,
     capabilityCallId: input.capabilityCallId ?? null,
     nerveBusEnvelopeId: input.nerveBusEnvelopeId ?? null,
     inputRef: input.inputRef ?? input.refs[0] ?? null,
@@ -93,11 +94,12 @@ const buildAiDebugStructuredRuntimeWriteInput = (input: {
   roundId: input.debugEvent.roundId ?? input.debugEvent.attemptId,
   videoVisitId: input.debugEvent.videoVisitId,
   stepId: input.chain.stepId,
-  mapPackageId: input.chain.mapPackageId,
-  mapPackageVersion: input.chain.mapPackageVersion,
-  selectedMapId: input.chain.selectedMapId,
-  selectedMapVersion: input.chain.selectedMapVersion,
-  activationSnapshotRef: input.chain.activationSnapshotRef,
+  bindingPackageId: input.chain.bindingPackageId,
+  bindingPackageVersion: input.chain.bindingPackageVersion,
+  selectedBindingId: input.chain.selectedBindingId,
+  bindingVersion: input.chain.bindingVersion,
+  bindingActivationRef: input.chain.bindingActivationRef,
+  bindingSnapshotRef: input.chain.bindingSnapshotRef,
   capabilityCallId: input.chain.capabilityCallId,
   sourceRecordRefs: [],
   parentRefs: [],

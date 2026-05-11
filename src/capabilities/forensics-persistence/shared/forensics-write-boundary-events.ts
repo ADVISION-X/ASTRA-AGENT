@@ -47,7 +47,7 @@ function resolveStructuredWritePayload(request: StructuredWriteRequest) {
   if (request.childCapabilityId === "write-structured-runtime-event") {
     return {
       step: request.payload.structuredRuntimeEvent.step,
-      taskTemplateId: request.payload.structuredRuntimeEvent.taskTemplateId,
+      taskBindingId: request.payload.structuredRuntimeEvent.taskBindingId,
       traceId: request.payload.structuredRuntimeEvent.traceId,
       spanId: request.payload.structuredRuntimeEvent.spanId,
       attemptId: request.payload.structuredRuntimeEvent.attemptId,
@@ -58,7 +58,7 @@ function resolveStructuredWritePayload(request: StructuredWriteRequest) {
 
   return {
     step: request.payload.structuredActionLog.step,
-    taskTemplateId: null,
+    taskBindingId: null,
     traceId: request.sessionId,
     spanId: request.capabilityCallId ?? null,
     attemptId: request.roundId,
@@ -104,13 +104,13 @@ function buildBoundaryEventIdentity(
     missionId: request.missionId,
     roundId: request.roundId,
     videoVisitId: request.videoVisitId,
-    mapId: request.selectedMapId,
+    mapId: request.selectedBindingId,
     stepId: request.stepId,
-    taskTemplateId: payload.taskTemplateId,
+    taskBindingId: payload.taskBindingId,
     traceId: payload.traceId,
     spanId: payload.spanId,
     attemptId: payload.attemptId,
-    activationSnapshotRef: request.activationSnapshotRef,
+    bindingSnapshotRef: request.bindingSnapshotRef,
     capabilityCallId: request.capabilityCallId,
     actionRef: payload.actionRef,
     postActionVerificationRef: payload.postActionVerificationRef,

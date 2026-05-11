@@ -5,11 +5,11 @@ type OpenExecutionChainField =
   | "runId"
   | "sessionId"
   | "stepId"
-  | "mapPackageId"
-  | "mapPackageVersion"
-  | "selectedMapId"
-  | "selectedMapVersion"
-  | "activationSnapshotRef"
+  | "bindingPackageId"
+  | "bindingPackageVersion"
+  | "selectedBindingId"
+  | "bindingVersion"
+  | "bindingSnapshotRef"
   | "capabilityCallId"
   | "nerveBusEnvelopeId";
 
@@ -21,11 +21,11 @@ type OpenRuntimeProofValidationValue = {
   runId: string | null;
   sessionId: string | null;
   stepId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  selectedBindingId: string | null;
+  bindingVersion: string | null;
+  bindingSnapshotRef: string | null;
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   browserSessionRef: string | null;
@@ -49,11 +49,11 @@ type OpenResultValidationValue = {
   runId: string | null;
   sessionId: string | null;
   stepId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  selectedBindingId: string | null;
+  bindingVersion: string | null;
+  bindingSnapshotRef: string | null;
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   output: unknown | null;
@@ -68,11 +68,11 @@ const OPEN_EXECUTION_CHAIN_FIELDS: readonly OpenExecutionChainField[] = [
   "runId",
   "sessionId",
   "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
+  "bindingPackageId",
+  "bindingPackageVersion",
+  "selectedBindingId",
+  "bindingVersion",
+  "bindingSnapshotRef",
   "capabilityCallId",
   "nerveBusEnvelopeId",
 ] as const;

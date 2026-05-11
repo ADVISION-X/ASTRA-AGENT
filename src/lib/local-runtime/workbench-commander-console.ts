@@ -23,7 +23,7 @@ const buildCommanderConsoleFallbackMissionSection = (context: CommanderConsoleFa
   missionRunRef: null,
   currentRoundIndex: 0,
   requestedPlatform: null,
-  selectedMapId: null,
+  selectedBindingId: null,
   lastHumanCommand: null,
   reviewRequiredReason: context.failureReason,
   failureReason: null,

@@ -12,11 +12,11 @@ function buildProofIdentity(input: Parameters<typeof buildMouseClickRuntimeProof
     roundId: input.roundId,
     videoVisitId: input.videoVisitId,
     stepId: input.stepId,
-    mapPackageId: input.mapPackageId,
-    mapPackageVersion: input.mapPackageVersion,
-    selectedMapId: input.selectedMapId,
-    selectedMapVersion: input.selectedMapVersion,
-    activationSnapshotRef: input.activationSnapshotRef,
+    bindingPackageId: input.bindingPackageId,
+    bindingPackageVersion: input.bindingPackageVersion,
+    selectedBindingId: input.selectedBindingId,
+    bindingVersion: input.bindingVersion,
+    bindingSnapshotRef: input.bindingSnapshotRef,
     capabilityCallId: input.capabilityCallId,
     nerveBusEnvelopeId: input.nerveBusEnvelopeId,
     abilityGroupId: "mouse-click",
@@ -119,11 +119,11 @@ export function buildMouseClickRuntimeProof(input: {
   roundId: string | null;
   videoVisitId: string | null;
   stepId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  selectedBindingId: string | null;
+  bindingVersion: string | null;
+  bindingSnapshotRef: string | null;
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   sourceAbilityGroupId: string | null;

@@ -27,7 +27,6 @@ export function buildCommanderConsoleShellCopy(locale: Locale): CommanderConsole
     runtimeStripHint: t("底部只保留状态脉冲，不重复主内容。", "The footer keeps runtime pulse only, not a second dashboard."),
     nav: {
       home: { label: t("开始", "Start"), helper: t("启动任务与运行边界", "Start mission and set limits") },
-      "map-lab": { label: t("地图工坊", "Map Lab"), helper: t("描述需求并生成可审批地图草稿", "Describe goals and generate reviewable map drafts") },
       mission: { label: t("运行", "Mission"), helper: t("观察当前运行过程", "Track active mission flow") },
       results: { label: t("结果", "Results"), helper: t("查看证据、导出与失败项", "Review evidence, export, and misses") },
       review: { label: t("复核", "Review"), helper: t("处理人工复核队列", "Handle operator review queue") },

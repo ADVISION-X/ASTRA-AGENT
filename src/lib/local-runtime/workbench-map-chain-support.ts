@@ -1,30 +1,30 @@
 import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 
 export type WorkbenchMapChain = {
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapVersion: string | null;
-  activationId: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  bindingVersion: string | null;
+  bindingActivationRef: string | null;
+  bindingSnapshotRef: string | null;
 };
 
 export const getActiveMapChain = (mapId: string | null): WorkbenchMapChain => {
   if (!mapId) {
     return {
-      mapPackageId: null,
-      mapPackageVersion: null,
-      selectedMapVersion: null,
-      activationId: null,
-      activationSnapshotRef: null,
+      bindingPackageId: null,
+      bindingPackageVersion: null,
+      bindingVersion: null,
+      bindingActivationRef: null,
+      bindingSnapshotRef: null,
     };
   }
 
   const record = getDevelopmentMapPluginRegistry().active.getActiveOperationalMapRecord(mapId);
   return {
-    mapPackageId: record?.packageId ?? null,
-    mapPackageVersion: record?.packageVersion ?? null,
-    selectedMapVersion: record?.mapVersion ?? null,
-    activationId: record?.activationId ?? null,
-    activationSnapshotRef: record?.activationSnapshotRef ?? null,
+    bindingPackageId: record?.packageId ?? null,
+    bindingPackageVersion: record?.packageVersion ?? null,
+    bindingVersion: record?.mapVersion ?? null,
+    bindingActivationRef: record?.bindingActivationRef ?? null,
+    bindingSnapshotRef: record?.bindingSnapshotRef ?? null,
   };
 };

@@ -9,7 +9,6 @@ import { listOrchestrationChildren } from "./registry.js";
 import { readCurrentMissionState } from "./runtime/orchestration-ability-support.js";
 import { createOrchestrationChildren, executeOrchestrationChild } from "./runtime/orchestration-child-runner.js";
 import { createDefaultOrchestrationMapStore } from "./runtime/orchestration-default-map-store.js";
-import { getDefaultMapPluginRegistry, listActivePackages } from "./runtime/orchestration-map-id-list.js";
 import { createOrchestrationRuntimeContext } from "./runtime/orchestration-runtime-context.js";
 
 type OrchestrationForensicsSurface = {
@@ -29,14 +28,10 @@ function readStateSnapshot(executeEnvelope: ExecuteEnvelope, inputValue: Orchest
   return executeEnvelope(inputValue).then((result) => result.stateSnapshot);
 }
 
-function createCatalogMethods(context: OrchestrationRuntime): Pick<OrchestrationAbilityGroup, "listChildCapabilityIds" | "listMapIds" | "getMissionState"> {
+function createCatalogMethods(context: OrchestrationRuntime): Pick<OrchestrationAbilityGroup, "listChildCapabilityIds" | "getMissionState"> {
   return {
     listChildCapabilityIds() {
       return listOrchestrationChildren();
-    },
-    listMapIds() {
-      const registry = getDefaultMapPluginRegistry();
-      return listActivePackages(registry.active).map((mapPackage) => mapPackage.manifest.mapId);
     },
     getMissionState(missionId?: string | null) {
       return readCurrentMissionState(context, missionId);

@@ -1,15 +1,10 @@
 import { renderInspectEvidenceDetails } from "../inspect/renderInspectEvidenceDetails.js";
-import { renderInspectMapDetails } from "../inspect/renderInspectMapDetails.js";
 import { renderInspectRoundDetails } from "../inspect/renderInspectRoundDetails.js";
 import { localizeCommanderText } from "../locale.js";
 import type { CommanderConsoleInspectItem, CommanderConsoleViewModel } from "../types.js";
 import { escapeHtml, renderEmptyState } from "../render-utils.js";
 
 function renderInspectBody(item: CommanderConsoleInspectItem): string {
-  if (item.kind === "map") {
-    return renderInspectMapDetails(item);
-  }
-
   if (item.kind === "round" || item.kind === "log") {
     return renderInspectRoundDetails(item);
   }
@@ -46,7 +41,7 @@ export function renderInspectDrawer(viewModel: CommanderConsoleViewModel): strin
     </section>
     <section class="cc-drawer-section">
       <h3>${escapeHtml(t("为什么存在这个面板", "Why this panel exists"))}</h3>
-      <p class="cc-note">${escapeHtml(t("深信息不塞进主工作区。点击地图、证明、记录、轮次或复核对象时，详细 JSON、引用和归属层级只在这里展开。", "Deep details stay out of the main workspace. Maps, proofs, records, rounds, and reviews expand here with JSON, refs, and owner hierarchy."))}</p>
+      <p class="cc-note">${escapeHtml(t("深信息不塞进主工作区。点击证明、记录、轮次或复核对象时，详细 JSON、引用和归属层级只在这里展开。", "Deep details stay out of the main workspace. Proofs, records, rounds, and reviews expand here with JSON, refs, and owner hierarchy."))}</p>
     </section>
     <section class="cc-drawer-section">
       <h3>${escapeHtml(t("引用", "References"))}</h3>

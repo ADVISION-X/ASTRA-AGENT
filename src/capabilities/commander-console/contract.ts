@@ -45,7 +45,7 @@ type CommanderHumanCommandEnvelope = {
   priority: CommanderCommandPriority;
   operatorRef: string;
   targetMissionId: string | null;
-  selectedMapId: string | null;
+  selectedBindingId: string | null;
   targetRecordRef: CommanderTargetRecordRef | null;
   requestedPlatformId: RequestedPlatformId | null;
   humanGoal: string | null;

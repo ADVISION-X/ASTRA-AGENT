@@ -1,7 +1,3 @@
-import {
-  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
-  STARTUP_PREPARATION_READY_ROUTE_LABEL,
-} from "../../types/vision-page-preparation.js";
 import type { VisualMissionActionPlan } from "../../muscle-memory/decoder/action-plan.schema.js";
 import { isVisualMissionActionPlanOutput, resolveVisualMissionDecision } from "./workbench-nerve-bus-ai-decision-visual-mission.js";
 
@@ -39,7 +35,7 @@ const isProductPresenceOutput = (
 
 const isPagePreparationOutput = (
   value: unknown,
-): value is { decision: "yes" | "no"; routeLabel?: string; nonExecutableSummary?: string } => (
+): value is { decision: "yes" | "no"; nonExecutableSummary?: string } => (
   isRecord(value)
   && "decision" in value
   && (value.decision === "yes" || value.decision === "no")
@@ -92,23 +88,18 @@ const resolveProductPresenceNonExecutableSummary = (output: { nonExecutableSumma
     : "当前证据未显示明确产品展示，直接切到下一条。";
 };
 
-const resolvePagePreparationRouteLabel = (output: { routeLabel?: string; decision: "yes" | "no" }) =>
-  typeof output.routeLabel === "string" && output.routeLabel.length > 0
-    ? output.routeLabel
-    : (output.decision === "yes" ? STARTUP_PREPARATION_READY_ROUTE_LABEL : STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL);
-
-const resolvePagePreparationNonExecutableSummary = (output: { nonExecutableSummary?: string; routeLabel?: string; decision: "yes" | "no" }) => {
+const resolvePagePreparationNonExecutableSummary = (output: { nonExecutableSummary?: string; decision: "yes" | "no" }) => {
   if (typeof output.nonExecutableSummary === "string" && output.nonExecutableSummary.length > 0) {
     return output.nonExecutableSummary;
   }
-  return resolvePagePreparationRouteLabel(output) === STARTUP_PREPARATION_READY_ROUTE_LABEL
+  return output.decision === "yes"
     ? "当前页面准备工作已完成，可以继续产品判断。"
     : "当前页面准备工作未完成，必须 fail-closed。";
 };
 
 const resolvePagePreparationDecision = (input: {
   status: "success" | "failed" | "review_required";
-  output: { decision: "yes" | "no"; routeLabel?: string; nonExecutableSummary?: string };
+  output: { decision: "yes" | "no"; nonExecutableSummary?: string };
 }) => ({
   status: input.status,
   decision: input.output.decision,

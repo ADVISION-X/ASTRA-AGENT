@@ -13,18 +13,6 @@ export type AbilityDispatchStatus = z.output<typeof TransitionStatusSchema>;
 export type OrchestrationDispatchPayload = z.output<typeof PayloadRefBundleSchema>;
 export type DispatchInputValue = string | number | boolean | null | undefined;
 
-type OrchestrationDispatchChain = {
-  runId: string;
-  sessionId: string;
-  roundId: string | null;
-  videoVisitId: string | null;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapVersion: string;
-  activationId: string;
-  activationSnapshotRef: string;
-};
-
 export type OrchestrationDispatchResult = {
   status: AbilityDispatchStatus;
   envelopeId: string;
@@ -45,11 +33,6 @@ export interface OrchestrationNerveBusPort {
     sessionId: string;
     roundId: string | null;
     videoVisitId: string | null;
-    mapPackageId: string;
-    mapPackageVersion: string;
-    selectedMapVersion: string;
-    activationId: string;
-    activationSnapshotRef: string;
     targetAbilityGroupId: AbilityDispatchTarget;
     childCapabilityId: string;
     expectedOutputSchemaRef: string;
@@ -70,11 +53,6 @@ export interface OrchestrationNerveBusPort {
     sessionId: string;
     roundId: string | null;
     videoVisitId: string | null;
-    mapPackageId: string;
-    mapPackageVersion: string;
-    selectedMapVersion: string;
-    activationId: string;
-    activationSnapshotRef: string;
     taskType: string;
     promptContractId: string;
     promptContractVersion: string;
@@ -82,6 +60,7 @@ export interface OrchestrationNerveBusPort {
     aiInputRefs: string[];
     providerPolicyRef: string;
     payloadRefs: OrchestrationDispatchPayload;
+    dispatchInput?: Record<string, DispatchInputValue>;
     sequenceNo: number;
     idempotencyKey: string;
     timeoutMs: number;

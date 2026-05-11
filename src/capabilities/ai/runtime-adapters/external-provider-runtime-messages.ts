@@ -31,9 +31,5 @@ export function normalizeExternalProviderOutput(
   request: ParsedAiAbilityInput,
   output: unknown,
 ): { ok: true; value: unknown } | { ok: false } {
-  if (request.taskType !== "map_authoring") {
-    return { ok: true, value: output };
-  }
-
-  return { ok: false };
+  return { ok: true, value: output };
 }

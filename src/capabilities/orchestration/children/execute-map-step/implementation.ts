@@ -1,11 +1,11 @@
 import type { OrchestrationChildCapability } from "../../internal.js";
-import type { ExecuteMapStepChildInput, ExecuteMapStepChildOutput } from "../../contract.js";
+import type { ExecuteRuntimeStepChildInput, ExecuteRuntimeStepChildOutput } from "../../contract.js";
 import { buildFailureExecuteResult } from "../../runtime/orchestration-execute-result.js";
 
-export function createExecuteMapStepCapability(): OrchestrationChildCapability<ExecuteMapStepChildInput, ExecuteMapStepChildOutput> {
+export function createExecuteRuntimeStepCapability(): OrchestrationChildCapability<ExecuteRuntimeStepChildInput, ExecuteRuntimeStepChildOutput> {
   return {
     abilityGroupId: "orchestration",
-    childCapabilityId: "execute-map-step",
+    childCapabilityId: "execute-runtime-step",
     execute(input, context) {
       const now = context.clock.now().isoTimestamp;
       return Promise.resolve(buildFailureExecuteResult({
@@ -13,12 +13,12 @@ export function createExecuteMapStepCapability(): OrchestrationChildCapability<E
         mapId: null,
         requestedPlatform: null,
         humanGoal: null,
-        childCapabilityId: "execute-map-step",
+        childCapabilityId: "execute-runtime-step",
         caller: "orchestration",
         startedAt: now,
         endedAt: now,
-        failureReason: "execute-map-step is an internal orchestration loop operation and cannot be invoked through the public execute boundary.",
-        internalOperationKind: "execute-map-step",
+        failureReason: "execute-runtime-step is an internal orchestration loop operation and cannot be invoked through the public execute boundary.",
+        internalOperationKind: "execute-runtime-step",
         dataQualityFlags: ["internal_child_public_call"],
       }));
     },

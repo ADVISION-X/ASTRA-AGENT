@@ -7,12 +7,12 @@ const SUCCESS_PROOF_CHAIN_FIELDS = [
   "missionId",
   "runId",
   "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationId",
-  "activationSnapshotRef",
+  "bindingPackageId",
+  "bindingPackageVersion",
+  "selectedBindingId",
+  "bindingVersion",
+  "bindingActivationRef",
+  "bindingSnapshotRef",
   "capabilityCallId",
   "nerveBusEnvelopeId",
   "sourceRef",
@@ -23,12 +23,12 @@ const RESULT_PROOF_PARITY_FIELDS = [
   "missionId",
   "runId",
   "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationId",
-  "activationSnapshotRef",
+  "bindingPackageId",
+  "bindingPackageVersion",
+  "selectedBindingId",
+  "bindingVersion",
+  "bindingActivationRef",
+  "bindingSnapshotRef",
   "capabilityCallId",
   "nerveBusEnvelopeId",
   "sourceRef",
@@ -42,12 +42,12 @@ type RuntimeProofValidationValue = {
   missionId: string | null;
   runId: string | null;
   stepId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationId: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  selectedBindingId: string | null;
+  bindingVersion: string | null;
+  bindingActivationRef: string | null;
+  bindingSnapshotRef: string | null;
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   sourceRef: string | null;
@@ -71,12 +71,12 @@ type AbilityResultValidationValue = {
   missionId: string | null;
   runId: string | null;
   stepId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationId: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  selectedBindingId: string | null;
+  bindingVersion: string | null;
+  bindingActivationRef: string | null;
+  bindingSnapshotRef: string | null;
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   sourceRef: string | null;

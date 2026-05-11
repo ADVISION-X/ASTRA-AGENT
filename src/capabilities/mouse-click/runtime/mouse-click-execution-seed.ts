@@ -32,11 +32,11 @@ export type MouseClickExecutionSeed = {
   roundId: string | null;
   videoVisitId: string | null;
   stepId: string;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapId: string;
-  selectedMapVersion: string;
-  activationSnapshotRef: string;
+  bindingPackageId: string;
+  bindingPackageVersion: string;
+  selectedBindingId: string;
+  bindingVersion: string;
+  bindingSnapshotRef: string;
   capabilityCallId: string;
   nerveBusEnvelopeId: string;
   requestedBy: string;
@@ -69,9 +69,9 @@ export const buildMouseClickExecutionSeed = (input: ParsedMouseClickAbilityInput
   return {
     attemptRef: stableHash("mouse-click-attempt", [inputRef, input.capabilityCallId, input.childCapabilityId]), inputRef, childCapabilityId: input.childCapabilityId,
     sourceAbilityGroupId: input.sourceAbilityGroupId, sourceChildCapabilityId: input.sourceChildCapabilityId, missionId: input.missionId, runId: input.runId,
-    sessionId: input.sessionId, roundId: input.roundId, videoVisitId: input.videoVisitId, stepId: input.stepId, mapPackageId: input.mapPackageId,
-    mapPackageVersion: input.mapPackageVersion, selectedMapId: input.selectedMapId, selectedMapVersion: input.selectedMapVersion,
-    activationSnapshotRef: input.activationSnapshotRef, capabilityCallId: input.capabilityCallId, nerveBusEnvelopeId: input.nerveBusEnvelopeId,
+    sessionId: input.sessionId, roundId: input.roundId, videoVisitId: input.videoVisitId, stepId: input.stepId, bindingPackageId: input.bindingPackageId,
+    bindingPackageVersion: input.bindingPackageVersion, selectedBindingId: input.selectedBindingId, bindingVersion: input.bindingVersion,
+    bindingSnapshotRef: input.bindingSnapshotRef, capabilityCallId: input.capabilityCallId, nerveBusEnvelopeId: input.nerveBusEnvelopeId,
     requestedBy: input.requestedBy, purpose: input.purpose, sourceRef: input.sourceRef, geometryGuardRef: input.geometryGuardRef,
     geometryGuardProofRef: input.geometryGuardProof.proofId, geometryGuardOutputRef: input.geometryGuardOutputRef,
     geometryGuardRuntimeProofRef: input.geometryGuardRuntimeProofRef, sourceCoordinateProofRef: input.sourceCoordinateProofRef,

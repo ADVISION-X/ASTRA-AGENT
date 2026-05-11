@@ -5,8 +5,8 @@ import {
   EmergencyStopChildOutputSchema,
   EvaluateStepTransitionChildInputSchema,
   EvaluateStepTransitionChildOutputSchema,
-  ExecuteMapStepChildInputSchema,
-  ExecuteMapStepChildOutputSchema,
+  ExecuteRuntimeStepChildInputSchema,
+  ExecuteRuntimeStepChildOutputSchema,
   FinalizeMissionChildInputSchema,
   FinalizeMissionChildOutputSchema,
   MissionCommandSchema,
@@ -58,7 +58,7 @@ type PauseMissionChildInput = z.output<typeof PauseMissionChildInputSchema>;
 type ResumeMissionChildInput = z.output<typeof ResumeMissionChildInputSchema>;
 type StopMissionChildInput = z.output<typeof StopMissionChildInputSchema>;
 type EmergencyStopChildInput = z.output<typeof EmergencyStopChildInputSchema>;
-type ExecuteMapStepChildInput = z.output<typeof ExecuteMapStepChildInputSchema>;
+type ExecuteRuntimeStepChildInput = z.output<typeof ExecuteRuntimeStepChildInputSchema>;
 type EvaluateStepTransitionChildInput = z.output<typeof EvaluateStepTransitionChildInputSchema>;
 type FinalizeMissionChildInput = z.output<typeof FinalizeMissionChildInputSchema>;
 
@@ -67,13 +67,12 @@ type PauseMissionChildOutput = z.output<typeof PauseMissionChildOutputSchema>;
 type ResumeMissionChildOutput = z.output<typeof ResumeMissionChildOutputSchema>;
 type StopMissionChildOutput = z.output<typeof StopMissionChildOutputSchema>;
 type EmergencyStopChildOutput = z.output<typeof EmergencyStopChildOutputSchema>;
-type ExecuteMapStepChildOutput = z.output<typeof ExecuteMapStepChildOutputSchema>;
+type ExecuteRuntimeStepChildOutput = z.output<typeof ExecuteRuntimeStepChildOutputSchema>;
 type EvaluateStepTransitionChildOutput = z.output<typeof EvaluateStepTransitionChildOutputSchema>;
 type FinalizeMissionChildOutput = z.output<typeof FinalizeMissionChildOutputSchema>;
 
 interface OrchestrationAbilityGroup {
   listChildCapabilityIds(): OrchestrationChildCapabilityId[];
-  listMapIds(): OperationalMapId[];
   execute(input: OrchestrationExecuteInput): Promise<OrchestrationExecuteResult>;
   startMission(command: MissionCommand): Promise<MissionControlState>;
   pauseMission(missionId: string): Promise<MissionControlState>;
@@ -89,8 +88,8 @@ export type {
   EmergencyStopChildOutput,
   EvaluateStepTransitionChildInput,
   EvaluateStepTransitionChildOutput,
-  ExecuteMapStepChildInput,
-  ExecuteMapStepChildOutput,
+  ExecuteRuntimeStepChildInput,
+  ExecuteRuntimeStepChildOutput,
   FinalizeMissionChildInput,
   FinalizeMissionChildOutput,
   MissionCommand,

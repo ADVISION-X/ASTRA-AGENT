@@ -2,19 +2,11 @@ import { z } from "zod";
 
 import { VisionProductPresenceRequestInputSchema } from "./vision-product-presence.js";
 
-const STARTUP_PREPARATION_READY_ROUTE_LABEL = "startup-ready-for-seeding-judgment";
-const STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL = "startup-fail-closed";
-const STARTUP_PREPARATION_ROUTE_LABELS = [
-  STARTUP_PREPARATION_READY_ROUTE_LABEL,
-  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
-] as const;
-
 const VisionPagePreparationPromptIdSchema = z.literal("vision.pagePreparation.v1");
 const VisionPagePreparationTaskTypeSchema = z.literal("vision.pagePreparation");
 const VisionPagePreparationPromptVersionSchema = z.literal("v1");
 const VisionPagePreparationSchemaVersionSchema = z.literal("vision.pagePreparation.schema.v1");
 const VisionPagePreparationDecisionSchema = z.enum(["yes", "no"]);
-const VisionPagePreparationRouteLabelSchema = z.enum(STARTUP_PREPARATION_ROUTE_LABELS);
 const VisionPagePreparationRequestInputSchema = VisionProductPresenceRequestInputSchema;
 
 const VisionPagePreparationPayloadSchema = z.object({
@@ -23,7 +15,6 @@ const VisionPagePreparationPayloadSchema = z.object({
   promptVersion: VisionPagePreparationPromptVersionSchema,
   schemaVersion: VisionPagePreparationSchemaVersionSchema,
   decision: VisionPagePreparationDecisionSchema,
-  routeLabel: VisionPagePreparationRouteLabelSchema,
   nonExecutableSummary: z.string().min(1),
   confidence: z.number().min(0).max(1),
   reason: z.string().min(1),
@@ -40,14 +31,11 @@ type VisionPagePreparationPayload = z.infer<typeof VisionPagePreparationPayloadS
 type VisionPagePreparationResult = VisionPagePreparationPayload;
 
 export {
-  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
-  STARTUP_PREPARATION_READY_ROUTE_LABEL,
   VisionPagePreparationPromptIdSchema,
   VisionPagePreparationTaskTypeSchema,
   VisionPagePreparationPromptVersionSchema,
   VisionPagePreparationSchemaVersionSchema,
   VisionPagePreparationDecisionSchema,
-  VisionPagePreparationRouteLabelSchema,
   VisionPagePreparationRequestInputSchema,
   VisionPagePreparationPayloadSchema,
   validateVisionPagePreparationResult,

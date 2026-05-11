@@ -49,7 +49,7 @@ const buildPageStateObservation = (
   summary: string,
 ) => {
   const session = runtime.browserController.getSessionState();
-  const currentUrl = session.currentUrl || resolveCanonicalPlatformUrl(envelope.selectedMapId) || null;
+  const currentUrl = session.currentUrl || resolveCanonicalPlatformUrl(envelope.selectedBindingId) || null;
   return {
     ref: `${envelope.inputRef}:page-state`,
     kind: "page_state" as const,

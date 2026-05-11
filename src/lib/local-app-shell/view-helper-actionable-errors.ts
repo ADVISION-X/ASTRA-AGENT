@@ -69,8 +69,8 @@ function createMissionBindingError(input: {
   return {
     id: "mission-binding",
     tone: input.tone,
-    title: localizeCommanderText(input.viewModel.locale, "当前没有可执行的地图绑定", "No governed launch binding is currently available"),
-    whatHappened: localizeCommanderText(input.viewModel.locale, "启动链路当前无法从已批准任务模板解析出受治理地图绑定。", "The launch flow cannot currently resolve a governed map binding from the approved task-template feed."),
+    title: localizeCommanderText(input.viewModel.locale, "当前没有可执行的启动绑定", "No governed launch binding is currently available"),
+    whatHappened: localizeCommanderText(input.viewModel.locale, "启动链路当前无法从已批准用户需求解析出受治理启动绑定。", "The launch flow cannot currently resolve a governed launch binding from the approved user-requirement feed."),
     why: input.detail,
     nextAction: input.nextAction,
     owner: input.owner,
@@ -137,7 +137,7 @@ function collectHealthErrors(viewModel: CommanderConsoleViewModel, hasAiFailure:
       viewModel,
       detail: missionBindingHealth.detail,
       tone: missionBindingHealth.tone === "warn" ? "attention" : "blocked",
-      nextAction: missionBindingHealth.actionableMessage ?? localizeCommanderText(viewModel.locale, "先激活一个已批准任务模板，再重新开始任务。", "Activate an approved task template, then retry mission start."),
+      nextAction: missionBindingHealth.actionableMessage ?? localizeCommanderText(viewModel.locale, "先激活一个已批准用户需求，再重新开始任务。", "Activate an approved user requirement, then retry mission start."),
       owner: missionBindingHealth.ownerResponsible ?? "Commander Console / Orchestration",
     }));
   }

@@ -27,7 +27,7 @@ function buildStartMissionPayloadInput(commandInput: CommanderHumanCommandInput)
     kind: "start-mission",
     requestedBy: "commander-console",
     ...(commandInput.requestedPlatformId ? { requestedPlatformId: commandInput.requestedPlatformId } : {}),
-    ...(commandInput.selectedMapId ? { selectedMapId: commandInput.selectedMapId } : {}),
+    ...(commandInput.selectedBindingId ? { selectedBindingId: commandInput.selectedBindingId } : {}),
     ...(commandInput.humanGoal ? { humanGoal: commandInput.humanGoal } : {}),
     ...(commandInput.maxRounds ? { maxRounds: commandInput.maxRounds } : {}),
     ...(commandInput.maxMinutes ? { maxMinutes: commandInput.maxMinutes } : {}),
@@ -158,7 +158,7 @@ export function buildCommandIdempotencyKey(input: {
   const fingerprint = JSON.stringify({
     commandType: input.commandInput.commandType,
     targetMissionId: input.commandInput.targetMissionId ?? null,
-    selectedMapId: input.commandInput.selectedMapId ?? null,
+    selectedBindingId: input.commandInput.selectedBindingId ?? null,
     targetRecordRef: input.commandInput.targetRecordRef ?? null,
     requestedPlatformId: input.commandInput.requestedPlatformId ?? null,
     humanGoal: input.commandInput.humanGoal ?? null,

@@ -1,4 +1,4 @@
-import { SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import { fileExists, readTextFile } from "../../../core/filesystem.js";
 import { pathFromRepoRoot } from "../../../core/paths.js";
@@ -87,14 +87,54 @@ const createCoherenceFinding = (input: {
   recommendedAction: input.recommendedAction,
 });
 
-const collectOccurrences = (sourceFile: SourceFile): Array<{ text: string; line: number }> => [
-  ...sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => ({ text: node.getText(), line: node.getStartLineNumber() })),
-  ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => ({ text: node.getLiteralText(), line: node.getStartLineNumber() })),
-  ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => ({ text: node.getLiteralText(), line: node.getStartLineNumber() })),
+type StoryOccurrence = { text: string; line: number; node: Node };
+
+const collectOccurrences = (sourceFile: SourceFile): StoryOccurrence[] => [
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).map((node) => ({ text: node.getText(), line: node.getStartLineNumber(), node })),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).map((node) => ({ text: node.getLiteralText(), line: node.getStartLineNumber(), node })),
+  ...sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral).map((node) => ({ text: node.getLiteralText(), line: node.getStartLineNumber(), node })),
 ];
 
-const findOccurrence = (occurrences: Array<{ text: string; line: number }>, token: string) =>
-  occurrences.find((entry) => entry.text.includes(token)) ?? null;
+const getPropertyAssignmentName = (node: Node): string | null => {
+  if (!Node.isPropertyAssignment(node)) {
+    return null;
+  }
+
+  const nameNode = node.getNameNode();
+  if (Node.isIdentifier(nameNode)) {
+    return nameNode.getText();
+  }
+  if (Node.isStringLiteral(nameNode) || Node.isNoSubstitutionTemplateLiteral(nameNode)) {
+    return nameNode.getLiteralText();
+  }
+
+  return null;
+};
+
+const isPromptContractNegativeRuleOccurrence = (relativePath: string, occurrence: StoryOccurrence): boolean => {
+  if (relativePath.startsWith("src/capabilities/ai/prompt-contracts/") && relativePath.endsWith(".prompt-contract.json")) {
+    const propertyNames = occurrence.node
+      .getAncestors()
+      .map(getPropertyAssignmentName)
+      .filter((name): name is string => name !== null);
+
+    return propertyNames.includes("forbiddenOutputs")
+      || (propertyNames.includes("outputSchema") && propertyNames.includes("forbidden"));
+  }
+
+  if (relativePath.startsWith("src/lib/local-ai/prompts/")) {
+    return /(?:^|\b)(?:never|do not|must not|forbid|forbidden)\b/i.test(occurrence.text);
+  }
+
+  return false;
+};
+
+const findOccurrence = (
+  relativePath: string,
+  occurrences: StoryOccurrence[],
+  token: string,
+  options?: { ignoreNegativeRuleOccurrences?: boolean },
+) => occurrences.find((entry) => entry.text.includes(token) && !(options?.ignoreNegativeRuleOccurrences && isPromptContractNegativeRuleOccurrence(relativePath, entry))) ?? null;
 
 const findExactStringLiteral = (sourceFile: SourceFile, token: string) =>
   sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).find((node) => node.getLiteralText() === token) ?? null;
@@ -107,8 +147,8 @@ const inspectDualChains = (relativePath: string, sourceFile: SourceFile): Findin
   const findings: Finding[] = [];
   const occurrences = collectOccurrences(sourceFile);
   for (const rule of DUAL_CHAIN_RULES) {
-    const oldOccurrence = findOccurrence(occurrences, rule.oldToken);
-    const newOccurrence = findOccurrence(occurrences, rule.newToken);
+    const oldOccurrence = findOccurrence(relativePath, occurrences, rule.oldToken, { ignoreNegativeRuleOccurrences: true });
+    const newOccurrence = findOccurrence(relativePath, occurrences, rule.newToken);
     if (!oldOccurrence || !newOccurrence) {
       continue;
     }

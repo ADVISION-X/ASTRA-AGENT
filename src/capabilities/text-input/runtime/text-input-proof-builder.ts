@@ -10,12 +10,12 @@ export function buildTextInputRuntimeProof(input: {
   roundId: string | null;
   videoVisitId: string | null;
   stepId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationId: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  selectedBindingId: string | null;
+  bindingVersion: string | null;
+  bindingActivationRef: string | null;
+  bindingSnapshotRef: string | null;
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   sourceAbilityGroupId: string | null;
@@ -98,7 +98,7 @@ export function buildTextInputRuntimeProof(input: {
 
 type TextInputRuntimeProofInput = Parameters<typeof buildTextInputRuntimeProof>[0];
 
-export function buildTextInputRuntimeProofIdentityFields(input: Pick<TextInputRuntimeProofInput, "attemptRef" | "missionId" | "runId" | "childCapabilityId" | "sessionId" | "roundId" | "videoVisitId" | "stepId" | "mapPackageId" | "mapPackageVersion" | "selectedMapId" | "selectedMapVersion" | "activationId" | "activationSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId" | "sourceAbilityGroupId" | "sourceChildCapabilityId" | "sourceOwner" | "sourceProofRef" | "sourceRef" | "idempotencyKey" | "inputRef" | "outputRef" | "diagnosticPayloadRef" | "debugLogRef" | "structuredRuntimeEventRef">) {
+export function buildTextInputRuntimeProofIdentityFields(input: Pick<TextInputRuntimeProofInput, "attemptRef" | "missionId" | "runId" | "childCapabilityId" | "sessionId" | "roundId" | "videoVisitId" | "stepId" | "bindingPackageId" | "bindingPackageVersion" | "selectedBindingId" | "bindingVersion" | "bindingActivationRef" | "bindingSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId" | "sourceAbilityGroupId" | "sourceChildCapabilityId" | "sourceOwner" | "sourceProofRef" | "sourceRef" | "idempotencyKey" | "inputRef" | "outputRef" | "diagnosticPayloadRef" | "debugLogRef" | "structuredRuntimeEventRef">) {
   return {
     proofId: buildStableTextInputRef("text-input-proof", [input.attemptRef]),
     missionId: input.missionId,
@@ -107,12 +107,12 @@ export function buildTextInputRuntimeProofIdentityFields(input: Pick<TextInputRu
     roundId: input.roundId,
     videoVisitId: input.videoVisitId,
     stepId: input.stepId,
-    mapPackageId: input.mapPackageId,
-    mapPackageVersion: input.mapPackageVersion,
-    selectedMapId: input.selectedMapId,
-    selectedMapVersion: input.selectedMapVersion,
-    activationId: input.activationId,
-    activationSnapshotRef: input.activationSnapshotRef,
+    bindingPackageId: input.bindingPackageId,
+    bindingPackageVersion: input.bindingPackageVersion,
+    selectedBindingId: input.selectedBindingId,
+    bindingVersion: input.bindingVersion,
+    bindingActivationRef: input.bindingActivationRef,
+    bindingSnapshotRef: input.bindingSnapshotRef,
     capabilityCallId: input.capabilityCallId,
     nerveBusEnvelopeId: input.nerveBusEnvelopeId,
     abilityGroupId: "text-input",

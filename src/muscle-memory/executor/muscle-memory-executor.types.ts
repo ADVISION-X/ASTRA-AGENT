@@ -14,11 +14,11 @@ type ExecutionChain = {
   sessionId: string;
   roundId: string | null;
   videoVisitId: string | null;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapVersion: string;
-  activationId: string;
-  activationSnapshotRef: string;
+  bindingPackageId: string;
+  bindingPackageVersion: string;
+  bindingVersion: string;
+  bindingActivationRef: string;
+  bindingSnapshotRef: string;
 };
 
 type AbilityDispatchResult = {
@@ -35,11 +35,11 @@ type AbilityDispatchCommand = {
   sessionId: string;
   roundId: string | null;
   videoVisitId: string | null;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapVersion: string;
-  activationId: string;
-  activationSnapshotRef: string;
+  bindingPackageId: string;
+  bindingPackageVersion: string;
+  bindingVersion: string;
+  bindingActivationRef: string;
+  bindingSnapshotRef: string;
   targetAbilityGroupId: string;
   childCapabilityId: string;
   expectedOutputSchemaRef: string;

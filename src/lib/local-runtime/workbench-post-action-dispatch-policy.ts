@@ -101,11 +101,11 @@ export const normalizePageStateLogin = (loginState: string | null | undefined) =
   return "unknown" as const;
 };
 
-export const resolveCanonicalPlatformUrl = (selectedMapId: string | null | undefined): string | null =>
-  DEFAULT_PAGE_URL_BY_MAP[selectedMapId as keyof typeof DEFAULT_PAGE_URL_BY_MAP] ?? null;
+export const resolveCanonicalPlatformUrl = (bindingId: string | null | undefined): string | null =>
+  DEFAULT_PAGE_URL_BY_MAP[bindingId as keyof typeof DEFAULT_PAGE_URL_BY_MAP] ?? null;
 
-const resolveCanonicalPlatformHost = (selectedMapId: string | null | undefined): string | null => {
-  const canonicalUrl = resolveCanonicalPlatformUrl(selectedMapId);
+const resolveCanonicalPlatformHost = (bindingId: string | null | undefined): string | null => {
+  const canonicalUrl = resolveCanonicalPlatformUrl(bindingId);
   return canonicalUrl ? new URL(canonicalUrl).hostname : null;
 };
 
@@ -120,7 +120,7 @@ export const buildExpectedOutcome = (
 ) => ({
   outcomeType: policy.outcomeType,
   description: inputPayload.summary,
-  expectedUrlHost: policy.childCapabilityId === "observe-page-open-attempt" ? resolveCanonicalPlatformHost(envelope.selectedMapId) : null,
+  expectedUrlHost: policy.childCapabilityId === "observe-page-open-attempt" ? resolveCanonicalPlatformHost(envelope.mapId) : null,
   expectedUrlPrefix: null,
   expectedState: null,
   expectedTargetType: null,
@@ -142,11 +142,12 @@ export const buildPostActionChainFields = (envelope: AbilityCommandEnvelope) => 
   roundId: envelope.roundId,
   videoVisitId: envelope.videoVisitId,
   stepId: envelope.stepId,
-  mapPackageId: envelope.mapPackageId,
-  mapPackageVersion: envelope.mapPackageVersion,
-  selectedMapId: envelope.selectedMapId,
-  selectedMapVersion: envelope.selectedMapVersion,
-  activationSnapshotRef: envelope.activationSnapshotRef,
+  bindingPackageId: envelope.bindingPackageId,
+  bindingPackageVersion: envelope.bindingPackageVersion,
+  selectedBindingId: envelope.mapId,
+  bindingVersion: envelope.bindingVersion,
+  bindingActivationRef: envelope.bindingActivationRef,
+  bindingSnapshotRef: envelope.bindingSnapshotRef,
   capabilityCallId: envelope.capabilityCallId,
   nerveBusEnvelopeId: envelope.nerveBusEnvelopeId,
 });

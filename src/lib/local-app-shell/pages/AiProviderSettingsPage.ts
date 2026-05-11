@@ -26,8 +26,8 @@ function renderProviderSettingsCard(t: (zh: string, en: string) => string): stri
       <input name="operatorApprovalRef" type="hidden" value="approval://settings/ai-provider/operator" />
       <input name="approvalReason" type="hidden" value="operator saved AI provider from Settings" />
       <div class="cc-inline-actions">
-        <button type="submit" class="cc-button cc-button-primary" data-map-lab-busy-sensitive>${escapeHtml(t("保存 AI", "Save AI"))}</button>
-        <button type="button" class="cc-button" data-map-lab-refresh data-map-lab-busy-sensitive>${escapeHtml(t("刷新状态", "Refresh State"))}</button>
+        <button type="submit" class="cc-button cc-button-primary" data-ai-provider-settings-busy-sensitive>${escapeHtml(t("保存 AI", "Save AI"))}</button>
+        <button type="button" class="cc-button" data-ai-provider-settings-refresh data-ai-provider-settings-busy-sensitive>${escapeHtml(t("刷新状态", "Refresh State"))}</button>
       </div>
       <p class="cc-muted">${escapeHtml(t("只需要填写名称、AI 公司和密匙；服务地址与模型由系统按公司内置映射处理。明文 key 不回显到页面、终端、proof 或地图包。", "Only name, AI company, and key are required. Endpoint and model are mapped internally. The raw key is never echoed to UI, terminal, proof, or map packages."))}</p>
     </form>`,
@@ -39,10 +39,10 @@ function renderSavedAiCard(t: (zh: string, en: string) => string): string {
     t("已保存 AI", "Saved AI"),
     t("可查看、编辑、删除", "View, edit, delete"),
     `<div class="cc-stack">
-      <div data-map-lab-provider-summary>${renderEmptyState(t("正在读取已保存 AI。", "Loading saved AI."))}</div>
+      <div data-ai-provider-settings-summary>${renderEmptyState(t("正在读取已保存 AI。", "Loading saved AI."))}</div>
       <div class="cc-inline-actions">
-        <button type="button" class="cc-button" data-map-lab-refresh data-map-lab-busy-sensitive>${escapeHtml(t("查看状态", "View Status"))}</button>
-        <button type="button" class="cc-button" data-map-lab-refresh data-map-lab-busy-sensitive>${escapeHtml(t("编辑", "Edit"))}</button>
+        <button type="button" class="cc-button" data-ai-provider-settings-refresh data-ai-provider-settings-busy-sensitive>${escapeHtml(t("查看状态", "View Status"))}</button>
+        <button type="button" class="cc-button" data-ai-provider-settings-refresh data-ai-provider-settings-busy-sensitive>${escapeHtml(t("编辑", "Edit"))}</button>
         <button type="button" class="cc-button cc-button-danger" disabled="disabled">${escapeHtml(t("删除", "Delete"))}</button>
       </div>
       <p class="cc-muted">${escapeHtml(t("当前构建先开放保存和状态查看；删除动作会在本地 Secret Store 删除接口完成后启用。", "This build supports saving and status checks first; delete will be enabled after the local Secret Store delete endpoint lands."))}</p>
@@ -57,7 +57,7 @@ function renderLocalRuntimeCard(t: (zh: string, en: string) => string): string {
     `<div class="cc-stack">
       <div class="cc-detail-block">
         <span>${escapeHtml(t("本地 AI", "Local AI"))}</span>
-        <strong data-map-lab-provider-status>${escapeHtml(t("正在读取。", "Loading."))}</strong>
+        <strong data-ai-provider-settings-status>${escapeHtml(t("正在读取。", "Loading."))}</strong>
       </div>
       <p class="cc-muted">${escapeHtml(t("完整启动、依赖和结构化日志仍然在终端中查看；页面只保留必要状态。", "Full startup, dependency, and structured logs stay in the terminal; the page keeps only essential status."))}</p>
     </div>`,

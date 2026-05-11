@@ -36,11 +36,11 @@ export type MouseClickFailureEnvelope = {
   roundId: string | null;
   videoVisitId: string | null;
   stepId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  selectedBindingId: string | null;
+  bindingVersion: string | null;
+  bindingSnapshotRef: string | null;
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   requestedBy: string | null;
@@ -172,11 +172,11 @@ const buildFailureEnvelopeChainFields = (rawState: RawFailureState) => {
     missionId: readNonEmptyString(rawState.raw?.missionId) ?? readObjectString(proof, "missionId"),
     runId: readNonEmptyString(rawState.raw?.runId) ?? readObjectString(proof, "runId"), sessionId: readNonEmptyString(rawState.raw?.sessionId) ?? readObjectString(proof, "sessionId"),
     roundId: readNonEmptyString(rawState.raw?.roundId), videoVisitId: readNonEmptyString(rawState.raw?.videoVisitId),
-    stepId: readNonEmptyString(rawState.raw?.stepId) ?? readObjectString(proof, "stepId"), mapPackageId: readNonEmptyString(rawState.raw?.mapPackageId) ?? readObjectString(proof, "mapPackageId"),
-    mapPackageVersion: readNonEmptyString(rawState.raw?.mapPackageVersion) ?? readObjectString(proof, "mapPackageVersion"),
-    selectedMapId: readNonEmptyString(rawState.raw?.selectedMapId) ?? readObjectString(proof, "selectedMapId"),
-    selectedMapVersion: readNonEmptyString(rawState.raw?.selectedMapVersion) ?? readObjectString(proof, "selectedMapVersion"),
-    activationSnapshotRef: readNonEmptyString(rawState.raw?.activationSnapshotRef) ?? readObjectString(proof, "activationSnapshotRef"),
+    stepId: readNonEmptyString(rawState.raw?.stepId) ?? readObjectString(proof, "stepId"), bindingPackageId: readNonEmptyString(rawState.raw?.bindingPackageId) ?? readObjectString(proof, "bindingPackageId"),
+    bindingPackageVersion: readNonEmptyString(rawState.raw?.bindingPackageVersion) ?? readObjectString(proof, "bindingPackageVersion"),
+    selectedBindingId: readNonEmptyString(rawState.raw?.selectedBindingId) ?? readObjectString(proof, "selectedBindingId"),
+    bindingVersion: readNonEmptyString(rawState.raw?.bindingVersion) ?? readObjectString(proof, "bindingVersion"),
+    bindingSnapshotRef: readNonEmptyString(rawState.raw?.bindingSnapshotRef) ?? readObjectString(proof, "bindingSnapshotRef"),
     capabilityCallId: readNonEmptyString(rawState.raw?.capabilityCallId) ?? readObjectString(proof, "capabilityCallId"),
     nerveBusEnvelopeId: readNonEmptyString(rawState.raw?.nerveBusEnvelopeId) ?? readObjectString(proof, "nerveBusEnvelopeId"),
     requestedBy: readNonEmptyString(rawState.raw?.requestedBy), purpose: readNonEmptyString(rawState.raw?.purpose), sourceRef: readNonEmptyString(rawState.raw?.sourceRef),

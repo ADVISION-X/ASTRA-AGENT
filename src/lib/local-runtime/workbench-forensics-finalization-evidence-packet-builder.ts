@@ -47,7 +47,7 @@ const buildEvidencePacketAiResultRefs = (context: EvidencePacketContext) => [
 
 const buildEvidencePacketPageState = (context: EvidencePacketContext) => ({
   currentUrl: context.targetUrl,
-  loginState: context.pagePreparationSummary?.output.routeLabel === "startup-fail-closed" ? "blocked_or_unknown" : "ready_or_unchecked",
+  loginState: context.pagePreparationSummary?.output.decision === "no" ? "blocked_or_unknown" : "ready_or_unchecked",
   safetyState: context.pagePreparationSummary?.output.decision === "no" ? "blocked_or_unknown" : "clear_or_unchecked",
   feedReadyStatus: context.pagePreparationSummary?.output.decision === "yes" ? "ready" : "unknown",
   videoStableStatus: context.productPresenceSummary.input.validFrameCount > 0 ? "observed" : "unknown",

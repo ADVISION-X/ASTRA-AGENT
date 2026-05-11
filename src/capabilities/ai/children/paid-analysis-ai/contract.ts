@@ -5,7 +5,7 @@ import { AI_ABILITY_GROUP_ID } from "../../contract.js";
 import { PaidAnalysisAiChildExecutionPolicySchema, PaidAnalysisAiChildInputSchema, PaidAnalysisAiChildResultSchema } from "./schema.js";
 
 export const PAID_ANALYSIS_AI_CHILD_ID = "paid-analysis-ai";
-export const PAID_ANALYSIS_AI_SUPPORTED_TASK_TYPES = ["evidence_packet_analysis", "map_authoring"] as const;
+export const PAID_ANALYSIS_AI_SUPPORTED_TASK_TYPES = ["evidence_packet_analysis"] as const;
 export const PaidAnalysisAiChildExecutionPolicy = PaidAnalysisAiChildExecutionPolicySchema.parse({
   providerKind: "paid",
   allowedTaskTypes: [...PAID_ANALYSIS_AI_SUPPORTED_TASK_TYPES],

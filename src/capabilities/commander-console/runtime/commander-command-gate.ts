@@ -90,7 +90,7 @@ const createCommandGateSuccess = (input: {
     priority: PRIORITY_BY_COMMAND[input.parsed.commandType],
     operatorRef: input.operatorRef,
     targetMissionId: input.parsed.targetMissionId ?? null,
-    selectedMapId: input.parsed.selectedMapId ?? null,
+    selectedBindingId: input.parsed.selectedBindingId ?? null,
     targetRecordRef: input.parsed.targetRecordRef ?? null,
     requestedPlatformId: input.parsed.requestedPlatformId ?? null,
     humanGoal: input.parsed.humanGoal ?? null,

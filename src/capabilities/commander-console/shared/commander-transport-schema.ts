@@ -129,7 +129,7 @@ const CommanderTransportPayloadSchema = z.discriminatedUnion("kind", [
 const HumanCommandInputSchemaBase = z.object({
   commandType: CommanderCommandTypeSchema,
   targetMissionId: NullableMissionIdSchema.optional(),
-  selectedMapId: NullableSelectedMapIdSchema.optional(),
+  selectedBindingId: NullableSelectedMapIdSchema.optional(),
   targetRecordRef: CommanderTargetRecordRefSchema.nullable().optional(),
   requestedPlatformId: RequestedPlatformIdSchema.nullable().optional(),
   humanGoal: CommanderGoalSchema.nullable().optional(),
@@ -174,8 +174,8 @@ const validateNonStartMissionFields = (
   if (value.commandType === "start-mission") {
     return;
   }
-  if (value.selectedMapId) {
-    addCommanderIssue(ctx, "selectedMapId is only allowed on start-mission");
+  if (value.selectedBindingId) {
+    addCommanderIssue(ctx, "selectedBindingId is only allowed on start-mission");
   }
   if (value.requestedPlatformId) {
     addCommanderIssue(ctx, "requestedPlatformId is only allowed on start-mission");

@@ -4,12 +4,8 @@ import { renderInspectDebugBundlePanel } from "./InspectDebugBundle.js";
 import { renderInspectDeveloperRefs } from "./InspectDeveloperRefs.js";
 import { renderInspectMission } from "./InspectMission.js";
 import { renderInspectResult } from "./InspectResult.js";
-import { renderInspectTask } from "./InspectTask.js";
 
 export function renderInspectItemHtml(item: CommanderConsoleInspectItem): string {
-  if (item.kind === "map") {
-    return renderInspectTask(item);
-  }
   if (item.kind === "mission") {
     return renderInspectMission(item);
   }

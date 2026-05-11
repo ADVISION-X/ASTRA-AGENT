@@ -96,7 +96,7 @@ function createMissingStartBindingFailure(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
 ): CommanderConsoleFailureItem | null {
-  return dashboard.runtime.runtimeStatus !== "idle" && (!dashboard.mission.requestedPlatform || !dashboard.mission.selectedMapId)
+  return dashboard.runtime.runtimeStatus !== "idle" && (!dashboard.mission.requestedPlatform || !dashboard.mission.selectedBindingId)
     ? createFailureItem(
         "missing-start-binding",
         localizeCommanderText(locale, "启动草案缺字段", "Start draft missing fields"),
@@ -185,21 +185,21 @@ function createPlatformBindingCheck(
     status: dashboard.mission.requestedPlatform ? "ok" : "attention",
     detail: dashboard.mission.requestedPlatform
       ? localizeCommanderText(locale, `已指定 ${dashboard.mission.requestedPlatform}`, `Requested ${dashboard.mission.requestedPlatform}`)
-      : localizeCommanderText(locale, "待启动时由已批准任务模板解析平台绑定。", "Platform binding will be resolved from the approved task template at launch time."),
+      : localizeCommanderText(locale, "待启动时由用户选择的平台通过 PlatformRegistry 解析平台绑定。", "Platform binding will be resolved from operator-selected platforms through PlatformRegistry at launch time."),
   };
 }
 
-function createMapSelectionCheck(
+function createMissionInputCheck(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
 ): CommanderConsolePreflightCheck {
   return {
-    id: "map-selection",
-    label: localizeCommanderText(locale, "地图选择", "Map selection"),
-    status: dashboard.mission.selectedMapId ? "ok" : "attention",
-    detail: dashboard.mission.selectedMapId
-      ? localizeCommanderText(locale, "已绑定受治理任务程序", "Governed task program is bound.")
-      : localizeCommanderText(locale, "待启动时由 active approved task template 解析运行地图。", "The active approved task template will resolve the runtime map at launch time."),
+    id: "mission-input",
+    label: localizeCommanderText(locale, "任务输入", "Mission input"),
+    status: dashboard.mission.humanGoal ? "ok" : "attention",
+    detail: dashboard.mission.humanGoal
+      ? localizeCommanderText(locale, "已提供用户需求，运行时将由用户需求、平台注册表和视觉任务合同驱动。", "A user requirement is present; runtime will be driven by the user requirement, PlatformRegistry, and governed visual mission contracts.")
+      : localizeCommanderText(locale, "启动前需要用户需求文本；系统会基于用户需求、平台注册表和视觉任务合同准备运行。", "A user requirement is required before launch; runtime is prepared from the user requirement, PlatformRegistry, and governed visual mission contracts."),
   };
 }
 
@@ -232,7 +232,7 @@ function createAuditFreshnessCheck(
 export function buildBadges(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
-  activeTaskTemplateLabel: string | null,
+  activePlatformLabel: string | null,
 ): CommanderConsoleBadge[] {
   const healthAttention = hasHealthAttention(dashboard);
 
@@ -240,20 +240,20 @@ export function buildBadges(
     { label: localizeCommanderText(locale, "运行状态", "runtime"), value: dashboard.runtime.runtimeStatus, tone: healthAttention ? "attention" : "ok" },
     { label: localizeCommanderText(locale, "任务", "mission"), value: dashboard.mission.missionId ?? localizeCommanderText(locale, "待命", "standby"), tone: dashboard.mission.missionId ? "ok" : "attention" },
     { label: localizeCommanderText(locale, "健康", "health"), value: healthAttention ? localizeCommanderText(locale, "需要关注", "attention needed") : localizeCommanderText(locale, "稳定", "stable"), tone: healthAttention ? "attention" : "ok" },
-    { label: localizeCommanderText(locale, "任务模板", "task template"), value: activeTaskTemplateLabel ?? localizeCommanderText(locale, "未选择", "unselected"), tone: activeTaskTemplateLabel ? "ok" : "attention" },
+    { label: localizeCommanderText(locale, "平台", "platform"), value: activePlatformLabel ?? localizeCommanderText(locale, "未选择", "unselected"), tone: activePlatformLabel ? "ok" : "attention" },
   ];
 }
 
 export function buildTopMetrics(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
-  activeTaskTemplateLabel: string | null,
+  activePlatformLabel: string | null,
 ): CommanderConsoleViewModel["topMetrics"] {
   const pendingReviews = dashboard.candidates.filter((candidate) => candidate.reviewStatus === "pending").length;
 
   return [
     { id: "runtime", label: localizeCommanderText(locale, "运行", "runtime"), value: dashboard.runtime.runtimeStatus, tone: resolveRuntimeMetricTone(dashboard.runtime.runtimeStatus) },
-    { id: "task-template", label: localizeCommanderText(locale, "任务", "task"), value: activeTaskTemplateLabel ?? localizeCommanderText(locale, "未选择", "unselected"), tone: activeTaskTemplateLabel ? "ok" : "attention" },
+    { id: "platform", label: localizeCommanderText(locale, "平台", "platform"), value: activePlatformLabel ?? localizeCommanderText(locale, "未选择", "unselected"), tone: activePlatformLabel ? "ok" : "attention" },
     { id: "round", label: localizeCommanderText(locale, "轮次", "round"), value: `rnd_${String(dashboard.mission.currentRoundIndex).padStart(3, "0")}`, tone: dashboard.mission.currentRoundIndex > 0 ? "attention" : "ok" },
     { id: "health", label: localizeCommanderText(locale, "健康", "health"), value: buildReadyRatio(dashboard, locale), tone: dashboard.auditSummary.totals?.blocking ? "attention" : "ok" },
     { id: "pending", label: localizeCommanderText(locale, "待处理", "pending"), value: buildPendingReviewLabel(pendingReviews, locale), tone: pendingReviews > 0 ? "attention" : "ok" },
@@ -273,7 +273,7 @@ export function buildPreflightSummary(
       detail: buildStartupReadinessDetail(startupReadiness, locale),
     },
     createPlatformBindingCheck(dashboard, locale),
-    createMapSelectionCheck(dashboard, locale),
+    createMissionInputCheck(dashboard, locale),
     createBrowserLoginCheck(dashboard, locale),
     createAuditFreshnessCheck(dashboard, locale),
   ];

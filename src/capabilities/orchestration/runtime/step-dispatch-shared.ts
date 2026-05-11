@@ -91,11 +91,6 @@ type DispatchChain = {
   sessionId: string;
   roundId: string;
   videoVisitId: string | null;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapVersion: string;
-  activationId: string;
-  activationSnapshotRef: string;
 };
 
 type AiDispatchRequirements = {
@@ -111,8 +106,8 @@ const resolveDispatchChain = (state: MissionState, stepId: string): { ok: true; 
     return { ok: false, failureReason: `Step "${stepId}" cannot dispatch without activeTaskRunId.` };
   }
 
-  if (!state.missionId || !state.mapPackageId || !state.mapPackageVersion || !state.selectedMapVersion || !state.activationId || !state.activationSnapshotRef) {
-    return { ok: false, failureReason: `Step "${stepId}" is missing frozen activation chain fields.` };
+  if (!state.missionId) {
+    return { ok: false, failureReason: `Step "${stepId}" is missing mission dispatch chain fields.` };
   }
 
   return {
@@ -122,11 +117,6 @@ const resolveDispatchChain = (state: MissionState, stepId: string): { ok: true; 
       sessionId: state.missionId,
       roundId: String(state.currentRoundIndex),
       videoVisitId: `${state.missionId}:video-visit:${state.currentRoundIndex}`,
-      mapPackageId: state.mapPackageId,
-      mapPackageVersion: state.mapPackageVersion,
-      selectedMapVersion: state.selectedMapVersion,
-      activationId: state.activationId,
-      activationSnapshotRef: state.activationSnapshotRef,
     },
   };
 };

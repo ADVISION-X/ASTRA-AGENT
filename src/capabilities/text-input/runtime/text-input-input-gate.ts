@@ -109,17 +109,17 @@ function resolveFailureInputRef(raw: UnknownObject, receivedShapeHash: string, c
     ?? buildStableTextInputRef("text-input-input", [receivedShapeHash, childCapabilityId]);
 }
 
-function buildTextInputFailureChainFields(raw: UnknownObject): Pick<TextInputFailureEnvelope, "missionId" | "runId" | "stepId" | "mapPackageId" | "mapPackageVersion" | "selectedMapId" | "selectedMapVersion" | "activationId" | "activationSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId"> {
+function buildTextInputFailureChainFields(raw: UnknownObject): Pick<TextInputFailureEnvelope, "missionId" | "runId" | "stepId" | "bindingPackageId" | "bindingPackageVersion" | "selectedBindingId" | "bindingVersion" | "bindingActivationRef" | "bindingSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId"> {
   return {
     missionId: readNonEmptyString(raw.missionId),
     runId: readNonEmptyString(raw.runId),
     stepId: readNonEmptyString(raw.stepId),
-    mapPackageId: readNonEmptyString(raw.mapPackageId),
-    mapPackageVersion: readNonEmptyString(raw.mapPackageVersion),
-    selectedMapId: readNonEmptyString(raw.selectedMapId),
-    selectedMapVersion: readNonEmptyString(raw.selectedMapVersion),
-    activationId: readNonEmptyString(raw.activationId),
-    activationSnapshotRef: readNonEmptyString(raw.activationSnapshotRef),
+    bindingPackageId: readNonEmptyString(raw.bindingPackageId),
+    bindingPackageVersion: readNonEmptyString(raw.bindingPackageVersion),
+    selectedBindingId: readNonEmptyString(raw.selectedBindingId),
+    bindingVersion: readNonEmptyString(raw.bindingVersion),
+    bindingActivationRef: readNonEmptyString(raw.bindingActivationRef),
+    bindingSnapshotRef: readNonEmptyString(raw.bindingSnapshotRef),
     capabilityCallId: readNonEmptyString(raw.capabilityCallId),
     nerveBusEnvelopeId: readNonEmptyString(raw.nerveBusEnvelopeId),
   };
@@ -129,7 +129,7 @@ function buildTextInputFailureIdentityFields(
   raw: UnknownObject,
   childCapabilityId: TextInputChildCapabilityId | null,
   receivedShapeHash: string,
-): Pick<TextInputFailureEnvelope, "attemptRef" | "inputRef" | "childCapabilityId" | "missionId" | "runId" | "sessionId" | "roundId" | "videoVisitId" | "stepId" | "mapPackageId" | "mapPackageVersion" | "selectedMapId" | "selectedMapVersion" | "activationId" | "activationSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId" | "requestedBy" | "purpose" | "sourceAbilityGroupId" | "sourceChildCapabilityId" | "sourceOwner" | "sourceProofRef" | "sourceRef" | "idempotencyKey"> {
+): Pick<TextInputFailureEnvelope, "attemptRef" | "inputRef" | "childCapabilityId" | "missionId" | "runId" | "sessionId" | "roundId" | "videoVisitId" | "stepId" | "bindingPackageId" | "bindingPackageVersion" | "selectedBindingId" | "bindingVersion" | "bindingActivationRef" | "bindingSnapshotRef" | "capabilityCallId" | "nerveBusEnvelopeId" | "requestedBy" | "purpose" | "sourceAbilityGroupId" | "sourceChildCapabilityId" | "sourceOwner" | "sourceProofRef" | "sourceRef" | "idempotencyKey"> {
   const inputRef = resolveFailureInputRef(raw, receivedShapeHash, childCapabilityId);
   return {
     attemptRef: buildStableTextInputRef("text-input-attempt", [inputRef, readNonEmptyString(raw.idempotencyKey) ?? receivedShapeHash, childCapabilityId]),

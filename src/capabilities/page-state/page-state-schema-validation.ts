@@ -12,11 +12,11 @@ type PageStateRuntimeProofLike = {
   roundId: string | null;
   videoVisitId: string | null;
   stepId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  selectedBindingId: string | null;
+  bindingVersion: string | null;
+  bindingSnapshotRef: string | null;
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   snapshotId: string | null;
@@ -48,11 +48,11 @@ type PageStateAbilityResultLike = {
   roundId: string | null;
   videoVisitId: string | null;
   stepId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  selectedBindingId: string | null;
+  bindingVersion: string | null;
+  bindingSnapshotRef: string | null;
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   output: {
@@ -92,11 +92,11 @@ const EXECUTION_PROOF_FIELDS = [
   "missionId",
   "sessionId",
   "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
+  "bindingPackageId",
+  "bindingPackageVersion",
+  "selectedBindingId",
+  "bindingVersion",
+  "bindingSnapshotRef",
   "capabilityCallId",
   "nerveBusEnvelopeId",
   "snapshotId",
@@ -116,11 +116,11 @@ const EXECUTION_RESULT_FIELDS = [
   "missionId",
   "sessionId",
   "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
+  "bindingPackageId",
+  "bindingPackageVersion",
+  "selectedBindingId",
+  "bindingVersion",
+  "bindingSnapshotRef",
   "capabilityCallId",
   "nerveBusEnvelopeId",
 ] as const;

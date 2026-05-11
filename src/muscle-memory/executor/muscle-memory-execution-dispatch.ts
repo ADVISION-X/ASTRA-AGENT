@@ -1,5 +1,6 @@
 import { buildAbilityOutputSchemaRef } from "../../capabilities/orchestration/runtime/step-dispatch-shared.js";
 import type { MuscleMemoryExecutionActionResult } from "./muscle-memory-execution.schema.js";
+import { resolveExecutionActionSummaryFields } from "./muscle-memory-execution-action-summary.js";
 import type { DispatchInputValue, ExecuteMuscleMemoryPlanInput, ExecutionAction, PayloadRefs } from "./muscle-memory-executor.types.js";
 
 type SyntheticDispatch = {
@@ -174,6 +175,11 @@ const buildActionResult = (input: {
   syntheticStepId: input.syntheticDispatch.stepId,
   targetAbilityGroupId: input.syntheticDispatch.targetAbilityGroupId,
   childCapabilityId: input.syntheticDispatch.childCapabilityId,
+  ...resolveExecutionActionSummaryFields({
+    action: input.action,
+    status: input.status,
+    completedAt: new Date().toISOString(),
+  }),
   actionInputRef: input.actionInputRef,
   status: input.status,
   outputRef: input.outputRef,
@@ -205,11 +211,11 @@ const buildSyntheticDispatchCommandInput = (input: {
   sessionId: input.executionInput.chain.sessionId,
   roundId: input.executionInput.chain.roundId,
   videoVisitId: input.executionInput.chain.videoVisitId,
-  mapPackageId: input.executionInput.chain.mapPackageId,
-  mapPackageVersion: input.executionInput.chain.mapPackageVersion,
-  selectedMapVersion: input.executionInput.chain.selectedMapVersion,
-  activationId: input.executionInput.chain.activationId,
-  activationSnapshotRef: input.executionInput.chain.activationSnapshotRef,
+  bindingPackageId: input.executionInput.chain.bindingPackageId,
+  bindingPackageVersion: input.executionInput.chain.bindingPackageVersion,
+  bindingVersion: input.executionInput.chain.bindingVersion,
+  bindingActivationRef: input.executionInput.chain.bindingActivationRef,
+  bindingSnapshotRef: input.executionInput.chain.bindingSnapshotRef,
   targetAbilityGroupId: input.syntheticDispatch.targetAbilityGroupId,
   childCapabilityId: input.syntheticDispatch.childCapabilityId,
   expectedOutputSchemaRef: input.action.outputSchemaRef || buildAbilityOutputSchemaRef(input.syntheticDispatch.targetAbilityGroupId, input.syntheticDispatch.childCapabilityId),

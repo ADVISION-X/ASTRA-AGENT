@@ -37,11 +37,11 @@ export type ActionLogInput = {
 };
 
 type TraceMapChain = {
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  selectedBindingId: string | null;
+  bindingVersion: string | null;
+  bindingSnapshotRef: string | null;
 };
 
 const resolveSessionId = (state: MissionState): string => state.missionId ?? state.activeTaskRunId ?? "unknown-session";
@@ -137,11 +137,11 @@ export const buildStructuredActionLogWriteInput = (input: {
   roundId: resolveRoundId(input.actionLogInput.state),
   videoVisitId: resolveVideoVisitId(input.actionLogInput.state),
   stepId: input.actionLogInput.step.stepId,
-  mapPackageId: input.mapChain.mapPackageId,
-  mapPackageVersion: input.mapChain.mapPackageVersion,
-  selectedMapId: input.mapChain.selectedMapId,
-  selectedMapVersion: input.mapChain.selectedMapVersion,
-  activationSnapshotRef: input.mapChain.activationSnapshotRef,
+  bindingPackageId: input.mapChain.bindingPackageId,
+  bindingPackageVersion: input.mapChain.bindingPackageVersion,
+  selectedBindingId: input.mapChain.selectedBindingId,
+  bindingVersion: input.mapChain.bindingVersion,
+  bindingSnapshotRef: input.mapChain.bindingSnapshotRef,
   capabilityCallId: input.actionLogInput.stepResult.envelopeId ?? null,
   inputRefs: [input.actionRef],
   outputRefs: [input.postActionVerificationRef],

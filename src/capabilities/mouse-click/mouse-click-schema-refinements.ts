@@ -12,11 +12,11 @@ type MouseClickInputBindingsValue = {
   roundId: NullableString;
   videoVisitId: NullableString;
   stepId: string;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapId: string;
-  selectedMapVersion: string;
-  activationSnapshotRef: string;
+  bindingPackageId: string;
+  bindingPackageVersion: string;
+  selectedBindingId: string;
+  bindingVersion: string;
+  bindingSnapshotRef: string;
   capabilityCallId: string;
   nerveBusEnvelopeId: string;
   sourceCoordinateProofRef: string;
@@ -30,8 +30,8 @@ type MouseClickInputBindingsValue = {
   geometryGuardNormalizedClickPoint: MouseClickPointValue;
   geometryGuardProof: {
     sourceAbilityGroupId: string; sourceChildCapabilityId: NullableString; missionId: string; runId: string; sessionId: string; roundId: NullableString;
-    videoVisitId: NullableString; stepId: string; mapPackageId: string; mapPackageVersion: string; selectedMapId: string; selectedMapVersion: string;
-    activationSnapshotRef: string; capabilityCallId: string; nerveBusEnvelopeId: string; proofId: string; sourceTargetRef: string;
+    videoVisitId: NullableString; stepId: string; bindingPackageId: string; bindingPackageVersion: string; selectedBindingId: string; bindingVersion: string;
+    bindingSnapshotRef: string; capabilityCallId: string; nerveBusEnvelopeId: string; proofId: string; sourceTargetRef: string;
     sourceVisualTargetResultRef: NullableString; geometryGuardRef: string; guardDecision: "allow"; outputRef: string; runtimeProofRef: string;
     normalizedCoordinateSpace: string; normalizedClickPoint: MouseClickPointValue;
   };
@@ -42,8 +42,8 @@ type MouseClickRuntimeProofValue = {
   actionExecutionRef: NullableString; primitiveExecutionRef: NullableString; executableCoordinate: MouseClickPointValue | null;
   postClickObservation: boolean; postClickObservationRef: NullableString; missionId: NullableString; runId: NullableString;
   postActionVerificationRequired: boolean; postActionVerificationHandoffRef: NullableString;
-  stepId: NullableString; mapPackageId: NullableString; mapPackageVersion: NullableString; selectedMapId: NullableString; selectedMapVersion: NullableString;
-  activationSnapshotRef: NullableString; capabilityCallId: NullableString; nerveBusEnvelopeId: NullableString; geometryGuardRef: NullableString; geometryGuardProofRef: NullableString;
+  stepId: NullableString; bindingPackageId: NullableString; bindingPackageVersion: NullableString; selectedBindingId: NullableString; bindingVersion: NullableString;
+  bindingSnapshotRef: NullableString; capabilityCallId: NullableString; nerveBusEnvelopeId: NullableString; geometryGuardRef: NullableString; geometryGuardProofRef: NullableString;
   geometryGuardOutputRef: NullableString; geometryGuardRuntimeProofRef: NullableString; diagnosticPayloadRef: NullableString; attemptRef: string;
   sourceCoordinateProofRef: NullableString; sourceTargetRef: NullableString; sourceVisualTargetResultRef: NullableString; geometryDecision: string; safetyDecision: string; primitiveDecision: string;
   timeoutDecision: string; abortDecision: string; idempotencyDecision: NullableString;
@@ -52,8 +52,8 @@ type MouseClickRuntimeProofValue = {
 type MouseClickAbilityResultValue = {
   status: string; output: { clickResultRef: string; postClickObservation: boolean; postClickObservationRef: NullableString; postActionVerificationRequired: boolean; postActionVerificationHandoffRef: string } | null;
   clickResultRef: NullableString; attemptRef: string; missionId: NullableString; runId: NullableString;
-  stepId: NullableString; mapPackageId: NullableString; mapPackageVersion: NullableString; selectedMapId: NullableString; selectedMapVersion: NullableString;
-  activationSnapshotRef: NullableString; capabilityCallId: NullableString; nerveBusEnvelopeId: NullableString; diagnosticPayloadRef: NullableString;
+  stepId: NullableString; bindingPackageId: NullableString; bindingPackageVersion: NullableString; selectedBindingId: NullableString; bindingVersion: NullableString;
+  bindingSnapshotRef: NullableString; capabilityCallId: NullableString; nerveBusEnvelopeId: NullableString; diagnosticPayloadRef: NullableString;
   geometryGuardRef: NullableString; geometryGuardProofRef: NullableString; sourceCoordinateProofRef: NullableString; sourceTargetRef: NullableString; sourceVisualTargetResultRef: NullableString; geometryDecision: string; safetyDecision: string;
   primitiveDecision: string; timeoutDecision: string; abortDecision: string; idempotencyDecision: NullableString; postClickObservationRef: NullableString;
   postActionVerificationRequired: boolean; postActionVerificationHandoffRef: NullableString;
@@ -84,11 +84,11 @@ const validateInputSourceBindings = (value: MouseClickInputBindingsValue, contex
 const validateInputExecutionBindings = (value: MouseClickInputBindingsValue, context: z.RefinementCtx): void => {
   const proof = value.geometryGuardProof;
   validateBinding(context, value.stepId === proof.stepId, ["stepId"], "stepId must match geometryGuardProof.stepId");
-  validateBinding(context, value.mapPackageId === proof.mapPackageId, ["mapPackageId"], "mapPackageId must match geometryGuardProof.mapPackageId");
-  validateBinding(context, value.mapPackageVersion === proof.mapPackageVersion, ["mapPackageVersion"], "mapPackageVersion must match geometryGuardProof.mapPackageVersion");
-  validateBinding(context, value.selectedMapId === proof.selectedMapId, ["selectedMapId"], "selectedMapId must match geometryGuardProof.selectedMapId");
-  validateBinding(context, value.selectedMapVersion === proof.selectedMapVersion, ["selectedMapVersion"], "selectedMapVersion must match geometryGuardProof.selectedMapVersion");
-  validateBinding(context, value.activationSnapshotRef === proof.activationSnapshotRef, ["activationSnapshotRef"], "activationSnapshotRef must match geometryGuardProof.activationSnapshotRef");
+  validateBinding(context, value.bindingPackageId === proof.bindingPackageId, ["bindingPackageId"], "bindingPackageId must match geometryGuardProof.bindingPackageId");
+  validateBinding(context, value.bindingPackageVersion === proof.bindingPackageVersion, ["bindingPackageVersion"], "bindingPackageVersion must match geometryGuardProof.bindingPackageVersion");
+  validateBinding(context, value.selectedBindingId === proof.selectedBindingId, ["selectedBindingId"], "selectedBindingId must match geometryGuardProof.selectedBindingId");
+  validateBinding(context, value.bindingVersion === proof.bindingVersion, ["bindingVersion"], "bindingVersion must match geometryGuardProof.bindingVersion");
+  validateBinding(context, value.bindingSnapshotRef === proof.bindingSnapshotRef, ["bindingSnapshotRef"], "bindingSnapshotRef must match geometryGuardProof.bindingSnapshotRef");
   validateBinding(context, value.capabilityCallId === proof.capabilityCallId, ["capabilityCallId"], "capabilityCallId must match geometryGuardProof.capabilityCallId");
   validateBinding(context, value.nerveBusEnvelopeId === proof.nerveBusEnvelopeId, ["nerveBusEnvelopeId"], "nerveBusEnvelopeId must match geometryGuardProof.nerveBusEnvelopeId");
 };
@@ -139,15 +139,15 @@ const validateSuccessChainFields = (value: MouseClickRuntimeProofValue, context:
   validateBinding(context, value.missionId !== null && value.runId !== null && value.stepId !== null, ["missionId"], "success proof requires missionId, runId, and stepId");
   validateBinding(
     context,
-    value.mapPackageId !== null && value.mapPackageVersion !== null && value.selectedMapId !== null && value.selectedMapVersion !== null,
-    ["mapPackageId"],
-    "success proof requires mapPackageId/mapPackageVersion/selectedMapId/selectedMapVersion",
+    value.bindingPackageId !== null && value.bindingPackageVersion !== null && value.selectedBindingId !== null && value.bindingVersion !== null,
+    ["bindingPackageId"],
+    "success proof requires bindingPackageId/bindingPackageVersion/selectedBindingId/bindingVersion",
   );
   validateBinding(
     context,
-    value.activationSnapshotRef !== null && value.capabilityCallId !== null && value.nerveBusEnvelopeId !== null,
-    ["activationSnapshotRef"],
-    "success proof requires activationSnapshotRef, capabilityCallId, and nerveBusEnvelopeId",
+    value.bindingSnapshotRef !== null && value.capabilityCallId !== null && value.nerveBusEnvelopeId !== null,
+    ["bindingSnapshotRef"],
+    "success proof requires bindingSnapshotRef, capabilityCallId, and nerveBusEnvelopeId",
   );
 };
 
@@ -190,11 +190,11 @@ const validateAbilityResultChainParity = (value: MouseClickAbilityResultValue, c
   validateBinding(context, value.missionId === value.runtimeProof.missionId, ["runtimeProof", "missionId"], "runtimeProof.missionId must equal result.missionId");
   validateBinding(context, value.runId === value.runtimeProof.runId, ["runtimeProof", "runId"], "runtimeProof.runId must equal result.runId");
   validateBinding(context, value.stepId === value.runtimeProof.stepId, ["runtimeProof", "stepId"], "runtimeProof.stepId must equal result.stepId");
-  validateBinding(context, value.mapPackageId === value.runtimeProof.mapPackageId, ["runtimeProof", "mapPackageId"], "runtimeProof.mapPackageId must equal result.mapPackageId");
-  validateBinding(context, value.mapPackageVersion === value.runtimeProof.mapPackageVersion, ["runtimeProof", "mapPackageVersion"], "runtimeProof.mapPackageVersion must equal result.mapPackageVersion");
-  validateBinding(context, value.selectedMapId === value.runtimeProof.selectedMapId, ["runtimeProof", "selectedMapId"], "runtimeProof.selectedMapId must equal result.selectedMapId");
-  validateBinding(context, value.selectedMapVersion === value.runtimeProof.selectedMapVersion, ["runtimeProof", "selectedMapVersion"], "runtimeProof.selectedMapVersion must equal result.selectedMapVersion");
-  validateBinding(context, value.activationSnapshotRef === value.runtimeProof.activationSnapshotRef, ["runtimeProof", "activationSnapshotRef"], "runtimeProof.activationSnapshotRef must equal result.activationSnapshotRef");
+  validateBinding(context, value.bindingPackageId === value.runtimeProof.bindingPackageId, ["runtimeProof", "bindingPackageId"], "runtimeProof.bindingPackageId must equal result.bindingPackageId");
+  validateBinding(context, value.bindingPackageVersion === value.runtimeProof.bindingPackageVersion, ["runtimeProof", "bindingPackageVersion"], "runtimeProof.bindingPackageVersion must equal result.bindingPackageVersion");
+  validateBinding(context, value.selectedBindingId === value.runtimeProof.selectedBindingId, ["runtimeProof", "selectedBindingId"], "runtimeProof.selectedBindingId must equal result.selectedBindingId");
+  validateBinding(context, value.bindingVersion === value.runtimeProof.bindingVersion, ["runtimeProof", "bindingVersion"], "runtimeProof.bindingVersion must equal result.bindingVersion");
+  validateBinding(context, value.bindingSnapshotRef === value.runtimeProof.bindingSnapshotRef, ["runtimeProof", "bindingSnapshotRef"], "runtimeProof.bindingSnapshotRef must equal result.bindingSnapshotRef");
   validateBinding(context, value.capabilityCallId === value.runtimeProof.capabilityCallId, ["runtimeProof", "capabilityCallId"], "runtimeProof.capabilityCallId must equal result.capabilityCallId");
   validateBinding(context, value.nerveBusEnvelopeId === value.runtimeProof.nerveBusEnvelopeId, ["runtimeProof", "nerveBusEnvelopeId"], "runtimeProof.nerveBusEnvelopeId must equal result.nerveBusEnvelopeId");
 };

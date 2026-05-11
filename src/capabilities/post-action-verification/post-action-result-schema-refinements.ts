@@ -9,11 +9,11 @@ type RuntimeProofChainField =
   | "roundId"
   | "videoVisitId"
   | "stepId"
-  | "mapPackageId"
-  | "mapPackageVersion"
-  | "selectedMapId"
-  | "selectedMapVersion"
-  | "activationSnapshotRef"
+  | "bindingPackageId"
+  | "bindingPackageVersion"
+  | "selectedBindingId"
+  | "bindingVersion"
+  | "bindingSnapshotRef"
   | "capabilityCallId"
   | "nerveBusEnvelopeId";
 
@@ -26,11 +26,11 @@ type PostActionVerificationAbilityResultValue = {
   roundId: NullableString;
   videoVisitId: NullableString;
   stepId: NullableString;
-  mapPackageId: NullableString;
-  mapPackageVersion: NullableString;
-  selectedMapId: NullableString;
-  selectedMapVersion: NullableString;
-  activationSnapshotRef: NullableString;
+  bindingPackageId: NullableString;
+  bindingPackageVersion: NullableString;
+  selectedBindingId: NullableString;
+  bindingVersion: NullableString;
+  bindingSnapshotRef: NullableString;
   capabilityCallId: NullableString;
   nerveBusEnvelopeId: NullableString;
   postActionVerificationResultRef: NullableString;
@@ -61,11 +61,11 @@ const RESULT_RUNTIME_PROOF_CHAIN_FIELDS: RuntimeProofChainField[] = [
   "roundId",
   "videoVisitId",
   "stepId",
-  "mapPackageId",
-  "mapPackageVersion",
-  "selectedMapId",
-  "selectedMapVersion",
-  "activationSnapshotRef",
+  "bindingPackageId",
+  "bindingPackageVersion",
+  "selectedBindingId",
+  "bindingVersion",
+  "bindingSnapshotRef",
   "capabilityCallId",
   "nerveBusEnvelopeId",
 ];

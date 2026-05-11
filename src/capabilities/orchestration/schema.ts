@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { MissionLastActionSummarySchema, MissionRoundProgressSchema } from "./runtime/orchestration-round-state-schema.js";
+
 const ORCHESTRATION_ABILITY_GROUP_ID = "orchestration";
 
 const OrchestrationRequestedPlatformIdSchemaSource = z.enum([
@@ -49,9 +51,8 @@ const OrchestrationTransitionSchemaSource = z.object({
 
 const OrchestrationOperationalMapSchemaSource = z.object({
   mapId: z.string().min(1),
-  routePlanId: z.string().min(1).nullable().optional().default(null),
   requestedPlatformId: OrchestrationRequestedPlatformIdSchemaSource.nullable().optional().default(null),
-  taskTemplateId: z.string().min(1).nullable().optional().default(null),
+  taskBindingId: z.string().min(1).nullable().optional().default(null),
   initialStepId: z.string().min(1),
   steps: z.array(OrchestrationOperationalMapStepSchemaSource),
   transitions: z.array(OrchestrationTransitionSchemaSource).default([]),
@@ -72,7 +73,7 @@ const ORCHESTRATION_CHILD_CAPABILITY_IDS = [
   "resume-mission",
   "stop-mission",
   "emergency-stop",
-  "execute-map-step",
+  "execute-runtime-step",
   "evaluate-step-transition",
   "finalize-mission",
 ] as const;
@@ -86,7 +87,7 @@ const ORCHESTRATION_HUMAN_COMMAND_KINDS = [
 ] as const;
 
 const ORCHESTRATION_INTERNAL_OPERATION_KINDS = [
-  "execute-map-step",
+  "execute-runtime-step",
   "evaluate-step-transition",
   "finalize-mission",
   "loop-guard",
@@ -101,7 +102,7 @@ const OrchestrationChildCapabilityIdSchema = z.enum([
   "resume-mission",
   "stop-mission",
   "emergency-stop",
-  "execute-map-step",
+  "execute-runtime-step",
   "evaluate-step-transition",
   "finalize-mission",
 ]);
@@ -139,7 +140,8 @@ const PayloadRefKeySchema = OrchestrationPayloadRefKeySchemaSource;
 
 const PayloadRefBundleSchema = z.object({
   requestedPlatformId: OrchestrationRequestedPlatformIdSchemaSource.nullable().optional().default(null),
-  selectedMapId: OperationalMapIdSchema.nullable().optional().default(null),
+  selectedBindingId: OperationalMapIdSchema.nullable().optional().default(null),
+  userRequirementRef: z.string().min(1).nullable().optional().default(null),
   operatorNote: z.string().min(1).nullable().optional().default(null),
   targetUrl: z.string().min(1).nullable().optional().default(null),
   targetTitle: z.string().min(1).nullable().optional().default(null),
@@ -164,12 +166,21 @@ const PayloadRefBundleSchema = z.object({
   pagePreparationAiResultRef: z.string().min(1).nullable().optional().default(null),
   productPresenceAiResultRef: z.string().min(1).nullable().optional().default(null),
   commentCleanupAiResultRef: z.string().min(1).nullable().optional().default(null),
+  originalScreenshotRef: z.string().min(1).nullable().optional().default(null),
+  coordinateGridScreenshotRef: z.string().min(1).nullable().optional().default(null),
+  gridSpecRef: z.string().min(1).nullable().optional().default(null),
+  visualMissionInputRef: z.string().min(1).nullable().optional().default(null),
+  systemManualRef: z.string().min(1).nullable().optional().default(null),
+  outputSchemaRef: z.string().min(1).nullable().optional().default(null),
+  platformContextRef: z.string().min(1).nullable().optional().default(null),
+  roundMissionPacketRef: z.string().min(1).nullable().optional().default(null),
   aiResultRef: z.string().min(1).nullable().optional().default(null),
   abilityResultRef: z.string().min(1).nullable().optional().default(null),
   commentsClickActionRef: z.string().min(1).nullable().optional().default(null),
   clickResultRef: z.string().min(1).nullable().optional().default(null),
   commentsOpenVerificationRef: z.string().min(1).nullable().optional().default(null),
   postActionVerificationResultRef: z.string().min(1).nullable().optional().default(null),
+  reviewRequiredRef: z.string().min(1).nullable().optional().default(null),
   seedingEvidenceRecordRef: z.string().min(1).nullable().optional().default(null),
   productLeadRecordRef: z.string().min(1).nullable().optional().default(null),
   evidencePacketRecordRef: z.string().min(1).nullable().optional().default(null),
@@ -183,7 +194,10 @@ const PayloadRefBundleSchema = z.object({
 
 const MissionInitialPayloadSchema = z.object({
   requestedBy: z.string().min(1),
-  selectedMapId: OperationalMapIdSchema.nullable().optional().default(null),
+  selectedBindingId: OperationalMapIdSchema.nullable().optional().default(null),
+  userRequirementRef: z.string().min(1).nullable().optional().default(null),
+  primaryPlatformId: OrchestrationRequestedPlatformIdSchemaSource.nullable().optional().default(null),
+  selectedPlatforms: z.array(OrchestrationRequestedPlatformIdSchemaSource).default([]),
   maxRounds: MissionConfiguredMaxRoundsSchema.nullable().optional().default(null),
   maxMinutes: MissionConfiguredMaxMinutesSchema.nullable().optional().default(null),
   operatorNote: z.string().min(1).nullable().optional().default(null),
@@ -201,9 +215,9 @@ const MissionCommandSchema = z.object({
   runId: z.string().min(1),
   humanGoal: z.string().min(1),
   requestedPlatform: OrchestrationRequestedPlatformIdSchemaSource,
-  preferredMapId: OperationalMapIdSchema.nullable().optional().default(null),
-  taskTemplateId: z.string().min(1).nullable().optional().default(null),
-  activationId: z.string().min(1).nullable().optional().default(null),
+  preferredBindingId: OperationalMapIdSchema.nullable().optional().default(null),
+  taskBindingId: z.string().min(1).nullable().optional().default(null),
+  bindingActivationRef: z.string().min(1).nullable().optional().default(null),
   maxRounds: MissionConfiguredMaxRoundsSchema.nullable().optional().default(null),
   maxMinutes: MissionConfiguredMaxMinutesSchema.nullable().optional().default(null),
   initialPayload: MissionInitialPayloadSchema,
@@ -252,13 +266,13 @@ const RuntimeProofSchema = z.object({
   runId: z.string().min(1),
   missionId: z.string().min(1),
   mapId: OperationalMapIdSchema,
-  taskTemplateId: z.string().min(1).nullable().optional().default(null),
-  activationId: z.string().min(1).nullable().optional().default(null),
-  mapPackageId: z.string().min(1).nullable().optional().default(null),
-  mapPackageVersion: z.string().min(1).nullable().optional().default(null),
+  taskBindingId: z.string().min(1).nullable().optional().default(null),
+  bindingActivationRef: z.string().min(1).nullable().optional().default(null),
+  bindingPackageId: z.string().min(1).nullable().optional().default(null),
+  bindingPackageVersion: z.string().min(1).nullable().optional().default(null),
   mapVersion: z.string().min(1).nullable().optional().default(null),
-  selectedMapVersion: z.string().min(1).nullable().optional().default(null),
-  activationSnapshotRef: z.string().min(1).nullable().optional().default(null),
+  bindingVersion: z.string().min(1).nullable().optional().default(null),
+  bindingSnapshotRef: z.string().min(1).nullable().optional().default(null),
   promptContractVersion: z.string().min(1).nullable().optional().default(null),
   capabilityCatalogVersion: z.string().min(1).nullable().optional().default(null),
   selectedMapSource: SelectedMapSourceSchema.nullable().optional().default(null),
@@ -315,16 +329,18 @@ const RuntimeProofSchema = z.object({
 const MissionStateSchema = z.object({
   missionId: z.string().min(1).nullable().optional().default(null),
   mapId: OperationalMapIdSchema.nullable().optional().default(null),
-  taskTemplateId: z.string().min(1).nullable().optional().default(null),
-  activationId: z.string().min(1).nullable().optional().default(null),
-  mapPackageId: z.string().min(1).nullable().optional().default(null),
-  mapPackageVersion: z.string().min(1).nullable().optional().default(null),
-  selectedMapVersion: z.string().min(1).nullable().optional().default(null),
-  activationSnapshotRef: z.string().min(1).nullable().optional().default(null),
+  taskBindingId: z.string().min(1).nullable().optional().default(null),
+  bindingActivationRef: z.string().min(1).nullable().optional().default(null),
+  bindingPackageId: z.string().min(1).nullable().optional().default(null),
+  bindingPackageVersion: z.string().min(1).nullable().optional().default(null),
+  bindingVersion: z.string().min(1).nullable().optional().default(null),
+  bindingSnapshotRef: z.string().min(1).nullable().optional().default(null),
   promptContractVersion: z.string().min(1).nullable().optional().default(null),
   capabilityCatalogVersion: z.string().min(1).nullable().optional().default(null),
   selectedMapSource: SelectedMapSourceSchema.nullable().optional().default(null),
   requestedPlatform: OrchestrationRequestedPlatformIdSchemaSource.nullable().optional().default(null),
+  userRequirementRef: z.string().min(1).nullable().optional().default(null),
+  selectedPlatforms: z.array(OrchestrationRequestedPlatformIdSchemaSource).default([]),
   humanGoal: z.string().min(1).nullable().optional().default(null),
   configuredMaxRounds: MissionConfiguredMaxRoundsSchema.nullable().optional().default(null),
   configuredMaxMinutes: MissionConfiguredMaxMinutesSchema.nullable().optional().default(null),
@@ -337,6 +353,24 @@ const MissionStateSchema = z.object({
   stateRevision: z.number().int().nonnegative().default(0),
   stateHash: z.string().min(1).nullable().optional().default(null),
   hopCount: z.number().int().nonnegative().default(0),
+  roundProgress: MissionRoundProgressSchema.default({
+    savedLeadCount: 0,
+    skippedCount: 0,
+    reviewRequiredCount: 0,
+    failedActionCount: 0,
+    consecutiveFailureCount: 0,
+  }),
+  lastActionSummary: MissionLastActionSummarySchema.default({
+    sourceActionCode: null,
+    status: "pending",
+    gridCell: null,
+    targetName: null,
+    summary: null,
+    actionInputRef: null,
+    outputRef: null,
+    failureReason: null,
+    completedAt: null,
+  }),
   reviewRequiredReason: z.string().min(1).nullable().optional().default(null),
   failureReason: z.string().min(1).nullable().optional().default(null),
   lastHumanCommand: MissionHumanCommandKindSchema.nullable().optional().default(null),
@@ -393,7 +427,7 @@ const PauseMissionChildInputSchema = MissionControlCommandSchema;
 const ResumeMissionChildInputSchema = MissionControlCommandSchema;
 const StopMissionChildInputSchema = MissionControlCommandSchema;
 const EmergencyStopChildInputSchema = MissionControlCommandSchema;
-const ExecuteMapStepChildInputSchema = z.object({ missionId: z.string().min(1) }).strict();
+const ExecuteRuntimeStepChildInputSchema = z.object({ missionId: z.string().min(1) }).strict();
 const EvaluateStepTransitionChildInputSchema = z.object({ missionId: z.string().min(1) }).strict();
 const FinalizeMissionChildInputSchema = z.object({ missionId: z.string().min(1), status: MissionStatusSchema.exclude(["idle", "pending", "running", "paused"]) }).strict();
 
@@ -402,7 +436,7 @@ const PauseMissionChildOutputSchema = OrchestrationExecuteResultSchema;
 const ResumeMissionChildOutputSchema = OrchestrationExecuteResultSchema;
 const StopMissionChildOutputSchema = OrchestrationExecuteResultSchema;
 const EmergencyStopChildOutputSchema = OrchestrationExecuteResultSchema;
-const ExecuteMapStepChildOutputSchema = OrchestrationExecuteResultSchema;
+const ExecuteRuntimeStepChildOutputSchema = OrchestrationExecuteResultSchema;
 const EvaluateStepTransitionChildOutputSchema = OrchestrationExecuteResultSchema;
 const FinalizeMissionChildOutputSchema = OrchestrationExecuteResultSchema;
 
@@ -455,7 +489,7 @@ export {
   ResumeMissionChildInputSchema,
   StopMissionChildInputSchema,
   EmergencyStopChildInputSchema,
-  ExecuteMapStepChildInputSchema,
+  ExecuteRuntimeStepChildInputSchema,
   EvaluateStepTransitionChildInputSchema,
   FinalizeMissionChildInputSchema,
   StartMissionChildOutputSchema,
@@ -463,7 +497,7 @@ export {
   ResumeMissionChildOutputSchema,
   StopMissionChildOutputSchema,
   EmergencyStopChildOutputSchema,
-  ExecuteMapStepChildOutputSchema,
+  ExecuteRuntimeStepChildOutputSchema,
   EvaluateStepTransitionChildOutputSchema,
   FinalizeMissionChildOutputSchema,
 };

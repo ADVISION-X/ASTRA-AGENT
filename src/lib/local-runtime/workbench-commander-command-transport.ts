@@ -13,7 +13,7 @@ type CommanderHumanCommand = {
   priority: string;
   operatorRef: string;
   targetMissionId: string | null;
-  selectedMapId: string | null;
+  selectedBindingId: string | null;
   targetRecordRef: { recordId: string } | null;
   requestedPlatformId: RequestedPlatformId | null;
   humanGoal: string | null;
@@ -47,7 +47,6 @@ const recordEnvelopeCreated = async (
     missionId: dispatchInput.envelope.missionId,
     runId: dispatchInput.envelope.runId,
     mapId: dispatchInput.envelope.mapId,
-    taskTemplateId: dispatchInput.envelope.taskTemplateId,
     reason: `Nerve Bus governed envelope created for ${command.commandType}.`,
     actionableMessage: "Dispatch through Nerve Bus governed transport.",
     ownerResponsible: "Commander Console / Nerve Bus",
@@ -73,7 +72,6 @@ const recordDispatchStarted = async (
     missionId: dispatchInput.envelope.missionId,
     runId: dispatchInput.envelope.runId,
     mapId: dispatchInput.envelope.mapId,
-    taskTemplateId: dispatchInput.envelope.taskTemplateId,
     reason: `Dispatching ${command.commandType} via CommandTransportPort.`,
     actionableMessage: "Wait for governed result envelope and semantic gate validation.",
     ownerResponsible: "Nerve Bus",
@@ -113,7 +111,6 @@ const recordResultEnvelopeReceived = async (
     missionId: transport.commandEnvelope.missionId,
     runId: transport.commandEnvelope.runId,
     mapId: transport.commandEnvelope.mapId,
-    taskTemplateId: transport.commandEnvelope.taskTemplateId,
     reason: `Nerve Bus received ${transport.resultEnvelope.envelopeKind} for ${command.commandType}.`,
     failureReason: transport.resultEnvelope.failureReason,
     actionableMessage: "Validate the governed result envelope semantic proof before accepting the transport.",
@@ -138,7 +135,6 @@ const recordResultSemanticGatePassed = async (
     missionId: transport.commandEnvelope.missionId,
     runId: transport.commandEnvelope.runId,
     mapId: transport.commandEnvelope.mapId,
-    taskTemplateId: transport.commandEnvelope.taskTemplateId,
     reason: `Nerve Bus semantic gate accepted result envelope ${transport.resultEnvelope.envelopeId}.`,
     actionableMessage: "Build transfer proof and preserve command/result correlation refs.",
     ownerResponsible: "Nerve Bus",
@@ -162,7 +158,6 @@ const recordTransferProofBuilt = async (
     missionId: transport.commandEnvelope.missionId,
     runId: transport.commandEnvelope.runId,
     mapId: transport.commandEnvelope.mapId,
-    taskTemplateId: transport.commandEnvelope.taskTemplateId,
     reason: `Nerve Bus transfer proof preserved ${transport.commandEnvelope.envelopeId} -> ${transport.resultEnvelope.envelopeId}.`,
     actionableMessage: "Use transfer proof refs for Commander response and downstream audit; do not treat command acceptance as mission success.",
     ownerResponsible: "Nerve Bus",

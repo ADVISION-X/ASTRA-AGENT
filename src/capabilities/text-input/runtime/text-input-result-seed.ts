@@ -19,12 +19,12 @@ export type TextInputExecutionSeed = {
   roundId: string | null;
   videoVisitId: string | null;
   stepId: string;
-  mapPackageId: string;
-  mapPackageVersion: string;
-  selectedMapId: string;
-  selectedMapVersion: string;
-  activationId: string;
-  activationSnapshotRef: string;
+  bindingPackageId: string;
+  bindingPackageVersion: string;
+  selectedBindingId: string;
+  bindingVersion: string;
+  bindingActivationRef: string;
+  bindingSnapshotRef: string;
   capabilityCallId: string;
   nerveBusEnvelopeId: string;
   requestedBy: string;
@@ -75,12 +75,12 @@ export type TextInputFailureEnvelope = {
   roundId: string | null;
   videoVisitId: string | null;
   stepId: string | null;
-  mapPackageId: string | null;
-  mapPackageVersion: string | null;
-  selectedMapId: string | null;
-  selectedMapVersion: string | null;
-  activationId: string | null;
-  activationSnapshotRef: string | null;
+  bindingPackageId: string | null;
+  bindingPackageVersion: string | null;
+  selectedBindingId: string | null;
+  bindingVersion: string | null;
+  bindingActivationRef: string | null;
+  bindingSnapshotRef: string | null;
   capabilityCallId: string | null;
   nerveBusEnvelopeId: string | null;
   requestedBy: string | null;
@@ -141,12 +141,12 @@ function buildExecutionIdentityFields(input: ParsedTextInputAbilityInput): Omit<
     roundId: input.roundId,
     videoVisitId: input.videoVisitId,
     stepId: input.stepId,
-    mapPackageId: input.mapPackageId,
-    mapPackageVersion: input.mapPackageVersion,
-    selectedMapId: input.selectedMapId,
-    selectedMapVersion: input.selectedMapVersion,
-    activationId: input.activationId,
-    activationSnapshotRef: input.activationSnapshotRef,
+    bindingPackageId: input.bindingPackageId,
+    bindingPackageVersion: input.bindingPackageVersion,
+    selectedBindingId: input.selectedBindingId,
+    bindingVersion: input.bindingVersion,
+    bindingActivationRef: input.bindingActivationRef,
+    bindingSnapshotRef: input.bindingSnapshotRef,
     capabilityCallId: input.capabilityCallId,
     nerveBusEnvelopeId: input.nerveBusEnvelopeId,
     requestedBy: input.requestedBy,

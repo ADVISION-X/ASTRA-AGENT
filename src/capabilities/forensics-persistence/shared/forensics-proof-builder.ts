@@ -33,11 +33,11 @@ const buildProofChainFields = (request: ForensicsAbilityInput, status: "success"
   roundId: request.roundId,
   videoVisitId: request.videoVisitId ?? null,
   stepId: resolveProofChainValue("stepId", request.stepId, status),
-  mapPackageId: resolveProofChainValue("mapPackageId", request.mapPackageId, status),
-  mapPackageVersion: resolveProofChainValue("mapPackageVersion", request.mapPackageVersion, status),
-  selectedMapId: resolveProofChainValue("selectedMapId", request.selectedMapId, status),
-  selectedMapVersion: resolveProofChainValue("selectedMapVersion", request.selectedMapVersion, status),
-  activationSnapshotRef: resolveProofChainValue("activationSnapshotRef", request.activationSnapshotRef, status),
+  bindingPackageId: resolveProofChainValue("bindingPackageId", request.bindingPackageId, status),
+  bindingPackageVersion: resolveProofChainValue("bindingPackageVersion", request.bindingPackageVersion, status),
+  selectedBindingId: resolveProofChainValue("selectedBindingId", request.selectedBindingId, status),
+  bindingVersion: resolveProofChainValue("bindingVersion", request.bindingVersion, status),
+  bindingSnapshotRef: resolveProofChainValue("bindingSnapshotRef", request.bindingSnapshotRef, status),
   capabilityCallId: resolveProofChainValue("capabilityCallId", request.capabilityCallId, status),
 });
 

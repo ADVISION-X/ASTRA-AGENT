@@ -57,14 +57,10 @@ const normalizeAbilityDispatchStatus = (input: {
   status: "success" | "failed" | "review_required";
   targetAbilityGroupId: SendAbilityInput["targetAbilityGroupId"];
 }): "success" | "failed" | "review_required" =>
-  input.targetAbilityGroupId === "screenshot"
-    ? input.status
-    : input.status === "success"
-      ? "success"
-      : "failed";
+  input.status;
 
-const normalizeAiDispatchStatus = (status: "success" | "failed" | "review_required"): "success" | "failed" =>
-  status === "success" ? "success" : "failed";
+const normalizeAiDispatchStatus = (status: "success" | "failed" | "review_required"): "success" | "failed" | "review_required" =>
+  status;
 
 const buildAiBranchFieldValues = (responseEnvelope: AiTransportResponseEnvelope) => ({
   decision: responseEnvelope.decision ?? null,

@@ -104,11 +104,11 @@ function resolveVideoVisitId(state: MissionState): string | null {
 
 function resolveMapChain(state: MissionState, mapRecord: ActiveOperationalMapRecord | null) {
   return {
-    mapPackageId: state.mapPackageId ?? mapRecord?.packageId ?? null,
-    mapPackageVersion: state.mapPackageVersion ?? mapRecord?.packageVersion ?? null,
-    selectedMapId: state.mapId ?? mapRecord?.mapId ?? null,
-    selectedMapVersion: state.selectedMapVersion ?? mapRecord?.mapVersion ?? null,
-    activationSnapshotRef: state.activationSnapshotRef ?? mapRecord?.activationSnapshotRef ?? null,
+    bindingPackageId: state.bindingPackageId ?? mapRecord?.packageId ?? null,
+    bindingPackageVersion: state.bindingPackageVersion ?? mapRecord?.packageVersion ?? null,
+    selectedBindingId: state.mapId ?? mapRecord?.mapId ?? null,
+    bindingVersion: state.bindingVersion ?? mapRecord?.mapVersion ?? null,
+    bindingSnapshotRef: state.bindingSnapshotRef ?? mapRecord?.bindingSnapshotRef ?? null,
   };
 }
 
@@ -150,11 +150,11 @@ function buildStructuredRuntimeEventWriteRequest(
     roundId: resolveRoundId(eventInput.state),
     videoVisitId: resolveVideoVisitId(eventInput.state),
     stepId: eventInput.step.stepId,
-    mapPackageId: mapChain.mapPackageId,
-    mapPackageVersion: mapChain.mapPackageVersion,
-    selectedMapId: mapChain.selectedMapId,
-    selectedMapVersion: mapChain.selectedMapVersion,
-    activationSnapshotRef: mapChain.activationSnapshotRef,
+    bindingPackageId: mapChain.bindingPackageId,
+    bindingPackageVersion: mapChain.bindingPackageVersion,
+    selectedBindingId: mapChain.selectedBindingId,
+    bindingVersion: mapChain.bindingVersion,
+    bindingSnapshotRef: mapChain.bindingSnapshotRef,
     capabilityCallId: eventInput.capabilityCallId ?? null,
     inputRefs: [...new Set(eventInput.inputRefs ?? [])],
     outputRefs: [...new Set(eventInput.outputRefs ?? [])],

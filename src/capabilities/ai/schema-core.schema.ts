@@ -56,10 +56,6 @@ import {
   VisualObservationInputSchema,
   VisualTargetCandidateAnalysisInputSchema,
 } from "./schema-foundation.schema.js";
-import {
-  AiMapAuthoringOutputSchema,
-  MapAuthoringInputSchema,
-} from "./schema-map-authoring.schema.js";
 import { AiChainFieldSchemas } from "./schema-chain-fields.js";
 
 const AiCoreChainFieldSchema = z.object(AiChainFieldSchemas).strict();
@@ -91,21 +87,12 @@ const AiInputSchema = z.discriminatedUnion("taskType", [
   CommentSignalSummaryInputSchema,
   ProductSignalSummaryInputSchema,
   EvidencePacketAnalysisInputSchema,
-  MapAuthoringInputSchema,
   SchemaValidationOnlyInputSchema,
 ]).superRefine((value, context) => {
   validateAiCoreChainFields(value, context);
 
-  if (value.taskType === "map_authoring" && value.inputRefs.length === 0) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "map_authoring requires at least one inputRef",
-      path: ["inputRefs"],
-    });
-  }
-
-  const expectedRequestedBy = value.taskType === "map_authoring" ? "commander-console" : "orchestration";
-  const expectedTransportedBy = value.taskType === "map_authoring" ? "commander-console" : "nerve-bus";
+  const expectedRequestedBy = "orchestration";
+  const expectedTransportedBy = "nerve-bus";
   if (value.requestedBy !== expectedRequestedBy) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
@@ -122,10 +109,7 @@ const AiInputSchema = z.discriminatedUnion("taskType", [
   }
 });
 
-const PaidAnalysisAiInputSchema = z.union([
-  EvidencePacketAnalysisInputSchema,
-  MapAuthoringInputSchema,
-]);
+const PaidAnalysisAiInputSchema = EvidencePacketAnalysisInputSchema;
 
 export {
   AiAbilityGroupIdSchema,
@@ -162,7 +146,6 @@ export {
   AiProductSignalSummaryOutputSchema,
   AiEvidencePacketAnalysisInputSchema,
   AiEvidencePacketAnalysisOutputSchema,
-  AiMapAuthoringOutputSchema,
   AiSchemaValidationOnlyInputSchema,
   AiSchemaValidationOnlyOutputSchema,
   AiVisualOutputSchema,
@@ -174,7 +157,6 @@ export {
   CommentSignalSummaryInputSchema,
   ProductSignalSummaryInputSchema,
   EvidencePacketAnalysisInputSchema,
-  MapAuthoringInputSchema,
   SchemaValidationOnlyInputSchema,
   AiInputSchema,
   AiPagePreparationOutputSchema,

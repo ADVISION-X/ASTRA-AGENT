@@ -1,11 +1,9 @@
 import type { MissionState, OperationalMap } from "../contract.js";
 import type { OrchestrationRuntimeContext } from "./orchestration-runtime-context.js";
-import { buildAiStepResult } from "./step-dispatch-ai.js";
+import { buildAiStepResult, executeAiDispatchActionPlan } from "./step-dispatch-ai.js";
 import { findEffectiveOperationalStep } from "./route-plan-resolver.js";
 import { buildAbilityDispatchResult, buildAiDispatchRequest } from "./step-dispatch-request-builders.js";
 import { buildFinalizeStepResult } from "./step-dispatch-review.js";
-import { decodeVisualMissionActionPlan } from "../../../muscle-memory/decoder/action-plan-decoder.js";
-import { executeMuscleMemoryPlan } from "../../../muscle-memory/executor/muscle-memory-executor.js";
 import {
   allowsPostClickObservationAbilityGroup,
   ensurePostActionVerificationDispatchGate,
@@ -18,7 +16,6 @@ import {
   type AbilityDispatchTarget,
   type AbilityStep,
   type AiStep,
-  type DispatchChain,
   type FinalizeStep,
   type OperationalStep,
   type StepDispatchResult,
@@ -50,11 +47,6 @@ async function sendAbilityDispatch(input: AbilityDispatchInput, targetAbilityGro
       sessionId: chain.value.sessionId,
       roundId: chain.value.roundId,
       videoVisitId: chain.value.videoVisitId,
-      mapPackageId: chain.value.mapPackageId,
-      mapPackageVersion: chain.value.mapPackageVersion,
-      selectedMapVersion: chain.value.selectedMapVersion,
-      activationId: chain.value.activationId,
-      activationSnapshotRef: chain.value.activationSnapshotRef,
       targetAbilityGroupId,
       childCapabilityId: input.step.childCapabilityId,
       expectedOutputSchemaRef: buildAbilityOutputSchemaRef(targetAbilityGroupId, input.step.childCapabilityId),
@@ -107,52 +99,6 @@ function prepareAiDispatch(input: {
   return aiDispatchRequirements.ok
     ? { ok: true as const, value: { chain: chain.value, step: { ...input.step, promptContractId: input.step.promptContractId }, aiDispatchRequirements: aiDispatchRequirements.value } }
     : { ok: false as const, failureReason: aiDispatchRequirements.failureReason };
-}
-
-async function executeAiDispatchActionPlan(input: {
-  state: MissionState;
-  map: OperationalMap;
-  step: AiStep;
-  missionId: string;
-  sequenceNo: number;
-  idempotencyKey: string;
-  chain: DispatchChain;
-  dispatchResult: Awaited<ReturnType<OrchestrationRuntimeContext["nerveBus"]["sendRequestToAi"]>>;
-  context: Pick<OrchestrationRuntimeContext, "nerveBus">;
-}) {
-  const runtimePayloadRefs = {
-    ...input.state.payloadRefs,
-    ...input.dispatchResult.payloadRefs,
-  };
-  const decodedPlan = decodeVisualMissionActionPlan({
-    plan: input.dispatchResult.actionPlan,
-    sourceAiResultRef: input.dispatchResult.payloadRefs.aiResultRef ?? null,
-    runtimeContext: {
-      payloadRefs: runtimePayloadRefs,
-    },
-  });
-  const executionResult = await executeMuscleMemoryPlan({
-    state: { payloadRefs: runtimePayloadRefs },
-    map: input.map,
-    missionId: input.missionId,
-    chain: input.chain,
-    sequenceNo: input.sequenceNo + 1,
-    idempotencyKey: `${input.idempotencyKey}:muscle-memory`,
-    plan: decodedPlan,
-    nerveBus: input.context.nerveBus,
-  });
-
-  return {
-    ...input.dispatchResult,
-    status: executionResult.status,
-    failureReason: executionResult.failureReason,
-    payloadRefs: executionResult.payloadRefs,
-    branchFieldValues: {
-      ...input.dispatchResult.branchFieldValues,
-      muscleMemoryExecuted: true,
-      actionExecutionCount: executionResult.actionResults.length,
-    },
-  };
 }
 
 async function dispatchAiStep(input: {

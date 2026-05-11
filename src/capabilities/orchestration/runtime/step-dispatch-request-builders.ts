@@ -9,10 +9,12 @@ import {
   resolvePersistentMissionPayloadRefKeys,
   resolveStepTimeoutMs,
   type AbilityDispatchInput,
+  type AiPromptContractCatalogEntry,
   type AiStep,
   type DispatchChain,
   type StepDispatchResult,
 } from "./step-dispatch-shared.js";
+import { buildAiDispatchAugmentation } from "./visual-mission-ai-dispatch-context.js";
 
 export function buildAiDispatchRequest(input: {
   state: MissionState;
@@ -29,8 +31,13 @@ export function buildAiDispatchRequest(input: {
     outputSchemaRef: string;
     aiInputRefs: string[];
     providerPolicyRef: string;
+    promptContract: AiPromptContractCatalogEntry;
   };
 }) {
+  const augmentation = buildAiDispatchAugmentation({
+    state: input.state,
+    promptContract: input.aiDispatchRequirements.promptContract,
+  });
   return {
     missionId: input.missionId,
     mapId: input.map.mapId,
@@ -40,18 +47,14 @@ export function buildAiDispatchRequest(input: {
     sessionId: input.chain.sessionId,
     roundId: input.chain.roundId,
     videoVisitId: input.chain.videoVisitId,
-    mapPackageId: input.chain.mapPackageId,
-    mapPackageVersion: input.chain.mapPackageVersion,
-    selectedMapVersion: input.chain.selectedMapVersion,
-    activationId: input.chain.activationId,
-    activationSnapshotRef: input.chain.activationSnapshotRef,
     taskType: input.aiDispatchRequirements.taskType,
     promptContractId: input.step.promptContractId,
     promptContractVersion: input.aiDispatchRequirements.promptContractVersion,
     outputSchemaRef: input.aiDispatchRequirements.outputSchemaRef,
     aiInputRefs: input.aiDispatchRequirements.aiInputRefs,
     providerPolicyRef: input.aiDispatchRequirements.providerPolicyRef,
-    payloadRefs: input.state.payloadRefs,
+    payloadRefs: augmentation.payloadRefs,
+    dispatchInput: augmentation.dispatchInput,
     sequenceNo: input.sequenceNo,
     idempotencyKey: input.idempotencyKey,
     timeoutMs: resolveStepTimeoutMs(input.step),

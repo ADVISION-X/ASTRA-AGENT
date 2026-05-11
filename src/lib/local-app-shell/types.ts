@@ -18,7 +18,6 @@ type CommanderConsolePrimaryPageId =
   | "mission-cockpit"
   | "records-exports"
   | "debug-health"
-  | "map-lab"
   | "run-policy";
 
 type CommanderConsoleStatusTone = "ok" | "attention" | "blocked";
@@ -72,7 +71,7 @@ type CommanderConsoleMapView = {
   activationGateStatus: string;
   lifecycleStatus: string;
   validationSummary: string;
-  activationId: string | null;
+  bindingActivationRef: string | null;
   draftOnly: boolean;
   chain: string[];
 };
@@ -85,7 +84,7 @@ type CommanderConsolePreflightCheck = {
 };
 
 type CommanderConsoleTaskTemplate = {
-  taskTemplateId: string;
+  taskBindingId: string;
   displayName: string;
   description: string;
   version: string;

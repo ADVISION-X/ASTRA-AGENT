@@ -52,8 +52,8 @@ function buildRuntimeProofSeed(input: Parameters<typeof buildMouseClickResult>[0
   return {
     attemptRef: input.seed.attemptRef, childCapabilityId: input.seed.childCapabilityId, missionId: input.seed.missionId, runId: input.seed.runId,
     sessionId: input.seed.sessionId, roundId: input.seed.roundId, videoVisitId: input.seed.videoVisitId, stepId: input.seed.stepId,
-    mapPackageId: input.seed.mapPackageId, mapPackageVersion: input.seed.mapPackageVersion, selectedMapId: input.seed.selectedMapId,
-    selectedMapVersion: input.seed.selectedMapVersion, activationSnapshotRef: input.seed.activationSnapshotRef,
+    bindingPackageId: input.seed.bindingPackageId, bindingPackageVersion: input.seed.bindingPackageVersion, selectedBindingId: input.seed.selectedBindingId,
+    bindingVersion: input.seed.bindingVersion, bindingSnapshotRef: input.seed.bindingSnapshotRef,
     capabilityCallId: input.seed.capabilityCallId, nerveBusEnvelopeId: input.seed.nerveBusEnvelopeId,
     sourceAbilityGroupId: input.seed.sourceAbilityGroupId, sourceChildCapabilityId: input.seed.sourceChildCapabilityId,
     parseErrorRef: input.seed.parseErrorRef, receivedShapeHash: input.seed.receivedShapeHash, geometryGuardRef: input.seed.geometryGuardRef,
@@ -169,9 +169,9 @@ export function buildMouseClickResult(input: {
   return MouseClickAbilityResultSchema.parse({
     abilityGroupId: "mouse-click", childCapabilityId: input.seed.childCapabilityId, status: input.status,
     missionId: input.seed.missionId, runId: input.seed.runId, sessionId: input.seed.sessionId, roundId: input.seed.roundId,
-    videoVisitId: input.seed.videoVisitId, stepId: input.seed.stepId, mapPackageId: input.seed.mapPackageId,
-    mapPackageVersion: input.seed.mapPackageVersion, selectedMapId: input.seed.selectedMapId, selectedMapVersion: input.seed.selectedMapVersion,
-    activationSnapshotRef: input.seed.activationSnapshotRef, capabilityCallId: input.seed.capabilityCallId, nerveBusEnvelopeId: input.seed.nerveBusEnvelopeId,
+    videoVisitId: input.seed.videoVisitId, stepId: input.seed.stepId, bindingPackageId: input.seed.bindingPackageId,
+    bindingPackageVersion: input.seed.bindingPackageVersion, selectedBindingId: input.seed.selectedBindingId, bindingVersion: input.seed.bindingVersion,
+    bindingSnapshotRef: input.seed.bindingSnapshotRef, capabilityCallId: input.seed.capabilityCallId, nerveBusEnvelopeId: input.seed.nerveBusEnvelopeId,
     clickResultRef: outputRef,
     attemptRef: input.seed.attemptRef, diagnosticPayloadRef, output, failureReason: input.failureReason, reviewRequiredReason: input.reviewRequiredReason,
     statusMessage: input.statusMessage, geometryGuardRef: input.seed.geometryGuardRef, policyDecision: input.policyDecision, geometryGuardProofRef: input.seed.geometryGuardProofRef,

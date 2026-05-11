@@ -1,4 +1,3 @@
-import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 import type { MissionReadinessReport, RuntimeHealthReport } from "../../types/runtime.js";
 import type { MissionStartPreflightComponent, RequestedPlatformId, WorkbenchRuntime } from "./workbench-contract.js";
 import { getOpenLocalProgramAdapterReadiness } from "./open-local-program-adapter.js";
@@ -7,7 +6,7 @@ import { checkMissionCommandSchemaPreflight, describeMissionCommandSchemaPreflig
 const PLATFORM_MODE_INFO = {
   "agent-shell": {
     platformLabel: "Mission-governed multi-platform agent shell",
-    executionMode: "Platform binding is resolved at mission start",
+    executionMode: "Platform selection is validated at mission start",
     fallbackMode: "No startup-time platform binding or silent default",
     geometryGuard: "Capability-owned at execution time",
     viewport: "Derived from governed browser session",
@@ -15,7 +14,7 @@ const PLATFORM_MODE_INFO = {
     orientation: "capability-owned",
   },
   "tiktok-web": {
-    platformLabel: "TikTok web governed map runtime",
+    platformLabel: "TikTok web governed visual runtime",
     executionMode: "Ability-group governed runtime",
     fallbackMode: "No platform-owned fallback chain",
     geometryGuard: "Capability-owned at execution time",
@@ -24,7 +23,7 @@ const PLATFORM_MODE_INFO = {
     orientation: "capability-owned",
   },
   "facebook-web": {
-    platformLabel: "Facebook web governed map runtime",
+    platformLabel: "Facebook web governed visual runtime",
     executionMode: "Ability-group governed runtime",
     fallbackMode: "No platform-owned fallback chain",
     geometryGuard: "Capability-owned at execution time",
@@ -63,7 +62,7 @@ const PLATFORM_MODE_INFO = {
 
 const CAPABILITY_ROSTER = [
   { abilityGroupId: "commander-console", displayName: "Commander Console", currentStrength: "governed", purpose: "Mission command and read-only operator console" },
-  { abilityGroupId: "orchestration", displayName: "Orchestration", currentStrength: "governed", purpose: "Mission command, map execution, and controlled transitions" },
+  { abilityGroupId: "orchestration", displayName: "Orchestration", currentStrength: "governed", purpose: "Mission command, governed round execution, and controlled transitions" },
   { abilityGroupId: "nerve-bus", displayName: "Nerve Bus", currentStrength: "governed", purpose: "Governed transport between orchestration, abilities, AI, and commander" },
   { abilityGroupId: "ai", displayName: "AI", currentStrength: "specialized", purpose: "Local model execution under governed contracts" },
   { abilityGroupId: "open", displayName: "Open", currentStrength: "governed", purpose: "Governed target-page opening and session-safe navigation" },
@@ -77,23 +76,22 @@ const CAPABILITY_ROSTER = [
   { abilityGroupId: "page-state", displayName: "Page State", currentStrength: "governed", purpose: "Page readiness and safety-state truth" },
 ] as const;
 
-const resolveMissionBindingReadinessComponent = async (
+const resolveMissionInputReadinessComponent = async (
   runtime: WorkbenchRuntime,
 ): Promise<MissionReadinessReport["components"][number]> => {
   const mission = await runtime.orchestrationAbilityGroup.getMissionState();
-  if (mission.mapId !== null) {
-    return { name: "mission", ok: true, detail: `mission_status=${mission.status}; selectedMapId=${mission.mapId}; requestedPlatformId=${mission.requestedPlatform ?? "none"}; round=${mission.currentRoundIndex}`, ownerResponsible: "Orchestration", actionableMessage: "Mission binding already exists for the active run.", severity: "info", source: "active-mission" };
+  if (mission.missionId !== null) {
+    return { name: "mission", ok: true, detail: `mission_status=${mission.status}; missionId=${mission.missionId}; requestedPlatformId=${mission.requestedPlatform ?? "none"}; humanGoal=${mission.humanGoal ? "present" : "missing"}; round=${mission.currentRoundIndex}`, ownerResponsible: "Orchestration", actionableMessage: "Mission input already exists for the active run.", severity: "info", source: "active-mission" };
   }
-  const readyTemplates = getDevelopmentMapPluginRegistry().active.listOrdinaryTaskTemplates().filter((template) => template.availability === "ready");
-  if (readyTemplates.length === 0) {
-    return { name: "mission", ok: false, detail: "no active approved task template can resolve a governed map binding", ownerResponsible: "Orchestration / Map Plugin Registry", actionableMessage: "Activate at least one approved task template before starting a mission.", severity: "blocked", source: "active-task-template-feed" };
-  }
-  const defaultTemplate = readyTemplates[0];
-  const binding = defaultTemplate ? getDevelopmentMapPluginRegistry().active.getTaskTemplateDeveloperBinding(defaultTemplate.taskTemplateId) : null;
-  if (!defaultTemplate || !binding) {
-    return { name: "mission", ok: false, detail: "active task-template feed is missing an approved developer binding", ownerResponsible: "Orchestration / Map Plugin Registry", actionableMessage: "Repair the active task template binding before starting a mission.", severity: "blocked", source: "active-task-template-feed" };
-  }
-  return { name: "mission", ok: true, detail: `launchBinding taskTemplateId=${binding.taskTemplateId}; selectedMapId=${binding.mapId}; requestedPlatformId=${binding.requestedPlatformId}; readyTemplates=${readyTemplates.length}`, ownerResponsible: "Orchestration / Map Plugin Registry", actionableMessage: readyTemplates.length === 1 ? "Mission start binding will be resolved from the active approved task template at command time." : "Mission start binding will be resolved from the selected approved task template at command time.", severity: "info", source: "active-task-template-feed" };
+  return {
+    name: "mission",
+    ok: true,
+    detail: "mission start input is supplied at command time from userRequirementText + selectedPlatforms; no startup-time map or task-template binding is used",
+    ownerResponsible: "Commander Console / Orchestration",
+    actionableMessage: "Run mission start preflight with explicit user requirement and selected platforms before dispatch.",
+    severity: "info",
+    source: "command-preflight",
+  };
 };
 
 export const getHealthReport = async (runtime: WorkbenchRuntime): Promise<RuntimeHealthReport> => {
@@ -101,7 +99,7 @@ export const getHealthReport = async (runtime: WorkbenchRuntime): Promise<Runtim
   const browserHealth = runtime.browserController.getHealth();
   const components = [
     { name: "console", ok: true, detail: "Commander Console route ready" },
-    { name: "agent", ok: true, detail: `mission_status=${mission.status}; map=${mission.mapId ?? "none"}; round=${mission.currentRoundIndex}` },
+    { name: "agent", ok: true, detail: `mission_status=${mission.status}; platform=${mission.requestedPlatform ?? "none"}; round=${mission.currentRoundIndex}` },
     { name: "browserController", ok: browserHealth.ok, detail: browserHealth.detail },
     { name: "dataStore", ok: dataStoreHealth.ok, detail: dataStoreHealth.detail },
   ] as const;
@@ -118,15 +116,15 @@ export const getHealthReport = async (runtime: WorkbenchRuntime): Promise<Runtim
 export const getMissionReadinessReport = async (
   runtime: WorkbenchRuntime,
 ): Promise<MissionReadinessReport> => {
-  const [bindingComponent, dataStoreHealth, localAiHealth, localAiRuntimeHealth] = await Promise.all([
-    resolveMissionBindingReadinessComponent(runtime),
+  const [inputComponent, dataStoreHealth, localAiHealth, localAiRuntimeHealth] = await Promise.all([
+    resolveMissionInputReadinessComponent(runtime),
     runtime.evidenceStore.getHealth(),
     runtime.aiAbilityGroup.getHealth(),
     runtime.aiAbilityGroup.getRuntimeHealth(),
   ]);
   const browserHealth = runtime.browserController.getHealth();
   const components = [
-    bindingComponent,
+    inputComponent,
     { name: "browserController", ok: browserHealth.ok, detail: browserHealth.detail, ownerResponsible: "Commander Console / Local Browser Session", actionableMessage: "Restore the governed local browser session before retrying mission start.", severity: browserHealth.ok ? "info" : "blocked", source: "service-health" },
     { name: "localAi", ok: localAiHealth.ok, detail: `${localAiHealth.detail}; lastTask=${localAiRuntimeHealth.lastTaskType ?? "none"}; lastStatus=${localAiRuntimeHealth.lastInvocationStatus ?? "none"}; lastFailure=${localAiRuntimeHealth.lastFailureReason ?? "none"}`, ownerResponsible: "AI Capability / Local AI Runtime", actionableMessage: "Start Ollama or repair the local AI runtime before starting this mission.", severity: localAiHealth.ok ? "info" : "blocked", source: "service-health" },
     { name: "dataStore", ok: dataStoreHealth.ok, detail: dataStoreHealth.detail, ownerResponsible: "Forensics Persistence", actionableMessage: "Repair the local Forensics store before starting this mission.", severity: dataStoreHealth.ok ? "info" : "blocked", source: "service-health" },

@@ -21,7 +21,7 @@ export const createMissionReadModel = (
       missionRunRef: mission.activeTaskRunId,
       currentRoundIndex: mission.currentRoundIndex,
       requestedPlatform: mission.requestedPlatform,
-      selectedMapId: mission.mapId,
+      selectedBindingId: mission.mapId,
       lastHumanCommand: mission.lastHumanCommand === "submit-review-decision" ? null : mission.lastHumanCommand,
       reviewRequiredReason: mission.reviewRequiredReason ?? null,
       failureReason: mission.failureReason ?? null,

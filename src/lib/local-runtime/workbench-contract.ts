@@ -15,14 +15,6 @@ import type { StructuredLogBus } from "./structured-log-bus.js";
 import type { WorkbenchNerveBusAbilityGroup as NerveBusAbilityGroup } from "./workbench-nerve-bus-types.js";
 import type { PostActionVerificationAbilityGroup } from "./workbench-post-action-types.js";
 import type {
-  MapLabActivationResult,
-  MapLabAutomationGateResult,
-  MapLabGenerateDraftResult,
-  MapLabProviderConfigInput,
-  MapLabProviderState,
-  MapLabSnapshot,
-} from "./map-lab/map-lab-types.js";
-import type {
   UserRequirementHistoryEntry,
   UserRequirementHistoryUpsertInput,
 } from "./user-requirement-history-store.js";
@@ -138,7 +130,6 @@ type WorkbenchOrchestrationAbilityGroup = {
   resumeMission(missionId: string): Promise<WorkbenchMissionState>;
   stopMission(input: { missionId: string; reason: string }): Promise<WorkbenchMissionState>;
   emergencyStop(input: { missionId: string; reason: string }): Promise<WorkbenchMissionState>;
-  listMapIds(): string[];
 };
 
 export type MissionStartPreflightComponent = {
@@ -198,7 +189,7 @@ export type WorkbenchRuntime = WorkbenchBaseRuntime & {
     missionId?: string | null;
     runId?: string | null;
     mapId?: string | null;
-    taskTemplateId?: string | null;
+    taskBindingId?: string | null;
     reason?: string | null;
     failureReason?: string | null;
     actionableMessage?: string | null;
@@ -225,11 +216,6 @@ export type WorkbenchRuntime = WorkbenchBaseRuntime & {
   upsertUserRequirementHistory(input: UserRequirementHistoryUpsertInput): Promise<UserRequirementHistoryEntry>;
   deleteUserRequirementHistory(id: string): Promise<boolean>;
   reuseUserRequirementHistory(id: string): Promise<UserRequirementHistoryEntry | null>;
-  getMapLabSnapshot(): Promise<MapLabSnapshot>;
-  saveMapLabProviderConfig(input: MapLabProviderConfigInput): Promise<MapLabProviderState>;
-  generateMapLabDraft(input: unknown): Promise<MapLabGenerateDraftResult>;
-  passMapLabAutomationGate(input: { packageId: string; packageVersion: string; gateActor: string }): Promise<MapLabAutomationGateResult>;
-  activateMapLabDraft(input: { packageId: string; packageVersion: string; gateActor: string; reason: string }): Promise<MapLabActivationResult>;
   getModeInfo(): {
     dataMode: "Real Platform";
     platformId: string;

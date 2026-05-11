@@ -16,7 +16,7 @@ export const RESUME_MISSION_CHILD: CommanderConsoleChildDefinition<ResumeMission
       buildCommandInput: (commandInput) => ({
         commandType: "resume-mission",
         targetMissionId: commandInput.targetMissionId ?? null,
-        selectedMapId: null,
+        selectedBindingId: null,
         targetRecordRef: null,
         requestedPlatformId: null,
         humanGoal: null,

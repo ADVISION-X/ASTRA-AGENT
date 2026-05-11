@@ -115,12 +115,12 @@ const buildProofTraceFields = (envelope: SupportedEnvelope) => ({
 
 const buildProofExecutionChainFields = (envelope: SupportedEnvelope) => ({
   stepId: envelope.stepId,
-  mapPackageId: envelope.mapPackageId,
-  mapPackageVersion: envelope.mapPackageVersion,
-  selectedMapId: envelope.selectedMapId,
-  selectedMapVersion: envelope.selectedMapVersion,
-  activationId: envelope.activationId,
-  activationSnapshotRef: envelope.activationSnapshotRef,
+  bindingPackageId: envelope.bindingPackageId,
+  bindingPackageVersion: envelope.bindingPackageVersion,
+  selectedBindingId: envelope.selectedBindingId,
+  bindingVersion: envelope.bindingVersion,
+  bindingActivationRef: envelope.bindingActivationRef,
+  bindingSnapshotRef: envelope.bindingSnapshotRef,
   capabilityCallId: envelope.capabilityCallId,
   sourceRef: envelope.sourceRef,
   inputRef: envelope.inputRef,

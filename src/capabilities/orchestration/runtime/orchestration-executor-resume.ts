@@ -164,13 +164,13 @@ async function runResumeMissionPlanWithState(
   command: ReturnType<typeof parseMissionControlCommand>,
   startedSnapshot: { isoTimestamp: string; monotonicMs: number },
 ): Promise<MissionExecutionResult> {
-  if (!state.mapId) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: `Mission ${command.missionId} has no mapId.`, stepId: "map-lookup", childCapabilityId: "map-lookup", idempotencySuffix: "no-map" });
+  if (!state.mapId) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: `Mission ${command.missionId} has no stored runtime plan. Legacy mapId-based resume is retired.`, stepId: "runtime-plan-lookup", childCapabilityId: "runtime-plan-lookup", idempotencySuffix: "no-runtime-plan" });
 
   const mapRecord = await resolveFrozenActivationMapRecord(input.context.mapStore, state);
-  if (!mapRecord) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: `Frozen activation snapshot is missing for resume of mission ${command.missionId}.`, stepId: "map-lookup", childCapabilityId: "map-lookup", idempotencySuffix: "map-missing" });
+  if (!mapRecord) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: `Stored runtime plan is unavailable for resume of mission ${command.missionId}. Retired operational-map activation cannot be recovered.`, stepId: "runtime-plan-lookup", childCapabilityId: "runtime-plan-lookup", idempotencySuffix: "runtime-plan-missing" });
 
-  const mapValidation = validateOperationalMapGate(mapRecord.operationalMap);
-  if (!mapValidation.valid) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: mapValidation.failureReason, stepId: "map-validation", childCapabilityId: "map-validation", idempotencySuffix: "map-invalid", mapRecord });
+  const mapValidation = validateOperationalMapGate(mapRecord.missionFlow);
+  if (!mapValidation.valid) return buildResumeStateFailure(input, state, { startedAt: startedSnapshot.isoTimestamp, missionId: command.missionId, failureReason: `Stored runtime plan validation failed: ${mapValidation.failureReason}`, stepId: "runtime-plan-validation", childCapabilityId: "runtime-plan-validation", idempotencySuffix: "runtime-plan-invalid", mapRecord });
 
   const resumedAt = input.context.clock.now().isoTimestamp;
   const runLockId = buildRunLockId(command.missionId, resumedAt);
@@ -195,7 +195,7 @@ async function runResumeMissionPlanWithState(
     idempotencyKey,
     selectedMapSource: resumedState.selectedMapSource && resumedState.selectedMapSource !== "rejected_missing"
       ? resumedState.selectedMapSource
-      : "activation_id",
+      : "preferred_map_id",
   });
 }
 

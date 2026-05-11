@@ -89,32 +89,32 @@ function validateGovernedResultEnvelope(value: ResultEnvelopeBaseValue, context:
 
 const NullableHumanCommandChainFields = {
   mapId: MapIdSchema.nullable().default(null),
-  mapPackageId: MapPackageIdSchema.nullable().default(null),
-  mapPackageVersion: MapPackageVersionSchema.nullable().default(null),
-  selectedMapId: SelectedMapIdSchema.nullable().default(null),
-  selectedMapVersion: SelectedMapVersionSchema.nullable().default(null),
-  activationId: ActivationIdSchema.nullable().default(null),
-  activationSnapshotRef: ActivationSnapshotRefSchema.nullable().default(null),
+  bindingPackageId: MapPackageIdSchema.nullable().default(null),
+  bindingPackageVersion: MapPackageVersionSchema.nullable().default(null),
+  selectedBindingId: SelectedMapIdSchema.nullable().default(null),
+  bindingVersion: SelectedMapVersionSchema.nullable().default(null),
+  bindingActivationRef: ActivationIdSchema.nullable().default(null),
+  bindingSnapshotRef: ActivationSnapshotRefSchema.nullable().default(null),
 };
 
 const HumanCommandEnvelopeBaseCoreSchema = NerveBusEnvelopeBaseCoreSchema.omit({
   mapId: true,
-  mapPackageId: true,
-  mapPackageVersion: true,
-  selectedMapId: true,
-  selectedMapVersion: true,
-  activationId: true,
-  activationSnapshotRef: true,
+  bindingPackageId: true,
+  bindingPackageVersion: true,
+  selectedBindingId: true,
+  bindingVersion: true,
+  bindingActivationRef: true,
+  bindingSnapshotRef: true,
 }).extend(NullableHumanCommandChainFields);
 
 const HumanCommandResultEnvelopeBaseCoreSchema = ResultEnvelopeBaseCoreSchema.omit({
   mapId: true,
-  mapPackageId: true,
-  mapPackageVersion: true,
-  selectedMapId: true,
-  selectedMapVersion: true,
-  activationId: true,
-  activationSnapshotRef: true,
+  bindingPackageId: true,
+  bindingPackageVersion: true,
+  selectedBindingId: true,
+  bindingVersion: true,
+  bindingActivationRef: true,
+  bindingSnapshotRef: true,
 }).extend(NullableHumanCommandChainFields);
 
 export const ResultEnvelopeBaseSchema = ResultEnvelopeBaseCoreSchema.superRefine(validateGovernedResultEnvelope);
@@ -216,7 +216,6 @@ export const HumanCommandEnvelopeSchema = HumanCommandEnvelopeBaseCoreSchema.ext
   commanderCommandRef: z.string().min(1),
   commanderEnvelopeRef: z.string().min(1),
   requestedPlatformId: RequestedPlatformIdSchema,
-  taskTemplateId: z.string().min(1).nullable().default(null),
   targetRecordRef: TargetRecordRefSchema,
 }).strict().superRefine((value, context) => {
   validateNerveBusEnvelopeBase(value, context);

@@ -33,8 +33,35 @@ const logHumanCommandDebugFailure = (error: unknown) => {
   console.error("[grasseye:human-command-debug]", error instanceof Error ? error.message : "Unknown human command debug write failure");
 };
 
+const logInvalidPayloadField = (fieldName: string, error: unknown) => {
+  console.error(
+    "[grasseye:start-mission-payload]",
+    `${fieldName} contains invalid JSON: ${error instanceof Error ? error.message : "Unknown payload parse failure"}`,
+  );
+};
+
 const recordHumanCommandDebug = (write: Promise<void>) => {
   void write.catch(logHumanCommandDebugFailure);
+};
+
+const parseStringArrayPayloadField = (
+  payload: Record<string, string | number | boolean | null>,
+  key: "selectedPlatformsJson",
+): string[] => {
+  const rawValue = payloadValueToString(payload[key]);
+  if (!rawValue) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    return Array.isArray(parsed)
+      ? parsed.filter((entry): entry is string => typeof entry === "string" && entry.length > 0)
+      : [];
+  } catch (error) {
+    logInvalidPayloadField(key, error);
+    return [];
+  }
 };
 
 export const buildHumanCommandResultEnvelope = (input: {
@@ -86,6 +113,9 @@ const buildStartMissionInitialPayload = (
   payload: Record<string, string | number | boolean | null>,
 ) => ({
   requestedBy: "commander-console",
+  userRequirementRef: payloadValueToString(payload.userRequirementRef),
+  primaryPlatformId: payloadValueToString(payload.primaryPlatformId),
+  selectedPlatforms: parseStringArrayPayloadField(payload, "selectedPlatformsJson"),
   maxRounds: payloadValueToInteger(payload.maxRounds),
   maxMinutes: payloadValueToInteger(payload.maxMinutes),
   operatorNote: payloadValueToString(payload.operatorNote),

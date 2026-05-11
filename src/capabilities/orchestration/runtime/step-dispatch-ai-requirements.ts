@@ -1,6 +1,7 @@
 import type { MissionState, OperationalMap } from "../contract.js";
 import { findAiPromptContractCatalogEntry } from "../../ai/index.js";
 import type { AiStep } from "./step-dispatch-shared.js";
+import { resolveAiDispatchPayloadRefValue } from "./visual-mission-ai-dispatch-context.js";
 
 type AiDispatchRequirements = {
   taskType: string;
@@ -8,12 +9,7 @@ type AiDispatchRequirements = {
   outputSchemaRef: string;
   aiInputRefs: string[];
   providerPolicyRef: string;
-};
-
-const resolvePayloadRefValue = (payloadRefs: MissionState["payloadRefs"], key: string): string | null => {
-  const payloadKey = key as keyof MissionState["payloadRefs"];
-  const value = payloadRefs[payloadKey];
-  return typeof value === "string" && value.length > 0 ? value : null;
+  promptContract: NonNullable<ReturnType<typeof findAiPromptContractCatalogEntry>>;
 };
 
 const buildAiInputRefsForStep = (input: {
@@ -21,6 +17,15 @@ const buildAiInputRefsForStep = (input: {
   step: AiStep;
   aiInputRefs: string[];
 }) => Array.from(new Set(input.aiInputRefs));
+
+const normalizeRequiredInputRefs = (inputRefs: string[]) => Array.from(new Set(inputRefs));
+
+const doRequiredInputRefsMatch = (left: string[], right: string[]) => {
+  const normalizedLeft = normalizeRequiredInputRefs(left);
+  const normalizedRight = normalizeRequiredInputRefs(right);
+  return normalizedLeft.length === normalizedRight.length
+    && normalizedLeft.every((value) => normalizedRight.includes(value));
+};
 
 const resolvePromptContractForAiStep = (step: AiStep) => {
   if (!step.promptContractId) {
@@ -34,25 +39,40 @@ const resolvePromptContractForAiStep = (step: AiStep) => {
 
 const resolveAiPromptBinding = (input: {
   step: AiStep;
+  promptContract: NonNullable<ReturnType<typeof findAiPromptContractCatalogEntry>>;
   outputSchemaRef: string;
-}) => ({
-  ok: true as const,
-  binding: {
-    stepId: input.step.stepId,
-    promptContractId: input.step.promptContractId,
-    requiredInputRefs: input.step.inputRefs,
-    outputSchemaRef: input.outputSchemaRef,
-  },
-});
+}) => {
+  if (input.step.inputRefs.length > 0 && !doRequiredInputRefsMatch(input.step.inputRefs, input.promptContract.requiredInputRefs)) {
+    return {
+      ok: false as const,
+      failureReason: `AI step "${input.step.stepId}" inputRefs drift from prompt contract ${input.promptContract.promptContractId}.`,
+    };
+  }
+
+  return {
+    ok: true as const,
+    binding: {
+      stepId: input.step.stepId,
+      promptContractId: input.step.promptContractId,
+      requiredInputRefs: input.promptContract.requiredInputRefs,
+      outputSchemaRef: input.outputSchemaRef,
+    },
+  };
+};
 
 const resolveRequiredAiInputRefs = (input: {
   state: MissionState;
   step: AiStep;
+  promptContract: NonNullable<ReturnType<typeof findAiPromptContractCatalogEntry>>;
   requiredInputRefs: string[];
 }) => {
-  const aiInputRefs = input.requiredInputRefs.map((key) => resolvePayloadRefValue(input.state.payloadRefs, key));
+  const aiInputRefs = input.requiredInputRefs.map((key) => resolveAiDispatchPayloadRefValue({
+    state: input.state,
+    promptContract: input.promptContract,
+    key,
+  }));
   return aiInputRefs.some((value) => value === null)
-    ? { ok: false as const, failureReason: `AI step "${input.step.stepId}" is missing required aiInputRefs from payloadRefs.` }
+    ? { ok: false as const, failureReason: `AI step "${input.step.stepId}" is missing required aiInputRefs from mission state or derived prompt-contract context.` }
     : { ok: true as const, aiInputRefs: buildAiInputRefsForStep({ state: input.state, step: input.step, aiInputRefs: aiInputRefs as string[] }) };
 };
 
@@ -62,6 +82,7 @@ const buildAiDispatchRequirements = (input: {
   outputSchemaRef: string;
   aiInputRefs: string[];
   stepId: string;
+  promptContract: NonNullable<ReturnType<typeof findAiPromptContractCatalogEntry>>;
 }): { ok: true; value: AiDispatchRequirements } => ({
   ok: true,
   value: {
@@ -70,6 +91,7 @@ const buildAiDispatchRequirements = (input: {
     outputSchemaRef: input.outputSchemaRef,
     aiInputRefs: input.aiInputRefs,
     providerPolicyRef: `orchestration:${input.stepId}:provider-policy`,
+    promptContract: input.promptContract,
   },
 });
 
@@ -80,6 +102,7 @@ const resolveAiStepContractBinding = (input: { map: OperationalMap; step: AiStep
   }
   const bindingResult = resolveAiPromptBinding({
     step: input.step,
+    promptContract: promptContractResult.promptContract,
     outputSchemaRef: promptContractResult.promptContract.outputSchemaRef,
   });
   return bindingResult.ok
@@ -102,6 +125,7 @@ export const resolveAiDispatchRequirements = (input: {
   const aiInputRefsResult = resolveRequiredAiInputRefs({
     state: input.state,
     step: input.step,
+    promptContract: contractBinding.promptContract,
     requiredInputRefs: contractBinding.binding.requiredInputRefs,
   });
   if (!aiInputRefsResult.ok) {
@@ -114,6 +138,7 @@ export const resolveAiDispatchRequirements = (input: {
     outputSchemaRef: contractBinding.binding.outputSchemaRef,
     aiInputRefs: aiInputRefsResult.aiInputRefs,
     stepId: input.step.stepId,
+    promptContract: contractBinding.promptContract,
   });
 };
 

@@ -120,8 +120,8 @@ function buildStartMapSelectionFailure(
       endedAt,
     }),
     {
-      stepId: "map-selection",
-      childCapabilityId: "map-selection",
+      stepId: "runtime-plan-resolution",
+      childCapabilityId: "runtime-plan-resolution",
       failureReason: mapSelection.failureReason,
       startedAt,
       endedAt,
@@ -139,6 +139,7 @@ function buildStartMapValidationFailure(
 ): MissionExecutionResult {
   const endedAt = input.context.clock.now().isoTimestamp;
   const { startedAt, fallbackIdempotencyKey, mapSelection, mapValidation } = details;
+  const failureReason = `Stored runtime plan validation failed: ${mapValidation.failureReason}`;
   return buildStartFailureResult(
     input,
     buildStartFailureState({
@@ -146,14 +147,14 @@ function buildStartMapValidationFailure(
       mapId: mapSelection.record.mapId,
       requestedPlatform: command.requestedPlatform,
       humanGoal: command.humanGoal,
-      failureReason: mapValidation.failureReason,
+      failureReason,
       startedAt,
       endedAt,
     }),
     {
-      stepId: "map-validation",
-      childCapabilityId: "map-validation",
-      failureReason: mapValidation.failureReason,
+      stepId: "runtime-plan-validation",
+      childCapabilityId: "runtime-plan-validation",
+      failureReason,
       startedAt,
       endedAt,
       durationMs: 0,

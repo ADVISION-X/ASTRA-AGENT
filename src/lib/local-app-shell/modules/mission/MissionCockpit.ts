@@ -54,7 +54,7 @@ export function renderMissionCockpit(viewModel: CommanderConsoleViewModel): stri
       <div>
         <p class="cc-eyebrow">${escapeHtml(t("当前任务", "Current Task"))}</p>
         <h4>${escapeHtml(taskTemplate?.displayName ?? t("尚未启动任务", "No task started yet"))}</h4>
-        <p class="cc-note">${escapeHtml(viewModel.rawSnapshot.mission.humanGoal || taskTemplate?.description || t("选择任务模板后即可开始。", "Select a task template to begin."))}</p>
+        <p class="cc-note">${escapeHtml(viewModel.rawSnapshot.mission.humanGoal || taskTemplate?.description || t("完成用户需求配置后即可开始。", "Complete the user requirement setup to begin."))}</p>
       </div>
       ${renderStatusPill(formatRuntimeState(viewModel), getRuntimeTone(viewModel))}
     </div>

@@ -16,7 +16,7 @@ export const APPROVE_CANDIDATE_CHILD: CommanderConsoleChildDefinition<ApproveCan
       buildCommandInput: (commandInput) => ({
         commandType: "approve-candidate",
         targetMissionId: null,
-        selectedMapId: null,
+        selectedBindingId: null,
         targetRecordRef: { recordType: "candidate", recordId: commandInput.candidateId },
         requestedPlatformId: null,
         humanGoal: null,

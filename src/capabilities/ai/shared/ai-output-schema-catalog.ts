@@ -3,7 +3,6 @@ import { z } from "zod";
 import {
   AiCommentSignalSummaryOutputSchema,
   AiEvidencePacketAnalysisOutputSchema,
-  AiMapAuthoringOutputSchema,
   AiOcrCleanupOutputSchema,
   AiPagePreparationOutputSchema,
   AiProductSignalSummaryOutputSchema,
@@ -27,7 +26,6 @@ const AI_OUTPUT_SCHEMA_BY_TASK_TYPE: Record<string, AiOutputSchemaDescriptor> = 
   comment_signal_summary: { schemaVersion: "ai.comment_signal_summary.v1", schema: AiCommentSignalSummaryOutputSchema },
   product_signal_summary: { schemaVersion: "ai.product_signal_summary.v1", schema: AiProductSignalSummaryOutputSchema },
   evidence_packet_analysis: { schemaVersion: "ai.evidence_packet_analysis.v1", schema: AiEvidencePacketAnalysisOutputSchema },
-  map_authoring: { schemaVersion: "ai.map_authoring.v1", schema: AiMapAuthoringOutputSchema },
   schema_validation_only: { schemaVersion: "ai.schema_validation_only.v1", schema: AiSchemaValidationOnlyOutputSchema },
 };
 

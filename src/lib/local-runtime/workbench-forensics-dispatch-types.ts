@@ -14,7 +14,7 @@ export type WorkbenchForensicsEnvelope = {
   payloadRef: string[];
   roundId: string | null;
   runId: string;
-  selectedMapId: string | null;
+  selectedBindingId: string | null;
   sessionId: string;
   stepId: string;
   videoVisitId: string | null;

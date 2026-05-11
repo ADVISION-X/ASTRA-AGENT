@@ -1,7 +1,5 @@
 import type { LocalAiTaskRequest } from "../../types/local-ai.js";
 import {
-  STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
-  STARTUP_PREPARATION_READY_ROUTE_LABEL,
   VisionPagePreparationPayloadSchema,
 } from "../../types/vision-page-preparation.js";
 import { LocalAiRuntimeError } from "./local-ai-runtime-error.js";
@@ -23,9 +21,6 @@ const normalizeToken = (value: unknown): string | null => {
   return normalized.length > 0 ? normalized : null;
 };
 
-const READY_ROUTE_TOKEN = normalizeToken(STARTUP_PREPARATION_READY_ROUTE_LABEL);
-const BLOCKED_ROUTE_TOKEN = normalizeToken(STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL);
-
 const YES_DECISION_TOKENS = new Set<string>([
   "yes",
   "ready",
@@ -35,7 +30,6 @@ const YES_DECISION_TOKENS = new Set<string>([
   "proceed",
   "proceedable",
   "ok",
-  READY_ROUTE_TOKEN ?? STARTUP_PREPARATION_READY_ROUTE_LABEL,
 ]);
 
 const NO_DECISION_TOKENS = new Set<string>([
@@ -47,29 +41,9 @@ const NO_DECISION_TOKENS = new Set<string>([
   "failed",
   "stop",
   "reject",
-  BLOCKED_ROUTE_TOKEN ?? STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL,
 ]);
 
-const resolveExplicitRouteLabel = (value: JsonRecord) => {
-  const routeToken = normalizeToken(value.routeLabel);
-  if (routeToken === READY_ROUTE_TOKEN) {
-    return STARTUP_PREPARATION_READY_ROUTE_LABEL;
-  }
-  if (routeToken === BLOCKED_ROUTE_TOKEN) {
-    return STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL;
-  }
-  return null;
-};
-
 const resolveDecision = (value: JsonRecord): "yes" | "no" => {
-  const explicitRouteLabel = resolveExplicitRouteLabel(value);
-  if (explicitRouteLabel === STARTUP_PREPARATION_READY_ROUTE_LABEL) {
-    return "yes";
-  }
-  if (explicitRouteLabel === STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL) {
-    return "no";
-  }
-
   const decisionToken = normalizeToken(value.decision);
   if (decisionToken && YES_DECISION_TOKENS.has(decisionToken)) {
     return "yes";
@@ -80,10 +54,6 @@ const resolveDecision = (value: JsonRecord): "yes" | "no" => {
 
   return "no";
 };
-
-const resolveRouteLabel = (value: JsonRecord, decision: "yes" | "no") =>
-  resolveExplicitRouteLabel(value)
-  ?? (decision === "yes" ? STARTUP_PREPARATION_READY_ROUTE_LABEL : STARTUP_PREPARATION_BLOCKED_ROUTE_LABEL);
 
 const resolveSummary = (value: JsonRecord, decision: "yes" | "no") => {
   if (typeof value.nonExecutableSummary === "string" && value.nonExecutableSummary.length > 0) {
@@ -128,7 +98,6 @@ export function parsePagePreparationRuntimeOutput(
     promptVersion: "v1",
     schemaVersion: "vision.pagePreparation.schema.v1",
     decision,
-    routeLabel: resolveRouteLabel(raw, decision),
     nonExecutableSummary: resolveSummary(raw, decision),
     confidence: resolveConfidence(raw),
     reason: resolveReason(raw, decision),

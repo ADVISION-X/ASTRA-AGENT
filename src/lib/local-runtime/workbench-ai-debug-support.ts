@@ -15,11 +15,12 @@ export type WorkbenchAiDebugEvent = {
   attemptId: string;
   videoVisitId: string | null;
   stepId?: string | null;
-  mapPackageId?: string | null;
-  mapPackageVersion?: string | null;
-  selectedMapId?: string | null;
-  selectedMapVersion?: string | null;
-  activationSnapshotRef?: string | null;
+  bindingPackageId?: string | null;
+  bindingPackageVersion?: string | null;
+  selectedBindingId?: string | null;
+  bindingVersion?: string | null;
+  bindingActivationRef?: string | null;
+  bindingSnapshotRef?: string | null;
   capabilityCallId?: string | null;
   nerveBusEnvelopeId?: string | null;
   inputRef?: string | null;
@@ -166,12 +167,10 @@ const buildAiDebugTraceFields = (input: WorkbenchAiDebugEvent, step: string, tra
   runId: input.runId ?? input.missionId ?? input.sessionId,
   roundId: input.roundId ?? input.attemptId,
   videoVisitId: input.videoVisitId,
-  mapId: input.selectedMapId ?? null,
-  taskTemplateId: null,
+  mapId: trace.mapId,
   traceId: input.traceId,
   spanId: input.spanId,
   attemptId: input.attemptId,
-  activationSnapshotRef: input.activationSnapshotRef ?? null,
   capabilityCallId: input.capabilityCallId ?? null,
   // Always use the RoundLifecycleStep-safe computed step; input.stepId may be
   // an orchestration map step ID (e.g. "judge-seeding-video") which is NOT a

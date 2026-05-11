@@ -1,1 +1,1 @@
-export type { ExecuteMapStepChildInput, ExecuteMapStepChildOutput } from "../../contract.js";
+export type { ExecuteRuntimeStepChildInput, ExecuteRuntimeStepChildOutput } from "../../contract.js";

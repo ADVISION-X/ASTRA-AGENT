@@ -6,7 +6,6 @@ import { recordCommanderDebugEvent } from "./workbench-commander-debug.js";
 import { createWorkbenchNerveBus } from "./workbench-nerve-bus.js";
 import { createWorkbenchOrchestration } from "./workbench-orchestration.js";
 import { getWorkbenchLocalAiRoleControls, setWorkbenchLocalAiRoleStartupState } from "./workbench-ai-role-controls.js";
-import { createMapLabService } from "./map-lab/map-lab-service.js";
 import { getHealthReport, getMissionReadinessReport, getMissionStartPreflight, getModeInfo } from "./workbench-status.js";
 import {
   deleteUserRequirementHistory,
@@ -20,11 +19,6 @@ export const createWorkbenchRuntime = (
 ): WorkbenchRuntime => {
   const baseRuntime = createWorkbenchBaseRuntime(options);
   const runtime = baseRuntime as WorkbenchRuntime;
-  let mapLabService: ReturnType<typeof createMapLabService> | null = null;
-  const getMapLabService = () => {
-    mapLabService ??= createMapLabService(runtime);
-    return mapLabService;
-  };
   runtime.nerveBusAbilityGroup = createWorkbenchNerveBus(runtime);
   runtime.orchestrationAbilityGroup = createWorkbenchOrchestration(runtime);
   runtime.commanderConsole = createWorkbenchCommanderConsole(runtime);
@@ -47,11 +41,6 @@ export const createWorkbenchRuntime = (
   runtime.upsertUserRequirementHistory = (input) => upsertUserRequirementHistory(runtime.getDataDir(), input);
   runtime.deleteUserRequirementHistory = (id) => deleteUserRequirementHistory(runtime.getDataDir(), id);
   runtime.reuseUserRequirementHistory = (id) => markUserRequirementHistoryReused(runtime.getDataDir(), id);
-  runtime.getMapLabSnapshot = () => getMapLabService().getSnapshot();
-  runtime.saveMapLabProviderConfig = (input) => getMapLabService().saveProviderConfig(input);
-  runtime.generateMapLabDraft = (input) => getMapLabService().generateDraft(input);
-  runtime.passMapLabAutomationGate = (input) => getMapLabService().passAutomationGate(input);
-  runtime.activateMapLabDraft = (input) => getMapLabService().activateDraft(input);
   runtime.getModeInfo = () => getModeInfo(runtime);
   return runtime;
 };

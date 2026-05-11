@@ -30,6 +30,8 @@
     "routePlanId",
     "selectedMapId",
     "taskTemplateId",
+    "selectedBindingId",
+    "taskBindingId",
     "raw x",
     "raw y",
     "mouseX",
@@ -70,8 +72,8 @@
     "rawOutputRetention": "ref",
     "includePromptHash": true
   },
-  "promptHash": "sha256:3a2f7a04cf008235021d2700b0b1c08b167d9b6e89f368e1c16554de807d9fd8",
-  "promptContractHash": "sha256:3a2f7a04cf008235021d2700b0b1c08b167d9b6e89f368e1c16554de807d9fd8",
+  "promptHash": "sha256:fd1c5cd3447e0277e0d3834f54d44592d4123768fd564f3c800a4bef76ec4605",
+  "promptContractHash": "sha256:fd1c5cd3447e0277e0d3834f54d44592d4123768fd564f3c800a4bef76ec4605",
   "sensitiveOperation": false,
   "dataPolicy": {
     "promptSections": [
@@ -99,6 +101,8 @@
       "routePlanId",
       "selectedMapId",
       "taskTemplateId",
+      "selectedBindingId",
+      "taskBindingId",
       "raw x",
       "raw y",
       "mouseX",

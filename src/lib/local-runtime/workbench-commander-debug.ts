@@ -1,36 +1,16 @@
-import { getDevelopmentMapPluginRegistry } from "../../map-plugins/registry/map-plugin-registry.js";
 import { StructuredRuntimeEventSchema } from "../../types/structured-log.js";
 import { createId } from "./ids.js";
 import { shouldDurablyPersistCommanderDebugEvent } from "./workbench-debug-persistence-policy.js";
 import type { WorkbenchBaseRuntime } from "./workbench-contract.js";
 
-const buildCommanderMapChain = (input: {
-  mapId?: string | null | undefined;
-  taskTemplateId?: string | null | undefined;
-}) => {
-  const registry = getDevelopmentMapPluginRegistry().active;
-  const record = input.mapId
-    ? registry.getActiveOperationalMapRecord(input.mapId)
-    : input.taskTemplateId
-      ? registry.getActiveOperationalMapRecordByTaskTemplateId(input.taskTemplateId)
-      : null;
-
-  if (!record) {
-    return {
-      mapPackageId: null,
-      mapPackageVersion: null,
-      selectedMapId: input.mapId ?? null,
-      selectedMapVersion: null,
-      activationSnapshotRef: null,
-    };
-  }
-
+const buildCommanderBindingMetadata = () => {
   return {
-    mapPackageId: record.packageId,
-    mapPackageVersion: record.packageVersion,
-    selectedMapId: record.mapId,
-    selectedMapVersion: record.mapVersion,
-    activationSnapshotRef: record.activationSnapshotRef,
+    bindingPackageId: null,
+    bindingPackageVersion: null,
+    selectedBindingId: null,
+    bindingVersion: null,
+    bindingActivationRef: null,
+    bindingSnapshotRef: null,
   };
 };
 
@@ -42,7 +22,6 @@ const buildCommanderDebugIdentity = (input: {
 	  missionId?: string | null;
 	  runId?: string | null;
 	  mapId?: string | null;
-  taskTemplateId?: string | null;
 }) => ({
   eventId: createId("event"),
   eventType: input.eventType,
@@ -60,7 +39,6 @@ const buildCommanderDebugIdentity = (input: {
   roundId: input.attemptId,
   videoVisitId: null,
   mapId: input.mapId ?? null,
-  taskTemplateId: input.taskTemplateId ?? null,
   traceId: input.traceId,
   spanId: input.spanId,
   attemptId: input.attemptId,
@@ -126,7 +104,6 @@ const buildCommanderDebugStructuredRuntimeEvent = (
 	    missionId?: string | null;
 	    runId?: string | null;
 	    mapId?: string | null;
-    taskTemplateId?: string | null;
     reason?: string | null;
     failureReason?: string | null;
     actionableMessage?: string | null;
@@ -155,7 +132,6 @@ export const recordCommanderDebugEvent = async (
 	    missionId?: string | null;
 	    runId?: string | null;
 	    mapId?: string | null;
-    taskTemplateId?: string | null;
     reason?: string | null;
     failureReason?: string | null;
     actionableMessage?: string | null;
@@ -175,7 +151,7 @@ export const recordCommanderDebugEvent = async (
     return;
   }
 
-  const mapChain = buildCommanderMapChain({ mapId: input.mapId, taskTemplateId: input.taskTemplateId });
+  const bindingMetadata = buildCommanderBindingMetadata();
   await runtime.forensicsPersistenceAbilityGroup.writeStructuredRuntimeEvent({
     abilityGroupId: "forensics-persistence",
     childCapabilityId: "write-structured-runtime-event",
@@ -189,11 +165,12 @@ export const recordCommanderDebugEvent = async (
     roundId: input.attemptId,
     videoVisitId: null,
     stepId: "task_start",
-    mapPackageId: mapChain.mapPackageId,
-    mapPackageVersion: mapChain.mapPackageVersion,
-    selectedMapId: mapChain.selectedMapId,
-    selectedMapVersion: mapChain.selectedMapVersion,
-    activationSnapshotRef: mapChain.activationSnapshotRef,
+    bindingPackageId: bindingMetadata.bindingPackageId,
+    bindingPackageVersion: bindingMetadata.bindingPackageVersion,
+    selectedBindingId: bindingMetadata.selectedBindingId,
+    bindingVersion: bindingMetadata.bindingVersion,
+    bindingActivationRef: bindingMetadata.bindingActivationRef,
+    bindingSnapshotRef: bindingMetadata.bindingSnapshotRef,
     capabilityCallId: input.spanId,
     inputRefs: input.inputRefs ?? [],
     outputRefs: input.outputRefs ?? [],

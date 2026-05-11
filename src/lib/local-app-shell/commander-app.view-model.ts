@@ -3,7 +3,7 @@ import type { CommanderConsoleViewModel } from "./types.js";
 import type { CommanderAppNavItem, CommanderAppPageId, CommanderAppTabGroup, CommanderAppViewModel } from "./commander-app.types.js";
 import { buildActionableErrors } from "./view-helper-actionable-errors.js";
 
-const COMMANDER_APP_PAGE_IDS = new Set<CommanderAppPageId>(["map-lab", "mission", "results", "review", "settings", "health"]);
+const COMMANDER_APP_PAGE_IDS = new Set<CommanderAppPageId>(["mission", "results", "review", "settings", "health"]);
 const COMMANDER_LEGACY_SETTINGS_PAGE_IDS = new Set(["ai-provider-settings", "developer"]);
 
 function parseCommanderAppPageId(value: string | null | undefined): CommanderAppPageId {
@@ -21,7 +21,6 @@ function parseCommanderAppPageId(value: string | null | undefined): CommanderApp
 function createCommanderAppNavItems(t: (zh: string, en: string) => string): CommanderAppNavItem[] {
   return [
     { pageId: "home", label: t("开始", "Start"), shortLabel: t("开始", "Start") },
-    { pageId: "map-lab", label: t("地图工坊", "Map Lab"), shortLabel: t("工坊", "Lab") },
     { pageId: "mission", label: t("运行", "Mission"), shortLabel: t("运行", "Run") },
     { pageId: "results", label: t("结果", "Results"), shortLabel: t("结果", "Results") },
     { pageId: "review", label: t("复核", "Review"), shortLabel: t("复核", "Review") },

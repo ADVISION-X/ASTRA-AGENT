@@ -6,7 +6,7 @@ export const PaidAnalysisAiChildInputSchema = PaidAnalysisAiInputSchema.describe
 export const PaidAnalysisAiChildResultSchema = PaidAnalysisAiResultSchema.describe("paid-analysis-ai governed-disabled child result");
 export const PaidAnalysisAiChildExecutionPolicySchema = z.object({
   providerKind: z.literal("paid"),
-  allowedTaskTypes: z.tuple([z.literal("evidence_packet_analysis"), z.literal("map_authoring")]),
+  allowedTaskTypes: z.tuple([z.literal("evidence_packet_analysis")]),
   executable: z.literal(false),
   disabledProviderDecision: z.literal("disabled"),
   forbidsLocalFallback: z.literal(true),
