@@ -3,7 +3,7 @@ import { VISION_COMMENTS_ENTRY_TARGET_CANDIDATE_PROMPT_CONTRACT } from "./prompt
 
 type CommentsEntryTargetCandidateRequest = Extract<LocalAiTaskRequest, { taskType: "vision.commentsEntryTargetCandidate" }>;
 
-export type CommentsEntryTargetCandidatePromptParts = {
+type CommentsEntryTargetCandidatePromptParts = {
   systemPrompt: string;
   userPrompt: string;
   fullPrompt: string;
@@ -45,7 +45,7 @@ const buildOutputTemplate = (request: CommentsEntryTargetCandidateRequest) => ({
 
 export const buildCommentsEntryTargetCandidatePromptParts = (
   request: CommentsEntryTargetCandidateRequest,
-): CommentsEntryTargetCandidatePromptParts => {
+) => {
   const contract = VISION_COMMENTS_ENTRY_TARGET_CANDIDATE_PROMPT_CONTRACT;
   const userPrompt = [
     "Every key in the required schema is mandatory.",

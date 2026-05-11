@@ -3,7 +3,7 @@ import { VISION_NEXT_ITEM_TARGET_CANDIDATE_PROMPT_CONTRACT } from "./prompts/vis
 
 type NextItemTargetCandidateRequest = Extract<LocalAiTaskRequest, { taskType: "vision.nextItemTargetCandidate" }>;
 
-export type NextItemTargetCandidatePromptParts = {
+type NextItemTargetCandidatePromptParts = {
   systemPrompt: string;
   userPrompt: string;
   fullPrompt: string;
@@ -45,7 +45,7 @@ const buildOutputTemplate = (request: NextItemTargetCandidateRequest) => ({
 
 export const buildNextItemTargetCandidatePromptParts = (
   request: NextItemTargetCandidateRequest,
-): NextItemTargetCandidatePromptParts => {
+) => {
   const contract = VISION_NEXT_ITEM_TARGET_CANDIDATE_PROMPT_CONTRACT;
   const userPrompt = [
     "Every key in the required schema is mandatory.",

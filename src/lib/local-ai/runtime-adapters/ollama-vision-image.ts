@@ -6,7 +6,7 @@ import sharp from "sharp";
 import { LocalAiRuntimeError } from "../local-ai-runtime-error.js";
 import { readImageAsBase64 } from "./runtime-adapter-utils.js";
 
-export type PreparedVisionImage = {
+type PreparedVisionImage = {
   sourcePath: string;
   base64: string;
   sourceBytes: number;
@@ -20,7 +20,7 @@ export type PreparedVisionImage = {
 
 const MAX_VISION_IMAGE_BYTES = 1_000_000;
 
-export async function prepareOllamaVisionImage(imagePath: string): Promise<PreparedVisionImage> {
+export async function prepareOllamaVisionImage(imagePath: string) {
   const sourceStat = await stat(imagePath);
   if (sourceStat.size > MAX_VISION_IMAGE_BYTES) {
     throw new LocalAiRuntimeError(

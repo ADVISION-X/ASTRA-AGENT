@@ -9,7 +9,7 @@ import { PostOpenStateDecisionSchema } from "../schema.js";
 
 type WebOpenTargetProfile = Extract<OpenTargetProfile, { targetKind: "platform-feed" | "local-workbench" }>;
 
-export type PostOpenStateEvaluationResult = {
+type PostOpenStateEvaluationResult = {
   status: "success" | "failed" | "review_required";
   failureCode: "post_open_state_failed" | null;
   reason: string | null;
@@ -108,7 +108,7 @@ export function evaluatePostOpenObservationHandoff(input: {
   afterSession: BrowserSessionSnapshot;
   navigationDecision: OpenNavigationDecision;
   pageStateHandoffRef: string | null;
-}): PostOpenStateEvaluationResult {
+}) {
   if (input.navigationDecision.status === "timed_out" || input.navigationDecision.status === "failed") {
     return buildFailureResult({
       reason: input.navigationDecision.reason ?? "open navigation failed before a governed post-open observation handoff could be recorded",

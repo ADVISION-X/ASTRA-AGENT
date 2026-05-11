@@ -18,7 +18,8 @@ Core doctrine:
 - Orchestration is the commander of mission flow, not the human console.
 - Commander receives human command; Orchestration receives governed mission command.
 - Orchestration owns mission state, round state, step sequencing, loop guards, stop/finalize semantics, and governed dispatch order.
-- Orchestration consumes AI decisions and governed action plans; it does not revive retired deterministic flows, retired branch tokens, retired selection choices, or retired binding states.
+- Orchestration consumes AI decisions and registry-backed governed action plans; it does not revive retired deterministic flows, retired branch tokens, retired selection choices, retired binding states, or business-process packages.
+- Current transport may serialize registry references as `actions[].actionCode`, but Orchestration must treat those values as registry entries, not workflow/package truth.
 - Orchestration dispatches only through Nerve Bus or the owning ability-group public contract.
 - Orchestration must never build raw prompts.
 - Orchestration must never infer page meaning, product meaning, or target meaning outside AI-owned contracts.
@@ -35,7 +36,7 @@ userRequirementText + selectedPlatforms
 → PlatformRegistry + MuscleMemoryCatalog + Visual Mission Prompt Contract
 → screenshot original + coordinate grid
 → AI Visual Mission Judge
-→ governed decision + actions[].actionCode action-plan tokens
+→ governed decision + registered atomic capability sequence (current transport may serialize as actions[].actionCode tokens)
 → ActionPlan Decoder / Scheduler
 → owning ability-group public contracts
 → Forensics record
@@ -187,11 +188,12 @@ Required:
 - Mission start may carry governed maxRounds, maxMinutes, allowedActionPolicyRef, and stopPolicyRef.
 - Prompt contract truth must come from governed prompt-contract resolution, not from retired packaged steps.
 - Orchestration may store promptContractId, promptContractVersion, and outputSchemaRef when the active visual-mission contract resolves them.
-- AI output consumed by Orchestration must use governed decision fields and actions[].actionCode.
-- Unknown actionCode must fail closed.
+- AI output consumed by Orchestration must use governed decision fields and registry-backed action references.
+- When current transport uses `actions[].actionCode`, Orchestration must treat that field as a registry reference to an atomic capability entry.
+- Unknown or unregistered capability reference must fail closed.
 - `review_required` must stop the current automated round.
 - `STOP_REVIEW_REQUIRED` must be treated as a legal stop actionCode when declared by MuscleMemoryCatalog and must finalize the round into Forensics plus Commander-visible review reasons.
-- Composite actionCode may be expanded only by governed decoders/schedulers.
+- Transitional composite or semantic transport aliases may be expanded only by governed decoders/schedulers and must not define final registry truth.
 - Mission flow must remain data-driven, auditable, and bounded.
 
 ### 禁止
@@ -203,6 +205,7 @@ FORBIDDEN:
 - retired package chain retired binding state as production branch truth.
 - mechanical branching over free text or undeclared fields.
 - any compatibility bridge that keeps both retired branch-token field and actionCode alive.
+- Orchestration owning business-process packages or semantic shortcut flows as final mission authority.
 
 ---
 
@@ -432,6 +435,38 @@ FORBIDDEN:
 
 ---
 
+## Law GRASSEYE-ORCHESTRATION-CAPABILITY-007-V1
+
+status: active
+tier: P0
+capabilityDomain: orchestration-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: Orchestration validates, injects, dispatches, and records registry-backed capability sequences without composing business packages.
+
+### 主题
+
+系统只做校验调度留证
+
+### 法条
+
+Orchestration executes AI-proposed registered capability sequences. It validates registry membership and input schema, injects system-owned refs, resolves executable geometry through Geometry Guard when grid cells are involved, dispatches owning capability groups, records evidence, and stops or escalates on failure.
+
+Required direction:
+- Orchestration may decode, validate, inject refs, dispatch, record result, and stop/review on failure.
+- Orchestration must not decide whether a video is product-worthy, seeding-worthy, comment-worthy, or otherwise business-valuable.
+- Orchestration must not own business-process packages or semantic shortcut flows.
+
+### 禁止
+
+FORBIDDEN:
+- business-package composition inside Orchestration.
+- semantic action catalogs becoming Orchestration-owned runtime truth.
+- using raw coordinates or bypassing Geometry Guard for grid-based visual actions.
+
+---
+
 ## Final Readiness Gate
 
 The Orchestration law is ready only when all of the following are true:
@@ -439,6 +474,6 @@ The Orchestration law is ready only when all of the following are true:
 1. No active rule revives retired deterministic flows, retired branch tokens, retired selection choices, retired package chains, retired templates, or retired binding states as runtime truth.
 2. Mission start truth is userRequirementText plus selectedPlatforms, not map identity.
 3. AI dispatch truth is promptContractId/outputSchemaRef from governed visual-mission context, not from maps.
-4. Action scheduling truth is actionCode decoding, not route-label branching.
+4. Action scheduling truth is registry-backed capability decoding; current `actions[].actionCode` transport must resolve to registry entries, not business-flow packages.
 5. Real external actions are not universally gated by mandatory PAV.
 6. Proof and state keep mission/run/round/step/action refs without retired map fields.

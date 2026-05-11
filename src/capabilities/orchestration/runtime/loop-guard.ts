@@ -2,7 +2,7 @@ import type { MissionState, RuntimePlan } from "../contract.js";
 
 const PRODUCTION_MAX_HOPS = 500;
 
-export type LoopGuardStopReason =
+type LoopGuardStopReason =
   | "completed_by_run_limit"
   | "completed_by_time_limit"
   | "blocked_by_loop_guard";

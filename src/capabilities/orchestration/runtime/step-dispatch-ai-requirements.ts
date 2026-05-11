@@ -141,5 +141,3 @@ export const resolveAiDispatchRequirements = (input: {
     promptContract: contractBinding.promptContract,
   });
 };
-
-export type { AiDispatchRequirements };

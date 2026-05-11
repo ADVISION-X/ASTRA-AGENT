@@ -20,6 +20,8 @@ Future architecture: Pluggable Capability Architecture. Future plugin capability
 
 Core doctrine:
 - AI is the brain, not the emperor.
+- MuscleMemoryCatalog is the governed capability registry that AI reads as its ability manual.
+- AI composes registered atomic capabilities; it does not depend on business-flow packages or semantic-shortcut catalogs.
 - AI reasons; it does not act.
 - AI is the only owner of visual, page, blocker, readiness, target-identity, comment-understanding, product/business, and governed action-plan interpretation.
 - Prompt Contract Registry is the single prompt truth.
@@ -101,9 +103,11 @@ AI-only interpretation boundary:
 - AI may return structured `decision`, `reason`, `confidence`, `riskFlags`, and `actions[].actionCode` plus governed action inputs such as grid-cell ids when allowed by the output schema. AI still must not click, scroll, type, open, dispatch Nerve Bus, write Forensics, or advance the mission.
 
 AI action-plan token boundary:
-- AI action-plan tokens are not execution authority.
+- AI action-plan tokens are registry references, not execution authority.
+- The current serialized field `actions[].actionCode` is a transport token that must reference a registry-exposed atomic capability id or a law-declared stop/review handoff; it is not a workflow/package truth source.
+- Business-flow, package, workflow, and semantic-shortcut names are not valid final AI-manual truth.
 - AI may output governed action-plan tokens declared by the active Visual Mission output schema:
-  - `actions[].actionCode`
+  - `actions[].actionCode` as the serialized id of a registered atomic capability
   - `actions[].required`
   - `actions[].reason`
   - `actions[].input.gridCell` only when the selected actionCode requires a grid cell
@@ -1316,7 +1320,7 @@ AI 输出边界禁止执行权，不禁止受治理计划令牌
 AI output boundary must recursively inspect model output and block execution authority.
 
 Allowed governed planning tokens when declared by the active output schema:
-- `actions[].actionCode`
+- `actions[].actionCode` when it references a registry-exposed atomic capability or a law-declared stop/review handoff
 - `actions[].required`
 - `actions[].reason`
 - `actions[].input.gridCell`
@@ -1393,6 +1397,41 @@ FORBIDDEN:
 - AI output containing browser action commands.
 - AI output containing final mission control commands.
 - Treating nested forbidden output as harmless.
+
+---
+
+## Law GRASSEYE-AI-CAPABILITY-015-V1
+
+status: active
+tier: P0
+capabilityDomain: ai-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: AI must use the capability registry as its only ability manual and must compose registered atomic capabilities instead of business-flow packages.
+
+alias: APEX-AI-015-V1
+
+### 主题
+
+AI 只能组合登记能力
+
+### 法条
+
+AI receives the capability registry as an ability manual. AI may compose multiple registered atomic capabilities according to user requirement and current visual evidence. AI must not invent capabilities, must not assume prebuilt business flows are the main path, and must not output raw coordinates.
+
+Required direction:
+- Prompt contracts must describe the AI-visible registry/manual, not a package-flow library.
+- When current runtime transport uses `actions[].actionCode`, that field must serialize registry-backed atomic capability ids rather than semantic package names.
+- AI may output multiple registered capabilities in sequence when the active schema allows composition.
+- AI must not call capability groups or child capabilities by owner internals unless those entries are explicitly exposed by the registry.
+
+### 禁止
+
+FORBIDDEN:
+- AI inventing ability names outside the registry.
+- AI treating semantic packages, business flows, or workflow shortcuts as the primary ability surface.
+- AI outputting raw x/y, direct browser commands, or owner-internal payloads.
 
 ---
 

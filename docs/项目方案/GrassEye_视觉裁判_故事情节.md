@@ -1,5 +1,8 @@
 # GrassEye Agent 故事情节：视觉裁判、解码器与机器臂
 
+status: historical narrative reference only; not current capability-registry or atomic-child-capability authority.
+If this file conflicts with active laws under .github/instructions/cursor-rules or the current phase-five blueprints, the newer capability-registry authority wins.
+
 ## 0. 这一篇写给谁
 
 这一篇不是给普通用户看的说明书。

@@ -78,5 +78,3 @@ export const VISION_NEXT_ITEM_TARGET_CANDIDATE_PROMPT_CONTRACT = {
   ].join(" "),
   purpose: "Extract governed non-executable next-item advance candidates from the current viewport so Visual Target can own target selection.",
 } as const;
-
-export type VisionNextItemTargetCandidatePromptContract = typeof VISION_NEXT_ITEM_TARGET_CANDIDATE_PROMPT_CONTRACT;

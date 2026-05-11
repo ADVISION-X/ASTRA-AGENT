@@ -18,6 +18,11 @@
     "GRASSEYE-CAPABILITY-GROUP-008-V1",
     "GRASSEYE-CAPABILITY-GROUP-009-V1",
     "GRASSEYE-CAPABILITY-GROUP-010-V1",
+    "GRASSEYE-CAPABILITY-GROUP-011-V1",
+    "GRASSEYE-CAPABILITY-GROUP-012-V1",
+    "GRASSEYE-CAPABILITY-GROUP-013-V1",
+    "GRASSEYE-CAPABILITY-GROUP-014-V1",
+    "GRASSEYE-CAPABILITY-GROUP-015-V1",
     "GRASSEYE-CAPABILITY-STRENGTH-001-V1"
   ],
   "readsLawFiles": [
@@ -25,6 +30,8 @@
   ],
   "readsBlueprintFiles": [
     "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md",
-    "docs/法案辅助文件/GrassEye 文件路径与阶段目录施工图.md"
+    "docs/法案辅助文件/GrassEye 文件路径与阶段目录施工图.md",
+    "docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md",
+    "docs/法案辅助文件/GrassEye Child Capability Strength 子能力强度施工图.md"
   ]
 }

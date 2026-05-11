@@ -27,7 +27,7 @@ Index only locates the narrowest current authority.
 ## Routing Rules
 
 - Load GRASSEYE-KERNEL before any module match.
-- Load module-capability-group-governance when the task defines ability groups, child abilities, shared contracts, currentStrength, forbiddenResponsibilities, or debug owner evidence.
+- Load module-capability-group-governance when the task defines ability groups, child abilities, MuscleMemoryCatalog as a capability registry, atomic child-capability rules, semantic/package retirement, shared contracts, currentStrength, forbiddenResponsibilities, or debug owner evidence.
 - Index may route only to the 14 active ability groups and foundation laws.
 - Match the narrowest domain by path and task keywords.
 - Deleted historical owner names may appear only as remap triggers to a current owner; they must never route to absent modules.
@@ -39,10 +39,10 @@ Support-governance domains:
 - none.
 
 Current narrative authority:
-- docs/项目方案/GrassEye_视觉裁判_故事情节.md
 - docs/法案辅助文件/GrassEye 第五阶段高级AI地图生成与WEB本地程序打通施工图.md
 
 Retired references:
+- docs/项目方案/GrassEye_视觉裁判_故事情节.md is historical narrative reference only and must not route current capability-registry or atomic-child-capability decisions.
 - docs/archive/retired-map-system/GrassEye_第五阶段建设目标方案.md is superseded historical reference only.
 - Any GrassEye_系统运行逻辑示意图_V2 runtime diagram is retired/superseded and must not route current architecture decisions.
 
@@ -56,11 +56,12 @@ Local development tooling:
 | Path or trigger | Load module | Routing note |
 | -- | -- | -- |
 | commander console, human command, mission dashboard, owner evidence timeline, review queue, audit summary, manual override, candidate pool, operator review | module-commander-console-capability.instructions.md | Human entry and console reads only |
-| ability group, child ability, shared ability contract, currentStrength, debug proof contract, forbidden responsibilities, orchestration matrix, capability catalog, catalog generated from abilities | module-capability-group-governance.instructions.md | Shared ability-group governance only |
-| orchestration ability group, mission state, mission command execution, step state, branch, runtime loop, observe, classify, act, record, orchestrator | module-orchestration-capability.instructions.md | Active mission-flow vocabulary routes to Orchestration only when it does not revive retired map-system ownership |
+| ability group, child ability, atomic action, muscle memory, capability registry, shared ability contract, currentStrength, debug proof contract, forbidden responsibilities, orchestration matrix, capability catalog, catalog generated from abilities | module-capability-group-governance.instructions.md | Shared ability-group governance and registry definition only |
+| semantic action retirement, package retirement, composite retirement, workflow retirement | module-capability-group-governance.instructions.md | Retirement and anti-pattern routing only; never final registry truth |
+| orchestration ability group, mission state, mission command execution, step state, branch, runtime loop, observe, classify, act, record, orchestrator, validate capability sequence, inject refs, dispatch registry entry | module-orchestration-capability.instructions.md | Active mission-flow vocabulary routes to Orchestration only when it does not revive retired map-system ownership or business-package ownership |
 | retired map-system vocabulary, retired route identifiers, retired branch tokens, retired selection identifiers, retired activation refs, retired package-governance chain, retired prompt-binding chain, retired authoring prompt chain | module-code-purity.instructions.md | Retired map-system vocabulary routes to physical cleanup and owner cutover first; it must never route back into active runtime ownership |
 | nerve bus, command transport, command envelope, result envelope, ai request envelope, ai response envelope, transfer proof, channel routing | module-nerve-bus-capability.instructions.md | Governed transport authority only |
-| ai ability group, first AI question, product presence judgment, comments OCR, intent analysis, pain point, complaint signal, opportunity synthesis, product signal, score, local model, prompt registry, prompt contract, prompt content, output schema ref | module-ai-capability.instructions.md | AI owns judgment; load Forensics or Commander only when persistence or review is the real boundary |
+| ai ability group, first AI question, product presence judgment, comments OCR, intent analysis, pain point, complaint signal, opportunity synthesis, product signal, score, local model, prompt registry, prompt contract, prompt content, output schema ref, ability manual, compose registered capabilities | module-ai-capability.instructions.md | AI owns judgment and registry-backed capability composition; load Forensics or Commander only when persistence or review is the real boundary |
 | src/capabilities/open, open ability group, open capability, open-tiktok, open-facebook, open-local-workbench, open result, capability-check, open proof | module-open-capability.instructions.md | Open capability authority only |
 | src/capabilities/screenshot, screenshot ability group, screenshot capability, imageKind, coordinateSpace, scaleMapping, ai_input, evidence_original, evidence_optimized, capture-region, optimize-lossless, prepare-ai-input | module-screenshot-capability.instructions.md | Screenshot capability authority only |
 | visual target, target bbox, target confidence, target catalog, candidate selection, clickPoint | module-visual-target-capability.instructions.md | Visual target authority only |

@@ -58,5 +58,3 @@ export const VISION_PAGE_PREPARATION_PROMPT_CONTRACT = {
   ].join(" "),
   purpose: "Determine whether startup page preparation is visually ready for downstream seeding-video judgment with a binary fail-closed route.",
 } as const;
-
-export type VisionPagePreparationPromptContract = typeof VISION_PAGE_PREPARATION_PROMPT_CONTRACT;

@@ -3,19 +3,15 @@
 ## 文件身份
 
 - owner: orchestration-capability
-- 目标：把运行主权从 retired package chain / retired deterministic flow / retired branch-token field 切到 visual mission context + AI action plan
-- 口径：Orchestration 只负责 mission flow、loop guard、dispatch order、finalize
+- 目标：执行 AI 提议的登记能力序列，而不是维护业务套餐
+- 口径：Orchestration 只负责 decode、validate、inject refs、dispatch、record result、stop/review on failure
 
-## Retired Vocabulary Table
+## 最终定义
 
-| 抽象词 | 代表性禁止口径 |
-| --- | --- |
-| retired branch-token field | retired AI branch token |
-| legacy route-plan field | retired route identifier |
-| retired selection field | retired binding selection identifier |
-| retired binding field | retired binding snapshot identifier |
-| retired package chain | retired package-governance chain |
-| retired template flow | retired template entry flow |
+Orchestration executes AI-proposed registered capability sequence.
+Orchestration does not own business-process packages.
+Orchestration does not own semantic shortcut flows.
+Orchestration does not decide whether a video is seeding/product/comment-worthy.
 
 ## 新主链
 
@@ -24,12 +20,14 @@ userRequirementText + selectedPlatforms
 → PlatformRegistry + MuscleMemoryCatalog + Visual Mission Prompt Contract
 → screenshot original + coordinate grid
 → AI Visual Mission Judge
-→ governed decision + actions[].actionCode
-→ decoder / scheduler
+→ governed decision + registered capability sequence
+→ decoder / validator / scheduler
 → owning capability group
 → Forensics record
 → next round
 ```
+
+当前代码若仍使用 `actions[].actionCode`，该字段只可作为 registry entry id 的 transport 字段。
 
 ## Orchestration 必须负责
 
@@ -38,13 +36,19 @@ mission state
 round state
 currentStepId / previousStepId
 loop guard
-stop / finalize
-Nerve Bus dispatch order
+decode capability sequence
+validate registry membership and input schema
+inject system refs
+dispatch order
+record result
+stop / finalize / review handoff
 ```
 
 ## Orchestration 不得负责
 
 ```txt
+business-process package ownership
+semantic shortcut flow ownership
 legacy declarative flow package
 retired chain script
 retired branch-token field branching
@@ -93,7 +97,7 @@ review_required 后隐式继续自动链路
 - branchTaken 如果存在，只能来自声明过的 decision / riskFlags / actions 字段，不得来自任何 retired branch token。
 - step state 是调度元数据，不是 retired declarative flow package 的回流主权。
 - `review_required` 表示当前轮自动链路必须停止，不得隐式继续。
-- `STOP_REVIEW_REQUIRED` 是合法 actionCode，用于硬停止并把人工处理转交 Commander Console。
+- `STOP_REVIEW_REQUIRED_ONCE` 或等价的登记停止条目，用于硬停止并把人工处理转交 Commander Console。
 
 禁止字段：
 
@@ -110,12 +114,30 @@ legacy template field
 
 ## 调度原则
 
-- branch 只能消费声明过的 decision / riskFlags / actions 字段
-- unknown actionCode = fail closed
-- composite actionCode 只能由系统展开
-- click / scroll / text-input 必须走 owning capability public contract
-- PAV 只能按 policy 作为 observation packaging，可有可无，不再是动作后必经 gate
-- review_required / STOP_REVIEW_REQUIRED 都必须写入 Forensics，并停止自动继续
+- branch 只能消费声明过的 decision / riskFlags / actions 字段。
+- unknown or unregistered capability entry = fail closed。
+- semantic action、composite、package、workflow 若仍出现在代码，只能被视为 transitional residue。
+- click / scroll / text-input 必须走 owning capability public contract。
+- gridCell 执行必须先走 Geometry Guard。
+- PAV 只能按 policy 作为 observation packaging，可有可无，不再是动作后必经 gate。
+- review_required 与登记停止条目都必须写入 Forensics，并停止自动继续。
+
+## 原子调度示例
+
+产品成立时：
+
+```txt
+CAPTURE_VIEWPORT_ONCE
+SAVE_EVIDENCE_RECORD_ONCE
+LEFT_CLICK_GRID_CELL_ONCE(likeButtonGridCell)
+LEFT_CLICK_GRID_CELL_ONCE(commentButtonGridCell)
+```
+
+非产品时：
+
+```txt
+LEFT_CLICK_GRID_CELL_ONCE(nextButtonGridCell)
+```
 
 ## 审计信号
 
@@ -124,7 +146,7 @@ legacy template field
 ```txt
 mission flow 不依赖 map truth
 AI step 依赖 promptContractId/outputSchemaRef
-action scheduling 依赖 actionCode
+action scheduling 依赖 capability registry
 ```
 
 漂移信号：
@@ -132,6 +154,7 @@ action scheduling 依赖 actionCode
 ```txt
 retired branch-token field 机械分支
 retired chain frozen truth
+semantic package 成为调度权威
 Mouse click step without Geometry Guard
 所有动作后强制 PAV
 ```

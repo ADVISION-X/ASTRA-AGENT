@@ -1,4 +1,4 @@
-export const commanderConsoleTokens = {
+const commanderConsoleTokens = {
   font: {
     ui: 'system-ui, -apple-system, BlinkMacSystemFont, "Inter", "PingFang SC", sans-serif',
     display: 'system-ui, -apple-system, BlinkMacSystemFont, "Inter", "PingFang SC", sans-serif',

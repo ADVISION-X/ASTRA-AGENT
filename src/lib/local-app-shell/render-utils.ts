@@ -25,7 +25,7 @@ export function renderSummaryList(items: CommanderConsoleSummaryItem[]): string 
   `).join("")}</dl>`;
 }
 
-export function renderStatusInline(value: string, tone?: CommanderConsoleStatusTone): string {
+function renderStatusInline(value: string, tone?: CommanderConsoleStatusTone): string {
   if (!tone) {
     return `<span>${escapeHtml(value)}</span>`;
   }

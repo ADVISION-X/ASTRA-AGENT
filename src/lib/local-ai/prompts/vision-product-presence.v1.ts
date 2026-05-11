@@ -64,5 +64,3 @@ export const VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT = {
   ].join(" "),
   purpose: "Determine whether the sampled frames from the current video visibly demonstrate a product so the governed muscle-memory executor can save a lightweight product lead record, optionally like, and continue browsing.",
 } as const;
-
-export type VisionProductPresencePromptContract = typeof VISION_PRODUCT_PRESENCE_PROMPT_CONTRACT;

@@ -16,11 +16,6 @@ type OrchestrationForensicsSurface = {
   writeStructuredActionLog(input: ForensicsStructuredActionLogInput): Promise<ForensicsPersistenceAbilityResult>;
 };
 
-export type CreateOrchestrationAbilityGroupInput = {
-  nerveBus: NerveBusAbilityGroup;
-  forensics: OrchestrationForensicsSurface;
-};
-
 type OrchestrationRuntime = ReturnType<typeof createOrchestrationRuntimeContext>;
 type ExecuteEnvelope = (inputValue: OrchestrationExecuteInput) => Promise<OrchestrationExecuteResult>;
 
@@ -78,7 +73,10 @@ function assembleOrchestrationAbilityGroup(context: OrchestrationRuntime, execut
   };
 }
 
-export function createOrchestrationAbilityGroup(input: CreateOrchestrationAbilityGroupInput): OrchestrationAbilityGroup {
+export function createOrchestrationAbilityGroup(input: {
+  nerveBus: NerveBusAbilityGroup;
+  forensics: OrchestrationForensicsSurface;
+}): OrchestrationAbilityGroup {
   const context = createOrchestrationRuntimeContext({
     mapStore: createDefaultOrchestrationRuntimePlanStore(),
     nerveBus: input.nerveBus,

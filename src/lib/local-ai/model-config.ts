@@ -56,7 +56,7 @@ const findRepoRoot = (startDir: string): string => {
 };
 
 const repoRoot = findRepoRoot(path.dirname(fileURLToPath(import.meta.url)));
-export const DEFAULT_LOCAL_AI_MODEL_CONFIG_PATH = path.join(repoRoot, "config", "local-ai.models.json");
+const DEFAULT_LOCAL_AI_MODEL_CONFIG_PATH = path.join(repoRoot, "config", "local-ai.models.json");
 
 export type LocalModelRole = z.infer<typeof LocalAiModelRoleSchema>;
 export type LocalModelRoleConfig = z.infer<typeof LocalModelRoleConfigSchema>;

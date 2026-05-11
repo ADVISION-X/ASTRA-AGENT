@@ -3,7 +3,7 @@ import type { RuntimePlan } from "../contract.js";
 type OperationalStep = RuntimePlan["steps"][number];
 type OperationalTransition = RuntimePlan["transitions"][number];
 
-export const getEffectiveOperationalSteps = (map: RuntimePlan): OperationalStep[] => map.steps;
+const getEffectiveOperationalSteps = (map: RuntimePlan): OperationalStep[] => map.steps;
 
 export const getEffectiveOperationalTransitions = (map: RuntimePlan): OperationalTransition[] => map.transitions;
 

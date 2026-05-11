@@ -50,5 +50,3 @@ export const VISION_NEXT_ITEM_ADVANCED_PROMPT_CONTRACT = {
   ].join(" "),
   purpose: "Determine whether the viewport advanced to a new feed item after the governed next-item action using a binary fail-closed route.",
 } as const;
-
-export type VisionNextItemAdvancedPromptContract = typeof VISION_NEXT_ITEM_ADVANCED_PROMPT_CONTRACT;

@@ -1,10 +1,8 @@
 import type { LocalAiRuntime } from "../../../types/local-ai.js";
 
-export type LocalAiRuntimeAdapterStatus = "ready" | "missing" | "unreachable" | "unavailable";
-
 export type LocalAiRuntimeAdapterHealth = {
   runtime: LocalAiRuntime;
-  status: LocalAiRuntimeAdapterStatus;
+  status: "ready" | "missing" | "unreachable" | "unavailable";
   detail: string;
   availableModels: string[];
   checkedAt: string;

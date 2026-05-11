@@ -18,11 +18,28 @@ applyTo: ".github/instructions/cursor-rules/**"
 ## Fixed Formula
 
 - GrassEye = Ability Groups + Child Abilities + Commander Console + Orchestration + Nerve Bus + User Requirement + Platform Registry + MuscleMemoryCatalog + AI Prompt Contracts + Debug owner evidence + Forensics Persistence.
+- MuscleMemoryCatalog = the governed capability registry.
+- It is not a workflow library.
+- It is not a package library.
+- It is not a business-flow catalog.
+- It is not a semantic-shortcut catalog.
+- Capability Groups = owner departments for classes of executable abilities.
+- Child Abilities = the smallest governed atomic actions owned by one parent capability group.
+- AI = the reasoning brain that composes registered atomic abilities from user requirement and current visual evidence.
+- System = the governed validator, ref injector, geometry resolver, dispatcher, and evidence recorder; it does not replace AI business judgment.
 - Startup Entrypoint is a support boundary that bootstraps the local shell; it is not an ability group, not Commander Console, and not mission truth.
 - Ability groups are the only allowed top-level execution owners.
 - Child abilities exist only inside one parent ability group.
 - Prompt contracts are governed data contracts owned by AI Capability and assembled from User Requirement, Platform Registry, and MuscleMemoryCatalog context; they are not new ability groups and must not execute actions.
 - Support laws may define shell, storage, logging, topology, privacy, localization, and audit boundaries, but they must not create a second runtime chain.
+
+## Core Definitions
+
+- Muscle Memory = governed capability registry.
+- Capability Group = owner department of one class of executable abilities.
+- Child Ability = smallest atomic executable action that cannot be further split without changing execution truth.
+- AI = composes registered abilities only; it must not invent abilities or output raw coordinates.
+- System = validates registry compliance, injects system refs, resolves gridCell through Geometry Guard, dispatches owning capability groups, and records evidence.
 
 ## Current Runtime Mission Loop
 
@@ -33,7 +50,7 @@ userRequirementText + selectedPlatforms
 → PlatformRegistry + MuscleMemoryCatalog + Visual Mission Prompt Contract
 → screenshot original + coordinate grid
 → AI Visual Mission Judge
-→ governed decision + actions[].actionCode action-plan tokens
+→ governed decision + registered atomic capability sequence (current transport may serialize as actions[].actionCode tokens)
 → ActionPlan Decoder / Scheduler
 → owning capability public contracts
 → Forensics record
@@ -41,17 +58,18 @@ userRequirementText + selectedPlatforms
 ```
 
 Authority split:
-- AI = semantic judge and action-plan proposer.
-- System = decoder and machine arm.
-- MuscleMemory = executable white-listed actions only.
+- AI = semantic judge and registry-backed ability composer.
+- System = validator, decoder, ref injector, dispatcher, and machine arm.
+- MuscleMemory = governed capability registry only.
 - Forensics = mandatory evidence memory.
 - Page State / Visual Target / Post-action Verification = support evidence only, not semantic authority.
 
 Current narrative authority:
-- docs/项目方案/GrassEye_视觉裁判_故事情节.md
+- .github/instructions/cursor-rules/**
 - docs/法案辅助文件/GrassEye 第五阶段高级AI地图生成与WEB本地程序打通施工图.md
 
 Retired runtime references:
+- docs/项目方案/GrassEye_视觉裁判_故事情节.md is historical narrative reference only and must not define current MuscleMemoryCatalog or atomic-child-capability truth.
 - docs/项目方案/GrassEye_第五阶段建设目标方案.md is historical only and must not be used as current delivery authority.
 - Any GrassEye_系统运行逻辑示意图_V2 runtime diagram is retired/superseded and must not be used as current runtime architecture truth.
 

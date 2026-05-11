@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T01:31:00.804Z",
+  "generatedAt": "2026-05-11T03:02:01.513Z",
   "owners": [
     {
       "inspectorId": "ai-capability-owner",
@@ -28,6 +28,7 @@
         "GRASSEYE-AI-CAPABILITY-012-V1",
         "GRASSEYE-AI-CAPABILITY-013-V1",
         "GRASSEYE-AI-CAPABILITY-014-V1",
+        "GRASSEYE-AI-CAPABILITY-015-V1",
         "GRASSEYE-LOCAL-AI-RUNTIME-006-V1"
       ],
       "readsLawFiles": [
@@ -107,6 +108,11 @@
         "GRASSEYE-CAPABILITY-GROUP-008-V1",
         "GRASSEYE-CAPABILITY-GROUP-009-V1",
         "GRASSEYE-CAPABILITY-GROUP-010-V1",
+        "GRASSEYE-CAPABILITY-GROUP-011-V1",
+        "GRASSEYE-CAPABILITY-GROUP-012-V1",
+        "GRASSEYE-CAPABILITY-GROUP-013-V1",
+        "GRASSEYE-CAPABILITY-GROUP-014-V1",
+        "GRASSEYE-CAPABILITY-GROUP-015-V1",
         "GRASSEYE-CAPABILITY-STRENGTH-001-V1"
       ],
       "readsLawFiles": [
@@ -114,7 +120,9 @@
       ],
       "readsBlueprintFiles": [
         "docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md",
-        "docs/法案辅助文件/GrassEye 文件路径与阶段目录施工图.md"
+        "docs/法案辅助文件/GrassEye 文件路径与阶段目录施工图.md",
+        "docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md",
+        "docs/法案辅助文件/GrassEye Child Capability Strength 子能力强度施工图.md"
       ]
     },
     {
@@ -347,7 +355,8 @@
         "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V4",
         "GRASSEYE-ROUND-MISSION-PACKET-V1",
         "GRASSEYE-HUMAN-REVIEW-FAIL-CLOSED-V1",
-        "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V4"
+        "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V4",
+        "GRASSEYE-ORCHESTRATION-CAPABILITY-007-V1"
       ],
       "readsLawFiles": [
         ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md"

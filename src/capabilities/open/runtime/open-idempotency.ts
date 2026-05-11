@@ -33,7 +33,7 @@ function normalizeUrlForKey(url: string): string {
   }
 }
 
-export function buildOpenIdempotencyKey(input: {
+function buildOpenIdempotencyKey(input: {
   sessionId: string;
   childCapabilityId: string;
   targetUrl: string;

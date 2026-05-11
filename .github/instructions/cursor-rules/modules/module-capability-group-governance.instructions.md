@@ -226,15 +226,15 @@ capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: Capability Catalog is a generated read model, not a new owner.
+summary: Capability Catalog and MuscleMemoryCatalog are generated read models, not new owners.
 
 ### 主题
 
-Capability Catalog 只读不立组
+Capability Registry 只读不立组
 
 ### 法条
 
-Capability Catalog is a generated read model from active ability group registries and child ability contracts; it is not a new ability group or new owner.
+Capability Catalog is a generated read model from active ability group registries and child ability contracts. MuscleMemoryCatalog is the governed capability registry exposed to AI and governed runtime. Neither is a new ability group, business-flow owner, or semantic shortcut owner.
 
 ## Law GRASSEYE-CAPABILITY-GROUP-008-V1
 
@@ -323,6 +323,167 @@ FORBIDDEN:
 - Hand-written readiness, safety, stability, freshness, login, domain, sensitive-text, platform-kind, target-ranking, or ambiguity-threshold truth being published by non-AI groups.
 - Product-presence low-confidence or frame-count based truth being decided by production code. Production code may fail mechanically when required evidence is missing, but only AI output may decide product_yes/product_no.
 
+## Law GRASSEYE-CAPABILITY-GROUP-011-V1
+
+status: active
+tier: P0
+capabilityDomain: capability-group-governance
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: MuscleMemoryCatalog is the governed capability registry and must not become a workflow, package, or semantic-shortcut library.
+
+### 主题
+
+肌肉记忆只能是能力登记册
+
+### 法条
+
+GrassEye Muscle Memory is the governed capability registry.
+It is not a workflow library.
+It is not a package library.
+It is not a business-flow catalog.
+It is not a semantic-shortcut catalog.
+
+Required direction:
+- MuscleMemoryCatalog may register only system-owned executable abilities, their input boundaries, output proof shape, execution owner, and failure semantics.
+- MuscleMemoryCatalog is the AI-visible ability manual and the system-visible dispatch registry.
+- MuscleMemoryCatalog entries must point to atomic child capabilities or to clearly marked transitional aliases that are not final authority.
+- MuscleMemoryCatalog must not own user-intent judgment, business-flow routing, or semantic packaging truth.
+
+### 禁止
+
+FORBIDDEN:
+- treating MuscleMemoryCatalog as a package catalog, workflow catalog, semantic-shortcut catalog, or business-flow catalog.
+- storing multi-step business procedures as final registry truth.
+- letting composite, package, or flow entries become the final authority over child capabilities.
+- defining muscle memory as both a capability registry and a workflow-or-package library at the same time.
+
+## Law GRASSEYE-CAPABILITY-GROUP-012-V1
+
+status: active
+tier: P0
+capabilityDomain: capability-group-governance
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: every capability group is an owner department that provides one class of executable child capabilities.
+
+### 主题
+
+能力组是能力提供部门
+
+### 法条
+
+Capability Group is the owner department of a class of executable abilities. A capability group owns schemas, contracts, child capability registry, execution boundary, proof shape, and failure semantics for its child capabilities.
+
+Required direction:
+- A capability group provides real executable child capabilities only for its own execution dimension.
+- A capability group must not decide user intent, own business-process packages, or replace AI semantic judgment.
+- A capability group must keep child capability input schema, forbidden input, output proof, and failure policy explicit.
+- Owner evidence, contracts, and runtime dispatch must align with the capability-group boundary.
+
+### 禁止
+
+FORBIDDEN:
+- treating a capability group as a business-process owner, route-plan owner, or task-package owner.
+- letting a capability group mix AI judgment with primitive execution ownership.
+- hiding cross-department business flow inside one capability group's child registry.
+
+## Law GRASSEYE-CAPABILITY-GROUP-013-V1
+
+status: active
+tier: P0
+capabilityDomain: capability-group-governance
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: every child capability must be the smallest governed executable action and must stay atomic, concrete, and behaviorally unambiguous.
+
+### 主题
+
+子能力只能是最小原子动作
+
+### 法条
+
+Child Capability is the smallest governed executable action owned by a capability group. A child capability must be atomic, concrete, and behaviorally unambiguous.
+
+Required direction:
+- A child capability must represent one irreducible executable action such as one click, one key press, one text input, one capture, one open, one evidence write, or one governed stop/review handoff.
+- A child capability must define explicit input schema, forbidden inputs, output proof or refs, and failure semantics.
+- A child capability may be reused by AI composition and system scheduling only after its atomic boundary is clear.
+- Behavior names must describe executable action truth rather than business outcome truth.
+
+### 禁止
+
+FORBIDDEN:
+- business flows, semantic shortcuts, or multi-step packages being defined as child capabilities.
+- names such as `LIKE_CURRENT_VIDEO`, `OPEN_COMMENTS`, `NEXT_VIDEO`, `SAVE_PRODUCT_AND_LIKE`, `YES_SEEDING_VIDEO_FLOW`, or `NO_SEEDING_VIDEO_FLOW` being treated as final atomic child-capability truth.
+- mixing multiple business judgments and multiple execution steps into one child capability.
+
+## Law GRASSEYE-CAPABILITY-GROUP-014-V1
+
+status: active
+tier: P0
+capabilityDomain: capability-group-governance
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: AI composes registered atomic capabilities while the system validates, injects, dispatches, and records evidence.
+
+### 主题
+
+AI 负责组合，系统负责安全执行
+
+### 法条
+
+AI receives the capability registry as an ability manual. AI may compose multiple registered atomic capabilities according to the user requirement and current visual evidence. The system validates the proposed capability sequence, injects system-owned refs, resolves executable geometry through Geometry Guard, dispatches governed child capabilities, and records evidence.
+
+Required direction:
+- AI must use only registry-exposed capabilities and must not invent unknown capability groups, child capabilities, or semantic package names.
+- AI must not output raw coordinates or bypass the governed registry to call owner internals.
+- The system must validate whether each proposed capability is registered and whether each input matches the governed contract.
+- The system may inject system fields and refs, resolve gridCell through Geometry Guard, dispatch the owning capability group, and persist evidence.
+- The system must not replace AI by composing business packages or performing user-intent judgment.
+
+### 禁止
+
+FORBIDDEN:
+- AI inventing capabilities outside the registry.
+- AI outputting raw x/y or direct owner-internal invocation payloads.
+- system-owned business-package composition replacing AI composition.
+- system validators, schedulers, or registries owning business-process truth.
+
+## Law GRASSEYE-CAPABILITY-GROUP-015-V1
+
+status: active
+tier: P0
+capabilityDomain: capability-group-governance
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: semantic actions, package entries, and flow entries may exist only as transitional residue and must not define final registry truth.
+
+### 主题
+
+语义套餐只能过渡不得立法
+
+### 法条
+
+Composite, package, workflow, and semantic-action vocabulary may appear only as historical transition residue, anti-examples, or code-gap tracking. They must not define final MuscleMemoryCatalog authority, final child-capability truth, or final AI-manual truth.
+
+Required direction:
+- Any surviving semantic or composite entry must be marked transitional, historical, or pending code-level retirement.
+- Blueprints and laws must prefer atomic registry entries over package or flow wording.
+- Inspectors must later block business-flow packages from being accepted as atomic child capabilities.
+
+### 禁止
+
+FORBIDDEN:
+- positive final-direction descriptions for composite action, package, workflow, business flow, or semantic shortcut inside active law and blueprint authority.
+- treating semantic action names as mandatory retained capability definitions.
+- allowing package legality gates or workflow compilers to replace the simpler capability-registry definition.
+
 ## Law GRASSEYE-CAPABILITY-STRENGTH-001-V1
 
 status: active
@@ -331,7 +492,7 @@ capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: every child capability exposed to MuscleMemoryCatalog or AI action planning must prove executable strength.
+summary: every child capability exposed to the capability registry or AI composition must prove atomic executable strength.
 
 ### 主题
 
@@ -339,9 +500,10 @@ summary: every child capability exposed to MuscleMemoryCatalog or AI action plan
 
 ### 法条
 
-Every child capability that is exposed to MuscleMemoryCatalog or AI action planning must prove strength through owner contract, owner schema, owner runtime registry, implementation, governed dispatch reachability, and audit evidence.
+Every child capability that is exposed to MuscleMemoryCatalog or AI composition must first be an atomic executable action and must prove strength through owner contract, owner schema, owner runtime registry, implementation, governed dispatch reachability, and audit evidence.
 
 Required direction:
+- A child capability must be atomic and behaviorally unambiguous before it is eligible for MuscleMemoryCatalog or AI composition.
 - A child capability is not eligible for AI action planning unless it is declared in owner contract, declared in owner schema union, registered in owner runtime registry, implemented, reachable through governed dispatch, and able to return governed success, failed, or review_required output.
 - A child capability that performs side effects must also prove a Forensics record path.
 - Capability-group-governance audit must generate a child capability strength inventory and machine findings for missing registry, schema drift, missing execute, fake success, naked public throw, missing dispatch coverage, and AI action child gaps.
@@ -356,3 +518,4 @@ FORBIDDEN:
 - child existing in catalog but missing from runtime.
 - AI-allowed action path without executable child coverage.
 - side-effecting child without a Forensics record path.
+- semantic package or business-flow residue being graded as an atomic strong child capability.

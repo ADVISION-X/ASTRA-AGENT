@@ -14,7 +14,7 @@ export type MissionStartBindingFailure = {
   nextAction: string;
 };
 
-export type MissionStartBindingSuccess = {
+export type MissionStartBinding = MissionStartBindingFailure | {
   ok: true;
   requestedPlatformId: RequestedPlatformId;
   targetProfileRef: string;
@@ -22,8 +22,6 @@ export type MissionStartBindingSuccess = {
   targetTitle: string;
   userRequirementRef: string;
 };
-
-export type MissionStartBinding = MissionStartBindingFailure | MissionStartBindingSuccess;
 
 export const createBindingFailure = (failureReason: string, actionableMessage: string, nextAction: string): MissionStartBindingFailure => {
   return { ok: false, failureReason, actionableMessage, nextAction };

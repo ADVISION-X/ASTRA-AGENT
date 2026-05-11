@@ -18,11 +18,6 @@ type VisualMissionTargetProfileBinding = {
   targetTitle: string;
 };
 
-export type VisualMissionStartBindingInput = {
-  selectedPlatforms: UserRequirementSelectedPlatformId[];
-  userRequirementText: string;
-};
-
 type RunLimitInput = {
   maxRounds: number | undefined;
   maxMinutes: number | undefined;
@@ -78,7 +73,10 @@ export function resolveStartRunLimits(input: {
   };
 }
 
-function validateVisualMissionStartInput(input: VisualMissionStartBindingInput): {
+function validateVisualMissionStartInput(input: {
+  selectedPlatforms: UserRequirementSelectedPlatformId[];
+  userRequirementText: string;
+}): {
   selectedPlatforms: UserRequirementSelectedPlatformId[];
   userRequirementText: string;
 } | MissionStartBindingFailure {
@@ -136,7 +134,10 @@ function resolvePrimaryVisualMissionBinding(input: {
   return primaryBinding;
 }
 
-export function resolveVisualMissionStartBinding(input: VisualMissionStartBindingInput): MissionStartBinding {
+export function resolveVisualMissionStartBinding(input: {
+  selectedPlatforms: UserRequirementSelectedPlatformId[];
+  userRequirementText: string;
+}): MissionStartBinding {
   const validated = validateVisualMissionStartInput(input);
   if ("ok" in validated) {
     return validated;

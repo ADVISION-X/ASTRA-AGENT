@@ -133,13 +133,6 @@ function createMissionStateStoreHandlers(input: MissionStateStoreContext) {
   };
 }
 
-export function createIdleMissionState(): MissionState {
-  return MissionStateSchema.parse({
-    status: "idle",
-    payloadRefs: {},
-  });
-}
-
 export function createInMemoryOrchestrationStatePort(
   maxMissions = DEFAULT_MAX_MISSIONS,
   ttlMs = DEFAULT_TTL_MS,

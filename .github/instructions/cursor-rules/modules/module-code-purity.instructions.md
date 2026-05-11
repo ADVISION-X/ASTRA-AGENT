@@ -853,12 +853,13 @@ Code-purity must block any active-source slice that keeps both the retired map s
 Required direction:
 - APP is the only task entry and must use userRequirementText plus selectedPlatforms.
 - PlatformRegistry owns platform profile facts only.
-- AI outputs governed actionCode values only.
-- MuscleMemoryCatalog is the only active action-code authority.
-- Scheduler executes only decoded MuscleMemoryCatalog actions.
-- Unknown actionCode is fatal.
+- AI outputs registry-backed capability references only; current transport may serialize them as `actions[].actionCode` during cutover.
+- MuscleMemoryCatalog is the only active capability-registry authority and must not be described as a workflow/package library.
+- Scheduler executes only decoded registry-backed atomic capabilities.
+- Unknown or unregistered capability reference is fatal.
 - retired branch-token field, legacy route-plan field, retired selection field, retired template identifier, retired activation identifier, and retired binding field are retired vocabulary in active startup, prompt, and scheduling paths.
-- Active prompt contracts and output schemas must require actions[].actionCode and must forbid retired branch-token field plus raw x/y.
+- Active prompt contracts and output schemas must require registry-backed capability references, must treat `actions[].actionCode` only as a transport field when present, and must forbid retired branch-token field plus raw x/y.
+- Active laws, blueprints, prompts, and audits must mark semantic/package/workflow entries as transitional residue or anti-examples only, never as final MuscleMemoryCatalog truth.
 - Active start payloads must not carry retired map fields.
 - Active PlatformRegistry code must not own retired deterministic flows, prompt text, retired binding states, or action chains.
 - Active MuscleMemoryCatalog code must not own entryUrl, targetUrl, targetTitle, or allowedHosts platform profile facts.
@@ -868,9 +869,11 @@ Required direction:
 FORBIDDEN:
 - Keeping selectedPlatforms and retired selection field as dual active start chains.
 - Keeping userRequirementText and retired template identifier as dual active entry sources.
-- Keeping legacy route-plan field/retired branch-token field and actionCode as dual action sources.
+- Keeping legacy route-plan field/retired branch-token field and registry-backed capability references as dual action sources.
 - Letting AI prompt contracts or output schemas accept retired branch-token field.
 - Letting Scheduler read retired deterministic flow planning, retired branch-token field, or retired activation truth.
+- Describing MuscleMemoryCatalog as a package/workflow/semantic-shortcut library in active law, blueprint, prompt, or audit authority.
+- Treating semantic action names as final atomic capability definitions in active law, blueprint, prompt, or audit authority.
 - Treating visual-story drift as documentation-only debt.
 
 ---

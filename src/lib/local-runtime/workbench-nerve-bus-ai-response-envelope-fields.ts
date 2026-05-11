@@ -26,7 +26,7 @@ type OutputPayloadFields = {
   documentRef: string;
 };
 
-export type WorkbenchAiResponseEnvelopeFieldsInput = {
+export function buildWorkbenchAiResponseEnvelopeFields(input: {
   aiTaskType: string;
   confidence: number | null;
   failureReason: string | null;
@@ -34,9 +34,7 @@ export type WorkbenchAiResponseEnvelopeFieldsInput = {
   resolvedDecision: ResolvedDecisionFields;
   outputPayload: OutputPayloadFields;
   diagnostics: DiagnosticFields;
-};
-
-export function buildWorkbenchAiResponseEnvelopeFields(input: WorkbenchAiResponseEnvelopeFieldsInput) {
+}) {
   return {
     status: input.resolvedDecision.status,
     decision: input.resolvedDecision.decision,

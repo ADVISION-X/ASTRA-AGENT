@@ -69,5 +69,3 @@ export const VISION_COMMENTS_ENTRY_TARGET_CANDIDATE_PROMPT_CONTRACT = {
   ].join(" "),
   purpose: "Extract governed non-executable comments-entry candidates from the current viewport so Visual Target can own comments-button target selection.",
 } as const;
-
-export type VisionCommentsEntryTargetCandidatePromptContract = typeof VISION_COMMENTS_ENTRY_TARGET_CANDIDATE_PROMPT_CONTRACT;

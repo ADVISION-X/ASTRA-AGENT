@@ -1,72 +1,189 @@
 # GrassEye Muscle Memory Catalog 肌肉记忆目录施工图
 
-本施工图替代 retired package chain / retired template flow / retired deterministic flow planning / retired branch-token field 生产主权。
-凡旧施工图与本文件冲突，以本文件为准。
+本施工图定义 GrassEye 对 MuscleMemoryCatalog 的最终治理方向。
+如与当前代码中的 transport 字段、历史 semantic action、旧 actionCode 现状冲突，以本施工图为未来治理方向。
+任何 composite、package、workflow、semantic action 只可作为历史过渡或代码差异记录，不构成最终权威。
 
 ## 文件身份
 
-本施工图定义旧流程包退场后的动作编号主权。
+- Owner boundary: capability-group-governance
+- Runtime consumers: ai-capability, orchestration-capability, commander-console-capability
+- Final role: MuscleMemoryCatalog = Capability Registry
 
-Owner boundary: capability-group-governance
-Runtime consumers: ai-capability, orchestration-capability
+## 核心定义
 
-## Retired Vocabulary Table
+GrassEye Muscle Memory is the governed capability registry.
+It is not a workflow library.
+It is not a package library.
+It is not a business-flow catalog.
+It is not a semantic-shortcut catalog.
 
-| 抽象词 | 代表性禁止口径 |
-| --- | --- |
-| retired branch-token field | retired AI branch token |
-| legacy route-plan field | retired route identifier |
-| retired selection field | retired binding selection identifier |
-| retired binding field | retired binding snapshot identifier |
-| retired package chain | retired package-governance chain |
-| retired template flow | retired template entry flow |
+中文口径：
+- 肌肉记忆是受治理的能力登记册。
+- 它不等于套餐库。
+- 它不等于业务流程库。
+- 它不等于语义动作库。
+- 它只负责登记系统已经具备的能力、输入边界、输出证据、执行 owner、失败策略。
 
-## 目录结构
+## 能力登记册职责
 
-- single actionCode registry
-- composite actionCode registry
-- ActionPlanDecoder
-- CompositeActionExpander
-- MuscleActionScheduler
+1. 登记能力组与其可公开引用的子能力。
+2. 登记每个子能力的输入 schema 与 forbidden input。
+3. 登记每个子能力的 output proof、evidence ref、failure policy。
+4. 产出 AI 可见的能力手册。
+5. 产出系统可见的调度登记信息。
+6. 明确禁止 raw coordinate 直通执行。
+7. 要求所有 gridCell 执行先经过 Geometry Guard。
+8. 要求 side effect 动作可以回链到 Forensics。
+9. 将套餐动作、语义动作、业务流程动作标记为历史过渡而非最终定义。
 
-## 单能力 actionCode
+## 定义表
 
-- CAPTURE_SCREEN
-- PREPARE_VISUAL_MISSION_INPUT
-- SAVE_LEAD
-- PRESS_KEY
-- CLICK_CELL
-- WAIT_SHORT
-- OPEN_FACEBOOK_ENTRY
-- OPEN_TIKTOK_ENTRY
-- STOP_REVIEW_REQUIRED
+| 概念 | 正确定义 | 禁止误解 |
+| --- | --- | --- |
+| 肌肉记忆 | 能力登记册 | 套餐库 / 流程库 / 语义动作库 |
+| 能力组 | 能力提供部门 | 业务流程 owner |
+| 子能力 | 最小真实原子动作 | 多步骤业务动作 |
+| AI 手册 | 能力登记册的可见版本 | 预制业务套餐列表 |
+| AI 动作计划 | AI 对登记能力的组合 | AI 发明能力 |
+| 系统调度 | 校验、注入、执行、留证 | 替 AI 做业务判断 |
+| Geometry Guard | gridCell 到坐标的保护层 | 业务点击判断器 |
+| Forensics | 证据记录 | 业务流程推进器 |
 
-## 组合 actionCode
+## 能力组职责
+
+能力组是能力提供部门，不是业务流程 owner。
+
+例子：
+- mouse-click 能力组：提供鼠标点击类子能力。
+- text-input 能力组：提供键盘输入与按键类子能力。
+- screenshot 能力组：提供截图类子能力。
+- open 能力组：提供打开入口类子能力。
+- forensics-persistence 能力组：提供证据写入类子能力。
+- geometry-guard 能力组：提供坐标与几何保护类子能力。
+
+## 子能力原子标准
+
+子能力必须同时满足：
+- 属于一个明确能力组。
+- 是不可再拆的具体动作。
+- 不包含业务流程语义。
+- 有清晰 input schema。
+- 有 forbidden input 说明。
+- 有 output proof 或 ref。
+- 有 failure policy。
+- 可被能力登记册引用。
+- 可被 AI 通过登记册安全使用。
+
+## AI 能力手册生成方式
+
+- AI 拿到的是能力登记册的可见版本，不是套餐流转库。
+- AI 可以根据用户需求和当前截图，自行组合多个已登记的原子能力。
+- 当前代码若仍使用 `actions[].actionCode` 作为 transport 字段，该字段只可序列化登记册条目 id，不改变“能力登记册”这一最终定义。
+- AI 不能发明能力名。
+- AI 不能输出 raw coordinate。
+- AI 不能绕过登记册直接调用 owner internals。
+
+## 系统注入字段边界
+
+系统不替 AI 做业务判断。
+系统不写业务套餐。
+系统只负责：
+1. 校验 AI 输出能力是否登记。
+2. 校验输入字段是否符合能力契约。
+3. 注入系统字段与 refs。
+4. 将 gridCell 交给 Geometry Guard。
+5. 调度对应能力组执行。
+6. 记录证据与失败原因。
+
+## Geometry Guard 与证据 refs
+
+- 任何基于 gridCell 的点击、滚动、区域截图，必须先经过 Geometry Guard。
+- Geometry Guard 负责 gridCell 到 executable geometry 的安全解析，不负责业务判断。
+- 执行结果必须产出 evidence refs、output refs、failure refs 或 review refs。
+- side effect 动作若无 Forensics 回链，不得被登记为可安全复用能力。
+
+## 正例：原子能力
+
+- LEFT_CLICK_GRID_CELL_ONCE
+- RIGHT_CLICK_GRID_CELL_ONCE
+- DOUBLE_LEFT_CLICK_GRID_CELL
+- PRESS_KEY_ONCE
+- TYPE_TEXT_ONCE
+- CAPTURE_VIEWPORT_ONCE
+- CAPTURE_REGION_ONCE
+- OPEN_PLATFORM_ENTRY_ONCE
+- SAVE_EVIDENCE_RECORD_ONCE
+- STOP_REVIEW_REQUIRED_ONCE
+
+## 反例：不是原子子能力
 
 - LIKE_CURRENT_VIDEO
+- OPEN_COMMENTS
 - NEXT_VIDEO
 - SAVE_PRODUCT_AND_LIKE
 - YES_SEEDING_VIDEO_FLOW
-- CLOSE_POPUP_AND_WAIT
+- NO_SEEDING_VIDEO_FLOW
+- SAVE_AND_OPEN_COMMENTS
+- OPEN_COMMENTS_AND_CAPTURE
 
-## 硬规则
+## AI 组合示例
 
-AI 只能输出 actionCode。
-未知 actionCode = fatal。
-组合 actionCode 必须由系统展开。
-AI 不得输出 retired branch-token field。
-AI 不得输出原始 x/y。
-Scheduler 只执行解码后的受治理动作。
+用户目标：
 
-Review semantics:
-- `STOP_REVIEW_REQUIRED` 是合法停止 actionCode。
-- 它表示系统必须停止当前轮、写入 Forensics，并在 Commander Console 暴露 review_required 原因。
-- runtime 不得边跑边等待人工后自动继续。
+```txt
+挖掘 Facebook 种草产品。
+如果是种草视频，保存证据、点赞、如果有评论则打开评论并截图；
+如果不是种草视频，下一条。
+```
 
-## 强度与执行边界
+AI 应组合登记能力，而不是选择套餐：
 
-- 每个 actionCode 都必须绑定到一个受治理的强 child capability，或绑定到只由强 child capability 组成的 composite expansion。
-- AI 可直接选择的 actionCode 必须至少绑定到 Level 4 child capability strength。
-- CLICK_CELL 必须先被解码成受治理几何输入，并经过 Geometry Guard 批准后，Mouse Click 才能执行。
-- Mouse Click 不得自行解析 gridCell 或重算坐标。
-- CAPTURE_SCREEN 与 PREPARE_VISUAL_MISSION_INPUT 可以作为系统前置动作保留，不要求在每一轮都向 AI 自由开放。
+```txt
+CAPTURE_VIEWPORT_ONCE
+SAVE_EVIDENCE_RECORD_ONCE
+LEFT_CLICK_GRID_CELL_ONCE(likeButtonGridCell)
+LEFT_CLICK_GRID_CELL_ONCE(commentButtonGridCell)
+CAPTURE_REGION_ONCE(commentPanelGridCell)
+```
+
+如果评论为 0：
+
+```txt
+CAPTURE_VIEWPORT_ONCE
+SAVE_EVIDENCE_RECORD_ONCE
+LEFT_CLICK_GRID_CELL_ONCE(likeButtonGridCell)
+LEFT_CLICK_GRID_CELL_ONCE(nextButtonGridCell)
+```
+
+如果不是产品：
+
+```txt
+LEFT_CLICK_GRID_CELL_ONCE(nextButtonGridCell)
+```
+
+## 过渡概念退役方向
+
+以下名称若仍出现在当前代码或审计中，只能被标记为历史过渡或待代码层治理差异：
+- YES_SEEDING_VIDEO_FLOW
+- NO_SEEDING_VIDEO_FLOW
+- SAVE_PRODUCT_AND_LIKE
+- LIKE_CURRENT_VIDEO
+- OPEN_COMMENTS
+- NEXT_VIDEO
+- DISMISS_OVERLAY
+
+它们不是最终子能力定义。
+最终方向是 AI 使用原子能力登记册自行组合动作。
+
+## 后续执法检查点
+
+后续 inspector 必须检查：
+1. MuscleMemoryCatalog 不得登记业务流程套餐为 atomic child capability。
+2. AI-visible registry 不得以 business flow 为主要能力表面。
+3. Child capability 必须是原子动作。
+4. Composite、package、workflow 不得成为 MuscleMemoryCatalog 最终权威。
+5. 语义动作若存在，只能被标记为 transitional。
+6. AI manual 必须来自 capability registry。
+7. AI manual 必须允许 AI 组合能力，不得只提供套餐动作。
+8. 子能力不得包含多步骤业务流程。

@@ -44,14 +44,6 @@ function getRuntimeTone(viewModel: CommanderConsoleViewModel): "ok" | "attention
   return "ok";
 }
 
-function canPauseMission(viewModel: CommanderConsoleViewModel): boolean {
-  return viewModel.rawSnapshot.runtime.runtimeStatus === "running";
-}
-
-function canResumeMission(viewModel: CommanderConsoleViewModel): boolean {
-  return viewModel.rawSnapshot.runtime.runtimeStatus === "paused";
-}
-
 function canStopMission(viewModel: CommanderConsoleViewModel): boolean {
   const runtimeStatus = viewModel.rawSnapshot.runtime.runtimeStatus;
   return runtimeStatus === "running" || runtimeStatus === "paused" || runtimeStatus === "review_required";
@@ -137,4 +129,4 @@ function formatHealthStatus(viewModel: CommanderConsoleViewModel): string {
   }
   return localizeCommanderText(viewModel.locale, "运行健康", "Healthy");
 }
-export { getActiveTaskTemplate, getRuntimeTone, canPauseMission, canResumeMission, canStopMission, canEmergencyStopMission, canRequestCandidateExport, formatRuntimeState, formatElapsed, buildHumanStepLabel, buildHumanStepDetail, formatHealthStatus };
+export { getActiveTaskTemplate, getRuntimeTone, canStopMission, canEmergencyStopMission, canRequestCandidateExport, formatRuntimeState, formatElapsed, buildHumanStepLabel, buildHumanStepDetail };

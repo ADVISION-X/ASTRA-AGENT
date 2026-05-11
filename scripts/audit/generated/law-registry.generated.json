@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T01:31:00.804Z",
+  "generatedAt": "2026-05-11T03:02:01.513Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V1",
@@ -10,7 +10,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI is an independent first-class ability group and must remain the only public AI owner.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 218
+      "line": 222
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-002-V1",
@@ -21,7 +21,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI child capabilities represent provider/runtime channels; business task routing is AI-owned and must not replace child ids.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 291
+      "line": 295
     },
     {
       "lawId": "GRASSEYE-AI-NO-MEMORY-V1",
@@ -32,7 +32,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Visual Mission AI must stay stateless across rounds and consume only system-injected continuity through Round Mission Packet plus current evidence.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 370
+      "line": 374
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-003-V1",
@@ -43,7 +43,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI may reason and return structured results only; it may not execute actions or side effects.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 403
+      "line": 407
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-004-V1",
@@ -54,7 +54,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "local-ai-runtime is an internal execution boundary under AI ownership and must not become a second public AI system.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 485
+      "line": 489
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-005-V1",
@@ -65,7 +65,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "paid and future API AI children are visible but disabled by policy and must fail closed.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 551
+      "line": 555
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-005B-V2",
@@ -76,7 +76,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI outputs must be cleaned before persistence and must not leak AI runtime contracts into Forensics public ownership.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 626
+      "line": 630
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-006-V1",
@@ -87,7 +87,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI keeps a single public contract and does not leak child, adapter, prompt, or legacy internals.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 679
+      "line": 683
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-007-V1",
@@ -98,7 +98,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "ai-capability inspector is the only enforcement owner for AI topology, runtime pipeline, prompt truth and anti-escape checks.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 740
+      "line": 744
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-008-V1",
@@ -109,7 +109,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI owns the Prompt Contract Registry; prompt execution must resolve by promptContractId/version/catalog, never by hardcoded prompt text.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 812
+      "line": 816
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-009-V1",
@@ -120,7 +120,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Prompt contracts must declare full governed metadata and must be hashable, strict and audit-proof.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 888
+      "line": 892
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-010-V1",
@@ -131,7 +131,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Prompt contracts may guide reasoning and governed action-plan tokens only; they must not command execution, bypass security, or make final mission decisions.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 974
+      "line": 978
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-011-V1",
@@ -142,7 +142,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI runtime must resolve prompt execution by promptContractId and execute a governed runtime pipeline with typed failures.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 1047
+      "line": 1051
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-012-V1",
@@ -153,7 +153,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI timeout, cancellation, idempotency, concurrency and circuit breaker state must be governed and real-code-inspection-backed.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 1126
+      "line": 1130
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-013-V1",
@@ -164,7 +164,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI result proof must be complete, chain-linked, raw-output-backed and impossible to fake as success.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 1196
+      "line": 1200
     },
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-014-V1",
@@ -175,7 +175,18 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "AI output boundary must recursively block execution authority, browser authority, Forensics authority and command authority while allowing declared governed action-plan tokens.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
-      "line": 1298
+      "line": 1302
+    },
+    {
+      "lawId": "GRASSEYE-AI-CAPABILITY-015-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "AI must use the capability registry as its only ability manual and must compose registered atomic capabilities instead of business-flow packages.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
+      "line": 1403
     },
     {
       "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
@@ -283,7 +294,7 @@
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Capability Catalog is a generated read model, not a new owner.",
+      "summary": "Capability Catalog and MuscleMemoryCatalog are generated read models, not new owners.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "line": 221
     },
@@ -321,15 +332,70 @@
       "line": 288
     },
     {
+      "lawId": "GRASSEYE-CAPABILITY-GROUP-011-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "MuscleMemoryCatalog is the governed capability registry and must not become a workflow, package, or semantic-shortcut library.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
+      "line": 326
+    },
+    {
+      "lawId": "GRASSEYE-CAPABILITY-GROUP-012-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "every capability group is an owner department that provides one class of executable child capabilities.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
+      "line": 362
+    },
+    {
+      "lawId": "GRASSEYE-CAPABILITY-GROUP-013-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "every child capability must be the smallest governed executable action and must stay atomic, concrete and behaviorally unambiguous.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
+      "line": 393
+    },
+    {
+      "lawId": "GRASSEYE-CAPABILITY-GROUP-014-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "AI composes registered atomic capabilities while the system validates, injects, dispatches and records evidence.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
+      "line": 424
+    },
+    {
+      "lawId": "GRASSEYE-CAPABILITY-GROUP-015-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "semantic actions, package entries and flow entries may exist only as transitional residue and must not define final registry truth.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
+      "line": 457
+    },
+    {
       "lawId": "GRASSEYE-CAPABILITY-STRENGTH-001-V1",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "every child capability exposed to MuscleMemoryCatalog or AI action planning must prove executable strength.",
+      "summary": "every child capability exposed to the capability registry or AI composition must prove atomic executable strength.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
-      "line": 326
+      "line": 487
     },
     {
       "lawId": "GRASSEYE-CODE-PURITY-001-V1",
@@ -692,7 +758,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Orchestration is the only owner of governed mission flow, mission state, round/step sequencing and mission finalization.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 116
+      "line": 117
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-002-V4",
@@ -703,7 +769,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Mission flow must be driven by governed visual-mission context and AI action plans, not by maps, retired deterministic flows, or retired branch tokens.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 167
+      "line": 168
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-003-V4",
@@ -714,7 +780,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Orchestration step execution must consume governed evidence bundles, AI decisions and declared action plans only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 209
+      "line": 212
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-004-V4",
@@ -725,7 +791,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Real external actions must be dispatched through governed action plans and owning ability-group contracts.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 249
+      "line": 252
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V4",
@@ -736,7 +802,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Prompt dispatch must use governed prompt contracts resolved from active visual-mission context, never from maps or raw strings.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 289
+      "line": 292
     },
     {
       "lawId": "GRASSEYE-ROUND-MISSION-PACKET-V1",
@@ -747,7 +813,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Orchestration must build and inject Round Mission Packet as the only governed continuity artifact before each Visual Mission AI round.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 326
+      "line": 329
     },
     {
       "lawId": "GRASSEYE-HUMAN-REVIEW-FAIL-CLOSED-V1",
@@ -758,7 +824,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "review_required and STOP_REVIEW_REQUIRED must fail closed, stop the automated round and hand control back to Commander without hidden runtime continuation.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 358
+      "line": 361
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V4",
@@ -769,7 +835,18 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Mission proof must preserve governed chain fields without reviving retired map truth.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
-      "line": 389
+      "line": 392
+    },
+    {
+      "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "orchestration-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Orchestration validates, injects, dispatches and records registry-backed capability sequences without composing business packages.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md",
+      "line": 438
     },
     {
       "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-001-V3",

@@ -164,7 +164,6 @@ export {
   buildStepDispatchFailureEvent,
   collectLastResultRefs,
   getTerminalEventType,
-  resolveActionRef,
 };
 
 export type {

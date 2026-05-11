@@ -15,7 +15,8 @@
     "GRASSEYE-ORCHESTRATION-CAPABILITY-005-V4",
     "GRASSEYE-ROUND-MISSION-PACKET-V1",
     "GRASSEYE-HUMAN-REVIEW-FAIL-CLOSED-V1",
-    "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V4"
+    "GRASSEYE-ORCHESTRATION-CAPABILITY-006-V4",
+    "GRASSEYE-ORCHESTRATION-CAPABILITY-007-V1"
   ],
   "readsLawFiles": [
     ".github/instructions/cursor-rules/modules/module-orchestration-capability.instructions.md"
