@@ -49,7 +49,6 @@ const RoundMissionPacketCurrentEvidenceSchema = z.object({
   coordinateGridScreenshotRef: nullableString,
   gridSpecRef: nullableString,
   visualMissionInputRef: nullableString,
-  pageStateRef: nullableString,
   aiResultRef: nullableString,
   postActionVerificationResultRef: nullableString,
 }).strict();

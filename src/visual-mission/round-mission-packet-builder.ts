@@ -54,7 +54,6 @@ const buildCurrentEvidence = (currentEvidence: RoundMissionPacketCurrentEvidence
   coordinateGridScreenshotRef: currentEvidence.coordinateGridScreenshotRef ?? null,
   gridSpecRef: currentEvidence.gridSpecRef ?? null,
   visualMissionInputRef: currentEvidence.visualMissionInputRef ?? null,
-  pageStateRef: currentEvidence.pageStateRef ?? null,
   aiResultRef: currentEvidence.aiResultRef ?? null,
   postActionVerificationResultRef: currentEvidence.postActionVerificationResultRef ?? null,
 });

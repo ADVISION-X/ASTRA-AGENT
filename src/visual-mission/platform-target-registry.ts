@@ -1,6 +1,6 @@
 import {
   resolveOpenTargetDefaultsForPlatform,
-} from "../capabilities/open/registry.js";
+} from "../capabilities/open/index.js";
 import {
   PlatformIdSchema,
   type PlatformId,

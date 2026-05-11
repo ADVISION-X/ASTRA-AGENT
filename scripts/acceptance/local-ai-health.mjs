@@ -1,17 +1,24 @@
-import { LocalAiGateway } from "../../dist/src/lib/local-ai/local-ai-gateway.js";
+import { checkLocalAiReadiness, loadLocalAiConfig } from "../../dist/src/lib/local-ai/index.js";
 
 const main = async () => {
-  const gateway = new LocalAiGateway();
-  const report = await gateway.getHealth();
+  const config = await loadLocalAiConfig();
+  const result = await checkLocalAiReadiness(config);
 
   process.stdout.write(`${JSON.stringify({
     generatedAt: new Date().toISOString(),
-    ok: report.ok,
-    detail: report.detail,
-    health: report.health,
+    ok: result.status === "ready",
+    detail: result.detail,
+    health: {
+      overallStatus: result.status,
+      endpointReachable: result.endpointReachable,
+      modelConfigured: result.modelConfigured,
+      modelAvailable: result.modelAvailable,
+      modelName: config.modelName,
+      runtimeName: config.runtimeName,
+    },
   }, null, 2)}\n`);
 
-  if (report.health.overallStatus !== "ready") {
+  if (result.status !== "ready") {
     process.exitCode = 1;
   }
 };

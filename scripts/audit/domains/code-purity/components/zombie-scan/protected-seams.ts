@@ -56,7 +56,6 @@ const ZOMBIE_DISABLED_PROMPT_CONTRACT_SUFFIX = ".disabled.prompt-contract.json" 
 const ZOMBIE_DORMANT_ROUTE_STEP_IDS = [
   "observe-comments-entry-page-state",
   "analyze-comments-entry-target-candidate",
-  "observe-comments-button",
   "normalize-comments-target",
   "click-comments-button",
   "verify-comments-open",

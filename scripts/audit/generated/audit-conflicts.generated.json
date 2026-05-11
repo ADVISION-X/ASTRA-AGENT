@@ -1,4 +1,90 @@
 {
-  "generatedAt": "2026-05-11T05:39:11.227Z",
-  "conflicts": []
+  "generatedAt": "2026-05-11T06:31:16.470Z",
+  "conflicts": [
+    {
+      "kind": "LAW_PARSE",
+      "message": "No law headers found in module law file.",
+      "file": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md"
+    },
+    {
+      "kind": "MANIFEST",
+      "message": "Active law domain has no owner manifest.",
+      "capabilityDomain": "nerve-bus-capability"
+    },
+    {
+      "kind": "MANIFEST",
+      "message": "Active law domain has no owner manifest.",
+      "capabilityDomain": "open-capability"
+    },
+    {
+      "kind": "MANIFEST",
+      "message": "Active law domain has no owner manifest.",
+      "capabilityDomain": "screenshot-capability"
+    },
+    {
+      "kind": "MANIFEST",
+      "message": "Active law domain has no owner manifest.",
+      "capabilityDomain": "text-input-capability"
+    },
+    {
+      "kind": "PLAN",
+      "message": "Phase gate references a law domain without a manifest.",
+      "capabilityDomain": "nerve-bus-capability"
+    },
+    {
+      "kind": "PLAN",
+      "message": "Phase gate references a law domain without a manifest.",
+      "capabilityDomain": "page-state-capability"
+    },
+    {
+      "kind": "PLAN",
+      "message": "Phase gate references a law domain without an active law.",
+      "capabilityDomain": "page-state-capability"
+    },
+    {
+      "kind": "PHASE_GATE",
+      "message": "Phase gate activeLawDomains must stay inside frozen baseline activeLawDomains.",
+      "capabilityDomain": "page-state-capability",
+      "file": "scripts/audit/phase-gates/phase-05-final-delivery-debug.json"
+    },
+    {
+      "kind": "PLAN",
+      "message": "Phase gate references a law domain without a manifest.",
+      "capabilityDomain": "open-capability"
+    },
+    {
+      "kind": "PLAN",
+      "message": "Phase gate references a law domain without a manifest.",
+      "capabilityDomain": "screenshot-capability"
+    },
+    {
+      "kind": "PLAN",
+      "message": "Phase gate references a law domain without a manifest.",
+      "capabilityDomain": "text-input-capability"
+    },
+    {
+      "kind": "PLAN",
+      "message": "Generated audit plan is missing a required law domain.",
+      "capabilityDomain": "nerve-bus-capability",
+      "file": "scripts/audit/generated/audit-plan.generated.json"
+    },
+    {
+      "kind": "PLAN",
+      "message": "Generated audit plan is missing a required law domain.",
+      "capabilityDomain": "open-capability",
+      "file": "scripts/audit/generated/audit-plan.generated.json"
+    },
+    {
+      "kind": "PLAN",
+      "message": "Generated audit plan is missing a required law domain.",
+      "capabilityDomain": "screenshot-capability",
+      "file": "scripts/audit/generated/audit-plan.generated.json"
+    },
+    {
+      "kind": "PLAN",
+      "message": "Generated audit plan is missing a required law domain.",
+      "capabilityDomain": "text-input-capability",
+      "file": "scripts/audit/generated/audit-plan.generated.json"
+    }
+  ]
 }

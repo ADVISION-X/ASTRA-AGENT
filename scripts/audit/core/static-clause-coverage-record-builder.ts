@@ -30,7 +30,6 @@ export const ABILITY_GROUP_DOMAINS = [
   "mouse-scroll-capability",
   "post-action-verification-capability",
   "forensics-persistence-capability",
-  "page-state-capability",
 ] as const;
 
 type CoverageStatusInput = {

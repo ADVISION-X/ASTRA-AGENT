@@ -46,7 +46,7 @@ const buildFailureResult = (input: {
 async function executeVisualMissionJudgeOnce(input: {
   request: AiAbilityInput;
   signal?: AbortSignal;
-  emitDebugEvent?: import("../../../lib/local-ai/runtime-adapters/local-ai-runtime-adapter.js").LocalAiDebugHook;
+  emitDebugEvent?: import("../../../lib/local-ai/index.js").LocalAiDebugHook;
 }): Promise<AiAbilityResult> {
   const startedAt = new Date().toISOString();
 
@@ -65,17 +65,17 @@ async function executeVisualMissionJudgeOnce(input: {
       endedAt,
       durationMs,
       reason: "visual_mission_judgment_completed",
-      modelName: modelCall.roleConfig.model,
-      runtime: modelCall.adapter.runtime,
+      modelName: modelCall.modelName ?? "unknown",
+      runtime: modelCall.runtime ?? "ollama",
       timeoutMs: modelCall.timeoutMs,
-      promptContractVersion: modelCall.roleConfig.promptVersion,
+      promptContractVersion: modelCall.promptVersion,
       promptCatalogVersion: input.request.promptCatalogVersion ?? input.request.promptContractId,
       promptContractHash: buildHash(JSON.stringify({
         promptContractId: input.request.promptContractId,
-        promptContractVersion: modelCall.roleConfig.promptVersion,
+        promptContractVersion: modelCall.promptVersion,
         expectedOutputSchema: input.request.expectedOutputSchema,
       })),
-      modelConfigHash: buildHash(JSON.stringify(modelCall.roleConfig)),
+      modelConfigHash: buildHash(JSON.stringify(modelCall.modelConfig)),
     });
   } catch (error) {
     const endedAt = new Date().toISOString();

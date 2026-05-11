@@ -34,9 +34,6 @@ async function dispatchSingleAction(
       runId: input.runId,
       sessionId: null,
       roundId: input.roundId ?? null,
-      mapId: null,
-      bindingPackageId: null,
-      selectedBindingId: null,
       inputOverrides: action.inputOverrides ?? {},
     });
     return { status: result.status ?? "success", failureReason: result.failureReason ?? null };
@@ -60,7 +57,7 @@ export async function dispatchRegisteredAbilitySequence(
       roundId: input.roundId ?? undefined,
       sourceCapabilityId: "orchestration",
       sourceChildCapabilityId: "dispatch-registered-ability-sequence",
-      recordType: "action_log",
+      recordType: "ability_result",
       recordPayload: {
         actionCode: action.actionCode,
         abilityGroupId: action.abilityGroupId ?? null,

@@ -1,5 +1,4 @@
-import { getModelRoleConfig, loadLocalAiModelConfig } from "../../lib/local-ai/model-config.js";
-import { OllamaRuntimeAdapter } from "../../lib/local-ai/runtime-adapters/ollama-runtime-adapter.js";
+import { checkLocalAiReadiness, loadLocalAiConfig } from "../../lib/local-ai/index.js";
 import type {
   AiAbilityGroup,
   CreateConfiguredAiAbilityGroupInput,
@@ -36,15 +35,11 @@ const createConfiguredAiAbilityGroup = (input: CreateConfiguredAiAbilityGroupInp
 
     async getHealth() {
       try {
-        const config = await loadLocalAiModelConfig();
-        const roleConfig = getModelRoleConfig(config, "vision");
-        const adapter = new OllamaRuntimeAdapter();
-        const health = await adapter.getHealth();
+        const config = await loadLocalAiConfig();
+        const readiness = await checkLocalAiReadiness(config);
         return {
-          ok: health.status === "ready",
-          detail: health.status === "ready"
-            ? `local model ${roleConfig.model} is ready`
-            : health.detail,
+          ok: readiness.status === "ready",
+          detail: readiness.detail,
         };
       } catch (error) {
         return {

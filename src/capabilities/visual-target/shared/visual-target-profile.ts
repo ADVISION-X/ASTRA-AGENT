@@ -1,1 +1,0 @@
-export type VisualTargetProfileOverride = Record<string, never>;

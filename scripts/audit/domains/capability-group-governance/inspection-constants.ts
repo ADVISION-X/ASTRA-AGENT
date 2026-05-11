@@ -28,7 +28,6 @@ const ACTIVE_ABILITY_GROUPS = [
   "mouse-scroll",
   "post-action-verification",
   "forensics-persistence",
-  "page-state",
 ] as const;
 const FOUNDATION_LAWS = [
   "audit-system",
@@ -97,7 +96,6 @@ const AI_ONLY_MEDIA_CHANGE_FORBIDDEN_LITERALS = [
 const AI_ONLY_COGNITION_TARGETS = [
   "src/capabilities/mouse-scroll/",
   "src/capabilities/open/",
-  "src/capabilities/page-state/",
   "src/capabilities/post-action-verification/",
   "src/capabilities/screenshot/",
   "src/capabilities/text-input/",

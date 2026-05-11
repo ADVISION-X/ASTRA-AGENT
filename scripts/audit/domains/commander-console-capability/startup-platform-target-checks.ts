@@ -10,7 +10,6 @@ import { getIdentifierCallWithin } from "../local-app-shell/inspection-utils.js"
 const STARTUP_GATE_LAW_ID = "GRASSEYE-STARTUP-ENTRYPOINT-005-V1";
 const APP_SERVER_PATH = "src/app/server.ts";
 const PACKAGE_JSON_PATH = "package.json";
-const PAGE_STATE_DISPATCH_PATH = "src/lib/local-runtime/workbench-page-state-dispatch-input.ts";
 const STARTUP_PATH = "scripts/startup/launch-grasseye.mjs";
 const STARTUP_PLATFORM_HELPER_IMPORT = "./lib/platform-target.mjs";
 const STARTUP_PLATFORM_HELPER_PATH = "scripts/startup/lib/platform-target.mjs";
@@ -168,28 +167,9 @@ function collectWorkbenchShellFindings(project: import("ts-morph").Project): Fin
     : [createStartupGateFinding({ file: WORKBENCH_CONTRACT_PATH, message: "Workbench shell contract must include the agent-shell startup platform so bootstrap stays mission-neutral." })];
 }
 
-function collectPageStateDispatchFindings(project: import("ts-morph").Project): Finding[] {
-  const dispatchPath = pathFromRepoRoot(PAGE_STATE_DISPATCH_PATH);
-  const dispatchSource = project.getSourceFile(dispatchPath) ?? project.addSourceFileAtPathIfExists(dispatchPath);
-  if (!dispatchSource) {
-    return [createStartupGateFinding({ file: PAGE_STATE_DISPATCH_PATH, message: "Page-state dispatch source must be available for startup platform anti-coupling checks." })];
-  }
-
-  const findings: Finding[] = [];
-  const dispatchText = dispatchSource.getFullText();
-  const resolvePlatformDeclaration = dispatchSource.getVariableDeclaration("resolvePageStatePlatformProfile");
-
-  if (!resolvePlatformDeclaration) {
-    findings.push(createStartupGateFinding({ file: PAGE_STATE_DISPATCH_PATH, message: "Page-state dispatch must resolve platformProfileId from mission state or current real-platform URL." }));
-  }
-  if (dispatchText.includes("const platformProfileId = runtime.options.platformTarget;")) {
-    findings.push(createStartupGateFinding({ file: PAGE_STATE_DISPATCH_PATH, message: "Page-state dispatch must not consume startup shell platform directly as platformProfileId." }));
-  }
-  if (!dispatchText.includes("mission.requestedPlatform")) {
-    findings.push(createStartupGateFinding({ file: PAGE_STATE_DISPATCH_PATH, message: "Page-state dispatch must fall back to mission.requestedPlatform before any shell-level fallback." }));
-  }
-
-  return findings;
+function collectPageStateDispatchFindings(_project: import("ts-morph").Project): Finding[] {
+  // Page State independent ability group is retired. No dispatch file to check.
+  return [];
 }
 
 export async function collectStartupPlatformGovernanceFindings(

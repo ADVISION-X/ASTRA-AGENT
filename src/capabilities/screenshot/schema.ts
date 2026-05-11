@@ -1,467 +1,345 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 
-import { SCREENSHOT_ABILITY_GROUP_ID, SCREENSHOT_CHILD_CAPABILITY_IDS, SCREENSHOT_COORDINATE_SPACES, SCREENSHOT_DATA_QUALITY_FLAGS, SCREENSHOT_DECISION_STATUSES, SCREENSHOT_EVIDENCE_POLICIES, SCREENSHOT_FAILURE_CODES, SCREENSHOT_IMAGE_KINDS, SCREENSHOT_PAGE_STATE_STATUSES, SCREENSHOT_RESULT_STATUSES, SCREENSHOT_SENSITIVE_SCREEN_STATUSES, SCREENSHOT_SOURCE_KINDS } from "./shared/screenshot-types.js";
-import { SCREENSHOT_RESULT_CHAIN_FIELD_NAMES, ScreenshotInputGovernanceShape, ScreenshotProofGovernanceShape, ScreenshotResultGovernanceShape } from "./shared/screenshot-governance.js";
-import { ScreenshotArtifactBudgetPolicySchema, ScreenshotArtifactBudgetSnapshotSchema, ScreenshotArtifactCleanupGateSchema, ScreenshotArtifactLifecycleManifestSchema, ScreenshotPromotionStatusSchema, ScreenshotRetentionClassSchema } from "./shared/screenshot-artifact-lifecycle-schema.js";
-import {
-  DEFAULT_AI_INPUT_MAX_WIDTH,
-  DEFAULT_SCREENSHOT_ARTIFACT_BUDGET_POLICY,
-  DEFAULT_SCREENSHOT_ARTIFACT_BUDGET_SNAPSHOT,
-} from "./shared/screenshot-policy.js";
-import { ScreenshotGridCellSchema, ScreenshotGridSpecSchema, ScreenshotStructuredRefSchema, ScreenshotVisualMissionInputSchema } from "./visual-mission-schema.js";
-import { validateScreenshotResult, validateScreenshotRuntimeProofCore, validateScreenshotRuntimeProofPrepareAiInput } from "./screenshot-schema-refinements.js";
+// ─── constants ────────────────────────────────────────────────────────────────
+
+export const SCREENSHOT_ABILITY_GROUP_ID = "screenshot" as const;
+
+export const SCREENSHOT_CHILD_IDS = [
+  "capture-browser-viewport",
+  "capture-grid-region",
+  "render-coordinate-grid",
+] as const;
+
+export type ScreenshotChildId = (typeof SCREENSHOT_CHILD_IDS)[number];
+
+export const SCREENSHOT_STATUSES = ["success", "failed", "review_required"] as const;
+export type ScreenshotStatus = (typeof SCREENSHOT_STATUSES)[number];
+
+export const VISUAL_MISSION_GRID_VERSION = "visual-grid.v1" as const;
+export const VISUAL_MISSION_AXIS_MODE = "y_letters_x_numbers" as const;
+export const MIN_GRID_CELL_WIDTH_PX = 40 as const;
+export const MIN_GRID_CELL_HEIGHT_PX = 30 as const;
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
 
 const nullableString = z.string().min(1).nullable().optional().default(null);
-const nullableBoolean = z.boolean().nullable().optional().default(null);
-const nullableDateTimeString = z.string().datetime().nullable().optional().default(null);
-const finiteNumber = z.number().finite();
-const positiveFiniteNumber = z.number().finite().positive();
-const nonNegativeInt = z.number().int().nonnegative();
-const requestedByString = z.string().min(1).max(120);
-const purposeString = z.string().min(1).max(300);
-const pageUrlString = z.string().min(1).max(2000).nullable().optional().default(null);
-const pageTitleString = z.string().min(1).max(300).nullable().optional().default(null);
-const sourceStorageRefString = z.string().min(1).max(1000);
+const finitePositive = z.number().finite().positive();
+const finiteNonNeg = z.number().finite().nonnegative();
+const isoDate = z.string().datetime();
 
-const ScreenshotChildCapabilityIdSchema = z.enum(SCREENSHOT_CHILD_CAPABILITY_IDS);
-const ScreenshotStatusSchema = z.enum(SCREENSHOT_RESULT_STATUSES);
-const ScreenshotSourceKindSchema = z.enum(SCREENSHOT_SOURCE_KINDS);
-const ScreenshotCoordinateSpaceSchema = z.enum(SCREENSHOT_COORDINATE_SPACES);
-const ScreenshotImageKindSchema = z.enum(SCREENSHOT_IMAGE_KINDS);
-const ScreenshotEvidencePolicySchema = z.enum(SCREENSHOT_EVIDENCE_POLICIES);
-const ScreenshotFailureCodeSchema = z.enum(SCREENSHOT_FAILURE_CODES);
-const ScreenshotDataQualityFlagSchema = z.enum(SCREENSHOT_DATA_QUALITY_FLAGS);
-const ScreenshotDecisionStatusSchema = z.enum(SCREENSHOT_DECISION_STATUSES);
-const ScreenshotPageStateStatusSchema = z.enum(SCREENSHOT_PAGE_STATE_STATUSES);
+// ─── GridSpec schemas ─────────────────────────────────────────────────────────
 
-const ScreenshotFailureSchema = z.object({
-  code: ScreenshotFailureCodeSchema,
-  message: z.string().min(1),
-  detail: nullableString,
+export const ScreenshotGridCellSchema = z.object({
+  cellId: z.string().regex(/^[A-Z]+[1-9][0-9]*$/),
+  rowLabel: z.string().regex(/^[A-Z]+$/),
+  columnLabel: z.string().regex(/^[1-9][0-9]*$/),
+  rowIndex: z.number().int().nonnegative(),
+  columnIndex: z.number().int().positive(),
+  x: finiteNonNeg,
+  y: finiteNonNeg,
+  width: finitePositive,
+  height: finitePositive,
+  centerX: z.number().finite(),
+  centerY: z.number().finite(),
 }).strict();
 
-const ScreenshotBoundingBoxSchema = z.object({
-  x: finiteNumber,
-  y: finiteNumber,
-  width: positiveFiniteNumber,
-  height: positiveFiniteNumber,
-  sourceScreenshotEvidenceId: z.string().min(1),
-  sourceStorageRef: z.string().min(1),
-  coordinateSpace: ScreenshotCoordinateSpaceSchema.exclude(["ai_input_pixels"]),
+export type ScreenshotGridCell = z.infer<typeof ScreenshotGridCellSchema>;
+
+export const ScreenshotGridSpecSchema = z.object({
+  gridSpecId: z.string().min(1),
+  gridSpecRef: z.string().min(1),
+  gridVersion: z.literal(VISUAL_MISSION_GRID_VERSION),
+  axisMode: z.literal(VISUAL_MISSION_AXIS_MODE),
+  sourceScreenshotRef: z.string().min(1),
+  sourceWidth: finitePositive,
+  sourceHeight: finitePositive,
+  gridImageWidth: finitePositive,
+  gridImageHeight: finitePositive,
+  gridRows: z.number().int().positive(),
+  gridColumns: z.number().int().positive(),
+  rowLabels: z.array(z.string().regex(/^[A-Z]+$/)).min(1),
+  columnLabels: z.array(z.string().regex(/^[1-9][0-9]*$/)).min(1),
+  cellWidthPx: finitePositive,
+  cellHeightPx: finitePositive,
+  cells: z.array(ScreenshotGridCellSchema).min(1),
+  createdAt: isoDate,
 }).strict();
 
-const ScreenshotCaptureBoundsSchema = z.object({
-  x: finiteNumber,
-  y: finiteNumber,
-  width: positiveFiniteNumber,
-  height: positiveFiniteNumber,
-}).strict();
+export type ScreenshotGridSpec = z.infer<typeof ScreenshotGridSpecSchema>;
 
-const ScreenshotScaleMappingSchema = z.object({
-  sourceScreenshotEvidenceId: nullableString,
-  sourceStorageRef: nullableString,
-  sourceCoordinateSpace: ScreenshotCoordinateSpaceSchema.exclude(["ai_input_pixels"]).nullable().optional().default(null),
-  targetCoordinateSpace: ScreenshotCoordinateSpaceSchema,
-  sourceWidth: positiveFiniteNumber.nullable().optional().default(null),
-  sourceHeight: positiveFiniteNumber.nullable().optional().default(null),
-  targetWidth: positiveFiniteNumber.nullable().optional().default(null),
-  targetHeight: positiveFiniteNumber.nullable().optional().default(null),
-  cropOffsetX: finiteNumber,
-  cropOffsetY: finiteNumber,
-  scaleX: positiveFiniteNumber,
-  scaleY: positiveFiniteNumber,
-}).strict();
-
-const ScreenshotArtifactRefSchema = z.object({
+export const ScreenshotArtifactRefSchema = z.object({
   artifactId: z.string().min(1),
-  evidenceId: z.string().min(1),
-  storageRef: sourceStorageRefString,
-  fileName: z.string().min(1),
+  storageRef: z.string().min(1),
   mimeType: z.string().min(1),
-  sha256: z.string().min(1),
-  width: positiveFiniteNumber,
-  height: positiveFiniteNumber,
-  imageKind: ScreenshotImageKindSchema,
-  createdAt: z.string().datetime(),
+  sizeBytes: z.number().int().positive(),
+  sha256: z.string().length(64),
+  createdAt: isoDate,
 }).strict();
 
-const ScreenshotStoredArtifactSchema = z.object({
-  artifactRef: ScreenshotArtifactRefSchema,
-  artifactLifecycleManifestRef: z.string().min(1),
-  retentionClass: ScreenshotRetentionClassSchema,
-  expiresAt: nullableDateTimeString,
-  deleteAfter: nullableDateTimeString,
-  artifactHash: z.string().min(1),
-  byteSize: nonNegativeInt,
-  promotionStatus: ScreenshotPromotionStatusSchema,
-  cleanupEligible: z.boolean(),
+export type ScreenshotArtifactRef = z.infer<typeof ScreenshotArtifactRefSchema>;
+
+export const ScreenshotStructuredRefSchema = z.object({
+  refId: z.string().min(1),
+  storageRef: z.string().min(1),
+  sha256: z.string().length(64),
+  mimeType: z.literal("application/json"),
+  createdAt: isoDate,
 }).strict();
 
-const ScreenshotSourceProofSchema = z.object({
-  proofRef: z.string().min(1),
-  sourceKind: ScreenshotSourceKindSchema,
-  sourceStorageRef: sourceStorageRefString.nullable().optional().default(null),
-  sourceArtifactRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
-  inheritedScaleMapping: ScreenshotScaleMappingSchema.nullable().optional().default(null),
-  sourceScreenshotEvidenceId: nullableString,
-  sourceHash: nullableString,
-  coordinateSpace: ScreenshotCoordinateSpaceSchema.exclude(["ai_input_pixels"]).nullable().optional().default(null),
-  sourceWidth: positiveFiniteNumber.nullable().optional().default(null),
-  sourceHeight: positiveFiniteNumber.nullable().optional().default(null),
-  sessionId: z.string().min(1),
+export type ScreenshotStructuredRef = z.infer<typeof ScreenshotStructuredRefSchema>;
+
+// ─── proof ────────────────────────────────────────────────────────────────────
+
+export const ScreenshotProofSchema = z.object({
+  proofId: z.string().min(1),
+  abilityGroupId: z.literal(SCREENSHOT_ABILITY_GROUP_ID),
+  childCapabilityId: z.enum(SCREENSHOT_CHILD_IDS),
+  missionId: z.string().min(1),
+  runId: z.string().min(1),
+  sessionId: nullableString,
   roundId: nullableString,
-  videoVisitId: nullableString,
-  stepId: nullableString,
-  capabilityCallId: nullableString,
-  pageStateProofRef: nullableString,
-  browserSessionRef: nullableString,
+  stepId: z.string().min(1),
+  capabilityCallId: z.string().min(1),
+  nerveBusEnvelopeId: z.string().min(1),
+  inputRef: z.string().min(1),
+  screenshotRef: nullableString,
+  artifactRef: nullableString,
+  coordinateGridScreenshotRef: nullableString,
+  gridSpecRef: nullableString,
+  capturePhaseMs: z.number().int().nonnegative().nullable().optional().default(null),
+  gridRenderPhaseMs: z.number().int().nonnegative().nullable().optional().default(null),
+  artifactWritePhaseMs: z.number().int().nonnegative().nullable().optional().default(null),
+  totalScreenshotStepMs: z.number().int().nonnegative(),
+  status: z.enum(SCREENSHOT_STATUSES),
+  failureReason: nullableString,
+  reviewRequiredReason: nullableString,
+  startedAt: isoDate,
+  endedAt: isoDate,
+  durationMs: z.number().int().nonnegative(),
 }).strict();
 
-const ScreenshotCapturePolicySchema = z.object({
-  allowMissingRoundId: z.boolean().default(true),
-  allowMissingVideoVisitId: z.boolean().default(true),
-  allowFirstCaptureWithoutPageStateProof: z.boolean().default(false),
-  maxContentLines: z.number().int().positive().default(12),
-  contentLineMaxLength: z.number().int().positive().default(200),
-  maxAiWidth: positiveFiniteNumber.nullable().optional().default(DEFAULT_AI_INPUT_MAX_WIDTH),
-  preservePixels: z.boolean().default(true),
-  evidencePolicy: ScreenshotEvidencePolicySchema.default("evidence_original"),
-  artifactBudget: ScreenshotArtifactBudgetPolicySchema.default(DEFAULT_SCREENSHOT_ARTIFACT_BUDGET_POLICY),
-  maxDurationMs: z.number().int().positive().default(60_000),
-  onTimeoutStatus: ScreenshotStatusSchema.exclude(["success"]).default("failed"),
-}).strict();
+export type ScreenshotProof = z.infer<typeof ScreenshotProofSchema>;
 
-const ScreenshotPrivacyPolicySchema = z.object({
-  operatorApprovalRef: nullableString,
-  screenTarget: nullableString,
-  captureBounds: ScreenshotCaptureBoundsSchema.nullable().optional().default(null),
-  allowFullScreen: z.boolean().default(false),
-  sensitiveScreenState: z.enum(SCREENSHOT_SENSITIVE_SCREEN_STATUSES).default("unknown"),
-}).strict();
+// ─── capture-browser-viewport ─────────────────────────────────────────────────
 
-const ScreenshotPageStateProofSchema = z.object({
-  proofRef: z.string().min(1),
-  status: ScreenshotPageStateStatusSchema,
-  pageUrl: pageUrlString,
-  pageTitle: pageTitleString,
-  sessionId: z.string().min(1),
+export const CaptureBrowserViewportInputSchema = z.object({
+  childCapabilityId: z.literal("capture-browser-viewport"),
+  missionId: z.string().min(1),
+  runId: z.string().min(1),
+  sessionId: nullableString,
   roundId: nullableString,
-  videoVisitId: nullableString,
-  observedAt: z.string().datetime(),
+  stepId: z.string().min(1),
+  capabilityCallId: z.string().min(1),
+  nerveBusEnvelopeId: z.string().min(1),
+  inputRef: z.string().min(1),
+  browserSessionRef: z.string().min(1),
+  privacyPolicy: z.string().min(1).optional(),
+  capturePolicy: z.string().min(1).optional(),
+  idempotencyKey: z.string().min(1),
+  timeoutMs: z.number().int().positive().optional(),
 }).strict();
 
-const ScreenshotDecisionSchema = z.object({
-  status: ScreenshotDecisionStatusSchema,
-  reason: nullableString,
-}).strict();
+export type CaptureBrowserViewportInput = z.infer<typeof CaptureBrowserViewportInputSchema>;
 
-const ScreenshotBrowserSessionSnapshotSchema = z.object({
-  open: z.boolean(),
-  currentUrl: z.string().min(1).max(2000),
-  currentTitle: pageTitleString,
-  browserExecutable: nullableString,
-  browserMode: z.enum(["real_chrome_persistent", "fixture", "unsupported"]),
-  browserProfileRef: z.string().min(1),
-  browserExecutablePath: nullableString,
-  profileStatus: z.enum([
-    "profile_ready",
-    "profile_missing",
-    "profile_locked",
-    "profile_unavailable",
-    "login_required",
-    "logged_in",
-    "unknown",
-  ]),
-  profileDirectory: z.string().min(1),
-  profileProvisioning: z.enum(["operator_supplied", "managed_default"]),
-  profileVerificationStatus: z.enum(["operator_verified", "default_unverified"]),
-  profileVerificationReason: nullableString,
-  loginState: z.enum(["unknown", "login_required", "logged_in", "review_required"]),
-  lastLoginCheckAt: nullableString,
-  loginRequiredReason: nullableString,
+export const CaptureBrowserViewportResultSchema = z.object({
+  status: z.enum(SCREENSHOT_STATUSES),
+  screenshotRef: z.string().min(1).optional(),
+  artifactRef: ScreenshotArtifactRefSchema.optional(),
+  imageWidth: finitePositive.optional(),
+  imageHeight: finitePositive.optional(),
+  viewportWidth: finitePositive.optional(),
+  viewportHeight: finitePositive.optional(),
+  mimeType: z.string().min(1).optional(),
+  screenshotProof: ScreenshotProofSchema,
+  failureReason: nullableString,
   reviewRequiredReason: nullableString,
 }).strict();
 
-const ScreenshotBrowserCaptureSchema = z.object({
-  browserActionId: z.string().min(1),
-  pageUrl: z.string().min(1).max(2000),
-  pageTitle: pageTitleString,
-  regionLabel: z.string().min(1),
-  regionType: z.string().min(1),
-  width: positiveFiniteNumber,
-  height: positiveFiniteNumber,
-  viewportWidth: positiveFiniteNumber,
-  viewportHeight: positiveFiniteNumber,
-  contentLines: z.array(z.string().min(1)).default([]),
-  sourceFilePath: z.string().min(1),
-  createdAt: z.string().datetime(),
-}).strict();
+export type CaptureBrowserViewportResult = z.infer<typeof CaptureBrowserViewportResultSchema>;
 
-const ScreenshotDesktopCaptureSchema = z.object({
-  screenId: z.string().min(1),
-  width: positiveFiniteNumber,
-  height: positiveFiniteNumber,
-  sourceFilePath: z.string().min(1),
-  createdAt: z.string().datetime(),
-}).strict();
+// ─── render-coordinate-grid ───────────────────────────────────────────────────
 
-const ScreenshotStoredImageSourceSchema = z.object({
-  kind: z.literal("stored_image"),
-  sourceStorageRef: sourceStorageRefString,
-  sourceArtifactRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
-  sourceProof: ScreenshotSourceProofSchema,
-  coordinateSpace: ScreenshotCoordinateSpaceSchema.exclude(["ai_input_pixels"]).default("source_image_pixels"),
-}).strict();
-
-const ScreenshotBrowserViewportSourceSchema = z.object({
-  kind: z.literal("browser_viewport"),
-  pageUrl: pageUrlString,
-  pageTitle: pageTitleString,
-  browserSessionRef: nullableString,
-}).strict();
-
-const ScreenshotDesktopScreenSourceSchema = z.object({
-  kind: z.literal("desktop_screen"),
-  screenId: nullableString,
-}).strict();
-
-const ScreenshotBaseInputSchema = z.object({
-  abilityGroupId: z.literal(SCREENSHOT_ABILITY_GROUP_ID).default(SCREENSHOT_ABILITY_GROUP_ID),
-  sessionId: z.string().min(1),
+export const RenderCoordinateGridInputSchema = z.object({
+  childCapabilityId: z.literal("render-coordinate-grid"),
+  missionId: z.string().min(1),
+  runId: z.string().min(1),
+  sessionId: nullableString,
   roundId: nullableString,
-  videoVisitId: nullableString,
-  ...ScreenshotInputGovernanceShape,
-  requestedBy: requestedByString,
-  purpose: purposeString,
-  sourceAbilityGroupId: z.string().min(1).default("orchestration"),
-  sourceChildCapabilityId: nullableString,
-  region: ScreenshotBoundingBoxSchema.nullable().optional().default(null),
-  maxAiWidth: positiveFiniteNumber.nullable().optional().default(null),
-  preservePixels: z.boolean().default(true),
-  evidencePolicy: ScreenshotEvidencePolicySchema.default("evidence_original"),
-  contentLines: z.array(z.string().min(1)).default([]),
-  sourceProof: ScreenshotSourceProofSchema.nullable().optional().default(null),
-  pageStateProof: ScreenshotPageStateProofSchema.nullable().optional().default(null),
-  artifactBudgetSnapshot: ScreenshotArtifactBudgetSnapshotSchema.default(DEFAULT_SCREENSHOT_ARTIFACT_BUDGET_SNAPSHOT),
-  privacyPolicy: ScreenshotPrivacyPolicySchema.default({
-    operatorApprovalRef: null,
-    screenTarget: null,
-    captureBounds: null,
-    allowFullScreen: false,
-    sensitiveScreenState: "unknown",
-  }),
-  capturePolicy: ScreenshotCapturePolicySchema.default({
-    allowMissingRoundId: true,
-    allowMissingVideoVisitId: true,
-    allowFirstCaptureWithoutPageStateProof: false,
-    maxContentLines: 12,
-    contentLineMaxLength: 200,
-    maxAiWidth: DEFAULT_AI_INPUT_MAX_WIDTH,
-    preservePixels: true,
-    evidencePolicy: "evidence_original",
-    artifactBudget: DEFAULT_SCREENSHOT_ARTIFACT_BUDGET_POLICY,
-    maxDurationMs: 60_000,
-    onTimeoutStatus: "failed",
-  }),
-  sampleDelayMs: z.number().int().nonnegative().nullable().optional().default(null),
+  stepId: z.string().min(1),
+  capabilityCallId: z.string().min(1),
+  nerveBusEnvelopeId: z.string().min(1),
+  inputRef: z.string().min(1),
+  sourceScreenshotRef: z.string().min(1),
+  sourceScreenshotProofRef: z.string().min(1),
+  gridPolicy: z.object({
+    rowCount: z.number().int().positive().default(8),
+    columnCount: z.number().int().positive().default(12),
+  }).optional(),
+  idempotencyKey: z.string().min(1),
+  timeoutMs: z.number().int().positive().optional(),
 }).strict();
 
-const CaptureBrowserViewportInputSchema = ScreenshotBaseInputSchema.extend({
-  childCapabilityId: z.literal("capture-browser-viewport"),
-  source: ScreenshotBrowserViewportSourceSchema.default({
-    kind: "browser_viewport",
-    pageUrl: null,
-    pageTitle: null,
-    browserSessionRef: null,
-  }),
-  region: z.null().optional().default(null),
+export type RenderCoordinateGridInput = z.infer<typeof RenderCoordinateGridInputSchema>;
+
+export const RenderCoordinateGridResultSchema = z.object({
+  status: z.enum(SCREENSHOT_STATUSES),
+  coordinateGridScreenshotRef: z.string().min(1).optional(),
+  coordinateGridArtifactRef: ScreenshotArtifactRefSchema.optional(),
+  gridSpecRef: z.string().min(1).optional(),
+  gridSpec: ScreenshotGridSpecSchema.optional(),
+  gridRows: z.number().int().positive().optional(),
+  gridColumns: z.number().int().positive().optional(),
+  sourceScreenshotRef: z.string().min(1).optional(),
+  screenshotProof: ScreenshotProofSchema,
+  failureReason: nullableString,
+  reviewRequiredReason: nullableString,
 }).strict();
 
-const CaptureDesktopScreenInputSchema = ScreenshotBaseInputSchema.extend({
-  childCapabilityId: z.literal("capture-desktop-screen"),
-  source: ScreenshotDesktopScreenSourceSchema.default({
-    kind: "desktop_screen",
-    screenId: "primary",
-  }),
-  region: z.null().optional().default(null),
+export type RenderCoordinateGridResult = z.infer<typeof RenderCoordinateGridResultSchema>;
+
+// ─── capture-grid-region ─────────────────────────────────────────────────────
+
+export const CaptureGridRegionInputSchema = z.object({
+  childCapabilityId: z.literal("capture-grid-region"),
+  missionId: z.string().min(1),
+  runId: z.string().min(1),
+  sessionId: nullableString,
+  roundId: nullableString,
+  stepId: z.string().min(1),
+  capabilityCallId: z.string().min(1),
+  nerveBusEnvelopeId: z.string().min(1),
+  inputRef: z.string().min(1),
+  sourceScreenshotRef: z.string().min(1),
+  sourceScreenshotProofRef: z.string().min(1),
+  gridSpecRef: z.string().min(1).optional(),
+  regionGridCell: z.string().regex(/^[A-Z]+[1-9][0-9]*$/).optional(),
+  bbox: z.object({
+    x: finiteNonNeg,
+    y: finiteNonNeg,
+    width: finitePositive,
+    height: finitePositive,
+  }).strict().optional(),
+  privacyPolicy: z.string().min(1).optional(),
+  capturePolicy: z.string().min(1).optional(),
+  idempotencyKey: z.string().min(1),
+  timeoutMs: z.number().int().positive().optional(),
 }).strict();
 
-const CaptureRegionInputSchema = ScreenshotBaseInputSchema.extend({
-  childCapabilityId: z.literal("capture-region"),
-  source: ScreenshotStoredImageSourceSchema,
-  region: ScreenshotBoundingBoxSchema,
+export type CaptureGridRegionInput = z.infer<typeof CaptureGridRegionInputSchema>;
+
+export const CaptureGridRegionResultSchema = z.object({
+  status: z.enum(SCREENSHOT_STATUSES),
+  regionScreenshotRef: z.string().min(1).optional(),
+  regionArtifactRef: ScreenshotArtifactRefSchema.optional(),
+  sourceScreenshotRef: z.string().min(1).optional(),
+  screenshotProof: ScreenshotProofSchema,
+  failureReason: nullableString,
+  reviewRequiredReason: nullableString,
 }).strict();
 
-const OptimizeLosslessInputSchema = ScreenshotBaseInputSchema.extend({
-  childCapabilityId: z.literal("optimize-lossless"),
-  source: ScreenshotStoredImageSourceSchema,
-  region: z.null().optional().default(null),
-}).strict();
+export type CaptureGridRegionResult = z.infer<typeof CaptureGridRegionResultSchema>;
 
-const PrepareAiInputInputSchema = ScreenshotBaseInputSchema.extend({
-  childCapabilityId: z.literal("prepare-ai-input"),
-  source: ScreenshotStoredImageSourceSchema,
-  region: ScreenshotBoundingBoxSchema.nullable().optional().default(null),
-}).strict();
+// ─── discriminated union ──────────────────────────────────────────────────────
 
-const PrepareVisualMissionInputInputSchema = ScreenshotBaseInputSchema.extend({
-  childCapabilityId: z.literal("prepare-visual-mission-input"),
-  source: ScreenshotStoredImageSourceSchema,
-  region: z.null().optional().default(null),
-}).strict();
-
-const ScreenshotAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
+export const ScreenshotAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
   CaptureBrowserViewportInputSchema,
-  CaptureDesktopScreenInputSchema,
-  CaptureRegionInputSchema,
-  OptimizeLosslessInputSchema,
-  PrepareAiInputInputSchema,
-  PrepareVisualMissionInputInputSchema,
+  RenderCoordinateGridInputSchema,
+  CaptureGridRegionInputSchema,
 ]);
 
-const ScreenshotExecutionOutputSchema = z.object({
-  artifactRef: ScreenshotArtifactRefSchema,
-  artifactLifecycleManifestRef: z.string().min(1),
-  evidenceId: z.string().min(1),
-  pageUrl: nullableString,
-  pageTitle: nullableString,
-  width: positiveFiniteNumber,
-  height: positiveFiniteNumber,
-  originalWidth: positiveFiniteNumber,
-  originalHeight: positiveFiniteNumber,
-  imageKind: ScreenshotImageKindSchema,
-  coordinateSpace: ScreenshotCoordinateSpaceSchema,
-  scaleMapping: ScreenshotScaleMappingSchema.nullable().optional().default(null),
-  sourceScreenshotEvidenceId: nullableString,
-  screenId: nullableString,
-  sourceHash: z.string().min(1),
-  outputHash: z.string().min(1),
-  artifactHash: z.string().min(1),
-  byteSize: nonNegativeInt,
-  retentionClass: ScreenshotRetentionClassSchema,
-  expiresAt: nullableDateTimeString,
-  deleteAfter: nullableDateTimeString,
-  promotionStatus: ScreenshotPromotionStatusSchema,
-  cleanupEligible: z.boolean(),
-  regionLabel: z.string().min(1),
-  regionType: z.string().min(1),
-  originalScreenshotRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
-  coordinateGridScreenshotRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
-  gridSpecRef: ScreenshotStructuredRefSchema.nullable().optional().default(null),
-  visualMissionInputRef: ScreenshotStructuredRefSchema.nullable().optional().default(null),
-  visualMissionInput: ScreenshotVisualMissionInputSchema.nullable().optional().default(null),
-  gridSpec: ScreenshotGridSpecSchema.nullable().optional().default(null),
-  contentLines: z.array(z.string().min(1)).default([]),
-}).strict();
+export type ScreenshotAbilityInput = z.infer<typeof ScreenshotAbilityInputSchema>;
 
-const ScreenshotDecisionsSchema = z.object({
-  privacyDecision: ScreenshotDecisionSchema,
-  sourceDecision: ScreenshotDecisionSchema,
-  browserSessionDecision: ScreenshotDecisionSchema,
-  pageStateDecision: ScreenshotDecisionSchema,
-  captureDecision: ScreenshotDecisionSchema,
-  imageProcessingDecision: ScreenshotDecisionSchema,
-  timeoutDecision: ScreenshotDecisionSchema,
-  abortDecision: ScreenshotDecisionSchema,
-  regionDecision: ScreenshotDecisionSchema,
-  scaleMappingDecision: ScreenshotDecisionSchema,
-  artifactDecision: ScreenshotDecisionSchema,
-  outputBoundaryDecision: ScreenshotDecisionSchema,
-}).strict();
+export type ScreenshotAbilityResult =
+  | CaptureBrowserViewportResult
+  | RenderCoordinateGridResult
+  | CaptureGridRegionResult;
 
-const ScreenshotRuntimeProofIdentitySchema = z.object({
-  proofId: z.string().min(1),
-  sessionId: z.string().min(1),
-  roundId: nullableString,
-  videoVisitId: nullableString,
-  ...ScreenshotProofGovernanceShape,
-  abilityGroupId: z.literal(SCREENSHOT_ABILITY_GROUP_ID),
-  childCapabilityId: ScreenshotChildCapabilityIdSchema,
-  sourceAbilityGroupId: z.string().min(1),
-  sourceChildCapabilityId: nullableString,
-  inputRef: z.string().min(1),
-  outputRef: nullableString,
-  sourceProofRef: nullableString,
-  pageStateProofRef: nullableString,
-  browserSessionRef: nullableString,
-  screenshotEvidenceId: nullableString,
-  artifactRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
-  sourceArtifactRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
-  originalScreenshotRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
-  coordinateGridScreenshotRef: ScreenshotArtifactRefSchema.nullable().optional().default(null),
-  gridSpecRef: ScreenshotStructuredRefSchema.nullable().optional().default(null),
-  visualMissionInputRef: ScreenshotStructuredRefSchema.nullable().optional().default(null),
-  artifactLifecycleManifestRef: z.string().min(1).nullable().optional().default(null),
-  retentionClass: ScreenshotRetentionClassSchema.nullable().optional().default(null),
-  promotionStatus: ScreenshotPromotionStatusSchema.nullable().optional().default(null),
-  expiresAt: nullableDateTimeString,
-  deleteAfter: nullableDateTimeString,
-  cleanupEligible: nullableBoolean,
-}).strict();
+// ─── grid builder helpers (exported for grid-renderer) ────────────────────────
 
-const ScreenshotRuntimeProofMetricsSchema = z.object({
-  sourceHash: nullableString,
-  outputHash: nullableString,
-  artifactHash: nullableString,
-  byteSize: nonNegativeInt.nullable().optional().default(null),
-  sourceWidth: positiveFiniteNumber.nullable().optional().default(null),
-  sourceHeight: positiveFiniteNumber.nullable().optional().default(null),
-  outputWidth: positiveFiniteNumber.nullable().optional().default(null),
-  outputHeight: positiveFiniteNumber.nullable().optional().default(null),
-  coordinateSpace: ScreenshotCoordinateSpaceSchema.nullable().optional().default(null),
-  sourceCoordinateSpace: ScreenshotCoordinateSpaceSchema.exclude(["ai_input_pixels"]).nullable().optional().default(null),
-  scaleMapping: ScreenshotScaleMappingSchema.nullable().optional().default(null),
-  region: ScreenshotBoundingBoxSchema.nullable().optional().default(null),
-}).strict();
-
-const ScreenshotRuntimeProofTimingSchema = z.object({
-  idempotencyKey: z.string().min(1),
-  startedAt: z.string().datetime(),
-  endedAt: z.string().datetime(),
-  durationMs: nonNegativeInt,
-  capturePhaseMs: nonNegativeInt.nullable().optional().default(null),
-  imageProcessingPhaseMs: nonNegativeInt.nullable().optional().default(null),
-  artifactStoragePhaseMs: nonNegativeInt.nullable().optional().default(null),
-  outputBoundaryPhaseMs: nonNegativeInt.nullable().optional().default(null),
-  totalScreenshotStepMs: nonNegativeInt.nullable().optional().default(null),
-  status: ScreenshotStatusSchema,
-  failureReason: ScreenshotFailureSchema.nullable().optional().default(null),
-  reviewRequiredReason: nullableString,
-  dataQualityFlags: z.array(ScreenshotDataQualityFlagSchema).default([]),
-  clock: z.object({
-    portKind: z.literal("system-monotonic-screenshot-clock"),
-    startedMonotonicMs: z.number().finite(),
-    endedMonotonicMs: z.number().finite(),
-  }).strict(),
-}).strict();
-
-const ScreenshotRuntimeProofBaseSchema = ScreenshotRuntimeProofIdentitySchema
-  .merge(ScreenshotRuntimeProofMetricsSchema)
-  .merge(ScreenshotDecisionsSchema)
-  .merge(ScreenshotRuntimeProofTimingSchema)
-  .strict();
-
-export const SCREENSHOT_SCHEMA_VALIDATION_MARKERS = ["success proof requires outputRef", "non-success proof must not expose outputRef", "non-success result must not expose output", "diagnosticPayloadRef", "prepare-ai-input proof requires scaleMapping", "prepare-visual-mission-input proof requires gridSpecRef", "capture-region success proof requires sourceScreenshotEvidenceId in scaleMapping", "success proof requires lifecycle manifest", "SCREENSHOT_PROOF_CHAIN_FIELD_NAMES", "SCREENSHOT_RESULT_CHAIN_FIELD_NAMES"] as const;
-
-function validateScreenshotRuntimeProof(value: z.infer<typeof ScreenshotRuntimeProofBaseSchema>, context: z.RefinementCtx) {
-  validateScreenshotRuntimeProofCore(value, context);
-  validateScreenshotRuntimeProofPrepareAiInput(value, context);
+export function encodeRowLabel(index: number): string {
+  let value = index;
+  let label = "";
+  do {
+    label = String.fromCharCode(65 + (value % 26)) + label;
+    value = Math.floor(value / 26) - 1;
+  } while (value >= 0);
+  return label;
 }
 
-const ScreenshotRuntimeProofSchema = ScreenshotRuntimeProofBaseSchema.superRefine(validateScreenshotRuntimeProof);
+export function buildGridAxes(input: { rowCount: number; columnCount: number }) {
+  return {
+    rowLabels: Array.from({ length: input.rowCount }, (_, i) => encodeRowLabel(i)),
+    columnLabels: Array.from({ length: input.columnCount }, (_, i) => String(i + 1)),
+  };
+}
 
-const ScreenshotResultSchema = z.object({
-  abilityGroupId: z.literal(SCREENSHOT_ABILITY_GROUP_ID),
-  childCapabilityId: ScreenshotChildCapabilityIdSchema,
-  ...ScreenshotResultGovernanceShape,
-  status: ScreenshotStatusSchema,
-  message: z.string().min(1),
-  output: ScreenshotExecutionOutputSchema.nullable().optional().default(null),
-  failureReason: ScreenshotFailureSchema.nullable().optional().default(null),
-  reviewRequiredReason: nullableString,
-  dataQualityFlags: z.array(ScreenshotDataQualityFlagSchema).default([]),
-  runtimeProof: ScreenshotRuntimeProofSchema,
-}).strict().superRefine(validateScreenshotResult);
+export function buildGridSpec(input: {
+  sourceScreenshotRef: string;
+  sourceWidth: number;
+  sourceHeight: number;
+  gridImageWidth: number;
+  gridImageHeight: number;
+  rowCount: number;
+  columnCount: number;
+  createdAt: string;
+}): ScreenshotGridSpec {
+  const { rowLabels, columnLabels } = buildGridAxes({
+    rowCount: input.rowCount,
+    columnCount: input.columnCount,
+  });
+  const cellWidthPx = input.gridImageWidth / input.columnCount;
+  const cellHeightPx = input.gridImageHeight / input.rowCount;
 
+  const gridSpecId = `grid-spec:${createHash("sha256")
+    .update(`${input.sourceScreenshotRef}:${input.gridImageWidth}:${input.gridImageHeight}:${input.rowCount}:${input.columnCount}`)
+    .digest("hex")
+    .slice(0, 24)}`;
 
-export { ScreenshotChildCapabilityIdSchema, ScreenshotStatusSchema, ScreenshotSourceKindSchema, ScreenshotCoordinateSpaceSchema, ScreenshotImageKindSchema, ScreenshotEvidencePolicySchema, ScreenshotRetentionClassSchema, ScreenshotPromotionStatusSchema, ScreenshotFailureCodeSchema, ScreenshotDataQualityFlagSchema, ScreenshotDecisionStatusSchema, ScreenshotPageStateStatusSchema, ScreenshotFailureSchema, ScreenshotBoundingBoxSchema, ScreenshotCaptureBoundsSchema, ScreenshotScaleMappingSchema, ScreenshotArtifactRefSchema, ScreenshotStoredArtifactSchema, ScreenshotSourceProofSchema, ScreenshotCapturePolicySchema, ScreenshotPrivacyPolicySchema, ScreenshotPageStateProofSchema, ScreenshotDecisionSchema, ScreenshotBrowserSessionSnapshotSchema, ScreenshotBrowserCaptureSchema, ScreenshotDesktopCaptureSchema, ScreenshotStoredImageSourceSchema, ScreenshotBrowserViewportSourceSchema, ScreenshotDesktopScreenSourceSchema, ScreenshotArtifactBudgetPolicySchema, ScreenshotArtifactBudgetSnapshotSchema, ScreenshotArtifactCleanupGateSchema, ScreenshotArtifactLifecycleManifestSchema, CaptureBrowserViewportInputSchema, CaptureDesktopScreenInputSchema, CaptureRegionInputSchema, OptimizeLosslessInputSchema, PrepareAiInputInputSchema, PrepareVisualMissionInputInputSchema, ScreenshotAbilityInputSchema, ScreenshotExecutionOutputSchema, ScreenshotRuntimeProofSchema, ScreenshotResultSchema, ScreenshotStructuredRefSchema, ScreenshotGridCellSchema, ScreenshotGridSpecSchema, ScreenshotVisualMissionInputSchema };
+  const cells: ScreenshotGridCell[] = [];
+  for (let r = 0; r < rowLabels.length; r++) {
+    for (let c = 0; c < columnLabels.length; c++) {
+      const x = c * cellWidthPx;
+      const y = r * cellHeightPx;
+      cells.push({
+        cellId: `${rowLabels[r]}${columnLabels[c]}`,
+        rowLabel: rowLabels[r]!,
+        columnLabel: columnLabels[c]!,
+        rowIndex: r,
+        columnIndex: c + 1,
+        x,
+        y,
+        width: cellWidthPx,
+        height: cellHeightPx,
+        centerX: x + cellWidthPx / 2,
+        centerY: y + cellHeightPx / 2,
+      });
+    }
+  }
+
+  return {
+    gridSpecId,
+    gridSpecRef: gridSpecId,
+    gridVersion: VISUAL_MISSION_GRID_VERSION,
+    axisMode: VISUAL_MISSION_AXIS_MODE,
+    sourceScreenshotRef: input.sourceScreenshotRef,
+    sourceWidth: input.sourceWidth,
+    sourceHeight: input.sourceHeight,
+    gridImageWidth: input.gridImageWidth,
+    gridImageHeight: input.gridImageHeight,
+    gridRows: input.rowCount,
+    gridColumns: input.columnCount,
+    rowLabels,
+    columnLabels,
+    cellWidthPx,
+    cellHeightPx,
+    cells,
+    createdAt: input.createdAt,
+  };
+}
+
+export function decodeGridCell(gridSpec: ScreenshotGridSpec, cellId: string): ScreenshotGridCell {
+  const cell = gridSpec.cells.find((c) => c.cellId === cellId);
+  if (!cell) throw new Error(`Unknown grid cell: ${cellId}`);
+  return cell;
+}

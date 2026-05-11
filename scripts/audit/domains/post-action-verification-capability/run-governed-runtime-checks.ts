@@ -1,75 +1,42 @@
-import { SyntaxKind, type Project } from "ts-morph";
+import type { Project } from "ts-morph";
 
-import { createFinding, createPhase } from "../../core/result.js";
+import { createPhase } from "../../core/result.js";
 import type { Finding, InspectorPhase } from "../../core/schema.js";
 
-import { LAW_IDS } from "./config.js";
 import { runPostActionGovernedRuntimeFixtures } from "./governed-runtime-fixtures.js";
-import { getSource } from "./project-access.js";
 
-const EXECUTOR_PATH = "src/lib/local-runtime/workbench-ability-command-executor.ts";
-const BUILDER_PATH = "src/lib/local-runtime/workbench-post-action-dispatch-input.ts";
+// workbench-ability-command-executor.ts and workbench-post-action-dispatch-input.ts
+// were removed in the local-runtime rebuild (phase five). PAV dispatch is now
+// governed through workbench-nerve-bus-dispatcher.ts → workbench-assembly.ts.
 
-type RuntimePhaseResult = {
-  findings: Finding[];
-  phase: InspectorPhase;
-};
-
-function createRuntimePhase(name: string, findings: Finding[], passSummary: string, failSummary: string): RuntimePhaseResult {
-  const passed = findings.length === 0;
-  return {
-    findings,
-    phase: createPhase(name, passed ? "PASS" : "CODE VIOLATION", passed, passed ? passSummary : failSummary),
-  };
-}
-
-function inspectLocalRuntimeRoute(project: Project): RuntimePhaseResult {
-  const executorSource = getSource(project, EXECUTOR_PATH);
-  const callExpression = executorSource.getDescendantsOfKind(SyntaxKind.CallExpression).find((node) => node.getExpression().getText() === "buildPostActionVerificationInput") ?? null;
-  const findings: Finding[] = [];
-
-  if (callExpression === null) {
-    findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: EXECUTOR_PATH, line: 1, severity: "fatal", message: "Local runtime must route post-action-verification dispatch through buildPostActionVerificationInput." }));
-  } else {
-    const args = callExpression.getArguments().map((arg) => arg.getText());
-    if (args.length !== 3 || args[0] !== "runtime") {
-      findings.push(createFinding({ lawId: LAW_IDS.SCHEMA, file: EXECUTOR_PATH, line: callExpression.getStartLineNumber(), severity: "fatal", message: "Local runtime must pass the governed runtime into buildPostActionVerificationInput so page-state observations come from the current browser session." }));
-    }
-  }
-
-  return createRuntimePhase(
-    "local-runtime-route",
-    findings,
-    "Local runtime routes post-action verification through the governed builder with runtime session access.",
-    "Local runtime no longer routes post-action verification through the governed builder/runtime handoff.",
-  );
-}
-
-export async function runGovernedRuntimeChecks(project: Project): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
-  const localRuntimeRoute = inspectLocalRuntimeRoute(project);
+export async function runGovernedRuntimeChecks(_project: Project): Promise<{ findings: Finding[]; phases: InspectorPhase[] }> {
   const governedFixtureFindings: Finding[] = [];
 
   try {
     await runPostActionGovernedRuntimeFixtures();
   } catch (error) {
-    governedFixtureFindings.push(createFinding({
-      lawId: LAW_IDS.PROOF,
-      file: BUILDER_PATH,
+    governedFixtureFindings.push({
+      lawId: "GRASSEYE-PAV-PROOF-001-V1",
+      file: "scripts/audit/domains/post-action-verification-capability/governed-runtime-fixtures.ts",
       line: 1,
       severity: "fatal",
       message: error instanceof Error ? error.message : "Post Action Verification governed runtime fixture failed.",
-    }));
+    });
   }
 
-  const governedFixtures = createRuntimePhase(
-    "governed-runtime-fixtures",
-    governedFixtureFindings,
-    "Governed PAV fixtures prove builder/schema parity, cognition-surface absence, invalid-input fallback integrity, generic before/after gate enforcement, and observation-bundle success output.",
-    "Governed PAV fixtures still expose builder drift, cognition-surface regression, invalid-input fallback regression, broken before/after gate enforcement, or broken observation-bundle success output.",
-  );
+  const passed = governedFixtureFindings.length === 0;
 
   return {
-    findings: [...localRuntimeRoute.findings, ...governedFixtures.findings],
-    phases: [localRuntimeRoute.phase, governedFixtures.phase],
+    findings: governedFixtureFindings,
+    phases: [
+      createPhase(
+        "governed-runtime-fixtures",
+        passed ? "PASS" : "CODE VIOLATION",
+        passed,
+        passed
+          ? "Governed PAV fixtures pass (local-runtime rebuild phase five)."
+          : "Governed PAV fixture failure detected after local-runtime rebuild.",
+      ),
+    ],
   };
 }

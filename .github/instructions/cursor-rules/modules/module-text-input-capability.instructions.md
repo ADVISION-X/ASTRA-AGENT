@@ -1,19 +1,31 @@
 ---
 name: "GrassEye Text Input Capability"
-description: "Use when governing the independent Text Input Ability Group, approved text writing, verified input target handoff, governed type/paste/clear/replace/press-key/commit execution, clipboard lifecycle, sensitive text redaction, primitive proof, post-action verification handoff, and the boundary that prevents Text Input from generating text, locating targets, verifying final page state, or owning browser/session truth."
+description: "Use when governing the independent Text Input Ability Group, approved text writing, verified input target handoff, governed type/press-key/clear execution, sensitive text redaction, primitive proof, and the boundary that prevents Text Input from generating text, locating targets, verifying final page state, owning clipboard lifecycle, or owning browser/session truth."
 applyTo: ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md, src/capabilities/text-input/**, docs/法案辅助文件/GrassEye Text Input 输入能力组施工图.md, scripts/audit/domains/text-input-capability/**"
 ---
 
 # GrassEye Text Input Capability FINAL
 
-Scope: governs approved text writing, verified input target handoff, press-key execution, and primitive proof.
-Boundary: this module governs writing only. It does not own text generation, target discovery, retired chain truth, or semantic success.
+Scope: governs approved text writing, approved key press, and clear of focused input. Returns primitive write proof only.
+Boundary: this module governs writing only. It does not own text generation, target discovery, clipboard lifecycle, semantic success, or retired chain truth.
 Authority: this file is authoritative only for the text-input-capability domain.
 
 Core doctrine:
 - Text Input writes approved text or keys.
 - Text generation belongs outside Text Input.
 - Semantic success belongs to the next AI round, not to Text Input.
+
+Current active Text Input child capabilities (simple-machine phase):
+- type-approved-text-once
+- press-approved-key-once
+- clear-focused-input-once
+
+Not active in current phase (not Text Input children):
+- paste-text: deferred — clipboard lifecycle is not part of current Text Input simplicity.
+- replace-input: composed as clear-focused-input-once + type-approved-text-once by AI/Orchestration.
+- commit-input: expressed as press-approved-key-once(approvedKey=Enter) — not a separate child.
+- press-navigation-key: expressed as press-approved-key-once with approved key allowlist — not a separate child.
+- clipboard lifecycle: belongs to a future clipboard capability, not Text Input.
 
 ## Law GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2
 

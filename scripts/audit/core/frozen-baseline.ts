@@ -18,7 +18,6 @@ const ABILITY_GROUP_DOMAIN_MAP: Record<string, string> = {
   "mouse-scroll": "mouse-scroll-capability",
   "post-action-verification": "post-action-verification-capability",
   "forensics-persistence": "forensics-persistence-capability",
-  "page-state": "page-state-capability",
 };
 
 const FOUNDATION_LAW_DOMAIN_MAP: Record<string, string> = {

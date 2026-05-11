@@ -52,6 +52,7 @@ Required:
 - product lead records must preserve screenshotEvidenceRef, aiResultRef, decision, actionCodes, confidence, reason, and createdAt.
 - failure records must preserve failureReason and parent refs.
 - Forensics must remain append-only unless a specific record type is explicitly governed as replace-by-round/session.
+- Product lead, candidate, discovery, failure, AI result, and action result are recordPayload categories, not storage-layer modules or child capabilities. The storage implementation must remain a generic append-only record/artifact adapter (appendRecord / appendArtifact / readRecord). Splitting storage into ProductLeadStoragePort, CandidateStoragePort, DiscoveryStoragePort, LedgerStoragePort, or RuntimeStoragePort is forbidden.
 
 Forbidden:
 - retired selection field, retired selection version field, retired package field, retired package version field, retired binding field, retired branch-token field, or retired deterministic flow planning fields as active record truth.

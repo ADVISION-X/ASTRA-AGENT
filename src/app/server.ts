@@ -29,9 +29,11 @@ const parseStartupReadiness = (platformTarget: GrassEyePlatformTarget) => {
     throw new Error(`Startup readiness JSON is invalid: ${message}`);
   }
 
+  const localAiReadiness = LocalAiStartupReadinessSchema.parse(parsed);
   return {
-    ...LocalAiStartupReadinessSchema.parse(parsed),
+    localAiReady: localAiReadiness.status === "ready",
     platformTarget,
+    detail: localAiReadiness.detail ?? null,
   };
 };
 

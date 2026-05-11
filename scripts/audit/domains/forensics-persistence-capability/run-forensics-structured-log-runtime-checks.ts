@@ -198,7 +198,10 @@ const hasPersistedBoundaryEventEmitter = (sourceFile: import("ts-morph").SourceF
   }
 
   return emitterDeclaration.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {
-    return flattenPropertyAccess(callExpression.getExpression()).join(".") === "storage.evidenceStore.saveStructuredRuntimeEvent";
+    // After storage rewrite: evidenceStore is removed; structured log events go via structuredLogBus.
+    // Accept both the legacy pattern (for backward scan) and the bus pattern.
+    const access = flattenPropertyAccess(callExpression.getExpression()).join(".");
+    return access === "storage.evidenceStore.saveStructuredRuntimeEvent" || access === "structuredLogBus.emit" || access === "structuredLogBus.publish";
   });
 };
 

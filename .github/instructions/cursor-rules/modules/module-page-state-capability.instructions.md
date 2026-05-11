@@ -1,98 +1,89 @@
 ---
-name: "GrassEye Page State Capability"
-description: "Use when governing the independent Page State Ability Group as raw page/runtime observation packaging only, and the boundary that prevents Page State, open, runtime, PAV, Screenshot, Visual Target, or adapters from claiming visual/page/business interpretation."
-applyTo: ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md, src/capabilities/page-state/**, docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md, scripts/audit/domains/page-state-capability/**"
+name: "GrassEye Page State — Retired"
+description: "Page State independent ability group is retired. Raw browser observation, if needed, belongs to Browser Session / Local Runtime helper as non-owner support evidence. Use when reviewing retired-surface regression or raw browser observation helper boundaries."
+applyTo: "src/lib/browser/**, src/lib/local-runtime/**, scripts/audit/domains/retired-surface-guard/**"
 ---
 
-# GrassEye Page State Capability FINAL
+# GrassEye Page State — RETIRED
 
-Scope: governs raw page/runtime observation packaging, evidence-backed observation output, and page-state owner evidence.
-Boundary: this module governs raw observation only. It does not own page meaning, readiness, retired chain truth, or semantic action success.
-Authority: this file is authoritative only for the page-state-capability domain.
+Status: **RETIRED as independent ability group** in the current simple-machine phase.
 
-Core doctrine:
-- Page State packages raw observations only.
-- AI is the only owner of current-page, blocker, readiness, and business interpretation.
-- Page State must not revive retired selection choices, retired binding states, retired branch tokens, or page heuristics.
-- Final semantic truth belongs to AI Visual Mission Judge, not Page State.
+## Retirement Decision
 
-## Law GRASSEYE-PAGE-STATE-CAPABILITY-001-V3
+Page State independent ability group is retired.
 
-status: active
-tier: P0
-capabilityDomain: page-state-capability
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
+```txt
+Page State independent ability group should exit the main stage.
+```
 
-summary: Page State input must carry short-chain mission truth plus raw observation refs only.
+No active `src/capabilities/page-state` implementation is allowed.
+No active `scripts/audit/domains/page-state-capability` is allowed.
 
-### 主题
+## Raw Browser Observation Helper (Replacement)
 
-页面原始观察打包边界唯一
+If raw URL/title/login/runtime signals are needed, they must be provided by:
 
-### 法条
+```txt
+src/lib/browser/browser-observation.ts
+```
 
-Page State Ability Group is the owner of governed raw page/runtime observation packaging only.
+via `readRawBrowserObservation()`.
 
-Required input fields:
-- missionId
-- runId
-- sessionId when applicable
-- roundId when applicable
-- stepId
-- capabilityCallId
-- nerveBusEnvelopeId
-- inputRef
-- openHandoffRef when applicable
-- currentUrl when available
-- currentTitle when available
-- browserLoginState when available
-- rawRuntimeSignals
-- snapshotProof
+Allowed output fields:
+- `observationRef`
+- `currentUrl?`
+- `currentTitle?`
+- `browserLoginState?`
+- `rawRuntimeSignals?`
+- `snapshotProofRef?`
+- `observedAt`
+- `status`
+- `failureReason?`
 
-Required:
-- Page State packages currentUrl, currentTitle, browserLoginState, source refs, open handoff refs, and raw runtime signals only.
-- Page State result may be consumed by AI, Orchestration, PAV, Commander, and Forensics as raw observation/proof only.
+## Core Doctrine
 
-Forbidden:
-- retired selection field, retired selection version field, retired package field, retired package version field, retired binding field, retired branch-token field, or retired deterministic flow planning fields.
-- feedReady, pageReady, pageCorrect, pageStateType = platform_feed, or semantic decision fields.
-- Page State judging action success.
+Raw page observation is optional support evidence only.
 
-## Law GRASSEYE-PAGE-STATE-CAPABILITY-002-V3
+AI Visual Mission Judge remains the only owner of:
+- page readiness
+- blocker decisions
+- login/captcha/safety/feed/video/comment interpretation
+- action semantic success
 
-status: active
-tier: P0
-capabilityDomain: page-state-capability
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
+## Forbidden
 
-summary: Page State proof must preserve raw observation truth and short-chain mission refs only.
+```txt
+feedReady
+pageReady
+pageCorrect
+pageStateType = platform_feed
+loginSemantic, captchaSemantic, safetySemantic
+feedSemantic, videoSemantic, commentSemantic
+blockerDecision
+actionSemanticSuccess
+semanticDecision
+businessTruth
+```
 
-### 主题
+## Helper Boundary
 
-Page State 证明短链化
+Raw Browser Observation helper must NOT:
+1. Register as an ability group.
+2. Register as a MuscleMemory action.
+3. Become an AI-visible actionCode.
+4. Become an Orchestration decision source.
+5. Become a PAV input truth.
+6. Become a Commander dashboard source.
+7. Become a Forensics business record source.
 
-### 法条
+It is optional support evidence ref only.
 
-Page State proof must preserve raw observation truth without retired map fields.
+## Retired Capability Regression Guard
 
-Required proof fields:
-- missionId
-- runId
-- roundId when applicable
-- stepId
-- capabilityCallId
-- observationRef
-- status
-- failureReason or reviewRequiredReason when applicable
+`scripts/audit/domains/retired-surface-guard/inspector.ts` must block any re-emergence of:
+- `src/capabilities/page-state`
+- `scripts/audit/domains/page-state-capability`
+- `page-state` as active CI owner
+- Page State MuscleMemory action
+- Semantic fields in raw observation helper
 
-Forbidden:
-- retired binding field in page-state proof.
-- retired selection field or retired selection version field in page-state proof.
-- retired package field or retired package version field in page-state proof.
-- retired branch-token field or retired deterministic flow planning as page-state truth.
-
-## Final Readiness Gate
-
-The Page State law is ready only when page-state output remains raw observation packaging and never becomes semantic truth.

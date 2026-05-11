@@ -1,53 +1,44 @@
+import type { TextInputPrimitivePort } from "./ports/text-input-primitive-port.js";
+import { createTextInputAbilityGroup } from "./ability-group.js";
+
+export function createTextInputAbilityGroupWithPrimitivePort(input: {
+  primitivePort: TextInputPrimitivePort;
+}) {
+  return createTextInputAbilityGroup({
+    context: { primitivePort: input.primitivePort },
+  });
+}
+
+/** @deprecated Use createTextInputAbilityGroupWithPrimitivePort. Ports wrapper for workbench compatibility. */
+export function createTextInputAbilityGroupWithPorts(input: {
+  primitivePort: TextInputPrimitivePort;
+  [key: string]: unknown;
+}) {
+  return createTextInputAbilityGroupWithPrimitivePort({ primitivePort: input.primitivePort });
+}
+
 export { createTextInputAbilityGroup } from "./ability-group.js";
 export {
   TEXT_INPUT_ABILITY_GROUP_ID,
   TEXT_INPUT_CHILD_CAPABILITY_IDS,
-  TEXT_INPUT_COMMIT_KEYS,
-  TEXT_INPUT_KEYS,
-  TEXT_INPUT_NAVIGATION_KEYS,
-  TEXT_INPUT_TARGET_KINDS,
-  type ClearInputAbilityInput,
-  type CommitInputAbilityInput,
-  type PasteTextAbilityInput,
-  type PressKeyAbilityInput,
-  type PressNavigationKeyAbilityInput,
-  type ReplaceInputAbilityInput,
+  type TextInputChildCapabilityId,
+} from "./shared/constants.js";
+export {
   type TextInputAbilityGroup,
   type TextInputAbilityInput,
   type TextInputAbilityResult,
-  type TextInputChildCapabilityId,
-  type TextInputCommitKey,
+  type TextInputChildCapability,
+  type TextInputExecutionContext,
   type TextInputFailureReason,
-  type TextInputKey,
-  type TextInputPolicy,
   type TextInputRuntimeProof,
-  type TextInputSourceOwner,
   type TextInputStatus,
-  type TextInputSuccessOutput,
-  type TextInputTargetKind,
-  type TypeTextAbilityInput,
+  type TextInputWriteMode,
+  type ParsedTextInputAbilityInput,
 } from "./contract.js";
 export {
-  ClearInputAbilityInputSchema,
-  CommitInputAbilityInputSchema,
-  PasteTextAbilityInputSchema,
-  PressKeyAbilityInputSchema,
-  PressNavigationKeyAbilityInputSchema,
-  ReplaceInputAbilityInputSchema,
   TextInputAbilityInputSchema,
   TextInputAbilityResultSchema,
-  TextInputCommitKeySchema,
-  TextInputKeySchema,
-  TextInputNavigationKeySchema,
-  TextInputPolicySchema,
+  TextInputChildCapabilityIdSchema,
   TextInputRuntimeProofSchema,
-  TextInputSourceOwnerSchema,
-  TextInputTargetKindSchema,
-  TextInputSuccessOutputSchema,
-  TypeTextAbilityInputSchema,
 } from "./schema.js";
-export { listTextInputChildren } from "./registry.js";
-export { createTextInputAbilityGroupWithPorts } from "./runtime/text-input-ability-group-factory.js";
-export type { ClipboardPort } from "./ports/clipboard-port.js";
-export type { TextInputClockPort } from "./ports/text-input-clock-port.js";
-export type { TextInputExecutionPort, TextInputExecutionRequest, TextInputExecutionResult } from "./ports/text-input-execution-port.js";
+export type { TextInputPrimitivePort } from "./ports/text-input-primitive-port.js";

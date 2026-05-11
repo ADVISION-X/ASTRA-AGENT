@@ -40,7 +40,6 @@ const ACTIVE_ABILITY_GROUPS = [
   "mouse-scroll",
   "post-action-verification",
   "forensics-persistence",
-  "page-state",
 ] as const;
 const FOUNDATION_LAWS = [
   "audit-system",

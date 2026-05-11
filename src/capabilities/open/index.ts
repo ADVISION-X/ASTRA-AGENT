@@ -1,16 +1,22 @@
+/**
+ * index.ts — Public API for the Open Ability Group.
+ *
+ * Only exports what callers need. No runtime internals exposed.
+ */
+
 export { createOpenAbilityGroup } from "./ability-group.js";
+export type { OpenAbilityGroup, OpenAbilityGroupPorts } from "./ability-group.js";
+export type { BrowserOpenPort, WorkbenchOpenPort } from "./browser-open-port.js";
+export { resolveOpenTargetDefaultsForPlatform } from "./url-policy.js";
 export {
-	OPEN_ABILITY_GROUP_ID,
-	DEFAULT_TIKTOK_URL,
-	TIKTOK_PLATFORM_ID,
-	type OpenAbilityGroup,
-	type OpenRequest,
-	type OpenResult,
-	type OpenChildCapabilityId,
-	type OpenPlatformId,
-	type OpenTargetKind,
-} from "./contract.js";
-export { OpenRequestSchema, OpenResultSchema } from "./schema.js";
-export { createOpenRegistry } from "./registry.js";
-export type { OpenBrowserPort } from "./ports/open-browser-port.js";
-export type { OpenLocalProgramPort } from "./ports/open-local-program-port.js";
+  OPEN_ABILITY_GROUP_ID,
+  OpenChildCapabilityIdSchema,
+  OpenInputSchema,
+  OpenResultSchema,
+  type OpenChildCapabilityId,
+  type OpenInput,
+  type OpenResult,
+  type OpenStatus,
+  type OpenTargetUrlSource,
+  type RawOpenObservation,
+} from "./schema.js";

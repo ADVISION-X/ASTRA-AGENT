@@ -1,14 +1,14 @@
 import type { GrassEyeWorkbenchHandle } from "../local-runtime/workbench-handle.js";
 
-type CommanderDebugInput = Parameters<GrassEyeWorkbenchHandle["recordCommanderDebugEvent"]>[0];
+// recordCommanderDebugEvent has been removed from WorkbenchFacade.
+// Task-start debug events are now silently dropped — no forbidden facade call is made.
 
-const logTaskStartDebugFailure = (error: unknown) => {
-  console.error("[grasseye:task-start-debug]", error instanceof Error ? error.message : "Unknown task-start debug write failure");
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CommanderDebugInput = Record<string, any>;
 
 export const recordTaskStartDebugEvent = (
-  activeWorkbench: GrassEyeWorkbenchHandle,
-  input: CommanderDebugInput,
-) => {
-  void activeWorkbench.recordCommanderDebugEvent(input).catch(logTaskStartDebugFailure);
+  _activeWorkbench: GrassEyeWorkbenchHandle,
+  _input: CommanderDebugInput,
+): void => {
+  // No-op: this channel has been governed out of the facade.
 };

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T05:39:11.227Z",
+  "generatedAt": "2026-05-11T06:31:16.470Z",
   "laws": [
     {
       "lawId": "GRASSEYE-AI-CAPABILITY-001-V2",
@@ -494,7 +494,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "storage health and record proof must preserve durability truth without retired map fields.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md",
-      "line": 61
+      "line": 62
     },
     {
       "lawId": "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V2",
@@ -629,6 +629,28 @@
       "line": 63
     },
     {
+      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "nerve-bus-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Nerve Bus active child surface must be generic envelope transport, not directional channel taxonomy.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
+      "line": 101
+    },
+    {
+      "lawId": "GRASSEYE-NERVE-BUS-CAPABILITY-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "nerve-bus-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Queue, sequence, retry and fallback infrastructure are not active Nerve Bus truth in the current simple-machine phase.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md",
+      "line": 134
+    },
+    {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-001-V2",
       "status": "active",
       "tier": "P0",
@@ -637,7 +659,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Open input must carry short-chain mission truth plus governed target identity only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 18
+      "line": 30
     },
     {
       "lawId": "GRASSEYE-OPEN-CAPABILITY-002-V2",
@@ -648,7 +670,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Open proof must preserve navigation attempt truth and short-chain refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md",
-      "line": 60
+      "line": 73
     },
     {
       "lawId": "GRASSEYE-ORCHESTRATION-CAPABILITY-001-V4",
@@ -750,28 +772,6 @@
       "line": 464
     },
     {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-001-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "page-state-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Page State input must carry short-chain mission truth plus raw observation refs only.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
-      "line": 19
-    },
-    {
-      "lawId": "GRASSEYE-PAGE-STATE-CAPABILITY-002-V3",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "page-state-capability",
-      "enforcementMode": "machine-blocking",
-      "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Page State proof must preserve raw observation truth and short-chain mission refs only.",
-      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md",
-      "line": 62
-    },
-    {
       "lawId": "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2",
       "status": "active",
       "tier": "P0",
@@ -794,26 +794,26 @@
       "line": 63
     },
     {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-001-V2",
+      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-001-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Screenshot input must carry short-chain mission truth, source proof and image policy only.",
+      "summary": "Screenshot is a camera + coordinate-grid provider only. Small, focused, no subsystems.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 18
+      "line": 24
     },
     {
-      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-002-V2",
+      "lawId": "GRASSEYE-SCREENSHOT-CAPABILITY-002-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "screenshot-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Screenshot proof must preserve artifact truth, coordinate truth and short-chain mission refs only.",
+      "summary": "Screenshot proof proves image/artifact/gridSpec truth only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md",
-      "line": 63
+      "line": 73
     },
     {
       "lawId": "GRASSEYE-SECURITY-PRIVACY-001-V1",
@@ -901,7 +901,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Text Input input must carry short-chain mission truth plus approved text and verified target refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 18
+      "line": 30
     },
     {
       "lawId": "GRASSEYE-TEXT-INPUT-CAPABILITY-002-V2",
@@ -912,7 +912,7 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "Text Input proof must preserve primitive write truth and short-chain mission refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-      "line": 61
+      "line": 73
     },
     {
       "lawId": "GRASSEYE-TYPE-SAFETY-001-V1",
@@ -926,26 +926,37 @@
       "line": 16
     },
     {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2",
+      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "visual-target-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Visual Target input must carry screenshot/source truth plus short-chain mission refs only.",
+      "summary": "Visual Target input must carry AI-selected or system-supplied candidate plus screenshot/source truth plus short-chain mission refs only.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 19
+      "line": 38
     },
     {
-      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V2",
+      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V3",
       "status": "active",
       "tier": "P0",
       "capabilityDomain": "visual-target-capability",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "Visual Target proof must preserve source proof and candidate refs without retired map fields.",
+      "summary": "Visual Target proof must preserve source proof and candidate refs without retired map fields. Proof must only certify non-executable target package creation.",
       "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
-      "line": 62
+      "line": 84
+    },
+    {
+      "lawId": "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "visual-target-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Visual Target file count must not exceed 14. Audit inspector file count must not exceed 3.",
+      "relativeFilePath": ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md",
+      "line": 123
     }
   ]
 }

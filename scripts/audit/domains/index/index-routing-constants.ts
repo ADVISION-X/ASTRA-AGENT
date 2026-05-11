@@ -74,7 +74,6 @@ export const indexRoutingRouteCatalog = {
     "module-text-input-capability.instructions.md",
     "module-mouse-scroll-capability.instructions.md",
     "module-post-action-verification-capability.instructions.md",
-    "module-page-state-capability.instructions.md",
     "module-forensics-persistence-capability.instructions.md",
     "module-security-privacy.instructions.md",
     "module-code-purity.instructions.md",
@@ -180,12 +179,6 @@ export const indexRoutingRouteCatalog = {
       triggerText: "post-action verification, action result verification, verification packaging, result proof, after-click verification, after-scroll verification",
       moduleFile: "module-post-action-verification-capability.instructions.md",
       noteText: "Observation packaging and proof packaging only",
-    },
-    {
-      requirementId: "K02-ROUTE-REQ-020",
-      triggerText: "page state, page observation, login wall observation, modal overlay observation, platform page kind observation, comment panel state observation, safety page observation",
-      moduleFile: "module-page-state-capability.instructions.md",
-      noteText: "Page-state observation packaging only",
     },
     {
       requirementId: "K02-ROUTE-REQ-021",

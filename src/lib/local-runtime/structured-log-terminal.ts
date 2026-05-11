@@ -60,18 +60,16 @@ function formatRuntimeEvent(entry: StructuredRuntimeEvent): string {
     entry.eventType,
   ];
   if (entry.missionId) parts.push(`mission=${entry.missionId.slice(0, 8)}`);
-  if (entry.message) parts.push(entry.message);
   return parts.join(" ");
 }
 
-function formatActionLog(entry: { actionType?: string; component?: string; status?: string; message?: string }): string {
+function formatActionLog(entry: Record<string, unknown>): string {
   const parts: string[] = [
     "[grasseye:action]",
-    `[${entry.component ?? "runtime"}]`,
-    entry.actionType ?? "action",
-    entry.status ?? "",
+    `[${String(entry["abilityGroupId"] ?? entry["component"] ?? "runtime")}]`,
+    String(entry["childCapabilityId"] ?? entry["actionType"] ?? "action"),
+    String(entry["status"] ?? ""),
   ];
-  if (entry.message) parts.push(entry.message);
   return parts.filter(Boolean).join(" ");
 }
 
@@ -94,7 +92,7 @@ export function createStructuredTerminalLogListener(level: StructuredLogLevel): 
         }
       } else if (entry.kind === "action") {
         if (level === "debug") {
-          process.stdout.write(formatActionLog(entry.entry as Record<string, string | undefined>) + "\n");
+          process.stdout.write(formatActionLog(entry.entry as Record<string, unknown>) + "\n");
         }
       }
     } catch {

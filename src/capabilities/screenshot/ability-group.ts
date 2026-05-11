@@ -1,23 +1,42 @@
-import type { ScreenshotAbilityGroup, ScreenshotAbilityInputCandidate } from "./contract.js";
-import { ScreenshotAbilityInputSchema } from "./schema.js";
 import { listScreenshotChildren } from "./registry.js";
-import { executeScreenshotRequest } from "./runtime/screenshot-executor.js";
-import { createScreenshotRuntimeContext, type CreateScreenshotAbilityGroupInput } from "./runtime/screenshot-runtime-context.js";
+import {
+  ScreenshotAbilityInputSchema,
+  type ScreenshotAbilityInput,
+  type ScreenshotAbilityResult,
+  type ScreenshotChildId,
+} from "./schema.js";
+import { captureBrowserViewport } from "./children/capture-browser-viewport.js";
+import { renderCoordinateGrid } from "./children/render-coordinate-grid.js";
+import { captureGridRegion } from "./children/capture-grid-region.js";
+import type { BrowserCapturePort } from "./ports/browser-capture-port.js";
+import type { ArtifactStoragePort } from "./ports/artifact-storage-port.js";
 
-export function createScreenshotAbilityGroup(input: CreateScreenshotAbilityGroupInput): ScreenshotAbilityGroup {
-  const context = createScreenshotRuntimeContext(input);
+export type ScreenshotAbilityGroupPorts = {
+  browserCapture: BrowserCapturePort;
+  artifactStorage: ArtifactStoragePort;
+};
 
-  const run = async (candidate: ScreenshotAbilityInputCandidate) => executeScreenshotRequest({
-    request: ScreenshotAbilityInputSchema.parse(candidate),
-    context,
-  });
+export type ScreenshotAbilityGroup = {
+  listChildCapabilityIds(): readonly ScreenshotChildId[];
+  execute(input: unknown): Promise<ScreenshotAbilityResult>;
+};
 
+export function createScreenshotAbilityGroup(ports: ScreenshotAbilityGroupPorts): ScreenshotAbilityGroup {
   return {
     listChildCapabilityIds() {
       return listScreenshotChildren();
     },
-    execute(inputValue) {
-      return run(inputValue);
+    async execute(rawInput: unknown): Promise<ScreenshotAbilityResult> {
+      const input: ScreenshotAbilityInput = ScreenshotAbilityInputSchema.parse(rawInput);
+
+      switch (input.childCapabilityId) {
+        case "capture-browser-viewport":
+          return captureBrowserViewport(input, ports);
+        case "render-coordinate-grid":
+          return renderCoordinateGrid(input, { artifactStorage: ports.artifactStorage });
+        case "capture-grid-region":
+          return captureGridRegion(input, { artifactStorage: ports.artifactStorage });
+      }
     },
   };
 }

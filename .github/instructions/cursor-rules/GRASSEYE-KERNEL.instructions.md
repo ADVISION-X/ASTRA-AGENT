@@ -110,9 +110,9 @@ Core ability providers and control owners:
 Support / transition evidence surfaces:
 - visual-target
 - post-action-verification
-- page-state
 
-Support evidence surfaces are temporary support owners only while they expose real atomic child capabilities. If a support surface only packages evidence without providing independent atomic child capabilities, it must be folded into the owning core capability or Forensics. Support evidence surfaces must not build their own generated universe, large inspector family, or parallel law body.
+Retired surfaces (no active src/capabilities path allowed):
+- page-state (retired — raw browser observation helper only at src/lib/browser/browser-observation.ts)
 
 ## Foundation Laws
 
@@ -171,7 +171,7 @@ Support evidence surfaces are temporary support owners only while they expose re
 - mouse-scroll-capability: modules/module-mouse-scroll-capability.instructions.md
 - post-action-verification-capability: modules/module-post-action-verification-capability.instructions.md
 - forensics-persistence-capability: modules/module-forensics-persistence-capability.instructions.md
-- page-state-capability: modules/module-page-state-capability.instructions.md
+- page-state-capability: modules/module-page-state-capability.instructions.md (RETIRED — no active capability)
 - audit-system: modules/module-audit-system.instructions.md
 - type-safety: modules/module-type-safety.instructions.md
 - security-privacy: modules/module-security-privacy.instructions.md

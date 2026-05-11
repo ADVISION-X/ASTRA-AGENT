@@ -1,9 +1,15 @@
-import { runOwnerInspector } from "../../core/owner-audit-runner.js";
+import { runScreenshotInspector } from "./inspector.js";
 
-void runOwnerInspector({
-  capabilityDomain: "screenshot-capability",
-  inspectorEntry: "scripts/audit/domains/screenshot-capability/inspector.ts",
-}).catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  process.exitCode = 1;
-});
+const results = runScreenshotInspector();
+let overallPass = true;
+
+console.log("\n=== Screenshot Capability Inspector ===\n");
+for (const check of results) {
+  const icon = check.status === "PASS" ? "✅" : check.status === "WARN" ? "⚠️" : "❌";
+  console.log(`${icon} [${check.id}] ${check.label}`);
+  console.log(`       → ${check.detail}`);
+  if (check.status === "FAIL") overallPass = false;
+}
+
+console.log(`\n${overallPass ? "✅ PASS" : "❌ FAIL"}: Screenshot Capability Inspector\n`);
+process.exit(overallPass ? 0 : 1);

@@ -11,7 +11,6 @@ const EXTERNAL_VERIFICATION_OWNER_ROOTS = [
   "src/capabilities/mouse-click/",
   "src/capabilities/mouse-scroll/",
   "src/capabilities/text-input/",
-  "src/capabilities/page-state/",
   "src/capabilities/orchestration/",
   "src/capabilities/forensics-persistence/",
 ] as const;

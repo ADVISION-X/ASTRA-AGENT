@@ -5,7 +5,7 @@ import type {
   AiAbilityResultSchema,
 } from "./schema.js";
 import type { AI_CAPABILITY_ID, AI_CHILD_CAPABILITY_ID } from "./registry.js";
-import type { LocalAiDebugHook } from "../../lib/local-ai/runtime-adapters/local-ai-runtime-adapter.js";
+import type { LocalAiDebugHook } from "../../lib/local-ai/index.js";
 
 type AiAbilityInput = z.infer<typeof AiAbilityInputSchema>;
 type AiAbilityResult = z.infer<typeof AiAbilityResultSchema>;

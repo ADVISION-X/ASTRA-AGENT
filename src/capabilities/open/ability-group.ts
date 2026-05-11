@@ -1,78 +1,56 @@
-import type { CreateOpenAbilityGroupInput } from "./contract.js";
-import { type OpenAbilityGroup, type OpenRequest, type OpenResult } from "./contract.js";
-import { OpenResultSchema } from "./schema.js";
-import { createOpenRegistry, listOpenChildren } from "./registry.js";
-import { buildOpenDispatchFailure } from "./runtime/open-dispatch-failure.js";
-import { extractOpenFailureTrace, parseOpenAbilityInput } from "./runtime/open-input-gate.js";
-import { createOpenRuntimeContext } from "./runtime/open-runtime-context.js";
+/**
+ * ability-group.ts — Open Ability Group factory.
+ *
+ * Creates the Open ability group with its two active children:
+ *   - open-platform-entry-once
+ *   - open-local-workbench-once
+ *
+ * The ability group is the only public API for Open execution.
+ */
 
-const buildOpenFailureFromContext = (input: {
-  context: ReturnType<typeof createOpenRuntimeContext>;
-  rawInput: OpenRequest;
-  failureCode: "input_schema_invalid" | "unknown_child" | "child_execution_failed";
-  reason: string;
-  started: ReturnType<ReturnType<typeof createOpenRuntimeContext>["clock"]["now"]>;
-}) => {
-  const { context, rawInput, failureCode, reason, started } = input;
-  const ended = context.clock.now();
-  return buildOpenDispatchFailure({
-    trace: extractOpenFailureTrace(rawInput),
-    failureCode,
-    startedAt: started.isoTimestamp,
-    endedAt: ended.isoTimestamp,
-    startedMonotonicMs: started.monotonicMs,
-    endedMonotonicMs: ended.monotonicMs,
-    reason,
-    status: "failed",
-  });
-};
+import type { BrowserOpenPort, WorkbenchOpenPort } from "./browser-open-port.js";
+import {
+  OPEN_ABILITY_GROUP_ID,
+  type OpenChildCapabilityId,
+  type OpenInput,
+  type OpenResult,
+} from "./schema.js";
+import { openLocalWorkbenchOnce, openPlatformEntryOnce } from "./open-target.js";
 
-const executeOpenChild = async (
-  context: ReturnType<typeof createOpenRuntimeContext>,
-  registry: ReturnType<typeof createOpenRegistry>,
-  rawInput: OpenRequest,
-  started: ReturnType<ReturnType<typeof createOpenRuntimeContext>["clock"]["now"]>,
-) => {
-  const parsed = parseOpenAbilityInput(rawInput);
-  if (!parsed.success) {
-    return buildOpenFailureFromContext({ context, rawInput, failureCode: "input_schema_invalid", reason: parsed.error.message, started });
-  }
+// ─── Ability Group Interface ─────────────────────────────────────────────────
 
-  const entry = registry.get(parsed.data.childCapabilityId);
-  if (!entry) {
-    return buildOpenFailureFromContext({
-      context,
-      rawInput: parsed.data,
-      failureCode: "unknown_child",
-      reason: `unknown open child capability: ${parsed.data.childCapabilityId}`,
-      started,
-    });
-  }
+export interface OpenAbilityGroup {
+  readonly abilityGroupId: typeof OPEN_ABILITY_GROUP_ID;
+  readonly activeChildren: readonly OpenChildCapabilityId[];
+  execute(input: OpenInput): Promise<OpenResult>;
+}
 
-  try {
-    return OpenResultSchema.parse(await entry.implementation.execute(parsed.data, context, entry));
-  } catch (error) {
-    return buildOpenFailureFromContext({
-      context,
-      rawInput: parsed.data,
-      failureCode: "child_execution_failed",
-      reason: error instanceof Error ? error.message : "open child execution failed",
-      started,
-    });
-  }
-};
+// ─── Ports ──────────────────────────────────────────────────────────────────
 
-export function createOpenAbilityGroup(input: CreateOpenAbilityGroupInput): OpenAbilityGroup {
-  const registry = createOpenRegistry();
-  const context = createOpenRuntimeContext(input);
+export interface OpenAbilityGroupPorts {
+  browserOpenPort: BrowserOpenPort;
+  workbenchOpenPort?: WorkbenchOpenPort;
+}
 
+// ─── Factory ────────────────────────────────────────────────────────────────
+
+export function createOpenAbilityGroup(ports: OpenAbilityGroupPorts): OpenAbilityGroup {
   return {
-    listChildCapabilityIds() {
-      return listOpenChildren();
-    },
-    async execute(rawInput: OpenRequest): Promise<OpenResult> {
-      const started = context.clock.now();
-      return executeOpenChild(context, registry, rawInput, started);
+    abilityGroupId: OPEN_ABILITY_GROUP_ID,
+    activeChildren: ["open-platform-entry-once", "open-local-workbench-once"],
+
+    async execute(input: OpenInput): Promise<OpenResult> {
+      switch (input.childCapabilityId) {
+        case "open-platform-entry-once":
+          return openPlatformEntryOnce(input, ports.browserOpenPort);
+
+        case "open-local-workbench-once": {
+          const workbenchPort = ports.workbenchOpenPort ?? {
+            openWorkbench: (opts) => ports.browserOpenPort.openUrl(opts),
+          };
+          return openLocalWorkbenchOnce(input, workbenchPort);
+        }
+      }
     },
   };
 }

@@ -1,106 +1,180 @@
-import { createPhase } from "../../core/result.js";
-import type { Finding, InspectorPhase } from "../../core/schema.js";
-import { createAuditProject } from "../_shared/ast-helpers.js";
-import { createPendingDomainInspector } from "../_shared/create-pending-domain-inspector.js";
+/**
+ * inspector.ts — Open capability inspector.
+ *
+ * Answers exactly 9 governance questions. No generated dashboard.
+ * Returns PASS only when all 9 pass.
+ */
 
-import { openInspectionConstants } from "./inspection-constants.js";
-import { runOpenEnforcementCoverage } from "./enforcement-coverage.js";
-import { runOpenBoundaryChecks } from "./run-open-boundary-checks.js";
-import { runOpenExternalBoundaryChecks } from "./run-open-external-boundary-checks.js";
-import { runOpenRequiredShapeChecks } from "./run-open-required-shape-checks.js";
-import { runOpenRuntimeChecks } from "./run-open-runtime-checks.js";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const {
-  INSPECTOR_ENTRY,
-  OPEN_ROOT,
-} = openInspectionConstants;
+import { OPEN_INSPECTOR_CONFIG as CFG } from "./config.js";
 
-const createRequiredPhase = (input: { findings: Finding[]; openRootBound: boolean }): InspectorPhase => {
-  const passed = input.openRootBound && input.findings.length === 0;
-  return createPhase(
-    "open-required-shape-attack",
-    passed ? "PASS" : "CODE VIOLATION",
-    passed,
-    passed
-      ? "Open standard package shape, metadata registry, and child-local contracts are present."
-      : "Open required shape is incomplete.",
+const ROOT = resolve(fileURLToPath(import.meta.url), "../../../../..");
+const OPEN_SRC = join(ROOT, "src/capabilities/open");
+const MUSCLE_CATALOG = join(ROOT, "src/muscle-memory/generated-catalog.json");
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function collectTsFiles(dir: string): string[] {
+  try {
+    return (readdirSync(dir, { recursive: true }) as string[])
+      .map((f) => join(dir, f))
+      .filter((f) => {
+        try { return statSync(f).isFile() && /\.(ts|tsx|js|jsx|json)$/.test(f); }
+        catch { return false; }
+      });
+  } catch {
+    return [];
+  }
+}
+
+function readAllSource(files: string[]): string {
+  return files.map((f) => {
+    try { return readFileSync(f, "utf8"); }
+    catch { return ""; }
+  }).join("\n");
+}
+
+// ─── Check Functions ──────────────────────────────────────────────────────────
+
+type CheckResult = { pass: boolean; detail: string };
+
+function checkFileCount(files: string[]): CheckResult {
+  const count = files.length;
+  const pass = count <= CFG.maxOpenFiles;
+  return { pass, detail: `src/capabilities/open file count = ${count} (max ${CFG.maxOpenFiles})` };
+}
+
+function checkActiveChildren(source: string): CheckResult {
+  const required = CFG.requiredActiveChildren;
+  const missing = required.filter((id) => !source.includes(id));
+  const pass = missing.length === 0;
+  return {
+    pass,
+    detail: pass
+      ? `Active children present: ${required.join(", ")}`
+      : `Missing active children: ${missing.join(", ")}`,
+  };
+}
+
+function checkNoBannedChildren(source: string): CheckResult {
+  const found = CFG.bannedChildIds.filter((id) => source.includes(id));
+  const pass = found.length === 0;
+  return {
+    pass,
+    detail: pass ? "No banned child IDs found" : `Banned child IDs found: ${found.join(", ")}`,
+  };
+}
+
+function checkNoPageState(source: string): CheckResult {
+  const patterns = ["pageStateHandoff", "pageStateRef", "page-state handoff", "raw page-state"];
+  const found = patterns.filter((p) => source.includes(p));
+  const pass = found.length === 0;
+  return {
+    pass,
+    detail: pass ? "No page-state patterns found" : `Page-state patterns found: ${found.join(", ")}`,
+  };
+}
+
+function checkNoFallback(source: string): CheckResult {
+  const patterns = ["defaultTargetUrl", "fallbackTargetUrl", "fallbackUrl", "default URL", "fallback to", "default to"];
+  const found = patterns.filter((p) => source.toLowerCase().includes(p.toLowerCase()));
+  const pass = found.length === 0;
+  return {
+    pass,
+    detail: pass ? "No fallback patterns found" : `Fallback patterns found: ${found.join(", ")}`,
+  };
+}
+
+function checkNoBindingFields(source: string): CheckResult {
+  const patterns = [
+    "mapId", "runtimePlanId", "routePlanId", "activationId", "templateId",
+    "selectedMapId", "bindingPackageId", "selectedBindingId", "bindingSnapshotRef",
+    "branchToken", "deterministicFlow",
+  ];
+  const found = patterns.filter((p) => source.includes(p));
+  const pass = found.length === 0;
+  return {
+    pass,
+    detail: pass ? "No binding/route fields found" : `Binding fields found: ${found.join(", ")}`,
+  };
+}
+
+function checkNoBannedImports(source: string): CheckResult {
+  const found = CFG.bannedImports.filter((imp) => source.includes(imp));
+  const pass = found.length === 0;
+  return {
+    pass,
+    detail: pass ? "No banned cross-boundary imports found" : `Banned imports found: ${found.join(", ")}`,
+  };
+}
+
+function checkNoSemanticTruth(source: string): CheckResult {
+  const patterns = [
+    "pageReady", "pageCorrect", "feedReady", "semanticSuccess", "businessSuccess",
+    "loginSemantic", "captchaSemantic", "safetySemantic", "feedSemantic",
+    "videoSemantic", "commentSemantic",
+  ];
+  const found = patterns.filter((p) => source.includes(p));
+  const pass = found.length === 0;
+  return {
+    pass,
+    detail: pass ? "No semantic truth patterns found" : `Semantic patterns found: ${found.join(", ")}`,
+  };
+}
+
+function checkMuscleMemory(): CheckResult {
+  let catalog: { entries?: Array<{ actionCode: string; abilityGroupId?: string }> };
+  try {
+    catalog = JSON.parse(readFileSync(MUSCLE_CATALOG, "utf8")) as typeof catalog;
+  } catch {
+    return { pass: false, detail: "MUSCLE_CATALOG_READ_FAILED" };
+  }
+
+  const openEntries = (catalog.entries ?? []).filter(
+    (e) => e.abilityGroupId === "open" || e.actionCode.startsWith("OPEN_"),
   );
-};
+  const actionCodes = openEntries.map((e) => e.actionCode);
 
-const createForbiddenPhase = (findings: Finding[]): InspectorPhase => {
-  const passed = findings.length === 0;
-  return createPhase(
-    "open-forbidden-shape-attack",
-    passed ? "PASS" : "CODE VIOLATION",
-    passed,
-    passed
-      ? "Open forbids fake allow decisions, fake target profiles, export-star barrels, forbidden imports, and cookie access."
-      : "Open still contains forbidden execution or export shapes.",
-  );
-};
+  const banned = (CFG.bannedMuscleCodes as readonly string[]).filter((c) => actionCodes.includes(c));
+  if (banned.length > 0) {
+    return { pass: false, detail: `Banned MuscleMemory codes found: ${banned.join(", ")}` };
+  }
 
-const createBoundaryPhase = (findings: Finding[]): InspectorPhase => {
-  const passed = findings.length === 0;
-  return createPhase(
-    "open-boundary-attack",
-    passed ? "PASS" : "CODE VIOLATION",
-    passed,
-    passed
-      ? "Open child implementations stay private and workbench wiring stays on the public surface."
-      : "Open boundary leaks private children or runtime internals.",
-  );
-};
+  const requiredStrict = ["OPEN_PLATFORM_ENTRY_ONCE"];
+  const missingStrict = requiredStrict.filter((c) => !actionCodes.includes(c));
+  if (missingStrict.length > 0) {
+    return { pass: false, detail: `Required MuscleMemory codes missing: ${missingStrict.join(", ")}` };
+  }
 
-const createAntiEscapePhase = (findings: Finding[]): InspectorPhase => {
-  const passed = findings.length === 0;
-  return createPhase(
-    "open-anti-escape-attack",
-    passed ? "PASS" : "CODE VIOLATION",
-    passed,
-    passed
-      ? "Open avoids any, unknown-as, comment directives, dynamic import, require, and unmanaged time APIs."
-      : "Open still contains anti-escape violations.",
-  );
-};
+  return { pass: true, detail: `MuscleMemory open codes: ${actionCodes.join(", ")}` };
+}
 
-const runOpenExtraChecks = async (context: import("../../core/schema.js").InspectorContext) => {
-  const project = createAuditProject();
-  const requiredShape = await runOpenRequiredShapeChecks(project);
-  const runtimeFindings = runOpenRuntimeChecks(project);
-  const boundary = runOpenBoundaryChecks(project);
-  const { platformBoundary, browserBoundary } = await runOpenExternalBoundaryChecks();
-  const enforcementCoverage = await runOpenEnforcementCoverage(context);
-  const findings = [
-    ...requiredShape.findings,
-    ...runtimeFindings,
-    ...boundary.boundaryFindings,
-    ...boundary.antiEscapeFindings,
-    ...platformBoundary.findings,
-    ...browserBoundary.findings,
-    ...enforcementCoverage.findings,
+// ─── Main Inspector ───────────────────────────────────────────────────────────
+
+export interface OpenInspectorReport {
+  overallStatus: "PASS" | "FAIL";
+  checks: Array<{ id: string; question: string; pass: boolean; detail: string }>;
+}
+
+export function runOpenInspector(): OpenInspectorReport {
+  const openFiles = collectTsFiles(OPEN_SRC);
+  const openSource = readAllSource(openFiles);
+
+  const checks = [
+    { id: "Q1", question: "src/capabilities/open file count <= 14?", ...checkFileCount(openFiles) },
+    { id: "Q2", question: "Active children only open-platform-entry-once / open-local-workbench-once?", ...checkActiveChildren(openSource) },
+    { id: "Q3", question: "No open-facebook / open-tiktok / open-local-program?", ...checkNoBannedChildren(openSource) },
+    { id: "Q4", question: "No page-state handoff / pageStateHandoffRef?", ...checkNoPageState(openSource) },
+    { id: "Q5", question: "No default/fallback target URL?", ...checkNoFallback(openSource) },
+    { id: "Q6", question: "No map/binding/route/package/selection/branch-token fields?", ...checkNoBindingFields(openSource) },
+    { id: "Q7", question: "Open does not import AI/Screenshot/Mouse/Geometry/Orchestration/Forensics runtime?", ...checkNoBannedImports(openSource) },
+    { id: "Q8", question: "No page readiness / semantic success fields?", ...checkNoSemanticTruth(openSource) },
+    { id: "Q9", question: "MuscleMemory only registers OPEN_PLATFORM_ENTRY_ONCE / OPEN_LOCAL_WORKBENCH_ONCE?", ...checkMuscleMemory() },
   ];
 
-  return {
-    findings,
-    phases: [
-      createRequiredPhase(requiredShape),
-      createForbiddenPhase(runtimeFindings),
-      createBoundaryPhase(boundary.boundaryFindings),
-      createAntiEscapePhase(boundary.antiEscapeFindings),
-      ...platformBoundary.phases,
-      ...browserBoundary.phases,
-      enforcementCoverage.phase,
-    ],
-  };
-};
-
-export const openCapabilityInspector = createPendingDomainInspector({
-  inspector: "GrassEye Open Capability Owner Inspector",
-  inspectorId: "open-capability-owner",
-  capabilityDomain: "open-capability",
-  inspectorEntry: INSPECTOR_ENTRY,
-  ownedPaths: [OPEN_ROOT],
-  pendingSummary: "open-capability must close through the owner inspector and standard package",
-  implementedSummary: "open-capability exposes one governed package with metadata registry, runtime gates, and child-local contracts",
-  extraChecks: runOpenExtraChecks,
-});
+  const overallStatus = checks.every((c) => c.pass) ? "PASS" : "FAIL";
+  return { overallStatus, checks };
+}

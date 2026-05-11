@@ -21,7 +21,7 @@ Core doctrine:
 - src/capabilities/screenshot file count MUST remain <= 20. Exceeding 25 is a hard FAIL.
 - scripts/audit/domains/screenshot-capability file count MUST remain <= 3.
 
-## Law GRASSEYE-SCREENSHOT-CAPABILITY-001-V2
+## Law GRASSEYE-SCREENSHOT-CAPABILITY-001-V3
 
 status: active
 tier: P0
@@ -29,44 +29,48 @@ capabilityDomain: screenshot-capability
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: Screenshot input must carry short-chain mission truth, source proof, and image policy only.
+summary: Screenshot is a camera + coordinate-grid provider only. Small, focused, no subsystems.
 
 ### 主题
 
-Screenshot 输入合同
+Screenshot 大道至简原则
 
 ### 法条
 
-Every ScreenshotAbilityInput must be traceable to the governed mission chain that requested the capture or preparation.
+Screenshot ONLY provides:
+1. Browser viewport screenshot capture.
+2. Optional grid-region / crop-region capture.
+3. Coordinate grid image rendering.
+4. gridSpecRef generation.
+5. screenshotRef / coordinateGridScreenshotRef / artifactRef output.
+6. Screenshot proof (image/artifact/gridSpec truth only).
 
-Required input fields:
-- missionId
-- runId
-- sessionId when applicable
-- roundId when applicable
-- stepId
-- capabilityCallId
-- nerveBusEnvelopeId
-- inputRef
-- sourceRef when applicable
-- sourceProof
-- idempotencyKey
+Screenshot MUST NOT provide:
+- AI judgment or prompt preparation.
+- page-state truth or visual-target truth.
+- post-action verification.
+- business semantic output.
+- artifact lifecycle universe.
+- multi-phase executor system.
+- executable coordinate mapping (x/y decision belongs to Geometry Guard).
+
+Required input fields per child:
+- missionId, runId, stepId, capabilityCallId, nerveBusEnvelopeId, inputRef, idempotencyKey
+- browserSessionRef (for capture children)
+- sourceScreenshotRef (for render-coordinate-grid and capture-grid-region)
+- privacyPolicy, capturePolicy (for capture children)
+- gridPolicy (for render-coordinate-grid)
 - timeoutMs when applicable
-- privacyPolicy
-- capturePolicy
 
-Required:
-- no source proof, no transformed artifact success.
-- no scaleMapping, no AI-input or coordinate-grid success.
-- coordinate-grid artifact and gridSpecRef must be emitted only after governed source proof is known.
-- AI may output grid cell ids only; raw executable x/y is forbidden.
+Forbidden input fields (absolute):
+- mapId, runtimePlanId, routePlanId, activationId, templateId, selectedMapId
+- bindingPackageId, bindingPackageVersion, selectedBindingId, bindingVersion
+- bindingSnapshotRef, branchToken, deterministicFlowPlan
+- pageStateRef, pageStateTruth, visualTargetRef, visualTargetTruth
+- postActionVerificationRef, PAV, targetCandidateRef
+- businessTruth, actionPlan, clickResult
 
-Forbidden:
-- retired selection field, retired selection version field, retired package field, retired package version field, retired binding field, legacy route-plan field, or retired branch-token field as screenshot truth.
-- evidence-grade capture being gated by retired branch-token field.
-- Screenshot deciding targets, geometry safety, page meaning, or business truth.
-
-## Law GRASSEYE-SCREENSHOT-CAPABILITY-002-V2
+## Law GRASSEYE-SCREENSHOT-CAPABILITY-002-V3
 
 status: active
 tier: P0
@@ -74,37 +78,36 @@ capabilityDomain: screenshot-capability
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: Screenshot proof must preserve artifact truth, coordinate truth, and short-chain mission refs only.
+summary: Screenshot proof proves image/artifact/gridSpec truth only.
 
 ### 主题
 
-Screenshot 证明短链化
+Screenshot 证明仅证图像事实
 
 ### 法条
 
-Screenshot proof must preserve artifact identity and mission chain refs without retired map fields.
+Screenshot proof MUST contain:
+- proofId, abilityGroupId = screenshot, childCapabilityId
+- missionId, runId, stepId, capabilityCallId, nerveBusEnvelopeId
+- inputRef, artifactRef, gridSpecRef (when applicable)
+- totalScreenshotStepMs, capturePhaseMs, gridRenderPhaseMs, artifactWritePhaseMs (when applicable)
+- status: success | failed | review_required
+- failureReason, reviewRequiredReason (when applicable)
+- startedAt, endedAt, durationMs
 
-Required proof fields:
-- missionId
-- runId
-- roundId when applicable
-- stepId
-- capabilityCallId
-- sourceScreenshotEvidenceRef when applicable
-- gridSpecRef when applicable
-- capturePhaseMs
-- imageProcessingPhaseMs
-- artifactStoragePhaseMs
-- totalScreenshotStepMs
-- status
-- failureReason or reviewRequiredReason when applicable
+Screenshot proof MUST NOT assert:
+- AI correctness, business success, target truth, page state truth
+- click success, geometry safety, PAV truth, prompt readiness
 
-Forbidden:
-- retired binding field in screenshot proof.
-- retired selection field or retired selection version field in screenshot proof.
-- retired package field or retired package version field in screenshot proof.
-- retired branch-token field-controlled artifact truth.
+Forbidden proof fields:
+- retired binding field, retired selection field, retired package field, retired branch-token field
+- any map/route/plan field
 
 ## Final Readiness Gate
 
-The Screenshot law is ready only when image truth is source-proof driven, coordinate-grid aware, and free of route-label or selected-map runtime truth.
+The Screenshot law is satisfied only when:
+1. src/capabilities/screenshot contains <= 20 files.
+2. Active children are exactly: capture-browser-viewport, capture-grid-region, render-coordinate-grid.
+3. No page-state/visual-target/PAV/business/executable-coordinate fields exist in screenshot schemas.
+4. Inspector passes with <= 3 audit files.
+5. typecheck passes.

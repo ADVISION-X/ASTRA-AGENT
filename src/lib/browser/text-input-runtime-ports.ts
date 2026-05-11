@@ -1,11 +1,9 @@
-import { createSystemClipboardPort } from "./system-clipboard-port.js";
-import { createBrowserControllerTextInputExecutionPort } from "./text-input-primitive-port.js";
+import { createBrowserTextInputPrimitivePort } from "./text-input-browser-primitive-port.js";
 
 export function createBrowserControllerTextInputRuntimePorts(
-  input: Parameters<typeof createBrowserControllerTextInputExecutionPort>[0],
+  _input: { browserController: unknown },
 ) {
   return {
-    executionPort: createBrowserControllerTextInputExecutionPort(input),
-    clipboardPort: createSystemClipboardPort(),
+    primitivePort: createBrowserTextInputPrimitivePort(),
   };
 }

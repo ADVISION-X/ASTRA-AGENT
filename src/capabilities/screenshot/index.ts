@@ -1,41 +1,39 @@
-export {
-  createScreenshotAbilityGroup,
-} from "./ability-group.js";
+// Screenshot Ability Group — public index.
+// Screenshot = 图像真相与坐标图提供方.
+// Camera + coordinate grid. Nothing more.
+
 export {
   SCREENSHOT_ABILITY_GROUP_ID,
-  type ScreenshotAbilityGroup,
-  type ScreenshotAbilityInputCandidate,
-  type ScreenshotAbilityInput,
-  type PrepareVisualMissionInput,
-  type ScreenshotAbilityResult,
-  type ScreenshotArtifactRef,
-  type ScreenshotCoordinateGridOutput,
-  type ScreenshotStructuredRef,
-  type ScreenshotGridCell,
-  type ScreenshotGridSpec,
-  type ScreenshotVisualMissionInput,
-  type ScreenshotScaleMapping,
-  type ScreenshotChildCapabilityId,
-} from "./contract.js";
-export {
+  SCREENSHOT_CHILD_IDS,
   ScreenshotAbilityInputSchema,
-  ScreenshotResultSchema,
-  ScreenshotArtifactRefSchema,
-  ScreenshotStructuredRefSchema,
-  ScreenshotGridCellSchema,
   ScreenshotGridSpecSchema,
-  ScreenshotVisualMissionInputSchema,
-  ScreenshotScaleMappingSchema,
-} from "./schema.js";
-export {
-  ScreenshotCoordinateGridOutputSchema,
-} from "./visual-mission-output-schema.js";
-export {
-  listScreenshotChildren,
-} from "./registry.js";
-export {
-  resolveScreenshotStructuredDataRefPayload,
-} from "./runtime/screenshot-structured-data-ref.js";
-export {
+  ScreenshotGridCellSchema,
+  ScreenshotProofSchema,
+  buildGridSpec,
   decodeGridCell,
-} from "./shared/visual-mission-grid.js";
+} from "./schema.js";
+
+export type {
+  ScreenshotChildId,
+  ScreenshotStatus,
+  ScreenshotGridSpec,
+  ScreenshotGridCell,
+  ScreenshotArtifactRef,
+  ScreenshotStructuredRef,
+  ScreenshotProof,
+  CaptureBrowserViewportInput,
+  CaptureBrowserViewportResult,
+  RenderCoordinateGridInput,
+  RenderCoordinateGridResult,
+  CaptureGridRegionInput,
+  CaptureGridRegionResult,
+  ScreenshotAbilityInput,
+  ScreenshotAbilityResult,
+} from "./schema.js";
+
+export { createScreenshotAbilityGroup } from "./ability-group.js";
+export type { ScreenshotAbilityGroup, ScreenshotAbilityGroupPorts } from "./ability-group.js";
+export { createWorkbenchScreenshotAbilityGroup } from "./workbench-screenshot-ability-group.js";
+
+// Backward-compat export for action-context-enricher
+export { resolveScreenshotStructuredDataRefPayload } from "./runtime/structured-ref-store.js";

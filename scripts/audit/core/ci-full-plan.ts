@@ -189,13 +189,6 @@ const CI_FULL_STEPS = [
     timeoutMs: OWNER_STEP_TIMEOUT_MS,
     artifactPaths: [],
   }),
-  createStep({
-    name: "page-state",
-    layer: "ability-group-layer",
-    command: ["node", "--import", "tsx", "scripts/audit/domains/page-state-capability/run-inspector.ts"],
-    timeoutMs: OWNER_STEP_TIMEOUT_MS,
-    artifactPaths: [],
-  }),
 ] as const;
 
 export const getCiFullStepsByLayer = (layer: CiFullLayerLabel): CiFullStepDefinition[] =>

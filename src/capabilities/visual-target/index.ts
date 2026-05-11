@@ -1,53 +1,42 @@
 export { createVisualTargetAbilityGroup } from "./ability-group.js";
-export { createVisualTargetAbilityGroupWithSystemClock } from "./runtime/visual-target-ability-group-factory.js";
-export {
-	VISUAL_TARGET_ABILITY_GROUP_ID,
-	VisualTargetSchema,
-	type VisualTargetActionOutput,
-	type SuccessfulVisualTarget,
-	type VisualBoundingBox,
-	type VisualClickPoint,
-	type VisualTarget,
-	type VisualTargetAbilityGroup,
-	type VisualTargetAbilityInput,
-	type VisualTargetAbilityResult,
-	type VisualTargetAiSourceProof,
-	type VisualTargetCandidate,
-	type VisualTargetChildCapabilityId,
-	type VisualTargetCoordinateSpace,
-	type VisualTargetDataQualityFlag,
-	type VisualTargetFailureReason,
-	type VisualTargetGeometryGuardHandoff,
-	type VisualTargetNature,
-	type VisualTargetOutput,
-	type VisualTargetPageStateProof,
-	type VisualTargetPublicTypes,
-	type VisualTargetRuntimeProof,
-	type VisualTargetScaleMapping,
-	type VisualTargetScreenshotSourceProof,
-	type VisualTargetSourceProof,
-	type VisualTargetStatus,
-	type VisualTargetType,
-} from "./contract.js";
-export { isSuccessfulVisualTarget } from "./shared/visual-target-result.js";
-export {
-	VisualBoundingBoxSchema,
-	VisualClickPointSchema,
-	VisualTargetAbilityInputSchema,
-	VisualTargetAbilityResultSchema,
-	VisualTargetActionOutputSchema,
-	VisualTargetAiSourceProofSchema,
-	VisualTargetCandidateSchema,
-	VisualTargetChildCapabilityIdSchema,
-	VisualTargetCoordinateSpaceSchema,
-	VisualTargetGeometryGuardHandoffSchema,
-	VisualTargetOutputSchema,
-	VisualTargetPageStateProofSchema,
-	VisualTargetResultSchema,
-	VisualTargetRuntimeProofSchema,
-	VisualTargetScreenshotSourceProofSchema,
-	VisualTargetSourceProofSchema,
-	VisualTargetStatusSchema,
-	VisualTargetTypeSchema,
-} from "./schema.js";
 export { listVisualTargetChildren } from "./registry.js";
+export {
+  VISUAL_TARGET_ABILITY_GROUP_ID,
+  VISUAL_TARGET_CHILD_CAPABILITY_IDS,
+} from "./contract.js";
+export type {
+  VisualTargetAbilityGroup,
+  VisualTargetAbilityInput,
+  VisualTargetAbilityResult,
+  VisualTargetBbox,
+  VisualTargetChildCapabilityId,
+  VisualTargetGridCell,
+  VisualTargetGridRegion,
+  VisualTargetOutput,
+  VisualTargetPackage,
+  VisualTargetRuntimeProof,
+  ParsedVisualTargetAbilityInput,
+} from "./contract.js";
+export {
+  VisualTargetAbilityInputSchema,
+  VisualTargetAbilityResultSchema,
+  VisualTargetBboxSchema,
+  VisualTargetChildCapabilityIdSchema,
+  VisualTargetGridCellSchema,
+  VisualTargetGridRegionSchema,
+  VisualTargetOutputSchema,
+  VisualTargetPackageSchema,
+  VisualTargetRuntimeProofSchema,
+} from "./schema.js";
+
+/**
+ * Visual Target is an optional non-executable packaging step.
+ * It must not become mandatory between AI and Geometry Guard.
+ *
+ * AI selects the gridCell/gridRegion/bbox → Visual Target packages it as
+ * a non-executable targetRef → Geometry Guard converts to executable geometry.
+ *
+ * Visual Target does NOT discover business targets (buttons, panels, metrics).
+ * Visual Target does NOT approve execution.
+ * Visual Target does NOT generate executable coordinates.
+ */

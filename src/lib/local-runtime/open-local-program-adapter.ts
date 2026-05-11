@@ -115,47 +115,15 @@ export function getOpenLocalProgramAdapterReadiness(): { ok: boolean; code: stri
 
 // ─── Adapter factory ──────────────────────────────────────────────────────────
 
-function isGovernedProfile(input: {
-  childCapabilityId: string;
-  platformId: string;
-  targetKind: string;
-  targetProfileRef: string;
-  appName: string;
-  bundleId: string | null;
-  appPath: string | null;
-  allowedLaunchMethod: string;
-}): boolean {
-  return input.childCapabilityId === "open-local-program"
-    && input.platformId === "macos-local"
-    && input.targetKind === "local-program"
-    && input.targetProfileRef === GOVERNED_TARGET_PROFILE_REF
-    && input.appName === GOVERNED_APP_NAME
-    && input.bundleId === GOVERNED_BUNDLE_ID
-    && input.appPath === null
-    && input.allowedLaunchMethod === GOVERNED_LAUNCH_METHOD;
-}
-
-const buildRef = (prefix: string, input: { runId: string; idempotencyKey: string }) =>
-  `${prefix}:${input.runId}:${input.idempotencyKey}:${GOVERNED_TARGET_PROFILE_REF}`;
-
 export function createGovernedMacOSOpenLocalProgramAdapter(): OpenLocalProgramPort {
   return {
-    async resolveLocalProgramProfile(input) {
-      if (!isGovernedProfile(input)) return null;
-      return {
-        targetProfileRef: GOVERNED_TARGET_PROFILE_REF,
-        appName: GOVERNED_APP_NAME,
-        bundleId: GOVERNED_BUNDLE_ID,
-        appPath: null,
-        allowedLaunchMethod: GOVERNED_LAUNCH_METHOD,
-        appLaunchAttemptRef: buildRef("launch-attempt", input),
-        maxLaunchWaitMs: 15_000,
-      };
-    },
-
-    async launchLocalProgram(input) {
+    async openLocalProgram(input) {
       const now = new Date().toISOString();
-      const appLaunchAttemptRef = buildRef("launch-attempt", input);
+      const appLaunchAttemptRef = input.openAttemptRef;
+
+      if (input.platformId !== "macos-local" || input.targetKind !== "local-program" || input.allowedLaunchMethod !== "macos-open-application") {
+        return failedLocalProgramLaunch({ message: "Unsupported platform, targetKind, or launchMethod for macOS open adapter.", createdAt: now, appLaunchAttemptRef });
+      }
 
       if (process.platform !== "darwin") {
         return failedLocalProgramLaunch({ message: "macOS launch is only available on darwin.", createdAt: now, appLaunchAttemptRef });
@@ -169,30 +137,44 @@ export function createGovernedMacOSOpenLocalProgramAdapter(): OpenLocalProgramPo
         return failedLocalProgramLaunch({ message: `${GOVERNED_APP_NAME} is not installed.`, createdAt: now, appLaunchAttemptRef });
       }
 
-      const launchResult = await runFixedMacOSCommand(MACOS_OPEN_BIN, ["-a", GOVERNED_APP_NAME], input.abortSignal).catch(() => null);
+      const launchResult = await runFixedMacOSCommand(MACOS_OPEN_BIN, ["-a", input.appName], input.abortSignal).catch(() => null);
       if (!launchResult || launchResult.exitCode !== 0) {
-        return failedLocalProgramLaunch({ message: `Failed to launch ${GOVERNED_APP_NAME}.`, createdAt: now, appLaunchAttemptRef });
+        return failedLocalProgramLaunch({ message: `Failed to launch ${input.appName}.`, createdAt: now, appLaunchAttemptRef });
       }
 
       const isReady = await waitForLocalProgramCondition({
-        timeoutMs: input.maxLaunchWaitMs ?? 15_000,
+        timeoutMs: input.timeoutMs ?? 15_000,
         abortSignal: input.abortSignal,
         isReady: isGovernedAppRunning,
       });
 
       if (!isReady) {
-        return failedLocalProgramLaunch({ message: `${GOVERNED_APP_NAME} did not become ready in time.`, createdAt: now, appLaunchAttemptRef });
+        return failedLocalProgramLaunch({ message: `${input.appName} did not become ready in time.`, createdAt: now, appLaunchAttemptRef });
       }
 
       return {
         localProgramActionId: appLaunchAttemptRef,
         ok: true,
-        message: `${GOVERNED_APP_NAME} launched successfully.`,
+        message: `${input.appName} launched successfully.`,
         createdAt: now,
         appLaunchAttemptRef,
         windowHandoffRef: `window-handoff:${appLaunchAttemptRef}`,
         localAppStateHandoffRef: `state-handoff:${appLaunchAttemptRef}`,
         portKind: "open-local-program-port",
+      };
+    },
+
+    async getLocalProgramSnapshot(input) {
+      const isInstalled = isGovernedAppInstalled();
+      const isRunning = isInstalled && await isGovernedAppRunning();
+      return {
+        appName: input.appName,
+        bundleId: input.bundleId,
+        visibleWindowAvailable: isRunning,
+        windowTitle: isRunning ? input.appName : null,
+        windowHandoffRef: isRunning ? `window-handoff:${GOVERNED_TARGET_PROFILE_REF}` : null,
+        localAppStateHandoffRef: isRunning ? `state-handoff:${GOVERNED_TARGET_PROFILE_REF}` : null,
+        snapshotFailureReason: isRunning ? null : `${input.appName} is not running.`,
       };
     },
   };

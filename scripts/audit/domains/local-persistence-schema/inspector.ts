@@ -6,7 +6,7 @@ import { createAuditProject, getSourceFileOrThrow, hasPropertyAccessPath } from 
 
 const LAW_ID = "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1";
 const TYPES_PATH = "src/types/local-persistence.ts";
-const STORE_PATH = "src/lib/storage/evidence-store/evidence-store-service.ts";
+const STORE_PATH = "src/lib/storage/file-storage.ts";
 
 function checkTypesSurface(typesFile: ReturnType<typeof getSourceFileOrThrow>): boolean {
   const tableNames = getZodEnumValues(typesFile, "LocalDatabaseTableNameSchema");

@@ -1,19 +1,31 @@
 ---
 name: "GrassEye Open Capability"
-description: "Use when governing the independent Open Ability Group, target opening, navigation attempt proof, real Chrome session handoff, URL safety, target policy, idempotency, timeout/cancellation, page-state handoff, and the boundary that prevents platform adapters/startup/runtime from owning open truth."
+description: "Use when governing the independent Open Ability Group, target opening, navigation attempt proof, real Chrome session handoff, URL safety, target policy, idempotency, timeout/cancellation, raw open observation handoff, and the boundary that prevents platform adapters/startup/runtime from owning open truth."
 applyTo: ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md, src/capabilities/open/**, docs/法案辅助文件/GrassEye Open 能力组施工图.md, scripts/audit/domains/open-capability/**"
 ---
 
 # GrassEye Open Capability FINAL
 
-Scope: governs the independent Open Ability Group, target opening, navigation attempt proof, target policy, real browser session handoff, and raw post-open observation handoff.
+Scope: governs the independent Open Ability Group, target opening, navigation attempt proof, target policy, real browser session handoff, and raw open observation handoff.
 Boundary: this module governs opening only. It does not own page readiness, page meaning, retired chain truth, retired selection choices, or mission branching.
 Authority: this file is authoritative only for the open-capability domain.
 
 Core doctrine:
 - Open opens governed targets.
 - AI owns readiness, safety, and page-kind judgment.
-- Open may hand off raw observations only.
+- Open may return raw open observation handoff refs only.
+
+Page State independent ability group is retired.
+Open must not depend on page-state-capability.
+Open may return raw post-open browser observation refs only.
+AI remains the only owner of readiness, safety, page-kind, blocker, login/captcha/feed/video/comment interpretation.
+
+Current active Open child capabilities:
+- open-platform-entry-once
+- open-local-workbench-once
+
+Facebook / TikTok / other platform entries are target profiles (targetProfileRef), not child capabilities.
+open-facebook, open-tiktok, open-local-program are retired as child capabilities.
 
 ## Law GRASSEYE-OPEN-CAPABILITY-001-V2
 
@@ -50,12 +62,13 @@ Required input fields:
 Required:
 - missing stepId, capabilityCallId, nerveBusEnvelopeId, or inputRef must fail closed.
 - targetUrl may be used only through governed target policy.
-- Open success must return raw page-state handoff refs only.
+- Open success must return raw open observation handoff refs only (rawBrowserObservationRef / postOpenObservationRef).
 
 Forbidden:
 - retired selection field, retired selection version field, retired package field, retired package version field, retired binding field, retired branch-token field, or retired deterministic flow planning fields.
 - default target URL fallback as runtime truth.
 - Open claiming page readiness, page correctness, or semantic action success.
+- page-state handoff / pageStateHandoffRef in any Open output or proof field.
 
 ## Law GRASSEYE-OPEN-CAPABILITY-002-V2
 
@@ -83,7 +96,8 @@ Required proof fields:
 - capabilityCallId
 - targetProfileRef or targetUrlSource
 - resultRef
-- pageStateHandoffRef when available
+- rawBrowserObservationRef when available (replaces retired pageStateHandoffRef)
+- postOpenObservationRef when available
 - status
 - failureReason or reviewRequiredReason when applicable
 
@@ -92,6 +106,8 @@ Forbidden:
 - retired selection field or retired selection version field in open proof.
 - retired package field or retired package version field in open proof.
 - retired branch-token field or retired deterministic flow planning as open result truth.
+- pageStateHandoffRef or pageStateRef in any proof field.
+- page readiness, page correctness, login/captcha/feed/video/comment semantic in any proof field.
 
 ## Final Readiness Gate
 

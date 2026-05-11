@@ -1,1 +1,0 @@
-export const TEXT_INPUT_STATUSES = ["success", "failed", "review_required"] as const;

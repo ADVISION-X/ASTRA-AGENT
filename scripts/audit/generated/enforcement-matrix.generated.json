@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T05:39:11.227Z",
+  "generatedAt": "2026-05-11T06:31:16.470Z",
   "owners": [
     {
       "inspectorId": "ai-capability-owner",
@@ -302,51 +302,6 @@
       ]
     },
     {
-      "inspectorId": "nerve-bus-capability-owner",
-      "capabilityDomain": "nerve-bus-capability",
-      "ownerKind": "ability-group",
-      "manifestPath": "scripts/audit/domains/nerve-bus-capability/manifest.json",
-      "entry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
-      "engine": "hybrid",
-      "supportsEvidenceModes": [
-        "law+blueprint+real-code-inspection"
-      ],
-      "lawIds": [
-        "GRASSEYE-NERVE-BUS-CAPABILITY-001-V2",
-        "GRASSEYE-NERVE-BUS-CAPABILITY-002-V2"
-      ],
-      "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md"
-      ],
-      "readsBlueprintFiles": [
-        "docs/法案辅助文件/GrassEye Nerve Bus 神经网络传输能力组施工图.md"
-      ]
-    },
-    {
-      "inspectorId": "open-capability-owner",
-      "capabilityDomain": "open-capability",
-      "ownerKind": "ability-group",
-      "manifestPath": "scripts/audit/domains/open-capability/manifest.json",
-      "entry": "scripts/audit/domains/open-capability/inspector.ts",
-      "engine": "hybrid",
-      "supportsEvidenceModes": [
-        "law+blueprint+real-code-inspection"
-      ],
-      "lawIds": [
-        "GRASSEYE-OPEN-CAPABILITY-001-V2",
-        "GRASSEYE-OPEN-CAPABILITY-002-V2"
-      ],
-      "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-open-capability.instructions.md"
-      ],
-      "readsBlueprintFiles": [
-        "docs/法案辅助文件/GrassEye Open 能力组施工图.md",
-        "docs/法案辅助文件/GrassEye 平台适配与页面动作施工图.md",
-        "docs/法案辅助文件/GrassEye 视觉坐标组合链说明.md",
-        "docs/法案辅助文件/GrassEye 本地真实Chrome会话与登录态持久化施工图.md"
-      ]
-    },
-    {
       "inspectorId": "orchestration-capability-owner",
       "capabilityDomain": "orchestration-capability",
       "ownerKind": "ability-group",
@@ -377,27 +332,6 @@
       ]
     },
     {
-      "inspectorId": "page-state-capability-owner",
-      "capabilityDomain": "page-state-capability",
-      "ownerKind": "ability-group",
-      "manifestPath": "scripts/audit/domains/page-state-capability/manifest.json",
-      "entry": "scripts/audit/domains/page-state-capability/inspector.ts",
-      "engine": "hybrid",
-      "supportsEvidenceModes": [
-        "law+blueprint+real-code-inspection"
-      ],
-      "lawIds": [
-        "GRASSEYE-PAGE-STATE-CAPABILITY-001-V3",
-        "GRASSEYE-PAGE-STATE-CAPABILITY-002-V3"
-      ],
-      "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-page-state-capability.instructions.md"
-      ],
-      "readsBlueprintFiles": [
-        "docs/法案辅助文件/GrassEye Page State 页面状态感知能力组施工图.md"
-      ]
-    },
-    {
       "inspectorId": "post-action-verification-capability-owner",
       "capabilityDomain": "post-action-verification-capability",
       "ownerKind": "ability-group",
@@ -419,29 +353,6 @@
       ]
     },
     {
-      "inspectorId": "screenshot-capability-owner",
-      "capabilityDomain": "screenshot-capability",
-      "ownerKind": "ability-group",
-      "manifestPath": "scripts/audit/domains/screenshot-capability/manifest.json",
-      "entry": "scripts/audit/domains/screenshot-capability/inspector.ts",
-      "engine": "hybrid",
-      "supportsEvidenceModes": [
-        "law+blueprint+real-code-inspection"
-      ],
-      "lawIds": [
-        "GRASSEYE-SCREENSHOT-CAPABILITY-001-V2",
-        "GRASSEYE-SCREENSHOT-CAPABILITY-002-V2"
-      ],
-      "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md"
-      ],
-      "readsBlueprintFiles": [
-        "docs/法案辅助文件/GrassEye Screenshot 能力组施工图.md",
-        "docs/法案辅助文件/GrassEye 多帧视频取证施工图.md",
-        "docs/法案辅助文件/GrassEye Route Plan 肌肉记忆施工图.md"
-      ]
-    },
-    {
       "inspectorId": "security-privacy-owner",
       "capabilityDomain": "security-privacy",
       "ownerKind": "foundation-law",
@@ -460,27 +371,6 @@
         ".github/instructions/cursor-rules/modules/module-security-privacy.instructions.md"
       ],
       "readsBlueprintFiles": []
-    },
-    {
-      "inspectorId": "text-input-capability-owner",
-      "capabilityDomain": "text-input-capability",
-      "ownerKind": "ability-group",
-      "manifestPath": "scripts/audit/domains/text-input-capability/manifest.json",
-      "entry": "scripts/audit/domains/text-input-capability/inspector.ts",
-      "engine": "hybrid",
-      "supportsEvidenceModes": [
-        "law+blueprint+real-code-inspection"
-      ],
-      "lawIds": [
-        "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2",
-        "GRASSEYE-TEXT-INPUT-CAPABILITY-002-V2"
-      ],
-      "readsLawFiles": [
-        ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md"
-      ],
-      "readsBlueprintFiles": [
-        "docs/法案辅助文件/GrassEye Text Input 输入能力组施工图.md"
-      ]
     },
     {
       "inspectorId": "type-safety-owner",
@@ -511,8 +401,9 @@
         "law+blueprint+real-code-inspection"
       ],
       "lawIds": [
-        "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2",
-        "GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V2"
+        "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V3",
+        "GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V3",
+        "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V1"
       ],
       "readsLawFiles": [
         ".github/instructions/cursor-rules/modules/module-visual-target-capability.instructions.md"

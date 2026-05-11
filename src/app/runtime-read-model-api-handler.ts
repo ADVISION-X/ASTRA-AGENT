@@ -30,17 +30,6 @@ async function handleRuntimeReportRequest(response: ServerResponse, activeWorkbe
   return false;
 }
 
-export async function handleRuntimeReadModelRequest(response: ServerResponse, activeWorkbench: GrassEyeWorkbenchHandle, url: URL, tail: number): Promise<boolean> {
-  if (await handleRuntimeReportRequest(response, activeWorkbench, url)) {
-    return true;
-  }
-  if (url.pathname === "/api/runtime/logs") {
-    writeJson(response, 200, await activeWorkbench.listRuntimeDebugEvents(tail));
-    return true;
-  }
-  if (url.pathname === "/api/runtime/actions") {
-    writeJson(response, 200, await activeWorkbench.listRuntimeDebugActions(tail));
-    return true;
-  }
-  return false;
+export async function handleRuntimeReadModelRequest(response: ServerResponse, activeWorkbench: GrassEyeWorkbenchHandle, url: URL, _tail: number): Promise<boolean> {
+  return handleRuntimeReportRequest(response, activeWorkbench, url);
 }

@@ -9,7 +9,6 @@ const SYSTEM_INJECTED_ACTION_FIELDS = new Set([
   "productPresenceAiResultRef",
   "gridSpec",
   "gridSpecRef",
-  "pageStateRef",
   "coordinateSpace",
   "originalScreenshotRef",
   "coordinateGridScreenshotRef",

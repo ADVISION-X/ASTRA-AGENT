@@ -1,5 +1,5 @@
 import type { ScreenshotGridSpec } from "../../capabilities/screenshot/contract.js";
-import { resolveScreenshotStructuredDataRefPayload } from "../../capabilities/screenshot/runtime/screenshot-structured-data-ref.js";
+import { resolveScreenshotStructuredDataRefPayload } from "../../capabilities/screenshot/runtime/structured-ref-store.js";
 import type { AtomicMuscleMemoryEntry } from "../../muscle-memory/catalog.js";
 import { resolveVisualMissionPlatformTarget } from "../platform-target-registry.js";
 import type {
@@ -80,8 +80,7 @@ const SYSTEM_FIELD_RESOLVERS: Record<string, SystemFieldResolver> = {
   gridSpecRef: ({ payloadRefs, planContextRefs }) => (
     readPayloadRefString(payloadRefs, "gridSpecRef") ?? planContextRefs.gridSpecRef ?? null
   ),
-  pageStateRef: ({ payloadRefs }) => readPayloadRefString(payloadRefs, "pageStateRef"),
-  coordinateSpace: ({ payloadRefs, planContextRefs }) => resolveGridSpec({ payloadRefs, planContextRefs })?.sourceCoordinateSpace ?? null,
+  coordinateSpace: ({ payloadRefs, planContextRefs }) => resolveGridSpec({ payloadRefs, planContextRefs }) != null ? null : null,
 };
 
 export function buildVisualMissionActionRuntimeContext(input: {

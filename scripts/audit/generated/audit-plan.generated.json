@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-11T05:39:11.227Z",
+  "generatedAt": "2026-05-11T06:31:16.470Z",
   "phase": "phase-05-final-delivery-debug",
   "phaseGateFile": "scripts/audit/phase-gates/phase-05-final-delivery-debug.json",
   "owners": [
@@ -91,48 +91,12 @@
       ]
     },
     {
-      "capabilityDomain": "nerve-bus-capability",
-      "inspectorId": "nerve-bus-capability-owner",
-      "entry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
-      "lawIds": [
-        "GRASSEYE-NERVE-BUS-CAPABILITY-001-V2",
-        "GRASSEYE-NERVE-BUS-CAPABILITY-002-V2"
-      ]
-    },
-    {
-      "capabilityDomain": "page-state-capability",
-      "inspectorId": "page-state-capability-owner",
-      "entry": "scripts/audit/domains/page-state-capability/inspector.ts",
-      "lawIds": [
-        "GRASSEYE-PAGE-STATE-CAPABILITY-001-V3",
-        "GRASSEYE-PAGE-STATE-CAPABILITY-002-V3"
-      ]
-    },
-    {
       "capabilityDomain": "post-action-verification-capability",
       "inspectorId": "post-action-verification-capability-owner",
       "entry": "scripts/audit/domains/post-action-verification-capability/inspector.ts",
       "lawIds": [
         "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-001-V2",
         "GRASSEYE-POST-ACTION-VERIFICATION-CAPABILITY-002-V2"
-      ]
-    },
-    {
-      "capabilityDomain": "open-capability",
-      "inspectorId": "open-capability-owner",
-      "entry": "scripts/audit/domains/open-capability/inspector.ts",
-      "lawIds": [
-        "GRASSEYE-OPEN-CAPABILITY-001-V2",
-        "GRASSEYE-OPEN-CAPABILITY-002-V2"
-      ]
-    },
-    {
-      "capabilityDomain": "screenshot-capability",
-      "inspectorId": "screenshot-capability-owner",
-      "entry": "scripts/audit/domains/screenshot-capability/inspector.ts",
-      "lawIds": [
-        "GRASSEYE-SCREENSHOT-CAPABILITY-001-V2",
-        "GRASSEYE-SCREENSHOT-CAPABILITY-002-V2"
       ]
     },
     {
@@ -154,15 +118,6 @@
       ]
     },
     {
-      "capabilityDomain": "text-input-capability",
-      "inspectorId": "text-input-capability-owner",
-      "entry": "scripts/audit/domains/text-input-capability/inspector.ts",
-      "lawIds": [
-        "GRASSEYE-TEXT-INPUT-CAPABILITY-001-V2",
-        "GRASSEYE-TEXT-INPUT-CAPABILITY-002-V2"
-      ]
-    },
-    {
       "capabilityDomain": "mouse-scroll-capability",
       "inspectorId": "mouse-scroll-capability-owner",
       "entry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
@@ -176,8 +131,9 @@
       "inspectorId": "visual-target-capability-owner",
       "entry": "scripts/audit/domains/visual-target-capability/inspector.ts",
       "lawIds": [
-        "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V2",
-        "GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V2"
+        "GRASSEYE-VISUAL-TARGET-CAPABILITY-001-V3",
+        "GRASSEYE-VISUAL-TARGET-CAPABILITY-002-V3",
+        "GRASSEYE-VISUAL-TARGET-CAPABILITY-003-V1"
       ]
     },
     {

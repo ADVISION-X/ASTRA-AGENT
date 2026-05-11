@@ -40,7 +40,7 @@ export const forensicsPersistenceInspectionConstants = {
   REGISTRY_PATH: `${ROOT}/registry.ts`,
   INDEX_PATH: `${ROOT}/index.ts`,
   RECORD_ID_PATH: `${ROOT}/record-id.ts`,
-  STORAGE_ADAPTER_PATH: "src/lib/storage/evidence-store/create-forensics-persistence-storage.ts",
+  STORAGE_ADAPTER_PATH: "src/capabilities/forensics-persistence/storage-adapter.ts",
   WORKBENCH_PATH: "src/lib/local-runtime/workbench-persistence-runtime.ts",
   AI_DEBUG_RECORDER_PATH: "src/lib/local-runtime/workbench-ai-debug-recorder.ts",
   COMMANDER_DEBUG_PATH: "src/lib/local-runtime/workbench-commander-debug.ts",

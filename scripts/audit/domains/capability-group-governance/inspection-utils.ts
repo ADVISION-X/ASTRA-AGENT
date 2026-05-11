@@ -32,9 +32,7 @@ function isPublicCapabilityEntry(relativePath: string): boolean {
 }
 
 function isAllowedLocalRuntimeWorkbenchImport(importerPath: string, targetPath: string): boolean {
-  return (importerPath === "src/lib/local-runtime/workbench-page-state-runtime.ts"
-    && targetPath === "src/capabilities/page-state/workbench-ability-group.ts")
-    || (importerPath === "src/lib/local-runtime/workbench-screenshot-ability-group.ts"
+  return (importerPath === "src/lib/local-runtime/workbench-screenshot-ability-group.ts"
       && targetPath === "src/capabilities/screenshot/workbench-screenshot-ability-group.ts");
 }
 

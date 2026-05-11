@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { LocalAiGateway } from "../../dist/src/lib/local-ai/local-ai-gateway.js";
+import { checkLocalAiReadiness, loadLocalAiConfig } from "../../dist/src/lib/local-ai/index.js";
 import {
   assert,
   getRealPlatformUrl,
@@ -16,9 +16,9 @@ import { verifyEvidenceAndGeometry, verifyRealCoordinateClick } from "./delivery
 const repoRoot = process.cwd();
 
 async function verifyLocalAiHealth() {
-  const localAi = new LocalAiGateway();
-  const health = await localAi.getHealth();
-  assert(health.ok, `local AI config must be readable: ${health.detail}`);
+  const config = await loadLocalAiConfig();
+  const result = await checkLocalAiReadiness(config);
+  assert(result.status !== "unavailable" || result.modelConfigured, `local AI config must be readable: ${result.detail}`);
 }
 
 async function main() {
