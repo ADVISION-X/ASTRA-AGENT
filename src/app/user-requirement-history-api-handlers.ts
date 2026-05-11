@@ -117,7 +117,8 @@ async function handleHistoryDeleteRequest(
   }
 
   const deleted = await activeWorkbench.deleteUserRequirementHistory(id);
-  writeJsonResponse(response, deleted ? 200 : 404, { deleted, id });
+  const wasDeleted = Boolean(deleted);
+  writeJsonResponse(response, wasDeleted ? 200 : 404, { deleted: wasDeleted, id });
   return true;
 }
 

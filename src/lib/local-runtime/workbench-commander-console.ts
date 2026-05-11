@@ -24,15 +24,45 @@ import type { OrchestrationAbilityGroup } from "../../capabilities/orchestration
 
 // ─── Workbench Commander Console Dashboard (simplified) ─────────────────────
 
+export type WorkbenchHealthEntry = {
+  id: string;
+  groupId: string;
+  label: string;
+  status: "active" | "degraded";
+  tone: "green" | "yellow" | "red";
+  detail?: string | undefined;
+  missionRuntimeAvailable?: boolean | undefined;
+  failureReason?: string | undefined;
+};
+
+export type WorkbenchEvidenceEntry = {
+  id: string;
+  primary: string;
+  secondary: string | null;
+  detail: string | null;
+  [key: string]: unknown;
+};
+
+export type WorkbenchRuntimeProofEntry = {
+  step: string;
+  message: string;
+  createdAt: string;
+  status: string;
+  [key: string]: unknown;
+};
+
 export type WorkbenchCommanderMissionDashboardView = {
-  mission: CommanderMissionStatusView | null;
+  mission: (CommanderMissionStatusView & { requestedPlatform?: string | null | undefined }) | null;
+  runtime: null;
+  browser: null;
+  health: WorkbenchHealthEntry[];
   capabilityRoster: { groupId: string; status: "active" }[];
-  candidates: [];
-  reviewQueue: [];
-  evidencePackets: [];
-  browseLedger: [];
-  failedRecords: [];
-  runtimeProof: null;
+  candidates: never[];
+  reviewQueue: never[];
+  evidencePackets: WorkbenchEvidenceEntry[];
+  browseLedger: never[];
+  failedRecords: never[];
+  runtimeProof: WorkbenchRuntimeProofEntry[] | null;
   auditSummary: null;
 };
 
@@ -149,6 +179,9 @@ export async function getCommanderConsoleSnapshot(input: {
 
   return {
     mission: missionView,
+    runtime: null,
+    browser: null,
+    health: [],
     capabilityRoster: input.capabilityGroupIds.map((groupId) => ({ groupId, status: "active" as const })),
     candidates: [],
     reviewQueue: [],

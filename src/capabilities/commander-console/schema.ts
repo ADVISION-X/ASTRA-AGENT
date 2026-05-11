@@ -170,3 +170,23 @@ export const CommanderConsoleResultSchema = z.object({
 }).strict();
 
 export type CommanderConsoleResult = z.output<typeof CommanderConsoleResultSchema>;
+
+// ─── Re-exports from shared/ for backward-compat imports ─────────────────────
+
+export {
+  CommanderConsoleStatusSchema,
+  CommandTransportResultSchema,
+  CommanderCommandReceiptSchema,
+  CommanderTransportPayloadSchema,
+  CommanderEvidencePolicySchema,
+  EmergencyStopTransportPayloadSchema,
+  PauseMissionTransportPayloadSchema,
+  ResumeMissionTransportPayloadSchema,
+  StopMissionTransportPayloadSchema,
+  StartMissionTransportPayloadSchema,
+  MarkReviewRequiredTransportPayloadSchema,
+  HumanCommandInputSchema,
+  RuntimeProofSchema,
+  RequestedPlatformIdSchema,
+  CommanderReadModelSourceSchema,
+} from "./shared/commander-schema-base.js";

@@ -125,7 +125,7 @@ const buildAiResult = (input: {
       runtimeCallId: input.runtimeCallId ?? null,
       promptContractHash: input.promptContractHash,
       modelConfigHash: input.modelConfigHash,
-      schemaIssueCount: input.schemaIssueCount,
+      ...(input.schemaIssueCount !== undefined ? { schemaIssueCount: input.schemaIssueCount } : {}),
     }),
     promptContractId: input.request.promptContractId,
     promptContractVersion: input.promptContractVersion,

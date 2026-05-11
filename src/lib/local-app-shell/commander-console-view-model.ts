@@ -18,7 +18,7 @@ export function buildCommanderConsoleViewModel(
   userRequirementHistory: CommanderConsoleViewModel["userRequirementHistory"],
 ): CommanderConsoleViewModel {
   const primaryPages = buildPrimaryPages(locale);
-  const activePlatformLabel = dashboard.mission.requestedPlatform ?? null;
+  const activePlatformLabel = dashboard.mission?.requestedPlatform ?? null;
 
   return {
     locale,
@@ -43,7 +43,7 @@ export function buildCommanderConsoleViewModel(
     evidencePackets: dashboard.evidencePackets,
     browseLedger: dashboard.browseLedger,
     failedRecords: dashboard.failedRecords,
-    runtimeProofTimeline: dashboard.runtimeProof,
+    runtimeProofTimeline: dashboard.runtimeProof ?? [],
     exportSummary: buildExportSummary(locale),
     safetyLocks: buildSafetyLocks(locale),
     runLimits: buildRunLimits(locale, appRunLimitSettings),

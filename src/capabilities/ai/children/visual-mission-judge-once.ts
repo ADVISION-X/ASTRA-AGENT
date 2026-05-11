@@ -40,7 +40,7 @@ const buildFailureResult = (input: {
   promptCatalogVersion: input.promptCatalogVersion,
   promptContractHash: input.promptContractHash,
   modelConfigHash: input.modelConfigHash,
-  schemaIssueCount: input.schemaIssueCount,
+  ...(input.schemaIssueCount !== undefined ? { schemaIssueCount: input.schemaIssueCount } : {}),
 });
 
 async function executeVisualMissionJudgeOnce(input: {
@@ -52,7 +52,7 @@ async function executeVisualMissionJudgeOnce(input: {
 
   try {
     const modelCall = await callLocalVisualMissionModel(input);
-    const output = parseAiJsonOutput(modelCall.rawOutputText, VisualMissionActionPlanOutputSchema);
+    const output = parseAiJsonOutput(modelCall.rawOutputText, VisualMissionActionPlanOutputSchema) as import("../../../types/visual-mission-action-plan.js").VisualMissionActionPlanOutput;
     const endedAt = new Date().toISOString();
     const durationMs = Math.max(0, Date.parse(endedAt) - Date.parse(startedAt));
 
@@ -69,7 +69,7 @@ async function executeVisualMissionJudgeOnce(input: {
       runtime: modelCall.runtime ?? "ollama",
       timeoutMs: modelCall.timeoutMs,
       promptContractVersion: modelCall.promptVersion,
-      promptCatalogVersion: input.request.promptCatalogVersion ?? input.request.promptContractId,
+      promptCatalogVersion: (typeof input.request.promptCatalogVersion === "string" ? input.request.promptCatalogVersion : null) ?? input.request.promptContractId,
       promptContractHash: buildHash(JSON.stringify({
         promptContractId: input.request.promptContractId,
         promptContractVersion: modelCall.promptVersion,
@@ -96,7 +96,7 @@ async function executeVisualMissionJudgeOnce(input: {
       failureReason: failureStatus === "failed" ? message : null,
       reviewRequiredReason: failureStatus === "review_required" ? message : null,
       promptContractVersion: "v1",
-      promptCatalogVersion: input.request.promptCatalogVersion ?? input.request.promptContractId,
+      promptCatalogVersion: (typeof input.request.promptCatalogVersion === "string" ? input.request.promptCatalogVersion : null) ?? input.request.promptContractId,
       promptContractHash: buildHash(input.request.promptContractId),
       modelConfigHash: buildHash("model-config-unavailable"),
       status: failureStatus,

@@ -27,7 +27,7 @@ function buildRoundInspectItems(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
 ): CommanderConsoleInspectItem[] {
-  return dashboard.runtimeProof.map((entry, index) => ({
+  return (dashboard.runtimeProof ?? []).map((entry, index) => ({
     kind: "round",
     id: `${entry.step}-${index}`,
     title: entry.step,

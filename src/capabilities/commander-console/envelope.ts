@@ -19,4 +19,5 @@ export type CommandTransportResult = {
 
 export interface CommandTransportPort {
   sendHumanCommandEnvelope(envelope: import("./schema.js").CommanderEnvelope): Promise<CommandTransportResult>;
+  emitHumanCommand(command: import("./ports/command-transport-port.js").CommanderHumanCommand): Promise<CommandTransportResult>;
 }
