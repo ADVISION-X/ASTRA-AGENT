@@ -94,6 +94,8 @@ export class GrassEyeWorkbench {
       screenshot: this._assembly.screenshotAbilityGroup,
       ai: this._assembly.aiAbilityGroup,
       geometryGuard: this._assembly.geometryGuardAbilityGroup,
+      open: this._assembly.openAbilityGroup,
+      mouseScroll: this._assembly.mouseScrollAbilityGroup,
     });
     orchestrationRef.instance = this._orchestration;
 

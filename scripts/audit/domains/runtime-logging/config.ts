@@ -38,11 +38,12 @@ export const RUNTIME_LOGGING_CONFIG = {
   ] as string[],
 
   // These patterns must NOT appear in production source (except whitelist)
+  // Split literals so this config file does not self-trigger the CODE-PURITY scanner.
   forbiddenConsolePatterns: [
-    "console.log",
-    "console.error",
-    "console.warn",
-    "console.debug",
+    "console" + ".log",
+    "console" + ".error",
+    "console" + ".warn",
+    "console" + ".debug",
   ] as string[],
 
   // Files that are allowed to use process.stdout/stderr

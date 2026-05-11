@@ -103,6 +103,10 @@ const ctx: DispatchSequenceContext = {
   forensics: stubForensics,
   geometryGuard: stubGeometryGuard,
   screenshotAbilityGroup: stubScreenshotAbilityGroup,
+  mouseScrollAbilityGroup: {
+    listChildCapabilityIds: () => ["scroll-browser-viewport" as const],
+    execute: async (_input: unknown) => ({ status: "success", failureReason: null, reviewRequiredReason: null, output: {}, runtimeProof: {} } as unknown as Awaited<ReturnType<DispatchSequenceContext["mouseScrollAbilityGroup"]["execute"]>>),
+  } as unknown as DispatchSequenceContext["mouseScrollAbilityGroup"],
 };
 
 // ── Seed mission state ────────────────────────────────────────────────────────

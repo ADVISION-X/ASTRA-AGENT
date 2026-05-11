@@ -225,10 +225,10 @@ export function runVisualMissionRuntimeInspector(): VMRInspectorResult {
       const hasGridCell = src.includes(CFG.abilityResultGridCellToken);
       const allPresent = hasClickTracking && hasPostComment && hasReason && hasGridCell;
       if (allPresent) {
-        checks.push({ checkId: "VMR-12", question: "dispatch-sequence tracks clicks and logs reason/gridCell?", status: "PASS", detail: "priorClickCount, postCommentScreenshotRef, reason, gridCell all present." });
+        checks.push({ checkId: "VMR-12", question: "dispatch-sequence tracks clicks and logs reason/gridCell?", status: "PASS", detail: "commentPanelOpenAttempted, postCommentScreenshotRef, reason, gridCell all present." });
       } else {
         const missing: string[] = [];
-        if (!hasClickTracking) missing.push("priorClickCount");
+        if (!hasClickTracking) missing.push("commentPanelOpenAttempted");
         if (!hasPostComment) missing.push("postCommentScreenshotRef");
         if (!hasReason) missing.push("reason");
         if (!hasGridCell) missing.push("gridCell");

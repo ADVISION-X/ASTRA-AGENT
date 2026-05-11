@@ -4,6 +4,8 @@ import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/
 import type { ScreenshotAbilityGroup } from "../screenshot/index.js";
 import type { AiAbilityGroup } from "../ai/index.js";
 import type { GeometryGuardAbilityGroup } from "../geometry-guard/index.js";
+import type { OpenAbilityGroup } from "../open/index.js";
+import type { MouseScrollAbilityGroup } from "../mouse-scroll/contract.js";
 import type { DispatchRegisteredAbilitySequenceInput } from "./contract.js";
 import {
   getMissionState,
@@ -33,6 +35,8 @@ export type OrchestrationChildrenContext = {
   screenshotAbilityGroup: ScreenshotAbilityGroup;
   aiAbilityGroup: AiAbilityGroup;
   geometryGuard: GeometryGuardAbilityGroup;
+  openAbilityGroup: OpenAbilityGroup;
+  mouseScrollAbilityGroup: MouseScrollAbilityGroup;
 };
 
 type ChildResult = {
@@ -156,6 +160,7 @@ export async function handleDispatchRegisteredAbilitySequence(rawInput: unknown,
     forensics: ctx.forensics,
     geometryGuard: ctx.geometryGuard,
     screenshotAbilityGroup: ctx.screenshotAbilityGroup,
+    mouseScrollAbilityGroup: ctx.mouseScrollAbilityGroup,
   });
   return {
     status: result.status,

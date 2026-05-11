@@ -19,6 +19,7 @@
 
 import { randomUUID } from "node:crypto";
 import type { OrchestrationChildrenContext } from "../children.js";
+import { dispatchRegisteredAbilitySequence } from "./dispatch-sequence.js";
 import {
   getMissionState,
   upsertMissionState,
@@ -28,6 +29,7 @@ import {
 } from "./mission-state.js";
 import { checkLoopGuardBeforeRound, checkLoopGuardAfterRound } from "./loop-guard.js";
 import { loadMuscleMemoryCatalog } from "../../../muscle-memory/catalog.js";
+import { emitRuntimeLog } from "../../../lib/runtime-logs/logger.js";
 
 const VALID_PLATFORM_IDS = ["facebook-web", "tiktok-web"] as const;
 type ValidPlatformId = (typeof VALID_PLATFORM_IDS)[number];
@@ -80,23 +82,53 @@ export async function runMissionRoundLoop(
     const selectedPlatforms = resolveSelectedPlatforms(state.selectedPlatforms ?? [], platformId);
     const userRequirementText = state.humanGoal ?? "Mine seed product videos";
 
+    emitRuntimeLog({
+      traceId: missionId,
+      level: "info",
+      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+      eventType: "ROUND_STARTED",
+      owner: "orchestration",
+      missionId,
+      runId,
+      roundId,
+      status: "started",
+      reason: `Round ${state.roundIndex ?? 0} started`,
+    });
+
     // ── OPEN GATE: Navigate to platform entry on round 0 if targetProfileRef is set ──
+    // Direct call (not through Nerve Bus) — Open schema is strict and rejects
+    // the extra tracking fields that the Nerve Bus dispatcher injects.
     if ((state.roundIndex ?? 0) === 0 && (state.targetProfileRef || state.targetUrl) && !state.openResultRef) {
-      const openEnvelopeId = randomUUID();
+      const openCallId = randomUUID();
       const targetRef = state.targetProfileRef ?? platformId;
-      const openResult = await ctx.nerveBus.dispatchAbilityCommand({
-        abilityGroupId: "open",
+      const openResult = await ctx.openAbilityGroup.execute({
         childCapabilityId: "open-platform-entry-once",
         missionId,
         runId,
         sessionId,
         roundId,
-        inputOverrides: {
-          targetProfileRef: targetRef,
-          idempotencyKey: `open-entry:${missionId}:${runId}`,
-        },
+        stepId: randomUUID(),
+        capabilityCallId: openCallId,
+        nerveBusEnvelopeId: openCallId,
+        requestedBy: "orchestration:mission-loop",
+        inputRef: randomUUID(),
+        idempotencyKey: `open-entry:${missionId}:${runId}`,
+        targetProfileRef: targetRef,
       });
-      // Only mark openResultRef if Open succeeded; stop mission on failure.
+      emitRuntimeLog({
+        traceId: missionId,
+        level: openResult.status === "success" ? "info" : "warn",
+        modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+        eventType: "OPEN_RESULT",
+        owner: "orchestration",
+        missionId,
+        runId,
+        roundId,
+        status: openResult.status,
+        reason: openResult.status === "success"
+          ? `Opened targetProfileRef=${targetRef}`
+          : `OPEN FAILED targetProfileRef=${targetRef}: ${openResult.failureReason ?? "unknown"}`,
+      });
       if (openResult.status !== "success") {
         upsertMissionState(applyStatusTransition(getMissionState(missionId), {
           status: "failed",
@@ -105,7 +137,7 @@ export async function runMissionRoundLoop(
         setActiveMission(null);
         return;
       }
-      upsertMissionState({ ...getMissionState(missionId), openResultRef: openEnvelopeId });
+      upsertMissionState({ ...getMissionState(missionId), openResultRef: openCallId });
     }
 
     // ── STEP 1: Capture browser viewport ───────────────────────────────────
@@ -133,12 +165,14 @@ export async function runMissionRoundLoop(
 
     if (captureResult.status !== "success" || !("screenshotRef" in captureResult) || !captureResult.screenshotRef) {
       const msg = ("failureReason" in captureResult ? captureResult.failureReason : null) ?? "screenshot capture failed";
+      emitRuntimeLog({ traceId: missionId, level: "error", modeVisibility: ["FLOW", "DEBUG", "TRACE"], eventType: "SCREENSHOT_CAPTURED", owner: "orchestration", missionId, runId, roundId, status: "failed", reason: msg });
       upsertMissionState(applyStatusTransition(getMissionState(missionId), { status: "failed", failureReason: msg }));
       setActiveMission(null);
       return;
     }
 
     const originalScreenshotRef = captureResult.screenshotRef;
+    emitRuntimeLog({ traceId: missionId, level: "debug", modeVisibility: ["DEBUG", "TRACE"], eventType: "SCREENSHOT_CAPTURED", owner: "orchestration", missionId, runId, roundId, status: "success", reason: `screenshot ref=${originalScreenshotRef}` });
     const screenshotProofRef =
       "screenshotProof" in captureResult && captureResult.screenshotProof
         ? captureResult.screenshotProof.proofId
@@ -377,14 +411,8 @@ export async function runMissionRoundLoop(
       return;
     }
 
-    const sequenceResult = await ctx.nerveBus.dispatchAbilityCommand({
-      abilityGroupId: "orchestration",
-      childCapabilityId: "dispatch-registered-ability-sequence",
-      missionId,
-      runId,
-      sessionId,
-      roundId,
-      inputOverrides: {
+    const sequenceResult = await dispatchRegisteredAbilitySequence(
+      {
         missionId,
         runId,
         roundId,
@@ -396,7 +424,14 @@ export async function runMissionRoundLoop(
           gridSpecRef,
         },
       },
-    });
+      {
+        nerveBus: ctx.nerveBus,
+        forensics: ctx.forensics,
+        geometryGuard: ctx.geometryGuard,
+        screenshotAbilityGroup: ctx.screenshotAbilityGroup,
+        mouseScrollAbilityGroup: ctx.mouseScrollAbilityGroup,
+      },
+    );
 
     if (sequenceResult.status !== "success") {
       // Mission state may have been updated inside dispatch-sequence — check and stop if needed
@@ -464,6 +499,25 @@ export async function runMissionRoundLoop(
     }
 
     previousRoundId = roundId;
+
+    // Increment roundIndex so subsequent rounds have correct context
+    upsertMissionState({
+      ...getMissionState(missionId),
+      roundIndex: (getMissionState(missionId).roundIndex ?? 0) + 1,
+    });
+
+    emitRuntimeLog({
+      traceId: missionId,
+      level: "info",
+      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+      eventType: "ROUND_COMPLETED",
+      owner: "orchestration",
+      missionId,
+      runId,
+      roundId,
+      status: "success",
+      reason: `Round completed`,
+    });
 
     // Brief pause between rounds to avoid hammering the browser/AI
     await new Promise<void>(r => setTimeout(r, 500));

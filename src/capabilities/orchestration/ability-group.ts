@@ -2,6 +2,8 @@ import type { NerveBusAbilityGroup } from "../nerve-bus/contract.js";
 import type { ScreenshotAbilityGroup } from "../screenshot/index.js";
 import type { AiAbilityGroup } from "../ai/index.js";
 import type { GeometryGuardAbilityGroup } from "../geometry-guard/index.js";
+import type { OpenAbilityGroup } from "../open/index.js";
+import type { MouseScrollAbilityGroup } from "../mouse-scroll/contract.js";
 import type {
   OrchestrationAbilityGroup,
   MissionCommand,
@@ -31,6 +33,8 @@ type OrchestrationDeps = {
   screenshot: ScreenshotAbilityGroup;
   ai: AiAbilityGroup;
   geometryGuard: GeometryGuardAbilityGroup;
+  open: OpenAbilityGroup;
+  mouseScroll: MouseScrollAbilityGroup;
 };
 
 async function executeChild(
@@ -69,6 +73,8 @@ export function createOrchestrationAbilityGroup(deps: OrchestrationDeps): Orches
     screenshotAbilityGroup: deps.screenshot,
     aiAbilityGroup: deps.ai,
     geometryGuard: deps.geometryGuard,
+    openAbilityGroup: deps.open,
+    mouseScrollAbilityGroup: deps.mouseScroll,
   };
 
   async function execute(input: OrchestrationExecuteInput): Promise<OrchestrationExecuteResult> {

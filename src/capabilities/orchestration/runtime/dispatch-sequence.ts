@@ -5,6 +5,7 @@ import type { DispatchRegisteredAbilitySequenceInput } from "../contract.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../forensics-persistence/contract.js";
 import type { GeometryGuardAbilityGroup } from "../../geometry-guard/index.js";
 import type { ScreenshotAbilityGroup } from "../../screenshot/contract.js";
+import type { MouseScrollAbilityGroup, MouseScrollAbilityInput } from "../../mouse-scroll/contract.js";
 import { getMissionState, upsertMissionState, applyStatusTransition } from "./mission-state.js";
 import { findMuscleMemoryEntry } from "../../../muscle-memory/catalog.js";
 import { resolveScreenshotStructuredDataRefPayload } from "../../screenshot/runtime/structured-ref-store.js";
@@ -16,6 +17,7 @@ export type DispatchSequenceContext = {
   forensics: ForensicsPersistenceAbilityGroup;
   geometryGuard: GeometryGuardAbilityGroup;
   screenshotAbilityGroup: ScreenshotAbilityGroup;
+  mouseScrollAbilityGroup: MouseScrollAbilityGroup;
 };
 
 export type DispatchSequenceResult = {
@@ -154,7 +156,8 @@ async function dispatchSingleAction(
     }
   }
 
-  // ── 3. Special handler: viewport scroll — build required proof fields ─────
+  // ── 3. Special handler: viewport scroll — call mouse-scroll directly (bypass Nerve Bus
+  //       to avoid strict-schema rejection from extra envelope-injected tracking fields)
   if (
     action.actionCode === "SCROLL_BROWSER_VIEWPORT_ONCE" ||
     (resolvedAbilityGroupId === "mouse-scroll" && resolvedChildCapabilityId === "scroll-browser-viewport")
@@ -168,11 +171,10 @@ async function dispatchSingleAction(
       : null;
     const boundsWidth = gridSpec?.sourceWidth ?? 1280;
     const boundsHeight = gridSpec?.sourceHeight ?? 720;
-    // direction from deltaY sign (positive = down, negative = up)
     const direction: "down" | "up" | "left" | "right" =
       scrollDeltaY > 0 ? "down" : scrollDeltaY < 0 ? "up" : (scrollDeltaX > 0 ? "right" : "left");
     const proofId = randomUUID();
-    const syntheticScrollInput: Record<string, unknown> = {
+    const syntheticScrollInput: MouseScrollAbilityInput = {
       abilityGroupId: "mouse-scroll",
       childCapabilityId: "scroll-browser-viewport",
       sessionId: "local",
@@ -183,12 +185,12 @@ async function dispatchSingleAction(
       sourceAbilityGroupId: "orchestration",
       sourceChildCapabilityId: "dispatch-registered-ability-sequence",
       sourceCoordinateProofRef: proofId,
-      sourceEvidenceRef: input.currentEvidenceRefs?.["originalScreenshotRef"] ?? null,
-      sourceTargetRef: input.currentEvidenceRefs?.["gridSpecRef"] ?? proofId,
+      sourceEvidenceRef: (input.currentEvidenceRefs?.["originalScreenshotRef"] as string | undefined) ?? null,
+      sourceTargetRef: (input.currentEvidenceRefs?.["gridSpecRef"] as string | undefined) ?? proofId,
       coordinateSpace: "browserViewport",
       bounds: { width: boundsWidth, height: boundsHeight },
       direction,
-      magnitude: "customDelta" as const,
+      magnitude: "customDelta",
       customDelta: { deltaX: scrollDeltaX, deltaY: scrollDeltaY },
       region: null,
       regionRef: null,
@@ -207,23 +209,16 @@ async function dispatchSingleAction(
         normalizedCoordinateSpace: "browserViewport",
         normalizedAnchorPoint: { x: boundsWidth / 2, y: boundsHeight / 2 },
         normalizedRegion: null,
-        sourceScreenshotEvidenceRef: input.currentEvidenceRefs?.["originalScreenshotRef"] ?? null,
+        sourceScreenshotEvidenceRef: (input.currentEvidenceRefs?.["originalScreenshotRef"] as string | undefined) ?? null,
         sourceTargetRef: null,
         inputRef: null,
         outputRef: null,
       },
     };
     try {
-      const result = await ctx.nerveBus.dispatchAbilityCommand({
-        abilityGroupId: resolvedAbilityGroupId,
-        childCapabilityId: resolvedChildCapabilityId,
-        missionId: input.missionId,
-        runId: input.runId,
-        sessionId: "local",
-        roundId: input.roundId ?? null,
-        inputOverrides: syntheticScrollInput,
-      });
-      return { status: result.status ?? "success", failureReason: result.failureReason ?? null };
+      const result = await ctx.mouseScrollAbilityGroup.execute(syntheticScrollInput);
+      const status = result.status === "success" ? "success" : result.status === "review_required" ? "review_required" : "failed";
+      return { status, failureReason: result.failureReason ?? null };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return { status: "failed", failureReason: msg };

@@ -42,8 +42,8 @@ export const VISUAL_MISSION_RUNTIME_CONFIG = {
   // dispatch-sequence context must include screenshotAbilityGroup
   screenshotAbilityGroupContextToken: "screenshotAbilityGroup: ScreenshotAbilityGroup" as string,
 
-  // dispatch-sequence must track clicks and log reason/gridCell
-  clickTrackingToken: "priorClickCount" as string,
+  // dispatch-sequence must track comment-panel attempts and log reason/gridCell
+  clickTrackingToken: "commentPanelOpenAttempted" as string,
   postCommentScreenshotToken: "postCommentScreenshotRef" as string,
   abilityResultReasonToken: '"reason"' as string,
   abilityResultGridCellToken: '"gridCell"' as string,

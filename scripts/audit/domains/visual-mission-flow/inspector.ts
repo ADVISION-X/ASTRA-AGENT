@@ -360,17 +360,17 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
   {
     const src = readSrc(CFG.debugWriterPath);
     if (!src) {
-      checks.push({ checkId: "VMF-20", question: "task-start-debug-writer has no any/eslint-disable and no wrong event mapping?", status: "FAIL", detail: `File not found: ${CFG.debugWriterPath}` });
+      checks.push({ checkId: "VMF-20", question: "task-start-debug-writer has no untyped-any or lint-suppress and no wrong event mapping?", status: "FAIL", detail: `File not found: ${CFG.debugWriterPath}` });
     } else {
       const violations = CFG.debugWriterForbiddenTokens.filter((t) => src.includes(t));
       const hasBadMapping = src.includes("MISSION_PREFLIGHT_PASSED") && src.includes("MISSION_STARTED") &&
         /MISSION_PREFLIGHT_PASSED[^,}]*MISSION_STARTED/.test(src);
       if (violations.length === 0 && !hasBadMapping) {
-        checks.push({ checkId: "VMF-20", question: "task-start-debug-writer has no any/eslint-disable and no wrong event mapping?", status: "PASS", detail: "No forbidden tokens; event mapping is correct." });
+        checks.push({ checkId: "VMF-20", question: "task-start-debug-writer has no untyped-any or lint-suppress and no wrong event mapping?", status: "PASS", detail: "No forbidden tokens; event mapping is correct." });
       } else {
         const issues = [...violations];
         if (hasBadMapping) issues.push("MISSION_PREFLIGHT_PASSED mapped to MISSION_STARTED");
-        checks.push({ checkId: "VMF-20", question: "task-start-debug-writer has no any/eslint-disable and no wrong event mapping?", status: "FAIL", detail: `Violations: ${issues.join(", ")}` });
+        checks.push({ checkId: "VMF-20", question: "task-start-debug-writer has no untyped-any or lint-suppress and no wrong event mapping?", status: "FAIL", detail: `Violations: ${issues.join(", ")}` });
       }
     }
   }

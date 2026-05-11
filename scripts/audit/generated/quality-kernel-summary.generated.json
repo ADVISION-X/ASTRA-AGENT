@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-11T15:15:45.787Z",
+  "timestamp": "2026-05-11T15:31:33.851Z",
   "pass": true,
   "hardRetiredSurface": {
     "count": 0,
@@ -100,7 +100,7 @@
       },
       {
         "file": "src/capabilities/orchestration/runtime/mission-loop-runner.ts",
-        "line": 238,
+        "line": 272,
         "pattern": "postActionVerification",
         "severity": "soft"
       },
@@ -561,63 +561,7 @@
     }
   ],
   "codePurity": {
-    "count": 11,
-    "findings": [
-      {
-        "file": "scripts/audit/domains/runtime-logging/config.ts",
-        "line": 42,
-        "pattern": "console.log in production path"
-      },
-      {
-        "file": "scripts/audit/domains/runtime-logging/inspector.ts",
-        "line": 140,
-        "pattern": "console.log in production path"
-      },
-      {
-        "file": "scripts/audit/domains/runtime-logging/inspector.ts",
-        "line": 142,
-        "pattern": "console.log in production path"
-      },
-      {
-        "file": "scripts/audit/domains/runtime-logging/inspector.ts",
-        "line": 181,
-        "pattern": "eslint-disable forbidden"
-      },
-      {
-        "file": "scripts/audit/domains/runtime-logging/inspector.ts",
-        "line": 184,
-        "pattern": "eslint-disable forbidden"
-      },
-      {
-        "file": "scripts/audit/domains/runtime-logging/inspector.ts",
-        "line": 188,
-        "pattern": "eslint-disable forbidden"
-      },
-      {
-        "file": "scripts/audit/domains/runtime-logging/inspector.ts",
-        "line": 190,
-        "pattern": "eslint-disable forbidden"
-      },
-      {
-        "file": "scripts/audit/domains/visual-mission-flow/config.ts",
-        "line": 82,
-        "pattern": "eslint-disable forbidden"
-      },
-      {
-        "file": "scripts/audit/domains/visual-mission-flow/inspector.ts",
-        "line": 363,
-        "pattern": "eslint-disable forbidden"
-      },
-      {
-        "file": "scripts/audit/domains/visual-mission-flow/inspector.ts",
-        "line": 369,
-        "pattern": "eslint-disable forbidden"
-      },
-      {
-        "file": "scripts/audit/domains/visual-mission-flow/inspector.ts",
-        "line": 373,
-        "pattern": "eslint-disable forbidden"
-      }
-    ]
+    "count": 0,
+    "findings": []
   }
 }
