@@ -111,8 +111,8 @@ export async function renderCoordinateGridImage(input: {
 
   const gridSpec = buildGridSpec({
     sourceScreenshotRef: input.sourceScreenshotRef,
-    sourceWidth: input.sourceWidth,
-    sourceHeight: input.sourceHeight,
+    sourceWidth: meta.width,
+    sourceHeight: meta.height,
     gridImageWidth: meta.width,
     gridImageHeight: meta.height,
     rowCount,

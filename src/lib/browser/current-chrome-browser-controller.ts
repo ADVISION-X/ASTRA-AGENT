@@ -76,22 +76,36 @@ export class CurrentChromeBrowserController implements BrowserController {
 
   async getGeometrySnapshot(): Promise<BrowserGeometrySnapshot> {
     const state = await this.refreshSnapshot();
+
+    let scaleFactor = 1;
+    let visibleContentBounds = { x: 0, y: 0, width: state.width, height: state.height };
+
+    try {
+      const jsSnippet = "JSON.stringify({sx:window.screenX,sy:window.screenY,iw:window.innerWidth,ih:window.innerHeight,dpr:window.devicePixelRatio||1})";
+      const raw = await runAppleScript(`tell application "Google Chrome" to execute front window's active tab javascript "${jsSnippet}"`);
+      const vp = JSON.parse(raw) as { sx: number; sy: number; iw: number; ih: number; dpr: number };
+      scaleFactor = vp.dpr;
+      visibleContentBounds = {
+        x: Math.max(0, vp.sx - state.windowX),
+        y: Math.max(0, vp.sy - state.windowY),
+        width: vp.iw,
+        height: vp.ih,
+      };
+    } catch {
+      // fallback: assume no chrome offset and scale=1
+    }
+
     return {
       windowX: state.windowX,
       windowY: state.windowY,
-      viewportWidth: state.width,
-      viewportHeight: state.height,
-      screenshotWidth: state.width,
-      screenshotHeight: state.height,
-      scaleFactor: 1,
+      viewportWidth: visibleContentBounds.width,
+      viewportHeight: visibleContentBounds.height,
+      screenshotWidth: Math.round(visibleContentBounds.width * scaleFactor),
+      screenshotHeight: Math.round(visibleContentBounds.height * scaleFactor),
+      scaleFactor,
       currentUrl: state.currentUrl,
       pageTitle: state.currentTitle,
-      visibleContentBounds: {
-        x: 0,
-        y: 0,
-        width: state.width,
-        height: state.height,
-      },
+      visibleContentBounds,
       capturedAt: new Date().toISOString(),
     };
   }
@@ -137,8 +151,8 @@ export class CurrentChromeBrowserController implements BrowserController {
     const geometry = await this.getGeometrySnapshot();
     await activateChrome();
     const coordinateSpace = input.coordinateSpace ?? "browserViewport";
-    const clickX = coordinateSpace === "desktopScreen" ? input.point.x : geometry.windowX + input.point.x;
-    const clickY = coordinateSpace === "desktopScreen" ? input.point.y : geometry.windowY + input.point.y;
+    const clickX = coordinateSpace === "desktopScreen" ? input.point.x : geometry.windowX + geometry.visibleContentBounds.x + (input.point.x / geometry.scaleFactor);
+    const clickY = coordinateSpace === "desktopScreen" ? input.point.y : geometry.windowY + geometry.visibleContentBounds.y + (input.point.y / geometry.scaleFactor);
     await emitCurrentChromeMouseClickProbe({
       screenshotDir: this.options.screenshotDir,
       targetLabel: input.targetLabel,

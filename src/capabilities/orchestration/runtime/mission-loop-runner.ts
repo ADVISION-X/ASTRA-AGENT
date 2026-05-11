@@ -453,6 +453,7 @@ export async function runMissionRoundLoop(
         forensics: ctx.forensics,
         geometryGuard: ctx.geometryGuard,
         screenshotAbilityGroup: ctx.screenshotAbilityGroup,
+        runtimeLogger: ctx.runtimeLogger,
       },
     );
 

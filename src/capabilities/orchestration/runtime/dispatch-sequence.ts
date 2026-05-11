@@ -5,6 +5,7 @@ import type { DispatchRegisteredAbilitySequenceInput } from "../contract.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../forensics-persistence/contract.js";
 import type { GeometryGuardAbilityGroup } from "../../geometry-guard/index.js";
 import type { ScreenshotAbilityGroup } from "../../screenshot/contract.js";
+import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
 
 import { getMissionState, upsertMissionState, applyStatusTransition } from "./mission-state.js";
 import { findMuscleMemoryEntry } from "../../../muscle-memory/catalog.js";
@@ -17,6 +18,7 @@ export type DispatchSequenceContext = {
   forensics: ForensicsPersistenceAbilityGroup;
   geometryGuard: GeometryGuardAbilityGroup;
   screenshotAbilityGroup: ScreenshotAbilityGroup;
+  runtimeLogger: RuntimeLogger;
 };
 
 export type DispatchSequenceResult = {
@@ -182,7 +184,7 @@ async function dispatchSingleAction(
       roundId: input.roundId ?? null,
       videoVisitId: null,
       requestedBy: "orchestration:dispatch-sequence",
-      purpose: "scroll-viewport-to-next-item",
+      purpose: "scroll_viewport_to_next_item",
       sourceAbilityGroupId: "orchestration",
       sourceChildCapabilityId: "dispatch-registered-ability-sequence",
       sourceCoordinateProofRef: proofId,
@@ -250,10 +252,13 @@ async function dispatchSingleAction(
   // ── 5. Dispatch to ability group via Nerve Bus ────────────────────────────
   // Build complete input — NerveBus is pure transport after P0-4; ability-group schemas
   // require all fields to be present in inputOverrides before dispatch.
+  // Strip action-routing fields (gridCell) that were only needed for geometry proof
+  // resolution and must not be forwarded to strict ability group schemas.
+  const { gridCell: _strippedGridCell, ...cleanOverrides } = inputOverrides as Record<string, unknown>;
   const callId = randomUUID();
   const gridSpecRef = (input.currentEvidenceRefs?.["gridSpecRef"] as string | undefined) ?? null;
   const completeInput: Record<string, unknown> = {
-    ...inputOverrides,
+    ...cleanOverrides,
     abilityGroupId: resolvedAbilityGroupId,
     childCapabilityId: resolvedChildCapabilityId,
     missionId: input.missionId,
@@ -296,6 +301,19 @@ export async function dispatchRegisteredAbilitySequence(
   const commentPanelOpenAttempted = input.actions.some(a => a.targetRole === "comments_button");
 
   for (const action of input.actions) {
+    ctx.runtimeLogger.emit({
+      traceId: input.missionId,
+      level: "info",
+      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+      eventType: "CAPABILITY_DISPATCH_STARTED",
+      owner: "orchestration",
+      missionId: input.missionId,
+      runId: input.runId,
+      ...(input.roundId ? { roundId: input.roundId } : {}),
+      status: "started",
+      reason: `Dispatching ${action.actionCode}${action.gridCell ? ` at ${action.gridCell}` : ""}${action.targetRole ? ` role=${action.targetRole}` : ""}`,
+    });
+
     // ── Take fresh screenshot before SAVE when captureMode='fresh_current_viewport' ──
     let freshScreenshotRef: string | null = null;
     if (
@@ -342,6 +360,21 @@ export async function dispatchRegisteredAbilitySequence(
     }
 
     const { status, failureReason } = await dispatchSingleAction(action, input, ctx, { freshScreenshotRef, commentPanelOpenAttempted });
+
+    ctx.runtimeLogger.emit({
+      traceId: input.missionId,
+      level: status === "success" ? "info" : status === "review_required" ? "warn" : "error",
+      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+      eventType: status === "success" ? "CAPABILITY_DISPATCH_COMPLETED" : "CAPABILITY_DISPATCH_FAILED",
+      owner: "orchestration",
+      missionId: input.missionId,
+      runId: input.runId,
+      ...(input.roundId ? { roundId: input.roundId } : {}),
+      status,
+      reason: status === "success"
+        ? `${action.actionCode} ok${action.gridCell ? ` at ${action.gridCell}` : ""}`
+        : `${action.actionCode} ${status}: ${failureReason ?? "unknown"}`,
+    });
 
     void ctx.forensics.appendRecord({
       childCapabilityId: "append-record",

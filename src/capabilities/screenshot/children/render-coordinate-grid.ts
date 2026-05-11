@@ -46,8 +46,8 @@ export async function renderCoordinateGrid(
     };
   }
 
-  const rowCount = input.gridPolicy?.rowCount ?? 16;
-  const columnCount = input.gridPolicy?.columnCount ?? 24;
+  const rowCount = input.gridPolicy?.rowCount ?? 32;
+  const columnCount = input.gridPolicy?.columnCount ?? 32;
 
   const gridArtifactId = randomUUID();
   const gridRenderStart = Date.now();
@@ -57,8 +57,8 @@ export async function renderCoordinateGrid(
     renderResult = await renderCoordinateGridImage({
       sourceFilePath: input.sourceScreenshotRef,
       sourceScreenshotRef: input.sourceScreenshotRef,
-      sourceWidth: 0, // will be read from file
-      sourceHeight: 0,
+      sourceWidth: 0, // unused: grid-renderer reads real dimensions from file via sharp
+      sourceHeight: 0, // unused: grid-renderer reads real dimensions from file via sharp
       rowCount,
       columnCount,
       createdAt: startedAt,

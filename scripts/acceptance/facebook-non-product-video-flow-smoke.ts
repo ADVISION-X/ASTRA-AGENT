@@ -98,11 +98,16 @@ const stubScreenshotAbilityGroup = {
   },
 } as unknown as DispatchSequenceContext["screenshotAbilityGroup"];
 
+const stubRuntimeLogger = {
+  emit: () => { /* no-op in smoke test */ },
+} as unknown as DispatchSequenceContext["runtimeLogger"];
+
 const ctx: DispatchSequenceContext = {
   nerveBus: stubNerveBus,
   forensics: stubForensics,
   geometryGuard: stubGeometryGuard,
   screenshotAbilityGroup: stubScreenshotAbilityGroup,
+  runtimeLogger: stubRuntimeLogger,
 };
 
 // ── Seed mission state ────────────────────────────────────────────────────────

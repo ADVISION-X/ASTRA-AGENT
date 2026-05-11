@@ -162,6 +162,7 @@ export async function handleDispatchRegisteredAbilitySequence(rawInput: unknown,
     forensics: ctx.forensics,
     geometryGuard: ctx.geometryGuard,
     screenshotAbilityGroup: ctx.screenshotAbilityGroup,
+    runtimeLogger: ctx.runtimeLogger,
   });
   return {
     status: result.status,
