@@ -2,7 +2,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const probeScriptPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "map-package-readiness-probe.ts");
+const probeScriptPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "startup-registry-readiness-probe.ts");
 
 const parseProbeOutput = (stdout, stderr) => {
   const jsonLine = stdout.trim().split(/\r?\n/).filter(Boolean).at(-1);

@@ -50,7 +50,7 @@ function canStopMission(viewModel: CommanderConsoleViewModel): boolean {
 }
 
 function canEmergencyStopMission(viewModel: CommanderConsoleViewModel): boolean {
-  return Boolean(viewModel.rawSnapshot.mission.missionId) && canStopMission(viewModel);
+  return Boolean(viewModel.rawSnapshot.mission?.missionId) && canStopMission(viewModel);
 }
 
 function canRequestCandidateExport(_viewModel: CommanderConsoleViewModel): boolean {
@@ -65,8 +65,8 @@ function formatRuntimeState(viewModel: CommanderConsoleViewModel): string {
 
 function formatElapsed(viewModel: CommanderConsoleViewModel): string {
   const mission = viewModel.rawSnapshot.mission;
-  const startedAt = safeDate(mission.startedAt);
-  const endedAt = safeDate(mission.endedAt ?? mission.updatedAt);
+  const startedAt = safeDate(mission?.startedAt ?? null);
+  const endedAt = safeDate(mission?.endedAt ?? mission?.updatedAt ?? null);
   if (!startedAt) {
     return localizeCommanderText(viewModel.locale, "尚未开始", "Not started yet");
   }
@@ -107,7 +107,7 @@ function buildHumanStepLabel(viewModel: CommanderConsoleViewModel): string {
 function buildHumanStepDetail(viewModel: CommanderConsoleViewModel): string {
   const reason = viewModel.rawSnapshot.runtime.reviewReason
     ?? viewModel.rawSnapshot.runtime.lastAiFailureReason
-    ?? viewModel.rawSnapshot.mission.failureReason
+    ?? viewModel.rawSnapshot.mission?.failureReason
     ?? viewModel.runtimeProofTimeline[0]?.message
     ?? "";
 

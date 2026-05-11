@@ -13,12 +13,12 @@ function buildEvidenceInspectItems(
     id: record.id,
     title: record.primary,
     subtitle: localizeCommanderText(locale, "证据详情", "Evidence details"),
-    summary: record.detail,
+    summary: record.detail ?? "",
     owner: localizeCommanderText(locale, "取证记账", "forensics"),
     json: record,
     references: [
       { label: localizeCommanderText(locale, "记录 ID", "Record ID"), value: record.id },
-      { label: localizeCommanderText(locale, "副标题", "Secondary"), value: record.secondary },
+      { label: localizeCommanderText(locale, "副标题", "Secondary"), value: record.secondary ?? "" },
     ],
   }));
 }
@@ -51,7 +51,7 @@ function buildHealthInspectItems(
     id: entry.id,
     title: entry.label,
     subtitle: localizeCommanderText(locale, "能力健康详情", "Capability health details"),
-    summary: entry.detail,
+    summary: entry.detail ?? "",
     owner: localizeCommanderText(locale, "能力健康", "capability-health"),
     json: entry,
     references: [

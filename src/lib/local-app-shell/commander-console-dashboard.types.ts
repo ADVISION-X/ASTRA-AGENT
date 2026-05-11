@@ -10,13 +10,13 @@ import type { WorkbenchCommanderMissionDashboardView } from "../local-runtime/wo
 export type CommanderMissionDashboardView = WorkbenchCommanderMissionDashboardView;
 
 export type CommanderMissionView = WorkbenchCommanderMissionDashboardView["mission"];
-export type CommanderRuntimeSummaryView = null;
-export type CommanderBrowserSummaryView = null;
+export type CommanderRuntimeSummaryView = WorkbenchCommanderMissionDashboardView["runtime"];
+export type CommanderBrowserSummaryView = WorkbenchCommanderMissionDashboardView["browser"];
 export type CommanderCapabilityHealthEntry = WorkbenchCommanderMissionDashboardView["health"][number];
 export type CommanderCapabilityRosterEntry = WorkbenchCommanderMissionDashboardView["capabilityRoster"][number];
 export type CommanderCandidateView = WorkbenchCommanderMissionDashboardView["candidates"][number];
 export type CommanderRecordSummaryView = WorkbenchCommanderMissionDashboardView["evidencePackets"][number];
-export type CommanderRuntimeProofTimelineEntry = { timestamp: string; event: string; childCapabilityId: string; status: string };
+export type CommanderRuntimeProofTimelineEntry = { step: string; message: string; createdAt: string; status: string; [key: string]: unknown };
 export type CommanderAuditSummary = WorkbenchCommanderMissionDashboardView["auditSummary"];
 export type CommanderRecordDetailView = {
   recordType: string;

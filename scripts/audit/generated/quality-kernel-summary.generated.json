@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-05-11T07:28:56.051Z",
+  "timestamp": "2026-05-11T09:25:01.943Z",
   "pass": true,
   "hardRetiredSurface": {
     "count": 0,
     "findings": []
   },
   "softRetiredSurface": {
-    "count": 68,
+    "count": 69,
     "findings": [
       {
         "file": "src/capabilities/commander-console/children/emergency-stop/implementation.ts",
@@ -126,6 +126,12 @@
         "file": "src/lib/local-runtime/structured-log-bus.ts",
         "line": 16,
         "pattern": "StructuredActionLog",
+        "severity": "soft"
+      },
+      {
+        "file": "src/lib/local-runtime/workbench-commander-console.ts",
+        "line": 106,
+        "pattern": "selectedBindingId",
         "severity": "soft"
       },
       {
@@ -477,7 +483,7 @@
     },
     {
       "module": "src/lib/local-runtime",
-      "actual": 16,
+      "actual": 18,
       "limit": 20,
       "status": "ok"
     },
@@ -531,7 +537,7 @@
     },
     {
       "module": "scripts/audit (total)",
-      "actual": 23,
+      "actual": 24,
       "limit": 30,
       "status": "ok"
     },
@@ -549,7 +555,23 @@
     }
   ],
   "codePurity": {
-    "count": 0,
-    "findings": []
+    "count": 3,
+    "findings": [
+      {
+        "file": "scripts/audit/domains/runtime-logging/config.ts",
+        "line": 42,
+        "pattern": "console.log in production path"
+      },
+      {
+        "file": "scripts/audit/domains/runtime-logging/inspector.ts",
+        "line": 140,
+        "pattern": "console.log in production path"
+      },
+      {
+        "file": "scripts/audit/domains/runtime-logging/inspector.ts",
+        "line": 142,
+        "pattern": "console.log in production path"
+      }
+    ]
   }
 }

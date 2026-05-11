@@ -103,9 +103,9 @@ function createClearActionableError(viewModel: CommanderConsoleViewModel): Actio
 
 function collectRuntimeErrors(viewModel: CommanderConsoleViewModel): ActionableErrorView[] {
   const items: ActionableErrorView[] = [];
-  const reviewReason = viewModel.rawSnapshot.runtime.reviewReason ?? viewModel.rawSnapshot.mission.reviewRequiredReason;
+  const reviewReason = viewModel.rawSnapshot.runtime.reviewReason ?? viewModel.rawSnapshot.mission?.reviewRequiredReason;
   const aiFailure = viewModel.rawSnapshot.runtime.lastAiFailureReason;
-  const missionFailure = viewModel.rawSnapshot.mission.failureReason;
+  const missionFailure = viewModel.rawSnapshot.mission?.failureReason;
 
   if (reviewReason) {
     items.push(createReviewRequiredError(viewModel, reviewReason));
@@ -127,15 +127,15 @@ function collectHealthErrors(viewModel: CommanderConsoleViewModel, hasAiFailure:
   const startupReadinessHealth = viewModel.capabilityHealth.find((entry) => entry.id === "startup-readiness" && entry.tone !== "good");
 
   if (!hasAiFailure && localAiHealth) {
-    items.push(createLocalAiReadinessError(viewModel, localAiHealth.detail));
+    items.push(createLocalAiReadinessError(viewModel, localAiHealth.detail ?? ""));
   }
   if (startupReadinessHealth) {
-    items.push(createStartupReadinessError(viewModel, startupReadinessHealth.detail, startupReadinessHealth.failureReason ?? null, startupReadinessHealth.missionRuntimeAvailable));
+    items.push(createStartupReadinessError(viewModel, startupReadinessHealth.detail ?? "", startupReadinessHealth.failureReason ?? null, startupReadinessHealth.missionRuntimeAvailable));
   }
   if (missionBindingHealth) {
     items.push(createMissionBindingError({
       viewModel,
-      detail: missionBindingHealth.detail,
+      detail: missionBindingHealth.detail ?? "",
       tone: missionBindingHealth.tone === "warn" ? "attention" : "blocked",
       nextAction: missionBindingHealth.actionableMessage ?? localizeCommanderText(viewModel.locale, "先激活一个已批准用户需求，再重新开始任务。", "Activate an approved user requirement, then retry mission start."),
       owner: missionBindingHealth.ownerResponsible ?? "Commander Console / Orchestration",

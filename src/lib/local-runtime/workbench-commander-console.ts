@@ -29,10 +29,12 @@ export type WorkbenchHealthEntry = {
   groupId: string;
   label: string;
   status: "active" | "degraded";
-  tone: "green" | "yellow" | "red";
+  tone: "good" | "green" | "yellow" | "red" | "warn" | "danger";
   detail?: string | undefined;
   missionRuntimeAvailable?: boolean | undefined;
   failureReason?: string | undefined;
+  actionableMessage?: string | undefined;
+  ownerResponsible?: string | undefined;
 };
 
 export type WorkbenchEvidenceEntry = {
@@ -51,19 +53,75 @@ export type WorkbenchRuntimeProofEntry = {
   [key: string]: unknown;
 };
 
+export type WorkbenchCandidateEntry = {
+  id: string;
+  useCase: string;
+  category: string;
+  evidenceCount: number;
+  reviewStatus: "pending" | "approved" | "rejected" | "skipped" | "archived" | "hold";
+  [key: string]: unknown;
+};
+
+export type WorkbenchReviewQueueEntry = {
+  id: string;
+  reviewStatus: string;
+  [key: string]: unknown;
+};
+
+export type WorkbenchRuntimeSummaryView = {
+  runtimeStatus: "idle" | "running" | "paused" | "stopped" | "review_required" | "completed" | "failed" | "unknown";
+  reviewReason: string | null;
+  lastAiFailureReason: string | null;
+  currentStep: string | null;
+  totalSeenCount: number;
+  evidencePacketCount: number;
+  browseLedgerCount: number;
+  candidateCount: number;
+};
+
+export type WorkbenchBrowserSummaryView = {
+  loginState: "logged-in" | "logged-out" | "unknown";
+};
+
+export type WorkbenchAuditSummaryView = {
+  totals: { passed: number; inspectors: number } | null;
+  lastGeneratedAt: string | null;
+};
+
+export type WorkbenchMissionView = {
+  missionId: string | null;
+  status: "idle" | "running" | "paused" | "stopped" | "review_required" | "completed" | "unknown";
+  currentPlatform: string | null;
+  userRequirementSummary: string | null;
+  startedAt: string | null;
+  updatedAt: string;
+  lastStopReason: string | null;
+  reviewRequiredReason: string | null;
+  savedEvidenceCount: number;
+  failedActionCount: number;
+  failureReason?: string | null | undefined;
+  endedAt?: string | null | undefined;
+  humanGoal?: string | null | undefined;
+  requestedPlatform?: string | null | undefined;
+  selectedBindingId?: string | null | undefined;
+  reviewStatus?: string | null | undefined;
+  currentRoundIndex?: number | null | undefined;
+  lastHumanCommand?: string | null | undefined;
+};
+
 export type WorkbenchCommanderMissionDashboardView = {
-  mission: (CommanderMissionStatusView & { requestedPlatform?: string | null | undefined }) | null;
-  runtime: null;
-  browser: null;
+  mission: WorkbenchMissionView | null;
+  runtime: WorkbenchRuntimeSummaryView;
+  browser: WorkbenchBrowserSummaryView;
   health: WorkbenchHealthEntry[];
   capabilityRoster: { groupId: string; status: "active" }[];
-  candidates: never[];
-  reviewQueue: never[];
+  candidates: WorkbenchCandidateEntry[];
+  reviewQueue: WorkbenchReviewQueueEntry[];
   evidencePackets: WorkbenchEvidenceEntry[];
   browseLedger: never[];
   failedRecords: never[];
   runtimeProof: WorkbenchRuntimeProofEntry[] | null;
-  auditSummary: null;
+  auditSummary: WorkbenchAuditSummaryView;
 };
 
 // ─── Commander Transport Port ────────────────────────────────────────────────
@@ -90,6 +148,42 @@ function createNerveBusCommandTransportPort(nerveBus: NerveBusAbilityGroup): Com
           ok: false,
           transportRef: null,
           failureReason: err instanceof Error ? err.message : "transport error",
+        };
+      }
+    },
+    async emitHumanCommand(command) {
+      const runId = randomUUID();
+      try {
+        const result = await nerveBus.dispatchHumanCommand({
+          commandType: command.commandType,
+          missionId: command.targetMissionId ?? randomUUID(),
+          runId,
+          sessionId: null,
+          roundId: null,
+          inputPayload: command.payload,
+        });
+        return {
+          commandId: command.commandId,
+          runId,
+          envelopeRef: command.commandId,
+          resultEnvelopeRef: null,
+          status: result.status === "success" ? "accepted" as const : "failed" as const,
+          failureReason: result.failureReason ?? null,
+          reviewRequiredReason: null,
+          message: result.failureReason ?? "dispatched",
+          debugLogRef: null,
+        };
+      } catch (err) {
+        return {
+          commandId: command.commandId,
+          runId,
+          envelopeRef: null,
+          resultEnvelopeRef: null,
+          status: "failed" as const,
+          failureReason: err instanceof Error ? err.message : "transport error",
+          reviewRequiredReason: null,
+          message: err instanceof Error ? err.message : "transport error",
+          debugLogRef: null,
         };
       }
     },
@@ -179,8 +273,19 @@ export async function getCommanderConsoleSnapshot(input: {
 
   return {
     mission: missionView,
-    runtime: null,
-    browser: null,
+    runtime: {
+      runtimeStatus: (missionView?.status ?? "idle") as WorkbenchRuntimeSummaryView["runtimeStatus"],
+      reviewReason: missionView?.reviewRequiredReason ?? null,
+      lastAiFailureReason: null,
+      currentStep: null,
+      totalSeenCount: 0,
+      evidencePacketCount: 0,
+      browseLedgerCount: 0,
+      candidateCount: 0,
+    },
+    browser: {
+      loginState: "unknown" as const,
+    },
     health: [],
     capabilityRoster: input.capabilityGroupIds.map((groupId) => ({ groupId, status: "active" as const })),
     candidates: [],
@@ -189,6 +294,9 @@ export async function getCommanderConsoleSnapshot(input: {
     browseLedger: [],
     failedRecords: [],
     runtimeProof: null,
-    auditSummary: null,
+    auditSummary: {
+      totals: null,
+      lastGeneratedAt: null,
+    },
   };
 }

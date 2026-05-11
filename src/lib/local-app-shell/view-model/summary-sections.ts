@@ -5,11 +5,11 @@ import { localizeCommanderText } from "../locale.js";
 import type { CommanderConsoleViewModel } from "../types.js";
 
 export function buildMissionSummary(dashboard: CommanderMissionDashboardView, locale: Locale): string {
-  if (!dashboard.mission.missionId) {
+  if (!dashboard.mission?.missionId) {
     return localizeCommanderText(locale, "当前无活动任务。先填写用户需求、选择平台并设定运行限制，再开始执行。", "No active mission. Provide a user requirement, choose platforms, and set run limits before starting execution.");
   }
 
-  return localizeCommanderText(locale, `任务 ${dashboard.mission.missionId} 正在 ${dashboard.mission.status}，当前目标：${dashboard.mission.humanGoal || "未填写"}。`, `Mission ${dashboard.mission.missionId} is ${dashboard.mission.status} with goal ${dashboard.mission.humanGoal || "unspecified"}.`);
+  return localizeCommanderText(locale, `任务 ${dashboard.mission?.missionId} 正在 ${dashboard.mission?.status}，当前目标：${dashboard.mission?.humanGoal || "未填写"}。`, `Mission ${dashboard.mission?.missionId} is ${dashboard.mission?.status} with goal ${dashboard.mission?.humanGoal || "unspecified"}.`);
 }
 
 export function buildActiveMissionSummary(
@@ -17,11 +17,11 @@ export function buildActiveMissionSummary(
   locale: Locale,
 ): CommanderConsoleViewModel["activeMissionSummary"] {
   return [
-    { label: localizeCommanderText(locale, "任务 ID", "Mission ID"), value: dashboard.mission.missionId ?? localizeCommanderText(locale, "待命", "standby"), tone: dashboard.mission.missionId ? "ok" : "attention" },
-    { label: localizeCommanderText(locale, "状态", "Status"), value: dashboard.mission.status },
-    { label: localizeCommanderText(locale, "平台", "Platform"), value: dashboard.mission.requestedPlatform ?? localizeCommanderText(locale, "未指派", "unassigned"), tone: dashboard.mission.requestedPlatform ? "ok" : "attention" },
-    { label: localizeCommanderText(locale, "输入来源", "Input Source"), value: dashboard.mission.humanGoal ? localizeCommanderText(locale, "用户需求 + 平台绑定", "User requirement + platform binding") : localizeCommanderText(locale, "待填写", "pending input"), tone: dashboard.mission.humanGoal ? "ok" : "attention" },
-    { label: localizeCommanderText(locale, "目标", "Goal"), value: dashboard.mission.humanGoal || localizeCommanderText(locale, "未填写", "unspecified") },
+    { label: localizeCommanderText(locale, "任务 ID", "Mission ID"), value: dashboard.mission?.missionId ?? localizeCommanderText(locale, "待命", "standby"), tone: dashboard.mission?.missionId ? "ok" : "attention" },
+    { label: localizeCommanderText(locale, "状态", "Status"), value: dashboard.mission?.status ?? "unknown" },
+    { label: localizeCommanderText(locale, "平台", "Platform"), value: dashboard.mission?.requestedPlatform ?? localizeCommanderText(locale, "未指派", "unassigned"), tone: dashboard.mission?.requestedPlatform ? "ok" : "attention" },
+    { label: localizeCommanderText(locale, "输入来源", "Input Source"), value: dashboard.mission?.humanGoal ? localizeCommanderText(locale, "用户需求 + 平台绑定", "User requirement + platform binding") : localizeCommanderText(locale, "待填写", "pending input"), tone: dashboard.mission?.humanGoal ? "ok" : "attention" },
+    { label: localizeCommanderText(locale, "目标", "Goal"), value: dashboard.mission?.humanGoal || localizeCommanderText(locale, "未填写", "unspecified") },
   ];
 }
 
@@ -30,11 +30,11 @@ export function buildActiveRoundSummary(
   locale: Locale,
 ): CommanderConsoleViewModel["activeRoundSummary"] {
   return [
-    { label: localizeCommanderText(locale, "轮次", "Round index"), value: String(dashboard.mission.currentRoundIndex) },
+    { label: localizeCommanderText(locale, "轮次", "Round index"), value: String(dashboard.mission?.currentRoundIndex) },
     { label: localizeCommanderText(locale, "当前步骤", "Current step"), value: dashboard.runtime.currentStep ?? localizeCommanderText(locale, "空闲", "idle") },
     { label: localizeCommanderText(locale, "累计浏览", "Total seen"), value: String(dashboard.runtime.totalSeenCount) },
     { label: localizeCommanderText(locale, "候选数", "Candidate count"), value: String(dashboard.runtime.candidateCount) },
-    { label: localizeCommanderText(locale, "最后人类命令", "Last human command"), value: dashboard.mission.lastHumanCommand ?? localizeCommanderText(locale, "无", "none") },
+    { label: localizeCommanderText(locale, "最后人类命令", "Last human command"), value: dashboard.mission?.lastHumanCommand ?? localizeCommanderText(locale, "无", "none") },
   ];
 }
 
@@ -42,13 +42,13 @@ export function buildCommandDraft(
   dashboard: CommanderMissionDashboardView,
   appRunLimitSettings: AppRunLimitSettings,
 ): CommanderConsoleViewModel["commandDraft"] {
-  const selectedPlatforms: CommanderConsoleViewModel["commandDraft"]["selectedPlatforms"] = dashboard.mission.requestedPlatform === "facebook-web" || dashboard.mission.requestedPlatform === "tiktok-web"
-    ? [dashboard.mission.requestedPlatform]
+  const selectedPlatforms: CommanderConsoleViewModel["commandDraft"]["selectedPlatforms"] = dashboard.mission?.requestedPlatform === "facebook-web" || dashboard.mission?.requestedPlatform === "tiktok-web"
+    ? [dashboard.mission?.requestedPlatform]
     : [];
   return {
     commandType: "start-mission",
     commandSource: "commander-console:start-form-submit",
-    userRequirementText: dashboard.mission.humanGoal || "",
+    userRequirementText: dashboard.mission?.humanGoal || "",
     selectedPlatforms,
     historyEntryId: null,
     maxRounds: appRunLimitSettings.defaultMaxRounds,
@@ -59,7 +59,7 @@ export function buildCommandDraft(
 export function buildStructuredLogPreview(
   dashboard: CommanderMissionDashboardView,
 ): CommanderConsoleViewModel["structuredLogPreview"] {
-  return dashboard.runtimeProof.slice(0, 8).map((entry, index) => ({
+  return (dashboard.runtimeProof ?? []).slice(0, 8).map((entry, index) => ({
     id: `${entry.step}-${index}`,
     createdAt: entry.createdAt,
     step: entry.step,

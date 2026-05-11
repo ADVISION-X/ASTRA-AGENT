@@ -5,7 +5,7 @@ import type {
   AiAbilityResultSchema,
 } from "./schema.js";
 import type { AI_CAPABILITY_ID, AI_CHILD_CAPABILITY_ID } from "./registry.js";
-import type { LocalAiDebugHook } from "../../lib/local-ai/index.js";
+import type { RuntimeLogger, TraceContext } from "../../lib/runtime-logs/index.js";
 
 type AiAbilityInput = z.infer<typeof AiAbilityInputSchema>;
 type AiAbilityResult = z.infer<typeof AiAbilityResultSchema>;
@@ -22,7 +22,8 @@ type AiPromptContractCatalogEntry = {
 
 type CreateConfiguredAiAbilityGroupInput = {
   dataDir?: string;
-  emitDebugEvent?: LocalAiDebugHook;
+  runtimeLogger?: RuntimeLogger;
+  traceContext?: TraceContext;
 };
 
 type AiAbilityGroup = {

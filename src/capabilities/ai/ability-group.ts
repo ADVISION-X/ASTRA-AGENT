@@ -24,7 +24,8 @@ const createConfiguredAiAbilityGroup = (input: CreateConfiguredAiAbilityGroupInp
       const result = await executeVisualMissionJudgeOnce({
         request,
         ...(options?.signal ? { signal: options.signal } : {}),
-        ...(input.emitDebugEvent ? { emitDebugEvent: input.emitDebugEvent } : {}),
+        ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
+        ...(input.traceContext ? { traceContext: input.traceContext } : {}),
       });
 
       lastTaskType = result.taskType;

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { assessDependencyState, installDependencies } from "./lib/dependency-check.mjs";
 import { waitForCommanderConsolePage } from "./lib/health-check.mjs";
 import { ensureLocalAiRuntimeReady } from "./lib/local-ai-runtime-readiness.mjs";
-import { ensureStartupRegistryReadiness } from "./lib/map-package-readiness.mjs";
+import { ensureStartupRegistryReadiness } from "./lib/startup-registry-readiness.mjs";
 import { openCommanderConsole } from "./lib/open-commander-console.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
 import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
@@ -100,6 +100,7 @@ async function startService(root, localAiReadiness) {
     preStartScripts: [],
     scriptName: "internal:app-server:dev",
     env: {
+      GRASSEYE_LOG_MODE: "TRACE",
       GRASSEYE_STARTUP_LOCAL_AI_READINESS_JSON: JSON.stringify(localAiReadiness),
     },
     onStdoutLine: (line, scriptName) => terminalLogger.relayServiceStdoutLine(line, scriptName),
@@ -143,10 +144,7 @@ async function ensureLocalAiReadiness() {
   logLocalAiPhase("local_ai_health_probe", gatePassed, gatePassed ? "local AI health probe passed" : readiness.detail, extra);
   logLocalAiPhase("ai_capability_readiness_gate", gatePassed, gatePassed ? "AI capability readiness gate passed" : readiness.detail, extra);
 
-  if (!gatePassed) {
-    throw new Error(`${readiness.failureReason ?? "LOCAL_AI_NOT_READY"}: ${readiness.detail}`);
-  }
-
+  // Local AI unavailability is NOT a hard gate — app shell starts in degraded mode.
   return readiness;
 }
 
@@ -188,20 +186,47 @@ async function performLaunch(flags, root) {
   await ensureDependencies(root, flags);
   await runUpdatePreflight(root, flags);
   logMissionReadinessStarted();
-  let localAiReadiness;
+
+  // Registry readiness is a hard gate — throw on failure.
   try {
     await ensureStartupRegistryReadinessGate();
-    localAiReadiness = await ensureLocalAiReadiness();
-    logMissionReadinessPassed(localAiReadiness);
   } catch (error) {
     logMissionReadinessDegraded(toFailureReason(error));
     throw error;
   }
+
+  // Local AI readiness is soft — degraded state is allowed; app shell still starts.
+  let localAiReadiness;
+  try {
+    localAiReadiness = await ensureLocalAiReadiness();
+  } catch (error) {
+    // Probe process failed to produce output (e.g. import error). Build a degraded sentinel.
+    localAiReadiness = {
+      component: "local-ai-runtime",
+      status: "failed",
+      runtimeBaseUrl: process.env.GRASSEYE_OLLAMA_BASE_URL ?? "http://127.0.0.1:11434",
+      detail: error instanceof Error ? error.message : String(error),
+      modelRoles: [],
+      missionRuntimeAvailable: false,
+      failureReason: "LOCAL_AI_NOT_READY",
+      developmentOnly: false,
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
+  if (localAiReadiness.missionRuntimeAvailable) {
+    logMissionReadinessPassed(localAiReadiness);
+  } else {
+    logMissionReadinessDegraded(localAiReadiness.failureReason ?? "LOCAL_AI_NOT_READY");
+  }
+
   await preparePort();
   const serviceHandle = await startService(root, localAiReadiness);
   await verifyAppHealth(serviceHandle);
   await openReadyPage(flags);
-  markMissionRuntimeAvailable(localAiReadiness);
+  if (localAiReadiness.missionRuntimeAvailable) {
+    markMissionRuntimeAvailable(localAiReadiness);
+  }
   logStartupReady();
   return serviceHandle;
 }

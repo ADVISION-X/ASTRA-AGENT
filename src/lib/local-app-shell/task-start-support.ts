@@ -6,7 +6,7 @@ import { recordTaskStartDebugEvent } from "./task-start-debug-writer.js";
 import type { MissionStartBinding } from "./task-start-binding-contract.js";
 import type { StartApproval, StartDraft } from "./task-start-types.js";
 
-const toNullableString = (value: string | undefined): string | null => value ?? null;
+const toNullableString = (value: string | null | undefined): string | null => value ?? null;
 
 export async function recordTaskStartDraftEvents(activeWorkbench: GrassEyeWorkbenchHandle, draft: StartDraft) {
   recordTaskStartDebugEvent(activeWorkbench, {
@@ -160,7 +160,7 @@ export async function recordTaskStartCommandAccepted(activeWorkbench: GrassEyeWo
 export async function recordTaskStartLocalAiReadiness(
   activeWorkbench: GrassEyeWorkbenchHandle,
   approval: StartApproval,
-  component: { ok?: boolean; detail?: string; actionableMessage?: string; ownerResponsible?: string } | undefined,
+  component: { ok?: boolean; detail?: string | null; actionableMessage?: string | null; ownerResponsible?: string | null; [key: string]: unknown } | undefined,
 ) {
   recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "LOCAL_AI_READINESS_STARTED",

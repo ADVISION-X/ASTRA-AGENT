@@ -65,11 +65,12 @@ const buildStartMissionInput = (approval: StartApproval) => {
   const platformProfiles = resolvePlatformProfiles(approval.selectedPlatforms);
 
   return {
-    commandType: "start-mission" as const,
+    userRequirementText: approval.userRequirementText,
+    selectedPlatforms: approval.selectedPlatforms,
     requestedPlatformId: approval.binding.requestedPlatformId,
-    humanGoal: approval.userRequirementText,
     maxRounds: approval.maxRounds,
     maxMinutes: approval.maxMinutes,
+    ...(approval.operatorNote ? { operatorNote: approval.operatorNote } : {}),
     initialPayload: {
       kind: "start-mission" as const,
       requestedBy: "commander-console" as const,
@@ -155,8 +156,8 @@ const executeApprovedTaskStart = async (
     operatorRef: "commander-console:http",
     input: buildStartMissionInput(approval),
   });
-  await persistSuccessfulRequirementHistory(activeWorkbench, approval, result);
-  await writeTaskStartDispatchResult(response, activeWorkbench, approval, result);
+  await persistSuccessfulRequirementHistory(activeWorkbench, approval, result as unknown as StartCommandResult);
+  await writeTaskStartDispatchResult(response, activeWorkbench, approval, result as unknown as StartCommandResult);
 };
 
 export async function runTaskStartFlow(request: IncomingMessage, response: ServerResponse, activeWorkbench: GrassEyeWorkbenchHandle): Promise<true> {

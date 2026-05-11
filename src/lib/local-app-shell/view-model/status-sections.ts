@@ -60,7 +60,7 @@ function createStartupReadinessFailure(
     "startup-readiness",
     localizeCommanderText(locale, "启动门禁", "Startup readiness gate"),
     startupReadiness.tone === "danger" || startupReadiness.missionRuntimeAvailable === false ? "blocked" : "attention",
-    startupReadiness.failureReason ? `${startupReadiness.failureReason}; ${startupReadiness.detail}` : startupReadiness.detail,
+    startupReadiness.failureReason ? `${startupReadiness.failureReason}; ${startupReadiness.detail ?? ""}` : startupReadiness.detail ?? "",
   );
 }
 
@@ -96,7 +96,7 @@ function createMissingStartBindingFailure(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
 ): CommanderConsoleFailureItem | null {
-  return dashboard.runtime.runtimeStatus !== "idle" && (!dashboard.mission.requestedPlatform || !dashboard.mission.selectedBindingId)
+  return dashboard.runtime.runtimeStatus !== "idle" && (!dashboard.mission?.requestedPlatform || !dashboard.mission?.selectedBindingId)
     ? createFailureItem(
         "missing-start-binding",
         localizeCommanderText(locale, "启动草案缺字段", "Start draft missing fields"),
@@ -182,8 +182,8 @@ function createPlatformBindingCheck(
   return {
     id: "platform-binding",
     label: localizeCommanderText(locale, "平台绑定", "Platform binding"),
-    status: dashboard.mission.requestedPlatform ? "ok" : "attention",
-    detail: dashboard.mission.requestedPlatform
+    status: dashboard.mission?.requestedPlatform ? "ok" : "attention",
+    detail: dashboard.mission?.requestedPlatform
       ? localizeCommanderText(locale, `已指定 ${dashboard.mission.requestedPlatform}`, `Requested ${dashboard.mission.requestedPlatform}`)
       : localizeCommanderText(locale, "待启动时由用户选择的平台通过 PlatformRegistry 解析平台绑定。", "Platform binding will be resolved from operator-selected platforms through PlatformRegistry at launch time."),
   };
@@ -196,8 +196,8 @@ function createMissionInputCheck(
   return {
     id: "mission-input",
     label: localizeCommanderText(locale, "任务输入", "Mission input"),
-    status: dashboard.mission.humanGoal ? "ok" : "attention",
-    detail: dashboard.mission.humanGoal
+    status: dashboard.mission?.humanGoal ? "ok" : "attention",
+    detail: dashboard.mission?.humanGoal
       ? localizeCommanderText(locale, "已提供用户需求，运行时将由用户需求、平台注册表和视觉任务合同驱动。", "A user requirement is present; runtime will be driven by the user requirement, PlatformRegistry, and governed visual mission contracts.")
       : localizeCommanderText(locale, "启动前需要用户需求文本；系统会基于用户需求、平台注册表和视觉任务合同准备运行。", "A user requirement is required before launch; runtime is prepared from the user requirement, PlatformRegistry, and governed visual mission contracts."),
   };
@@ -238,7 +238,7 @@ export function buildBadges(
 
   return [
     { label: localizeCommanderText(locale, "运行状态", "runtime"), value: dashboard.runtime.runtimeStatus, tone: healthAttention ? "attention" : "ok" },
-    { label: localizeCommanderText(locale, "任务", "mission"), value: dashboard.mission.missionId ?? localizeCommanderText(locale, "待命", "standby"), tone: dashboard.mission.missionId ? "ok" : "attention" },
+    { label: localizeCommanderText(locale, "任务", "mission"), value: dashboard.mission?.missionId ?? localizeCommanderText(locale, "待命", "standby"), tone: dashboard.mission?.missionId ? "ok" : "attention" },
     { label: localizeCommanderText(locale, "健康", "health"), value: healthAttention ? localizeCommanderText(locale, "需要关注", "attention needed") : localizeCommanderText(locale, "稳定", "stable"), tone: healthAttention ? "attention" : "ok" },
     { label: localizeCommanderText(locale, "平台", "platform"), value: activePlatformLabel ?? localizeCommanderText(locale, "未选择", "unselected"), tone: activePlatformLabel ? "ok" : "attention" },
   ];
@@ -254,8 +254,8 @@ export function buildTopMetrics(
   return [
     { id: "runtime", label: localizeCommanderText(locale, "运行", "runtime"), value: dashboard.runtime.runtimeStatus, tone: resolveRuntimeMetricTone(dashboard.runtime.runtimeStatus) },
     { id: "platform", label: localizeCommanderText(locale, "平台", "platform"), value: activePlatformLabel ?? localizeCommanderText(locale, "未选择", "unselected"), tone: activePlatformLabel ? "ok" : "attention" },
-    { id: "round", label: localizeCommanderText(locale, "轮次", "round"), value: `rnd_${String(dashboard.mission.currentRoundIndex).padStart(3, "0")}`, tone: dashboard.mission.currentRoundIndex > 0 ? "attention" : "ok" },
-    { id: "health", label: localizeCommanderText(locale, "健康", "health"), value: buildReadyRatio(dashboard, locale), tone: dashboard.auditSummary.totals?.blocking ? "attention" : "ok" },
+    { id: "round", label: localizeCommanderText(locale, "轮次", "round"), value: `rnd_${String(dashboard.mission?.currentRoundIndex ?? 0).padStart(3, "0")}`, tone: (dashboard.mission?.currentRoundIndex ?? 0) > 0 ? "attention" : "ok" },
+    { id: "health", label: localizeCommanderText(locale, "健康", "health"), value: buildReadyRatio(dashboard, locale), tone: "ok" },
     { id: "pending", label: localizeCommanderText(locale, "待处理", "pending"), value: buildPendingReviewLabel(pendingReviews, locale), tone: pendingReviews > 0 ? "attention" : "ok" },
   ];
 }

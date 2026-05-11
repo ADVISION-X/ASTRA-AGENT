@@ -10,7 +10,7 @@ function now(): string {
 
 const IDLE_STATE: MissionState = MissionStateSchema.parse({
   missionId: "none",
-  runId: "",
+  runId: "none",
   status: "idle",
   updatedAt: now(),
 });

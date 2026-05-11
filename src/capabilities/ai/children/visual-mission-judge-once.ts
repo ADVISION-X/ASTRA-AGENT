@@ -1,8 +1,12 @@
+import { randomUUID } from "node:crypto";
+
 import { VisualMissionActionPlanOutputSchema } from "../../../types/visual-mission-action-plan.js";
 import type { AiAbilityInput, AiAbilityResult } from "../contract.js";
 import { parseAiJsonOutput } from "../runtime/json-extract.js";
 import { buildHash, callLocalVisualMissionModel } from "../runtime/model-call.js";
+import type { RuntimeLogger, TraceContext } from "../runtime/model-call.js";
 import { buildAiResult } from "../runtime/result.js";
+import { RuntimeLogEventType } from "../../../lib/runtime-logs/index.js";
 
 const buildFailureResult = (input: {
   request: AiAbilityInput;
@@ -46,15 +50,91 @@ const buildFailureResult = (input: {
 async function executeVisualMissionJudgeOnce(input: {
   request: AiAbilityInput;
   signal?: AbortSignal;
-  emitDebugEvent?: import("../../../lib/local-ai/index.js").LocalAiDebugHook;
+  runtimeLogger?: RuntimeLogger;
+  traceContext?: TraceContext;
 }): Promise<AiAbilityResult> {
   const startedAt = new Date().toISOString();
+  const logger = input.runtimeLogger;
+  const trace = input.traceContext;
+  const spanId = randomUUID();
 
   try {
-    const modelCall = await callLocalVisualMissionModel(input);
-    const output = parseAiJsonOutput(modelCall.rawOutputText, VisualMissionActionPlanOutputSchema) as import("../../../types/visual-mission-action-plan.js").VisualMissionActionPlanOutput;
+    const modelCall = await callLocalVisualMissionModel({
+      request: input.request,
+      ...(input.signal ? { signal: input.signal } : {}),
+      ...(logger ? { runtimeLogger: logger } : {}),
+      ...(trace ? { traceContext: trace } : {}),
+    });
+
+    let output: import("../../../types/visual-mission-action-plan.js").VisualMissionActionPlanOutput;
+    let parserErrors: string[] = [];
+    let schemaStatus: "valid" | "invalid" = "valid";
+    let schemaIssueCount = 0;
+
+    try {
+      output = parseAiJsonOutput(modelCall.rawOutputText, VisualMissionActionPlanOutputSchema) as import("../../../types/visual-mission-action-plan.js").VisualMissionActionPlanOutput;
+    } catch (parseError) {
+      const parseMsg = parseError instanceof Error ? parseError.message : String(parseError);
+      parserErrors = [parseMsg];
+      schemaStatus = "invalid";
+      schemaIssueCount = 1;
+
+      // ── AI_PARSE_RESULT_DEBUG (parse failure) ──────────────────────────
+      logger?.emit({
+        eventType: RuntimeLogEventType.AI_PARSE_RESULT_DEBUG,
+        level: "warn",
+        modeVisibility: ["DEBUG", "TRACE"],
+        owner: "ai-capability",
+        traceId: trace?.traceId ?? randomUUID(),
+        spanId,
+        ...(input.request.missionId ? { missionId: input.request.missionId } : {}),
+        status: "review_required",
+        reason: "json_parse_failed",
+        payload: { parserErrors, schemaStatus, schemaIssueCount },
+      });
+
+      // ── AI_ERROR_DEBUG (before throw) ──────────────────────────────────
+      logger?.emit({
+        eventType: RuntimeLogEventType.AI_ERROR_DEBUG,
+        level: "warn",
+        modeVisibility: ["DEBUG", "TRACE"],
+        owner: "ai-capability",
+        traceId: trace?.traceId ?? randomUUID(),
+        spanId,
+        ...(input.request.missionId ? { missionId: input.request.missionId } : {}),
+        status: "review_required",
+        reason: "visual_mission_judgment_review_required",
+        actionableMessage: parseMsg,
+        ownerResponsible: "ai-capability",
+      });
+
+      throw parseError;
+    }
+
     const endedAt = new Date().toISOString();
     const durationMs = Math.max(0, Date.parse(endedAt) - Date.parse(startedAt));
+
+    // ── AI_PARSE_RESULT_DEBUG (success) ──────────────────────────────────
+    logger?.emit({
+      eventType: RuntimeLogEventType.AI_PARSE_RESULT_DEBUG,
+      level: "debug",
+      modeVisibility: ["DEBUG", "TRACE"],
+      owner: "ai-capability",
+      traceId: trace?.traceId ?? randomUUID(),
+      spanId,
+      ...(input.request.missionId ? { missionId: input.request.missionId } : {}),
+      status: "success",
+      reason: "json_parse_success",
+      metrics: {
+        actionCount: Array.isArray(output.actions) ? output.actions.length : 0,
+        schemaIssueCount: 0,
+        durationMs,
+      },
+      payload: {
+        schemaStatus: "valid",
+        parserErrors: [],
+      },
+    });
 
     return buildAiResult({
       request: input.request,
@@ -84,6 +164,22 @@ async function executeVisualMissionJudgeOnce(input: {
     const failureStatus = message.includes("schema") || message.includes("JSON")
       ? "review_required"
       : "failed";
+
+    // ── AI_ERROR_DEBUG (outer catch — covers model failures too) ─────────
+    logger?.emit({
+      eventType: RuntimeLogEventType.AI_ERROR_DEBUG,
+      level: failureStatus === "review_required" ? "warn" : "error",
+      modeVisibility: ["DEBUG", "TRACE"],
+      owner: "ai-capability",
+      traceId: trace?.traceId ?? randomUUID(),
+      spanId,
+      ...(input.request.missionId ? { missionId: input.request.missionId } : {}),
+      status: failureStatus,
+      reason: failureStatus === "review_required" ? "visual_mission_judgment_review_required" : "visual_mission_judgment_failed",
+      actionableMessage: message,
+      ownerResponsible: "ai-capability",
+      metrics: { durationMs },
+    });
 
     return buildFailureResult({
       request: input.request,

@@ -93,7 +93,7 @@ const finalizeCommandExecution = (input: {
 export async function executeCommanderCommandChild<TInput>(input: CommandExecutorInput<TInput>): Promise<CommanderExecutionOutcome<CommanderCommandReceiptView>> {
   const commandInput = input.buildCommandInput(input.input);
   const gated = gateCommanderCommand({
-    childCapabilityId: input.contract.childCapabilityId as import("../shared/commander-schema-base.js").CommanderCommandChildAbilityId,
+    childCapabilityId: input.contract.childCapabilityId as import("../contract.js").CommanderCommandChildAbilityId,
     operatorRef: input.operatorRef,
     commandInput,
     maxDurationMs: input.contract.maxDurationMs,

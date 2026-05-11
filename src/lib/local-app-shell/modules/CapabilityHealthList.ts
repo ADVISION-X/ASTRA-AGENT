@@ -24,7 +24,7 @@ export function renderCapabilityHealthList(viewModel: CommanderConsoleViewModel)
     `<div class="cc-mini-list">${viewModel.capabilityHealth.map((entry, index) => `<button type="button" class="cc-list-row cc-list-row-button" data-inspect-kind="health" data-inspect-id="${escapeHtml(`health-${index}`)}">
       <div>
         <strong>${escapeHtml(entry.label)}</strong>
-        <small>${escapeHtml(entry.detail)}</small>
+        <small>${escapeHtml(entry.detail ?? "")}</small>
         ${renderStartupMeta(entry)}
       </div>
       ${renderStatusPill(entry.tone === "danger" ? t("阻断", "Blocked") : entry.tone === "warn" ? t("注意", "Attention") : t("正常", "Healthy"), entry.tone === "danger" ? "blocked" : entry.tone === "warn" ? "attention" : "ok")}

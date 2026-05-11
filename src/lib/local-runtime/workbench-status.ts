@@ -127,7 +127,7 @@ export async function getMissionReadinessReport(
     detail: options.startupReadiness?.detail ?? null,
     actionableMessage: options.startupReadiness?.localAiReady
       ? null
-      : "Ensure Ollama is running and the local AI model is loaded.",
+      : "Run: ollama serve — then: ollama pull qwen2.5vl:3b — or set GRASSEYE_OLLAMA_BASE_URL to the correct endpoint.",
     ownerResponsible: "AI Capability / Local AI Runtime",
   });
 
@@ -157,7 +157,7 @@ export async function getMissionStartPreflight(
     name: "localAi",
     ok: localAiReady,
     detail: options.startupReadiness?.detail ?? (localAiReady ? "Local AI is ready." : "Local AI not ready."),
-    actionableMessage: localAiReady ? null : "Start Ollama and ensure the visual mission model is loaded.",
+    actionableMessage: localAiReady ? null : "Run: ollama serve — then: ollama pull qwen2.5vl:3b — or check GRASSEYE_OLLAMA_BASE_URL.",
     ownerResponsible: "AI Capability / Local AI Runtime",
   });
 

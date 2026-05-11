@@ -225,7 +225,7 @@ const finalizeReadExecution = <TOutput>(input: {
 
 export async function executeCommanderReadChild<TInput, TOutput>(input: ReadExecutorInput<TInput, TOutput>): Promise<CommanderExecutionOutcome<TOutput>> {
   const gated = gateCommanderRead({
-    childCapabilityId: input.contract.childCapabilityId as import("../shared/commander-schema-base.js").CommanderReadChildAbilityId,
+    childCapabilityId: input.contract.childCapabilityId as import("../contract.js").CommanderReadChildAbilityId,
     operatorRef: input.operatorRef,
     readInput: input.rawInput,
     inputSchema: input.inputSchema,
