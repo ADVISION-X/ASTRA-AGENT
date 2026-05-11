@@ -1,7 +1,10 @@
 // Internal Ollama HTTP client. Not exported in index.ts.
+// IMPORTANT: qwen2.5vl:3b is a Chat-Instruct model. Must use /api/chat, not /api/generate.
+// Using /api/generate causes chat-template token bleed (model outputs <|im_start|> tokens).
 
 type OllamaTagsResponse = { models?: Array<{ name?: string }> };
-type OllamaGenerateResponse = { response?: string };
+type OllamaChatMessage = { role: "user" | "assistant" | "system"; content: string; images?: string[] };
+type OllamaChatResponse = { message?: { role?: string; content?: string } };
 
 function createAbortContext(timeoutMs: number, externalSignal?: AbortSignal) {
   if (externalSignal) {
@@ -55,21 +58,27 @@ export async function invokeOllama(input: {
 }): Promise<{ rawText: string; imageCount: number }> {
   const images = input.imageBase64s && input.imageBase64s.length > 0 ? input.imageBase64s : undefined;
 
-  const response = await fetchJson(`${input.endpoint}/api/generate`, {
+  const userMessage: OllamaChatMessage = {
+    role: "user",
+    content: input.promptText,
+    ...(images ? { images } : {}),
+  };
+
+  const response = await fetchJson(`${input.endpoint}/api/chat`, {
     method: "POST",
     timeoutMs: input.timeoutMs,
     ...(input.abortSignal ? { signal: input.abortSignal } : {}),
     body: JSON.stringify({
       model: input.modelName,
-      prompt: input.promptText,
+      messages: [userMessage],
       stream: false,
-      ...(images ? { images } : {}),
     }),
-  }) as OllamaGenerateResponse;
+  }) as OllamaChatResponse;
 
-  if (!response.response || response.response.trim().length === 0) {
-    throw new Error(`Ollama ${input.modelName} returned an empty response.`);
+  const content = response.message?.content;
+  if (!content || content.trim().length === 0) {
+    throw new Error(`Ollama ${input.modelName} returned an empty response via /api/chat.`);
   }
 
-  return { rawText: response.response, imageCount: images?.length ?? 0 };
+  return { rawText: content, imageCount: images?.length ?? 0 };
 }

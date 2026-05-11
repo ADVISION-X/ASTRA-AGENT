@@ -19,6 +19,8 @@
  *   CHECK-9  sharp().resize() with fit:"inside" and withoutEnlargement:true exists (AST)
  *   CHECK-10 No writeFile / copyFile calls in model-safe-image.ts (no writes to disk)
  *   CHECK-11 call-local-model.ts AI_REQUEST_DEBUG contains wasResized image dimension info
+ *   CHECK-12 ollama-client.ts contains the string literal "/api/chat" (AST symbol-level)
+ *   CHECK-13 ollama-client.ts does NOT contain the string literal "/api/generate" (AST symbol-level)
  *
  * All checks use AST traversal.  No regex.  No string-content heuristics on comment lines.
  */
@@ -30,6 +32,7 @@ import { existsSync } from "node:fs";
 const PROBE_REL_PATH = "scripts/startup/lib/local-ai-runtime-readiness-probe.ts";
 const MODEL_SAFE_IMAGE_REL_PATH = "src/lib/local-ai/model-safe-image.ts";
 const CALL_LOCAL_MODEL_REL_PATH = "src/lib/local-ai/call-local-model.ts";
+const OLLAMA_CLIENT_REL_PATH = "src/lib/local-ai/ollama-client.ts";
 
 export type LocalAiStartupRecoveryCheckResult = {
   checkId: string;
@@ -364,6 +367,69 @@ export function runLocalAiStartupRecoveryInspector(): LocalAiStartupRecoveryInsp
         wasResizedFound
           ? pass("CHECK-11", q, "wasResized image metadata found in call-local-model.ts (AST symbol-level)")
           : fail("CHECK-11", q, `No wasResized reference found in ${CALL_LOCAL_MODEL_REL_PATH}. AI_REQUEST_DEBUG must include per-image normalization proof.`)
+      );
+    }
+  }
+
+  // ── CHECK-12/13: ollama-client.ts must use /api/chat, not /api/generate ─
+  {
+    const ocAbsPath = join(repoRoot, OLLAMA_CLIENT_REL_PATH);
+    const ocSf = project.addSourceFileAtPathIfExists(ocAbsPath);
+
+    const q12 = "ollama-client.ts contains \"/api/chat\" string literal (Chat-Instruct model contract)";
+    const q13 = "ollama-client.ts does NOT contain \"/api/generate\" string literal (chat-template token bleed prevention)";
+
+    if (!ocSf) {
+      checks.push(
+        fail("CHECK-12", q12, `${OLLAMA_CLIENT_REL_PATH} not found — cannot check API endpoint.`),
+        fail("CHECK-13", q13, `${OLLAMA_CLIENT_REL_PATH} not found — cannot check API endpoint.`),
+      );
+    } else {
+      // Collect all string content from string literals AND template literal spans.
+      // ts-morph forEachDescendant skips trivia/comments automatically.
+      // We must check TemplateTail/TemplateHead/TemplateMiddle because the URL is
+      // inside a template literal: `${endpoint}/api/chat`
+      const stringContents: string[] = [];
+      ocSf.forEachDescendant((node) => {
+        if (Node.isStringLiteral(node)) {
+          stringContents.push(node.getLiteralText());
+          return;
+        }
+        const k = node.getKind();
+        // Template spans: TemplateHead, TemplateMiddle, TemplateTail, NoSubstitutionTemplateLiteral
+        if (
+          k === SyntaxKind.TemplateHead ||
+          k === SyntaxKind.TemplateMiddle ||
+          k === SyntaxKind.TemplateTail ||
+          k === SyntaxKind.NoSubstitutionTemplateLiteral
+        ) {
+          // Strip surrounding ` / ${ / }$ delimiters by taking raw text and removing first/last chars
+          const raw = node.getText();
+          // Remove leading backtick or `}` and trailing backtick or `${`
+          const inner = raw.replace(/^[`}]/, "").replace(/[`]$/, "").replace(/\$\{$/, "");
+          stringContents.push(inner);
+        }
+      });
+
+      const hasApiChat = stringContents.some((s) => s.includes("/api/chat"));
+      const hasApiGenerate = stringContents.some((s) => s.includes("/api/generate"));
+
+      checks.push(
+        hasApiChat
+          ? pass("CHECK-12", q12, "\"/api/chat\" string literal found in ollama-client.ts (AST symbol-level)")
+          : fail("CHECK-12", q12,
+              `No "/api/chat" string literal found in ${OLLAMA_CLIENT_REL_PATH}. ` +
+              `invokeOllama must use /api/chat to avoid chat-template token bleed from qwen2.5vl:3b.`
+            )
+      );
+
+      checks.push(
+        !hasApiGenerate
+          ? pass("CHECK-13", q13, "No \"/api/generate\" string literal in ollama-client.ts (AST symbol-level)")
+          : fail("CHECK-13", q13,
+              `Forbidden \"/api/generate\" string literal found in ${OLLAMA_CLIENT_REL_PATH}. ` +
+              `qwen2.5vl:3b is a Chat-Instruct model. /api/generate causes <|im_start|> token bleed — model outputs garbage instead of JSON.`
+            )
       );
     }
   }

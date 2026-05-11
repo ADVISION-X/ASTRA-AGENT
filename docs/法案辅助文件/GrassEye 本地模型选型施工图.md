@@ -83,6 +83,28 @@ Screenshot 取证产物保持原始真相不变，归一化仅在内存中进行
 - ❌ `src/capabilities/forensics-persistence/**`：不得修改。取证链不参与图片归一化
 - ❌ `src/capabilities/geometry-guard/**`：不得修改。几何安全守卫不参与图片归一化
 
+## Ollama API 端点规格
+
+### 强制规定（防止 chat-template token 泄漏）
+
+- **必须使用 `/api/chat`**，禁止使用 `/api/generate`。
+- qwen2.5vl:3b 是 Chat-Instruct 调优模型。使用 `/api/generate` 时，模型输出 `<|im_start|>` 等 chat-template token（而非 JSON 内容），导致 `json_parse_failed` → `review_required`。
+- `/api/chat` 使用正确的消息角色结构（`role: "user"` + `images`），模型能正确定位 assistant turn 开始输出 JSON。
+
+### 接口对比
+
+| 项目 | `/api/generate`（❌ 禁止） | `/api/chat`（✅ 唯一合法） |
+|---|---|---|
+| 输入格式 | `{ model, prompt, images, stream }` | `{ model, messages:[{role,content,images}], stream }` |
+| 响应字段 | `{ response: string }` | `{ message: { role, content } }` |
+| 模型输出质量 | chat token 泄漏 → 垃圾输出 | 正常 JSON 输出 |
+
+### 执法约束
+
+- `invokeOllama` 必须调用 `/api/chat` URL。
+- `invokeOllama` 禁止出现 `/api/generate` 字符串。
+- 执法脚本 CHECK-12 / CHECK-13 负责 AST 级强制执行。
+
 ### 归一化失败行为
 
 失败即抛出 `MODEL_IMAGE_NORMALIZATION_FAILED:` 前缀错误，不做静默降级，不允许发送超尺寸图片。
