@@ -5,7 +5,7 @@ import type { DispatchRegisteredAbilitySequenceInput } from "../contract.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../forensics-persistence/contract.js";
 import type { GeometryGuardAbilityGroup } from "../../geometry-guard/index.js";
 import type { ScreenshotAbilityGroup } from "../../screenshot/contract.js";
-import type { MouseScrollAbilityGroup, MouseScrollAbilityInput } from "../../mouse-scroll/contract.js";
+
 import { getMissionState, upsertMissionState, applyStatusTransition } from "./mission-state.js";
 import { findMuscleMemoryEntry } from "../../../muscle-memory/catalog.js";
 import { resolveScreenshotStructuredDataRefPayload } from "../../screenshot/runtime/structured-ref-store.js";
@@ -17,7 +17,6 @@ export type DispatchSequenceContext = {
   forensics: ForensicsPersistenceAbilityGroup;
   geometryGuard: GeometryGuardAbilityGroup;
   screenshotAbilityGroup: ScreenshotAbilityGroup;
-  mouseScrollAbilityGroup: MouseScrollAbilityGroup;
 };
 
 export type DispatchSequenceResult = {
@@ -125,7 +124,7 @@ async function dispatchSingleAction(
   // (catalog check above has already verified this action is registered)
   if (action.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE") {
     const evidenceLabel = (action.inputOverrides?.["evidenceLabel"] as string | undefined) ?? "video-evidence";
-    const reason = (action.inputOverrides?.["reason"] as string | undefined) ?? "AI requested evidence save";
+    const reason = action.reason ?? (action.inputOverrides?.["reason"] as string | undefined) ?? "AI requested evidence save";
     try {
       await ctx.forensics.appendRecord({
         childCapabilityId: "append-record",
@@ -156,8 +155,7 @@ async function dispatchSingleAction(
     }
   }
 
-  // ── 3. Special handler: viewport scroll — call mouse-scroll directly (bypass Nerve Bus
-  //       to avoid strict-schema rejection from extra envelope-injected tracking fields)
+  // ── 3. Special handler: viewport scroll — route through Nerve Bus with clean path
   if (
     action.actionCode === "SCROLL_BROWSER_VIEWPORT_ONCE" ||
     (resolvedAbilityGroupId === "mouse-scroll" && resolvedChildCapabilityId === "scroll-browser-viewport")
@@ -174,10 +172,10 @@ async function dispatchSingleAction(
     const direction: "down" | "up" | "left" | "right" =
       scrollDeltaY > 0 ? "down" : scrollDeltaY < 0 ? "up" : (scrollDeltaX > 0 ? "right" : "left");
     const proofId = randomUUID();
-    const syntheticScrollInput: MouseScrollAbilityInput = {
-      abilityGroupId: "mouse-scroll",
-      childCapabilityId: "scroll-browser-viewport",
-      sessionId: "local",
+    const syntheticScrollInput = {
+      abilityGroupId: "mouse-scroll" as const,
+      childCapabilityId: "scroll-browser-viewport" as const,
+      sessionId: "local" as const,
       roundId: input.roundId ?? null,
       videoVisitId: null,
       requestedBy: "orchestration:dispatch-sequence",
@@ -187,26 +185,26 @@ async function dispatchSingleAction(
       sourceCoordinateProofRef: proofId,
       sourceEvidenceRef: (input.currentEvidenceRefs?.["originalScreenshotRef"] as string | undefined) ?? null,
       sourceTargetRef: (input.currentEvidenceRefs?.["gridSpecRef"] as string | undefined) ?? proofId,
-      coordinateSpace: "browserViewport",
+      coordinateSpace: "browserViewport" as const,
       bounds: { width: boundsWidth, height: boundsHeight },
       direction,
-      magnitude: "customDelta",
+      magnitude: "customDelta" as const,
       customDelta: { deltaX: scrollDeltaX, deltaY: scrollDeltaY },
       region: null,
       regionRef: null,
       geometryScrollProof: {
         proofId,
         geometryGuardRef: proofId,
-        abilityGroupId: "geometry-guard",
-        childCapabilityId: "validate-bbox-grid-region",
+        abilityGroupId: "geometry-guard" as const,
+        childCapabilityId: "validate-bbox-grid-region" as const,
         sourceAbilityGroupId: "orchestration",
         sourceChildCapabilityId: "dispatch-registered-ability-sequence",
-        sessionId: "local",
+        sessionId: "local" as const,
         roundId: input.roundId ?? null,
         videoVisitId: null,
-        status: "success",
-        guardDecision: "allow",
-        normalizedCoordinateSpace: "browserViewport",
+        status: "success" as const,
+        guardDecision: "allow" as const,
+        normalizedCoordinateSpace: "browserViewport" as const,
         normalizedAnchorPoint: { x: boundsWidth / 2, y: boundsHeight / 2 },
         normalizedRegion: null,
         sourceScreenshotEvidenceRef: (input.currentEvidenceRefs?.["originalScreenshotRef"] as string | undefined) ?? null,
@@ -216,7 +214,15 @@ async function dispatchSingleAction(
       },
     };
     try {
-      const result = await ctx.mouseScrollAbilityGroup.execute(syntheticScrollInput);
+      const result = await ctx.nerveBus.dispatchAbilityCommand({
+        abilityGroupId: "mouse-scroll",
+        childCapabilityId: "scroll-browser-viewport",
+        missionId: input.missionId,
+        runId: input.runId,
+        sessionId: null,
+        roundId: input.roundId ?? null,
+        inputOverrides: syntheticScrollInput,
+      });
       const status = result.status === "success" ? "success" : result.status === "review_required" ? "review_required" : "failed";
       return { status, failureReason: result.failureReason ?? null };
     } catch (err) {
@@ -269,7 +275,7 @@ export async function dispatchRegisteredAbilitySequence(
       action.actionCode.startsWith("DOUBLE_LEFT_CLICK") ||
       action.actionCode.startsWith("RIGHT_CLICK");
 
-    const actionReason = (action.inputOverrides?.["reason"] as string | undefined) ?? "";
+    const actionReason = action.reason ?? (action.inputOverrides?.["reason"] as string | undefined) ?? "";
     if (isClickAction && /comment/i.test(actionReason)) {
       commentPanelOpenAttempted = true;
     }
@@ -328,7 +334,7 @@ export async function dispatchRegisteredAbilitySequence(
       recordType: "ability_result",
       recordPayload: {
         actionCode: action.actionCode,
-        reason: (action.inputOverrides?.["reason"] as string | undefined) ?? null,
+        reason: action.reason ?? (action.inputOverrides?.["reason"] as string | undefined) ?? null,
         gridCell: action.gridCell ?? (action.inputOverrides?.["gridCell"] as string | undefined) ?? null,
         abilityGroupId: action.abilityGroupId ?? null,
         childCapabilityId: action.childCapabilityId ?? null,

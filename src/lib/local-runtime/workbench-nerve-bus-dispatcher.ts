@@ -166,6 +166,8 @@ export function createWorkbenchNerveBusHandlerPort(deps: WorkbenchNerveBusDispat
 
         // Open group uses a .strict() schema that forbids abilityGroupId, purpose, sourceRef,
         // videoVisitId. Build a clean input with only schema-allowed fields.
+        // Mouse-scroll schema (strict) also forbids missionId, runId, sourceRef, nerveBusEnvelopeId.
+        // Pass input as-is for mouse-scroll — syntheticScrollInput already has all required fields.
         const enrichedAbilityInput: Record<string, unknown> = envelope.abilityGroupId === "open"
           ? {
               ...ip,
@@ -180,6 +182,11 @@ export function createWorkbenchNerveBusHandlerPort(deps: WorkbenchNerveBusDispat
               inputRef: ip["inputRef"] ?? randomUUID(),
               requestedBy: ip["requestedBy"] ?? "orchestration:dispatch-sequence",
               idempotencyKey: ip["idempotencyKey"] ?? `dispatch:${envelope.missionId}:${envelope.runId}:${envelope.roundId ?? "noround"}:${envelope.envelopeId}`,
+            }
+          : envelope.abilityGroupId === "mouse-scroll"
+          ? {
+              ...ip,
+              childCapabilityId: envelope.childCapabilityId,
             }
           : {
               ...ip,

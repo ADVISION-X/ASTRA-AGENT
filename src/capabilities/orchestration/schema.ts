@@ -171,6 +171,7 @@ export const DispatchRegisteredAbilitySequenceInputSchema = z.object({
   aiResultRef: z.string().min(1).nullable().optional().default(null),
   actions: z.array(z.object({
     actionCode: z.string().min(1),
+    reason: z.string().nullable().optional().default(null),
     abilityGroupId: z.string().min(1).nullable().optional().default(null),
     childCapabilityId: z.string().min(1).nullable().optional().default(null),
     inputOverrides: z.record(z.unknown()).optional().default({}),

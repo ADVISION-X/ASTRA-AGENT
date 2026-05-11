@@ -98,9 +98,8 @@ export async function runMissionRoundLoop(
     // ── OPEN GATE: Navigate to platform entry on round 0 if targetProfileRef is set ──
     // Direct call (not through Nerve Bus) — Open schema is strict and rejects
     // the extra tracking fields that the Nerve Bus dispatcher injects.
-    if ((state.roundIndex ?? 0) === 0 && (state.targetProfileRef || state.targetUrl) && !state.openResultRef) {
+    if ((state.roundIndex ?? 0) === 0 && state.targetUrl && !state.openResultRef) {
       const openCallId = randomUUID();
-      const targetRef = state.targetProfileRef ?? platformId;
       const openResult = await ctx.openAbilityGroup.execute({
         childCapabilityId: "open-platform-entry-once",
         missionId,
@@ -113,7 +112,9 @@ export async function runMissionRoundLoop(
         requestedBy: "orchestration:mission-loop",
         inputRef: randomUUID(),
         idempotencyKey: `open-entry:${missionId}:${runId}`,
-        targetProfileRef: targetRef,
+        targetUrl: state.targetUrl,
+        targetUrlSource: "platformRegistry",
+        ...(state.targetProfileRef ? { targetProfileRef: state.targetProfileRef } : {}),
       });
       emitRuntimeLog({
         traceId: missionId,
@@ -126,8 +127,8 @@ export async function runMissionRoundLoop(
         roundId,
         status: openResult.status,
         reason: openResult.status === "success"
-          ? `Opened targetProfileRef=${targetRef}`
-          : `OPEN FAILED targetProfileRef=${targetRef}: ${openResult.failureReason ?? "unknown"}`,
+          ? `Opened targetUrl=${state.targetUrl}`
+          : `OPEN FAILED targetUrl=${state.targetUrl}: ${openResult.failureReason ?? "unknown"}`,
       });
       if (openResult.status !== "success") {
         upsertMissionState(applyStatusTransition(getMissionState(missionId), {
@@ -389,6 +390,7 @@ export async function runMissionRoundLoop(
         const entry = catalog.entries.find(e => e.actionCode === action.actionCode);
         return {
           actionCode: action.actionCode,
+          reason: action.reason ?? null,
           abilityGroupId: entry?.abilityGroupId ?? null,
           childCapabilityId: entry?.childCapabilityId ?? null,
           inputOverrides: {
@@ -429,7 +431,6 @@ export async function runMissionRoundLoop(
         forensics: ctx.forensics,
         geometryGuard: ctx.geometryGuard,
         screenshotAbilityGroup: ctx.screenshotAbilityGroup,
-        mouseScrollAbilityGroup: ctx.mouseScrollAbilityGroup,
       },
     );
 

@@ -83,7 +83,7 @@ const buildSystemPrompt = (platformId: string) => [
   "You must NEVER return raw coordinates (x, y, clientX, clientY), DOM selectors, browser commands, Nerve Bus payloads, or Forensics payloads.",
   "You must NEVER include abilityGroupId or childCapabilityId in your output.",
   "Choose actionCode values ONLY from the capability manual (allowedForAiActionPlan=true entries).",
-  "For product_yes: compose these atomic actions in order — (1) LEFT_CLICK_GRID_CELL_ONCE on the like button gridCell, (2) LEFT_CLICK_GRID_CELL_ONCE on the comments button gridCell (omit if no comments visible), (3) SAVE_CURRENT_VIDEO_EVIDENCE_ONCE, (4) SCROLL_BROWSER_VIEWPORT_ONCE to advance to next video.",
+  "For product_yes: compose these atomic actions in order — (1) LEFT_CLICK_GRID_CELL_ONCE on the like button gridCell with reason 'like the product video', (2) LEFT_CLICK_GRID_CELL_ONCE on the comments button gridCell with reason 'open comments panel'. Both clicks are REQUIRED — if the comments button is not accessible, output productDecision 'uncertain' and pageStateDecision 'review_required' instead. (3) SAVE_CURRENT_VIDEO_EVIDENCE_ONCE, (4) SCROLL_BROWSER_VIEWPORT_ONCE to advance to next video.",
   "IMPORTANT: Do NOT include a screenshot action — screenshots are injected by the system automatically after clicks and are not an AI-outputtable actionCode.",
   "For product_no: output only SCROLL_BROWSER_VIEWPORT_ONCE to advance to the next video.",
   "If the evidence is insufficient or unsafe, set pageStateDecision to review_required or blocked and keep the output non-executable.",

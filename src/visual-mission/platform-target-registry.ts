@@ -1,7 +1,4 @@
 import {
-  resolveOpenTargetDefaultsForPlatform,
-} from "../capabilities/open/index.js";
-import {
   PlatformIdSchema,
   type PlatformId,
 } from "../platforms/platform-profile.schema.js";
@@ -24,14 +21,9 @@ function buildPlatformTargetBinding(platformId: VisualMissionPlatformId): Visual
     throw new Error(`Missing PlatformRegistry profile for ${platformId}.`);
   }
 
-  const defaults = resolveOpenTargetDefaultsForPlatform(platformId);
-  if (!defaults) {
-    throw new Error(`Missing governed open target defaults for ${platformId}.`);
-  }
-
   return {
     platformId,
-    targetProfileRef: defaults.targetProfileRef,
+    targetProfileRef: platformId,
     targetUrl: profile.entryUrl,
     targetTitle: profile.targetTitle,
   };

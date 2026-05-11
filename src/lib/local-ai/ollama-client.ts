@@ -1,7 +1,4 @@
 // Internal Ollama HTTP client. Not exported in index.ts.
-import { readFile, stat } from "node:fs/promises";
-
-const MAX_VISION_IMAGE_BYTES = 1_000_000;
 
 type OllamaTagsResponse = { models?: Array<{ name?: string }> };
 type OllamaGenerateResponse = { response?: string };
@@ -47,30 +44,16 @@ export async function listAvailableModels(endpoint: string): Promise<string[]> {
   return (response.models ?? []).map((m) => m.name?.trim() ?? "").filter(Boolean);
 }
 
-async function readImageAsBase64(filePath: string): Promise<{ base64: string; bytes: number }> {
-  const fileStat = await stat(filePath);
-  if (fileStat.size > MAX_VISION_IMAGE_BYTES) {
-    throw new Error(
-      `Vision input ${filePath} exceeds ${MAX_VISION_IMAGE_BYTES} bytes; Screenshot Ability Group must prepare-ai-input before local AI execution.`,
-    );
-  }
-  const buffer = await readFile(filePath);
-  return { base64: buffer.toString("base64"), bytes: fileStat.size };
-}
-
 export async function invokeOllama(input: {
   endpoint: string;
   modelName: string;
   promptText: string;
-  imagePaths?: string[];
+  /** Pre-normalized base64 strings from prepareModelSafeImage — file I/O handled upstream. */
+  imageBase64s?: string[];
   timeoutMs: number;
   abortSignal?: AbortSignal;
 }): Promise<{ rawText: string; imageCount: number }> {
-  let images: string[] | undefined;
-  if (input.imagePaths && input.imagePaths.length > 0) {
-    const prepared = await Promise.all(input.imagePaths.map((p) => readImageAsBase64(p)));
-    images = prepared.map((p) => p.base64);
-  }
+  const images = input.imageBase64s && input.imageBase64s.length > 0 ? input.imageBase64s : undefined;
 
   const response = await fetchJson(`${input.endpoint}/api/generate`, {
     method: "POST",

@@ -156,6 +156,14 @@ const VisualMissionActionPlanOutputSchema = z.object({
     if (clicks.length < 2) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires at least 2 click actions (like + comments).", path: ["actions"] });
     }
+    const hasLikeClick = clicks.some(a => /like/i.test(a.reason ?? ""));
+    if (!hasLikeClick) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires a click action with reason containing 'like'.", path: ["actions"] });
+    }
+    const hasCommentClick = clicks.some(a => /comment/i.test(a.reason ?? ""));
+    if (!hasCommentClick) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires a click action with reason containing 'comment'.", path: ["actions"] });
+    }
     const saveIdx = actions.findIndex(a => a.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
     if (saveIdx === -1) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });

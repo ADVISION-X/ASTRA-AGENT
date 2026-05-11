@@ -160,7 +160,6 @@ export async function handleDispatchRegisteredAbilitySequence(rawInput: unknown,
     forensics: ctx.forensics,
     geometryGuard: ctx.geometryGuard,
     screenshotAbilityGroup: ctx.screenshotAbilityGroup,
-    mouseScrollAbilityGroup: ctx.mouseScrollAbilityGroup,
   });
   return {
     status: result.status,

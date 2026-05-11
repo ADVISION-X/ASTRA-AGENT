@@ -9,34 +9,6 @@ export type {
   TraceContext,
 };
 
-/**
- * @deprecated Use runtimeLogger + RuntimeLogEventType.AI_REQUEST_DEBUG / AI_RAW_RESPONSE_DEBUG instead.
- * Retained only as an opt-in bridge for legacy callers; must not be used as the main debug path.
- */
-export type LocalAiDebugEvent = {
-  eventType: string;
-  /** @deprecated Use structured RuntimeLogEvent fields instead. */
-  detail: string;
-  modelName?: string;
-  runtimeName?: string;
-  durationMs?: number;
-  rawResponseText?: string;
-  rawResponsePreview?: string;
-  imageInputs?: Array<{
-    filePath: string;
-    hash?: string;
-    bytes?: number;
-    width?: number;
-    height?: number;
-  }>;
-};
-
-/**
- * @deprecated Use runtimeLogger injected via LocalModelCallInput instead.
- * The debugHook field is retained for bridge compatibility only.
- */
-export type LocalAiDebugHook = (event: LocalAiDebugEvent) => void | Promise<void>;
-
 export type LocalAiConfig = {
   runtimeName: "ollama";
   endpoint: string;
@@ -60,11 +32,6 @@ export type LocalModelCallInput = {
   runtimeLogger?: RuntimeLogger;
   /** Preferred: inject trace context so emitted events carry traceId/spanId. */
   traceContext?: TraceContext;
-  /**
-   * @deprecated Bridge-only. Prefer runtimeLogger.
-   * Called after model call completes for legacy callers that have not migrated.
-   */
-  debugHook?: LocalAiDebugHook;
   metadata?: Record<string, unknown>;
 };
 

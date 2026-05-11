@@ -12,6 +12,4 @@ export type {
   LocalModelCallInput,
   LocalModelCallResult,
   LocalAiReadinessResult,
-  LocalAiDebugHook,
-  LocalAiDebugEvent,
 } from "./contract.js";

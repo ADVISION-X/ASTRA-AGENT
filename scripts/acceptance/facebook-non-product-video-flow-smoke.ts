@@ -103,10 +103,6 @@ const ctx: DispatchSequenceContext = {
   forensics: stubForensics,
   geometryGuard: stubGeometryGuard,
   screenshotAbilityGroup: stubScreenshotAbilityGroup,
-  mouseScrollAbilityGroup: {
-    listChildCapabilityIds: () => ["scroll-browser-viewport" as const],
-    execute: async (_input: unknown) => ({ status: "success", failureReason: null, reviewRequiredReason: null, output: {}, runtimeProof: {} } as unknown as Awaited<ReturnType<DispatchSequenceContext["mouseScrollAbilityGroup"]["execute"]>>),
-  } as unknown as DispatchSequenceContext["mouseScrollAbilityGroup"],
 };
 
 // ── Seed mission state ────────────────────────────────────────────────────────
@@ -132,6 +128,7 @@ const input: DispatchRegisteredAbilitySequenceInput = {
   actions: [
     {
       actionCode: "SCROLL_BROWSER_VIEWPORT_ONCE",
+      reason: "Not a product video — scrolling to next",
       abilityGroupId: null,
       childCapabilityId: null,
       gridCell: null,
@@ -139,7 +136,6 @@ const input: DispatchRegisteredAbilitySequenceInput = {
       requiresGeometryProof: false,
       inputOverrides: {
         scrollDeltaY: 900,
-        reason: "Not a product video — scrolling to next",
       },
     },
   ],

@@ -56,3 +56,34 @@
 - 新增 paid/future provider 生产 child
 - 通过兼容桥或别名偷偷保留旧 provider 体系
 - 用多模型路由替代单一受治理本地调用
+
+## Local AI 模型输入图片安全边界
+
+Local AI runtime 在模型调用前负责图片安全归一化处理。  
+Screenshot 取证产物保持原始真相不变，归一化仅在内存中进行，不写入磁盘。
+
+### 当前限制常量
+
+- **`MAX_VISION_IMAGE_LONG_EDGE_PX = 1120`**（定义于 `src/lib/local-ai/model-safe-image.ts`）
+- `MAX_VISION_IMAGE_BYTES = 1_000_000`（源文件字节安全门，保留不变）
+
+### 规格来源（qwen2.5vl:3b patch 预算）
+
+- 视觉 patch 大小：224×224 px
+- 安全长边：5 patch × 224 = **1120 px**
+- 双图 prompt：5×5 patches × 2 张 = 50 patches（3B 上下文窗口安全）
+- 超过 1120 px（如 2446 px）：11×11 × 2 = 242 patches → `GGML_ASSERT` 崩溃
+
+### 责任边界
+
+- ✅ `src/lib/local-ai/model-safe-image.ts`：负责检测尺寸、按需 resize、返回 `ModelSafeImageInput`
+- ✅ `src/lib/local-ai/call-local-model.ts`：调用 `prepareModelSafeImage`，将元数据写入 `AI_REQUEST_DEBUG` 日志
+- ✅ `src/lib/local-ai/ollama-client.ts`：接收已归一化的 `imageBase64s`，不再持有文件读取责任
+- ❌ `src/capabilities/screenshot/**`：不得修改。Screenshot 只输出原始证据
+- ❌ `src/capabilities/forensics-persistence/**`：不得修改。取证链不参与图片归一化
+- ❌ `src/capabilities/geometry-guard/**`：不得修改。几何安全守卫不参与图片归一化
+
+### 归一化失败行为
+
+失败即抛出 `MODEL_IMAGE_NORMALIZATION_FAILED:` 前缀错误，不做静默降级，不允许发送超尺寸图片。
+

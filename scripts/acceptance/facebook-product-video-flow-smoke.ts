@@ -104,10 +104,6 @@ const ctx: DispatchSequenceContext = {
   forensics: stubForensics,
   geometryGuard: stubGeometryGuard,
   screenshotAbilityGroup: stubScreenshotAbilityGroup,
-  mouseScrollAbilityGroup: {
-    listChildCapabilityIds: () => ["scroll-browser-viewport" as const],
-    execute: async (_input: unknown) => ({ status: "success", failureReason: null, reviewRequiredReason: null, output: {}, runtimeProof: {} } as unknown as Awaited<ReturnType<DispatchSequenceContext["mouseScrollAbilityGroup"]["execute"]>>),
-  } as unknown as DispatchSequenceContext["mouseScrollAbilityGroup"],
 };
 
 // ── Seed mission state ────────────────────────────────────────────────────────
@@ -133,17 +129,27 @@ const input: DispatchRegisteredAbilitySequenceInput = {
   actions: [
     {
       actionCode: "LEFT_CLICK_GRID_CELL_ONCE",
+      reason: "like the product video",
+      abilityGroupId: null,
+      childCapabilityId: null,
+      gridCell: "C2",
+      required: true,
+      requiresGeometryProof: true,
+      inputOverrides: { gridCell: "C2" },
+    },
+    {
+      actionCode: "LEFT_CLICK_GRID_CELL_ONCE",
+      reason: "open comments panel",
       abilityGroupId: null,
       childCapabilityId: null,
       gridCell: "C4",
       required: true,
       requiresGeometryProof: true,
-      inputOverrides: {
-        reason: "Click to open comments",
-      },
+      inputOverrides: { gridCell: "C4" },
     },
     {
       actionCode: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE",
+      reason: "Identified as product video with skincare items",
       abilityGroupId: null,
       childCapabilityId: null,
       gridCell: null,
@@ -151,8 +157,17 @@ const input: DispatchRegisteredAbilitySequenceInput = {
       requiresGeometryProof: false,
       inputOverrides: {
         evidenceLabel: "product-video-1",
-        reason: "Identified as product video with skincare items",
       },
+    },
+    {
+      actionCode: "SCROLL_BROWSER_VIEWPORT_ONCE",
+      reason: "move to next video",
+      abilityGroupId: null,
+      childCapabilityId: null,
+      gridCell: null,
+      required: true,
+      requiresGeometryProof: false,
+      inputOverrides: { scrollDeltaY: 900 },
     },
   ],
   currentEvidenceRefs: {
@@ -181,13 +196,31 @@ async function main() {
     process.stdout.write("  [✓] dispatchRegisteredAbilitySequence returned success\n");
   }
 
-  // 2. NerveBus dispatch called for click (not for SAVE — SAVE uses forensics directly)
-  const clickDispatched = dispatched.some(d => d.childCapabilityId.includes("click") || d.abilityGroupId === "mouse-click");
-  if (!clickDispatched) {
+  // 2. NerveBus dispatch called for LIKE click
+  const likeDispatched = dispatched.some(d => d.childCapabilityId?.includes("click") || d.abilityGroupId === "mouse-click");
+  if (!likeDispatched) {
     passed = false;
-    failures.push(`LEFT_CLICK_GRID_CELL_ONCE was not dispatched through nerveBus. dispatched: ${JSON.stringify(dispatched)}`);
+    failures.push(`LEFT_CLICK_GRID_CELL_ONCE (like) was not dispatched through nerveBus. dispatched: ${JSON.stringify(dispatched)}`);
   } else {
-    process.stdout.write("  [✓] LEFT_CLICK_GRID_CELL_ONCE dispatched through nerveBus\n");
+    process.stdout.write("  [✓] LEFT_CLICK_GRID_CELL_ONCE (like) dispatched through nerveBus\n");
+  }
+
+  // 2b. NerveBus dispatch called for COMMENT click (second click)
+  const clickDispatches = dispatched.filter(d => d.childCapabilityId?.includes("click") || d.abilityGroupId === "mouse-click");
+  if (clickDispatches.length < 2) {
+    passed = false;
+    failures.push(`Expected 2 click dispatches (like + comment), got ${clickDispatches.length}`);
+  } else {
+    process.stdout.write("  [✓] Both like and comment clicks dispatched through nerveBus\n");
+  }
+
+  // 2c. NerveBus dispatch called for SCROLL (via clean path)
+  const scrollDispatched = dispatched.some(d => d.childCapabilityId === "scroll-browser-viewport" || d.abilityGroupId === "mouse-scroll");
+  if (!scrollDispatched) {
+    passed = false;
+    failures.push(`SCROLL_BROWSER_VIEWPORT_ONCE was not dispatched through nerveBus. dispatched: ${JSON.stringify(dispatched)}`);
+  } else {
+    process.stdout.write("  [✓] SCROLL_BROWSER_VIEWPORT_ONCE dispatched through nerveBus\n");
   }
 
   // 3. Post-comment screenshot taken (because click happened before SAVE)
@@ -217,7 +250,7 @@ async function main() {
     }
   }
 
-  // 5. ability_result records include reason and gridCell
+  // 5. ability_result records include reason (from action.reason) and gridCell
   const abilityResults = appendedRecords.filter(r =>
     typeof r === "object" && r !== null &&
     "recordType" in r && (r as Record<string, unknown>)["recordType"] === "ability_result"
@@ -227,24 +260,39 @@ async function main() {
     failures.push("No ability_result records found in forensics");
   } else {
     process.stdout.write(`  [✓] ${abilityResults.length} ability_result record(s) in forensics\n`);
-    const clickResult = abilityResults.find(r => {
+
+    const likeResult = abilityResults.find(r => {
       const payload = (r as Record<string, unknown>)["recordPayload"] as Record<string, unknown> | undefined;
-      return payload?.["actionCode"] === "LEFT_CLICK_GRID_CELL_ONCE";
+      return payload?.["actionCode"] === "LEFT_CLICK_GRID_CELL_ONCE" && payload?.["gridCell"] === "C2";
     });
-    if (clickResult) {
-      const payload = (clickResult as Record<string, unknown>)["recordPayload"] as Record<string, unknown>;
-      if (payload["gridCell"] === "C4") {
-        process.stdout.write("  [✓] ability_result for click includes gridCell=C4\n");
+    if (likeResult) {
+      const payload = (likeResult as Record<string, unknown>)["recordPayload"] as Record<string, unknown>;
+      if (/like/i.test(String(payload["reason"] ?? ""))) {
+        process.stdout.write("  [✓] ability_result for like click has reason containing 'like'\n");
       } else {
         passed = false;
-        failures.push(`ability_result gridCell expected 'C4', got '${payload["gridCell"]}'`);
+        failures.push(`ability_result for like click has wrong reason: '${payload["reason"]}'`);
       }
-      if (payload["reason"]) {
-        process.stdout.write(`  [✓] ability_result for click includes reason: '${payload["reason"]}'\n`);
+    } else {
+      passed = false;
+      failures.push("No ability_result for like click (gridCell=C2) found");
+    }
+
+    const commentResult = abilityResults.find(r => {
+      const payload = (r as Record<string, unknown>)["recordPayload"] as Record<string, unknown> | undefined;
+      return payload?.["actionCode"] === "LEFT_CLICK_GRID_CELL_ONCE" && payload?.["gridCell"] === "C4";
+    });
+    if (commentResult) {
+      const payload = (commentResult as Record<string, unknown>)["recordPayload"] as Record<string, unknown>;
+      if (/comment/i.test(String(payload["reason"] ?? ""))) {
+        process.stdout.write("  [✓] ability_result for comment click has reason containing 'comment'\n");
       } else {
         passed = false;
-        failures.push("ability_result for click missing reason field");
+        failures.push(`ability_result for comment click has wrong reason: '${payload["reason"]}'`);
       }
+    } else {
+      passed = false;
+      failures.push("No ability_result for comment click (gridCell=C4) found");
     }
   }
 
