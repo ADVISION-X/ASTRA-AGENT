@@ -16,16 +16,6 @@ type PurityReportValidationIssue = {
   message: string;
 };
 
-const INVENTORY_KEYS = [
-  "godFileInventory",
-  "disasterFileInventory",
-  "ownerMixingInventory",
-  "oversizedTouchedFileInventory",
-  "functionOverLimitInventory",
-  "classObjectOverLimitInventory",
-  "importExportOverLimitInventory",
-] as const;
-
 const compareSeverity = (left: PurityInventoryItem, right: PurityInventoryItem): number => {
   const order = { DISASTER: 0, BLOCKING: 1, REMEDIATION: 2 } as const;
   const severityDelta = order[left.severity] - order[right.severity];
@@ -44,9 +34,6 @@ const dedupeItems = (items: PurityInventoryItem[]): PurityInventoryItem[] => {
   }
   return [...byFile.values()];
 };
-
-const collectInventoryItems = (report: Pick<PurityReport, typeof INVENTORY_KEYS[number]>): PurityInventoryItem[] =>
-  INVENTORY_KEYS.flatMap((key) => report[key]);
 
 const hasInvalidSupportItem = (item: PurityInventoryItem): boolean =>
   item.severity.trim().length === 0 || item.recommendedSplit.trim().length === 0;

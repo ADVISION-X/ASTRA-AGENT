@@ -11,7 +11,14 @@ import { createEmptyPurityReport, inspectPurityMetrics } from "./purity-metric-i
 import { finalizePurityReport, validatePurityReportArtifacts, writePurityReport } from "./purity-report.js";
 import { inspectSecondaryCodePurityScans } from "./inspect-code-purity-secondary-scans.js";
 
-const REQUIRED_COMPONENT_EXPORTS = [] as const;
+type RequiredComponentExport = {
+  relativePath: string;
+  exportName: string;
+  lawId: string;
+  message: string;
+};
+
+const REQUIRED_COMPONENT_EXPORTS: RequiredComponentExport[] = [];
 
 const EXCLUDED_SOURCE_PREFIXES = ["scripts/audit/generated/"] as const;
 const EXCLUDED_SOURCE_SUFFIXES = [".generated.json", ".generated.jsonc"] as const;

@@ -10,7 +10,6 @@ export function createExecuteRuntimeStepCapability(): OrchestrationChildCapabili
       const now = context.clock.now().isoTimestamp;
       return Promise.resolve(buildFailureExecuteResult({
         missionId: input.missionId,
-        mapId: null,
         requestedPlatform: null,
         humanGoal: null,
         childCapabilityId: "execute-runtime-step",

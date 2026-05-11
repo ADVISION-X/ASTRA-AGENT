@@ -1,5 +1,8 @@
+import { readFileSync } from "node:fs";
+
 import type { Project } from "ts-morph";
 
+import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding } from "../../core/result.js";
 import type { Finding } from "../../core/schema.js";
 import { loadMuscleMemoryCatalog, isAiActionPlanAllowedActionCode } from "../../../../src/muscle-memory/catalog/muscle-memory-catalog.js";

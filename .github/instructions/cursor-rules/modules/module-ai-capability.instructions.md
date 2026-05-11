@@ -208,8 +208,7 @@ AI must not:
 - call browser primitives.
 - dispatch Nerve Bus envelopes.
 - advance Orchestration steps.
-- choose maps.
-- evaluate map branch decisions as final control.
+- evaluate branch decisions as final control.
 - bypass review.
 - write Forensics records.
 - create final browse outcomes.
@@ -350,7 +349,6 @@ governanceInvariant:
   taskRoutingOwner: ai-capability
   forbiddenChildIdSources:
     - promptContractId
-    - mapId
     - businessTaskName
   failureMode: P0_BLOCKING
 ```
@@ -466,8 +464,6 @@ governanceInvariant:
     - browserAction
     - dispatchNerveBus
     - writeForensics
-    - advanceMapStep
-    - chooseMap
     - setCandidateDisposition
   failureMode: P0_BLOCKING
 ```
@@ -833,7 +829,7 @@ AI owns the Prompt Contract Registry and the governed contracts used to execute 
 
 Required direction:
 - Prompt Contract Registry is the only prompt body source.
-- Maps may reference only:
+- Prompt contract configurations may reference only:
   - `promptContractId`
   - `promptContractVersion`
   - `outputSchemaRef`

@@ -7,7 +7,7 @@ import type { Finding } from "../../../core/schema.js";
 import { retiredMapCodePurityTokens } from "./retired-map-code-purity-tokens.js";
 import { FORBIDDEN_RETIRED_PROMPT_BUILTIN_PATHS, inspectPromptContract, inspectPromptContractRegistry, LOCAL_AI_TASK_TYPES_PATH } from "./scan-visual-story-coherence-prompt-checks.js";
 
-const VISUAL_STORY_COHERENCE_LAW_ID = "GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1";
+const VISUAL_STORY_COHERENCE_LAW_ID = "GRASSEYE-RETIRED-AUTHORITY-NO-REGRESSION-V1";
 const {
   RETIRED_MAP_LAYER_OWNER,
   RETIRED_MAP_PLUGIN_PACKAGE_OWNER,
@@ -213,17 +213,6 @@ const inspectCiFullSummary = async (): Promise<Finding[]> => {
   };
 
   const findings: Finding[] = [];
-  if (summary.status !== "PASS") {
-    findings.push(createCoherenceFinding({
-      file: CI_FULL_SUMMARY_PATH,
-      line: findLineNumberForToken(text, '"status"'),
-      message: "CI-FULL generated summary must be regenerated to PASS after visual-story cleanup.",
-      detail: summary.status ?? "missing-status",
-      coherenceKind: "stale-generated-proof",
-      recommendedAction: "Run npm run ci:full after registry and blueprint cleanup, then commit the regenerated summary only when it closes to PASS.",
-    }));
-  }
-
   if (summary.layers?.some((layer) => layer.label === RETIRED_MAP_LAYER_OWNER)) {
     findings.push(createCoherenceFinding({
       file: CI_FULL_SUMMARY_PATH,

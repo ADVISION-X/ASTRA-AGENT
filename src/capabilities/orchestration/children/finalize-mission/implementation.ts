@@ -7,7 +7,6 @@ import type { OrchestrationRuntimeContext } from "../../runtime/orchestration-ru
 function buildMissingFinalizeMissionResult(input: FinalizeMissionChildInput, now: string): FinalizeMissionChildOutput {
   return buildFailureExecuteResult({
     missionId: input.missionId,
-    mapId: null,
     requestedPlatform: null,
     humanGoal: null,
     childCapabilityId: "finalize-mission",

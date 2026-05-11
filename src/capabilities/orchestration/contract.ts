@@ -14,19 +14,19 @@ import {
   MissionExecutionResultSchema,
   MissionStateSchema,
   MissionStepResultSchema,
+  OrchestrationSequencePolicySchema,
   OrchestrationExecuteInputSchema,
   OrchestrationExecuteResultSchema,
-  RuntimePlanIdSchema,
-  RuntimePlanSchema,
   ORCHESTRATION_ABILITY_GROUP_ID,
   OrchestrationChildCapabilityIdSchema,
-  OrchestrationSequencePolicySchema,
+  OrchestrationRequestedPlatformIdSchema,
   PauseMissionChildInputSchema,
   PauseMissionChildOutputSchema,
   PayloadRefBundleSchema,
-  RequestedPlatformIdSchema,
   ResumeMissionChildInputSchema,
   ResumeMissionChildOutputSchema,
+  RuntimePlanIdSchema,
+  RuntimePlanSchema,
   RuntimeProofSchema,
   StartMissionChildInputSchema,
   StartMissionChildOutputSchema,
@@ -37,7 +37,7 @@ import {
 export { ORCHESTRATION_ABILITY_GROUP_ID };
 
 type OrchestrationAbilityGroupId = typeof ORCHESTRATION_ABILITY_GROUP_ID;
-type RequestedPlatformId = z.output<typeof RequestedPlatformIdSchema>;
+type RequestedPlatformId = z.output<typeof OrchestrationRequestedPlatformIdSchema>;
 type OrchestrationChildCapabilityId = z.output<typeof OrchestrationChildCapabilityIdSchema>;
 type RuntimePlanId = z.output<typeof RuntimePlanIdSchema>;
 type PayloadRefBundle = z.output<typeof PayloadRefBundleSchema>;
@@ -98,20 +98,20 @@ export type {
   MissionExecutionResult,
   MissionState,
   MissionStepResult,
+  OrchestrationSequencePolicy,
   OrchestrationExecuteInput,
   OrchestrationExecuteResult,
-  RuntimePlan as RuntimePlan,
-  RuntimePlanId,
   OrchestrationAbilityGroup,
   OrchestrationAbilityGroupId,
   OrchestrationChildCapabilityId,
-  OrchestrationSequencePolicy,
   PauseMissionChildInput,
   PauseMissionChildOutput,
   PayloadRefBundle,
   RequestedPlatformId,
   ResumeMissionChildInput,
   ResumeMissionChildOutput,
+  RuntimePlan,
+  RuntimePlanId,
   RuntimeProof,
   StartMissionChildInput,
   StartMissionChildOutput,

@@ -16,7 +16,7 @@ const OUTPUT_FORMAT_GUIDE = [
   '"visibleProductTypes":["..."],',
   '"visualEvidence":["grounded observation"],',
   '"reason":"grounded reason",',
-  '"actions":[{"actionCode":"LIKE_CURRENT_VIDEO","required":true,"input":{"gridCell":"D42"},"reason":"The visible like button is at D42."}],',
+  '"actions":[{"actionCode":"CLICK_CELL","required":true,"input":{"gridCell":"D42","targetName":"like_button"},"reason":"The visible like button is at D42."}],',
   '"nonExecutableClickTargets":[{"gridCell":"B48","targetName":"close_popup"}],',
   '"riskFlags":[],',
   '"nonExecutableSummary":"..."}',
@@ -80,7 +80,7 @@ function buildSystemManualSection(systemManualText: string): string {
 function buildOutputFormatSection(): string {
   return [
     "## 5. Output Format",
-    "Return one JSON object only. Execution uses actions[] only. For visual interaction actions, provide the required gridCell fields shown in the System Manual. CLICK_CELL and click-based composite actions must use grid cells from the coordinate-grid image. nonExecutableClickTargets is visual hinting only and must never replace actions[]. Never output raw x/y, mouseX, mouseY, clientX, or clientY. Never invent actionCode, abilityGroupId, or childCapabilityId. Never output approve-candidate, reject-candidate, mark-review-required, ASK_HUMAN, WAIT_FOR_HUMAN, HUMAN_APPROVE, HUMAN_REJECT, or REQUEST_OPERATOR_CLICK. If a required visual target is not visible, use STOP_REVIEW_REQUIRED or another explicit recovery actionCode from the System Manual; do not guess and do not ask the human for ordinary action selection.",
+    "Return one JSON object only. Execution uses actions[] only. For visual interaction actions, provide the required gridCell fields shown in the System Manual. CLICK_CELL must use a grid cell from the coordinate-grid image and may include targetName only when the registry allows it. nonExecutableClickTargets is visual hinting only and must never replace actions[]. Never output raw x/y, mouseX, mouseY, clientX, or clientY. Never invent actionCode, abilityGroupId, or childCapabilityId. Never output approve-candidate, reject-candidate, mark-review-required, ASK_HUMAN, WAIT_FOR_HUMAN, HUMAN_APPROVE, HUMAN_REJECT, or REQUEST_OPERATOR_CLICK. If a required visual target is not visible, use STOP_REVIEW_REQUIRED or another explicit atomic recovery actionCode from the System Manual; do not guess and do not ask the human for ordinary action selection.",
     OUTPUT_FORMAT_GUIDE,
   ].join("\n\n");
 }

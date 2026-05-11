@@ -10,6 +10,7 @@ import {
   assertCodePurityMemoryBoundary,
   logCodePurityStageMetrics,
 } from "./components/purity-stage-memory.js";
+import type { CodePurityInventoryRecord } from "./components/purity-stage-types.js";
 import { appendCodePurityFinding, appendCodePurityInventory, resetCodePurityStreamArtifacts } from "./components/purity-stage-streams.js";
 import { writeScanSummary } from "./components/purity-stage-results.js";
 import { runSupplementalScans } from "./run-scan-supplemental.js";

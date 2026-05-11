@@ -7,6 +7,11 @@ export type ActiveRuntimePlanRecord = {
   requestedPlatformId: string | null;
   platformProfileRef: string | null;
   targetProfileRef: string | null;
+  bindingActivationRef?: string | null;
+  packageId?: string | null;
+  packageVersion?: string | null;
+  mapVersion?: string | null;
+  bindingSnapshotRef?: string | null;
   missionFlow: RuntimePlan;
 };
 

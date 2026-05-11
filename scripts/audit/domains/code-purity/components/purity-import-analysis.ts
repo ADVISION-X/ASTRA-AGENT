@@ -43,10 +43,27 @@ const buildCandidateRelativePaths = (sourceFile: SourceFile, specifier: string):
   ]);
 };
 
+const getSourceModuleSpecifiers = (sourceFile: SourceFile): string[] => {
+  const specifiers = new Set<string>();
+
+  for (const importDeclaration of sourceFile.getImportDeclarations()) {
+    specifiers.add(importDeclaration.getModuleSpecifierValue());
+  }
+
+  for (const exportDeclaration of sourceFile.getExportDeclarations()) {
+    const moduleSpecifier = exportDeclaration.getModuleSpecifierValue();
+    if (moduleSpecifier) {
+      specifiers.add(moduleSpecifier);
+    }
+  }
+
+  return [...specifiers];
+};
+
 export const getImportedSourcePaths = (sourceFile: SourceFile): string[] => {
   const paths = new Set<string>();
-  for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    for (const importedPath of buildCandidateRelativePaths(sourceFile, importDeclaration.getModuleSpecifierValue())) {
+  for (const specifier of getSourceModuleSpecifiers(sourceFile)) {
+    for (const importedPath of buildCandidateRelativePaths(sourceFile, specifier)) {
       paths.add(importedPath);
     }
   }
@@ -55,7 +72,7 @@ export const getImportedSourcePaths = (sourceFile: SourceFile): string[] => {
 };
 
 export const getImportModuleSpecifiers = (sourceFile: SourceFile): string[] =>
-  sourceFile.getImportDeclarations().map((declaration) => declaration.getModuleSpecifierValue());
+  getSourceModuleSpecifiers(sourceFile).sort((left, right) => left.localeCompare(right));
 
 export const hasProductionFakeImport = (sourceFile: SourceFile): boolean =>
   getImportedSourcePaths(sourceFile).some((importedPath) => isProductionFakePath(importedPath))

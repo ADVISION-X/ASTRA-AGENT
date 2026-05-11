@@ -1,20 +1,25 @@
 import { z } from "zod";
 
 import { MissionLastActionSummarySchema, MissionRoundProgressSchema } from "./runtime/orchestration-round-state-schema.js";
-import {
-  OrchestrationAllowedAbilityGroupIdSchemaSource,
-  OrchestrationRuntimePlanSchemaSource,
-  OrchestrationRuntimePlanStepSchemaSource,
-  OrchestrationPayloadRefKeySchemaSource,
-  OrchestrationRequestedPlatformIdSchemaSource,
-  OrchestrationStepKindSchemaSource,
-  OrchestrationTransitionSchemaSource,
-  OrchestrationTransitionStatusSchemaSource,
-} from "./schema-runtime-plan.js";
+import { OrchestrationRuntimePlanSchemaSource } from "./schema-runtime-plan.js";
 
 const ORCHESTRATION_ABILITY_GROUP_ID = "orchestration";
 
-const OrchestrationAllowedAbilityGroupIdsSchemaSource = z.array(OrchestrationAllowedAbilityGroupIdSchemaSource).min(1);
+const ORCHESTRATION_ALLOWED_ABILITY_GROUP_IDS = z.array(z.enum([
+  "commander-console",
+  "orchestration",
+  "nerve-bus",
+  "ai",
+  "open",
+  "screenshot",
+  "visual-target",
+  "geometry-guard",
+  "mouse-click",
+  "text-input",
+  "mouse-scroll",
+  "forensics-persistence",
+  "page-state",
+])).min(1);
 
 const ORCHESTRATION_CHILD_CAPABILITY_IDS = [
   "start-mission",
@@ -42,9 +47,9 @@ const ORCHESTRATION_INTERNAL_OPERATION_KINDS = [
   "loop-guard",
 ] as const;
 
-const ORCHESTRATION_ALLOWED_ABILITY_GROUP_IDS = OrchestrationAllowedAbilityGroupIdsSchemaSource;
 const MissionConfiguredMaxRoundsSchema = z.number().int().positive();
 const MissionConfiguredMaxMinutesSchema = z.number().int().positive();
+const RuntimePlanIdSchema = z.string().min(1);
 const OrchestrationChildCapabilityIdSchema = z.enum([
   "start-mission",
   "pause-mission",
@@ -55,8 +60,28 @@ const OrchestrationChildCapabilityIdSchema = z.enum([
   "evaluate-step-transition",
   "finalize-mission",
 ]);
-export const RuntimePlanIdSchema = z.string().min(1);
-const AllowedAbilityGroupIdSchema = OrchestrationAllowedAbilityGroupIdSchemaSource;
+const AllowedAbilityGroupIdSchema = z.enum([
+  "commander-console",
+  "orchestration",
+  "nerve-bus",
+  "ai",
+  "open",
+  "screenshot",
+  "visual-target",
+  "geometry-guard",
+  "mouse-click",
+  "text-input",
+  "mouse-scroll",
+  "forensics-persistence",
+  "page-state",
+]);
+const OrchestrationRequestedPlatformIdSchema = z.enum([
+  "facebook-web",
+  "tiktok-web",
+  "macos-local",
+  "iphone-mirroring-facebook-app",
+  "iphone-mirroring-tiktok-app",
+]);
 const MissionHumanCommandKindSchema = z.enum(ORCHESTRATION_HUMAN_COMMAND_KINDS);
 const MissionInternalOperationKindSchema = z.enum(ORCHESTRATION_INTERNAL_OPERATION_KINDS);
 const RuntimePlanSourceSchema = z.enum(["preferred_runtime_plan", "rejected_missing"]);
@@ -70,8 +95,7 @@ const MissionStatusSchema = z.enum([
   "review_required",
   "stopped",
 ]);
-const StepKindSchema = OrchestrationStepKindSchemaSource;
-const TransitionStatusSchema = OrchestrationTransitionStatusSchemaSource;
+const TransitionStatusSchema = z.enum(["success", "failed", "review_required", "pending"]);
 const TransitionConditionSourceSchema = z.string().min(1);
 const TransitionConditionValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
 const BranchFieldValuesSchema = z.record(TransitionConditionValueSchema).default({});
@@ -85,10 +109,21 @@ const StepDispatchDecisionSchema = z.enum(["dispatched", "timeout_before_dispatc
 const TransitionEvaluationDecisionSchema = z.enum(["matched", "no_valid_transition", "ambiguous_transition", "invalid_decision"]);
 const NerveBusDispatchDecisionSchema = z.enum(["dispatched", "pending_commander_channel", "dispatch_failed"]);
 
-const PayloadRefKeySchema = OrchestrationPayloadRefKeySchemaSource;
+const OrchestrationSequencePolicySchema = z.object({
+  maxHops: z.number().int().positive(),
+  maxRetriesPerStep: z.number().int().nonnegative(),
+  loopDecisionOnLimit: z.literal("failed"),
+  branchPolicy: z.literal("strict"),
+}).strict();
+const ProofPolicySchema = z.object({
+  requiresRuntimeProof: z.literal(true),
+}).strict();
+const RuntimePlanSchema = OrchestrationRuntimePlanSchemaSource;
+
+const PayloadRefKeySchema = z.string().min(1);
 
 const PayloadRefBundleSchema = z.object({
-  requestedPlatformId: OrchestrationRequestedPlatformIdSchemaSource.nullable().optional().default(null),
+  requestedPlatformId: OrchestrationRequestedPlatformIdSchema.nullable().optional().default(null),
   selectedBindingId: RuntimePlanIdSchema.nullable().optional().default(null),
   userRequirementRef: z.string().min(1).nullable().optional().default(null),
   operatorNote: z.string().min(1).nullable().optional().default(null),
@@ -100,21 +135,9 @@ const PayloadRefBundleSchema = z.object({
   sourceAiResultRef: z.string().min(1).nullable().optional().default(null),
   screenshotEvidenceRef: z.string().min(1).nullable().optional().default(null),
   commentsEvidenceRef: z.string().min(1).nullable().optional().default(null),
-  visualTargetRef: z.string().min(1).nullable().optional().default(null),
-  visualTargetResultRef: z.string().min(1).nullable().optional().default(null),
-  aiTargetCandidateRef: z.string().min(1).nullable().optional().default(null),
-  targetCandidateRef: z.string().min(1).nullable().optional().default(null),
-  nextItemTargetCandidateRef: z.string().min(1).nullable().optional().default(null),
   geometryProofRef: z.string().min(1).nullable().optional().default(null),
   geometryGuardResultRef: z.string().min(1).nullable().optional().default(null),
   nextItemAdvanceProofRef: z.string().min(1).nullable().optional().default(null),
-  nextItemVerificationEvidenceRef: z.string().min(1).nullable().optional().default(null),
-  nextItemVerificationPromptInputRef: z.string().min(1).nullable().optional().default(null),
-  nextItemVerificationResultRef: z.string().min(1).nullable().optional().default(null),
-  pageStateRef: z.string().min(1).nullable().optional().default(null),
-  pagePreparationAiResultRef: z.string().min(1).nullable().optional().default(null),
-  productPresenceAiResultRef: z.string().min(1).nullable().optional().default(null),
-  commentCleanupAiResultRef: z.string().min(1).nullable().optional().default(null),
   originalScreenshotRef: z.string().min(1).nullable().optional().default(null),
   coordinateGridScreenshotRef: z.string().min(1).nullable().optional().default(null),
   gridSpecRef: z.string().min(1).nullable().optional().default(null),
@@ -122,13 +145,9 @@ const PayloadRefBundleSchema = z.object({
   systemManualRef: z.string().min(1).nullable().optional().default(null),
   outputSchemaRef: z.string().min(1).nullable().optional().default(null),
   platformContextRef: z.string().min(1).nullable().optional().default(null),
-  roundMissionPacketRef: z.string().min(1).nullable().optional().default(null),
   aiResultRef: z.string().min(1).nullable().optional().default(null),
   abilityResultRef: z.string().min(1).nullable().optional().default(null),
-  commentsClickActionRef: z.string().min(1).nullable().optional().default(null),
   clickResultRef: z.string().min(1).nullable().optional().default(null),
-  commentsOpenVerificationRef: z.string().min(1).nullable().optional().default(null),
-  postActionVerificationResultRef: z.string().min(1).nullable().optional().default(null),
   reviewRequiredRef: z.string().min(1).nullable().optional().default(null),
   seedingEvidenceRecordRef: z.string().min(1).nullable().optional().default(null),
   productLeadRecordRef: z.string().min(1).nullable().optional().default(null),
@@ -137,16 +156,17 @@ const PayloadRefBundleSchema = z.object({
   previousPromptInputRef: z.string().min(1).nullable().optional().default(null),
   promptInputRef: z.string().min(1).nullable().optional().default(null),
   commandInputRef: z.string().min(1).nullable().optional().default(null),
+  currentStepId: z.string().min(1).nullable().optional().default(null),
+  roundMissionPacketRef: z.string().min(1).nullable().optional().default(null),
   reviewReasonRef: z.string().min(1).nullable().optional().default(null),
   runtimeLogRef: z.string().min(1).nullable().optional().default(null),
 }).strict();
 
 const MissionInitialPayloadSchema = z.object({
   requestedBy: z.string().min(1),
-  selectedBindingId: RuntimePlanIdSchema.nullable().optional().default(null),
   userRequirementRef: z.string().min(1).nullable().optional().default(null),
-  primaryPlatformId: OrchestrationRequestedPlatformIdSchemaSource.nullable().optional().default(null),
-  selectedPlatforms: z.array(OrchestrationRequestedPlatformIdSchemaSource).default([]),
+  primaryPlatformId: OrchestrationRequestedPlatformIdSchema.nullable().optional().default(null),
+  selectedPlatforms: z.array(OrchestrationRequestedPlatformIdSchema).default([]),
   maxRounds: MissionConfiguredMaxRoundsSchema.nullable().optional().default(null),
   maxMinutes: MissionConfiguredMaxMinutesSchema.nullable().optional().default(null),
   operatorNote: z.string().min(1).nullable().optional().default(null),
@@ -163,9 +183,7 @@ const MissionCommandSchema = z.object({
   missionId: z.string().min(1),
   runId: z.string().min(1),
   humanGoal: z.string().min(1),
-  requestedPlatform: OrchestrationRequestedPlatformIdSchemaSource,
-  preferredBindingId: RuntimePlanIdSchema.nullable().optional().default(null),
-  bindingActivationRef: z.string().min(1).nullable().optional().default(null),
+  requestedPlatform: OrchestrationRequestedPlatformIdSchema,
   maxRounds: MissionConfiguredMaxRoundsSchema.nullable().optional().default(null),
   maxMinutes: MissionConfiguredMaxMinutesSchema.nullable().optional().default(null),
   initialPayload: MissionInitialPayloadSchema,
@@ -176,19 +194,6 @@ const MissionControlCommandSchema = z.object({
   reason: z.string().min(1).nullable().optional().default(null),
   note: z.string().min(1).nullable().optional().default(null),
 }).strict();
-
-const OrchestrationSequencePolicySchema = z.object({
-  maxHops: z.number().int().positive(),
-  maxRetriesPerStep: z.number().int().nonnegative(),
-  loopDecisionOnLimit: z.literal("failed"),
-  branchPolicy: z.literal("strict"),
-}).strict();
-const ProofPolicySchema = z.object({
-  requiresRuntimeProof: z.literal(true),
-}).strict();
-const RuntimePlanStepSchema = OrchestrationRuntimePlanStepSchemaSource;
-const TransitionSchema = OrchestrationTransitionSchemaSource;
-const RuntimePlanSchema = OrchestrationRuntimePlanSchemaSource;
 
 const MissionStepResultSchema = z.object({
   status: TransitionStatusSchema,
@@ -284,9 +289,9 @@ const MissionStateSchema = z.object({
   promptContractVersion: z.string().min(1).nullable().optional().default(null),
   capabilityCatalogVersion: z.string().min(1).nullable().optional().default(null),
   runtimePlanSource: RuntimePlanSourceSchema.nullable().optional().default(null),
-  requestedPlatform: OrchestrationRequestedPlatformIdSchemaSource.nullable().optional().default(null),
+  requestedPlatform: OrchestrationRequestedPlatformIdSchema.nullable().optional().default(null),
   userRequirementRef: z.string().min(1).nullable().optional().default(null),
-  selectedPlatforms: z.array(OrchestrationRequestedPlatformIdSchemaSource).default([]),
+  selectedPlatforms: z.array(OrchestrationRequestedPlatformIdSchema).default([]),
   humanGoal: z.string().min(1).nullable().optional().default(null),
   configuredMaxRounds: MissionConfiguredMaxRoundsSchema.nullable().optional().default(null),
   configuredMaxMinutes: MissionConfiguredMaxMinutesSchema.nullable().optional().default(null),
@@ -394,19 +399,20 @@ export {
   ORCHESTRATION_ALLOWED_ABILITY_GROUP_IDS,
   MissionConfiguredMaxRoundsSchema,
   MissionConfiguredMaxMinutesSchema,
+  RuntimePlanIdSchema,
   OrchestrationChildCapabilityIdSchema,
   AllowedAbilityGroupIdSchema,
+  OrchestrationRequestedPlatformIdSchema,
   MissionHumanCommandKindSchema,
   MissionInternalOperationKindSchema,
   RuntimePlanSourceSchema,
   MissionStatusSchema,
-  StepKindSchema,
   TransitionStatusSchema,
   TransitionConditionSourceSchema,
   TransitionConditionValueSchema,
   BranchFieldValuesSchema,
   LoopDecisionSchema,
-  MapDecisionSchema,
+  OrchestrationSequencePolicySchema,
   TransitionDecisionSchema,
   StateDecisionSchema,
   EmergencyDecisionSchema,
@@ -419,11 +425,7 @@ export {
   MissionInitialPayloadSchema,
   MissionCommandSchema,
   MissionControlCommandSchema,
-  OrchestrationSequencePolicySchema,
-  ProofPolicySchema,
-  RuntimePlanStepSchema,
-  TransitionSchema,
-  RuntimePlanSchema as RuntimePlanSchema,
+  RuntimePlanSchema,
   MissionStepResultSchema,
   RuntimeProofSchema,
   MissionStateSchema,

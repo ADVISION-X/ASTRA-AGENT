@@ -780,130 +780,50 @@ FORBIDDEN:
 
 ---
 
-## Law GRASSEYE-CODE-PURITY-ZOMBIE-001-V1
+## Law GRASSEYE-RETIRED-AUTHORITY-NO-REGRESSION-V1
 
-status: active  
-tier: P0  
-capabilityDomain: audit-system  
-enforcementMode: machine-blocking  
+status: active
+tier: P0
+capabilityDomain: audit-system
+enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: orphan files, dead exports, unused child capabilities, unused prompt contracts, unused route-plan steps, unused retired package chains, unused inspector components, and unused muscle-memory action codes must be detected as fatal zombie findings.
+summary: active source truth must not contain retired authority vocabulary as positive runtime shapes.
 
 ### 主题
 
-Zombie Graph Cleanup
+旧主权词不得以正向形态回归
 
 ### 法条
 
-Code-purity must detect inactive active-source truth through AST, symbol reference, and import/export graph analysis.
+Active source files must not contain retired authority vocabulary presented as positive runtime shapes, required schema fields, or active governance truth.
 
 Required direction:
-- Orphan files must be identified when they have no lawful callers and no protected seam.
-- Dead exports must be identified when exported declarations have no lawful callers.
-- Unused child capabilities must be identified when registry-declared childCapabilityId values have no lawful callers outside their declaration bundle.
-- Unused prompt contracts must be identified when promptContractId values have no lawful callers outside their declaration bundle.
-- Unused route-plan steps must be identified when stepId values have no lawful callers outside their route-plan bundle.
-- Unused retired package chains must be identified when retired package chain files are not loaded by a lawful owner.
-- Unused inspector components must be identified when audit component files have no lawful callers.
-- Unused muscle-memory action codes must be identified when actionCode values have no lawful callers outside their declaration bundle.
-- Protected seams must be encoded explicitly and must not be inferred by grep or regex.
-- Inspectors must use AST, symbol references, import/export graphs, and structured JSON parsing to prove zombie status.
-- Final judgments must not rely on grep / regex / includes / text search as the deciding evidence.
+- Retired authority token fragments may appear only inside negative/forbidden checks, comments marking them as retired, or audit regression tests that assert they are absent.
+- A single simple scan using AST-backed identifier inspection must detect known retired token fragments and treat any active positive usage as a blocking finding.
+- Blocking output must name file, retired token, and concrete removal direction.
+- No inventory or report is emitted on PASS.
+
+Retired authority token fragments (use as negative detection targets only):
+- `routePlan`, `route_plan`, `branch_token`, `branchToken`
+- `mapId`, `mapTemplateId`, `templateActivation`, `mapBinding`, `mapLifecycle`
+- `taskTemplate`, `templateSelector`, `legacyTemplate`
+- `packageChain`, `packageGovernance`, `semanticPackage`, `workflowPackage`
+- `candidateDisposition`, `candidateApprove`, `candidateReject`, `candidateContinuation`
+- `productPresenceJudgment`, `product_presence_judgment`
+- `commentSignalSummary`, `comment_signal_summary`
+- `productSignalSummary`, `product_signal_summary`
+- `evidencePacketAnalysis`, `evidence_packet_analysis`
+- `universalMandatoryPAV`, `mandatory_pav`, `globalPAV`
 
 ### 禁止
 
 FORBIDDEN:
-- Treating zombie assets as harmless legacy.
-- Warning-only zombie findings.
-- Allowing disabled prompt contracts to hide as active truth.
-- Allowing dormant route-plan steps to leak without protected-seam registration.
-- Allowing unused registries or catalogs to survive without a lawful caller.
-- Using grep, regex, includes, or plain text search as the final structural verdict.
-
----
-
-## Law GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1
-
-status: active  
-tier: P0  
-capabilityDomain: audit-system  
-enforcementMode: machine-blocking  
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: retired map-system paths, startup identifiers, and APP shell UI residues must be detected as fatal active-source violations.
-
-### 主题
-
-Retired Map System Cleanup
-
-### 法条
-
-Code-purity must detect retired map-system residue through file-existence checks plus AST-backed source inspection.
-
-Required direction:
-- The retired package-governance source path and its retired audit-domain path must not survive as active paths.
-- The retired map law module file under .github/instructions/cursor-rules/modules must not survive as an active law file.
-- Active map blueprints must not survive under docs/法案辅助文件 after map retirement, including Route Plan production blueprints.
-- Generated audit artifacts and CI summaries must not retain retired layer-owner or retired package-governance owner truth after retirement.
-- legacy route-planning field, retired selection field, retired template identifier, retired activation identifier, retired binding field, retired branch-token field, retired package chain, retired plan record, retired chain script, generic diagnostic token, retired authoring owner, retired plugin owner, and active registry truth must not survive in the active startup/runtime chain.
-- APP shell must not retain TaskTemplateLauncher or map/retired template flow UX tokens in active start surfaces.
-- Archive paths may retain historical references only when they are outside active source truth and CI-FULL does not scan them.
-- Final judgments for source residue must use AST-backed identifier/string inspection, not grep-only verdicts.
-
-### 禁止
-
-FORBIDDEN:
-- Keeping retired map paths alive as "temporary" active sources.
-- Reintroducing map/retired template flow startup UI after retirement.
-- Allowing retired selection field, retired template identifier, retired activation identifier, retired binding field, or retired branch-token field to survive in the production startup chain.
-- Treating active blueprint residue as documentation-only harmless drift.
-
----
-
-## Law GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1
-
-status: active  
-tier: P0  
-capabilityDomain: audit-system  
-enforcementMode: machine-blocking  
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: active law, blueprint, prompt, and startup code must express one visual-story authority chain without dual entry, dual action sources, or retired vocabulary survivors.
-
-### 主题
-
-Visual Story Coherence
-
-### 法条
-
-Code-purity must block any active-source slice that keeps both the retired map story and the user-requirement visual story alive at the same time.
-
-Required direction:
-- APP is the only task entry and must use userRequirementText plus selectedPlatforms.
-- PlatformRegistry owns platform profile facts only.
-- AI outputs registry-backed capability references only; current transport may serialize them as `actions[].actionCode` during cutover.
-- MuscleMemoryCatalog is the only active capability-registry authority and must not be described as a workflow/package library.
-- Scheduler executes only decoded registry-backed atomic capabilities.
-- Unknown or unregistered capability reference is fatal.
-- retired branch-token field, legacy route-plan field, retired selection field, retired template identifier, retired activation identifier, and retired binding field are retired vocabulary in active startup, prompt, and scheduling paths.
-- Active prompt contracts and output schemas must require registry-backed capability references, must treat `actions[].actionCode` only as a transport field when present, and must forbid retired branch-token field plus raw x/y.
-- Active laws, blueprints, prompts, and audits must mark semantic/package/workflow entries as transitional residue or anti-examples only, never as final MuscleMemoryCatalog truth.
-- Active start payloads must not carry retired map fields.
-- Active PlatformRegistry code must not own retired deterministic flows, prompt text, retired binding states, or action chains.
-- Active MuscleMemoryCatalog code must not own entryUrl, targetUrl, targetTitle, or allowedHosts platform profile facts.
-
-### 禁止
-
-FORBIDDEN:
-- Keeping selectedPlatforms and retired selection field as dual active start chains.
-- Keeping userRequirementText and retired template identifier as dual active entry sources.
-- Keeping legacy route-plan field/retired branch-token field and registry-backed capability references as dual action sources.
-- Letting AI prompt contracts or output schemas accept retired branch-token field.
-- Letting Scheduler read retired deterministic flow planning, retired branch-token field, or retired activation truth.
-- Describing MuscleMemoryCatalog as a package/workflow/semantic-shortcut library in active law, blueprint, prompt, or audit authority.
-- Treating semantic action names as final atomic capability definitions in active law, blueprint, prompt, or audit authority.
-- Treating visual-story drift as documentation-only debt.
+- Retired token fragments appearing as required schema field names in active production types.
+- Retired token fragments appearing as required enum values in active production schemas.
+- Retired token fragments appearing as active positive method names or property names in production runtime.
+- Creating new file paths, classes, or module exports that use retired token names as their primary identifier.
+- Treating retired governance vocabulary as transitional residue that can remain indefinitely.
 
 ---
 

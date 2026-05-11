@@ -28,7 +28,7 @@ const REQUIRED_BUILDER_TOKENS = [
   "postActionVerificationHandoffRef: verification.postActionVerificationHandoffRef",
   "actionExecutionRef: input.actionExecutionRef",
   "primitiveExecutionRef: input.primitiveExecutionRef",
-  "postActionVerificationRequired: true as const",
+  "postActionVerificationRequired: verification.postActionVerificationRequired",
 ] as const;
 const FORBIDDEN_TOKENS = [
   "verificationDecision",

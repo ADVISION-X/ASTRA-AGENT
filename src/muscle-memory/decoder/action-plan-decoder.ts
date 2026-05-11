@@ -1,4 +1,4 @@
-import type { AtomicMuscleMemoryEntry, CompositeMuscleMemoryStep, MuscleMemoryEntry } from "../catalog/muscle-memory-catalog.schema.js";
+import type { AtomicMuscleMemoryEntry } from "../catalog/muscle-memory-catalog.schema.js";
 import { findMuscleMemoryEntry, loadMuscleMemoryCatalog } from "../catalog/muscle-memory-catalog.js";
 import { MuscleMemoryGridCellSchema, MuscleMemoryPressKeySchema } from "../schema.js";
 import { VisualMissionActionPlanSchema, type VisualMissionActionPlan } from "./action-plan.schema.js";
@@ -44,7 +44,7 @@ function assertCatalogVersion(plan: VisualMissionActionPlan) {
   }
 }
 
-function assertAiRequiredFields(actionCode: string, input: Record<string, unknown>, entry: MuscleMemoryEntry) {
+function assertAiRequiredFields(actionCode: string, input: Record<string, unknown>, entry: AtomicMuscleMemoryEntry) {
   for (const field of getAiRequiredActionFields(entry)) {
     if (!(field in input)) {
       throw new Error(`${actionCode} is missing required input field ${field}.`);
@@ -52,7 +52,7 @@ function assertAiRequiredFields(actionCode: string, input: Record<string, unknow
   }
 }
 
-function assertAiVisibleInputFields(actionCode: string, input: Record<string, unknown>, entry: MuscleMemoryEntry) {
+function assertAiVisibleInputFields(actionCode: string, input: Record<string, unknown>, entry: AtomicMuscleMemoryEntry) {
   const visibleFields = getAiVisibleActionFields(entry);
   for (const field of Object.keys(input)) {
     if (entry.inputContract.forbiddenFields.includes(field) || isAiForbiddenActionField(field)) {
@@ -75,7 +75,7 @@ function assertGovernedInputValues(actionCode: string, input: Record<string, unk
   }
 }
 
-function assertActionPlanInput(actionCode: string, input: Record<string, unknown>, entry: MuscleMemoryEntry) {
+function assertActionPlanInput(actionCode: string, input: Record<string, unknown>, entry: AtomicMuscleMemoryEntry) {
   assertAiRequiredFields(actionCode, input, entry);
   assertAiVisibleInputFields(actionCode, input, entry);
   assertGovernedInputValues(actionCode, input);
@@ -87,23 +87,6 @@ function assertRequiredFields(input: Record<string, unknown>, entry: AtomicMuscl
       throw new Error(`${entry.actionCode} is missing required input field ${field}.`);
     }
   }
-}
-
-function resolveMappingValue(mapping: string, actionInput: Record<string, unknown>): unknown {
-  if (mapping.startsWith("$const:")) {
-    return mapping.slice("$const:".length);
-  }
-  return actionInput[mapping] ?? null;
-}
-
-function mergeMappedInput(step: CompositeMuscleMemoryStep, actionInput: Record<string, unknown>): Record<string, unknown> {
-  if (!step.inputMapping) {
-    return { ...actionInput };
-  }
-
-  return Object.fromEntries(
-    Object.entries(step.inputMapping).map(([targetField, sourceField]) => [targetField, resolveMappingValue(sourceField, actionInput)]),
-  );
 }
 
 function resolveAtomicEntry(actionCode: string): AtomicMuscleMemoryEntry {
@@ -194,59 +177,6 @@ function buildAtomicExecutionActions(input: {
   ];
 }
 
-function expandEntry(input: {
-  entry: MuscleMemoryEntry;
-  actionCode: string;
-  actionInput: Record<string, unknown>;
-  actions: ExecutionAction[];
-  stack: string[];
-  depth: number;
-  runtimeContext: VisualMissionActionRuntimeContext;
-  required: boolean;
-  onFailure: "continue" | "stop" | "review_required";
-}) {
-  if (input.stack.includes(input.actionCode)) {
-    throw new Error(`Composite action cycle detected: ${[...input.stack, input.actionCode].join(" -> ")}.`);
-  }
-
-  if (input.entry.type === "atomic") {
-    input.actions.push(...buildAtomicExecutionActions({
-      actionCode: input.actionCode,
-      entry: input.entry,
-      actionInput: input.actionInput,
-      runtimeContext: input.runtimeContext,
-      index: input.actions.length + 1,
-      required: input.required,
-      onFailure: input.onFailure,
-    }));
-    return;
-  }
-
-  if (input.depth >= input.entry.maxExpansionDepth) {
-    throw new Error(`${input.actionCode} exceeded maxExpansionDepth ${input.entry.maxExpansionDepth}.`);
-  }
-
-  assertActionPlanInput(input.actionCode, input.actionInput, input.entry);
-
-  for (const step of input.entry.steps) {
-    const nestedEntry = findMuscleMemoryEntry(step.actionCode);
-    if (!nestedEntry) {
-      throw new Error(`Composite action ${input.actionCode} references unknown actionCode ${step.actionCode}.`);
-    }
-    expandEntry({
-      entry: nestedEntry,
-      actionCode: step.actionCode,
-      actionInput: mergeMappedInput(step, input.actionInput),
-      actions: input.actions,
-      stack: [...input.stack, input.actionCode],
-      depth: input.depth + 1,
-      runtimeContext: input.runtimeContext,
-      required: step.required,
-      onFailure: step.onFailure,
-    });
-  }
-}
-
 export function decodeVisualMissionActionPlan(input: {
   plan: unknown;
   sourceAiResultRef?: string | null;
@@ -266,20 +196,21 @@ export function decodeVisualMissionActionPlan(input: {
     if (!entry) {
       throw new Error(`Unknown actionCode: ${action.actionCode}.`);
     }
+    if (entry.type !== "atomic") {
+      throw new Error(`AI action plan must only dispatch atomic actionCode. "${action.actionCode}" is not atomic.`);
+    }
     if (!entry.allowedForAiActionPlan) {
       throw new Error(`AI action plan must not dispatch non-AI actionCode ${action.actionCode}.`);
     }
-    expandEntry({
-      entry,
+    actions.push(...buildAtomicExecutionActions({
       actionCode: action.actionCode,
+      entry,
       actionInput: { ...(action.input ?? {}) },
-      actions,
-      stack: [],
-      depth: 0,
       runtimeContext,
+      index: actions.length + 1,
       required: action.required,
       onFailure: entry.failurePolicy,
-    });
+    }));
   }
 
   return {

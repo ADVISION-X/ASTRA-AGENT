@@ -33,7 +33,6 @@ export async function executeOrchestrationChild(inputValue: OrchestrationExecute
     const now = context.clock.now().isoTimestamp;
     return buildFailureExecuteResult({
       missionId: null,
-      mapId: null,
       requestedPlatform: null,
       humanGoal: null,
       childCapabilityId: inputValue.childCapabilityId,

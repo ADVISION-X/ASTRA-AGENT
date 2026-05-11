@@ -33,6 +33,8 @@ Required direction:
 - Current top-level roots are implementation inventory, not equal semantic authority.
 - Only capability groups that expose executable atomic child capabilities may remain top-level execution owners.
 - Support surfaces such as visual-target, post-action-verification, and page-state may package observations or evidence, but they do not become semantic authority and must be folded or retired if they stop providing atomic child capabilities.
+- Support evidence surfaces are temporary support owners only while they expose real atomic child capabilities. If a support surface only packages evidence, it must be folded into the owning core capability or Forensics Persistence.
+- Support evidence surfaces must not build their own generated universe, large inspector, or parallel law family.
 - Child abilities may exist only under one current active capability-group owner.
 - Support boundaries may describe shell, topology, schema, logging, privacy, and audit rules, but they do not become active execution owners.
 - The governed execution chain is: Commander Console receives the user mission command -> Orchestration owns the mission loop -> Nerve Bus transports governed envelopes -> the owning capability-group public contract executes an atomic child capability -> Forensics records evidence.

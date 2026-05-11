@@ -176,7 +176,13 @@ function collectBuilderFindings(resultBuilderSource: ReturnType<typeof getSource
 }
 
 function collectChildImplementationFindings(project: ReturnType<typeof makeProject>): Finding[] {
-  return [PATHS.BROWSER_CHILD_IMPL, PATHS.DESKTOP_CHILD_IMPL].flatMap((filePath) => {
+  return [
+    PATHS.BROWSER_CHILD_IMPL,
+    PATHS.DESKTOP_CHILD_IMPL,
+    PATHS.LEFT_CLICK_ONCE_IMPL,
+    PATHS.DOUBLE_LEFT_CLICK_IMPL,
+    PATHS.RIGHT_CLICK_ONCE_IMPL,
+  ].flatMap((filePath) => {
     const childSource = getSourceFile(project, filePath);
     return !childSource || !hasCallExpression(childSource, "executeMouseClick")
       ? [createFinding({ lawId: "GRASSEYE-MOUSE-CLICK-CAPABILITY-001-V2", file: filePath, line: 1, severity: "fatal", message: "Mouse Click child implementation must delegate through executeMouseClick." })]

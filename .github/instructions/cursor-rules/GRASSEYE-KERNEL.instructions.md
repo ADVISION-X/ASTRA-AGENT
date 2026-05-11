@@ -112,6 +112,8 @@ Support / transition evidence surfaces:
 - post-action-verification
 - page-state
 
+Support evidence surfaces are temporary support owners only while they expose real atomic child capabilities. If a support surface only packages evidence without providing independent atomic child capabilities, it must be folded into the owning core capability or Forensics. Support evidence surfaces must not build their own generated universe, large inspector family, or parallel law body.
+
 ## Foundation Laws
 
 - audit-system

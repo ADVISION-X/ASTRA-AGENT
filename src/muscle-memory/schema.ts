@@ -9,10 +9,6 @@ const MuscleMemoryPlatformBindingSchema = z.object({
   abilityGroupId: z.string().min(1),
   childCapabilityId: z.string().min(1),
 }).strict();
-const MuscleMemoryRecipeStepSchema = z.object({
-  actionCode: z.string().min(1),
-  input: z.record(z.unknown()).optional(),
-}).strict();
 const AtomicMuscleMemoryActionSchema = z.object({
   actionCode: z.string().min(1),
   kind: z.literal("atomic"),
@@ -28,30 +24,13 @@ const AtomicMuscleMemoryActionSchema = z.object({
   requiresGridSpec: z.boolean(),
   riskLevel: MuscleMemoryRiskLevelSchema,
 }).strict();
-const RecipeMuscleMemoryActionSchema = z.object({
-  actionCode: z.string().min(1),
-  kind: z.literal("recipe"),
-  displayName: z.string().min(1),
-  description: z.string().min(1),
-  inputSchemaRef: z.string().min(1),
-  outputRefPolicy: MuscleMemoryOutputRefPolicySchema,
-  allowedForAiPlan: z.boolean(),
-  modifiesExternalWorld: z.boolean(),
-  requiresGridSpec: z.boolean(),
-  riskLevel: MuscleMemoryRiskLevelSchema,
-  steps: z.array(MuscleMemoryRecipeStepSchema).min(1),
-}).strict();
-const MuscleMemoryActionSchema = z.union([
-  AtomicMuscleMemoryActionSchema,
-  RecipeMuscleMemoryActionSchema,
-]);
+const MuscleMemoryActionSchema = AtomicMuscleMemoryActionSchema;
 
 export {
   MUSCLE_MEMORY_PRESS_KEY_ALLOWLIST,
   MuscleMemoryActionSchema,
   MuscleMemoryOutputRefPolicySchema,
   MuscleMemoryPlatformBindingSchema,
-  MuscleMemoryRecipeStepSchema,
   MuscleMemoryRiskLevelSchema,
   MuscleMemoryGridCellSchema,
   MuscleMemoryPressKeySchema,

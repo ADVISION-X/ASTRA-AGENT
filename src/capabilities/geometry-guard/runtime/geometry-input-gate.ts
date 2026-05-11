@@ -274,6 +274,7 @@ export function coerceGeometryGuardFailureInput(rawInput: unknown): ParsedGeomet
     fallbackReason: null,
     targetSemanticOwner: null,
     actionableMessage: null,
+    upstreamEvidenceRef: null,
     dataQualityFlags: [],
   };
 }

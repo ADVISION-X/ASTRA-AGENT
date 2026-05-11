@@ -1,18 +1,17 @@
-import type { MissionCommand, MissionState, RuntimePlan } from "../contract.js";
+import type { MissionCommand, MissionState } from "../contract.js";
+import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 import { PayloadRefBundleSchema } from "../schema.js";
 import { buildMissionStateUpdate } from "./orchestration-result-builder.js";
-import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
 
-export function createInitialMissionState(command: MissionCommand, map: RuntimePlan, startedAt: string): MissionState {
+export function createInitialMissionState(command: MissionCommand, startedAt: string): MissionState {
   return buildMissionStateUpdate({
     missionId: command.missionId,
-    mapId: map.mapId,
     requestedPlatform: command.requestedPlatform,
     humanGoal: command.humanGoal,
     configuredMaxRounds: command.maxRounds ?? null,
     configuredMaxMinutes: command.maxMinutes ?? null,
     status: "running",
-    currentStepId: map.initialStepId,
+    currentStepId: null,
     previousStepId: null,
     activeTaskRunId: command.runId,
     currentRoundIndex: 0,
@@ -28,10 +27,8 @@ export function createInitialMissionState(command: MissionCommand, map: RuntimeP
     runtimeProofRefs: [],
     payloadRefs: PayloadRefBundleSchema.parse({
       requestedPlatformId: command.requestedPlatform,
-      selectedBindingId: map.mapId,
       operatorNote: command.initialPayload.operatorNote,
       targetUrl: command.initialPayload.targetUrl,
-      targetTitle: command.initialPayload.targetTitle,
       targetProfileRef: command.initialPayload.targetProfileRef,
       sourceEvidenceRef: command.initialPayload.sourceEvidenceRef,
       sourceTargetRef: command.initialPayload.sourceTargetRef,

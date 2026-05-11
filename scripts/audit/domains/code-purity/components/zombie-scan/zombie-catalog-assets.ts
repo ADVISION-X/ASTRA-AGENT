@@ -71,9 +71,12 @@ const isPromptContractFile = (relativePath: string): boolean => relativePath.sta
 const isMapPackageFile = (relativePath: string): boolean => relativePath.startsWith(MAP_PACKAGE_ROOT) && relativePath.endsWith(".meta.map-package.json");
 
 const getOptionalStringField = (raw: unknown, key: string): string | null => {
-  return typeof raw === "object" && raw && typeof (raw as Record<string, unknown>)[key] === "string"
-    ? (raw as Record<string, string>)[key]
-    : null;
+  if (typeof raw !== "object" || !raw) {
+    return null;
+  }
+
+  const value = (raw as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : null;
 };
 
 const collectPromptContractReferenceValues = (raw: unknown, promptContractId: string): string[] => {

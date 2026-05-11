@@ -33,7 +33,7 @@ Required direction:
 - Law files and owner manifests are human-maintained sources.
 - law-registry.generated.json, enforcement-matrix.generated.json, enforcement-matrix.generated.yaml, audit-plan.generated.json, audit-conflicts.generated.json, touched-files.generated.json, code-purity outputs, and ci-full-summary.generated.json are machine-owned outputs.
 - CI-FULL is the only complete quality gate.
-- CI-FULL must execute only the governed foundation, map, and ability owner steps declared in scripts/audit/core/ci-full-plan.ts.
+- CI-FULL must execute only the governed foundation and ability owner steps declared in scripts/audit/core/ci-full-plan.ts.
 - One capability domain maps to one owner manifest and one inspector entry.
 - Generated artifacts must be rebuilt only by the CI-FULL audit-build stage through scripts/audit/build-audit-artifacts.ts.
 - Enforcement authority belongs to CI-FULL orchestration plus owner-local real-code inspectors only.
@@ -55,7 +55,7 @@ FORBIDDEN:
 - Treating capability-check.ts, self-check, smoke-check, or child readiness helpers as accepted audit owners.
 - retired package chain enforcement that stops at filename checks, string includes, or unparsed JSON scans.
 
-## Law GRASSEYE-AUDIT-SYSTEM-002-V1
+## Law GRASSEYE-AUDIT-SIMPLE-GUARDRAIL-V1
 
 status: active
 tier: P0
@@ -63,17 +63,34 @@ capabilityDomain: audit-system
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: Map Prompt Contract Governance must be enforced by AST, schema, and real-code-inspection.
+summary: CI-FULL must protect only the current simple capability-machine mainline and must not preserve retired governance as active quality truth.
 
 ### 主题
 
-地图提示词契约必须真执法
+质检只保护简单能力机器主线
 
 ### 法条
 
-Map Prompt Contract Governance must be enforced by AST, schema, and real-code-inspection rather than documentation-only assertions.
+CI-FULL exists to block concrete regressions in the simple capability machine. It must not become a second runtime, second architecture model, or generated-matrix universe.
 
-## Law GRASSEYE-AUDIT-SYSTEM-003-V1
+Required direction:
+- CI-FULL verifies: UserRequirement, PlatformRegistry, MuscleMemoryCatalog, AI ability composition, Orchestration dispatch, capability-group atomic child execution, Geometry Guard, Forensics evidence.
+- Every CI-FULL step must answer one clear blocking question.
+- PASS output must stay short.
+- FAIL output must name file, lawId, minimal reason, and fix direction.
+- Generated artifacts are support evidence only, not authority truth.
+
+### 禁止
+
+FORBIDDEN:
+- CI-FULL verifying or preserving map lifecycle, map binding drift, PAV lifecycle, semantic package legality, workflow legality, business-flow action packages, candidate approve/reject continuation, or fragmented AI judge refs as active quality truth.
+- Building a second runtime model or second architecture model inside QA.
+- Default inventory or report universes on PASS.
+- Treating generated matrices, summaries, or inventories as authority truth.
+- Using QA to keep retired map, package, workflow, or mandatory-PAV narratives alive.
+- debug-loop, repair-packet, or archive-shadow inspection as active CI-FULL quality truth.
+
+## Law GRASSEYE-AUDIT-NEW-MAINLINE-CI-FULL-V1
 
 status: active
 tier: P0
@@ -81,12 +98,27 @@ capabilityDomain: audit-system
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: Prompt contract and map binding drift is audit-blocking.
+summary: active audit inspectors must not reference retired governance vocabulary as positive enforcement targets.
 
 ### 主题
 
-Prompt 绑定漂移必须拦截
+执法脚本不得保存旧系统叙事
 
 ### 法条
 
-Prompt contract and map binding drift must be audit-blocking.
+Active audit inspector logic must reference only the current simple capability-machine mainline.
+
+Required direction:
+- Inspector logic may reference retired vocabulary only as forbidden regression tokens, never as positive enforcement targets.
+- Retired token fragments must appear inside forbidden/negative checks only, never as required-shape assertions.
+- One inspector answers one blocking question.
+- If an inspector cannot be explained in one sentence, it must be split or deleted.
+- If a report does not cause a blocking decision or a concrete repair path, it must be deleted.
+
+### 禁止
+
+FORBIDDEN:
+- Active inspector code treating map prompt contracts, map binding drift, PAV lifecycle, or workflow packages as required positive shapes.
+- Inspector emitting large reports by default when there are zero violations.
+- Inspector referencing retired governance layers as positive enforcement truth.
+- Active CI-FULL plan retaining retired map-layer owner steps as active quality gates.

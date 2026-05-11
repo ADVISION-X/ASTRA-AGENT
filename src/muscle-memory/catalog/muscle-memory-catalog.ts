@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 
 import {
   type AtomicMuscleMemoryEntry,
-  type CompositeMuscleMemoryEntry,
   type MuscleMemoryCatalog,
   type MuscleMemoryEntry,
   MuscleMemoryCatalogSchema,

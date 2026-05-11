@@ -16,9 +16,7 @@ export const CODE_PURITY_LAW_IDS = [
   "GRASSEYE-CODE-PURITY-012-V1",
   "GRASSEYE-CODE-PURITY-013-V1",
   "GRASSEYE-CODE-PURITY-014-V1",
-  "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-  "GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1",
-  "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+  "GRASSEYE-RETIRED-AUTHORITY-NO-REGRESSION-V1",
 ] as const;
 
 export const LAW_PHASE_SUMMARIES: PurityPhaseSummary[] = [
@@ -113,21 +111,9 @@ export const LAW_PHASE_SUMMARIES: PurityPhaseSummary[] = [
     failedSummary: "Active source still relies on bridges, wrappers, or cosmetic refactor direction.",
   },
   {
-    lawId: "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1",
-    name: "retired-map-system",
-    okSummary: "Retired map-system paths and identifiers are gone from active source truth.",
-    failedSummary: "Retired map-system paths or identifiers still survive in active source truth.",
-  },
-  {
-    lawId: "GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1",
-    name: "visual-story-coherence",
-    okSummary: "Active law, blueprint, prompt, and startup code follow one visual-story authority chain.",
-    failedSummary: "Dual entry chains, dual action sources, or retired visual-story vocabulary still survive in active source truth.",
-  },
-  {
-    lawId: "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
-    name: "zombie-graph-cleanup",
-    okSummary: "Active source truth has no orphan files, dead exports, or unused governed assets.",
-    failedSummary: "Orphan files, dead exports, or unused governed assets still remain in active source truth.",
+    lawId: "GRASSEYE-RETIRED-AUTHORITY-NO-REGRESSION-V1",
+    name: "retired-authority-no-regression",
+    okSummary: "Active source truth contains no retired authority vocabulary as positive runtime shapes.",
+    failedSummary: "Retired authority vocabulary still appears as positive runtime shapes in active source truth.",
   },
 ];

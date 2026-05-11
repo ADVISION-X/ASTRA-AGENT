@@ -92,6 +92,27 @@ evaluate-round-transition (transitional internal name only; it must remain a dec
 finalize-mission
 ```
 
+Child-capability classification:
+
+```txt
+Mission control commands (Orchestration/Commander control boundary):
+  start-mission, pause-mission, resume-mission, stop-mission, emergency-stop, finalize-mission
+  - These are control-flow commands, not business-semantic packages.
+  - Control commands must remain narrow boundary handlers, never workflow packages.
+  - Control command existence does not prove that business-semantic packages are valid atomic child capabilities.
+
+Governed action dispatch:
+  dispatch-governed-action
+  - Executes an atomic child capability declared by a core ability-group owner.
+  - Must resolve only registry-backed atomic capability references.
+  - Must not own capability execution; it delegates to the owning ability group.
+
+Mission-control command != atomic execution child capability.
+Mission-control command != business-flow child.
+Mission-control command != semantic shortcut.
+Control commands are a control boundary, not a business-flow action package.
+```
+
 Required enforcement:
 
 ```txt

@@ -31,7 +31,6 @@ type BuildResultInput = {
 
 type BuildFailureInput = {
   missionId: string | null;
-  mapId: string | null;
   requestedPlatform: MissionState["requestedPlatform"];
   humanGoal: string | null;
   childCapabilityId: string;
@@ -86,15 +85,8 @@ function buildRuntimeProofIdentity(input: BuildResultInput) {
   return {
     missionId: input.state.missionId ?? "unknown-mission",
     runId: input.state.activeTaskRunId ?? `${input.state.missionId ?? "unknown-mission"}:${input.childCapabilityId}:failure-run`,
-    mapId: input.state.mapId ?? "recovery",
-    bindingActivationRef: input.state.bindingActivationRef ?? null,
-    bindingPackageId: input.state.bindingPackageId ?? null,
-    bindingPackageVersion: input.state.bindingPackageVersion ?? null,
-    bindingVersion: input.state.bindingVersion ?? null,
-    bindingSnapshotRef: input.state.bindingSnapshotRef ?? null,
     promptContractVersion: input.state.promptContractVersion ?? null,
     capabilityCatalogVersion: input.state.capabilityCatalogVersion ?? null,
-    runtimePlanSource: input.state.runtimePlanSource ?? null,
     stepId: input.state.currentStepId ?? input.childCapabilityId,
     childCapabilityId: input.childCapabilityId,
     commandKind: resolveCommandKind(input.state, input.childCapabilityId),
@@ -126,7 +118,6 @@ function buildRuntimeProofDecision(input: BuildResultInput, status: ResultStatus
     status: resolveProofStatus(status),
     failureReason: input.failureReason ?? input.state.failureReason ?? null,
     reviewRequiredReason: input.reviewRequiredReason ?? input.state.reviewRequiredReason ?? null,
-    mapDecision: input.state.bindingSnapshotRef ? ("selected" as const) : ("rejected" as const),
     transitionDecision: resolveTransitionDecision(status),
     loopDecision: "continue" as const,
     stateDecision: input.stateDecision,
@@ -160,7 +151,6 @@ export function buildFailureExecuteResult(input: BuildFailureInput): Orchestrati
   const state = createFailedMissionState({
     missionId: input.missionId,
     runId: `${input.childCapabilityId}:${input.missionId ?? "unknown-mission"}:failure-run`,
-    mapId: input.mapId,
     requestedPlatform: input.requestedPlatform,
     humanGoal: input.humanGoal,
     lastHumanCommand: "resume-mission",

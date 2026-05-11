@@ -3,7 +3,6 @@ import {
   RuntimeProofSchema,
   type MissionHumanCommandKindSchema,
   type MissionInternalOperationKindSchema,
-  type RuntimePlanSourceSchema,
   type AllowedAbilityGroupIdSchema,
   type AbortDecisionSchema,
   type NerveBusDispatchDecisionSchema,
@@ -11,21 +10,11 @@ import {
   type TransitionConditionSourceSchema,
 } from "../schema.js";
 
-import type { RuntimePlanId } from "../contract.js";
-
 export type BuildProofInput = {
   missionId: string;
   runId: string;
-  mapId: RuntimePlanId;
-  bindingActivationRef?: string | null;
-  bindingPackageId?: string | null;
-  bindingPackageVersion?: string | null;
-  mapVersion?: string | null;
-  bindingVersion?: string | null;
-  bindingSnapshotRef?: string | null;
   promptContractVersion?: string | null;
   capabilityCatalogVersion?: string | null;
-  runtimePlanSource?: z.output<typeof RuntimePlanSourceSchema> | null;
   stepId: string;
   targetAbilityGroupId?: z.output<typeof AllowedAbilityGroupIdSchema> | null;
   targetChildCapabilityId?: string | null;
@@ -64,7 +53,6 @@ export type BuildProofInput = {
   status: "completed" | "failed" | "review_required" | "stopped" | "running" | "paused";
   failureReason?: string | null;
   reviewRequiredReason?: string | null;
-  mapDecision: "selected" | "rejected";
   transitionDecision: "continue" | "finalize" | "failed" | "review_required";
   loopDecision: "continue" | "stop_completed" | "stop_failed";
   stateDecision: "created" | "updated" | "paused" | "resumed" | "stopped" | "emergency_stopped" | "finalized";
@@ -76,16 +64,8 @@ function buildOrchestrationProofIdentityFields(input: BuildProofInput): Pick<z.o
 	  | "proofId"
 	  | "runId"
 	  | "missionId"
-  | "mapId"
-  | "bindingActivationRef"
-  | "bindingPackageId"
-  | "bindingPackageVersion"
-  | "mapVersion"
-  | "bindingVersion"
-  | "bindingSnapshotRef"
   | "promptContractVersion"
   | "capabilityCatalogVersion"
-  | "runtimePlanSource"
   | "stepId"
   | "targetAbilityGroupId"
   | "targetChildCapabilityId"
@@ -95,7 +75,7 @@ function buildOrchestrationProofIdentityFields(input: BuildProofInput): Pick<z.o
   | "caller"
   | "idempotencyKey"
   | "sequenceNo"> {
-	  return { proofId: `${input.runId}:${input.sequenceNo}:${input.stepId}`, runId: input.runId, missionId: input.missionId, mapId: input.mapId, bindingActivationRef: input.bindingActivationRef ?? null, bindingPackageId: input.bindingPackageId ?? null, bindingPackageVersion: input.bindingPackageVersion ?? null, mapVersion: input.mapVersion ?? null, bindingVersion: input.bindingVersion ?? null, bindingSnapshotRef: input.bindingSnapshotRef ?? null, promptContractVersion: input.promptContractVersion ?? null, capabilityCatalogVersion: input.capabilityCatalogVersion ?? null, runtimePlanSource: input.runtimePlanSource ?? null, stepId: input.stepId, targetAbilityGroupId: input.targetAbilityGroupId ?? null, targetChildCapabilityId: input.targetChildCapabilityId ?? null, childCapabilityId: input.childCapabilityId, commandKind: input.commandKind, internalOperationKind: input.internalOperationKind ?? null, caller: input.caller, idempotencyKey: input.idempotencyKey, sequenceNo: input.sequenceNo };
+	  return { proofId: `${input.runId}:${input.sequenceNo}:${input.stepId}`, runId: input.runId, missionId: input.missionId, promptContractVersion: input.promptContractVersion ?? null, capabilityCatalogVersion: input.capabilityCatalogVersion ?? null, stepId: input.stepId, targetAbilityGroupId: input.targetAbilityGroupId ?? null, targetChildCapabilityId: input.targetChildCapabilityId ?? null, childCapabilityId: input.childCapabilityId, commandKind: input.commandKind, internalOperationKind: input.internalOperationKind ?? null, caller: input.caller, idempotencyKey: input.idempotencyKey, sequenceNo: input.sequenceNo };
 }
 
 function buildOrchestrationProofStateFields(input: BuildProofInput): Pick<z.output<typeof RuntimeProofSchema>,
@@ -137,16 +117,8 @@ function buildOrchestrationProofCoreFields(input: BuildProofInput): Pick<z.outpu
 	  | "proofId"
 	  | "runId"
 	  | "missionId"
-  | "mapId"
-  | "bindingActivationRef"
-  | "bindingPackageId"
-  | "bindingPackageVersion"
-  | "mapVersion"
-  | "bindingVersion"
-  | "bindingSnapshotRef"
   | "promptContractVersion"
   | "capabilityCatalogVersion"
-  | "runtimePlanSource"
   | "stepId"
   | "targetAbilityGroupId"
   | "targetChildCapabilityId"
@@ -189,7 +161,6 @@ function buildOrchestrationProofDecisionFields(input: BuildProofInput): {
   status: BuildProofInput["status"];
   failureReason: string | null;
   reviewRequiredReason: string | null;
-  mapDecision: BuildProofInput["mapDecision"];
   transitionDecision: BuildProofInput["transitionDecision"];
   loopDecision: BuildProofInput["loopDecision"];
   stateDecision: BuildProofInput["stateDecision"];
@@ -202,7 +173,6 @@ function buildOrchestrationProofDecisionFields(input: BuildProofInput): {
     status: input.status,
     failureReason: input.failureReason ?? null,
     reviewRequiredReason: input.reviewRequiredReason ?? null,
-    mapDecision: input.mapDecision,
     transitionDecision: input.transitionDecision,
     loopDecision: input.loopDecision,
     stateDecision: input.stateDecision,

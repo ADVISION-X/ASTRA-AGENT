@@ -13,37 +13,19 @@ function formatFieldList(fields: string[]): string {
 
 function buildActionBlock(action: MuscleMemoryEntry): string {
   const inputPolicy = resolveAiActionInputPolicy(action);
-
-  if (action.type === "atomic") {
-    return [
-      `actionCode: ${action.actionCode}`,
-      "type: atomic",
-      `binding: ${action.abilityGroupId}/${action.childCapabilityId}`,
-      `displayName: ${action.displayName}`,
-      `description: ${action.description}`,
-      `inputSchemaRef: ${action.inputSchemaRef}`,
-      `outputSchemaRef: ${action.outputSchemaRef}`,
-      `aiRequiredInput: ${formatFieldList(inputPolicy.aiRequiredInput)}`,
-      `aiOptionalInput: ${formatFieldList(inputPolicy.aiOptionalInput)}`,
-      `systemInjectedInput: ${formatFieldList(inputPolicy.systemInjectedInput)}`,
-      `forbiddenInput: ${formatFieldList(inputPolicy.forbiddenInput)}`,
-      `failurePolicy: ${action.failurePolicy}`,
-    ].join("\n");
-  }
-
   return [
     `actionCode: ${action.actionCode}`,
-    "type: composite",
+    "type: atomic",
+    `binding: ${action.abilityGroupId}/${action.childCapabilityId}`,
     `displayName: ${action.displayName}`,
     `description: ${action.description}`,
+    `inputSchemaRef: ${action.inputSchemaRef}`,
+    `outputSchemaRef: ${action.outputSchemaRef}`,
     `aiRequiredInput: ${formatFieldList(inputPolicy.aiRequiredInput)}`,
     `aiOptionalInput: ${formatFieldList(inputPolicy.aiOptionalInput)}`,
     `systemInjectedInput: ${formatFieldList(inputPolicy.systemInjectedInput)}`,
     `forbiddenInput: ${formatFieldList(inputPolicy.forbiddenInput)}`,
     `failurePolicy: ${action.failurePolicy}`,
-    `maxExpansionDepth: ${String(action.maxExpansionDepth)}`,
-    "steps:",
-    ...action.steps.map((step) => `  - ${step.stepCode}: ${step.actionCode} [required=${String(step.required)} onFailure=${step.onFailure}]`),
   ].join("\n");
 }
 

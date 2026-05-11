@@ -1,7 +1,7 @@
 {
   "catalogId": "grasseye-muscle-memory-catalog",
-  "catalogVersion": "2026-05-11",
-  "generatedAt": "2026-05-10T23:37:52.262Z",
+  "catalogVersion": "2025-05-11.atomic-only",
+  "generatedAt": "2026-05-11T00:00:00.000Z",
   "entries": [
     {
       "actionCode": "CAPTURE_REGION",
@@ -87,11 +87,12 @@
       "outputSchemaRef": "mouse-click.click-browser-coordinate.output",
       "allowedForAiActionPlan": false,
       "allowedForUserRequirement": false,
+      "internalOnly": true,
       "requiresGridSpecRef": false,
       "requiresScreenshotRef": false,
       "requiresPageStateRef": false,
       "requiresGeometryProof": true,
-      "requiresPostActionVerification": true,
+      "requiresPostActionVerification": false,
       "sensitiveOperation": true,
       "inputContract": {
         "requiredFields": [
@@ -113,6 +114,135 @@
       "forbiddenResponsibilities": [
         "invent geometry",
         "skip post-click observation",
+        "read page state"
+      ]
+    },
+    {
+      "actionCode": "LEFT_CLICK_GRID_CELL_ONCE",
+      "type": "atomic",
+      "displayName": "Left Click Grid Cell Once",
+      "description": "Execute a single left-click on a Geometry Guard approved browser-viewport coordinate. button=left and clickCount=1 are fixed by the child capability ID.",
+      "abilityGroupId": "mouse-click",
+      "childCapabilityId": "left-click-browser-viewport-once",
+      "inputSchemaRef": "mouse-click.left-click-browser-viewport-once.input",
+      "outputSchemaRef": "mouse-click.left-click-browser-viewport-once.output",
+      "allowedForAiActionPlan": true,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": false,
+      "requiresScreenshotRef": false,
+      "requiresPageStateRef": false,
+      "requiresGeometryProof": true,
+      "requiresPostActionVerification": false,
+      "sensitiveOperation": true,
+      "inputContract": {
+        "requiredFields": [
+          "gridCell"
+        ],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "x",
+          "y",
+          "clientX",
+          "clientY",
+          "button",
+          "clickCount",
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "clickResultRef"
+      ],
+      "failurePolicy": "continue",
+      "forbiddenResponsibilities": [
+        "invent geometry",
+        "set button or clickCount",
+        "read page state"
+      ]
+    },
+    {
+      "actionCode": "DOUBLE_LEFT_CLICK_GRID_CELL",
+      "type": "atomic",
+      "displayName": "Double Left Click Grid Cell",
+      "description": "Execute a double left-click on a Geometry Guard approved browser-viewport coordinate. button=left and clickCount=2 are fixed by the child capability ID.",
+      "abilityGroupId": "mouse-click",
+      "childCapabilityId": "double-left-click-browser-viewport",
+      "inputSchemaRef": "mouse-click.double-left-click-browser-viewport.input",
+      "outputSchemaRef": "mouse-click.double-left-click-browser-viewport.output",
+      "allowedForAiActionPlan": true,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": false,
+      "requiresScreenshotRef": false,
+      "requiresPageStateRef": false,
+      "requiresGeometryProof": true,
+      "requiresPostActionVerification": false,
+      "sensitiveOperation": true,
+      "inputContract": {
+        "requiredFields": [
+          "gridCell"
+        ],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "x",
+          "y",
+          "clientX",
+          "clientY",
+          "button",
+          "clickCount",
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "clickResultRef"
+      ],
+      "failurePolicy": "continue",
+      "forbiddenResponsibilities": [
+        "invent geometry",
+        "set button or clickCount",
+        "read page state"
+      ]
+    },
+    {
+      "actionCode": "RIGHT_CLICK_GRID_CELL_ONCE",
+      "type": "atomic",
+      "displayName": "Right Click Grid Cell Once",
+      "description": "Execute a single right-click on a Geometry Guard approved browser-viewport coordinate. button=right and clickCount=1 are fixed by the child capability ID.",
+      "abilityGroupId": "mouse-click",
+      "childCapabilityId": "right-click-browser-viewport-once",
+      "inputSchemaRef": "mouse-click.right-click-browser-viewport-once.input",
+      "outputSchemaRef": "mouse-click.right-click-browser-viewport-once.output",
+      "allowedForAiActionPlan": true,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": false,
+      "requiresScreenshotRef": false,
+      "requiresPageStateRef": false,
+      "requiresGeometryProof": true,
+      "requiresPostActionVerification": false,
+      "sensitiveOperation": true,
+      "inputContract": {
+        "requiredFields": [
+          "gridCell"
+        ],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "x",
+          "y",
+          "clientX",
+          "clientY",
+          "button",
+          "clickCount",
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "clickResultRef"
+      ],
+      "failurePolicy": "continue",
+      "forbiddenResponsibilities": [
+        "invent geometry",
+        "set button or clickCount",
         "read page state"
       ]
     },
@@ -160,216 +290,6 @@
         "decide business meaning",
         "invent source geometry"
       ]
-    },
-    {
-      "actionCode": "DISMISS_OVERLAY",
-      "type": "composite",
-      "displayName": "Dismiss Overlay",
-      "description": "Click the visible close or dismiss target selected on the coordinate grid.",
-      "allowedForAiActionPlan": true,
-      "allowedForUserRequirement": false,
-      "sensitiveOperation": false,
-      "inputContract": {
-        "requiredFields": [
-          "gridCell"
-        ],
-        "optionalFields": [
-          "targetName"
-        ],
-        "forbiddenFields": [
-          "abilityGroupId",
-          "childCapabilityId",
-          "x",
-          "y",
-          "clientX",
-          "clientY"
-        ]
-      },
-      "steps": [
-        {
-          "stepCode": "click-close-overlay-target",
-          "actionCode": "CLICK_CELL",
-          "inputMapping": {
-            "gridCell": "gridCell",
-            "targetName": "$const:close_overlay"
-          },
-          "required": true,
-          "onFailure": "continue"
-        }
-      ],
-      "maxExpansionDepth": 3,
-      "successOutputRefs": [
-        "clickResultRef"
-      ],
-      "failurePolicy": "continue"
-    },
-    {
-      "actionCode": "LIKE_CURRENT_VIDEO",
-      "type": "composite",
-      "displayName": "Like Current Video",
-      "description": "Click the visible like button selected on the coordinate grid.",
-      "allowedForAiActionPlan": true,
-      "allowedForUserRequirement": false,
-      "sensitiveOperation": false,
-      "inputContract": {
-        "requiredFields": [
-          "gridCell"
-        ],
-        "optionalFields": [
-          "targetName"
-        ],
-        "forbiddenFields": [
-          "abilityGroupId",
-          "childCapabilityId",
-          "x",
-          "y",
-          "clientX",
-          "clientY"
-        ]
-      },
-      "steps": [
-        {
-          "stepCode": "click-like-button",
-          "actionCode": "CLICK_CELL",
-          "inputMapping": {
-            "gridCell": "gridCell",
-            "targetName": "$const:like_button"
-          },
-          "required": true,
-          "onFailure": "continue"
-        }
-      ],
-      "maxExpansionDepth": 3,
-      "successOutputRefs": [
-        "clickResultRef"
-      ],
-      "failurePolicy": "continue"
-    },
-    {
-      "actionCode": "NEXT_VIDEO",
-      "type": "composite",
-      "displayName": "Next Video",
-      "description": "Click the visible next-video target selected on the coordinate grid.",
-      "allowedForAiActionPlan": true,
-      "allowedForUserRequirement": false,
-      "sensitiveOperation": false,
-      "inputContract": {
-        "requiredFields": [
-          "gridCell"
-        ],
-        "optionalFields": [
-          "targetName"
-        ],
-        "forbiddenFields": [
-          "abilityGroupId",
-          "childCapabilityId",
-          "x",
-          "y",
-          "clientX",
-          "clientY"
-        ]
-      },
-      "steps": [
-        {
-          "stepCode": "click-next-video-target",
-          "actionCode": "CLICK_CELL",
-          "inputMapping": {
-            "gridCell": "gridCell",
-            "targetName": "$const:next_video_target"
-          },
-          "required": true,
-          "onFailure": "continue"
-        }
-      ],
-      "maxExpansionDepth": 3,
-      "successOutputRefs": [
-        "clickResultRef",
-        "nextItemAdvanceProofRef"
-      ],
-      "failurePolicy": "continue"
-    },
-    {
-      "actionCode": "NO_SEEDING_VIDEO_FLOW",
-      "type": "composite",
-      "displayName": "No Seeding Video Flow",
-      "description": "Click the visible next-video target selected on the coordinate grid and continue browsing.",
-      "allowedForAiActionPlan": true,
-      "allowedForUserRequirement": true,
-      "sensitiveOperation": false,
-      "inputContract": {
-        "requiredFields": [
-          "nextGridCell"
-        ],
-        "optionalFields": [],
-        "forbiddenFields": [
-          "abilityGroupId",
-          "childCapabilityId",
-          "x",
-          "y",
-          "clientX",
-          "clientY"
-        ]
-      },
-      "steps": [
-        {
-          "stepCode": "next-video",
-          "actionCode": "NEXT_VIDEO",
-          "inputMapping": {
-            "gridCell": "nextGridCell",
-            "targetName": "$const:next_video_target"
-          },
-          "required": true,
-          "onFailure": "continue"
-        }
-      ],
-      "maxExpansionDepth": 3,
-      "successOutputRefs": [
-        "clickResultRef",
-        "nextItemAdvanceProofRef"
-      ],
-      "failurePolicy": "continue"
-    },
-    {
-      "actionCode": "OPEN_COMMENTS",
-      "type": "composite",
-      "displayName": "Open Comments",
-      "description": "Click the visible comments button selected on the coordinate grid.",
-      "allowedForAiActionPlan": true,
-      "allowedForUserRequirement": false,
-      "sensitiveOperation": false,
-      "inputContract": {
-        "requiredFields": [
-          "gridCell"
-        ],
-        "optionalFields": [
-          "targetName"
-        ],
-        "forbiddenFields": [
-          "abilityGroupId",
-          "childCapabilityId",
-          "x",
-          "y",
-          "clientX",
-          "clientY"
-        ]
-      },
-      "steps": [
-        {
-          "stepCode": "click-comments-button",
-          "actionCode": "CLICK_CELL",
-          "inputMapping": {
-            "gridCell": "gridCell",
-            "targetName": "$const:comments_button"
-          },
-          "required": true,
-          "onFailure": "continue"
-        }
-      ],
-      "maxExpansionDepth": 3,
-      "successOutputRefs": [
-        "clickResultRef"
-      ],
-      "failurePolicy": "continue"
     },
     {
       "actionCode": "OPEN_FACEBOOK_ENTRY",
@@ -602,54 +522,6 @@
       ]
     },
     {
-      "actionCode": "SAVE_PRODUCT_AND_LIKE",
-      "type": "composite",
-      "displayName": "Save Product And Like",
-      "description": "Persist the lead record, then click the visible like button selected on the coordinate grid.",
-      "allowedForAiActionPlan": true,
-      "allowedForUserRequirement": true,
-      "sensitiveOperation": true,
-      "inputContract": {
-        "requiredFields": [
-          "likeGridCell"
-        ],
-        "optionalFields": [],
-        "forbiddenFields": [
-          "abilityGroupId",
-          "childCapabilityId",
-          "x",
-          "y",
-          "clientX",
-          "clientY"
-        ]
-      },
-      "steps": [
-        {
-          "stepCode": "save-lead",
-          "actionCode": "SAVE_LEAD",
-          "inputMapping": {},
-          "required": true,
-          "onFailure": "review_required"
-        },
-        {
-          "stepCode": "like-video",
-          "actionCode": "LIKE_CURRENT_VIDEO",
-          "inputMapping": {
-            "gridCell": "likeGridCell",
-            "targetName": "$const:like_button"
-          },
-          "required": false,
-          "onFailure": "continue"
-        }
-      ],
-      "maxExpansionDepth": 4,
-      "successOutputRefs": [
-        "productLeadRecordRef",
-        "clickResultRef"
-      ],
-      "failurePolicy": "review_required"
-    },
-    {
       "actionCode": "STOP_REVIEW_REQUIRED",
       "type": "atomic",
       "displayName": "Stop Review Required",
@@ -805,66 +677,6 @@
         "classify page state",
         "author prompts"
       ]
-    },
-    {
-      "actionCode": "YES_SEEDING_VIDEO_FLOW",
-      "type": "composite",
-      "displayName": "Yes Seeding Video Flow",
-      "description": "Persist the lead, click like, then click the next-video target selected on the coordinate grid.",
-      "allowedForAiActionPlan": true,
-      "allowedForUserRequirement": true,
-      "sensitiveOperation": true,
-      "inputContract": {
-        "requiredFields": [
-          "likeGridCell",
-          "nextGridCell"
-        ],
-        "optionalFields": [],
-        "forbiddenFields": [
-          "abilityGroupId",
-          "childCapabilityId",
-          "x",
-          "y",
-          "clientX",
-          "clientY"
-        ]
-      },
-      "steps": [
-        {
-          "stepCode": "save-lead",
-          "actionCode": "SAVE_LEAD",
-          "inputMapping": {},
-          "required": true,
-          "onFailure": "review_required"
-        },
-        {
-          "stepCode": "like-video",
-          "actionCode": "LIKE_CURRENT_VIDEO",
-          "inputMapping": {
-            "gridCell": "likeGridCell",
-            "targetName": "$const:like_button"
-          },
-          "required": false,
-          "onFailure": "continue"
-        },
-        {
-          "stepCode": "next-video",
-          "actionCode": "NEXT_VIDEO",
-          "inputMapping": {
-            "gridCell": "nextGridCell",
-            "targetName": "$const:next_video_target"
-          },
-          "required": true,
-          "onFailure": "continue"
-        }
-      ],
-      "maxExpansionDepth": 5,
-      "successOutputRefs": [
-        "productLeadRecordRef",
-        "clickResultRef",
-        "nextItemAdvanceProofRef"
-      ],
-      "failurePolicy": "continue"
     }
   ]
 }

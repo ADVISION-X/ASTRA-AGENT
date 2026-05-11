@@ -56,7 +56,7 @@ function hasValidMappedGeometry(input: GeometryTransformInput, normalizedBbox: G
     && pointInsideBounds(normalizedClickPoint, input.targetBounds!);
 }
 
-export function transformGeometry(input: GeometryTransformInput) {
+export function transformGeometry(input: GeometryTransformInput): GeometryTransformResult {
   if (!input.requiresExecutableOutput) {
     return createNotApplicableTransformResult(input);
   }

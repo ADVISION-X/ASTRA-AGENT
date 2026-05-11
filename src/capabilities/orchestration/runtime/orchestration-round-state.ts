@@ -11,8 +11,8 @@ const hasLastActionSummary = (branchFieldValues: Record<string, string | number 
 const shouldIncrementSavedLeadCount = (sourceActionCode: string | null, status: string) =>
   sourceActionCode === "SAVE_LEAD" && status === "success";
 
-const shouldIncrementSkippedCount = (sourceActionCode: string | null, status: string) =>
-  sourceActionCode === "NEXT_VIDEO" && status === "success";
+const shouldIncrementSkippedCount = (_sourceActionCode: string | null, _status: string) =>
+  false;
 
 export function buildNextMissionRoundState(input: {
   state: MissionState;

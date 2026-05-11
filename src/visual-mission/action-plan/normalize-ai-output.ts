@@ -45,9 +45,6 @@ const resolveVisualMissionTaskDecision = (output: VisualMissionActionPlanOutput)
   if (output.productDecision === "product_yes") {
     return "SAVE_LEAD";
   }
-  if (output.productDecision === "product_no") {
-    return "NEXT_VIDEO";
-  }
   return "STOP_REVIEW_REQUIRED";
 };
 

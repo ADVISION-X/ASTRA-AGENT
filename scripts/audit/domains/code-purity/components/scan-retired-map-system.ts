@@ -6,7 +6,7 @@ import type { Finding } from "../../../core/schema.js";
 import { pathFromRepoRoot } from "../../../core/paths.js";
 import { retiredMapCodePurityTokens } from "./retired-map-code-purity-tokens.js";
 
-const RETIRED_MAP_LAW_ID = "GRASSEYE-CODE-PURITY-MAP-RETIREMENT-001-V1";
+const RETIRED_MAP_LAW_ID = "GRASSEYE-RETIRED-AUTHORITY-NO-REGRESSION-V1";
 const {
   RETIRED_ACTIVATION_ID_FIELD,
   RETIRED_ACTIVATION_REF_FIELD,

@@ -67,7 +67,7 @@ export const resolveZombieCallerCount = (graph: ZombieGraph, candidate: ZombieCa
 
 export const buildZombieFinding = (candidate: ZombieCandidate, lawfulCallerCount: number): Finding =>
   createFinding({
-    lawId: "GRASSEYE-CODE-PURITY-ZOMBIE-001-V1",
+    lawId: "GRASSEYE-RETIRED-AUTHORITY-NO-REGRESSION-V1",
     file: candidate.file,
     line: candidate.line,
     severity: "fatal",

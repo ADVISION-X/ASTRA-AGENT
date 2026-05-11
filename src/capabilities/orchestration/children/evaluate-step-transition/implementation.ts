@@ -7,7 +7,6 @@ import type { OrchestrationRuntimeContext } from "../../runtime/orchestration-ru
 function buildMissingEvaluateStepTransitionResult(input: EvaluateStepTransitionChildInput, now: string): EvaluateStepTransitionChildOutput {
   return buildFailureExecuteResult({
     missionId: input.missionId,
-    mapId: null,
     requestedPlatform: null,
     humanGoal: null,
     childCapabilityId: "evaluate-step-transition",

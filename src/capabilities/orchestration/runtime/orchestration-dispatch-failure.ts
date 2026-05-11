@@ -1,7 +1,6 @@
 import type { MissionState } from "../contract.js";
 import type { z } from "zod";
-import type { ActiveRuntimePlanRecord } from "../ports/orchestration-runtime-plan-store-port.js";
-import type { MissionHumanCommandKindSchema, RuntimePlanSourceSchema } from "../schema.js";
+import type { MissionHumanCommandKindSchema } from "../schema.js";
 import { buildMissionExecutionResult, buildMissionStateUpdate } from "./orchestration-result-builder.js";
 import { buildOrchestrationRuntimeProof } from "./orchestration-proof-builder.js";
 
@@ -29,18 +28,10 @@ const buildDispatchFailureRuntimeProof = (input: {
   endedAt: string;
   durationMs: number;
   idempotencyKey: string;
-  runtimePlanSource?: z.output<typeof RuntimePlanSourceSchema> | null;
   stateRevisionBefore?: number | null;
-  mapRecord?: ActiveRuntimePlanRecord | null;
 }) => buildOrchestrationRuntimeProof({
   missionId: input.missionState.missionId ?? "unknown-mission",
   runId: input.missionState.activeTaskRunId ?? input.idempotencyKey,
-  mapId: input.missionState.mapId ?? "recovery",
-  bindingActivationRef: input.mapRecord?.bindingActivationRef ?? null,
-  bindingPackageId: input.mapRecord?.packageId ?? null,
-  bindingPackageVersion: input.mapRecord?.packageVersion ?? null,
-  mapVersion: input.mapRecord?.mapVersion ?? null,
-  runtimePlanSource: input.runtimePlanSource ?? null,
   stepId: input.stepId,
   childCapabilityId: input.childCapabilityId,
   commandKind: input.commandKind,
@@ -62,7 +53,6 @@ const buildDispatchFailureRuntimeProof = (input: {
   status: "failed",
   failureReason: input.failureReason,
   reviewRequiredReason: null,
-  mapDecision: "selected",
   transitionDecision: "failed",
   loopDecision: "continue",
   stateDecision: "updated",
@@ -81,9 +71,7 @@ export function buildDispatchFailure(input: {
   endedAt: string;
   durationMs: number;
   idempotencyKey: string;
-  runtimePlanSource?: z.output<typeof RuntimePlanSourceSchema> | null;
   stateRevisionBefore?: number | null;
-  mapRecord?: ActiveRuntimePlanRecord | null;
 }) {
   const missionState = buildDispatchFailureMissionState({
     state: input.state,
@@ -101,9 +89,7 @@ export function buildDispatchFailure(input: {
     endedAt: input.endedAt,
     durationMs: input.durationMs,
     idempotencyKey: input.idempotencyKey,
-    runtimePlanSource: input.runtimePlanSource ?? null,
     stateRevisionBefore: input.stateRevisionBefore ?? null,
-    mapRecord: input.mapRecord ?? null,
   });
   return buildMissionExecutionResult({
     missionState,

@@ -1,5 +1,5 @@
 import type { MissionState } from "../contract.js";
-import type { ActiveRuntimePlanRecord, OrchestrationRuntimePlanStorePort } from "../ports/orchestration-runtime-plan-store-port.js";
+import type { OrchestrationRuntimePlanStorePort } from "../ports/orchestration-runtime-plan-store-port.js";
 
 export function buildRunLockId(missionId: string, isoTimestamp: string): string {
   return `${missionId}:run-lock:${isoTimestamp}`;
@@ -11,13 +11,6 @@ export function buildCancellationTokenRef(missionId: string, runLockId: string):
 
 export function buildResumeCheckpointRef(state: MissionState): string {
   return `${state.missionId ?? "unknown-mission"}:checkpoint:${state.sequenceNo}:${state.stateRevision}`;
-}
-
-export function toFrozenActivationState(record: ActiveRuntimePlanRecord) {
-  return {
-    promptContractVersion: record.promptContractVersion,
-    capabilityCatalogVersion: record.capabilityCatalogVersion,
-  };
 }
 
 export async function resolveFrozenActivationMapRecord(

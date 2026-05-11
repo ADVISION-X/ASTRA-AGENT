@@ -25,6 +25,9 @@ export const PATHS = {
   PRIMITIVE_PORT: "src/capabilities/mouse-click/ports/mouse-click-primitive-port.ts",
   BROWSER_CHILD_IMPL: "src/capabilities/mouse-click/children/click-browser-coordinate/implementation.ts",
   DESKTOP_CHILD_IMPL: "src/capabilities/mouse-click/children/click-desktop-coordinate/implementation.ts",
+  LEFT_CLICK_ONCE_IMPL: "src/capabilities/mouse-click/children/left-click-browser-viewport-once/implementation.ts",
+  DOUBLE_LEFT_CLICK_IMPL: "src/capabilities/mouse-click/children/double-left-click-browser-viewport/implementation.ts",
+  RIGHT_CLICK_ONCE_IMPL: "src/capabilities/mouse-click/children/right-click-browser-viewport-once/implementation.ts",
   WORKBENCH: "src/lib/local-runtime/workbench.ts",
   WORKBENCH_RUNTIME: "src/lib/local-runtime/workbench-mouse-click-runtime.ts",
   PRIMITIVE_ADAPTER: "src/lib/browser/mouse-click-primitive-port.ts",
@@ -65,6 +68,15 @@ export const REQUIRED_FILES = [
   `${PATHS.ROOT}/children/click-desktop-coordinate/contract.ts`,
   `${PATHS.ROOT}/children/click-desktop-coordinate/schema.ts`,
   PATHS.DESKTOP_CHILD_IMPL,
+  `${PATHS.ROOT}/children/left-click-browser-viewport-once/contract.ts`,
+  `${PATHS.ROOT}/children/left-click-browser-viewport-once/schema.ts`,
+  PATHS.LEFT_CLICK_ONCE_IMPL,
+  `${PATHS.ROOT}/children/double-left-click-browser-viewport/contract.ts`,
+  `${PATHS.ROOT}/children/double-left-click-browser-viewport/schema.ts`,
+  PATHS.DOUBLE_LEFT_CLICK_IMPL,
+  `${PATHS.ROOT}/children/right-click-browser-viewport-once/contract.ts`,
+  `${PATHS.ROOT}/children/right-click-browser-viewport-once/schema.ts`,
+  PATHS.RIGHT_CLICK_ONCE_IMPL,
 ] as const;
 
 export const FORBIDDEN_IMPORT_PREFIXES = [

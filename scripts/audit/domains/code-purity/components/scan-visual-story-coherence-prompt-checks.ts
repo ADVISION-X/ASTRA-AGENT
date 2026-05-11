@@ -6,7 +6,7 @@ import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
 import { retiredMapCodePurityTokens } from "./retired-map-code-purity-tokens.js";
 
-const VISUAL_STORY_COHERENCE_LAW_ID = "GRASSEYE-CODE-PURITY-VISUAL-STORY-COHERENCE-001-V1";
+const VISUAL_STORY_COHERENCE_LAW_ID = "GRASSEYE-RETIRED-AUTHORITY-NO-REGRESSION-V1";
 const {
   RETIRED_ROUTE_LABEL_FIELD,
   RETIRED_ROUTE_PLAN_ID_FIELD,
