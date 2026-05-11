@@ -123,6 +123,28 @@ GrassEye 启动链必须先确认本地 AI 运行环境和模型角色可用，�
 Commander 展示 AI readiness 状态，但不绕过门禁。
 ```
 
+### 自动启动 Ollama 实施规格（allowRecovery 合约）
+
+probe 脚本必须实现以下顺序逻辑：
+
+```txt
+1. 探测 Ollama endpoint 是否可达（HTTP GET /api/tags）。
+2. 若不可达 AND GRASSEYE_LOCAL_AI_ALLOW_RECOVERY=1：
+   a. 以 spawn detached 方式启动 `ollama serve`，不持有进程引用。
+   b. 按 pollIntervalMs 轮询 endpoint，最多等待 readyTimeoutMs。
+   c. 等待超时仍不可达 → 返回 failureReason=LOCAL_AI_NOT_READY，detail 写明 Ollama 未能在规定时间内就绪。
+3. Ollama 可达后，检查 required model 是否已拉取。
+4. 若模型缺失 → 返回 failureReason=LOCAL_AI_NOT_READY，detail 写明需要 ollama pull <modelName>。
+5. 若一切就绪 → 返回 missionRuntimeAvailable=true。
+```
+
+probe 禁止：
+```txt
+在 GRASSEYE_LOCAL_AI_ALLOW_RECOVERY=0 时尝试启动 Ollama。
+持有 ollama serve 子进程引用（不得在探针生命周期内 kill）。
+做任何推理调用。
+```
+
 ### 禁止
 
 ```txt

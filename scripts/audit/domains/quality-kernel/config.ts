@@ -1,7 +1,7 @@
 // Quality Kernel — minimal quality safety config.
 
 export const QUALITY_KERNEL_LIMITS = {
-  maxAuditFiles: 30,        // WARN at >20, FAIL at >40
+  maxAuditFiles: 32,        // WARN at >20, FAIL at >42; +2 for local-ai-startup-recovery domain (inspector.ts + run-inspector.ts)
   maxAuditFilesFail: 40,
   maxGeneratedFiles: 5,
   maxQualityKernelFiles: 5,

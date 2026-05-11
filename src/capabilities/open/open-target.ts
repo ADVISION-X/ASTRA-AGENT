@@ -27,7 +27,6 @@ import {
 } from "./schema.js";
 import {
   hashTargetUrl,
-  resolvePlatformTarget,
   validateTargetUrl,
 } from "./url-policy.js";
 
@@ -75,23 +74,11 @@ export async function openPlatformEntryOnce(
   let resolvedTargetProfileRef: string | undefined;
   let resolvedTargetUrlSource: "user" | "platformRegistry" | "system" | undefined;
 
-  if (parsed.data.targetProfileRef) {
-    const resolution = resolvePlatformTarget(parsed.data.targetProfileRef);
-    if (!resolution.ok) {
-      const endedAt = new Date().toISOString();
-      return {
-        status: "failed",
-        childCapabilityId: "open-platform-entry-once",
-        openResultRef: `open-result:${randomUUID()}`,
-        navigationAttemptProofRef: `open-proof:${randomUUID()}`,
-        targetProfileRef: parsed.data.targetProfileRef,
-        failureReason: resolution.failureReason,
-      };
-    }
-    resolvedUrl = resolution.url;
-    resolvedTargetProfileRef = parsed.data.targetProfileRef;
-    resolvedTargetUrlSource = "platformRegistry";
-  } else if (parsed.data.targetUrl && parsed.data.targetUrlSource) {
+  // targetProfileRef is kept as a reference/proof field only — it does NOT resolve a URL.
+  // PlatformProfile.entryUrl is the single URL truth. Always pass targetUrl+targetUrlSource.
+  resolvedTargetProfileRef = parsed.data.targetProfileRef;
+
+  if (parsed.data.targetUrl && parsed.data.targetUrlSource) {
     const validation = validateTargetUrl(parsed.data.targetUrl);
     if (!validation.ok) {
       return {
@@ -113,7 +100,7 @@ export async function openPlatformEntryOnce(
       openResultRef: `open-result:${randomUUID()}`,
       navigationAttemptProofRef: `open-proof:${randomUUID()}`,
       failureReason:
-        "OPEN_TARGET_MISSING: must provide targetProfileRef or targetUrl+targetUrlSource",
+        "OPEN_TARGET_MISSING: must provide targetUrl+targetUrlSource (PlatformProfile.entryUrl is the single URL truth)",
     };
   }
 

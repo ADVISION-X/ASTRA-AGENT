@@ -22,7 +22,8 @@
     "audit:runtime-logging": "node --import tsx scripts/audit/domains/runtime-logging/run-inspector.ts",
     "audit:visual-mission-flow": "node --import tsx scripts/audit/domains/visual-mission-flow/run-inspector.ts",
     "audit:visual-mission-runtime": "node --import tsx scripts/audit/domains/visual-mission-runtime/run-inspector.ts",
-    "ci:full": "npm run ci:simple && npm run audit:runtime-logging && npm run audit:visual-mission-flow && npm run audit:visual-mission-runtime",
+    "audit:local-ai-startup-recovery": "node --import tsx scripts/audit/domains/local-ai-startup-recovery/run-inspector.ts",
+    "ci:full": "npm run ci:simple && npm run audit:runtime-logging && npm run audit:visual-mission-flow && npm run audit:visual-mission-runtime && npm run audit:local-ai-startup-recovery",
     "lint": "npm run typecheck"
   },
   "dependencies": {
