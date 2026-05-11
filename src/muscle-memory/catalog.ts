@@ -29,7 +29,7 @@ const CapabilityRegistryInputContractSchema = z.object({
  * No executor, decoder, composite, recipe, workflow, or runtime fields.
  */
 const RegisteredAtomicAbilitySchema = z.object({
-  actionCode: z.string().min(1),          // serves as abilityId; AI schema uses this name
+  actionCode: z.string().min(1),
   type: z.literal("atomic"),
   displayName: z.string().min(1),
   description: z.string().min(1),
@@ -84,24 +84,12 @@ export function loadMuscleMemoryCatalog(): CapabilityRegistryCatalog {
   return catalogCache;
 }
 
-export function listRegisteredAbilities(): RegisteredAtomicAbility[] {
-  return loadMuscleMemoryCatalog().entries;
-}
-
 export function listAiVisibleAbilities(): RegisteredAtomicAbility[] {
   return loadMuscleMemoryCatalog().entries.filter((e) => e.allowedForAiActionPlan);
 }
 
-export function getRegisteredAbilityById(actionCode: string): RegisteredAtomicAbility | null {
+function getRegisteredAbilityById(actionCode: string): RegisteredAtomicAbility | null {
   return loadMuscleMemoryCatalog().entries.find((e) => e.actionCode === actionCode) ?? null;
-}
-
-export function assertRegisteredAbility(actionCode: string): RegisteredAtomicAbility {
-  const entry = getRegisteredAbilityById(actionCode);
-  if (!entry) {
-    throw new Error(`actionCode "${actionCode}" is not registered in the MuscleMemory capability registry.`);
-  }
-  return entry;
 }
 
 // ─── Backward-compatible API (callers that use old names) ─────────────────
@@ -111,36 +99,15 @@ export function findMuscleMemoryEntry(actionCode: string): MuscleMemoryEntry | n
   return getRegisteredAbilityById(actionCode);
 }
 
-/** @deprecated Use listAiVisibleAbilities */
-export function listAiActionPlanEntries(): MuscleMemoryEntry[] {
-  return listAiVisibleAbilities();
-}
-
 export function isAiActionPlanAllowedActionCode(actionCode: unknown): actionCode is string {
   return typeof actionCode === "string"
     && getRegisteredAbilityById(actionCode)?.allowedForAiActionPlan === true;
 }
 
-// ─── Exports ───────────────────────────────────────────────────────────────
-
-export {
-  FailurePolicySchema,
-  CapabilityRegistryInputContractSchema,
-  RegisteredAtomicAbilitySchema,
-  CapabilityRegistryCatalogSchema,
-  // Backward-compatible schema aliases
-  RegisteredAtomicAbilitySchema as AtomicMuscleMemoryEntrySchema,
-  RegisteredAtomicAbilitySchema as MuscleMemoryEntrySchema,
-  CapabilityRegistryCatalogSchema as MuscleMemoryCatalogSchema,
-};
 
 export type {
-  FailurePolicy,
-  CapabilityRegistryInputContract,
   RegisteredAtomicAbility,
-  CapabilityRegistryCatalog,
   // Backward-compatible type aliases
   AtomicMuscleMemoryEntry,
   MuscleMemoryEntry,
-  MuscleMemoryCatalog,
 };

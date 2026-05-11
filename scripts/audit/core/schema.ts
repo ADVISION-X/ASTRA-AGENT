@@ -1,5 +1,5 @@
-import type { AuditPlanOwner, GeneratedArtifacts } from "./schema-generated-artifacts.js";
-import type { EnforcementMatrixOwner, ResolvedDomainManifest } from "./schema-manifests.js";
+// Legacy imports removed — schema-generated-artifacts and schema-manifests were part of the
+// old multi-domain audit system that has been replaced by the quality-kernel.
 
 export const INSPECTION_CLASSIFICATIONS = [
   "PASS",
@@ -49,11 +49,8 @@ export interface InspectorResult {
   summary: string;
 }
 
-export interface InspectorContext extends GeneratedArtifacts {
+export interface InspectorContext {
   repoRoot: string;
-  manifestsByDomain: Map<string, ResolvedDomainManifest>;
-  matrixOwnersByDomain: Map<string, EnforcementMatrixOwner>;
-  planOwnersByDomain: Map<string, AuditPlanOwner>;
 }
 
 export type DomainInspector = (context: InspectorContext) => Promise<InspectorResult>;

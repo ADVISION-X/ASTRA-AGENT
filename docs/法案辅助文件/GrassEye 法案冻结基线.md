@@ -4,12 +4,12 @@
 
 当前法案源头冻结为：
 
-- 13 个 active ability groups
+- 14 个 active ability groups
 - 5 个 foundation laws
 - 0 个 support governance domains
 - 若干父 owner 子契约法案
 
-## 13 个 active ability groups
+## 14 个 active ability groups
 
 1. commander-console
 2. orchestration
@@ -24,6 +24,7 @@
 11. mouse-scroll
 12. post-action-verification
 13. forensics-persistence
+14. page-state
 
 ## 5 个 foundation laws
 
@@ -37,7 +38,11 @@
 
 ## 本地开发治理 allowlist
 
+1. debug-loop-boundary
+
 ## 本地开发工具
+
+- debug-loop-controller
 
 ## 子契约归属表
 

@@ -58,7 +58,6 @@ const ACTIVE_CAPABILITY_GROUP_IDS = [
   "mouse-click",
   "mouse-scroll",
   "text-input",
-  "post-action-verification",
   "forensics-persistence",
   "orchestration",
   "nerve-bus",

@@ -1,7 +1,7 @@
 /**
  * url-policy.ts — URL and target policy for Open capability.
  *
- * Open validates URLs. Open does not fall back to default URLs.
+ * Open validates URLs. Open does not substitute or inject target URLs.
  * If policy fails, Open fails closed.
  */
 

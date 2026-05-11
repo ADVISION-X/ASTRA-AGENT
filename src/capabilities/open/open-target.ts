@@ -11,7 +11,7 @@
  *
  * Does NOT:
  *   - Judge page readiness, correctness, or login state.
- *   - Fall back to a default URL.
+ *   - Substitute or inject a target URL.
  *   - Import AI, screenshot, mouse, geometry, orchestration, or forensics.
  */
 
@@ -125,7 +125,7 @@ export async function openPlatformEntryOnce(
   try {
     browserResult = await browserOpenPort.openUrl({
       url: resolvedUrl,
-      timeoutMs: parsed.data.timeoutMs,
+      ...(parsed.data.timeoutMs != null ? { timeoutMs: parsed.data.timeoutMs } : {}),
     });
   } catch (err) {
     const endedAt = new Date().toISOString();
@@ -247,7 +247,7 @@ export async function openLocalWorkbenchOnce(
   try {
     browserResult = await workbenchOpenPort.openWorkbench({
       url: validation.url.toString(),
-      timeoutMs: parsed.data.timeoutMs,
+      ...(parsed.data.timeoutMs != null ? { timeoutMs: parsed.data.timeoutMs } : {}),
     });
   } catch (err) {
     return {

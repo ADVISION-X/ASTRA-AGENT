@@ -42,13 +42,19 @@ export function createOpenAbilityGroup(ports: OpenAbilityGroupPorts): OpenAbilit
     async execute(input: OpenInput): Promise<OpenResult> {
       switch (input.childCapabilityId) {
         case "open-platform-entry-once":
-          return openPlatformEntryOnce(input, ports.browserOpenPort);
+          return openPlatformEntryOnce(
+            input as Parameters<typeof openPlatformEntryOnce>[0],
+            ports.browserOpenPort,
+          );
 
         case "open-local-workbench-once": {
           const workbenchPort = ports.workbenchOpenPort ?? {
-            openWorkbench: (opts) => ports.browserOpenPort.openUrl(opts),
+            openWorkbench: (opts: { url: string; timeoutMs?: number }) => ports.browserOpenPort.openUrl(opts),
           };
-          return openLocalWorkbenchOnce(input, workbenchPort);
+          return openLocalWorkbenchOnce(
+            input as Parameters<typeof openLocalWorkbenchOnce>[0],
+            workbenchPort,
+          );
         }
       }
     },

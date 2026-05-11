@@ -2,21 +2,12 @@ import { z } from "zod";
 
 const COMMANDER_CONSOLE_CHILD_ABILITY_IDS = [
   "issue-human-command",
-  "show-mission-dashboard",
-  "show-capability-roster",
-  "show-capability-health",
-  "show-runtime-proof-timeline",
-  "show-evidence-packets",
-  "show-browse-ledger",
-  "show-failed-records",
-  "show-review-queue",
-  "show-audit-summary",
   "pause-mission",
   "resume-mission",
   "stop-mission",
   "emergency-stop",
   "mark-review-required",
-  "inspect-record-detail",
+  "show-mission-status",
 ] as const;
 
 const COMMANDER_COMMAND_CHILD_IDS = [
@@ -28,23 +19,14 @@ const COMMANDER_COMMAND_CHILD_IDS = [
   "mark-review-required",
 ] as const;
 
-const COMMANDER_READ_CHILD_IDS = [
-  "show-mission-dashboard",
-  "show-capability-roster",
-  "show-capability-health",
-  "show-runtime-proof-timeline",
-  "show-evidence-packets",
-  "show-browse-ledger",
-  "show-failed-records",
-  "show-review-queue",
-  "show-audit-summary",
-  "inspect-record-detail",
-] as const;
+// Read-model universe retired. No read child IDs remain.
+const COMMANDER_READ_CHILD_IDS = [] as const;
 
 const NonEmptyStringSchema = z.string().trim().min(1);
 const CommanderConsoleChildAbilityIdSchema = z.enum(COMMANDER_CONSOLE_CHILD_ABILITY_IDS);
 const CommanderCommandChildAbilityIdSchema = z.enum(COMMANDER_COMMAND_CHILD_IDS);
-const CommanderReadChildAbilityIdSchema = z.enum(COMMANDER_READ_CHILD_IDS);
+/** @deprecated Read-model universe retired — empty never type kept for import compatibility. */
+const CommanderReadChildAbilityIdSchema = z.never();
 const CommanderDispatchChildCapabilityIdSchema = NonEmptyStringSchema;
 const CommanderChildKindSchema = z.enum(["command", "read"]);
 const CommanderConsoleStatusSchema = z.enum(["success", "failed", "review_required"]);

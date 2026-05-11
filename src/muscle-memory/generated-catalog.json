@@ -1,48 +1,12 @@
 {
   "catalogId": "grasseye-muscle-memory-catalog",
-  "catalogVersion": "2026-05-11.atomic-registry",
-  "generatedAt": "2026-05-11T06:32:19.000Z",
+  "catalogVersion": "2026-05-11.atomic-registry-v2",
+  "generatedAt": "2026-05-11T08:00:00.000Z",
   "entries": [
-    {
-      "actionCode": "CAPTURE_REGION",
-      "type": "atomic",
-      "displayName": "Capture Region",
-      "description": "Capture a governed region from an existing screenshot proof.",
-      "abilityGroupId": "screenshot",
-      "childCapabilityId": "capture-region",
-      "inputSchemaRef": "screenshot.capture-region.input",
-      "outputSchemaRef": "screenshot.capture-region.output",
-      "allowedForAiActionPlan": false,
-      "allowedForUserRequirement": false,
-      "requiresGridSpecRef": false,
-      "requiresScreenshotRef": true,
-      "requiresGeometryProof": false,
-      "sensitiveOperation": false,
-      "inputContract": {
-        "requiredFields": [
-          "sourceScreenshotEvidenceId",
-          "boundingBox"
-        ],
-        "optionalFields": [],
-        "forbiddenFields": [
-          "abilityGroupId",
-          "childCapabilityId"
-        ]
-      },
-      "successOutputRefs": [
-        "commentsEvidenceRef"
-      ],
-      "failurePolicy": "stop",
-      "forbiddenResponsibilities": [
-        "execute actions",
-        "author prompt contracts",
-        "persist evidence records directly"
-      ]
-    },
     {
       "actionCode": "CAPTURE_SCREEN",
       "type": "atomic",
-      "displayName": "Capture Screen",
+      "displayName": "Capture Browser Viewport",
       "description": "Capture the current browser viewport as governed evidence.",
       "abilityGroupId": "screenshot",
       "childCapabilityId": "capture-browser-viewport",
@@ -70,6 +34,117 @@
         "execute actions",
         "author prompt contracts",
         "persist evidence records directly"
+      ]
+    },
+    {
+      "actionCode": "RENDER_COORDINATE_GRID_ONCE",
+      "type": "atomic",
+      "displayName": "Render Coordinate Grid",
+      "description": "Render the coordinate grid overlay on an existing screenshot proof, returning a gridSpecRef for AI consumption.",
+      "abilityGroupId": "screenshot",
+      "childCapabilityId": "render-coordinate-grid",
+      "inputSchemaRef": "screenshot.render-coordinate-grid.input",
+      "outputSchemaRef": "screenshot.render-coordinate-grid.output",
+      "allowedForAiActionPlan": false,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": false,
+      "requiresScreenshotRef": true,
+      "requiresGeometryProof": false,
+      "sensitiveOperation": false,
+      "inputContract": {
+        "requiredFields": [
+          "sourceScreenshotEvidenceId"
+        ],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "gridSpecRef"
+      ],
+      "failurePolicy": "stop",
+      "forbiddenResponsibilities": [
+        "execute actions",
+        "author prompt contracts",
+        "persist evidence records directly"
+      ]
+    },
+    {
+      "actionCode": "CAPTURE_GRID_REGION_ONCE",
+      "type": "atomic",
+      "displayName": "Capture Grid Region",
+      "description": "Capture a governed region from an existing screenshot proof using a grid-cell bounding box.",
+      "abilityGroupId": "screenshot",
+      "childCapabilityId": "capture-grid-region",
+      "inputSchemaRef": "screenshot.capture-grid-region.input",
+      "outputSchemaRef": "screenshot.capture-grid-region.output",
+      "allowedForAiActionPlan": false,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": true,
+      "requiresScreenshotRef": true,
+      "requiresGeometryProof": false,
+      "sensitiveOperation": false,
+      "inputContract": {
+        "requiredFields": [
+          "sourceScreenshotEvidenceId",
+          "gridCell"
+        ],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "regionEvidenceRef"
+      ],
+      "failurePolicy": "stop",
+      "forbiddenResponsibilities": [
+        "execute actions",
+        "author prompt contracts",
+        "persist evidence records directly"
+      ]
+    },
+    {
+      "actionCode": "CALL_VISUAL_MISSION_JUDGE_ONCE",
+      "type": "atomic",
+      "displayName": "Call Visual Mission Judge Once",
+      "description": "Invoke the local AI for a single-step visual mission judgment, returning an action plan or done signal.",
+      "abilityGroupId": "ai",
+      "childCapabilityId": "visual-mission-judge-once",
+      "inputSchemaRef": "ai.visual-mission-judge-once.input",
+      "outputSchemaRef": "ai.visual-mission-judge-once.output",
+      "allowedForAiActionPlan": false,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": true,
+      "requiresScreenshotRef": true,
+      "requiresGeometryProof": false,
+      "sensitiveOperation": false,
+      "inputContract": {
+        "requiredFields": [
+          "screenshotEvidenceRef",
+          "gridSpecRef",
+          "userRequirement"
+        ],
+        "optionalFields": [
+          "missionId",
+          "roundId"
+        ],
+        "forbiddenFields": [
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "aiJudgmentRef"
+      ],
+      "failurePolicy": "stop",
+      "forbiddenResponsibilities": [
+        "execute platform actions",
+        "write evidence records directly",
+        "compute geometry"
       ]
     },
     {
@@ -117,7 +192,7 @@
       "actionCode": "DOUBLE_LEFT_CLICK_GRID_CELL",
       "type": "atomic",
       "displayName": "Double Left Click Grid Cell",
-      "description": "Execute a double left-click on a Geometry Guard approved browser-viewport coordinate. button=left and clickCount=2 are fixed by the child capability ID.",
+      "description": "Execute a double left-click on a Geometry Guard approved browser-viewport coordinate.",
       "abilityGroupId": "mouse-click",
       "childCapabilityId": "double-left-click-browser-viewport",
       "inputSchemaRef": "mouse-click.double-left-click-browser-viewport.input",
@@ -158,7 +233,7 @@
       "actionCode": "RIGHT_CLICK_GRID_CELL_ONCE",
       "type": "atomic",
       "displayName": "Right Click Grid Cell Once",
-      "description": "Execute a single right-click on a Geometry Guard approved browser-viewport coordinate. button=right and clickCount=1 are fixed by the child capability ID.",
+      "description": "Execute a single right-click on a Geometry Guard approved browser-viewport coordinate.",
       "abilityGroupId": "mouse-click",
       "childCapabilityId": "right-click-browser-viewport-once",
       "inputSchemaRef": "mouse-click.right-click-browser-viewport-once.input",
@@ -196,10 +271,229 @@
       ]
     },
     {
+      "actionCode": "TYPE_APPROVED_TEXT_ONCE",
+      "type": "atomic",
+      "displayName": "Type Approved Text Once",
+      "description": "Type a pre-approved text string into the currently focused input element.",
+      "abilityGroupId": "text-input",
+      "childCapabilityId": "type-approved-text-once",
+      "inputSchemaRef": "text-input.type-approved-text-once.input",
+      "outputSchemaRef": "text-input.type-approved-text-once.output",
+      "allowedForAiActionPlan": true,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": false,
+      "requiresScreenshotRef": false,
+      "requiresGeometryProof": false,
+      "sensitiveOperation": true,
+      "inputContract": {
+        "requiredFields": [
+          "approvedText"
+        ],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "clipboard",
+          "paste",
+          "rawText",
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "typeResultRef"
+      ],
+      "failurePolicy": "continue",
+      "forbiddenResponsibilities": [
+        "generate text",
+        "locate input target",
+        "verify page state"
+      ]
+    },
+    {
+      "actionCode": "PRESS_APPROVED_KEY_ONCE",
+      "type": "atomic",
+      "displayName": "Press Approved Key Once",
+      "description": "Press a single approved key (Enter, Tab, Escape, etc.) in the currently focused element.",
+      "abilityGroupId": "text-input",
+      "childCapabilityId": "press-approved-key-once",
+      "inputSchemaRef": "text-input.press-approved-key-once.input",
+      "outputSchemaRef": "text-input.press-approved-key-once.output",
+      "allowedForAiActionPlan": true,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": false,
+      "requiresScreenshotRef": false,
+      "requiresGeometryProof": false,
+      "sensitiveOperation": true,
+      "inputContract": {
+        "requiredFields": [
+          "approvedKey"
+        ],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "clipboard",
+          "text",
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "keyResultRef"
+      ],
+      "failurePolicy": "continue",
+      "forbiddenResponsibilities": [
+        "generate text",
+        "locate input target",
+        "verify page state"
+      ]
+    },
+    {
+      "actionCode": "CLEAR_FOCUSED_INPUT_ONCE",
+      "type": "atomic",
+      "displayName": "Clear Focused Input Once",
+      "description": "Clear the content of the currently focused input element.",
+      "abilityGroupId": "text-input",
+      "childCapabilityId": "clear-focused-input-once",
+      "inputSchemaRef": "text-input.clear-focused-input-once.input",
+      "outputSchemaRef": "text-input.clear-focused-input-once.output",
+      "allowedForAiActionPlan": true,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": false,
+      "requiresScreenshotRef": false,
+      "requiresGeometryProof": false,
+      "sensitiveOperation": true,
+      "inputContract": {
+        "requiredFields": [],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "clipboard",
+          "text",
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "clearResultRef"
+      ],
+      "failurePolicy": "continue",
+      "forbiddenResponsibilities": [
+        "generate text",
+        "locate input target",
+        "verify page state"
+      ]
+    },
+    {
+      "actionCode": "SCROLL_BROWSER_VIEWPORT_ONCE",
+      "type": "atomic",
+      "displayName": "Scroll Browser Viewport Once",
+      "description": "Scroll the browser viewport by a governed delta amount.",
+      "abilityGroupId": "mouse-scroll",
+      "childCapabilityId": "scroll-browser-viewport",
+      "inputSchemaRef": "mouse-scroll.scroll-browser-viewport.input",
+      "outputSchemaRef": "mouse-scroll.scroll-browser-viewport.output",
+      "allowedForAiActionPlan": true,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": false,
+      "requiresScreenshotRef": false,
+      "requiresGeometryProof": false,
+      "sensitiveOperation": false,
+      "inputContract": {
+        "requiredFields": [
+          "scrollDeltaY"
+        ],
+        "optionalFields": [
+          "scrollDeltaX"
+        ],
+        "forbiddenFields": [
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "scrollResultRef"
+      ],
+      "failurePolicy": "continue",
+      "forbiddenResponsibilities": [
+        "compute scroll target coordinates",
+        "verify page state"
+      ]
+    },
+    {
+      "actionCode": "OPEN_PLATFORM_ENTRY_ONCE",
+      "type": "atomic",
+      "displayName": "Open Platform Entry Once",
+      "description": "Navigate the governed Chrome session to a registered platform entry URL.",
+      "abilityGroupId": "open",
+      "childCapabilityId": "open-platform-entry-once",
+      "inputSchemaRef": "open.open-platform-entry-once.input",
+      "outputSchemaRef": "open.open-platform-entry-once.output",
+      "allowedForAiActionPlan": true,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": false,
+      "requiresScreenshotRef": false,
+      "requiresGeometryProof": false,
+      "sensitiveOperation": true,
+      "inputContract": {
+        "requiredFields": [
+          "platformId"
+        ],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "url",
+          "rawUrl",
+          "fallbackUrl",
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "openResultRef"
+      ],
+      "failurePolicy": "stop",
+      "forbiddenResponsibilities": [
+        "invent URLs",
+        "own browser session",
+        "verify page state"
+      ]
+    },
+    {
+      "actionCode": "OPEN_LOCAL_WORKBENCH_ONCE",
+      "type": "atomic",
+      "displayName": "Open Local Workbench Once",
+      "description": "Open the GrassEye local workbench UI in the governed Chrome session.",
+      "abilityGroupId": "open",
+      "childCapabilityId": "open-local-workbench-once",
+      "inputSchemaRef": "open.open-local-workbench-once.input",
+      "outputSchemaRef": "open.open-local-workbench-once.output",
+      "allowedForAiActionPlan": true,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": false,
+      "requiresScreenshotRef": false,
+      "requiresGeometryProof": false,
+      "sensitiveOperation": false,
+      "inputContract": {
+        "requiredFields": [],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "url",
+          "rawUrl",
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "openResultRef"
+      ],
+      "failurePolicy": "stop",
+      "forbiddenResponsibilities": [
+        "invent URLs",
+        "own browser session",
+        "verify page state"
+      ]
+    },
+    {
       "actionCode": "STOP_REVIEW_REQUIRED_ONCE",
       "type": "atomic",
-      "displayName": "Stop Review Required",
-      "description": "Fail closed and hand the current visual mission back to human review.",
+      "displayName": "Stop: Mark Review Required",
+      "description": "Signal that the current mission step requires human review and halt further AI steps.",
       "abilityGroupId": "orchestration",
       "childCapabilityId": "emergency-stop",
       "inputSchemaRef": "orchestration.emergency-stop.input",
@@ -211,7 +505,41 @@
       "requiresGeometryProof": false,
       "sensitiveOperation": true,
       "inputContract": {
-        "requiredFields": [],
+        "requiredFields": [
+          "reason"
+        ],
+        "optionalFields": [],
+        "forbiddenFields": [
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [],
+      "failurePolicy": "review_required",
+      "forbiddenResponsibilities": [
+        "execute platform actions",
+        "own mission state"
+      ]
+    },
+    {
+      "actionCode": "SAVE_RECORD_ONCE",
+      "type": "atomic",
+      "displayName": "Save Evidence Record Once",
+      "description": "Append a governed evidence record to the forensics persistence ledger.",
+      "abilityGroupId": "forensics-persistence",
+      "childCapabilityId": "append-record",
+      "inputSchemaRef": "forensics-persistence.append-record.input",
+      "outputSchemaRef": "forensics-persistence.append-record.output",
+      "allowedForAiActionPlan": false,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": false,
+      "requiresScreenshotRef": false,
+      "requiresGeometryProof": false,
+      "sensitiveOperation": false,
+      "inputContract": {
+        "requiredFields": [
+          "record"
+        ],
         "optionalFields": [],
         "forbiddenFields": [
           "abilityGroupId",
@@ -219,209 +547,32 @@
         ]
       },
       "successOutputRefs": [
-        "reviewRequiredRef"
-      ],
-      "failurePolicy": "review_required",
-      "forbiddenResponsibilities": [
-        "execute browser primitives directly",
-        "invent user goals",
-        "bypass human review"
-      ]
-    },
-    {
-      "actionCode": "OPEN_PLATFORM_ENTRY_ONCE",
-      "type": "atomic",
-      "displayName": "Open Platform Entry",
-      "description": "Open the governed platform entry surface (targetProfileRef = facebook / tiktok / ...).",
-      "abilityGroupId": "open",
-      "childCapabilityId": "open-platform-entry-once",
-      "inputSchemaRef": "open.open-platform-entry-once.input",
-      "outputSchemaRef": "open.open-platform-entry-once.output",
-      "allowedForAiActionPlan": true,
-      "allowedForUserRequirement": true,
-      "requiresGridSpecRef": false,
-      "requiresScreenshotRef": false,
-      "requiresGeometryProof": false,
-      "sensitiveOperation": false,
-      "inputContract": {
-        "requiredFields": [
-          "stepId",
-          "capabilityCallId",
-          "nerveBusEnvelopeId",
-          "requestedBy",
-          "inputRef",
-          "idempotencyKey"
-        ],
-        "optionalFields": [
-          "targetProfileRef",
-          "targetUrl",
-          "targetUrlSource",
-          "sessionId",
-          "roundId",
-          "timeoutMs"
-        ],
-        "forbiddenFields": [
-          "pageStateHandoffRef",
-          "pageStateRef",
-          "defaultTargetUrl",
-          "fallbackTargetUrl",
-          "mapId",
-          "bindingPackageId",
-          "branchToken",
-          "deterministicFlowPlan",
-          "pageReady",
-          "pageCorrect",
-          "feedReady",
-          "semanticSuccess"
-        ]
-      },
-      "successOutputRefs": [
-        "openResultRef",
-        "navigationAttemptProofRef",
-        "rawBrowserObservationRef"
+        "recordRef"
       ],
       "failurePolicy": "stop",
       "forbiddenResponsibilities": [
-        "page readiness judgment",
-        "page semantic judgment",
-        "default target URL fallback",
-        "AI judgment",
-        "screenshot",
-        "click",
-        "Forensics write",
-        "Page State",
-        "login/captcha/feed/safety judgment"
+        "execute platform actions",
+        "decide record type business semantics"
       ]
     },
     {
-      "actionCode": "SAVE_EVIDENCE_RECORD_ONCE",
+      "actionCode": "APPEND_ARTIFACT_ONCE",
       "type": "atomic",
-      "displayName": "Save Evidence Record",
-      "description": "Persist a governed evidence record via Forensics Persistence.",
+      "displayName": "Append Artifact Once",
+      "description": "Append a file artifact reference to the forensics persistence ledger.",
       "abilityGroupId": "forensics-persistence",
-      "childCapabilityId": "write-product-lead-record",
-      "inputSchemaRef": "forensics-persistence.write-product-lead-record.input",
-      "outputSchemaRef": "forensics-persistence.write-product-lead-record.output",
-      "allowedForAiActionPlan": true,
-      "allowedForUserRequirement": true,
-      "requiresGridSpecRef": false,
-      "requiresScreenshotRef": true,
-      "requiresGeometryProof": false,
-      "sensitiveOperation": true,
-      "inputContract": {
-        "requiredFields": [
-          "requestedPlatformId",
-          "targetUrl",
-          "targetTitle",
-          "screenshotEvidenceRef"
-        ],
-        "optionalFields": [
-          "aiResultRef"
-        ],
-        "forbiddenFields": [
-          "abilityGroupId",
-          "childCapabilityId"
-        ]
-      },
-      "successOutputRefs": [
-        "productLeadRecordRef"
-      ],
-      "failurePolicy": "review_required",
-      "forbiddenResponsibilities": [
-        "execute browser actions",
-        "classify page state",
-        "author prompts"
-      ]
-    },
-    {
-      "actionCode": "WRITE_ACTION_LOG",
-      "type": "atomic",
-      "displayName": "Write Action Log",
-      "description": "Persist a structured action log record.",
-      "abilityGroupId": "forensics-persistence",
-      "childCapabilityId": "write-structured-action-log",
-      "inputSchemaRef": "forensics-persistence.write-structured-action-log.input",
-      "outputSchemaRef": "forensics-persistence.write-structured-action-log.output",
+      "childCapabilityId": "append-artifact",
+      "inputSchemaRef": "forensics-persistence.append-artifact.input",
+      "outputSchemaRef": "forensics-persistence.append-artifact.output",
       "allowedForAiActionPlan": false,
       "allowedForUserRequirement": false,
       "requiresGridSpecRef": false,
       "requiresScreenshotRef": false,
-      "requiresGeometryProof": false,
-      "sensitiveOperation": true,
-      "inputContract": {
-        "requiredFields": [],
-        "optionalFields": [],
-        "forbiddenFields": [
-          "abilityGroupId",
-          "childCapabilityId"
-        ]
-      },
-      "successOutputRefs": [
-        "abilityResultRef"
-      ],
-      "failurePolicy": "review_required",
-      "forbiddenResponsibilities": [
-        "execute browser actions",
-        "classify page state",
-        "author prompts"
-      ]
-    },
-    {
-      "actionCode": "WRITE_AI_RESULT",
-      "type": "atomic",
-      "displayName": "Write AI Result",
-      "description": "Persist a governed AI result record.",
-      "abilityGroupId": "forensics-persistence",
-      "childCapabilityId": "write-ai-result-record",
-      "inputSchemaRef": "forensics-persistence.write-ai-result-record.input",
-      "outputSchemaRef": "forensics-persistence.write-ai-result-record.output",
-      "allowedForAiActionPlan": false,
-      "allowedForUserRequirement": false,
-      "requiresGridSpecRef": false,
-      "requiresScreenshotRef": false,
-      "requiresGeometryProof": false,
-      "sensitiveOperation": true,
-      "inputContract": {
-        "requiredFields": [
-          "promptContractId",
-          "promptContractVersion",
-          "promptCatalogVersion",
-          "payload"
-        ],
-        "optionalFields": [],
-        "forbiddenFields": [
-          "abilityGroupId",
-          "childCapabilityId"
-        ]
-      },
-      "successOutputRefs": [
-        "abilityResultRef"
-      ],
-      "failurePolicy": "review_required",
-      "forbiddenResponsibilities": [
-        "execute browser actions",
-        "classify page state",
-        "author prompts"
-      ]
-    },
-    {
-      "actionCode": "PREPARE_VISUAL_MISSION_INPUT",
-      "type": "atomic",
-      "displayName": "Prepare Visual Mission Input",
-      "description": "Prepare original image, coordinate-grid image, and grid spec for governed visual missions.",
-      "abilityGroupId": "screenshot",
-      "childCapabilityId": "prepare-visual-mission-input",
-      "inputSchemaRef": "screenshot.prepare-visual-mission-input.input",
-      "outputSchemaRef": "screenshot.prepare-visual-mission-input.output",
-      "allowedForAiActionPlan": false,
-      "allowedForUserRequirement": false,
-      "requiresGridSpecRef": false,
-      "requiresScreenshotRef": true,
       "requiresGeometryProof": false,
       "sensitiveOperation": false,
       "inputContract": {
         "requiredFields": [
-          "screenshotEvidenceRef"
+          "artifactRef"
         ],
         "optionalFields": [],
         "forbiddenFields": [
@@ -430,110 +581,46 @@
         ]
       },
       "successOutputRefs": [
-        "visualMissionInputRef",
-        "gridSpecRef"
+        "artifactRecordRef"
       ],
       "failurePolicy": "stop",
       "forbiddenResponsibilities": [
-        "execute actions",
-        "author prompt contracts",
-        "persist evidence records directly"
+        "execute platform actions",
+        "own artifact file storage"
       ]
     },
     {
-      "actionCode": "VISUAL_MISSION_JUDGE",
+      "actionCode": "READ_RECORD_ONCE",
       "type": "atomic",
-      "displayName": "Visual Mission Judge",
-      "description": "AI judgment entry for visual mission product presence.",
-      "abilityGroupId": "ai",
-      "childCapabilityId": "product-presence-judgment",
-      "inputSchemaRef": "ai.product-presence-judgment.input",
-      "outputSchemaRef": "ai.product-presence-judgment.output",
+      "displayName": "Read Evidence Record Once",
+      "description": "Read a specific evidence record by its record reference ID from the forensics ledger.",
+      "abilityGroupId": "forensics-persistence",
+      "childCapabilityId": "read-record-ref",
+      "inputSchemaRef": "forensics-persistence.read-record-ref.input",
+      "outputSchemaRef": "forensics-persistence.read-record-ref.output",
       "allowedForAiActionPlan": false,
       "allowedForUserRequirement": false,
-      "requiresGridSpecRef": true,
-      "requiresScreenshotRef": true,
-      "requiresGeometryProof": false,
-      "sensitiveOperation": false,
-      "inputContract": {
-        "requiredFields": [
-          "promptInputRef"
-        ],
-        "optionalFields": [
-          "visualMissionInputRef",
-          "gridSpecRef",
-          "userRequirementRef"
-        ],
-        "forbiddenFields": [
-          "abilityGroupId",
-          "childCapabilityId",
-          "x",
-          "y",
-          "clientX",
-          "clientY"
-        ]
-      },
-      "successOutputRefs": [
-        "aiResultRef"
-      ],
-      "failurePolicy": "review_required",
-      "forbiddenResponsibilities": [
-        "execute browser actions",
-        "invent prompt text",
-        "read credentials or cookies"
-      ]
-    },
-    {
-      "actionCode": "OPEN_LOCAL_WORKBENCH_ONCE",
-      "type": "atomic",
-      "displayName": "Open Local Workbench",
-      "description": "Open the local GrassEye workbench entry.",
-      "abilityGroupId": "open",
-      "childCapabilityId": "open-local-workbench-once",
-      "inputSchemaRef": "open.open-local-workbench-once.input",
-      "outputSchemaRef": "open.open-local-workbench-once.output",
-      "allowedForAiActionPlan": true,
-      "allowedForUserRequirement": true,
       "requiresGridSpecRef": false,
       "requiresScreenshotRef": false,
       "requiresGeometryProof": false,
       "sensitiveOperation": false,
       "inputContract": {
         "requiredFields": [
-          "stepId",
-          "capabilityCallId",
-          "nerveBusEnvelopeId",
-          "requestedBy",
-          "inputRef",
-          "idempotencyKey",
-          "workbenchUrl"
+          "recordRef"
         ],
-        "optionalFields": [
-          "sessionId",
-          "roundId",
-          "timeoutMs"
-        ],
+        "optionalFields": [],
         "forbiddenFields": [
-          "pageStateHandoffRef",
-          "pageStateRef",
-          "defaultTargetUrl",
-          "fallbackUrl",
-          "mapId",
-          "bindingPackageId"
+          "abilityGroupId",
+          "childCapabilityId"
         ]
       },
       "successOutputRefs": [
-        "openResultRef",
-        "navigationAttemptProofRef",
-        "rawBrowserObservationRef"
+        "record"
       ],
       "failurePolicy": "stop",
       "forbiddenResponsibilities": [
-        "page readiness judgment",
-        "page semantic judgment",
-        "AI judgment",
-        "screenshot",
-        "click"
+        "execute platform actions",
+        "own record format"
       ]
     }
   ]

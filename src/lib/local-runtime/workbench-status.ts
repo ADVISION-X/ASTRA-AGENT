@@ -10,7 +10,6 @@
  * Does NOT contain: mission truth, AI role controls, or Forensics finalization.
  */
 
-import { getOpenLocalProgramAdapterReadiness } from "./open-local-program-adapter.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import type { WorkbenchAssembly } from "./workbench-assembly.js";
 
@@ -79,26 +78,6 @@ export async function getHealthReport(
       detail: err instanceof Error ? err.message : "browser session check failed",
       actionableMessage: "Ensure browser is configured and accessible.",
       ownerResponsible: "Browser Session",
-    });
-  }
-
-  // Open local program readiness (macOS mirroring)
-  try {
-    const readiness = await getOpenLocalProgramAdapterReadiness();
-    components.push({
-      name: "localProgram",
-      ok: readiness.ok,
-      detail: readiness.detail ?? null,
-      actionableMessage: readiness.ok ? null : "Ensure iPhone Mirroring is installed and accessible.",
-      ownerResponsible: "Open Capability / Local Program Adapter",
-    });
-  } catch {
-    components.push({
-      name: "localProgram",
-      ok: false,
-      detail: "local program readiness check failed",
-      actionableMessage: "Check local program adapter configuration.",
-      ownerResponsible: "Open Capability / Local Program Adapter",
     });
   }
 

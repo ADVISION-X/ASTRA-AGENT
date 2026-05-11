@@ -20,9 +20,8 @@ import { createGeometryGuardAbilityGroup } from "../../capabilities/geometry-gua
 import { createMouseClickAbilityGroupWithPrimitivePort } from "../../capabilities/mouse-click/index.js";
 import { createMouseScrollAbilityGroupWithPrimitivePort } from "../../capabilities/mouse-scroll/index.js";
 import { createOpenAbilityGroup } from "../../capabilities/open/index.js";
-import type { OpenBrowserPort } from "../../capabilities/open/index.js";
-import { createPostActionVerificationAbilityGroup } from "../../capabilities/post-action-verification/index.js";
-import type { PostActionEvidenceReadPort } from "../../capabilities/post-action-verification/ports/post-action-evidence-read-port.js";
+import type { BrowserOpenPort } from "../../capabilities/open/index.js";
+
 import { createWorkbenchScreenshotAbilityGroup } from "../../capabilities/screenshot/workbench-screenshot-ability-group.js";
 import { createTextInputAbilityGroupWithPorts } from "../../capabilities/text-input/index.js";
 import { createVisualTargetAbilityGroup } from "../../capabilities/visual-target/index.js";
@@ -33,7 +32,6 @@ import { createBrowserControllerMouseScrollPrimitivePort } from "../browser/mous
 import { createBrowserControllerTextInputRuntimePorts } from "../browser/text-input-runtime-ports.js";
 import { createGrassEyeFileStorage } from "../storage/index.js";
 import { getDefaultPhase04LocalDataDir } from "./default-data-dir.js";
-import { createGovernedMacOSOpenLocalProgramAdapter } from "./open-local-program-adapter.js";
 import { StructuredLogBus } from "./structured-log-bus.js";
 import {
   createStructuredTerminalLogListener,
@@ -46,91 +44,34 @@ import type { GrassEyeWorkbenchOptions } from "./contract.js";
 
 function createOpenBrowserPortAdapter(
   browserController: CurrentChromeBrowserController,
-): OpenBrowserPort {
+): BrowserOpenPort {
   return {
-    async getSessionSnapshot() {
-      const state = browserController.getSessionState();
-      return {
-        open: state.open,
-        currentUrl: state.currentUrl,
-        currentTitle: state.currentTitle ?? null,
-        browserExecutable: state.browserExecutable,
-        browserMode: state.browserMode,
-        browserProfileRef: state.browserProfileRef,
-        browserExecutablePath: state.browserExecutablePath,
-        profileStatus: state.profileStatus,
-        profileDirectory: state.profileDirectory,
-        profileProvisioning: state.profileProvisioning,
-        profileVerificationStatus: state.profileVerificationStatus,
-        profileVerificationReason: state.profileVerificationReason ?? null,
-        loginState: state.loginState,
-        lastLoginCheckAt: state.lastLoginCheckAt ?? null,
-        loginRequiredReason: state.loginRequiredReason ?? null,
-        reviewRequiredReason: state.reviewRequiredReason ?? null,
-      } as unknown as ReturnType<OpenBrowserPort["getSessionSnapshot"]> extends Promise<infer T>
-        ? T
-        : never;
-    },
-    async open(input) {
+    async openUrl(input: { url: string; timeoutMs?: number }) {
+      const started = new Date().toISOString();
       const result = await browserController.open({
         url: input.url,
-        title: input.title ?? "",
+        title: "",
       });
       return {
-        browserActionId: result.browserActionId,
         ok: result.ok,
-        message: result.message,
-        createdAt: result.createdAt,
-        openedUrl: input.url,
-        pageTitleAfter: null,
-        redirectChain: [input.url],
-        portKind: "current-chrome-browser-controller",
+        currentUrl: input.url,
+        navigationStartedAt: started,
+        navigationEndedAt: new Date().toISOString(),
+        ...(result.ok ? {} : { failureMessage: result.message }),
+      };
+    },
+    async readRawObservation() {
+      const state = browserController.getSessionState();
+      return {
+        ...(state.currentUrl != null ? { currentUrl: state.currentUrl } : {}),
+        ...(state.currentTitle != null ? { currentTitle: state.currentTitle } : {}),
+        ...(state.browserProfileRef != null ? { browserSessionRef: state.browserProfileRef } : {}),
       };
     },
   };
 }
 
-function createLocalPavEvidenceReadPort(): PostActionEvidenceReadPort {
-  return {
-    listObservations(request) {
-      return request.observationSet.observations;
-    },
-    getObservationByRef(request, ref) {
-      return (
-        request.observationSet.observations.find((o) => o.ref === ref) ?? null
-      );
-    },
-    getEvidenceByRef(request, ref) {
-      const { beforeEvidence, afterEvidence } = request.beforeAfterEvidence;
-      if (
-        beforeEvidence != null &&
-        (beforeEvidence as { evidenceRef?: string }).evidenceRef === ref
-      ) {
-        return beforeEvidence as unknown as ReturnType<
-          PostActionEvidenceReadPort["getEvidenceByRef"]
-        >;
-      }
-      if (
-        afterEvidence != null &&
-        (afterEvidence as { evidenceRef?: string }).evidenceRef === ref
-      ) {
-        return afterEvidence as unknown as ReturnType<
-          PostActionEvidenceReadPort["getEvidenceByRef"]
-        >;
-      }
-      return null;
-    },
-    getActionLogByRef(_request, _ref) {
-      return null;
-    },
-    verifyProofRef(_request, _ref) {
-      return true;
-    },
-    verifyEvidenceBinding(_request, _ref) {
-      return true;
-    },
-  };
-}
+
 
 // ─── Assembly Type ─────────────────────────────────────────────────────────────
 
@@ -154,9 +95,7 @@ export type WorkbenchAssembly = {
     typeof createMouseScrollAbilityGroupWithPrimitivePort
   >;
   textInputAbilityGroup: ReturnType<typeof createTextInputAbilityGroupWithPorts>;
-  postActionVerificationAbilityGroup: ReturnType<
-    typeof createPostActionVerificationAbilityGroup
-  >;
+
 };
 
 // ─── Assembly ─────────────────────────────────────────────────────────────────
@@ -221,30 +160,23 @@ export function createWorkbenchAssembly(
     });
   const textInputAbilityGroup =
     createTextInputAbilityGroupWithPorts(textInputPorts);
-  const postActionVerificationAbilityGroup =
-    createPostActionVerificationAbilityGroup({
-      clock: {
-        portKind: "post-action-verification-clock" as const,
-        now: () => ({
-          isoTimestamp: new Date().toISOString(),
-          monotonicMs: performance.now(),
-        }),
-      },
-      evidenceReadPort: createLocalPavEvidenceReadPort(),
-    });
   const aiAbilityGroup = createConfiguredAiAbilityGroup({ dataDir });
   const openAbilityGroup = createOpenAbilityGroup({
-    browser: createOpenBrowserPortAdapter(browserController),
-    localProgram: createGovernedMacOSOpenLocalProgramAdapter(),
-    profilePort: {
-      resolveProfileOverride: ({ childCapabilityId }) => {
-        if (childCapabilityId !== "open-local-workbench") return null;
+    browserOpenPort: createOpenBrowserPortAdapter(browserController),
+    workbenchOpenPort: {
+      openWorkbench: async (_input) => {
+        const started = new Date().toISOString();
         const workbenchUrl = new URL(options.baseUrl);
+        const result = await browserController.open({
+          url: workbenchUrl.toString(),
+          title: "",
+        });
         return {
-          defaultUrl: workbenchUrl.toString(),
-          profileRef: "local-workbench",
-          platformId: "agent-shell",
-          targetKind: "local-url",
+          ok: result.ok,
+          currentUrl: workbenchUrl.toString(),
+          navigationStartedAt: started,
+          navigationEndedAt: new Date().toISOString(),
+          ...(result.ok ? {} : { failureMessage: result.message }),
         };
       },
     },
@@ -264,6 +196,5 @@ export function createWorkbenchAssembly(
     mouseClickAbilityGroup,
     mouseScrollAbilityGroup,
     textInputAbilityGroup,
-    postActionVerificationAbilityGroup,
   };
 }

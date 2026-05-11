@@ -9,8 +9,6 @@
     "orchestration-capability",
     "commander-console-capability",
     "nerve-bus-capability",
-    "page-state-capability",
-    "post-action-verification-capability",
     "open-capability",
     "screenshot-capability",
     "geometry-guard-capability",

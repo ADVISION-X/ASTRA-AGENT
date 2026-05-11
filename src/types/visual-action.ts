@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { PostActionVerificationAbilityResultSchema } from "../capabilities/post-action-verification/schema.js";
+// Post-action verification retired. VisualActionVerificationResultSchema replaced with minimal stub.
 
 const finiteNumber = z.number().finite();
 
@@ -26,7 +26,11 @@ const VisualTargetSchema = z.object({
   visibleText: z.string().min(1).nullable().default(null),
 }).strict();
 
-const VisualActionVerificationResultSchema = PostActionVerificationAbilityResultSchema;
+// PAV retired — minimal stub schema for backward compatibility.
+const VisualActionVerificationResultSchema = z.object({
+  abilityGroupId: z.literal("post-action-verification"),
+  ok: z.boolean(),
+}).passthrough();
 
 const VisualActionRequestSchema = z.object({
   actionType: z.string().min(1),

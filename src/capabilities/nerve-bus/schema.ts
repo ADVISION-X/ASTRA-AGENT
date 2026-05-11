@@ -25,9 +25,7 @@ export const GOVERNED_ABILITY_GROUP_IDS: readonly string[] = [
   "mouse-click",
   "mouse-scroll",
   "text-input",
-  "page-state",
   "open",
-  "post-action-verification",
   "forensics-persistence",
 ] as const;
 

@@ -49,7 +49,6 @@ function buildAbilityGroupRegistry(deps: WorkbenchAssembly): Map<string, Generic
   registry.set("mouse-click", deps.mouseClickAbilityGroup as unknown as GenericAbilityGroup);
   registry.set("mouse-scroll", deps.mouseScrollAbilityGroup as unknown as GenericAbilityGroup);
   registry.set("text-input", deps.textInputAbilityGroup as unknown as GenericAbilityGroup);
-  registry.set("post-action-verification", deps.postActionVerificationAbilityGroup as unknown as GenericAbilityGroup);
   registry.set("forensics-persistence", deps.forensicsPersistenceAbilityGroup as unknown as GenericAbilityGroup);
   return registry;
 }

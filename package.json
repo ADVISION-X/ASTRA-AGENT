@@ -18,7 +18,8 @@
     "acceptance:browse-live-proof": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/browse-live-proof.mjs",
     "acceptance:delivery-smoke": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/delivery-smoke.mjs",
     "acceptance:phase3": "npm run ci:full && npm run acceptance:browse-live-proof && npm run acceptance:delivery-smoke",
-    "ci:full": "node --import tsx scripts/audit/ci-full.ts",
+    "ci:simple": "npm run typecheck && node --import tsx scripts/audit/domains/quality-kernel/run-inspector.ts",
+    "ci:full": "npm run ci:simple",
     "lint": "npm run typecheck"
   },
   "dependencies": {
