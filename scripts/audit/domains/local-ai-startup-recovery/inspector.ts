@@ -21,8 +21,9 @@
  *   CHECK-11 call-local-model.ts AI_REQUEST_DEBUG contains wasResized image dimension info
  *   CHECK-12 ollama-client.ts contains the string literal "/api/chat" (AST symbol-level)
  *   CHECK-13 ollama-client.ts does NOT contain the string literal "/api/generate" (AST symbol-level)
- *   CHECK-14 ollama-client.ts invokeOllama body has a `format` PropertyAssignment (constrained decoding — string or schema object)
- *   CHECK-15 src/capabilities/ai/runtime/model-call.ts declares VISUAL_MISSION_OUTPUT_JSON_SCHEMA constant (structured output schema for grammar-constrained decoding)
+ *   CHECK-14 ollama-client.ts invokeOllama body has format:"json" STRING LITERAL only
+ *            (JSON Schema object as format is FORBIDDEN — triggers GGML_ASSERT Metal crash)
+ *   CHECK-15 src/capabilities/ai/runtime/model-call.ts declares VISUAL_MISSION_OUTPUT_JSON_SCHEMA constant (structured output schema governance record — future use)
  *   CHECK-16 model-safe-image.ts does NOT import `stat` from "node:fs/promises" (pre-resize byte gate is forbidden)
  *
  * All checks use AST traversal.  No regex.  No string-content heuristics on comment lines.
@@ -464,27 +465,34 @@ export function runLocalAiStartupRecoveryInspector(): LocalAiStartupRecoveryInsp
             )
       );
 
-      // ── CHECK-14: /api/chat body must have a `format` PropertyAssignment ─
-      // Law: ollama-client.ts must always include `format:` in the request body.
-      // Value may be string "json" (syntax-only) or an object (JSON Schema / structured output).
+      // ── CHECK-14: /api/chat body must have format:"json" string literal ──
+      // Law: format:\"json\" (syntax-only constraint) must be the ONLY format value.
+      // DO NOT use a JSON Schema object: grammar-constrained decoding + vision triggers
+      // GGML_ASSERT([rsets->data count] == 0) on macOS Metal backend (llama.cpp PR #17869).
+      // Value must be the string literal "json" — not an object, not a conditional expression.
       {
-        const q14 = "ollama-client.ts invokeOllama request body has a `format` PropertyAssignment (constrained decoding — string or schema object)";
-        let formatPropFound = false;
+        const q14 = "ollama-client.ts invokeOllama request body has format:\"json\" string literal (grammar-constrained schema object is forbidden — Metal backend crash)";
+        let formatJsonStringFound = false;
         ocSf.forEachDescendant((node) => {
-          if (formatPropFound) return;
+          if (formatJsonStringFound) return;
           if (!Node.isPropertyAssignment(node)) return;
           const keyNode = node.getNameNode();
-          if (Node.isIdentifier(keyNode) && keyNode.getText() === "format") {
-            formatPropFound = true;
+          if (!Node.isIdentifier(keyNode) || keyNode.getText() !== "format") return;
+          const val = node.getInitializer();
+          if (!val) return;
+          // Must be a string literal with value "json" — NOT a conditional, NOT an identifier, NOT an object
+          if (Node.isStringLiteral(val) && val.getLiteralText() === "json") {
+            formatJsonStringFound = true;
           }
         });
         checks.push(
-          formatPropFound
-            ? pass("CHECK-14", q14, "`format:` PropertyAssignment found in ollama-client.ts (AST symbol-level)")
+          formatJsonStringFound
+            ? pass("CHECK-14", q14, "format:\"json\" string literal found in ollama-client.ts (AST symbol-level, anti-schema-object)")
             : fail("CHECK-14", q14,
-                `No \`format:\` PropertyAssignment found in ${OLLAMA_CLIENT_REL_PATH}. ` +
-                `Ollama constrained decoding must always be present: qwen2.5vl:3b (3B) cannot reliably produce ` +
-                `governed JSON without token-level constraints (format:"json" or format:<JSON Schema>).`
+                `format:\"json\" string literal NOT found in ${OLLAMA_CLIENT_REL_PATH}. ` +
+                `Ollama grammar-constrained decoding (JSON Schema object as format) causes ` +
+                `GGML_ASSERT([rsets->data count] == 0) on macOS Metal backend with vision inputs. ` +
+                `Only format:\"json\" string literal is safe until llama.cpp PR #17869 fix is in Ollama.`
               )
         );
       }

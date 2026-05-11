@@ -110,7 +110,7 @@ async function dispatchSingleAction(
   action: Action,
   input: DispatchRegisteredAbilitySequenceInput,
   ctx: DispatchSequenceContext,
-  extras?: { postCommentScreenshotRef?: string | null },
+  extras?: { freshScreenshotRef?: string | null },
 ): Promise<{ status: "success" | "failed" | "review_required"; failureReason: string | null }> {
   // ── 1. Resolve abilityGroupId + childCapabilityId from MuscleMemory ────────
   const entry = findMuscleMemoryEntry(action.actionCode);
@@ -125,6 +125,7 @@ async function dispatchSingleAction(
   if (action.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE") {
     const evidenceLabel = (action.inputOverrides?.["evidenceLabel"] as string | undefined) ?? "video-evidence";
     const reason = action.reason ?? (action.inputOverrides?.["reason"] as string | undefined) ?? "AI requested evidence save";
+    const captureMode = (action.inputOverrides?.["captureMode"] as string | undefined) ?? "use_current_round_screenshot";
     try {
       await ctx.forensics.appendRecord({
         childCapabilityId: "append-record",
@@ -138,11 +139,12 @@ async function dispatchSingleAction(
           actionCode: action.actionCode,
           evidenceLabel,
           reason,
+          captureMode,
           aiResultRef: input.aiResultRef ?? null,
           originalScreenshotRef: input.currentEvidenceRefs?.["originalScreenshotRef"] ?? null,
           coordinateGridScreenshotRef: input.currentEvidenceRefs?.["coordinateGridScreenshotRef"] ?? null,
           gridSpecRef: input.currentEvidenceRefs?.["gridSpecRef"] ?? null,
-          ...(extras?.postCommentScreenshotRef ? { postCommentScreenshotRef: extras.postCommentScreenshotRef } : {}),
+          ...(extras?.freshScreenshotRef ? { freshScreenshotRef: extras.freshScreenshotRef } : {}),
           missionId: input.missionId,
           runId: input.runId,
           roundId: input.roundId ?? null,
@@ -245,6 +247,29 @@ async function dispatchSingleAction(
   }
 
   // ── 5. Dispatch to ability group via Nerve Bus ────────────────────────────
+  // Build complete input — NerveBus is pure transport after P0-4; ability-group schemas
+  // require all fields to be present in inputOverrides before dispatch.
+  const callId = randomUUID();
+  const gridSpecRef = (input.currentEvidenceRefs?.["gridSpecRef"] as string | undefined) ?? null;
+  const completeInput: Record<string, unknown> = {
+    ...inputOverrides,
+    abilityGroupId: resolvedAbilityGroupId,
+    childCapabilityId: resolvedChildCapabilityId,
+    missionId: input.missionId,
+    runId: input.runId,
+    sessionId: "local",
+    roundId: input.roundId ?? null,
+    videoVisitId: null,
+    stepId: randomUUID(),
+    capabilityCallId: callId,
+    nerveBusEnvelopeId: callId,
+    requestedBy: "orchestration:dispatch-sequence",
+    purpose: `execute:${action.actionCode}`,
+    inputRef: randomUUID(),
+    sourceRef: inputOverrides["sourceRef"] ?? gridSpecRef ?? callId,
+    sourceEvidenceRef: inputOverrides["sourceEvidenceRef"] ?? (input.currentEvidenceRefs?.["originalScreenshotRef"] as string | undefined) ?? null,
+    idempotencyKey: inputOverrides["idempotencyKey"] ?? `dispatch:${input.missionId}:${input.runId}:${input.roundId ?? "noround"}:${action.actionCode}:${action.gridCell ?? ""}`,
+  };
   try {
     const result = await ctx.nerveBus.dispatchAbilityCommand({
       abilityGroupId: resolvedAbilityGroupId,
@@ -253,7 +278,7 @@ async function dispatchSingleAction(
       runId: input.runId,
       sessionId: null,
       roundId: input.roundId ?? null,
-      inputOverrides,
+      inputOverrides: completeInput,
     });
     return { status: result.status ?? "success", failureReason: result.failureReason ?? null };
   } catch (err) {
@@ -266,23 +291,13 @@ export async function dispatchRegisteredAbilitySequence(
   input: DispatchRegisteredAbilitySequenceInput,
   ctx: DispatchSequenceContext,
 ): Promise<DispatchSequenceResult> {
-  let commentPanelOpenAttempted = false;
-
   for (const action of input.actions) {
-    // ── Track comment-panel clicks for post-comment screenshot before SAVE ──
-    const isClickAction =
-      action.actionCode.startsWith("LEFT_CLICK") ||
-      action.actionCode.startsWith("DOUBLE_LEFT_CLICK") ||
-      action.actionCode.startsWith("RIGHT_CLICK");
-
-    const actionReason = action.reason ?? (action.inputOverrides?.["reason"] as string | undefined) ?? "";
-    if (isClickAction && /comment/i.test(actionReason)) {
-      commentPanelOpenAttempted = true;
-    }
-
-    // ── Take post-comment screenshot before SAVE when comments were opened ──
-    let postCommentScreenshotRef: string | null = null;
-    if (action.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE" && commentPanelOpenAttempted) {
+    // ── Take fresh screenshot before SAVE when captureMode='fresh_current_viewport' ──
+    let freshScreenshotRef: string | null = null;
+    if (
+      action.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE" &&
+      (action.inputOverrides?.["captureMode"] as string | undefined) === "fresh_current_viewport"
+    ) {
       let shotFailed = false;
       let shotFailureReason: string | null = null;
       try {
@@ -301,13 +316,13 @@ export async function dispatchRegisteredAbilitySequence(
         });
         if (postShot.status === "success") {
           if ("screenshotRef" in postShot && postShot.screenshotRef) {
-            postCommentScreenshotRef = postShot.screenshotRef;
+            freshScreenshotRef = postShot.screenshotRef;
           }
         } else {
           shotFailed = true;
           shotFailureReason = ("failureReason" in postShot && postShot.failureReason)
             ? postShot.failureReason
-            : "post-comment screenshot failed";
+            : "fresh viewport screenshot failed";
         }
       } catch (err) {
         shotFailed = true;
@@ -322,7 +337,7 @@ export async function dispatchRegisteredAbilitySequence(
       }
     }
 
-    const { status, failureReason } = await dispatchSingleAction(action, input, ctx, { postCommentScreenshotRef });
+    const { status, failureReason } = await dispatchSingleAction(action, input, ctx, { freshScreenshotRef });
 
     void ctx.forensics.appendRecord({
       childCapabilityId: "append-record",
@@ -358,8 +373,5 @@ export async function dispatchRegisteredAbilitySequence(
     }
   }
 
-  const finalState = getMissionState(input.missionId);
-  const updated = applyStatusTransition(finalState, { roundIndexDelta: 1, status: "running" });
-  upsertMissionState(updated);
-  return { status: "success", stateSnapshot: updated, failureReason: null, reviewRequiredReason: null };
+  return { status: "success", stateSnapshot: getMissionState(input.missionId), failureReason: null, reviewRequiredReason: null };
 }

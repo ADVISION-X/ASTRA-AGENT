@@ -28,12 +28,10 @@ export type LocalModelCallInput = {
   modelName?: string;
   timeoutMs?: number;
   abortSignal?: AbortSignal;
-  /**
-   * Ollama structured output schema. When provided, Ollama uses grammar-constrained decoding
-   * to force the model output to match the given JSON Schema exactly.
-   * Preferred over format:"json" for complex schemas — guarantees schema adherence at the token level.
-   */
-  outputSchema?: Record<string, unknown>;
+  // NOTE: outputSchema removed — grammar-constrained decoding with JSON Schema object
+  // triggers GGML_ASSERT([rsets->data count] == 0) on macOS Metal backend (Apple Silicon)
+  // when used with vision inputs. Use format:"json" (syntax-only) until a compatible
+  // Ollama version including llama.cpp PR #17869 fix is confirmed.
   /** Preferred: inject a RuntimeLogger to receive AI_REQUEST_DEBUG / AI_RAW_RESPONSE_DEBUG events. */
   runtimeLogger?: RuntimeLogger;
   /** Preferred: inject trace context so emitted events carry traceId/spanId. */

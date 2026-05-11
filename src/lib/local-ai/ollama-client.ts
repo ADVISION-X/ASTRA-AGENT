@@ -55,12 +55,11 @@ export async function invokeOllama(input: {
   imageBase64s?: string[];
   timeoutMs: number;
   abortSignal?: AbortSignal;
-  /**
-   * Ollama structured output schema (JSON Schema object).
-   * When provided, Ollama uses grammar-constrained decoding to enforce the exact output structure.
-   * Falls back to format:"json" (syntax-only constraint) when not provided.
-   */
-  outputSchema?: Record<string, unknown>;
+  // NOTE: outputSchema (grammar-constrained JSON Schema format) is intentionally removed.
+  // Ollama grammar-constrained decoding with a complex JSON Schema + vision inputs triggers
+  // GGML_ASSERT([rsets->data count] == 0) on macOS Metal backend (Apple Silicon).
+  // format:"json" (syntax-only constraint) is safe and avoids the Metal crash.
+  // Re-enable when an Ollama version including llama.cpp PR #17869 fix is confirmed.
 }): Promise<{ rawText: string; imageCount: number }> {
   const images = input.imageBase64s && input.imageBase64s.length > 0 ? input.imageBase64s : undefined;
 
@@ -78,11 +77,10 @@ export async function invokeOllama(input: {
       model: input.modelName,
       messages: [userMessage],
       stream: false,
-      // Ollama constrained decoding:
-      //   - When outputSchema is provided: grammar-constrained to the exact JSON Schema (structure + types).
-      //   - Fallback "json": only guarantees syntactically valid JSON — does NOT constrain schema structure.
-      //   Never omit this field: qwen2.5vl:3b (3B) cannot reliably output governed JSON without token-level constraints.
-      format: input.outputSchema !== undefined ? input.outputSchema : "json",
+      // format:"json": syntax-only constrained decoding — guarantees JSON-parseable output.
+      // DO NOT change to a JSON Schema object: grammar-constrained decoding + vision triggers
+      // GGML_ASSERT([rsets->data count] == 0) on macOS Metal backend (llama.cpp PR #17869).
+      format: "json",
     }),
   }) as OllamaChatResponse;
 

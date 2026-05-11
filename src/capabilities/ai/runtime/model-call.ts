@@ -146,7 +146,8 @@ async function callLocalVisualMissionModel(input: {
     promptText: prompt.fullPrompt,
     imagePaths,
     timeoutMs,
-    outputSchema: VISUAL_MISSION_OUTPUT_JSON_SCHEMA,
+    // outputSchema intentionally not passed: grammar-constrained decoding crashes Metal backend.
+    // See VISUAL_MISSION_OUTPUT_JSON_SCHEMA above for the governed schema (future use).
     ...(input.signal ? { abortSignal: input.signal } : {}),
     ...(logger ? { runtimeLogger: logger } : {}),
     ...(trace ? { traceContext: { ...trace, spanId } } : {}),
