@@ -20,7 +20,8 @@
     "acceptance:phase3": "npm run ci:full && npm run acceptance:browse-live-proof && npm run acceptance:delivery-smoke",
     "ci:simple": "npm run typecheck && node --import tsx scripts/audit/domains/quality-kernel/run-inspector.ts",
     "audit:runtime-logging": "node --import tsx scripts/audit/domains/runtime-logging/run-inspector.ts",
-    "ci:full": "npm run ci:simple && npm run audit:runtime-logging",
+    "audit:visual-mission-flow": "node --import tsx scripts/audit/domains/visual-mission-flow/run-inspector.ts",
+    "ci:full": "npm run ci:simple && npm run audit:runtime-logging && npm run audit:visual-mission-flow",
     "lint": "npm run typecheck"
   },
   "dependencies": {

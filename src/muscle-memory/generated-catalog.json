@@ -622,6 +622,50 @@
         "execute platform actions",
         "own record format"
       ]
+    },
+    {
+      "actionCode": "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE",
+      "type": "atomic",
+      "displayName": "Save Current Video Evidence Once",
+      "description": "Save the current video frame evidence (screenshot, coordinate grid, AI result) as a governed forensics record. AI may only provide evidenceLabel and reason — all evidence refs are system-injected.",
+      "abilityGroupId": "forensics-persistence",
+      "childCapabilityId": "append-record",
+      "inputSchemaRef": "forensics-persistence.save-current-video-evidence.input",
+      "outputSchemaRef": "forensics-persistence.save-current-video-evidence.output",
+      "allowedForAiActionPlan": true,
+      "allowedForUserRequirement": false,
+      "requiresGridSpecRef": false,
+      "requiresScreenshotRef": false,
+      "requiresGeometryProof": false,
+      "sensitiveOperation": false,
+      "inputContract": {
+        "requiredFields": [],
+        "optionalFields": [
+          "evidenceLabel",
+          "reason"
+        ],
+        "forbiddenFields": [
+          "recordPayload",
+          "missionId",
+          "runId",
+          "roundId",
+          "aiResultRef",
+          "originalScreenshotRef",
+          "coordinateGridScreenshotRef",
+          "gridSpecRef",
+          "abilityGroupId",
+          "childCapabilityId"
+        ]
+      },
+      "successOutputRefs": [
+        "evidenceRecordRef"
+      ],
+      "failurePolicy": "continue",
+      "forbiddenResponsibilities": [
+        "execute platform actions",
+        "construct arbitrary forensics record payloads",
+        "inject evidence refs directly"
+      ]
     }
   ]
 }

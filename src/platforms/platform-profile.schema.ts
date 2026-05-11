@@ -10,6 +10,9 @@ const PlatformProfileSchema = z.object({
   allowedHosts: z.array(z.string().min(1)).min(1),
   defaultRecoveryActionCode: z.string().min(1),
   supportedActionCodes: z.array(z.string().min(1)).min(1),
+  nextVideoPreferredActionCode: z.string().min(1).optional(),
+  likeActionHint: z.string().min(1).optional(),
+  commentsActionHint: z.string().min(1).optional(),
 }).strict();
 
 type PlatformId = z.infer<typeof PlatformIdSchema>;

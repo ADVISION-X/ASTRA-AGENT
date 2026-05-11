@@ -38,6 +38,7 @@ import {
   isStructuredLogStdoutEnabled,
   resolveStructuredLogLevel,
 } from "./structured-log-terminal.js";
+import { createRuntimeLogger, setDefaultRuntimeLogger } from "../runtime-logs/logger.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 
 // ─── Local Port Adapters ───────────────────────────────────────────────────────
@@ -105,7 +106,15 @@ export function createWorkbenchAssembly(
 ): WorkbenchAssembly {
   const dataDir = options.dataDir ?? getDefaultPhase04LocalDataDir();
 
-  // Structured log bus
+  // Runtime Log Spine — single source of truth for all structured runtime events.
+  // Must be initialized before any capability group so emitRuntimeLog calls are captured.
+  const runtimeLogger = createRuntimeLogger({
+    terminalEnabled: true,
+  });
+  setDefaultRuntimeLogger(runtimeLogger);
+
+  // Structured log bus (legacy — retained only for structured terminal output compatibility).
+  // Must NOT be used by start/mission/AI main chain; use runtimeLogger/emitRuntimeLog instead.
   const structuredLogBus = new StructuredLogBus();
   if (isStructuredLogStdoutEnabled()) {
     structuredLogBus.subscribe(

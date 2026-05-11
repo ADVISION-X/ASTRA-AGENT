@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-05-11T09:25:01.943Z",
+  "timestamp": "2026-05-11T14:02:24.166Z",
   "pass": true,
   "hardRetiredSurface": {
     "count": 0,
     "findings": []
   },
   "softRetiredSurface": {
-    "count": 69,
+    "count": 70,
     "findings": [
       {
         "file": "src/capabilities/commander-console/children/emergency-stop/implementation.ts",
@@ -96,6 +96,12 @@
         "file": "src/capabilities/commander-console/shared/commander-view-schema.ts",
         "line": 19,
         "pattern": "selectedBindingId",
+        "severity": "soft"
+      },
+      {
+        "file": "src/capabilities/orchestration/runtime/mission-loop-runner.ts",
+        "line": 201,
+        "pattern": "postActionVerification",
         "severity": "soft"
       },
       {
@@ -471,7 +477,7 @@
     },
     {
       "module": "src/capabilities/orchestration",
-      "actual": 10,
+      "actual": 11,
       "limit": 30,
       "status": "ok"
     },
@@ -537,7 +543,7 @@
     },
     {
       "module": "scripts/audit (total)",
-      "actual": 24,
+      "actual": 27,
       "limit": 30,
       "status": "ok"
     },
