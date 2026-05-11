@@ -80,6 +80,31 @@ export async function runMissionRoundLoop(
     const selectedPlatforms = resolveSelectedPlatforms(state.selectedPlatforms ?? [], platformId);
     const userRequirementText = state.humanGoal ?? "Mine seed product videos";
 
+    // ── OPEN GATE: Navigate to platform entry on round 0 if targetProfileRef is set ──
+    if ((state.roundIndex ?? 0) === 0 && state.targetProfileRef && !state.openResultRef) {
+      const openEnvelopeId = randomUUID();
+      const openStepId = randomUUID();
+      await ctx.nerveBus.dispatchAbilityCommand({
+        abilityGroupId: "open",
+        childCapabilityId: "open-platform-entry-once",
+        missionId,
+        runId,
+        sessionId,
+        roundId,
+        nerveBusEnvelopeId: openEnvelopeId,
+        stepId: openStepId,
+        capabilityCallId: randomUUID(),
+        inputRef: randomUUID(),
+        requestedBy: "orchestration",
+        transportedBy: "nerve-bus",
+        idempotencyKey: `open-entry:${missionId}:${runId}`,
+        videoVisitId: null,
+        inputOverrides: { platformId },
+      });
+      // Mark openResultRef so we don't re-open on subsequent rounds
+      upsertMissionState({ ...getMissionState(missionId), openResultRef: openEnvelopeId });
+    }
+
     // ── STEP 1: Capture browser viewport ───────────────────────────────────
     let captureResult: Awaited<ReturnType<typeof ctx.screenshotAbilityGroup.execute>>;
     try {
@@ -155,6 +180,15 @@ export async function runMissionRoundLoop(
 
     const coordinateGridScreenshotRef = gridResult.coordinateGridScreenshotRef;
     const gridSpecRef = gridResult.gridSpecRef;
+    // Resolve AI-readable file paths (prefer explicit aiReadableImagePath field)
+    const originalAiPath =
+      "aiReadableImagePath" in captureResult && captureResult.aiReadableImagePath
+        ? captureResult.aiReadableImagePath
+        : originalScreenshotRef;
+    const gridAiPath =
+      "aiReadableImagePath" in gridResult && gridResult.aiReadableImagePath
+        ? gridResult.aiReadableImagePath
+        : coordinateGridScreenshotRef;
 
     // ── STEP 3: Call AI visual-mission-judge ───────────────────────────────
     const roundMissionPacket = {
@@ -203,9 +237,9 @@ export async function runMissionRoundLoop(
       platformContext: {
         platformContextRef: null,
         platformId,
-        targetUrl: null,
-        targetTitle: null,
-        targetProfileRef: null,
+        targetUrl: state.targetUrl ?? null,
+        targetTitle: state.targetTitle ?? null,
+        targetProfileRef: state.targetProfileRef ?? null,
       },
       constraints: {
         noHumanInLoop: true as const,
@@ -241,13 +275,13 @@ export async function runMissionRoundLoop(
             id: originalScreenshotRef,
             kind: "screenshot",
             summary: "original screenshot",
-            filePath: originalScreenshotRef,
+            filePath: originalAiPath,
           },
           {
             id: coordinateGridScreenshotRef,
             kind: "coordinate-grid-screenshot",
             summary: "coordinate grid overlay",
-            filePath: coordinateGridScreenshotRef,
+            filePath: gridAiPath,
           },
         ],
         userRequirementRef: null,
@@ -270,9 +304,9 @@ export async function runMissionRoundLoop(
           platformContextRef: platformId,
           platformContext: {
             platformId,
-            targetUrl: null,
-            targetTitle: null,
-            targetProfileRef: null,
+            targetUrl: state.targetUrl ?? null,
+            targetTitle: state.targetTitle ?? null,
+            targetProfileRef: state.targetProfileRef ?? null,
           },
           roundMissionPacketRef: null,
           roundMissionPacket,

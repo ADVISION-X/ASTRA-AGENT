@@ -21,7 +21,8 @@
     "ci:simple": "npm run typecheck && node --import tsx scripts/audit/domains/quality-kernel/run-inspector.ts",
     "audit:runtime-logging": "node --import tsx scripts/audit/domains/runtime-logging/run-inspector.ts",
     "audit:visual-mission-flow": "node --import tsx scripts/audit/domains/visual-mission-flow/run-inspector.ts",
-    "ci:full": "npm run ci:simple && npm run audit:runtime-logging && npm run audit:visual-mission-flow",
+    "audit:visual-mission-runtime": "node --import tsx scripts/audit/domains/visual-mission-runtime/run-inspector.ts",
+    "ci:full": "npm run ci:simple && npm run audit:runtime-logging && npm run audit:visual-mission-flow && npm run audit:visual-mission-runtime",
     "lint": "npm run typecheck"
   },
   "dependencies": {

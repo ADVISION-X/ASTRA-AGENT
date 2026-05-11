@@ -111,6 +111,7 @@ export async function renderCoordinateGrid(
   return {
     status: "success",
     coordinateGridScreenshotRef: artifactRef.storageRef,
+    aiReadableImagePath: artifactRef.storageRef,
     coordinateGridArtifactRef: artifactRef,
     gridSpecRef: renderResult.gridSpec.gridSpecRef,
     gridSpec: renderResult.gridSpec,

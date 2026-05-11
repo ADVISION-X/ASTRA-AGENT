@@ -145,6 +145,8 @@ export type CaptureBrowserViewportInput = z.infer<typeof CaptureBrowserViewportI
 export const CaptureBrowserViewportResultSchema = z.object({
   status: z.enum(SCREENSHOT_STATUSES),
   screenshotRef: z.string().min(1).optional(),
+  // aiReadableImagePath — absolute file path for AI model image input
+  aiReadableImagePath: z.string().min(1).optional(),
   artifactRef: ScreenshotArtifactRefSchema.optional(),
   imageWidth: finitePositive.optional(),
   imageHeight: finitePositive.optional(),
@@ -185,6 +187,8 @@ export type RenderCoordinateGridInput = z.infer<typeof RenderCoordinateGridInput
 export const RenderCoordinateGridResultSchema = z.object({
   status: z.enum(SCREENSHOT_STATUSES),
   coordinateGridScreenshotRef: z.string().min(1).optional(),
+  // aiReadableImagePath — absolute file path of grid image for AI model input
+  aiReadableImagePath: z.string().min(1).optional(),
   coordinateGridArtifactRef: ScreenshotArtifactRefSchema.optional(),
   gridSpecRef: z.string().min(1).optional(),
   gridSpec: ScreenshotGridSpecSchema.optional(),

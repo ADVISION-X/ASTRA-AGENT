@@ -65,6 +65,12 @@ export const MissionStateSchema = z.object({
   maxMinutes: z.number().int().positive().nullable().optional().default(null),
   roundIndex: z.number().int().nonnegative().default(0),
   activeRunId: z.string().min(1).nullable().optional().default(null),
+  // Platform target fields — preserved from binding at mission start
+  targetProfileRef: z.string().min(1).nullable().optional().default(null),
+  targetUrl: z.string().min(1).nullable().optional().default(null),
+  targetTitle: z.string().min(1).nullable().optional().default(null),
+  // Open gate — set after OPEN_PLATFORM_ENTRY_ONCE succeeds in round 0
+  openResultRef: z.string().min(1).nullable().optional().default(null),
   reviewRequiredReason: z.string().nullable().optional().default(null),
   stopReason: z.string().nullable().optional().default(null),
   failureReason: z.string().nullable().optional().default(null),

@@ -39,6 +39,9 @@ export function createInitialMissionState(params: {
   selectedPlatforms: string[];
   maxRounds?: number | null;
   maxMinutes?: number | null;
+  targetProfileRef?: string | null;
+  targetUrl?: string | null;
+  targetTitle?: string | null;
 }): MissionState {
   return MissionStateSchema.parse({
     missionId: params.missionId,
@@ -48,6 +51,9 @@ export function createInitialMissionState(params: {
     selectedPlatforms: params.selectedPlatforms,
     maxRounds: params.maxRounds ?? null,
     maxMinutes: params.maxMinutes ?? null,
+    ...(params.targetProfileRef ? { targetProfileRef: params.targetProfileRef } : {}),
+    ...(params.targetUrl ? { targetUrl: params.targetUrl } : {}),
+    ...(params.targetTitle ? { targetTitle: params.targetTitle } : {}),
     status: "pending",
     roundIndex: 0,
     activeRunId: params.runId,

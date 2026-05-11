@@ -61,6 +61,9 @@ export async function handleStartMission(rawInput: unknown, ctx: OrchestrationCh
     selectedPlatforms: cmd.selectedPlatforms ?? [],
     maxRounds: cmd.maxRounds ?? null,
     maxMinutes: cmd.maxMinutes ?? null,
+    targetProfileRef: (cmd.initialPayload?.["targetProfileRef"] as string | null | undefined) ?? null,
+    targetUrl: (cmd.initialPayload?.["targetUrl"] as string | null | undefined) ?? null,
+    targetTitle: (cmd.initialPayload?.["targetTitle"] as string | null | undefined) ?? null,
   });
   const running = applyStatusTransition(initial, { status: "running", lastHumanCommand: "start-mission" });
   upsertMissionState(running);
@@ -152,6 +155,7 @@ export async function handleDispatchRegisteredAbilitySequence(rawInput: unknown,
     nerveBus: ctx.nerveBus,
     forensics: ctx.forensics,
     geometryGuard: ctx.geometryGuard,
+    screenshotAbilityGroup: ctx.screenshotAbilityGroup,
   });
   return {
     status: result.status,

@@ -7,7 +7,13 @@ const buildOutputSchemaBlock = (platformId: string) => {
   const aiActions = listAiVisibleAbilities().map(e => e.actionCode);
   const clickAction = aiActions.find(a => a.startsWith("LEFT_CLICK")) ?? "LEFT_CLICK_GRID_CELL_ONCE";
   const scrollAction = aiActions.find(a => a.startsWith("SCROLL")) ?? "SCROLL_BROWSER_VIEWPORT_ONCE";
-  const saveAction = aiActions.find(a => a === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE") ?? scrollAction;
+  const saveAction = aiActions.find(a => a === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
+  if (!saveAction) {
+    throw new Error(
+      "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE not found in AI-visible MuscleMemory catalog. " +
+      "Register it with allowedForAiActionPlan=true before building visual-mission prompts."
+    );
+  }
 
   return JSON.stringify({
     schemaVersion: "visualMissionActionPlan.v1",

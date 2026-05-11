@@ -160,11 +160,28 @@ export function createWorkbenchNerveBusHandlerPort(deps: WorkbenchNerveBusDispat
       }
 
       try {
-        const result = await group.execute({
-          ...inputPayload,
+        // Enrich the input with envelope identity and generate missing tracking fields
+        // so ability-group schemas (missionId, runId, sessionId, stepId, etc.) validate.
+        const ip = inputPayload as Record<string, unknown>;
+        const enrichedAbilityInput: Record<string, unknown> = {
+          ...ip,
           abilityGroupId: envelope.abilityGroupId,
           childCapabilityId: envelope.childCapabilityId,
-        });
+          missionId: ip["missionId"] ?? envelope.missionId,
+          runId: ip["runId"] ?? envelope.runId,
+          sessionId: ip["sessionId"] ?? envelope.sessionId ?? "local",
+          roundId: ip["roundId"] ?? envelope.roundId ?? null,
+          nerveBusEnvelopeId: ip["nerveBusEnvelopeId"] ?? envelope.envelopeId,
+          stepId: ip["stepId"] ?? randomUUID(),
+          capabilityCallId: ip["capabilityCallId"] ?? randomUUID(),
+          inputRef: ip["inputRef"] ?? randomUUID(),
+          requestedBy: ip["requestedBy"] ?? "orchestration:dispatch-sequence",
+          purpose: ip["purpose"] ?? "execute-ai-action",
+          sourceRef: ip["sourceRef"] ?? (ip["gridSpecRef"] as string | undefined) ?? envelope.envelopeId,
+          idempotencyKey: ip["idempotencyKey"] ?? `dispatch:${envelope.missionId}:${envelope.runId}:${envelope.roundId ?? "noround"}:${envelope.envelopeId}`,
+          videoVisitId: ip["videoVisitId"] ?? null,
+        };
+        const result = await group.execute(enrichedAbilityInput);
         const status = (result.status ?? "success") as "success" | "failed" | "review_required";
         const resultEnvelope = buildAbilityResultEnvelope(envelope, status, result.failureReason ?? null);
         return { envelope: resultEnvelope, outputPayload: result as unknown as NerveBusPayloadDocument };
@@ -199,22 +216,49 @@ export function createWorkbenchNerveBusHandlerPort(deps: WorkbenchNerveBusDispat
       const { envelope, inputPayload } = input;
       const orchestration = deps.getOrchestration();
 
-      // Inject envelope identity fields into the payload so Orchestration schemas
-      // that require missionId and runId (e.g. MissionCommandSchema) can validate.
-      const enrichedPayload: Record<string, unknown> = {
-        ...(inputPayload as Record<string, unknown>),
-      };
-      if (enrichedPayload["missionId"] == null) {
-        enrichedPayload["missionId"] = envelope.missionId;
-      }
-      if (enrichedPayload["runId"] == null) {
-        enrichedPayload["runId"] = envelope.runId;
+      // Build a MissionCommandSchema-compatible payload from the transport payload.
+      // The transport payload (StartMissionTransportPayload) uses different field names
+      // and has extra fields not in MissionCommandSchema.strict().
+      const tp = inputPayload as Record<string, unknown>;
+      const initialPayload = tp["initialPayload"] as Record<string, unknown> | null | undefined;
+
+      let orchestrationPayload: Record<string, unknown>;
+      if (envelope.commandType === "start-mission") {
+        orchestrationPayload = {
+          missionId: envelope.missionId,
+          runId: envelope.runId,
+          humanGoal:
+            (tp["humanGoal"] as string | undefined) ??
+            (initialPayload?.["humanGoal"] as string | undefined) ??
+            "",
+          requestedPlatform:
+            (tp["requestedPlatformId"] as string | undefined) ??
+            (initialPayload?.["requestedPlatformId"] as string | undefined) ??
+            (initialPayload?.["primaryPlatformId"] as string | undefined) ??
+            "facebook-web",
+          selectedPlatforms:
+            (tp["selectedPlatforms"] as string[] | undefined) ??
+            (initialPayload?.["selectedPlatforms"] as string[] | undefined) ??
+            [],
+          maxRounds: (tp["maxRounds"] as number | null | undefined) ?? null,
+          maxMinutes: (tp["maxMinutes"] as number | null | undefined) ?? null,
+          initialPayload: initialPayload ?? { requestedBy: "commander-console" },
+        };
+      } else {
+        // For other command types, inject identity fields into the existing payload.
+        orchestrationPayload = { ...tp };
+        if (orchestrationPayload["missionId"] == null) {
+          orchestrationPayload["missionId"] = envelope.missionId;
+        }
+        if (orchestrationPayload["runId"] == null) {
+          orchestrationPayload["runId"] = envelope.runId;
+        }
       }
 
       try {
         const result = await orchestration.execute({
           childCapabilityId: envelope.commandType as OrchestrationChildCapabilityId,
-          payload: enrichedPayload,
+          payload: orchestrationPayload,
         });
         const status = result.status === "success" ? "success" : "failed";
         const resultEnvelope = buildHumanCommandResultEnvelope(envelope, status, result.failureReason ?? null);

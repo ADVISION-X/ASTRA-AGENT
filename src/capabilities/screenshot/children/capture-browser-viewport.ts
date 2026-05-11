@@ -96,6 +96,7 @@ export async function captureBrowserViewport(
   return {
     status: "success",
     screenshotRef: artifactRef.storageRef,
+    aiReadableImagePath: artifactRef.storageRef,
     artifactRef,
     imageWidth: captureResult.width,
     imageHeight: captureResult.height,
