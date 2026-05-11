@@ -61,4 +61,26 @@ export const VISUAL_MISSION_FLOW_CONFIG = {
 
   // handleStartMission fire-and-forget token
   fireAndForgetToken: "runMissionRoundLoop" as string,
+
+  // VMF-11: Open gate must use targetProfileRef, not platformId
+  openGateTargetRefToken: "targetProfileRef" as string,
+  openGateForbiddenToken: "platformId" as string,
+
+  // VMF-12: Open gate result check
+  openGateResultCheckToken: "openResult.status" as string,
+
+  // VMF-13: NerveBus dispatcher must have Open-specific clean input
+  nerveBusOpenCleanToken: 'envelope.abilityGroupId === "open"' as string,
+
+  // VMF-18: Progress must NOT be hardcoded zero
+  progressHardcodeToken: "savedLeadCount: 0" as string,
+
+  // VMF-19: runtimeLogger must be passed to AI ability group
+  aiRuntimeLoggerToken: "createConfiguredAiAbilityGroup({ dataDir, runtimeLogger })" as string,
+
+  // VMF-20: task-start-debug-writer must not have any/eslint-disable
+  debugWriterForbiddenTokens: ["eslint-disable", "Record<string, any>"] as string[],
+
+  // NerveBus dispatcher path
+  nerveBusDispatcherPath: "src/lib/local-runtime/workbench-nerve-bus-dispatcher.ts" as string,
 };

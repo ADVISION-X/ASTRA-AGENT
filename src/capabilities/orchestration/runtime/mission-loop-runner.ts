@@ -81,9 +81,10 @@ export async function runMissionRoundLoop(
     const userRequirementText = state.humanGoal ?? "Mine seed product videos";
 
     // ── OPEN GATE: Navigate to platform entry on round 0 if targetProfileRef is set ──
-    if ((state.roundIndex ?? 0) === 0 && state.targetProfileRef && !state.openResultRef) {
+    if ((state.roundIndex ?? 0) === 0 && (state.targetProfileRef || state.targetUrl) && !state.openResultRef) {
       const openEnvelopeId = randomUUID();
-      await ctx.nerveBus.dispatchAbilityCommand({
+      const targetRef = state.targetProfileRef ?? platformId;
+      const openResult = await ctx.nerveBus.dispatchAbilityCommand({
         abilityGroupId: "open",
         childCapabilityId: "open-platform-entry-once",
         missionId,
@@ -91,11 +92,19 @@ export async function runMissionRoundLoop(
         sessionId,
         roundId,
         inputOverrides: {
-          platformId,
+          targetProfileRef: targetRef,
           idempotencyKey: `open-entry:${missionId}:${runId}`,
         },
       });
-      // Mark openResultRef so we don't re-open on subsequent rounds
+      // Only mark openResultRef if Open succeeded; stop mission on failure.
+      if (openResult.status !== "success") {
+        upsertMissionState(applyStatusTransition(getMissionState(missionId), {
+          status: "failed",
+          failureReason: openResult.failureReason ?? "Open gate failed",
+        }));
+        setActiveMission(null);
+        return;
+      }
       upsertMissionState({ ...getMissionState(missionId), openResultRef: openEnvelopeId });
     }
 
@@ -203,11 +212,11 @@ export async function runMissionRoundLoop(
         currentPhase: null,
       },
       progress: {
-        savedLeadCount: 0,
-        skippedCount: 0,
-        reviewRequiredCount: 0,
-        failedActionCount: 0,
-        consecutiveFailureCount: 0,
+        savedLeadCount: state.savedEvidenceCount ?? 0,
+        skippedCount: state.skippedVideoCount ?? 0,
+        reviewRequiredCount: state.reviewRequiredCount ?? 0,
+        failedActionCount: state.failedActionCount ?? 0,
+        consecutiveFailureCount: state.consecutiveFailureCount ?? 0,
       },
       lastAction: {
         sourceActionCode: null,
@@ -392,10 +401,24 @@ export async function runMissionRoundLoop(
     if (sequenceResult.status !== "success") {
       // Mission state may have been updated inside dispatch-sequence — check and stop if needed
       const stateAfterDispatch = getMissionState(missionId);
+      // Update failure counters
+      if (sequenceResult.status === "review_required") {
+        upsertMissionState({
+          ...stateAfterDispatch,
+          reviewRequiredCount: (stateAfterDispatch.reviewRequiredCount ?? 0) + 1,
+          consecutiveFailureCount: (stateAfterDispatch.consecutiveFailureCount ?? 0) + 1,
+        });
+      } else {
+        upsertMissionState({
+          ...stateAfterDispatch,
+          failedActionCount: (stateAfterDispatch.failedActionCount ?? 0) + 1,
+          consecutiveFailureCount: (stateAfterDispatch.consecutiveFailureCount ?? 0) + 1,
+        });
+      }
       if (stateAfterDispatch.status !== "running") return;
       // If still "running" but dispatch failed, stop gracefully
       if (sequenceResult.status === "failed") {
-        upsertMissionState(applyStatusTransition(stateAfterDispatch, {
+        upsertMissionState(applyStatusTransition(getMissionState(missionId), {
           status: "failed",
           failureReason: sequenceResult.failureReason ?? "action sequence dispatch failed",
         }));
@@ -403,6 +426,25 @@ export async function runMissionRoundLoop(
         return;
       }
       return; // review_required or other terminal state
+    }
+
+    // ── Update progress counters based on AI decision ───────────────────────
+    const stateAfterSuccess = getMissionState(missionId);
+    const productDecision = aiOutput.productDecision;
+    if (productDecision === "product_yes") {
+      upsertMissionState({
+        ...stateAfterSuccess,
+        savedEvidenceCount: (stateAfterSuccess.savedEvidenceCount ?? 0) + 1,
+        consecutiveFailureCount: 0,
+      });
+    } else if (productDecision === "product_no") {
+      upsertMissionState({
+        ...stateAfterSuccess,
+        skippedVideoCount: (stateAfterSuccess.skippedVideoCount ?? 0) + 1,
+        consecutiveFailureCount: 0,
+      });
+    } else {
+      upsertMissionState({ ...stateAfterSuccess, consecutiveFailureCount: 0 });
     }
 
     // ── Loop guard (after round) ────────────────────────────────────────────

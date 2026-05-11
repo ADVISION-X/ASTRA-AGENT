@@ -144,7 +144,57 @@ const VisualMissionActionPlanOutputSchema = z.object({
   nonExecutableClickTargets: z.array(VisualMissionVisualClickTargetHintSchema).default([]),
   riskFlags: z.array(z.string().min(1)).default([]),
   nonExecutableSummary: z.string().min(1),
-}).strict();
+}).strict().superRefine((val, ctx) => {
+  const { productDecision, actions } = val;
+
+  if (productDecision === "product_yes") {
+    const clicks = actions.filter(a =>
+      a.actionCode === "LEFT_CLICK_GRID_CELL_ONCE" ||
+      a.actionCode === "DOUBLE_LEFT_CLICK_GRID_CELL" ||
+      a.actionCode === "RIGHT_CLICK_GRID_CELL_ONCE",
+    );
+    if (clicks.length < 2) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires at least 2 click actions (like + comments).", path: ["actions"] });
+    }
+    const saveIdx = actions.findIndex(a => a.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
+    if (saveIdx === -1) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
+    }
+    const scrollIdx = actions.findIndex(a => a.actionCode === "SCROLL_BROWSER_VIEWPORT_ONCE");
+    if (scrollIdx === -1) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires SCROLL_BROWSER_VIEWPORT_ONCE.", path: ["actions"] });
+    }
+    // Order: all clicks before SAVE, SAVE before SCROLL
+    const lastClickIdx = clicks.length > 0
+      ? Math.max(...clicks.map(c => actions.indexOf(c)))
+      : -1;
+    if (saveIdx !== -1 && lastClickIdx !== -1 && saveIdx < lastClickIdx) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: SAVE_CURRENT_VIDEO_EVIDENCE_ONCE must come after all click actions.", path: ["actions"] });
+    }
+    if (saveIdx !== -1 && scrollIdx !== -1 && scrollIdx < saveIdx) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: SCROLL_BROWSER_VIEWPORT_ONCE must come after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
+    }
+  }
+
+  if (productDecision === "product_no") {
+    const hasClicks = actions.some(a =>
+      a.actionCode === "LEFT_CLICK_GRID_CELL_ONCE" ||
+      a.actionCode === "DOUBLE_LEFT_CLICK_GRID_CELL" ||
+      a.actionCode === "RIGHT_CLICK_GRID_CELL_ONCE",
+    );
+    if (hasClicks) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_no must not contain click actions.", path: ["actions"] });
+    }
+    const hasSave = actions.some(a => a.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
+    if (hasSave) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_no must not contain SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
+    }
+    const hasScroll = actions.some(a => a.actionCode === "SCROLL_BROWSER_VIEWPORT_ONCE");
+    if (!hasScroll) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_no must contain SCROLL_BROWSER_VIEWPORT_ONCE.", path: ["actions"] });
+    }
+  }
+});
 
 type VisualMissionActionPlanRequestInput = z.infer<typeof VisualMissionActionPlanRequestInputSchema>;
 type VisualMissionActionPlanOutput = z.infer<typeof VisualMissionActionPlanOutputSchema>;

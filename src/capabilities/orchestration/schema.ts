@@ -71,6 +71,12 @@ export const MissionStateSchema = z.object({
   targetTitle: z.string().min(1).nullable().optional().default(null),
   // Open gate — set after OPEN_PLATFORM_ENTRY_ONCE succeeds in round 0
   openResultRef: z.string().min(1).nullable().optional().default(null),
+  // Progress counters — state-derived, updated after each round
+  savedEvidenceCount: z.number().int().nonnegative().default(0),
+  skippedVideoCount: z.number().int().nonnegative().default(0),
+  failedActionCount: z.number().int().nonnegative().default(0),
+  reviewRequiredCount: z.number().int().nonnegative().default(0),
+  consecutiveFailureCount: z.number().int().nonnegative().default(0),
   reviewRequiredReason: z.string().nullable().optional().default(null),
   stopReason: z.string().nullable().optional().default(null),
   failureReason: z.string().nullable().optional().default(null),

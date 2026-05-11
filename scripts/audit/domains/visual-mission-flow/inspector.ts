@@ -211,6 +211,170 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
+  // ── CHECK 11: Open gate must use targetProfileRef, not platformId ─────────
+  {
+    const src = readSrc(CFG.missionLoopPath);
+    if (!src) {
+      checks.push({ checkId: "VMF-11", question: "Open gate must pass targetProfileRef or targetUrl, never bare platformId?", status: "FAIL", detail: `File not found: ${CFG.missionLoopPath}` });
+    } else {
+      const hasTargetRef = src.includes(CFG.openGateTargetRefToken);
+      // Check platformId only appears as a variable (not as an input field name after ":")
+      const hasBadPlatformId = /inputOverrides[^}]*platformId\s*[^:?]/.test(src);
+      if (hasTargetRef && !hasBadPlatformId) {
+        checks.push({ checkId: "VMF-11", question: "Open gate must pass targetProfileRef or targetUrl, never bare platformId?", status: "PASS", detail: "Open gate uses targetProfileRef in inputOverrides." });
+      } else if (!hasTargetRef) {
+        checks.push({ checkId: "VMF-11", question: "Open gate must pass targetProfileRef or targetUrl, never bare platformId?", status: "FAIL", detail: "targetProfileRef not found in Open gate inputOverrides." });
+      } else {
+        checks.push({ checkId: "VMF-11", question: "Open gate must pass targetProfileRef or targetUrl, never bare platformId?", status: "FAIL", detail: "platformId still present in Open gate inputOverrides — rejected by strict Open schema." });
+      }
+    }
+  }
+
+  // ── CHECK 12: Open gate checks result.status before setting openResultRef ─
+  {
+    const src = readSrc(CFG.missionLoopPath);
+    if (!src) {
+      checks.push({ checkId: "VMF-12", question: "Open gate must check result.status before setting openResultRef?", status: "FAIL", detail: `File not found: ${CFG.missionLoopPath}` });
+    } else if (src.includes(CFG.openGateResultCheckToken)) {
+      checks.push({ checkId: "VMF-12", question: "Open gate must check result.status before setting openResultRef?", status: "PASS", detail: "openResult.status check found in Open gate." });
+    } else {
+      checks.push({ checkId: "VMF-12", question: "Open gate must check result.status before setting openResultRef?", status: "FAIL", detail: "openResult.status not checked — mission continues even if Open fails." });
+    }
+  }
+
+  // ── CHECK 13: NerveBus dispatcher has Open-specific clean input path ──────
+  {
+    const src = readSrc(CFG.nerveBusDispatcherPath);
+    if (!src) {
+      checks.push({ checkId: "VMF-13", question: "NerveBus dispatcher must not inject forbidden fields into strict Open schema?", status: "FAIL", detail: `File not found: ${CFG.nerveBusDispatcherPath}` });
+    } else if (src.includes(CFG.nerveBusOpenCleanToken)) {
+      checks.push({ checkId: "VMF-13", question: "NerveBus dispatcher must not inject forbidden fields into strict Open schema?", status: "PASS", detail: "Open-specific clean input path found in dispatcher." });
+    } else {
+      checks.push({ checkId: "VMF-13", question: "NerveBus dispatcher must not inject forbidden fields into strict Open schema?", status: "FAIL", detail: "No Open-specific input path — dispatcher injects abilityGroupId/purpose/sourceRef into strict Open schema." });
+    }
+  }
+
+  // ── CHECK 14: product_yes schema validation in ai-output.schema.ts ────────
+  {
+    const aiOutputSchemaPath = "src/visual-mission/action-plan/ai-output.schema.ts";
+    const src = readSrc(aiOutputSchemaPath);
+    if (!src) {
+      checks.push({ checkId: "VMF-14", question: "product_yes output schema requires like click + comments click + save + scroll?", status: "FAIL", detail: `File not found: ${aiOutputSchemaPath}` });
+    } else {
+      const hasProductYes = src.includes("product_yes") && src.includes("superRefine");
+      const hasLikeCheck = src.includes("at least 2 click") || src.includes("clicks.length < 2");
+      const hasSaveCheck = src.includes("SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
+      const hasScrollCheck = src.includes("SCROLL_BROWSER_VIEWPORT_ONCE");
+      if (hasProductYes && hasLikeCheck && hasSaveCheck && hasScrollCheck) {
+        checks.push({ checkId: "VMF-14", question: "product_yes output schema requires like click + comments click + save + scroll?", status: "PASS", detail: "product_yes superRefine validates 2+ clicks, SAVE, and SCROLL." });
+      } else {
+        const missing: string[] = [];
+        if (!hasProductYes) missing.push("product_yes superRefine");
+        if (!hasLikeCheck) missing.push("2-click check");
+        if (!hasSaveCheck) missing.push("SAVE check");
+        if (!hasScrollCheck) missing.push("SCROLL check");
+        checks.push({ checkId: "VMF-14", question: "product_yes output schema requires like click + comments click + save + scroll?", status: "FAIL", detail: `Missing: ${missing.join(", ")}` });
+      }
+    }
+  }
+
+  // ── CHECK 15: product_no schema forbids click/save ─────────────────────────
+  {
+    const aiOutputSchemaPath = "src/visual-mission/action-plan/ai-output.schema.ts";
+    const src = readSrc(aiOutputSchemaPath);
+    if (!src) {
+      checks.push({ checkId: "VMF-15", question: "product_no output schema forbids click and SAVE?", status: "FAIL", detail: `File not found: ${aiOutputSchemaPath}` });
+    } else {
+      const hasProductNo = src.includes("product_no");
+      const hasClickForbid = src.includes("product_no must not contain click");
+      const hasSaveForbid = src.includes("product_no must not contain SAVE");
+      if (hasProductNo && hasClickForbid && hasSaveForbid) {
+        checks.push({ checkId: "VMF-15", question: "product_no output schema forbids click and SAVE?", status: "PASS", detail: "product_no superRefine forbids clicks and SAVE." });
+      } else {
+        const missing: string[] = [];
+        if (!hasProductNo) missing.push("product_no check");
+        if (!hasClickForbid) missing.push("click forbid");
+        if (!hasSaveForbid) missing.push("SAVE forbid");
+        checks.push({ checkId: "VMF-15", question: "product_no output schema forbids click and SAVE?", status: "FAIL", detail: `Missing: ${missing.join(", ")}` });
+      }
+    }
+  }
+
+  // ── CHECK 16: dispatch-sequence tracks commentPanelOpenAttempted ──────────
+  {
+    const src = readSrc(CFG.dispatchSequencePath);
+    if (!src) {
+      checks.push({ checkId: "VMF-16", question: "dispatch-sequence tracks commentPanelOpenAttempted (not just priorClickCount)?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
+    } else {
+      const hasCommentTrack = src.includes("commentPanelOpenAttempted");
+      const hasOldTrack = src.includes("priorClickCount");
+      if (hasCommentTrack && !hasOldTrack) {
+        checks.push({ checkId: "VMF-16", question: "dispatch-sequence tracks commentPanelOpenAttempted (not just priorClickCount)?", status: "PASS", detail: "commentPanelOpenAttempted tracking found; priorClickCount retired." });
+      } else if (hasOldTrack) {
+        checks.push({ checkId: "VMF-16", question: "dispatch-sequence tracks commentPanelOpenAttempted (not just priorClickCount)?", status: "FAIL", detail: "priorClickCount still present — comment-specific tracking not implemented." });
+      } else {
+        checks.push({ checkId: "VMF-16", question: "dispatch-sequence tracks commentPanelOpenAttempted (not just priorClickCount)?", status: "FAIL", detail: "Neither commentPanelOpenAttempted nor priorClickCount found." });
+      }
+    }
+  }
+
+  // ── CHECK 17: SAVE evidence record includes postCommentScreenshotRef when comment opened ─
+  {
+    const src = readSrc(CFG.dispatchSequencePath);
+    if (!src) {
+      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts postCommentScreenshotRef in evidence when comment opened?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
+    } else if (src.includes("postCommentScreenshotRef")) {
+      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts postCommentScreenshotRef in evidence when comment opened?", status: "PASS", detail: "postCommentScreenshotRef present in dispatch-sequence evidence record." });
+    } else {
+      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts postCommentScreenshotRef in evidence when comment opened?", status: "FAIL", detail: "postCommentScreenshotRef not found — post-comment screenshot not saved to evidence." });
+    }
+  }
+
+  // ── CHECK 18: progress counters are state-derived (not hardcoded 0) ────────
+  {
+    const src = readSrc(CFG.missionLoopPath);
+    if (!src) {
+      checks.push({ checkId: "VMF-18", question: "roundMissionPacket progress is state-derived (not hardcoded 0)?", status: "FAIL", detail: `File not found: ${CFG.missionLoopPath}` });
+    } else if (src.includes(CFG.progressHardcodeToken)) {
+      checks.push({ checkId: "VMF-18", question: "roundMissionPacket progress is state-derived (not hardcoded 0)?", status: "FAIL", detail: "savedLeadCount: 0 hardcoded — AI always sees progress as zero." });
+    } else if (src.includes("savedEvidenceCount") && src.includes("skippedVideoCount")) {
+      checks.push({ checkId: "VMF-18", question: "roundMissionPacket progress is state-derived (not hardcoded 0)?", status: "PASS", detail: "State-derived progress counters found in roundMissionPacket." });
+    } else {
+      checks.push({ checkId: "VMF-18", question: "roundMissionPacket progress is state-derived (not hardcoded 0)?", status: "FAIL", detail: "State-derived progress counters not found." });
+    }
+  }
+
+  // ── CHECK 19: runtimeLogger passed to AI ability group ─────────────────────
+  {
+    const src = readSrc(CFG.workbenchAssemblyPath);
+    if (!src) {
+      checks.push({ checkId: "VMF-19", question: "runtimeLogger passed to createConfiguredAiAbilityGroup?", status: "FAIL", detail: `File not found: ${CFG.workbenchAssemblyPath}` });
+    } else if (src.includes(CFG.aiRuntimeLoggerToken)) {
+      checks.push({ checkId: "VMF-19", question: "runtimeLogger passed to createConfiguredAiAbilityGroup?", status: "PASS", detail: "runtimeLogger injected into AI ability group." });
+    } else {
+      checks.push({ checkId: "VMF-19", question: "runtimeLogger passed to createConfiguredAiAbilityGroup?", status: "FAIL", detail: "runtimeLogger not passed to createConfiguredAiAbilityGroup — AI debug events not emitted." });
+    }
+  }
+
+  // ── CHECK 20: task-start-debug-writer has no any / eslint-disable ─────────
+  {
+    const src = readSrc(CFG.debugWriterPath);
+    if (!src) {
+      checks.push({ checkId: "VMF-20", question: "task-start-debug-writer has no any/eslint-disable and no wrong event mapping?", status: "FAIL", detail: `File not found: ${CFG.debugWriterPath}` });
+    } else {
+      const violations = CFG.debugWriterForbiddenTokens.filter((t) => src.includes(t));
+      const hasBadMapping = src.includes("MISSION_PREFLIGHT_PASSED") && src.includes("MISSION_STARTED") &&
+        /MISSION_PREFLIGHT_PASSED[^,}]*MISSION_STARTED/.test(src);
+      if (violations.length === 0 && !hasBadMapping) {
+        checks.push({ checkId: "VMF-20", question: "task-start-debug-writer has no any/eslint-disable and no wrong event mapping?", status: "PASS", detail: "No forbidden tokens; event mapping is correct." });
+      } else {
+        const issues = [...violations];
+        if (hasBadMapping) issues.push("MISSION_PREFLIGHT_PASSED mapped to MISSION_STARTED");
+        checks.push({ checkId: "VMF-20", question: "task-start-debug-writer has no any/eslint-disable and no wrong event mapping?", status: "FAIL", detail: `Violations: ${issues.join(", ")}` });
+      }
+    }
+  }
+
   // ─── Compute overall status ──────────────────────────────────────────────
   const hasAnyFail = checks.some((c) => c.status === "FAIL");
   const hasAnyWarn = checks.some((c) => c.status === "WARN");

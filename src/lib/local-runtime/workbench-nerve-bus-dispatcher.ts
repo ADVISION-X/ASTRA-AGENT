@@ -163,24 +163,42 @@ export function createWorkbenchNerveBusHandlerPort(deps: WorkbenchNerveBusDispat
         // Enrich the input with envelope identity and generate missing tracking fields
         // so ability-group schemas (missionId, runId, sessionId, stepId, etc.) validate.
         const ip = inputPayload as Record<string, unknown>;
-        const enrichedAbilityInput: Record<string, unknown> = {
-          ...ip,
-          abilityGroupId: envelope.abilityGroupId,
-          childCapabilityId: envelope.childCapabilityId,
-          missionId: ip["missionId"] ?? envelope.missionId,
-          runId: ip["runId"] ?? envelope.runId,
-          sessionId: ip["sessionId"] ?? envelope.sessionId ?? "local",
-          roundId: ip["roundId"] ?? envelope.roundId ?? null,
-          nerveBusEnvelopeId: ip["nerveBusEnvelopeId"] ?? envelope.envelopeId,
-          stepId: ip["stepId"] ?? randomUUID(),
-          capabilityCallId: ip["capabilityCallId"] ?? randomUUID(),
-          inputRef: ip["inputRef"] ?? randomUUID(),
-          requestedBy: ip["requestedBy"] ?? "orchestration:dispatch-sequence",
-          purpose: ip["purpose"] ?? "execute-ai-action",
-          sourceRef: ip["sourceRef"] ?? (ip["gridSpecRef"] as string | undefined) ?? envelope.envelopeId,
-          idempotencyKey: ip["idempotencyKey"] ?? `dispatch:${envelope.missionId}:${envelope.runId}:${envelope.roundId ?? "noround"}:${envelope.envelopeId}`,
-          videoVisitId: ip["videoVisitId"] ?? null,
-        };
+
+        // Open group uses a .strict() schema that forbids abilityGroupId, purpose, sourceRef,
+        // videoVisitId. Build a clean input with only schema-allowed fields.
+        const enrichedAbilityInput: Record<string, unknown> = envelope.abilityGroupId === "open"
+          ? {
+              ...ip,
+              childCapabilityId: envelope.childCapabilityId,
+              missionId: ip["missionId"] ?? envelope.missionId,
+              runId: ip["runId"] ?? envelope.runId,
+              ...(ip["sessionId"] != null ? { sessionId: ip["sessionId"] } : envelope.sessionId ? { sessionId: envelope.sessionId } : {}),
+              roundId: ip["roundId"] ?? envelope.roundId ?? null,
+              nerveBusEnvelopeId: ip["nerveBusEnvelopeId"] ?? envelope.envelopeId,
+              stepId: ip["stepId"] ?? randomUUID(),
+              capabilityCallId: ip["capabilityCallId"] ?? randomUUID(),
+              inputRef: ip["inputRef"] ?? randomUUID(),
+              requestedBy: ip["requestedBy"] ?? "orchestration:dispatch-sequence",
+              idempotencyKey: ip["idempotencyKey"] ?? `dispatch:${envelope.missionId}:${envelope.runId}:${envelope.roundId ?? "noround"}:${envelope.envelopeId}`,
+            }
+          : {
+              ...ip,
+              abilityGroupId: envelope.abilityGroupId,
+              childCapabilityId: envelope.childCapabilityId,
+              missionId: ip["missionId"] ?? envelope.missionId,
+              runId: ip["runId"] ?? envelope.runId,
+              sessionId: ip["sessionId"] ?? envelope.sessionId ?? "local",
+              roundId: ip["roundId"] ?? envelope.roundId ?? null,
+              nerveBusEnvelopeId: ip["nerveBusEnvelopeId"] ?? envelope.envelopeId,
+              stepId: ip["stepId"] ?? randomUUID(),
+              capabilityCallId: ip["capabilityCallId"] ?? randomUUID(),
+              inputRef: ip["inputRef"] ?? randomUUID(),
+              requestedBy: ip["requestedBy"] ?? "orchestration:dispatch-sequence",
+              purpose: ip["purpose"] ?? "execute-ai-action",
+              sourceRef: ip["sourceRef"] ?? (ip["gridSpecRef"] as string | undefined) ?? envelope.envelopeId,
+              idempotencyKey: ip["idempotencyKey"] ?? `dispatch:${envelope.missionId}:${envelope.runId}:${envelope.roundId ?? "noround"}:${envelope.envelopeId}`,
+              videoVisitId: ip["videoVisitId"] ?? null,
+            };
         const result = await group.execute(enrichedAbilityInput);
         const status = (result.status ?? "success") as "success" | "failed" | "review_required";
         const resultEnvelope = buildAbilityResultEnvelope(envelope, status, result.failureReason ?? null);

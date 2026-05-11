@@ -265,18 +265,25 @@ export async function dispatchRegisteredAbilitySequence(
   input: DispatchRegisteredAbilitySequenceInput,
   ctx: DispatchSequenceContext,
 ): Promise<DispatchSequenceResult> {
-  let priorClickCount = 0;
+  let commentPanelOpenAttempted = false;
 
   for (const action of input.actions) {
-    // ── Track clicks dispatched in this sequence for post-comment screenshot ─
+    // ── Track comment-panel clicks for post-comment screenshot before SAVE ──
     const isClickAction =
       action.actionCode.startsWith("LEFT_CLICK") ||
       action.actionCode.startsWith("DOUBLE_LEFT_CLICK") ||
       action.actionCode.startsWith("RIGHT_CLICK");
 
-    // ── Take post-comment screenshot before SAVE if clicks were dispatched ───
+    const actionReason = (action.inputOverrides?.["reason"] as string | undefined) ?? "";
+    if (isClickAction && /comment/i.test(actionReason)) {
+      commentPanelOpenAttempted = true;
+    }
+
+    // ── Take post-comment screenshot before SAVE when comments were opened ──
     let postCommentScreenshotRef: string | null = null;
-    if (action.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE" && priorClickCount > 0) {
+    if (action.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE" && commentPanelOpenAttempted) {
+      let shotFailed = false;
+      let shotFailureReason: string | null = null;
       try {
         const postShot = await ctx.screenshotAbilityGroup.execute({
           childCapabilityId: "capture-browser-viewport",
@@ -292,22 +299,29 @@ export async function dispatchRegisteredAbilitySequence(
           idempotencyKey: `post-comment-screenshot:${input.missionId}:${input.runId}:${input.roundId ?? ""}`,
         });
         if (postShot.status === "success") {
-          if ("aiReadableImagePath" in postShot && postShot.aiReadableImagePath) {
-            postCommentScreenshotRef = postShot.aiReadableImagePath;
-          } else if ("screenshotRef" in postShot && postShot.screenshotRef) {
+          if ("screenshotRef" in postShot && postShot.screenshotRef) {
             postCommentScreenshotRef = postShot.screenshotRef;
           }
+        } else {
+          shotFailed = true;
+          shotFailureReason = ("failureReason" in postShot && postShot.failureReason)
+            ? postShot.failureReason
+            : "post-comment screenshot failed";
         }
-      } catch {
-        // post-comment screenshot failure must not block SAVE
+      } catch (err) {
+        shotFailed = true;
+        shotFailureReason = err instanceof Error ? err.message : "post-comment screenshot threw";
+      }
+      // Screenshot failure must block SAVE — evidence without post-comment screenshot is incomplete
+      if (shotFailed) {
+        const failedState = getMissionState(input.missionId);
+        const updated = applyStatusTransition(failedState, { status: "failed", failureReason: shotFailureReason ?? "post-comment screenshot failed before SAVE" });
+        upsertMissionState(updated);
+        return { status: "failed", stateSnapshot: updated, failureReason: shotFailureReason ?? "post-comment screenshot failed before SAVE", reviewRequiredReason: null };
       }
     }
 
     const { status, failureReason } = await dispatchSingleAction(action, input, ctx, { postCommentScreenshotRef });
-
-    if (isClickAction && status === "success") {
-      priorClickCount++;
-    }
 
     void ctx.forensics.appendRecord({
       childCapabilityId: "append-record",

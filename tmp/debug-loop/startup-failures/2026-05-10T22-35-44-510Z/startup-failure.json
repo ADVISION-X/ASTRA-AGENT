@@ -1,8 +1,0 @@
-{
-  "runId": "2026-05-10T22:35:44.510Z",
-  "baseUrl": "http://127.0.0.1:4173",
-  "ownerResponsible": "startup-entrypoint",
-  "failureReason": "node:internal/modules/run_main:105\n    triggerUncaughtException(\n    ^\nError [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/nexgen/Documents/GrassEye -AI-AGENT/src/map-plugins/builtins/index.js' imported from /Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/startup/lib/map-package-readiness-probe.ts\n    at finalizeResolution (node:internal/modules/esm/resolve:274:11)\n    at moduleResolve (node:internal/modules/esm/resolve:859:10)\n    at defaultResolve (node:internal/modules/esm/resolve:983:11)\n    at nextResolve (node:internal/modules/esm/hooks:748:28)\n    at resolveBase (file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/node_modules/tsx/dist/esm/index.mjs?1778452544717:2:3744)\n    at async resolveDirectory (file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/node_modules/tsx/dist/esm/index.mjs?1778452544717:2:4237)\n    at async resolve (file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/node_modules/tsx/dist/esm/index.mjs?1778452544717:2:5355)\n    at async nextResolve (node:internal/modules/esm/hooks:748:22)\n    at async Hooks.resolve (node:internal/modules/esm/hooks:240:24)\n    at async handleMessage (node:internal/modules/esm/worker:199:18) {\n  code: 'ERR_MODULE_NOT_FOUND',\n  url: 'file:///Users/nexgen/Documents/GrassEye%20-AI-AGENT/src/map-plugins/builtins/index.js'\n}\n\nNode.js v24.4.1",
-  "actionableMessage": "Inspect startup structured logs and rerun npm run grasseye:start.",
-  "writtenAt": "2026-05-10T22:35:44.810Z"
-}

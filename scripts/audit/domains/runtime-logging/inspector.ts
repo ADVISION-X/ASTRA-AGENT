@@ -162,6 +162,36 @@ export function runRuntimeLoggingInspector(): RuntimeLoggingInspectorResult {
     }
   }
 
+  // ── RLOG-04: runtimeLogger injected into AI ability group ─────────────────
+  {
+    const assemblySrc = readSrc("src/lib/local-runtime/workbench-assembly.ts");
+    if (!assemblySrc) {
+      checks.push({ checkId: "RLOG-04", question: "runtimeLogger passed to createConfiguredAiAbilityGroup in workbench-assembly?", status: "FAIL", detail: "workbench-assembly.ts not found." });
+    } else if (assemblySrc.includes("createConfiguredAiAbilityGroup({ dataDir, runtimeLogger })")) {
+      checks.push({ checkId: "RLOG-04", question: "runtimeLogger passed to createConfiguredAiAbilityGroup in workbench-assembly?", status: "PASS", detail: "runtimeLogger injected into AI ability group — AI events will fire." });
+    } else {
+      checks.push({ checkId: "RLOG-04", question: "runtimeLogger passed to createConfiguredAiAbilityGroup in workbench-assembly?", status: "FAIL", detail: "runtimeLogger not passed to createConfiguredAiAbilityGroup — AI events silently dropped." });
+    }
+  }
+
+  // ── RLOG-05: task-start-debug-writer has no any / eslint-disable ──────────
+  {
+    const debugWriterSrc = readSrc("src/lib/local-app-shell/task-start-debug-writer.ts");
+    if (!debugWriterSrc) {
+      checks.push({ checkId: "RLOG-05", question: "task-start-debug-writer.ts has no any/eslint-disable and correct event mapping?", status: "FAIL", detail: "task-start-debug-writer.ts not found." });
+    } else {
+      const violations: string[] = [];
+      if (debugWriterSrc.includes("eslint-disable")) violations.push("eslint-disable");
+      if (debugWriterSrc.includes("Record<string, any>")) violations.push("Record<string, any>");
+      if (/MISSION_PREFLIGHT_PASSED[^,}]*MISSION_STARTED/.test(debugWriterSrc)) violations.push("MISSION_PREFLIGHT_PASSED mapped to MISSION_STARTED");
+      if (violations.length === 0) {
+        checks.push({ checkId: "RLOG-05", question: "task-start-debug-writer.ts has no any/eslint-disable and correct event mapping?", status: "PASS", detail: "No forbidden tokens; event mapping is correct." });
+      } else {
+        checks.push({ checkId: "RLOG-05", question: "task-start-debug-writer.ts has no any/eslint-disable and correct event mapping?", status: "FAIL", detail: `Violations: ${violations.join(", ")}` });
+      }
+    }
+  }
+
   // ── Aggregate ─────────────────────────────────────────────────────────────
   const hasFail = checks.some((c) => c.status === "FAIL");
   const hasWarn = checks.some((c) => c.status === "WARN");

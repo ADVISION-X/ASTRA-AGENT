@@ -169,7 +169,7 @@ export function createWorkbenchAssembly(
     });
   const textInputAbilityGroup =
     createTextInputAbilityGroupWithPorts(textInputPorts);
-  const aiAbilityGroup = createConfiguredAiAbilityGroup({ dataDir });
+  const aiAbilityGroup = createConfiguredAiAbilityGroup({ dataDir, runtimeLogger });
   const openAbilityGroup = createOpenAbilityGroup({
     browserOpenPort: createOpenBrowserPortAdapter(browserController),
     workbenchOpenPort: {
