@@ -38,6 +38,46 @@ import {
   releaseCommanderIdempotency,
 } from "./idempotency.js";
 
+// ─── Payload builder: maps Commander input to Orchestration MissionCommandSchema ─
+
+function buildStartMissionOrchestrationPayload(opts: {
+  userRequirementText: string;
+  selectedPlatforms: string[];
+  requestedPlatformId: string | null;
+  maxRounds: number | null;
+  maxMinutes: number | null;
+  operatorNote: string | null;
+  initialPayload: Record<string, unknown> | null;
+}): Record<string, unknown> {
+  // Build a clean initialPayload containing only the fields accepted by
+  // MissionCommandSchema.initialPayload.strict() inside Orchestration.
+  const rawIp = opts.initialPayload;
+  const cleanedInitialPayload: Record<string, unknown> = {
+    requestedBy: (rawIp?.["requestedBy"] as string | undefined) ?? "commander-console",
+  };
+  if (rawIp?.["userRequirementRef"] != null) cleanedInitialPayload["userRequirementRef"] = rawIp["userRequirementRef"];
+  if (rawIp?.["primaryPlatformId"] != null) cleanedInitialPayload["primaryPlatformId"] = rawIp["primaryPlatformId"];
+  if (Array.isArray(rawIp?.["selectedPlatforms"])) cleanedInitialPayload["selectedPlatforms"] = rawIp!["selectedPlatforms"];
+  cleanedInitialPayload["operatorNote"] = rawIp?.["operatorNote"] ?? opts.operatorNote ?? null;
+  if (rawIp?.["targetUrl"] != null) cleanedInitialPayload["targetUrl"] = rawIp["targetUrl"];
+  if (rawIp?.["targetTitle"] != null) cleanedInitialPayload["targetTitle"] = rawIp["targetTitle"];
+  if (rawIp?.["targetProfileRef"] != null) cleanedInitialPayload["targetProfileRef"] = rawIp["targetProfileRef"];
+  if (rawIp?.["sourceEvidenceRef"] != null) cleanedInitialPayload["sourceEvidenceRef"] = rawIp["sourceEvidenceRef"];
+  if (rawIp?.["sourceTargetRef"] != null) cleanedInitialPayload["sourceTargetRef"] = rawIp["sourceTargetRef"];
+  if (rawIp?.["promptInputRef"] != null) cleanedInitialPayload["promptInputRef"] = rawIp["promptInputRef"];
+  if (rawIp?.["commandInputRef"] != null) cleanedInitialPayload["commandInputRef"] = rawIp["commandInputRef"];
+
+  return {
+    // Top-level fields required by MissionCommandSchema (missionId + runId injected by dispatcher)
+    humanGoal: opts.userRequirementText,
+    requestedPlatform: opts.requestedPlatformId ?? opts.selectedPlatforms[0] ?? "",
+    selectedPlatforms: opts.selectedPlatforms,
+    ...(opts.maxRounds != null ? { maxRounds: opts.maxRounds } : {}),
+    ...(opts.maxMinutes != null ? { maxMinutes: opts.maxMinutes } : {}),
+    initialPayload: cleanedInitialPayload,
+  };
+}
+
 // ─── Context ──────────────────────────────────────────────────────────────────
 
 export type CommanderChildContext = {
@@ -216,12 +256,15 @@ export const executeIssueHumanCommand = async (
     requestedPlatformId: requestedPlatformId ?? null,
     maxRounds: maxRounds ?? null,
     maxMinutes: maxMinutes ?? null,
-    payload: {
+    payload: buildStartMissionOrchestrationPayload({
       userRequirementText,
       selectedPlatforms,
+      requestedPlatformId: requestedPlatformId ?? null,
+      maxRounds: maxRounds ?? null,
+      maxMinutes: maxMinutes ?? null,
       operatorNote: operatorNote ?? null,
       initialPayload: initialPayload ?? null,
-    },
+    }),
     idempotencyKey,
     timeoutMs: 30_000,
   }, context.commandTransport);

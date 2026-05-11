@@ -1,6 +1,9 @@
 import type { MissionState } from "./contract.js";
 import type { NerveBusAbilityGroup } from "../nerve-bus/contract.js";
 import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/contract.js";
+import type { ScreenshotAbilityGroup } from "../screenshot/index.js";
+import type { AiAbilityGroup } from "../ai/index.js";
+import type { GeometryGuardAbilityGroup } from "../geometry-guard/index.js";
 import type { DispatchRegisteredAbilitySequenceInput } from "./contract.js";
 import {
   getMissionState,
@@ -11,6 +14,7 @@ import {
   now,
 } from "./runtime/mission-state.js";
 import { dispatchRegisteredAbilitySequence } from "./runtime/dispatch-sequence.js";
+import { runMissionRoundLoop } from "./runtime/mission-loop-runner.js";
 import {
   StartMissionChildInputSchema,
   PauseMissionChildInputSchema,
@@ -26,6 +30,9 @@ type OrchestrationForensics = ForensicsPersistenceAbilityGroup;
 export type OrchestrationChildrenContext = {
   nerveBus: NerveBusAbilityGroup;
   forensics: OrchestrationForensics;
+  screenshotAbilityGroup: ScreenshotAbilityGroup;
+  aiAbilityGroup: AiAbilityGroup;
+  geometryGuard: GeometryGuardAbilityGroup;
 };
 
 type ChildResult = {
@@ -58,6 +65,16 @@ export async function handleStartMission(rawInput: unknown, ctx: OrchestrationCh
   const running = applyStatusTransition(initial, { status: "running", lastHumanCommand: "start-mission" });
   upsertMissionState(running);
   setActiveMission(cmd.missionId);
+
+  // Fire-and-forget: start the autonomous round loop asynchronously.
+  // If the loop throws unexpectedly, record the failure in mission state.
+  void runMissionRoundLoop(cmd.missionId, ctx).catch((err) => {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const failed = applyStatusTransition(getMissionState(cmd.missionId), { status: "failed", failureReason: errMsg });
+    upsertMissionState(failed);
+    setActiveMission(null);
+  });
+
   return { status: "success", stateSnapshot: running };
 }
 
@@ -134,6 +151,7 @@ export async function handleDispatchRegisteredAbilitySequence(rawInput: unknown,
   const result = await dispatchRegisteredAbilitySequence(input, {
     nerveBus: ctx.nerveBus,
     forensics: ctx.forensics,
+    geometryGuard: ctx.geometryGuard,
   });
   return {
     status: result.status,

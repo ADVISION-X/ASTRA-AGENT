@@ -1,4 +1,7 @@
 import type { NerveBusAbilityGroup } from "../nerve-bus/contract.js";
+import type { ScreenshotAbilityGroup } from "../screenshot/index.js";
+import type { AiAbilityGroup } from "../ai/index.js";
+import type { GeometryGuardAbilityGroup } from "../geometry-guard/index.js";
 import type {
   OrchestrationAbilityGroup,
   MissionCommand,
@@ -25,6 +28,9 @@ type ForensicsSurface = OrchestrationChildrenContext["forensics"];
 type OrchestrationDeps = {
   nerveBus: NerveBusAbilityGroup;
   forensics: ForensicsSurface;
+  screenshot: ScreenshotAbilityGroup;
+  ai: AiAbilityGroup;
+  geometryGuard: GeometryGuardAbilityGroup;
 };
 
 async function executeChild(
@@ -57,7 +63,13 @@ async function executeChild(
 }
 
 export function createOrchestrationAbilityGroup(deps: OrchestrationDeps): OrchestrationAbilityGroup {
-  const ctx: OrchestrationChildrenContext = { nerveBus: deps.nerveBus, forensics: deps.forensics };
+  const ctx: OrchestrationChildrenContext = {
+    nerveBus: deps.nerveBus,
+    forensics: deps.forensics,
+    screenshotAbilityGroup: deps.screenshot,
+    aiAbilityGroup: deps.ai,
+    geometryGuard: deps.geometryGuard,
+  };
 
   async function execute(input: OrchestrationExecuteInput): Promise<OrchestrationExecuteResult> {
     return executeChild(input.childCapabilityId, input.payload, ctx);

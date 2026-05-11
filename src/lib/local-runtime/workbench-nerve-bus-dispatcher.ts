@@ -199,10 +199,22 @@ export function createWorkbenchNerveBusHandlerPort(deps: WorkbenchNerveBusDispat
       const { envelope, inputPayload } = input;
       const orchestration = deps.getOrchestration();
 
+      // Inject envelope identity fields into the payload so Orchestration schemas
+      // that require missionId and runId (e.g. MissionCommandSchema) can validate.
+      const enrichedPayload: Record<string, unknown> = {
+        ...(inputPayload as Record<string, unknown>),
+      };
+      if (enrichedPayload["missionId"] == null) {
+        enrichedPayload["missionId"] = envelope.missionId;
+      }
+      if (enrichedPayload["runId"] == null) {
+        enrichedPayload["runId"] = envelope.runId;
+      }
+
       try {
         const result = await orchestration.execute({
           childCapabilityId: envelope.commandType as OrchestrationChildCapabilityId,
-          payload: inputPayload,
+          payload: enrichedPayload,
         });
         const status = result.status === "success" ? "success" : "failed";
         const resultEnvelope = buildHumanCommandResultEnvelope(envelope, status, result.failureReason ?? null);

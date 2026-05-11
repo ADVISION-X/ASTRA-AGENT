@@ -91,6 +91,9 @@ export class GrassEyeWorkbench {
     this._orchestration = createOrchestrationAbilityGroup({
       nerveBus: this._nerveBus,
       forensics: this._assembly.forensicsPersistenceAbilityGroup,
+      screenshot: this._assembly.screenshotAbilityGroup,
+      ai: this._assembly.aiAbilityGroup,
+      geometryGuard: this._assembly.geometryGuardAbilityGroup,
     });
     orchestrationRef.instance = this._orchestration;
 
