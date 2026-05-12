@@ -1,10 +1,15 @@
 ---
-name: "GrassEye Post-action Verification Capability"
-description: "Use when governing the independent Post-action Verification Ability Group, post-action observation packaging, before/after evidence binding, observation proof, and the boundary that keeps final semantic judgment in AI rather than PAV."
+name: "GrassEye Post-action Verification — Support Evidence Boundary"
+description: "PAV is a support/transition evidence boundary, not an independent active ability group. Use when reviewing post-action observation packaging, before/after evidence binding, observation proof, and the boundary that keeps final semantic judgment in AI rather than PAV."
 applyTo: ".github/instructions/cursor-rules/modules/module-post-action-verification-capability.instructions.md, src/capabilities/post-action-verification/**, docs/法案辅助文件/GrassEye Post-action Verification 动作后验证能力组施工图.md, scripts/audit/domains/post-action-verification-capability/**"
 ---
 
-# GrassEye Post-action Verification Capability FINAL
+# GrassEye Post-action Verification — Support Evidence Boundary
+
+> **Identity**: PAV is a **support / transition evidence boundary**, not an independent active ability group.
+> It is listed in the law freeze baseline as a support/transition evidence surface.
+> PAV must NOT register as an active CI owner, must NOT appear in MuscleMemoryCatalog, and must NOT
+> claim to own action result truth. Final semantic judgment belongs to the next AI Visual Mission Judge round.
 
 Scope: governs post-action observation packaging, before/after evidence binding, and observation-package owner evidence integrity.
 Boundary: this module governs observation packaging only. It does not execute actions, call AI, decide semantic success, or own mission branching.

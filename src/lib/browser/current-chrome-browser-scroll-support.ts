@@ -37,7 +37,7 @@ const resolveCurrentChromeScrollPlan = (
   return {
     scrollX: coordinateSpace === "desktopScreen" ? anchorPoint.x : geometry.windowX + anchorPoint.x,
     scrollY: coordinateSpace === "desktopScreen" ? anchorPoint.y : geometry.windowY + anchorPoint.y,
-    requiresArrowDownAssist: input.targetLabel.includes("scroll_next_video") && input.deltaY > 0,
+    requiresArrowDownAssist: (input.targetLabel.includes("scroll_next_video") || input.targetLabel.includes("scroll_viewport_to_next_item")) && input.deltaY > 0,
   };
 };
 

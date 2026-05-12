@@ -61,9 +61,7 @@ export const checkFileCounts = (): FileCountFinding[] => {
     module: "scripts/audit (total)",
     actual: auditTotal,
     limit: QUALITY_KERNEL_LIMITS.maxAuditFiles,
-    status: auditTotal <= QUALITY_KERNEL_LIMITS.maxAuditFiles ? "ok"
-      : auditTotal <= 30 ? "warn"
-      : "fail",
+    status: auditTotal <= QUALITY_KERNEL_LIMITS.maxAuditFiles ? "ok" : "fail",
   });
 
   const qkFiles = countFilesRecursive(join(repoRoot, "scripts/audit/domains/quality-kernel"));

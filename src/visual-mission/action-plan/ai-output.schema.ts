@@ -95,6 +95,7 @@ const TargetRoleSchema = z.enum([
   "comments_button",
   "comments_panel_close",
   "next_video_surface",
+  "next_video_arrow",
   "unknown",
 ]).nullable().optional().default(null);
 
@@ -157,22 +158,6 @@ const VisualMissionActionPlanOutputSchema = z.object({
   const { productDecision, actions } = val;
 
   if (productDecision === "product_yes") {
-    const clicks = actions.filter(a =>
-      a.actionCode === "LEFT_CLICK_GRID_CELL_ONCE" ||
-      a.actionCode === "DOUBLE_LEFT_CLICK_GRID_CELL" ||
-      a.actionCode === "RIGHT_CLICK_GRID_CELL_ONCE",
-    );
-    if (clicks.length < 2) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires at least 2 click actions (like + comments).", path: ["actions"] });
-    }
-    const hasLikeClick = clicks.some(a => a.targetRole === "like_button");
-    if (!hasLikeClick) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires a click action with targetRole='like_button'.", path: ["actions"] });
-    }
-    const hasCommentClick = clicks.some(a => a.targetRole === "comments_button");
-    if (!hasCommentClick) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires a click action with targetRole='comments_button'.", path: ["actions"] });
-    }
     const saveIdx = actions.findIndex(a => a.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
     if (saveIdx === -1) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
@@ -184,38 +169,41 @@ const VisualMissionActionPlanOutputSchema = z.object({
         ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: SAVE_CURRENT_VIDEO_EVIDENCE_ONCE must have input.captureMode='fresh_current_viewport'.", path: ["actions"] });
       }
     }
-    // Order: all clicks before SAVE
-    const lastClickIdx = clicks.length > 0
-      ? Math.max(...clicks.map(c => actions.indexOf(c)))
-      : -1;
-    if (saveIdx !== -1 && lastClickIdx !== -1 && saveIdx < lastClickIdx) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: SAVE_CURRENT_VIDEO_EVIDENCE_ONCE must come after all click actions.", path: ["actions"] });
+    const clickIndex = (targetRole: NonNullable<VisualMissionActionPlanOutput["actions"][number]["targetRole"]>) =>
+      actions.findIndex(a =>
+        (a.actionCode === "LEFT_CLICK_GRID_CELL_ONCE" ||
+         a.actionCode === "DOUBLE_LEFT_CLICK_GRID_CELL" ||
+         a.actionCode === "RIGHT_CLICK_GRID_CELL_ONCE") &&
+        a.targetRole === targetRole
+      );
+    const nextVideoArrowIdx = clickIndex("next_video_arrow");
+    if (saveIdx !== -1 && nextVideoArrowIdx === -1) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires LEFT_CLICK_GRID_CELL_ONCE with targetRole='next_video_arrow' after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE to advance to the next video.", path: ["actions"] });
     }
-    const scrollIdx = actions.findIndex(a => a.actionCode === "SCROLL_BROWSER_VIEWPORT_ONCE");
-    if (saveIdx !== -1 && scrollIdx === -1) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires SCROLL_BROWSER_VIEWPORT_ONCE after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE to advance to the next video.", path: ["actions"] });
-    }
-    if (saveIdx !== -1 && scrollIdx !== -1 && scrollIdx < saveIdx) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: SCROLL_BROWSER_VIEWPORT_ONCE must come after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
+    if (saveIdx !== -1 && nextVideoArrowIdx !== -1 && nextVideoArrowIdx < saveIdx) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: next_video_arrow click must come after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
     }
   }
 
   if (productDecision === "product_no") {
-    const hasClicks = actions.some(a =>
-      a.actionCode === "LEFT_CLICK_GRID_CELL_ONCE" ||
-      a.actionCode === "DOUBLE_LEFT_CLICK_GRID_CELL" ||
-      a.actionCode === "RIGHT_CLICK_GRID_CELL_ONCE",
+    const nonArrowClicks = actions.filter(a =>
+      (a.actionCode === "LEFT_CLICK_GRID_CELL_ONCE" ||
+       a.actionCode === "DOUBLE_LEFT_CLICK_GRID_CELL" ||
+       a.actionCode === "RIGHT_CLICK_GRID_CELL_ONCE") &&
+      a.targetRole !== "next_video_arrow"
     );
-    if (hasClicks) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_no must not contain click actions.", path: ["actions"] });
+    if (nonArrowClicks.length > 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_no must not contain click actions other than next_video_arrow.", path: ["actions"] });
     }
     const hasSave = actions.some(a => a.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
     if (hasSave) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_no must not contain SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
     }
-    const hasScroll = actions.some(a => a.actionCode === "SCROLL_BROWSER_VIEWPORT_ONCE");
-    if (!hasScroll) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_no must contain SCROLL_BROWSER_VIEWPORT_ONCE.", path: ["actions"] });
+    const hasNextVideoArrow = actions.some(a =>
+      a.actionCode === "LEFT_CLICK_GRID_CELL_ONCE" && a.targetRole === "next_video_arrow"
+    );
+    if (!hasNextVideoArrow) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_no must contain LEFT_CLICK_GRID_CELL_ONCE with targetRole='next_video_arrow' to advance to the next video.", path: ["actions"] });
     }
   }
 });

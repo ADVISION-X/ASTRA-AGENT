@@ -97,6 +97,7 @@ export const ALLOWED_ARCHIVE_PATH_PATTERNS = [
   ".github/instructions/",
   "forbidden-surfaces.ts",
   "scripts/audit/domains/quality-kernel/",
+  "scripts/audit/domains/code-purity/",
   "系统调试",
 ] as string[];
 

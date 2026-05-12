@@ -57,7 +57,6 @@ function formatTerminalLine(event: RuntimeLogEvent, mode: RuntimeLogMode): strin
 export function writeTerminalSink(event: RuntimeLogEvent, activeMode: RuntimeLogMode): void {
   if (!isEventVisibleInMode(event.modeVisibility, activeMode)) return;
   const line = formatTerminalLine(event, activeMode);
-  // eslint-disable-next-line no-console
   process.stdout.write(line + "\n");
 }
 

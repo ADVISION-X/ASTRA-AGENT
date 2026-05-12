@@ -136,6 +136,23 @@ async function executeVisualMissionJudgeOnce(input: {
       },
     });
 
+    // ── AI_DECISION_SUMMARY (FLOW-visible) ────────────────────────────────
+    logger?.emit({
+      eventType: RuntimeLogEventType.AI_DECISION_SUMMARY,
+      level: "info",
+      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+      owner: "ai-capability",
+      traceId: trace?.traceId ?? input.request.missionId ?? "no-trace",
+      spanId,
+      ...(input.request.missionId ? { missionId: input.request.missionId } : {}),
+      status: "success",
+      reason: `productDecision=${String(output.productDecision)} pageState=${String(output.pageStateDecision)} actions=${Array.isArray(output.actions) ? output.actions.length : 0}`,
+      metrics: {
+        actionCount: Array.isArray(output.actions) ? output.actions.length : 0,
+        durationMs,
+      },
+    });
+
     return buildAiResult({
       request: input.request,
       status: "success",

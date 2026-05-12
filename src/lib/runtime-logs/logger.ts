@@ -20,6 +20,10 @@ export type RuntimeLoggerConfig = {
 export type RuntimeLogger = {
   emit(event: RuntimeLogEventInput): void;
   getActiveMode(): RuntimeLogMode;
+  /** Returns true when DEBUG or TRACE mode is active — use to guard debug payload construction. */
+  isDebugEnabled(): boolean;
+  /** Returns true when TRACE mode is active — use to guard heavy/verbose payload construction. */
+  isTraceEnabled(): boolean;
 };
 
 export function createRuntimeLogger(config: RuntimeLoggerConfig = {}): RuntimeLogger {
@@ -29,6 +33,14 @@ export function createRuntimeLogger(config: RuntimeLoggerConfig = {}): RuntimeLo
   return {
     getActiveMode() {
       return activeMode;
+    },
+
+    isDebugEnabled() {
+      return activeMode === "DEBUG" || activeMode === "TRACE";
+    },
+
+    isTraceEnabled() {
+      return activeMode === "TRACE";
     },
 
     emit(input: RuntimeLogEventInput): void {

@@ -259,30 +259,32 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
-  // ── CHECK 14: product_yes schema uses targetRole + captureMode (not reason regex) ──
+  // ── CHECK 14: product_yes schema requires SAVE + next arrow, without mandatory engagement clicks ──
   {
     const aiOutputSchemaPath = "src/visual-mission/action-plan/ai-output.schema.ts";
     const src = readSrc(aiOutputSchemaPath);
     if (!src) {
-      checks.push({ checkId: "VMF-14", question: "product_yes output schema requires targetRole-based like/comments checks + SAVE with captureMode?", status: "FAIL", detail: `File not found: ${aiOutputSchemaPath}` });
+      checks.push({ checkId: "VMF-14", question: "product_yes output schema requires SAVE + next arrow without mandatory engagement clicks?", status: "FAIL", detail: `File not found: ${aiOutputSchemaPath}` });
     } else {
       const hasProductYes = src.includes("product_yes") && src.includes("superRefine");
-      const hasTargetRoleLike = src.includes("like_button");
-      const hasTargetRoleComment = src.includes("comments_button");
       const hasSaveCheck = src.includes("SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
       const hasCaptureMode = src.includes("fresh_current_viewport");
+      const hasNextArrow = src.includes("targetRole='next_video_arrow'");
+      const hasMandatoryLike = src.includes("product_yes requires a click action with targetRole='like_button'") || src.includes("product_yes requires at least 2 click actions (like + comments)");
+      const hasMandatoryComment = src.includes("product_yes requires a click action with targetRole='comments_button'");
       const hasReasonRegex = src.includes("/like/i") || src.includes("/comment/i");
       const missing: string[] = [];
       if (!hasProductYes) missing.push("product_yes superRefine");
-      if (!hasTargetRoleLike) missing.push("targetRole='like_button' check");
-      if (!hasTargetRoleComment) missing.push("targetRole='comments_button' check");
       if (!hasSaveCheck) missing.push("SAVE check");
       if (!hasCaptureMode) missing.push("captureMode='fresh_current_viewport' check");
+      if (!hasNextArrow) missing.push("next_video_arrow check");
+      if (hasMandatoryLike) missing.push("mandatory like_button click still present");
+      if (hasMandatoryComment) missing.push("mandatory comments_button click still present");
       if (hasReasonRegex) missing.push("reason regex still present (must be removed)");
       if (missing.length === 0) {
-        checks.push({ checkId: "VMF-14", question: "product_yes output schema requires targetRole-based like/comments checks + SAVE with captureMode?", status: "PASS", detail: "product_yes superRefine validates targetRole for like/comments, SAVE with captureMode." });
+        checks.push({ checkId: "VMF-14", question: "product_yes output schema requires SAVE + next arrow without mandatory engagement clicks?", status: "PASS", detail: "product_yes validates SAVE with captureMode and next_video_arrow, without forcing like/comments engagement." });
       } else {
-        checks.push({ checkId: "VMF-14", question: "product_yes output schema requires targetRole-based like/comments checks + SAVE with captureMode?", status: "FAIL", detail: `Issues: ${missing.join(", ")}` });
+        checks.push({ checkId: "VMF-14", question: "product_yes output schema requires SAVE + next arrow without mandatory engagement clicks?", status: "FAIL", detail: `Issues: ${missing.join(", ")}` });
       }
     }
   }
@@ -551,6 +553,31 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
         checks.push({ checkId: "VMF-28", question: "mission-loop-runner sends only grid image (not both original+grid) to AI model?", status: "FAIL", detail: "Original screenshot filePath still passed to model — 2-image context overload causes broken JSON output." });
       } else {
         checks.push({ checkId: "VMF-28", question: "mission-loop-runner sends only grid image (not both original+grid) to AI model?", status: "WARN", detail: "Grid filePath not found — verify image delivery to AI model is correct." });
+      }
+    }
+  }
+
+  // ── CHECK 30: Prompt must not force engagement clicks for product_yes ─────
+  {
+    const promptPath = "src/capabilities/ai/prompt/visual-mission-judge-prompt.ts";
+    const src = readSrc(promptPath);
+    if (!src) {
+      checks.push({ checkId: "VMF-30", question: "AI prompt avoids default like/comments engagement clicks for product_yes?", status: "FAIL", detail: `File not found: ${promptPath}` });
+    } else {
+      const forbiddenFragments = [
+        "like the product video",
+        "open comments panel",
+        "Both clicks are REQUIRED",
+        "targetRole: \"like_button\"",
+        "targetRole: \"comments_button\"",
+        "product-video-with-comments",
+        "Like and save evidence",
+      ];
+      const found = forbiddenFragments.filter(fragment => src.includes(fragment));
+      if (found.length === 0 && src.includes("Do not include like_button, comments_button")) {
+        checks.push({ checkId: "VMF-30", question: "AI prompt avoids default like/comments engagement clicks for product_yes?", status: "PASS", detail: "Prompt defaults product_yes to evidence save + next item, with engagement clicks gated by explicit user requirement or recovery need." });
+      } else {
+        checks.push({ checkId: "VMF-30", question: "AI prompt avoids default like/comments engagement clicks for product_yes?", status: "FAIL", detail: `Prompt still carries default engagement-flow residue: ${found.join(", ") || "missing explicit prohibition"}` });
       }
     }
   }
@@ -827,53 +854,53 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
-  // ── VMF-AST-010: ai-output.schema product_yes superRefine requires SCROLL after SAVE ──
+  // ── VMF-AST-010: ai-output.schema product_yes superRefine requires next_video_arrow click after SAVE ──
   {
     const AI_OUTPUT_SCHEMA_PATH = "src/visual-mission/action-plan/ai-output.schema.ts";
     try {
       const project = getAuditProject();
       const sf = project.getSourceFile(pathFromRepoRoot(AI_OUTPUT_SCHEMA_PATH)) ?? project.addSourceFileAtPathIfExists(pathFromRepoRoot(AI_OUTPUT_SCHEMA_PATH));
       if (!sf) {
-        checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires SCROLL after SAVE (AST)?", status: "FAIL", detail: `File not found: ${AI_OUTPUT_SCHEMA_PATH}` });
+        checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires next_video_arrow click after SAVE (AST)?", status: "FAIL", detail: `File not found: ${AI_OUTPUT_SCHEMA_PATH}` });
       } else {
-        const SCROLL_REQUIRED_MSG = "product_yes requires SCROLL_BROWSER_VIEWPORT_ONCE after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE";
-        const hasMsg = sf.getDescendantsOfKind(SyntaxKind.StringLiteral).some(sl => sl.getLiteralText().includes(SCROLL_REQUIRED_MSG));
+        const NEXT_VIDEO_REQUIRED_MSG = "product_yes requires LEFT_CLICK_GRID_CELL_ONCE with targetRole='next_video_arrow' after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE";
+        const hasMsg = sf.getDescendantsOfKind(SyntaxKind.StringLiteral).some(sl => sl.getLiteralText().includes(NEXT_VIDEO_REQUIRED_MSG));
         if (hasMsg) {
-          checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires SCROLL after SAVE (AST)?", status: "PASS", detail: "product_yes SCROLL-required addIssue message found via AST." });
+          checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires next_video_arrow click after SAVE (AST)?", status: "PASS", detail: "product_yes next_video_arrow-required addIssue message found via AST." });
         } else {
-          checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires SCROLL after SAVE (AST)?", status: "FAIL", detail: "No addIssue message requiring SCROLL after SAVE in product_yes — schema does not enforce scroll." });
+          checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires next_video_arrow click after SAVE (AST)?", status: "FAIL", detail: "No addIssue message requiring next_video_arrow click after SAVE in product_yes — schema does not enforce arrow click." });
         }
       }
     } catch (err) {
-      checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires SCROLL after SAVE (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
+      checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires next_video_arrow click after SAVE (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
     }
   }
 
-  // ── VMF-AST-011: product_no superRefine forbids click/save, requires scroll ──
+  // ── VMF-AST-011: product_no superRefine forbids non-arrow clicks/save, requires next_video_arrow click ──
   {
     const AI_OUTPUT_SCHEMA_PATH = "src/visual-mission/action-plan/ai-output.schema.ts";
     try {
       const project = getAuditProject();
       const sf = project.getSourceFile(pathFromRepoRoot(AI_OUTPUT_SCHEMA_PATH)) ?? project.addSourceFileAtPathIfExists(pathFromRepoRoot(AI_OUTPUT_SCHEMA_PATH));
       if (!sf) {
-        checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids click/save and requires scroll (AST)?", status: "FAIL", detail: `File not found: ${AI_OUTPUT_SCHEMA_PATH}` });
+        checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids non-arrow clicks/save and requires next_video_arrow click (AST)?", status: "FAIL", detail: `File not found: ${AI_OUTPUT_SCHEMA_PATH}` });
       } else {
         const allMessages = sf.getDescendantsOfKind(SyntaxKind.StringLiteral).map(sl => sl.getLiteralText());
         const hasClickForbid = allMessages.some(m => m.includes("product_no must not contain click"));
         const hasSaveForbid = allMessages.some(m => m.includes("product_no must not contain SAVE"));
-        const hasScrollRequired = allMessages.some(m => m.includes("product_no must contain SCROLL"));
+        const hasNextVideoArrowRequired = allMessages.some(m => m.includes("product_no must contain LEFT_CLICK_GRID_CELL_ONCE with targetRole='next_video_arrow'"));
         const missing: string[] = [];
         if (!hasClickForbid) missing.push("product_no click-forbid message");
         if (!hasSaveForbid) missing.push("product_no SAVE-forbid message");
-        if (!hasScrollRequired) missing.push("product_no SCROLL-required message");
+        if (!hasNextVideoArrowRequired) missing.push("product_no next_video_arrow-required message");
         if (missing.length === 0) {
-          checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids click/save and requires scroll (AST)?", status: "PASS", detail: "product_no addIssue messages for click-forbid, SAVE-forbid, and SCROLL-required found (AST)." });
+          checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids non-arrow clicks/save and requires next_video_arrow click (AST)?", status: "PASS", detail: "product_no addIssue messages for click-forbid, SAVE-forbid, and next_video_arrow-required found (AST)." });
         } else {
-          checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids click/save and requires scroll (AST)?", status: "FAIL", detail: `Missing: ${missing.join(", ")}` });
+          checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids non-arrow clicks/save and requires next_video_arrow click (AST)?", status: "FAIL", detail: `Missing: ${missing.join(", ")}` });
         }
       }
     } catch (err) {
-      checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids click/save and requires scroll (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
+      checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids non-arrow clicks/save and requires next_video_arrow click (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
     }
   }
 
@@ -1015,4 +1042,3 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
 
   return { checks, overallStatus };
 }
-

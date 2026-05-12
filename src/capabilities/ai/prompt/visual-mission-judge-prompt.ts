@@ -6,7 +6,6 @@ const buildOutputSchemaBlock = (platformId: string) => {
   // Use only AI-visible (allowedForAiActionPlan=true) actionCodes in the example.
   const aiActions = listAiVisibleAbilities().map(e => e.actionCode);
   const clickAction = aiActions.find(a => a.startsWith("LEFT_CLICK")) ?? "LEFT_CLICK_GRID_CELL_ONCE";
-  const scrollAction = aiActions.find(a => a.startsWith("SCROLL")) ?? "SCROLL_BROWSER_VIEWPORT_ONCE";
   const saveAction = aiActions.find(a => a === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
   if (!saveAction) {
     throw new Error(
@@ -33,43 +32,26 @@ const buildOutputSchemaBlock = (platformId: string) => {
     productDecision: "product_yes",
     confidence: 0.92,
     visibleProductTypes: ["skincare"],
-    visualEvidence: ["Sponsored product video visible with like and comments buttons"],
-    reason: "Identified sponsored product video with visible engagement buttons",
+    visualEvidence: ["Sponsored product video visible in the current reel"],
+    reason: "Identified sponsored product video and selected registered atomic abilities for evidence capture and feed continuation",
     actions: [
-      {
-        actionCode: clickAction,
-        required: true,
-        targetRole: "like_button",
-        reason: "like the product video",
-        input: { gridCell: "B3" },
-      },
-      {
-        actionCode: clickAction,
-        required: true,
-        targetRole: "comments_button",
-        reason: "open comments panel",
-        input: { gridCell: "C3" },
-      },
       {
         actionCode: saveAction,
         required: true,
-        reason: "save full-page evidence after comments panel is open",
-        input: { evidenceLabel: "product-video-with-comments", captureMode: "fresh_current_viewport" },
+        reason: "save evidence for the identified product video",
+        input: { evidenceLabel: "product-video", captureMode: "fresh_current_viewport" },
       },
       {
-        actionCode: scrollAction,
+        actionCode: clickAction,
         required: true,
-        targetRole: null,
-        reason: "advance to the next video after saving evidence",
-        input: {},
+        targetRole: "next_video_arrow",
+        reason: "click the down arrow to advance to the next video",
+        input: { gridCell: "P30" },
       },
     ],
-    nonExecutableClickTargets: [
-      { gridCell: "B3", targetName: "like button" },
-      { gridCell: "C3", targetName: "comments button" },
-    ],
+    nonExecutableClickTargets: [],
     riskFlags: [],
-    nonExecutableSummary: "Like and save evidence for identified product video",
+    nonExecutableSummary: "Save evidence for identified product video and advance to the next feed item",
     // userIntentUnderstanding is intentionally placed LAST — see nesting rule above.
     // It contains ONLY "matched" and "summary". Do NOT add any other fields inside it.
     userIntentUnderstanding: { matched: true, summary: "User wants to trace sponsored product videos on the feed" },
@@ -96,9 +78,9 @@ const buildSystemPrompt = (platformId: string) => [
   "You must NEVER return raw coordinates (x, y, clientX, clientY), DOM selectors, browser commands, Nerve Bus payloads, or Forensics payloads.",
   "You must NEVER include abilityGroupId or childCapabilityId in your output.",
   "Choose actionCode values ONLY from the capability manual (allowedForAiActionPlan=true entries).",
-  "For product_yes: compose these atomic actions in order — (1) LEFT_CLICK_GRID_CELL_ONCE on the like button gridCell with targetRole 'like_button' and reason 'like the product video', (2) LEFT_CLICK_GRID_CELL_ONCE on the comments button gridCell with targetRole 'comments_button' and reason 'open comments panel'. Both clicks are REQUIRED — if the comments button is not accessible, output productDecision 'uncertain' and pageStateDecision 'review_required' instead. (3) SAVE_CURRENT_VIDEO_EVIDENCE_ONCE with input: { evidenceLabel: '<descriptive label>', captureMode: 'fresh_current_viewport' }. (4) SCROLL_BROWSER_VIEWPORT_ONCE AFTER the SAVE to advance to the next video — this action is REQUIRED, do not omit it. Optionally, before the scroll, output LEFT_CLICK_GRID_CELL_ONCE with targetRole 'comments_panel_close' if a comments close button is visible.",
+  "For product_yes: compose only the registered atomic actions needed for the user's goal. By default, save evidence with SAVE_CURRENT_VIDEO_EVIDENCE_ONCE using input { evidenceLabel: '<descriptive label>', captureMode: 'fresh_current_viewport' }, then advance with LEFT_CLICK_GRID_CELL_ONCE using targetRole 'next_video_arrow' on the visible DOWN ARROW navigation button on the RIGHT SIDE of the page. Do not include like_button, comments_button, comments_panel_close, or any engagement click unless the user's requirement explicitly asks for that interaction or the current page state requires it for recovery.",
   "IMPORTANT: Do NOT include a screenshot action — screenshots are injected by the system automatically after clicks and are not an AI-outputtable actionCode.",
-  "For product_no: output only SCROLL_BROWSER_VIEWPORT_ONCE to advance to the next video.",
+  "For product_no: output only LEFT_CLICK_GRID_CELL_ONCE with targetRole 'next_video_arrow' targeting the DOWN ARROW navigation button on the RIGHT SIDE of the page to advance to the next video.",
   "If the evidence is insufficient or unsafe, set pageStateDecision to review_required or blocked and keep the output non-executable.",
 ].join("\n");
 

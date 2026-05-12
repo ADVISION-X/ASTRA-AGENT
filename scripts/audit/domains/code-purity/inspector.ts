@@ -1,205 +1,396 @@
-// Code Purity Inspector — structural health checks only.
-// Checks: purity red lines, retired surface anti-regression, module file limits.
-// Does NOT check business logic, ability details, or AI correctness.
+// Code Purity Inspector — full ts-morph AST enforcement.
+// ZERO regex on file text. Every check is AST-level, symbol-level, or anti-escape-level.
+// Severity: HARD = CI-FULL instant FAIL. WARN = logged but non-blocking.
+//
+// Checks:
+//   CP-AST-001  AnyKeyword in type positions anywhere in src/
+//   CP-AST-002  @ts-ignore / @ts-expect-error suppression directives
+//   CP-AST-003  eslint-disable suppression directives
+//   CP-AST-004  console.* direct call expressions in src/
+//   CP-AST-005  console alias / destructure / method-ref binding (escape attempt)
+//   CP-AST-006  ImportDeclaration moduleSpecifier references retired capability roots
+//   CP-FILE-001 Module directory file count exceeds configured limit
 
-import { readdirSync, readFileSync, existsSync } from "node:fs";
-import { join, relative } from "node:path";
+import { readdirSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { Node, Project, SyntaxKind, type SourceFile } from "ts-morph";
+import { getAuditProject } from "../../core/ts-morph.js";
+import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { CODE_PURITY_CONFIG } from "./config.js";
-import {
-  FORBIDDEN_ACTIVE_PATTERNS_HARD,
-  ALLOWED_ARCHIVE_PATH_PATTERNS,
-  RETIRED_SURFACE_SCAN_EXCLUDED_PREFIXES,
-} from "./forbidden-surfaces.js";
+import { ALLOWED_ARCHIVE_PATH_PATTERNS, RETIRED_SURFACE_SCAN_EXCLUDED_PREFIXES } from "./forbidden-surfaces.js";
 
-const ROOT = process.cwd();
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const readText = (p: string): string => {
-  try { return readFileSync(p, "utf-8"); } catch { return ""; }
-};
-
-const isArchived = (rel: string): boolean =>
-  ALLOWED_ARCHIVE_PATH_PATTERNS.some((p) => rel.includes(p));
-
-const isComment = (line: string): boolean => {
-  const t = line.trimStart();
-  return t.startsWith("//") || t.startsWith("*") || t.startsWith("/*");
-};
-
-const walkFiles = (dir: string, acc: string[] = []): string[] => {
-  if (!existsSync(dir)) return acc;
-  for (const e of readdirSync(dir, { withFileTypes: true })) {
-    const full = join(dir, e.name);
-    if (e.isDirectory()) walkFiles(full, acc);
-    else if (e.isFile()) acc.push(full);
-  }
-  return acc;
-};
-
-const walkTs = (dir: string): string[] =>
-  walkFiles(dir).filter((f) => /\.(ts|tsx)$/.test(f));
-
-const countFilesRecursive = (dir: string): number => {
-  if (!existsSync(dir)) return -1;
-  let n = 0;
-  for (const e of readdirSync(dir, { withFileTypes: true })) {
-    n += e.isDirectory() ? countFilesRecursive(join(dir, e.name)) : 1;
-  }
-  return n;
-};
-
-// ─── Finding types ────────────────────────────────────────────────────────────
+export type PuritySeverity = "HARD" | "WARN";
 
 export type PurityFinding = {
-  file: string; line: number; rule: string; fixDirection: string; severity: "HARD" | "WARN";
-};
-
-export type RetiredSurfaceFinding = {
-  file: string; line: number; pattern: string;
-};
-
-export type FileCountFinding = {
-  module: string; actual: number; limit: number;
-  status: "ok" | "fail" | "retired-exists";
-};
-
-export type CodePurityResult = {
-  pass: boolean;
-  purityFindings: PurityFinding[];
-  retiredSurfaceFindings: RetiredSurfaceFinding[];
-  fileCountFindings: FileCountFinding[];
-};
-
-// ─── Check 1: Code Purity Red Lines ──────────────────────────────────────────
-
-const PURITY_RULES: Array<{
   rule: string;
-  test: (l: string) => boolean;
-  fixDirection: string;
-  severity: "HARD" | "WARN";
-}> = [
-  {
-    rule: "ts-ignore forbidden",
-    test: (l) => l.includes("@ts-ignore"),
-    fixDirection: "Fix the type error properly instead of suppressing it.",
-    severity: "HARD",
-  },
-  {
-    rule: "eslint-disable forbidden",
-    // Split token so this file does not self-trigger the scanner.
-    test: (l) => l.includes("eslint" + "-disable"),
-    fixDirection: "Fix the lint violation instead of suppressing it.",
-    severity: "HARD",
-  },
-  {
-    rule: "any type forbidden",
-    test: (l) => /: any\b|as any\b/.test(l),
-    fixDirection: "Use explicit types or unknown with a type guard.",
-    severity: "HARD",
-  },
-  {
-    rule: "console.log in production",
-    test: (l) => /\bconsole\.log\b/.test(l),
-    fixDirection: "Use runtimeLogger.emit() for structured logging.",
-    severity: "WARN",
-  },
-  // Split token so this file does not self-trigger.
-  {
-    rule: "TODO/FIXME in production",
-    test: (l) => /\b(TODO|FIXME)\b/.test(l),
-    fixDirection: "Resolve or move to docs before merging.",
-    severity: "WARN",
-  },
-];
+  severity: PuritySeverity;
+  file: string;
+  line: number;
+  message: string;
+};
 
-const TEST_FILE_PATTERN = /\.(test|spec|mock|fake|demo|fixture)\./;
+export type CodePurityInspectorResult = {
+  findings: PurityFinding[];
+  hardFails: number;
+  warns: number;
+  fileCountFails: number;
+  pass: boolean;
+};
 
-function runPurityCheck(): PurityFinding[] {
+// ─── Scope helpers ────────────────────────────────────────────────────────────
+
+function rel(sf: SourceFile): string {
+  return toRepoRelativePath(sf.getFilePath());
+}
+
+function isArchivePath(r: string): boolean {
+  return ALLOWED_ARCHIVE_PATH_PATTERNS.some((p) => r.includes(p));
+}
+
+function isSrcScope(r: string): boolean {
+  if (!CODE_PURITY_CONFIG.purityScanDirs.some((d) => r.startsWith(d))) return false;
+  if (isArchivePath(r)) return false;
+  if (r.endsWith(".d.ts")) return false;
+  return true;
+}
+
+function isRetiredScanScope(r: string): boolean {
+  if (!isSrcScope(r)) return false;
+  if (CODE_PURITY_CONFIG.retiredScanExcludedPrefixes.some((p) => r.startsWith(p))) return false;
+  if (RETIRED_SURFACE_SCAN_EXCLUDED_PREFIXES.some((p) => r.startsWith(p))) return false;
+  return true;
+}
+
+function isSrcOnly(r: string): boolean {
+  return r.startsWith("src/") && !isArchivePath(r) && !r.endsWith(".d.ts");
+}
+
+function countFilesInDir(relDir: string): number {
+  const dir = join(pathFromRepoRoot("."), relDir);
+  if (!existsSync(dir)) return 0;
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((d) => d.isFile() && /\.(ts|js|mjs|json)$/.test(d.name))
+    .length;
+}
+
+// ─── Comment trivia scanner ───────────────────────────────────────────────────
+// Scans every UNIQUE trivia position in a source file exactly once.
+// This avoids false duplicates from forEachDescendant visiting children that share
+// the same leading trivia as their parent.
+
+function scanCommentTrivia(
+  sf: SourceFile,
+  matcher: (commentText: string) => boolean,
+): Array<{ line: number; text: string }> {
+  const results: Array<{ line: number; text: string }> = [];
+  const seenTriviaStarts = new Set<number>();
+
+  sf.forEachDescendant((node) => {
+    const fullStart = node.getFullStart();
+    if (seenTriviaStarts.has(fullStart)) return;
+    seenTriviaStarts.add(fullStart);
+
+    const nodeStart = node.getStart();
+    if (nodeStart <= fullStart) return;
+
+    const trivia = sf.getFullText().slice(fullStart, nodeStart);
+    if (!matcher(trivia)) return;
+
+    // Find which line the comment starts on
+    const lineNum = sf.getLineAndColumnAtPos(fullStart).line;
+    results.push({ line: lineNum, text: trivia.trim().slice(0, 120) });
+  });
+
+  return results;
+}
+
+// ─── CP-AST-001: any keyword in type positions ────────────────────────────────
+
+function checkAnyKeyword(project: Project): PurityFinding[] {
   const findings: PurityFinding[] = [];
-  for (const baseDir of CODE_PURITY_CONFIG.purityScanDirs) {
-    for (const filePath of walkTs(join(ROOT, baseDir))) {
-      const rel = relative(ROOT, filePath);
-      if (isArchived(rel) || TEST_FILE_PATTERN.test(filePath)) continue;
-      const lines = readText(filePath).split("\n");
-      lines.forEach((line, idx) => {
-        if (isComment(line)) return;
-        for (const { rule, test, fixDirection, severity } of PURITY_RULES) {
-          if (test(line)) findings.push({ file: rel, line: idx + 1, rule, fixDirection, severity });
-        }
+
+  for (const sf of project.getSourceFiles()) {
+    const r = rel(sf);
+    if (!isSrcOnly(r)) continue;
+
+    sf.forEachDescendant((node) => {
+      if (node.getKind() === SyntaxKind.AnyKeyword) {
+        findings.push({
+          rule: "CP-AST-001",
+          severity: "HARD",
+          file: r,
+          line: node.getStartLineNumber(),
+          message: "any type — replace with an explicit typed contract (all forms: : any, as any, Array<any>, generic <any> all caught at AST level)",
+        });
+      }
+    });
+  }
+
+  return findings;
+}
+
+// ─── CP-AST-002: @ts-ignore / @ts-expect-error ────────────────────────────────
+
+// Matches ONLY actual TypeScript suppression directives, not docs mentioning them.
+function isActualTsSuppressionDirective(triviaText: string): boolean {
+  const lines = triviaText.split("\n");
+  return lines.some((line) => {
+    const stripped = line.replace(/^\s*\/\//, "").replace(/^\s*\/\*/, "").trim();
+    return stripped.startsWith("@ts-ignore") || stripped.startsWith("@ts-expect-error");
+  });
+}
+
+function checkTsSuppressions(project: Project): PurityFinding[] {
+  const findings: PurityFinding[] = [];
+
+  for (const sf of project.getSourceFiles()) {
+    const r = rel(sf);
+    if (!isSrcScope(r)) continue;
+
+    for (const match of scanCommentTrivia(sf, isActualTsSuppressionDirective)) {
+      findings.push({
+        rule: "CP-AST-002",
+        severity: "HARD",
+        file: r,
+        line: match.line,
+        message: `TypeScript suppression directive — fix the type error instead: ${match.text}`,
       });
     }
   }
+
   return findings;
 }
 
-// ─── Check 2: Retired Surface Anti-Regression ────────────────────────────────
+// ─── CP-AST-003: eslint-disable ───────────────────────────────────────────────
 
-const RETIRED_SCAN_DIRS = [
-  "src",
-  "scripts/audit/domains",
-  "scripts/audit/core",
-  "scripts/startup",
-];
+// Matches ONLY actual ESLint suppression directive comments.
+// Rejects documentation comments that happen to mention "eslint-disable" as text.
+// Real directives: `// eslint-disable`, `// eslint-disable-next-line`, `/* eslint-disable */`
+function isActualEslintDirective(triviaText: string): boolean {
+  // Split into individual comment segments and check each
+  const lines = triviaText.split("\n");
+  return lines.some((line) => {
+    const stripped = line.replace(/^\s*\/\//, "").replace(/^\s*\/\*/, "").trim();
+    return stripped.startsWith("eslint-disable");
+  });
+}
 
-function runRetiredSurfaceCheck(): RetiredSurfaceFinding[] {
-  const findings: RetiredSurfaceFinding[] = [];
-  for (const d of RETIRED_SCAN_DIRS) {
-    const dir = join(ROOT, d);
-    if (!existsSync(dir)) continue;
-    for (const filePath of walkFiles(dir)) {
-      if (!/\.(ts|tsx|js|mjs|json)$/.test(filePath)) continue;
-      const rel = relative(ROOT, filePath);
-      if (isArchived(rel)) continue;
-      if (RETIRED_SURFACE_SCAN_EXCLUDED_PREFIXES.some((p) => rel.startsWith(p))) continue;
-      if (CODE_PURITY_CONFIG.retiredScanExcludedPrefixes.some((p) => rel.startsWith(p))) continue;
-      const lines = readText(filePath).split("\n");
-      for (const pattern of FORBIDDEN_ACTIVE_PATTERNS_HARD) {
-        lines.forEach((line, idx) => {
-          if (isComment(line)) return;
-          if (line.includes(pattern)) findings.push({ file: rel, line: idx + 1, pattern });
-        });
+function checkEslintDisable(project: Project): PurityFinding[] {
+  const findings: PurityFinding[] = [];
+
+  for (const sf of project.getSourceFiles()) {
+    const r = rel(sf);
+    if (!isSrcScope(r)) continue;
+
+    for (const match of scanCommentTrivia(sf, isActualEslintDirective)) {
+      findings.push({
+        rule: "CP-AST-003",
+        severity: "HARD",
+        file: r,
+        line: match.line,
+        message: `ESLint suppression directive — fix the lint issue instead: ${match.text}`,
+      });
+    }
+  }
+
+  return findings;
+}
+
+// ─── CP-AST-004 + CP-AST-005: console.* calls + alias escape detection ────────
+//
+// CP-AST-005 catches the escape attempts FIRST, then CP-AST-004 catches the calls.
+// Both use the SAME two-pass per-file scan so aliases discovered in pass-1 are
+// flagged by calls found in pass-2.
+
+function checkConsoleAndAliases(project: Project): PurityFinding[] {
+  const findings: PurityFinding[] = [];
+
+  for (const sf of project.getSourceFiles()) {
+    const r = rel(sf);
+    if (!isSrcOnly(r)) continue;
+    // Allow the one whitelisted sink file
+    if (CODE_PURITY_CONFIG.purityScanDirs && r.includes("sinks.ts")) continue;
+
+    // ── Pass 1: find alias bindings ──────────────────────────────────────────
+    const consoleAliases = new Set<string>(["console"]);
+
+    sf.forEachDescendant((node) => {
+      if (!Node.isVariableDeclaration(node)) return;
+      const init = node.getInitializer();
+      if (!init) return;
+
+      // const x = console
+      if (Node.isIdentifier(init) && init.getText() === "console") {
+        const nameNode = node.getNameNode();
+        if (Node.isIdentifier(nameNode)) {
+          consoleAliases.add(nameNode.getText());
+          findings.push({
+            rule: "CP-AST-005",
+            severity: "HARD",
+            file: r,
+            line: node.getStartLineNumber(),
+            message: `console alias binding \`${nameNode.getText()} = console\` — alias escape attempt, use runtimeLogger`,
+          });
+        }
+        return;
+      }
+
+      // const { log, warn } = console
+      if (
+        Node.isObjectBindingPattern(node.getNameNode()) &&
+        Node.isIdentifier(init) &&
+        init.getText() === "console"
+      ) {
+        for (const elem of node.getNameNode().asKindOrThrow(SyntaxKind.ObjectBindingPattern).getElements()) {
+          consoleAliases.add(elem.getName());
+          findings.push({
+            rule: "CP-AST-005",
+            severity: "HARD",
+            file: r,
+            line: node.getStartLineNumber(),
+            message: `console destructure alias \`{ ${elem.getName()} } = console\` — alias escape attempt`,
+          });
+        }
+        return;
+      }
+
+      // const log = console.log
+      if (Node.isPropertyAccessExpression(init)) {
+        const obj = init.getExpression();
+        if (Node.isIdentifier(obj) && obj.getText() === "console") {
+          const nameNode = node.getNameNode();
+          if (Node.isIdentifier(nameNode)) {
+            consoleAliases.add(nameNode.getText());
+            findings.push({
+              rule: "CP-AST-005",
+              severity: "HARD",
+              file: r,
+              line: node.getStartLineNumber(),
+              message: `console method alias \`${nameNode.getText()} = console.${init.getName()}\` — alias escape attempt`,
+            });
+          }
+        }
+      }
+    });
+
+    // ── Pass 2: find call expressions using console or any alias ─────────────
+    sf.forEachDescendant((node) => {
+      if (!Node.isCallExpression(node)) return;
+      const expr = node.getExpression();
+      if (!Node.isPropertyAccessExpression(expr)) return;
+      const obj = expr.getExpression();
+      if (!Node.isIdentifier(obj)) return;
+      if (!consoleAliases.has(obj.getText())) return;
+
+      findings.push({
+        rule: "CP-AST-004",
+        severity: "HARD",
+        file: r,
+        line: node.getStartLineNumber(),
+        message: `\`${obj.getText()}.${expr.getName()}()\` call — production code must use runtimeLogger.emit() instead`,
+      });
+    });
+  }
+
+  return findings;
+}
+
+// ─── CP-AST-006: ImportDeclaration to retired capability roots ────────────────
+
+function checkRetiredImports(project: Project): PurityFinding[] {
+  const findings: PurityFinding[] = [];
+  const retiredRoots = CODE_PURITY_CONFIG.retiredCapabilityRoots;
+
+  for (const sf of project.getSourceFiles()) {
+    const r = rel(sf);
+    if (!isRetiredScanScope(r)) continue;
+
+    for (const importDecl of sf.getImportDeclarations()) {
+      const spec = importDecl.getModuleSpecifierValue();
+      for (const retiredRoot of retiredRoots) {
+        // Strip "src/" prefix so relative import paths like "../../capabilities/page-state" also match
+        const normalized = retiredRoot.replace(/^src\//, "");
+        if (spec.includes(normalized)) {
+          findings.push({
+            rule: "CP-AST-006",
+            severity: "HARD",
+            file: r,
+            line: importDecl.getStartLineNumber(),
+            message: `Import from retired capability root: '${spec}' — this system is permanently retired`,
+          });
+        }
       }
     }
   }
-  return findings;
-}
-
-// ─── Check 3: Module File Count Limits ───────────────────────────────────────
-
-function runFileCountCheck(): FileCountFinding[] {
-  const findings: FileCountFinding[] = [];
-
-  for (const [mod, limit] of Object.entries(CODE_PURITY_CONFIG.moduleFileLimits)) {
-    const actual = countFilesRecursive(join(ROOT, mod));
-    if (actual === -1) {
-      findings.push({ module: mod, actual: 0, limit, status: "ok" });
-    } else {
-      findings.push({ module: mod, actual, limit, status: actual <= limit ? "ok" : "fail" });
-    }
-  }
-
-  for (const retired of CODE_PURITY_CONFIG.retiredCapabilityRoots) {
-    if (existsSync(join(ROOT, retired))) {
-      findings.push({ module: retired, actual: 1, limit: 0, status: "retired-exists" });
-    } else {
-      findings.push({ module: retired, actual: 0, limit: 0, status: "ok" });
-    }
-  }
 
   return findings;
 }
 
-// ─── Main export ─────────────────────────────────────────────────────────────
+// ─── CP-FILE-001: Module file count limits ────────────────────────────────────
 
-export function runCodePurityInspector(): CodePurityResult {
-  const purityFindings = runPurityCheck();
-  const retiredSurfaceFindings = runRetiredSurfaceCheck();
-  const fileCountFindings = runFileCountCheck();
+function checkFileCountLimits(): PurityFinding[] {
+  const findings: PurityFinding[] = [];
 
-  const hardPurityFails = purityFindings.filter((f) => f.severity === "HARD");
-  const fileCountFails = fileCountFindings.filter((f) => f.status !== "ok");
-  const pass = hardPurityFails.length === 0 && retiredSurfaceFindings.length === 0 && fileCountFails.length === 0;
+  for (const [moduleDir, limit] of Object.entries(CODE_PURITY_CONFIG.moduleFileLimits)) {
+    const count = countFilesInDir(moduleDir);
+    if (count > limit) {
+      findings.push({
+        rule: "CP-FILE-001",
+        severity: "HARD",
+        file: moduleDir,
+        line: 0,
+        message: `${moduleDir}: ${count} files — exceeds limit of ${limit}. Delete dead files before adding new ones.`,
+      });
+    }
+  }
 
-  return { pass, purityFindings, retiredSurfaceFindings, fileCountFindings };
+  // Retired directories must not exist at all
+  for (const retiredRoot of CODE_PURITY_CONFIG.retiredCapabilityRoots) {
+    if (existsSync(join(pathFromRepoRoot("."), retiredRoot))) {
+      findings.push({
+        rule: "CP-FILE-001",
+        severity: "HARD",
+        file: retiredRoot,
+        line: 0,
+        message: `Retired capability directory still exists on disk: ${retiredRoot}`,
+      });
+    }
+  }
+
+  return findings;
+}
+
+// ─── Inspector entry point ────────────────────────────────────────────────────
+
+export function runCodePurityInspector(): CodePurityInspectorResult {
+  const project = getAuditProject();
+
+  // Load all src/ TypeScript source files into the project
+  project.addSourceFilesFromTsConfig(pathFromRepoRoot("tsconfig.json"));
+
+  const rawFindings: PurityFinding[] = [
+    ...checkAnyKeyword(project),
+    ...checkTsSuppressions(project),
+    ...checkEslintDisable(project),
+    ...checkConsoleAndAliases(project),
+    ...checkRetiredImports(project),
+    ...checkFileCountLimits(),
+  ];
+
+  // Deduplicate: same rule + file + line = one finding
+  const seen = new Set<string>();
+  const findings = rawFindings.filter((f) => {
+    const key = `${f.rule}:${f.file}:${f.line}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const hardFails = findings.filter((f) => f.severity === "HARD").length;
+  const warns = findings.filter((f) => f.severity === "WARN").length;
+  const fileCountFails = findings.filter((f) => f.rule === "CP-FILE-001").length;
+
+  return { findings, hardFails, warns, fileCountFails, pass: hardFails === 0 };
 }

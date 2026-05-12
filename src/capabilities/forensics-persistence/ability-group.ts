@@ -11,30 +11,94 @@ import type {
 } from "./schema.js";
 import { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID } from "./schema.js";
 import type { ForensicsStoragePort } from "./storage-port.js";
+import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 
 export function createForensicsPersistenceAbilityGroup(
   storage: ForensicsStoragePort,
+  runtimeLogger?: RuntimeLogger,
 ): ForensicsPersistenceAbilityGroup {
   return {
     abilityGroupId: FORENSICS_PERSISTENCE_ABILITY_GROUP_ID,
 
     async execute(input: ForensicsAbilityInput): Promise<ForensicsResult> {
       switch (input.childCapabilityId) {
-        case "append-record":
-          return executeAppendRecord(input, storage);
-        case "append-artifact":
-          return executeAppendArtifact(input, storage);
+        case "append-record": {
+          const r = await executeAppendRecord(input, storage);
+          if (r.status === "success") {
+            runtimeLogger?.emit({
+              traceId: input.missionId,
+              level: "debug",
+              modeVisibility: ["DEBUG", "TRACE"],
+              eventType: "FORENSICS_RECORD_APPENDED",
+              owner: "forensics-persistence",
+              missionId: input.missionId,
+              runId: input.runId,
+              ...(input.roundId ? { roundId: input.roundId } : {}),
+              status: "success",
+              reason: `append-record ok callId=${input.capabilityCallId ?? "?"}`,
+            });
+          }
+          return r;
+        }
+        case "append-artifact": {
+          const r = await executeAppendArtifact(input, storage);
+          if (r.status === "success") {
+            runtimeLogger?.emit({
+              traceId: input.missionId,
+              level: "debug",
+              modeVisibility: ["DEBUG", "TRACE"],
+              eventType: "FORENSICS_ARTIFACT_APPENDED",
+              owner: "forensics-persistence",
+              missionId: input.missionId,
+              runId: input.runId,
+              ...(input.roundId ? { roundId: input.roundId } : {}),
+              status: "success",
+              reason: `append-artifact ok callId=${input.capabilityCallId ?? "?"}`,
+            });
+          }
+          return r;
+        }
         case "read-record-ref":
           return executeReadRecordRef(input, storage);
       }
     },
 
-    appendRecord(input: ForensicsAppendRecordInput): Promise<ForensicsResult> {
-      return executeAppendRecord(input, storage);
+    async appendRecord(input: ForensicsAppendRecordInput): Promise<ForensicsResult> {
+      const r = await executeAppendRecord(input, storage);
+      if (r.status === "success") {
+        runtimeLogger?.emit({
+          traceId: input.missionId,
+          level: "debug",
+          modeVisibility: ["DEBUG", "TRACE"],
+          eventType: "FORENSICS_RECORD_APPENDED",
+          owner: "forensics-persistence",
+          missionId: input.missionId,
+          runId: input.runId,
+          ...(input.roundId ? { roundId: input.roundId } : {}),
+          status: "success",
+          reason: `append-record ok callId=${input.capabilityCallId ?? "?"}`,
+        });
+      }
+      return r;
     },
 
-    appendArtifact(input: ForensicsAppendArtifactInput): Promise<ForensicsResult> {
-      return executeAppendArtifact(input, storage);
+    async appendArtifact(input: ForensicsAppendArtifactInput): Promise<ForensicsResult> {
+      const r = await executeAppendArtifact(input, storage);
+      if (r.status === "success") {
+        runtimeLogger?.emit({
+          traceId: input.missionId,
+          level: "debug",
+          modeVisibility: ["DEBUG", "TRACE"],
+          eventType: "FORENSICS_ARTIFACT_APPENDED",
+          owner: "forensics-persistence",
+          missionId: input.missionId,
+          runId: input.runId,
+          ...(input.roundId ? { roundId: input.roundId } : {}),
+          status: "success",
+          reason: `append-artifact ok callId=${input.capabilityCallId ?? "?"}`,
+        });
+      }
+      return r;
     },
 
     readRecordRef(input: ForensicsReadRecordRefInput): Promise<ForensicsResult> {

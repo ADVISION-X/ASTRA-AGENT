@@ -17,7 +17,7 @@
 
     "audit:code-purity": "node --import tsx scripts/audit/domains/code-purity/run-inspector.ts",
     "audit:runtime-logging": "node --import tsx scripts/audit/domains/runtime-logging/run-inspector.ts",
-    "ci:full": "npm run typecheck && npm run audit:code-purity && npm run audit:runtime-logging",
+    "ci:full": "node --import tsx scripts/audit/ci-full.ts",
 
     "debug:visual-mission-flow": "node --import tsx scripts/audit/domains/visual-mission-flow/run-inspector.ts",
     "debug:visual-mission-runtime": "node --import tsx scripts/audit/domains/visual-mission-runtime/run-inspector.ts",

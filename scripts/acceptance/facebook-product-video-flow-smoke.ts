@@ -133,28 +133,6 @@ const input: DispatchRegisteredAbilitySequenceInput = {
   roundId: ROUND_ID,
   actions: [
     {
-      actionCode: "LEFT_CLICK_GRID_CELL_ONCE",
-      reason: "like the product video",
-      targetRole: "like_button" as const,
-      abilityGroupId: null,
-      childCapabilityId: null,
-      gridCell: "C2",
-      required: true,
-      requiresGeometryProof: true,
-      inputOverrides: { gridCell: "C2" },
-    },
-    {
-      actionCode: "LEFT_CLICK_GRID_CELL_ONCE",
-      reason: "open comments panel",
-      targetRole: "comments_button" as const,
-      abilityGroupId: null,
-      childCapabilityId: null,
-      gridCell: "C4",
-      required: true,
-      requiresGeometryProof: true,
-      inputOverrides: { gridCell: "C4" },
-    },
-    {
       actionCode: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE",
       reason: "Identified as product video with skincare items",
       targetRole: null,
@@ -169,15 +147,15 @@ const input: DispatchRegisteredAbilitySequenceInput = {
       },
     },
     {
-      actionCode: "SCROLL_BROWSER_VIEWPORT_ONCE",
-      reason: "move to next video",
-      targetRole: null,
+      actionCode: "LEFT_CLICK_GRID_CELL_ONCE",
+      reason: "advance to the next video",
+      targetRole: "next_video_arrow" as const,
       abilityGroupId: null,
       childCapabilityId: null,
-      gridCell: null,
+      gridCell: "P30",
       required: true,
-      requiresGeometryProof: false,
-      inputOverrides: { scrollDeltaY: 900 },
+      requiresGeometryProof: true,
+      inputOverrides: { gridCell: "P30" },
     },
   ],
   currentEvidenceRefs: {
@@ -206,31 +184,22 @@ async function main() {
     process.stdout.write("  [✓] dispatchRegisteredAbilitySequence returned success\n");
   }
 
-  // 2. NerveBus dispatch called for LIKE click
-  const likeDispatched = dispatched.some(d => d.childCapabilityId?.includes("click") || d.abilityGroupId === "mouse-click");
-  if (!likeDispatched) {
+  // 2. NerveBus dispatch called for next-video arrow click
+  const nextVideoDispatched = dispatched.some(d => d.childCapabilityId?.includes("click") || d.abilityGroupId === "mouse-click");
+  if (!nextVideoDispatched) {
     passed = false;
-    failures.push(`LEFT_CLICK_GRID_CELL_ONCE (like) was not dispatched through nerveBus. dispatched: ${JSON.stringify(dispatched)}`);
+    failures.push(`LEFT_CLICK_GRID_CELL_ONCE (next video) was not dispatched through nerveBus. dispatched: ${JSON.stringify(dispatched)}`);
   } else {
-    process.stdout.write("  [✓] LEFT_CLICK_GRID_CELL_ONCE (like) dispatched through nerveBus\n");
+    process.stdout.write("  [✓] LEFT_CLICK_GRID_CELL_ONCE (next video) dispatched through nerveBus\n");
   }
 
-  // 2b. NerveBus dispatch called for COMMENT click (second click)
+  // 2b. Product default flow must not dispatch engagement clicks
   const clickDispatches = dispatched.filter(d => d.childCapabilityId?.includes("click") || d.abilityGroupId === "mouse-click");
-  if (clickDispatches.length < 2) {
+  if (clickDispatches.length !== 1) {
     passed = false;
-    failures.push(`Expected 2 click dispatches (like + comment), got ${clickDispatches.length}`);
+    failures.push(`Expected exactly 1 click dispatch (next video only), got ${clickDispatches.length}`);
   } else {
-    process.stdout.write("  [✓] Both like and comment clicks dispatched through nerveBus\n");
-  }
-
-  // 2c. NerveBus dispatch called for SCROLL (via clean path)
-  const scrollDispatched = dispatched.some(d => d.childCapabilityId === "scroll-browser-viewport" || d.abilityGroupId === "mouse-scroll");
-  if (!scrollDispatched) {
-    passed = false;
-    failures.push(`SCROLL_BROWSER_VIEWPORT_ONCE was not dispatched through nerveBus. dispatched: ${JSON.stringify(dispatched)}`);
-  } else {
-    process.stdout.write("  [✓] SCROLL_BROWSER_VIEWPORT_ONCE dispatched through nerveBus\n");
+    process.stdout.write("  [✓] Product default flow dispatches no like/comment engagement clicks\n");
   }
 
   // 3. Fresh viewport screenshot taken (because SAVE has captureMode='fresh_current_viewport')
@@ -271,38 +240,32 @@ async function main() {
   } else {
     process.stdout.write(`  [✓] ${abilityResults.length} ability_result record(s) in forensics\n`);
 
-    const likeResult = abilityResults.find(r => {
+    const nextVideoResult = abilityResults.find(r => {
       const payload = (r as Record<string, unknown>)["recordPayload"] as Record<string, unknown> | undefined;
-      return payload?.["actionCode"] === "LEFT_CLICK_GRID_CELL_ONCE" && payload?.["gridCell"] === "C2";
+      return payload?.["actionCode"] === "LEFT_CLICK_GRID_CELL_ONCE" && payload?.["gridCell"] === "P30";
     });
-    if (likeResult) {
-      const payload = (likeResult as Record<string, unknown>)["recordPayload"] as Record<string, unknown>;
-      if (/like/i.test(String(payload["reason"] ?? ""))) {
-        process.stdout.write("  [✓] ability_result for like click has reason containing 'like'\n");
+    if (nextVideoResult) {
+      const payload = (nextVideoResult as Record<string, unknown>)["recordPayload"] as Record<string, unknown>;
+      if (/next video/i.test(String(payload["reason"] ?? ""))) {
+        process.stdout.write("  [✓] ability_result for next-video click has governed reason\n");
       } else {
         passed = false;
-        failures.push(`ability_result for like click has wrong reason: '${payload["reason"]}'`);
+        failures.push(`ability_result for next-video click has wrong reason: '${payload["reason"]}'`);
       }
     } else {
       passed = false;
-      failures.push("No ability_result for like click (gridCell=C2) found");
+      failures.push("No ability_result for next-video click (gridCell=P30) found");
     }
 
-    const commentResult = abilityResults.find(r => {
+    const engagementResult = abilityResults.find(r => {
       const payload = (r as Record<string, unknown>)["recordPayload"] as Record<string, unknown> | undefined;
-      return payload?.["actionCode"] === "LEFT_CLICK_GRID_CELL_ONCE" && payload?.["gridCell"] === "C4";
+      return payload?.["actionCode"] === "LEFT_CLICK_GRID_CELL_ONCE" && (payload?.["gridCell"] === "C2" || payload?.["gridCell"] === "C4");
     });
-    if (commentResult) {
-      const payload = (commentResult as Record<string, unknown>)["recordPayload"] as Record<string, unknown>;
-      if (/comment/i.test(String(payload["reason"] ?? ""))) {
-        process.stdout.write("  [✓] ability_result for comment click has reason containing 'comment'\n");
-      } else {
-        passed = false;
-        failures.push(`ability_result for comment click has wrong reason: '${payload["reason"]}'`);
-      }
+    if (!engagementResult) {
+      process.stdout.write("  [✓] no like/comment ability_result emitted in default product_yes flow\n");
     } else {
       passed = false;
-      failures.push("No ability_result for comment click (gridCell=C4) found");
+      failures.push("Unexpected engagement ability_result found in default product_yes flow");
     }
   }
 

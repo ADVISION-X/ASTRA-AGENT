@@ -92,6 +92,19 @@ async function resolveGeometryProof(
   }
 
   const normalizedBbox = guardResult.normalizedBbox;
+  ctx.runtimeLogger.emit({
+    traceId: input.missionId,
+    level: "debug",
+    modeVisibility: ["DEBUG", "TRACE"],
+    eventType: "GEOMETRY_GUARD_RESULT",
+    owner: "orchestration",
+    missionId: input.missionId,
+    runId: input.runId,
+    ...(input.roundId ? { roundId: input.roundId } : {}),
+    status: "success",
+    reason: `geometry guard allow for ${action.actionCode} gridCell=${gridCell ?? "?"}`,
+    refs: { actionCode: action.actionCode },
+  });
   return {
     ok: true,
     proof: {
@@ -153,6 +166,18 @@ async function dispatchSingleAction(
           roundId: input.roundId ?? null,
         },
         idempotencyKey: `save-evidence:${input.missionId}:${input.runId}:${input.roundId ?? ""}:${evidenceLabel}`,
+      });
+      ctx.runtimeLogger.emit({
+        traceId: input.missionId,
+        level: "debug",
+        modeVisibility: ["DEBUG", "TRACE"],
+        eventType: "FORENSICS_RECORD_APPENDED",
+        owner: "orchestration",
+        missionId: input.missionId,
+        runId: input.runId,
+        ...(input.roundId ? { roundId: input.roundId } : {}),
+        status: "success",
+        reason: `SAVE_CURRENT_VIDEO_EVIDENCE_ONCE evidenceLabel=${evidenceLabel}`,
       });
       return { status: "success", failureReason: null };
     } catch (err) {
@@ -286,7 +311,41 @@ async function dispatchSingleAction(
       roundId: input.roundId ?? null,
       inputOverrides: completeInput,
     });
-    return { status: result.status ?? "success", failureReason: result.failureReason ?? null };
+    const dispatchStatus = result.status ?? "success";
+    if (resolvedAbilityGroupId === "mouse-click" || resolvedAbilityGroupId === "mouse-scroll") {
+      ctx.runtimeLogger.emit({
+        traceId: input.missionId,
+        level: dispatchStatus === "success" ? "debug" : "warn",
+        modeVisibility: ["DEBUG", "TRACE"],
+        eventType: "BROWSER_ACTION_RESULT",
+        owner: "orchestration",
+        missionId: input.missionId,
+        runId: input.runId,
+        ...(input.roundId ? { roundId: input.roundId } : {}),
+        status: dispatchStatus,
+        reason: dispatchStatus === "success"
+          ? `${action.actionCode} ok`
+          : `${action.actionCode} ${dispatchStatus}: ${result.failureReason ?? "unknown"}`,
+        refs: { actionCode: action.actionCode },
+      });
+    } else if (resolvedAbilityGroupId === "text-input") {
+      ctx.runtimeLogger.emit({
+        traceId: input.missionId,
+        level: dispatchStatus === "success" ? "debug" : "warn",
+        modeVisibility: ["DEBUG", "TRACE"],
+        eventType: "TEXT_INPUT_RESULT",
+        owner: "orchestration",
+        missionId: input.missionId,
+        runId: input.runId,
+        ...(input.roundId ? { roundId: input.roundId } : {}),
+        status: dispatchStatus,
+        reason: dispatchStatus === "success"
+          ? `${action.actionCode} ok`
+          : `${action.actionCode} ${dispatchStatus}: ${result.failureReason ?? "unknown"}`,
+        refs: { actionCode: action.actionCode },
+      });
+    }
+    return { status: dispatchStatus, failureReason: result.failureReason ?? null };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { status: "failed", failureReason: msg };

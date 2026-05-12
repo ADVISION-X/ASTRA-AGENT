@@ -1,39 +1,29 @@
-// ci:full entrypoint — currently delegates entirely to ci:simple (quality-kernel only).
-// This file is kept for package.json script compatibility.
-// Re-introduce owner-by-owner inspection after the simplified production system is stable.
+// ci:full entrypoint — the single authoritative CI gate.
+// Runs: typecheck → audit:code-purity → audit:runtime-logging
+// package.json ci:full must delegate here. Do not maintain a second CI chain.
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 
-const repoRoot = resolve(new URL("../../", import.meta.url).pathname);
+const repoRoot = resolve(fileURLToPath(new URL("../../", import.meta.url)));
+
+const step = (label: string, args: string[]): void => {
+  process.stdout.write(`[CI:FULL] ${label}\n`);
+  const r = spawnSync("npm", ["run", ...args], {
+    cwd: repoRoot,
+    stdio: "inherit",
+    shell: true,
+  });
+  if (r.status !== 0) {
+    process.stdout.write(`[CI:FULL] FAIL — ${label} failed.\n`);
+    process.exit(1);
+  }
+};
 
 const main = (): void => {
-  process.stdout.write("[CI:FULL] Delegating to quality kernel (ci:simple mode).\n");
-
-  // Step 1: typecheck
-  process.stdout.write("[CI:FULL] Step 1/2: typecheck\n");
-  const tc = spawnSync("npm", ["run", "typecheck"], {
-    cwd: repoRoot,
-    stdio: "inherit",
-    shell: false,
-  });
-  if (tc.status !== 0) {
-    process.stdout.write("[CI:FULL] FAIL — typecheck failed.\n");
-    process.exit(1);
-  }
-
-  // Step 2: quality-kernel
-  process.stdout.write("[CI:FULL] Step 2/2: quality-kernel\n");
-  const qk = spawnSync("node", ["--import", "tsx", "scripts/audit/domains/quality-kernel/run-inspector.ts"], {
-    cwd: repoRoot,
-    stdio: "inherit",
-    shell: false,
-  });
-  if (qk.status !== 0) {
-    process.stdout.write("[CI:FULL] FAIL — quality kernel failed.\n");
-    process.exit(1);
-  }
-
+  step("Step 1/3: typecheck", ["typecheck"]);
+  step("Step 2/3: audit:code-purity", ["audit:code-purity"]);
+  step("Step 3/3: audit:runtime-logging", ["audit:runtime-logging"]);
   process.stdout.write("[CI:FULL] PASS — all steps passed.\n");
   process.exit(0);
 };

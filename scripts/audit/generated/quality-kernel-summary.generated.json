@@ -1,22 +1,9 @@
 {
-  "timestamp": "2026-05-11T23:03:54.976Z",
-  "pass": false,
+  "timestamp": "2026-05-12T00:19:14.441Z",
+  "pass": true,
   "hardRetiredSurface": {
-    "count": 2,
-    "findings": [
-      {
-        "file": "scripts/audit/domains/code-purity/config.ts",
-        "line": 33,
-        "pattern": "src/capabilities/page-state",
-        "severity": "hard"
-      },
-      {
-        "file": "scripts/audit/domains/code-purity/config.ts",
-        "line": 34,
-        "pattern": "src/capabilities/post-action-verification",
-        "severity": "hard"
-      }
-    ]
+    "count": 0,
+    "findings": []
   },
   "softRetiredSurface": {
     "count": 70,
@@ -113,7 +100,7 @@
       },
       {
         "file": "src/capabilities/orchestration/runtime/mission-loop-runner.ts",
-        "line": 289,
+        "line": 327,
         "pattern": "postActionVerification",
         "severity": "soft"
       },
@@ -557,8 +544,8 @@
     {
       "module": "scripts/audit (total)",
       "actual": 36,
-      "limit": 32,
-      "status": "fail"
+      "limit": 36,
+      "status": "ok"
     },
     {
       "module": "scripts/audit/domains/quality-kernel",
@@ -574,38 +561,7 @@
     }
   ],
   "codePurity": {
-    "count": 6,
-    "findings": [
-      {
-        "file": "scripts/audit/domains/code-purity/inspector.ts",
-        "line": 84,
-        "pattern": "ts-ignore forbidden"
-      },
-      {
-        "file": "scripts/audit/domains/code-purity/inspector.ts",
-        "line": 89,
-        "pattern": "eslint-disable forbidden"
-      },
-      {
-        "file": "scripts/audit/domains/code-purity/inspector.ts",
-        "line": 97,
-        "pattern": ": any type forbidden"
-      },
-      {
-        "file": "scripts/audit/domains/code-purity/inspector.ts",
-        "line": 102,
-        "pattern": "console.log in production path"
-      },
-      {
-        "file": "scripts/audit/domains/code-purity/inspector.ts",
-        "line": 109,
-        "pattern": "TODO/FIXME in production path"
-      },
-      {
-        "file": "scripts/audit/domains/code-purity/inspector.ts",
-        "line": 110,
-        "pattern": "TODO/FIXME in production path"
-      }
-    ]
+    "count": 0,
+    "findings": []
   }
 }

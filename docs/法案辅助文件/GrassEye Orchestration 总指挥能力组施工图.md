@@ -136,8 +136,7 @@ legacy template field
 ```txt
 CAPTURE_VIEWPORT_ONCE
 SAVE_EVIDENCE_RECORD_ONCE
-LEFT_CLICK_GRID_CELL_ONCE(likeButtonGridCell)
-LEFT_CLICK_GRID_CELL_ONCE(commentButtonGridCell)
+LEFT_CLICK_GRID_CELL_ONCE(nextButtonGridCell)
 ```
 
 非产品时：

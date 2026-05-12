@@ -1,52 +1,28 @@
 // Code Purity — run inspector and print findings.
-// Output: [CODE-PURITY][PASS] or [CODE-PURITY][FAIL] with fixable finding lines.
-// No generated JSON artifacts. No inventory on PASS.
+// Output prefix: [CODE-PURITY][PASS] or [CODE-PURITY][FAIL].
+// No generated JSON on PASS. Every HARD finding includes file:line:rule:message.
 
 import { runCodePurityInspector } from "./inspector.js";
 
 const result = runCodePurityInspector();
 
 if (result.pass) {
-  const total = result.purityFindings.length + result.retiredSurfaceFindings.length;
   process.stdout.write(
-    `\n[CODE-PURITY][PASS] findings=${total} hardFails=0 retiredSurface=0 fileCountFails=0\n\n`
+    `\n[CODE-PURITY][PASS] findings=${result.findings.length} hardFails=0 retiredSurface=0 fileCountFails=0\n\n`,
   );
-  // Show warnings (non-blocking) if any
-  for (const f of result.purityFindings) {
-    if (f.severity === "WARN") {
-      process.stdout.write(`  [WARN] ${f.file}:${f.line} — ${f.rule}\n`);
-      process.stdout.write(`         fixDirection: ${f.fixDirection}\n`);
-    }
+  for (const w of result.findings.filter((f) => f.severity === "WARN")) {
+    process.stdout.write(`  [WARN] ${w.file}:${w.line} — ${w.rule}: ${w.message}\n`);
   }
 } else {
-  process.stdout.write("\n[CODE-PURITY][FAIL]\n\n");
+  process.stdout.write(
+    `\n[CODE-PURITY][FAIL] hardFails=${result.hardFails} retiredSurface=${result.findings.filter((f) => f.rule === "CP-AST-006" || f.rule === "CP-FILE-001").length} fileCountFails=${result.fileCountFails}\n\n`,
+  );
 
-  // Hard purity failures
-  for (const f of result.purityFindings.filter((p) => p.severity === "HARD")) {
+  for (const f of result.findings.filter((fi) => fi.severity === "HARD")) {
     process.stdout.write(`  file: ${f.file}:${f.line}\n`);
     process.stdout.write(`  rule: ${f.rule}\n`);
-    process.stdout.write(`  fixDirection: ${f.fixDirection}\n\n`);
-  }
-
-  // Retired surface
-  for (const f of result.retiredSurfaceFindings) {
-    process.stdout.write(`  file: ${f.file}:${f.line}\n`);
-    process.stdout.write(`  rule: retired surface pattern found\n`);
-    process.stdout.write(`  reason: "${f.pattern}" must not appear in active code\n`);
-    process.stdout.write(`  fixDirection: Remove reference to retired system.\n\n`);
-  }
-
-  // File count failures
-  for (const f of result.fileCountFindings.filter((fc) => fc.status !== "ok")) {
-    if (f.status === "retired-exists") {
-      process.stdout.write(`  file: ${f.module}/\n`);
-      process.stdout.write(`  rule: retired capability root must not exist\n`);
-      process.stdout.write(`  fixDirection: Delete ${f.module}/ — it is a retired system.\n\n`);
-    } else {
-      process.stdout.write(`  file: ${f.module}/\n`);
-      process.stdout.write(`  rule: module file count exceeded (${f.actual} > ${f.limit})\n`);
-      process.stdout.write(`  fixDirection: Split or consolidate files in ${f.module}/.\n\n`);
-    }
+    process.stdout.write(`  violation: ${f.message}\n`);
+    process.stdout.write(`  fixDirection: Remove or replace this pattern — no suppressions allowed.\n\n`);
   }
 
   process.exit(1);

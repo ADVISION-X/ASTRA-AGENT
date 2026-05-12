@@ -7,6 +7,6 @@
   "failedLawIds": [],
   "blockedLawIds": [],
   "lastValidatedAt": null,
-  "lastRunnerSummaryPath": "scripts/audit/generated/runner-summary.json",
-  "lastStaticCoveragePath": "scripts/audit/generated/static-clause-coverage.generated.json"
+  "lastRunnerSummaryPath": "scripts/audit/generated/quality-kernel-summary.generated.json",
+  "lastStaticCoveragePath": null
 }

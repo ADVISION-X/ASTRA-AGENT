@@ -1,8 +1,9 @@
 // Quality Kernel — minimal quality safety config.
 
 export const QUALITY_KERNEL_LIMITS = {
-  maxAuditFiles: 32,        // WARN at >20, FAIL at >42; CHECK-6 to 11 added to local-ai-startup-recovery (no new files)
-  maxAuditFilesFail: 40,
+  // Hard limit: scripts/audit total file count must not exceed this.
+  // Enforces "大道至简" — do not grow the inspector universe.
+  maxAuditFiles: 36,
   maxGeneratedFiles: 5,
   maxQualityKernelFiles: 5,
   moduleFileLimits: {

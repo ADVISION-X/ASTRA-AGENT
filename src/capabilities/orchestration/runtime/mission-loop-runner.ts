@@ -18,6 +18,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { unlink } from "node:fs/promises";
 import type { OrchestrationChildrenContext } from "../children.js";
 import { dispatchRegisteredAbilitySequence } from "./dispatch-sequence.js";
 import {
@@ -65,6 +66,17 @@ export async function runMissionRoundLoop(
         });
         upsertMissionState(finalized);
         setActiveMission(null);
+        ctx.runtimeLogger.emit({
+          traceId: missionId,
+          level: "info",
+          modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+          eventType: "MISSION_COMPLETED",
+          owner: "orchestration",
+          missionId,
+          runId: state.activeRunId ?? state.runId ?? missionId,
+          status: "success",
+          reason: `Mission completed: ${guardBefore.reason}`,
+        });
       }
       return;
     }
@@ -111,9 +123,11 @@ export async function runMissionRoundLoop(
     });
 
     // ── OPEN GATE: Navigate to platform entry on round 0 if targetProfileRef is set ──
-    // Direct call (not through Nerve Bus) — Open returns its own openResultRef and
-    // Nerve Bus is pure transport; this avoids unnecessary envelope wrapping for the
-    // initial platform navigation which precedes all ability-group rounds.
+    // Setup-step public-contract exception: Open / Screenshot / Grid / AI Judge setup
+    // steps call the owning ability-group public contract directly (not through Nerve Bus).
+    // Rationale: these are pre-round instrument steps, not external real actions dispatched
+    // by the AI action plan. Every call includes capabilityCallId + nerveBusEnvelopeId for
+    // proof continuity. Real external action sequences (AI output) must go through Nerve Bus.
     if ((state.roundIndex ?? 0) === 0 && state.targetUrl && !state.openResultRef) {
       const openCallId = randomUUID();
       const openResult = await ctx.openAbilityGroup.execute({
@@ -158,6 +172,18 @@ export async function runMissionRoundLoop(
     }
 
     // ── STEP 1: Capture browser viewport ───────────────────────────────────
+    ctx.runtimeLogger.emit({
+      traceId: missionId,
+      level: "debug",
+      modeVisibility: ["DEBUG", "TRACE"],
+      eventType: "SCREENSHOT_CAPTURE_REQUESTED",
+      owner: "orchestration",
+      missionId,
+      runId,
+      roundId,
+      status: "started",
+      reason: `Round ${state.roundIndex ?? 0} capture-browser-viewport requested`,
+    });
     let captureResult: Awaited<ReturnType<typeof ctx.screenshotAbilityGroup.execute>>;
     try {
       captureResult = await ctx.screenshotAbilityGroup.execute({
@@ -234,6 +260,18 @@ export async function runMissionRoundLoop(
 
     const coordinateGridScreenshotRef = gridResult.coordinateGridScreenshotRef;
     const gridSpecRef = gridResult.gridSpecRef;
+    ctx.runtimeLogger.emit({
+      traceId: missionId,
+      level: "debug",
+      modeVisibility: ["DEBUG", "TRACE"],
+      eventType: "COORDINATE_GRID_RENDERED",
+      owner: "orchestration",
+      missionId,
+      runId,
+      roundId,
+      status: "success",
+      reason: `grid rendered ref=${coordinateGridScreenshotRef}`,
+    });
     // Resolve AI-readable file paths (prefer explicit aiReadableImagePath field)
     const originalAiPath =
       "aiReadableImagePath" in captureResult && captureResult.aiReadableImagePath
@@ -396,6 +434,20 @@ export async function runMissionRoundLoop(
     // ── STEP 4: Dispatch AI-driven action sequence ─────────────────────────
     const aiOutput = aiResult.output;
 
+    ctx.runtimeLogger.emit({
+      traceId: missionId,
+      level: "info",
+      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+      eventType: "AI_DECISION_SUMMARY",
+      owner: "orchestration",
+      missionId,
+      runId,
+      roundId,
+      status: "success",
+      reason: `productDecision=${aiOutput.productDecision} pageState=${aiOutput.pageStateDecision} actions=${aiOutput.actions?.length ?? 0}`,
+      metrics: { actionCount: aiOutput.actions?.length ?? 0 },
+    });
+
     // Hard-stop if AI decided review is required
     if (aiOutput.pageStateDecision === "review_required") {
       upsertMissionState(applyStatusTransition(getMissionState(missionId), {
@@ -490,6 +542,8 @@ export async function runMissionRoundLoop(
     // ── Update progress counters based on AI decision ───────────────────────
     const stateAfterSuccess = getMissionState(missionId);
     const productDecision = aiOutput.productDecision;
+    // For product_no rounds: original screenshot is also ephemeral (no evidence record kept).
+    const deleteOriginalScreenshot = productDecision === "product_no";
     if (productDecision === "product_yes") {
       upsertMissionState({
         ...stateAfterSuccess,
@@ -506,6 +560,41 @@ export async function runMissionRoundLoop(
       upsertMissionState({ ...stateAfterSuccess, consecutiveFailureCount: 0 });
     }
 
+    // ── Transient screenshot cleanup (every round) ──────────────────────────
+    // coordinateGridScreenshotRef is ALWAYS a processing artifact — only used as AI input.
+    // The SAVE handler only stores its path string; the file bytes are not needed after this point.
+    // originalScreenshotRef is kept for product_yes (it is permanent evidence); deleted for product_no.
+    {
+      const filesToDelete = [
+        coordinateGridScreenshotRef,
+        ...(deleteOriginalScreenshot ? [originalScreenshotRef] : []),
+      ].filter(Boolean) as string[];
+      if (filesToDelete.length > 0) {
+        const deleteResults = await Promise.allSettled(filesToDelete.map(f => unlink(f)));
+        const deleted: string[] = [];
+        const deleteFailed: string[] = [];
+        for (let i = 0; i < filesToDelete.length; i++) {
+          const r = deleteResults[i];
+          if (r && r.status === "fulfilled") deleted.push(filesToDelete[i] ?? "");
+          else deleteFailed.push(filesToDelete[i] ?? "");
+        }
+        ctx.runtimeLogger.emit({
+          traceId: missionId,
+          level: "debug",
+          modeVisibility: ["DEBUG", "TRACE"],
+          eventType: "SCREENSHOT_TRANSIENT_CLEANUP",
+          owner: "orchestration",
+          missionId,
+          runId,
+          roundId,
+          status: deleteFailed.length === 0 ? "success" : "failed",
+          reason: `${productDecision}: deleted ${deleted.length} transient file(s)${
+            deleteFailed.length > 0 ? `; ${deleteFailed.length} could not be deleted` : ""
+          }`,
+        });
+      }
+    }
+
     // ── Loop guard (after round) ────────────────────────────────────────────
     const stateAfter = getMissionState(missionId);
     const guardAfter = checkLoopGuardAfterRound(stateAfter);
@@ -518,6 +607,17 @@ export async function runMissionRoundLoop(
         });
         upsertMissionState(finalized);
         setActiveMission(null);
+        ctx.runtimeLogger.emit({
+          traceId: missionId,
+          level: "info",
+          modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+          eventType: "MISSION_COMPLETED",
+          owner: "orchestration",
+          missionId,
+          runId,
+          status: "success",
+          reason: `Mission completed: ${guardAfter.reason}`,
+        });
       }
       return;
     }

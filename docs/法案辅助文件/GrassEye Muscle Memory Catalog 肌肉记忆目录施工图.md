@@ -136,7 +136,7 @@ It is not a semantic-shortcut catalog.
 
 ```txt
 挖掘 Facebook 种草产品。
-如果是种草视频，保存证据、点赞、如果有评论则打开评论并截图；
+如果是种草视频，保存证据；
 如果不是种草视频，下一条。
 ```
 
@@ -145,17 +145,15 @@ AI 应组合登记能力，而不是选择套餐：
 ```txt
 CAPTURE_VIEWPORT_ONCE
 SAVE_EVIDENCE_RECORD_ONCE
-LEFT_CLICK_GRID_CELL_ONCE(likeButtonGridCell)
-LEFT_CLICK_GRID_CELL_ONCE(commentButtonGridCell)
-CAPTURE_REGION_ONCE(commentPanelGridCell)
+LEFT_CLICK_GRID_CELL_ONCE(nextButtonGridCell)
 ```
 
-如果评论为 0：
+如果用户明确要求点赞或打开评论，AI 才能在当前画面证据足够时额外组合登记点击能力：
 
 ```txt
 CAPTURE_VIEWPORT_ONCE
 SAVE_EVIDENCE_RECORD_ONCE
-LEFT_CLICK_GRID_CELL_ONCE(likeButtonGridCell)
+LEFT_CLICK_GRID_CELL_ONCE(optionalUserRequestedEngagementGridCell)
 LEFT_CLICK_GRID_CELL_ONCE(nextButtonGridCell)
 ```
 

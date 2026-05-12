@@ -87,83 +87,89 @@ It is optional support evidence ref only.
 - Page State MuscleMemory action
 - Semantic fields in raw observation helper
 
+---
+
+> **HISTORICAL-RETIRED CLAUSES**
+> All `GRASSEYE-PAGE-STATE-CAPABILITY-*` law entries below are historical-retired clauses.
+> They must NOT be counted as active laws, active lawIds, or active enforcement targets.
+> They exist for historical reference only and must not be revived.
 
 ## Law GRASSEYE-PAGE-STATE-CAPABILITY-001-V2
 
-status: active
-tier: P0
+status: retired
+tier: reference
 capabilityDomain: page-state-capability
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
+enforcementMode: historical-retired
+evidenceMode: historical-reference
 
 summary: Page State must have a complete and bounded source structure with required files and no forbidden artifacts.
 
 ## Law GRASSEYE-PAGE-STATE-CAPABILITY-002-V2
 
-status: active
-tier: P0
+status: retired
+tier: reference
 capabilityDomain: page-state-capability
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
+enforcementMode: historical-retired
+evidenceMode: historical-reference
 
 summary: Page State must not import forbidden capability implementations or use forbidden runtime patterns.
 
 ## Law GRASSEYE-PAGE-STATE-CAPABILITY-003-V2
 
-status: active
-tier: P0
+status: retired
+tier: reference
 capabilityDomain: page-state-capability
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
+enforcementMode: historical-retired
+evidenceMode: historical-reference
 
 summary: Page State must maintain strict capability boundary and not leak into orchestration or AI decision layers.
 
 ## Law GRASSEYE-PAGE-STATE-CAPABILITY-004-V2
 
-status: active
-tier: P0
+status: retired
+tier: reference
 capabilityDomain: page-state-capability
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
+enforcementMode: historical-retired
+evidenceMode: historical-reference
 
 summary: Page State truth ownership must be restricted to designated observation sources only.
 
 ## Law GRASSEYE-PAGE-STATE-CAPABILITY-005-V2
 
-status: active
-tier: P0
+status: retired
+tier: reference
 capabilityDomain: page-state-capability
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
+enforcementMode: historical-retired
+evidenceMode: historical-reference
 
 summary: Page State anti-escape: no dynamic import, eval, or escape-hatch patterns allowed.
 
 ## Law GRASSEYE-PAGE-STATE-CAPABILITY-006-V2
 
-status: active
-tier: P0
+status: retired
+tier: reference
 capabilityDomain: page-state-capability
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
+enforcementMode: historical-retired
+evidenceMode: historical-reference
 
 summary: Page State required shape: all required capability files must be present and correctly structured.
 
 ## Law GRASSEYE-PAGE-STATE-CAPABILITY-007-V2
 
-status: active
-tier: P0
+status: retired
+tier: reference
 capabilityDomain: page-state-capability
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
+enforcementMode: historical-retired
+evidenceMode: historical-reference
 
 summary: Page State source boundaries must not be crossed by any other capability.
 
 ## Law GRASSEYE-PAGE-STATE-CAPABILITY-008-V2
 
-status: active
-tier: P0
+status: retired
+tier: reference
 capabilityDomain: page-state-capability
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
+enforcementMode: historical-retired
+evidenceMode: historical-reference
 
 summary: Page State index must not use export-star barrels and must not use escape hatches or dynamic import patterns.

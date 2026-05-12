@@ -4,12 +4,22 @@
 
 当前法案源头冻结为：
 
-- 14 个 active ability groups
+- 11 个 core ability providers
+- 2 个 support / transition evidence surfaces
+- 1 个 retired surface
 - 5 个 foundation laws
 - 0 个 support governance domains
 - 若干父 owner 子契约法案
 
-## 14 个 active ability groups
+与 GRASSEYE-KERNEL 当前阶段（phase-five final-delivery debugging）和简单能力机器公式保持一致：
+
+```
+GrassEye = User Requirement + Platform Registry + MuscleMemoryCatalog
+         + AI + Orchestration + Nerve Bus + Capability Groups
+         + Forensics Persistence + Commander Console
+```
+
+## Core ability providers（11 个）
 
 1. commander-console
 2. orchestration
@@ -17,14 +27,28 @@
 4. ai
 5. open
 6. screenshot
-7. visual-target
-8. geometry-guard
-9. mouse-click
-10. text-input
-11. mouse-scroll
-12. post-action-verification
-13. forensics-persistence
-14. page-state
+7. geometry-guard
+8. mouse-click
+9. text-input
+10. mouse-scroll
+11. forensics-persistence
+
+## Support / transition evidence surfaces（2 个）
+
+These surfaces provide observation packaging and visual target coordination.
+They are NOT independent active ability groups and must NOT register as
+active CI owners.
+
+1. visual-target — non-executable visual candidate packaging; no geometry ownership
+2. post-action-verification — observation packaging and before/after evidence binding only;
+   final semantic judgment belongs to the next AI round, not PAV
+
+## Retired surfaces（1 个）
+
+These must NOT exist as `src/capabilities/<name>` or as active CI owners.
+
+1. page-state — retired; raw browser observation belongs to
+   `src/lib/browser/browser-observation.ts` as non-owner support evidence only
 
 ## 5 个 foundation laws
 

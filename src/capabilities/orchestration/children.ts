@@ -75,6 +75,18 @@ export async function handleStartMission(rawInput: unknown, ctx: OrchestrationCh
   upsertMissionState(running);
   setActiveMission(cmd.missionId);
 
+  ctx.runtimeLogger.emit({
+    traceId: cmd.missionId,
+    level: "info",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    eventType: "MISSION_STARTED",
+    owner: "orchestration",
+    missionId: cmd.missionId,
+    runId: cmd.runId,
+    status: "started",
+    reason: `Mission started platform=${cmd.requestedPlatform}`,
+  });
+
   // Fire-and-forget: start the autonomous round loop asynchronously.
   // If the loop throws unexpectedly, record the failure in mission state.
   void runMissionRoundLoop(cmd.missionId, ctx).catch((err) => {

@@ -159,7 +159,7 @@ Review semantics:
   "productDecision": "product_yes",
   "confidence": 0.88,
   "visualEvidence": [
-    "当前画面主体是服饰产品视频，点赞按钮与评论按钮均可见。"
+    "当前画面主体是服饰产品视频。"
   ],
   "actions": [
     {
@@ -176,15 +176,9 @@ Review semantics:
     },
     {
       "actionCode": "LEFT_CLICK_GRID_CELL_ONCE",
-      "required": false,
-      "reason": "点击点赞按钮。",
-      "input": { "gridCell": "D42" }
-    },
-    {
-      "actionCode": "LEFT_CLICK_GRID_CELL_ONCE",
-      "required": false,
-      "reason": "点击评论按钮。",
-      "input": { "gridCell": "E44" }
+      "required": true,
+      "reason": "进入下一条视频继续判断。",
+      "input": { "gridCell": "P30" }
     }
   ],
   "riskFlags": [],
@@ -214,4 +208,3 @@ Review semantics:
 ### 执法脚本卡点（VMF-27, VMF-28）
 - VMF-27：检查 AI prompt 示例中不含管道符枚举值和字符串描述符占位符
 - VMF-28：检查 mission-loop-runner 只发送坐标格图片给模型（原始截图无 filePath）
-

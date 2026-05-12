@@ -389,7 +389,7 @@
       "childCapabilityId": "scroll-browser-viewport",
       "inputSchemaRef": "mouse-scroll.scroll-browser-viewport.input",
       "outputSchemaRef": "mouse-scroll.scroll-browser-viewport.output",
-      "allowedForAiActionPlan": true,
+      "allowedForAiActionPlan": false,
       "allowedForUserRequirement": false,
       "requiresGridSpecRef": false,
       "requiresScreenshotRef": false,

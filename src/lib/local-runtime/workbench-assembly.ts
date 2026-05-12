@@ -140,7 +140,7 @@ export function createWorkbenchAssembly(
   const genericStorage = createGrassEyeFileStorage(dataDir);
   const forensicsStoragePort = createForensicsStorageAdapter(genericStorage);
   const forensicsPersistenceAbilityGroup =
-    createForensicsPersistenceAbilityGroup(forensicsStoragePort);
+    createForensicsPersistenceAbilityGroup(forensicsStoragePort, runtimeLogger);
 
   // Minimal dataDir provider for screenshot artifact path (no evidenceStore dependency)
   const dataDirProvider = { getDataDir: () => dataDir };
