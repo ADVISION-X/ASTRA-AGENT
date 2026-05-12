@@ -40,10 +40,15 @@ function createAbortContext(timeoutMs: number, externalSignal?: AbortSignal) {
 async function readImageParts(imagePaths: string[]) {
   return Promise.all(imagePaths.map(async (imagePath, index) => {
     const buffer = await readFile(imagePath);
+    const lowerPath = imagePath.toLowerCase();
     return {
       part: {
         inlineData: {
-          mimeType: imagePath.toLowerCase().endsWith(".jpg") || imagePath.toLowerCase().endsWith(".jpeg") ? "image/jpeg" : "image/png",
+          mimeType: lowerPath.endsWith(".svg")
+            ? "image/svg+xml"
+            : lowerPath.endsWith(".jpg") || lowerPath.endsWith(".jpeg")
+              ? "image/jpeg"
+              : "image/png",
           data: buffer.toString("base64"),
         },
       },

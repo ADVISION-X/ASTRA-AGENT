@@ -25,7 +25,7 @@ export const aiProviderSettingsClient = `(function () {
     const modelName = f.elements.namedItem("modelName");
     const apiKey = f.elements.namedItem("apiKey");
     if (displayName instanceof HTMLInputElement) { displayName.value = settings.displayName || "Google Gemini"; }
-    if (modelName instanceof HTMLSelectElement && settings.modelName) { modelName.value = settings.modelName; }
+    if (modelName instanceof HTMLInputElement) { modelName.value = "gemini-2.5-flash-lite"; }
     if (apiKey instanceof HTMLInputElement) { apiKey.value = ""; apiKey.placeholder = settings.maskedApiKey || "AIza..."; }
   }
   function syncSummary(settings) {
@@ -48,7 +48,7 @@ export const aiProviderSettingsClient = `(function () {
     const data = new FormData(target);
     const settings = await requestJson("/api/app-settings/online-ai-provider", {
       displayName: String(data.get("displayName") || ""),
-      modelName: String(data.get("modelName") || "gemini-2.5-flash-lite"),
+      modelName: "gemini-2.5-flash-lite",
       apiKey: String(data.get("apiKey") || ""),
     });
     syncForm(settings);

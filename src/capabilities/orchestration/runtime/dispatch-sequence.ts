@@ -31,6 +31,8 @@ export type DispatchSequenceResult = {
 type Action = DispatchRegisteredAbilitySequenceInput["actions"][number];
 type CellZone = NonNullable<Action["cellZone"]>;
 
+const INTER_ACTION_SETTLE_WAIT_MS = 1_000;
+
 const CELL_ZONE_OFFSETS: Record<CellZone, { xRatio: number; yRatio: number }> = {
   top_left: { xRatio: 1 / 6, yRatio: 1 / 6 },
   top_center: { xRatio: 1 / 2, yRatio: 1 / 6 },
@@ -151,7 +153,7 @@ async function dispatchSingleAction(
   action: Action,
   input: DispatchRegisteredAbilitySequenceInput,
   ctx: DispatchSequenceContext,
-  extras?: { freshScreenshotRef?: string | null; commentPanelOpenAttempted?: boolean },
+  extras?: { freshScreenshotRef?: string | null; commentPanelOpenAttempted?: boolean; actionIndex?: number },
 ): Promise<{ status: "success" | "failed" | "review_required"; failureReason: string | null }> {
   // ── 1. Resolve abilityGroupId + childCapabilityId from MuscleMemory ────────
   const entry = findMuscleMemoryEntry(action.actionCode);
@@ -325,8 +327,38 @@ async function dispatchSingleAction(
     inputRef: randomUUID(),
     sourceRef: inputOverrides["sourceRef"] ?? gridSpecRef ?? callId,
     sourceEvidenceRef: inputOverrides["sourceEvidenceRef"] ?? (input.currentEvidenceRefs?.["originalScreenshotRef"] as string | undefined) ?? null,
-    idempotencyKey: inputOverrides["idempotencyKey"] ?? `dispatch:${input.missionId}:${input.runId}:${input.roundId ?? "noround"}:${action.actionCode}:${action.gridCell ?? ""}:${action.cellZone ?? "center"}`,
+    idempotencyKey: inputOverrides["idempotencyKey"] ?? [
+      "dispatch",
+      input.missionId,
+      input.runId,
+      input.roundId ?? "noround",
+      String(extras?.actionIndex ?? "manual"),
+      action.actionCode,
+      action.targetRole ?? "norole",
+      action.gridCell ?? "nogrid",
+      action.cellZone ?? "center",
+    ].join(":"),
   };
+  const dispatchInputOverrides = resolvedAbilityGroupId === "text-input"
+    ? {
+        abilityGroupId: resolvedAbilityGroupId,
+        childCapabilityId: resolvedChildCapabilityId,
+        missionId: input.missionId,
+        runId: input.runId,
+        sessionId: "local",
+        roundId: input.roundId ?? null,
+        stepId: completeInput["stepId"],
+        capabilityCallId: completeInput["capabilityCallId"],
+        nerveBusEnvelopeId: completeInput["nerveBusEnvelopeId"],
+        inputRef: completeInput["inputRef"],
+        targetRef: cleanOverrides["targetRef"] ?? null,
+        focusRef: cleanOverrides["focusRef"] ?? null,
+        idempotencyKey: completeInput["idempotencyKey"],
+        ...(cleanOverrides["timeoutMs"] ? { timeoutMs: cleanOverrides["timeoutMs"] } : {}),
+        approvedText: cleanOverrides["approvedText"] ?? null,
+        approvedKey: cleanOverrides["approvedKey"] ?? null,
+      }
+    : completeInput;
   try {
     const result = await ctx.nerveBus.dispatchAbilityCommand({
       abilityGroupId: resolvedAbilityGroupId,
@@ -335,7 +367,7 @@ async function dispatchSingleAction(
       runId: input.runId,
       sessionId: null,
       roundId: input.roundId ?? null,
-      inputOverrides: completeInput,
+      inputOverrides: dispatchInputOverrides,
     });
     const dispatchStatus = result.status ?? "success";
     if (resolvedAbilityGroupId === "mouse-click" || resolvedAbilityGroupId === "mouse-scroll") {
@@ -378,6 +410,69 @@ async function dispatchSingleAction(
   }
 }
 
+function isNextVideoClickAction(action: Action): boolean {
+  return action.actionCode === "LEFT_CLICK_GRID_CELL_ONCE"
+    && (action.targetRole === "next_video_arrow" || action.targetRole === "next_video_surface");
+}
+
+function waitForInterActionSettle() {
+  return new Promise<void>((resolve) => setTimeout(resolve, INTER_ACTION_SETTLE_WAIT_MS));
+}
+
+async function dispatchNextVideoArrowDownFallback(
+  failedAction: Action,
+  input: DispatchRegisteredAbilitySequenceInput,
+  ctx: DispatchSequenceContext,
+): Promise<{ status: "success" | "failed" | "review_required"; failureReason: string | null }> {
+  const fallbackAction: Action = {
+    actionCode: "PRESS_APPROVED_KEY_ONCE",
+    reason: `Fallback after failed next-video click: ${failedAction.reason ?? "AI requested next video"}`,
+    targetRole: failedAction.targetRole ?? "next_video_arrow",
+    abilityGroupId: "text-input",
+    childCapabilityId: "press-approved-key-once",
+    inputOverrides: {
+      approvedKey: "ArrowDown",
+      idempotencyKey: `next-video-arrowdown-fallback:${input.missionId}:${input.runId}:${input.roundId ?? "noround"}:${failedAction.gridCell ?? "nogrid"}:${randomUUID()}`,
+    },
+    required: true,
+    requiresGeometryProof: false,
+    gridCell: null,
+    cellZone: null,
+  };
+
+  ctx.runtimeLogger.emit({
+    traceId: input.missionId,
+    level: "warn",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    eventType: "CAPABILITY_DISPATCH_STARTED",
+    owner: "orchestration",
+    missionId: input.missionId,
+    runId: input.runId,
+    ...(input.roundId ? { roundId: input.roundId } : {}),
+    status: "started",
+    reason: `Next-video click failed; trying PRESS_APPROVED_KEY_ONCE approvedKey=ArrowDown after ${failedAction.actionCode}${failedAction.gridCell ? ` at ${failedAction.gridCell}` : ""}`,
+  });
+
+  const result = await dispatchSingleAction(fallbackAction, input, ctx);
+
+  ctx.runtimeLogger.emit({
+    traceId: input.missionId,
+    level: result.status === "success" ? "info" : result.status === "review_required" ? "warn" : "error",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    eventType: result.status === "success" ? "CAPABILITY_DISPATCH_COMPLETED" : "CAPABILITY_DISPATCH_FAILED",
+    owner: "orchestration",
+    missionId: input.missionId,
+    runId: input.runId,
+    ...(input.roundId ? { roundId: input.roundId } : {}),
+    status: result.status,
+    reason: result.status === "success"
+      ? "PRESS_APPROVED_KEY_ONCE ArrowDown fallback ok for next video"
+      : `PRESS_APPROVED_KEY_ONCE ArrowDown fallback ${result.status}: ${result.failureReason ?? "unknown"}`,
+  });
+
+  return result;
+}
+
 export async function dispatchRegisteredAbilitySequence(
   input: DispatchRegisteredAbilitySequenceInput,
   ctx: DispatchSequenceContext,
@@ -385,7 +480,7 @@ export async function dispatchRegisteredAbilitySequence(
   // Track whether a comments_button click was requested — used to tag postCommentScreenshotRef in SAVE evidence.
   const commentPanelOpenAttempted = input.actions.some(a => a.targetRole === "comments_button");
 
-  for (const action of input.actions) {
+  for (const [actionIndex, action] of input.actions.entries()) {
     ctx.runtimeLogger.emit({
       traceId: input.missionId,
       level: "info",
@@ -444,7 +539,12 @@ export async function dispatchRegisteredAbilitySequence(
       }
     }
 
-    const { status, failureReason } = await dispatchSingleAction(action, input, ctx, { freshScreenshotRef, commentPanelOpenAttempted });
+    let { status, failureReason } = await dispatchSingleAction(action, input, ctx, { freshScreenshotRef, commentPanelOpenAttempted, actionIndex });
+    if (status === "failed" && action.required !== false && isNextVideoClickAction(action)) {
+      const fallbackResult = await dispatchNextVideoArrowDownFallback(action, input, ctx);
+      status = fallbackResult.status;
+      failureReason = fallbackResult.failureReason;
+    }
 
     ctx.runtimeLogger.emit({
       traceId: input.missionId,
@@ -479,7 +579,7 @@ export async function dispatchRegisteredAbilitySequence(
         status,
         failureReason: failureReason ?? null,
       },
-      idempotencyKey: `orchestration:${input.missionId}:${input.runId}:${input.roundId ?? ""}:${action.actionCode}`,
+      idempotencyKey: `orchestration:${input.missionId}:${input.runId}:${input.roundId ?? ""}:${actionIndex}:${action.actionCode}:${action.targetRole ?? "norole"}`,
     }).catch(() => { /* forensics failure must not block dispatch */ });
 
     if (status === "failed" && action.required !== false) {
@@ -493,6 +593,21 @@ export async function dispatchRegisteredAbilitySequence(
       const updated2 = applyStatusTransition(current2, { status: "review_required", reviewRequiredReason: `Action ${action.actionCode} requires review` });
       upsertMissionState(updated2);
       return { status: "review_required", stateSnapshot: updated2, failureReason: null, reviewRequiredReason: `Action ${action.actionCode} requires review` };
+    }
+    if (actionIndex < input.actions.length - 1) {
+      ctx.runtimeLogger.emit({
+        traceId: input.missionId,
+        level: "debug",
+        modeVisibility: ["DEBUG", "TRACE"],
+        eventType: "CAPABILITY_DISPATCH_COMPLETED",
+        owner: "orchestration",
+        missionId: input.missionId,
+        runId: input.runId,
+        ...(input.roundId ? { roundId: input.roundId } : {}),
+        status: "success",
+        reason: `Inter-action settle wait durationMs=${INTER_ACTION_SETTLE_WAIT_MS}`,
+      });
+      await waitForInterActionSettle();
     }
   }
 

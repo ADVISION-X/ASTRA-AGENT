@@ -22,7 +22,8 @@ export const FACEBOOK_WEB_PROFILE: PlatformProfile = {
     "OPEN_PLATFORM_ENTRY_ONCE",
   ],
   // Lightweight platform action hints for AI — not coordinates, not map bindings.
-  nextVideoPreferredActionCode: "SCROLL_BROWSER_VIEWPORT_ONCE",
-  likeActionHint: "LEFT_CLICK_GRID_CELL_ONCE",
+  nextVideoPreferredActionCode: "PRESS_APPROVED_KEY_ONCE",
+  likeActionHint: "PRESS_APPROVED_KEY_ONCE",
+  likeApprovedKey: "L",
   commentsActionHint: "LEFT_CLICK_GRID_CELL_ONCE",
 };

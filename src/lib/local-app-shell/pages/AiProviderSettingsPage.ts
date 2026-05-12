@@ -14,7 +14,7 @@ function renderProviderSettingsCard(t: (zh: string, en: string) => string): stri
       <p class="cc-note" data-ai-provider-settings-status>${escapeHtml(t("正在读取 AI 状态。", "Loading AI status."))}</p>
       <div class="cc-run-limit-grid">
         <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("AI 名称", "AI Name"))}</span><input name="displayName" type="text" placeholder="Google Gemini" autocomplete="off" /></label>
-        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("模型", "Model"))}</span><select name="modelName" style="${CONTROL_STYLE}" data-ai-provider-model><option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite</option><option value="gemini-2.5-flash">Gemini 2.5 Flash</option><option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option></select></label>
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("模型", "Model"))}</span><input name="modelName" value="gemini-2.5-flash-lite" disabled="disabled" readonly="readonly" data-ai-provider-model /></label>
       </div>
       <label class="cc-field"><span class="cc-section-title">Google Gemini API Key</span><input name="apiKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="AIza..." data-ai-provider-api-key /></label>
       <div class="cc-inline-actions">

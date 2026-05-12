@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+import { findMuscleMemoryEntry } from "../../../muscle-memory/catalog.js";
+import { resolveAiActionInputPolicy } from "../../../visual-mission/action-plan/action-field-policy.js";
+
 type JsonScannerState = {
   startIndex: number;
   depth: number;
@@ -29,6 +32,67 @@ function extractFirstJsonObject(text: string): string {
     }
   }
   throw new Error("AI model output did not contain a JSON object.");
+}
+
+function pruneActionInputFields(parsed: Record<string, unknown>): void {
+  const actions = parsed["actions"];
+  if (!Array.isArray(actions)) return;
+
+  for (const action of actions) {
+    if (action === null || typeof action !== "object" || Array.isArray(action)) continue;
+    const actionObj = action as Record<string, unknown>;
+    const actionCode = typeof actionObj["actionCode"] === "string" ? actionObj["actionCode"].toUpperCase() : null;
+    const input = actionObj["input"];
+    if (!actionCode || input === null || typeof input !== "object" || Array.isArray(input)) continue;
+
+    const entry = findMuscleMemoryEntry(actionCode);
+    if (!entry) continue;
+
+    const policy = resolveAiActionInputPolicy(entry);
+    const allowed = new Set([...policy.aiRequiredInput, ...policy.aiOptionalInput]);
+    const cleanedInput = Object.fromEntries(
+      Object.entries(input as Record<string, unknown>).filter(([field]) => allowed.has(field)),
+    );
+    actionObj["input"] = cleanedInput;
+  }
+}
+
+const SHORT_VIDEO_PLATFORM_IDS = new Set(["facebook-web", "tiktok-web"]);
+const GRID_CLICK_ACTION_CODES = new Set([
+  "LEFT_CLICK_GRID_CELL_ONCE",
+  "DOUBLE_LEFT_CLICK_GRID_CELL",
+  "RIGHT_CLICK_GRID_CELL_ONCE",
+]);
+
+function repairMissingGridCellClickActionsForShortVideo(parsed: Record<string, unknown>): void {
+  const platform = typeof parsed["platform"] === "string" ? parsed["platform"] : null;
+  if (!platform || !SHORT_VIDEO_PLATFORM_IDS.has(platform)) return;
+
+  const actions = parsed["actions"];
+  if (!Array.isArray(actions)) return;
+
+  for (const action of actions) {
+    if (action === null || typeof action !== "object" || Array.isArray(action)) continue;
+    const actionObj = action as Record<string, unknown>;
+    const actionCode = typeof actionObj["actionCode"] === "string"
+      ? actionObj["actionCode"].toUpperCase()
+      : null;
+    if (!actionCode || !GRID_CLICK_ACTION_CODES.has(actionCode)) continue;
+
+    const input = actionObj["input"];
+    const gridCell = input !== null && typeof input === "object" && !Array.isArray(input)
+      ? (input as Record<string, unknown>)["gridCell"]
+      : null;
+    if (typeof gridCell === "string" && gridCell.trim().length > 0) continue;
+
+    const originalReason = typeof actionObj["reason"] === "string" && actionObj["reason"].trim().length > 0
+      ? actionObj["reason"].trim()
+      : "AI returned a click action without a gridCell.";
+    actionObj["actionCode"] = "PRESS_APPROVED_KEY_ONCE";
+    actionObj["targetRole"] = "next_video_arrow";
+    actionObj["input"] = { approvedKey: "ArrowDown" };
+    actionObj["reason"] = `${originalReason} Short-video fallback: missing gridCell cannot be clicked, so continue with ArrowDown instead of blocking the mission.`;
+  }
 }
 
 const parseAiJsonOutput = <TOutput>(text: string, schema: z.ZodSchema<TOutput>) => {
@@ -63,6 +127,17 @@ const parseAiJsonOutput = <TOutput>(text: string, schema: z.ZodSchema<TOutput>) 
   if (parsed["nonExecutableSummary"] === null) {
     parsed["nonExecutableSummary"] = "none";
   }
+  if (parsed["nonExecutableSummary"] === "") {
+    parsed["nonExecutableSummary"] = "none";
+  }
+  if (Array.isArray(parsed["visualEvidence"]) && parsed["visualEvidence"].length === 0) {
+    parsed["visualEvidence"] = ["No visual evidence provided by model."];
+  }
+  if (parsed["visualEvidence"] === undefined || parsed["visualEvidence"] === null) {
+    parsed["visualEvidence"] = ["No visual evidence provided by model."];
+  }
+  repairMissingGridCellClickActionsForShortVideo(parsed);
+  pruneActionInputFields(parsed);
 
   return schema.parse(parsed);
 };

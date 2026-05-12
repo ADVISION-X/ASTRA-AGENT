@@ -124,7 +124,7 @@ async function ensureOnlineAiReadiness() {
     status: "ready",
     runtimeBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
     detail: "Online Gemini API runtime is selected; API key is validated by mission preflight/settings.",
-    modelRoles: [{ modelRole: "vision", health: "configured", modelName: process.env.GRASSEYE_GEMINI_MODEL ?? "gemini-2.5-flash-lite" }],
+    modelRoles: [{ modelRole: "vision", health: "configured", modelName: "gemini-2.5-flash-lite" }],
     missionRuntimeAvailable: true,
     failureReason: null,
     developmentOnly: false,

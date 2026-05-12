@@ -12,6 +12,7 @@ const PlatformProfileSchema = z.object({
   supportedActionCodes: z.array(z.string().min(1)).min(1),
   nextVideoPreferredActionCode: z.string().min(1).optional(),
   likeActionHint: z.string().min(1).optional(),
+  likeApprovedKey: z.string().min(1).optional(),
   commentsActionHint: z.string().min(1).optional(),
 }).strict();
 

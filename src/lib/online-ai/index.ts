@@ -1,6 +1,7 @@
 export {
   loadOnlineAiProviderConfig,
   loadOnlineAiProviderPublicStatus,
+  LOCKED_GEMINI_MODEL,
   saveOnlineAiProviderConfig,
   toPublicOnlineAiProviderStatus,
   type OnlineAiProviderConfig,

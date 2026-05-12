@@ -4,13 +4,14 @@ import { dirname, join } from "node:path";
 import { z } from "zod";
 
 const ONLINE_AI_PROVIDER_PATH = ["config", "online-ai-provider.json"] as const;
+const LOCKED_GEMINI_MODEL = "gemini-2.5-flash-lite" as const;
 
 const OnlineAiProviderConfigSchema = z.object({
   providerCompany: z.literal("google"),
   providerKind: z.literal("gemini-api"),
   displayName: z.string().min(1),
   apiKey: z.string().min(10),
-  modelName: z.string().min(1).default("gemini-2.5-flash-lite"),
+  modelName: z.literal(LOCKED_GEMINI_MODEL).default(LOCKED_GEMINI_MODEL),
   endpoint: z.string().url().default("https://generativelanguage.googleapis.com/v1beta"),
   updatedAt: z.string().min(1).nullable().default(null),
 }).strict();
@@ -84,7 +85,7 @@ export async function loadOnlineAiProviderConfig(dataDir: string): Promise<Onlin
       providerKind: "gemini-api",
       displayName: "Google Gemini",
       apiKey: envKey,
-      modelName: process.env.GRASSEYE_GEMINI_MODEL ?? "gemini-2.5-flash-lite",
+      modelName: LOCKED_GEMINI_MODEL,
       endpoint: "https://generativelanguage.googleapis.com/v1beta",
       updatedAt: null,
     });
@@ -112,7 +113,7 @@ export async function saveOnlineAiProviderConfig(
     providerKind: "gemini-api",
     displayName: input.displayName?.trim() || "Google Gemini",
     apiKey: input.apiKey.trim(),
-    modelName: input.modelName?.trim() || "gemini-2.5-flash-lite",
+    modelName: LOCKED_GEMINI_MODEL,
     endpoint: "https://generativelanguage.googleapis.com/v1beta",
     updatedAt: new Date().toISOString(),
   });
@@ -121,3 +122,4 @@ export async function saveOnlineAiProviderConfig(
   return toPublicOnlineAiProviderStatus(config);
 }
 
+export { LOCKED_GEMINI_MODEL };

@@ -116,6 +116,13 @@ const VisualMissionVisualClickTargetHintSchema = z.object({
   targetName: z.string().min(1),
 }).strict();
 
+const VisualMissionInteractiveElementSchema = z.object({
+  elementType: z.string().min(1),
+  label: z.string().min(1),
+  gridCell: MuscleMemoryGridCellSchema,
+  cellZone: MuscleMemoryCellZoneSchema.optional(),
+}).strict();
+
 const VisualMissionPlatformContextSchema = z.object({
   platformId: VisualMissionPlatformSchema,
   targetUrl: z.string().min(1).nullable().default(null),
@@ -155,62 +162,11 @@ const VisualMissionActionPlanOutputSchema = z.object({
   visualEvidence: z.array(z.string().min(1)).min(1),
   reason: z.string().min(1),
   actions: z.array(VisualMissionActionSchema).min(1),
+  visibleInteractiveElements: z.array(VisualMissionInteractiveElementSchema).default([]),
   nonExecutableClickTargets: z.array(VisualMissionVisualClickTargetHintSchema).default([]),
   riskFlags: z.array(z.string().min(1)).default([]),
   nonExecutableSummary: z.string().min(1),
-}).strict().superRefine((val, ctx) => {
-  const { productDecision, actions } = val;
-
-  if (productDecision === "product_yes") {
-    const saveIdx = actions.findIndex(a => a.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
-    if (saveIdx === -1) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
-    }
-    if (saveIdx !== -1) {
-      const saveAction = actions[saveIdx]!;
-      const captureMode = (saveAction.input as Record<string, unknown> | undefined)?.["captureMode"];
-      if (captureMode !== "fresh_current_viewport") {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: SAVE_CURRENT_VIDEO_EVIDENCE_ONCE must have input.captureMode='fresh_current_viewport'.", path: ["actions"] });
-      }
-    }
-    const clickIndex = (targetRole: NonNullable<VisualMissionActionPlanOutput["actions"][number]["targetRole"]>) =>
-      actions.findIndex(a =>
-        (a.actionCode === "LEFT_CLICK_GRID_CELL_ONCE" ||
-         a.actionCode === "DOUBLE_LEFT_CLICK_GRID_CELL" ||
-         a.actionCode === "RIGHT_CLICK_GRID_CELL_ONCE") &&
-        a.targetRole === targetRole
-      );
-    const nextVideoArrowIdx = clickIndex("next_video_arrow");
-    if (saveIdx !== -1 && nextVideoArrowIdx === -1) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires LEFT_CLICK_GRID_CELL_ONCE with targetRole='next_video_arrow' after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE to advance to the next video.", path: ["actions"] });
-    }
-    if (saveIdx !== -1 && nextVideoArrowIdx !== -1 && nextVideoArrowIdx < saveIdx) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes: next_video_arrow click must come after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
-    }
-  }
-
-  if (productDecision === "product_no") {
-    const nonArrowClicks = actions.filter(a =>
-      (a.actionCode === "LEFT_CLICK_GRID_CELL_ONCE" ||
-       a.actionCode === "DOUBLE_LEFT_CLICK_GRID_CELL" ||
-       a.actionCode === "RIGHT_CLICK_GRID_CELL_ONCE") &&
-      a.targetRole !== "next_video_arrow"
-    );
-    if (nonArrowClicks.length > 0) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_no must not contain click actions other than next_video_arrow.", path: ["actions"] });
-    }
-    const hasSave = actions.some(a => a.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
-    if (hasSave) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_no must not contain SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.", path: ["actions"] });
-    }
-    const hasNextVideoArrow = actions.some(a =>
-      a.actionCode === "LEFT_CLICK_GRID_CELL_ONCE" && a.targetRole === "next_video_arrow"
-    );
-    if (!hasNextVideoArrow) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_no must contain LEFT_CLICK_GRID_CELL_ONCE with targetRole='next_video_arrow' to advance to the next video.", path: ["actions"] });
-    }
-  }
-});
+}).strict();
 
 type VisualMissionActionPlanRequestInput = z.infer<typeof VisualMissionActionPlanRequestInputSchema>;
 type VisualMissionActionPlanOutput = z.infer<typeof VisualMissionActionPlanOutputSchema>;
@@ -220,6 +176,7 @@ export {
   VisualMissionPlatformContextSchema,
   VisualMissionActionInputSchema,
   VisualMissionActionSchema,
+  VisualMissionInteractiveElementSchema,
   VisualMissionActionPlanRequestInputSchema,
   VisualMissionActionPlanOutputSchema,
 };

@@ -78,21 +78,15 @@ export class CurrentChromeBrowserController implements BrowserController {
     const state = await this.refreshSnapshot();
 
     let scaleFactor = 1;
-    let visibleContentBounds = { x: 0, y: 0, width: state.width, height: state.height };
+    const visibleContentBounds = { x: 0, y: 0, width: state.width, height: state.height };
 
     try {
-      const jsSnippet = "JSON.stringify({sx:window.screenX,sy:window.screenY,iw:window.innerWidth,ih:window.innerHeight,dpr:window.devicePixelRatio||1})";
+      const jsSnippet = "JSON.stringify({dpr:window.devicePixelRatio||1})";
       const raw = await runAppleScript(`tell application "Google Chrome" to execute front window's active tab javascript "${jsSnippet}"`);
-      const vp = JSON.parse(raw) as { sx: number; sy: number; iw: number; ih: number; dpr: number };
+      const vp = JSON.parse(raw) as { dpr: number };
       scaleFactor = vp.dpr;
-      visibleContentBounds = {
-        x: Math.max(0, vp.sx - state.windowX),
-        y: Math.max(0, vp.sy - state.windowY),
-        width: vp.iw,
-        height: vp.ih,
-      };
     } catch {
-      // fallback: assume no chrome offset and scale=1
+      // fallback: keep full-window geometry and assume scale=1
     }
 
     return {

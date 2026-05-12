@@ -13,6 +13,7 @@ export type TextInputChildCapabilityId =
 
 /** Approved keys that press-approved-key-once may accept. */
 export const TEXT_INPUT_APPROVED_KEY_ALLOWLIST = [
+  "L",
   "Enter",
   "Tab",
   "Escape",

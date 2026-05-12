@@ -30,7 +30,10 @@ const GeminiVisualMissionActionSchema = {
       properties: {
         gridCell: { type: "STRING" },
         cellZone: { type: "STRING", enum: [...GEMINI_CELL_ZONE_VALUES] },
-        captureMode: { type: "STRING" },
+        captureMode: { type: "STRING", enum: ["fresh_current_viewport", "use_current_round_screenshot"] },
+        evidenceLabel: { type: "STRING" },
+        approvedText: { type: "STRING" },
+        approvedKey: { type: "STRING" },
       },
     },
     reason: { type: "STRING" },
