@@ -24,6 +24,8 @@ export type {
 export {
   SCREENSHOT_ABILITY_GROUP_ID,
   SCREENSHOT_CHILD_IDS,
+  VISUAL_MISSION_DEFAULT_GRID_COLUMNS,
+  VISUAL_MISSION_DEFAULT_GRID_ROWS,
   ScreenshotGridCellSchema,
   ScreenshotGridSpecSchema,
   ScreenshotArtifactRefSchema,

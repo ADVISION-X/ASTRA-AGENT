@@ -1,62 +1,5 @@
 import { buildMuscleMemorySystemManual } from "../../../muscle-memory/manual.js";
-import { listAiVisibleAbilities } from "../../../muscle-memory/catalog.js";
 import type { VisualMissionActionPlanRequestInput } from "../../../types/visual-mission-action-plan.js";
-
-const buildOutputSchemaBlock = (platformId: string) => {
-  // Use only AI-visible (allowedForAiActionPlan=true) actionCodes in the example.
-  const aiActions = listAiVisibleAbilities().map(e => e.actionCode);
-  const clickAction = aiActions.find(a => a.startsWith("LEFT_CLICK")) ?? "LEFT_CLICK_GRID_CELL_ONCE";
-  const saveAction = aiActions.find(a => a === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
-  if (!saveAction) {
-    throw new Error(
-      "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE not found in AI-visible MuscleMemory catalog. " +
-      "Register it with allowedForAiActionPlan=true before building visual-mission prompts."
-    );
-  }
-
-  // NOTE: Use concrete example values — the model will copy descriptive placeholders verbatim.
-  // Enum fields must use one real chosen value, never pipe-separated options like a|b|c.
-  // CRITICAL NESTING RULE: userIntentUnderstanding is placed LAST in the example.
-  // qwen2.5vl:3b (3B param model) tracks nesting depth unreliably under format:"json".
-  // If userIntentUnderstanding appears early, the model opens it and writes ALL subsequent
-  // fields inside it instead of closing and returning to the top level.
-  // Placing it last means all top-level fields are written before the only nested object.
-  return JSON.stringify({
-    schemaVersion: "visualMissionActionPlan.v1",
-    platform: platformId,
-    isTargetPlatform: true,
-    surface: "reels feed",
-    isTargetFeed: true,
-    pageStateDecision: "ready",
-    isProductVideo: true,
-    productDecision: "product_yes",
-    confidence: 0.92,
-    visibleProductTypes: ["skincare"],
-    visualEvidence: ["Sponsored product video visible in the current reel"],
-    reason: "Identified sponsored product video and selected registered atomic abilities for evidence capture and feed continuation",
-    actions: [
-      {
-        actionCode: saveAction,
-        required: true,
-        reason: "save evidence for the identified product video",
-        input: { evidenceLabel: "product-video", captureMode: "fresh_current_viewport" },
-      },
-      {
-        actionCode: clickAction,
-        required: true,
-        targetRole: "next_video_arrow",
-        reason: "click the down arrow to advance to the next video",
-        input: { gridCell: "P30" },
-      },
-    ],
-    nonExecutableClickTargets: [],
-    riskFlags: [],
-    nonExecutableSummary: "Save evidence for identified product video and advance to the next feed item",
-    // userIntentUnderstanding is intentionally placed LAST — see nesting rule above.
-    // It contains ONLY "matched" and "summary". Do NOT add any other fields inside it.
-    userIntentUnderstanding: { matched: true, summary: "User wants to trace sponsored product videos on the feed" },
-  }, null, 2);
-};
 
 const buildContinuitySection = (input: VisualMissionActionPlanRequestInput) => {
   if (!input.roundMissionPacket) {
@@ -69,19 +12,50 @@ const buildContinuitySection = (input: VisualMissionActionPlanRequestInput) => {
   ].join("\n");
 };
 
+const buildCompactCapabilityManual = (actions: ReturnType<typeof buildMuscleMemorySystemManual>["actions"]) =>
+  actions
+    .filter((action) => !["DOUBLE_LEFT_CLICK_GRID_CELL", "RIGHT_CLICK_GRID_CELL_ONCE"].includes(action.actionCode))
+    .map((action) => {
+      const required = action.inputContract.requiredFields.length > 0
+        ? action.inputContract.requiredFields.join(",")
+        : "none";
+      const optional = action.inputContract.optionalFields.length > 0
+        ? action.inputContract.optionalFields.join(",")
+        : "none";
+      return `${action.actionCode} requiredInput=${required} optionalInput=${optional}`;
+    })
+    .join("\n");
+
 const buildSystemPrompt = (platformId: string) => [
   "You are GrassEye visual-mission-judge-once.",
-  "Return JSON only. Do not wrap in markdown fences.",
+  "Return valid JSON only. Do not wrap in markdown fences. Do not copy values from the prompt.",
   `You are operating on platform: ${platformId}.`,
-  "You may reason about page state, product presence, and the next governed action plan.",
-  "STRUCTURE RULE: Your JSON response is a FLAT top-level object. The field 'userIntentUnderstanding' is a nested object containing ONLY 'matched' (boolean) and 'summary' (string). Do NOT place 'platform', 'surface', 'pageStateDecision', 'actions', or any other field inside 'userIntentUnderstanding'.",
+  "Judge only from the current cell-name grid image and the user's requirement.",
+  "A scenery, house, coastline, person, meme, or lifestyle video is not a product video unless a concrete purchasable product is visible.",
+  "Use productDecision only as one of: product_yes, product_no, uncertain.",
+  "Use pageStateDecision only as one of: ready, recover, review_required, blocked.",
+  "userIntentUnderstanding.matched must be boolean. visualEvidence must be an array of short strings.",
   "You must NEVER return raw coordinates (x, y, clientX, clientY), DOM selectors, browser commands, Nerve Bus payloads, or Forensics payloads.",
   "You must NEVER include abilityGroupId or childCapabilityId in your output.",
-  "Choose actionCode values ONLY from the capability manual (allowedForAiActionPlan=true entries).",
-  "For product_yes: compose only the registered atomic actions needed for the user's goal. By default, save evidence with SAVE_CURRENT_VIDEO_EVIDENCE_ONCE using input { evidenceLabel: '<descriptive label>', captureMode: 'fresh_current_viewport' }, then advance with LEFT_CLICK_GRID_CELL_ONCE using targetRole 'next_video_arrow' on the visible DOWN ARROW navigation button on the RIGHT SIDE of the page. Do not include like_button, comments_button, comments_panel_close, or any engagement click unless the user's requirement explicitly asks for that interaction or the current page state requires it for recovery.",
-  "IMPORTANT: Do NOT include a screenshot action — screenshots are injected by the system automatically after clicks and are not an AI-outputtable actionCode.",
-  "For product_no: output only LEFT_CLICK_GRID_CELL_ONCE with targetRole 'next_video_arrow' targeting the DOWN ARROW navigation button on the RIGHT SIDE of the page to advance to the next video.",
-  "If the evidence is insufficient or unsafe, set pageStateDecision to review_required or blocked and keep the output non-executable.",
+  "Actions: please design click actions from my requirement using this idea only: [registered atomic actionCode] + [gridCell cell name from the current image] + [cellZone inside that named cell].",
+  "Copy actionCode exactly from the capability manual, preserving uppercase letters and underscores.",
+  "For a normal web button click, use LEFT_CLICK_GRID_CELL_ONCE.",
+  "For a click action, put the registered actionCode in actions[].actionCode, the large cell name in actions[].input.gridCell, and one 3x3 zone in actions[].input.cellZone.",
+  "cellZone must be one of: top_left, top_center, top_right, middle_left, center, middle_right, bottom_left, bottom_center, bottom_right.",
+  "The centered yellow text is the name of the whole large cell. It is not a point coordinate.",
+  "The current cell-name grid has exactly 8 rows and 8 columns. Valid rows are A,B,C,D,E,F,G,H. Valid columns are 1,2,3,4,5,6,7,8.",
+  "Never invent a cell name that is not visibly printed in the current image. Do not output row I or later, or column 9 or larger.",
+  "Use gridCell for the named large cell containing the target, and cellZone for the target's position inside that large cell.",
+  "If my requirement says to continue to the next video, click the visible next-video control: the white circular down-arrow button on the far right side of the video area, below the up-arrow button, not the browser bar, top navigation, Facebook logo, or other page icons.",
+  "Do not choose bottom engagement controls such as like, comment, share, or counters for next_video_arrow.",
+  "The next_video_arrow is the large floating circular down-arrow on the right edge, above the bottom engagement area.",
+  "For far-right controls, the chosen gridCell must use one of the largest visible column numbers.",
+  "For gridCell, choose the named large cell containing the white downward chevron icon itself. Do not choose the dark area around the button, the button edge, or a nearby cell above, below, or beside it.",
+  "A grid cell in the browser tabs, address bar, bookmarks bar, or top navigation is invalid for next-video control.",
+  "Read cell names literally: row letters start at A on the top row and progress downward; column numbers progress left to right.",
+  "For the next-video click, set actions[].targetRole to next_video_arrow.",
+  "Do not stop or request review when the next-video control is visible and my requirement says to continue.",
+  "Choose actionCode values only from the capability manual.",
 ].join("\n");
 
 function buildUserPrompt(input: VisualMissionActionPlanRequestInput) {
@@ -107,11 +81,17 @@ function buildUserPrompt(input: VisualMissionActionPlanRequestInput) {
     `System Manual Ref: ${input.systemManualRef}`,
     `Resolved System Manual Ref: ${manual.systemManualRef}`,
     "Capability Manual (use ONLY these actionCodes in your output):",
-    manual.text,
+    buildCompactCapabilityManual(manual.actions),
     "",
     `Output Schema Ref: ${input.outputSchemaRef}`,
-    "Output JSON Shape (example — use actual platform and actual actionCodes from the manual):",
-    buildOutputSchemaBlock(platformId),
+    "Output Contract:",
+    "Return one flat JSON object with these top-level fields: schemaVersion, platform, isTargetPlatform, surface, isTargetFeed, pageStateDecision, isProductVideo, productDecision, confidence, visibleProductTypes, visualEvidence, reason, actions, nonExecutableClickTargets, riskFlags, nonExecutableSummary, userIntentUnderstanding.",
+    "schemaVersion must be visualMissionActionPlan.v1.",
+    "userIntentUnderstanding.matched means you understood the user's requirement, not whether the current video is a product.",
+    "userIntentUnderstanding is an object with only matched(boolean) and summary(string).",
+    "visualEvidence is an array of strings describing visual facts only.",
+    "actions is an array of objects. Each action has actionCode(string copied exactly from the manual), required(boolean), reason(string), targetRole(string or null), and input(object). For click actions, input has gridCell(string) and cellZone(string).",
+    "nonExecutableClickTargets is an array of objects with gridCell(string) and targetName(string), or an empty array.",
   ].join("\n");
 }
 

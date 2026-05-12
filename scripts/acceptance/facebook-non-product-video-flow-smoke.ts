@@ -138,6 +138,7 @@ const input: DispatchRegisteredAbilitySequenceInput = {
       abilityGroupId: null,
       childCapabilityId: null,
       gridCell: null,
+      cellZone: null,
       required: true,
       requiresGeometryProof: false,
       inputOverrides: {

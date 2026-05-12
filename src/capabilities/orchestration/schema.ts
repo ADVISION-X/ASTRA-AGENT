@@ -179,6 +179,17 @@ export const DispatchRegisteredAbilitySequenceInputSchema = z.object({
     required: z.boolean().optional().default(true),
     requiresGeometryProof: z.boolean().optional().default(false),
     gridCell: z.string().min(1).nullable().optional().default(null),
+    cellZone: z.enum([
+      "top_left",
+      "top_center",
+      "top_right",
+      "middle_left",
+      "center",
+      "middle_right",
+      "bottom_left",
+      "bottom_center",
+      "bottom_right",
+    ]).nullable().optional().default(null),
   })).default([]),
   currentEvidenceRefs: z.record(z.string().min(1)).optional().default({}),
 }).strict();

@@ -30,9 +30,23 @@ import {
 } from "./mission-state.js";
 import { checkLoopGuardBeforeRound, checkLoopGuardAfterRound } from "./loop-guard.js";
 import { loadMuscleMemoryCatalog } from "../../../muscle-memory/catalog.js";
+import {
+  VISUAL_MISSION_DEFAULT_GRID_COLUMNS,
+  VISUAL_MISSION_DEFAULT_GRID_ROWS,
+} from "../../screenshot/contract.js";
 
 const VALID_PLATFORM_IDS = ["facebook-web", "tiktok-web"] as const;
 type ValidPlatformId = (typeof VALID_PLATFORM_IDS)[number];
+type GridCellZone =
+  | "top_left"
+  | "top_center"
+  | "top_right"
+  | "middle_left"
+  | "center"
+  | "middle_right"
+  | "bottom_left"
+  | "bottom_center"
+  | "bottom_right";
 
 function resolveSelectedPlatforms(
   platforms: string[],
@@ -236,6 +250,10 @@ export async function runMissionRoundLoop(
         inputRef: randomUUID(),
         sourceScreenshotRef: originalScreenshotRef,
         sourceScreenshotProofRef: screenshotProofRef,
+        gridPolicy: {
+          rowCount: VISUAL_MISSION_DEFAULT_GRID_ROWS,
+          columnCount: VISUAL_MISSION_DEFAULT_GRID_COLUMNS,
+        },
         idempotencyKey: `grid:${missionId}:${roundId}`,
       });
     } catch (err) {
@@ -474,6 +492,7 @@ export async function runMissionRoundLoop(
           required: action.required ?? true,
           requiresGeometryProof: entry?.requiresGeometryProof ?? false,
           gridCell: (action.input?.["gridCell"] as string | undefined) ?? null,
+          cellZone: (action.input?.["cellZone"] as GridCellZone | undefined) ?? null,
         };
       });
 

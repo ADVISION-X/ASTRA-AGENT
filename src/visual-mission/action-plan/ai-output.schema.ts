@@ -5,7 +5,7 @@ import {
   isAiActionPlanAllowedActionCode,
 } from "../../muscle-memory/catalog.js";
 import type { MuscleMemoryEntry } from "../../muscle-memory/catalog.js";
-import { MuscleMemoryGridCellSchema, MuscleMemoryPressKeySchema } from "../../muscle-memory/schema.js";
+import { MuscleMemoryCellZoneSchema, MuscleMemoryGridCellSchema, MuscleMemoryPressKeySchema } from "../../muscle-memory/schema.js";
 import { VISUAL_MISSION_PLATFORM_IDS } from "../platform-target-registry.js";
 import { RoundMissionPacketSchema } from "../round-mission-packet.schema.js";
 import {
@@ -60,6 +60,10 @@ function validateGovernedValues(actionCode: string, actionInput: Record<string, 
     }
     if (isGridCellInputField(field) && !MuscleMemoryGridCellSchema.safeParse(value).success) {
       context.addIssue({ code: z.ZodIssueCode.custom, message: `${actionCode} requires a governed input.${field} value.`, path: ["input", field] });
+      continue;
+    }
+    if (field === "cellZone" && !MuscleMemoryCellZoneSchema.safeParse(value).success) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: `${actionCode} requires a governed input.cellZone value.`, path: ["input", field] });
     }
   }
 }

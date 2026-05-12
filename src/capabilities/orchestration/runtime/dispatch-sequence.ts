@@ -29,6 +29,30 @@ export type DispatchSequenceResult = {
 };
 
 type Action = DispatchRegisteredAbilitySequenceInput["actions"][number];
+type CellZone = NonNullable<Action["cellZone"]>;
+
+const CELL_ZONE_OFFSETS: Record<CellZone, { xRatio: number; yRatio: number }> = {
+  top_left: { xRatio: 1 / 6, yRatio: 1 / 6 },
+  top_center: { xRatio: 1 / 2, yRatio: 1 / 6 },
+  top_right: { xRatio: 5 / 6, yRatio: 1 / 6 },
+  middle_left: { xRatio: 1 / 6, yRatio: 1 / 2 },
+  center: { xRatio: 1 / 2, yRatio: 1 / 2 },
+  middle_right: { xRatio: 5 / 6, yRatio: 1 / 2 },
+  bottom_left: { xRatio: 1 / 6, yRatio: 5 / 6 },
+  bottom_center: { xRatio: 1 / 2, yRatio: 5 / 6 },
+  bottom_right: { xRatio: 5 / 6, yRatio: 5 / 6 },
+};
+
+function resolveCellZoneClickPoint(
+  bbox: { x: number; y: number; width: number; height: number },
+  cellZone: CellZone | null | undefined,
+): { x: number; y: number } {
+  const offset = CELL_ZONE_OFFSETS[cellZone ?? "center"] ?? CELL_ZONE_OFFSETS.center;
+  return {
+    x: bbox.x + bbox.width * offset.xRatio,
+    y: bbox.y + bbox.height * offset.yRatio,
+  };
+}
 
 /**
  * Run Geometry Guard preflight for click actions that requiresGeometryProof.
@@ -44,6 +68,7 @@ async function resolveGeometryProof(
     (action.gridCell) ??
     (action.inputOverrides?.["gridCell"] as string | undefined) ??
     null;
+  const cellZone = action.cellZone ?? (action.inputOverrides?.["cellZone"] as CellZone | undefined) ?? "center";
   if (!gridCell) {
     return { ok: false, failureReason: `Action ${action.actionCode} requires geometry proof but no gridCell provided` };
   }
@@ -75,10 +100,11 @@ async function resolveGeometryProof(
       roundId: input.roundId ?? null,
       ...(gridSpecRef ? { gridSpecRef } : {}),
       ...(bbox ? { bbox } : {}),
+      ...(bbox ? { clickPoint: resolveCellZoneClickPoint(bbox, cellZone) } : {}),
       ...(viewportSize ? { viewportSize } : {}),
       sourceCoordinateSpace: "grid",
       requestedExecutionSpace: "browserViewport",
-      idempotencyKey: `geometry:${input.missionId}:${input.runId}:${input.roundId ?? ""}:${action.actionCode}:${gridCell}`,
+      idempotencyKey: `geometry:${input.missionId}:${input.runId}:${input.roundId ?? ""}:${action.actionCode}:${gridCell}:${cellZone}`,
     });
   } catch (err) {
     return { ok: false, failureReason: `Geometry Guard threw for ${action.actionCode}: ${err instanceof Error ? err.message : String(err)}` };
@@ -102,7 +128,7 @@ async function resolveGeometryProof(
     runId: input.runId,
     ...(input.roundId ? { roundId: input.roundId } : {}),
     status: "success",
-    reason: `geometry guard allow for ${action.actionCode} gridCell=${gridCell ?? "?"}`,
+    reason: `geometry guard allow for ${action.actionCode} gridCell=${gridCell ?? "?"} cellZone=${cellZone}`,
     refs: { actionCode: action.actionCode },
   });
   return {
@@ -279,7 +305,7 @@ async function dispatchSingleAction(
   // require all fields to be present in inputOverrides before dispatch.
   // Strip action-routing fields (gridCell) that were only needed for geometry proof
   // resolution and must not be forwarded to strict ability group schemas.
-  const { gridCell: _strippedGridCell, ...cleanOverrides } = inputOverrides as Record<string, unknown>;
+  const { gridCell: _strippedGridCell, cellZone: _strippedCellZone, ...cleanOverrides } = inputOverrides as Record<string, unknown>;
   const callId = randomUUID();
   const gridSpecRef = (input.currentEvidenceRefs?.["gridSpecRef"] as string | undefined) ?? null;
   const completeInput: Record<string, unknown> = {
@@ -299,7 +325,7 @@ async function dispatchSingleAction(
     inputRef: randomUUID(),
     sourceRef: inputOverrides["sourceRef"] ?? gridSpecRef ?? callId,
     sourceEvidenceRef: inputOverrides["sourceEvidenceRef"] ?? (input.currentEvidenceRefs?.["originalScreenshotRef"] as string | undefined) ?? null,
-    idempotencyKey: inputOverrides["idempotencyKey"] ?? `dispatch:${input.missionId}:${input.runId}:${input.roundId ?? "noround"}:${action.actionCode}:${action.gridCell ?? ""}`,
+    idempotencyKey: inputOverrides["idempotencyKey"] ?? `dispatch:${input.missionId}:${input.runId}:${input.roundId ?? "noround"}:${action.actionCode}:${action.gridCell ?? ""}:${action.cellZone ?? "center"}`,
   };
   try {
     const result = await ctx.nerveBus.dispatchAbilityCommand({
@@ -370,7 +396,7 @@ export async function dispatchRegisteredAbilitySequence(
       runId: input.runId,
       ...(input.roundId ? { roundId: input.roundId } : {}),
       status: "started",
-      reason: `Dispatching ${action.actionCode}${action.gridCell ? ` at ${action.gridCell}` : ""}${action.targetRole ? ` role=${action.targetRole}` : ""}`,
+      reason: `Dispatching ${action.actionCode}${action.gridCell ? ` at ${action.gridCell}` : ""}${action.cellZone ? ` zone=${action.cellZone}` : ""}${action.targetRole ? ` role=${action.targetRole}` : ""}`,
     });
 
     // ── Take fresh screenshot before SAVE when captureMode='fresh_current_viewport' ──
@@ -431,7 +457,7 @@ export async function dispatchRegisteredAbilitySequence(
       ...(input.roundId ? { roundId: input.roundId } : {}),
       status,
       reason: status === "success"
-        ? `${action.actionCode} ok${action.gridCell ? ` at ${action.gridCell}` : ""}`
+        ? `${action.actionCode} ok${action.gridCell ? ` at ${action.gridCell}` : ""}${action.cellZone ? ` zone=${action.cellZone}` : ""}`
         : `${action.actionCode} ${status}: ${failureReason ?? "unknown"}`,
     });
 
@@ -447,6 +473,7 @@ export async function dispatchRegisteredAbilitySequence(
         actionCode: action.actionCode,
         reason: action.reason ?? (action.inputOverrides?.["reason"] as string | undefined) ?? null,
         gridCell: action.gridCell ?? (action.inputOverrides?.["gridCell"] as string | undefined) ?? null,
+        cellZone: action.cellZone ?? (action.inputOverrides?.["cellZone"] as string | undefined) ?? null,
         abilityGroupId: action.abilityGroupId ?? null,
         childCapabilityId: action.childCapabilityId ?? null,
         status,

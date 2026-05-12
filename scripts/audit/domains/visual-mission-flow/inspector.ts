@@ -506,30 +506,23 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
-  // ── CHECK 27: Prompt example uses concrete enum values (no pipe-separated options, no string descriptors) ──
-  // Root cause prevention: small models (qwen2.5vl:3b) copy pipe-separated values verbatim
-  // causing Zod enum validation failures. Example must use one real chosen value.
+  // ── CHECK 27: Prompt has no output examples or copyable grid cells ───────
   {
     const promptPath = "src/capabilities/ai/prompt/visual-mission-judge-prompt.ts";
     const src = readSrc(promptPath);
     if (!src) {
-      checks.push({ checkId: "VMF-27", question: "AI prompt example uses concrete enum values (no pipe-separated options or string descriptor placeholders)?", status: "FAIL", detail: `File not found: ${promptPath}` });
+      checks.push({ checkId: "VMF-27", question: "AI prompt has no output examples or copyable grid cells?", status: "FAIL", detail: `File not found: ${promptPath}` });
     } else {
-      // Find the buildOutputSchemaBlock function body
-      const blockMatch = src.match(/buildOutputSchemaBlock[\s\S]*?return JSON\.stringify\(([\s\S]*?)\s*,\s*null,\s*2\)/);
-      const exampleBlock = blockMatch ? blockMatch[1] : src;
-
-      const hasPipeEnum = /["'][^"'\n]*\|[^"'\n]*["']/.test(exampleBlock ?? "");
-      const hasStringDescriptor = /["']string\s*[—\-]/.test(exampleBlock ?? "");
-
       const violations: string[] = [];
-      if (hasPipeEnum) violations.push("pipe-separated enum values found (model will copy verbatim)");
-      if (hasStringDescriptor) violations.push("'string —' descriptor placeholder found (model will copy verbatim)");
+      if (src.includes("buildOutputSchemaBlock")) violations.push("buildOutputSchemaBlock still present");
+      if (src.includes("Output JSON Shape")) violations.push("Output JSON Shape example still present");
+      if (/return\s+JSON\.stringify\s*\(\s*\{/.test(src)) violations.push("copyable JSON object example still present");
+      if (/gridCell:\s*["'][A-Z]{1,2}\d{1,2}["']/.test(src)) violations.push("copyable gridCell value still present");
 
       if (violations.length === 0) {
-        checks.push({ checkId: "VMF-27", question: "AI prompt example uses concrete enum values (no pipe-separated options or string descriptor placeholders)?", status: "PASS", detail: "Prompt example uses concrete enum values — no pipe-separated options or descriptor placeholders." });
+        checks.push({ checkId: "VMF-27", question: "AI prompt has no output examples or copyable grid cells?", status: "PASS", detail: "Prompt uses a contract description without copyable JSON examples or fixed grid cells." });
       } else {
-        checks.push({ checkId: "VMF-27", question: "AI prompt example uses concrete enum values (no pipe-separated options or string descriptor placeholders)?", status: "FAIL", detail: `Prompt example quality issues: ${violations.join("; ")}` });
+        checks.push({ checkId: "VMF-27", question: "AI prompt has no output examples or copyable grid cells?", status: "FAIL", detail: violations.join("; ") });
       }
     }
   }
@@ -574,10 +567,15 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
         "Like and save evidence",
       ];
       const found = forbiddenFragments.filter(fragment => src.includes(fragment));
-      if (found.length === 0 && src.includes("Do not include like_button, comments_button")) {
-        checks.push({ checkId: "VMF-30", question: "AI prompt avoids default like/comments engagement clicks for product_yes?", status: "PASS", detail: "Prompt defaults product_yes to evidence save + next item, with engagement clicks gated by explicit user requirement or recovery need." });
+      const hasUserDrivenActionRule = src.includes("Actions: please design click actions from my requirement");
+      const hasProductYesPackage = src.includes("For product_yes:");
+      if (found.length === 0 && hasUserDrivenActionRule && !hasProductYesPackage) {
+        checks.push({ checkId: "VMF-30", question: "AI prompt avoids default like/comments engagement clicks for product_yes?", status: "PASS", detail: "Prompt delegates action choice to the user requirement and contains no default product_yes engagement package." });
       } else {
-        checks.push({ checkId: "VMF-30", question: "AI prompt avoids default like/comments engagement clicks for product_yes?", status: "FAIL", detail: `Prompt still carries default engagement-flow residue: ${found.join(", ") || "missing explicit prohibition"}` });
+        const issues = [...found];
+        if (!hasUserDrivenActionRule) issues.push("missing user-driven action rule");
+        if (hasProductYesPackage) issues.push("product_yes package still present");
+        checks.push({ checkId: "VMF-30", question: "AI prompt avoids default like/comments engagement clicks for product_yes?", status: "FAIL", detail: `Prompt still carries default engagement-flow residue: ${issues.join(", ")}` });
       }
     }
   }
@@ -1006,32 +1004,18 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
-  // ── VMF-29: prompt example places userIntentUnderstanding LAST to prevent 3B nesting collapse ──
-  // Root cause prevention: qwen2.5vl:3b (format:"json", no grammar-constrained schema) loses
-  // track of nesting depth. If userIntentUnderstanding appears early in the example, the model
-  // opens it and writes ALL subsequent top-level fields inside it.
-  // Fix: userIntentUnderstanding must be the LAST key in the prompt output schema example.
+  // ── VMF-29: prompt uses field contract rather than nested output example ──
   {
     const src = readSrc(CFG.aiPromptPath);
     if (!src) {
-      checks.push({ checkId: "VMF-29", question: "prompt example places userIntentUnderstanding LAST (3B nesting-collapse prevention)?", status: "FAIL", detail: `File not found: ${CFG.aiPromptPath}` });
+      checks.push({ checkId: "VMF-29", question: "prompt uses field contract rather than nested output example?", status: "FAIL", detail: `File not found: ${CFG.aiPromptPath}` });
     } else {
-      // Use unquoted object key form (TypeScript source uses `key:` not `"key":`)
-      // lastIndexOf to compare WITHIN buildOutputSchemaBlock (ignores comment mentions)
-      const uiuIdx = src.lastIndexOf('userIntentUnderstanding:');
-      const summaryIdx = src.lastIndexOf('nonExecutableSummary:');
-      // Restrict pipe check to single-line quoted strings ([^"'\n] prevents cross-line matching)
-      const hasPipeEnum = /["'][^"'\n]*\|[^"'\n]*["']/.test(src.split("buildOutputSchemaBlock")[1] ?? "");
-      if (uiuIdx < 0) {
-        checks.push({ checkId: "VMF-29", question: "prompt example places userIntentUnderstanding LAST (3B nesting-collapse prevention)?", status: "FAIL", detail: "userIntentUnderstanding: key not found in prompt file." });
-      } else if (summaryIdx < 0) {
-        checks.push({ checkId: "VMF-29", question: "prompt example places userIntentUnderstanding LAST (3B nesting-collapse prevention)?", status: "FAIL", detail: "nonExecutableSummary: key not found in prompt file — cannot verify ordering." });
-      } else if (uiuIdx < summaryIdx) {
-        checks.push({ checkId: "VMF-29", question: "prompt example places userIntentUnderstanding LAST (3B nesting-collapse prevention)?", status: "FAIL", detail: `userIntentUnderstanding (pos ${uiuIdx}) appears before nonExecutableSummary (pos ${summaryIdx}) — 3B model will nest all subsequent fields inside it.` });
-      } else if (hasPipeEnum) {
-        checks.push({ checkId: "VMF-29", question: "prompt example places userIntentUnderstanding LAST (3B nesting-collapse prevention)?", status: "FAIL", detail: "Pipe-separated enum values found in prompt example — model will copy verbatim." });
+      const hasContract = src.includes("Output Contract:") && src.includes("Return one flat JSON object");
+      const hasNestedExample = src.includes("userIntentUnderstanding: {") || src.includes('"userIntentUnderstanding": {');
+      if (hasContract && !hasNestedExample) {
+        checks.push({ checkId: "VMF-29", question: "prompt uses field contract rather than nested output example?", status: "PASS", detail: "Prompt describes required fields without a nested copyable output example." });
       } else {
-        checks.push({ checkId: "VMF-29", question: "prompt example places userIntentUnderstanding LAST (3B nesting-collapse prevention)?", status: "PASS", detail: `userIntentUnderstanding: (pos ${uiuIdx}) is after nonExecutableSummary: (pos ${summaryIdx}) — correct last-position placement.` });
+        checks.push({ checkId: "VMF-29", question: "prompt uses field contract rather than nested output example?", status: "FAIL", detail: "Prompt must keep Output Contract text and avoid nested userIntentUnderstanding examples." });
       }
     }
   }

@@ -166,7 +166,9 @@
         "requiredFields": [
           "gridCell"
         ],
-        "optionalFields": [],
+        "optionalFields": [
+          "cellZone"
+        ],
         "forbiddenFields": [
           "x",
           "y",
@@ -207,7 +209,9 @@
         "requiredFields": [
           "gridCell"
         ],
-        "optionalFields": [],
+        "optionalFields": [
+          "cellZone"
+        ],
         "forbiddenFields": [
           "x",
           "y",
@@ -248,7 +252,9 @@
         "requiredFields": [
           "gridCell"
         ],
-        "optionalFields": [],
+        "optionalFields": [
+          "cellZone"
+        ],
         "forbiddenFields": [
           "x",
           "y",

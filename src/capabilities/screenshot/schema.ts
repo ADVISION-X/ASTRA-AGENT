@@ -18,6 +18,8 @@ export type ScreenshotStatus = (typeof SCREENSHOT_STATUSES)[number];
 
 export const VISUAL_MISSION_GRID_VERSION = "visual-grid.v1" as const;
 export const VISUAL_MISSION_AXIS_MODE = "y_letters_x_numbers" as const;
+export const VISUAL_MISSION_DEFAULT_GRID_ROWS = 8 as const;
+export const VISUAL_MISSION_DEFAULT_GRID_COLUMNS = 8 as const;
 export const MIN_GRID_CELL_WIDTH_PX = 20 as const;
 export const MIN_GRID_CELL_HEIGHT_PX = 15 as const;
 
@@ -175,8 +177,8 @@ export const RenderCoordinateGridInputSchema = z.object({
   sourceScreenshotRef: z.string().min(1),
   sourceScreenshotProofRef: z.string().min(1),
   gridPolicy: z.object({
-    rowCount: z.number().int().positive().default(8),
-    columnCount: z.number().int().positive().default(12),
+    rowCount: z.number().int().positive().default(VISUAL_MISSION_DEFAULT_GRID_ROWS),
+    columnCount: z.number().int().positive().default(VISUAL_MISSION_DEFAULT_GRID_COLUMNS),
   }).optional(),
   idempotencyKey: z.string().min(1),
   timeoutMs: z.number().int().positive().optional(),

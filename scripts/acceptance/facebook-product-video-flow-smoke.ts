@@ -139,6 +139,7 @@ const input: DispatchRegisteredAbilitySequenceInput = {
       abilityGroupId: null,
       childCapabilityId: null,
       gridCell: null,
+      cellZone: null,
       required: true,
       requiresGeometryProof: false,
       inputOverrides: {
@@ -153,9 +154,10 @@ const input: DispatchRegisteredAbilitySequenceInput = {
       abilityGroupId: null,
       childCapabilityId: null,
       gridCell: "P30",
+      cellZone: "center",
       required: true,
       requiresGeometryProof: true,
-      inputOverrides: { gridCell: "P30" },
+      inputOverrides: { gridCell: "P30", cellZone: "center" },
     },
   ],
   currentEvidenceRefs: {

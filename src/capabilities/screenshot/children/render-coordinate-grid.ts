@@ -2,7 +2,12 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 
 import type { ArtifactStoragePort } from "../ports/artifact-storage-port.js";
-import type { RenderCoordinateGridInput, RenderCoordinateGridResult } from "../schema.js";
+import {
+  VISUAL_MISSION_DEFAULT_GRID_COLUMNS,
+  VISUAL_MISSION_DEFAULT_GRID_ROWS,
+  type RenderCoordinateGridInput,
+  type RenderCoordinateGridResult,
+} from "../schema.js";
 import { renderCoordinateGridImage } from "../runtime/grid-renderer.js";
 import { buildScreenshotProof } from "../runtime/proof.js";
 import { registerStructuredDataRef } from "../runtime/structured-ref-store.js";
@@ -46,8 +51,8 @@ export async function renderCoordinateGrid(
     };
   }
 
-  const rowCount = input.gridPolicy?.rowCount ?? 32;
-  const columnCount = input.gridPolicy?.columnCount ?? 32;
+  const rowCount = input.gridPolicy?.rowCount ?? VISUAL_MISSION_DEFAULT_GRID_ROWS;
+  const columnCount = input.gridPolicy?.columnCount ?? VISUAL_MISSION_DEFAULT_GRID_COLUMNS;
 
   const gridArtifactId = randomUUID();
   const gridRenderStart = Date.now();

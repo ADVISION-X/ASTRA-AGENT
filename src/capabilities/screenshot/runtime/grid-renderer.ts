@@ -48,11 +48,8 @@ function resolveReadableGridDensity(input: {
 
 function buildGridOverlaySvg(gridSpec: ScreenshotGridSpec): string {
   const strokeWidth = Math.max(1, Math.round(Math.min(gridSpec.gridImageWidth, gridSpec.gridImageHeight) / 600));
-  // Font size: minimum 16px so AI can reliably read labels; capped at 22px.
-  // Previous formula was capped at 12px which made labels unreadable on dense grids.
-  const fontSize = Math.max(16, Math.min(22, Math.floor(Math.min(gridSpec.cellWidthPx, gridSpec.cellHeightPx) * 0.55)));
-  // Label pill height = fontSize + 4px vertical padding
-  const labelH = fontSize + 4;
+  const fontSize = Math.max(30, Math.min(52, Math.floor(Math.min(gridSpec.cellWidthPx, gridSpec.cellHeightPx) * 0.28)));
+  const labelH = Math.round(fontSize * 1.35);
 
   const vLines = gridSpec.columnLabels.map((_, i) => {
     const x = Math.round(i * gridSpec.cellWidthPx);
@@ -66,29 +63,23 @@ function buildGridOverlaySvg(gridSpec: ScreenshotGridSpec): string {
 
   const border = `<rect x="0" y="0" width="${gridSpec.gridImageWidth}" height="${gridSpec.gridImageHeight}" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="${strokeWidth}"/>`;
 
-  const rowAxisLabels = gridSpec.rowLabels.map((label, i) =>
-    `<text x="4" y="${Math.round(i * gridSpec.cellHeightPx + fontSize + 2)}" fill="rgba(255,255,255,0.95)" font-size="${fontSize}" font-family="Menlo,monospace">${label}</text>`,
-  ).join("");
-
-  const colAxisLabels = gridSpec.columnLabels.map((label, i) =>
-    `<text x="${Math.round(i * gridSpec.cellWidthPx + 4)}" y="${fontSize + 2}" fill="rgba(255,255,255,0.95)" font-size="${fontSize}" font-family="Menlo,monospace">${label}</text>`,
-  ).join("");
-
-  // Each cell label gets a dark semi-transparent background pill for legibility
-  // on any background color (bright or dark video frame).
+  // Each large cell name is centered so AI reads it as the cell's name, not as
+  // a corner coordinate point. The semi-transparent pill preserves target visibility.
   const cellLabels = gridSpec.cells.map((cell) => {
-    const cx = Math.round(cell.x + 2);
-    const cy = Math.round(cell.y + 2);
-    const labelW = Math.round(cell.cellId.length * fontSize * 0.65 + 4);
+    const labelW = Math.round(cell.cellId.length * fontSize * 0.72 + 16);
+    const cx = Math.round(cell.centerX - labelW / 2);
+    const cy = Math.round(cell.centerY - labelH / 2);
+    const textX = Math.round(cell.centerX);
+    const textY = Math.round(cell.centerY + fontSize * 0.36);
     return [
-      `<rect x="${cx}" y="${cy}" width="${labelW}" height="${labelH}" fill="rgba(0,0,0,0.72)" rx="2" ry="2"/>`,
-      `<text x="${cx + 2}" y="${cy + labelH - 3}" fill="rgba(255,230,80,1.0)" font-size="${fontSize}" font-weight="bold" font-family="Menlo,monospace">${cell.cellId}</text>`,
+      `<rect x="${cx}" y="${cy}" width="${labelW}" height="${labelH}" fill="rgba(0,0,0,0.18)" rx="4" ry="4"/>`,
+      `<text x="${textX}" y="${textY}" text-anchor="middle" fill="rgba(255,230,80,0.82)" font-size="${fontSize}" font-weight="bold" font-family="Menlo,monospace">${cell.cellId}</text>`,
     ].join("");
   }).join("");
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${gridSpec.gridImageWidth}" height="${gridSpec.gridImageHeight}" viewBox="0 0 ${gridSpec.gridImageWidth} ${gridSpec.gridImageHeight}">
     <rect x="0" y="0" width="${gridSpec.gridImageWidth}" height="${gridSpec.gridImageHeight}" fill="rgba(0,0,0,0.08)"/>
-    ${vLines}${hLines}${border}${rowAxisLabels}${colAxisLabels}${cellLabels}
+    ${vLines}${hLines}${border}${cellLabels}
   </svg>`;
 }
 

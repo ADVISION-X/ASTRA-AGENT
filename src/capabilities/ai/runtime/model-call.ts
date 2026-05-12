@@ -47,7 +47,27 @@ const VISUAL_MISSION_OUTPUT_JSON_SCHEMA: Record<string, unknown> = {
         properties: {
           actionCode: { type: "string" },
           required: { type: "boolean" },
-          input: { type: "object" },
+          targetRole: { type: ["string", "null"] },
+          input: {
+            type: "object",
+            properties: {
+              gridCell: { type: "string" },
+              cellZone: {
+                type: "string",
+                enum: [
+                  "top_left",
+                  "top_center",
+                  "top_right",
+                  "middle_left",
+                  "center",
+                  "middle_right",
+                  "bottom_left",
+                  "bottom_center",
+                  "bottom_right",
+                ],
+              },
+            },
+          },
           reason: { type: "string" },
         },
         required: ["actionCode", "reason"],
