@@ -34,7 +34,7 @@ export const RUNTIME_LOGGING_CONFIG = {
   // Files to check for AI four-piece presence
   aiSourcePaths: [
     "src/capabilities/ai",
-    "src/lib/local-ai",
+    "src/lib/online-ai",
   ] as string[],
 
   // These patterns must NOT appear in production source (except whitelist)
@@ -57,7 +57,7 @@ export const RUNTIME_LOGGING_CONFIG = {
     "orchestration/runtime",
     "mouse-click/runtime",
     "BrowserController",
-    "callLocalModel",
+    "invokeGemini",
   ] as string[],
 
   // ── RLOG-AST-009: RuntimeLogger must expose these helper methods ──────────

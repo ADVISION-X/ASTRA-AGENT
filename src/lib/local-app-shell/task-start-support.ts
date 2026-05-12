@@ -163,26 +163,26 @@ export async function recordTaskStartLocalAiReadiness(
   component: { ok?: boolean; detail?: string | null; actionableMessage?: string | null; ownerResponsible?: string | null; [key: string]: unknown } | undefined,
 ) {
   recordTaskStartDebugEvent(activeWorkbench, {
-    eventType: "LOCAL_AI_READINESS_STARTED",
+    eventType: "ONLINE_AI_READINESS_STARTED",
     status: "started",
     traceId: approval.traceId,
-    spanId: "local-ai-readiness-started",
+    spanId: "online-ai-readiness-started",
     attemptId: approval.attemptId,
     missionId: approval.traceId,
     runId: approval.traceId,
-    reason: "Mission preflight is evaluating local AI readiness.",
-    actionableMessage: "Confirm Ollama reachability and local model availability.",
-    ownerResponsible: "AI Capability / Local AI Runtime",
+    reason: "Mission preflight is evaluating online AI readiness.",
+    actionableMessage: "Confirm the Google Gemini API key and selected online model in Settings.",
+    ownerResponsible: "AI Capability / Online AI Runtime",
   });
   if (!component || component.ok) {
     return;
   }
 
   recordTaskStartDebugEvent(activeWorkbench, {
-    eventType: "LOCAL_AI_READINESS_DEGRADED",
+    eventType: "ONLINE_AI_READINESS_DEGRADED",
     status: "failed",
     traceId: approval.traceId,
-    spanId: "local-ai-readiness-degraded",
+    spanId: "online-ai-readiness-degraded",
     attemptId: approval.attemptId,
     missionId: approval.traceId,
     runId: approval.traceId,

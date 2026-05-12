@@ -26,6 +26,10 @@ import {
   type UserRequirementHistoryUpsertInput,
 } from "./settings.js";
 import {
+  loadOnlineAiProviderPublicStatus,
+  saveOnlineAiProviderConfig,
+} from "../online-ai/index.js";
+import {
   getHealthReport,
   getMissionReadinessReport,
   getMissionStartPreflight,
@@ -153,6 +157,14 @@ export class GrassEyeWorkbench {
 
       async saveAppRunLimitSettings(input) {
         return saveAppRunLimitSettings(dataDir, input);
+      },
+
+      async getOnlineAiProviderSettings() {
+        return loadOnlineAiProviderPublicStatus(dataDir);
+      },
+
+      async saveOnlineAiProviderSettings(input) {
+        return saveOnlineAiProviderConfig(dataDir, input);
       },
 
       getDataDir() {

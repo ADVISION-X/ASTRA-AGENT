@@ -37,13 +37,13 @@ function createAiFailureError(viewModel: CommanderConsoleViewModel, aiFailure: s
 
 function createLocalAiReadinessError(viewModel: CommanderConsoleViewModel, detail: string): ActionableErrorView {
   return {
-    id: "local-ai-readiness",
+    id: "online-ai-readiness",
     tone: "blocked",
-    title: localizeCommanderText(viewModel.locale, "本地 AI 当前不可用", "Local AI is currently unavailable"),
-    whatHappened: localizeCommanderText(viewModel.locale, "控制台已经启动，但当前任务启动前预检会被本地 AI 阻断。", "The console is running, but mission preflight is currently blocked by Local AI readiness."),
+    title: localizeCommanderText(viewModel.locale, "在线 AI 当前不可用", "Online AI is currently unavailable"),
+    whatHappened: localizeCommanderText(viewModel.locale, "控制台已经启动，但当前任务启动前预检会被在线 AI 阻断。", "The console is running, but mission preflight is currently blocked by Online AI readiness."),
     why: detail,
-    nextAction: localizeCommanderText(viewModel.locale, "启动 Ollama 或修复本地模型配置，然后重新运行预检。", "Start Ollama or repair the local model configuration, then run preflight again."),
-    owner: "AI Capability / Local AI Runtime",
+    nextAction: localizeCommanderText(viewModel.locale, "在设置页保存 Google Gemini API Key 和模型，然后重新运行预检。", "Save the Google Gemini API key and model in Settings, then run preflight again."),
+    owner: "AI Capability / Online AI Runtime",
   };
 }
 

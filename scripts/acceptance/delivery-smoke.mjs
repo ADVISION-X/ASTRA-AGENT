@@ -3,7 +3,6 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { checkLocalAiReadiness, loadLocalAiConfig } from "../../dist/src/lib/local-ai/index.js";
 import {
   assert,
   getRealPlatformUrl,
@@ -14,12 +13,6 @@ import {
 import { verifyEvidenceAndGeometry, verifyRealCoordinateClick } from "./delivery-smoke-browser-proof.mjs";
 
 const repoRoot = process.cwd();
-
-async function verifyLocalAiHealth() {
-  const config = await loadLocalAiConfig();
-  const result = await checkLocalAiReadiness(config);
-  assert(result.status !== "unavailable" || result.modelConfigured, `local AI config must be readable: ${result.detail}`);
-}
 
 async function main() {
   const platformTarget = requireRealPlatformTarget();
@@ -33,7 +26,6 @@ async function main() {
     const forbiddenTests = await scanForForbiddenTestFiles(repoRoot);
     assert(forbiddenTests.length === 0, `forbidden test files detected: ${forbiddenTests.join(", ")}`);
 
-    await verifyLocalAiHealth();
     await verifyEvidenceAndGeometry(tempDataDir, realPlatformUrl, readFile);
     await verifyRuntimeEndpoints({ repoRoot, tempDataDir, platformTarget, realPlatformUrl, verifyRealCoordinateClick });
 

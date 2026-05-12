@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { checkLocalAiReadiness, loadLocalAiConfig } from "../../lib/local-ai/index.js";
+import { loadOnlineAiProviderConfig } from "../../lib/online-ai/index.js";
 import type {
   AiAbilityGroup,
   CreateConfiguredAiAbilityGroupInput,
@@ -23,6 +23,7 @@ const createConfiguredAiAbilityGroup = (input: CreateConfiguredAiAbilityGroupInp
       }
 
       const result = await executeVisualMissionJudgeOnce({
+        dataDir: input.dataDir ?? process.cwd(),
         request,
         ...(options?.signal ? { signal: options.signal } : {}),
         ...(input.runtimeLogger ? { runtimeLogger: input.runtimeLogger } : {}),
@@ -41,11 +42,10 @@ const createConfiguredAiAbilityGroup = (input: CreateConfiguredAiAbilityGroupInp
 
     async getHealth() {
       try {
-        const config = await loadLocalAiConfig();
-        const readiness = await checkLocalAiReadiness(config);
+        const config = await loadOnlineAiProviderConfig(input.dataDir ?? process.cwd());
         return {
-          ok: readiness.status === "ready",
-          detail: readiness.detail,
+          ok: true,
+          detail: `Online AI ready: google/${config.modelName}`,
         };
       } catch (error) {
         return {

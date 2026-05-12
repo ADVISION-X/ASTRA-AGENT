@@ -48,6 +48,68 @@ type GridCellZone =
   | "bottom_center"
   | "bottom_right";
 
+type ScreenshotCleanupKind =
+  | "grid_failed"
+  | "ai_failed"
+  | "review_required"
+  | "dispatch_failed"
+  | "product_yes"
+  | "product_no"
+  | "uncertain";
+
+async function cleanupRoundScreenshotArtifacts(input: {
+  ctx: OrchestrationChildrenContext;
+  missionId: string;
+  runId: string;
+  roundId: string;
+  cleanupKind: ScreenshotCleanupKind;
+  originalScreenshotRef?: string | null;
+  coordinateGridScreenshotRef?: string | null;
+  deleteOriginalScreenshot: boolean;
+}) {
+  const filesToDelete = [
+    input.coordinateGridScreenshotRef,
+    ...(input.deleteOriginalScreenshot ? [input.originalScreenshotRef] : []),
+  ].filter((file): file is string => typeof file === "string" && file.length > 0);
+
+  const uniqueFiles = [...new Set(filesToDelete)];
+  if (uniqueFiles.length === 0) return;
+
+  const deleteResults = await Promise.allSettled(
+    uniqueFiles.map(async (file) => {
+      try {
+        await unlink(file);
+        return "deleted" as const;
+      } catch (error) {
+        if ((error as { code?: string }).code === "ENOENT") return "already_missing" as const;
+        throw error;
+      }
+    }),
+  );
+
+  let deletedOrMissing = 0;
+  let failed = 0;
+  for (const result of deleteResults) {
+    if (result.status === "fulfilled") deletedOrMissing++;
+    else failed++;
+  }
+
+  input.ctx.runtimeLogger.emit({
+    traceId: input.missionId,
+    level: "debug",
+    modeVisibility: ["DEBUG", "TRACE"],
+    eventType: "SCREENSHOT_TRANSIENT_CLEANUP",
+    owner: "orchestration",
+    missionId: input.missionId,
+    runId: input.runId,
+    roundId: input.roundId,
+    status: failed === 0 ? "success" : "failed",
+    reason: `${input.cleanupKind}: deleted-or-missing ${deletedOrMissing} transient file(s)${
+      failed > 0 ? `; ${failed} could not be deleted` : ""
+    }`,
+  });
+}
+
 function resolveSelectedPlatforms(
   platforms: string[],
   requestedPlatform: ValidPlatformId,
@@ -258,6 +320,16 @@ export async function runMissionRoundLoop(
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "grid render threw";
+      await cleanupRoundScreenshotArtifacts({
+        ctx,
+        missionId,
+        runId,
+        roundId,
+        cleanupKind: "grid_failed",
+        originalScreenshotRef,
+        coordinateGridScreenshotRef: null,
+        deleteOriginalScreenshot: true,
+      });
       upsertMissionState(applyStatusTransition(getMissionState(missionId), { status: "failed", failureReason: msg }));
       setActiveMission(null);
       return;
@@ -271,6 +343,18 @@ export async function runMissionRoundLoop(
       !gridResult.gridSpecRef
     ) {
       const msg = ("failureReason" in gridResult ? gridResult.failureReason : null) ?? "grid render failed";
+      await cleanupRoundScreenshotArtifacts({
+        ctx,
+        missionId,
+        runId,
+        roundId,
+        cleanupKind: "grid_failed",
+        originalScreenshotRef,
+        coordinateGridScreenshotRef: "coordinateGridScreenshotRef" in gridResult
+          ? (gridResult.coordinateGridScreenshotRef ?? null)
+          : null,
+        deleteOriginalScreenshot: true,
+      });
       upsertMissionState(applyStatusTransition(getMissionState(missionId), { status: "failed", failureReason: msg }));
       setActiveMission(null);
       return;
@@ -429,12 +513,32 @@ export async function runMissionRoundLoop(
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "AI call threw";
+      await cleanupRoundScreenshotArtifacts({
+        ctx,
+        missionId,
+        runId,
+        roundId,
+        cleanupKind: "ai_failed",
+        originalScreenshotRef,
+        coordinateGridScreenshotRef,
+        deleteOriginalScreenshot: true,
+      });
       upsertMissionState(applyStatusTransition(getMissionState(missionId), { status: "failed", failureReason: msg }));
       setActiveMission(null);
       return;
     }
 
     if (aiResult.status === "review_required") {
+      await cleanupRoundScreenshotArtifacts({
+        ctx,
+        missionId,
+        runId,
+        roundId,
+        cleanupKind: "review_required",
+        originalScreenshotRef,
+        coordinateGridScreenshotRef,
+        deleteOriginalScreenshot: true,
+      });
       upsertMissionState(applyStatusTransition(getMissionState(missionId), {
         status: "review_required",
         reviewRequiredReason: aiResult.reviewRequiredReason ?? "AI requested review",
@@ -444,6 +548,16 @@ export async function runMissionRoundLoop(
 
     if (aiResult.status !== "success" || !aiResult.output) {
       const msg = aiResult.failureReason ?? "AI returned no output";
+      await cleanupRoundScreenshotArtifacts({
+        ctx,
+        missionId,
+        runId,
+        roundId,
+        cleanupKind: "ai_failed",
+        originalScreenshotRef,
+        coordinateGridScreenshotRef,
+        deleteOriginalScreenshot: true,
+      });
       upsertMissionState(applyStatusTransition(getMissionState(missionId), { status: "failed", failureReason: msg }));
       setActiveMission(null);
       return;
@@ -468,6 +582,16 @@ export async function runMissionRoundLoop(
 
     // Hard-stop if AI decided review is required
     if (aiOutput.pageStateDecision === "review_required") {
+      await cleanupRoundScreenshotArtifacts({
+        ctx,
+        missionId,
+        runId,
+        roundId,
+        cleanupKind: "review_required",
+        originalScreenshotRef,
+        coordinateGridScreenshotRef,
+        deleteOriginalScreenshot: aiOutput.productDecision !== "product_yes",
+      });
       upsertMissionState(applyStatusTransition(getMissionState(missionId), {
         status: "review_required",
         reviewRequiredReason: aiOutput.reason ?? "AI: page state requires review",
@@ -499,6 +623,16 @@ export async function runMissionRoundLoop(
     // Check for explicit STOP_REVIEW_REQUIRED_ONCE in AI actions
     const stopAction = aiOutput.actions.find(a => a.actionCode === "STOP_REVIEW_REQUIRED_ONCE");
     if (stopAction) {
+      await cleanupRoundScreenshotArtifacts({
+        ctx,
+        missionId,
+        runId,
+        roundId,
+        cleanupKind: "review_required",
+        originalScreenshotRef,
+        coordinateGridScreenshotRef,
+        deleteOriginalScreenshot: aiOutput.productDecision !== "product_yes",
+      });
       upsertMissionState(applyStatusTransition(getMissionState(missionId), {
         status: "review_required",
         reviewRequiredReason: stopAction.reason ?? "AI action: STOP_REVIEW_REQUIRED_ONCE",
@@ -529,6 +663,16 @@ export async function runMissionRoundLoop(
     );
 
     if (sequenceResult.status !== "success") {
+      await cleanupRoundScreenshotArtifacts({
+        ctx,
+        missionId,
+        runId,
+        roundId,
+        cleanupKind: "dispatch_failed",
+        originalScreenshotRef,
+        coordinateGridScreenshotRef,
+        deleteOriginalScreenshot: aiOutput.productDecision !== "product_yes",
+      });
       // Mission state may have been updated inside dispatch-sequence — check and stop if needed
       const stateAfterDispatch = getMissionState(missionId);
       // Update failure counters
@@ -583,36 +727,16 @@ export async function runMissionRoundLoop(
     // coordinateGridScreenshotRef is ALWAYS a processing artifact — only used as AI input.
     // The SAVE handler only stores its path string; the file bytes are not needed after this point.
     // originalScreenshotRef is kept for product_yes (it is permanent evidence); deleted for product_no.
-    {
-      const filesToDelete = [
-        coordinateGridScreenshotRef,
-        ...(deleteOriginalScreenshot ? [originalScreenshotRef] : []),
-      ].filter(Boolean) as string[];
-      if (filesToDelete.length > 0) {
-        const deleteResults = await Promise.allSettled(filesToDelete.map(f => unlink(f)));
-        const deleted: string[] = [];
-        const deleteFailed: string[] = [];
-        for (let i = 0; i < filesToDelete.length; i++) {
-          const r = deleteResults[i];
-          if (r && r.status === "fulfilled") deleted.push(filesToDelete[i] ?? "");
-          else deleteFailed.push(filesToDelete[i] ?? "");
-        }
-        ctx.runtimeLogger.emit({
-          traceId: missionId,
-          level: "debug",
-          modeVisibility: ["DEBUG", "TRACE"],
-          eventType: "SCREENSHOT_TRANSIENT_CLEANUP",
-          owner: "orchestration",
-          missionId,
-          runId,
-          roundId,
-          status: deleteFailed.length === 0 ? "success" : "failed",
-          reason: `${productDecision}: deleted ${deleted.length} transient file(s)${
-            deleteFailed.length > 0 ? `; ${deleteFailed.length} could not be deleted` : ""
-          }`,
-        });
-      }
-    }
+    await cleanupRoundScreenshotArtifacts({
+      ctx,
+      missionId,
+      runId,
+      roundId,
+      cleanupKind: productDecision,
+      originalScreenshotRef,
+      coordinateGridScreenshotRef,
+      deleteOriginalScreenshot,
+    });
 
     // ── Loop guard (after round) ────────────────────────────────────────────
     const stateAfter = getMissionState(missionId);

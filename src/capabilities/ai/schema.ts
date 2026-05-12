@@ -95,7 +95,7 @@ const AiAbilityResultSchema = z.object({
   taskType: AiTaskTypeSchema,
   missionId: z.string().min(1),
   runId: z.string().min(1),
-  modelProvider: z.literal("local"),
+  modelProvider: z.literal("online"),
   modelName: z.string().min(1),
   modelRole: z.literal("vision"),
   runtime: z.string().min(1),

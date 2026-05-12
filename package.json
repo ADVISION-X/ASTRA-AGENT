@@ -21,9 +21,6 @@
 
     "debug:visual-mission-flow": "node --import tsx scripts/audit/domains/visual-mission-flow/run-inspector.ts",
     "debug:visual-mission-runtime": "node --import tsx scripts/audit/domains/visual-mission-runtime/run-inspector.ts",
-    "debug:local-ai-startup-recovery": "node --import tsx scripts/audit/domains/local-ai-startup-recovery/run-inspector.ts",
-
-    "acceptance:local-ai-health": "npm run build && node scripts/acceptance/local-ai-health.mjs",
     "acceptance:browse-live-proof": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/browse-live-proof.mjs",
     "acceptance:delivery-smoke": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/delivery-smoke.mjs",
 

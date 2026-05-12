@@ -13,23 +13,15 @@ function renderProviderSettingsCard(t: (zh: string, en: string) => string): stri
     `<form class="cc-stack" data-ai-provider-settings-form>
       <p class="cc-note" data-ai-provider-settings-status>${escapeHtml(t("正在读取 AI 状态。", "Loading AI status."))}</p>
       <div class="cc-run-limit-grid">
-        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("AI 名称", "AI Name"))}</span><input name="displayName" type="text" placeholder="${escapeHtml(t("例如：地图生成 AI", "Example: Map Authoring AI"))}" /></label>
-        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("AI 公司", "AI Company"))}</span><select name="providerCompany" style="${CONTROL_STYLE}" data-ai-provider-company><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="openrouter">OpenRouter</option></select></label>
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("AI 名称", "AI Name"))}</span><input name="displayName" type="text" placeholder="Google Gemini" autocomplete="off" /></label>
+        <label class="cc-field"><span class="cc-section-title">${escapeHtml(t("模型", "Model"))}</span><select name="modelName" style="${CONTROL_STYLE}" data-ai-provider-model><option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite</option><option value="gemini-2.5-flash">Gemini 2.5 Flash</option><option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option></select></label>
       </div>
-      <label class="cc-field"><span class="cc-section-title">API Key</span><input name="apiKey" type="password" autocomplete="off" placeholder="sk-..." /></label>
-      <input name="providerKind" type="hidden" value="openai-compatible" />
-      <input name="baseUrl" type="hidden" value="" />
-      <input name="model" type="hidden" value="" />
-      <input name="allowPaidProvider" type="hidden" value="true" />
-      <input name="allowExternalTransmission" type="hidden" value="true" />
-      <input name="maxEstimatedCost" type="hidden" value="5" />
-      <input name="operatorApprovalRef" type="hidden" value="approval://settings/ai-provider/operator" />
-      <input name="approvalReason" type="hidden" value="operator saved AI provider from Settings" />
+      <label class="cc-field"><span class="cc-section-title">Google Gemini API Key</span><input name="apiKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="AIza..." data-ai-provider-api-key /></label>
       <div class="cc-inline-actions">
         <button type="submit" class="cc-button cc-button-primary" data-ai-provider-settings-busy-sensitive>${escapeHtml(t("保存 AI", "Save AI"))}</button>
         <button type="button" class="cc-button" data-ai-provider-settings-refresh data-ai-provider-settings-busy-sensitive>${escapeHtml(t("刷新状态", "Refresh State"))}</button>
       </div>
-      <p class="cc-muted">${escapeHtml(t("只需要填写名称、AI 公司和密匙；服务地址与模型由系统按公司内置映射处理。明文 key 不回显到页面、终端、proof 或地图包。", "Only name, AI company, and key are required. Endpoint and model are mapped internally. The raw key is never echoed to UI, terminal, proof, or map packages."))}</p>
+      <p class="cc-muted">${escapeHtml(t("密匙只写入本机受保护配置文件，页面只显示掩码；不会写入日志、proof、截图、地图包或终端输出。运行链路只调用在线 Gemini，不再调用本地 AI。", "The key is written only to a protected local config file and only a masked value is shown. It is never written to logs, proofs, screenshots, map packages, or terminal output. Runtime uses online Gemini only."))}</p>
     </form>`,
   );
 }
@@ -42,24 +34,24 @@ function renderSavedAiCard(t: (zh: string, en: string) => string): string {
       <div data-ai-provider-settings-summary>${renderEmptyState(t("正在读取已保存 AI。", "Loading saved AI."))}</div>
       <div class="cc-inline-actions">
         <button type="button" class="cc-button" data-ai-provider-settings-refresh data-ai-provider-settings-busy-sensitive>${escapeHtml(t("查看状态", "View Status"))}</button>
-        <button type="button" class="cc-button" data-ai-provider-settings-refresh data-ai-provider-settings-busy-sensitive>${escapeHtml(t("编辑", "Edit"))}</button>
+        <button type="button" class="cc-button" data-ai-provider-settings-refresh data-ai-provider-settings-busy-sensitive>${escapeHtml(t("刷新", "Refresh"))}</button>
         <button type="button" class="cc-button cc-button-danger" disabled="disabled">${escapeHtml(t("删除", "Delete"))}</button>
       </div>
-      <p class="cc-muted">${escapeHtml(t("当前构建先开放保存和状态查看；删除动作会在本地 Secret Store 删除接口完成后启用。", "This build supports saving and status checks first; delete will be enabled after the local Secret Store delete endpoint lands."))}</p>
+      <p class="cc-muted">${escapeHtml(t("当前只开放保存和状态查看；删除动作稍后接入本机 Secret Store 删除接口。", "This build supports saving and status checks; delete will be enabled after the local Secret Store delete endpoint lands."))}</p>
     </div>`,
   );
 }
 
 function renderLocalRuntimeCard(t: (zh: string, en: string) => string): string {
   return renderCard(
-    t("本地运行", "Local Runtime"),
+    t("AI 运行链路", "AI Runtime"),
     t("只读状态", "Read-only status"),
     `<div class="cc-stack">
       <div class="cc-detail-block">
-        <span>${escapeHtml(t("本地 AI", "Local AI"))}</span>
+        <span>${escapeHtml(t("在线 AI", "Online AI"))}</span>
         <strong data-ai-provider-settings-status>${escapeHtml(t("正在读取。", "Loading."))}</strong>
       </div>
-      <p class="cc-muted">${escapeHtml(t("完整启动、依赖和结构化日志仍然在终端中查看；页面只保留必要状态。", "Full startup, dependency, and structured logs stay in the terminal; the page keeps only essential status."))}</p>
+      <p class="cc-muted">${escapeHtml(t("本地 AI 已从主链路移除。截图、格子、点击和证据仍然本地执行；视觉判断只走在线 Gemini。", "Local AI has been removed from the main path. Screenshots, grids, clicks, and evidence stay local; visual judgment uses online Gemini only."))}</p>
     </div>`,
   );
 }
@@ -104,7 +96,7 @@ export function renderSettingsPage(viewModel: CommanderConsoleViewModel, _appVie
     `<section class="cc-page" data-app-page="settings" data-ai-provider-settings-page data-app-run-limit-settings-page>`,
     renderPageHeader(
       t("设置", "Settings"),
-      t("只保留用户真正需要配置的内容：AI、本地运行状态、启动默认值、语言和证据偏好。", "Only keep what users really configure: AI, local runtime status, launch defaults, language, and evidence preferences."),
+      t("只保留用户真正需要配置的内容：在线 AI、启动默认值、语言和证据偏好。", "Only keep what users really configure: online AI, launch defaults, language, and evidence preferences."),
     ),
     `<div class="cc-page-stack">`,
     `<div class="cc-home-grid">${renderProviderSettingsCard(t)}${renderSavedAiCard(t)}</div>`,

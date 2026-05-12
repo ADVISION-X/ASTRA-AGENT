@@ -120,15 +120,13 @@ export async function getMissionReadinessReport(
     });
   }
 
-  // Local AI model readiness
+  const aiHealth = await assembly.aiAbilityGroup.getHealth();
   components.push({
-    name: "localAi",
-    ok: options.startupReadiness?.localAiReady ?? false,
-    detail: options.startupReadiness?.detail ?? null,
-    actionableMessage: options.startupReadiness?.localAiReady
-      ? null
-      : "Run: ollama serve — then: ollama pull qwen2.5vl:3b — or set GRASSEYE_OLLAMA_BASE_URL to the correct endpoint.",
-    ownerResponsible: "AI Capability / Local AI Runtime",
+    name: "onlineAi",
+    ok: aiHealth.ok,
+    detail: aiHealth.detail,
+    actionableMessage: aiHealth.ok ? null : "Open Settings and save a Google Gemini API key.",
+    ownerResponsible: "AI Capability / Online Gemini Runtime",
   });
 
   const allReady = components.every((c) => c.ok);
@@ -151,14 +149,13 @@ export async function getMissionStartPreflight(
 ): Promise<WorkbenchPreflightResult> {
   const components: WorkbenchHealthComponent[] = [];
 
-  // Local AI readiness
-  const localAiReady = options.startupReadiness?.localAiReady ?? false;
+  const aiHealth = await assembly.aiAbilityGroup.getHealth();
   components.push({
-    name: "localAi",
-    ok: localAiReady,
-    detail: options.startupReadiness?.detail ?? (localAiReady ? "Local AI is ready." : "Local AI not ready."),
-    actionableMessage: localAiReady ? null : "Run: ollama serve — then: ollama pull qwen2.5vl:3b — or check GRASSEYE_OLLAMA_BASE_URL.",
-    ownerResponsible: "AI Capability / Local AI Runtime",
+    name: "onlineAi",
+    ok: aiHealth.ok,
+    detail: aiHealth.detail,
+    actionableMessage: aiHealth.ok ? null : "Open Settings and save a Google Gemini API key.",
+    ownerResponsible: "AI Capability / Online Gemini Runtime",
   });
 
   const blocked = components.find((c) => !c.ok);

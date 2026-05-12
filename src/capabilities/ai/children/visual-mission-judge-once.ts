@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { VisualMissionActionPlanOutputSchema } from "../../../types/visual-mission-action-plan.js";
 import type { AiAbilityInput, AiAbilityResult } from "../contract.js";
 import { parseAiJsonOutput } from "../runtime/json-extract.js";
-import { buildHash, callLocalVisualMissionModel } from "../runtime/model-call.js";
+import { buildHash, callOnlineVisualMissionModel } from "../runtime/model-call.js";
 import type { RuntimeLogger, TraceContext } from "../runtime/model-call.js";
 import { buildAiResult } from "../runtime/result.js";
 import { RuntimeLogEventType } from "../../../lib/runtime-logs/index.js";
@@ -48,6 +48,7 @@ const buildFailureResult = (input: {
 });
 
 async function executeVisualMissionJudgeOnce(input: {
+  dataDir: string;
   request: AiAbilityInput;
   signal?: AbortSignal;
   runtimeLogger?: RuntimeLogger;
@@ -59,7 +60,8 @@ async function executeVisualMissionJudgeOnce(input: {
   const spanId = randomUUID();
 
   try {
-    const modelCall = await callLocalVisualMissionModel({
+    const modelCall = await callOnlineVisualMissionModel({
+      dataDir: input.dataDir,
       request: input.request,
       ...(input.signal ? { signal: input.signal } : {}),
       ...(logger ? { runtimeLogger: logger } : {}),
@@ -163,8 +165,9 @@ async function executeVisualMissionJudgeOnce(input: {
       durationMs,
       reason: "visual_mission_judgment_completed",
       modelName: modelCall.modelName ?? "unknown",
-      runtime: modelCall.runtime ?? "ollama",
+      runtime: modelCall.runtime ?? "gemini-api",
       timeoutMs: modelCall.timeoutMs,
+      runtimeCallId: modelCall.runtimeCallId ?? null,
       promptContractVersion: modelCall.promptVersion,
       promptCatalogVersion: (typeof input.request.promptCatalogVersion === "string" ? input.request.promptCatalogVersion : null) ?? input.request.promptContractId,
       promptContractHash: buildHash(JSON.stringify({
@@ -204,7 +207,7 @@ async function executeVisualMissionJudgeOnce(input: {
       endedAt,
       durationMs,
       modelName: "unknown",
-      runtime: "ollama",
+      runtime: "gemini-api",
       timeoutMs: null,
       failureReason: failureStatus === "failed" ? message : null,
       reviewRequiredReason: failureStatus === "review_required" ? message : null,

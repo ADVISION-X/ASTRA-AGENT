@@ -55,6 +55,15 @@ const parseAiJsonOutput = <TOutput>(text: string, schema: z.ZodSchema<TOutput>) 
     }
   }
 
+  if (typeof parsed["isProductVideo"] === "string") {
+    const normalized = parsed["isProductVideo"].trim().toLowerCase();
+    if (normalized === "true") parsed["isProductVideo"] = true;
+    if (normalized === "false") parsed["isProductVideo"] = false;
+  }
+  if (parsed["nonExecutableSummary"] === null) {
+    parsed["nonExecutableSummary"] = "none";
+  }
+
   return schema.parse(parsed);
 };
 

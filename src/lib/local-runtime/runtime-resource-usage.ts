@@ -56,8 +56,6 @@ function toMb(kb: number): number {
 
 const RUNTIME_RESOURCE_USAGE_TAG_RULES = [
   { tag: "workbench-server", matches: (normalizedCommand: string, pid: number) => pid === process.pid },
-  { tag: "ollama-runner", matches: (normalizedCommand: string) => normalizedCommand.includes("ollama runner") },
-  { tag: "ollama", matches: (normalizedCommand: string) => !normalizedCommand.includes("ollama runner") && normalizedCommand.includes("ollama") },
   { tag: "chrome", matches: (normalizedCommand: string) => normalizedCommand.includes("google chrome helper") || normalizedCommand.includes("google chrome") },
   { tag: "grasseye-app-server", matches: (normalizedCommand: string) => normalizedCommand.includes("dist/src/app/server.js") },
   { tag: "grasseye-dev-server", matches: (normalizedCommand: string) => normalizedCommand.includes("tsx src/app/server.ts") },

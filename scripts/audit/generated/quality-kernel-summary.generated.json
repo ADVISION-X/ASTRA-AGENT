@@ -494,9 +494,9 @@
       "status": "ok"
     },
     {
-      "module": "src/lib/local-ai",
-      "actual": 7,
-      "limit": 12,
+      "module": "src/lib/online-ai",
+      "actual": 3,
+      "limit": 8,
       "status": "ok"
     },
     {

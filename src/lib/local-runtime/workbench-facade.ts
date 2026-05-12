@@ -11,6 +11,7 @@
  *   - recordCommanderDebugEvent()
  */
 
+import type { OnlineAiProviderPublicStatus } from "../online-ai/index.js";
 import type { AppRunLimitSettings, UserRequirementHistoryEntry, UserRequirementHistoryUpsertInput } from "./settings.js";
 import type { WorkbenchHealthReport, WorkbenchMissionReadinessReport, WorkbenchPreflightResult, WorkbenchPreflightInput } from "./workbench-status.js";
 import type { WorkbenchCommanderMissionDashboardView } from "./workbench-commander-console.js";
@@ -23,6 +24,8 @@ export type WorkbenchFacade = {
   getCommanderConsoleSnapshot(): Promise<WorkbenchCommanderMissionDashboardView>;
   getAppRunLimitSettings(): Promise<AppRunLimitSettings>;
   saveAppRunLimitSettings(input: Pick<AppRunLimitSettings, "defaultMaxRounds" | "defaultMaxMinutes">): Promise<AppRunLimitSettings>;
+  getOnlineAiProviderSettings(): Promise<OnlineAiProviderPublicStatus>;
+  saveOnlineAiProviderSettings(input: { displayName?: string | null; apiKey: string; modelName?: string | null }): Promise<OnlineAiProviderPublicStatus>;
   getDataDir(): string;
   getUserRequirementHistory(limit?: number): Promise<UserRequirementHistoryEntry[]>;
   upsertUserRequirementHistory(input: UserRequirementHistoryUpsertInput): Promise<UserRequirementHistoryEntry>;

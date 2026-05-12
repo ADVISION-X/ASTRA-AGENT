@@ -1,4 +1,10 @@
-import type { LocalAiHealth, LocalAiTaskType } from "./local-ai.js";
+type AiRuntimeHealth = {
+  overallStatus: "ready" | "degraded" | "unavailable";
+  implementationStatus: string;
+  detail: string;
+  lastTaskType?: string | null;
+  lastInvocationStatus?: string | null;
+};
 
 type AppShellComponentName =
   | "console"
@@ -77,8 +83,8 @@ type RuntimeDeliveryState = {
   viewport: string;
   calibration: string;
   localAiStatus: string;
-  localAiHealth: LocalAiHealth | null;
-  lastAiTaskType: LocalAiTaskType | null;
+  localAiHealth: AiRuntimeHealth | null;
+  lastAiTaskType: string | null;
   lastAiFailureReason: string | null;
   latestScreenshotEvidenceId: string | null;
   latestScreenshotPath: string | null;

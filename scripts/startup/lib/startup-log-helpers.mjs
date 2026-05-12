@@ -42,7 +42,7 @@ function createLocalAiLogHelpers({ logPass, logFail }) {
 
 function createMissionAndRuntimeLogHelpers({ logEvent, logPass, logFail, getLocalAiRefs, baseUrl }) {
   const logMissionReadinessStarted = () => {
-    logEvent("MISSION", "mission_readiness", "MISSION_READINESS_CHECK_STARTED", "started", "checking startup mission readiness after map and local AI gates");
+    logEvent("MISSION", "mission_readiness", "MISSION_READINESS_CHECK_STARTED", "started", "checking startup mission readiness after map and online AI selection");
   };
 
   const logMissionReadinessPassed = (readiness) => {

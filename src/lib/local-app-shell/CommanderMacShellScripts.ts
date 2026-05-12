@@ -1,5 +1,6 @@
 import { safeJsonScript } from "./render-helpers.js";
 
+import { aiProviderSettingsClient } from "./ai-provider-settings-client.js";
 import { appRunLimitSettingsClient } from "./app-run-limit-settings-client.js";
 import { commanderConsoleShellClient } from "./commander-console-shell-client.js";
 
@@ -17,6 +18,7 @@ export function renderCommanderMacShellScripts(input: CommanderMacShellScriptsIn
     `<script>window.__grasseyeCommanderConsolePageHtml = ${safeJsonScript(input.pageHtmlMap)};</script>`,
     `<script>window.__grasseyeCommanderConsoleInspectHtml = ${safeJsonScript(input.inspectHtmlMap)};</script>`,
     `<script>${commanderConsoleShellClient}</script>`,
+    `<script>${aiProviderSettingsClient}</script>`,
     `<script>${appRunLimitSettingsClient}</script>`,
   ].join("\n    ");
 }

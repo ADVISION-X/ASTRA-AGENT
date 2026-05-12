@@ -3,7 +3,6 @@ import { fileURLToPath } from "node:url";
 
 import { assessDependencyState, installDependencies } from "./lib/dependency-check.mjs";
 import { waitForCommanderConsolePage } from "./lib/health-check.mjs";
-import { ensureLocalAiRuntimeReady } from "./lib/local-ai-runtime-readiness.mjs";
 import { ensureStartupRegistryReadiness } from "./lib/startup-registry-readiness.mjs";
 import { openCommanderConsole } from "./lib/open-commander-console.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
@@ -23,9 +22,6 @@ const {
   logEvent,
   logPass,
   logFail,
-  logLocalAiPhase,
-  isRuntimeFailureReason,
-  getLocalAiRefs,
   logMissionReadinessStarted,
   logMissionReadinessPassed,
   logMissionReadinessDegraded,
@@ -92,7 +88,7 @@ async function preparePort() {
   });
 }
 
-async function startService(root, localAiReadiness) {
+async function startService(root, aiReadiness) {
   const serviceStart = Date.now();
   logEvent("SERVICE", "app_server", "app_server", "starting", `starting local app shell on ${baseUrl}`);
   const serviceHandle = await startLocalService({
@@ -101,7 +97,7 @@ async function startService(root, localAiReadiness) {
     scriptName: "internal:app-server:dev",
     env: {
       GRASSEYE_LOG_MODE: "TRACE",
-      GRASSEYE_STARTUP_LOCAL_AI_READINESS_JSON: JSON.stringify(localAiReadiness),
+      GRASSEYE_STARTUP_ONLINE_AI_READINESS_JSON: JSON.stringify(aiReadiness),
     },
     onStdoutLine: (line, scriptName) => terminalLogger.relayServiceStdoutLine(line, scriptName),
     onStderrLine: (line, scriptName) => terminalLogger.relayServiceStderrLine(line, scriptName),
@@ -122,29 +118,21 @@ async function verifyAppHealth(serviceHandle) {
   });
 }
 
-async function ensureLocalAiReadiness() {
-  const startedAt = Date.now();
-  logEvent("AI", "local_ai_runtime", "local_ai_runtime_presence_check", "started", "checking local AI runtime presence");
-  logEvent("AI", "local_ai_runtime", "local_ai_model_roster_check", "started", "checking required local AI model roster");
-  logEvent("AI", "local_ai_runtime", "local_ai_start_or_connect", "started", "starting or connecting governed local AI runtime");
-  logEvent("AI", "local_ai_runtime", "local_ai_health_probe", "started", "probing governed local AI readiness");
-
-  const readiness = await ensureLocalAiRuntimeReady({
-    logger: (message) => logEvent("AI", "local_ai_runtime", "local_ai_start_or_connect_detail", "event", message),
+async function ensureOnlineAiReadiness() {
+  const readiness = {
+    component: "online-ai-runtime",
+    status: "ready",
+    runtimeBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    detail: "Online Gemini API runtime is selected; API key is validated by mission preflight/settings.",
+    modelRoles: [{ modelRole: "vision", health: "configured", modelName: process.env.GRASSEYE_GEMINI_MODEL ?? "gemini-2.5-flash-lite" }],
+    missionRuntimeAvailable: true,
+    failureReason: null,
+    developmentOnly: false,
+    checkedAt: new Date().toISOString(),
+  };
+  logPass("AI", "online_ai_runtime", "online_ai_runtime_selected", "passed", readiness.detail, {
+    refs: readiness.modelRoles.map((role) => `${role.modelRole}=${role.health}:${role.modelName}`),
   });
-  const refs = getLocalAiRefs(readiness);
-  const runtimePassed = !isRuntimeFailureReason(readiness.failureReason);
-  const rosterPassed = readiness.failureReason !== "LOCAL_AI_MODEL_MISSING";
-  const gatePassed = readiness.missionRuntimeAvailable;
-  const extra = { refs, durationMs: Date.now() - startedAt, failureReason: readiness.failureReason ?? undefined };
-
-  logLocalAiPhase("local_ai_runtime_presence_check", runtimePassed, runtimePassed ? "local AI runtime presence passed" : readiness.detail, extra);
-  logLocalAiPhase("local_ai_model_roster_check", rosterPassed, rosterPassed ? "local AI model roster check passed" : readiness.detail, extra);
-  logLocalAiPhase("local_ai_start_or_connect", runtimePassed, runtimePassed ? "local AI start/connect passed" : readiness.detail, extra);
-  logLocalAiPhase("local_ai_health_probe", gatePassed, gatePassed ? "local AI health probe passed" : readiness.detail, extra);
-  logLocalAiPhase("ai_capability_readiness_gate", gatePassed, gatePassed ? "AI capability readiness gate passed" : readiness.detail, extra);
-
-  // Local AI unavailability is NOT a hard gate — app shell starts in degraded mode.
   return readiness;
 }
 
@@ -195,38 +183,14 @@ async function performLaunch(flags, root) {
     throw error;
   }
 
-  // Local AI readiness is soft — degraded state is allowed; app shell still starts.
-  let localAiReadiness;
-  try {
-    localAiReadiness = await ensureLocalAiReadiness();
-  } catch (error) {
-    // Probe process failed to produce output (e.g. import error). Build a degraded sentinel.
-    localAiReadiness = {
-      component: "local-ai-runtime",
-      status: "failed",
-      runtimeBaseUrl: process.env.GRASSEYE_OLLAMA_BASE_URL ?? "http://127.0.0.1:11434",
-      detail: error instanceof Error ? error.message : String(error),
-      modelRoles: [],
-      missionRuntimeAvailable: false,
-      failureReason: "LOCAL_AI_NOT_READY",
-      developmentOnly: false,
-      checkedAt: new Date().toISOString(),
-    };
-  }
-
-  if (localAiReadiness.missionRuntimeAvailable) {
-    logMissionReadinessPassed(localAiReadiness);
-  } else {
-    logMissionReadinessDegraded(localAiReadiness.failureReason ?? "LOCAL_AI_NOT_READY");
-  }
+  const aiReadiness = await ensureOnlineAiReadiness();
+  logMissionReadinessPassed(aiReadiness);
 
   await preparePort();
-  const serviceHandle = await startService(root, localAiReadiness);
+  const serviceHandle = await startService(root, aiReadiness);
   await verifyAppHealth(serviceHandle);
   await openReadyPage(flags);
-  if (localAiReadiness.missionRuntimeAvailable) {
-    markMissionRuntimeAvailable(localAiReadiness);
-  }
+  markMissionRuntimeAvailable(aiReadiness);
   logStartupReady();
   return serviceHandle;
 }

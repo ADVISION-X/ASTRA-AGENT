@@ -3,7 +3,6 @@ import { pathToFileURL, URL } from "node:url";
 
 import { createWorkbenchServer as createWorkbenchHttpServer } from "./create-workbench-server.js";
 import { createGrassEyeWorkbenchHandle, getDefaultPhase04LocalDataDir } from "../lib/local-runtime/workbench-launch-contract.js";
-import { LocalAiStartupReadinessSchema } from "../types/local-ai.js";
 import type { GrassEyePlatformTarget } from "../lib/local-runtime/workbench-launch-contract.js";
 
 const host = process.env.GRASSEYE_HOST ?? "127.0.0.1";
@@ -16,7 +15,7 @@ const resolveStartupShellPlatformTarget = (value: string | undefined): GrassEyeP
 };
 
 const parseStartupReadiness = (platformTarget: GrassEyePlatformTarget) => {
-  const raw = process.env.GRASSEYE_STARTUP_LOCAL_AI_READINESS_JSON?.trim();
+  const raw = (process.env.GRASSEYE_STARTUP_ONLINE_AI_READINESS_JSON ?? process.env.GRASSEYE_STARTUP_LOCAL_AI_READINESS_JSON)?.trim();
   if (!raw) {
     return null;
   }
@@ -29,11 +28,12 @@ const parseStartupReadiness = (platformTarget: GrassEyePlatformTarget) => {
     throw new Error(`Startup readiness JSON is invalid: ${message}`);
   }
 
-  const localAiReadiness = LocalAiStartupReadinessSchema.parse(parsed);
+  const startupReadiness = parsed as { status?: unknown; detail?: unknown; missionRuntimeAvailable?: unknown };
+  const isReady = startupReadiness.status === "ready" || startupReadiness.missionRuntimeAvailable === true;
   return {
-    localAiReady: localAiReadiness.status === "ready",
+    localAiReady: isReady,
     platformTarget,
-    detail: localAiReadiness.detail ?? null,
+    detail: typeof startupReadiness.detail === "string" ? startupReadiness.detail : null,
   };
 };
 

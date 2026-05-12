@@ -16,7 +16,7 @@ export const QUALITY_KERNEL_LIMITS = {
     "src/capabilities/orchestration": 30,
     "src/capabilities/nerve-bus": 14,
     "src/lib/local-runtime": 20,
-    "src/lib/local-ai": 12,
+    "src/lib/online-ai": 8,
     "src/capabilities/screenshot": 20,
     "src/lib/storage": 8,
     "src/capabilities/text-input": 20,

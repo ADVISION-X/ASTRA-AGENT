@@ -208,7 +208,7 @@ function checkConsoleInAiFiles(project: Project): RlogCheck {
     "src/capabilities/ai/runtime/model-call.ts",
     "src/capabilities/ai/children/visual-mission-judge-once.ts",
     "src/capabilities/ai/ability-group.ts",
-    "src/lib/local-ai/call-local-model.ts",
+    "src/lib/online-ai/gemini-client.ts",
   ];
 
   for (const relFilePath of AI_FILES) {
@@ -421,7 +421,7 @@ function checkNoRandomUuidAsTraceId(project: Project): RlogCheck {
   const GOVERNED_FILES = [
     "src/capabilities/ai/runtime/model-call.ts",
     "src/capabilities/ai/children/visual-mission-judge-once.ts",
-    "src/lib/local-ai/call-local-model.ts",
+    "src/lib/online-ai/gemini-client.ts",
   ];
 
   for (const relFilePath of GOVERNED_FILES) {
