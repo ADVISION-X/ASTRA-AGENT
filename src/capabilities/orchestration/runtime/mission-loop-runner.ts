@@ -9,8 +9,9 @@
  *   2. Capture browser viewport (screenshot)
  *   3. Render coordinate grid
  *   4. Call AI visual-mission-judge
- *   5. Decode AI output → action sequence
- *   6. Dispatch action sequence via Nerve Bus (dispatch-registered-ability-sequence)
+ *   5. Parse pure visual round output
+ *   6. Save current round evidence when requested by AI output
+ *   7. Dispatch one next action via Nerve Bus
  *   7. Check loop guard after round
  *
  * The loop stops when the loop guard says so, the mission is paused/stopped,
@@ -65,9 +66,10 @@ type ScreenshotCleanupKind =
   | "ai_failed"
   | "review_required"
   | "dispatch_failed"
-  | "product_yes"
-  | "product_no"
-  | "uncertain";
+  | "matched_evidence"
+  | "no_match"
+  | "done"
+  | "blocked";
 
 async function cleanupRoundScreenshotArtifacts(input: {
   ctx: OrchestrationChildrenContext;
@@ -137,6 +139,51 @@ async function cleanupRoundScreenshotArtifacts(input: {
     reason: `${input.cleanupKind}: deleted-or-missing ${deletedOrMissing} transient file(s)${
       failed > 0 ? `; ${failed} could not be deleted` : ""
     }`,
+  });
+}
+
+async function systemSaveCurrentRoundEvidence(input: {
+  ctx: OrchestrationChildrenContext;
+  missionId: string;
+  runId: string;
+  roundId: string;
+  userRequirementText: string;
+  originalScreenshotRef: string;
+  coordinateGridScreenshotRef: string;
+  gridSpecRef: string;
+  aiResultRef: string | null;
+  saveReason: string;
+  confidence: number;
+  visualEvidence: string[];
+}) {
+  return input.ctx.forensics.appendRecord({
+    childCapabilityId: "append-record",
+    missionId: input.missionId,
+    runId: input.runId,
+    sessionId: "local",
+    roundId: input.roundId,
+    stepId: randomUUID(),
+    capabilityCallId: randomUUID(),
+    sourceCapabilityId: "orchestration",
+    sourceChildCapabilityId: "mission-round-loop",
+    recordType: "visual_evidence",
+    recordPayload: {
+      userRequirementText: input.userRequirementText,
+      originalScreenshotRef: input.originalScreenshotRef,
+      coordinateGridScreenshotRef: input.coordinateGridScreenshotRef,
+      gridSpecRef: input.gridSpecRef,
+      aiResultRef: input.aiResultRef,
+      saveReason: input.saveReason,
+      confidence: input.confidence,
+      visualEvidence: input.visualEvidence,
+    },
+    artifactRefs: [
+      input.originalScreenshotRef,
+      input.coordinateGridScreenshotRef,
+      input.gridSpecRef,
+    ],
+    parentRefs: input.aiResultRef ? [input.aiResultRef] : [],
+    idempotencyKey: `pure-visual-round-save:${input.missionId}:${input.runId}:${input.roundId}`,
   });
 }
 
@@ -658,11 +705,8 @@ export async function runMissionRoundLoop(
         currentPhase: null,
       },
       progress: {
-        savedLeadCount: state.savedEvidenceCount ?? 0,
-        skippedCount: state.skippedVideoCount ?? 0,
-        reviewRequiredCount: state.reviewRequiredCount ?? 0,
-        failedActionCount: state.failedActionCount ?? 0,
-        consecutiveFailureCount: state.consecutiveFailureCount ?? 0,
+        matchedEvidenceCount: state.matchedEvidenceCount ?? 0,
+        missionStatus: state.status,
       },
       lastAction: {
         sourceActionCode: null,
@@ -827,8 +871,9 @@ export async function runMissionRoundLoop(
       return;
     }
 
-    // ── STEP 4: Dispatch AI-driven action sequence ─────────────────────────
+    // ── STEP 4: Save if matched, then dispatch one AI-selected next action ──
     const aiOutput = aiResult.output;
+    const aiResultRef = aiResult.runtimeProof?.proofId ?? null;
 
     ctx.runtimeLogger.emit({
       traceId: missionId,
@@ -840,12 +885,86 @@ export async function runMissionRoundLoop(
       runId,
       roundId,
       status: "success",
-      reason: `productDecision=${aiOutput.productDecision} pageState=${aiOutput.pageStateDecision} actions=${aiOutput.actions?.length ?? 0}`,
-      metrics: { actionCount: aiOutput.actions?.length ?? 0 },
+      reason: `goalMatched=${aiOutput.goalMatched} save=${aiOutput.save} decision=${aiOutput.decision} nextAction=${aiOutput.nextAction?.actionCode ?? "none"}`,
+      metrics: { actionCount: aiOutput.nextAction ? 1 : 0 },
     });
 
-    // Hard-stop if AI decided review is required
-    if (aiOutput.pageStateDecision === "review_required") {
+    let evidenceSaved = false;
+    if (aiOutput.save) {
+      const saveResult = await systemSaveCurrentRoundEvidence({
+        ctx,
+        missionId,
+        runId,
+        roundId,
+        userRequirementText,
+        originalScreenshotRef,
+        coordinateGridScreenshotRef,
+        gridSpecRef,
+        aiResultRef,
+        saveReason: aiOutput.saveReason,
+        confidence: aiOutput.confidence,
+        visualEvidence: aiOutput.visualEvidence,
+      });
+
+      if (saveResult.status !== "success") {
+        const msg = saveResult.failureReason ?? "system evidence save failed";
+        await cleanupRoundScreenshotArtifacts({
+          ctx,
+          missionId,
+          runId,
+          roundId,
+          cleanupKind: "dispatch_failed",
+          originalScreenshotRef,
+          coordinateGridScreenshotRef,
+          extraTransientScreenshotRefs: aiTransientScreenshotRefs,
+          deleteOriginalScreenshot: true,
+        });
+        upsertMissionState(applyMissionStatus(getMissionState(missionId), { status: "failed", failureReason: msg }));
+        setActiveMission(null);
+        return;
+      }
+
+      evidenceSaved = true;
+      upsertMissionState({
+        ...getMissionState(missionId),
+        matchedEvidenceCount: (getMissionState(missionId).matchedEvidenceCount ?? 0) + 1,
+      });
+      ctx.runtimeLogger.emit({
+        traceId: missionId,
+        level: "info",
+        modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+        eventType: "FORENSICS_RECORD_APPENDED",
+        owner: "orchestration",
+        missionId,
+        runId,
+        roundId,
+        status: "success",
+        reason: `system saved current round evidence ref=${saveResult.recordRef ?? "unknown"}`,
+      });
+    }
+
+    if (aiOutput.decision === "done") {
+      await cleanupRoundScreenshotArtifacts({
+        ctx,
+        missionId,
+        runId,
+        roundId,
+        cleanupKind: "done",
+        originalScreenshotRef,
+        coordinateGridScreenshotRef,
+        extraTransientScreenshotRefs: aiTransientScreenshotRefs,
+        deleteOriginalScreenshot: !evidenceSaved,
+      });
+      upsertMissionState(applyMissionStatus(getMissionState(missionId), {
+        status: "completed",
+        stopReason: aiOutput.doneReason ?? "AI marked mission done",
+        endedAt: now(),
+      }));
+      setActiveMission(null);
+      return;
+    }
+
+    if (aiOutput.decision === "review_required") {
       await cleanupRoundScreenshotArtifacts({
         ctx,
         missionId,
@@ -855,61 +974,75 @@ export async function runMissionRoundLoop(
         originalScreenshotRef,
         coordinateGridScreenshotRef,
         extraTransientScreenshotRefs: aiTransientScreenshotRefs,
-        deleteOriginalScreenshot: aiOutput.productDecision !== "product_yes",
+        deleteOriginalScreenshot: !evidenceSaved,
       });
       upsertMissionState(applyMissionStatus(getMissionState(missionId), {
         status: "review_required",
-        reviewRequiredReason: aiOutput.reason ?? "AI: page state requires review",
+        reviewRequiredReason: aiOutput.reviewRequiredReason ?? "AI requested review",
       }));
       return;
     }
 
-    const dispatchActions = aiOutput.actions
-      .filter(a => a.actionCode !== "STOP_REVIEW_REQUIRED_ONCE")
-      .map(action => {
-        const actionInput = { ...(action.input ?? {}) };
-        const entry = catalog.entries.find(e => e.actionCode === action.actionCode);
-        return {
-          actionCode: action.actionCode,
-          reason: action.reason ?? null,
-          input: {
-            ...actionInput,
-            ...(entry?.requiresGridSpecRef ? { gridSpecRef } : {}),
-          },
-          required: action.required ?? true,
-          gridCell: action.gridCell ?? (actionInput["gridCell"] as string | undefined) ?? null,
-          cellZone: action.cellZone ?? (actionInput["cellZone"] as GridCellZone | undefined) ?? null,
-        };
-      });
-    const hasSaveRecordAction = dispatchActions.some((action) => action.actionCode === "SAVE_RECORD_ONCE");
-
-    // Check for explicit STOP_REVIEW_REQUIRED_ONCE in AI actions
-    const stopAction = aiOutput.actions.find(a => a.actionCode === "STOP_REVIEW_REQUIRED_ONCE");
-    if (stopAction) {
+    if (aiOutput.decision === "blocked") {
       await cleanupRoundScreenshotArtifacts({
         ctx,
         missionId,
         runId,
         roundId,
-        cleanupKind: "review_required",
+        cleanupKind: "blocked",
         originalScreenshotRef,
         coordinateGridScreenshotRef,
         extraTransientScreenshotRefs: aiTransientScreenshotRefs,
-        deleteOriginalScreenshot: aiOutput.productDecision !== "product_yes",
+        deleteOriginalScreenshot: !evidenceSaved,
       });
       upsertMissionState(applyMissionStatus(getMissionState(missionId), {
         status: "review_required",
-        reviewRequiredReason: stopAction.reason ?? "AI action: STOP_REVIEW_REQUIRED_ONCE",
+        reviewRequiredReason: aiOutput.reviewRequiredReason ?? "AI blocked the mission",
       }));
       return;
     }
+
+    const nextAction = aiOutput.nextAction;
+    if (!nextAction) {
+      await cleanupRoundScreenshotArtifacts({
+        ctx,
+        missionId,
+        runId,
+        roundId,
+        cleanupKind: "dispatch_failed",
+        originalScreenshotRef,
+        coordinateGridScreenshotRef,
+        extraTransientScreenshotRefs: aiTransientScreenshotRefs,
+        deleteOriginalScreenshot: !evidenceSaved,
+      });
+      upsertMissionState(applyMissionStatus(getMissionState(missionId), {
+        status: "failed",
+        failureReason: "AI decision act did not include nextAction",
+      }));
+      setActiveMission(null);
+      return;
+    }
+
+    const actionInput = { ...(nextAction.input ?? {}) };
+    const entry = catalog.entries.find(e => e.actionCode === nextAction.actionCode);
+    const dispatchActions = [{
+      actionCode: nextAction.actionCode,
+      reason: nextAction.reason ?? null,
+      input: {
+        ...actionInput,
+        ...(entry?.requiresGridSpecRef ? { gridSpecRef } : {}),
+      },
+      required: true,
+      gridCell: nextAction.gridCell ?? (actionInput["gridCell"] as string | undefined) ?? null,
+      cellZone: nextAction.cellZone ?? (actionInput["cellZone"] as GridCellZone | undefined) ?? null,
+    }];
 
     const sequenceResult = await dispatchRegisteredAbilitySequence(
       {
         missionId,
         runId,
         roundId,
-        aiResultRef: aiResult.runtimeProof?.proofId ?? null,
+        aiResultRef,
         actions: dispatchActions,
         currentEvidenceRefs: {
           originalScreenshotRef,
@@ -936,26 +1069,16 @@ export async function runMissionRoundLoop(
         originalScreenshotRef,
         coordinateGridScreenshotRef,
         extraTransientScreenshotRefs: aiTransientScreenshotRefs,
-        deleteOriginalScreenshot: !hasSaveRecordAction,
+        deleteOriginalScreenshot: !evidenceSaved,
       });
-      // Mission state may have been updated inside dispatch-sequence — check and stop if needed
       const stateAfterDispatch = getMissionState(missionId);
-      // Update failure counters
-      if (sequenceResult.status === "review_required") {
-        upsertMissionState({
-          ...stateAfterDispatch,
-          reviewRequiredCount: (stateAfterDispatch.reviewRequiredCount ?? 0) + 1,
-          consecutiveFailureCount: (stateAfterDispatch.consecutiveFailureCount ?? 0) + 1,
-        });
-      } else {
-        upsertMissionState({
-          ...stateAfterDispatch,
-          failedActionCount: (stateAfterDispatch.failedActionCount ?? 0) + 1,
-          consecutiveFailureCount: (stateAfterDispatch.consecutiveFailureCount ?? 0) + 1,
-        });
-      }
+      upsertMissionState({
+        ...stateAfterDispatch,
+        lastActionStatus: sequenceResult.status,
+        lastFailureReason: sequenceResult.failureReason ?? null,
+        lastReviewRequiredReason: sequenceResult.reviewRequiredReason ?? null,
+      });
       if (stateAfterDispatch.status !== "running") return;
-      // If still "running" but dispatch failed, stop gracefully
       if (sequenceResult.status === "failed") {
         upsertMissionState(applyMissionStatus(getMissionState(missionId), {
           status: "failed",
@@ -964,44 +1087,24 @@ export async function runMissionRoundLoop(
         setActiveMission(null);
         return;
       }
-      return; // review_required or other terminal state
+      return;
     }
 
-    // ── Update progress counters based on AI decision ───────────────────────
     const stateAfterSuccess = getMissionState(missionId);
-    const productDecision = aiOutput.productDecision;
-    // Only an AI-selected save action makes the original screenshot evidence.
-    const deleteOriginalScreenshot = !hasSaveRecordAction;
-    if (hasSaveRecordAction) {
-      upsertMissionState({
-        ...stateAfterSuccess,
-        savedEvidenceCount: (stateAfterSuccess.savedEvidenceCount ?? 0) + 1,
-        consecutiveFailureCount: 0,
-      });
-    } else if (productDecision === "product_no") {
-      upsertMissionState({
-        ...stateAfterSuccess,
-        skippedVideoCount: (stateAfterSuccess.skippedVideoCount ?? 0) + 1,
-        consecutiveFailureCount: 0,
-      });
-    } else {
-      upsertMissionState({ ...stateAfterSuccess, consecutiveFailureCount: 0 });
-    }
+    upsertMissionState({ ...stateAfterSuccess, lastActionStatus: "success", lastFailureReason: null });
 
     // ── Transient screenshot cleanup (every round) ──────────────────────────
     // coordinateGridScreenshotRef is ALWAYS a processing artifact — only used as AI input.
-    // The SAVE handler only stores its path string; the file bytes are not needed after this point.
-    // originalScreenshotRef is kept for product_yes (it is permanent evidence); deleted for product_no.
     await cleanupRoundScreenshotArtifacts({
       ctx,
       missionId,
       runId,
       roundId,
-      cleanupKind: productDecision,
+      cleanupKind: evidenceSaved ? "matched_evidence" : "no_match",
       originalScreenshotRef,
       coordinateGridScreenshotRef,
       extraTransientScreenshotRefs: aiTransientScreenshotRefs,
-      deleteOriginalScreenshot,
+      deleteOriginalScreenshot: !evidenceSaved,
     });
 
     // ── Loop guard (after round) ────────────────────────────────────────────

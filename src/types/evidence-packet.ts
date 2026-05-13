@@ -15,7 +15,7 @@ const EvidencePacketRoundOutcomeSchema = z.enum([
   "metrics_unavailable_candidate_created",
   "browse_ledger_recorded",
   "skipped_non_product",
-  "skipped_uncertain",
+  "skipped_ambiguous",
   "skipped_duplicate",
   "skipped_unstable_video",
   "blocked_login",
@@ -29,8 +29,8 @@ const EvidencePacketRoundOutcomeSchema = z.enum([
 ]);
 
 const BrowseRecordOutcomeSchema = z.enum([
-  "product_no_high_confidence",
-  "skipped_uncertain",
+  "goal_not_matched_high_confidence",
+  "skipped_ambiguous",
   "skipped_duplicate",
   "skipped_unstable_video",
   "ordinary_scroll_next",
@@ -38,17 +38,17 @@ const BrowseRecordOutcomeSchema = z.enum([
 ]);
 
 const BrowseRecordProductPresenceDecisionSchema = z.enum([
-  "product_yes_high_confidence",
-  "product_no_high_confidence",
-  "product_uncertain",
+  "goal_match_high_confidence",
+  "goal_not_matched_high_confidence",
+  "goal_ambiguous",
   "review_required",
   "not_asked",
 ]);
 
 const RoundStructuralDecisionSchema = z.enum([
-  "product_yes_high_confidence",
-  "product_no_high_confidence",
-  "product_uncertain",
+  "goal_match_high_confidence",
+  "goal_not_matched_high_confidence",
+  "goal_ambiguous",
   "local_ai_unavailable",
   "blocked_login",
   "blocked_captcha",
@@ -184,14 +184,14 @@ const EvidencePacketProductPresenceAISchema = z.object({
   validFrameCount: z.number().int().nonnegative(),
   modelRole: z.string().min(1),
   modelNameOrToolName: z.string().min(1),
-  isProductVideo: z.boolean().nullable(),
+  goalMatched: z.boolean().nullable(),
   confidence: z.number().min(0).max(1),
-  visibleProductTypes: z.array(z.string().min(1)).default([]),
+  visibleMatchTypes: z.array(z.string().min(1)).default([]),
   evidenceObservations: z.array(z.string().min(1)).default([]),
   frameLevelObservations: z.array(z.lazy(() => VisionProductPresenceFrameObservationSchema)).default([]),
   aggregateReason: z.string().min(1),
   reason: z.string().min(1),
-  uncertainty: z.array(z.string().min(1)).default([]),
+  ambiguity: z.array(z.string().min(1)).default([]),
   mustReview: z.boolean(),
 });
 
@@ -222,7 +222,7 @@ const EvidencePacketCommentEvidenceSchema = z.object({
   ocrTextRecordIds: z.array(z.string().min(1)).default([]),
   rawCommentBlocks: z.array(z.string().min(1)).default([]),
   cleanedComments: z.array(z.string().min(1)).default([]),
-  uncertainText: z.array(z.string().min(1)).default([]),
+  ambiguousText: z.array(z.string().min(1)).default([]),
   extractionConfidence: z.number().min(0).max(1).nullable().default(null),
   visibleCommentCount: z.number().int().nonnegative(),
   commentCaptureLimit: z.number().int().positive(),
@@ -313,7 +313,7 @@ const BrowseSummarySchema = z.object({
   totalSeenCount: z.number().int().nonnegative(),
   productYesCount: z.number().int().nonnegative(),
   productNoCount: z.number().int().nonnegative(),
-  uncertainCount: z.number().int().nonnegative(),
+  ambiguousCount: z.number().int().nonnegative(),
   duplicateCount: z.number().int().nonnegative(),
   unstableCount: z.number().int().nonnegative(),
   blockedCount: z.number().int().nonnegative(),

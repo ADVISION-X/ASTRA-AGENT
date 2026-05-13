@@ -94,8 +94,8 @@ type CommanderMissionStatusSnapshot = {
   updatedAt: string;
   lastStopReason: string | null;
   reviewRequiredReason: string | null;
-  savedEvidenceCount: number;
-  failedActionCount: number;
+  matchedEvidenceCount: number;
+  lastActionFailureCount: number;
 };
 
 // ─── Helper: build and send envelope ─────────────────────────────────────────

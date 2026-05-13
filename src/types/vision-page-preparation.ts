@@ -15,7 +15,7 @@ const VisionPagePreparationPayloadSchema = z.object({
   promptVersion: VisionPagePreparationPromptVersionSchema,
   schemaVersion: VisionPagePreparationSchemaVersionSchema,
   decision: VisionPagePreparationDecisionSchema,
-  nonExecutableSummary: z.string().min(1),
+  visualSummary: z.string().min(1),
   confidence: z.number().min(0).max(1),
   reason: z.string().min(1),
   evidenceObservations: z.array(z.string().min(1)).default([]),

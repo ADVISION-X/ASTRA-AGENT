@@ -67,7 +67,7 @@ const BrowseSessionRecordSchema = z.object({
   totalSeenCount: z.number().int().nonnegative(),
   productYesCount: z.number().int().nonnegative(),
   productNoCount: z.number().int().nonnegative(),
-  uncertainCount: z.number().int().nonnegative(),
+  ambiguousCount: z.number().int().nonnegative(),
   duplicateCount: z.number().int().nonnegative(),
   blockedCount: z.number().int().nonnegative(),
   evidencePacketCount: z.number().int().nonnegative(),
@@ -183,7 +183,7 @@ const AIResultRecordSchema = z.object({
   inputEvidenceRefs: z.array(EvidenceRefSchema).default([]),
   outputJson: z.unknown(),
   confidence: z.number().min(0).max(1).nullable().default(null),
-  uncertainty: z.array(z.string().min(1)).default([]),
+  ambiguity: z.array(z.string().min(1)).default([]),
   mustReview: z.boolean(),
   createdAt: z.string().datetime(),
 });

@@ -6,6 +6,7 @@ const MUSCLE_MEMORY_CELL_ZONE_ALLOWLIST = [
   "top_center",
   "top_right",
   "middle_left",
+  "middle_center",
   "center",
   "middle_right",
   "bottom_left",

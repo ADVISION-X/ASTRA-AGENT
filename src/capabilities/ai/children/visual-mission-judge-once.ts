@@ -209,7 +209,7 @@ async function executeVisualMissionJudgeOnce(input: {
       status: "success",
       reason: "json_parse_success",
       metrics: {
-        actionCount: Array.isArray(output.actions) ? output.actions.length : 0,
+        actionCount: output.nextAction ? 1 : 0,
         schemaIssueCount: 0,
         durationMs,
       },
@@ -229,9 +229,9 @@ async function executeVisualMissionJudgeOnce(input: {
       spanId,
       ...(input.request.missionId ? { missionId: input.request.missionId } : {}),
       status: "success",
-      reason: `productDecision=${String(output.productDecision)} pageState=${String(output.pageStateDecision)} actions=${Array.isArray(output.actions) ? output.actions.length : 0}`,
+      reason: `goalMatched=${String(output.goalMatched)} save=${String(output.save)} decision=${String(output.decision)} nextAction=${output.nextAction?.actionCode ?? "none"}`,
       metrics: {
-        actionCount: Array.isArray(output.actions) ? output.actions.length : 0,
+        actionCount: output.nextAction ? 1 : 0,
         durationMs,
       },
     });

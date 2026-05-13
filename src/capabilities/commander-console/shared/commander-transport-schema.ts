@@ -25,8 +25,7 @@ const StartMissionPlatformProfileSchema = z.object({
   entryUrl: z.string().url(),
   targetTitle: NonEmptyStringSchema,
   allowedHosts: z.array(NonEmptyStringSchema).min(1),
-  defaultRecoveryActionCode: NonEmptyStringSchema,
-  supportedActionCodes: z.array(NonEmptyStringSchema).min(1),
+  supportedAtomicActionCodes: z.array(NonEmptyStringSchema).min(1),
 }).strict();
 
 const StartMissionTransportPayloadBaseSchema = z.object({

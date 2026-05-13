@@ -35,7 +35,7 @@ const VisionNextItemTargetCandidateSchema = z.object({
   confidence: z.number().min(0).max(1),
   visibleText: z.string().min(1).nullable().default(null),
   evidenceObservations: z.array(z.string().min(1)).default([]),
-  uncertainty: z.array(z.string().min(1)).default([]),
+  ambiguity: z.array(z.string().min(1)).default([]),
 }).strict();
 
 const VisionNextItemTargetCandidateRequestInputSchema = VisionProductPresenceRequestInputSchema;
@@ -56,11 +56,11 @@ const VisionNextItemTargetCandidatePayloadSchema = z.object({
   samplingFailureReason: VisionNextItemTargetCandidateRequestInputSchema.shape.samplingFailureReason,
   missingFrames: z.array(VisionProductPresenceMissingFrameSchema).default([]),
   targetCandidates: z.array(VisionNextItemTargetCandidateSchema).max(10),
-  nonExecutableSummary: z.string().min(1),
+  visualSummary: z.string().min(1),
   confidence: z.number().min(0).max(1),
   evidenceObservations: z.array(z.string().min(1)).default([]),
   reason: z.string().min(1),
-  uncertainty: z.array(z.string().min(1)).default([]),
+  ambiguity: z.array(z.string().min(1)).default([]),
   mustReview: z.boolean(),
 }).strict();
 

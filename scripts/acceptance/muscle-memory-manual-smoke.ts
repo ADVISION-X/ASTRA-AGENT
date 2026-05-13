@@ -1,7 +1,6 @@
 import { loadMuscleMemoryCatalog, isAiActionPlanAllowedActionCode } from "../../src/muscle-memory/catalog.js";
 import { buildMuscleMemorySystemManual } from "../../src/muscle-memory/manual.js";
-import { VisualMissionActionPlanOutputSchema } from "../../src/visual-mission/action-plan/ai-output.schema.js";
-import { normalizeVisualMissionActionPlanOutput } from "../../src/visual-mission/action-plan/normalize-ai-output.js";
+import { VisualMissionActionPlanOutputSchema } from "../../src/types/visual-mission-action-plan.js";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
@@ -15,54 +14,43 @@ function getActionBlock(text: string, actionCode: string): string | null {
 
 function buildBaseOutput() {
   return {
-    schemaVersion: "visualMissionActionPlan.v1" as const,
-    userIntentUnderstanding: { matched: true, summary: "manual smoke" },
-    platform: "tiktok-web" as const,
-    isTargetPlatform: true,
-    surface: "for_you_video",
-    isTargetFeed: true,
-    pageStateDecision: "ready" as const,
-    isProductVideo: true,
-    productDecision: "product_yes" as const,
+    schemaVersion: "pureVisualRound.v1" as const,
+    goalMatched: true,
+    save: true,
+    saveReason: "manual smoke",
     confidence: 1,
-    visibleProductTypes: ["smoke"],
     visualEvidence: ["visible target"],
-    reason: "manual smoke",
-    riskFlags: [],
-    nonExecutableSummary: "manual smoke",
-    nonExecutableClickTargets: [],
+    decision: "act" as const,
+    reviewRequiredReason: null,
+    doneReason: null,
   };
 }
 
 function buildOutputActionPlan(action: {
   actionCode: string;
-  required: boolean;
   reason: string;
   input?: Record<string, unknown>;
 }) {
   return VisualMissionActionPlanOutputSchema.parse({
     ...buildBaseOutput(),
-    actions: [action],
+    nextAction: action,
   });
 }
 
 function expectSchemaReject(action: {
   actionCode: string;
-  required: boolean;
   reason: string;
   input?: Record<string, unknown>;
 }, message: string) {
   const result = VisualMissionActionPlanOutputSchema.safeParse({
     ...buildBaseOutput(),
-    actions: [action],
+    nextAction: action,
   });
   assert(!result.success, message);
 }
 
 function decodeOutput(_output: ReturnType<typeof buildOutputActionPlan>) {
-  // decodeVisualMissionActionPlan was removed in orchestration rebuild
-  return { status: "skipped" as const, actions: [] };
-
+  return { status: "success" as const, nextAction: _output.nextAction };
 }
 
 // ─── Load catalog & manual ────────────────────────────────────────────────────
@@ -123,13 +111,11 @@ assert(rightClickBlock?.includes("aiRequiredInput: gridCell"), "RIGHT_CLICK_GRID
 
 const validLeftClick = buildOutputActionPlan({
   actionCode: "LEFT_CLICK_GRID_CELL_ONCE",
-  required: true,
   reason: "click target visible at D42",
   input: { gridCell: "D42" },
 });
 const validDoubleClick = buildOutputActionPlan({
   actionCode: "DOUBLE_LEFT_CLICK_GRID_CELL",
-  required: true,
   reason: "double click target at K50",
   input: { gridCell: "K50" },
 });
@@ -137,21 +123,21 @@ const validDoubleClick = buildOutputActionPlan({
 // ─── 9. Schema rejects forbidden action codes ─────────────────────────────────
 
 expectSchemaReject(
-  { actionCode: "PRESS_KEY", required: true, reason: "direct key", input: { key: "Enter" } },
+  { actionCode: "PRESS_KEY", reason: "direct key", input: { key: "Enter" } },
   "PRESS_KEY must be rejected as a root AI actionCode",
 );
 expectSchemaReject(
-  { actionCode: "CLICK_BROWSER_COORDINATE", required: true, reason: "direct coordinate", input: { x: 10, y: 20 } },
+  { actionCode: "CLICK_BROWSER_COORDINATE", reason: "direct coordinate", input: { x: 10, y: 20 } },
   "CLICK_BROWSER_COORDINATE must be rejected as a root AI actionCode",
 );
 
 // ─── 10. Decoder produces execution actions ───────────────────────────────────
 
 const decodedLeft = decodeOutput(validLeftClick);
-assert(decodedLeft.actions.length > 0, "LEFT_CLICK_GRID_CELL_ONCE must produce at least one execution action");
+assert(decodedLeft.nextAction?.actionCode === "LEFT_CLICK_GRID_CELL_ONCE", "LEFT_CLICK_GRID_CELL_ONCE must survive as nextAction");
 
 const decodedDouble = decodeOutput(validDoubleClick);
-assert(decodedDouble.actions.length > 0, "DOUBLE_LEFT_CLICK_GRID_CELL must produce at least one execution action");
+assert(decodedDouble.nextAction?.actionCode === "DOUBLE_LEFT_CLICK_GRID_CELL", "DOUBLE_LEFT_CLICK_GRID_CELL must survive as nextAction");
 
 // ─── 11. No forbidden fields in any catalog entry ────────────────────────────
 

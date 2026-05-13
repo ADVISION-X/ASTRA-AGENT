@@ -153,8 +153,8 @@ export const CommanderMissionStatusViewSchema = z.object({
   updatedAt: z.string().min(1),
   lastStopReason: z.string().nullable(),
   reviewRequiredReason: z.string().nullable(),
-  savedEvidenceCount: z.number().int().min(0),
-  failedActionCount: z.number().int().min(0),
+  matchedEvidenceCount: z.number().int().min(0),
+  lastActionFailureCount: z.number().int().min(0),
 }).strict();
 
 export type CommanderMissionStatusView = z.output<typeof CommanderMissionStatusViewSchema>;

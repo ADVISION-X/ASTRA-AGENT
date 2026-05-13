@@ -15,7 +15,7 @@ const VisionNextItemAdvancedPayloadSchema = z.object({
   promptVersion: VisionNextItemAdvancedPromptVersionSchema,
   schemaVersion: VisionNextItemAdvancedSchemaVersionSchema,
   decision: VisionNextItemAdvancedDecisionSchema,
-  nonExecutableSummary: z.string().min(1),
+  visualSummary: z.string().min(1),
   confidence: z.number().min(0).max(1),
   reason: z.string().min(1),
   evidenceObservations: z.array(z.string().min(1)).default([]),

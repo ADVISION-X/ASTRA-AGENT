@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-13T11:01:06.743Z",
+  "timestamp": "2026-05-13T11:19:17.978Z",
   "pass": true,
   "hardRetiredSurface": {
     "count": 0,
@@ -122,8 +122,8 @@
     },
     {
       "module": "scripts/audit (total)",
-      "actual": 34,
-      "limit": 36,
+      "actual": 37,
+      "limit": 39,
       "status": "ok"
     },
     {

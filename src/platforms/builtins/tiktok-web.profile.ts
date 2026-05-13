@@ -6,24 +6,14 @@ export const TIKTOK_WEB_PROFILE: PlatformProfile = {
   entryUrl: "https://www.tiktok.com/foryou",
   targetTitle: "TikTok For You",
   allowedHosts: ["tiktok.com", "www.tiktok.com"],
-  defaultRecoveryActionCode: "OPEN_PLATFORM_ENTRY_ONCE",
-  supportedActionCodes: [
-    "CAPTURE_SCREEN",
-    "RENDER_COORDINATE_GRID_ONCE",
+  supportedAtomicActionCodes: [
     "LEFT_CLICK_GRID_CELL_ONCE",
     "DOUBLE_LEFT_CLICK_GRID_CELL",
     "RIGHT_CLICK_GRID_CELL_ONCE",
-    "SCROLL_BROWSER_VIEWPORT_ONCE",
     "TYPE_APPROVED_TEXT_ONCE",
     "PRESS_APPROVED_KEY_ONCE",
     "CLEAR_FOCUSED_INPUT_ONCE",
-    "SAVE_RECORD_ONCE",
     "STOP_REVIEW_REQUIRED_ONCE",
-    "OPEN_PLATFORM_ENTRY_ONCE",
   ],
-  // Lightweight platform action hints for AI — not coordinates, not map bindings.
-  nextVideoPreferredActionCode: "PRESS_APPROVED_KEY_ONCE",
-  likeActionHint: "PRESS_APPROVED_KEY_ONCE",
-  likeApprovedKey: "L",
-  commentsActionHint: "LEFT_CLICK_GRID_CELL_ONCE",
+  visualNotes: "Use the visible screen and coordinate grid only; platform data carries no semantic action policy.",
 };

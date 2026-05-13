@@ -1,102 +1,28 @@
 ---
 name: "GrassEye Index"
-description: "Use when routing GrassEye phase-five final-delivery debugging work to the correct module law, checking always-loaded governance files, or reviewing narrow path triggers."
+description: "Routes current GrassEye pure visual single-round closed-loop governance."
 applyTo: ".github/instructions/cursor-rules/**"
 ---
 
 # GrassEye Index
 
-Role: locate active GrassEye laws for the current repository only.
-Boundary: this file routes; it does not define business rules or replace a module owner.
-Excludes: module law content, implementation plans, future inactive capabilities, and duplicated kernel text.
-Authority: this file is authoritative only for GrassEye law routing.
-Current routing phase: phase-five final-delivery debugging.
+Kernel loads first. The current top-level authority is:
 
----
+- docs/法案辅助文件/GrassEye 纯视觉单轮闭环总纲施工图.md
 
-## Always Loaded Files
+## Active Routes
 
-- GRASSEYE-KERNEL.instructions.md
-- grasseye-index.instructions.md
+| Trigger | Module |
+| -- | -- |
+| pure visual round, goalMatched, save, nextAction, AI output schema, prompt | modules/module-ai-capability.instructions.md |
+| mission loop, save before action, single action dispatch, round state | modules/module-orchestration-capability.instructions.md |
+| atomic action registry, AI-visible ability, Forensics action visibility | modules/module-capability-group-governance.instructions.md |
+| evidence record, system save, artifact ref | modules/module-forensics-persistence-capability.instructions.md |
+| screenshot, coordinate grid, gridSpec | modules/module-screenshot-capability.instructions.md |
+| gridCell, cellZone, geometry proof | modules/module-geometry-guard-capability.instructions.md |
+| click action | modules/module-mouse-click-capability.instructions.md |
+| text or key input action | modules/module-text-input-capability.instructions.md |
 
-Kernel loads first.
-Index only locates the narrowest current authority.
+## Retired Routes
 
----
-
-## Routing Rules
-
-- Load GRASSEYE-KERNEL before any module match.
-- Load module-capability-group-governance when the task defines ability groups, child abilities, MuscleMemoryCatalog as a capability registry, atomic child-capability rules, semantic/package retirement, shared contracts, currentStrength, forbiddenResponsibilities, or debug owner evidence.
-- Index may route only to the current execution owners, support evidence surfaces, and foundation laws declared by Kernel.
-- Match the narrowest domain by path and task keywords.
-- Deleted historical owner names may appear only as remap triggers to a current owner; they must never route to absent modules.
-- Do not activate absent historical paths.
-- Do not use broad patterns to revive future capabilities.
-- When two modules appear close, choose the one that directly owns the decision or record boundary.
-
-Support-governance domains:
-- none.
-
-Current narrative authority:
-- docs/法案辅助文件/GrassEye 简单能力机器总纲施工图.md
-- docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md
-- docs/法案辅助文件/GrassEye Child Capability Strength 子能力强度施工图.md
-
-Retired references:
-- docs/项目方案/GrassEye_视觉裁判_故事情节.md is historical narrative reference only and must not route current capability-registry or atomic-child-capability decisions.
-- docs/archive/retired-map-system/GrassEye_第五阶段建设目标方案.md is superseded historical reference only.
-- Any GrassEye_系统运行逻辑示意图_V2 runtime diagram is retired/superseded and must not route current architecture decisions.
-
-Local development tooling:
-- local development tooling stays outside active law routing and must not be revived as an active ability group.
-
----
-
-## Active Module Routes
-
-| Path or trigger | Load module | Routing note |
-| -- | -- | -- |
-| commander console, human command, mission dashboard, owner evidence timeline, review queue, audit summary, manual override, candidate pool, operator review | module-commander-console-capability.instructions.md | Human entry and console reads only |
-| ability group, child ability, atomic action, muscle memory, capability registry, shared ability contract, currentStrength, debug proof contract, forbidden responsibilities, orchestration matrix, capability catalog, catalog generated from abilities | module-capability-group-governance.instructions.md | Shared ability-group governance and registry definition only |
-| semantic action retirement, package retirement, composite retirement, workflow retirement | module-capability-group-governance.instructions.md | Retirement and anti-pattern routing only; never final registry truth |
-| orchestration ability group, mission state, mission command execution, step state, branch, runtime loop, observe, classify, act, record, orchestrator, validate capability sequence, inject refs, dispatch registry entry | module-orchestration-capability.instructions.md | Active mission-flow vocabulary routes to Orchestration only when it does not revive retired map-system ownership or business-package ownership |
-| retired map-system vocabulary, retired route identifiers, retired branch tokens, retired selection identifiers, retired activation refs, retired package-governance chain, retired prompt-binding chain, retired authoring prompt chain | module-code-purity.instructions.md | Retired map-system vocabulary routes to physical cleanup and owner cutover first; it must never route back into active runtime ownership |
-| nerve bus, command transport, command envelope, result envelope, ai request envelope, ai response envelope, transfer proof, channel routing | module-nerve-bus-capability.instructions.md | Governed transport authority only |
-| ai ability group, first AI question, visual mission judge, visual mission action plan, current page meaning, blocker judgment, target identity, prompt registry, prompt contract, prompt content, output schema ref, ability manual, compose registered capabilities, local model, OCR provider, provider routing | module-ai-capability.instructions.md | AI owns judgment and registry-backed capability composition; load Forensics or Commander only when persistence or review is the real boundary |
-| src/capabilities/open, open ability group, open capability, open-tiktok, open-facebook, open-local-workbench, open result, capability-check, open proof | module-open-capability.instructions.md | Open capability authority only |
-| src/capabilities/screenshot, screenshot ability group, screenshot capability, imageKind, coordinateSpace, scaleMapping, ai_input, evidence_original, evidence_optimized, capture-region, optimize-lossless, prepare-ai-input | module-screenshot-capability.instructions.md | Screenshot capability authority only |
-| visual target, target bbox, target confidence, target catalog, candidate selection, clickPoint | module-visual-target-capability.instructions.md | Visual target authority only |
-| geometry guard, coordinate action, coordinate safety, coordinate-space validation, scale mapping, executable geometry, normalized geometry | module-geometry-guard-capability.instructions.md | Route coordinate-action vocabulary to Geometry Guard first for safety ownership |
-| src/capabilities/mouse-click, mouse click, click capability, primitive click, browser click, screen click | module-mouse-click-capability.instructions.md | Mouse click primitive authority only |
-| src/capabilities/text-input, text input, type text, paste text, clear input, replace input, press key, commit input, keyboard input, input target | module-text-input-capability.instructions.md | Text input write authority only |
-| src/capabilities/mouse-scroll, mouse scroll ability group, scroll capability, wheel scroll, scroll magnitude, region-wheel-scroll, browser-viewport-scroll, desktop-screen-scroll | module-mouse-scroll-capability.instructions.md | Mouse scroll capability authority only |
-| post-action verification, action result verification, verification packaging, result proof, after-click verification, after-scroll verification | module-post-action-verification-capability.instructions.md | Support/transition evidence boundary — observation packaging and proof packaging only; not an independent active ability group |
-| page state, page observation, raw browser observation, login wall observation, modal overlay observation, platform page kind observation, comment panel state observation, safety page observation | module-page-state-capability.instructions.md | Page State retired — raw browser observation helper only, no active ability group |
-| multi-frame evidence, contact sheet, sample video frames, frame_3s, frame_6s, frame_10s, validFrameCount, samplingStrategy | module-screenshot-capability.instructions.md | Shared multi-frame packaging now starts from Screenshot and continues through AI and Forensics |
-| evidence packet, browse ledger, failed record, runtime snapshot, forensics handoff, record envelope, record ref, artifact ref, packet schema, operator snapshot, review record | module-forensics-persistence-capability.instructions.md | Forensics record ownership only |
-| platform profile, platform metadata, rate limit, adapter hint, view hint, identity rules, URL rules | module-open-capability.instructions.md | Platform profile and hints now route through Open capability as a sub-contract |
-| local data, storage port, storage adapter, dedupe, retention, export, delete, traceability | module-forensics-persistence-capability.instructions.md | Route retired local-data vocabulary to the active Forensics write boundary |
-| local persistence, sqlite, grasseye.sqlite, evidence file store, export set storage, storageRef, structured store, local persistence schema | module-forensics-persistence-capability.instructions.md | Local persistence schema now routes through Forensics child boundary |
-| real chrome, persistent profile, browser profile, local browser session, login state reuse, profileRef, userDataDir, chrome executable, headless default, incognito | module-open-capability.instructions.md | Local real browser session now routes through Open child boundary |
-| structured log, structured logging, runtime event, action log, debug owner evidence, log schema, sessionId, roundId, videoVisitId | module-forensics-persistence-capability.instructions.md | Structured owner evidence now routes through Forensics child boundary |
-| credentials, cookies, session, token, privacy, sensitive screenshot, authorized account, privacy prompt boundary | module-security-privacy.instructions.md | Security and privacy only |
-| startup script, launch script, bootstrap, dependency check, auto open page, health-gated launch, unique startup source, grasseye:start | module-commander-console-capability.instructions.md | Startup bootstrap now routes through Commander Console child boundary |
-| localhost console, desktop app, macOS app, local app shell, local workbench, public exposure | module-commander-console-capability.instructions.md | Local app shell now routes through Commander Console child boundary |
-| file placement, domain ownership, new directory, move files, topology, canonical path, phase goal, TODO plan, Codex prompt, acceptance report, archive, docs path, runtime data path | module-capability-group-governance.instructions.md | Topology contract now lives under capability-group governance |
-| file length, function length, code purity, atomicity, nesting depth, complexity, dead code, commented-out code, debug leftovers, TODO hygiene, compatibility bridge, god function, giant function, god file, owner mixing | module-code-purity.instructions.md | Code Purity foundation law; audit-system only owns runner and enforcement plumbing |
-| src/types, strict mode, unknown, schema validation, action payload, no any | module-type-safety.instructions.md | Type boundary only |
-| src/lib/local-ai, local model, local AI, model router, prompt registry, prompt version, AI output schema, paid API, cloud AI fallback, model config, local model config, model role, vision model, OCR engine, model provider, ollama, llama.cpp, PaddleOCR, Apple Vision | module-ai-capability.instructions.md | Local model runtime now routes through AI capability as a child sub-contract |
-| test file, tests directory, npm test, mock gate, quality gate authority | module-audit-system.instructions.md | Audit authority over quality gates only |
-| scripts/audit, owner boundary, report format, generated artifacts, inspector, enforcement | module-audit-system.instructions.md | Audit governance only; generated artifacts are support evidence, not authority truth |
-
----
-
-## Routing Boundary Statement
-
-This index does not govern:
-- Product-vs-non-product classification rules.
-- Comment interpretation rules.
-- Opportunity scoring criteria.
-- Platform action legality beyond routing to the owning module.
-- Deleted owner names such as agent-runtime, agent-mechanical-skills, agent-browse-flow, evidence-packet, vision-boundary, visual-only-runtime, visual-action-capability, comment-intelligence, product-signal, and operator-control.
+Page-state, post-action verification, visual-target court, product-video-only judging, and advanced map generation plans are historical only. They must not route current runtime and live under docs/archive/** when retained.

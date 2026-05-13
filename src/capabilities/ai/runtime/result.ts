@@ -131,7 +131,7 @@ const buildAiResult = (input: {
     promptContractVersion: input.promptContractVersion,
     promptCatalogVersion: input.promptCatalogVersion,
     promptVersion: input.promptContractVersion,
-    schemaVersion: input.output?.schemaVersion ?? "visualMissionActionPlan.v1",
+    schemaVersion: input.output?.schemaVersion ?? "pureVisualRound.v1",
     createdAt: input.endedAt,
   };
 };

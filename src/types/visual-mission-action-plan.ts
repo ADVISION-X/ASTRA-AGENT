@@ -2,12 +2,13 @@ export {
   VisualMissionPlatformSchema,
   VisualMissionPlatformContextSchema,
   VisualMissionActionInputSchema,
-  VisualMissionActionSchema,
+  PureVisualRoundNextActionSchema,
   VisualMissionActionPlanRequestInputSchema,
   VisualMissionActionPlanOutputSchema,
-} from "../visual-mission/action-plan/ai-output.schema.js";
+} from "../visual-mission/round/pure-visual-round-output.schema.js";
 
 export type {
+  PureVisualRoundNextAction,
   VisualMissionActionPlanRequestInput,
   VisualMissionActionPlanOutput,
-} from "../visual-mission/action-plan/ai-output.schema.js";
+} from "../visual-mission/round/pure-visual-round-output.schema.js";

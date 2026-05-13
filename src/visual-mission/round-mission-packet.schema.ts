@@ -25,11 +25,8 @@ const RoundMissionPacketRoundSchema = z.object({
 }).strict();
 
 const RoundMissionPacketProgressSchema = z.object({
-  savedLeadCount: nonNegativeInteger.default(0),
-  skippedCount: nonNegativeInteger.default(0),
-  reviewRequiredCount: nonNegativeInteger.default(0),
-  failedActionCount: nonNegativeInteger.default(0),
-  consecutiveFailureCount: nonNegativeInteger.default(0),
+  matchedEvidenceCount: nonNegativeInteger.default(0),
+  missionStatus: z.string().min(1),
 }).strict();
 
 const RoundMissionPacketLastActionSchema = z.object({

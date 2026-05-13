@@ -34,27 +34,23 @@ function extractFirstJsonObject(text: string): string {
   throw new Error("AI model output did not contain a JSON object.");
 }
 
-function pruneActionInputFields(parsed: Record<string, unknown>): void {
-  const actions = parsed["actions"];
-  if (!Array.isArray(actions)) return;
+function pruneNextActionInputFields(parsed: Record<string, unknown>): void {
+  const nextAction = parsed["nextAction"];
+  if (nextAction === null || typeof nextAction !== "object" || Array.isArray(nextAction)) return;
+  const actionObj = nextAction as Record<string, unknown>;
+  const actionCode = typeof actionObj["actionCode"] === "string" ? actionObj["actionCode"].toUpperCase() : null;
+  const input = actionObj["input"];
+  if (!actionCode || input === null || typeof input !== "object" || Array.isArray(input)) return;
 
-  for (const action of actions) {
-    if (action === null || typeof action !== "object" || Array.isArray(action)) continue;
-    const actionObj = action as Record<string, unknown>;
-    const actionCode = typeof actionObj["actionCode"] === "string" ? actionObj["actionCode"].toUpperCase() : null;
-    const input = actionObj["input"];
-    if (!actionCode || input === null || typeof input !== "object" || Array.isArray(input)) continue;
+  const entry = getRegisteredAbilityById(actionCode);
+  if (!entry) return;
 
-    const entry = getRegisteredAbilityById(actionCode);
-    if (!entry) continue;
-
-    const policy = resolveAiActionInputPolicy(entry);
-    const allowed = new Set([...policy.aiRequiredInput, ...policy.aiOptionalInput]);
-    const cleanedInput = Object.fromEntries(
-      Object.entries(input as Record<string, unknown>).filter(([field]) => allowed.has(field)),
-    );
-    actionObj["input"] = cleanedInput;
-  }
+  const policy = resolveAiActionInputPolicy(entry);
+  const allowed = new Set([...policy.aiRequiredInput, ...policy.aiOptionalInput]);
+  const cleanedInput = Object.fromEntries(
+    Object.entries(input as Record<string, unknown>).filter(([field]) => allowed.has(field)),
+  );
+  actionObj["input"] = cleanedInput;
 }
 
 const parseAiJsonOutput = <TOutput>(text: string, schema: z.ZodSchema<TOutput>) => {
@@ -68,10 +64,9 @@ const parseAiJsonOutput = <TOutput>(text: string, schema: z.ZodSchema<TOutput>) 
   if (nested !== null && typeof nested === "object" && !Array.isArray(nested)) {
     const nestedObj = nested as Record<string, unknown>;
     const TOP_LEVEL_FIELDS = [
-      "isTargetFeed", "pageStateDecision", "isTargetPlatform", "surface",
-      "isProductVideo", "productDecision", "confidence", "visibleProductTypes",
-      "visualEvidence", "reason", "actions", "nonExecutableClickTargets",
-      "riskFlags", "nonExecutableSummary",
+      "goalMatched", "save", "saveReason", "confidence",
+      "visualEvidence", "decision", "nextAction",
+      "reviewRequiredReason", "doneReason",
     ];
     for (const field of TOP_LEVEL_FIELDS) {
       if (parsed[field] === undefined && nestedObj[field] !== undefined) {
@@ -81,24 +76,13 @@ const parseAiJsonOutput = <TOutput>(text: string, schema: z.ZodSchema<TOutput>) 
     }
   }
 
-  if (typeof parsed["isProductVideo"] === "string") {
-    const normalized = parsed["isProductVideo"].trim().toLowerCase();
-    if (normalized === "true") parsed["isProductVideo"] = true;
-    if (normalized === "false") parsed["isProductVideo"] = false;
-  }
-  if (parsed["nonExecutableSummary"] === null) {
-    parsed["nonExecutableSummary"] = "none";
-  }
-  if (parsed["nonExecutableSummary"] === "") {
-    parsed["nonExecutableSummary"] = "none";
-  }
   if (Array.isArray(parsed["visualEvidence"]) && parsed["visualEvidence"].length === 0) {
     parsed["visualEvidence"] = ["No visual evidence provided by model."];
   }
   if (parsed["visualEvidence"] === undefined || parsed["visualEvidence"] === null) {
     parsed["visualEvidence"] = ["No visual evidence provided by model."];
   }
-  pruneActionInputFields(parsed);
+  pruneNextActionInputFields(parsed);
 
   return schema.parse(parsed);
 };

@@ -1,177 +1,66 @@
 ---
 name: "GrassEye Kernel"
-description: "Use when defining or reviewing GrassEye phase-five final-delivery debugging governance, authority order, canonical paths, active ability groups, and active system boundaries."
+description: "Current GrassEye pure visual single-round closed-loop authority."
 applyTo: ".github/instructions/cursor-rules/**"
 ---
 
 # GrassEye Kernel
 
+status: active
+version: 2026-05-13
+
 ## System Identity
 
-- Project: GrassEye
-- 中文定位: 草眼 Agent / 种草产品挖掘系统
-- System nature: local-first visual agent for product discovery research
-- Product form: macOS local desktop workbench with a localhost operator console during the current implementation window
-- Current phase: phase-five final-delivery debugging and final-delivery active-domain monitoring
-- Core mission: discover evidence-backed product opportunities from social video feeds through governed ability groups, local AI, local browser execution, and automated Forensics proof
+GrassEye is a pure visual goal-search agent. It is not a product-video-only judge and not a platform semantic shortcut runner.
 
-## Fixed Formula
-
-- GrassEye = User Requirement + Platform Registry + MuscleMemoryCatalog + AI + Orchestration + Nerve Bus + Capability Groups + Forensics Persistence + Commander Console.
-- MuscleMemoryCatalog = the governed capability registry.
-- It is not a workflow library.
-- It is not a package library.
-- It is not a business-flow catalog.
-- It is not a semantic-shortcut catalog.
-- Capability Groups = owner departments for classes of executable abilities.
-- Child Abilities = the smallest governed atomic actions owned by one parent capability group.
-- AI = the reasoning brain that composes registered atomic abilities from user requirement and current visual evidence.
-- System = the governed validator, ref injector, geometry resolver, dispatcher, and evidence recorder; it does not replace AI business judgment.
-- Prompt contracts are governed AI support contracts, not new owners.
-- Support evidence surfaces may observe, package, or verify machine-side context, but they do not replace AI semantic judgment and do not become permanent top-level authority by default.
-- Startup Entrypoint is a support boundary that bootstraps the local shell; it is not an ability group, not Commander Console, and not mission truth.
-- Only capability groups that expose governed atomic child abilities are allowed top-level execution owners.
-- Child abilities exist only inside one parent ability group.
-- Prompt contracts are governed data contracts owned by AI Capability and assembled from User Requirement, Platform Registry, and MuscleMemoryCatalog context; they are not new ability groups and must not execute actions.
-- Support laws may define shell, storage, logging, topology, privacy, localization, and audit boundaries, but they must not create a second runtime chain.
-
-## Core Definitions
-
-- Muscle Memory = governed capability registry.
-- Capability Group = owner department of one class of executable abilities.
-- Child Ability = smallest atomic executable action that cannot be further split without changing execution truth.
-- AI = composes registered abilities only from current evidence and the capability registry; it must not invent abilities or output raw coordinates.
-- System = validates registry compliance, injects system refs, resolves gridCell through Geometry Guard, dispatches owning capability groups, and records evidence.
-
-## Current Runtime Mission Loop
-
-Current runtime mission loop is:
+## Highest Formula
 
 ```txt
-userRequirementText + selectedPlatforms
-→ PlatformRegistry + MuscleMemoryCatalog + Visual Mission Prompt Contract
-→ screenshot original + coordinate grid
-→ AI Visual Mission Judge
-→ governed decision + registered atomic capability sequence (current transport may serialize as actions[].actionCode tokens)
-→ ActionPlan Decoder / Scheduler
-→ owning capability public contracts
-→ Forensics record
-→ next round
+用户目标 = 我要找什么
+每轮系统 = 截图 + 坐标图
+每轮 AI = goalMatched + save + nextAction
+系统 = save 后执行 nextAction
+每轮只执行一个 action
+下一轮重新截图重新判断
 ```
 
-Authority split:
-- AI = semantic judge and registry-backed ability composer.
-- System = validator, decoder, ref injector, dispatcher, and machine arm.
-- MuscleMemory = governed capability registry only.
-- Forensics = mandatory evidence memory.
-- Page State / Visual Target / Post-action Verification = support evidence only, not semantic authority.
+## Authority Split
 
-Current narrative authority:
-- docs/法案辅助文件/GrassEye 简单能力机器总纲施工图.md
-- docs/法案辅助文件/GrassEye Muscle Memory Catalog 肌肉记忆目录施工图.md
-- docs/法案辅助文件/GrassEye Child Capability Strength 子能力强度施工图.md
+- User Requirement: defines what to find.
+- Screenshot and coordinate grid: the only per-round visual evidence.
+- AI: judges whether the current screen matches the user goal and chooses one atomic next action.
+- Orchestration: captures, renders grid, calls AI, saves current evidence when `save=true`, then dispatches exactly one action.
+- MuscleMemoryCatalog: exposes atomic next-action abilities only.
+- Forensics: system-owned evidence persistence only.
+- PlatformProfile: entry URL, title, allowed hosts, supported atomic action codes, and optional visual notes only.
 
-Retired runtime references:
-- docs/项目方案/GrassEye_视觉裁判_故事情节.md is historical narrative reference only and must not define current MuscleMemoryCatalog or atomic-child-capability truth.
-- docs/项目方案/GrassEye_第五阶段建设目标方案.md is historical only and must not be used as current delivery authority.
-- Any GrassEye_系统运行逻辑示意图_V2 runtime diagram is retired/superseded and must not be used as current runtime architecture truth.
+## Runtime Loop
 
-## Authority Chain
+```txt
+loop guard
+capture-browser-viewport
+render-coordinate-grid
+call AI pure visual round judge
+parse pureVisualRound.v1
+if save=true: systemSaveCurrentRoundEvidence
+if decision=done: complete
+if decision=review_required: stop for review
+if decision=blocked: stop for review
+if decision=act: dispatch one nextAction
+next round
+```
 
-1. User instruction
-2. Workspace-level shared instructions when present
-3. GRASSEYE-KERNEL.instructions.md
-4. grasseye-index.instructions.md
-5. module-capability-group-governance.instructions.md when ability-group structure or shared contracts are in scope
-6. One path-matched module law file
-7. Commander governed automation gate before activation; no runtime human review route
+## Hard Bans
 
-One issue has one active owner plus any directly governing shared foundation.
+- No product-video-specific AI output truth.
+- No page-state semantic court.
+- No AI-visible Forensics save/read/write actions.
+- No platform-provided next/like/comment/recovery action hints.
+- No multi-step AI planning.
+- No raw coordinates, DOM selectors, browser commands, owner overrides, or Forensics payloads in AI output.
 
-## Active Ability Groups
+## Current Narrative Authority
 
-Current implementation inventory of top-level roots:
-- The current 14 roots remain the implementation inventory, but they are not equal semantic authority.
-- Support and transition evidence surfaces must be folded or retired when they stop providing independent atomic child abilities.
+- docs/法案辅助文件/GrassEye 纯视觉单轮闭环总纲施工图.md
 
-Core ability providers and control owners:
-- commander-console
-- orchestration
-- nerve-bus
-- ai
-- open
-- screenshot
-- geometry-guard
-- mouse-click
-- text-input
-- mouse-scroll
-- forensics-persistence
-
-Support / transition evidence surfaces:
-- visual-target
-- post-action-verification
-
-Retired surfaces (no active src/capabilities path allowed):
-- page-state (retired — raw browser observation helper only at src/lib/browser/browser-observation.ts)
-
-## Foundation Laws
-
-- audit-system
-- capability-group-governance
-- code-purity
-- type-safety
-- security-privacy
-
-## Support Governance Domains
-
-## Local Development Tooling
-
-## Global Red Lines
-
-- Do not reintroduce agent-runtime, browse-flow, mechanical-skills, operator-control, visual-action, visual-only-runtime, evidence-packet, product-signal, comment-intelligence, or vision-boundary as active owners.
-- Do not create a second execution chain beside the ability-group formula.
-- Do not treat PlatformAdapter, feature folders, helper files, startup scripts, or browser primitives as ability owners.
-- Do not keep src/features/local-data or src/features/platform-action as active runtime roots after capability-group cutover.
-- Do not let local-data own evidence, ledger, AI-result, snapshot, or operator-snapshot truth.
-- Do not let platform-action own open, screenshot, visual target, geometry, click, scroll, page-state, or post-action verification truth.
-- Do not treat verify scripts, ad-hoc quality scripts, generated matrices/summaries, or test files as architecture or enforcement truth.
-- Do not silently fall back to cloud AI, remote automation, DOM scraping, selector action paths, or hidden compatibility bridges.
-
-## Canonical Paths
-
-- Law home: .github/instructions/cursor-rules
-- Module law home: .github/instructions/cursor-rules/modules
-- Ability-group roots: src/capabilities/<ability-group>
-- Shell, adapter, consumer layer: src/app and src/features
-- Forensics storage-port internals: src/capabilities/forensics-persistence/**
-- Platform profiles and hints: under the owning ability-group shared/profile paths, not src/features/platform-action
-- Shared infrastructure: src/lib
-- Cross-domain types: src/types
-- Audit home: scripts/audit
-- Law blueprints: docs/法案辅助文件
-- Runtime local data: outside repository source truth and gitignored
-
-## Core Fingerprint Index
-
-- This is the core routing index, not a full inventory of every support file, child boundary, local runtime helper, or generated audit object. Generated artifacts may support inspection, but no generated artifact outranks laws, blueprints, or owner inspectors.
-
-- kernel: GRASSEYE-KERNEL.instructions.md
-- router: grasseye-index.instructions.md
-- capability-group-governance: modules/module-capability-group-governance.instructions.md
-- commander-console-capability: modules/module-commander-console-capability.instructions.md
-- orchestration-capability: modules/module-orchestration-capability.instructions.md
-- nerve-bus-capability: modules/module-nerve-bus-capability.instructions.md
-- ai-capability: modules/module-ai-capability.instructions.md
-- open-capability: modules/module-open-capability.instructions.md
-- screenshot-capability: modules/module-screenshot-capability.instructions.md
-- visual-target-capability: modules/module-visual-target-capability.instructions.md
-- geometry-guard-capability: modules/module-geometry-guard-capability.instructions.md
-- mouse-click-capability: modules/module-mouse-click-capability.instructions.md
-- text-input-capability: modules/module-text-input-capability.instructions.md
-- mouse-scroll-capability: modules/module-mouse-scroll-capability.instructions.md
-- post-action-verification-capability: modules/module-post-action-verification-capability.instructions.md
-- forensics-persistence-capability: modules/module-forensics-persistence-capability.instructions.md
-- page-state-capability: modules/module-page-state-capability.instructions.md (RETIRED — no active capability)
-- audit-system: modules/module-audit-system.instructions.md
-- type-safety: modules/module-type-safety.instructions.md
-- security-privacy: modules/module-security-privacy.instructions.md
+All files under docs/archive/** are historical only and must not route current runtime.

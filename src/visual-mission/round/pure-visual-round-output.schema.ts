@@ -5,17 +5,22 @@ import {
   isAiActionPlanAllowedActionCode,
 } from "../../muscle-memory/catalog.js";
 import type { RegisteredAtomicAbility } from "../../muscle-memory/catalog.js";
-import { MuscleMemoryCellZoneSchema, MuscleMemoryGridCellSchema, MuscleMemoryPressKeySchema } from "../../muscle-memory/schema.js";
+import {
+  MuscleMemoryCellZoneSchema,
+  MuscleMemoryGridCellSchema,
+  MuscleMemoryPressKeySchema,
+} from "../../muscle-memory/schema.js";
 import { VISUAL_MISSION_PLATFORM_IDS } from "../platform-target-registry.js";
 import { RoundMissionPacketSchema } from "../round-mission-packet.schema.js";
 import {
   getAiRequiredActionFields,
   getAiVisibleActionFields,
   isAiForbiddenActionField,
-} from "./action-field-policy.js";
+} from "../action-plan/action-field-policy.js";
 
 const VisualMissionPlatformSchema = z.enum(VISUAL_MISSION_PLATFORM_IDS);
-const VisualMissionActionInputSchema = z.record(z.string().min(1), z.unknown());
+const PureVisualRoundActionInputSchema = z.record(z.string().min(1), z.unknown());
+const PureVisualRoundDecisionSchema = z.enum(["act", "done", "review_required", "blocked"]);
 
 function isGridCellInputField(field: string): boolean {
   return field === "gridCell" || field.endsWith("GridCell");
@@ -68,23 +73,15 @@ function validateGovernedValues(actionCode: string, actionInput: Record<string, 
   }
 }
 
-function validateActionInput(
-  actionCode: string,
-  actionInput: Record<string, unknown>,
-  entry: RegisteredAtomicAbility,
+function validateNextActionInput(
+  value: {
+    actionCode: string;
+    input?: Record<string, unknown> | undefined;
+    gridCell?: string | null | undefined;
+    cellZone?: string | null | undefined;
+  },
   context: z.RefinementCtx,
 ) {
-  validateRequiredFields(actionCode, actionInput, entry, context);
-  validateProvidedFields(actionCode, actionInput, entry, context);
-  validateGovernedValues(actionCode, actionInput, context);
-}
-
-const validateVisualMissionActionInput = (value: {
-  actionCode: string;
-  input?: Record<string, unknown> | undefined;
-  gridCell?: string | null | undefined;
-  cellZone?: string | null | undefined;
-}, context: z.RefinementCtx) => {
   const actionInput = {
     ...(value.input ?? {}),
     ...(value.gridCell ? { gridCell: value.gridCell } : {}),
@@ -97,29 +94,18 @@ const validateVisualMissionActionInput = (value: {
     return;
   }
 
-  validateActionInput(value.actionCode, actionInput, entry, context);
-};
+  validateRequiredFields(value.actionCode, actionInput, entry, context);
+  validateProvidedFields(value.actionCode, actionInput, entry, context);
+  validateGovernedValues(value.actionCode, actionInput, context);
+}
 
-const VisualMissionActionSchema = z.object({
+const PureVisualRoundNextActionSchema = z.object({
   actionCode: z.string().min(1).transform((v) => v.toUpperCase()).refine(isAiActionPlanAllowedActionCode, "actionCode must be registered in MuscleMemoryCatalog and allowed for AI planning."),
-  required: z.boolean().default(true),
-  input: VisualMissionActionInputSchema.optional(),
+  reason: z.string().min(1),
+  input: PureVisualRoundActionInputSchema.optional().default({}),
   gridCell: MuscleMemoryGridCellSchema.nullable().optional().default(null),
   cellZone: MuscleMemoryCellZoneSchema.nullable().optional().default(null),
-  reason: z.string().min(1),
-}).strict().superRefine(validateVisualMissionActionInput);
-
-const VisualMissionVisualClickTargetHintSchema = z.object({
-  gridCell: MuscleMemoryGridCellSchema,
-  targetName: z.string().min(1),
-}).strict();
-
-const VisualMissionInteractiveElementSchema = z.object({
-  elementType: z.string().min(1),
-  label: z.string().min(1),
-  gridCell: MuscleMemoryGridCellSchema,
-  cellZone: MuscleMemoryCellZoneSchema.optional(),
-}).strict();
+}).strict().superRefine(validateNextActionInput);
 
 const VisualMissionPlatformContextSchema = z.object({
   platformId: VisualMissionPlatformSchema,
@@ -143,43 +129,49 @@ const VisualMissionActionPlanRequestInputSchema = z.object({
 }).strict();
 
 const VisualMissionActionPlanOutputSchema = z.object({
-  schemaVersion: z.literal("visualMissionActionPlan.v1"),
-  userIntentUnderstanding: z.object({
-    matched: z.boolean(),
-    summary: z.string().min(1),
-  }).strict(),
-  platform: VisualMissionPlatformSchema,
-  isTargetPlatform: z.boolean(),
-  surface: z.string().min(1),
-  isTargetFeed: z.boolean().default(true),
-  pageStateDecision: z.enum(["ready", "recover", "review_required", "blocked"]).default("ready"),
-  isProductVideo: z.boolean(),
-  productDecision: z.enum(["product_yes", "product_no", "uncertain"]),
+  schemaVersion: z.literal("pureVisualRound.v1"),
+  goalMatched: z.boolean(),
+  save: z.boolean(),
+  saveReason: z.string().min(1),
   confidence: z.number().min(0).max(1),
-  visibleProductTypes: z.array(z.string().min(1)).default([]),
   visualEvidence: z.array(z.string().min(1)).min(1),
-  reason: z.string().min(1),
-  actions: z.array(VisualMissionActionSchema).min(1),
-  visibleInteractiveElements: z.array(VisualMissionInteractiveElementSchema).default([]),
-  nonExecutableClickTargets: z.array(VisualMissionVisualClickTargetHintSchema).default([]),
-  riskFlags: z.array(z.string().min(1)).default([]),
-  nonExecutableSummary: z.string().min(1),
-}).strict();
+  decision: PureVisualRoundDecisionSchema,
+  nextAction: PureVisualRoundNextActionSchema.nullable(),
+  reviewRequiredReason: z.string().min(1).nullable().default(null),
+  doneReason: z.string().min(1).nullable().default(null),
+}).strict().superRefine((output, context) => {
+  if (output.goalMatched && !output.save && output.decision !== "blocked" && output.decision !== "review_required") {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "save must be true when goalMatched is true.", path: ["save"] });
+  }
+  if (output.decision === "act" && output.nextAction === null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "nextAction is required when decision is act.", path: ["nextAction"] });
+  }
+  if (output.decision !== "act" && output.nextAction !== null) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "nextAction must be null unless decision is act.", path: ["nextAction"] });
+  }
+  if (output.decision === "review_required" && !output.reviewRequiredReason) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "reviewRequiredReason is required when decision is review_required.", path: ["reviewRequiredReason"] });
+  }
+  if (output.decision === "done" && !output.doneReason) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "doneReason is required when decision is done.", path: ["doneReason"] });
+  }
+});
 
 type VisualMissionActionPlanRequestInput = z.infer<typeof VisualMissionActionPlanRequestInputSchema>;
 type VisualMissionActionPlanOutput = z.infer<typeof VisualMissionActionPlanOutputSchema>;
+type PureVisualRoundNextAction = z.infer<typeof PureVisualRoundNextActionSchema>;
 
 export {
   VisualMissionPlatformSchema,
   VisualMissionPlatformContextSchema,
-  VisualMissionActionInputSchema,
-  VisualMissionActionSchema,
-  VisualMissionInteractiveElementSchema,
+  PureVisualRoundActionInputSchema as VisualMissionActionInputSchema,
+  PureVisualRoundNextActionSchema,
   VisualMissionActionPlanRequestInputSchema,
   VisualMissionActionPlanOutputSchema,
 };
 
 export type {
+  PureVisualRoundNextAction,
   VisualMissionActionPlanRequestInput,
   VisualMissionActionPlanOutput,
 };

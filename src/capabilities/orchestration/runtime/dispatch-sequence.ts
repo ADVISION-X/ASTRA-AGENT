@@ -38,6 +38,7 @@ const CELL_ZONE_OFFSETS: Record<CellZone, { xRatio: number; yRatio: number }> = 
   top_center: { xRatio: 1 / 2, yRatio: 1 / 6 },
   top_right: { xRatio: 5 / 6, yRatio: 1 / 6 },
   middle_left: { xRatio: 1 / 6, yRatio: 1 / 2 },
+  middle_center: { xRatio: 1 / 2, yRatio: 1 / 2 },
   center: { xRatio: 1 / 2, yRatio: 1 / 2 },
   middle_right: { xRatio: 5 / 6, yRatio: 1 / 2 },
   bottom_left: { xRatio: 1 / 6, yRatio: 5 / 6 },

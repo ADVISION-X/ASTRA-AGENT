@@ -41,7 +41,7 @@ export const OcrTextResultSchema = z.object({
   evidenceRef: EvidenceRefSchema,
   confidence: z.number().min(0).max(1),
   cleanedComments: z.array(z.string().min(1)),
-  uncertainText: z.array(z.string().min(1)),
+  ambiguousText: z.array(z.string().min(1)),
   createdAt: z.string().datetime()
 });
 

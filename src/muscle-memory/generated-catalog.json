@@ -534,7 +534,7 @@
       "childCapabilityId": "append-record",
       "inputSchemaRef": "forensics-persistence.append-record.input",
       "outputSchemaRef": "forensics-persistence.append-record.output",
-      "allowedForAiActionPlan": true,
+      "allowedForAiActionPlan": false,
       "allowedForUserRequirement": false,
       "requiresGridSpecRef": false,
       "requiresScreenshotRef": false,

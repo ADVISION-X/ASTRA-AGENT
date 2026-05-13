@@ -71,12 +71,11 @@ export const MissionStateSchema = z.object({
   targetTitle: z.string().min(1).nullable().optional().default(null),
   // Open gate — set after OPEN_PLATFORM_ENTRY_ONCE succeeds in round 0
   openResultRef: z.string().min(1).nullable().optional().default(null),
-  // Progress counters — state-derived, updated after each round
-  savedEvidenceCount: z.number().int().nonnegative().default(0),
-  skippedVideoCount: z.number().int().nonnegative().default(0),
-  failedActionCount: z.number().int().nonnegative().default(0),
-  reviewRequiredCount: z.number().int().nonnegative().default(0),
-  consecutiveFailureCount: z.number().int().nonnegative().default(0),
+  // Generic mission progress — state-derived, updated after each round.
+  matchedEvidenceCount: z.number().int().nonnegative().default(0),
+  lastActionStatus: z.enum(["success", "failed", "review_required", "pending"]).nullable().optional().default(null),
+  lastFailureReason: z.string().nullable().optional().default(null),
+  lastReviewRequiredReason: z.string().nullable().optional().default(null),
   reviewRequiredReason: z.string().nullable().optional().default(null),
   stopReason: z.string().nullable().optional().default(null),
   failureReason: z.string().nullable().optional().default(null),
@@ -180,6 +179,7 @@ export const DispatchRegisteredAbilitySequenceInputSchema = z.object({
       "top_center",
       "top_right",
       "middle_left",
+      "middle_center",
       "center",
       "middle_right",
       "bottom_left",

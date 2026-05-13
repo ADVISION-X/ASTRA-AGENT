@@ -5,9 +5,7 @@ import {
   ProductPresenceInputModeSchema,
   VideoFrameSamplePointLabelSchema,
 } from "./multi-frame-evidence.js";
-import {
-  VisualMissionExecutablePlanSchema as VisualMissionActionPlanSchema,
-} from "../visual-mission/action-plan/executable-plan.schema.js";
+import { VisualMissionActionPlanOutputSchema as VisualMissionActionPlanSchema } from "./visual-mission-action-plan.js";
 
 const VisualMissionPageStateDecisionSchema = z.string().min(1);
 
@@ -22,8 +20,8 @@ const VisionProductPresencePromptVersionSchema = z.literal("v1");
 const VisionProductPresenceSchemaVersionSchema = z.literal("visual-mission-judge.schema.v1");
 
 const VisionProductPresenceTaskDecisionSchema = z.enum([
-  "product_yes",
-  "product_no",
+  "goal_matched",
+  "goal_not_matched",
 ]);
 
 const VisionProductPresenceRequestInputSchema = z.object({
@@ -48,7 +46,7 @@ const VisionProductPresenceRequestInputSchema = z.object({
 const VisionProductPresenceFrameObservationSchema = z.object({
   frameLabel: VideoFrameSamplePointLabelSchema,
   hasVisibleProduct: z.boolean().nullable(),
-  visibleProductTypes: z.array(z.string().min(1)).default([]),
+  visibleMatchTypes: z.array(z.string().min(1)).default([]),
   observations: z.array(z.string().min(1)).default([]),
 });
 
@@ -67,18 +65,18 @@ const VisionProductPresencePayloadSchema = z.object({
   expectedFrameCount: z.number().int().positive().default(3),
   samplingFailureReason: z.string().min(1).nullable().default(null),
   missingFrames: z.array(VisionProductPresenceMissingFrameSchema).default([]),
-  isProductVideo: z.boolean().nullable(),
+  goalMatched: z.boolean().nullable(),
   taskDecision: VisionProductPresenceTaskDecisionSchema,
-  pageStateDecision: VisualMissionPageStateDecisionSchema,
+  roundDecision: VisualMissionPageStateDecisionSchema,
   actionPlan: VisualMissionActionPlanSchema,
-  nonExecutableSummary: z.string().min(1),
+  visualSummary: z.string().min(1),
   confidence: z.number().min(0).max(1),
-  visibleProductTypes: z.array(z.string().min(1)),
+  visibleMatchTypes: z.array(z.string().min(1)),
   evidenceObservations: z.array(z.string().min(1)),
   reason: z.string().min(1),
   frameLevelObservations: z.array(VisionProductPresenceFrameObservationSchema).default([]),
   aggregateReason: z.string().min(1),
-  uncertainty: z.array(z.string().min(1)),
+  ambiguity: z.array(z.string().min(1)),
   mustReview: z.boolean(),
 });
 

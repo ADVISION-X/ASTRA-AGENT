@@ -146,7 +146,7 @@ type BrowseRuntimeSnapshot = {
     totalSeenCount: number;
     productYesCount: number;
     productNoCount: number;
-    uncertainCount: number;
+    ambiguousCount: number;
     duplicateCount: number;
     evidencePacketCount: number;
     browseRecordCount: number;

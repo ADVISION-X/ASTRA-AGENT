@@ -6,7 +6,6 @@ const SYSTEM_INJECTED_ACTION_FIELDS = new Set([
   "targetTitle",
   "targetProfileRef",
   "screenshotEvidenceRef",
-  "productPresenceAiResultRef",
   "gridSpec",
   "gridSpecRef",
   "coordinateSpace",

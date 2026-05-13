@@ -30,11 +30,8 @@ const buildMission = (mission: RoundMissionPacketMission): RoundMissionPacketMis
 });
 
 const buildProgress = (progress?: Partial<RoundMissionPacketProgress>): RoundMissionPacketProgress => ({
-  savedLeadCount: progress?.savedLeadCount ?? 0,
-  skippedCount: progress?.skippedCount ?? 0,
-  reviewRequiredCount: progress?.reviewRequiredCount ?? 0,
-  failedActionCount: progress?.failedActionCount ?? 0,
-  consecutiveFailureCount: progress?.consecutiveFailureCount ?? 0,
+  matchedEvidenceCount: progress?.matchedEvidenceCount ?? 0,
+  missionStatus: progress?.missionStatus ?? "running",
 });
 
 const buildLastAction = (lastAction?: Partial<RoundMissionPacketLastAction>): RoundMissionPacketLastAction => ({

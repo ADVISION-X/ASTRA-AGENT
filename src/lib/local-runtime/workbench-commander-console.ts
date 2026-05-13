@@ -97,8 +97,8 @@ export type WorkbenchMissionView = {
   updatedAt: string;
   lastStopReason: string | null;
   reviewRequiredReason: string | null;
-  savedEvidenceCount: number;
-  failedActionCount: number;
+  matchedEvidenceCount: number;
+  lastActionFailureCount: number;
   failureReason?: string | null | undefined;
   endedAt?: string | null | undefined;
   humanGoal?: string | null | undefined;
@@ -203,8 +203,8 @@ function createGetMissionStatus(getOrchestration: GetOrchestration): () => {
   updatedAt: string;
   lastStopReason: string | null;
   reviewRequiredReason: string | null;
-  savedEvidenceCount: number;
-  failedActionCount: number;
+  matchedEvidenceCount: number;
+  lastActionFailureCount: number;
 } {
   return () => {
     // Try to get mission state from orchestration synchronously via getMissionState
@@ -220,8 +220,8 @@ function createGetMissionStatus(getOrchestration: GetOrchestration): () => {
       updatedAt: new Date().toISOString(),
       lastStopReason: null,
       reviewRequiredReason: null,
-      savedEvidenceCount: 0,
-      failedActionCount: 0,
+      matchedEvidenceCount: 0,
+      lastActionFailureCount: 0,
     };
   };
 }
@@ -264,8 +264,8 @@ export async function getCommanderConsoleSnapshot(input: {
       updatedAt: missionState.updatedAt ?? new Date().toISOString(),
       lastStopReason: missionState.stopReason ?? null,
       reviewRequiredReason: missionState.reviewRequiredReason ?? null,
-      savedEvidenceCount: 0,
-      failedActionCount: 0,
+      matchedEvidenceCount: 0,
+      lastActionFailureCount: 0,
     };
   } catch {
     // orchestration not yet available
