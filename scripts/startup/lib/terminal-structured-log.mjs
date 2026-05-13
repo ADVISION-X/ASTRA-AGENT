@@ -35,7 +35,7 @@ const FAILURE_DEBUG_META_KEYS = [
   "visualTargetResultRef",
   "geometryGuardResultRef",
   "clickResultRef",
-  "postActionVerificationResultRef",
+  "actionResultCheckResultRef",
   "commentsEvidenceRef",
 ];
 

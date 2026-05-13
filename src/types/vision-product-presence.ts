@@ -22,8 +22,8 @@ const VisionProductPresencePromptVersionSchema = z.literal("v1");
 const VisionProductPresenceSchemaVersionSchema = z.literal("visual-mission-judge.schema.v1");
 
 const VisionProductPresenceTaskDecisionSchema = z.enum([
-  "YES_SEEDING_VIDEO_FLOW",
-  "NO_SEEDING_VIDEO_FLOW",
+  "product_yes",
+  "product_no",
 ]);
 
 const VisionProductPresenceRequestInputSchema = z.object({
@@ -38,7 +38,7 @@ const VisionProductPresenceRequestInputSchema = z.object({
   sampledFrameCount: z.number().int().positive(),
   validFrameCount: z.number().int().nonnegative(),
   expectedFrameCount: z.number().int().positive().default(3),
-  fallbackReason: z.string().min(1).nullable().default(null),
+  samplingFailureReason: z.string().min(1).nullable().default(null),
   missingFrames: z.array(VisionProductPresenceMissingFrameSchema).default([]),
   userRequirementRef: z.string().min(1).nullable().default(null),
   summary: z.string().min(1),
@@ -65,7 +65,7 @@ const VisionProductPresencePayloadSchema = z.object({
   sampledFrameCount: z.number().int().positive(),
   validFrameCount: z.number().int().nonnegative(),
   expectedFrameCount: z.number().int().positive().default(3),
-  fallbackReason: z.string().min(1).nullable().default(null),
+  samplingFailureReason: z.string().min(1).nullable().default(null),
   missingFrames: z.array(VisionProductPresenceMissingFrameSchema).default([]),
   isProductVideo: z.boolean().nullable(),
   taskDecision: VisionProductPresenceTaskDecisionSchema,

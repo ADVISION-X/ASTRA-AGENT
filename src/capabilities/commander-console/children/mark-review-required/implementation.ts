@@ -16,7 +16,7 @@ export const MARK_REVIEW_REQUIRED_CHILD: CommanderConsoleChildDefinition<MarkRev
       buildCommandInput: (commandInput) => ({
         commandType: "mark-review-required",
         targetMissionId: null,
-        selectedBindingId: null,
+        targetBindingId: null,
         targetRecordRef: { recordType: "candidate", recordId: commandInput.candidateId },
         requestedPlatformId: null,
         humanGoal: null,

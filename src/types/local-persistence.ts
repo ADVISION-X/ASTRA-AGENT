@@ -2,8 +2,8 @@ import { z } from "zod";
 
 import { EvidenceRefSchema } from "./evidence.js";
 import {
-  BrowseLedgerOutcomeSchema,
-  BrowseLedgerProductPresenceDecisionSchema,
+  BrowseRecordOutcomeSchema,
+  BrowseRecordProductPresenceDecisionSchema,
   BrowseSummarySchema,
   EvidencePacketActionPurposeSchema,
   EvidencePacketActionTriggerSourceSchema,
@@ -71,7 +71,7 @@ const BrowseSessionRecordSchema = z.object({
   duplicateCount: z.number().int().nonnegative(),
   blockedCount: z.number().int().nonnegative(),
   evidencePacketCount: z.number().int().nonnegative(),
-  browseLedgerCount: z.number().int().nonnegative(),
+  browseRecordCount: z.number().int().nonnegative(),
   exportPacketCount: z.number().int().nonnegative(),
   stopReason: z.string().min(1).nullable().default(null),
   createdAt: z.string().datetime(),
@@ -89,7 +89,7 @@ const VideoRoundRecordSchema = z.object({
   startedAt: z.string().datetime(),
   endedAt: z.string().datetime().nullable().default(null),
   roundOutcome: EvidencePacketRoundOutcomeSchema,
-  productPresenceDecision: BrowseLedgerProductPresenceDecisionSchema,
+  productPresenceDecision: BrowseRecordProductPresenceDecisionSchema,
   confidence: z.number().min(0).max(1).nullable().default(null),
   nextStep: z.string().min(1),
   finalizationType: VideoRoundFinalizationTypeSchema,
@@ -118,7 +118,7 @@ const StructuredRuntimeEventRecordSchema = z.object({
   durationMs: z.number().int().nonnegative().nullable().default(null),
 });
 
-const StructuredActionLogRecordSchema = z.object({
+const RuntimeActionEventRecordSchema = z.object({
   actionLogId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
@@ -188,14 +188,14 @@ const AIResultRecordSchema = z.object({
   createdAt: z.string().datetime(),
 });
 
-const BrowseLedgerEntryRecordSchema = z.object({
+const BrowseRecordEntryRecordSchema = z.object({
   ledgerEntryId: z.string().min(1),
   sessionId: z.string().min(1),
   roundId: z.string().min(1),
   videoVisitId: z.string().min(1),
   observedAt: z.string().datetime(),
-  browseOutcome: BrowseLedgerOutcomeSchema,
-  productPresenceDecision: BrowseLedgerProductPresenceDecisionSchema,
+  browseOutcome: BrowseRecordOutcomeSchema,
+  productPresenceDecision: BrowseRecordProductPresenceDecisionSchema,
   confidence: z.number().min(0).max(1).nullable().default(null),
   skipReason: z.string().min(1).nullable().default(null),
   actionLogRefs: z.array(z.string().min(1)).default([]),
@@ -217,7 +217,7 @@ const EvidencePacketRecordSchema = z.object({
   videoEvidenceJson: EvidencePacketVideoEvidenceSchema,
   productPresenceAIJson: EvidencePacketProductPresenceAISchema,
   preActionMetricsJson: EvidencePacketPreActionMetricsSchema,
-  actionsJson: z.array(StructuredActionLogRecordSchema).default([]),
+  actionsJson: z.array(RuntimeActionEventRecordSchema).default([]),
   commentEvidenceJson: EvidencePacketCommentEvidenceSchema,
   advancedAIAnalysisPlaceholderJson: EvidencePacketAdvancedAIAnalysisPlaceholderSchema,
   candidateJson: EvidencePacketCandidateRefSchema,
@@ -252,7 +252,7 @@ const ExportSetRecordSchema = z.object({
   packetIds: z.array(z.string().min(1)).default([]),
   packetCount: z.number().int().nonnegative(),
   browseSummaryJson: BrowseSummarySchema,
-  excludedBrowseLedgerByDefault: z.literal(true),
+  excludedBrowseRecordByDefault: z.literal(true),
   createdAt: z.string().datetime(),
   storageRef: z.string().min(1),
 });
@@ -271,7 +271,7 @@ const LocalPersistenceRelationshipMapSchema = z.object({
   videoRoundToActionLogs: LocalPersistenceRelationshipRuleSchema,
   videoRoundToEvidenceRecords: LocalPersistenceRelationshipRuleSchema,
   productYesRoundToEvidencePacket: LocalPersistenceRelationshipRuleSchema,
-  productNoRoundToBrowseLedgerEntry: LocalPersistenceRelationshipRuleSchema,
+  productNoRoundToBrowseRecordEntry: LocalPersistenceRelationshipRuleSchema,
   evidencePacketToProductCandidate: LocalPersistenceRelationshipRuleSchema,
   exportSetToEvidencePackets: LocalPersistenceRelationshipRuleSchema,
   browserProfileToRuntime: z.object({
@@ -286,15 +286,15 @@ type LocalPersistenceRoot = z.infer<typeof LocalPersistenceRootSchema>;
 type BrowseSessionRecord = z.infer<typeof BrowseSessionRecordSchema>;
 type VideoRoundRecord = z.infer<typeof VideoRoundRecordSchema>;
 type StructuredRuntimeEventRecord = z.infer<typeof StructuredRuntimeEventRecordSchema>;
-type StructuredActionLogRecord = z.infer<typeof StructuredActionLogRecordSchema>;
+type RuntimeActionEventRecord = z.infer<typeof RuntimeActionEventRecordSchema>;
 type EvidenceRecord = z.infer<typeof EvidenceRecordSchema>;
 type MultiFrameEvidenceSetRecord = z.infer<typeof MultiFrameEvidenceSetRecordSchema>;
 type AIResultRecord = z.infer<typeof AIResultRecordSchema>;
-type BrowseLedgerEntryRecord = z.infer<typeof BrowseLedgerEntryRecordSchema>;
+type BrowseRecordEntryRecord = z.infer<typeof BrowseRecordEntryRecordSchema>;
 type EvidencePacketRecord = z.infer<typeof EvidencePacketRecordSchema>;
 type ProductCandidateRecord = z.infer<typeof ProductCandidateRecordSchema>;
 type ExportSetRecord = z.infer<typeof ExportSetRecordSchema>;
 type LocalPersistenceRelationshipMap = z.infer<typeof LocalPersistenceRelationshipMapSchema>;
 
-export { LocalDatabaseTableNameSchema, LocalPersistencePathLayoutSchema, LocalPersistenceRootSchema, BrowseSessionRecordSchema, VideoRoundFinalizationTypeSchema, VideoRoundRecordSchema, StructuredRuntimeEventRecordSchema, StructuredActionLogRecordSchema, EvidenceRecordTypeSchema, EvidenceRecordSchema, MultiFrameEvidenceSetRecordSchema, AIResultRecordSchema, BrowseLedgerEntryRecordSchema, EvidencePacketRecordSchema, ProductCandidateRecordSchema, ExportSetRecordSchema, LocalPersistenceRelationshipMapSchema };
-export type { LocalDatabaseTableName, LocalPersistencePathLayout, LocalPersistenceRoot, BrowseSessionRecord, VideoRoundRecord, StructuredRuntimeEventRecord, StructuredActionLogRecord, EvidenceRecord, MultiFrameEvidenceSetRecord, AIResultRecord, BrowseLedgerEntryRecord, EvidencePacketRecord, ProductCandidateRecord, ExportSetRecord, LocalPersistenceRelationshipMap };
+export { LocalDatabaseTableNameSchema, LocalPersistencePathLayoutSchema, LocalPersistenceRootSchema, BrowseSessionRecordSchema, VideoRoundFinalizationTypeSchema, VideoRoundRecordSchema, StructuredRuntimeEventRecordSchema, RuntimeActionEventRecordSchema, EvidenceRecordTypeSchema, EvidenceRecordSchema, MultiFrameEvidenceSetRecordSchema, AIResultRecordSchema, BrowseRecordEntryRecordSchema, EvidencePacketRecordSchema, ProductCandidateRecordSchema, ExportSetRecordSchema, LocalPersistenceRelationshipMapSchema };
+export type { LocalDatabaseTableName, LocalPersistencePathLayout, LocalPersistenceRoot, BrowseSessionRecord, VideoRoundRecord, StructuredRuntimeEventRecord, RuntimeActionEventRecord, EvidenceRecord, MultiFrameEvidenceSetRecord, AIResultRecord, BrowseRecordEntryRecord, EvidencePacketRecord, ProductCandidateRecord, ExportSetRecord, LocalPersistenceRelationshipMap };

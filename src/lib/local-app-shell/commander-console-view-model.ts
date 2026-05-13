@@ -41,7 +41,7 @@ export function buildCommanderConsoleViewModel(
     failureRadarSummary: buildFailureRadar(dashboard, locale),
     structuredLogPreview: buildStructuredLogPreview(dashboard),
     evidencePackets: dashboard.evidencePackets,
-    browseLedger: dashboard.browseLedger,
+    browseRecord: dashboard.browseRecord,
     failedRecords: dashboard.failedRecords,
     runtimeProofTimeline: dashboard.runtimeProof ?? [],
     exportSummary: buildExportSummary(locale),

@@ -5,8 +5,7 @@
  *   - This module is the sole source of truth for registered atomic abilities.
  *   - It does not execute, decode, compile, or dispatch.
  *   - Every registered ability maps to exactly one abilityGroupId + childCapabilityId.
- *   - The field named `actionCode` serves as the ability's unique registry ID (abilityId).
- *     Short-term backward compatibility: AI schema serializes it as `actionCode`.
+ *   - The field named `actionCode` is the ability registry ID used by AI plans.
  */
 
 import { readFileSync } from "node:fs";
@@ -63,11 +62,6 @@ type CapabilityRegistryInputContract = z.infer<typeof CapabilityRegistryInputCon
 type RegisteredAtomicAbility = z.infer<typeof RegisteredAtomicAbilitySchema>;
 type CapabilityRegistryCatalog = z.infer<typeof CapabilityRegistryCatalogSchema>;
 
-/** Backward-compatible type aliases used by callers that reference old names. */
-type AtomicMuscleMemoryEntry = RegisteredAtomicAbility;
-type MuscleMemoryEntry = RegisteredAtomicAbility;
-type MuscleMemoryCatalog = CapabilityRegistryCatalog;
-
 // ─── Catalog loader ────────────────────────────────────────────────────────
 
 const GENERATED_CATALOG_PATH = new URL("./generated-catalog.json", import.meta.url);
@@ -88,15 +82,8 @@ export function listAiVisibleAbilities(): RegisteredAtomicAbility[] {
   return loadMuscleMemoryCatalog().entries.filter((e) => e.allowedForAiActionPlan);
 }
 
-function getRegisteredAbilityById(actionCode: string): RegisteredAtomicAbility | null {
+export function getRegisteredAbilityById(actionCode: string): RegisteredAtomicAbility | null {
   return loadMuscleMemoryCatalog().entries.find((e) => e.actionCode === actionCode) ?? null;
-}
-
-// ─── Backward-compatible API (callers that use old names) ─────────────────
-
-/** @deprecated Use getRegisteredAbilityById */
-export function findMuscleMemoryEntry(actionCode: string): MuscleMemoryEntry | null {
-  return getRegisteredAbilityById(actionCode);
 }
 
 export function isAiActionPlanAllowedActionCode(actionCode: unknown): actionCode is string {
@@ -107,7 +94,4 @@ export function isAiActionPlanAllowedActionCode(actionCode: unknown): actionCode
 
 export type {
   RegisteredAtomicAbility,
-  // Backward-compatible type aliases
-  AtomicMuscleMemoryEntry,
-  MuscleMemoryEntry,
 };

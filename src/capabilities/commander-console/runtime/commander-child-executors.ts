@@ -20,7 +20,7 @@ type CommandExecutorInput<TInput> = {
 
 type CommandReceiptOutcome = CommanderExecutionOutcome<CommanderCommandReceiptView>;
 
-const buildFallbackReceipt = (input: {
+const buildFailureReceipt = (input: {
 	contract: CommanderCommandChildContract;
 	outcome: CommandReceiptOutcome;
 	message: string;
@@ -43,7 +43,7 @@ const createBlockedReceiptOutcome = (input: {
 	contract: CommanderCommandChildContract;
 	outcome: CommandReceiptOutcome;
 }): CommandReceiptOutcome => {
-	const receipt = buildFallbackReceipt({
+	const receipt = buildFailureReceipt({
 		contract: input.contract,
 		outcome: input.outcome,
 		message: input.outcome.failureReason ?? "Commander command was blocked before transport dispatch.",
@@ -63,7 +63,7 @@ const createTransportReceiptOutcome = (input: {
 	contract: CommanderCommandChildContract;
 	outcome: CommandReceiptOutcome;
 }): CommandReceiptOutcome => {
-	const receipt = buildFallbackReceipt({
+	const receipt = buildFailureReceipt({
 		contract: input.contract,
 		outcome: input.outcome,
 		message: input.outcome.failureReason ?? input.outcome.reviewRequiredReason ?? "Commander command transport failed.",
@@ -82,7 +82,7 @@ const createHardStopReceiptOutcome = (input: {
 	contract: CommanderCommandChildContract;
 	outcome: CommandReceiptOutcome;
 }): CommandReceiptOutcome => {
-	const receipt = buildFallbackReceipt({
+	const receipt = buildFailureReceipt({
 		contract: input.contract,
 		outcome: input.outcome,
 		message: input.outcome.failureReason ?? "Emergency stop transport failed before a governed receipt was recorded.",

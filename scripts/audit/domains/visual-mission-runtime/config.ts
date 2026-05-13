@@ -35,15 +35,15 @@ export const VISUAL_MISSION_RUNTIME_CONFIG = {
   // mission-loop-runner platformContext from state
   platformContextStateToken: "state.targetUrl" as string,
 
-  // AI prompt must throw if SAVE not found (no fallback)
-  saveActionFallbackForbiddenToken: "?? scrollAction" as string,
+  // AI prompt must throw if SAVE not found.
+  saveActionRecoveryForbiddenToken: "?? scrollAction" as string,
   saveActionThrowToken: "throw new Error" as string,
 
   // dispatch-sequence context must include screenshotAbilityGroup
   screenshotAbilityGroupContextToken: "screenshotAbilityGroup: ScreenshotAbilityGroup" as string,
 
   // dispatch-sequence must track comment-panel attempts and log reason/gridCell
-  clickTrackingToken: "captureMode" as string,
+  clickTrackingToken: "capturePolicyRemoved" as string,
   postCommentScreenshotToken: "freshScreenshotRef" as string,
   abilityResultReasonToken: '"reason"' as string,
   abilityResultGridCellToken: '"gridCell"' as string,

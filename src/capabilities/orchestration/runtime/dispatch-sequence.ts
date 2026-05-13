@@ -7,8 +7,8 @@ import type { GeometryGuardAbilityGroup } from "../../geometry-guard/index.js";
 import type { ScreenshotAbilityGroup } from "../../screenshot/contract.js";
 import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
 
-import { getMissionState, upsertMissionState, applyStatusTransition } from "./mission-state.js";
-import { findMuscleMemoryEntry } from "../../../muscle-memory/catalog.js";
+import { getMissionState, upsertMissionState, applyMissionStatus } from "./mission-state.js";
+import { getRegisteredAbilityById } from "../../../muscle-memory/catalog.js";
 import { resolveScreenshotStructuredDataRefPayload } from "../../screenshot/runtime/structured-ref-store.js";
 import type { ScreenshotGridSpec } from "../../screenshot/contract.js";
 import { decodeGridCell } from "../../screenshot/contract.js";
@@ -59,7 +59,7 @@ function resolveCellZoneClickPoint(
 /**
  * Run Geometry Guard preflight for click actions that requiresGeometryProof.
  * Decodes gridCell → bbox using the registered gridSpec, then validates.
- * Returns the proof fields to merge into inputOverrides, or a failure reason.
+ * Returns the proof fields to merge into action input, or a failure reason.
  */
 async function resolveGeometryProof(
   action: Action,
@@ -68,9 +68,9 @@ async function resolveGeometryProof(
 ): Promise<{ ok: true; proof: Record<string, unknown> } | { ok: false; failureReason: string }> {
   const gridCell =
     (action.gridCell) ??
-    (action.inputOverrides?.["gridCell"] as string | undefined) ??
+    (action.input?.["gridCell"] as string | undefined) ??
     null;
-  const cellZone = action.cellZone ?? (action.inputOverrides?.["cellZone"] as CellZone | undefined) ?? "center";
+  const cellZone = action.cellZone ?? (action.input?.["cellZone"] as CellZone | undefined) ?? "center";
   if (!gridCell) {
     return { ok: false, failureReason: `Action ${action.actionCode} requires geometry proof but no gridCell provided` };
   }
@@ -153,71 +153,18 @@ async function dispatchSingleAction(
   action: Action,
   input: DispatchRegisteredAbilitySequenceInput,
   ctx: DispatchSequenceContext,
-  extras?: { freshScreenshotRef?: string | null; commentPanelOpenAttempted?: boolean; actionIndex?: number },
+  actionIndex: number,
 ): Promise<{ status: "success" | "failed" | "review_required"; failureReason: string | null }> {
   // ── 1. Resolve abilityGroupId + childCapabilityId from MuscleMemory ────────
-  const entry = findMuscleMemoryEntry(action.actionCode);
+  const entry = getRegisteredAbilityById(action.actionCode);
   if (!entry) {
     return { status: "failed", failureReason: `Action ${action.actionCode} not registered in MuscleMemory catalog` };
   }
   const resolvedAbilityGroupId = entry.abilityGroupId;
   const resolvedChildCapabilityId = entry.childCapabilityId;
 
-  // ── 2. Catalog-registered handler: SAVE_CURRENT_VIDEO_EVIDENCE_ONCE ───────
-  // (catalog check above has already verified this action is registered)
-  if (action.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE") {
-    const evidenceLabel = (action.inputOverrides?.["evidenceLabel"] as string | undefined) ?? "video-evidence";
-    const reason = action.reason ?? (action.inputOverrides?.["reason"] as string | undefined) ?? "AI requested evidence save";
-    const captureMode = (action.inputOverrides?.["captureMode"] as string | undefined) ?? "use_current_round_screenshot";
-    try {
-      const evidenceResult = await ctx.forensics.appendRecord({
-        childCapabilityId: "append-record",
-        missionId: input.missionId,
-        runId: input.runId,
-        ...(input.roundId ? { roundId: input.roundId } : {}),
-        sourceCapabilityId: "orchestration",
-        sourceChildCapabilityId: "dispatch-registered-ability-sequence",
-        recordType: "evidence",
-        recordPayload: {
-          actionCode: action.actionCode,
-          evidenceLabel,
-          reason,
-          captureMode,
-          aiResultRef: input.aiResultRef ?? null,
-          originalScreenshotRef: input.currentEvidenceRefs?.["originalScreenshotRef"] ?? null,
-          coordinateGridScreenshotRef: input.currentEvidenceRefs?.["coordinateGridScreenshotRef"] ?? null,
-          gridSpecRef: input.currentEvidenceRefs?.["gridSpecRef"] ?? null,
-          ...(extras?.freshScreenshotRef ? { freshScreenshotRef: extras.freshScreenshotRef } : {}),
-          ...(extras?.commentPanelOpenAttempted && extras.freshScreenshotRef ? { postCommentScreenshotRef: extras.freshScreenshotRef } : {}),
-          missionId: input.missionId,
-          runId: input.runId,
-          roundId: input.roundId ?? null,
-        },
-        idempotencyKey: `save-evidence:${input.missionId}:${input.runId}:${input.roundId ?? ""}:${evidenceLabel}`,
-      });
-      if (evidenceResult.status !== "success") {
-        return { status: "failed", failureReason: evidenceResult.failureReason ?? "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE forensics append failed" };
-      }
-      ctx.runtimeLogger.emit({
-        traceId: input.missionId,
-        level: "debug",
-        modeVisibility: ["DEBUG", "TRACE"],
-        eventType: "FORENSICS_RECORD_APPENDED",
-        owner: "orchestration",
-        missionId: input.missionId,
-        runId: input.runId,
-        ...(input.roundId ? { roundId: input.roundId } : {}),
-        status: "success",
-        reason: `SAVE_CURRENT_VIDEO_EVIDENCE_ONCE evidenceLabel=${evidenceLabel}`,
-      });
-      return { status: "success", failureReason: null };
-    } catch (err) {
-      return { status: "failed", failureReason: err instanceof Error ? err.message : String(err) };
-    }
-  }
-
-  // ── 3. Geometry Guard preflight for actions requiring coordinate proof ─────
-  let inputOverrides: Record<string, unknown> = { ...(action.inputOverrides ?? {}) };
+  // ── 2. Geometry Guard preflight for actions requiring coordinate proof ─────
+  let actionInput: Record<string, unknown> = { ...(action.input ?? {}) };
   if (entry.requiresGeometryProof) {
     const geoResult = await resolveGeometryProof(action, input, ctx);
     if (!geoResult.ok) {
@@ -226,19 +173,19 @@ async function dispatchSingleAction(
       }
       return { status: "failed", failureReason: geoResult.failureReason };
     }
-    inputOverrides = { ...inputOverrides, ...geoResult.proof };
+    actionInput = { ...actionInput, ...geoResult.proof };
   }
 
-  // ── 4. Dispatch to ability group via Nerve Bus ────────────────────────────
+  // ── 3. Dispatch to ability group via Nerve Bus ────────────────────────────
   // Build complete input — NerveBus is pure transport after P0-4; ability-group schemas
-  // require all fields to be present in inputOverrides before dispatch.
+  // require all fields to be present in action input before dispatch.
   // Strip action-routing fields (gridCell) that were only needed for geometry proof
   // resolution and must not be forwarded to strict ability group schemas.
-  const { gridCell: _strippedGridCell, cellZone: _strippedCellZone, ...cleanOverrides } = inputOverrides as Record<string, unknown>;
+  const { gridCell: _strippedGridCell, cellZone: _strippedCellZone, ...cleanInput } = actionInput as Record<string, unknown>;
   const callId = randomUUID();
   const gridSpecRef = (input.currentEvidenceRefs?.["gridSpecRef"] as string | undefined) ?? null;
-  const completeInput: Record<string, unknown> = {
-    ...cleanOverrides,
+  const baseInput: Record<string, unknown> = {
+    ...cleanInput,
     abilityGroupId: resolvedAbilityGroupId,
     childCapabilityId: resolvedChildCapabilityId,
     missionId: input.missionId,
@@ -252,21 +199,35 @@ async function dispatchSingleAction(
     requestedBy: "orchestration:dispatch-sequence",
     purpose: `execute:${action.actionCode}`,
     inputRef: randomUUID(),
-    sourceRef: inputOverrides["sourceRef"] ?? gridSpecRef ?? callId,
-    sourceEvidenceRef: inputOverrides["sourceEvidenceRef"] ?? (input.currentEvidenceRefs?.["originalScreenshotRef"] as string | undefined) ?? null,
-    idempotencyKey: inputOverrides["idempotencyKey"] ?? [
+    sourceRef: actionInput["sourceRef"] ?? gridSpecRef ?? callId,
+    sourceEvidenceRef: actionInput["sourceEvidenceRef"] ?? (input.currentEvidenceRefs?.["originalScreenshotRef"] as string | undefined) ?? null,
+    idempotencyKey: actionInput["idempotencyKey"] ?? [
       "dispatch",
       input.missionId,
       input.runId,
       input.roundId ?? "noround",
-      String(extras?.actionIndex ?? "manual"),
+      String(actionIndex),
       action.actionCode,
-      action.targetRole ?? "norole",
       action.gridCell ?? "nogrid",
       action.cellZone ?? "center",
     ].join(":"),
   };
-  const dispatchInputOverrides = resolvedAbilityGroupId === "text-input"
+  const completeInput = resolvedAbilityGroupId === "forensics-persistence" && resolvedChildCapabilityId === "append-record"
+    ? {
+        ...baseInput,
+        childCapabilityId: "append-record",
+        recordType: cleanInput["recordType"] ?? "visual_evidence",
+        recordPayload: {
+          ...cleanInput,
+          reason: action.reason ?? null,
+          aiResultRef: input.aiResultRef ?? null,
+          originalScreenshotRef: input.currentEvidenceRefs?.["originalScreenshotRef"] ?? null,
+          coordinateGridScreenshotRef: input.currentEvidenceRefs?.["coordinateGridScreenshotRef"] ?? null,
+          gridSpecRef: input.currentEvidenceRefs?.["gridSpecRef"] ?? null,
+        },
+      }
+    : baseInput;
+  const dispatchInputPayload = resolvedAbilityGroupId === "text-input"
     ? {
         abilityGroupId: resolvedAbilityGroupId,
         childCapabilityId: resolvedChildCapabilityId,
@@ -278,12 +239,12 @@ async function dispatchSingleAction(
         capabilityCallId: completeInput["capabilityCallId"],
         nerveBusEnvelopeId: completeInput["nerveBusEnvelopeId"],
         inputRef: completeInput["inputRef"],
-        targetRef: cleanOverrides["targetRef"] ?? null,
-        focusRef: cleanOverrides["focusRef"] ?? null,
+        targetRef: cleanInput["targetRef"] ?? null,
+        focusRef: cleanInput["focusRef"] ?? null,
         idempotencyKey: completeInput["idempotencyKey"],
-        ...(cleanOverrides["timeoutMs"] ? { timeoutMs: cleanOverrides["timeoutMs"] } : {}),
-        approvedText: cleanOverrides["approvedText"] ?? null,
-        approvedKey: cleanOverrides["approvedKey"] ?? null,
+        ...(cleanInput["timeoutMs"] ? { timeoutMs: cleanInput["timeoutMs"] } : {}),
+        approvedText: cleanInput["approvedText"] ?? null,
+        approvedKey: cleanInput["approvedKey"] ?? null,
       }
     : completeInput;
   try {
@@ -294,7 +255,7 @@ async function dispatchSingleAction(
       runId: input.runId,
       sessionId: null,
       roundId: input.roundId ?? null,
-      inputOverrides: dispatchInputOverrides,
+      inputPayload: dispatchInputPayload,
     });
     const dispatchStatus = result.status ?? "success";
     if (resolvedAbilityGroupId === "mouse-click" || resolvedAbilityGroupId === "mouse-scroll") {
@@ -345,9 +306,6 @@ export async function dispatchRegisteredAbilitySequence(
   input: DispatchRegisteredAbilitySequenceInput,
   ctx: DispatchSequenceContext,
 ): Promise<DispatchSequenceResult> {
-  // Track whether a comments_button click was requested — used to tag postCommentScreenshotRef in SAVE evidence.
-  const commentPanelOpenAttempted = input.actions.some(a => a.targetRole === "comments_button");
-
   for (const [actionIndex, action] of input.actions.entries()) {
     ctx.runtimeLogger.emit({
       traceId: input.missionId,
@@ -359,55 +317,10 @@ export async function dispatchRegisteredAbilitySequence(
       runId: input.runId,
       ...(input.roundId ? { roundId: input.roundId } : {}),
       status: "started",
-      reason: `Dispatching ${action.actionCode}${action.gridCell ? ` at ${action.gridCell}` : ""}${action.cellZone ? ` zone=${action.cellZone}` : ""}${action.targetRole ? ` role=${action.targetRole}` : ""}`,
+      reason: `Dispatching ${action.actionCode}${action.gridCell ? ` at ${action.gridCell}` : ""}${action.cellZone ? ` zone=${action.cellZone}` : ""}`,
     });
 
-    // ── Take fresh screenshot before SAVE when captureMode='fresh_current_viewport' ──
-    let freshScreenshotRef: string | null = null;
-    if (
-      action.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE" &&
-      (action.inputOverrides?.["captureMode"] as string | undefined) === "fresh_current_viewport"
-    ) {
-      let shotFailed = false;
-      let shotFailureReason: string | null = null;
-      try {
-        const postShot = await ctx.screenshotAbilityGroup.execute({
-          childCapabilityId: "capture-browser-viewport",
-          missionId: input.missionId,
-          runId: input.runId,
-          sessionId: null,
-          roundId: input.roundId ?? null,
-          stepId: randomUUID(),
-          capabilityCallId: randomUUID(),
-          nerveBusEnvelopeId: randomUUID(),
-          inputRef: randomUUID(),
-          browserSessionRef: "local",
-          idempotencyKey: `post-comment-screenshot:${input.missionId}:${input.runId}:${input.roundId ?? ""}`,
-        });
-        if (postShot.status === "success") {
-          if ("screenshotRef" in postShot && postShot.screenshotRef) {
-            freshScreenshotRef = postShot.screenshotRef;
-          }
-        } else {
-          shotFailed = true;
-          shotFailureReason = ("failureReason" in postShot && postShot.failureReason)
-            ? postShot.failureReason
-            : "fresh viewport screenshot failed";
-        }
-      } catch (err) {
-        shotFailed = true;
-        shotFailureReason = err instanceof Error ? err.message : "post-comment screenshot threw";
-      }
-      // Screenshot failure must block SAVE — evidence without post-comment screenshot is incomplete
-      if (shotFailed) {
-        const failedState = getMissionState(input.missionId);
-        const updated = applyStatusTransition(failedState, { status: "failed", failureReason: shotFailureReason ?? "post-comment screenshot failed before SAVE" });
-        upsertMissionState(updated);
-        return { status: "failed", stateSnapshot: updated, failureReason: shotFailureReason ?? "post-comment screenshot failed before SAVE", reviewRequiredReason: null };
-      }
-    }
-
-    const { status, failureReason } = await dispatchSingleAction(action, input, ctx, { freshScreenshotRef, commentPanelOpenAttempted, actionIndex });
+    const { status, failureReason } = await dispatchSingleAction(action, input, ctx, actionIndex);
 
     ctx.runtimeLogger.emit({
       traceId: input.missionId,
@@ -424,7 +337,7 @@ export async function dispatchRegisteredAbilitySequence(
         : `${action.actionCode} ${status}: ${failureReason ?? "unknown"}`,
     });
 
-    const entry = findMuscleMemoryEntry(action.actionCode);
+    const entry = getRegisteredAbilityById(action.actionCode);
     const evidenceResult = await ctx.forensics.appendRecord({
       childCapabilityId: "append-record",
       missionId: input.missionId,
@@ -435,33 +348,33 @@ export async function dispatchRegisteredAbilitySequence(
       recordType: "ability_result",
       recordPayload: {
         actionCode: action.actionCode,
-        reason: action.reason ?? (action.inputOverrides?.["reason"] as string | undefined) ?? null,
-        gridCell: action.gridCell ?? (action.inputOverrides?.["gridCell"] as string | undefined) ?? null,
-        cellZone: action.cellZone ?? (action.inputOverrides?.["cellZone"] as string | undefined) ?? null,
+        reason: action.reason ?? (action.input?.["reason"] as string | undefined) ?? null,
+        gridCell: action.gridCell ?? (action.input?.["gridCell"] as string | undefined) ?? null,
+        cellZone: action.cellZone ?? (action.input?.["cellZone"] as string | undefined) ?? null,
         abilityGroupId: entry ? entry.abilityGroupId : null,
         childCapabilityId: entry ? entry.childCapabilityId : null,
         status,
         failureReason: failureReason ?? null,
       },
-      idempotencyKey: `orchestration:${input.missionId}:${input.runId}:${input.roundId ?? ""}:${actionIndex}:${action.actionCode}:${action.targetRole ?? "norole"}`,
+      idempotencyKey: `orchestration:${input.missionId}:${input.runId}:${input.roundId ?? ""}:${actionIndex}:${action.actionCode}`,
     });
     if (evidenceResult.status !== "success") {
       const failedState = getMissionState(input.missionId);
       const reason = evidenceResult.failureReason ?? "Forensics appendRecord failed after action dispatch";
-      const updated = applyStatusTransition(failedState, { status: "failed", failureReason: reason });
+      const updated = applyMissionStatus(failedState, { status: "failed", failureReason: reason });
       upsertMissionState(updated);
       return { status: "failed", stateSnapshot: updated, failureReason: reason, reviewRequiredReason: null };
     }
 
     if (status === "failed" && action.required !== false) {
       const failedState = getMissionState(input.missionId);
-      const updated = applyStatusTransition(failedState, { status: "failed", failureReason: failureReason ?? "action failed" });
+      const updated = applyMissionStatus(failedState, { status: "failed", failureReason: failureReason ?? "action failed" });
       upsertMissionState(updated);
       return { status: "failed", stateSnapshot: updated, failureReason: failureReason ?? "action failed", reviewRequiredReason: null };
     }
     if (status === "review_required") {
       const current2 = getMissionState(input.missionId);
-      const updated2 = applyStatusTransition(current2, { status: "review_required", reviewRequiredReason: `Action ${action.actionCode} requires review` });
+      const updated2 = applyMissionStatus(current2, { status: "review_required", reviewRequiredReason: `Action ${action.actionCode} requires review` });
       upsertMissionState(updated2);
       return { status: "review_required", stateSnapshot: updated2, failureReason: null, reviewRequiredReason: `Action ${action.actionCode} requires review` };
     }

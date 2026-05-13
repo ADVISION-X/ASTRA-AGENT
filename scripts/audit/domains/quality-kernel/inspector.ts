@@ -4,6 +4,7 @@ import { join, relative } from "node:path";
 import { QUALITY_KERNEL_LIMITS } from "./config.js";
 import {
   FORBIDDEN_ACTIVE_PATTERNS_HARD,
+  FORBIDDEN_GOVERNANCE_PATTERNS_HARD,
   FORBIDDEN_ACTIVE_PATTERNS_SOFT,
   ALLOWED_ARCHIVE_PATH_PATTERNS,
   RETIRED_SURFACE_SCAN_EXCLUDED_PREFIXES,
@@ -119,6 +120,7 @@ const runRetiredSurfaceCheck = (): RetiredSurfaceFinding[] => {
   for (const dir of ACTIVE_SCAN_DIRS) {
     const files = walkFiles(dir).filter((f) => /\.(ts|tsx|js|mjs|json)$/.test(f));
     findings.push(...scanForPatterns(files, FORBIDDEN_ACTIVE_PATTERNS_HARD, "hard"));
+    findings.push(...scanForPatterns(files, FORBIDDEN_GOVERNANCE_PATTERNS_HARD, "hard"));
     findings.push(...scanForPatterns(files, FORBIDDEN_ACTIVE_PATTERNS_SOFT, "soft"));
   }
   return findings;

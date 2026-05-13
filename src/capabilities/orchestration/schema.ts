@@ -172,8 +172,7 @@ export const DispatchRegisteredAbilitySequenceInputSchema = z.object({
   actions: z.array(z.object({
     actionCode: z.string().min(1),
     reason: z.string().nullable().optional().default(null),
-    targetRole: z.enum(["like_button", "comments_button", "comments_panel_close", "next_video_surface", "next_video_arrow", "unknown"]).nullable().optional().default(null),
-    inputOverrides: z.record(z.unknown()).optional().default({}),
+    input: z.record(z.string(), z.unknown()).optional().default({}),
     required: z.boolean().optional().default(true),
     gridCell: z.string().min(1).nullable().optional().default(null),
     cellZone: z.enum([

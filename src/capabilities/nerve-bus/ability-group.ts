@@ -42,7 +42,7 @@ export function createNerveBusAbilityGroup(
       issuedAt: nowIso(),
       abilityGroupId: cmd.abilityGroupId,
       childCapabilityId: cmd.childCapabilityId,
-      inputOverrides: cmd.inputOverrides,
+      inputPayload: cmd.inputPayload,
     };
 
     const controller = new AbortController();
@@ -51,7 +51,7 @@ export function createNerveBusAbilityGroup(
     try {
       const result = await handlerPort.dispatchAbilityCommand({
         envelope,
-        inputPayload: cmd.inputOverrides,
+        inputPayload: cmd.inputPayload,
         signal: controller.signal,
       });
 

@@ -57,9 +57,26 @@ export const FORBIDDEN_ACTIVE_PATTERNS_HARD = [
   "update-runtime-snapshot",
 ] as const;
 
-// SOFT: Old field names and types that should be cleaned up but don't directly
-// re-introduce a retired system. These are reported as warnings only.
-export const FORBIDDEN_ACTIVE_PATTERNS_SOFT = [
+export const FORBIDDEN_ACTIVE_PATTERNS_SOFT = [] as const;
+
+export const FORBIDDEN_GOVERNANCE_PATTERNS_HARD = [
+  "fallback",
+  "compatibility",
+  "backward-compatible",
+  "deprecated",
+  "legacy",
+  "bridge",
+  "stub",
+  "temporary",
+  "transition",
+  "synthetic",
+  "repairMissingGridCell",
+  "ArrowDown fallback",
+  "fallbackUsed",
+  "abilityGroupId ??",
+  "childCapabilityId ??",
+  "action.abilityGroupId",
+  "action.childCapabilityId",
   "RuntimePlan",
   "runtimePlanId",
   "routePlanId",

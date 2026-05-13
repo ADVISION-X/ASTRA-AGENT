@@ -1,5 +1,5 @@
 // ci:full entrypoint — the single authoritative CI gate.
-// Runs: typecheck → audit:code-purity → audit:runtime-logging
+// Runs: typecheck → audit:code-purity → audit:runtime-logging → audit:quality-kernel
 // package.json ci:full must delegate here. Do not maintain a second CI chain.
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -21,9 +21,10 @@ const step = (label: string, args: string[]): void => {
 };
 
 const main = (): void => {
-  step("Step 1/3: typecheck", ["typecheck"]);
-  step("Step 2/3: audit:code-purity", ["audit:code-purity"]);
-  step("Step 3/3: audit:runtime-logging", ["audit:runtime-logging"]);
+  step("Step 1/4: typecheck", ["typecheck"]);
+  step("Step 2/4: audit:code-purity", ["audit:code-purity"]);
+  step("Step 3/4: audit:runtime-logging", ["audit:runtime-logging"]);
+  step("Step 4/4: audit:quality-kernel", ["audit:quality-kernel"]);
   process.stdout.write("[CI:FULL] PASS — all steps passed.\n");
   process.exit(0);
 };

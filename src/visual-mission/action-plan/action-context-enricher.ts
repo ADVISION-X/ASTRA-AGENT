@@ -1,6 +1,6 @@
 import type { ScreenshotGridSpec } from "../../capabilities/screenshot/contract.js";
 import { resolveScreenshotStructuredDataRefPayload } from "../../capabilities/screenshot/runtime/structured-ref-store.js";
-import type { AtomicMuscleMemoryEntry } from "../../muscle-memory/catalog.js";
+import type { RegisteredAtomicAbility } from "../../muscle-memory/catalog.js";
 import { resolveVisualMissionPlatformTarget } from "../platform-target-registry.js";
 import type {
   VisualMissionExecutablePlan,
@@ -97,7 +97,7 @@ export function buildVisualMissionActionRuntimeContext(input: {
 }
 
 export function enrichVisualMissionActionInput(input: {
-  entry: AtomicMuscleMemoryEntry;
+  entry: RegisteredAtomicAbility;
   actionInput: Record<string, unknown>;
   runtimeContext: VisualMissionActionRuntimeContext;
 }): Record<string, unknown> {

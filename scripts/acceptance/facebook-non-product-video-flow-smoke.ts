@@ -4,7 +4,7 @@
  * Structural smoke test for the product_no flow:
  *   1. SCROLL_BROWSER_VIEWPORT_ONCE (skip to next video — no save)
  *
- * Uses in-process stub ports — no Chrome, no AI, no network.
+ * Uses in-process testDouble ports — no Chrome, no AI, no network.
  * Verifies:
  *   - dispatchRegisteredAbilitySequence handles scroll-only sequence
  *   - NO evidence record written to forensics (product_no = skip)
@@ -18,7 +18,7 @@ import type { DispatchRegisteredAbilitySequenceInput } from "../../src/capabilit
 import { createInitialMissionState } from "../../src/capabilities/orchestration/runtime/mission-state.js";
 import { upsertMissionState } from "../../src/capabilities/orchestration/runtime/mission-state.js";
 
-// ── Stubs ────────────────────────────────────────────────────────────────────
+// ── TestDoubles ────────────────────────────────────────────────────────────────────
 
 const MISSION_ID = "smoke-product-no-mission";
 const RUN_ID = "smoke-product-no-run";
@@ -28,7 +28,7 @@ const appendedRecords: unknown[] = [];
 const dispatched: { abilityGroupId: string; childCapabilityId: string }[] = [];
 let screenshotCaptureCount = 0;
 
-const stubNerveBus = {
+const testDoubleNerveBus = {
   dispatchAbilityCommand: async (cmd: Record<string, unknown>) => {
     dispatched.push({
       abilityGroupId: cmd["abilityGroupId"] as string,
@@ -38,46 +38,46 @@ const stubNerveBus = {
   },
 } as unknown as DispatchSequenceContext["nerveBus"];
 
-const stubForensics = {
+const testDoubleForensics = {
   appendRecord: async (record: unknown) => {
     appendedRecords.push(record);
     return { status: "success" as const, failureReason: null };
   },
 } as unknown as DispatchSequenceContext["forensics"];
 
-const stubGeometryGuard = {
+const testDoubleGeometryGuard = {
   execute: async () => ({
     guardDecision: "allow" as const,
     normalizedClickPoint: { x: 640, y: 360 },
     normalizedBbox: null,
-    geometryGuardRef: "geo-stub-ref",
-    runtimeProof: { proofId: "geo-proof-stub" },
-    output: { outputRef: "geo-output-stub" },
+    geometryGuardRef: "geo-testDouble-ref",
+    runtimeProof: { proofId: "geo-proof-testDouble" },
+    output: { outputRef: "geo-output-testDouble" },
     failureReason: null,
     reviewRequiredReason: null,
   }),
 } as unknown as DispatchSequenceContext["geometryGuard"];
 
-const stubScreenshotAbilityGroup = {
+const testDoubleScreenshotAbilityGroup = {
   execute: async () => {
     screenshotCaptureCount++;
     return {
       status: "success" as const,
-      screenshotRef: "/tmp/unexpected-stub.png",
-      aiReadableImagePath: "/tmp/unexpected-stub.png",
+      screenshotRef: "/tmp/unexpected-testDouble.png",
+      aiReadableImagePath: "/tmp/unexpected-testDouble.png",
       screenshotProof: {
-        proofId: "proof-stub",
+        proofId: "proof-testDouble",
         abilityGroupId: "screenshot",
         childCapabilityId: "capture-browser-viewport",
         missionId: MISSION_ID,
         runId: RUN_ID,
         sessionId: null,
         roundId: ROUND_ID,
-        stepId: "step-stub",
-        capabilityCallId: "cap-stub",
-        nerveBusEnvelopeId: "nbe-stub",
-        inputRef: "in-stub",
-        screenshotRef: "/tmp/unexpected-stub.png",
+        stepId: "step-testDouble",
+        capabilityCallId: "cap-testDouble",
+        nerveBusEnvelopeId: "nbe-testDouble",
+        inputRef: "in-testDouble",
+        screenshotRef: "/tmp/unexpected-testDouble.png",
         artifactRef: null,
         coordinateGridScreenshotRef: null,
         gridSpecRef: null,
@@ -98,16 +98,16 @@ const stubScreenshotAbilityGroup = {
   },
 } as unknown as DispatchSequenceContext["screenshotAbilityGroup"];
 
-const stubRuntimeLogger = {
+const testDoubleRuntimeLogger = {
   emit: () => { /* no-op in smoke test */ },
 } as unknown as DispatchSequenceContext["runtimeLogger"];
 
 const ctx: DispatchSequenceContext = {
-  nerveBus: stubNerveBus,
-  forensics: stubForensics,
-  geometryGuard: stubGeometryGuard,
-  screenshotAbilityGroup: stubScreenshotAbilityGroup,
-  runtimeLogger: stubRuntimeLogger,
+  nerveBus: testDoubleNerveBus,
+  forensics: testDoubleForensics,
+  geometryGuard: testDoubleGeometryGuard,
+  screenshotAbilityGroup: testDoubleScreenshotAbilityGroup,
+  runtimeLogger: testDoubleRuntimeLogger,
 };
 
 // ── Seed mission state ────────────────────────────────────────────────────────
@@ -134,21 +134,20 @@ const input: DispatchRegisteredAbilitySequenceInput = {
     {
       actionCode: "SCROLL_BROWSER_VIEWPORT_ONCE",
       reason: "Not a product video — scrolling to next",
-      targetRole: null,
       gridCell: null,
       cellZone: null,
       required: true,
-      inputOverrides: {
+      input: {
         scrollDeltaY: 900,
       },
     },
   ],
   currentEvidenceRefs: {
-    originalScreenshotRef: "/tmp/original-stub.png",
-    coordinateGridScreenshotRef: "/tmp/grid-stub.png",
-    gridSpecRef: "grid-spec-stub-ref",
+    originalScreenshotRef: "/tmp/original-testDouble.png",
+    coordinateGridScreenshotRef: "/tmp/grid-testDouble.png",
+    gridSpecRef: "grid-spec-testDouble-ref",
   },
-  aiResultRef: "ai-result-stub-ref",
+  aiResultRef: "ai-result-testDouble-ref",
 };
 
 // ── Run ───────────────────────────────────────────────────────────────────────

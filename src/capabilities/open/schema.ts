@@ -23,7 +23,7 @@ export type OpenStatus = z.infer<typeof OpenStatusSchema>;
 
 // ─── Target Identity ────────────────────────────────────────────────────────
 
-/** Source of the target URL — must be declared, no silent fallback allowed. */
+/** Source of the target URL; it must be declared explicitly. */
 export const OpenTargetUrlSourceSchema = z.enum([
   "user",
   "platformRegistry",

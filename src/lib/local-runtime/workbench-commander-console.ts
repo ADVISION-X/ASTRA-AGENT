@@ -75,7 +75,7 @@ export type WorkbenchRuntimeSummaryView = {
   currentStep: string | null;
   totalSeenCount: number;
   evidencePacketCount: number;
-  browseLedgerCount: number;
+  browseRecordCount: number;
   candidateCount: number;
 };
 
@@ -103,7 +103,7 @@ export type WorkbenchMissionView = {
   endedAt?: string | null | undefined;
   humanGoal?: string | null | undefined;
   requestedPlatform?: string | null | undefined;
-  selectedBindingId?: string | null | undefined;
+  targetBindingId?: string | null | undefined;
   reviewStatus?: string | null | undefined;
   currentRoundIndex?: number | null | undefined;
   lastHumanCommand?: string | null | undefined;
@@ -118,7 +118,7 @@ export type WorkbenchCommanderMissionDashboardView = {
   candidates: WorkbenchCandidateEntry[];
   reviewQueue: WorkbenchReviewQueueEntry[];
   evidencePackets: WorkbenchEvidenceEntry[];
-  browseLedger: never[];
+  browseRecord: never[];
   failedRecords: never[];
   runtimeProof: WorkbenchRuntimeProofEntry[] | null;
   auditSummary: WorkbenchAuditSummaryView;
@@ -280,7 +280,7 @@ export async function getCommanderConsoleSnapshot(input: {
       currentStep: null,
       totalSeenCount: 0,
       evidencePacketCount: 0,
-      browseLedgerCount: 0,
+      browseRecordCount: 0,
       candidateCount: 0,
     },
     browser: {
@@ -291,7 +291,7 @@ export async function getCommanderConsoleSnapshot(input: {
     candidates: [],
     reviewQueue: [],
     evidencePackets: [],
-    browseLedger: [],
+    browseRecord: [],
     failedRecords: [],
     runtimeProof: null,
     auditSummary: {

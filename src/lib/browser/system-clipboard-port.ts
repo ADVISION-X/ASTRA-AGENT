@@ -35,8 +35,8 @@ function createClipboardRef(prefix: "clipboard_snapshot" | "clipboard_write"): s
   return `${prefix}:${randomUUID()}`;
 }
 
-function toErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
+function toErrorMessage(error: unknown, defaultMessage: string): string {
+  return error instanceof Error ? error.message : defaultMessage;
 }
 
 function buildReadSuccess(text: string): ClipboardReadResult {

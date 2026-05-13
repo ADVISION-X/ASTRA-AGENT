@@ -32,7 +32,7 @@ async function pathExists(filePath) {
     await readFile(filePath);
     return true;
   } catch (error) {
-    debugDependencyCheck(`pathExists fallback for ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+    debugDependencyCheck(`pathExists unavailable for ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
     return false;
   }
 }

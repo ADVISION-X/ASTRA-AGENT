@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 import {
-  findMuscleMemoryEntry,
+  getRegisteredAbilityById,
   isAiActionPlanAllowedActionCode,
 } from "../../muscle-memory/catalog.js";
-import type { MuscleMemoryEntry } from "../../muscle-memory/catalog.js";
+import type { RegisteredAtomicAbility } from "../../muscle-memory/catalog.js";
 import { MuscleMemoryCellZoneSchema, MuscleMemoryGridCellSchema, MuscleMemoryPressKeySchema } from "../../muscle-memory/schema.js";
 import { VISUAL_MISSION_PLATFORM_IDS } from "../platform-target-registry.js";
 import { RoundMissionPacketSchema } from "../round-mission-packet.schema.js";
@@ -24,7 +24,7 @@ function isGridCellInputField(field: string): boolean {
 function validateRequiredFields(
   actionCode: string,
   actionInput: Record<string, unknown>,
-  entry: MuscleMemoryEntry,
+  entry: RegisteredAtomicAbility,
   context: z.RefinementCtx,
 ) {
   for (const field of getAiRequiredActionFields(entry)) {
@@ -37,7 +37,7 @@ function validateRequiredFields(
 function validateProvidedFields(
   actionCode: string,
   actionInput: Record<string, unknown>,
-  entry: MuscleMemoryEntry,
+  entry: RegisteredAtomicAbility,
   context: z.RefinementCtx,
 ) {
   const visibleFields = getAiVisibleActionFields(entry);
@@ -71,7 +71,7 @@ function validateGovernedValues(actionCode: string, actionInput: Record<string, 
 function validateActionInput(
   actionCode: string,
   actionInput: Record<string, unknown>,
-  entry: MuscleMemoryEntry,
+  entry: RegisteredAtomicAbility,
   context: z.RefinementCtx,
 ) {
   validateRequiredFields(actionCode, actionInput, entry, context);
@@ -82,9 +82,15 @@ function validateActionInput(
 const validateVisualMissionActionInput = (value: {
   actionCode: string;
   input?: Record<string, unknown> | undefined;
+  gridCell?: string | null | undefined;
+  cellZone?: string | null | undefined;
 }, context: z.RefinementCtx) => {
-  const actionInput = value.input ?? {};
-  const entry = findMuscleMemoryEntry(value.actionCode);
+  const actionInput = {
+    ...(value.input ?? {}),
+    ...(value.gridCell ? { gridCell: value.gridCell } : {}),
+    ...(value.cellZone ? { cellZone: value.cellZone } : {}),
+  };
+  const entry = getRegisteredAbilityById(value.actionCode);
 
   if (!entry || !entry.allowedForAiActionPlan) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "actionCode must be registered in MuscleMemoryCatalog and allowed for AI planning.", path: ["actionCode"] });
@@ -94,20 +100,12 @@ const validateVisualMissionActionInput = (value: {
   validateActionInput(value.actionCode, actionInput, entry, context);
 };
 
-const TargetRoleSchema = z.enum([
-  "like_button",
-  "comments_button",
-  "comments_panel_close",
-  "next_video_surface",
-  "next_video_arrow",
-  "unknown",
-]).nullable().optional().default(null);
-
 const VisualMissionActionSchema = z.object({
   actionCode: z.string().min(1).transform((v) => v.toUpperCase()).refine(isAiActionPlanAllowedActionCode, "actionCode must be registered in MuscleMemoryCatalog and allowed for AI planning."),
   required: z.boolean().default(true),
-  targetRole: TargetRoleSchema,
   input: VisualMissionActionInputSchema.optional(),
+  gridCell: MuscleMemoryGridCellSchema.nullable().optional().default(null),
+  cellZone: MuscleMemoryCellZoneSchema.nullable().optional().default(null),
   reason: z.string().min(1),
 }).strict().superRefine(validateVisualMissionActionInput);
 

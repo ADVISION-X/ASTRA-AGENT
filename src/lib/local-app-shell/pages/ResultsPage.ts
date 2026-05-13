@@ -45,7 +45,7 @@ function renderResultsTabPanel(viewModel: CommanderConsoleViewModel, tabId: stri
     return renderCard(t("证据包", "Evidence Packets"), t("结果页", "Results"), renderRecordList(viewModel, viewModel.evidencePackets, "evidence"));
   }
   if (tabId === "results-browse") {
-    return renderCard(t("浏览账本", "Browse Ledger"), t("结果页", "Results"), renderRecordList(viewModel, viewModel.browseLedger, "record"));
+    return renderCard(t("浏览账本", "Browse Ledger"), t("结果页", "Results"), renderRecordList(viewModel, viewModel.browseRecord, "record"));
   }
   if (tabId === "results-failed") {
     return renderCard(t("失败记录", "Failed Records"), t("结果页", "Results"), renderRecordList(viewModel, viewModel.failedRecords, "record"));

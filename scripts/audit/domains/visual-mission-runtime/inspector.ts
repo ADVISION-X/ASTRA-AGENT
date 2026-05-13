@@ -180,20 +180,20 @@ export function runVisualMissionRuntimeInspector(): VMRInspectorResult {
     }
   }
 
-  // ── CHECK 10: AI prompt throws if SAVE not in catalog (no fallback) ────────
+  // ── CHECK 10: AI prompt throws if SAVE not in catalog ──────────────────────
   {
     const src = readSrc(CFG.aiPromptPath);
     if (!src) {
       checks.push({ checkId: "VMR-10", question: "AI prompt fails closed if SAVE not in catalog?", status: "FAIL", detail: `File not found: ${CFG.aiPromptPath}` });
     } else {
-      const hasFallback = src.includes(CFG.saveActionFallbackForbiddenToken);
+      const hasRecovery = src.includes(CFG.saveActionRecoveryForbiddenToken);
       const hasThrow = src.includes(CFG.saveActionThrowToken);
-      if (!hasFallback && hasThrow) {
-        checks.push({ checkId: "VMR-10", question: "AI prompt fails closed if SAVE not in catalog?", status: "PASS", detail: "No '?? scrollAction' fallback; throws if SAVE missing from catalog." });
-      } else if (hasFallback) {
-        checks.push({ checkId: "VMR-10", question: "AI prompt fails closed if SAVE not in catalog?", status: "FAIL", detail: "saveAction still uses '?? scrollAction' fallback — must fail closed." });
+      if (!hasRecovery && hasThrow) {
+        checks.push({ checkId: "VMR-10", question: "AI prompt fails closed if SAVE not in catalog?", status: "PASS", detail: "No '?? scrollAction' recovery path; throws if SAVE missing from catalog." });
+      } else if (hasRecovery) {
+        checks.push({ checkId: "VMR-10", question: "AI prompt fails closed if SAVE not in catalog?", status: "FAIL", detail: "saveAction still uses '?? scrollAction' recovery path — must fail closed." });
       } else {
-        checks.push({ checkId: "VMR-10", question: "AI prompt fails closed if SAVE not in catalog?", status: "WARN", detail: "No fallback found but no throw either — verify SAVE guard logic." });
+        checks.push({ checkId: "VMR-10", question: "AI prompt fails closed if SAVE not in catalog?", status: "WARN", detail: "No recovery path found but no throw either — verify SAVE guard logic." });
       }
     }
   }
@@ -225,10 +225,10 @@ export function runVisualMissionRuntimeInspector(): VMRInspectorResult {
       const hasGridCell = src.includes(CFG.abilityResultGridCellToken);
       const allPresent = hasClickTracking && hasPostComment && hasReason && hasGridCell;
       if (allPresent) {
-        checks.push({ checkId: "VMR-12", question: "dispatch-sequence tracks clicks and logs reason/gridCell?", status: "PASS", detail: "captureMode trigger, freshScreenshotRef, reason, gridCell all present." });
+        checks.push({ checkId: "VMR-12", question: "dispatch-sequence tracks clicks and logs reason/gridCell?", status: "PASS", detail: "capturePolicyRemoved trigger, freshScreenshotRef, reason, gridCell all present." });
       } else {
         const missing: string[] = [];
-        if (!hasClickTracking) missing.push("captureMode trigger");
+        if (!hasClickTracking) missing.push("capturePolicyRemoved trigger");
         if (!hasPostComment) missing.push("freshScreenshotRef");
         if (!hasReason) missing.push("reason");
         if (!hasGridCell) missing.push("gridCell");

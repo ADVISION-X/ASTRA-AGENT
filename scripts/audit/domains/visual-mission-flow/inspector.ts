@@ -82,9 +82,9 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     if (!src) {
       checks.push({ checkId: "VMF-03", question: "dispatch-sequence resolves abilityGroupId/childCapabilityId from MuscleMemory?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
     } else if (src.includes(CFG.dispatchMuscleMemoryToken)) {
-      checks.push({ checkId: "VMF-03", question: "dispatch-sequence resolves abilityGroupId/childCapabilityId from MuscleMemory?", status: "PASS", detail: "findMuscleMemoryEntry found in dispatch-sequence.ts." });
+      checks.push({ checkId: "VMF-03", question: "dispatch-sequence resolves abilityGroupId/childCapabilityId from MuscleMemory?", status: "PASS", detail: "registry lookup found in dispatch-sequence.ts." });
     } else {
-      checks.push({ checkId: "VMF-03", question: "dispatch-sequence resolves abilityGroupId/childCapabilityId from MuscleMemory?", status: "FAIL", detail: "findMuscleMemoryEntry not found — IDs may be hardcoded or AI-provided." });
+      checks.push({ checkId: "VMF-03", question: "dispatch-sequence resolves abilityGroupId/childCapabilityId from MuscleMemory?", status: "FAIL", detail: "Registry lookup not found — IDs may be hardcoded or AI-provided." });
     }
   }
 
@@ -141,23 +141,23 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
-  // ── CHECK 7: SAVE_CURRENT_VIDEO_EVIDENCE_ONCE in catalog (allowedForAiActionPlan=true) ─
+  // ── CHECK 7: SAVE_RECORD_ONCE in catalog (allowedForAiActionPlan=true) ─
   {
     const src = readSrc(CFG.catalogPath);
     if (!src) {
-      checks.push({ checkId: "VMF-07", question: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE in MuscleMemory catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: `File not found: ${CFG.catalogPath}` });
+      checks.push({ checkId: "VMF-07", question: "SAVE_RECORD_ONCE in MuscleMemory catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: `File not found: ${CFG.catalogPath}` });
     } else {
       const hasSaveCode = src.includes(CFG.evidenceSaveActionCode);
       if (!hasSaveCode) {
-        checks.push({ checkId: "VMF-07", question: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE in MuscleMemory catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE not found in catalog." });
+        checks.push({ checkId: "VMF-07", question: "SAVE_RECORD_ONCE in MuscleMemory catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: "SAVE_RECORD_ONCE not found in catalog." });
       } else {
         // Find the entry block and check allowedForAiActionPlan
         const idx = src.indexOf(CFG.evidenceSaveActionCode);
         const block = src.slice(idx, idx + 1200);
         if (block.includes('"allowedForAiActionPlan": true')) {
-          checks.push({ checkId: "VMF-07", question: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE in MuscleMemory catalog with allowedForAiActionPlan=true?", status: "PASS", detail: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE present with allowedForAiActionPlan=true." });
+          checks.push({ checkId: "VMF-07", question: "SAVE_RECORD_ONCE in MuscleMemory catalog with allowedForAiActionPlan=true?", status: "PASS", detail: "SAVE_RECORD_ONCE present with allowedForAiActionPlan=true." });
         } else {
-          checks.push({ checkId: "VMF-07", question: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE in MuscleMemory catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: "Entry found but allowedForAiActionPlan is not true — AI cannot schedule evidence saves." });
+          checks.push({ checkId: "VMF-07", question: "SAVE_RECORD_ONCE in MuscleMemory catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: "Entry found but allowedForAiActionPlan is not true — AI cannot schedule evidence saves." });
         }
       }
     }
@@ -222,13 +222,13 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     } else {
       const hasTargetRef = src.includes(CFG.openGateTargetRefToken);
       // Check platformId only appears as a variable (not as an input field name after ":")
-      const hasBadPlatformId = /inputOverrides[^}]*platformId\s*[^:?]/.test(src);
+      const hasBadPlatformId = /inputPayload[^}]*platformId\s*[^:?]/.test(src);
       if (hasTargetRef && !hasBadPlatformId) {
-        checks.push({ checkId: "VMF-11", question: "Open gate must pass targetProfileRef or targetUrl, never bare platformId?", status: "PASS", detail: "Open gate uses targetProfileRef in inputOverrides." });
+        checks.push({ checkId: "VMF-11", question: "Open gate must pass targetProfileRef or targetUrl, never bare platformId?", status: "PASS", detail: "Open gate uses targetProfileRef in inputPayload." });
       } else if (!hasTargetRef) {
-        checks.push({ checkId: "VMF-11", question: "Open gate must pass targetProfileRef or targetUrl, never bare platformId?", status: "FAIL", detail: "targetProfileRef not found in Open gate inputOverrides." });
+        checks.push({ checkId: "VMF-11", question: "Open gate must pass targetProfileRef or targetUrl, never bare platformId?", status: "FAIL", detail: "targetProfileRef not found in Open gate inputPayload." });
       } else {
-        checks.push({ checkId: "VMF-11", question: "Open gate must pass targetProfileRef or targetUrl, never bare platformId?", status: "FAIL", detail: "platformId still present in Open gate inputOverrides — rejected by strict Open schema." });
+        checks.push({ checkId: "VMF-11", question: "Open gate must pass targetProfileRef or targetUrl, never bare platformId?", status: "FAIL", detail: "platformId still present in Open gate inputPayload — rejected by strict Open schema." });
       }
     }
   }
@@ -267,22 +267,22 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
       checks.push({ checkId: "VMF-14", question: "product_yes output schema requires SAVE + next arrow without mandatory engagement clicks?", status: "FAIL", detail: `File not found: ${aiOutputSchemaPath}` });
     } else {
       const hasProductYes = src.includes("product_yes") && src.includes("superRefine");
-      const hasSaveCheck = src.includes("SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
-      const hasCaptureMode = src.includes("fresh_current_viewport");
-      const hasNextArrow = src.includes("targetRole='next_video_arrow'");
-      const hasMandatoryLike = src.includes("product_yes requires a click action with targetRole='like_button'") || src.includes("product_yes requires at least 2 click actions (like + comments)");
-      const hasMandatoryComment = src.includes("product_yes requires a click action with targetRole='comments_button'");
+      const hasSaveCheck = src.includes("SAVE_RECORD_ONCE");
+      const hasCaptureMode = src.includes("hidden_capture_removed");
+      const hasNextArrow = src.includes("visualIntent='next_video_control'");
+      const hasMandatoryLike = src.includes("product_yes requires a click action with visualIntent='visible_like_control'") || src.includes("product_yes requires at least 2 click actions (like + comments)");
+      const hasMandatoryComment = src.includes("product_yes requires a click action with visualIntent='comment_entry_control'");
       const hasReasonRegex = src.includes("/like/i") || src.includes("/comment/i");
       const missing: string[] = [];
       if (!hasProductYes) missing.push("product_yes superRefine");
       if (!hasSaveCheck) missing.push("SAVE check");
-      if (!hasCaptureMode) missing.push("captureMode='fresh_current_viewport' check");
-      if (!hasNextArrow) missing.push("next_video_arrow check");
-      if (hasMandatoryLike) missing.push("mandatory like_button click still present");
-      if (hasMandatoryComment) missing.push("mandatory comments_button click still present");
+      if (!hasCaptureMode) missing.push("capturePolicyRemoved='hidden_capture_removed' check");
+      if (!hasNextArrow) missing.push("next_video_control check");
+      if (hasMandatoryLike) missing.push("mandatory visible_like_control click still present");
+      if (hasMandatoryComment) missing.push("mandatory comment_entry_control click still present");
       if (hasReasonRegex) missing.push("reason regex still present (must be removed)");
       if (missing.length === 0) {
-        checks.push({ checkId: "VMF-14", question: "product_yes output schema requires SAVE + next arrow without mandatory engagement clicks?", status: "PASS", detail: "product_yes validates SAVE with captureMode and next_video_arrow, without forcing like/comments engagement." });
+        checks.push({ checkId: "VMF-14", question: "product_yes output schema requires SAVE + next arrow without mandatory engagement clicks?", status: "PASS", detail: "product_yes validates SAVE with capturePolicyRemoved and next_video_control, without forcing like/comments engagement." });
       } else {
         checks.push({ checkId: "VMF-14", question: "product_yes output schema requires SAVE + next arrow without mandatory engagement clicks?", status: "FAIL", detail: `Issues: ${missing.join(", ")}` });
       }
@@ -311,41 +311,40 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
-  // ── CHECK 16: dispatch-sequence uses captureMode trigger (not reason regex) for fresh screenshot ──
+  // ── CHECK 16: dispatch-sequence uses capturePolicyRemoved trigger (not reason regex) for fresh screenshot ──
   {
     const src = readSrc(CFG.dispatchSequencePath);
     if (!src) {
-      checks.push({ checkId: "VMF-16", question: "dispatch-sequence uses captureMode='fresh_current_viewport' to trigger fresh screenshot (no reason regex)?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
+      checks.push({ checkId: "VMF-16", question: "dispatch-sequence uses capturePolicyRemoved='hidden_capture_removed' to trigger fresh screenshot (no reason regex)?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
     } else {
-      const hasCaptureModeCheck = src.includes("captureMode") && src.includes("fresh_current_viewport");
+      const hasCaptureModeCheck = src.includes("capturePolicyRemoved") && src.includes("hidden_capture_removed");
       const hasReasonRegex = src.includes("/comment/i") || src.includes("/like/i");
-      // priorClickCount is the deprecated tracking variable (replaced by targetRole-derived logic).
-      // commentPanelOpenAttempted is still valid — it's now derived from targetRole (not reason regex).
-      const hasDeprecatedTracking = src.includes("priorClickCount");
-      // Check that commentPanelOpenAttempted is derived from targetRole, not hardcoded/let-declared
-      const hasReasonRegexDerivedTracking = /let\s+commentPanelOpenAttempted\s*=\s*false/.test(src);
-      if (hasCaptureModeCheck && !hasReasonRegex && !hasDeprecatedTracking && !hasReasonRegexDerivedTracking) {
-        checks.push({ checkId: "VMF-16", question: "dispatch-sequence uses captureMode='fresh_current_viewport' to trigger fresh screenshot (no reason regex)?", status: "PASS", detail: "captureMode-based fresh screenshot trigger found; no reason-regex flow control; commentPanelOpenAttempted derived from targetRole." });
+      // commentAttemptRemoved is still valid — it's now derived from visualIntent (not reason regex).
+      const hasRetiredTracking = src.includes("priorClickCount");
+      // Check that commentAttemptRemoved is derived from visualIntent, not hardcoded/let-declared
+      const hasReasonRegexDerivedTracking = /let\s+commentAttemptRemoved\s*=\s*false/.test(src);
+      if (hasCaptureModeCheck && !hasReasonRegex && !hasRetiredTracking && !hasReasonRegexDerivedTracking) {
+        checks.push({ checkId: "VMF-16", question: "dispatch-sequence uses capturePolicyRemoved='hidden_capture_removed' to trigger fresh screenshot (no reason regex)?", status: "PASS", detail: "capturePolicyRemoved-based fresh screenshot trigger found; no reason-regex flow control; commentAttemptRemoved derived from visualIntent." });
       } else {
         const issues: string[] = [];
-        if (!hasCaptureModeCheck) issues.push("captureMode='fresh_current_viewport' trigger missing");
+        if (!hasCaptureModeCheck) issues.push("capturePolicyRemoved='hidden_capture_removed' trigger missing");
         if (hasReasonRegex) issues.push("reason regex still drives flow (/comment/i or /like/i)");
-        if (hasDeprecatedTracking) issues.push("deprecated priorClickCount tracking variable still present");
-        if (hasReasonRegexDerivedTracking) issues.push("commentPanelOpenAttempted still let-declared as false (old reason-regex tracking)");
-        checks.push({ checkId: "VMF-16", question: "dispatch-sequence uses captureMode='fresh_current_viewport' to trigger fresh screenshot (no reason regex)?", status: "FAIL", detail: `Issues: ${issues.join(", ")}` });
+        if (hasRetiredTracking) issues.push("retired priorClickCount tracking variable still present");
+        if (hasReasonRegexDerivedTracking) issues.push("commentAttemptRemoved still let-declared as false (old reason-regex tracking)");
+        checks.push({ checkId: "VMF-16", question: "dispatch-sequence uses capturePolicyRemoved='hidden_capture_removed' to trigger fresh screenshot (no reason regex)?", status: "FAIL", detail: `Issues: ${issues.join(", ")}` });
       }
     }
   }
 
-  // ── CHECK 17: SAVE evidence record includes freshScreenshotRef when captureMode=fresh ──
+  // ── CHECK 17: SAVE evidence record includes freshScreenshotRef when capturePolicyRemoved=fresh ──
   {
     const src = readSrc(CFG.dispatchSequencePath);
     if (!src) {
-      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts freshScreenshotRef in evidence when captureMode='fresh_current_viewport'?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
+      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts freshScreenshotRef in evidence when capturePolicyRemoved='hidden_capture_removed'?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
     } else if (src.includes("freshScreenshotRef")) {
-      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts freshScreenshotRef in evidence when captureMode='fresh_current_viewport'?", status: "PASS", detail: "freshScreenshotRef present in dispatch-sequence evidence record." });
+      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts freshScreenshotRef in evidence when capturePolicyRemoved='hidden_capture_removed'?", status: "PASS", detail: "freshScreenshotRef present in dispatch-sequence evidence record." });
     } else {
-      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts freshScreenshotRef in evidence when captureMode='fresh_current_viewport'?", status: "FAIL", detail: "freshScreenshotRef not found — fresh viewport screenshot not saved to evidence." });
+      checks.push({ checkId: "VMF-17", question: "dispatch-sequence posts freshScreenshotRef in evidence when capturePolicyRemoved='hidden_capture_removed'?", status: "FAIL", detail: "freshScreenshotRef not found — fresh viewport screenshot not saved to evidence." });
     }
   }
 
@@ -413,15 +412,15 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
-  // ── CHECK 22: No silent platform fallback in orchestration runtime (P0-5 regression) ──
+  // ── CHECK 22: No silent platform default in orchestration runtime ──────────
   {
     const src = readSrc(CFG.missionLoopPath);
     if (!src) {
-      checks.push({ checkId: "VMF-22", question: "No silent platform fallback ('facebook-web' default) in orchestration runtime?", status: "FAIL", detail: `File not found: ${CFG.missionLoopPath}` });
+      checks.push({ checkId: "VMF-22", question: "No silent platform default ('facebook-web') in orchestration runtime?", status: "FAIL", detail: `File not found: ${CFG.missionLoopPath}` });
     } else if (src.includes('return "facebook-web"') || src.includes("return 'facebook-web'") || src.includes('?? "Mine seed product videos"') || src.includes("?? 'Mine seed product videos'")) {
-      checks.push({ checkId: "VMF-22", question: "No silent platform fallback ('facebook-web' default) in orchestration runtime?", status: "FAIL", detail: "Silent fallback to 'facebook-web' or 'Mine seed product videos' default found — must fail closed." });
+      checks.push({ checkId: "VMF-22", question: "No silent platform default ('facebook-web') in orchestration runtime?", status: "FAIL", detail: "Silent default to 'facebook-web' or 'Mine seed product videos' found — must fail closed." });
     } else {
-      checks.push({ checkId: "VMF-22", question: "No silent platform fallback ('facebook-web' default) in orchestration runtime?", status: "PASS", detail: "No silent platform fallback found; fail-closed pattern confirmed." });
+      checks.push({ checkId: "VMF-22", question: "No silent platform default ('facebook-web') in orchestration runtime?", status: "PASS", detail: "No silent platform default found; fail-closed pattern confirmed." });
     }
   }
 
@@ -561,8 +560,8 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
         "like the product video",
         "open comments panel",
         "Both clicks are REQUIRED",
-        "targetRole: \"like_button\"",
-        "targetRole: \"comments_button\"",
+        "visualIntent: \"visible_like_control\"",
+        "visualIntent: \"comment_entry_control\"",
         "product-video-with-comments",
         "Like and save evidence",
       ];
@@ -667,7 +666,7 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
       const project = getAuditProject();
       const sf = project.getSourceFile(pathFromRepoRoot(CFG.dispatchSequencePath)) ?? project.addSourceFileAtPathIfExists(pathFromRepoRoot(CFG.dispatchSequencePath));
       if (!sf) {
-        checks.push({ checkId: "VMF-AST-003", question: "dispatch-sequence uses completeInput variable for NerveBus dispatch (not partial override, AST)?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
+        checks.push({ checkId: "VMF-AST-003", question: "dispatch-sequence uses completeInput variable for NerveBus dispatch (not partial input, AST)?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
       } else {
         const calls = sf.getDescendantsOfKind(SyntaxKind.CallExpression);
         const dispatchCalls = calls.filter(c => {
@@ -676,54 +675,54 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
           return expr.getName() === "dispatchAbilityCommand";
         });
         if (dispatchCalls.length === 0) {
-          checks.push({ checkId: "VMF-AST-003", question: "dispatch-sequence uses completeInput variable for NerveBus dispatch (not partial override, AST)?", status: "FAIL", detail: "No dispatchAbilityCommand calls found." });
+          checks.push({ checkId: "VMF-AST-003", question: "dispatch-sequence uses completeInput variable for NerveBus dispatch (not partial input, AST)?", status: "FAIL", detail: "No dispatchAbilityCommand calls found." });
         } else {
           const hasCompleteInput = dispatchCalls.some(c => {
             const args = c.getArguments();
             if (args.length === 0) return false;
             const argObj = args[0];
             if (!Node.isObjectLiteralExpression(argObj)) return false;
-            const inputOverridesProp = argObj.getProperties().find(p =>
-              Node.isPropertyAssignment(p) && p.getName() === "inputOverrides"
+            const inputPayloadProp = argObj.getProperties().find(p =>
+              Node.isPropertyAssignment(p) && p.getName() === "inputPayload"
             );
-            if (!inputOverridesProp || !Node.isPropertyAssignment(inputOverridesProp)) return false;
-            const val = inputOverridesProp.getInitializer();
+            if (!inputPayloadProp || !Node.isPropertyAssignment(inputPayloadProp)) return false;
+            const val = inputPayloadProp.getInitializer();
             return Node.isIdentifier(val) && val.getText() === "completeInput";
           });
           if (hasCompleteInput) {
-            checks.push({ checkId: "VMF-AST-003", question: "dispatch-sequence uses completeInput variable for NerveBus dispatch (not partial override, AST)?", status: "PASS", detail: "inputOverrides: completeInput pattern found via AST in dispatchAbilityCommand call." });
+            checks.push({ checkId: "VMF-AST-003", question: "dispatch-sequence uses completeInput variable for NerveBus dispatch (not partial input, AST)?", status: "PASS", detail: "inputPayload: completeInput pattern found via AST in dispatchAbilityCommand call." });
           } else {
-            checks.push({ checkId: "VMF-AST-003", question: "dispatch-sequence uses completeInput variable for NerveBus dispatch (not partial override, AST)?", status: "FAIL", detail: "inputOverrides: completeInput pattern not found — dispatch may use partial overrides." });
+            checks.push({ checkId: "VMF-AST-003", question: "dispatch-sequence uses completeInput variable for NerveBus dispatch (not partial input, AST)?", status: "FAIL", detail: "inputPayload: completeInput pattern not found — dispatch may use partial inputs." });
           }
         }
       }
     } catch (err) {
-      checks.push({ checkId: "VMF-AST-003", question: "dispatch-sequence uses completeInput variable for NerveBus dispatch (not partial override, AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
+      checks.push({ checkId: "VMF-AST-003", question: "dispatch-sequence uses completeInput variable for NerveBus dispatch (not partial input, AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
     }
   }
 
-  // ── VMF-AST-004: targetRole === "comments_button" (not regex) in dispatch-sequence ──
+  // ── VMF-AST-004: visualIntent === "comment_entry_control" (not regex) in dispatch-sequence ──
   {
     try {
       const project = getAuditProject();
       const sf = project.getSourceFile(pathFromRepoRoot(CFG.dispatchSequencePath)) ?? project.addSourceFileAtPathIfExists(pathFromRepoRoot(CFG.dispatchSequencePath));
       if (!sf) {
-        checks.push({ checkId: "VMF-AST-004", question: "dispatch-sequence uses strict targetRole==='comments_button' comparison (AST)?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
+        checks.push({ checkId: "VMF-AST-004", question: "dispatch-sequence uses strict visualIntent==='comment_entry_control' comparison (AST)?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
       } else {
         const binaries = sf.getDescendantsOfKind(SyntaxKind.BinaryExpression);
         const hasTargetRoleCheck = binaries.some(b => {
           const right = b.getRight();
-          if (!Node.isStringLiteral(right) || right.getLiteralText() !== "comments_button") return false;
-          return b.getLeft().getText().includes("targetRole");
+          if (!Node.isStringLiteral(right) || right.getLiteralText() !== "comment_entry_control") return false;
+          return b.getLeft().getText().includes("visualIntent");
         });
         if (hasTargetRoleCheck) {
-          checks.push({ checkId: "VMF-AST-004", question: "dispatch-sequence uses strict targetRole==='comments_button' comparison (AST)?", status: "PASS", detail: "targetRole === 'comments_button' BinaryExpression found via AST." });
+          checks.push({ checkId: "VMF-AST-004", question: "dispatch-sequence uses strict visualIntent==='comment_entry_control' comparison (AST)?", status: "PASS", detail: "visualIntent === 'comment_entry_control' BinaryExpression found via AST." });
         } else {
-          checks.push({ checkId: "VMF-AST-004", question: "dispatch-sequence uses strict targetRole==='comments_button' comparison (AST)?", status: "FAIL", detail: "No targetRole==='comments_button' binary comparison found — comment detection may use regex or be missing." });
+          checks.push({ checkId: "VMF-AST-004", question: "dispatch-sequence uses strict visualIntent==='comment_entry_control' comparison (AST)?", status: "FAIL", detail: "No visualIntent==='comment_entry_control' binary comparison found — comment detection may use regex or be missing." });
         }
       }
     } catch (err) {
-      checks.push({ checkId: "VMF-AST-004", question: "dispatch-sequence uses strict targetRole==='comments_button' comparison (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
+      checks.push({ checkId: "VMF-AST-004", question: "dispatch-sequence uses strict visualIntent==='comment_entry_control' comparison (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
     }
   }
 
@@ -752,29 +751,29 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
-  // ── VMF-AST-006: SAVE evidence includes postCommentScreenshotRef when comments opened ──
+  // ── VMF-AST-006: SAVE evidence includes removedCommentScreenshotRef when comments opened ──
   {
     try {
       const project = getAuditProject();
       const sf = project.getSourceFile(pathFromRepoRoot(CFG.dispatchSequencePath)) ?? project.addSourceFileAtPathIfExists(pathFromRepoRoot(CFG.dispatchSequencePath));
       if (!sf) {
-        checks.push({ checkId: "VMF-AST-006", question: "dispatch-sequence SAVE evidence includes postCommentScreenshotRef (AST)?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
+        checks.push({ checkId: "VMF-AST-006", question: "dispatch-sequence SAVE evidence includes removedCommentScreenshotRef (AST)?", status: "FAIL", detail: `File not found: ${CFG.dispatchSequencePath}` });
       } else {
-        const identifiers = sf.getDescendantsOfKind(SyntaxKind.Identifier).filter(id => id.getText() === "postCommentScreenshotRef");
+        const identifiers = sf.getDescendantsOfKind(SyntaxKind.Identifier).filter(id => id.getText() === "removedCommentScreenshotRef");
         const inObjectProperty = identifiers.some(id => {
           const parent = id.getParent();
           return Node.isPropertyAssignment(parent) || Node.isShorthandPropertyAssignment(parent);
         });
         if (inObjectProperty) {
-          checks.push({ checkId: "VMF-AST-006", question: "dispatch-sequence SAVE evidence includes postCommentScreenshotRef (AST)?", status: "PASS", detail: "postCommentScreenshotRef found as object property key in dispatch-sequence (AST)." });
+          checks.push({ checkId: "VMF-AST-006", question: "dispatch-sequence SAVE evidence includes removedCommentScreenshotRef (AST)?", status: "PASS", detail: "removedCommentScreenshotRef found as object property key in dispatch-sequence (AST)." });
         } else if (identifiers.length > 0) {
-          checks.push({ checkId: "VMF-AST-006", question: "dispatch-sequence SAVE evidence includes postCommentScreenshotRef (AST)?", status: "WARN", detail: "postCommentScreenshotRef identifier found but not as an object property key." });
+          checks.push({ checkId: "VMF-AST-006", question: "dispatch-sequence SAVE evidence includes removedCommentScreenshotRef (AST)?", status: "WARN", detail: "removedCommentScreenshotRef identifier found but not as an object property key." });
         } else {
-          checks.push({ checkId: "VMF-AST-006", question: "dispatch-sequence SAVE evidence includes postCommentScreenshotRef (AST)?", status: "FAIL", detail: "postCommentScreenshotRef not found in dispatch-sequence — post-comment evidence screenshot missing." });
+          checks.push({ checkId: "VMF-AST-006", question: "dispatch-sequence SAVE evidence includes removedCommentScreenshotRef (AST)?", status: "FAIL", detail: "removedCommentScreenshotRef not found in dispatch-sequence — post-comment evidence screenshot missing." });
         }
       }
     } catch (err) {
-      checks.push({ checkId: "VMF-AST-006", question: "dispatch-sequence SAVE evidence includes postCommentScreenshotRef (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
+      checks.push({ checkId: "VMF-AST-006", question: "dispatch-sequence SAVE evidence includes removedCommentScreenshotRef (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
     }
   }
 
@@ -852,53 +851,53 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
-  // ── VMF-AST-010: ai-output.schema product_yes superRefine requires next_video_arrow click after SAVE ──
+  // ── VMF-AST-010: ai-output.schema product_yes superRefine requires next_video_control click after SAVE ──
   {
     const AI_OUTPUT_SCHEMA_PATH = "src/visual-mission/action-plan/ai-output.schema.ts";
     try {
       const project = getAuditProject();
       const sf = project.getSourceFile(pathFromRepoRoot(AI_OUTPUT_SCHEMA_PATH)) ?? project.addSourceFileAtPathIfExists(pathFromRepoRoot(AI_OUTPUT_SCHEMA_PATH));
       if (!sf) {
-        checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires next_video_arrow click after SAVE (AST)?", status: "FAIL", detail: `File not found: ${AI_OUTPUT_SCHEMA_PATH}` });
+        checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires next_video_control click after SAVE (AST)?", status: "FAIL", detail: `File not found: ${AI_OUTPUT_SCHEMA_PATH}` });
       } else {
-        const NEXT_VIDEO_REQUIRED_MSG = "product_yes requires LEFT_CLICK_GRID_CELL_ONCE with targetRole='next_video_arrow' after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE";
+        const NEXT_VIDEO_REQUIRED_MSG = "product_yes requires LEFT_CLICK_GRID_CELL_ONCE with visualIntent='next_video_control' after SAVE_RECORD_ONCE";
         const hasMsg = sf.getDescendantsOfKind(SyntaxKind.StringLiteral).some(sl => sl.getLiteralText().includes(NEXT_VIDEO_REQUIRED_MSG));
         if (hasMsg) {
-          checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires next_video_arrow click after SAVE (AST)?", status: "PASS", detail: "product_yes next_video_arrow-required addIssue message found via AST." });
+          checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires next_video_control click after SAVE (AST)?", status: "PASS", detail: "product_yes next_video_control-required addIssue message found via AST." });
         } else {
-          checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires next_video_arrow click after SAVE (AST)?", status: "FAIL", detail: "No addIssue message requiring next_video_arrow click after SAVE in product_yes — schema does not enforce arrow click." });
+          checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires next_video_control click after SAVE (AST)?", status: "FAIL", detail: "No addIssue message requiring next_video_control click after SAVE in product_yes — schema does not enforce arrow click." });
         }
       }
     } catch (err) {
-      checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires next_video_arrow click after SAVE (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
+      checks.push({ checkId: "VMF-AST-010", question: "ai-output.schema product_yes superRefine requires next_video_control click after SAVE (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
     }
   }
 
-  // ── VMF-AST-011: product_no superRefine forbids non-arrow clicks/save, requires next_video_arrow click ──
+  // ── VMF-AST-011: product_no superRefine forbids non-arrow clicks/save, requires next_video_control click ──
   {
     const AI_OUTPUT_SCHEMA_PATH = "src/visual-mission/action-plan/ai-output.schema.ts";
     try {
       const project = getAuditProject();
       const sf = project.getSourceFile(pathFromRepoRoot(AI_OUTPUT_SCHEMA_PATH)) ?? project.addSourceFileAtPathIfExists(pathFromRepoRoot(AI_OUTPUT_SCHEMA_PATH));
       if (!sf) {
-        checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids non-arrow clicks/save and requires next_video_arrow click (AST)?", status: "FAIL", detail: `File not found: ${AI_OUTPUT_SCHEMA_PATH}` });
+        checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids non-arrow clicks/save and requires next_video_control click (AST)?", status: "FAIL", detail: `File not found: ${AI_OUTPUT_SCHEMA_PATH}` });
       } else {
         const allMessages = sf.getDescendantsOfKind(SyntaxKind.StringLiteral).map(sl => sl.getLiteralText());
         const hasClickForbid = allMessages.some(m => m.includes("product_no must not contain click"));
         const hasSaveForbid = allMessages.some(m => m.includes("product_no must not contain SAVE"));
-        const hasNextVideoArrowRequired = allMessages.some(m => m.includes("product_no must contain LEFT_CLICK_GRID_CELL_ONCE with targetRole='next_video_arrow'"));
+        const hasNextVideoArrowRequired = allMessages.some(m => m.includes("product_no must contain LEFT_CLICK_GRID_CELL_ONCE with visualIntent='next_video_control'"));
         const missing: string[] = [];
         if (!hasClickForbid) missing.push("product_no click-forbid message");
         if (!hasSaveForbid) missing.push("product_no SAVE-forbid message");
-        if (!hasNextVideoArrowRequired) missing.push("product_no next_video_arrow-required message");
+        if (!hasNextVideoArrowRequired) missing.push("product_no next_video_control-required message");
         if (missing.length === 0) {
-          checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids non-arrow clicks/save and requires next_video_arrow click (AST)?", status: "PASS", detail: "product_no addIssue messages for click-forbid, SAVE-forbid, and next_video_arrow-required found (AST)." });
+          checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids non-arrow clicks/save and requires next_video_control click (AST)?", status: "PASS", detail: "product_no addIssue messages for click-forbid, SAVE-forbid, and next_video_control-required found (AST)." });
         } else {
-          checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids non-arrow clicks/save and requires next_video_arrow click (AST)?", status: "FAIL", detail: `Missing: ${missing.join(", ")}` });
+          checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids non-arrow clicks/save and requires next_video_control click (AST)?", status: "FAIL", detail: `Missing: ${missing.join(", ")}` });
         }
       }
     } catch (err) {
-      checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids non-arrow clicks/save and requires next_video_arrow click (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
+      checks.push({ checkId: "VMF-AST-011", question: "ai-output.schema product_no superRefine forbids non-arrow clicks/save and requires next_video_control click (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
     }
   }
 
@@ -930,24 +929,24 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
-  // ── VMF-AST-013: SAVE_CURRENT_VIDEO_EVIDENCE_ONCE in catalog allowedForAiActionPlan=true ──
+  // ── VMF-AST-013: SAVE_RECORD_ONCE in catalog allowedForAiActionPlan=true ──
   {
     const catalogAbsPath = join(ROOT, CFG.catalogPath);
     if (!existsSync(catalogAbsPath)) {
-      checks.push({ checkId: "VMF-AST-013", question: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE in catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: `Catalog not found: ${CFG.catalogPath}` });
+      checks.push({ checkId: "VMF-AST-013", question: "SAVE_RECORD_ONCE in catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: `Catalog not found: ${CFG.catalogPath}` });
     } else {
       try {
         const catalog = JSON.parse(readFileSync(catalogAbsPath, "utf8")) as { entries: Array<{ actionCode: string; allowedForAiActionPlan: boolean }> };
-        const entry = catalog.entries.find(e => e.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
+        const entry = catalog.entries.find(e => e.actionCode === "SAVE_RECORD_ONCE");
         if (!entry) {
-          checks.push({ checkId: "VMF-AST-013", question: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE in catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE not in catalog." });
+          checks.push({ checkId: "VMF-AST-013", question: "SAVE_RECORD_ONCE in catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: "SAVE_RECORD_ONCE not in catalog." });
         } else if (entry.allowedForAiActionPlan === true) {
-          checks.push({ checkId: "VMF-AST-013", question: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE in catalog with allowedForAiActionPlan=true?", status: "PASS", detail: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE.allowedForAiActionPlan=true confirmed via JSON.parse." });
+          checks.push({ checkId: "VMF-AST-013", question: "SAVE_RECORD_ONCE in catalog with allowedForAiActionPlan=true?", status: "PASS", detail: "SAVE_RECORD_ONCE.allowedForAiActionPlan=true confirmed via JSON.parse." });
         } else {
-          checks.push({ checkId: "VMF-AST-013", question: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE in catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: `allowedForAiActionPlan=${String(entry.allowedForAiActionPlan)} — AI cannot schedule evidence saves.` });
+          checks.push({ checkId: "VMF-AST-013", question: "SAVE_RECORD_ONCE in catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: `allowedForAiActionPlan=${String(entry.allowedForAiActionPlan)} — AI cannot schedule evidence saves.` });
         }
       } catch {
-        checks.push({ checkId: "VMF-AST-013", question: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE in catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: "Failed to parse catalog JSON." });
+        checks.push({ checkId: "VMF-AST-013", question: "SAVE_RECORD_ONCE in catalog with allowedForAiActionPlan=true?", status: "FAIL", detail: "Failed to parse catalog JSON." });
       }
     }
   }
@@ -976,9 +975,9 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
     }
   }
 
-  // ── VMF-AST-015: no legacy import paths in mission-loop-runner / dispatch-sequence ──
+  // ── VMF-AST-015: no retired import paths in mission-loop-runner / dispatch-sequence ──
   {
-    const LEGACY_IMPORT_FRAGMENTS = ["page-state", "visual-action", "platform-action-map", "action-binding", "legacy-pav"];
+    const RETIRED_IMPORT_FRAGMENTS = ["page-state", "visual-action", "platform-action-map", "action-binding", "retired-pav"];
     const FILES_TO_CHECK = [CFG.missionLoopPath, CFG.dispatchSequencePath];
     const violations: string[] = [];
     try {
@@ -988,19 +987,19 @@ export function runVisualMissionFlowInspector(): VMFInspectorResult {
         if (!sf) continue;
         for (const imp of sf.getDescendantsOfKind(SyntaxKind.ImportDeclaration)) {
           const moduleSpec = imp.getModuleSpecifierValue();
-          const matchedLegacy = LEGACY_IMPORT_FRAGMENTS.filter(frag => moduleSpec.includes(frag));
-          if (matchedLegacy.length > 0) {
-            violations.push(`${relPath}: "${moduleSpec}" (${matchedLegacy.join(", ")})`);
+          const matchedRetired = RETIRED_IMPORT_FRAGMENTS.filter(frag => moduleSpec.includes(frag));
+          if (matchedRetired.length > 0) {
+            violations.push(`${relPath}: "${moduleSpec}" (${matchedRetired.join(", ")})`);
           }
         }
       }
       if (violations.length === 0) {
-        checks.push({ checkId: "VMF-AST-015", question: "No legacy import paths in mission-loop-runner / dispatch-sequence (AST)?", status: "PASS", detail: "No retired import paths found in import declarations (AST)." });
+        checks.push({ checkId: "VMF-AST-015", question: "No retired import paths in mission-loop-runner / dispatch-sequence (AST)?", status: "PASS", detail: "No retired import paths found in import declarations (AST)." });
       } else {
-        checks.push({ checkId: "VMF-AST-015", question: "No legacy import paths in mission-loop-runner / dispatch-sequence (AST)?", status: "FAIL", detail: violations.join(" | ") });
+        checks.push({ checkId: "VMF-AST-015", question: "No retired import paths in mission-loop-runner / dispatch-sequence (AST)?", status: "FAIL", detail: violations.join(" | ") });
       }
     } catch (err) {
-      checks.push({ checkId: "VMF-AST-015", question: "No legacy import paths in mission-loop-runner / dispatch-sequence (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
+      checks.push({ checkId: "VMF-AST-015", question: "No retired import paths in mission-loop-runner / dispatch-sequence (AST)?", status: "FAIL", detail: `ts-morph error: ${err instanceof Error ? err.message : String(err)}` });
     }
   }
 

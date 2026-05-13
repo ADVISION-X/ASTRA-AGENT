@@ -16,7 +16,7 @@ export const EMERGENCY_STOP_CHILD: CommanderConsoleChildDefinition<EmergencyStop
       buildCommandInput: (commandInput) => ({
         commandType: "emergency-stop",
         targetMissionId: commandInput.targetMissionId ?? null,
-        selectedBindingId: null,
+        targetBindingId: null,
         targetRecordRef: null,
         requestedPlatformId: null,
         humanGoal: null,

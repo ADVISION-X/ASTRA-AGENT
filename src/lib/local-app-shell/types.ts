@@ -201,7 +201,7 @@ type CommanderConsoleViewModel = {
   failureRadarSummary: CommanderConsoleFailureItem[];
   structuredLogPreview: CommanderConsoleLogEntry[];
   evidencePackets: CommanderRecordSummaryView[];
-  browseLedger: CommanderRecordSummaryView[];
+  browseRecord: CommanderRecordSummaryView[];
   failedRecords: CommanderRecordSummaryView[];
   runtimeProofTimeline: CommanderRuntimeProofTimelineEntry[];
   exportSummary: CommanderConsoleExportRequest[];

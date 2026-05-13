@@ -10,27 +10,19 @@ const GEMINI_CELL_ZONE_VALUES = [
   "bottom_right",
 ] as const;
 
-const GEMINI_TARGET_ROLE_VALUES = [
-  "like_button",
-  "comments_button",
-  "comments_panel_close",
-  "next_video_surface",
-  "next_video_arrow",
-  "unknown",
-] as const;
-
 const GeminiVisualMissionActionSchema = {
   type: "OBJECT",
   properties: {
     actionCode: { type: "STRING" },
     required: { type: "BOOLEAN" },
-    targetRole: { type: "STRING", enum: [...GEMINI_TARGET_ROLE_VALUES] },
+    gridCell: { type: "STRING" },
+    cellZone: { type: "STRING", enum: [...GEMINI_CELL_ZONE_VALUES] },
     input: {
       type: "OBJECT",
       properties: {
         gridCell: { type: "STRING" },
         cellZone: { type: "STRING", enum: [...GEMINI_CELL_ZONE_VALUES] },
-        captureMode: { type: "STRING", enum: ["fresh_current_viewport", "use_current_round_screenshot"] },
+        recordType: { type: "STRING" },
         evidenceLabel: { type: "STRING" },
         approvedText: { type: "STRING" },
         approvedKey: { type: "STRING" },

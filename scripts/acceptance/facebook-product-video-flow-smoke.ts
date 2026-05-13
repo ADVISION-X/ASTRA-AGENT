@@ -3,9 +3,9 @@
  *
  * Structural smoke test for the product_yes flow:
  *   1. LEFT_CLICK (open comments)
- *   2. SAVE_CURRENT_VIDEO_EVIDENCE_ONCE (like + save evidence)
+ *   2. SAVE_RECORD_ONCE (like + save evidence)
  *
- * Uses in-process stub ports — no Chrome, no AI, no network.
+ * Uses in-process testDouble ports — no Chrome, no AI, no network.
  * Verifies:
  *   - dispatchRegisteredAbilitySequence handles click → SAVE sequence
  *   - Forensics receives an evidence record with system-injected refs
@@ -19,7 +19,7 @@ import type { DispatchRegisteredAbilitySequenceInput } from "../../src/capabilit
 import { createInitialMissionState } from "../../src/capabilities/orchestration/runtime/mission-state.js";
 import { upsertMissionState } from "../../src/capabilities/orchestration/runtime/mission-state.js";
 
-// ── Stubs ────────────────────────────────────────────────────────────────────
+// ── TestDoubles ────────────────────────────────────────────────────────────────────
 
 const MISSION_ID = "smoke-product-yes-mission";
 const RUN_ID = "smoke-product-yes-run";
@@ -29,7 +29,7 @@ const appendedRecords: unknown[] = [];
 const dispatched: { abilityGroupId: string; childCapabilityId: string }[] = [];
 let screenshotCaptureCount = 0;
 
-const stubNerveBus = {
+const testDoubleNerveBus = {
   dispatchAbilityCommand: async (cmd: Record<string, unknown>) => {
     dispatched.push({
       abilityGroupId: cmd["abilityGroupId"] as string,
@@ -39,46 +39,46 @@ const stubNerveBus = {
   },
 } as unknown as DispatchSequenceContext["nerveBus"];
 
-const stubForensics = {
+const testDoubleForensics = {
   appendRecord: async (record: unknown) => {
     appendedRecords.push(record);
     return { status: "success" as const, failureReason: null };
   },
 } as unknown as DispatchSequenceContext["forensics"];
 
-const stubGeometryGuard = {
+const testDoubleGeometryGuard = {
   execute: async () => ({
     guardDecision: "allow" as const,
     normalizedClickPoint: { x: 640, y: 360 },
     normalizedBbox: { x: 600, y: 340, width: 80, height: 40 },
-    geometryGuardRef: "geo-stub-ref",
-    runtimeProof: { proofId: "geo-proof-stub" },
-    output: { outputRef: "geo-output-stub" },
+    geometryGuardRef: "geo-testDouble-ref",
+    runtimeProof: { proofId: "geo-proof-testDouble" },
+    output: { outputRef: "geo-output-testDouble" },
     failureReason: null,
     reviewRequiredReason: null,
   }),
 } as unknown as DispatchSequenceContext["geometryGuard"];
 
-const stubScreenshotAbilityGroup = {
+const testDoubleScreenshotAbilityGroup = {
   execute: async () => {
     screenshotCaptureCount++;
     return {
       status: "success" as const,
-      screenshotRef: "/tmp/post-comment-stub.png",
-      aiReadableImagePath: "/tmp/post-comment-stub.png",
+      screenshotRef: "/tmp/post-comment-testDouble.png",
+      aiReadableImagePath: "/tmp/post-comment-testDouble.png",
       screenshotProof: {
-        proofId: "proof-stub",
+        proofId: "proof-testDouble",
         abilityGroupId: "screenshot",
         childCapabilityId: "capture-browser-viewport",
         missionId: MISSION_ID,
         runId: RUN_ID,
         sessionId: null,
         roundId: ROUND_ID,
-        stepId: "step-stub",
-        capabilityCallId: "cap-stub",
-        nerveBusEnvelopeId: "nbe-stub",
-        inputRef: "in-stub",
-        screenshotRef: "/tmp/post-comment-stub.png",
+        stepId: "step-testDouble",
+        capabilityCallId: "cap-testDouble",
+        nerveBusEnvelopeId: "nbe-testDouble",
+        inputRef: "in-testDouble",
+        screenshotRef: "/tmp/post-comment-testDouble.png",
         artifactRef: null,
         coordinateGridScreenshotRef: null,
         gridSpecRef: null,
@@ -99,16 +99,16 @@ const stubScreenshotAbilityGroup = {
   },
 } as unknown as DispatchSequenceContext["screenshotAbilityGroup"];
 
-const stubRuntimeLogger = {
+const testDoubleRuntimeLogger = {
   emit: () => { /* no-op in smoke test */ },
 } as unknown as DispatchSequenceContext["runtimeLogger"];
 
 const ctx: DispatchSequenceContext = {
-  nerveBus: stubNerveBus,
-  forensics: stubForensics,
-  geometryGuard: stubGeometryGuard,
-  screenshotAbilityGroup: stubScreenshotAbilityGroup,
-  runtimeLogger: stubRuntimeLogger,
+  nerveBus: testDoubleNerveBus,
+  forensics: testDoubleForensics,
+  geometryGuard: testDoubleGeometryGuard,
+  screenshotAbilityGroup: testDoubleScreenshotAbilityGroup,
+  runtimeLogger: testDoubleRuntimeLogger,
 };
 
 // ── Seed mission state ────────────────────────────────────────────────────────
@@ -133,33 +133,31 @@ const input: DispatchRegisteredAbilitySequenceInput = {
   roundId: ROUND_ID,
   actions: [
     {
-      actionCode: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE",
+      actionCode: "SAVE_RECORD_ONCE",
       reason: "Identified as product video with skincare items",
-      targetRole: null,
       gridCell: null,
       cellZone: null,
       required: true,
-      inputOverrides: {
+      input: {
         evidenceLabel: "product-video-1",
-        captureMode: "fresh_current_viewport",
+        recordType: "visual_evidence",
       },
     },
     {
       actionCode: "LEFT_CLICK_GRID_CELL_ONCE",
       reason: "advance to the next video",
-      targetRole: "next_video_arrow" as const,
       gridCell: "P30",
       cellZone: "center",
       required: true,
-      inputOverrides: { gridCell: "P30", cellZone: "center" },
+      input: { gridCell: "P30", cellZone: "center" },
     },
   ],
   currentEvidenceRefs: {
-    originalScreenshotRef: "/tmp/original-stub.png",
-    coordinateGridScreenshotRef: "/tmp/grid-stub.png",
-    gridSpecRef: "grid-spec-stub-ref",
+    originalScreenshotRef: "/tmp/original-testDouble.png",
+    coordinateGridScreenshotRef: "/tmp/grid-testDouble.png",
+    gridSpecRef: "grid-spec-testDouble-ref",
   },
-  aiResultRef: "ai-result-stub-ref",
+  aiResultRef: "ai-result-testDouble-ref",
 };
 
 // ── Run ───────────────────────────────────────────────────────────────────────
@@ -198,7 +196,7 @@ async function main() {
     process.stdout.write("  [✓] Product default flow dispatches no like/comment engagement clicks\n");
   }
 
-  // 3. Fresh viewport screenshot taken (because SAVE has captureMode='fresh_current_viewport')
+  // 3. Fresh viewport screenshot taken (because SAVE has capturePolicyRemoved='hidden_capture_removed')
   if (screenshotCaptureCount === 0) {
     passed = false;
     failures.push("Fresh viewport screenshot was NOT taken before SAVE (screenshotAbilityGroup.execute never called)");
@@ -206,7 +204,7 @@ async function main() {
     process.stdout.write(`  [✓] Fresh viewport screenshot taken (${screenshotCaptureCount} capture(s))\n`);
   }
 
-  // 4. Forensics received an evidence record with SAVE_CURRENT_VIDEO_EVIDENCE_ONCE
+  // 4. Forensics received an evidence record with SAVE_RECORD_ONCE
   const evidenceRecord = appendedRecords.find(r =>
     typeof r === "object" && r !== null &&
     "recordType" in r && (r as Record<string, unknown>)["recordType"] === "evidence"

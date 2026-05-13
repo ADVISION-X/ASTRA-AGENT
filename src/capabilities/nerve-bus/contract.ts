@@ -59,7 +59,7 @@ export type AbilityCommandDispatchInput = {
   runId: string;
   sessionId: string | null;
   roundId: string | null;
-  inputOverrides: Record<string, unknown>;
+  inputPayload: Record<string, unknown>;
 };
 
 export type AbilityDispatchResult = {

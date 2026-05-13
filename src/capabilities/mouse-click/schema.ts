@@ -37,8 +37,8 @@ export const MouseClickFailureReasonSchema = z.enum([
  *
  * FORBIDDEN (must never appear here):
  *   button, clickCount, x, y, clientX, clientY
- *   bindingPackageId, bindingPackageVersion, selectedBindingId, bindingVersion
- *   mapId, routePlanId, activationId, packageVersion
+ *   bindingPackageId, bindingPackageVersion, targetBindingId, bindingVersion
+ *   mapId, routeId, activationId, packageVersion
  */
 export const MouseClickAbilityInputSchema = z
   .object({

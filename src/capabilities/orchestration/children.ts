@@ -13,7 +13,7 @@ import {
   upsertMissionState,
   setActiveMission,
   createInitialMissionState,
-  applyStatusTransition,
+  applyMissionStatus,
   now,
 } from "./runtime/mission-state.js";
 import { dispatchRegisteredAbilitySequence } from "./runtime/dispatch-sequence.js";
@@ -71,7 +71,7 @@ export async function handleStartMission(rawInput: unknown, ctx: OrchestrationCh
     targetUrl: (cmd.initialPayload?.["targetUrl"] as string | null | undefined) ?? null,
     targetTitle: (cmd.initialPayload?.["targetTitle"] as string | null | undefined) ?? null,
   });
-  const running = applyStatusTransition(initial, { status: "running", lastHumanCommand: "start-mission" });
+  const running = applyMissionStatus(initial, { status: "running", lastHumanCommand: "start-mission" });
   upsertMissionState(running);
   setActiveMission(cmd.missionId);
 
@@ -91,7 +91,7 @@ export async function handleStartMission(rawInput: unknown, ctx: OrchestrationCh
   // If the loop throws unexpectedly, record the failure in mission state.
   void runMissionRoundLoop(cmd.missionId, ctx).catch((err) => {
     const errMsg = err instanceof Error ? err.message : String(err);
-    const failed = applyStatusTransition(getMissionState(cmd.missionId), { status: "failed", failureReason: errMsg });
+    const failed = applyMissionStatus(getMissionState(cmd.missionId), { status: "failed", failureReason: errMsg });
     upsertMissionState(failed);
     setActiveMission(null);
   });
@@ -108,7 +108,7 @@ export async function handlePauseMission(rawInput: unknown, _ctx: OrchestrationC
   if (current.status !== "running") {
     return { status: "failed", stateSnapshot: current, failureReason: `Cannot pause: mission is ${current.status}` };
   }
-  const updated = applyStatusTransition(current, { status: "paused", lastHumanCommand: "pause-mission" });
+  const updated = applyMissionStatus(current, { status: "paused", lastHumanCommand: "pause-mission" });
   upsertMissionState(updated);
   return { status: "success", stateSnapshot: updated };
 }
@@ -122,7 +122,7 @@ export async function handleResumeMission(rawInput: unknown, _ctx: Orchestration
   if (current.status !== "paused") {
     return { status: "failed", stateSnapshot: current, failureReason: `Cannot resume: mission is ${current.status}` };
   }
-  const updated = applyStatusTransition(current, { status: "running", lastHumanCommand: "resume-mission" });
+  const updated = applyMissionStatus(current, { status: "running", lastHumanCommand: "resume-mission" });
   upsertMissionState(updated);
   return { status: "success", stateSnapshot: updated };
 }
@@ -134,7 +134,7 @@ export async function handleStopMission(rawInput: unknown, _ctx: OrchestrationCh
   }
   const { missionId, reason } = parsed.data;
   const current = getMissionState(missionId);
-  const updated = applyStatusTransition(current, {
+  const updated = applyMissionStatus(current, {
     status: "stopped",
     stopReason: reason ?? "operator stopped",
     endedAt: now(),
@@ -152,7 +152,7 @@ export async function handleEmergencyStop(rawInput: unknown, _ctx: Orchestration
   }
   const { missionId, reason } = parsed.data;
   const current = getMissionState(missionId);
-  const updated = applyStatusTransition(current, {
+  const updated = applyMissionStatus(current, {
     status: "stopped",
     stopReason: reason ?? "emergency stop",
     endedAt: now(),
@@ -191,7 +191,7 @@ export async function handleFinalizeMission(rawInput: unknown, _ctx: Orchestrati
   }
   const { missionId, reason } = parsed.data;
   const current = getMissionState(missionId);
-  const updated = applyStatusTransition(current, {
+  const updated = applyMissionStatus(current, {
     status: "completed",
     stopReason: reason ?? null,
     endedAt: now(),

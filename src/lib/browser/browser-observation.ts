@@ -11,7 +11,7 @@
  * business-truth decisions. This helper only provides raw string observations.
  *
  * Forbidden output fields:
- *   feedReady, pageReady, pageCorrect, pageStateType, loginSemantic,
+ *   streamReady, surfaceReady, pageCorrect, pageStateType, loginSemantic,
  *   captchaSemantic, safetySemantic, feedSemantic, videoSemantic,
  *   commentSemantic, blockerDecision, actionSemanticSuccess,
  *   semanticDecision, businessTruth.

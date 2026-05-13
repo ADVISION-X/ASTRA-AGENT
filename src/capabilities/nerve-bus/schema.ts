@@ -47,7 +47,7 @@ export const AbilityCommandEnvelopeSchema = EnvelopeBaseSchema.extend({
   kind: z.literal("ability-command"),
   abilityGroupId: z.string(),
   childCapabilityId: z.string(),
-  inputOverrides: z.record(z.string(), z.unknown()),
+  inputPayload: z.record(z.string(), z.unknown()),
 });
 export type AbilityCommandEnvelope = z.infer<typeof AbilityCommandEnvelopeSchema>;
 

@@ -45,7 +45,7 @@ export const QUALITY_KERNEL_LIMITS = {
     "WRITE_ACTION_LOG",
     "WRITE_AI_RESULT",
     "SAVE_LEAD",
-    "YES_SEEDING_VIDEO_FLOW",
+    "product_yes",
     "CLICK_BROWSER_COORDINATE",
     "CLICK_CELL",
   ] as string[],

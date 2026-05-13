@@ -1,4 +1,4 @@
-import type { MuscleMemoryEntry } from "../../muscle-memory/catalog.js";
+import type { RegisteredAtomicAbility } from "../../muscle-memory/catalog.js";
 import {
   isOwnerOnlyActionField,
   isRawExecutionActionField,
@@ -22,11 +22,11 @@ export const isAiForbiddenActionField = (field: string): boolean => (
   || isSystemInjectedActionField(field)
 );
 
-export function getAiRequiredActionFields(entry: MuscleMemoryEntry): string[] {
+export function getAiRequiredActionFields(entry: RegisteredAtomicAbility): string[] {
   return dedupeFields(entry.inputContract.requiredFields.filter((field) => !isSystemInjectedActionField(field)));
 }
 
-export function getAiOptionalActionFields(entry: MuscleMemoryEntry): string[] {
+export function getAiOptionalActionFields(entry: RegisteredAtomicAbility): string[] {
   const requiredFields = new Set(getAiRequiredActionFields(entry));
   return dedupeFields(
     [
@@ -36,18 +36,18 @@ export function getAiOptionalActionFields(entry: MuscleMemoryEntry): string[] {
   );
 }
 
-export function getSystemInjectedActionFields(entry: MuscleMemoryEntry): string[] {
+export function getSystemInjectedActionFields(entry: RegisteredAtomicAbility): string[] {
   return dedupeFields(
     [...entry.inputContract.requiredFields, ...entry.inputContract.optionalFields]
       .filter((field) => isSystemInjectedActionField(field)),
   );
 }
 
-export function getAiForbiddenActionFields(entry: MuscleMemoryEntry): string[] {
+export function getAiForbiddenActionFields(entry: RegisteredAtomicAbility): string[] {
   return dedupeFields(entry.inputContract.forbiddenFields.filter((field) => !isSystemInjectedActionField(field)));
 }
 
-export function resolveAiActionInputPolicy(entry: MuscleMemoryEntry) {
+export function resolveAiActionInputPolicy(entry: RegisteredAtomicAbility) {
   return {
     aiRequiredInput: getAiRequiredActionFields(entry),
     aiOptionalInput: getAiOptionalActionFields(entry),
@@ -56,7 +56,7 @@ export function resolveAiActionInputPolicy(entry: MuscleMemoryEntry) {
   };
 }
 
-export function getAiVisibleActionFields(entry: MuscleMemoryEntry): Set<string> {
+export function getAiVisibleActionFields(entry: RegisteredAtomicAbility): Set<string> {
   return new Set([
     ...getAiRequiredActionFields(entry),
     ...getAiOptionalActionFields(entry),

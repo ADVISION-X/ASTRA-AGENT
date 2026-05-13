@@ -57,7 +57,7 @@ function buildFailureDebugProjection(payload, status) {
     visualTargetResultRef: failureSnapshot.visualTargetResultRef ?? null,
     geometryGuardResultRef: failureSnapshot.geometryGuardResultRef ?? null,
     clickResultRef: failureSnapshot.clickResultRef ?? null,
-    postActionVerificationResultRef: failureSnapshot.postActionVerificationResultRef ?? null,
+    actionResultCheckResultRef: failureSnapshot.actionResultCheckResultRef ?? null,
     commentsEvidenceRef: failureSnapshot.commentsEvidenceRef ?? null,
   };
 }
@@ -113,7 +113,7 @@ export function buildRuntimeRelayEvent(phase, payload) {
     runId: payload.runId ?? payload.sessionId ?? null,
     requestedPlatformId: payload.requestedPlatformId ?? null,
     capabilityCallId: payload.capabilityCallId ?? null,
-    childCapabilityId: payload.childCapabilityId ?? null,
+    childCapabilityId: payload.childCapabilityId ? payload.childCapabilityId : null,
     implementationStatus: payload.implementationStatus ?? null,
     errorKind: payload.errorKind ?? null,
     runtimeCallId: payload.runtimeCallId ?? null,

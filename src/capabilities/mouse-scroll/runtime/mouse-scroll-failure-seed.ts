@@ -200,7 +200,7 @@ export const buildInvalidInputFailureEnvelope = (
   defaultChildCapabilityId?: MouseScrollChildCapabilityId,
 ): MouseScrollFailureEnvelope => {
   const raw = isObject(input) ? input : null;
-  const childCapabilityId = defaultChildCapabilityId ?? resolveChildCapabilityId(raw?.childCapabilityId);
+  const childCapabilityId = defaultChildCapabilityId ? defaultChildCapabilityId : resolveChildCapabilityId(raw?.childCapabilityId);
   const geometryProof = readGeometryProof(raw);
   const refs = buildInvalidInputRefs(input, raw);
 

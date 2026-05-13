@@ -213,7 +213,7 @@ export const commanderConsoleStylesTail = `.cc-page { min-height: 100%; display:
 .cc-json-block { margin: 0; padding: var(--cc-space-4); overflow: auto; border-radius: var(--cc-radius); background: #112630; color: #eff7f7; font: var(--cc-text-sm)/1.5 var(--cc-font-mono); }
 .cc-right-inspector-shell[hidden] { display: none; }
 .cc-right-inspector-shell { position: absolute; inset: calc(var(--cc-titlebar-height) + var(--cc-toolbar-height)) 0 var(--cc-status-strip-height) 0; z-index: 20; pointer-events: none; }
-.cc-inspector-backdrop { position: absolute; inset: 0; background: rgba(8, 20, 26, 0.18); border: 0; padding: 0; opacity: 0; transition: opacity 160ms ease; }
+.cc-inspector-backdrop { position: absolute; inset: 0; background: rgba(8, 20, 26, 0.18); border: 0; padding: 0; opacity: 0; }
 .cc-right-inspector { position: absolute; top: 0; right: 0; bottom: 0; width: min(var(--cc-inspector-width), 36vw); background: rgba(252, 249, 243, 0.99); border-left: 1px solid var(--cc-border); display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); gap: var(--cc-space-3); padding: var(--cc-space-4); box-shadow: -16px 0 36px rgba(8, 20, 26, 0.14); pointer-events: auto; }
 .cc-right-inspector-header { display: flex; justify-content: space-between; gap: var(--cc-space-3); align-items: start; }
 .cc-right-inspector-header h2 { margin: 3px 0 0; font-size: var(--cc-text-xl); line-height: 1.2; }
@@ -226,7 +226,7 @@ export const commanderConsoleStylesTail = `.cc-page { min-height: 100%; display:
 .cc-inspect-ref-row { display: flex; justify-content: space-between; gap: var(--cc-space-3); padding: 8px 0; border-bottom: 1px solid rgba(28, 46, 56, 0.08); }
 .cc-inspect-ref-row:last-child { border-bottom: 0; padding-bottom: 0; }
 .cc-inspect-ref-row span { color: var(--cc-muted); font-size: var(--cc-text-sm); }
-.cc-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(10px); background: rgba(16, 34, 43, 0.92); color: #fefaf2; border-radius: 999px; padding: 10px 14px; font: 700 var(--cc-text-sm)/1 var(--cc-font-ui); opacity: 0; pointer-events: none; transition: transform 160ms ease, opacity 160ms ease; z-index: 30; }
+.cc-toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(10px); background: rgba(16, 34, 43, 0.92); color: #fefaf2; border-radius: 999px; padding: 10px 14px; font: 700 var(--cc-text-sm)/1 var(--cc-font-ui); opacity: 0; pointer-events: none; z-index: 30; }
 .cc-toast.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
 @media (max-width: 1100px) {
   .cc-mac-toolbar { grid-template-columns: 1fr; padding: var(--cc-space-3) var(--cc-space-4); min-height: var(--cc-toolbar-height); height: auto; }

@@ -23,7 +23,7 @@ export type UrlPolicyResult =
 /**
  * validateTargetUrl — validates a URL string passes Open's governed policy.
  *
- * Fails closed: no fallback, no default.
+ * Fails closed when an explicit target is unavailable.
  */
 export function validateTargetUrl(raw: string): UrlPolicyResult {
   let parsed: URL;

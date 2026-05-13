@@ -16,7 +16,7 @@ export const STOP_MISSION_CHILD: CommanderConsoleChildDefinition<StopMissionInpu
       buildCommandInput: (commandInput) => ({
         commandType: "stop-mission",
         targetMissionId: commandInput.targetMissionId ?? null,
-        selectedBindingId: null,
+        targetBindingId: null,
         targetRecordRef: null,
         requestedPlatformId: null,
         humanGoal: null,

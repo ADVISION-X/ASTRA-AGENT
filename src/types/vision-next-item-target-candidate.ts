@@ -53,7 +53,7 @@ const VisionNextItemTargetCandidatePayloadSchema = z.object({
   sampledFrameCount: VisionNextItemTargetCandidateRequestInputSchema.shape.sampledFrameCount,
   validFrameCount: VisionNextItemTargetCandidateRequestInputSchema.shape.validFrameCount,
   expectedFrameCount: VisionNextItemTargetCandidateRequestInputSchema.shape.expectedFrameCount,
-  fallbackReason: VisionNextItemTargetCandidateRequestInputSchema.shape.fallbackReason,
+  samplingFailureReason: VisionNextItemTargetCandidateRequestInputSchema.shape.samplingFailureReason,
   missingFrames: z.array(VisionProductPresenceMissingFrameSchema).default([]),
   targetCandidates: z.array(VisionNextItemTargetCandidateSchema).max(10),
   nonExecutableSummary: z.string().min(1),

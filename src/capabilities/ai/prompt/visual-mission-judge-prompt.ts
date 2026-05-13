@@ -89,10 +89,10 @@ const SYSTEM_PROMPT = `
 {
   "actionCode":  string,
   "required":    boolean,
-  "targetRole":  "like_button" | "comments_button" | "comments_panel_close" |
-                 "next_video_surface" | "next_video_arrow" | "unknown" | null,
   "reason":      string,
-  "input":       object
+  "input":       object,
+  "gridCell":    string | null,
+  "cellZone":    string | null
 }
 
 每个 VisibleElement 对象（视觉扫描结果，必须如实填写，与业务决策无关）：
@@ -124,16 +124,16 @@ function buildPlatformSection(profile: PlatformProfile): string {
     ?? (profile.likeActionHint === "PRESS_APPROVED_KEY_ONCE" ? "L" : null);
 
   const likeHintLine = profile.likeActionHint
-    ? `  点赞目标 (like_button)     → 推荐: ${profile.likeActionHint}${likeApprovedKey ? `  (approvedKey: "${likeApprovedKey}")` : ""}`
-    : "  点赞目标 (like_button)     → 无平台提示";
+    ? `  可见点赞控件 → 推荐原子能力: ${profile.likeActionHint}${likeApprovedKey ? `  (approvedKey: "${likeApprovedKey}")` : ""}`
+    : "  可见点赞控件 → 无平台提示";
 
   const nextVideoHintLine = profile.nextVideoPreferredActionCode
     ? `  跳下一视频 (next_video)    → 推荐: ${profile.nextVideoPreferredActionCode}  (approvedKey: "ArrowDown")`
     : "  跳下一视频 (next_video)    → 无平台提示";
 
   const commentsHintLine = profile.commentsActionHint
-    ? `  打开评论 (comments_button) → 推荐: ${profile.commentsActionHint}`
-    : "  打开评论 (comments_button) → 无平台提示";
+    ? `  可见评论控件 → 推荐原子能力: ${profile.commentsActionHint}`
+    : "  可见评论控件 → 无平台提示";
 
   return [
     `平台标识: ${profile.platformId}`,

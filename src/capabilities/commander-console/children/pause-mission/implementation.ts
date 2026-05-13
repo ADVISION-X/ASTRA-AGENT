@@ -16,7 +16,7 @@ export const PAUSE_MISSION_CHILD: CommanderConsoleChildDefinition<PauseMissionIn
       buildCommandInput: (commandInput) => ({
         commandType: "pause-mission",
         targetMissionId: commandInput.targetMissionId ?? null,
-        selectedBindingId: null,
+        targetBindingId: null,
         targetRecordRef: null,
         requestedPlatformId: null,
         humanGoal: null,

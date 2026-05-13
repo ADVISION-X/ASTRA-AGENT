@@ -56,7 +56,7 @@ function shouldLogAtInfoLevel(entry: StructuredRuntimeEvent): boolean {
 function formatRuntimeEvent(entry: StructuredRuntimeEvent): string {
   const parts: string[] = [
     `[grasseye:${entry.level?.toLowerCase() ?? "info"}]`,
-    `[${entry.component ?? entry.abilityGroupId ?? "runtime"}]`,
+    `[${entry.component ? entry.component : entry.abilityGroupId ? entry.abilityGroupId : "runtime"}]`,
     entry.eventType,
   ];
   if (entry.missionId) parts.push(`mission=${entry.missionId.slice(0, 8)}`);
@@ -66,8 +66,8 @@ function formatRuntimeEvent(entry: StructuredRuntimeEvent): string {
 function formatActionLog(entry: Record<string, unknown>): string {
   const parts: string[] = [
     "[grasseye:action]",
-    `[${String(entry["abilityGroupId"] ?? entry["component"] ?? "runtime")}]`,
-    String(entry["childCapabilityId"] ?? entry["actionType"] ?? "action"),
+    `[${String(entry["abilityGroupId"] ? entry["abilityGroupId"] : entry["component"] ? entry["component"] : "runtime")}]`,
+    String(entry["childCapabilityId"] ? entry["childCapabilityId"] : entry["actionType"] ? entry["actionType"] : "action"),
     String(entry["status"] ?? ""),
   ];
   return parts.filter(Boolean).join(" ");

@@ -14,7 +14,7 @@ async function pathExists(filePath) {
     await access(filePath, fsConstants.F_OK);
     return true;
   } catch (error) {
-    debugDependencyState(`pathExists fallback for ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+    debugDependencyState(`pathExists unavailable for ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
     return false;
   }
 }

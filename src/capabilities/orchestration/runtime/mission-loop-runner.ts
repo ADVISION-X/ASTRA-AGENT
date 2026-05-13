@@ -2,7 +2,7 @@
  * mission-loop-runner.ts — Async round loop for a running mission.
  *
  * Called (fire-and-forget) from handleStartMission after the mission state
- * transitions to "running".
+ * moves to "running".
  *
  * Each round:
  *   1. Check loop guard
@@ -27,7 +27,7 @@ import { dispatchRegisteredAbilitySequence } from "./dispatch-sequence.js";
 import {
   getMissionState,
   upsertMissionState,
-  applyStatusTransition,
+  applyMissionStatus,
   setActiveMission,
   now,
 } from "./mission-state.js";
@@ -313,7 +313,7 @@ export async function runMissionRoundLoop(
     const guardBefore = checkLoopGuardBeforeRound(state);
     if (guardBefore.shouldStop) {
       if (guardBefore.reason !== "mission-not-running") {
-        const finalized = applyStatusTransition(state, {
+        const finalized = applyMissionStatus(state, {
           status: "completed",
           stopReason: guardBefore.reason,
           endedAt: now(),
@@ -342,7 +342,7 @@ export async function runMissionRoundLoop(
     // Fail closed: missing or invalid platform must not fall back silently
     const requestedPlatform = state.requestedPlatform;
     if (requestedPlatform !== "facebook-web" && requestedPlatform !== "tiktok-web") {
-      upsertMissionState(applyStatusTransition(state, {
+      upsertMissionState(applyMissionStatus(state, {
         status: "failed",
         failureReason: `INVALID_PLATFORM: requestedPlatform=${requestedPlatform ?? "missing"}`,
       }));
@@ -355,7 +355,7 @@ export async function runMissionRoundLoop(
     // Fail closed: missing humanGoal must not fall back to a default
     const userRequirementText = state.humanGoal;
     if (!userRequirementText) {
-      upsertMissionState(applyStatusTransition(state, {
+      upsertMissionState(applyMissionStatus(state, {
         status: "failed",
         failureReason: "MISSING_USER_REQUIREMENT: humanGoal is required",
       }));
@@ -415,7 +415,7 @@ export async function runMissionRoundLoop(
           : `OPEN FAILED targetUrl=${state.targetUrl}: ${openResult.failureReason ?? "unknown"}`,
       });
       if (openResult.status !== "success") {
-        upsertMissionState(applyStatusTransition(getMissionState(missionId), {
+        upsertMissionState(applyMissionStatus(getMissionState(missionId), {
           status: "failed",
           failureReason: openResult.failureReason ?? "Open gate failed",
         }));
@@ -480,7 +480,7 @@ export async function runMissionRoundLoop(
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "screenshot capture threw";
-      upsertMissionState(applyStatusTransition(getMissionState(missionId), { status: "failed", failureReason: msg }));
+      upsertMissionState(applyMissionStatus(getMissionState(missionId), { status: "failed", failureReason: msg }));
       setActiveMission(null);
       return;
     }
@@ -488,7 +488,7 @@ export async function runMissionRoundLoop(
     if (captureResult.status !== "success" || !("screenshotRef" in captureResult) || !captureResult.screenshotRef) {
       const msg = ("failureReason" in captureResult ? captureResult.failureReason : null) ?? "screenshot capture failed";
       ctx.runtimeLogger.emit({ traceId: missionId, level: "error", modeVisibility: ["FLOW", "DEBUG", "TRACE"], eventType: "SCREENSHOT_CAPTURED", owner: "orchestration", missionId, runId, roundId, status: "failed", reason: msg });
-      upsertMissionState(applyStatusTransition(getMissionState(missionId), { status: "failed", failureReason: msg }));
+      upsertMissionState(applyMissionStatus(getMissionState(missionId), { status: "failed", failureReason: msg }));
       setActiveMission(null);
       return;
     }
@@ -542,7 +542,7 @@ export async function runMissionRoundLoop(
         extraTransientScreenshotRefs: temporalContextScreenshotRefs,
         deleteOriginalScreenshot: true,
       });
-      upsertMissionState(applyStatusTransition(getMissionState(missionId), { status: "failed", failureReason: msg }));
+      upsertMissionState(applyMissionStatus(getMissionState(missionId), { status: "failed", failureReason: msg }));
       setActiveMission(null);
       return;
     }
@@ -568,7 +568,7 @@ export async function runMissionRoundLoop(
         extraTransientScreenshotRefs: temporalContextScreenshotRefs,
         deleteOriginalScreenshot: true,
       });
-      upsertMissionState(applyStatusTransition(getMissionState(missionId), { status: "failed", failureReason: msg }));
+      upsertMissionState(applyMissionStatus(getMissionState(missionId), { status: "failed", failureReason: msg }));
       setActiveMission(null);
       return;
     }
@@ -627,7 +627,7 @@ export async function runMissionRoundLoop(
         extraTransientScreenshotRefs: temporalContextScreenshotRefs,
         deleteOriginalScreenshot: true,
       });
-      upsertMissionState(applyStatusTransition(getMissionState(missionId), {
+      upsertMissionState(applyMissionStatus(getMissionState(missionId), {
         status: "failed",
         failureReason: `AI context image resize failed: ${error instanceof Error ? error.message : "unknown error"}`,
       }));
@@ -785,7 +785,7 @@ export async function runMissionRoundLoop(
         extraTransientScreenshotRefs: aiTransientScreenshotRefs,
         deleteOriginalScreenshot: true,
       });
-      upsertMissionState(applyStatusTransition(getMissionState(missionId), { status: "failed", failureReason: msg }));
+      upsertMissionState(applyMissionStatus(getMissionState(missionId), { status: "failed", failureReason: msg }));
       setActiveMission(null);
       return;
     }
@@ -802,7 +802,7 @@ export async function runMissionRoundLoop(
         extraTransientScreenshotRefs: aiTransientScreenshotRefs,
         deleteOriginalScreenshot: true,
       });
-      upsertMissionState(applyStatusTransition(getMissionState(missionId), {
+      upsertMissionState(applyMissionStatus(getMissionState(missionId), {
         status: "review_required",
         reviewRequiredReason: aiResult.reviewRequiredReason ?? "AI requested review",
       }));
@@ -822,7 +822,7 @@ export async function runMissionRoundLoop(
         extraTransientScreenshotRefs: aiTransientScreenshotRefs,
         deleteOriginalScreenshot: true,
       });
-      upsertMissionState(applyStatusTransition(getMissionState(missionId), { status: "failed", failureReason: msg }));
+      upsertMissionState(applyMissionStatus(getMissionState(missionId), { status: "failed", failureReason: msg }));
       setActiveMission(null);
       return;
     }
@@ -857,7 +857,7 @@ export async function runMissionRoundLoop(
         extraTransientScreenshotRefs: aiTransientScreenshotRefs,
         deleteOriginalScreenshot: aiOutput.productDecision !== "product_yes",
       });
-      upsertMissionState(applyStatusTransition(getMissionState(missionId), {
+      upsertMissionState(applyMissionStatus(getMissionState(missionId), {
         status: "review_required",
         reviewRequiredReason: aiOutput.reason ?? "AI: page state requires review",
       }));
@@ -867,22 +867,21 @@ export async function runMissionRoundLoop(
     const dispatchActions = aiOutput.actions
       .filter(a => a.actionCode !== "STOP_REVIEW_REQUIRED_ONCE")
       .map(action => {
-        const inputOverrides = { ...(action.input ?? {}) };
+        const actionInput = { ...(action.input ?? {}) };
         const entry = catalog.entries.find(e => e.actionCode === action.actionCode);
         return {
           actionCode: action.actionCode,
           reason: action.reason ?? null,
-          targetRole: action.targetRole ?? null,
-          inputOverrides: {
-            ...inputOverrides,
+          input: {
+            ...actionInput,
             ...(entry?.requiresGridSpecRef ? { gridSpecRef } : {}),
           },
           required: action.required ?? true,
-          gridCell: (inputOverrides["gridCell"] as string | undefined) ?? null,
-          cellZone: (inputOverrides["cellZone"] as GridCellZone | undefined) ?? null,
+          gridCell: action.gridCell ?? (actionInput["gridCell"] as string | undefined) ?? null,
+          cellZone: action.cellZone ?? (actionInput["cellZone"] as GridCellZone | undefined) ?? null,
         };
       });
-    const hasSaveEvidenceAction = dispatchActions.some((action) => action.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");
+    const hasSaveRecordAction = dispatchActions.some((action) => action.actionCode === "SAVE_RECORD_ONCE");
 
     // Check for explicit STOP_REVIEW_REQUIRED_ONCE in AI actions
     const stopAction = aiOutput.actions.find(a => a.actionCode === "STOP_REVIEW_REQUIRED_ONCE");
@@ -898,7 +897,7 @@ export async function runMissionRoundLoop(
         extraTransientScreenshotRefs: aiTransientScreenshotRefs,
         deleteOriginalScreenshot: aiOutput.productDecision !== "product_yes",
       });
-      upsertMissionState(applyStatusTransition(getMissionState(missionId), {
+      upsertMissionState(applyMissionStatus(getMissionState(missionId), {
         status: "review_required",
         reviewRequiredReason: stopAction.reason ?? "AI action: STOP_REVIEW_REQUIRED_ONCE",
       }));
@@ -937,7 +936,7 @@ export async function runMissionRoundLoop(
         originalScreenshotRef,
         coordinateGridScreenshotRef,
         extraTransientScreenshotRefs: aiTransientScreenshotRefs,
-        deleteOriginalScreenshot: !hasSaveEvidenceAction,
+        deleteOriginalScreenshot: !hasSaveRecordAction,
       });
       // Mission state may have been updated inside dispatch-sequence — check and stop if needed
       const stateAfterDispatch = getMissionState(missionId);
@@ -958,7 +957,7 @@ export async function runMissionRoundLoop(
       if (stateAfterDispatch.status !== "running") return;
       // If still "running" but dispatch failed, stop gracefully
       if (sequenceResult.status === "failed") {
-        upsertMissionState(applyStatusTransition(getMissionState(missionId), {
+        upsertMissionState(applyMissionStatus(getMissionState(missionId), {
           status: "failed",
           failureReason: sequenceResult.failureReason ?? "action sequence dispatch failed",
         }));
@@ -972,8 +971,8 @@ export async function runMissionRoundLoop(
     const stateAfterSuccess = getMissionState(missionId);
     const productDecision = aiOutput.productDecision;
     // Only an AI-selected save action makes the original screenshot evidence.
-    const deleteOriginalScreenshot = !hasSaveEvidenceAction;
-    if (hasSaveEvidenceAction) {
+    const deleteOriginalScreenshot = !hasSaveRecordAction;
+    if (hasSaveRecordAction) {
       upsertMissionState({
         ...stateAfterSuccess,
         savedEvidenceCount: (stateAfterSuccess.savedEvidenceCount ?? 0) + 1,
@@ -1010,7 +1009,7 @@ export async function runMissionRoundLoop(
     const guardAfter = checkLoopGuardAfterRound(stateAfter);
     if (guardAfter.shouldStop) {
       if (guardAfter.reason !== "mission-not-running") {
-        const finalized = applyStatusTransition(stateAfter, {
+        const finalized = applyMissionStatus(stateAfter, {
           status: "completed",
           stopReason: guardAfter.reason,
           endedAt: now(),
@@ -1054,7 +1053,7 @@ export async function runMissionRoundLoop(
     });
 
     // Wait for Facebook Reels to finish loading the next video before the next screenshot.
-    // 500ms was too short — Reels needs ~2s to transition from blank to loaded video.
+    // 500ms was too short; Reels needs about 2s to load video after a blank frame.
     await new Promise<void>(r => setTimeout(r, 2500));
   }
 }

@@ -22,8 +22,8 @@ export const VISUAL_MISSION_FLOW_CONFIG = {
   // Token used for ORDER check of the dispatch step (more specific than the capability name alone)
   roundLoopDispatchOrderToken: "await dispatchRegisteredAbilitySequence(" as string,
 
-  // dispatch-sequence.ts must use findMuscleMemoryEntry (not hardcoded IDs)
-  dispatchMuscleMemoryToken: "findMuscleMemoryEntry" as string,
+  // dispatch-sequence.ts must use the registry lookup instead of hardcoded IDs.
+  dispatchMuscleMemoryToken: "getRegisteredAbilityById" as string,
 
   // Geometry Guard integration marker
   geometryGuardToken: "geometryGuard" as string,
@@ -56,8 +56,8 @@ export const VISUAL_MISSION_FLOW_CONFIG = {
   // MuscleMemory catalog path
   catalogPath: "src/muscle-memory/generated-catalog.json" as string,
 
-  // SAVE_CURRENT_VIDEO_EVIDENCE_ONCE must be in catalog with allowedForAiActionPlan=true
-  evidenceSaveActionCode: "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE" as string,
+  // SAVE_RECORD_ONCE must be in catalog with allowedForAiActionPlan=true
+  evidenceSaveActionCode: "SAVE_RECORD_ONCE" as string,
 
   // handleStartMission fire-and-forget token
   fireAndForgetToken: "runMissionRoundLoop" as string,

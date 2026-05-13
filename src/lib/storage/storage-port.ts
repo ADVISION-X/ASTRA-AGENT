@@ -1,7 +1,7 @@
 /**
  * storage-port.ts — GrassEyeStoragePort: the single generic storage interface.
  *
- * Only one port is permitted. No ProductLeadStoragePort, CandidateStoragePort,
+ * Only one port is permitted. No ProductRecordStoragePort, CandidateStoragePort,
  * DiscoveryStoragePort, LedgerStoragePort, RuntimeStoragePort, etc.
  */
 

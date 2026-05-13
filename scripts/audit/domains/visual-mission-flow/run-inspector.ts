@@ -33,7 +33,7 @@ if (!SELF_PROOF) {
   // ── Injection A: remove SCROLL requirement from product_yes in ai-output.schema.ts ──
   const SCHEMA_PATH = join(ROOT, "src/visual-mission/action-plan/ai-output.schema.ts");
   const schemaOrig = readFileSync(SCHEMA_PATH, "utf8");
-  const SCROLL_REQUIRED_TEXT = `    const scrollIdx = actions.findIndex(a => a.actionCode === "SCROLL_BROWSER_VIEWPORT_ONCE");\n    if (saveIdx !== -1 && scrollIdx === -1) {\n      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires SCROLL_BROWSER_VIEWPORT_ONCE after SAVE_CURRENT_VIDEO_EVIDENCE_ONCE to advance to the next video.", path: ["actions"] });\n    }\n    if (saveIdx !== -1 && scrollIdx !== -1 && scrollIdx < saveIdx)`;
+  const SCROLL_REQUIRED_TEXT = `    const scrollIdx = actions.findIndex(a => a.actionCode === "SCROLL_BROWSER_VIEWPORT_ONCE");\n    if (saveIdx !== -1 && scrollIdx === -1) {\n      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "product_yes requires SCROLL_BROWSER_VIEWPORT_ONCE after SAVE_RECORD_ONCE to advance to the next video.", path: ["actions"] });\n    }\n    if (saveIdx !== -1 && scrollIdx !== -1 && scrollIdx < saveIdx)`;
   const SCROLL_REQUIRED_AFTER = `    const scrollIdx = actions.findIndex(a => a.actionCode === "SCROLL_BROWSER_VIEWPORT_ONCE");\n    if (saveIdx !== -1 && scrollIdx !== -1 && scrollIdx < saveIdx)`;
   const schemaMutated = schemaOrig.replace(SCROLL_REQUIRED_TEXT, SCROLL_REQUIRED_AFTER);
   if (schemaMutated === schemaOrig) {
@@ -54,17 +54,17 @@ if (!SELF_PROOF) {
     process.stdout.write("[SELF-PROOF] SELF_PROOF_MUTATION_APPLIED: Injection B (removed geometryGuardNormalizedClickPoint)\n");
   }
 
-  // ── Injection C: replace targetRole comparison with regex in dispatch-sequence ──
+  // ── Injection C: replace visualIntent comparison with regex in dispatch-sequence ──
   const dispatchForC = readFileSync(DISPATCH_PATH, "utf8");
   const dispatchMutatedC = dispatchForC.replace(
-    "const commentPanelOpenAttempted = input.actions.some(a => a.targetRole === \"comments_button\");",
-    "const commentPanelOpenAttempted = input.actions.some(a => /comment/i.test(a.reason ?? \"\"));"
+    "const commentAttemptRemoved = input.actions.some(a => a.visualIntent === \"comment_entry_control\");",
+    "const commentAttemptRemoved = input.actions.some(a => /comment/i.test(a.reason ?? \"\"));"
   );
   if (dispatchMutatedC === dispatchForC) {
     process.stdout.write("[SELF-PROOF] WARN: Injection C could not find target text\n");
   } else {
     writeFileSync(DISPATCH_PATH, dispatchMutatedC, "utf8");
-    process.stdout.write("[SELF-PROOF] SELF_PROOF_MUTATION_APPLIED: Injection C (replaced targetRole with regex)\n");
+    process.stdout.write("[SELF-PROOF] SELF_PROOF_MUTATION_APPLIED: Injection C (replaced visualIntent with regex)\n");
   }
 
   // ── Run inspector — expect FAIL ──

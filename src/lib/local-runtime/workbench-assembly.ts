@@ -23,7 +23,7 @@ import { createOpenAbilityGroup } from "../../capabilities/open/index.js";
 import type { BrowserOpenPort } from "../../capabilities/open/index.js";
 
 import { createWorkbenchScreenshotAbilityGroup } from "../../capabilities/screenshot/workbench-screenshot-ability-group.js";
-import { createTextInputAbilityGroupWithPorts } from "../../capabilities/text-input/index.js";
+import { createTextInputAbilityGroupWithPrimitivePort } from "../../capabilities/text-input/index.js";
 import { createVisualTargetAbilityGroup } from "../../capabilities/visual-target/index.js";
 import { CurrentChromeBrowserController } from "../browser/current-chrome-browser-controller.js";
 import { createLocalBrowserSessionConfig } from "../browser/local-browser-session.js";
@@ -96,7 +96,7 @@ export type WorkbenchAssembly = {
   mouseScrollAbilityGroup: ReturnType<
     typeof createMouseScrollAbilityGroupWithPrimitivePort
   >;
-  textInputAbilityGroup: ReturnType<typeof createTextInputAbilityGroupWithPorts>;
+  textInputAbilityGroup: ReturnType<typeof createTextInputAbilityGroupWithPrimitivePort>;
   runtimeLogger: RuntimeLogger;
 };
 
@@ -114,7 +114,7 @@ export function createWorkbenchAssembly(
   });
   setDefaultRuntimeLogger(runtimeLogger);
 
-  // Structured log bus (legacy — retained only for structured terminal output compatibility).
+  // Structured log bus used by terminal relay output.
   // Must NOT be used by start/mission/AI main chain; use runtimeLogger/emitRuntimeLog instead.
   const structuredLogBus = new StructuredLogBus();
   if (isStructuredLogStdoutEnabled()) {
@@ -169,7 +169,7 @@ export function createWorkbenchAssembly(
       primitivePort: mouseScrollPrimitivePort,
     });
   const textInputAbilityGroup =
-    createTextInputAbilityGroupWithPorts(textInputPorts);
+    createTextInputAbilityGroupWithPrimitivePort(textInputPorts);
   const aiAbilityGroup = createConfiguredAiAbilityGroup({ dataDir, runtimeLogger });
   const openAbilityGroup = createOpenAbilityGroup({
     browserOpenPort: createOpenBrowserPortAdapter(browserController),

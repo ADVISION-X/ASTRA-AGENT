@@ -5,7 +5,7 @@
  * Routes AI requests directly to the AI ability group.
  * Routes human commands to orchestration.
  *
- * Does NOT contain: map-chain, page-state/visual-target/PAV special routes,
+ * Does NOT contain map-chain, visual-target, or PAV special routes.
  * AI special routes, Forensics finalization, or Commander read-model.
  */
 

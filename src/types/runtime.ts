@@ -75,7 +75,7 @@ type RuntimeDeliveryState = {
   currentRoundStep: RuntimeRoundStep;
   currentUrl: string;
   targetUrl: string | null;
-  pageReadyStatus: RuntimePageReadyStatus;
+  surfaceReadyStatus: RuntimePageReadyStatus;
   lastNavigationError: string | null;
   lastStopReason: string | null;
   reviewRequiredReason: string | null;
@@ -116,7 +116,7 @@ type BrowseRuntimeSnapshot = {
   currentUrl: string;
   targetUrl: string | null;
   pageSafetyState: string;
-  feedReadyStatus: string;
+  streamReadyStatus: string;
   videoStableStatus: string;
   currentVideoVisitId: string | null;
   geometryStatus: string;
@@ -133,12 +133,12 @@ type BrowseRuntimeSnapshot = {
   latestFailureEventType?: string | null;
   latestFailureEventMessage?: string | null;
   latestSamplingStrategy?: string | null;
-  latestSamplingFallbackReason?: string | null;
+  latestSamplingFailureReason?: string | null;
   latestMissingFrames?: Array<{ frameLabel: string; unavailableReason: string }>;
   latestProductPresenceDecision: string | null;
-  latestBrowseLedgerEntryId: string | null;
+  latestBrowseRecordEntryId: string | null;
   latestEvidencePacketId: string | null;
-  latestStructuredActionLogId: string | null;
+  latestRuntimeActionEventId: string | null;
   latestActionLogId: string | null;
   latestRoundOutcome: string | null;
   reviewRequiredReason: string | null;
@@ -149,6 +149,6 @@ type BrowseRuntimeSnapshot = {
     uncertainCount: number;
     duplicateCount: number;
     evidencePacketCount: number;
-    browseLedgerCount: number;
+    browseRecordCount: number;
   };
 };export type { AppShellComponentName, MissionReadinessComponentName, RuntimeComponentHealth, RuntimeHealthReport, MissionReadinessReport, RuntimePageReadyStatus, RuntimeRoundStep, RuntimeDeliveryState, BrowseRuntimeSnapshot };

@@ -4,14 +4,14 @@ import type { CommanderAppNavItem, CommanderAppPageId, CommanderAppTabGroup, Com
 import { buildActionableErrors } from "./view-helper-actionable-errors.js";
 
 const COMMANDER_APP_PAGE_IDS = new Set<CommanderAppPageId>(["mission", "results", "review", "settings", "health"]);
-const COMMANDER_LEGACY_SETTINGS_PAGE_IDS = new Set(["ai-provider-settings", "developer"]);
+const COMMANDER_SETTINGS_ALIAS_PAGE_IDS = new Set(["ai-provider-settings", "developer"]);
 
 function parseCommanderAppPageId(value: string | null | undefined): CommanderAppPageId {
   if (COMMANDER_APP_PAGE_IDS.has(value as CommanderAppPageId)) {
     return value as CommanderAppPageId;
   }
 
-  if (COMMANDER_LEGACY_SETTINGS_PAGE_IDS.has(value ?? "")) {
+  if (COMMANDER_SETTINGS_ALIAS_PAGE_IDS.has(value ?? "")) {
     return "settings";
   }
 

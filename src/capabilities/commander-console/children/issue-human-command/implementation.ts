@@ -16,7 +16,7 @@ export const ISSUE_HUMAN_COMMAND_CHILD: CommanderConsoleChildDefinition<IssueHum
       buildCommandInput: (commandInput) => ({
         commandType: "start-mission",
         targetMissionId: null,
-        selectedBindingId: null,
+        targetBindingId: null,
         targetRecordRef: null,
         requestedPlatformId: commandInput.requestedPlatformId ?? null,
         humanGoal: commandInput.humanGoal ?? null,

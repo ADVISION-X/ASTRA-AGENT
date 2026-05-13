@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { findMuscleMemoryEntry } from "../../../muscle-memory/catalog.js";
+import { getRegisteredAbilityById } from "../../../muscle-memory/catalog.js";
 import { resolveAiActionInputPolicy } from "../../../visual-mission/action-plan/action-field-policy.js";
 
 type JsonScannerState = {
@@ -45,7 +45,7 @@ function pruneActionInputFields(parsed: Record<string, unknown>): void {
     const input = actionObj["input"];
     if (!actionCode || input === null || typeof input !== "object" || Array.isArray(input)) continue;
 
-    const entry = findMuscleMemoryEntry(actionCode);
+    const entry = getRegisteredAbilityById(actionCode);
     if (!entry) continue;
 
     const policy = resolveAiActionInputPolicy(entry);

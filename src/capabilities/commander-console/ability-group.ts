@@ -41,7 +41,7 @@ export const createCommanderConsoleAbilityGroup = (options: CreateCommanderConso
       const proof = buildCommanderProof({
         childCapabilityId: "issue-human-command",
         commandId: randomUUID(),
-        commandType: rawInput.childCapabilityId ?? "unknown",
+        commandType: rawInput.childCapabilityId ? String(rawInput.childCapabilityId) : "unknown",
         operatorRef: rawInput.operatorRef ?? options.defaultOperatorRef,
         missionId: null,
         status: "failed",

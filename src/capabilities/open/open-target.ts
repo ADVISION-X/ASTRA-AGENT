@@ -93,7 +93,7 @@ export async function openPlatformEntryOnce(
     resolvedUrl = validation.url.toString();
     resolvedTargetUrlSource = parsed.data.targetUrlSource;
   } else {
-    // Fail closed — no default fallback allowed
+    // Fail closed when no explicit target URL is provided.
     return {
       status: "failed",
       childCapabilityId: "open-platform-entry-once",

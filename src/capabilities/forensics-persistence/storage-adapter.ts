@@ -5,7 +5,7 @@
  * into the generic RecordEnvelope / ArtifactEnvelope understood by
  * GrassEyeStoragePort, then delegates to the storage layer.
  *
- * This file is the ONLY place that bridges the forensics capability
+ * This file is the ONLY place that connects the forensics capability
  * and the generic storage layer. It lives here (inside the capability)
  * so it may import from both forensics schema and storage types.
  */

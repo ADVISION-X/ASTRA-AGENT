@@ -62,7 +62,7 @@ export function createInitialMissionState(params: {
   });
 }
 
-type StatusTransitionPatch = {
+type MissionStatusPatch = {
   status: MissionState["status"];
   reviewRequiredReason?: string | null;
   stopReason?: string | null;
@@ -72,9 +72,9 @@ type StatusTransitionPatch = {
   lastHumanCommand?: MissionState["lastHumanCommand"];
 };
 
-export function applyStatusTransition(
+export function applyMissionStatus(
   current: MissionState,
-  patch: StatusTransitionPatch,
+  patch: MissionStatusPatch,
 ): MissionState {
   const updated: MissionState = {
     ...current,

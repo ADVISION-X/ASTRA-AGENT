@@ -10,7 +10,7 @@ export function renderResultSummaryCard(viewModel: CommanderConsoleViewModel, op
 }): string {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
   const evidenceCount = viewModel.rawSnapshot.runtime.evidencePacketCount;
-  const browseCount = viewModel.rawSnapshot.runtime.browseLedgerCount;
+  const browseCount = viewModel.rawSnapshot.runtime.browseRecordCount;
   const failedCount = viewModel.failedRecords.length;
   const reviewCount = viewModel.reviewQueueSummary.pendingCount;
   const exportAvailable = canRequestCandidateExport(viewModel);

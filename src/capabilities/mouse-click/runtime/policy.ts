@@ -15,7 +15,7 @@ export type MouseClickPolicyFailReason =
  *   3. Source evidence refs are present
  *   4. Purpose is non-empty
  *
- * Business semantics (like/open_comments/next_video) are NOT inspected here.
+ * Business semantics are NOT inspected here.
  * Those are resolved upstream by Orchestration and AI.
  */
 export function checkMouseClickPolicy(

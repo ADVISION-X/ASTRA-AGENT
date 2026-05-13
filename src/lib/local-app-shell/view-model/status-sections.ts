@@ -96,7 +96,7 @@ function createMissingStartBindingFailure(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
 ): CommanderConsoleFailureItem | null {
-  return dashboard.runtime.runtimeStatus !== "idle" && (!dashboard.mission?.requestedPlatform || !dashboard.mission?.selectedBindingId)
+  return dashboard.runtime.runtimeStatus !== "idle" && (!dashboard.mission?.requestedPlatform || !dashboard.mission?.targetBindingId)
     ? createFailureItem(
         "missing-start-binding",
         localizeCommanderText(locale, "启动草案缺字段", "Start draft missing fields"),

@@ -1,8 +1,8 @@
-import type { StructuredActionLog, StructuredRuntimeEvent } from "../../types/structured-log.js";
+import type { RuntimeActionEvent, StructuredRuntimeEvent } from "../../types/structured-log.js";
 
 export type StructuredLogEntry =
   | { kind: "event"; entry: StructuredRuntimeEvent }
-  | { kind: "action"; entry: StructuredActionLog };
+  | { kind: "action"; entry: RuntimeActionEvent };
 
 export type StructuredLogListener = (entry: StructuredLogEntry) => void;
 
@@ -13,7 +13,7 @@ export class StructuredLogBus {
     this.publish({ kind: "event", entry });
   }
 
-  emitActionLog(entry: StructuredActionLog): void {
+  emitActionLog(entry: RuntimeActionEvent): void {
     this.publish({ kind: "action", entry });
   }
 

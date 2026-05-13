@@ -184,15 +184,15 @@ const assertLocalAiUnavailableChain = (structuredRuntimeEvents) => {
   assert(hasLaterEvent(structuredRuntimeEvents, localAiUnavailableIndex, (entry) => entry.eventType === "runtime_snapshot_summary" && entry.snapshotSummary?.runtimeStatus === "review_required" && Boolean(entry.snapshotSummary?.reviewRequiredReason)), "local_ai_runtime_unavailable must be followed by runtime_snapshot_summary with review_required reason");
 };
 
-const assertSingleFrameFallbackEvents = (structuredRuntimeEvents) => {
-  const singleFrameFallbackEvents = structuredRuntimeEvents.filter((entry) => entry.samplingStrategy === "single_frame_fallback");
-  if (singleFrameFallbackEvents.length === 0) {
+const assertSingleFrameOnlyEvents = (structuredRuntimeEvents) => {
+  const singleFrameOnlyEvents = structuredRuntimeEvents.filter((entry) => entry.samplingStrategy === "single_frame_only");
+  if (singleFrameOnlyEvents.length === 0) {
     return;
   }
 
-  assert(singleFrameFallbackEvents.some((entry) => entry.expectedFrameCount === 3 && entry.validFrameCount === 1), "single_frame_fallback runtime proof must include expectedFrameCount=3 and validFrameCount=1");
-  assert(singleFrameFallbackEvents.some((entry) => Boolean(entry.fallbackReason)), "single_frame_fallback runtime proof must include fallbackReason");
-  assert(singleFrameFallbackEvents.some((entry) => Array.isArray(entry.missingFrames) && entry.missingFrames.length > 0), "single_frame_fallback runtime proof must include missingFrames");
+  assert(singleFrameOnlyEvents.some((entry) => entry.expectedFrameCount === 3 && entry.validFrameCount === 1), "single_frame_only runtime proof must include expectedFrameCount=3 and validFrameCount=1");
+  assert(singleFrameOnlyEvents.some((entry) => Boolean(entry.samplingFailureReason)), "single_frame_only runtime proof must include samplingFailureReason");
+  assert(singleFrameOnlyEvents.some((entry) => Array.isArray(entry.missingFrames) && entry.missingFrames.length > 0), "single_frame_only runtime proof must include missingFrames");
 };
 
 export function validateBrowseLiveProofSnapshot(snapshot, platformTarget) {
@@ -202,6 +202,6 @@ export function validateBrowseLiveProofSnapshot(snapshot, platformTarget) {
   assertScrollRuntimeProof(snapshot.state.structuredActionLogs, snapshot.state.structuredRuntimeEvents);
   assertRoundOutcomes(snapshot.state.roundStructuralLogs);
   assertLocalAiUnavailableChain(snapshot.state.structuredRuntimeEvents);
-  assertSingleFrameFallbackEvents(snapshot.state.structuredRuntimeEvents);
+  assertSingleFrameOnlyEvents(snapshot.state.structuredRuntimeEvents);
   assert(!JSON.stringify(snapshot).includes("fake PASS"), "snapshot proof must not contain fake PASS");
 }

@@ -88,9 +88,9 @@ async function handoffToCurrentChromeTab(url) {
 
 async function tryMacOsChromeHandoff(url) {
   try {
-    return { openResult: await handoffToCurrentChromeTab(url), fallbackReason: null };
+    return await handoffToCurrentChromeTab(url);
   } catch (error) {
-    return { openResult: null, fallbackReason: toFailureReason(error) };
+    throw new Error(`Chrome tab handoff failed: ${toFailureReason(error)}`);
   }
 }
 
@@ -129,18 +129,7 @@ export function getOpenCommand(url, platform = process.platform) {
 
 export async function openMainPage(url, platform = process.platform) {
   if (platform === "darwin") {
-    const { openResult, fallbackReason } = await tryMacOsChromeHandoff(url);
-    if (openResult) {
-      return openResult;
-    }
-
-    const fallbackOpenCommand = getOpenCommand(url, platform);
-    await runSpawn(fallbackOpenCommand.command, fallbackOpenCommand.args, { stdio: "ignore" });
-    return {
-      ...fallbackOpenCommand,
-      handoffMode: "fallback_open_app",
-      fallbackReason,
-    };
+    return tryMacOsChromeHandoff(url);
   }
 
   const { command, args, browserName, browserPath } = getOpenCommand(url, platform);

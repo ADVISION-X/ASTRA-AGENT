@@ -2,7 +2,7 @@
  * Commander Console Registry
  *
  * Maps childCapabilityId → execute function.
- * Exactly 7 children. No legacy read-model children.
+ * Exactly 7 children. Read-model children are not registered here.
  */
 
 import type { CommanderChildContext } from "./children.js";

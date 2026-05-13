@@ -9,14 +9,6 @@ export function createTextInputAbilityGroupWithPrimitivePort(input: {
   });
 }
 
-/** @deprecated Use createTextInputAbilityGroupWithPrimitivePort. Ports wrapper for workbench compatibility. */
-export function createTextInputAbilityGroupWithPorts(input: {
-  primitivePort: TextInputPrimitivePort;
-  [key: string]: unknown;
-}) {
-  return createTextInputAbilityGroupWithPrimitivePort({ primitivePort: input.primitivePort });
-}
-
 export { createTextInputAbilityGroup } from "./ability-group.js";
 export {
   TEXT_INPUT_ABILITY_GROUP_ID,

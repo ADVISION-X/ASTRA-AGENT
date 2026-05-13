@@ -11,7 +11,7 @@ export interface CommanderReviewReadModelPort {
 
 export interface CommanderEvidenceReadModelPort {
   listEvidencePackets(limit?: number): Promise<CommanderRecordSummaryView[]>;
-  listBrowseLedger(limit?: number): Promise<CommanderRecordSummaryView[]>;
+  listBrowseRecord(limit?: number): Promise<CommanderRecordSummaryView[]>;
   listFailedRecords(limit?: number): Promise<CommanderRecordSummaryView[]>;
 }
 

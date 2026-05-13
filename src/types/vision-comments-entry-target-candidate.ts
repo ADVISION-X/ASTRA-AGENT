@@ -28,7 +28,7 @@ const VisionCommentsEntryTargetClickPointSchema = z.object({
 
 const VisionCommentsEntryTargetCandidateSchema = z.object({
   candidateId: z.string().min(1),
-  targetType: z.literal("comments_button"),
+  targetType: z.literal("comment_entry_control"),
   coordinateSpace: VisionCommentsEntryTargetCandidateCoordinateSpaceSchema,
   boundingBox: VisionCommentsEntryTargetBoundingBoxSchema,
   clickPoint: VisionCommentsEntryTargetClickPointSchema,
@@ -53,7 +53,7 @@ const VisionCommentsEntryTargetCandidatePayloadSchema = z.object({
   sampledFrameCount: VisionCommentsEntryTargetCandidateRequestInputSchema.shape.sampledFrameCount,
   validFrameCount: VisionCommentsEntryTargetCandidateRequestInputSchema.shape.validFrameCount,
   expectedFrameCount: VisionCommentsEntryTargetCandidateRequestInputSchema.shape.expectedFrameCount,
-  fallbackReason: VisionCommentsEntryTargetCandidateRequestInputSchema.shape.fallbackReason,
+  samplingFailureReason: VisionCommentsEntryTargetCandidateRequestInputSchema.shape.samplingFailureReason,
   missingFrames: z.array(VisionProductPresenceMissingFrameSchema).default([]),
   targetCandidates: z.array(VisionCommentsEntryTargetCandidateSchema).max(10),
   nonExecutableSummary: z.string().min(1),

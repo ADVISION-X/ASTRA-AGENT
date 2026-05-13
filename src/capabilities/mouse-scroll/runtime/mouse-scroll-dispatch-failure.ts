@@ -14,7 +14,7 @@ type DispatchMouseScrollFailureInput = {
 
 const resolveDispatchFailureSeed = (input: DispatchMouseScrollFailureInput) => {
   const seed = resolveMouseScrollFailureSeed(input.rawInput, input.childCapabilityId);
-  const childCapabilityId = input.childCapabilityId ?? seed.childCapabilityId;
+  const childCapabilityId = input.childCapabilityId ? input.childCapabilityId : seed.childCapabilityId;
 
   return {
     ...seed,

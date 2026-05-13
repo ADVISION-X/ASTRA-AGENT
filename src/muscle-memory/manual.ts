@@ -52,8 +52,6 @@ const PHYSICAL_SEMANTICS_BY_ACTION_CODE: Record<string, string> = {
     "Appends an existing file artifact reference to the forensics ledger. It does not capture a new screenshot or interact with the webpage.",
   READ_RECORD_ONCE:
     "Reads an existing forensics record. It observes stored data only and does not interact with the webpage.",
-  SAVE_CURRENT_VIDEO_EVIDENCE_ONCE:
-    "Saves governed evidence for the current video using system-injected screenshot/grid/AI refs. It does not click, type, open comments, like, or move to the next video.",
 };
 
 function resolvePhysicalSemantics(ability: RegisteredAtomicAbility): string {
