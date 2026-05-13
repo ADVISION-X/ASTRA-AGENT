@@ -160,8 +160,8 @@ async function dispatchSingleAction(
   if (!entry) {
     return { status: "failed", failureReason: `Action ${action.actionCode} not registered in MuscleMemory catalog` };
   }
-  const resolvedAbilityGroupId = action.abilityGroupId ?? entry.abilityGroupId;
-  const resolvedChildCapabilityId = action.childCapabilityId ?? entry.childCapabilityId;
+  const resolvedAbilityGroupId = entry.abilityGroupId;
+  const resolvedChildCapabilityId = entry.childCapabilityId;
 
   // ── 2. Catalog-registered handler: SAVE_CURRENT_VIDEO_EVIDENCE_ONCE ───────
   // (catalog check above has already verified this action is registered)
@@ -170,7 +170,7 @@ async function dispatchSingleAction(
     const reason = action.reason ?? (action.inputOverrides?.["reason"] as string | undefined) ?? "AI requested evidence save";
     const captureMode = (action.inputOverrides?.["captureMode"] as string | undefined) ?? "use_current_round_screenshot";
     try {
-      await ctx.forensics.appendRecord({
+      const evidenceResult = await ctx.forensics.appendRecord({
         childCapabilityId: "append-record",
         missionId: input.missionId,
         runId: input.runId,
@@ -195,6 +195,9 @@ async function dispatchSingleAction(
         },
         idempotencyKey: `save-evidence:${input.missionId}:${input.runId}:${input.roundId ?? ""}:${evidenceLabel}`,
       });
+      if (evidenceResult.status !== "success") {
+        return { status: "failed", failureReason: evidenceResult.failureReason ?? "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE forensics append failed" };
+      }
       ctx.runtimeLogger.emit({
         traceId: input.missionId,
         level: "debug",
@@ -213,83 +216,7 @@ async function dispatchSingleAction(
     }
   }
 
-  // ── 3. Special handler: viewport scroll — route through Nerve Bus with clean path
-  if (
-    action.actionCode === "SCROLL_BROWSER_VIEWPORT_ONCE" ||
-    (resolvedAbilityGroupId === "mouse-scroll" && resolvedChildCapabilityId === "scroll-browser-viewport")
-  ) {
-    const overrides = action.inputOverrides ?? {};
-    const scrollDeltaY = (overrides["scrollDeltaY"] as number | undefined) ?? 900;
-    const scrollDeltaX = (overrides["scrollDeltaX"] as number | undefined) ?? 0;
-    const gridSpecRef = (input.currentEvidenceRefs?.["gridSpecRef"] as string | undefined) ?? null;
-    const gridSpec = gridSpecRef
-      ? resolveScreenshotStructuredDataRefPayload<ScreenshotGridSpec>(gridSpecRef)
-      : null;
-    const boundsWidth = gridSpec?.sourceWidth ?? 1280;
-    const boundsHeight = gridSpec?.sourceHeight ?? 720;
-    const direction: "down" | "up" | "left" | "right" =
-      scrollDeltaY > 0 ? "down" : scrollDeltaY < 0 ? "up" : (scrollDeltaX > 0 ? "right" : "left");
-    const proofId = randomUUID();
-    const syntheticScrollInput = {
-      abilityGroupId: "mouse-scroll" as const,
-      childCapabilityId: "scroll-browser-viewport" as const,
-      sessionId: "local" as const,
-      roundId: input.roundId ?? null,
-      videoVisitId: null,
-      requestedBy: "orchestration:dispatch-sequence",
-      purpose: "scroll_viewport_to_next_item",
-      sourceAbilityGroupId: "orchestration",
-      sourceChildCapabilityId: "dispatch-registered-ability-sequence",
-      sourceCoordinateProofRef: proofId,
-      sourceEvidenceRef: (input.currentEvidenceRefs?.["originalScreenshotRef"] as string | undefined) ?? null,
-      sourceTargetRef: (input.currentEvidenceRefs?.["gridSpecRef"] as string | undefined) ?? proofId,
-      coordinateSpace: "browserViewport" as const,
-      bounds: { width: boundsWidth, height: boundsHeight },
-      direction,
-      magnitude: "customDelta" as const,
-      customDelta: { deltaX: scrollDeltaX, deltaY: scrollDeltaY },
-      region: null,
-      regionRef: null,
-      geometryScrollProof: {
-        proofId,
-        geometryGuardRef: proofId,
-        abilityGroupId: "geometry-guard" as const,
-        childCapabilityId: "validate-bbox-grid-region" as const,
-        sourceAbilityGroupId: "orchestration",
-        sourceChildCapabilityId: "dispatch-registered-ability-sequence",
-        sessionId: "local" as const,
-        roundId: input.roundId ?? null,
-        videoVisitId: null,
-        status: "success" as const,
-        guardDecision: "allow" as const,
-        normalizedCoordinateSpace: "browserViewport" as const,
-        normalizedAnchorPoint: { x: boundsWidth / 2, y: boundsHeight / 2 },
-        normalizedRegion: null,
-        sourceScreenshotEvidenceRef: (input.currentEvidenceRefs?.["originalScreenshotRef"] as string | undefined) ?? null,
-        sourceTargetRef: null,
-        inputRef: null,
-        outputRef: null,
-      },
-    };
-    try {
-      const result = await ctx.nerveBus.dispatchAbilityCommand({
-        abilityGroupId: "mouse-scroll",
-        childCapabilityId: "scroll-browser-viewport",
-        missionId: input.missionId,
-        runId: input.runId,
-        sessionId: null,
-        roundId: input.roundId ?? null,
-        inputOverrides: syntheticScrollInput,
-      });
-      const status = result.status === "success" ? "success" : result.status === "review_required" ? "review_required" : "failed";
-      return { status, failureReason: result.failureReason ?? null };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return { status: "failed", failureReason: msg };
-    }
-  }
-
-  // ── 4. Geometry Guard preflight for actions requiring coordinate proof ─────
+  // ── 3. Geometry Guard preflight for actions requiring coordinate proof ─────
   let inputOverrides: Record<string, unknown> = { ...(action.inputOverrides ?? {}) };
   if (entry.requiresGeometryProof) {
     const geoResult = await resolveGeometryProof(action, input, ctx);
@@ -302,7 +229,7 @@ async function dispatchSingleAction(
     inputOverrides = { ...inputOverrides, ...geoResult.proof };
   }
 
-  // ── 5. Dispatch to ability group via Nerve Bus ────────────────────────────
+  // ── 4. Dispatch to ability group via Nerve Bus ────────────────────────────
   // Build complete input — NerveBus is pure transport after P0-4; ability-group schemas
   // require all fields to be present in inputOverrides before dispatch.
   // Strip action-routing fields (gridCell) that were only needed for geometry proof
@@ -410,67 +337,8 @@ async function dispatchSingleAction(
   }
 }
 
-function isNextVideoClickAction(action: Action): boolean {
-  return action.actionCode === "LEFT_CLICK_GRID_CELL_ONCE"
-    && (action.targetRole === "next_video_arrow" || action.targetRole === "next_video_surface");
-}
-
 function waitForInterActionSettle() {
   return new Promise<void>((resolve) => setTimeout(resolve, INTER_ACTION_SETTLE_WAIT_MS));
-}
-
-async function dispatchNextVideoArrowDownFallback(
-  failedAction: Action,
-  input: DispatchRegisteredAbilitySequenceInput,
-  ctx: DispatchSequenceContext,
-): Promise<{ status: "success" | "failed" | "review_required"; failureReason: string | null }> {
-  const fallbackAction: Action = {
-    actionCode: "PRESS_APPROVED_KEY_ONCE",
-    reason: `Fallback after failed next-video click: ${failedAction.reason ?? "AI requested next video"}`,
-    targetRole: failedAction.targetRole ?? "next_video_arrow",
-    abilityGroupId: "text-input",
-    childCapabilityId: "press-approved-key-once",
-    inputOverrides: {
-      approvedKey: "ArrowDown",
-      idempotencyKey: `next-video-arrowdown-fallback:${input.missionId}:${input.runId}:${input.roundId ?? "noround"}:${failedAction.gridCell ?? "nogrid"}:${randomUUID()}`,
-    },
-    required: true,
-    requiresGeometryProof: false,
-    gridCell: null,
-    cellZone: null,
-  };
-
-  ctx.runtimeLogger.emit({
-    traceId: input.missionId,
-    level: "warn",
-    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
-    eventType: "CAPABILITY_DISPATCH_STARTED",
-    owner: "orchestration",
-    missionId: input.missionId,
-    runId: input.runId,
-    ...(input.roundId ? { roundId: input.roundId } : {}),
-    status: "started",
-    reason: `Next-video click failed; trying PRESS_APPROVED_KEY_ONCE approvedKey=ArrowDown after ${failedAction.actionCode}${failedAction.gridCell ? ` at ${failedAction.gridCell}` : ""}`,
-  });
-
-  const result = await dispatchSingleAction(fallbackAction, input, ctx);
-
-  ctx.runtimeLogger.emit({
-    traceId: input.missionId,
-    level: result.status === "success" ? "info" : result.status === "review_required" ? "warn" : "error",
-    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
-    eventType: result.status === "success" ? "CAPABILITY_DISPATCH_COMPLETED" : "CAPABILITY_DISPATCH_FAILED",
-    owner: "orchestration",
-    missionId: input.missionId,
-    runId: input.runId,
-    ...(input.roundId ? { roundId: input.roundId } : {}),
-    status: result.status,
-    reason: result.status === "success"
-      ? "PRESS_APPROVED_KEY_ONCE ArrowDown fallback ok for next video"
-      : `PRESS_APPROVED_KEY_ONCE ArrowDown fallback ${result.status}: ${result.failureReason ?? "unknown"}`,
-  });
-
-  return result;
 }
 
 export async function dispatchRegisteredAbilitySequence(
@@ -539,12 +407,7 @@ export async function dispatchRegisteredAbilitySequence(
       }
     }
 
-    let { status, failureReason } = await dispatchSingleAction(action, input, ctx, { freshScreenshotRef, commentPanelOpenAttempted, actionIndex });
-    if (status === "failed" && action.required !== false && isNextVideoClickAction(action)) {
-      const fallbackResult = await dispatchNextVideoArrowDownFallback(action, input, ctx);
-      status = fallbackResult.status;
-      failureReason = fallbackResult.failureReason;
-    }
+    const { status, failureReason } = await dispatchSingleAction(action, input, ctx, { freshScreenshotRef, commentPanelOpenAttempted, actionIndex });
 
     ctx.runtimeLogger.emit({
       traceId: input.missionId,
@@ -561,7 +424,8 @@ export async function dispatchRegisteredAbilitySequence(
         : `${action.actionCode} ${status}: ${failureReason ?? "unknown"}`,
     });
 
-    void ctx.forensics.appendRecord({
+    const entry = findMuscleMemoryEntry(action.actionCode);
+    const evidenceResult = await ctx.forensics.appendRecord({
       childCapabilityId: "append-record",
       missionId: input.missionId,
       runId: input.runId,
@@ -574,13 +438,20 @@ export async function dispatchRegisteredAbilitySequence(
         reason: action.reason ?? (action.inputOverrides?.["reason"] as string | undefined) ?? null,
         gridCell: action.gridCell ?? (action.inputOverrides?.["gridCell"] as string | undefined) ?? null,
         cellZone: action.cellZone ?? (action.inputOverrides?.["cellZone"] as string | undefined) ?? null,
-        abilityGroupId: action.abilityGroupId ?? null,
-        childCapabilityId: action.childCapabilityId ?? null,
+        abilityGroupId: entry ? entry.abilityGroupId : null,
+        childCapabilityId: entry ? entry.childCapabilityId : null,
         status,
         failureReason: failureReason ?? null,
       },
       idempotencyKey: `orchestration:${input.missionId}:${input.runId}:${input.roundId ?? ""}:${actionIndex}:${action.actionCode}:${action.targetRole ?? "norole"}`,
-    }).catch(() => { /* forensics failure must not block dispatch */ });
+    });
+    if (evidenceResult.status !== "success") {
+      const failedState = getMissionState(input.missionId);
+      const reason = evidenceResult.failureReason ?? "Forensics appendRecord failed after action dispatch";
+      const updated = applyStatusTransition(failedState, { status: "failed", failureReason: reason });
+      upsertMissionState(updated);
+      return { status: "failed", stateSnapshot: updated, failureReason: reason, reviewRequiredReason: null };
+    }
 
     if (status === "failed" && action.required !== false) {
       const failedState = getMissionState(input.missionId);

@@ -197,10 +197,10 @@ const readSafetyPolicy = (raw: UnknownObject | null): MouseScrollSafetyPolicy =>
 
 export const buildInvalidInputFailureEnvelope = (
   input: unknown,
-  fallbackChildCapabilityId?: MouseScrollChildCapabilityId,
+  defaultChildCapabilityId?: MouseScrollChildCapabilityId,
 ): MouseScrollFailureEnvelope => {
   const raw = isObject(input) ? input : null;
-  const childCapabilityId = fallbackChildCapabilityId ?? resolveChildCapabilityId(raw?.childCapabilityId);
+  const childCapabilityId = defaultChildCapabilityId ?? resolveChildCapabilityId(raw?.childCapabilityId);
   const geometryProof = readGeometryProof(raw);
   const refs = buildInvalidInputRefs(input, raw);
 

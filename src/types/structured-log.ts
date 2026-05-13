@@ -8,7 +8,6 @@ import {
   RoundLifecycleStepSchema,
 } from "./evidence-packet.js";
 import {
-  VisualActionVerificationResultSchema,
   VisualBoundingBoxSchema,
   VisualTargetTypeSchema,
 } from "./visual-action.js";
@@ -110,7 +109,6 @@ const StructuredFailureSnapshotSchema = z.object({
   visualTargetResultRef: nullableString,
   geometryGuardResultRef: nullableString,
   clickResultRef: nullableString,
-  postActionVerificationResultRef: nullableString,
   commentsEvidenceRef: nullableString,
 }).strict();
 
@@ -149,7 +147,6 @@ const StructuredRuntimeEventSchema = z.object({
   capabilityCallId: nullableString,
   capabilityGroupId: nullableString,
   actionRef: nullableString,
-  postActionVerificationRef: nullableString,
   decisionRef: nullableString,
   browserProfileRef: nullableString,
   loginState: nullableString,
@@ -283,7 +280,6 @@ const StructuredActionLogSchema = z.object({
   boundingBox: VisualBoundingBoxSchema.nullable().default(null),
   confidence: z.number().min(0).max(1).nullable().default(null),
   geometryStatus: z.string().min(1).nullable().default(null),
-  verificationResult: VisualActionVerificationResultSchema.nullable().default(null),
   result: StructuredLogStatusSchema,
   failureReason: z.string().min(1).nullable().default(null),
   reviewRequiredReason: z.string().min(1).nullable().default(null),

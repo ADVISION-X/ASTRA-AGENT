@@ -45,7 +45,6 @@ const PRIMARY_AI_CONTEXT_MAX_WIDTH_PX = 896;
 const TEMPORAL_CONTEXT_FRAME_COUNT = 2;
 const TEMPORAL_CONTEXT_FRAME_INTERVAL_MS = 2_000;
 const TEMPORAL_CONTEXT_MAX_WIDTH_PX = 512;
-const SHORT_VIDEO_KEYBOARD_PLATFORM_IDS = new Set<ValidPlatformId>(["facebook-web", "tiktok-web"]);
 const PRESERVE_SCREENSHOT_ARTIFACTS_FOR_DEBUG = true;
 const CELL_ZONE_REFERENCE_IMAGE_PATH = fileURLToPath(
   new URL("../../ai/assets/grid-cell-zone-reference.zh.png", import.meta.url),
@@ -69,43 +68,6 @@ type ScreenshotCleanupKind =
   | "product_yes"
   | "product_no"
   | "uncertain";
-
-function resolveShortVideoKeyboardAction(input: {
-  platformId: ValidPlatformId;
-  actionCode: string;
-  targetRole: string | null | undefined;
-  inputOverrides: Record<string, unknown>;
-}): { actionCode: string; inputOverrides: Record<string, unknown>; forcedByPlatformPolicy: boolean } {
-  if (!SHORT_VIDEO_KEYBOARD_PLATFORM_IDS.has(input.platformId)) {
-    return {
-      actionCode: input.actionCode,
-      inputOverrides: input.inputOverrides,
-      forcedByPlatformPolicy: false,
-    };
-  }
-
-  if (input.targetRole === "like_button") {
-    return {
-      actionCode: "PRESS_APPROVED_KEY_ONCE",
-      inputOverrides: { approvedKey: "L" },
-      forcedByPlatformPolicy: true,
-    };
-  }
-
-  if (input.targetRole === "next_video_arrow" || input.targetRole === "next_video_surface") {
-    return {
-      actionCode: "PRESS_APPROVED_KEY_ONCE",
-      inputOverrides: { approvedKey: "ArrowDown" },
-      forcedByPlatformPolicy: true,
-    };
-  }
-
-  return {
-    actionCode: input.actionCode,
-    inputOverrides: input.inputOverrides,
-    forcedByPlatformPolicy: false,
-  };
-}
 
 async function cleanupRoundScreenshotArtifacts(input: {
   ctx: OrchestrationChildrenContext;
@@ -719,7 +681,6 @@ export async function runMissionRoundLoop(
         gridSpecRef,
         visualMissionInputRef: null,
         aiResultRef: null,
-        postActionVerificationResultRef: null,
       },
       platformContext: {
         platformContextRef: null,
@@ -906,42 +867,19 @@ export async function runMissionRoundLoop(
     const dispatchActions = aiOutput.actions
       .filter(a => a.actionCode !== "STOP_REVIEW_REQUIRED_ONCE")
       .map(action => {
-        const originalInputOverrides = { ...(action.input ?? {}) };
-        const keyboardPolicy = resolveShortVideoKeyboardAction({
-          platformId,
-          actionCode: action.actionCode,
-          targetRole: action.targetRole ?? null,
-          inputOverrides: originalInputOverrides,
-        });
-        if (keyboardPolicy.forcedByPlatformPolicy) {
-          ctx.runtimeLogger.emit({
-            traceId: missionId,
-            level: "debug",
-            modeVisibility: ["DEBUG", "TRACE"],
-            eventType: "CAPABILITY_DISPATCH_STARTED",
-            owner: "orchestration",
-            missionId,
-            runId,
-            roundId,
-            status: "started",
-            reason: `Short-video keyboard policy rewrote ${action.actionCode}${action.targetRole ? ` role=${action.targetRole}` : ""} to ${keyboardPolicy.actionCode} approvedKey=${String(keyboardPolicy.inputOverrides["approvedKey"] ?? "")}`,
-          });
-        }
-        const entry = catalog.entries.find(e => e.actionCode === keyboardPolicy.actionCode);
+        const inputOverrides = { ...(action.input ?? {}) };
+        const entry = catalog.entries.find(e => e.actionCode === action.actionCode);
         return {
-          actionCode: keyboardPolicy.actionCode,
+          actionCode: action.actionCode,
           reason: action.reason ?? null,
           targetRole: action.targetRole ?? null,
-          abilityGroupId: entry?.abilityGroupId ?? null,
-          childCapabilityId: entry?.childCapabilityId ?? null,
           inputOverrides: {
-            ...keyboardPolicy.inputOverrides,
+            ...inputOverrides,
             ...(entry?.requiresGridSpecRef ? { gridSpecRef } : {}),
           },
           required: action.required ?? true,
-          requiresGeometryProof: entry?.requiresGeometryProof ?? false,
-          gridCell: (keyboardPolicy.inputOverrides["gridCell"] as string | undefined) ?? null,
-          cellZone: (keyboardPolicy.inputOverrides["cellZone"] as GridCellZone | undefined) ?? null,
+          gridCell: (inputOverrides["gridCell"] as string | undefined) ?? null,
+          cellZone: (inputOverrides["cellZone"] as GridCellZone | undefined) ?? null,
         };
       });
     const hasSaveEvidenceAction = dispatchActions.some((action) => action.actionCode === "SAVE_CURRENT_VIDEO_EVIDENCE_ONCE");

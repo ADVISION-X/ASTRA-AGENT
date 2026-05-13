@@ -7,7 +7,6 @@ type BrowserActionResult = {
   ok: boolean;
   message: string;
   createdAt: string;
-  fallbackUsed: boolean;
 };
 
 type BrowserCaptureResult = {
@@ -70,7 +69,6 @@ interface BrowserController {
     deltaY: number;
     coordinateSpace?: BrowserScrollCoordinateSpace;
     anchorPoint?: { x: number; y: number };
-    fallbackUsed?: boolean;
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
   click(input: {
@@ -79,14 +77,12 @@ interface BrowserController {
     coordinateSpace?: BrowserClickCoordinateSpace;
     button?: BrowserClickButton;
     clickCount?: 1 | 2;
-    fallbackUsed?: boolean;
   }): Promise<BrowserActionResult>;
   textInput(input: {
     targetLabel: string;
     action: BrowserTextInputAction;
     text?: string | null;
     key?: BrowserTextInputKey | null;
-    fallbackUsed?: boolean;
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
   screenshotRegion(input: { regionLabel: string; contentLines?: string[]; captureProfile?: BrowserScreenshotProfile; abortSignal?: AbortSignal }): Promise<BrowserCaptureResult>;

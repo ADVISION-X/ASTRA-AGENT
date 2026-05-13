@@ -55,7 +55,6 @@ const buildCurrentEvidence = (currentEvidence: RoundMissionPacketCurrentEvidence
   gridSpecRef: currentEvidence.gridSpecRef ?? null,
   visualMissionInputRef: currentEvidence.visualMissionInputRef ?? null,
   aiResultRef: currentEvidence.aiResultRef ?? null,
-  postActionVerificationResultRef: currentEvidence.postActionVerificationResultRef ?? null,
 });
 
 const buildPlatformContext = (platformContext: RoundMissionPacketPlatformContext): RoundMissionPacketPlatformContext => ({

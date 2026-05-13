@@ -50,7 +50,6 @@ const RoundMissionPacketCurrentEvidenceSchema = z.object({
   gridSpecRef: nullableString,
   visualMissionInputRef: nullableString,
   aiResultRef: nullableString,
-  postActionVerificationResultRef: nullableString,
 }).strict();
 
 const RoundMissionPacketPlatformContextSchema = z.object({

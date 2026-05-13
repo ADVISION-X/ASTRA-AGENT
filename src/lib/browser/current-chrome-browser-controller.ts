@@ -86,7 +86,7 @@ export class CurrentChromeBrowserController implements BrowserController {
       const vp = JSON.parse(raw) as { dpr: number };
       scaleFactor = vp.dpr;
     } catch {
-      // fallback: keep full-window geometry and assume scale=1
+      // If DPR cannot be read, keep full-window geometry and assume scale=1.
     }
 
     return {
@@ -110,14 +110,13 @@ export class CurrentChromeBrowserController implements BrowserController {
     return createCurrentChromeBrowserActionResult({ message: `opened ${input.url} in current Chrome session` });
   }
 
-  async scroll(input: { targetLabel: string; deltaX: number; deltaY: number; coordinateSpace?: BrowserScrollCoordinateSpace; anchorPoint?: { x: number; y: number }; fallbackUsed?: boolean; abortSignal?: AbortSignal }): Promise<BrowserActionResult> {
+  async scroll(input: { targetLabel: string; deltaX: number; deltaY: number; coordinateSpace?: BrowserScrollCoordinateSpace; anchorPoint?: { x: number; y: number }; abortSignal?: AbortSignal }): Promise<BrowserActionResult> {
     const geometry = this.lastWindowState ?? await this.refreshSnapshot();
     const scrollPlan = resolveCurrentChromeScrollPlan(input, geometry);
     if (!scrollPlan) {
       return createCurrentChromeBrowserActionResult({
         message: createZeroScrollMessage(input.targetLabel),
         ok: false,
-        fallbackUsed: input.fallbackUsed ?? false,
       });
     }
 
@@ -137,11 +136,10 @@ export class CurrentChromeBrowserController implements BrowserController {
     await this.refreshSnapshot();
     return createCurrentChromeBrowserActionResult({
       message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}${auxiliaryKeyMessage}; browser scroll settle observed`,
-      fallbackUsed: input.fallbackUsed ?? false,
     });
   }
 
-  async click(input: { targetLabel: string; point: { x: number; y: number }; coordinateSpace?: BrowserClickCoordinateSpace; button?: "left" | "right" | "middle"; clickCount?: 1 | 2; fallbackUsed?: boolean }): Promise<BrowserActionResult> {
+  async click(input: { targetLabel: string; point: { x: number; y: number }; coordinateSpace?: BrowserClickCoordinateSpace; button?: "left" | "right" | "middle"; clickCount?: 1 | 2 }): Promise<BrowserActionResult> {
     const geometry = await this.getGeometrySnapshot();
     await activateChrome();
     const coordinateSpace = input.coordinateSpace ?? "browserViewport";
@@ -166,10 +164,10 @@ export class CurrentChromeBrowserController implements BrowserController {
     });
     await clickAt(Math.round(clickX), Math.round(clickY), input.button ?? "left", input.clickCount ?? 1);
     await this.refreshSnapshot();
-    return createCurrentChromeBrowserActionResult({ message: `clicked ${input.targetLabel}`, fallbackUsed: input.fallbackUsed ?? false });
+    return createCurrentChromeBrowserActionResult({ message: `clicked ${input.targetLabel}` });
   }
 
-  async textInput(input: { targetLabel: string; action: BrowserTextInputAction; text?: string | null; key?: BrowserTextInputKey | null; fallbackUsed?: boolean; abortSignal?: AbortSignal }): Promise<BrowserActionResult> {
+  async textInput(input: { targetLabel: string; action: BrowserTextInputAction; text?: string | null; key?: BrowserTextInputKey | null; abortSignal?: AbortSignal }): Promise<BrowserActionResult> {
     const result = await executeCurrentChromeTextInput(input, () => createId("browser"));
     await this.refreshSnapshot();
     return result;
@@ -181,7 +179,7 @@ export class CurrentChromeBrowserController implements BrowserController {
       screenshotDir: this.options.screenshotDir,
       geometry,
       regionLabel: input.regionLabel,
-      allowFullscreenFallback: input.captureProfile !== "observation_lightweight",
+      allowFullscreenRetry: input.captureProfile !== "observation_lightweight",
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
     await this.refreshSnapshot();
@@ -210,7 +208,7 @@ export class CurrentChromeBrowserController implements BrowserController {
 
   async close(): Promise<BrowserActionResult> {
     await this.refreshSnapshot().catch(() => undefined);
-    return createCurrentChromeBrowserActionResult({ message: "left current Chrome session open for the operator", fallbackUsed: false });
+    return createCurrentChromeBrowserActionResult({ message: "left current Chrome session open for the operator" });
   }
 
   private async sleep(durationMs: number, abortSignal?: AbortSignal): Promise<void> {

@@ -120,11 +120,11 @@ export function buildMouseScrollExecutionSeed(input: ParsedMouseScrollAbilityInp
   };
 }
 
-export function resolveMouseScrollFailureSeed(input: unknown, fallbackChildCapabilityId?: MouseScrollChildCapabilityId): MouseScrollResultSeed {
+export function resolveMouseScrollFailureSeed(input: unknown, defaultChildCapabilityId?: MouseScrollChildCapabilityId): MouseScrollResultSeed {
   const parsed = MouseScrollAbilityInputSchema.safeParse(input);
   if (parsed.success) {
     return buildMouseScrollExecutionSeed(parsed.data);
   }
 
-  return buildInvalidInputFailureEnvelope(input, fallbackChildCapabilityId);
+  return buildInvalidInputFailureEnvelope(input, defaultChildCapabilityId);
 }

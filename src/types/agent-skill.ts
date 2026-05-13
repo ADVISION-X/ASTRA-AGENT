@@ -10,7 +10,6 @@ const AgentSkillCategorySchema = z.enum([
   "local_ai_decision",
   "visual_target_detection",
   "coordinate_action",
-  "post_action_verification",
   "forensics_persistence",
 ]);
 
@@ -46,9 +45,7 @@ const AgentMechanicalSkillSchema = z.object({
   actionPurpose: EvidencePacketActionPurposeSchema.nullable().default(null),
   successCriteria: z.array(z.string().min(1)).default([]),
   failureCriteria: z.array(z.string().min(1)).default([]),
-  fallbackPolicy: z.array(z.string().min(1)).default([]),
   reviewPolicy: z.array(z.string().min(1)).default([]),
-  postActionVerification: z.array(z.string().min(1)).default([]),
   structuredLogRequirement: AgentSkillStructuredLogRequirementSchema,
   lawOwner: z.string().min(1),
   implementationOwner: z.string().min(1),

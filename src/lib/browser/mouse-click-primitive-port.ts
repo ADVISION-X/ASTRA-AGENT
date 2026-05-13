@@ -53,7 +53,6 @@ async function executeBrowserClick(
       coordinateSpace: value.coordinateSpace,
       button: value.button,
       clickCount: value.clickCount,
-      fallbackUsed: false,
     }),
     createClickAbortPromise(value.abortSignal),
   ]);

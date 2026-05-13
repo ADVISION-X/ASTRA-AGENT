@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-// Post-action verification retired. VisualActionVerificationResultSchema replaced with minimal stub.
-
 const finiteNumber = z.number().finite();
 
 const VisualTargetTypeSchema = z.string().min(1);
@@ -26,31 +24,6 @@ const VisualTargetSchema = z.object({
   visibleText: z.string().min(1).nullable().default(null),
 }).strict();
 
-// PAV retired — minimal stub schema for backward compatibility.
-const VisualActionVerificationResultSchema = z.object({
-  abilityGroupId: z.literal("post-action-verification"),
-  ok: z.boolean(),
-}).passthrough();
-
-const VisualActionRequestSchema = z.object({
-  actionType: z.string().min(1),
-  actionPurpose: z.string().min(1),
-  targetType: VisualTargetTypeSchema,
-  target: VisualTargetSchema,
-  roundId: z.string().min(1),
-  videoVisitId: z.string().min(1).nullable().default(null),
-  beforeEvidenceId: z.string().min(1).nullable().default(null),
-});
-
-const VisualActionResultSchema = z.object({
-  actionLogId: z.string().min(1),
-  result: z.enum(["success", "failed", "skipped", "review_required"]),
-  afterEvidenceId: z.string().min(1).nullable().default(null),
-  verificationResult: VisualActionVerificationResultSchema.nullable().default(null),
-  failureReason: z.string().min(1).nullable().default(null),
-  createdAt: z.string().datetime(),
-});
-
 const VisualTargetCatalogSchema = z.object({
   targetType: VisualTargetTypeSchema,
   purpose: z.string().min(1),
@@ -60,9 +33,6 @@ const VisualTargetCatalogSchema = z.object({
   failureBehavior: z.string().min(1),
 });
 
-type VisualActionRequest = z.infer<typeof VisualActionRequestSchema>;
-type VisualActionResult = z.infer<typeof VisualActionResultSchema>;
-type VisualActionVerificationResult = z.infer<typeof VisualActionVerificationResultSchema>;
 type VisualTargetCatalog = z.infer<typeof VisualTargetCatalogSchema>;
 
 type VisualTargetType = z.infer<typeof VisualTargetTypeSchema>;
@@ -71,9 +41,6 @@ type VisualClickPoint = z.infer<typeof VisualClickPointSchema>;
 type VisualTarget = z.infer<typeof VisualTargetSchema>;
 
 export {
-  VisualActionRequestSchema,
-  VisualActionResultSchema,
-  VisualActionVerificationResultSchema,
   VisualBoundingBoxSchema,
   VisualClickPointSchema,
   VisualTargetCatalogSchema,
@@ -82,4 +49,4 @@ export {
 };
 
 export type { VisualTargetType, VisualBoundingBox, VisualClickPoint, VisualTarget };
-export type { VisualActionRequest, VisualActionResult, VisualActionVerificationResult, VisualTargetCatalog };
+export type { VisualTargetCatalog };

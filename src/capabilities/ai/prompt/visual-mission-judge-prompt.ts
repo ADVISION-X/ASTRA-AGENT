@@ -107,7 +107,7 @@ const SYSTEM_PROMPT = `
 
 1. actionCode 必须精确复制自子能力清单，禁止发明、缩写、翻译或重命名
 2. 每个点击/鼠标动作必须包含 input.gridCell（从图片2读取，格式：A–H行 + 1–8列）
-3. 有点击目标但找不到有效 gridCell 时，改用平台档案指定的键盘替代动作
+3. 有点击目标但找不到有效 gridCell 时，不要输出该点击动作；必须输出 STOP_REVIEW_REQUIRED_ONCE 或选择一个独立、合法、可解释的原子能力
 4. cellZone 使用下划线格式（top_center），禁止连字符（top-center）
 5. 所有枚举字段只填机器值，禁止填写自然语言描述
 6. visualEvidence 至少1条，禁止返回空数组

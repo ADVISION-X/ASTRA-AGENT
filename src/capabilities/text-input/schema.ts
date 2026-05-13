@@ -47,8 +47,6 @@ export const TextInputWriteModeSchema = z.enum([
  *   mapId, runtimePlanId, routePlanId, activationId, templateId
  *   selectedMapId, bindingPackageId, bindingVersion, bindingSnapshotRef
  *   branchToken, deterministicFlowPlan, selection, package
- *   postActionVerificationRequired, postActionVerificationHandoffRef
- *   pageReady, pageCorrect, actionVerified, semanticSuccess
  *   domSelector, rawBrowserCommand, clipboardContent
  */
 export const TextInputAbilityInputSchema = z

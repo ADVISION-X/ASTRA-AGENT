@@ -24,7 +24,6 @@ export function resolveChromeLoginState(currentUrl: string, currentTitle: string
 export function createBrowserActionResult(input: {
   actionId: string;
   message: string;
-  fallbackUsed?: boolean;
   ok?: boolean;
 }): BrowserActionResult {
   return {
@@ -32,6 +31,5 @@ export function createBrowserActionResult(input: {
     ok: input.ok ?? true,
     message: input.message,
     createdAt: new Date().toISOString(),
-    fallbackUsed: input.fallbackUsed ?? false,
   };
 }

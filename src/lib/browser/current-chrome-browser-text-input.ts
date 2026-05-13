@@ -17,7 +17,6 @@ type CurrentChromeTextInputRequest = {
   action: BrowserTextInputAction;
   text?: string | null;
   key?: BrowserTextInputKey | null;
-  fallbackUsed?: boolean;
   abortSignal?: AbortSignal;
 };
 
@@ -27,7 +26,6 @@ function validateTextInputRequest(input: CurrentChromeTextInputRequest): Browser
       actionId: "browser-text-input-validation",
       ok: false,
       message: `missing text for ${input.action} on ${input.targetLabel}`,
-      fallbackUsed: input.fallbackUsed ?? false,
     });
   }
 
@@ -36,7 +34,6 @@ function validateTextInputRequest(input: CurrentChromeTextInputRequest): Browser
       actionId: "browser-text-input-validation",
       ok: false,
       message: `missing key for ${input.action} on ${input.targetLabel}`,
-      fallbackUsed: input.fallbackUsed ?? false,
     });
   }
 
@@ -82,6 +79,5 @@ export async function executeCurrentChromeTextInput(input: CurrentChromeTextInpu
   return createBrowserActionResult({
     actionId: createActionId(),
     message: `${input.action} executed for ${input.targetLabel}`,
-    fallbackUsed: input.fallbackUsed ?? false,
   });
 }

@@ -143,7 +143,6 @@ async function focusCurrentPageForNavigationKey(
     coordinateSpace: "browserViewport",
     button: "left",
     clickCount: 1,
-    fallbackUsed: false,
   });
 
   if (!result.ok) {
@@ -188,7 +187,6 @@ export function createBrowserControllerTextInputExecutionPort(
           action: resolveBrowserTextInputAction(value.childCapabilityId),
           text: value.inputText,
           key: value.key,
-          fallbackUsed: false,
           abortSignal: value.abortSignal,
         }).then(
           (result) => buildSuccessResult(value, result, startedAt, focusProof),

@@ -83,11 +83,11 @@ const clampCropRegion = (input: {
   return { left, top, width, height };
 };
 
-async function captureViewportRegionWithFullscreenFallback(input: {
+async function captureViewportRegionWithFullscreenRetry(input: {
   screenshotDir: string;
   geometry: BrowserGeometrySnapshot;
   regionLabel: string;
-  allowFullscreenFallback?: boolean;
+  allowFullscreenRetry?: boolean;
   abortSignal?: AbortSignal;
 }) {
   const screenshotPath = path.join(input.screenshotDir, `${createId(input.regionLabel)}.png`);
@@ -100,7 +100,7 @@ async function captureViewportRegionWithFullscreenFallback(input: {
     });
     return { screenshotPath, dimensions: directCapture.dimensions };
   } catch (error) {
-    if (input.allowFullscreenFallback === false) {
+    if (input.allowFullscreenRetry === false) {
       throw error;
     }
     const fullScreenshotPath = path.join(input.screenshotDir, `${createId(`${input.regionLabel}:full-screen-source`)}.png`);
@@ -126,10 +126,10 @@ export const captureCurrentChromeScreenshot = async (input: {
   screenshotDir: string;
   geometry: BrowserGeometrySnapshot;
   regionLabel: string;
-  allowFullscreenFallback?: boolean;
+  allowFullscreenRetry?: boolean;
   abortSignal?: AbortSignal;
 }) => {
   await mkdir(input.screenshotDir, { recursive: true });
   await activateChrome();
-  return captureViewportRegionWithFullscreenFallback(input);
+  return captureViewportRegionWithFullscreenRetry(input);
 };
