@@ -107,7 +107,14 @@ export const FORBIDDEN_GOVERNANCE_PATTERNS_HARD = [
   "forensics-record-storage",
 ] as const;
 
-// Keep combined list for backward compat
+export const FORBIDDEN_ATOMIC_BOUNDARY_PATTERNS_HARD = [
+  "press-navigation-key",
+  "ArrowDown assist",
+  "scroll_next_video",
+  "scroll_viewport_to_next_item",
+] as const;
+
+// Combined active retired-system list.
 export const FORBIDDEN_ACTIVE_PATTERNS = FORBIDDEN_ACTIVE_PATTERNS_HARD;
 
 // Paths that are exempt from retired surface checks (docs, archives, governance files).
@@ -120,9 +127,6 @@ export const ALLOWED_ARCHIVE_PATH_PATTERNS = [
   "系统调试",
 ] as string[];
 
-// Paths to exclude from retired surface scanning for specific reasons:
-// - src/lib/browser/ uses "paste-text", "replace-input", "commit-input", "press-navigation-key"
-//   as legitimate browser primitive operation names (not retired child capability IDs).
 export const RETIRED_SURFACE_SCAN_EXCLUDED_PREFIXES = [
   "src/lib/browser/",
 ] as string[];

@@ -171,7 +171,7 @@ export const CommanderConsoleResultSchema = z.object({
 
 export type CommanderConsoleResult = z.output<typeof CommanderConsoleResultSchema>;
 
-// ─── Re-exports from shared/ for backward-compat imports ─────────────────────
+// ─── Public schema re-exports from shared/ ───────────────────────────────────
 
 export {
   CommanderConsoleStatusSchema,

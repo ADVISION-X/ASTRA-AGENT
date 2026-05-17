@@ -6,11 +6,10 @@ import type {
 import {
   activateChrome,
   keystrokeBrowserText,
-  pasteBrowserText,
   pressNamedBrowserKey,
   selectAllBrowserText,
 } from "./current-chrome-browser-controller-primitives.js";
-import { createBrowserActionResult } from "./current-chrome-browser-session-state.js";
+import { createBrowserActionResult } from "./current-chrome-browser-action-result.js";
 
 type CurrentChromeTextInputRequest = {
   targetLabel: string;
@@ -21,7 +20,7 @@ type CurrentChromeTextInputRequest = {
 };
 
 function validateTextInputRequest(input: CurrentChromeTextInputRequest): BrowserActionResult | null {
-  if ((input.action === "type-text" || input.action === "replace-input") && (!input.text || input.text.length === 0)) {
+  if (input.action === "type-text" && (!input.text || input.text.length === 0)) {
     return createBrowserActionResult({
       actionId: "browser-text-input-validation",
       ok: false,
@@ -29,7 +28,7 @@ function validateTextInputRequest(input: CurrentChromeTextInputRequest): Browser
     });
   }
 
-  if ((input.action === "press-key" || input.action === "commit-input") && !input.key) {
+  if (input.action === "press-key" && !input.key) {
     return createBrowserActionResult({
       actionId: "browser-text-input-validation",
       ok: false,
@@ -40,29 +39,16 @@ function validateTextInputRequest(input: CurrentChromeTextInputRequest): Browser
   return null;
 }
 
-async function runReplaceInput(input: CurrentChromeTextInputRequest): Promise<void> {
-  await selectAllBrowserText(input.abortSignal);
-  await pressNamedBrowserKey("Backspace", input.abortSignal);
-  await keystrokeBrowserText(input.text ?? "", input.abortSignal);
-}
-
 async function runTextInputAction(input: CurrentChromeTextInputRequest): Promise<void> {
   switch (input.action) {
     case "type-text":
       await keystrokeBrowserText(input.text ?? "", input.abortSignal);
       return;
-    case "paste-text":
-      await pasteBrowserText(input.abortSignal);
-      return;
     case "clear-input":
       await selectAllBrowserText(input.abortSignal);
       await pressNamedBrowserKey("Backspace", input.abortSignal);
       return;
-    case "replace-input":
-      await runReplaceInput(input);
-      return;
     case "press-key":
-    case "commit-input":
       await pressNamedBrowserKey(input.key ?? "Enter", input.abortSignal);
   }
 }

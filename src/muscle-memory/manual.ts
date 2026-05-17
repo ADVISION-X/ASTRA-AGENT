@@ -35,7 +35,7 @@ const PHYSICAL_SEMANTICS_BY_ACTION_CODE: Record<string, string> = {
   TYPE_APPROVED_TEXT_ONCE:
     "Types the supplied approvedText into the element that is already focused. It does not choose or click an input field and does not generate the text.",
   PRESS_APPROVED_KEY_ONCE:
-    "Physically presses one approved keyboard key in the currently focused browser/page context. approvedKey='ArrowDown' means pressing the keyboard Down Arrow key once. approvedKey='L' means pressing the keyboard L key once; on short-video surfaces this is the platform shortcut for liking the currently focused video when the platform supports it. This is not a mouse click, not a comment action, and not an evidence-save action.",
+    "Physically presses one approved keyboard key in the currently focused browser/page context. It only presses the named key once; it does not interpret platform shortcuts, click, comment, save evidence, or verify page state.",
   CLEAR_FOCUSED_INPUT_ONCE:
     "Clears text from the element that is already focused. It does not choose or click an input field.",
   SCROLL_BROWSER_VIEWPORT_ONCE:

@@ -44,8 +44,7 @@
 
 - 固定 URL 打开：由 Open Ability Group 负责
 - 浏览器 profile 复用：由 Open Ability Group 内部的 local-browser-session 子边界提供
-- 页面状态识别：由 Page State 负责
-- 动作结果判断：由 Post-action Verification 负责
+- 页面状态与动作结果：只由下一轮截图和 AI 视觉判断确认
 
 ## 可记录信息
 

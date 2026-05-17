@@ -21,15 +21,11 @@ import {
   runAppleScript,
   scrollAt,
 } from "./current-chrome-browser-controller-primitives.js";
-import {
-  resolveChromeLoginState,
-} from "./current-chrome-browser-session-state.js";
 import { createCurrentChromeBrowserActionResult } from "./current-chrome-browser-action-result.js";
 import { emitCurrentChromeMouseClickProbe } from "./current-chrome-browser-click-probe.js";
 import {
   createZeroScrollMessage,
   resolveCurrentChromeScrollPlan,
-  runOptionalArrowDownAssist,
 } from "./current-chrome-browser-scroll-support.js";
 import { captureCurrentChromeScreenshot } from "./current-chrome-browser-screenshot.js";
 import { executeCurrentChromeTextInput } from "./current-chrome-browser-text-input.js";
@@ -128,14 +124,10 @@ export class CurrentChromeBrowserController implements BrowserController {
       deltaY: input.deltaY,
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
     });
-    const auxiliaryKeyMessage = await runOptionalArrowDownAssist({
-      required: scrollPlan.requiresArrowDownAssist,
-      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-    });
 
     await this.refreshSnapshot();
     return createCurrentChromeBrowserActionResult({
-      message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}${auxiliaryKeyMessage}; browser scroll settle observed`,
+      message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}; browser scroll settle observed`,
     });
   }
 
@@ -228,7 +220,6 @@ export class CurrentChromeBrowserController implements BrowserController {
   private async refreshSnapshot() {
     const state = await readFrontChromeWindowState();
     this.lastWindowState = state;
-    const loginState = resolveChromeLoginState(state.currentUrl, state.currentTitle);
     this.snapshot = {
       ...this.snapshot,
       profileVerificationStatus: "operator_verified",
@@ -236,10 +227,10 @@ export class CurrentChromeBrowserController implements BrowserController {
       open: true,
       currentUrl: state.currentUrl,
       currentTitle: state.currentTitle,
-      loginState,
-      profileStatus: loginState === "logged_in" ? "logged_in" : loginState === "login_required" ? "login_required" : "profile_ready",
-      loginRequiredReason: loginState === "login_required" ? "operator login required inside current local Chrome session" : null,
-      reviewRequiredReason: loginState === "review_required" ? "browser challenge or safety review required" : null,
+      loginState: "unknown",
+      profileStatus: "profile_ready",
+      loginRequiredReason: null,
+      reviewRequiredReason: null,
       lastLoginCheckAt: new Date().toISOString(),
     };
     return state;

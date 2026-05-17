@@ -14,7 +14,7 @@
 | `DOUBLE_LEFT_CLICK_GRID_CELL` | `mouse-click/double-left-click-browser-viewport` | 是 | 在当前浏览器视口内，对批准坐标执行两次鼠标左键点击。只适合确实需要双击的可见目标。 |
 | `RIGHT_CLICK_GRID_CELL_ONCE` | `mouse-click/right-click-browser-viewport-once` | 是 | 在当前浏览器视口内，对批准坐标执行一次鼠标右键点击。通常用于打开上下文菜单。 |
 | `TYPE_APPROVED_TEXT_ONCE` | `text-input/type-approved-text-once` | 是 | 向当前已经获得焦点的输入位置键入一段已批准文本。它不选择输入框，不生成文本。 |
-| `PRESS_APPROVED_KEY_ONCE` | `text-input/press-approved-key-once` | 是 | 在当前获得焦点的浏览器/页面上下文里按一次批准按键。`ArrowDown` 是键盘下方向键；`L` 是键盘 L 键，在短视频页面通常表示给当前视频点赞。它不是鼠标点击，不会打开评论，不会保存证据。 |
+| `PRESS_APPROVED_KEY_ONCE` | `text-input/press-approved-key-once` | 是 | 在当前获得焦点的浏览器/页面上下文里按一次批准按键。它只按键，不解释平台快捷键，不点击，不保存证据，不判断页面结果。 |
 | `CLEAR_FOCUSED_INPUT_ONCE` | `text-input/clear-focused-input-once` | 是 | 清空当前已经获得焦点的输入框内容。它不负责寻找输入框。 |
 | `SCROLL_BROWSER_VIEWPORT_ONCE` | `mouse-scroll/scroll-browser-viewport` | 是 | 按受控滚动量滚动当前浏览器视口。它不是点击，也不验证滚动后出现了什么内容。 |
 | `OPEN_PLATFORM_ENTRY_ONCE` | `open/open-platform-entry-once` | 否 | 将受治理的 Chrome 会话导航到平台注册过的入口 URL。它不自行发明 URL，也不在打开后继续操作页面。 |

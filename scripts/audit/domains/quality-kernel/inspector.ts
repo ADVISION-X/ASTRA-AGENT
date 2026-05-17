@@ -4,6 +4,7 @@ import { join, relative } from "node:path";
 import { QUALITY_KERNEL_LIMITS } from "./config.js";
 import {
   FORBIDDEN_ACTIVE_PATTERNS_HARD,
+  FORBIDDEN_ATOMIC_BOUNDARY_PATTERNS_HARD,
   FORBIDDEN_GOVERNANCE_PATTERNS_HARD,
   FORBIDDEN_ACTIVE_PATTERNS_SOFT,
   ALLOWED_ARCHIVE_PATH_PATTERNS,
@@ -122,6 +123,25 @@ const runRetiredSurfaceCheck = (): RetiredSurfaceFinding[] => {
     findings.push(...scanForPatterns(files, FORBIDDEN_ACTIVE_PATTERNS_HARD, "hard"));
     findings.push(...scanForPatterns(files, FORBIDDEN_GOVERNANCE_PATTERNS_HARD, "hard"));
     findings.push(...scanForPatterns(files, FORBIDDEN_ACTIVE_PATTERNS_SOFT, "soft"));
+    findings.push(...scanForAtomicBoundaryPatterns(files));
+  }
+  return findings;
+};
+
+const scanForAtomicBoundaryPatterns = (files: string[]): RetiredSurfaceFinding[] => {
+  const findings: RetiredSurfaceFinding[] = [];
+  for (const filePath of files) {
+    const relPath = relative(repoRoot, filePath);
+    if (isArchivedPath(relPath)) continue;
+    const lines = readText(filePath).split("\n");
+    for (const forbiddenPattern of FORBIDDEN_ATOMIC_BOUNDARY_PATTERNS_HARD) {
+      lines.forEach((line, idx) => {
+        if (isCommentLine(line)) return;
+        if (line.includes(forbiddenPattern)) {
+          findings.push({ file: relPath, line: idx + 1, pattern: forbiddenPattern, severity: "hard" });
+        }
+      });
+    }
   }
   return findings;
 };

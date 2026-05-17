@@ -35,5 +35,5 @@ export { createScreenshotAbilityGroup } from "./ability-group.js";
 export type { ScreenshotAbilityGroup, ScreenshotAbilityGroupPorts } from "./ability-group.js";
 export { createWorkbenchScreenshotAbilityGroup } from "./workbench-screenshot-ability-group.js";
 
-// Backward-compat export for action-context-enricher
+// Screenshot public contract export.
 export { resolveScreenshotStructuredDataRefPayload } from "./runtime/structured-ref-store.js";

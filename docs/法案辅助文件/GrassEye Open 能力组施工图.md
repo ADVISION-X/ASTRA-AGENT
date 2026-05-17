@@ -30,7 +30,6 @@ AI 判断
 截图
 点击
 Forensics 写入
-Page State（Page State 独立能力组已退役）
 local arbitrary program launcher
 map / route / binding / package / selection / branch-token 真相
 ```
@@ -48,8 +47,6 @@ open-local-workbench-once  — 打开本地 workbench
 platform is data: targetProfileRef = facebook / tiktok / ...
 platform is not child capability.
 ```
-
-`open-facebook` / `open-tiktok` / `open-local-program` 已退役为 active child。
 
 ## 输入最小字段
 

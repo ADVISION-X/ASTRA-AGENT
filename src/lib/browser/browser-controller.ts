@@ -55,7 +55,7 @@ type BrowserGeometrySnapshot = {
 type BrowserClickCoordinateSpace = "browserViewport" | "desktopScreen";
 type BrowserClickButton = "left" | "right" | "middle";
 type BrowserScrollCoordinateSpace = "browserViewport" | "desktopScreen";
-type BrowserTextInputAction = "type-text" | "paste-text" | "clear-input" | "replace-input" | "press-key" | "commit-input";
+type BrowserTextInputAction = "type-text" | "clear-input" | "press-key";
 type BrowserTextInputKey = "Enter" | "Tab" | "Escape" | "Backspace" | "Delete" | "L" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
 
 interface BrowserController {

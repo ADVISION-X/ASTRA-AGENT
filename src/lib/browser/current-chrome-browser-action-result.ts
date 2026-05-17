@@ -1,7 +1,19 @@
 import { createId } from "../local-runtime/ids.js";
 
 import type { BrowserActionResult } from "./browser-controller.js";
-import { createBrowserActionResult } from "./current-chrome-browser-session-state.js";
+
+function createBrowserActionResult(input: {
+  actionId: string;
+  message: string;
+  ok?: boolean;
+}): BrowserActionResult {
+  return {
+    browserActionId: input.actionId,
+    ok: input.ok ?? true,
+    message: input.message,
+    createdAt: new Date().toISOString(),
+  };
+}
 
 const createCurrentChromeBrowserActionResult = (input: {
   message: string;
@@ -13,4 +25,4 @@ const createCurrentChromeBrowserActionResult = (input: {
     ...(input.ok === undefined ? {} : { ok: input.ok }),
   });
 
-export { createCurrentChromeBrowserActionResult };
+export { createBrowserActionResult, createCurrentChromeBrowserActionResult };
