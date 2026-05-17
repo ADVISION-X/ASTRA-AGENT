@@ -1,14 +1,14 @@
 ---
 name: "GrassEye Local Browser Session"
-description: "Use when defining real Chrome launch, persistent browser profile, local login state reuse, and browser session privacy boundaries."
-applyTo: ".github/instructions/cursor-rules/modules/module-local-browser-session.instructions.md, src/lib/browser/**, src/lib/local-runtime/**, src/capabilities/open/**, src/capabilities/page-state/**, src/capabilities/post-action-verification/**, scripts/audit/domains/open-capability/**"
+description: "Use when defining real Chrome launch, persistent browser profile, local browser session reuse, and browser session privacy boundaries."
+applyTo: ".github/instructions/cursor-rules/modules/module-local-browser-session.instructions.md, src/lib/browser/**, src/lib/local-runtime/**, src/capabilities/open/**, scripts/audit/domains/open-capability/**"
 ---
 
 # GrassEye Local Browser Session
 
-Scope: governs local real Chrome usage, persistent browser profile, browser session reuse, and login-state privacy.
+Scope: governs local real Chrome usage, persistent browser profile, browser session reuse, and browser privacy.
 Boundary: this module governs browser session identity and persistence only as an Open child sub-contract, not as an independent owner.
-Excludes: open ownership, page-state ownership, post-action verification ownership, mission decisions, and platform action semantics.
+Excludes: open ownership, mission decisions, and platform action semantics.
 Authority: this file is authoritative only for the open-capability domain as the real-Chrome session child sub-contract.
 
 ## Law GRASSEYE-LOCAL-BROWSER-SESSION-001-V1

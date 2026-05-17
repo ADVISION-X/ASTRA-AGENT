@@ -8,9 +8,8 @@ const VisualOnlyRuntimeModeSchema = z.enum([
 
 const PageUnderstandingSourceSchema = z.enum([
   "screenshot",
-  "ocr",
+  "coordinate_grid",
   "local_visual_ai",
-  "visual_target_detection",
 ]);
 
 const ForbiddenPageUnderstandingSourceSchema = z.enum([
@@ -37,7 +36,7 @@ const VisualOnlyRuntimePolicySchema = z.object({
 
 const VisualOnlyRuntimePolicy = VisualOnlyRuntimePolicySchema.parse({
   mode: "visual_only_real_platform",
-  allowedSources: ["screenshot", "ocr", "local_visual_ai", "visual_target_detection"],
+  allowedSources: ["screenshot", "coordinate_grid", "local_visual_ai"],
   forbiddenSources: ["dom", "bom", "selector", "innerText", "textContent", "accessibility_tree_default", "storageState", "cookies"],
   browserInfrastructureAllowed: [
     "launch_local_real_chrome",

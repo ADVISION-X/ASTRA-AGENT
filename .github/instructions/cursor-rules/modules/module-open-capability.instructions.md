@@ -15,7 +15,6 @@ Core doctrine:
 - AI owns readiness, safety, and page-kind judgment.
 - Open may return raw open observation handoff refs only.
 
-Page State independent ability group is retired.
 Open must not depend on page-state-capability.
 Open may return raw post-open browser observation refs only.
 AI remains the only owner of readiness, safety, page-kind, blocker, login/captcha/feed/video/comment interpretation.

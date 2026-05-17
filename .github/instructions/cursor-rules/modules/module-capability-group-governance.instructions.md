@@ -32,9 +32,6 @@ GrassEye = User Requirement + Platform Registry + MuscleMemoryCatalog + AI + Orc
 Required direction:
 - Current top-level roots are implementation inventory, not equal semantic authority.
 - Only capability groups that expose executable atomic child capabilities may remain top-level execution owners.
-- Support surfaces such as visual-target, post-action-verification, and page-state may package observations or evidence, but they do not become semantic authority and must be folded or retired if they stop providing atomic child capabilities.
-- Support evidence surfaces are temporary support owners only while they expose real atomic child capabilities. If a support surface only packages evidence, it must be folded into the owning core capability or Forensics Persistence.
-- Support evidence surfaces must not build their own generated universe, large inspector, or parallel law family.
 - Child abilities may exist only under one current active capability-group owner.
 - Support boundaries may describe shell, topology, schema, logging, privacy, and audit rules, but they do not become active execution owners.
 - The governed execution chain is: Commander Console receives the user mission command -> Orchestration owns the mission loop -> Nerve Bus transports governed envelopes -> the owning capability-group public contract executes an atomic child capability -> Forensics records evidence.
@@ -43,7 +40,7 @@ Required direction:
 
 FORBIDDEN:
 - treating current root inventory as equal semantic authority.
-- support evidence surfaces becoming permanent semantic owners without atomic child-capability truth.
+- retired support surfaces becoming active execution or evidence owners.
 - coordinate-action as a separate active ability group.
 - agent-runtime, browse-flow, mechanical-skills, visual-action, visual-only-runtime, evidence-packet, operator-control, product-signal, comment-intelligence, or vision-boundary as active owners.
 - compat, legacy, bridge, or dual-truth governance tracks.
@@ -210,12 +207,12 @@ Required direction:
 - Child capability implementation must stay under the parent capability root.
 - No retired feature root, orphan capability directory, or cross-owner implementation import may survive the cutover.
 - Commander Console read-model truth must enter through named Commander-facing ports.
-- Visual Target finds points.
-- Visual Target, Page State, and Post-action Verification may package observations or evidence only; they must not claim semantic authority and must be folded or retired if they stop exposing independent atomic child capabilities.
+- Screenshot provides visual evidence and coordinate grids.
+- AI chooses one registered atomic next action from current visual evidence.
 - Geometry Guard validates and normalizes executable geometry.
 - Mouse Click and Mouse Scroll execute primitives.
 - Text Input writes approved text into verified input targets through governed ports.
-- Post-action Verification validates action results.
+- Action results are judged only by the next visual round.
 
 ### 禁止
 
@@ -302,7 +299,7 @@ capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: non-AI open, scroll, page-state, post-action-verification, screenshot, text-input, and visual-target surfaces must not publish AI-owned cognition.
+summary: non-AI active ability groups must not publish AI-owned cognition or revive retired support surfaces.
 
 ### 主题
 
@@ -310,16 +307,17 @@ summary: non-AI open, scroll, page-state, post-action-verification, screenshot, 
 
 ### 法条
 
-AI is the brain. Open, Mouse Scroll, Page State, Post-action Verification, Screenshot, Text Input, and Visual Target may execute primitives, preserve observations, transport proof, and normalize governed evidence, but they must not publish cognition-labelled surfaces that decide or classify page readiness, login state, safety review, freshness, sensitive-text verdict, page/domain truth, target ranking, ambiguity thresholds, or local visual-target selection policy.
+AI is the brain. Open, Mouse Scroll, Screenshot, Text Input, Mouse Click, Geometry Guard, Forensics Persistence, Commander Console, Nerve Bus, and Orchestration must stay inside their current active responsibilities. They must not publish cognition-labelled surfaces that decide or classify page readiness, login state, safety review, freshness, sensitive-text verdict, page/domain truth, target ranking, ambiguity thresholds, or local target-selection policy.
 
 Required direction:
 - Mouse Scroll may expose primitive execution status, safety gate metadata, and proof refs only.
 - Open may expose navigation attempt status and post-open observation handoff refs only.
-- Page State may preserve governed observations, source binding, and observation packaging only.
-- Post-action Verification may package before/after evidence and observation refs only; final action-outcome judgment belongs to AI.
 - Screenshot may expose governed capture state and handoff proof only; it must not emit login-wall or wrong-domain verdict truth.
 - Text Input may consume approved sensitiveTextPolicy and redact payload proof only; it must not heuristically detect or classify sensitive text.
-- Visual Target may normalize governed candidates, bind source proof, and build Geometry Guard handoff only; it must not publish detect child ids, local threshold/freshness/ambiguity policy, or non-AI target-selection judgment surfaces.
+- Mouse Click may expose primitive click execution status and proof refs only.
+- Geometry Guard may validate grid/bounds/coordinate safety only; it must not select targets or actions.
+- Nerve Bus transports only.
+- Orchestration captures, calls AI, saves current evidence on `save=true`, and dispatches exactly one AI-selected action.
 - Readiness, safety, stability, freshness, login, domain, sensitive-text, and page-kind judgment must be emitted by AI through an AI-owned contract instead of non-AI child ids, classification fields, or local verdict helpers.
 
 ### 禁止
@@ -328,6 +326,7 @@ FORBIDDEN:
 - `detect-*` child capabilities or child ids under non-AI cognition surfaces.
 - `classificationDecision`, `classificationSource`, `freshnessDecision`, `proceedDecision`, `alreadyOnTargetFreshnessDecision`, `detectSensitiveText`, `minimumConfidence`, `minimumAmbiguityGap`, `freshnessTtlMs`, `freshnessPolicy`, `maxSnapshotAgeMs`, `maxObservationAgeMs`, `maxObservationSkewMs`, `confidencePolicy`, `selectionPolicy`, `ambiguityPolicy`, `coordinatePolicy`, or `dataQualityPolicy` under non-AI cognition purge targets.
 - `post-open-state`, `state-classification`, or `proceed-decision` runtime gates outside AI.
+- positive Page State, Post-action Verification, Visual Target, or Platform Action support-surface ownership.
 - `login_wall`, `wrong_domain`, or `security_wall` as exported non-AI verdict literals.
 - Hand-written readiness, safety, stability, freshness, login, domain, sensitive-text, platform-kind, target-ranking, or ambiguity-threshold truth being published by non-AI groups.
 - Product-presence low-confidence or frame-count based truth being decided by production code. Production code may fail mechanically when required evidence is missing, but only AI output may decide product_yes/product_no.

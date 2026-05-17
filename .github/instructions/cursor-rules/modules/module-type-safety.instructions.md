@@ -33,20 +33,20 @@ Phase-one TypeScript must run in strict mode, reject untyped uncertainty, and va
 
 Required direction:
 - External inputs must enter as unknown until validated.
-- AI outputs must pass schema validation before any action, Forensics record, Orchestration owner evidence, Page State result, or Post-action Verification result.
+- AI outputs must pass schema validation before any action, Forensics record, or Orchestration owner evidence.
 - Local AI outputs must be validated against task-specific schemas before downstream use.
 - OCR outputs must be cleaned into explicit structured data before they can become AI input, AI result context, or Forensics record payload.
 - Prompt version and schema version must be carried with AI result records.
 - Platform action results and adapter outputs must use explicit contracts before they can drive Orchestration proof or Forensics record writes.
 - Platform action payloads and persistence writes must use explicit contracts.
-- DOM-derived raw page payloads must not become Page State truth, Post-action Verification truth, or Forensics records without validation.
+- DOM-derived raw page payloads must not become action truth, page truth, or Forensics records.
 
 ### 禁止
 
 FORBIDDEN:
 - any, as any, or hidden any escapes.
 - Using unvalidated JSON to drive actions.
-- Untyped local AI outputs entering action, Forensics records, Orchestration proof, Page State result, or Post-action Verification result.
+- Untyped local AI outputs entering action, Forensics records, or Orchestration proof.
 - Prompt outputs without schema version or task type.
 - Untyped adapter outputs driving runtime decisions.
 - Platform action payloads represented as loose strings or unvalidated raw objects.

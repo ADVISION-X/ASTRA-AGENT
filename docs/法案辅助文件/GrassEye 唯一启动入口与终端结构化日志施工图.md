@@ -175,7 +175,7 @@ mission requestedPlatform 只能来自 governed mission command。
 grasseye:start 在 bootstrap 期间要求操作者做 Facebook/TikTok 二选一。
 startup 用 --platform、env、readline prompt、结构化日志事件等形式重建启动期平台门禁。
 startup 写死某个平台。
-startup 恢复 retired selection field、legacy route-plan field、retired binding field、retired branch-token field 等字段。
+startup 恢复选择、运行计划、绑定、分支令牌等字段。
 Commander 通过重新探测或临时推断来替代 mission truth。
 ```
 

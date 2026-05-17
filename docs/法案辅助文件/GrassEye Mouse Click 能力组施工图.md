@@ -55,7 +55,7 @@ retired package version field
 retired selection field
 retired selection version field
 retired binding field
-legacy route-plan field
+运行计划字段
 retired branch-token field
 ```
 
@@ -93,4 +93,3 @@ Mouse Click 现阶段注册且唯一有效的三个浏览器视口原子子能�
 - AI 只传 gridCell；系统负责将 gridCell → Geometry Guard → childCapabilityId + executableCoordinate。
 - button 和 clickCount 由子能力固定，不由外部输入决定。
 - 禁止：binding、package、PAV ref、业务语义动作名（like/open_comments/next_video 等）出现在 mouse-click 任何文件中。
-

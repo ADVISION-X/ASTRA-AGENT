@@ -93,7 +93,7 @@ inventory 只能是 support evidence；只有出现 violation 或定向审计明
 - strengthLevel
 - blockingReasons[]
 
-当前代码若仍保留 actionCode 字段，它只能作为 transitional transport alias，不改变 child capability strength 的当前最高定义。
+actionCode 只能作为能力登记册条目 id，不改变 child capability strength 的当前最高定义。
 
 ## 5. Inspector 责任
 

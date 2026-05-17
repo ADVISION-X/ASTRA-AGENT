@@ -66,7 +66,7 @@ retired selection field
 retired selection version field
 retired binding field
 retired branch-token field
-legacy route-plan field
+运行计划字段
 ```
 
 ## 漂移信号

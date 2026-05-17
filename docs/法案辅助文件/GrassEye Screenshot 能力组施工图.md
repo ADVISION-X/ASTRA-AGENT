@@ -62,7 +62,7 @@ retired package version field
 retired selection field
 retired selection version field
 retired binding field
-legacy route-plan field
+运行计划字段
 retired branch-token field
 ```
 

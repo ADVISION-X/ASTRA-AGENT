@@ -1,25 +1,10 @@
 # GrassEye APP 用户需求启动施工图
 
-本施工图替代 retired package chain / retired template flow / retired deterministic flow planning / retired branch-token field 生产主权。
-凡旧施工图与本文件冲突，以本文件为准。
-
 ## 文件身份
 
 本施工图定义普通用户的唯一任务入口。
 
-Owner boundary: commander-console-capability
-Forbidden startup owners: retired package chain, retired template flow, retired deterministic flow planning, retired branch-token field
-
-## Retired Vocabulary Table
-
-| 抽象词 | 代表性禁止口径 |
-| --- | --- |
-| retired branch-token field | retired AI branch token |
-| legacy route-plan field | retired route identifier |
-| retired selection field | retired binding selection identifier |
-| retired binding field | retired binding snapshot identifier |
-| retired package chain | retired package-governance chain |
-| retired template flow | retired template entry flow |
+Owner boundary: commander-console
 
 ## 允许输入
 
@@ -33,12 +18,12 @@ APP 启动页只允许以下字段：
 ## 禁止输入
 
 APP 启动页不得暴露：
-- legacy template field
-- retired selection field
-- legacy route-plan field
-- legacy activation field
-- retired binding field
-- retired branch-token field
+- 能力组内部字段
+- 调度字段
+- 浏览器命令
+- 坐标字段
+- 多动作计划字段
+- 证据写入 payload
 
 ## 启动 payload
 
@@ -54,7 +39,7 @@ APP 启动页不得暴露：
 
 ## 运行时初始载荷
 
-Runtime initial payload must carry:
+Runtime initial payload may carry:
 - selectedPlatforms
 - primaryPlatformId
 - platformProfiles
@@ -62,9 +47,8 @@ Runtime initial payload must carry:
 - targetTitle
 - userRequirementRef
 - userRequirementText
-- selectedRuntimeId
 - maxRounds
 - maxMinutes
 - operatorNote
 
-Runtime initial payload must not carry retired map fields.
+Runtime initial payload must not carry execution plans. AI chooses one registered atomic action per visual round.

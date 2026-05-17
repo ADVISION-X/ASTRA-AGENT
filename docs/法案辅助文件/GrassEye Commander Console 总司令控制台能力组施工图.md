@@ -40,7 +40,7 @@ capability health / roster dashboard
 browse ledger
 map / template / import UX
 retired navigation-chain parsing
-legacy activation truth
+启动真相字段
 retired branch-token scheduling
 AI runtime truth
 browser/action execution
@@ -118,7 +118,7 @@ reject-candidate 重新回流到 command surface
 
 ```txt
 retired navigation-chain fields
-legacy activation binding field
+启动绑定字段
 retired branch-token field
 template-as-runtime field
 ```

@@ -1,8 +1,6 @@
 # GrassEye Muscle Memory Catalog 肌肉记忆目录施工图
 
 本施工图定义 GrassEye 当前对 MuscleMemoryCatalog 的最高蓝图权威。
-如与当前代码中的 transport 字段、历史 semantic action、旧 actionCode 现状冲突，以本施工图为当前定义，代码与审计必须向它收敛。
-任何 composite、package、workflow、semantic action 只可作为历史过渡、反例或代码差异记录，不构成当前权威。
 
 ## 文件身份
 
@@ -35,7 +33,7 @@ It is not a semantic-shortcut catalog.
 6. 明确禁止 raw coordinate 直通执行。
 7. 要求所有 gridCell 执行先经过 Geometry Guard。
 8. 要求 side effect 动作可以回链到 Forensics。
-9. 将套餐动作、语义动作、业务流程动作标记为历史过渡而非最终定义。
+9. 禁止登记套餐动作、语义动作、业务流程动作。
 
 ## 定义表
 
@@ -119,17 +117,6 @@ It is not a semantic-shortcut catalog.
 - SAVE_EVIDENCE_RECORD_ONCE
 - STOP_REVIEW_REQUIRED_ONCE
 
-## 反例：不是原子子能力
-
-- LIKE_CURRENT_VIDEO
-- OPEN_COMMENTS
-- NEXT_VIDEO
-- SAVE_PRODUCT_AND_LIKE
-- YES_SEEDING_VIDEO_FLOW
-- NO_SEEDING_VIDEO_FLOW
-- SAVE_AND_OPEN_COMMENTS
-- OPEN_COMMENTS_AND_CAPTURE
-
 ## AI 组合示例
 
 用户目标：
@@ -148,34 +135,11 @@ SAVE_EVIDENCE_RECORD_ONCE
 LEFT_CLICK_GRID_CELL_ONCE(nextButtonGridCell)
 ```
 
-如果用户明确要求点赞或打开评论，AI 才能在当前画面证据足够时额外组合登记点击能力：
-
-```txt
-CAPTURE_VIEWPORT_ONCE
-SAVE_EVIDENCE_RECORD_ONCE
-LEFT_CLICK_GRID_CELL_ONCE(optionalUserRequestedEngagementGridCell)
-LEFT_CLICK_GRID_CELL_ONCE(nextButtonGridCell)
-```
-
 如果不是产品：
 
 ```txt
 LEFT_CLICK_GRID_CELL_ONCE(nextButtonGridCell)
 ```
-
-## 过渡概念退役方向
-
-以下名称若仍出现在当前代码或审计中，只能被标记为历史过渡或待代码层治理差异：
-- YES_SEEDING_VIDEO_FLOW
-- NO_SEEDING_VIDEO_FLOW
-- SAVE_PRODUCT_AND_LIKE
-- LIKE_CURRENT_VIDEO
-- OPEN_COMMENTS
-- NEXT_VIDEO
-- DISMISS_OVERLAY
-
-它们不是当前最终子能力定义。
-当前最高定义是 AI 使用原子能力登记册自行组合动作。
 
 ## 后续执法检查点
 
@@ -183,8 +147,6 @@ LEFT_CLICK_GRID_CELL_ONCE(nextButtonGridCell)
 1. MuscleMemoryCatalog 不得登记业务流程套餐为 atomic child capability。
 2. AI-visible registry 不得以 business flow 为主要能力表面。
 3. Child capability 必须是原子动作。
-4. Composite、package、workflow 不得成为 MuscleMemoryCatalog 最终权威。
-5. 语义动作若存在，只能被标记为 transitional。
-6. AI manual 必须来自 capability registry。
-7. AI manual 必须允许 AI 组合能力，不得只提供套餐动作。
-8. 子能力不得包含多步骤业务流程。
+4. AI manual 必须来自 capability registry。
+5. AI manual 必须允许 AI 组合能力，不得提供套餐动作。
+6. 子能力不得包含多步骤业务流程。

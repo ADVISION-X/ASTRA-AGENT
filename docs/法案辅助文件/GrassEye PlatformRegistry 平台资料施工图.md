@@ -1,25 +1,11 @@
 # GrassEye PlatformRegistry 平台资料施工图
 
-本施工图替代 retired package chain / retired template flow / retired deterministic flow planning / retired branch-token field 生产主权。
-凡旧施工图与本文件冲突，以本文件为准。
-
 ## 文件身份
 
-本施工图定义平台资料层，不定义动作链，不定义地图生命周期。
+PlatformRegistry 只保存平台入口资料，不定义动作链，不定义业务流程，不生成运行计划。
 
-Owner boundary: open-capability
-Consumers: commander-console-capability, ai-capability, orchestration-capability
-
-## Retired Vocabulary Table
-
-| 抽象词 | 代表性禁止口径 |
-| --- | --- |
-| retired branch-token field | retired AI branch token |
-| legacy route-plan field | retired route identifier |
-| retired selection field | retired binding selection identifier |
-| retired binding field | retired binding snapshot identifier |
-| retired package chain | retired package-governance chain |
-| retired template flow | retired template entry flow |
+Owner boundary: platform-registry
+Consumers: commander-console, orchestration, ai, open
 
 ## PlatformProfile
 
@@ -30,31 +16,33 @@ type PlatformProfile = {
   entryUrl: string;
   targetTitle: string;
   allowedHosts: string[];
-  defaultRecoveryActionCode: "OPEN_FACEBOOK_ENTRY" | "OPEN_TIKTOK_ENTRY";
-  supportedActionCodes: string[];
+  supportedAtomicActionCodes: string[];
+  visualNotes?: string;
 };
 ```
 
 ## 硬边界
 
-PlatformRegistry 只保存环境资料：
+PlatformRegistry 只保存：
+- platformId
+- displayName
 - entryUrl
 - targetTitle
 - allowedHosts
-- supportedActionCodes
+- supportedAtomicActionCodes
+- visualNotes
 
-supportedActionCodes is an allowlist hint only.
-It is not a route.
-It is not a recipe.
-It is not an action chain.
-It is not an execution plan.
-MuscleMemoryCatalog remains the only actionCode authority.
+PlatformRegistry 不保存：
+- 页面状态判断
+- 动作结果判断
+- 点击、输入、滚动、截图参数
+- 业务流程
+- 多动作计划
+- 语义动作提示
 
-PlatformRegistry 禁止保存：
-- legacy route-plan field
-- retired branch-token field
-- legacy template field
-- prompt text
-- legacy package lifecycle
-- retired binding state
-- action chain
+## 使用规则
+
+- Open 只使用 `entryUrl` 和 `allowedHosts` 做入口打开与 URL 治理。
+- AI 只看到平台身份、入口资料、可用原子动作列表和视觉备注。
+- Orchestration 只把平台资料作为系统注入上下文，不按平台资料做业务分支。
+- MuscleMemoryCatalog 是唯一 actionCode 权威。

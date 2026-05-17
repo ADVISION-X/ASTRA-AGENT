@@ -20,9 +20,9 @@ if (result.hardRetiredSurfaceFindings.length === 0) {
 
 // --- Retired Surface: SOFT (warning only) ---
 if (result.softRetiredSurfaceFindings.length === 0) {
-  console.log("[RETIRED SURFACE SOFT] CLEAN — no legacy field patterns found.");
+  console.log("[RETIRED SURFACE SOFT] CLEAN — no retired field patterns found.");
 } else {
-  console.log(`[RETIRED SURFACE SOFT] WARN — ${result.softRetiredSurfaceFindings.length} legacy field(s) found (non-blocking, cleanup recommended):`);
+  console.log(`[RETIRED SURFACE SOFT] WARN — ${result.softRetiredSurfaceFindings.length} retired field(s) found (non-blocking, cleanup recommended):`);
   for (const f of result.softRetiredSurfaceFindings) {
     console.log(`  - ${f.file}:${f.line} → "${f.pattern}"`);
   }

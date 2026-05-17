@@ -57,9 +57,9 @@
 禁止字段：
 
 ```txt
-legacy activation binding
+启动绑定
 retired package-chain ids
 retired branch-token fields
-legacy route-plan identifiers
+运行计划标识
 template-as-runtime truth
 ```

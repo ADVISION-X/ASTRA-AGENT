@@ -1,7 +1,7 @@
 ---
 name: "GrassEye Geometry Guard Capability"
-description: "Use when governing the independent Geometry Guard Ability Group, executable coordinate safety gating, coordinate-space validation, bbox/click-point legality, scale mapping, viewport/screen bounds validation, normalized executable geometry output, and the boundary that prevents Visual Target, Mouse Click, Mouse Scroll, Screenshot, AI, platform adapters, or browser helpers from owning geometry safety truth."
-applyTo: ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md, src/capabilities/geometry-guard/**, docs/法案辅助文件/GrassEye Geometry Guard 几何安全守卫能力组施工图.md, scripts/audit/domains/geometry-guard-capability/**, src/capabilities/mouse-click/**, src/capabilities/mouse-scroll/**, src/capabilities/visual-target/**"
+description: "Use when governing the independent Geometry Guard Ability Group, executable coordinate safety gating, coordinate-space validation, bbox/click-point legality, scale mapping, viewport/screen bounds validation, normalized executable geometry output, and the boundary that prevents Mouse Click, Mouse Scroll, Screenshot, AI, platform profiles, or browser helpers from owning geometry safety truth."
+applyTo: ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md, src/capabilities/geometry-guard/**, docs/法案辅助文件/GrassEye Geometry Guard 几何安全守卫能力组施工图.md, scripts/audit/domains/geometry-guard-capability/**, src/capabilities/mouse-click/**, src/capabilities/mouse-scroll/**"
 ---
 
 # GrassEye Geometry Guard Capability FINAL

@@ -31,7 +31,8 @@ AI 判断
 点击
 Forensics 写入
 local arbitrary program launcher
-map / route / binding / package / selection / branch-token 真相
+动作计划
+业务流程
 ```
 
 ## 当前 Active Child 能力
@@ -66,18 +67,10 @@ timeoutMs when applicable
 禁止字段：
 
 ```txt
-retired package field
-retired package version field
-retired selection field
-retired selection version field
-retired binding field
-retired branch-token field
-legacy route-plan field
-mapId / runtimePlanId / routePlanId / activationId / templateId
-selectedMapId / bindingPackageId / selectedBindingId
-branchToken / deterministicFlowPlan
+能力组内部字段
+调度计划字段
+多动作计划字段
 pageReady / pageCorrect / feedReady / semanticSuccess
-defaultTargetUrl / fallbackTargetUrl / fallbackUrl
 pageStateHandoffRef / pageStateRef
 ```
 
@@ -85,7 +78,7 @@ pageStateHandoffRef / pageStateRef
 
 - Open success 返回 openResultRef + rawBrowserObservationRef / postOpenObservationRef
 - AI 仍是页面语义与 readiness 唯一真相源
-- targetUrl 不得走默认 fallback 充当运行真相
+- targetUrl 必须来自当前输入或 PlatformRegistry
 - rawBrowserObservationRef 只包含：currentUrl / currentTitle / browserSessionRef / navigationStartedAt / navigationEndedAt / rawRuntimeSignals
 
 禁止在 rawBrowserObservationRef 中包含：
@@ -117,9 +110,7 @@ startedAt / endedAt / durationMs
 ## 漂移信号
 
 ```txt
-Open proof 携带 retired binding field
 Open success 直接声称 pageReady / pageCorrect
-Open fallback 到默认 URL 作为真相
 Open 依赖 pageStateHandoffRef
-出现 open-facebook / open-tiktok / open-local-program 作为 child capability
+Open 执行点击、输入、滚动、截图
 ```

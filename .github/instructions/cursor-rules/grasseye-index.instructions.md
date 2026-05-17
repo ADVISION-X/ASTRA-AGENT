@@ -25,4 +25,4 @@ Kernel loads first. The current top-level authority is:
 
 ## Retired Routes
 
-Page-state, post-action verification, visual-target court, product-video-only judging, and advanced map generation plans are historical only. They must not route current runtime and live under docs/archive/** when retained.
+Page-state, post-action verification, visual-target court, platform-action ownership, product-video-only judging, and advanced map generation plans must not route current runtime.
