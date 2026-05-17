@@ -22,7 +22,7 @@ export const ORCHESTRATION_CHILD_CAPABILITY_IDS = [
   "resume-mission",
   "stop-mission",
   "emergency-stop",
-  "dispatch-registered-ability-sequence",
+  "dispatch-registered-ability-action",
   "finalize-mission",
 ] as const;
 
@@ -119,7 +119,7 @@ export const OrchestrationExecuteInputSchema = z.discriminatedUnion("childCapabi
   z.object({ childCapabilityId: z.literal("resume-mission"), payload: z.unknown() }),
   z.object({ childCapabilityId: z.literal("stop-mission"), payload: z.unknown() }),
   z.object({ childCapabilityId: z.literal("emergency-stop"), payload: z.unknown() }),
-  z.object({ childCapabilityId: z.literal("dispatch-registered-ability-sequence"), payload: z.unknown() }),
+  z.object({ childCapabilityId: z.literal("dispatch-registered-ability-action"), payload: z.unknown() }),
   z.object({ childCapabilityId: z.literal("finalize-mission"), payload: z.unknown() }),
 ]);
 
@@ -163,12 +163,12 @@ export const EmergencyStopChildInputSchema = z.object({
 }).strict();
 export const EmergencyStopChildOutputSchema = MissionStateSchema;
 
-export const DispatchRegisteredAbilitySequenceInputSchema = z.object({
+export const DispatchRegisteredAbilityActionInputSchema = z.object({
   missionId: z.string().min(1),
   runId: z.string().min(1),
   roundId: z.string().min(1).nullable().optional().default(null),
   aiResultRef: z.string().min(1).nullable().optional().default(null),
-  actions: z.array(z.object({
+  action: z.object({
     actionCode: z.string().min(1),
     reason: z.string().nullable().optional().default(null),
     input: z.record(z.string(), z.unknown()).optional().default({}),
@@ -186,10 +186,10 @@ export const DispatchRegisteredAbilitySequenceInputSchema = z.object({
       "bottom_center",
       "bottom_right",
     ]).nullable().optional().default(null),
-  })).default([]),
+  }),
   currentEvidenceRefs: z.record(z.string().min(1)).optional().default({}),
 }).strict();
-export const DispatchRegisteredAbilitySequenceOutputSchema = MissionStateSchema;
+export const DispatchRegisteredAbilityActionOutputSchema = MissionStateSchema;
 
 export const FinalizeMissionChildInputSchema = z.object({
   missionId: z.string().min(1),

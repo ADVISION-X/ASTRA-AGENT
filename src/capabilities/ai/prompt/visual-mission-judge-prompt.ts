@@ -10,20 +10,12 @@ function resolvePlatformProfile(input: VisualMissionActionPlanRequestInput): Pla
   return profile;
 }
 
-function buildContinuitySection(input: VisualMissionActionPlanRequestInput): string {
-  if (!input.roundMissionPacket) return "任务连续性包: 无";
-  return [
-    `连续性引用: ${input.roundMissionPacketRef ?? "无"}`,
-    `连续性数据:\n${JSON.stringify(input.roundMissionPacket, null, 2)}`,
-  ].join("\n");
-}
-
 const SYSTEM_PROMPT = `
 # 你是谁
 
 你是 GrassEye 的视觉指挥 AI。
 
-每一轮你只接收当前截图、坐标图、用户目标、能力登记册和少量连续性信息。你的任务是判断当前画面是否满足用户目标，并选择一个下一步原子动作，或结束、要求人工复核、阻塞停止。
+每一轮你只接收当前截图、坐标图、用户目标和能力登记册。你的任务是判断当前画面是否满足用户目标，并选择一个下一步原子动作，或结束、要求人工复核、阻塞停止。
 
 你不执行动作。
 你不保存证据。
@@ -116,9 +108,6 @@ function buildUserPrompt(input: VisualMissionActionPlanRequestInput): string {
     "",
     "## 当前运行平台",
     buildPlatformSection(profile),
-    "",
-    "## 任务连续性包",
-    buildContinuitySection(input),
     "",
     "## 当前轮视觉证据引用",
     `原始截图引用: ${input.originalScreenshotRef}`,

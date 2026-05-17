@@ -57,7 +57,6 @@ const ACTIVE_CAPABILITY_GROUP_IDS = [
   "ai",
   "open",
   "screenshot",
-  "visual-target",
   "geometry-guard",
   "mouse-click",
   "mouse-scroll",

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-13T11:19:17.978Z",
+  "timestamp": "2026-05-17T17:47:46.408Z",
   "pass": true,
   "hardRetiredSurface": {
     "count": 0,
@@ -97,32 +97,14 @@
       "status": "ok"
     },
     {
-      "module": "src/capabilities/visual-target",
-      "actual": 10,
-      "limit": 18,
-      "status": "ok"
-    },
-    {
       "module": "src/capabilities/open",
       "actual": 6,
       "limit": 18,
       "status": "ok"
     },
     {
-      "module": "src/capabilities/page-state",
-      "actual": 0,
-      "limit": 0,
-      "status": "ok"
-    },
-    {
-      "module": "src/capabilities/post-action-verification",
-      "actual": 0,
-      "limit": 0,
-      "status": "ok"
-    },
-    {
       "module": "scripts/audit (total)",
-      "actual": 37,
+      "actual": 28,
       "limit": 39,
       "status": "ok"
     },

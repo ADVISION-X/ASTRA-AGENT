@@ -17,7 +17,7 @@ export const MARK_REVIEW_REQUIRED_CHILD: CommanderConsoleChildDefinition<MarkRev
         commandType: "mark-review-required",
         targetMissionId: null,
         targetBindingId: null,
-        targetRecordRef: { recordType: "candidate", recordId: commandInput.candidateId },
+        targetRecordRef: { recordType: "visual-evidence", recordId: commandInput.candidateId },
         requestedPlatformId: null,
         humanGoal: null,
         operatorNote: commandInput.operatorNote ?? null,

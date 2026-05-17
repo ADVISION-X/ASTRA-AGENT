@@ -10,7 +10,6 @@ export type RuntimeLogOwner =
   | "ai-capability"
   | "local-ai"
   | "screenshot-capability"
-  | "visual-target-capability"
   | "geometry-guard-capability"
   | "mouse-click-capability"
   | "mouse-scroll-capability"

@@ -19,27 +19,18 @@ const STANDARD_META_KEYS = [
 ];
 const AI_SUMMARY_META_KEYS = [
   "decision",
-  "isProductVideo",
   "confidence",
-  "visibleProductTypes",
-  "inputMode",
-  "validFrameCount",
-  "samplingStrategy",
-  "normalizationAdjusted",
 ];
 const FAILURE_DEBUG_META_KEYS = [
   "missingInputRefKeys",
   "lastSuccessfulResultRef",
   "screenshotEvidenceRef",
   "aiResultRef",
-  "visualTargetResultRef",
   "geometryGuardResultRef",
-  "clickResultRef",
-  "actionResultCheckResultRef",
-  "commentsEvidenceRef",
+  "capabilityResultRef",
 ];
 
-import { buildRuntimeRelayEvent, isProductPresenceAiSummaryEvent } from "./terminal-structured-runtime-relay.mjs";
+import { buildRuntimeRelayEvent } from "./terminal-structured-runtime-relay.mjs";
 
 function normalizeText(value) {
   if (value === null || value === undefined) {
@@ -91,9 +82,7 @@ function buildEventMeta(event) {
   const meta = [];
   pushMeta(meta, "failureReason", event.failureReason);
   appendNamedMeta(meta, event, STANDARD_META_KEYS);
-  if (isProductPresenceAiSummaryEvent(event)) {
-    appendNamedMeta(meta, event, AI_SUMMARY_META_KEYS);
-  }
+  appendNamedMeta(meta, event, AI_SUMMARY_META_KEYS);
   pushMeta(meta, "refs", Array.isArray(event.refs) ? event.refs : []);
   appendNamedMeta(meta, event, FAILURE_DEBUG_META_KEYS);
   if (typeof event.durationMs === "number") {

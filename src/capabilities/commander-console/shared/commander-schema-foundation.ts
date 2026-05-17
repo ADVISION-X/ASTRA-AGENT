@@ -74,7 +74,7 @@ const CommanderCommandTypeSchema = z.enum([
 ]);
 const CommanderMissionStatusSchema = z.enum(["idle", "running", "paused", "review_required", "failed", "completed", "stopped"]);
 const CommanderReviewStatusSchema = z.enum(["pending", "approved", "rejected", "hold", "archived"]);
-const CommanderRecordTypeSchema = z.enum(["candidate", "evidence-packet", "browse-ledger", "failed-record", "runtime-event", "mission", "not-found"]);
+const CommanderRecordTypeSchema = z.enum(["visual-evidence", "ability-result", "runtime-event", "mission", "not-found"]);
 const CommanderEvidenceSourceSchema = z.enum([
   "command-transport",
   "mission-read-model",
@@ -126,7 +126,7 @@ const CommanderTargetRecordRefSchema = z.object({
 }).strict();
 
 const CommanderCandidateTargetRecordRefSchema = z.object({
-  recordType: z.literal("candidate"),
+  recordType: z.literal("visual-evidence"),
   recordId: NonEmptyStringSchema,
 }).strict();
 

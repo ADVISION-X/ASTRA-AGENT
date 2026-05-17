@@ -395,7 +395,7 @@
       "childCapabilityId": "scroll-browser-viewport",
       "inputSchemaRef": "mouse-scroll.scroll-browser-viewport.input",
       "outputSchemaRef": "mouse-scroll.scroll-browser-viewport.output",
-      "allowedForAiActionPlan": false,
+      "allowedForAiActionPlan": true,
       "allowedForUserRequirement": false,
       "requiresGridSpecRef": false,
       "requiresScreenshotRef": false,
@@ -446,41 +446,6 @@
           "abilityGroupId",
           "childCapabilityId",
           "platformId"
-        ]
-      },
-      "successOutputRefs": [
-        "openResultRef"
-      ],
-      "failurePolicy": "stop",
-      "forbiddenResponsibilities": [
-        "invent URLs",
-        "own browser session",
-        "verify page state"
-      ]
-    },
-    {
-      "actionCode": "OPEN_LOCAL_WORKBENCH_ONCE",
-      "type": "atomic",
-      "displayName": "Open Local Workbench Once",
-      "description": "Open the GrassEye local workbench UI in the governed Chrome session.",
-      "abilityGroupId": "open",
-      "childCapabilityId": "open-local-workbench-once",
-      "inputSchemaRef": "open.open-local-workbench-once.input",
-      "outputSchemaRef": "open.open-local-workbench-once.output",
-      "allowedForAiActionPlan": true,
-      "allowedForUserRequirement": false,
-      "requiresGridSpecRef": false,
-      "requiresScreenshotRef": false,
-      "requiresGeometryProof": false,
-      "sensitiveOperation": false,
-      "inputContract": {
-        "requiredFields": [],
-        "optionalFields": [],
-        "forbiddenFields": [
-          "url",
-          "rawUrl",
-          "abilityGroupId",
-          "childCapabilityId"
         ]
       },
       "successOutputRefs": [

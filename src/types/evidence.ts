@@ -1,13 +1,12 @@
 import { z } from "zod";
 
 export const EvidenceKindSchema = z.enum([
-  "video-screenshot",
-  "comment-screenshot",
+  "screenshot",
+  "coordinate-grid-screenshot",
   "ocr-text",
   "ai-result",
   "action-log",
-  "product-candidate",
-  "evidence-packet"
+  "forensics-record",
 ]);
 
 export const EvidenceRefSchema = z.object({
@@ -24,7 +23,7 @@ export const ImageEvidenceSchema = z.object({
   platformId: z.string().min(1),
   sourceId: z.string().min(1),
   sourceUrl: z.string().min(1),
-  kind: z.enum(["video-screenshot", "comment-screenshot"]),
+  kind: z.enum(["screenshot", "coordinate-grid-screenshot"]),
   summary: z.string().min(1),
   filePath: z.string().min(1),
   regionLabel: z.string().min(1),

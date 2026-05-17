@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { NerveBusAbilityGroup } from "../../nerve-bus/contract.js";
 import type { MissionState } from "../contract.js";
-import type { DispatchRegisteredAbilitySequenceInput } from "../contract.js";
+import type { DispatchRegisteredAbilityActionInput } from "../contract.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../forensics-persistence/contract.js";
 import type { GeometryGuardAbilityGroup } from "../../geometry-guard/index.js";
 import type { ScreenshotAbilityGroup } from "../../screenshot/contract.js";
@@ -28,10 +28,8 @@ export type DispatchSequenceResult = {
   reviewRequiredReason: string | null;
 };
 
-type Action = DispatchRegisteredAbilitySequenceInput["actions"][number];
+type Action = DispatchRegisteredAbilityActionInput["action"];
 type CellZone = NonNullable<Action["cellZone"]>;
-
-const INTER_ACTION_SETTLE_WAIT_MS = 1_000;
 
 const CELL_ZONE_OFFSETS: Record<CellZone, { xRatio: number; yRatio: number }> = {
   top_left: { xRatio: 1 / 6, yRatio: 1 / 6 },
@@ -58,13 +56,13 @@ function resolveCellZoneClickPoint(
 }
 
 /**
- * Run Geometry Guard preflight for click actions that requiresGeometryProof.
+ * Run Geometry Guard preflight for a click action that requiresGeometryProof.
  * Decodes gridCell → bbox using the registered gridSpec, then validates.
  * Returns the proof fields to merge into action input, or a failure reason.
  */
 async function resolveGeometryProof(
   action: Action,
-  input: DispatchRegisteredAbilitySequenceInput,
+  input: DispatchRegisteredAbilityActionInput,
   ctx: DispatchSequenceContext,
 ): Promise<{ ok: true; proof: Record<string, unknown> } | { ok: false; failureReason: string }> {
   const gridCell =
@@ -152,7 +150,7 @@ async function resolveGeometryProof(
 
 async function dispatchSingleAction(
   action: Action,
-  input: DispatchRegisteredAbilitySequenceInput,
+  input: DispatchRegisteredAbilityActionInput,
   ctx: DispatchSequenceContext,
   actionIndex: number,
 ): Promise<{ status: "success" | "failed" | "review_required"; failureReason: string | null }> {
@@ -164,7 +162,7 @@ async function dispatchSingleAction(
   const resolvedAbilityGroupId = entry.abilityGroupId;
   const resolvedChildCapabilityId = entry.childCapabilityId;
 
-  // ── 2. Geometry Guard preflight for actions requiring coordinate proof ─────
+  // ── 2. Geometry Guard preflight for an action requiring coordinate proof ───
   let actionInput: Record<string, unknown> = { ...(action.input ?? {}) };
   if (entry.requiresGeometryProof) {
     const geoResult = await resolveGeometryProof(action, input, ctx);
@@ -197,7 +195,7 @@ async function dispatchSingleAction(
     stepId: randomUUID(),
     capabilityCallId: callId,
     nerveBusEnvelopeId: callId,
-    requestedBy: "orchestration:dispatch-sequence",
+    requestedBy: "orchestration:dispatch-action",
     purpose: `execute:${action.actionCode}`,
     inputRef: randomUUID(),
     sourceRef: actionInput["sourceRef"] ?? gridSpecRef ?? callId,
@@ -299,102 +297,81 @@ async function dispatchSingleAction(
   }
 }
 
-function waitForInterActionSettle() {
-  return new Promise<void>((resolve) => setTimeout(resolve, INTER_ACTION_SETTLE_WAIT_MS));
-}
-
-export async function dispatchRegisteredAbilitySequence(
-  input: DispatchRegisteredAbilitySequenceInput,
+export async function dispatchRegisteredAbilityAction(
+  input: DispatchRegisteredAbilityActionInput,
   ctx: DispatchSequenceContext,
 ): Promise<DispatchSequenceResult> {
-  for (const [actionIndex, action] of input.actions.entries()) {
-    ctx.runtimeLogger.emit({
-      traceId: input.missionId,
-      level: "info",
-      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
-      eventType: "CAPABILITY_DISPATCH_STARTED",
-      owner: "orchestration",
-      missionId: input.missionId,
-      runId: input.runId,
-      ...(input.roundId ? { roundId: input.roundId } : {}),
-      status: "started",
-      reason: `Dispatching ${action.actionCode}${action.gridCell ? ` at ${action.gridCell}` : ""}${action.cellZone ? ` zone=${action.cellZone}` : ""}`,
-    });
+  const action = input.action;
+  ctx.runtimeLogger.emit({
+    traceId: input.missionId,
+    level: "info",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    eventType: "CAPABILITY_DISPATCH_STARTED",
+    owner: "orchestration",
+    missionId: input.missionId,
+    runId: input.runId,
+    ...(input.roundId ? { roundId: input.roundId } : {}),
+    status: "started",
+    reason: `Dispatching ${action.actionCode}${action.gridCell ? ` at ${action.gridCell}` : ""}${action.cellZone ? ` zone=${action.cellZone}` : ""}`,
+  });
 
-    const { status, failureReason } = await dispatchSingleAction(action, input, ctx, actionIndex);
+  const { status, failureReason } = await dispatchSingleAction(action, input, ctx, 0);
 
-    ctx.runtimeLogger.emit({
-      traceId: input.missionId,
-      level: status === "success" ? "info" : status === "review_required" ? "warn" : "error",
-      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
-      eventType: status === "success" ? "CAPABILITY_DISPATCH_COMPLETED" : "CAPABILITY_DISPATCH_FAILED",
-      owner: "orchestration",
-      missionId: input.missionId,
-      runId: input.runId,
-      ...(input.roundId ? { roundId: input.roundId } : {}),
+  ctx.runtimeLogger.emit({
+    traceId: input.missionId,
+    level: status === "success" ? "info" : status === "review_required" ? "warn" : "error",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    eventType: status === "success" ? "CAPABILITY_DISPATCH_COMPLETED" : "CAPABILITY_DISPATCH_FAILED",
+    owner: "orchestration",
+    missionId: input.missionId,
+    runId: input.runId,
+    ...(input.roundId ? { roundId: input.roundId } : {}),
+    status,
+    reason: status === "success"
+      ? `${action.actionCode} ok${action.gridCell ? ` at ${action.gridCell}` : ""}${action.cellZone ? ` zone=${action.cellZone}` : ""}`
+      : `${action.actionCode} ${status}: ${failureReason ?? "unknown"}`,
+  });
+
+  const entry = getRegisteredAbilityById(action.actionCode);
+  const evidenceResult = await ctx.forensics.appendRecord({
+    childCapabilityId: "append-record",
+    missionId: input.missionId,
+    runId: input.runId,
+    roundId: input.roundId ?? undefined,
+    sourceCapabilityId: "orchestration",
+    sourceChildCapabilityId: "dispatch-registered-ability-action",
+    recordType: "ability_result",
+    recordPayload: {
+      actionCode: action.actionCode,
+      reason: action.reason ?? (action.input?.["reason"] as string | undefined) ?? null,
+      gridCell: action.gridCell ?? (action.input?.["gridCell"] as string | undefined) ?? null,
+      cellZone: action.cellZone ?? (action.input?.["cellZone"] as string | undefined) ?? null,
+      abilityGroupId: entry ? entry.abilityGroupId : null,
+      childCapabilityId: entry ? entry.childCapabilityId : null,
       status,
-      reason: status === "success"
-        ? `${action.actionCode} ok${action.gridCell ? ` at ${action.gridCell}` : ""}${action.cellZone ? ` zone=${action.cellZone}` : ""}`
-        : `${action.actionCode} ${status}: ${failureReason ?? "unknown"}`,
-    });
-
-    const entry = getRegisteredAbilityById(action.actionCode);
-    const evidenceResult = await ctx.forensics.appendRecord({
-      childCapabilityId: "append-record",
-      missionId: input.missionId,
-      runId: input.runId,
-      roundId: input.roundId ?? undefined,
-      sourceCapabilityId: "orchestration",
-      sourceChildCapabilityId: "dispatch-registered-ability-sequence",
-      recordType: "ability_result",
-      recordPayload: {
-        actionCode: action.actionCode,
-        reason: action.reason ?? (action.input?.["reason"] as string | undefined) ?? null,
-        gridCell: action.gridCell ?? (action.input?.["gridCell"] as string | undefined) ?? null,
-        cellZone: action.cellZone ?? (action.input?.["cellZone"] as string | undefined) ?? null,
-        abilityGroupId: entry ? entry.abilityGroupId : null,
-        childCapabilityId: entry ? entry.childCapabilityId : null,
-        status,
-        failureReason: failureReason ?? null,
-      },
-      idempotencyKey: `orchestration:${input.missionId}:${input.runId}:${input.roundId ?? ""}:${actionIndex}:${action.actionCode}`,
-    });
-    if (evidenceResult.status !== "success") {
-      const failedState = getMissionState(input.missionId);
-      const reason = evidenceResult.failureReason ?? "Forensics appendRecord failed after action dispatch";
-      const updated = applyMissionStatus(failedState, { status: "failed", failureReason: reason });
-      upsertMissionState(updated);
-      return { status: "failed", stateSnapshot: updated, failureReason: reason, reviewRequiredReason: null };
-    }
-
-    if (status === "failed" && action.required !== false) {
-      const failedState = getMissionState(input.missionId);
-      const updated = applyMissionStatus(failedState, { status: "failed", failureReason: failureReason ?? "action failed" });
-      upsertMissionState(updated);
-      return { status: "failed", stateSnapshot: updated, failureReason: failureReason ?? "action failed", reviewRequiredReason: null };
-    }
-    if (status === "review_required") {
-      const current2 = getMissionState(input.missionId);
-      const updated2 = applyMissionStatus(current2, { status: "review_required", reviewRequiredReason: `Action ${action.actionCode} requires review` });
-      upsertMissionState(updated2);
-      return { status: "review_required", stateSnapshot: updated2, failureReason: null, reviewRequiredReason: `Action ${action.actionCode} requires review` };
-    }
-    if (actionIndex < input.actions.length - 1) {
-      ctx.runtimeLogger.emit({
-        traceId: input.missionId,
-        level: "debug",
-        modeVisibility: ["DEBUG", "TRACE"],
-        eventType: "CAPABILITY_DISPATCH_COMPLETED",
-        owner: "orchestration",
-        missionId: input.missionId,
-        runId: input.runId,
-        ...(input.roundId ? { roundId: input.roundId } : {}),
-        status: "success",
-        reason: `Inter-action settle wait durationMs=${INTER_ACTION_SETTLE_WAIT_MS}`,
-      });
-      await waitForInterActionSettle();
-    }
+      failureReason: failureReason ?? null,
+    },
+    idempotencyKey: `orchestration:${input.missionId}:${input.runId}:${input.roundId ?? ""}:${action.actionCode}`,
+  });
+  if (evidenceResult.status !== "success") {
+    const failedState = getMissionState(input.missionId);
+    const reason = evidenceResult.failureReason ?? "Forensics appendRecord failed after action dispatch";
+    const updated = applyMissionStatus(failedState, { status: "failed", failureReason: reason });
+    upsertMissionState(updated);
+    return { status: "failed", stateSnapshot: updated, failureReason: reason, reviewRequiredReason: null };
   }
 
+  if (status === "failed" && action.required !== false) {
+    const failedState = getMissionState(input.missionId);
+    const updated = applyMissionStatus(failedState, { status: "failed", failureReason: failureReason ?? "action failed" });
+    upsertMissionState(updated);
+    return { status: "failed", stateSnapshot: updated, failureReason: failureReason ?? "action failed", reviewRequiredReason: null };
+  }
+  if (status === "review_required") {
+    const current2 = getMissionState(input.missionId);
+    const updated2 = applyMissionStatus(current2, { status: "review_required", reviewRequiredReason: `Action ${action.actionCode} requires review` });
+    upsertMissionState(updated2);
+    return { status: "review_required", stateSnapshot: updated2, failureReason: null, reviewRequiredReason: `Action ${action.actionCode} requires review` };
+  }
   return { status: "success", stateSnapshot: getMissionState(input.missionId), failureReason: null, reviewRequiredReason: null };
 }

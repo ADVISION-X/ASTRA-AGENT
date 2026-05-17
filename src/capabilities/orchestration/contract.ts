@@ -6,7 +6,7 @@ import type {
   OrchestrationExecuteInputSchema,
   OrchestrationExecuteResultSchema,
   OrchestrationRequestedPlatformIdSchema,
-  DispatchRegisteredAbilitySequenceInputSchema,
+  DispatchRegisteredAbilityActionInputSchema,
 } from "./schema.js";
 
 export { ORCHESTRATION_ABILITY_GROUP_ID } from "./schema.js";
@@ -18,7 +18,7 @@ export type OrchestrationChildCapabilityId = z.infer<typeof OrchestrationChildCa
 export type RequestedPlatformId = z.infer<typeof OrchestrationRequestedPlatformIdSchema>;
 export type OrchestrationExecuteInput = z.infer<typeof OrchestrationExecuteInputSchema>;
 export type OrchestrationExecuteResult = z.infer<typeof OrchestrationExecuteResultSchema>;
-export type DispatchRegisteredAbilitySequenceInput = z.infer<typeof DispatchRegisteredAbilitySequenceInputSchema>;
+export type DispatchRegisteredAbilityActionInput = z.infer<typeof DispatchRegisteredAbilityActionInputSchema>;
 
 export interface OrchestrationAbilityGroup {
   listChildCapabilityIds(): OrchestrationChildCapabilityId[];

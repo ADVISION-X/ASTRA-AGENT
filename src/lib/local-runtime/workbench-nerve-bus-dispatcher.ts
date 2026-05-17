@@ -5,7 +5,7 @@
  * Routes AI requests directly to the AI ability group.
  * Routes human commands to orchestration.
  *
- * Does NOT contain map-chain, visual-target, or PAV special routes.
+ * Does NOT contain map-chain, retired support routes, or PAV special routes.
  * AI special routes, Forensics finalization, or Commander read-model.
  */
 
@@ -44,7 +44,6 @@ function buildAbilityGroupRegistry(deps: WorkbenchAssembly): Map<string, Generic
   registry.set("ai", deps.aiAbilityGroup as unknown as GenericAbilityGroup);
   registry.set("open", deps.openAbilityGroup as unknown as GenericAbilityGroup);
   registry.set("screenshot", deps.screenshotAbilityGroup as unknown as GenericAbilityGroup);
-  registry.set("visual-target", deps.visualTargetAbilityGroup as unknown as GenericAbilityGroup);
   registry.set("geometry-guard", deps.geometryGuardAbilityGroup as unknown as GenericAbilityGroup);
   registry.set("mouse-click", deps.mouseClickAbilityGroup as unknown as GenericAbilityGroup);
   registry.set("mouse-scroll", deps.mouseScrollAbilityGroup as unknown as GenericAbilityGroup);
@@ -160,7 +159,7 @@ export function createWorkbenchNerveBusHandlerPort(deps: WorkbenchNerveBusDispat
       }
 
       try {
-        // Pure transport: dispatch-sequence builds the complete input for each
+        // Pure transport: orchestration builds the complete input for each
         // ability group. NerveBus does NOT enrich or rewrite fields.
         const ip = inputPayload as Record<string, unknown>;
         const result = await group.execute(ip);

@@ -142,8 +142,8 @@ const validateReviewCommand = (
   ctx: RefinementCtx,
 ) => {
   const targetRecord = value.targetRecordRef;
-  if (!targetRecord || targetRecord.recordType !== "candidate") {
-    addCommanderIssue(ctx, "review commands require candidate targetRecordRef");
+  if (!targetRecord || targetRecord.recordType !== "visual-evidence") {
+    addCommanderIssue(ctx, "review commands require visual-evidence targetRecordRef");
   }
   if (value.targetMissionId) {
     addCommanderIssue(ctx, "review commands must not carry targetMissionId");

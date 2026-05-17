@@ -21,7 +21,7 @@ import {
   handleResumeMission,
   handleStopMission,
   handleEmergencyStop,
-  handleDispatchRegisteredAbilitySequence,
+  handleDispatchRegisteredAbilityAction,
   handleFinalizeMission,
   type OrchestrationChildrenContext,
 } from "./children.js";
@@ -51,7 +51,7 @@ async function executeChild(
     case "resume-mission": raw = await handleResumeMission(payload, ctx); break;
     case "stop-mission": raw = await handleStopMission(payload, ctx); break;
     case "emergency-stop": raw = await handleEmergencyStop(payload, ctx); break;
-    case "dispatch-registered-ability-sequence": raw = await handleDispatchRegisteredAbilitySequence(payload, ctx); break;
+    case "dispatch-registered-ability-action": raw = await handleDispatchRegisteredAbilityAction(payload, ctx); break;
     case "finalize-mission": raw = await handleFinalizeMission(payload, ctx); break;
     default: {
       const _exhaustive: never = childCapabilityId;

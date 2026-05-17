@@ -23,7 +23,6 @@ export const CODE_PURITY_CONFIG = {
     "src/capabilities/screenshot": 20,
     "src/lib/storage": 8,
     "src/capabilities/text-input": 20,
-    "src/capabilities/visual-target": 18,
     "src/capabilities/open": 18,
     "src/muscle-memory": 5,
   } as Record<string, number>,
@@ -32,6 +31,7 @@ export const CODE_PURITY_CONFIG = {
   retiredCapabilityRoots: [
     "src/capabilities/page-state",
     "src/capabilities/post-action-verification",
+    "src/capabilities/visual-target",
   ] as string[],
 
   // Prefixes excluded from retired-surface scan (e.g., the scanner files themselves).

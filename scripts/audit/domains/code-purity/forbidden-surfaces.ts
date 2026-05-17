@@ -3,11 +3,13 @@
 // These are string patterns to search for in non-comment production code.
 
 export const FORBIDDEN_ACTIVE_PATTERNS_HARD = [
-  // Retired page-state / PAV capability systems
+  // Retired support capability systems
   "page-state-capability",
   "post-action-verification-capability",
+  "visual-target-capability",
   "src/capabilities/page-state",
   "src/capabilities/post-action-verification",
+  "src/capabilities/visual-target",
 
   // Retired AI provider system
   "future-api-ai",

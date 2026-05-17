@@ -20,7 +20,6 @@ export const GOVERNED_ABILITY_GROUP_IDS: readonly string[] = [
   "ai",
   "commander-console",
   "screenshot",
-  "visual-target",
   "geometry-guard",
   "mouse-click",
   "mouse-scroll",

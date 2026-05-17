@@ -13,6 +13,7 @@ export const FACEBOOK_WEB_PROFILE: PlatformProfile = {
     "TYPE_APPROVED_TEXT_ONCE",
     "PRESS_APPROVED_KEY_ONCE",
     "CLEAR_FOCUSED_INPUT_ONCE",
+    "SCROLL_BROWSER_VIEWPORT_ONCE",
     "STOP_REVIEW_REQUIRED_ONCE",
   ],
   visualNotes: "Use the visible screen and coordinate grid only; platform data carries no semantic action policy.",

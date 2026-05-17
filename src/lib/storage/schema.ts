@@ -2,8 +2,7 @@
  * schema.ts — Generic record/artifact envelopes for append-only storage.
  *
  * This file contains NO business logic and NO capability knowledge.
- * product-record / candidate / discovery / task-run / ledger are
- * recordPayload categories — they must NOT appear as storage modules.
+ * Business-specific record modules must not appear here.
  */
 
 export type RecordType =

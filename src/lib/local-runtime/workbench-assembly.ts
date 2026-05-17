@@ -7,7 +7,7 @@
  *   - Creates all capability groups from their public factory functions.
  *
  * Does NOT contain: mission logic, AI routing, Forensics finalization,
- * Commander read models, map/binding, visual-target/PAV support,
+ * Commander read models, map/binding, retired support systems,
  * or Nerve Bus special routes.
  */
 
@@ -24,7 +24,6 @@ import type { BrowserOpenPort } from "../../capabilities/open/index.js";
 
 import { createWorkbenchScreenshotAbilityGroup } from "../../capabilities/screenshot/workbench-screenshot-ability-group.js";
 import { createTextInputAbilityGroupWithPrimitivePort } from "../../capabilities/text-input/index.js";
-import { createVisualTargetAbilityGroup } from "../../capabilities/visual-target/index.js";
 import { CurrentChromeBrowserController } from "../browser/current-chrome-browser-controller.js";
 import { createLocalBrowserSessionConfig } from "../browser/local-browser-session.js";
 import { createBrowserControllerMouseClickPrimitivePort } from "../browser/mouse-click-primitive-port.js";
@@ -88,7 +87,6 @@ export type WorkbenchAssembly = {
   aiAbilityGroup: ReturnType<typeof createConfiguredAiAbilityGroup>;
   openAbilityGroup: ReturnType<typeof createOpenAbilityGroup>;
   screenshotAbilityGroup: ReturnType<typeof createWorkbenchScreenshotAbilityGroup>;
-  visualTargetAbilityGroup: ReturnType<typeof createVisualTargetAbilityGroup>;
   geometryGuardAbilityGroup: ReturnType<typeof createGeometryGuardAbilityGroup>;
   mouseClickAbilityGroup: ReturnType<
     typeof createMouseClickAbilityGroupWithPrimitivePort
@@ -159,7 +157,6 @@ export function createWorkbenchAssembly(
     browserController,
     evidenceStore: dataDirProvider,
   });
-  const visualTargetAbilityGroup = createVisualTargetAbilityGroup();
   const geometryGuardAbilityGroup = createGeometryGuardAbilityGroup();
   const mouseClickAbilityGroup = createMouseClickAbilityGroupWithPrimitivePort({
     primitivePort: mouseClickPrimitivePort,
@@ -201,7 +198,6 @@ export function createWorkbenchAssembly(
     aiAbilityGroup,
     openAbilityGroup,
     screenshotAbilityGroup,
-    visualTargetAbilityGroup,
     geometryGuardAbilityGroup,
     mouseClickAbilityGroup,
     mouseScrollAbilityGroup,

@@ -9,7 +9,7 @@ export const MARK_REVIEW_REQUIRED_CHILD_ID = "mark-review-required";
 export const MARK_REVIEW_REQUIRED_CONTRACT: CommanderCommandChildContract = {
   childCapabilityId: MARK_REVIEW_REQUIRED_CHILD_ID,
   childKind: "command",
-  purpose: "Emit a governed mark-review-required command for a candidate record.",
+  purpose: "Emit a governed mark-review-required command for a visual evidence record.",
   allowedCaller: "commander-console",
   boundaryDecision: "command-transport-only",
   ownedCommandType: "mark-review-required",
@@ -32,7 +32,7 @@ export const MARK_REVIEW_REQUIRED_CONTRACT: CommanderCommandChildContract = {
     sourceAbility: "command-transport",
     targetRecordRequired: true,
     proofRefRequired: false,
-    recordTypes: ["candidate"],
+    recordTypes: ["visual-evidence"],
   }),
   proofPolicy: MarkReviewRequiredProofPolicySchema.parse({
     requiresRuntimeProof: true,

@@ -42,8 +42,6 @@ const PHYSICAL_SEMANTICS_BY_ACTION_CODE: Record<string, string> = {
     "Physically scrolls the current browser viewport by the provided scroll delta. It does not click a visible button and does not verify what content appears after scrolling.",
   OPEN_PLATFORM_ENTRY_ONCE:
     "Navigates the governed Chrome session to a registered platform entry URL supplied by the system. It does not invent URLs or perform page actions after navigation.",
-  OPEN_LOCAL_WORKBENCH_ONCE:
-    "Opens the local GrassEye workbench UI in the governed Chrome session. It does not operate the target social platform.",
   STOP_REVIEW_REQUIRED_ONCE:
     "Stops the current automated mission and marks it for human review. It does not click, type, scroll, save evidence, or move to the next video.",
   SAVE_RECORD_ONCE:

@@ -50,8 +50,6 @@ export const checkFileCounts = (): FileCountFinding[] => {
     const dir = join(repoRoot, retiredPath);
     if (existsSync(dir)) {
       findings.push({ module: retiredPath, actual: 1, limit: 0, status: "retired-exists" });
-    } else {
-      findings.push({ module: retiredPath, actual: 0, limit: 0, status: "ok" });
     }
   }
 

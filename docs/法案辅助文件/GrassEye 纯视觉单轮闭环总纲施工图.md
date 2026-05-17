@@ -45,4 +45,4 @@ AI 只输出 save 与 saveReason。系统检测 save=true 后保存当前 round 
 
 ## 历史文件
 
-旧 Page State、Post-action Verification、Visual Target、高级 AI 地图生成、视觉裁判故事情节文件已经移入 docs/archive/**。这些文件 historical only, must not route current runtime。
+旧 Page State、Post-action Verification、Visual Target、高级 AI 地图生成、视觉裁判故事情节文件已经物理删除，不保留 archive 路由。

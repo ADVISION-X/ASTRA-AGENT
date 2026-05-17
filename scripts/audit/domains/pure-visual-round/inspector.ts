@@ -125,7 +125,7 @@ function checkSaveBeforeAction(): PureVisualRoundCheck {
     return fail("PVR-007", "Orchestration saves before action?", "Missing aiOutput.save branch or system save call.");
   }
   const saveIndex = text.indexOf("systemSaveCurrentRoundEvidence", conditionIndex);
-  const dispatchIndex = text.indexOf("dispatchRegisteredAbilitySequence", conditionIndex);
+  const dispatchIndex = text.indexOf("dispatchRegisteredAbilityAction", conditionIndex);
   if (saveIndex < 0) {
     return fail("PVR-007", "Orchestration saves before action?", "Missing system save call after aiOutput.save branch.");
   }
@@ -133,7 +133,7 @@ function checkSaveBeforeAction(): PureVisualRoundCheck {
     return fail("PVR-007", "Orchestration saves before action?", "Missing dispatch call.");
   }
   return saveIndex < dispatchIndex
-    ? pass("PVR-007", "Orchestration saves before action?", "systemSaveCurrentRoundEvidence appears before dispatchRegisteredAbilitySequence.")
+    ? pass("PVR-007", "Orchestration saves before action?", "systemSaveCurrentRoundEvidence appears before dispatchRegisteredAbilityAction.")
     : fail("PVR-007", "Orchestration saves before action?", "Dispatch appears before system save.");
 }
 

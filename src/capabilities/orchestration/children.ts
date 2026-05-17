@@ -7,7 +7,7 @@ import type { GeometryGuardAbilityGroup } from "../geometry-guard/index.js";
 import type { OpenAbilityGroup } from "../open/index.js";
 import type { MouseScrollAbilityGroup } from "../mouse-scroll/contract.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import type { DispatchRegisteredAbilitySequenceInput } from "./contract.js";
+import type { DispatchRegisteredAbilityActionInput } from "./contract.js";
 import {
   getMissionState,
   upsertMissionState,
@@ -16,7 +16,7 @@ import {
   applyMissionStatus,
   now,
 } from "./runtime/mission-state.js";
-import { dispatchRegisteredAbilitySequence } from "./runtime/dispatch-sequence.js";
+import { dispatchRegisteredAbilityAction } from "./runtime/dispatch-action.js";
 import { runMissionRoundLoop } from "./runtime/mission-loop-runner.js";
 import {
   StartMissionChildInputSchema,
@@ -24,7 +24,7 @@ import {
   ResumeMissionChildInputSchema,
   StopMissionChildInputSchema,
   EmergencyStopChildInputSchema,
-  DispatchRegisteredAbilitySequenceInputSchema,
+  DispatchRegisteredAbilityActionInputSchema,
   FinalizeMissionChildInputSchema,
 } from "./schema.js";
 
@@ -163,13 +163,13 @@ export async function handleEmergencyStop(rawInput: unknown, _ctx: Orchestration
   return { status: "success", stateSnapshot: updated };
 }
 
-export async function handleDispatchRegisteredAbilitySequence(rawInput: unknown, ctx: OrchestrationChildrenContext): Promise<ChildResult> {
-  const parsed = DispatchRegisteredAbilitySequenceInputSchema.safeParse(rawInput);
+export async function handleDispatchRegisteredAbilityAction(rawInput: unknown, ctx: OrchestrationChildrenContext): Promise<ChildResult> {
+  const parsed = DispatchRegisteredAbilityActionInputSchema.safeParse(rawInput);
   if (!parsed.success) {
     return { status: "failed", stateSnapshot: getMissionState(), failureReason: `Invalid dispatch input: ${parsed.error.message}` };
   }
-  const input = parsed.data as DispatchRegisteredAbilitySequenceInput;
-  const result = await dispatchRegisteredAbilitySequence(input, {
+  const input = parsed.data as DispatchRegisteredAbilityActionInput;
+  const result = await dispatchRegisteredAbilityAction(input, {
     nerveBus: ctx.nerveBus,
     forensics: ctx.forensics,
     geometryGuard: ctx.geometryGuard,

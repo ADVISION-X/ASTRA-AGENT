@@ -11,7 +11,6 @@ import {
   MuscleMemoryPressKeySchema,
 } from "../../muscle-memory/schema.js";
 import { VISUAL_MISSION_PLATFORM_IDS } from "../platform-target-registry.js";
-import { RoundMissionPacketSchema } from "../round-mission-packet.schema.js";
 import {
   getAiRequiredActionFields,
   getAiVisibleActionFields,
@@ -124,8 +123,6 @@ const VisualMissionActionPlanRequestInputSchema = z.object({
   gridSpecRef: z.string().min(1),
   platformContextRef: z.string().min(1),
   platformContext: VisualMissionPlatformContextSchema,
-  roundMissionPacketRef: z.string().min(1).nullable().optional().default(null),
-  roundMissionPacket: RoundMissionPacketSchema.nullable().optional().default(null),
 }).strict();
 
 const VisualMissionActionPlanOutputSchema = z.object({

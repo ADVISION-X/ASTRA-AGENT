@@ -1,85 +1,37 @@
 # GrassEye 能力组与子能力总纲施工图
 
-## 统一身份与冻结边界
+status: active
+version: 2026-05-17
 
-- 本文件是当前主题的建设级落地映射或冻结说明，不新增 lawId，不修改冻结法案。
-- 本文件只服从当前 14 个 active ability groups、5 个 foundation laws、0 个 support governance domains；若与 Kernel / Index / 法案冻结基线冲突，以 Kernel / Index / 冻结基线为准。
-- 若本文档涉及 support boundary、共享子契约或已退役主题，只能从属于现有父能力组或冻结结论，不得借此恢复独立 owner、phase gate、audit plan 或 runner。
-- 若与 .github/instructions/cursor-rules/** 或 docs/法案辅助文件/GrassEye 法案冻结基线.md 冲突，以冻结法案与现行 owner law 为准。
+## 最高定义
 
-## 定位
+用户给目标。AI 下命令。系统按原子能力执行。证据和日志证明没有越界。
 
-GrassEye 现在只允许能力组模式。
+## 当前唯一能力组
 
-GrassEye = 14 个能力组 + 5 个 foundation laws + 0 个 support governance domains + Debug 运行证明 + Forensics Persistence。
+1. commander-console
+2. orchestration
+3. nerve-bus
+4. ai
+5. open
+6. screenshot
+7. geometry-guard
+8. mouse-click
+9. text-input
+10. mouse-scroll
+11. forensics-persistence
 
-## 总原则
+## 物理边界
 
-- 子能力只归属一个父能力组
-- 能力组只暴露公开 contract，不暴露子实现
-- Nerve Bus 只运输受治理 envelope
-- Orchestration 只编排，不执行具体动作
-- Commander Console 只发令、看证据、控制模式，不抢 runtime
-- 能力组之间只能通过公开 contract 和结构化证明协作
-- 禁止 compat、legacy、bridge、双真相文本
-- 禁止旧 Agent 长流程和 visual action 复合链
+- 用户只提供需求、平台、完成条件。
+- AI 只看用户需求、当前画面、坐标图、能力登记册，并输出一个 `nextAction`。
+- 系统只截图、画坐标图、保存证据、校验输入、调度 AI 选择的一个原子能力。
+- 调度只把 AI 选择的能力送到对应能力组，不猜、不造、不追加第二步。
+- 能力组只执行自己的 child capability。
 
-## 固定架构链
+## 禁止复活
 
-Capability Group -> Child Capability -> Nerve Bus -> Orchestration -> Commander Console -> Forensics Evidence
-
-## 当前激活能力组
-
-| abilityGroupId | 作用 | lawOwner |
-| --- | --- | --- |
-| commander-console | 人工命令入口与控制台真相 | commander-console-capability |
-| orchestration | mission state、地图和 branch 决策 | orchestration-capability |
-| nerve-bus | 受治理 envelope 运输 | nerve-bus-capability |
-| ai | AI public contract 与子能力分发 | ai-capability |
-| open | 打开目标 | open-capability |
-| screenshot | 统一截图与 AI 输入准备 | screenshot-capability |
-| visual-target | 视觉目标结果归一化 | visual-target-capability |
-| geometry-guard | 几何校准与坐标 readiness | geometry-guard-capability |
-| mouse-click | 点击 primitive | mouse-click-capability |
-| text-input | 文本输入 primitive | text-input-capability |
-| mouse-scroll | 滚动 primitive | mouse-scroll-capability |
-| post-action-verification | 判断动作结果 | post-action-verification-capability |
-| forensics-persistence | 公共写账 | forensics-persistence-capability |
-| page-state | 当前页面状态判断 | page-state-capability |
-
-## 支持边界
-
-- platform-action：平台 profile / hints，不拥有动作执行权
-- local-ai-runtime：AI Capability 子能力内部运行时
-- local-persistence-schema：Forensics Persistence 内部 schema 子契约
-- local-app-shell：Commander Console 子能力壳层
-- local-browser-session：Open Capability 子能力前置边界
-- structured-logging：owner evidence minimum contract，与 Forensics evidence 回连
-
-当前不进入 active owner 链：
-
-- localization：保留为后续可重开议题，不参与当前 phase-gate 与 audit owner 链
-- 旧 local-data：职责已并入 Forensics Persistence 与 Local Persistence Schema，不再保留独立 owner
-
-## 禁止边界
-
-- 不保留 coordinate-action 独立能力组
-- 不保留 agent-runtime、browse-flow、mechanical-skills、visual-action、visual-only-runtime、evidence-packet、operator-control、product-signal、comment-intelligence、vision-boundary 主权
-- 不允许 verify 脚本充当能力验收
-
-## 验收信号
-
-建对表现：
-
-- 只有 14 个 active ability groups
-- support 边界不再抢占能力主权
-- 目录拓扑与 owner 边界一致
-- 每次能力执行都有 input、output、status、error、evidenceRef、timestamp
-- 所有旧链只剩禁止项，不再是 active route
-
-漂移信号：
-
-- 再次出现旧 owner 表格
-- support 边界升级成 public owner
-- 文档重新写出 visual action 或 agent long flow
-- topology contract 不再由 capability-group-governance 统一执法
+- 不存在 page-state、post-action-verification、visual-target 能力组。
+- 不存在多动作序列调度。
+- 不存在产品 yes/no 分支。
+- 不存在兼容、回退、旧路线、第二实现。

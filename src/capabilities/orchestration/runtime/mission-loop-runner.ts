@@ -24,7 +24,7 @@ import { basename, dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import type { OrchestrationChildrenContext } from "../children.js";
-import { dispatchRegisteredAbilitySequence } from "./dispatch-sequence.js";
+import { dispatchRegisteredAbilityAction } from "./dispatch-action.js";
 import {
   getMissionState,
   upsertMissionState,
@@ -43,9 +43,6 @@ const VALID_PLATFORM_IDS = ["facebook-web", "tiktok-web"] as const;
 type ValidPlatformId = (typeof VALID_PLATFORM_IDS)[number];
 const INITIAL_PLATFORM_ENTRY_SETTLE_WAIT_MS = 10_000;
 const PRIMARY_AI_CONTEXT_MAX_WIDTH_PX = 896;
-const TEMPORAL_CONTEXT_FRAME_COUNT = 2;
-const TEMPORAL_CONTEXT_FRAME_INTERVAL_MS = 2_000;
-const TEMPORAL_CONTEXT_MAX_WIDTH_PX = 512;
 const PRESERVE_SCREENSHOT_ARTIFACTS_FOR_DEBUG = true;
 const CELL_ZONE_REFERENCE_IMAGE_PATH = fileURLToPath(
   new URL("../../ai/assets/grid-cell-zone-reference.zh.png", import.meta.url),
@@ -187,29 +184,8 @@ async function systemSaveCurrentRoundEvidence(input: {
   });
 }
 
-function resolveSelectedPlatforms(
-  platforms: string[],
-  requestedPlatform: ValidPlatformId,
-): [ValidPlatformId, ...ValidPlatformId[]] {
-  const valid = platforms.filter((p): p is ValidPlatformId =>
-    p === "facebook-web" || p === "tiktok-web",
-  );
-  if (valid.length === 0) return [requestedPlatform];
-  return valid as [ValidPlatformId, ...ValidPlatformId[]];
-}
-
 function waitForInitialPlatformEntrySettle() {
   return new Promise<void>((resolve) => setTimeout(resolve, INITIAL_PLATFORM_ENTRY_SETTLE_WAIT_MS));
-}
-
-function waitForTemporalContextFrameInterval() {
-  return new Promise<void>((resolve) => setTimeout(resolve, TEMPORAL_CONTEXT_FRAME_INTERVAL_MS));
-}
-
-function buildTemporalContextSmallPath(sourceFilePath: string, frameIndex: number): string {
-  const ext = extname(sourceFilePath) || ".png";
-  const base = basename(sourceFilePath, ext);
-  return join(dirname(sourceFilePath), `${base}.temporal-${frameIndex + 1}.max${TEMPORAL_CONTEXT_MAX_WIDTH_PX}.png`);
 }
 
 function buildPrimaryAiContextPath(sourceFilePath: string, label: string): string {
@@ -231,127 +207,11 @@ async function resizePrimaryImageForAi(sourceFilePath: string, label: string): P
   return outputFilePath;
 }
 
-async function resizeTemporalContextFrameForAi(sourceFilePath: string, frameIndex: number): Promise<string> {
-  const outputFilePath = buildTemporalContextSmallPath(sourceFilePath, frameIndex);
-  await sharp(sourceFilePath)
-    .resize({
-      width: TEMPORAL_CONTEXT_MAX_WIDTH_PX,
-      withoutEnlargement: true,
-      fit: "inside",
-    })
-    .png({ compressionLevel: 9 })
-    .toFile(outputFilePath);
-  return outputFilePath;
-}
-
-async function captureTemporalContextFrames(input: {
-  ctx: OrchestrationChildrenContext;
-  missionId: string;
-  runId: string;
-  sessionId: string;
-  roundId: string;
-}): Promise<string[]> {
-  const smallFrameRefs: string[] = [];
-
-  for (let frameIndex = 0; frameIndex < TEMPORAL_CONTEXT_FRAME_COUNT; frameIndex += 1) {
-    await waitForTemporalContextFrameInterval();
-
-    input.ctx.runtimeLogger.emit({
-      traceId: input.missionId,
-      level: "debug",
-      modeVisibility: ["DEBUG", "TRACE"],
-      eventType: "SCREENSHOT_CAPTURE_REQUESTED",
-      owner: "orchestration",
-      missionId: input.missionId,
-      runId: input.runId,
-      roundId: input.roundId,
-      status: "started",
-      reason: `Temporal context frame ${frameIndex + 1}/${TEMPORAL_CONTEXT_FRAME_COUNT} requested intervalMs=${TEMPORAL_CONTEXT_FRAME_INTERVAL_MS} maxWidth=${TEMPORAL_CONTEXT_MAX_WIDTH_PX}`,
-    });
-
-    try {
-      const temporalCapture = await input.ctx.screenshotAbilityGroup.execute({
-        childCapabilityId: "capture-browser-viewport",
-        missionId: input.missionId,
-        runId: input.runId,
-        sessionId: input.sessionId,
-        roundId: input.roundId,
-        stepId: randomUUID(),
-        capabilityCallId: randomUUID(),
-        nerveBusEnvelopeId: randomUUID(),
-        inputRef: randomUUID(),
-        browserSessionRef: "local",
-        idempotencyKey: `temporal-context-capture:${input.missionId}:${input.roundId}:${frameIndex}`,
-      });
-
-      if (
-        temporalCapture.status !== "success" ||
-        !("screenshotRef" in temporalCapture) ||
-        !temporalCapture.screenshotRef
-      ) {
-        const reason = ("failureReason" in temporalCapture ? temporalCapture.failureReason : null)
-          ?? "temporal context screenshot failed";
-        input.ctx.runtimeLogger.emit({
-          traceId: input.missionId,
-          level: "warn",
-          modeVisibility: ["DEBUG", "TRACE"],
-          eventType: "SCREENSHOT_CAPTURED",
-          owner: "orchestration",
-          missionId: input.missionId,
-          runId: input.runId,
-          roundId: input.roundId,
-          status: "failed",
-          reason: `Temporal context frame ${frameIndex + 1} skipped: ${reason}`,
-        });
-        continue;
-      }
-
-      const smallFrameRef = await resizeTemporalContextFrameForAi(
-        temporalCapture.screenshotRef,
-        frameIndex,
-      );
-      smallFrameRefs.push(smallFrameRef);
-      if (!PRESERVE_SCREENSHOT_ARTIFACTS_FOR_DEBUG) {
-        await unlink(temporalCapture.screenshotRef).catch(() => undefined);
-      }
-
-      input.ctx.runtimeLogger.emit({
-        traceId: input.missionId,
-        level: "debug",
-        modeVisibility: ["DEBUG", "TRACE"],
-        eventType: "SCREENSHOT_CAPTURED",
-        owner: "orchestration",
-        missionId: input.missionId,
-        runId: input.runId,
-        roundId: input.roundId,
-        status: "success",
-        reason: `Temporal context frame ${frameIndex + 1} captured ref=${smallFrameRef} maxWidth=${TEMPORAL_CONTEXT_MAX_WIDTH_PX}`,
-      });
-    } catch (error) {
-      input.ctx.runtimeLogger.emit({
-        traceId: input.missionId,
-        level: "warn",
-        modeVisibility: ["DEBUG", "TRACE"],
-        eventType: "SCREENSHOT_CAPTURED",
-        owner: "orchestration",
-        missionId: input.missionId,
-        runId: input.runId,
-        roundId: input.roundId,
-        status: "failed",
-        reason: `Temporal context frame ${frameIndex + 1} skipped: ${error instanceof Error ? error.message : "unknown error"}`,
-      });
-    }
-  }
-
-  return smallFrameRefs;
-}
-
 export async function runMissionRoundLoop(
   missionId: string,
   ctx: OrchestrationChildrenContext,
 ): Promise<void> {
   const catalog = loadMuscleMemoryCatalog();
-  let previousRoundId: string | null = null;
 
   while (true) {
     const state = getMissionState(missionId);
@@ -397,7 +257,6 @@ export async function runMissionRoundLoop(
       return;
     }
     const platformId: ValidPlatformId = requestedPlatform;
-    const selectedPlatforms = resolveSelectedPlatforms(state.selectedPlatforms ?? [], platformId);
 
     // Fail closed: missing humanGoal must not fall back to a default
     const userRequirementText = state.humanGoal;
@@ -428,7 +287,7 @@ export async function runMissionRoundLoop(
     // steps call the owning ability-group public contract directly (not through Nerve Bus).
     // Rationale: these are pre-round instrument steps, not external real actions dispatched
     // by the AI action plan. Every call includes capabilityCallId + nerveBusEnvelopeId for
-    // proof continuity. Real external action sequences (AI output) must go through Nerve Bus.
+    // proof continuity. The AI-selected external action must go through Nerve Bus.
     if ((state.roundIndex ?? 0) === 0 && state.targetUrl && !state.openResultRef) {
       const openCallId = randomUUID();
       const openResult = await ctx.openAbilityGroup.execute({
@@ -547,14 +406,6 @@ export async function runMissionRoundLoop(
         ? captureResult.screenshotProof.proofId
         : randomUUID();
 
-    const temporalContextScreenshotRefs = await captureTemporalContextFrames({
-      ctx,
-      missionId,
-      runId,
-      sessionId,
-      roundId,
-    });
-
     // ── STEP 2: Render coordinate grid ─────────────────────────────────────
     let gridResult: Awaited<ReturnType<typeof ctx.screenshotAbilityGroup.execute>>;
     try {
@@ -586,7 +437,7 @@ export async function runMissionRoundLoop(
         cleanupKind: "grid_failed",
         originalScreenshotRef,
         coordinateGridScreenshotRef: null,
-        extraTransientScreenshotRefs: temporalContextScreenshotRefs,
+        extraTransientScreenshotRefs: [],
         deleteOriginalScreenshot: true,
       });
       upsertMissionState(applyMissionStatus(getMissionState(missionId), { status: "failed", failureReason: msg }));
@@ -612,7 +463,7 @@ export async function runMissionRoundLoop(
         coordinateGridScreenshotRef: "coordinateGridScreenshotRef" in gridResult
           ? (gridResult.coordinateGridScreenshotRef ?? null)
           : null,
-        extraTransientScreenshotRefs: temporalContextScreenshotRefs,
+        extraTransientScreenshotRefs: [],
         deleteOriginalScreenshot: true,
       });
       upsertMissionState(applyMissionStatus(getMissionState(missionId), { status: "failed", failureReason: msg }));
@@ -671,7 +522,7 @@ export async function runMissionRoundLoop(
         cleanupKind: "ai_failed",
         originalScreenshotRef,
         coordinateGridScreenshotRef,
-        extraTransientScreenshotRefs: temporalContextScreenshotRefs,
+        extraTransientScreenshotRefs: [],
         deleteOriginalScreenshot: true,
       });
       upsertMissionState(applyMissionStatus(getMissionState(missionId), {
@@ -681,70 +532,9 @@ export async function runMissionRoundLoop(
       setActiveMission(null);
       return;
     }
-    const aiTransientScreenshotRefs = [
-      ...temporalContextScreenshotRefs,
-      ...primaryAiContextImageRefs,
-    ];
+    const aiTransientScreenshotRefs = primaryAiContextImageRefs;
 
     // ── STEP 3: Call AI visual-mission-judge ───────────────────────────────
-    const roundMissionPacket = {
-      schemaVersion: "roundMissionPacket.v1" as const,
-      mission: {
-        missionId,
-        userRequirementRef: null,
-        userRequirementText,
-        requestedPlatformId: platformId,
-        selectedPlatforms,
-        maxRounds: state.maxRounds ?? null,
-        maxMinutes: state.maxMinutes ?? null,
-      },
-      round: {
-        roundId,
-        roundIndex: state.roundIndex ?? 0,
-        previousRoundId,
-        currentPhase: null,
-      },
-      progress: {
-        matchedEvidenceCount: state.matchedEvidenceCount ?? 0,
-        missionStatus: state.status,
-      },
-      lastAction: {
-        sourceActionCode: null,
-        status: "pending" as const,
-        failureReason: null,
-        outputRef: null,
-        gridCell: null,
-        targetName: null,
-        summary: null,
-        actionInputRef: null,
-        completedAt: null,
-      },
-      currentEvidence: {
-        originalScreenshotRef,
-        coordinateGridScreenshotRef,
-        gridSpecRef,
-        visualMissionInputRef: null,
-        aiResultRef: null,
-      },
-      platformContext: {
-        platformContextRef: null,
-        platformId,
-        targetUrl: state.targetUrl ?? null,
-        targetTitle: state.targetTitle ?? null,
-        targetProfileRef: state.targetProfileRef ?? null,
-      },
-      constraints: {
-        noHumanInLoop: true as const,
-        requireCoordinateGridForVisualActions: true as const,
-        noRawCoordinates: true as const,
-        stopWhenBlocked: true as const,
-        stopWhenUnsafe: true as const,
-      },
-      allowedActions: {
-        systemManualRef: "system.v1",
-        catalogVersion: catalog.catalogVersion,
-      },
-    };
 
     let aiResult: Awaited<ReturnType<typeof ctx.aiAbilityGroup.execute>>;
     try {
@@ -775,12 +565,6 @@ export async function runMissionRoundLoop(
             summary: `coordinate grid overlay, resized for AI maxWidth=${PRIMARY_AI_CONTEXT_MAX_WIDTH_PX}`,
             filePath: primaryAiContextImageRefs[1],
           },
-          ...temporalContextScreenshotRefs.map((filePath, index) => ({
-            id: filePath,
-            kind: "temporal-context-screenshot",
-            summary: `small temporal context screenshot ${index + 1}/${temporalContextScreenshotRefs.length}, maxWidth=${TEMPORAL_CONTEXT_MAX_WIDTH_PX}`,
-            filePath,
-          })),
           {
             id: "grasseye-fixed-cell-zone-reference-v1",
             kind: "cell-zone-reference",
@@ -812,8 +596,6 @@ export async function runMissionRoundLoop(
             targetTitle: state.targetTitle ?? null,
             targetProfileRef: state.targetProfileRef ?? null,
           },
-          roundMissionPacketRef: null,
-          roundMissionPacket,
         },
       });
     } catch (err) {
@@ -1025,7 +807,7 @@ export async function runMissionRoundLoop(
 
     const actionInput = { ...(nextAction.input ?? {}) };
     const entry = catalog.entries.find(e => e.actionCode === nextAction.actionCode);
-    const dispatchActions = [{
+    const dispatchAction = {
       actionCode: nextAction.actionCode,
       reason: nextAction.reason ?? null,
       input: {
@@ -1035,15 +817,15 @@ export async function runMissionRoundLoop(
       required: true,
       gridCell: nextAction.gridCell ?? (actionInput["gridCell"] as string | undefined) ?? null,
       cellZone: nextAction.cellZone ?? (actionInput["cellZone"] as GridCellZone | undefined) ?? null,
-    }];
+    };
 
-    const sequenceResult = await dispatchRegisteredAbilitySequence(
+    const actionResult = await dispatchRegisteredAbilityAction(
       {
         missionId,
         runId,
         roundId,
         aiResultRef,
-        actions: dispatchActions,
+        action: dispatchAction,
         currentEvidenceRefs: {
           originalScreenshotRef,
           coordinateGridScreenshotRef,
@@ -1059,7 +841,7 @@ export async function runMissionRoundLoop(
       },
     );
 
-    if (sequenceResult.status !== "success") {
+    if (actionResult.status !== "success") {
       await cleanupRoundScreenshotArtifacts({
         ctx,
         missionId,
@@ -1074,15 +856,15 @@ export async function runMissionRoundLoop(
       const stateAfterDispatch = getMissionState(missionId);
       upsertMissionState({
         ...stateAfterDispatch,
-        lastActionStatus: sequenceResult.status,
-        lastFailureReason: sequenceResult.failureReason ?? null,
-        lastReviewRequiredReason: sequenceResult.reviewRequiredReason ?? null,
+        lastActionStatus: actionResult.status,
+        lastFailureReason: actionResult.failureReason ?? null,
+        lastReviewRequiredReason: actionResult.reviewRequiredReason ?? null,
       });
       if (stateAfterDispatch.status !== "running") return;
-      if (sequenceResult.status === "failed") {
+      if (actionResult.status === "failed") {
         upsertMissionState(applyMissionStatus(getMissionState(missionId), {
           status: "failed",
-          failureReason: sequenceResult.failureReason ?? "action sequence dispatch failed",
+          failureReason: actionResult.failureReason ?? "action dispatch failed",
         }));
         setActiveMission(null);
         return;
@@ -1133,8 +915,6 @@ export async function runMissionRoundLoop(
       }
       return;
     }
-
-    previousRoundId = roundId;
 
     // Increment roundIndex so subsequent rounds have correct context
     upsertMissionState({
