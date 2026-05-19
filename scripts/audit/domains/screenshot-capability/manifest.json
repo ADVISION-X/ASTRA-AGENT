@@ -1,0 +1,26 @@
+{
+  "inspectorId": "screenshot-capability-owner",
+  "capabilityDomain": "screenshot-capability",
+  "owner": true,
+  "entry": "scripts/audit/domains/screenshot-capability/inspector.ts",
+  "exportName": "runScreenshotCapabilityInspector",
+  "runner": "scripts/audit/domains/shared/run-manifest-owner.ts",
+  "runnerArgs": [
+    "scripts/audit/domains/screenshot-capability/manifest.json"
+  ],
+  "engine": "ast",
+  "runnerPriority": 50,
+  "allowedLawIds": [
+    "GRASSEYE-SCREENSHOT-CAPABILITY-001-V3",
+    "GRASSEYE-SCREENSHOT-CAPABILITY-002-V3"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-screenshot-capability.instructions.md"
+  ],
+  "ownedRoots": [
+    "src/capabilities/screenshot"
+  ],
+  "requiredPaths": [
+    "src/capabilities/screenshot"
+  ]
+}

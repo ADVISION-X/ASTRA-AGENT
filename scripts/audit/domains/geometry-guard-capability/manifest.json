@@ -1,0 +1,26 @@
+{
+  "inspectorId": "geometry-guard-capability-owner",
+  "capabilityDomain": "geometry-guard-capability",
+  "owner": true,
+  "entry": "scripts/audit/domains/geometry-guard-capability/inspector.ts",
+  "exportName": "runGeometryGuardCapabilityInspector",
+  "runner": "scripts/audit/domains/shared/run-manifest-owner.ts",
+  "runnerArgs": [
+    "scripts/audit/domains/geometry-guard-capability/manifest.json"
+  ],
+  "engine": "ast",
+  "runnerPriority": 50,
+  "allowedLawIds": [
+    "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-001-V2",
+    "GRASSEYE-GEOMETRY-GUARD-CAPABILITY-002-V2"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-geometry-guard-capability.instructions.md"
+  ],
+  "ownedRoots": [
+    "src/capabilities/geometry-guard"
+  ],
+  "requiredPaths": [
+    "src/capabilities/geometry-guard"
+  ]
+}

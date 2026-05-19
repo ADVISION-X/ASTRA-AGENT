@@ -1,0 +1,28 @@
+{
+  "inspectorId": "nerve-bus-capability-owner",
+  "capabilityDomain": "nerve-bus-capability",
+  "owner": true,
+  "entry": "scripts/audit/domains/nerve-bus-capability/inspector.ts",
+  "exportName": "runNerveBusCapabilityInspector",
+  "runner": "scripts/audit/domains/shared/run-manifest-owner.ts",
+  "runnerArgs": [
+    "scripts/audit/domains/nerve-bus-capability/manifest.json"
+  ],
+  "engine": "ast",
+  "runnerPriority": 50,
+  "allowedLawIds": [
+    "GRASSEYE-NERVE-BUS-CAPABILITY-001-V2",
+    "GRASSEYE-NERVE-BUS-CAPABILITY-002-V2",
+    "GRASSEYE-NERVE-BUS-CAPABILITY-003-V1",
+    "GRASSEYE-NERVE-BUS-CAPABILITY-004-V1"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-nerve-bus-capability.instructions.md"
+  ],
+  "ownedRoots": [
+    "src/capabilities/nerve-bus"
+  ],
+  "requiredPaths": [
+    "src/capabilities/nerve-bus"
+  ]
+}

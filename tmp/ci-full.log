@@ -1,0 +1,94 @@
+
+> grasseye-local-workbench@0.1.0 ci:full
+> node --import tsx scripts/audit/ci-full.ts
+
+[CI:FULL] Step 1/19: typecheck
+
+> grasseye-local-workbench@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+[CI:FULL] Step 2/19: audit:quality-kernel
+
+[QUALITY-KERNEL] Running quality kernel inspection...
+
+[RETIRED SURFACE HARD] PASS — no forbidden retired system patterns found.
+[RETIRED SURFACE SOFT] CLEAN — no retired field patterns found.
+[MUSCLE-MEMORY] PASS — action codes are correct.
+[CI-PLAN] PASS — ci-full-plan.ts clean.
+[FILE-COUNTS] PASS — all limits within bounds.
+[CODE-PURITY] FAIL — 2 issue(s):
+  - scripts/audit/core/anti-escape.ts:33 → ts-ignore forbidden
+  - scripts/audit/core/anti-escape.ts:35 → eslint-disable forbidden
+
+[QUALITY-KERNEL] PASS — all hard gates passed.
+
+[QUALITY-KERNEL] Summary written to: /Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/generated/quality-kernel-summary.generated.json
+[CI:FULL] Step 3/19: audit:audit-system
+
+[AUDIT-SYSTEM][PASS] findings=0 phases=5 inspector=audit-system-owner
+
+[CI:FULL] Step 4/19: dom-automation-owner
+
+[DOM-AUTOMATION][PASS] findings=0 phases=9 inspector=dom-automation-owner
+
+[CI:FULL] Step 5/19: code-purity-owner
+
+[CODE-PURITY][PASS] findings=0 hardFails=0 retiredSurface=0 fileCountFails=0
+
+[CI:FULL] Step 6/19: runtime-logging-owner
+
+[RUNTIME-LOG-SPINE][PASS] checks=13 hardFails=0 aiFourPiece=present consoleScatter=0
+
+[CI:FULL] Step 7/19: capability-group-governance-owner
+
+[CAPABILITY-GROUP-GOVERNANCE-OWNER][PASS] findings=0 phases=2
+
+[CI:FULL] Step 8/19: ai-capability-owner
+
+[AI-CAPABILITY-OWNER][PASS] findings=0 phases=4
+
+[CI:FULL] Step 9/19: commander-console-capability-owner
+
+[COMMANDER-CONSOLE-CAPABILITY-OWNER][PASS] findings=0 phases=4
+
+[CI:FULL] Step 10/19: forensics-persistence-capability-owner
+
+[FORENSICS-PERSISTENCE-CAPABILITY-OWNER][PASS] findings=0 phases=4
+
+[CI:FULL] Step 11/19: geometry-guard-capability-owner
+
+[GEOMETRY-GUARD-CAPABILITY-OWNER][PASS] findings=0 phases=4
+
+[CI:FULL] Step 12/19: mouse-click-capability-owner
+
+[MOUSE-CLICK-CAPABILITY-OWNER][PASS] findings=0 phases=4
+
+[CI:FULL] Step 13/19: mouse-scroll-capability-owner
+
+[MOUSE-SCROLL-CAPABILITY-OWNER][PASS] findings=0 phases=4
+
+[CI:FULL] Step 14/19: nerve-bus-capability-owner
+
+[NERVE-BUS-CAPABILITY-OWNER][PASS] findings=0 phases=4
+
+[CI:FULL] Step 15/19: open-capability-owner
+
+[OPEN-CAPABILITY-OWNER][PASS] findings=0 phases=4
+
+[CI:FULL] Step 16/19: screenshot-capability-owner
+
+[SCREENSHOT-CAPABILITY-OWNER][PASS] findings=0 phases=4
+
+[CI:FULL] Step 17/19: security-privacy-owner
+
+[SECURITY-PRIVACY-OWNER][PASS] findings=0 phases=4
+
+[CI:FULL] Step 18/19: text-input-capability-owner
+
+[TEXT-INPUT-CAPABILITY-OWNER][PASS] findings=0 phases=4
+
+[CI:FULL] Step 19/19: type-safety-owner
+
+[TYPE-SAFETY-OWNER][PASS] findings=0 phases=4
+
+[CI:FULL] PASS — all steps passed.

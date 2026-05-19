@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-19T14:13:04.870Z",
+  "timestamp": "2026-05-19T15:06:38.992Z",
   "pass": true,
   "hardRetiredSurface": {
     "count": 0,
@@ -26,7 +26,7 @@
     },
     {
       "module": "src/muscle-memory",
-      "actual": 4,
+      "actual": 5,
       "limit": 5,
       "status": "ok"
     },
@@ -104,8 +104,8 @@
     },
     {
       "module": "scripts/audit (total)",
-      "actual": 32,
-      "limit": 39,
+      "actual": 82,
+      "limit": 120,
       "status": "ok"
     },
     {
@@ -116,13 +116,24 @@
     },
     {
       "module": "scripts/audit/generated",
-      "actual": 1,
+      "actual": 4,
       "limit": 5,
       "status": "ok"
     }
   ],
   "codePurity": {
-    "count": 0,
-    "findings": []
+    "count": 2,
+    "findings": [
+      {
+        "file": "scripts/audit/core/anti-escape.ts",
+        "line": 33,
+        "pattern": "ts-ignore forbidden"
+      },
+      {
+        "file": "scripts/audit/core/anti-escape.ts",
+        "line": 35,
+        "pattern": "eslint-disable forbidden"
+      }
+    ]
   }
 }

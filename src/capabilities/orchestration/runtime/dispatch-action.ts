@@ -4,14 +4,18 @@ import type { MissionState } from "../contract.js";
 import type { DispatchRegisteredAbilityActionInput } from "../contract.js";
 import type { ForensicsPersistenceAbilityGroup } from "../../forensics-persistence/contract.js";
 import type { GeometryGuardAbilityGroup } from "../../geometry-guard/index.js";
-import type { ScreenshotAbilityGroup } from "../../screenshot/contract.js";
+import type {
+  ScreenshotAbilityGroup,
+  ScreenshotGridSpec,
+} from "../../screenshot/index.js";
 import type { RuntimeLogger } from "../../../lib/runtime-logs/index.js";
 
 import { getMissionState, upsertMissionState, applyMissionStatus } from "./mission-state.js";
 import { getRegisteredAbilityById } from "../../../muscle-memory/catalog.js";
-import { resolveScreenshotStructuredDataRefPayload } from "../../screenshot/runtime/structured-ref-store.js";
-import type { ScreenshotGridSpec } from "../../screenshot/contract.js";
-import { decodeGridCell } from "../../screenshot/contract.js";
+import {
+  decodeGridCell,
+  resolveScreenshotStructuredDataRefPayload,
+} from "../../screenshot/index.js";
 
 export type DispatchSequenceContext = {
   nerveBus: NerveBusAbilityGroup;

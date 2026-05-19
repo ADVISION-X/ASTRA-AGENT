@@ -5,6 +5,7 @@ import type { DomElementRef, LocateDomElementInput } from "../schema.js";
 
 type Candidate = {
   selectorCandidate: string;
+  candidateKind?: string | undefined;
   type?: string | undefined;
   role?: string | undefined;
   ariaLabel?: string | undefined;
@@ -15,7 +16,7 @@ type Candidate = {
   visibleText?: string | undefined;
   nearbyText?: string | undefined;
   testId?: string | undefined;
-  disabled: boolean;
+  disabled?: boolean | undefined;
   hidden: boolean;
 };
 
@@ -47,9 +48,11 @@ function candidatesFor(input: LocateDomElementInput): Candidate[] {
     case "file-input":
       return snapshot.fileInputs;
     case "order-row":
+      return [...snapshot.tableRows, ...snapshot.roleRows, ...snapshot.textBlocks, ...snapshot.links];
     case "upload-invoice-entry":
+      return [...snapshot.buttons, ...snapshot.links, ...snapshot.genericClickableElements, ...snapshot.textBlocks];
     case "success-message":
-      return [...snapshot.buttons, ...snapshot.links, ...snapshot.inputs];
+      return [...snapshot.dialogs, ...snapshot.textBlocks, ...snapshot.genericClickableElements];
   }
 }
 
@@ -80,7 +83,15 @@ function scoreCandidate(candidate: Candidate, input: LocateDomElementInput): Sco
     score += 0.12;
     matchedSignals.push("input-type");
   }
-  if (!candidate.disabled && !candidate.hidden) {
+  if (input.targetKind === "order-row" && (candidate.candidateKind === "table-row" || candidate.candidateKind === "role-row")) {
+    score += 0.16;
+    matchedSignals.push("row-kind");
+  }
+  if (input.targetKind === "upload-invoice-entry" && candidate.candidateKind === "clickable") {
+    score += 0.12;
+    matchedSignals.push("clickable-kind");
+  }
+  if (candidate.disabled !== true && !candidate.hidden) {
     score += 0.08;
     matchedSignals.push("visible-enabled");
   }

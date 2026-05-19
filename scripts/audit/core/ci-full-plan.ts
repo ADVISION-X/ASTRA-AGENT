@@ -1,14 +1,15 @@
-// CI-FULL plan — minimal quality kernel phase.
-// Current stage: ci:full is equivalent to ci:simple (typecheck + quality-kernel only).
-// Owner-by-owner inspector universe has been physically removed.
-// Re-introduce per-capability inspectors only after the simplified production system is stable.
+import { buildOwnerRunnerCommand, loadOwnerManifests, sortOwnerManifests } from "./owner-manifests.js";
 
-export type CiFullLayerLabel = "foundation-layer";
+// CI-FULL plan — the only complete quality gate.
+// Foundation steps stay explicit; owner steps are generated from governed owner manifests.
 
-export const CI_FULL_LAYER_ORDER = ["foundation-layer"] as const;
+export type CiFullLayerLabel = "foundation-layer" | "owner-layer";
+
+export const CI_FULL_LAYER_ORDER = ["foundation-layer", "owner-layer"] as const;
 
 export const CI_FULL_LAYER_EXECUTION = {
   "foundation-layer": { executionMode: "serial" as const },
+  "owner-layer": { executionMode: "serial" as const },
 } as const;
 
 export type CiFullStepDefinition = {
@@ -21,7 +22,7 @@ export type CiFullStepDefinition = {
 
 const STEP_TIMEOUT_MS = 120_000;
 
-export const CI_FULL_STEPS: CiFullStepDefinition[] = [
+export const FOUNDATION_STEPS: CiFullStepDefinition[] = [
   {
     name: "typecheck",
     layer: "foundation-layer",
@@ -30,20 +31,40 @@ export const CI_FULL_STEPS: CiFullStepDefinition[] = [
     artifactPaths: [],
   },
   {
-    name: "quality-kernel",
+    name: "audit:quality-kernel",
     layer: "foundation-layer",
     command: ["node", "--import", "tsx", "scripts/audit/domains/quality-kernel/run-inspector.ts"],
     timeoutMs: STEP_TIMEOUT_MS,
     artifactPaths: ["scripts/audit/generated/quality-kernel-summary.generated.json"],
   },
   {
-    name: "dom-automation-owner",
+    name: "audit:audit-system",
     layer: "foundation-layer",
-    command: ["node", "--import", "tsx", "scripts/audit/domains/dom-automation/run-inspector.ts"],
+    command: ["node", "--import", "tsx", "scripts/audit/domains/audit-system/run-inspector.ts"],
     timeoutMs: STEP_TIMEOUT_MS,
-    artifactPaths: [],
+    artifactPaths: [
+      "scripts/audit/generated/active-law-census.generated.json",
+      "scripts/audit/generated/owner-inspector-matrix.generated.json",
+      "scripts/audit/generated/audit-system-summary.generated.json",
+    ],
   },
 ];
 
+export const buildOwnerSteps = (): CiFullStepDefinition[] =>
+  sortOwnerManifests(loadOwnerManifests())
+    .filter((manifest) => manifest.capabilityDomain !== "audit-system")
+    .map((manifest) => ({
+      name: manifest.inspectorId,
+      layer: "owner-layer" as const,
+      command: buildOwnerRunnerCommand(manifest),
+      timeoutMs: STEP_TIMEOUT_MS,
+      artifactPaths: [],
+    }));
+
+export const buildCiFullSteps = (): CiFullStepDefinition[] => [
+  ...FOUNDATION_STEPS,
+  ...buildOwnerSteps(),
+];
+
 export const getCiFullStepsByLayer = (layer: CiFullLayerLabel): CiFullStepDefinition[] =>
-  CI_FULL_STEPS.filter((s) => s.layer === layer);
+  buildCiFullSteps().filter((s) => s.layer === layer);

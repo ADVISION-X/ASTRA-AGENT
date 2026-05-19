@@ -18,7 +18,9 @@
     "audit:code-purity": "node --import tsx scripts/audit/domains/code-purity/run-inspector.ts",
     "audit:runtime-logging": "node --import tsx scripts/audit/domains/runtime-logging/run-inspector.ts",
     "audit:quality-kernel": "node --import tsx scripts/audit/domains/quality-kernel/run-inspector.ts",
+    "audit:audit-system": "node --import tsx scripts/audit/domains/audit-system/run-inspector.ts",
     "audit:pure-visual-round": "node --import tsx scripts/audit/domains/pure-visual-round/run-inspector.ts",
+    "audit:dom-automation": "node --import tsx scripts/audit/domains/dom-automation/run-inspector.ts",
     "ci:full": "node --import tsx scripts/audit/ci-full.ts",
 
     "acceptance:delivery-smoke": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/delivery-smoke.mjs",

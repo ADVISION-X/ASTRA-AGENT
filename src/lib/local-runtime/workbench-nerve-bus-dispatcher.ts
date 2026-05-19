@@ -11,7 +11,7 @@
 
 import { randomUUID } from "node:crypto";
 
-import type { AiAbilityInput } from "../../capabilities/ai/index.js";
+import { AiAbilityInputSchema } from "../../capabilities/ai/index.js";
 import type {
   AbilityCommandEnvelope,
   AbilityResultEnvelope,
@@ -36,19 +36,37 @@ export type WorkbenchNerveBusDispatcherDeps = WorkbenchAssembly & {
 // ─── Ability Group Registry ─────────────────────────────────────────────────
 
 type GenericAbilityGroup = {
-  execute(input: unknown): Promise<{ status: string; failureReason?: string | null }>;
+  execute(input: NerveBusPayloadDocument): Promise<NerveBusPayloadDocument & { status?: string; failureReason?: string | null }>;
 };
+
+type AbilityLikeResult = NerveBusPayloadDocument & { status?: string; failureReason?: string | null };
+
+const toPayloadDocument = (value: unknown): NerveBusPayloadDocument | null =>
+  value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as NerveBusPayloadDocument
+    : null;
+
+function wrapAbilityGroup<TInput extends Record<string, unknown>>(
+  execute: (input: TInput) => Promise<Record<string, unknown>>,
+): GenericAbilityGroup {
+  return {
+    async execute(input: NerveBusPayloadDocument): Promise<AbilityLikeResult> {
+      const result = await execute(input as TInput);
+      return toPayloadDocument(result) ?? { status: "failed", failureReason: "ability group returned non-object result" };
+    },
+  };
+}
 
 function buildAbilityGroupRegistry(deps: WorkbenchAssembly): Map<string, GenericAbilityGroup> {
   const registry = new Map<string, GenericAbilityGroup>();
-  registry.set("ai", deps.aiAbilityGroup as unknown as GenericAbilityGroup);
-  registry.set("open", deps.openAbilityGroup as unknown as GenericAbilityGroup);
-  registry.set("screenshot", deps.screenshotAbilityGroup as unknown as GenericAbilityGroup);
-  registry.set("geometry-guard", deps.geometryGuardAbilityGroup as unknown as GenericAbilityGroup);
-  registry.set("mouse-click", deps.mouseClickAbilityGroup as unknown as GenericAbilityGroup);
-  registry.set("mouse-scroll", deps.mouseScrollAbilityGroup as unknown as GenericAbilityGroup);
-  registry.set("text-input", deps.textInputAbilityGroup as unknown as GenericAbilityGroup);
-  registry.set("forensics-persistence", deps.forensicsPersistenceAbilityGroup as unknown as GenericAbilityGroup);
+  registry.set("ai", wrapAbilityGroup((input: Parameters<WorkbenchAssembly["aiAbilityGroup"]["execute"]>[0]) => deps.aiAbilityGroup.execute(input)));
+  registry.set("open", wrapAbilityGroup((input: Parameters<WorkbenchAssembly["openAbilityGroup"]["execute"]>[0]) => deps.openAbilityGroup.execute(input)));
+  registry.set("screenshot", wrapAbilityGroup((input: Parameters<WorkbenchAssembly["screenshotAbilityGroup"]["execute"]>[0]) => deps.screenshotAbilityGroup.execute(input)));
+  registry.set("geometry-guard", wrapAbilityGroup((input: Parameters<WorkbenchAssembly["geometryGuardAbilityGroup"]["execute"]>[0]) => deps.geometryGuardAbilityGroup.execute(input)));
+  registry.set("mouse-click", wrapAbilityGroup((input: Parameters<WorkbenchAssembly["mouseClickAbilityGroup"]["execute"]>[0]) => deps.mouseClickAbilityGroup.execute(input)));
+  registry.set("mouse-scroll", wrapAbilityGroup((input: Parameters<WorkbenchAssembly["mouseScrollAbilityGroup"]["execute"]>[0]) => deps.mouseScrollAbilityGroup.execute(input)));
+  registry.set("text-input", wrapAbilityGroup((input: Parameters<WorkbenchAssembly["textInputAbilityGroup"]["execute"]>[0]) => deps.textInputAbilityGroup.execute(input)));
+  registry.set("forensics-persistence", wrapAbilityGroup((input: Parameters<WorkbenchAssembly["forensicsPersistenceAbilityGroup"]["execute"]>[0]) => deps.forensicsPersistenceAbilityGroup.execute(input)));
   return registry;
 }
 
@@ -143,7 +161,7 @@ export function createWorkbenchNerveBusHandlerPort(deps: WorkbenchNerveBusDispat
           });
           const status = (result.status ?? "success") as "success" | "failed" | "review_required";
           const resultEnvelope = buildAbilityResultEnvelope(envelope, status, result.failureReason ?? null);
-          return { envelope: resultEnvelope, outputPayload: result as unknown as NerveBusPayloadDocument };
+          return { envelope: resultEnvelope, outputPayload: toPayloadDocument(result) };
         } catch (err) {
           const msg = err instanceof Error ? err.message : "orchestration execute failed";
           return { envelope: buildAbilityResultEnvelope(envelope, "failed", msg), outputPayload: null };
@@ -165,7 +183,7 @@ export function createWorkbenchNerveBusHandlerPort(deps: WorkbenchNerveBusDispat
         const result = await group.execute(ip);
         const status = (result.status ?? "success") as "success" | "failed" | "review_required";
         const resultEnvelope = buildAbilityResultEnvelope(envelope, status, result.failureReason ?? null);
-        return { envelope: resultEnvelope, outputPayload: result as unknown as NerveBusPayloadDocument };
+        return { envelope: resultEnvelope, outputPayload: toPayloadDocument(result) };
       } catch (err) {
         const msg = err instanceof Error ? err.message : "ability group execute failed";
         return { envelope: buildAbilityResultEnvelope(envelope, "failed", msg), outputPayload: null };
@@ -179,10 +197,10 @@ export function createWorkbenchNerveBusHandlerPort(deps: WorkbenchNerveBusDispat
     }): Promise<NerveBusHandledResult<AiResponseEnvelope> | null> {
       const { envelope, inputPayload } = input;
       try {
-        const result = await deps.aiAbilityGroup.execute(inputPayload as unknown as AiAbilityInput);
+        const result = await deps.aiAbilityGroup.execute(AiAbilityInputSchema.parse(inputPayload));
         const status = result.status === "success" ? "success" : "failed";
         const resultEnvelope = buildAiResponseEnvelope(envelope, status, result.failureReason ?? null);
-        return { envelope: resultEnvelope, outputPayload: result as unknown as NerveBusPayloadDocument };
+        return { envelope: resultEnvelope, outputPayload: toPayloadDocument(result) };
       } catch (err) {
         const msg = err instanceof Error ? err.message : "AI execute failed";
         return { envelope: buildAiResponseEnvelope(envelope, "failed", msg), outputPayload: null };
@@ -243,7 +261,7 @@ export function createWorkbenchNerveBusHandlerPort(deps: WorkbenchNerveBusDispat
         });
         const status = result.status === "success" ? "success" : "failed";
         const resultEnvelope = buildHumanCommandResultEnvelope(envelope, status, result.failureReason ?? null);
-        return { envelope: resultEnvelope, outputPayload: result as unknown as NerveBusPayloadDocument };
+        return { envelope: resultEnvelope, outputPayload: toPayloadDocument(result) };
       } catch (err) {
         const msg = err instanceof Error ? err.message : "human command dispatch failed";
         return { envelope: buildHumanCommandResultEnvelope(envelope, "failed", msg), outputPayload: null };

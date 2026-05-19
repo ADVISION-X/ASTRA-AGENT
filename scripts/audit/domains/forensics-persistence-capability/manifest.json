@@ -1,0 +1,28 @@
+{
+  "inspectorId": "forensics-persistence-capability-owner",
+  "capabilityDomain": "forensics-persistence-capability",
+  "owner": true,
+  "entry": "scripts/audit/domains/forensics-persistence-capability/inspector.ts",
+  "exportName": "runForensicsPersistenceCapabilityInspector",
+  "runner": "scripts/audit/domains/shared/run-manifest-owner.ts",
+  "runnerArgs": [
+    "scripts/audit/domains/forensics-persistence-capability/manifest.json"
+  ],
+  "engine": "ast",
+  "runnerPriority": 50,
+  "allowedLawIds": [
+    "GRASSEYE-FORENSICS-PERSISTENCE-CAPABILITY-001-V3",
+    "GRASSEYE-FORENSICS-PERSISTENCE-CAPABILITY-002-V3"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md"
+  ],
+  "ownedRoots": [
+    "src/capabilities/forensics-persistence",
+    "src/lib/storage"
+  ],
+  "requiredPaths": [
+    "src/capabilities/forensics-persistence",
+    "src/lib/storage"
+  ]
+}

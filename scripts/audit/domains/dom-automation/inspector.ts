@@ -5,6 +5,7 @@ import { getAuditProject } from "../../core/ts-morph.js";
 import { pathFromRepoRoot, toRepoRelativePath } from "../../core/paths.js";
 import { createFinding, createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { Finding, InspectorContext, InspectorResult } from "../../core/schema.js";
+import { closedLoopFindings } from "./closed-loop.js";
 
 const LAW_IDS = [
   "GRASSEYE-DOM-001-V1",
@@ -232,8 +233,9 @@ export async function runDomAutomationInspector(_context: InspectorContext): Pro
     ...abilityRegistryFindings(),
     ...reviewStateFindings(),
     ...logFieldFindings(),
+    ...closedLoopFindings(),
   ];
-  const phases = ["authority-home", "structure", "visual-decoupling", "plugin-boundary", "browser-controller-boundary", "sensitive-data", "ability-registry", "review-required"]
+  const phases = ["authority-home", "structure", "visual-decoupling", "plugin-boundary", "browser-controller-boundary", "sensitive-data", "ability-registry", "review-required", "closed-loop"]
     .map((name) => createPhase(name, findings.length === 0 ? "PASS" : "CODE VIOLATION", findings.length === 0, `${name} checked.`));
   return finalizeInspectorResult({
     inspector: "dom-automation",

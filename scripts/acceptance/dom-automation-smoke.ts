@@ -1,8 +1,8 @@
-import { writeFileSync, mkdtempSync } from "node:fs";
-import { join } from "node:path";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { BrowserController, BrowserActionResult, BrowserCaptureResult, BrowserGeometrySnapshot, BrowserStateSnapshot } from "../../src/lib/browser/browser-controller.js";
+import { chromium } from "playwright";
 import {
   clickDomElementOnce,
   fillDomElementOnce,
@@ -10,71 +10,58 @@ import {
   readDomSnapshotOnce,
   uploadApprovedFileOnce,
   verifyDomStateOnce,
+  waitForDomStateOnce,
 } from "../../src/capabilities/dom-automation/index.js";
-
-const createdAt = new Date().toISOString();
-
-function action(message: string, ok = true): BrowserActionResult {
-  return { browserActionId: `smoke:${message}`, ok, message, createdAt };
-}
-
-class SmokeBrowser implements BrowserController {
-  getHealth() { return { ok: true, detail: "dom automation smoke harness" }; }
-  getSessionState(): BrowserStateSnapshot {
-    return { browserMode: "fixture", browserProfileRef: "smoke", browserExecutablePath: null, profileStatus: "profile_ready", profileDirectory: "smoke", profileProvisioning: "operator_supplied", profileVerificationStatus: "operator_verified", profileVerificationReason: "smoke", loginState: "unknown", currentUrl: "file://smoke.html", lastLoginCheckAt: null, loginRequiredReason: null, reviewRequiredReason: null, open: true, currentTitle: "Smoke", browserExecutable: null };
-  }
-  async getGeometrySnapshot(): Promise<BrowserGeometrySnapshot> {
-    return { windowX: 0, windowY: 0, viewportWidth: 800, viewportHeight: 600, screenshotWidth: 800, screenshotHeight: 600, scaleFactor: 1, currentUrl: "file://smoke.html", pageTitle: "Smoke", visibleContentBounds: { x: 0, y: 0, width: 800, height: 600 }, capturedAt: createdAt };
-  }
-  async open(_input: { url: string; title: string }) { return action("opened smoke page"); }
-  async scroll() { return action("scrolled"); }
-  async click() { return action("clicked"); }
-  async textInput() { return action("typed"); }
-  async screenshotRegion(): Promise<BrowserCaptureResult> {
-    return { browserActionId: "smoke:capture", pageUrl: "file://smoke.html", pageTitle: "Smoke", regionLabel: "viewport", regionType: "viewport", width: 800, height: 600, viewportWidth: 800, viewportHeight: 600, sourceFilePath: "smoke.png", createdAt };
-  }
-  async evaluateActiveTab<T>(input: { script: string; description: string }): Promise<T> {
-    if (input.description.includes("read governed DOM")) {
-      return {
-        url: "file://smoke.html",
-        title: "Smoke",
-        forms: [],
-        inputs: [{ tagName: "input", type: "search", placeholder: "Search orders", disabled: false, hidden: false, selectorCandidate: "#search" }],
-        buttons: [{ tagName: "button", visibleText: "Search", disabled: false, hidden: false, selectorCandidate: "#searchButton" }],
-        links: [],
-        fileInputs: [{ tagName: "input", type: "file", disabled: false, hidden: false, selectorCandidate: "#file" }],
-        dialogs: [],
-        frames: [],
-        detectedStates: ["upload_entry_visible"],
-        capturedAt: createdAt,
-      } as T;
-    }
-    return { status: "success", message: input.description } as T;
-  }
-  async wait(durationMs: number) { return action(`waited ${durationMs}`); }
-  async close() { return action("closed"); }
-}
+import { PlaywrightDomBrowserAdapter } from "./dom-smoke-browser.js";
 
 const tmp = mkdtempSync(join(tmpdir(), "grasseye-dom-smoke-"));
-const pdfPath = join(tmp, "invoice.pdf");
 const htmlPath = join(tmp, "dom-smoke.html");
-writeFileSync(pdfPath, "smoke pdf placeholder");
-writeFileSync(htmlPath, "<input id='search' type='search'><button id='searchButton'>Search</button><input id='file' type='file'>");
+const pdfPath = join(tmp, "invoice.pdf");
+writeFileSync(pdfPath, "local smoke pdf");
+writeFileSync(htmlPath, `
+<html><head><title>DOM Smoke</title></head>
+<body>
+  <label for="search">Order search</label>
+  <input id="search" type="search" placeholder="Search orders" />
+  <button id="searchButton">Search</button>
+  <table><tr id="order-row"><td>123-ORDER</td><td>Ready</td></tr></table>
+  <div role="button" id="upload-entry" tabindex="0">Upload invoice</div>
+  <input id="file" type="file" />
+  <div id="result"></div>
+  <script>
+    document.querySelector("#searchButton").addEventListener("click", () => {
+      document.querySelector("#result").textContent = "Invoice upload entry visible";
+    });
+  </script>
+</body></html>
+`);
 
-const browser = new SmokeBrowser();
-await browser.open({ url: pathToFileURL(htmlPath).href, title: "DOM automation smoke page" });
-const snapshot = await readDomSnapshotOnce(browser);
-const searchInput = locateDomElementOnce({ snapshot, targetKind: "search-input", hints: ["search"] });
-const searchButton = locateDomElementOnce({ snapshot, targetKind: "button", hints: ["search"] });
-const fileInput = locateDomElementOnce({ snapshot, targetKind: "file-input", hints: ["file"] });
-const fill = await fillDomElementOnce(browser, { elementRef: searchInput, approvedText: "ORDER-1", clearBeforeType: true, inputPurpose: "order-search" });
-const click = await clickDomElementOnce(browser, { elementRef: searchButton, expectedKind: "search", expectedText: "Search" });
-const verify = verifyDomStateOnce({ snapshot, expectedStates: ["invoice-upload-entry-visible"], successHints: ["search"], failureHints: [] });
-const upload = uploadApprovedFileOnce({ elementRef: fileInput, approvedFilePath: pdfPath, approvedTaskFilePath: pdfPath, allowedExtensions: [".pdf"], uploadPurpose: "approved-pdf-upload" });
+const launched = await chromium.launch({ headless: true });
+const page = await launched.newPage({ viewport: { width: 900, height: 700 } });
+const browser = new PlaywrightDomBrowserAdapter(page, tmp);
 
-if (!fill.ok || !click.ok || verify.status !== "success" || upload.status !== "not_implemented") {
-  process.stdout.write("[DOM-AUTOMATION-SMOKE][FAIL] smoke flow did not reach expected governed states\n");
-  process.exit(1);
+try {
+  await browser.open({ url: pathToFileURL(htmlPath).href, title: "DOM smoke" });
+  const snapshot = await readDomSnapshotOnce(browser);
+  const searchInput = locateDomElementOnce({ snapshot, targetKind: "search-input", hints: ["order search", "search orders"] });
+  const searchButton = locateDomElementOnce({ snapshot, targetKind: "button", hints: ["search"] });
+  const fileInput = locateDomElementOnce({ snapshot, targetKind: "file-input", hints: ["file"] });
+  const orderRow = locateDomElementOnce({ snapshot, targetKind: "order-row", hints: ["ready"], requiredText: "123-ORDER" });
+
+  const fill = await fillDomElementOnce(browser, { elementRef: searchInput, approvedText: "123-ORDER", clearBeforeType: true, inputPurpose: "order-search" });
+  const click = await clickDomElementOnce(browser, { elementRef: searchButton, expectedKind: "search", expectedText: "Search" });
+  const latest = await readDomSnapshotOnce(browser);
+  const uploadEntry = locateDomElementOnce({ snapshot: latest, targetKind: "upload-invoice-entry", hints: ["upload invoice"] });
+  const verify = verifyDomStateOnce({ snapshot: latest, expectedStates: ["invoice-upload-entry-visible"], successHints: ["invoice upload entry visible"], failureHints: [] });
+  const waited = await waitForDomStateOnce(browser, { expectedStates: ["invoice-upload-entry-visible"], successHints: ["invoice upload entry visible"], failureHints: [], timeoutMs: 600, pollIntervalMs: 100 });
+  const upload = uploadApprovedFileOnce({ elementRef: fileInput, approvedFilePath: pdfPath, approvedTaskFilePath: pdfPath, allowedExtensions: [".pdf"], uploadPurpose: "approved-pdf-upload" });
+
+  const evidenceOk = Boolean(fill.beforeEvidenceRef && fill.afterEvidenceRef && click.beforeEvidenceRef && click.afterEvidenceRef);
+  if (!fill.ok || !click.ok || verify.status !== "success" || waited.status !== "success" || upload.status !== "not_implemented" || !evidenceOk || !orderRow.selector || !uploadEntry.selector) {
+    process.stdout.write("[DOM-AUTOMATION-SMOKE][FAIL] real DOM flow did not reach expected governed states\n");
+    process.exit(1);
+  }
+  process.stdout.write("[DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed\n");
+} finally {
+  await launched.close();
 }
-
-process.stdout.write("[DOM-AUTOMATION-SMOKE][PASS] snapshot locate fill click verify upload-boundary checks passed\n");

@@ -136,7 +136,7 @@ export const DOM_AUTOMATION_CATALOG_ENTRIES: RegisteredAtomicAbility[] = [
     requiresScreenshotRef: false,
     requiresGeometryProof: false,
     sensitiveOperation: false,
-    inputContract: { requiredFields: ["snapshot", "expectedStates"], optionalFields: ["timeoutMs", "pollIntervalMs", "successHints", "failureHints"], forbiddenFields: ["fullHtml"] },
+    inputContract: { requiredFields: ["expectedStates"], optionalFields: ["initialSnapshot", "timeoutMs", "pollIntervalMs", "successHints", "failureHints"], forbiddenFields: ["fullHtml"] },
     successOutputRefs: ["domVerificationRef"],
     failurePolicy: "review_required",
     forbiddenResponsibilities: ["unbounded wait", "own business workflow"],

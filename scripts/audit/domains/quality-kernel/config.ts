@@ -2,8 +2,8 @@
 
 export const QUALITY_KERNEL_LIMITS = {
   // Hard limit: scripts/audit total file count must not exceed this.
-  // Enforces "大道至简" — do not grow the inspector universe.
-  maxAuditFiles: 39,
+  // Enforces bounded growth while allowing one-owner-one-inspector manifests.
+  maxAuditFiles: 120,
   maxGeneratedFiles: 5,
   maxQualityKernelFiles: 5,
   moduleFileLimits: {

@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
+import type { CommanderConsoleResult } from "../../capabilities/commander-console/schema.js";
 import { createId } from "../local-runtime/ids.js";
 import type { GrassEyeWorkbenchHandle } from "../local-runtime/workbench-handle.js";
 import { resolvePlatformProfiles } from "../../platforms/index.js";
@@ -109,6 +110,23 @@ const persistSuccessfulRequirementHistory = async (
   });
 };
 
+const toStartCommandResult = (result: CommanderConsoleResult): StartCommandResult => ({
+  status: result.status,
+  output: result.output,
+  failureReason: result.failureReason ?? null,
+  reviewRequiredReason: result.reviewRequiredReason ?? null,
+  runtimeProof: result.runtimeProof
+    ? {
+        proofId: result.runtimeProof.proofId ?? null,
+        runId: null,
+        inputRef: null,
+        outputRef: null,
+        commandEnvelopeRef: result.runtimeProof.envelopeId ?? null,
+        resultEnvelopeRef: null,
+      }
+    : null,
+});
+
 const getApprovedTaskStartPreflight = async (
   activeWorkbench: GrassEyeWorkbenchHandle,
   approval: StartApproval,
@@ -156,8 +174,9 @@ const executeApprovedTaskStart = async (
     operatorRef: "commander-console:http",
     input: buildStartMissionInput(approval),
   });
-  await persistSuccessfulRequirementHistory(activeWorkbench, approval, result as unknown as StartCommandResult);
-  await writeTaskStartDispatchResult(response, activeWorkbench, approval, result as unknown as StartCommandResult);
+  const commandResult = toStartCommandResult(result);
+  await persistSuccessfulRequirementHistory(activeWorkbench, approval, commandResult);
+  await writeTaskStartDispatchResult(response, activeWorkbench, approval, commandResult);
 };
 
 export async function runTaskStartFlow(request: IncomingMessage, response: ServerResponse, activeWorkbench: GrassEyeWorkbenchHandle): Promise<true> {

@@ -2,7 +2,8 @@
  * MuscleMemory Capability Registry — catalog + schema only.
  *
  * Governance:
- *   - This module is the sole source of truth for registered atomic abilities.
+ *   - Generated catalog is the frozen read model for existing abilities.
+ *   - DOM automation entries are source-side owner extensions, not generated edits.
  *   - It does not execute, decode, compile, or dispatch.
  *   - Every registered ability maps to exactly one abilityGroupId + childCapabilityId.
  *   - The field named `actionCode` is the ability registry ID used by AI plans.
@@ -11,6 +12,7 @@
 import { readFileSync } from "node:fs";
 import { z } from "zod";
 import { DOM_AUTOMATION_CATALOG_ENTRIES } from "../capabilities/dom-automation/manifest.js";
+import { mergeCapabilityCatalogEntries } from "./catalog-merge.js";
 
 // ─── Schema ────────────────────────────────────────────────────────────────
 
@@ -74,7 +76,7 @@ function readCatalog(): CapabilityRegistryCatalog {
   const parsed = CapabilityRegistryCatalogSchema.parse(raw);
   return CapabilityRegistryCatalogSchema.parse({
     ...parsed,
-    entries: [...parsed.entries, ...DOM_AUTOMATION_CATALOG_ENTRIES],
+    entries: mergeCapabilityCatalogEntries(parsed.entries, DOM_AUTOMATION_CATALOG_ENTRIES),
   });
 }
 

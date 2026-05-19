@@ -20,7 +20,12 @@ const selectorFor = (el) => {
   if (name) return el.tagName.toLowerCase() + "[name='" + CSS.escape(name) + "']";
   const role = el.getAttribute("role");
   if (role) return el.tagName.toLowerCase() + "[role='" + CSS.escape(role) + "']";
-  return el.tagName.toLowerCase();
+  const parent = el.parentElement;
+  if (!parent) return el.tagName.toLowerCase();
+  const sameTag = Array.from(parent.children).filter((child) => child.tagName === el.tagName);
+  const index = sameTag.indexOf(el) + 1;
+  const parentSelector = parent.id ? "#" + CSS.escape(parent.id) : parent.tagName.toLowerCase();
+  return parentSelector + " > " + el.tagName.toLowerCase() + ":nth-of-type(" + index + ")";
 };
 const labelText = (el) => {
   if (el.id) {
@@ -71,15 +76,21 @@ const forms = Array.from(document.querySelectorAll("form")).map((el) => ({
 }));
 const dialogs = Array.from(document.querySelectorAll("dialog, [role='dialog'], [aria-modal='true']")).map(base).filter(visible);
 const frames = ${includeFrames ? "Array.from(document.querySelectorAll('iframe, frame')).map((el) => { let srcHost; try { srcHost = new URL(el.src).host || undefined; } catch {} return {selectorCandidate: selectorFor(el), title: attr(el, 'title') || undefined, name: attr(el, 'name') || undefined, srcHost}; })" : "[]"};
+const summarizeCandidates = (selector, candidateKind, maxCount) => Array.from(document.querySelectorAll(selector))
+  .map((el) => ({...base(el), candidateKind}))
+  .filter((item) => !item.hidden && Boolean(item.visibleText || item.ariaLabel || item.nearbyText))
+  .slice(0, maxCount);
+const tableRows = summarizeCandidates("tr", "table-row", 80);
+const roleRows = summarizeCandidates("[role='row']", "role-row", 80);
+const genericClickableElements = summarizeCandidates("[onclick], [tabindex], [role='button'], [role='link']", "clickable", 80);
+const textBlocks = summarizeCandidates("td, th, div, span, p, li", "text-block", 120);
 const pageText = clip(document.body?.innerText || "");
 const detectedStates = [];
 if (/sign\\s*in|log\\s*in|password|session expired/i.test(pageText)) detectedStates.push("login_required");
 if (/captcha|verification code|two[- ]?factor|2fa|otp/i.test(pageText)) detectedStates.push("captcha_or_2fa_required");
-if (/order|purchase/i.test(pageText)) detectedStates.push("order_found");
-if (/upload|choose file|attach/i.test(pageText)) detectedStates.push("upload_entry_visible");
-if (/uploaded|attached/i.test(pageText)) detectedStates.push("file_attached");
-if (/success|submitted|complete/i.test(pageText)) detectedStates.push("upload_success");
-return {url: location.href, title: document.title, forms, inputs, buttons, links, fileInputs, dialogs, frames, detectedStates: Array.from(new Set(detectedStates)), capturedAt: new Date().toISOString()};
+if (/file attached|invoice attached|attachment added/i.test(pageText)) detectedStates.push("file_attached");
+if (/invoice uploaded successfully|upload completed|submitted successfully/i.test(pageText)) detectedStates.push("upload_success");
+return {url: location.href, title: document.title, forms, inputs, buttons, links, fileInputs, dialogs, frames, textBlocks, tableRows, roleRows, genericClickableElements, detectedStates: Array.from(new Set(detectedStates)), capturedAt: new Date().toISOString()};
 `;
 }
 

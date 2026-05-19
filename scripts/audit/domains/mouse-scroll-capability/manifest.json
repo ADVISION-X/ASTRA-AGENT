@@ -1,0 +1,26 @@
+{
+  "inspectorId": "mouse-scroll-capability-owner",
+  "capabilityDomain": "mouse-scroll-capability",
+  "owner": true,
+  "entry": "scripts/audit/domains/mouse-scroll-capability/inspector.ts",
+  "exportName": "runMouseScrollCapabilityInspector",
+  "runner": "scripts/audit/domains/shared/run-manifest-owner.ts",
+  "runnerArgs": [
+    "scripts/audit/domains/mouse-scroll-capability/manifest.json"
+  ],
+  "engine": "ast",
+  "runnerPriority": 50,
+  "allowedLawIds": [
+    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-001-V3",
+    "GRASSEYE-MOUSE-SCROLL-CAPABILITY-002-V3"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md"
+  ],
+  "ownedRoots": [
+    "src/capabilities/mouse-scroll"
+  ],
+  "requiredPaths": [
+    "src/capabilities/mouse-scroll"
+  ]
+}

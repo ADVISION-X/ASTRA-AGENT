@@ -63,6 +63,9 @@ export const DomFileInputSummarySchema = DomElementSummaryBaseSchema.extend({
   type: z.literal("file"),
   accept: z.string().optional(),
 }).strict();
+export const DomCandidateSummarySchema = DomElementSummaryBaseSchema.extend({
+  candidateKind: z.enum(["table-row", "role-row", "text-block", "clickable"]),
+}).strict();
 
 export const DomFormSummarySchema = z.object({
   selectorCandidate: z.string(),
@@ -98,6 +101,10 @@ export const DomSnapshotSchema = z.object({
   fileInputs: z.array(DomFileInputSummarySchema),
   dialogs: z.array(DomDialogSummarySchema),
   frames: z.array(DomFrameSummarySchema),
+  textBlocks: z.array(DomCandidateSummarySchema),
+  tableRows: z.array(DomCandidateSummarySchema),
+  roleRows: z.array(DomCandidateSummarySchema),
+  genericClickableElements: z.array(DomCandidateSummarySchema),
   detectedStates: z.array(DomDetectedStateSchema),
   capturedAt: z.string().datetime(),
 }).strict();
@@ -200,7 +207,18 @@ export const DomVerificationResultSchema = z.object({
   reason: z.string().min(1),
 }).strict();
 
-export const WaitForDomStateInputSchema = VerifyDomStateInputSchema.extend({
+export const WaitForDomStateInputSchema = z.object({
+  initialSnapshot: DomSnapshotSchema.optional(),
+  expectedStates: z.array(z.enum([
+    "order-found",
+    "invoice-upload-entry-visible",
+    "file-attached",
+    "upload-success",
+    "login-required",
+    "captcha-or-2fa-required",
+  ])).min(1),
+  successHints: z.array(z.string().min(1)).default([]),
+  failureHints: z.array(z.string().min(1)).default([]),
   timeoutMs: z.number().int().min(100).max(30000).default(5000),
   pollIntervalMs: z.number().int().min(100).max(5000).default(500),
 }).strict();

@@ -1,0 +1,28 @@
+{
+  "inspectorId": "ai-capability-owner",
+  "capabilityDomain": "ai-capability",
+  "owner": true,
+  "entry": "scripts/audit/domains/ai-capability/inspector.ts",
+  "exportName": "runAiCapabilityInspector",
+  "runner": "scripts/audit/domains/shared/run-manifest-owner.ts",
+  "runnerArgs": [
+    "scripts/audit/domains/ai-capability/manifest.json"
+  ],
+  "engine": "ast",
+  "runnerPriority": 50,
+  "allowedLawIds": [
+    "GRASSEYE-LOCAL-AI-RUNTIME-001-V2",
+    "GRASSEYE-LOCAL-AI-RUNTIME-002-V2",
+    "GRASSEYE-LOCAL-AI-RUNTIME-003-V2",
+    "GRASSEYE-LOCAL-AI-RUNTIME-006-V2"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md"
+  ],
+  "ownedRoots": [
+    "src/capabilities/ai"
+  ],
+  "requiredPaths": [
+    "src/capabilities/ai"
+  ]
+}

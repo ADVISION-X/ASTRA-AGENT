@@ -18,6 +18,10 @@ function snapshotText(input: VerifyDomStateInput): string {
     ...input.snapshot.buttons.map((item) => [item.ariaLabel, item.visibleText, item.nearbyText].filter(Boolean).join(" ")),
     ...input.snapshot.links.map((item) => [item.ariaLabel, item.visibleText, item.nearbyText].filter(Boolean).join(" ")),
     ...input.snapshot.dialogs.map((item) => [item.ariaLabel, item.visibleText].filter(Boolean).join(" ")),
+    ...input.snapshot.tableRows.map((item) => [item.ariaLabel, item.visibleText, item.nearbyText].filter(Boolean).join(" ")),
+    ...input.snapshot.roleRows.map((item) => [item.ariaLabel, item.visibleText, item.nearbyText].filter(Boolean).join(" ")),
+    ...input.snapshot.genericClickableElements.map((item) => [item.ariaLabel, item.visibleText, item.nearbyText].filter(Boolean).join(" ")),
+    ...input.snapshot.textBlocks.map((item) => [item.ariaLabel, item.visibleText, item.nearbyText].filter(Boolean).join(" ")),
   ];
   return parts.join(" ").toLowerCase();
 }
@@ -42,10 +46,15 @@ export function verifyDomStateOnce(rawInput: VerifyDomStateInput): DomVerificati
     });
   }
 
-  const expectedDetected = input.expectedStates.some((state) => detected.has(STATE_MAP[state]));
   const text = snapshotText(input);
   const successHintMatched = input.successHints.some((hint) => text.includes(hint.toLowerCase()));
   const failureHintMatched = input.failureHints.some((hint) => text.includes(hint.toLowerCase()));
+  const strongDetected = input.expectedStates.some((state) => {
+    const detectedState = STATE_MAP[state];
+    return detectedState === "file_attached" || detectedState === "upload_success"
+      ? detected.has(detectedState)
+      : false;
+  });
   if (failureHintMatched) {
     return DomVerificationResultSchema.parse({
       status: "failed",
@@ -54,10 +63,10 @@ export function verifyDomStateOnce(rawInput: VerifyDomStateInput): DomVerificati
       reason: "DOM snapshot matched failure hints.",
     });
   }
-  if (expectedDetected || successHintMatched) {
+  if (strongDetected || successHintMatched) {
     return DomVerificationResultSchema.parse({
       status: "success",
-      confidence: expectedDetected ? 0.8 : 0.65,
+      confidence: strongDetected ? 0.8 : 0.65,
       evidenceRef: `dom-verify:${createId("dom")}`,
       reason: "DOM snapshot matched expected state.",
     });

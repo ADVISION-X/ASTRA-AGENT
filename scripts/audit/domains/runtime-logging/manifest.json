@@ -1,0 +1,37 @@
+{
+  "inspectorId": "runtime-logging-owner",
+  "capabilityDomain": "runtime-logging",
+  "owner": true,
+  "entry": "scripts/audit/domains/runtime-logging/inspector.ts",
+  "exportName": "runRuntimeLoggingInspector",
+  "runner": "scripts/audit/domains/runtime-logging/run-inspector.ts",
+  "engine": "ast",
+  "runnerPriority": 20,
+  "allowedLawIds": [
+    "LAW-RLS-001",
+    "LAW-RLS-002",
+    "LAW-RLS-003",
+    "LAW-RLS-004",
+    "LAW-RLS-005",
+    "LAW-RLS-006",
+    "LAW-RLS-007",
+    "LAW-RLS-008",
+    "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-005-V1"
+  ],
+  "readsLawFiles": [
+    ".github/instructions/cursor-rules/modules/module-RuntimeLogSpine.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md"
+  ],
+  "ownedRoots": [
+    "src/lib/runtime-logs",
+    "scripts/audit/domains/runtime-logging"
+  ],
+  "requiredPaths": [
+    "src/lib/runtime-logs",
+    "scripts/audit/domains/runtime-logging/inspector.ts"
+  ]
+}
