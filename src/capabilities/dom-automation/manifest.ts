@@ -99,7 +99,7 @@ export const DOM_AUTOMATION_CATALOG_ENTRIES: RegisteredAtomicAbility[] = [
     inputContract: { requiredFields: ["elementRef", "approvedFilePath", "approvedTaskFilePath", "allowedExtensions", "uploadPurpose"], optionalFields: [], forbiddenFields: ["fileContent"] },
     successOutputRefs: ["domActionResultRef"],
     failurePolicy: "review_required",
-    forbiddenResponsibilities: ["read PDF content", "choose arbitrary files", "submit Amazon workflow"],
+    forbiddenResponsibilities: ["read PDF content", "choose arbitrary files", "submit business workflow"],
   },
   {
     actionCode: "VERIFY_DOM_STATE_ONCE",

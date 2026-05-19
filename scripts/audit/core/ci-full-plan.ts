@@ -36,6 +36,13 @@ export const CI_FULL_STEPS: CiFullStepDefinition[] = [
     timeoutMs: STEP_TIMEOUT_MS,
     artifactPaths: ["scripts/audit/generated/quality-kernel-summary.generated.json"],
   },
+  {
+    name: "dom-automation-owner",
+    layer: "foundation-layer",
+    command: ["node", "--import", "tsx", "scripts/audit/domains/dom-automation/run-inspector.ts"],
+    timeoutMs: STEP_TIMEOUT_MS,
+    artifactPaths: [],
+  },
 ];
 
 export const getCiFullStepsByLayer = (layer: CiFullLayerLabel): CiFullStepDefinition[] =>

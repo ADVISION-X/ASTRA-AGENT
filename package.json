@@ -22,6 +22,8 @@
     "ci:full": "node --import tsx scripts/audit/ci-full.ts",
 
     "acceptance:delivery-smoke": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/delivery-smoke.mjs",
+    "acceptance:dom-automation-smoke": "node --import tsx scripts/acceptance/dom-automation-smoke.ts",
+    "acceptance:amazon-invoice-upload-smoke": "node --import tsx scripts/acceptance/amazon-invoice-upload-smoke.ts",
 
     "lint": "npm run typecheck"
   },

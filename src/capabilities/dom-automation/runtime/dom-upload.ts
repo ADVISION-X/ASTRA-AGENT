@@ -34,7 +34,7 @@ export function uploadApprovedFileOnce(rawInput: UploadApprovedFileInput): DomAc
       status: "review_required",
       actionId: createId("dom"),
       message: "approved file extension is not allowed",
-      reviewRequiredReason: "Phase one Amazon invoice upload only allows PDF.",
+      reviewRequiredReason: "Phase one approved file upload only allows PDF.",
     });
   }
   if (input.elementRef.targetKind !== "file-input") {

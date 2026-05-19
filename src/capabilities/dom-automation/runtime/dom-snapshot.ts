@@ -76,7 +76,7 @@ const detectedStates = [];
 if (/sign\\s*in|log\\s*in|password|session expired/i.test(pageText)) detectedStates.push("login_required");
 if (/captcha|verification code|two[- ]?factor|2fa|otp/i.test(pageText)) detectedStates.push("captcha_or_2fa_required");
 if (/order|purchase/i.test(pageText)) detectedStates.push("order_found");
-if (/upload invoice|invoice upload|choose file|attach/i.test(pageText)) detectedStates.push("upload_entry_visible");
+if (/upload|choose file|attach/i.test(pageText)) detectedStates.push("upload_entry_visible");
 if (/uploaded|attached/i.test(pageText)) detectedStates.push("file_attached");
 if (/success|submitted|complete/i.test(pageText)) detectedStates.push("upload_success");
 return {url: location.href, title: document.title, forms, inputs, buttons, links, fileInputs, dialogs, frames, detectedStates: Array.from(new Set(detectedStates)), capturedAt: new Date().toISOString()};

@@ -166,7 +166,7 @@ export const UploadApprovedFileInputSchema = z.object({
   approvedFilePath: z.string().min(1),
   approvedTaskFilePath: z.string().min(1),
   allowedExtensions: z.tuple([z.literal(".pdf")]),
-  uploadPurpose: z.literal("amazon-invoice-pdf"),
+  uploadPurpose: z.literal("approved-pdf-upload"),
 }).strict();
 
 export const DomVerificationStatusSchema = z.enum([
@@ -236,7 +236,7 @@ export type UploadApprovedFileInput = {
   approvedFilePath: string;
   approvedTaskFilePath: string;
   allowedExtensions: [".pdf"];
-  uploadPurpose: "amazon-invoice-pdf";
+  uploadPurpose: "approved-pdf-upload";
 };
 export type DomActionResult = z.infer<typeof DomActionResultSchema>;
 export type VerifyDomStateInput = z.input<typeof VerifyDomStateInputSchema>;
