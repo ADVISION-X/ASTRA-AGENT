@@ -9,11 +9,16 @@ import {
 import { AmazonInvoiceUploadMissionInputSchema } from "./mission.schema.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import { AMAZON_INVOICE_UPLOAD_DOM_HINTS } from "./amazon-dom-hints.js";
+import {
+  detectAmazonInvoiceUploadState,
+  type AmazonInvoiceUploadStatus,
+} from "./amazon-result-detector.js";
 
 export type AmazonInvoiceUploadPhaseOneResult = {
   status: "review_required" | "failed";
   reason: string;
   reachedStep: string;
+  phaseStatus: AmazonInvoiceUploadStatus;
 };
 
 export async function runAmazonInvoiceUploadPhaseOne(
@@ -23,6 +28,11 @@ export async function runAmazonInvoiceUploadPhaseOne(
   const mission = AmazonInvoiceUploadMissionInputSchema.parse(rawMission);
   await browser.open({ url: mission.sellerCentralEntryUrl, title: "Amazon Seller Central invoice upload entry" });
   const entrySnapshot = await readDomSnapshotOnce(browser);
+  const entryState = detectAmazonInvoiceUploadState({
+    snapshot: entrySnapshot,
+    mission,
+    hasSearchInput: true,
+  });
   const gate = verifyDomStateOnce({
     snapshot: entrySnapshot,
     expectedStates: ["login-required", "captcha-or-2fa-required"],
@@ -30,7 +40,12 @@ export async function runAmazonInvoiceUploadPhaseOne(
     failureHints: [],
   });
   if (gate.status === "login_required" || gate.status === "captcha_or_2fa_required") {
-    return { status: "review_required", reason: gate.reason, reachedStep: "open seller central entry" };
+    return {
+      status: "review_required",
+      reason: gate.reason,
+      reachedStep: "open seller central entry",
+      phaseStatus: entryState.status,
+    };
   }
 
   const searchInput = locateDomElementOnce({
@@ -69,10 +84,17 @@ export async function runAmazonInvoiceUploadPhaseOne(
     targetKind: "upload-invoice-entry",
     hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.uploadInvoiceEntry],
   });
+  const resultState = detectAmazonInvoiceUploadState({
+    snapshot: resultSnapshot,
+    mission,
+    hasOrderRow: true,
+    hasUploadEntry: true,
+  });
 
   return {
     status: "review_required",
     reason: "Phase one stops after locating the invoice upload entry; human review is required before upload.",
     reachedStep: "upload invoice entry located",
+    phaseStatus: resultState.status,
   };
 }

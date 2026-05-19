@@ -36,7 +36,11 @@ try {
     requireHumanFinalSubmit: true,
   });
 
-  if (result.status !== "review_required" || result.reachedStep !== "upload invoice entry located") {
+  if (
+    result.status !== "review_required"
+    || result.reachedStep !== "upload invoice entry located"
+    || result.phaseStatus !== "upload_entry_found"
+  ) {
     process.stdout.write(`[AMAZON-INVOICE-UPLOAD-SMOKE][FAIL] unexpected dry-run result: ${JSON.stringify(result)}\n`);
     process.exit(1);
   }

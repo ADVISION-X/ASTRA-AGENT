@@ -194,7 +194,7 @@ export class CurrentChromeBrowserController implements BrowserController {
   }
 
   async evaluateActiveTab<T>(input: { script: string; description: string; abortSignal?: AbortSignal }): Promise<T> {
-    const forbiddenStorageReads = /\bdocument\.cookie\b|\blocalStorage\b|\bsessionStorage\b/iu;
+    const forbiddenStorageReads = /\bdocument\.cookie\b|\blocalStorage\b|\bsessionStorage\b|\bouterHTML\b|\bdocument\.documentElement\.innerHTML\b/iu;
     if (forbiddenStorageReads.test(input.script)) {
       throw new Error(`Active-tab evaluation "${input.description}" is forbidden from reading browser storage or cookies.`);
     }

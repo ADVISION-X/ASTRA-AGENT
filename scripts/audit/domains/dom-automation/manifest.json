@@ -33,6 +33,17 @@
   "requiredPaths": [
     "src/capabilities/dom-automation",
     "src/plugins/amazon-invoice-upload",
-    "scripts/audit/domains/dom-automation/inspector.ts"
+    "scripts/audit/domains/dom-automation/inspector.ts",
+    "scripts/audit/domains/dom-automation/dom-automation-audit-plan.ts",
+    "src/capabilities/dom-automation/contracts/dom-snapshot.contract.ts",
+    "src/capabilities/dom-automation/contracts/dom-element-ref.contract.ts",
+    "src/capabilities/dom-automation/contracts/dom-action-result.contract.ts",
+    "src/capabilities/dom-automation/contracts/dom-review-required.contract.ts",
+    "src/capabilities/dom-automation/tests/dom-snapshot.fixture.ts",
+    "src/capabilities/dom-automation/tests/dom-locator.fixture.ts",
+    "src/capabilities/dom-automation/tests/dom-upload.fixture.ts",
+    "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
+    "scripts/acceptance/dom-automation-smoke.ts",
+    "scripts/acceptance/amazon-invoice-upload-smoke.ts"
   ]
 }
