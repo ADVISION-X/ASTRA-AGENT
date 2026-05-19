@@ -10,6 +10,7 @@
 
 import { readFileSync } from "node:fs";
 import { z } from "zod";
+import { DOM_AUTOMATION_CATALOG_ENTRIES } from "../capabilities/dom-automation/manifest.js";
 
 // ─── Schema ────────────────────────────────────────────────────────────────
 
@@ -70,7 +71,11 @@ let catalogCache: CapabilityRegistryCatalog | null = null;
 
 function readCatalog(): CapabilityRegistryCatalog {
   const raw = JSON.parse(readFileSync(GENERATED_CATALOG_PATH, "utf8"));
-  return CapabilityRegistryCatalogSchema.parse(raw);
+  const parsed = CapabilityRegistryCatalogSchema.parse(raw);
+  return CapabilityRegistryCatalogSchema.parse({
+    ...parsed,
+    entries: [...parsed.entries, ...DOM_AUTOMATION_CATALOG_ENTRIES],
+  });
 }
 
 export function loadMuscleMemoryCatalog(): CapabilityRegistryCatalog {

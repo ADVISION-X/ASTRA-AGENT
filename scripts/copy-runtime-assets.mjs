@@ -1,4 +1,5 @@
 import { cp, mkdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 const repoRoot = process.cwd();
@@ -17,6 +18,9 @@ const runtimeAssetDirs = [
 for (const [source, target] of runtimeAssetDirs) {
   const sourcePath = path.join(repoRoot, source);
   const targetPath = path.join(repoRoot, target);
+  if (!existsSync(sourcePath)) {
+    continue;
+  }
   await mkdir(path.dirname(targetPath), { recursive: true });
   await cp(sourcePath, targetPath, { recursive: true, force: true });
 }

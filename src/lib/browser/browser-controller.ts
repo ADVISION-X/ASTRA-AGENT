@@ -86,6 +86,11 @@ interface BrowserController {
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
   screenshotRegion(input: { regionLabel: string; contentLines?: string[]; captureProfile?: BrowserScreenshotProfile; abortSignal?: AbortSignal }): Promise<BrowserCaptureResult>;
+  evaluateActiveTab<T>(input: {
+    script: string;
+    description: string;
+    abortSignal?: AbortSignal;
+  }): Promise<T>;
   wait(durationMs: number): Promise<BrowserActionResult>;
   close(): Promise<BrowserActionResult>;
 }

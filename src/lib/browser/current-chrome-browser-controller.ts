@@ -15,6 +15,7 @@ import { createId } from "../local-runtime/ids.js";
 import {
   activateChrome,
   buildOpenUrlScript,
+  escapeAppleScriptText,
   clickAt,
   pressBrowserKey,
   readFrontChromeWindowState,
@@ -190,6 +191,27 @@ export class CurrentChromeBrowserController implements BrowserController {
       sourceFilePath: screenshot.screenshotPath,
       createdAt: new Date().toISOString(),
     };
+  }
+
+  async evaluateActiveTab<T>(input: { script: string; description: string; abortSignal?: AbortSignal }): Promise<T> {
+    const forbiddenStorageReads = /\bdocument\.cookie\b|\blocalStorage\b|\bsessionStorage\b/iu;
+    if (forbiddenStorageReads.test(input.script)) {
+      throw new Error(`Active-tab evaluation "${input.description}" is forbidden from reading browser storage or cookies.`);
+    }
+    const wrappedScript = `
+(async () => {
+  const result = await (async () => {
+${input.script}
+  })();
+  return JSON.stringify(result ?? null);
+})()
+`;
+    const raw = await runAppleScript(
+      `tell application "Google Chrome" to execute front window's active tab javascript "${escapeAppleScriptText(wrappedScript)}"`,
+      input.abortSignal ? { signal: input.abortSignal } : undefined,
+    );
+    await this.refreshSnapshot();
+    return JSON.parse(raw) as T;
   }
 
   async wait(durationMs: number): Promise<BrowserActionResult> {
