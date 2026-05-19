@@ -27,6 +27,7 @@ export function buildCommanderConsoleShellCopy(locale: Locale): CommanderConsole
     runtimeStripHint: t("底部只保留状态脉冲，不重复主内容。", "The footer keeps runtime pulse only, not a second dashboard."),
     nav: {
       home: { label: t("开始", "Start"), helper: t("启动任务与运行边界", "Start mission and set limits") },
+      "amazon-invoice-upload": { label: t("Amazon 发票", "Amazon Invoice"), helper: t("本地后台打开与 phase-one 启动桥", "Local admin open and phase-one launch channel") },
       mission: { label: t("运行", "Mission"), helper: t("观察当前运行过程", "Track active mission flow") },
       results: { label: t("结果", "Results"), helper: t("查看证据、导出与失败项", "Review evidence, export, and misses") },
       review: { label: t("复核", "Review"), helper: t("处理人工复核队列", "Handle operator review queue") },

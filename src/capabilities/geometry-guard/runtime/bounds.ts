@@ -1,4 +1,9 @@
-import type { GeometryGuardPoint, GeometryGuardBoundingBox, GeometryGuardSize, GeometryGuardSafetyPolicy } from "../contract.js";
+import type {
+  GeometryGuardBoundingBox,
+  GeometryGuardPoint,
+  GeometryGuardSafetyPolicy,
+  GeometryGuardSize,
+} from "../geometry-types.js";
 
 // ── Bounds validation ─────────────────────────────────────────────────────────
 

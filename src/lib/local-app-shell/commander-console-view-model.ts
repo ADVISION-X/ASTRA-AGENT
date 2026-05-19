@@ -11,24 +11,34 @@ import type {
   CommanderConsoleViewModel,
 } from "./types.js";
 
+function buildCommanderConsoleShellMeta(
+  locale: Locale,
+  appRunLimitSettings: AppRunLimitSettings,
+) {
+  return {
+    locale,
+    appTitle: "GrassEye Commander Console",
+    appSubtitle: locale === "zh"
+      ? "一级页面 + 二级 Tab + 三级 Inspect Drawer 的本地指挥控制台"
+      : "A local command shell with primary pages, secondary tabs, and a right inspect drawer.",
+    appRunLimitSettings,
+    primaryPages: buildPrimaryPages(locale),
+  };
+}
+
 export function buildCommanderConsoleViewModel(
   dashboard: CommanderMissionDashboardView,
   locale: Locale,
   appRunLimitSettings: AppRunLimitSettings,
   userRequirementHistory: CommanderConsoleViewModel["userRequirementHistory"],
 ): CommanderConsoleViewModel {
-  const primaryPages = buildPrimaryPages(locale);
   const activePlatformLabel = dashboard.mission?.requestedPlatform ?? null;
 
   return {
-    locale,
-    appTitle: locale === "zh" ? "GrassEye Commander Console" : "GrassEye Commander Console",
-    appSubtitle: locale === "zh" ? "一级页面 + 二级 Tab + 三级 Inspect Drawer 的本地指挥控制台" : "A local command shell with primary pages, secondary tabs, and a right inspect drawer.",
-    appRunLimitSettings,
+    ...buildCommanderConsoleShellMeta(locale, appRunLimitSettings),
     missionSummary: buildMissionSummary(dashboard, locale),
     badges: buildBadges(dashboard, locale, activePlatformLabel),
     topMetrics: buildTopMetrics(dashboard, locale, activePlatformLabel),
-    primaryPages,
     activeMissionSummary: buildActiveMissionSummary(dashboard, locale),
     activeRoundSummary: buildActiveRoundSummary(dashboard, locale),
     availableMaps: [],

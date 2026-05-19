@@ -1,4 +1,4 @@
-import type { PrimitiveCircuitBreakerState } from "./primitive-scroll-runner-result.js";
+import type { PrimitiveCircuitBreakerState } from "./primitive-scroll-runner-result.types.js";
 
 const MAX_CONCURRENT_SCROLLS = 1;
 const CIRCUIT_BREAKER_FAILURE_THRESHOLD = 3;

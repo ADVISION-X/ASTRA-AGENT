@@ -12,74 +12,71 @@
 
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import type { WorkbenchAssembly } from "./workbench-assembly.js";
+import type {
+  WorkbenchHealthComponent,
+  WorkbenchHealthReport,
+  WorkbenchMissionReadinessReport,
+  WorkbenchPreflightResult,
+} from "./workbench-status-types.js";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type WorkbenchHealthComponent = {
-  name: string;
-  ok: boolean;
-  detail: string | null;
-  actionableMessage: string | null;
-  ownerResponsible: string | null;
+type WorkbenchStatusAssembly = Pick<
+  WorkbenchAssembly,
+  "browserController" | "aiAbilityGroup"
+>;
+
+const readBrowserSessionComponent = (
+  assembly: WorkbenchStatusAssembly,
+  detailPrefix: string,
+  failureMessage: string,
+): WorkbenchHealthComponent => {
+  try {
+    const state = assembly.browserController.getSessionState();
+    return {
+      name: "browserSession",
+      ok: true,
+      detail: `${detailPrefix}${state.browserMode}`,
+      actionableMessage: null,
+      ownerResponsible: "Browser Session",
+    };
+  } catch (err) {
+    return {
+      name: "browserSession",
+      ok: false,
+      detail: err instanceof Error ? err.message : "browser session check failed",
+      actionableMessage: failureMessage,
+      ownerResponsible: "Browser Session",
+    };
+  }
 };
 
-export type WorkbenchHealthReport = {
-  status: "healthy" | "degraded" | "unhealthy";
-  components: WorkbenchHealthComponent[];
-  checkedAt: string;
-};
-
-export type WorkbenchMissionReadinessReport = {
-  status: "ready" | "not_ready";
-  reason: string;
-  components: WorkbenchHealthComponent[];
-  checkedAt: string;
-};
-
-export type WorkbenchPreflightInput = {
-  requestedPlatformId: string | null;
-  targetProfileRef: string | null;
-  targetUrl: string | null;
-  targetTitle: string | null;
-  userRequirementRef: string | null;
-};
-
-export type WorkbenchPreflightResult = {
-  status: "ready" | "blocked" | "warning";
-  actionableMessage: string;
-  failureReason: string | null;
-  nextAction: string;
-  ownerResponsible: string;
-  components: WorkbenchHealthComponent[];
+const readAiHealthComponent = async (
+  assembly: WorkbenchStatusAssembly,
+): Promise<WorkbenchHealthComponent> => {
+  const aiHealth = await assembly.aiAbilityGroup.getHealth();
+  return {
+    name: "onlineAi",
+    ok: aiHealth.ok,
+    detail: aiHealth.detail,
+    actionableMessage: aiHealth.ok ? null : "Open Settings and save a Google Gemini API key.",
+    ownerResponsible: "AI Capability / Online Gemini Runtime",
+  };
 };
 
 // ─── Health Report ───────────────────────────────────────────────────────────
 
 export async function getHealthReport(
-  assembly: Pick<WorkbenchAssembly, "browserController" | "aiAbilityGroup">,
+  assembly: WorkbenchStatusAssembly,
 ): Promise<WorkbenchHealthReport> {
-  const components: WorkbenchHealthComponent[] = [];
   const checkedAt = new Date().toISOString();
-
-  // Browser session health
-  try {
-    const state = assembly.browserController.getSessionState();
-    components.push({
-      name: "browserSession",
-      ok: true,
-      detail: `Browser session state: ${state.browserMode}`,
-      actionableMessage: null,
-      ownerResponsible: "Browser Session",
-    });
-  } catch (err) {
-    components.push({
-      name: "browserSession",
-      ok: false,
-      detail: err instanceof Error ? err.message : "browser session check failed",
-      actionableMessage: "Ensure browser is configured and accessible.",
-      ownerResponsible: "Browser Session",
-    });
-  }
+  const components = [
+    readBrowserSessionComponent(
+      assembly,
+      "Browser session state: ",
+      "Ensure browser is configured and accessible.",
+    ),
+  ];
 
   const allOk = components.every((c) => c.ok);
   const anyFailed = components.some((c) => !c.ok);
@@ -94,40 +91,18 @@ export async function getHealthReport(
 // ─── Mission Readiness Report ─────────────────────────────────────────────────
 
 export async function getMissionReadinessReport(
-  assembly: Pick<WorkbenchAssembly, "browserController" | "aiAbilityGroup">,
-  options: GrassEyeWorkbenchOptions,
+  assembly: WorkbenchStatusAssembly,
+  _options: GrassEyeWorkbenchOptions,
 ): Promise<WorkbenchMissionReadinessReport> {
-  const components: WorkbenchHealthComponent[] = [];
   const checkedAt = new Date().toISOString();
-
-  // Browser session readiness
-  try {
-    const state = assembly.browserController.getSessionState();
-    components.push({
-      name: "browserSession",
-      ok: true,
-      detail: `browserMode: ${state.browserMode}`,
-      actionableMessage: null,
-      ownerResponsible: "Browser Session",
-    });
-  } catch (err) {
-    components.push({
-      name: "browserSession",
-      ok: false,
-      detail: err instanceof Error ? err.message : "browser session check failed",
-      actionableMessage: "Ensure browser is configured.",
-      ownerResponsible: "Browser Session",
-    });
-  }
-
-  const aiHealth = await assembly.aiAbilityGroup.getHealth();
-  components.push({
-    name: "onlineAi",
-    ok: aiHealth.ok,
-    detail: aiHealth.detail,
-    actionableMessage: aiHealth.ok ? null : "Open Settings and save a Google Gemini API key.",
-    ownerResponsible: "AI Capability / Online Gemini Runtime",
-  });
+  const components = [
+    readBrowserSessionComponent(
+      assembly,
+      "browserMode: ",
+      "Ensure browser is configured.",
+    ),
+    await readAiHealthComponent(assembly),
+  ];
 
   const allReady = components.every((c) => c.ok);
   return {
@@ -143,20 +118,11 @@ export async function getMissionReadinessReport(
 // ─── Mission Start Preflight ──────────────────────────────────────────────────
 
 export async function getMissionStartPreflight(
-  assembly: Pick<WorkbenchAssembly, "browserController" | "aiAbilityGroup">,
-  options: GrassEyeWorkbenchOptions,
+  assembly: WorkbenchStatusAssembly,
+  _options: GrassEyeWorkbenchOptions,
   input: unknown,
 ): Promise<WorkbenchPreflightResult> {
-  const components: WorkbenchHealthComponent[] = [];
-
-  const aiHealth = await assembly.aiAbilityGroup.getHealth();
-  components.push({
-    name: "onlineAi",
-    ok: aiHealth.ok,
-    detail: aiHealth.detail,
-    actionableMessage: aiHealth.ok ? null : "Open Settings and save a Google Gemini API key.",
-    ownerResponsible: "AI Capability / Online Gemini Runtime",
-  });
+  const components = [await readAiHealthComponent(assembly)];
 
   const blocked = components.find((c) => !c.ok);
   if (blocked) {

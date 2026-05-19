@@ -12,8 +12,17 @@
  */
 
 import type { OnlineAiProviderPublicStatus } from "../online-ai/index.js";
-import type { AppRunLimitSettings, UserRequirementHistoryEntry, UserRequirementHistoryUpsertInput } from "./settings.js";
-import type { WorkbenchHealthReport, WorkbenchMissionReadinessReport, WorkbenchPreflightResult, WorkbenchPreflightInput } from "./workbench-status.js";
+import type {
+  AmazonInvoiceUploadAdminOpenInput,
+  AmazonInvoiceUploadAdminOpenResult,
+  AmazonInvoiceUploadMissionInput,
+  AmazonInvoiceUploadMissionStartResult,
+  AmazonInvoiceUploadTaskRecord,
+  AmazonInvoiceUploadTaskResumeInput,
+  AmazonInvoiceUploadTaskStartInput,
+} from "../../plugins/amazon-invoice-upload/index.js";
+import type { AppRunLimitSettings, UserRequirementHistoryEntry, UserRequirementHistoryUpsertInput } from "./settings-types.js";
+import type { WorkbenchHealthReport, WorkbenchMissionReadinessReport, WorkbenchPreflightResult, WorkbenchPreflightInput } from "./workbench-status-types.js";
 import type { WorkbenchCommanderMissionDashboardView } from "./workbench-commander-console.js";
 
 export type WorkbenchFacade = {
@@ -31,5 +40,10 @@ export type WorkbenchFacade = {
   upsertUserRequirementHistory(input: UserRequirementHistoryUpsertInput): Promise<UserRequirementHistoryEntry>;
   deleteUserRequirementHistory(id: string): Promise<void>;
   reuseUserRequirementHistory(id: string): Promise<UserRequirementHistoryEntry | null>;
+  openAdminInvoicePage(input: AmazonInvoiceUploadAdminOpenInput): Promise<AmazonInvoiceUploadAdminOpenResult>;
+  startAmazonInvoiceUploadMission(input: AmazonInvoiceUploadMissionInput): Promise<AmazonInvoiceUploadMissionStartResult>;
+  startAmazonInvoiceUploadTask(input: AmazonInvoiceUploadTaskStartInput): Promise<AmazonInvoiceUploadTaskRecord>;
+  resumeAmazonInvoiceUploadTask(input: AmazonInvoiceUploadTaskResumeInput): Promise<AmazonInvoiceUploadTaskRecord>;
+  getAmazonInvoiceUploadTaskStatus(taskId: string): Promise<AmazonInvoiceUploadTaskRecord>;
   getModeInfo(): unknown;
 };

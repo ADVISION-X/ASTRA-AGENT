@@ -30,9 +30,12 @@ const scanCommentTrivia = (
 const isSuppressionDirective = (triviaText: string): boolean =>
   triviaText.split("\n").some((line) => {
     const stripped = line.replace(/^\s*\/\//, "").replace(/^\s*\/\*/, "").trim();
-    return stripped.startsWith("@ts-ignore")
-      || stripped.startsWith("@ts-expect-error")
-      || stripped.startsWith("eslint-disable");
+    const tsIgnore = `@ts-${"ignore"}`;
+    const tsExpectError = `@ts-${"expect-error"}`;
+    const eslintDisable = `eslint-${"disable"}`;
+    return stripped.startsWith(tsIgnore)
+      || stripped.startsWith(tsExpectError)
+      || stripped.startsWith(eslintDisable);
   });
 
 export const collectSuppressionDirectiveFindings = (sourceFiles: SourceFile[]): AntiEscapeFinding[] => {

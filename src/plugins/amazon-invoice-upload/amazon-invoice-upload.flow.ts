@@ -1,18 +1,34 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
-import {
-  clickDomElementOnce,
-  fillDomElementOnce,
-  locateDomElementOnce,
-  readDomSnapshotOnce,
-  verifyDomStateOnce,
-} from "../../capabilities/dom-automation/index.js";
+import { readDomSnapshotOnce } from "../../capabilities/dom-automation/index.js";
 import { AmazonInvoiceUploadMissionInputSchema } from "./mission.schema.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import { AMAZON_INVOICE_UPLOAD_DOM_HINTS } from "./amazon-dom-hints.js";
+import type { AmazonInvoiceUploadStatus } from "./amazon-result-detector.js";
 import {
-  detectAmazonInvoiceUploadState,
-  type AmazonInvoiceUploadStatus,
-} from "./amazon-result-detector.js";
+  normalizeSubmitFailure,
+  openOrderDetail,
+  openUploadInvoiceEntry,
+  searchOrder,
+  uploadApprovedInvoice,
+  verifyUploadSuccess,
+} from "./amazon-invoice-upload-steps.js";
+import {
+  clickLocated,
+  gatedResult,
+  locateFailureResult,
+  taskResult,
+} from "./amazon-invoice-upload-flow-support.js";
+
+export type AmazonInvoiceUploadTaskResult = {
+  ok: boolean;
+  status: AmazonInvoiceUploadStatus;
+  reason: string;
+  reachedStep: string;
+  amazonOrderId: string;
+  invoiceNo: string;
+  evidenceRef?: string;
+  reviewRequired?: boolean;
+};
 
 export type AmazonInvoiceUploadPhaseOneResult = {
   status: "review_required" | "failed";
@@ -21,80 +37,85 @@ export type AmazonInvoiceUploadPhaseOneResult = {
   phaseStatus: AmazonInvoiceUploadStatus;
 };
 
-export async function runAmazonInvoiceUploadPhaseOne(
+export async function runAmazonInvoiceUpload(
   browser: BrowserController,
   rawMission: AmazonInvoiceUploadMissionInput,
-): Promise<AmazonInvoiceUploadPhaseOneResult> {
+): Promise<AmazonInvoiceUploadTaskResult> {
   const mission = AmazonInvoiceUploadMissionInputSchema.parse(rawMission);
   await browser.open({ url: mission.sellerCentralEntryUrl, title: "Amazon Seller Central invoice upload entry" });
   const entrySnapshot = await readDomSnapshotOnce(browser);
-  const entryState = detectAmazonInvoiceUploadState({
-    snapshot: entrySnapshot,
-    mission,
-    hasSearchInput: true,
-  });
-  const gate = verifyDomStateOnce({
-    snapshot: entrySnapshot,
-    expectedStates: ["login-required", "captcha-or-2fa-required"],
-    successHints: [],
-    failureHints: [],
-  });
-  if (gate.status === "login_required" || gate.status === "captcha_or_2fa_required") {
-    return {
-      status: "review_required",
-      reason: gate.reason,
-      reachedStep: "open seller central entry",
-      phaseStatus: entryState.status,
-    };
+  const gate = gatedResult(entrySnapshot, mission, "open seller central");
+  if (gate) {
+    return gate;
   }
 
-  const searchInput = locateDomElementOnce({
-    snapshot: entrySnapshot,
-    targetKind: "search-input",
-    hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.orderSearch],
-  });
-  await fillDomElementOnce(browser, {
-    elementRef: searchInput,
-    approvedText: mission.amazonOrderId,
-    clearBeforeType: true,
-    inputPurpose: "order-search",
-  });
+  const searchResult = await searchOrder(browser, mission, entrySnapshot);
+  if (!searchResult.ok) return searchResult.failure;
 
-  const searchButton = locateDomElementOnce({
+  const orderDetailResult = await openOrderDetail(browser, mission);
+  if (!orderDetailResult.ok) return orderDetailResult.failure;
+
+  const uploadEntryResult = await openUploadInvoiceEntry(browser, mission);
+  if (!uploadEntryResult.ok) return uploadEntryResult.failure;
+
+  return uploadAndSubmitInvoice(browser, mission);
+}
+
+async function uploadAndSubmitInvoice(
+  browser: BrowserController,
+  mission: AmazonInvoiceUploadMissionInput,
+): Promise<AmazonInvoiceUploadTaskResult> {
+  const uploadResult = await uploadApprovedInvoice(browser, mission);
+  if (!uploadResult.ok) return uploadResult.failure;
+  if (mission.requireHumanFinalSubmit === true) {
+    return taskResult({
+      status: "review_required",
+      reason: "Approved PDF is attached; human final submit is required by mission payload.",
+      reachedStep: "file attached before final submit",
+      amazonOrderId: mission.amazonOrderId,
+      invoiceNo: mission.invoiceNo,
+      evidenceRef: uploadResult.value,
+      reviewRequired: true,
+    });
+  }
+
+  return submitAndVerifyInvoice(browser, mission);
+}
+
+async function submitAndVerifyInvoice(
+  browser: BrowserController,
+  mission: AmazonInvoiceUploadMissionInput,
+): Promise<AmazonInvoiceUploadTaskResult> {
+  const submitButton = locateOrStatus({
     snapshot: await readDomSnapshotOnce(browser),
     targetKind: "button",
-    hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.searchSubmit],
+    hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.submit],
+    notFoundStatus: "submit_failed",
   });
-  await clickDomElementOnce(browser, {
-    elementRef: searchButton,
-    expectedKind: "search-submit",
-    expectedText: "search",
-    waitAfterMs: 1000,
-  });
-
-  const resultSnapshot = await readDomSnapshotOnce(browser);
-  locateDomElementOnce({
-    snapshot: resultSnapshot,
-    targetKind: "order-row",
-    hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.orderRow],
-    requiredText: mission.amazonOrderId,
-  });
-  locateDomElementOnce({
-    snapshot: resultSnapshot,
-    targetKind: "upload-invoice-entry",
-    hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.uploadInvoiceEntry],
-  });
-  const resultState = detectAmazonInvoiceUploadState({
-    snapshot: resultSnapshot,
+  if (!submitButton.ok) {
+    return locateFailureResult(mission, submitButton, "locate submit button");
+  }
+  const submitFailure = await clickLocated({
+    browser,
+    element: submitButton.element,
+    expectedKind: "submit-invoice-upload",
+    reachedStep: "submit invoice upload",
     mission,
-    hasOrderRow: true,
-    hasUploadEntry: true,
   });
+  if (submitFailure) return normalizeSubmitFailure(submitFailure);
 
+  return verifyUploadSuccess(browser, mission);
+}
+
+async function runAmazonInvoiceUploadPhaseOne(
+  browser: BrowserController,
+  rawMission: AmazonInvoiceUploadMissionInput,
+): Promise<AmazonInvoiceUploadPhaseOneResult> {
+  const fullResult = await runAmazonInvoiceUpload(browser, { ...rawMission, requireHumanFinalSubmit: true });
   return {
-    status: "review_required",
-    reason: "Phase one stops after locating the invoice upload entry; human review is required before upload.",
-    reachedStep: "upload invoice entry located",
-    phaseStatus: resultState.status,
+    status: fullResult.status === "failed" ? "failed" : "review_required",
+    reason: fullResult.reason,
+    reachedStep: fullResult.reachedStep,
+    phaseStatus: fullResult.status,
   };
 }

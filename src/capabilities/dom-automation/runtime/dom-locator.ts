@@ -27,6 +27,14 @@ type ScoredCandidate = {
   usedCssLastResort: boolean;
 };
 
+type CandidateScore = {
+  score: number;
+  matchedSignals: string[];
+};
+
+type DomSnapshot = LocateDomElementInput["snapshot"];
+type DomTargetKind = LocateDomElementInput["targetKind"];
+
 function normalize(value: string | undefined): string {
   return (value ?? "").toLowerCase().replace(/\s+/g, " ").trim();
 }
@@ -36,67 +44,105 @@ function textMatches(value: string | undefined, hints: string[]): boolean {
   return normalized.length > 0 && hints.some((hint) => normalized.includes(normalize(hint)));
 }
 
+const CANDIDATE_RESOLVERS = {
+  "search-input": (snapshot: DomSnapshot) =>
+    snapshot.inputs.filter((item) => item.type !== "file"),
+  button: (snapshot: DomSnapshot) => snapshot.buttons,
+  link: (snapshot: DomSnapshot) => snapshot.links,
+  "file-input": (snapshot: DomSnapshot) => snapshot.fileInputs,
+  "order-row": (snapshot: DomSnapshot) => [
+    ...snapshot.tableRows,
+    ...snapshot.roleRows,
+    ...snapshot.textBlocks,
+    ...snapshot.links,
+  ],
+  "upload-invoice-entry": (snapshot: DomSnapshot) => [
+    ...snapshot.buttons,
+    ...snapshot.links,
+    ...snapshot.genericClickableElements,
+    ...snapshot.textBlocks,
+  ],
+  "success-message": (snapshot: DomSnapshot) => [
+    ...snapshot.dialogs,
+    ...snapshot.textBlocks,
+    ...snapshot.genericClickableElements,
+  ],
+} satisfies Record<DomTargetKind, (snapshot: DomSnapshot) => Candidate[]>;
+
 function candidatesFor(input: LocateDomElementInput): Candidate[] {
-  const snapshot = input.snapshot;
-  switch (input.targetKind) {
-    case "search-input":
-      return snapshot.inputs.filter((item) => item.type !== "file");
-    case "button":
-      return snapshot.buttons;
-    case "link":
-      return snapshot.links;
-    case "file-input":
-      return snapshot.fileInputs;
-    case "order-row":
-      return [...snapshot.tableRows, ...snapshot.roleRows, ...snapshot.textBlocks, ...snapshot.links];
-    case "upload-invoice-entry":
-      return [...snapshot.buttons, ...snapshot.links, ...snapshot.genericClickableElements, ...snapshot.textBlocks];
-    case "success-message":
-      return [...snapshot.dialogs, ...snapshot.textBlocks, ...snapshot.genericClickableElements];
+  return CANDIDATE_RESOLVERS[input.targetKind](input.snapshot);
+}
+
+const buildSignalChecks = (
+  candidate: Candidate,
+): Array<[string, string | undefined, number]> => [
+  ["role/name", candidate.role || candidate.ariaLabel || candidate.visibleText, 0.28],
+  ["aria-label", candidate.ariaLabel, 0.22],
+  ["label", candidate.labelText, 0.18],
+  ["placeholder", candidate.placeholder, 0.14],
+  ["visible-text", candidate.visibleText, 0.12],
+  ["name-id", [candidate.name, candidate.id].filter(Boolean).join(" "), 0.08],
+  ["test-id", candidate.testId, 0.06],
+  ["nearby-text", candidate.nearbyText, 0.04],
+];
+
+function scoreTextSignals(
+  candidate: Candidate,
+  input: LocateDomElementInput,
+): CandidateScore {
+  const hints = input.requiredText ? [...input.hints, input.requiredText] : input.hints;
+  const candidateScore: CandidateScore = { score: 0, matchedSignals: [] };
+
+  for (const [signal, value, weight] of buildSignalChecks(candidate)) {
+    if (!textMatches(value, hints)) continue;
+    candidateScore.score += weight;
+    candidateScore.matchedSignals.push(signal);
+  }
+
+  return candidateScore;
+}
+
+function applyTargetKindScore(
+  candidate: Candidate,
+  input: LocateDomElementInput,
+  candidateScore: CandidateScore,
+): void {
+  if (input.targetKind === "search-input" && textMatches(candidate.type, ["search", "text"])) {
+    candidateScore.score += 0.12;
+    candidateScore.matchedSignals.push("input-type");
+    return;
+  }
+  if (input.targetKind === "order-row" && (candidate.candidateKind === "table-row" || candidate.candidateKind === "role-row")) {
+    candidateScore.score += 0.16;
+    candidateScore.matchedSignals.push("row-kind");
+    return;
+  }
+  if (input.targetKind === "upload-invoice-entry" && candidate.candidateKind === "clickable") {
+    candidateScore.score += 0.12;
+    candidateScore.matchedSignals.push("clickable-kind");
   }
 }
 
+const applyVisibilityScore = (
+  candidate: Candidate,
+  candidateScore: CandidateScore,
+): void => {
+  if (candidate.disabled === true || candidate.hidden) return;
+  candidateScore.score += 0.08;
+  candidateScore.matchedSignals.push("visible-enabled");
+};
+
 function scoreCandidate(candidate: Candidate, input: LocateDomElementInput): ScoredCandidate {
-  const hints = input.requiredText ? [...input.hints, input.requiredText] : input.hints;
-  const matchedSignals: string[] = [];
-  let score = 0;
+  const candidateScore = scoreTextSignals(candidate, input);
+  applyTargetKindScore(candidate, input, candidateScore);
+  applyVisibilityScore(candidate, candidateScore);
 
-  const checks: Array<[string, string | undefined, number]> = [
-    ["role/name", candidate.role || candidate.ariaLabel || candidate.visibleText, 0.28],
-    ["aria-label", candidate.ariaLabel, 0.22],
-    ["label", candidate.labelText, 0.18],
-    ["placeholder", candidate.placeholder, 0.14],
-    ["visible-text", candidate.visibleText, 0.12],
-    ["name-id", [candidate.name, candidate.id].filter(Boolean).join(" "), 0.08],
-    ["test-id", candidate.testId, 0.06],
-    ["nearby-text", candidate.nearbyText, 0.04],
-  ];
-
-  for (const [signal, value, weight] of checks) {
-    if (textMatches(value, hints)) {
-      score += weight;
-      matchedSignals.push(signal);
-    }
-  }
-
-  if (input.targetKind === "search-input" && textMatches(candidate.type, ["search", "text"])) {
-    score += 0.12;
-    matchedSignals.push("input-type");
-  }
-  if (input.targetKind === "order-row" && (candidate.candidateKind === "table-row" || candidate.candidateKind === "role-row")) {
-    score += 0.16;
-    matchedSignals.push("row-kind");
-  }
-  if (input.targetKind === "upload-invoice-entry" && candidate.candidateKind === "clickable") {
-    score += 0.12;
-    matchedSignals.push("clickable-kind");
-  }
-  if (candidate.disabled !== true && !candidate.hidden) {
-    score += 0.08;
-    matchedSignals.push("visible-enabled");
-  }
-
-  return { candidate, score: Math.min(score, 1), matchedSignals, usedCssLastResort: matchedSignals.length <= 1 };
+  return {
+    candidate,
+    score: Math.min(candidateScore.score, 1),
+    matchedSignals: candidateScore.matchedSignals,
+    usedCssLastResort: candidateScore.matchedSignals.length <= 1,
+  };
 }
 
 function buildElementRef(input: LocateDomElementInput, scored: ScoredCandidate): DomElementRef {

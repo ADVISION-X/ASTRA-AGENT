@@ -12,7 +12,7 @@ export function stableJsonHash(payload: unknown): string {
   return "sha256:" + createHash("sha256").update(json, "utf8").digest("hex");
 }
 
-export function sha256Bytes(data: Uint8Array | string): string {
+function sha256Bytes(data: Uint8Array | string): string {
   const buf = typeof data === "string" ? Buffer.from(data, "utf8") : Buffer.from(data);
   return "sha256:" + createHash("sha256").update(buf).digest("hex");
 }

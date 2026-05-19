@@ -1,7 +1,6 @@
 import { localizeCommanderText } from "../locale.js";
 import { escapeHtml, renderCard } from "../render-utils.js";
 import type { CommanderConsoleViewModel } from "../types.js";
-import { canRequestCandidateExport } from "../view-helpers.js";
 
 export function renderResultSummaryCard(viewModel: CommanderConsoleViewModel, options?: {
   title?: string;
@@ -13,7 +12,7 @@ export function renderResultSummaryCard(viewModel: CommanderConsoleViewModel, op
   const browseCount = viewModel.rawSnapshot.runtime.browseRecordCount;
   const failedCount = viewModel.failedRecords.length;
   const reviewCount = viewModel.reviewQueueSummary.pendingCount;
-  const exportAvailable = canRequestCandidateExport(viewModel);
+  const exportAvailable = false;
   const exportButton = exportAvailable
     ? `<button type="button" class="cc-button cc-button-tight" data-export-type="candidate-summary">${escapeHtml(t("导出", "Export"))}</button>`
     : `<button type="button" class="cc-button cc-button-tight" disabled="disabled" title="${escapeHtml(t("当前构建未开放导出请求", "Export requests are unavailable in this build"))}">${escapeHtml(t("导出未开放", "Export Unavailable"))}</button>`;

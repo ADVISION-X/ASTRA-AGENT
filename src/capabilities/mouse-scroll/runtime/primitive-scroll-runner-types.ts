@@ -1,6 +1,6 @@
 import type { MouseScrollAnchor, MouseScrollCoordinateSpace, MouseScrollDelta } from "../contract.js";
 import type { MouseScrollExecutionContext } from "./mouse-scroll-runtime-context.js";
-import type { PrimitiveIterationProof } from "./primitive-scroll-runner-result.js";
+import type { PrimitiveIterationProof } from "./primitive-scroll-runner-result.types.js";
 
 export type RunPrimitiveScrollInput = {
   context: MouseScrollExecutionContext;

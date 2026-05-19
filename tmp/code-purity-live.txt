@@ -1,0 +1,648 @@
+
+[CODE-PURITY][FAIL] hardFails=129 fileCountFails=0
+
+  file: src/app/plugin-task-api-handlers.ts:144
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=44, statements=34, params=4, returns=7, complexity=8, switchCases=0, nesting=3, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/lib/online-ai/gemini-client.ts:63
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=98, statements=31, params=1, returns=1, complexity=8, switchCases=0, nesting=3, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/lib/runtime-logs/sinks.ts:16
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=40, statements=40, params=2, returns=2, complexity=16, switchCases=0, nesting=3, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/core/import-graph.ts:35
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=16, statements=19, params=1, returns=7, complexity=8, switchCases=0, nesting=1, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/core/law-registry.ts:40
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=44, statements=28, params=3, returns=6, complexity=5, switchCases=0, nesting=1, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/core/law-registry.ts:171
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=55, statements=23, params=0, returns=1, complexity=5, switchCases=0, nesting=3, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/law-enforcement/clause-parser.ts:92
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=26, statements=5, params=5, returns=1, complexity=1, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/law-enforcement/clause-parser.ts:119
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=51, statements=33, params=1, returns=2, complexity=5, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/law-enforcement/clause-parser.ts:171
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=42, statements=21, params=2, returns=2, complexity=4, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/law-enforcement/owner-verdicts.ts:147
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=46, statements=35, params=1, returns=1, complexity=9, switchCases=0, nesting=3, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/law-enforcement/source-discovery.ts:86
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=85, statements=33, params=2, returns=1, complexity=7, switchCases=0, nesting=3, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/startup/lib/dependency-check.mjs:54
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=47, statements=18, params=1, returns=1, complexity=3, switchCases=0, nesting=1, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/startup/lib/service-process.mjs:58
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=46, statements=10, params=1, returns=1, complexity=1, switchCases=0, nesting=1, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/ai/runtime/json-extract.ts:13
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=23, statements=34, params=1, returns=1, complexity=10, switchCases=0, nesting=3, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/ai/runtime/model-call.ts:17
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=84, statements=16, params=1, returns=1, complexity=8, switchCases=0, nesting=1, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/dom-automation/runtime/dom-click.ts:28
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=54, statements=20, params=2, returns=4, complexity=6, switchCases=0, nesting=1, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/dom-automation/runtime/dom-fill.ts:29
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=51, statements=17, params=2, returns=4, complexity=5, switchCases=0, nesting=1, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/dom-automation/runtime/dom-snapshot.ts:5
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=91, statements=2, params=2, returns=1, complexity=1, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/dom-automation/runtime/dom-upload.ts:10
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=84, statements=27, params=2, returns=7, complexity=9, switchCases=0, nesting=1, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/dom-automation/runtime/dom-verify.ts:29
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=52, statements=20, params=1, returns=5, complexity=5, switchCases=0, nesting=1, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/forensics-persistence/children/append-artifact.ts:6
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=49, statements=10, params=2, returns=2, complexity=3, switchCases=0, nesting=1, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/forensics-persistence/children/append-record.ts:6
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=49, statements=10, params=2, returns=2, complexity=3, switchCases=0, nesting=1, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/forensics-persistence/children/read-record-ref.ts:6
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=42, statements=10, params=2, returns=2, complexity=3, switchCases=0, nesting=1, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/mouse-scroll/runtime/pre-scroll-safety-gate.ts:200
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=41, statements=13, params=3, returns=4, complexity=4, switchCases=0, nesting=1, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/mouse-scroll/runtime/primitive-scroll-single-iteration.ts:112
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=48, statements=31, params=4, returns=5, complexity=5, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/orchestration/runtime/mission-loop-round.ts:134
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=25, statements=31, params=1, returns=9, complexity=8, switchCases=0, nesting=1, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: src/capabilities/orchestration/runtime/mission-loop-screen.ts:142
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=49, statements=24, params=1, returns=5, complexity=10, switchCases=0, nesting=1, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/audit-system/inspector.ts:13
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=57, statements=13, params=1, returns=1, complexity=7, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-audit-plan.ts:54
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=15, statements=0, params=5, returns=0, complexity=0, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-checks-001-005.ts:7
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=55, statements=52, params=1, returns=1, complexity=16, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-checks-001-005.ts:63
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=35, statements=32, params=1, returns=1, complexity=9, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-checks-006-010.ts:64
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=41, statements=30, params=1, returns=1, complexity=7, switchCases=0, nesting=1, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-checks-006-010.ts:131
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=45, statements=35, params=1, returns=1, complexity=8, switchCases=0, nesting=1, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-enforcement-matrix.ts:55
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=16, statements=0, params=6, returns=0, complexity=0, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/inspector.ts:51
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=73, statements=35, params=0, returns=1, complexity=7, switchCases=0, nesting=4, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/shared/manifest-owner-helper.ts:40
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=7, statements=0, params=5, returns=0, complexity=0, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/audit-system/components/ast-symbol-enforcement.ts:76
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=42, statements=30, params=1, returns=1, complexity=7, switchCases=0, nesting=3, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/audit-system/components/ci-full-coverage.ts:20
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=60, statements=39, params=2, returns=1, complexity=9, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/audit-system/components/owner-manifest-census.ts:21
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=70, statements=63, params=1, returns=1, complexity=15, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/agent-channel-support.ts:21
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=7, statements=0, params=5, returns=0, complexity=0, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/collect-dom-automation-project.ts:126
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=29, statements=28, params=1, returns=7, complexity=8, switchCases=0, nesting=3, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/runtime-contract-support.ts:10
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=7, statements=0, params=5, returns=0, complexity=0, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-acceptance-runtime.ts:14
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, statements=0, params=5, returns=0, complexity=0, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-agent-start-channel-runtime.ts:33
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=28, statements=36, params=1, returns=2, complexity=13, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-agent-start-channel-ui.ts:12
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=45, statements=40, params=1, returns=1, complexity=10, switchCases=0, nesting=3, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-audit-plan-coverage.ts:29
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=64, statements=40, params=1, returns=1, complexity=11, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-catalog-registry.ts:26
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, statements=0, params=5, returns=0, complexity=0, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-catalog-registry.ts:41
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=50, statements=41, params=1, returns=3, complexity=11, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-ci-entry.ts:15
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, statements=0, params=5, returns=0, complexity=0, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-ci-entry.ts:30
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=48, statements=28, params=1, returns=1, complexity=6, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-import-boundaries.ts:21
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, statements=0, params=5, returns=0, complexity=0, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-import-boundaries.ts:58
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=67, statements=40, params=1, returns=1, complexity=11, switchCases=0, nesting=4, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-phase-coverage.ts:12
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, statements=0, params=5, returns=0, complexity=0, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-phase-coverage.ts:27
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=47, statements=31, params=1, returns=1, complexity=8, switchCases=0, nesting=3, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-runtime-contracts-actions.ts:19
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=21, statements=21, params=6, returns=2, complexity=8, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-runtime-contracts-actions.ts:53
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=20, statements=28, params=1, returns=2, complexity=10, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-sensitive-data-anti-escape.ts:44
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, statements=0, params=5, returns=0, complexity=0, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-sensitive-data-anti-escape.ts:88
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=69, statements=30, params=1, returns=1, complexity=9, switchCases=0, nesting=3, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-symbol-boundaries.ts:18
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, statements=0, params=5, returns=0, complexity=0, switchCases=0, nesting=0, ifElseChain=0
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-symbol-boundaries.ts:49
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=56, statements=25, params=1, returns=2, complexity=7, switchCases=0, nesting=2, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/audit/domains/dom-automation/components/validate-symbol-boundaries.ts:106
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=64, statements=31, params=1, returns=1, complexity=8, switchCases=0, nesting=3, ifElseChain=1
+  fixDirection: Split the function into parse, validate, decide, execute, buildResult, proof, or log helpers.
+
+  file: scripts/acceptance/dom-smoke-browser.ts:19
+  rule: CP-AST-013
+  violation: class/object exceeds physical size hard limit: lines=109
+  fixDirection: Split oversized class/object construction into smaller named builders.
+
+  file: scripts/audit/domains/runtime-logging/config.ts:4
+  rule: CP-AST-013
+  violation: class/object exceeds physical size hard limit: lines=100
+  fixDirection: Split oversized class/object construction into smaller named builders.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-binary-constants.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=11
+  fixDirection: Reduce import/export surface or move symbols behind narrow public contracts.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-binary-helpers.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=8, importSources=8, exports=24
+  fixDirection: Reduce import/export surface or move symbols behind narrow public contracts.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-enforcement-matrix.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=12
+  fixDirection: Reduce import/export surface or move symbols behind narrow public contracts.
+
+  file: scripts/audit/domains/dom-automation/components/agent-channel-support.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=4, importSources=4, exports=14
+  fixDirection: Reduce import/export surface or move symbols behind narrow public contracts.
+
+  file: scripts/audit/domains/dom-automation/components/collect-dom-automation-project.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=7, importSources=7, exports=13
+  fixDirection: Reduce import/export surface or move symbols behind narrow public contracts.
+
+  file: scripts/acceptance/amazon-invoice-agent-start-smoke.ts:59
+  rule: CP-AST-007
+  violation: as unknown as laundering is forbidden
+  fixDirection: Remove or replace this pattern; no suppressions allowed.
+
+  file: scripts/acceptance/amazon-invoice-upload-complete-smoke.ts:57
+  rule: CP-AST-007
+  violation: as unknown as laundering is forbidden
+  fixDirection: Remove or replace this pattern; no suppressions allowed.
+
+  file: scripts/audit/law-enforcement/owner-verdicts.ts:107
+  rule: CP-AST-007
+  violation: unmanaged dynamic import escape is forbidden
+  fixDirection: Remove or replace this pattern; no suppressions allowed.
+
+  file: scripts/audit/domains/shared/run-manifest-owner.ts:15
+  rule: CP-AST-007
+  violation: unmanaged dynamic import escape is forbidden
+  fixDirection: Remove or replace this pattern; no suppressions allowed.
+
+  file: scripts/audit/core/ci-full-plan.ts:8
+  rule: CP-AST-015
+  violation: unused export is forbidden: CI_FULL_LAYER_ORDER
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/ci-full-plan.ts:10
+  rule: CP-AST-015
+  violation: unused export is forbidden: CI_FULL_LAYER_EXECUTION
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/ci-full-plan.ts:25
+  rule: CP-AST-015
+  violation: unused export is forbidden: FOUNDATION_STEPS
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/ci-full-plan.ts:61
+  rule: CP-AST-015
+  violation: unused export is forbidden: buildOwnerSteps
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/ci-full-plan.ts:77
+  rule: CP-AST-015
+  violation: unused export is forbidden: getCiFullStepsByLayer
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/ci-full-timeouts.ts:1
+  rule: CP-AST-015
+  violation: unused export is forbidden: QUICK_STEP_TIMEOUT_MS
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/ci-full-timeouts.ts:2
+  rule: CP-AST-015
+  violation: unused export is forbidden: OWNER_STEP_TIMEOUT_MS
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/ci-full-timeouts.ts:3
+  rule: CP-AST-015
+  violation: unused export is forbidden: CODE_PURITY_TIMEOUT_MS
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/ci-full-timeouts.ts:4
+  rule: CP-AST-015
+  violation: unused export is forbidden: ABILITY_GROUP_SAFE_MAX_CONCURRENCY
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/filesystem.ts:11
+  rule: CP-AST-015
+  violation: unused export is forbidden: fileExists
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/filesystem.ts:28
+  rule: CP-AST-015
+  violation: unused export is forbidden: readTextFile
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/filesystem.ts:30
+  rule: CP-AST-015
+  violation: unused export is forbidden: readJsonFile
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/filesystem.ts:35
+  rule: CP-AST-015
+  violation: unused export is forbidden: writeJsonFile
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/filesystem.ts:47
+  rule: CP-AST-015
+  violation: unused export is forbidden: listImmediateFiles
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/filesystem.ts:54
+  rule: CP-AST-015
+  violation: unused export is forbidden: listImmediateDirectories
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/filesystem.ts:132
+  rule: CP-AST-015
+  violation: unused export is forbidden: listFilesRecursive
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/path-roots.ts:6
+  rule: CP-AST-015
+  violation: unused export is forbidden: moduleLawHome
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/path-roots.ts:10
+  rule: CP-AST-015
+  violation: unused export is forbidden: defaultPhaseGatePath
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/result.ts:22
+  rule: CP-AST-015
+  violation: unused export is forbidden: resolveClassification
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/result.ts:65
+  rule: CP-AST-015
+  violation: unused export is forbidden: hasBlockingFindings
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/ts-morph.ts:18
+  rule: CP-AST-015
+  violation: unused export is forbidden: clearAuditProjectCache
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/ts-morph.ts:32
+  rule: CP-AST-015
+  violation: unused export is forbidden: getNodeLine
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/ts-morph.ts:34
+  rule: CP-AST-015
+  violation: unused export is forbidden: toRelativeSourcePath
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/ts-morph.ts:98
+  rule: CP-AST-015
+  violation: unused export is forbidden: getObjectLiteralString
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/core/ts-morph.ts:113
+  rule: CP-AST-015
+  violation: unused export is forbidden: getReferencePaths
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/ai-capability/inspector.ts:8
+  rule: CP-AST-015
+  violation: unused export is forbidden: runAiCapabilityInspector
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/capability-group-governance/inspector.ts:49
+  rule: CP-AST-015
+  violation: unused export is forbidden: runCapabilityGroupGovernanceInspector
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/commander-console-capability/inspector.ts:8
+  rule: CP-AST-015
+  violation: unused export is forbidden: runCommanderConsoleCapabilityInspector
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/forensics-persistence-capability/inspector.ts:8
+  rule: CP-AST-015
+  violation: unused export is forbidden: runForensicsPersistenceCapabilityInspector
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/geometry-guard-capability/inspector.ts:8
+  rule: CP-AST-015
+  violation: unused export is forbidden: runGeometryGuardCapabilityInspector
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/mouse-click-capability/inspector.ts:8
+  rule: CP-AST-015
+  violation: unused export is forbidden: runMouseClickCapabilityInspector
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/mouse-scroll-capability/inspector.ts:8
+  rule: CP-AST-015
+  violation: unused export is forbidden: runMouseScrollCapabilityInspector
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/nerve-bus-capability/inspector.ts:8
+  rule: CP-AST-015
+  violation: unused export is forbidden: runNerveBusCapabilityInspector
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/open-capability/inspector.ts:8
+  rule: CP-AST-015
+  violation: unused export is forbidden: runOpenCapabilityInspector
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/screenshot-capability/inspector.ts:8
+  rule: CP-AST-015
+  violation: unused export is forbidden: runScreenshotCapabilityInspector
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/security-privacy/inspector.ts:8
+  rule: CP-AST-015
+  violation: unused export is forbidden: runSecurityPrivacyInspector
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/text-input-capability/inspector.ts:8
+  rule: CP-AST-015
+  violation: unused export is forbidden: runTextInputCapabilityInspector
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/type-safety/inspector.ts:8
+  rule: CP-AST-015
+  violation: unused export is forbidden: runTypeSafetyInspector
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/dom-automation/components/validate-acceptance-runtime.ts:109
+  rule: CP-AST-015
+  violation: unused export is forbidden: validateAcceptanceRuntime
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/dom-automation/components/validate-agent-start-channel.ts:14
+  rule: CP-AST-015
+  violation: unused export is forbidden: validateAgentStartChannel
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/dom-automation/components/validate-audit-plan-coverage.ts:29
+  rule: CP-AST-015
+  violation: unused export is forbidden: validateAuditPlanCoverage
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/dom-automation/components/validate-catalog-registry.ts:139
+  rule: CP-AST-015
+  violation: unused export is forbidden: validateCatalogRegistry
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/dom-automation/components/validate-ci-entry.ts:30
+  rule: CP-AST-015
+  violation: unused export is forbidden: validateCiEntry
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/dom-automation/components/validate-import-boundaries.ts:162
+  rule: CP-AST-015
+  violation: unused export is forbidden: validateImportBoundaries
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/dom-automation/components/validate-phase-coverage.ts:27
+  rule: CP-AST-015
+  violation: unused export is forbidden: validatePhaseCoverage
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/dom-automation/components/validate-runtime-contracts.ts:20
+  rule: CP-AST-015
+  violation: unused export is forbidden: validateRuntimeContracts
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/dom-automation/components/validate-sensitive-data-anti-escape.ts:224
+  rule: CP-AST-015
+  violation: unused export is forbidden: validateSensitiveDataAntiEscape
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/dom-automation/components/validate-structure.ts:64
+  rule: CP-AST-015
+  violation: unused export is forbidden: validateStructure
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: scripts/audit/domains/dom-automation/components/validate-symbol-boundaries.ts:171
+  rule: CP-AST-015
+  violation: unused export is forbidden: validateSymbolBoundaries
+  fixDirection: Delete the unused export or connect it through an active governed import.
+
+  file: src/capabilities/orchestration/runtime/grid-cell-to-bbox.ts:1
+  rule: CP-AST-016
+  violation: dead file is forbidden: no active import reaches this file
+  fixDirection: Delete the dead file or connect it through an active governed import or entrypoint.
+
+  file: scripts/audit/generated/active-law-census.generated.json:1
+  rule: CP-AST-017
+  violation: manual generated edit is forbidden; regenerate through governed generator path
+  fixDirection: Regenerate through the governed generator path; do not hand-edit generated artifacts.
+
+  file: scripts/audit/generated/audit-system-summary.generated.json:1
+  rule: CP-AST-017
+  violation: manual generated edit is forbidden; regenerate through governed generator path
+  fixDirection: Regenerate through the governed generator path; do not hand-edit generated artifacts.
+
+  file: scripts/audit/generated/owner-inspector-matrix.generated.json:1
+  rule: CP-AST-017
+  violation: manual generated edit is forbidden; regenerate through governed generator path
+  fixDirection: Regenerate through the governed generator path; do not hand-edit generated artifacts.
+
+  file: scripts/audit/generated/quality-kernel-summary.generated.json:1
+  rule: CP-AST-017
+  violation: manual generated edit is forbidden; regenerate through governed generator path
+  fixDirection: Regenerate through the governed generator path; do not hand-edit generated artifacts.
+
+  file: scripts/audit/generated/all-law-enforcement-matrix.generated.json:1
+  rule: CP-AST-017
+  violation: manual generated edit is forbidden; regenerate through governed generator path
+  fixDirection: Regenerate through the governed generator path; do not hand-edit generated artifacts.
+
+  file: scripts/audit/generated/ci-full-summary.generated.json:1
+  rule: CP-AST-017
+  violation: manual generated edit is forbidden; regenerate through governed generator path
+  fixDirection: Regenerate through the governed generator path; do not hand-edit generated artifacts.
+
+  file: scripts/audit/generated/dom-automation-binary-result.generated.json:1
+  rule: CP-AST-017
+  violation: manual generated edit is forbidden; regenerate through governed generator path
+  fixDirection: Regenerate through the governed generator path; do not hand-edit generated artifacts.
+

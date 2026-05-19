@@ -1,8 +1,7 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
 
-import { moduleLawHome } from "./path-roots.js";
-import { toRepoRelativePath } from "./paths.js";
+import { pathFromRepoRoot, toRepoRelativePath } from "./paths.js";
 import type { LawRecord } from "./schema.js";
 
 type LawRegistryViolation = {
@@ -23,7 +22,7 @@ type MutableLawRecord = {
   sourceKind: LawRecord["sourceKind"];
 };
 
-const FILE_DOMAIN_FALLBACKS: Record<string, string> = {
+const FILE_DOMAIN_DEFAULTS: Record<string, string> = {
   "module-code-purity.instructions.md": "code-purity",
   "module-RuntimeLogSpine.instructions.md": "runtime-logging",
 };
@@ -47,7 +46,7 @@ const buildLawRecord = (
   const lawId = normalizeValue(raw.lawId);
   const status = normalizeValue(raw.status);
   if (status !== "active") return undefined;
-  const capabilityDomain = normalizeValue(raw.capabilityDomain) ?? FILE_DOMAIN_FALLBACKS[fileName];
+  const capabilityDomain = normalizeValue(raw.capabilityDomain) ?? FILE_DOMAIN_DEFAULTS[fileName];
   const tier = normalizeValue(raw.tier);
   const enforcementMode = normalizeValue(raw.enforcementMode);
   const evidenceMode = normalizeValue(raw.evidenceMode) ?? DEFAULT_EVIDENCE_MODE;
@@ -173,10 +172,24 @@ export const loadActiveLawRegistry = (): {
   laws: LawRecord[];
   violations: LawRegistryViolation[];
   filesScanned: number;
+  scannedFiles: string[];
 } => {
-  const files = readdirSync(moduleLawHome)
-    .filter((fileName) => fileName.endsWith(".instructions.md"))
-    .map((fileName) => join(moduleLawHome, fileName))
+  const walkInstructionFiles = (dirPath: string, acc: string[] = []): string[] => {
+    if (!existsSync(dirPath)) return acc;
+    for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
+      const nextPath = join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        walkInstructionFiles(nextPath, acc);
+        continue;
+      }
+      if (entry.isFile() && entry.name.endsWith(".instructions.md")) {
+        acc.push(nextPath);
+      }
+    }
+    return acc;
+  };
+
+  const files = walkInstructionFiles(pathFromRepoRoot(".github/instructions"))
     .sort((left, right) => left.localeCompare(right));
   const laws: LawRecord[] = [];
   const violations: LawRegistryViolation[] = [];
@@ -203,6 +216,10 @@ export const loadActiveLawRegistry = (): {
     }
     lawOwnership.set(law.lawId, law.capabilityDomain);
   }
-
-  return { laws, violations, filesScanned: files.length };
+  return {
+    laws,
+    violations,
+    filesScanned: files.length,
+    scannedFiles: files.map((filePath) => toLawFilePath(filePath)),
+  };
 };

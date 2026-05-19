@@ -5,7 +5,6 @@ import { escapeHtml, renderCard } from "../render-utils.js";
 import type { CommanderConsoleViewModel } from "../types.js";
 import { renderPageHeader } from "../layout/PageHeader.js";
 import { renderResultSummaryCard } from "../modules/ResultSummaryCard.js";
-import { canRequestCandidateExport } from "../view-helpers.js";
 
 function renderTabButtons(groupId: string, tabs: Array<{ id: string; label: string }>): string {
   return `<div class="cc-tab-strip" data-tab-group="${escapeHtml(groupId)}">${tabs.map((tab, index) => `<button type="button" class="cc-tab-button${index === 0 ? " is-active" : ""}" data-tab-button="${escapeHtml(tab.id)}">${escapeHtml(tab.label)}</button>`).join("")}</div>`;
@@ -55,7 +54,7 @@ function renderResultsTabPanel(viewModel: CommanderConsoleViewModel, tabId: stri
 
 export function renderResultsPage(viewModel: CommanderConsoleViewModel, appViewModel: CommanderAppViewModel): string {
   const t = (zh: string, en: string) => localizeCommanderText(viewModel.locale, zh, en);
-  const exportAvailable = canRequestCandidateExport(viewModel);
+  const exportAvailable = false;
   const resultsTabs = appViewModel.tabGroups.find((group) => group.groupId === "results");
   const tabs = resultsTabs?.options ?? [];
 

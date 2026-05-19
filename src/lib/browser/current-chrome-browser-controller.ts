@@ -1,260 +1,28 @@
-import type { LocalBrowserSessionConfig } from "../../types/local-browser-session.js";
-import { createInitialLocalBrowserSessionState } from "./local-browser-session.js";
 import type {
-  BrowserActionResult,
-  BrowserCaptureResult,
-  BrowserClickCoordinateSpace,
   BrowserTextInputAction,
-  BrowserTextInputKey,
-  BrowserController,
-  BrowserGeometrySnapshot,
-  BrowserScrollCoordinateSpace,
-  BrowserStateSnapshot,
 } from "./browser-controller.js";
-import { createId } from "../local-runtime/ids.js";
 import {
-  activateChrome,
-  buildOpenUrlScript,
-  escapeAppleScriptText,
-  clickAt,
-  pressBrowserKey,
-  readFrontChromeWindowState,
-  runAppleScript,
-  scrollAt,
-} from "./current-chrome-browser-controller-primitives.js";
-import { createCurrentChromeBrowserActionResult } from "./current-chrome-browser-action-result.js";
-import { emitCurrentChromeMouseClickProbe } from "./current-chrome-browser-click-probe.js";
-import {
-  createZeroScrollMessage,
-  resolveCurrentChromeScrollPlan,
-} from "./current-chrome-browser-scroll-support.js";
-import { captureCurrentChromeScreenshot } from "./current-chrome-browser-screenshot.js";
-import { executeCurrentChromeTextInput } from "./current-chrome-browser-text-input.js";
-
-type CurrentChromeBrowserControllerOptions = {
-  sessionConfig: LocalBrowserSessionConfig;
-  screenshotDir: string;
-  headlessRequested?: boolean;
-};
+  createCurrentChromeBrowserControllerRuntime,
+  type CurrentChromeBrowserControllerOptions,
+} from "./current-chrome-browser-controller-runtime.js";
 
 export class CurrentChromeBrowserController implements BrowserController {
-  private snapshot: BrowserStateSnapshot;
-  private lastWindowState: Awaited<ReturnType<typeof readFrontChromeWindowState>> | null = null;
+  private readonly runtime: BrowserController;
 
   constructor(private readonly options: CurrentChromeBrowserControllerOptions) {
-    if (options.headlessRequested === true) {
-      throw new Error("Real-platform mode forbids headless browser launch; use the current local Chrome session instead.");
-    }
-
-    this.snapshot = {
-      ...createInitialLocalBrowserSessionState(options.sessionConfig),
-      profileStatus: "profile_ready",
-      profileVerificationStatus: "operator_verified",
-      profileVerificationReason: "current local Chrome session reused as the governed real-platform browser",
-      open: false,
-      currentUrl: "about:blank",
-      currentTitle: "Google Chrome",
-      browserExecutable: options.sessionConfig.chromeExecutablePath,
-    };
+    this.runtime = createCurrentChromeBrowserControllerRuntime(options);
   }
 
-  getHealth(): { ok: boolean; detail: string } {
-    return {
-      ok: true,
-      detail: this.snapshot.open
-        ? `current Chrome session active on ${this.snapshot.currentUrl}`
-        : `current Chrome session ready for ${this.snapshot.browserProfileRef}`,
-    };
-  }
-
-  getSessionState(): BrowserStateSnapshot {
-    return { ...this.snapshot };
-  }
-
-  async getGeometrySnapshot(): Promise<BrowserGeometrySnapshot> {
-    const state = await this.refreshSnapshot();
-
-    let scaleFactor = 1;
-    const visibleContentBounds = { x: 0, y: 0, width: state.width, height: state.height };
-
-    try {
-      const jsSnippet = "JSON.stringify({dpr:window.devicePixelRatio||1})";
-      const raw = await runAppleScript(`tell application "Google Chrome" to execute front window's active tab javascript "${jsSnippet}"`);
-      const vp = JSON.parse(raw) as { dpr: number };
-      scaleFactor = vp.dpr;
-    } catch {
-      // If DPR cannot be read, keep full-window geometry and assume scale=1.
-    }
-
-    return {
-      windowX: state.windowX,
-      windowY: state.windowY,
-      viewportWidth: visibleContentBounds.width,
-      viewportHeight: visibleContentBounds.height,
-      screenshotWidth: Math.round(visibleContentBounds.width * scaleFactor),
-      screenshotHeight: Math.round(visibleContentBounds.height * scaleFactor),
-      scaleFactor,
-      currentUrl: state.currentUrl,
-      pageTitle: state.currentTitle,
-      visibleContentBounds,
-      capturedAt: new Date().toISOString(),
-    };
-  }
-
-  async open(input: { url: string; title: string }): Promise<BrowserActionResult> {
-    await runAppleScript(buildOpenUrlScript(input.url));
-    await this.refreshSnapshot();
-    return createCurrentChromeBrowserActionResult({ message: `opened ${input.url} in current Chrome session` });
-  }
-
-  async scroll(input: { targetLabel: string; deltaX: number; deltaY: number; coordinateSpace?: BrowserScrollCoordinateSpace; anchorPoint?: { x: number; y: number }; abortSignal?: AbortSignal }): Promise<BrowserActionResult> {
-    const geometry = this.lastWindowState ?? await this.refreshSnapshot();
-    const scrollPlan = resolveCurrentChromeScrollPlan(input, geometry);
-    if (!scrollPlan) {
-      return createCurrentChromeBrowserActionResult({
-        message: createZeroScrollMessage(input.targetLabel),
-        ok: false,
-      });
-    }
-
-    await activateChrome(input.abortSignal);
-    await scrollAt({
-      x: Math.round(scrollPlan.scrollX),
-      y: Math.round(scrollPlan.scrollY),
-      deltaX: input.deltaX,
-      deltaY: input.deltaY,
-      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-    });
-
-    await this.refreshSnapshot();
-    return createCurrentChromeBrowserActionResult({
-      message: `scrolled ${input.targetLabel} dx=${input.deltaX} dy=${input.deltaY}; browser scroll settle observed`,
-    });
-  }
-
-  async click(input: { targetLabel: string; point: { x: number; y: number }; coordinateSpace?: BrowserClickCoordinateSpace; button?: "left" | "right" | "middle"; clickCount?: 1 | 2 }): Promise<BrowserActionResult> {
-    const geometry = await this.getGeometrySnapshot();
-    await activateChrome();
-    const coordinateSpace = input.coordinateSpace ?? "browserViewport";
-    const clickX = coordinateSpace === "desktopScreen" ? input.point.x : geometry.windowX + geometry.visibleContentBounds.x + (input.point.x / geometry.scaleFactor);
-    const clickY = coordinateSpace === "desktopScreen" ? input.point.y : geometry.windowY + geometry.visibleContentBounds.y + (input.point.y / geometry.scaleFactor);
-    await emitCurrentChromeMouseClickProbe({
-      screenshotDir: this.options.screenshotDir,
-      targetLabel: input.targetLabel,
-      coordinateSpace,
-      inputPoint: input.point,
-      computedDesktopPoint: {
-        x: Math.round(clickX),
-        y: Math.round(clickY),
-      },
-      geometry: {
-        windowX: geometry.windowX,
-        windowY: geometry.windowY,
-        viewportWidth: geometry.viewportWidth,
-        viewportHeight: geometry.viewportHeight,
-        visibleContentBounds: geometry.visibleContentBounds,
-      },
-    });
-    await clickAt(Math.round(clickX), Math.round(clickY), input.button ?? "left", input.clickCount ?? 1);
-    await this.refreshSnapshot();
-    return createCurrentChromeBrowserActionResult({ message: `clicked ${input.targetLabel}` });
-  }
-
-  async textInput(input: { targetLabel: string; action: BrowserTextInputAction; text?: string | null; key?: BrowserTextInputKey | null; abortSignal?: AbortSignal }): Promise<BrowserActionResult> {
-    const result = await executeCurrentChromeTextInput(input, () => createId("browser"));
-    await this.refreshSnapshot();
-    return result;
-  }
-
-  async screenshotRegion(input: { regionLabel: string; contentLines?: string[]; captureProfile?: "default" | "observation_lightweight"; abortSignal?: AbortSignal }): Promise<BrowserCaptureResult> {
-    const geometry = await this.getGeometrySnapshot();
-    const screenshot = await captureCurrentChromeScreenshot({
-      screenshotDir: this.options.screenshotDir,
-      geometry,
-      regionLabel: input.regionLabel,
-      allowFullscreenRetry: input.captureProfile !== "observation_lightweight",
-      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-    });
-    await this.refreshSnapshot();
-
-    return {
-      browserActionId: createId("browser"),
-      pageUrl: this.snapshot.currentUrl,
-      pageTitle: this.snapshot.currentTitle,
-      regionLabel: input.regionLabel,
-      regionType: "viewport",
-      width: screenshot.dimensions.width,
-      height: screenshot.dimensions.height,
-      viewportWidth: geometry.viewportWidth,
-      viewportHeight: geometry.viewportHeight,
-      ...(input.contentLines ? { contentLines: input.contentLines } : {}),
-      sourceFilePath: screenshot.screenshotPath,
-      createdAt: new Date().toISOString(),
-    };
-  }
-
-  async evaluateActiveTab<T>(input: { script: string; description: string; abortSignal?: AbortSignal }): Promise<T> {
-    const forbiddenStorageReads = /\bdocument\.cookie\b|\blocalStorage\b|\bsessionStorage\b|\bouterHTML\b|\bdocument\.documentElement\.innerHTML\b/iu;
-    if (forbiddenStorageReads.test(input.script)) {
-      throw new Error(`Active-tab evaluation "${input.description}" is forbidden from reading browser storage or cookies.`);
-    }
-    const wrappedScript = `
-(async () => {
-  const result = await (async () => {
-${input.script}
-  })();
-  return JSON.stringify(result ?? null);
-})()
-`;
-    const raw = await runAppleScript(
-      `tell application "Google Chrome" to execute front window's active tab javascript "${escapeAppleScriptText(wrappedScript)}"`,
-      input.abortSignal ? { signal: input.abortSignal } : undefined,
-    );
-    await this.refreshSnapshot();
-    return JSON.parse(raw) as T;
-  }
-
-  async wait(durationMs: number): Promise<BrowserActionResult> {
-    await this.sleep(durationMs);
-    await this.refreshSnapshot();
-    return createCurrentChromeBrowserActionResult({ message: `waited ${durationMs}ms` });
-  }
-
-  async close(): Promise<BrowserActionResult> {
-    await this.refreshSnapshot().catch(() => undefined);
-    return createCurrentChromeBrowserActionResult({ message: "left current Chrome session open for the operator" });
-  }
-
-  private async sleep(durationMs: number, abortSignal?: AbortSignal): Promise<void> {
-    if (abortSignal?.aborted) {
-      throw new Error("browser wait aborted before observable condition polling.");
-    }
-    await new Promise<void>((resolve, reject) => {
-      const handle = setTimeout(resolve, durationMs);
-      const abortHandler = () => {
-        clearTimeout(handle);
-        reject(new Error("browser wait aborted during observable condition polling."));
-      };
-      abortSignal?.addEventListener("abort", abortHandler, { once: true });
-    });
-  }
-
-  private async refreshSnapshot() {
-    const state = await readFrontChromeWindowState();
-    this.lastWindowState = state;
-    this.snapshot = {
-      ...this.snapshot,
-      profileVerificationStatus: "operator_verified",
-      profileVerificationReason: "current local Chrome session reused as the governed real-platform browser",
-      open: true,
-      currentUrl: state.currentUrl,
-      currentTitle: state.currentTitle,
-      loginState: "unknown",
-      profileStatus: "profile_ready",
-      loginRequiredReason: null,
-      reviewRequiredReason: null,
-      lastLoginCheckAt: new Date().toISOString(),
-    };
-    return state;
-  }
+  getHealth() { return this.runtime.getHealth(); }
+  getSessionState() { return this.runtime.getSessionState(); }
+  getGeometrySnapshot() { return this.runtime.getGeometrySnapshot(); }
+  open(input: Parameters<BrowserController["open"]>[0]) { return this.runtime.open(input); }
+  scroll(input: Parameters<BrowserController["scroll"]>[0]) { return this.runtime.scroll(input); }
+  click(input: Parameters<BrowserController["click"]>[0]) { return this.runtime.click(input); }
+  textInput(input: Parameters<BrowserController["textInput"]>[0]) { return this.runtime.textInput(input); }
+  screenshotRegion(input: Parameters<BrowserController["screenshotRegion"]>[0]) { return this.runtime.screenshotRegion(input); }
+  evaluateActiveTab<T>(input: { script: string; description: string; abortSignal?: AbortSignal }) { return this.runtime.evaluateActiveTab<T>(input); }
+  setFileInputFiles(input: Parameters<BrowserController["setFileInputFiles"]>[0]) { return this.runtime.setFileInputFiles(input); }
+  wait(durationMs: number) { return this.runtime.wait(durationMs); }
+  close() { return this.runtime.close(); }
 }

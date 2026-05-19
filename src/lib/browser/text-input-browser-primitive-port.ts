@@ -35,44 +35,36 @@ function buildFailure(ref: string, startedAt: string, error: unknown): TextInput
   };
 }
 
+async function runBrowserPrimitive(
+  abortSignal: AbortSignal | undefined,
+  action: () => Promise<void>,
+): Promise<TextInputPrimitiveResult> {
+  const ref = buildRef();
+  const startedAt = new Date().toISOString();
+  try {
+    await activateChrome(abortSignal);
+    await action();
+    return buildSuccess(ref, startedAt);
+  } catch (error) {
+    return buildFailure(ref, startedAt, error);
+  }
+}
+
 export function createBrowserTextInputPrimitivePort(): TextInputPrimitivePort {
   return {
     async typeText(input) {
-      const ref = buildRef();
-      const startedAt = new Date().toISOString();
-      try {
-        await activateChrome(input.abortSignal);
-        await keystrokeBrowserText(input.text, input.abortSignal);
-        return buildSuccess(ref, startedAt);
-      } catch (error) {
-        return buildFailure(ref, startedAt, error);
-      }
+      return runBrowserPrimitive(input.abortSignal, () =>
+        keystrokeBrowserText(input.text, input.abortSignal));
     },
-
     async pressKey(input) {
-      const ref = buildRef();
-      const startedAt = new Date().toISOString();
-      try {
-        await activateChrome(input.abortSignal);
-        // BrowserTextInputKey matches our approved key allowlist for common keys
-        await pressNamedBrowserKey(input.key as Parameters<typeof pressNamedBrowserKey>[0], input.abortSignal);
-        return buildSuccess(ref, startedAt);
-      } catch (error) {
-        return buildFailure(ref, startedAt, error);
-      }
+      return runBrowserPrimitive(input.abortSignal, () =>
+        pressNamedBrowserKey(input.key as Parameters<typeof pressNamedBrowserKey>[0], input.abortSignal));
     },
-
     async clearFocusedInput(input) {
-      const ref = buildRef();
-      const startedAt = new Date().toISOString();
-      try {
-        await activateChrome(input.abortSignal);
+      return runBrowserPrimitive(input.abortSignal, async () => {
         await selectAllBrowserText(input.abortSignal);
         await pressNamedBrowserKey("Backspace", input.abortSignal);
-        return buildSuccess(ref, startedAt);
-      } catch (error) {
-        return buildFailure(ref, startedAt, error);
-      }
+      });
     },
   };
 }

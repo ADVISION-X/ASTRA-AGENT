@@ -157,7 +157,12 @@ export const commanderConsoleStylesTail = `.cc-page { min-height: 100%; display:
 .cc-task-template-input { position: absolute; opacity: 0; pointer-events: none; }
 .cc-run-limit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cc-space-3); }
 .cc-field { display: grid; gap: 6px; }
-.cc-field input { width: 100%; min-width: 0; height: var(--cc-input-height); border: 1px solid var(--cc-border-strong); border-radius: 12px; background: rgba(255, 255, 255, 0.92); padding: 0 var(--cc-space-3); color: var(--cc-ink); font: 600 var(--cc-text-md)/1 var(--cc-font-ui); }
+.cc-field input, .cc-field select { width: 100%; min-width: 0; height: var(--cc-input-height); border: 1px solid var(--cc-border-strong); border-radius: 12px; background: rgba(255, 255, 255, 0.92); padding: 0 var(--cc-space-3); color: var(--cc-ink); font: 600 var(--cc-text-md)/1 var(--cc-font-ui); }
+.cc-amazon-upload-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr); gap: var(--cc-card-gap); align-items: start; }
+.cc-amazon-form, .cc-amazon-result-stack, .cc-amazon-result-card { display: grid; gap: var(--cc-space-3); }
+.cc-amazon-note-list { margin: 0; padding-left: 18px; display: grid; gap: var(--cc-space-2); color: var(--cc-muted); font-size: var(--cc-text-sm); line-height: var(--cc-line-md); }
+.cc-checkbox-row { display: flex; gap: var(--cc-space-2); align-items: start; color: var(--cc-muted); font-size: var(--cc-text-sm); line-height: var(--cc-line-md); }
+.cc-checkbox-row input { margin-top: 3px; }
 .cc-home-start-row, .cc-inline-actions { display: flex; flex-wrap: wrap; gap: var(--cc-space-2); }
 .cc-home-start-row { justify-content: flex-start; align-items: center; }
 .cc-button, .cc-inline-button, .cc-icon-button {
@@ -243,6 +248,7 @@ export const commanderConsoleStylesTail = `.cc-page { min-height: 100%; display:
   .cc-runtime-strip-items { justify-content: flex-start; }
   .cc-home-grid { min-height: auto; }
   .cc-start-console { grid-template-columns: 1fr; height: auto; }
+  .cc-amazon-upload-grid { grid-template-columns: 1fr; }
   .cc-start-library { max-height: 62vh; }
   .cc-template-list-scroll { max-height: 34vh; }
   .cc-right-inspector-shell { inset: 0; }

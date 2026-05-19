@@ -5,6 +5,7 @@ import type { Finding } from "../../../core/schema.js";
 import {
   getSourceFileAtRepoPath,
   hasIdentifierCall,
+  objectLiteralPropertyNames,
   buildValidationResult,
   type DomAutomationAuditProject,
   type DomAutomationValidationResult,
@@ -51,10 +52,12 @@ const validateDomAutomationAcceptance = (
       findings.push(acceptanceFinding("GRASSEYE-DOM-010-V1", repoPath, 1, `DOM acceptance runtime does not call ${callName}`, "Exercise every governed DOM ability in the acceptance runtime."));
     }
   }
-  const handBuiltSnapshot = sourceFile.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression).some((objectLiteral) => {
-    const text = objectLiteral.getText();
-    return text.includes("forms") && text.includes("inputs") && text.includes("buttons") && text.includes("links") && text.includes("fileInputs") && text.includes("detectedStates");
-  });
+  const snapshotFields = ["forms", "inputs", "buttons", "links", "fileInputs", "detectedStates"];
+  const handBuiltSnapshot = sourceFile.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression)
+    .some((objectLiteral) => {
+      const propertyNames = objectLiteralPropertyNames(objectLiteral);
+      return snapshotFields.every((field) => propertyNames.includes(field));
+    });
   if (handBuiltSnapshot) {
     findings.push(acceptanceFinding("GRASSEYE-DOM-010-V1", repoPath, 1, "DOM acceptance runtime hand-builds a DomSnapshot instead of reading the page", "Use readDomSnapshotOnce against a real page instead of fixed snapshots."));
   }
@@ -70,8 +73,8 @@ const validateAmazonAcceptance = (
     return [acceptanceFinding("GRASSEYE-DOM-010-V1", repoPath, 1, "Amazon acceptance smoke file is missing", "Restore the Amazon invoice upload smoke command." )];
   }
   const findings: Finding[] = [];
-  if (!hasIdentifierCall(sourceFile, "runAmazonInvoiceUploadPhaseOne")) {
-    findings.push(acceptanceFinding("GRASSEYE-DOM-010-V1", repoPath, 1, "Amazon acceptance runtime does not call runAmazonInvoiceUploadPhaseOne", "Exercise the plugin entrypoint in Amazon dry-run acceptance."));
+  if (!hasIdentifierCall(sourceFile, "runAmazonInvoiceUpload")) {
+    findings.push(acceptanceFinding("GRASSEYE-DOM-010-V1", repoPath, 1, "Amazon acceptance runtime does not call runAmazonInvoiceUpload", "Exercise the complete plugin entrypoint in Amazon dry-run acceptance."));
   }
   if (!hasIdentifierCall(sourceFile, "pathToFileURL")) {
     findings.push(acceptanceFinding("GRASSEYE-DOM-010-V1", repoPath, 1, "Amazon acceptance runtime does not prove local dry-run URL usage", "Keep Amazon acceptance on a local file URL fixture instead of a real Amazon host."));
@@ -83,12 +86,33 @@ const validateAmazonAcceptance = (
   return findings;
 };
 
+const validateAmazonCompleteAcceptance = (
+  auditProject: DomAutomationAuditProject,
+): Finding[] => {
+  const repoPath = "scripts/acceptance/amazon-invoice-upload-complete-smoke.ts";
+  const sourceFile = getSourceFileAtRepoPath(auditProject.project, repoPath);
+  if (!sourceFile) {
+    return [acceptanceFinding("GRASSEYE-DOM-010-V1", repoPath, 1, "Amazon complete acceptance smoke file is missing", "Add the complete multipart upload smoke to prove API-to-plugin closure." )];
+  }
+  const findings: Finding[] = [];
+  for (const callName of ["FormData", "fetch", "startAmazonInvoiceUploadTask", "getAmazonInvoiceUploadTaskStatus"]) {
+    if (!hasIdentifierCall(sourceFile, callName) && !sourceFile.getText().includes(callName)) {
+      findings.push(acceptanceFinding("GRASSEYE-DOM-010-V1", repoPath, 1, `Amazon complete acceptance does not exercise ${callName}`, "Prove multipart API receipt, approved-file save, task execution, and status readback."));
+    }
+  }
+  if (!sourceFile.getText().includes("upload_success")) {
+    findings.push(acceptanceFinding("GRASSEYE-DOM-010-V1", repoPath, 1, "Amazon complete acceptance does not assert upload_success", "Complete smoke must fail unless the task returns upload_success."));
+  }
+  return findings;
+};
+
 export const validateAcceptanceRuntime = (
   auditProject: DomAutomationAuditProject,
 ): DomAutomationValidationResult => {
   const findings = [
     ...validateDomAutomationAcceptance(auditProject),
     ...validateAmazonAcceptance(auditProject),
+    ...validateAmazonCompleteAcceptance(auditProject),
   ];
   return buildValidationResult({
     name: "acceptance-runtime",
@@ -97,7 +121,7 @@ export const validateAcceptanceRuntime = (
       "BLUEPRINT-10",
       "GRASSEYE-DOM-010-V1",
     ],
-    passSummary: "acceptance runtime files exercise real DOM fixtures and the Amazon phase-one dry-run boundary.",
+    passSummary: "acceptance runtime files exercise real DOM fixtures and complete Amazon multipart upload closure.",
     failSummary: "acceptance runtime coverage is incomplete or not real-browser based.",
     failureClassification: "ENFORCEMENT GAP",
   });

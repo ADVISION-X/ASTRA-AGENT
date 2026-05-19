@@ -85,7 +85,7 @@ export const DOM_AUTOMATION_CATALOG_ENTRIES: RegisteredAtomicAbility[] = [
     actionCode: "UPLOAD_APPROVED_FILE_ONCE",
     type: "atomic",
     displayName: "Upload Approved File Once",
-    description: "Validate a task-approved PDF upload request; phase one stops before setting files.",
+    description: "Validate and set a task-approved PDF on a located file input.",
     abilityGroupId: "dom-automation",
     childCapabilityId: "upload-approved-file-once",
     inputSchemaRef: "dom-automation.upload-approved-file-once.input",

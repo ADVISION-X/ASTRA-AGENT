@@ -25,6 +25,8 @@
 
     "acceptance:delivery-smoke": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/delivery-smoke.mjs",
     "acceptance:dom-automation-smoke": "node --import tsx scripts/acceptance/dom-automation-smoke.ts",
+    "acceptance:amazon-invoice-agent-start-smoke": "node --import tsx scripts/acceptance/amazon-invoice-agent-start-smoke.ts",
+    "acceptance:amazon-invoice-upload-complete-smoke": "node --import tsx scripts/acceptance/amazon-invoice-upload-complete-smoke.ts",
     "acceptance:amazon-invoice-upload-smoke": "node --import tsx scripts/acceptance/amazon-invoice-upload-smoke.ts",
 
     "lint": "npm run typecheck"

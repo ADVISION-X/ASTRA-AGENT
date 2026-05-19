@@ -141,7 +141,6 @@ export const DomActionStatusSchema = z.enum([
   "not_found",
   "ambiguous",
   "review_required",
-  "not_implemented",
 ]);
 
 export const DomActionResultSchema = z.object({

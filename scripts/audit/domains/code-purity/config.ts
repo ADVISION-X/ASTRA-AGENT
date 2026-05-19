@@ -4,7 +4,7 @@
 
 export const CODE_PURITY_CONFIG = {
   // Production dirs to scan for purity violations.
-  purityScanDirs: ["src", "scripts/audit"] as string[],
+  purityScanDirs: ["src", "scripts"] as string[],
 
   // Paths excluded from purity scan (archives, generated, docs).
   allowedArchivePaths: ["归档", "prototypes", "archive", "generated"] as string[],

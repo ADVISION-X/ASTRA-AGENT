@@ -54,10 +54,10 @@ try {
   const uploadEntry = locateDomElementOnce({ snapshot: latest, targetKind: "upload-invoice-entry", hints: ["upload invoice"] });
   const verify = verifyDomStateOnce({ snapshot: latest, expectedStates: ["invoice-upload-entry-visible"], successHints: ["invoice upload entry visible"], failureHints: [] });
   const waited = await waitForDomStateOnce(browser, { expectedStates: ["invoice-upload-entry-visible"], successHints: ["invoice upload entry visible"], failureHints: [], timeoutMs: 600, pollIntervalMs: 100 });
-  const upload = uploadApprovedFileOnce({ elementRef: fileInput, approvedFilePath: pdfPath, approvedTaskFilePath: pdfPath, allowedExtensions: [".pdf"], uploadPurpose: "approved-pdf-upload" });
+  const upload = await uploadApprovedFileOnce(browser, { elementRef: fileInput, approvedFilePath: pdfPath, approvedTaskFilePath: pdfPath, allowedExtensions: [".pdf"], uploadPurpose: "approved-pdf-upload" });
 
   const evidenceOk = Boolean(fill.beforeEvidenceRef && fill.afterEvidenceRef && click.beforeEvidenceRef && click.afterEvidenceRef);
-  if (!fill.ok || !click.ok || verify.status !== "success" || waited.status !== "success" || upload.status !== "not_implemented" || !evidenceOk || !orderRow.selector || !uploadEntry.selector) {
+  if (!fill.ok || !click.ok || verify.status !== "success" || waited.status !== "success" || upload.status !== "success" || !evidenceOk || !orderRow.selector || !uploadEntry.selector) {
     process.stdout.write("[DOM-AUTOMATION-SMOKE][FAIL] real DOM flow did not reach expected governed states\n");
     process.exit(1);
   }

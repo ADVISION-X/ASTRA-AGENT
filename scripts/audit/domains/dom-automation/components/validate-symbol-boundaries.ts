@@ -55,15 +55,20 @@ const validatePluginFacadeCalls = (
     return [symbolFinding("GRASSEYE-DOM-008-V1", repoPath, 1, "Amazon phase-one flow is missing", "Restore the plugin flow and call the DOM facade from it." )];
   }
   const findings: Finding[] = [];
+  const pluginFiles = auditProject.sourceFiles.plugin;
   const requiredCalls = [
     "readDomSnapshotOnce",
     "locateDomElementOnce",
     "fillDomElementOnce",
     "clickDomElementOnce",
     "verifyDomStateOnce",
+    "uploadApprovedFileOnce",
+    "waitForDomStateOnce",
   ] as const;
   for (const callName of requiredCalls) {
-    const importDeclaration = findNamedImport(sourceFile, callName);
+    const importDeclaration = pluginFiles
+      .map((pluginFile) => findNamedImport(pluginFile, callName))
+      .find((item) => item !== null);
     const targetPath = importDeclaration ? resolveModuleTargetPath(importDeclaration) : null;
     if (targetPath !== DOM_FACADE_PATH) {
       findings.push(symbolFinding(
@@ -74,7 +79,7 @@ const validatePluginFacadeCalls = (
         "Amazon plugin must bind its DOM calls through src/capabilities/dom-automation/index.ts only.",
       ));
     }
-    if (!hasIdentifierCall(sourceFile, callName)) {
+    if (!pluginFiles.some((pluginFile) => hasIdentifierCall(pluginFile, callName))) {
       findings.push(symbolFinding(
         "GRASSEYE-DOM-008-V1",
         repoPath,
@@ -114,6 +119,15 @@ const validateBrowserControllerSymbolProof = (
       "Expose evaluateActiveTab on the governed BrowserController contract.",
     ));
   }
+  if (!browserControllerInterface?.getMethod("setFileInputFiles")) {
+    findings.push(symbolFinding(
+      "GRASSEYE-DOM-006-V1",
+      BROWSER_CONTROLLER_PATH,
+      1,
+      "BrowserController interface is missing setFileInputFiles",
+      "Expose a governed file-input upload port on the BrowserController contract.",
+    ));
+  }
   const currentChromeClass = currentChromeFile?.getClass("CurrentChromeBrowserController");
   if (!currentChromeClass?.getMethod("evaluateActiveTab")) {
     findings.push(symbolFinding(
@@ -122,6 +136,15 @@ const validateBrowserControllerSymbolProof = (
       1,
       "CurrentChromeBrowserController does not implement evaluateActiveTab",
       "Keep DOM execution inside the single browser owner implementation.",
+    ));
+  }
+  if (!currentChromeClass?.getMethod("setFileInputFiles")) {
+    findings.push(symbolFinding(
+      "GRASSEYE-DOM-006-V1",
+      "src/lib/browser/current-chrome-browser-controller.ts",
+      1,
+      "CurrentChromeBrowserController does not implement setFileInputFiles",
+      "Keep real file upload inside the single browser owner implementation.",
     ));
   }
   for (const sourceFile of auditProject.project.getSourceFiles("src/**/*.ts")) {
@@ -167,7 +190,7 @@ export const validateSymbolBoundaries = (
       "BLUEPRINT-06",
       "BLUEPRINT-12",
     ],
-    passSummary: "symbol and contract proofs bind plugin orchestration to the DOM facade and DOM runtime to BrowserController.evaluateActiveTab.",
+    passSummary: "symbol and contract proofs bind plugin orchestration to the DOM facade and DOM runtime to BrowserController evaluate/upload ports.",
     failSummary: "symbol-level DOM boundary proof is incomplete.",
   });
 };

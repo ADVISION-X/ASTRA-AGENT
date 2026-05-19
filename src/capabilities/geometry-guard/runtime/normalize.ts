@@ -1,4 +1,8 @@
-import type { GeometryGuardPoint, GeometryGuardBoundingBox, GeometryGuardSize } from "../contract.js";
+import type {
+  GeometryGuardBoundingBox,
+  GeometryGuardPoint,
+  GeometryGuardSize,
+} from "../geometry-types.js";
 
 // ── Grid cell / bbox normalization ────────────────────────────────────────────
 

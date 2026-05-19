@@ -31,13 +31,20 @@ const DOM_REQUIRED_PATHS = [
 const PLUGIN_REQUIRED_PATHS = [
   "src/plugins/amazon-invoice-upload/index.ts",
   "src/plugins/amazon-invoice-upload/mission.schema.ts",
+  "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts",
   "src/plugins/amazon-invoice-upload/amazon-dom-hints.ts",
   "src/plugins/amazon-invoice-upload/amazon-platform.config.ts",
   "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
   "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
+  "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
+  "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
+  "src/app/plugin-task-api-handlers.ts",
+  "src/lib/local-app-shell/pages/AmazonInvoiceUploadPage.ts",
   "src/plugins/amazon-invoice-upload/README.md",
   "scripts/acceptance/dom-automation-smoke.ts",
+  "scripts/acceptance/amazon-invoice-agent-start-smoke.ts",
   "scripts/acceptance/amazon-invoice-upload-smoke.ts",
+  "scripts/acceptance/amazon-invoice-upload-complete-smoke.ts",
 ] as const;
 
 const structureFinding = (

@@ -4,12 +4,14 @@ import { URL } from "node:url";
 import { renderCommanderConsolePage } from "../lib/local-app-shell/render-commander-console-page.js";
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { handleAppSettingsRequest } from "./app-settings-api-handlers.js";
+import { handlePluginTaskRequest } from "./plugin-task-api-handlers.js";
 import { handleRuntimeReadRequest } from "./runtime-api-handlers.js";
 import { handleTaskRequest } from "./task-api-handlers.js";
 import { handleUserRequirementHistoryRequest } from "./user-requirement-history-api-handlers.js";
 
 const WORKBENCH_ROUTE_HANDLERS = [
   handleRuntimeReadRequest,
+  handlePluginTaskRequest,
   handleTaskRequest,
   handleUserRequirementHistoryRequest,
   handleAppSettingsRequest,

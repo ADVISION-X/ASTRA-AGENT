@@ -4,13 +4,11 @@ import type {
 } from "./browser-controller.js";
 import type { ChromeWindowState } from "./current-chrome-window-control.js";
 import {
-  buildOpenUrlScript as buildCurrentChromeOpenUrlScript,
   readFrontChromeWindowState as readCurrentChromeWindowState,
-  runAppleScript as runCurrentChromeAppleScript,
   runJxa as runCurrentChromeJxa,
+  runAppleScript as runCurrentChromeAppleScript,
 } from "./current-chrome-window-control.js";
 
-const buildOpenUrlScript = (url: string): string => buildCurrentChromeOpenUrlScript(url);
 const runAppleScript = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeAppleScript(script, options);
 const runJxa = async (script: string, options?: { signal?: AbortSignal }): Promise<string> => runCurrentChromeJxa(script, options);
 const activateChrome = async (abortSignal?: AbortSignal): Promise<void> => {
@@ -131,4 +129,4 @@ $.CGEventPost($.kCGHIDEventTap, scrollEvent);
 `, input.abortSignal ? { signal: input.abortSignal } : undefined);
 };
 
-export { buildOpenUrlScript, runAppleScript, runJxa, activateChrome, escapeAppleScriptText, readFrontChromeWindowState, BROWSER_TEXT_INPUT_KEY_CODES, clickAt, pressBrowserKey, keystrokeBrowserText, selectAllBrowserText, pasteBrowserText, pressNamedBrowserKey, scrollAt };
+export { activateChrome, escapeAppleScriptText, clickAt, pressBrowserKey, keystrokeBrowserText, selectAllBrowserText, pressNamedBrowserKey, scrollAt };

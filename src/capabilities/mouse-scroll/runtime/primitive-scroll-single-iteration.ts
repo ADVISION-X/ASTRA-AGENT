@@ -3,7 +3,7 @@ import { buildRunDurationMs } from "./primitive-scroll-frame.js";
 import { buildFailureResult } from "./primitive-scroll-failure-builder.js";
 import { appendIterationProof, resolveExecutionRef } from "./primitive-scroll-iteration-proof.js";
 import { runPrimitivePortCall } from "./primitive-scroll-port-call.js";
-import type { PrimitiveAbortDecision, PrimitiveScrollFailureReason, PrimitiveScrollResult, PrimitiveTimeoutDecision } from "./primitive-scroll-runner-result.js";
+import type { PrimitiveAbortDecision, PrimitiveScrollFailureReason, PrimitiveScrollResult, PrimitiveTimeoutDecision } from "./primitive-scroll-runner-result.types.js";
 import type { PrimitiveCallFrame, PrimitiveExecutionStore, RunPrimitiveScrollInput } from "./primitive-scroll-runner-types.js";
 import { recordPrimitiveFailure } from "./primitive-scroll-runner-state.js";
 

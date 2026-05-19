@@ -1,0 +1,1210 @@
+
+> grasseye-local-workbench@0.1.0 ci:full
+> node --import tsx scripts/audit/ci-full.ts
+
+[CI-FULL][HEARTBEAT] step=step-1-code-purity-owner processed=0/19 status=running
+(node:63512) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[CI-FULL][HEARTBEAT] step=step-1-code-purity-owner processed=0/19 status=running
+[CI-FULL][HEARTBEAT] step=step-1-code-purity-owner processed=0/19 status=running
+[CI-FULL][HEARTBEAT] step=step-1-code-purity-owner processed=0/19 status=running
+
+[CODE-PURITY][FAIL] hardFails=239 fileCountFails=2
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-binary-checks.ts:1
+  rule: CP-FILE-001
+  violation: active source file has 798 lines; hard limit is 300
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/law-enforcement/all-law-enforcement-matrix.ts:1
+  rule: CP-FILE-001
+  violation: active source file has 363 lines; hard limit is 300
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/app/plugin-task-api-handlers.ts:138
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=44, params=4, returns=7, complexity=8, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/ai/ability-group.ts:11
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=56, params=1, returns=5, complexity=5, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/ability-group.ts:20
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=85, params=1, returns=5, complexity=5, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/ability-group.ts:28
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=70, params=1, returns=4, complexity=5, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/forensics-persistence/ability-group.ts:16
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=93, params=2, returns=7, complexity=11, switchCases=3, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/forensics-persistence/ability-group.ts:23
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=42, params=1, returns=3, complexity=7, switchCases=3, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/forensics-persistence/storage-adapter.ts:21
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=53, params=1, returns=4, complexity=18, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/forensics-persistence/storage-adapter.ts:25
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=21, params=1, returns=1, complexity=9, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/forensics-persistence/storage-adapter.ts:47
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=20, params=1, returns=1, complexity=9, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/mouse-click/ability-group.ts:11
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=48, params=1, returns=1, complexity=10, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/mouse-click/ability-group.ts:60
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=93, params=4, returns=3, complexity=2, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/nerve-bus/ability-group.ts:27
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=133, params=1, returns=10, complexity=9, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/nerve-bus/ability-group.ts:32
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=41, params=1, returns=3, complexity=3, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/open/open-target.ts:53
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=132, params=2, returns=6, complexity=11, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/open/open-target.ts:204
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=77, params=2, returns=5, complexity=8, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/orchestration/ability-group.ts:71
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=63, params=1, returns=10, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/orchestration/children.ts:51
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=50, params=2, returns=3, complexity=3, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/screenshot/schema.ts:283
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=63, params=1, returns=1, complexity=2, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/text-input/ability-group.ts:14
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=59, params=1, returns=1, complexity=7, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/text-input/ability-group.ts:74
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=93, params=4, returns=3, complexity=2, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/browser/text-input-browser-primitive-port.ts:38
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=41, params=0, returns=7, complexity=3, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/commander-console-view-model.ts:14
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=41, params=4, returns=1, complexity=2, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/commander-console.tokens.ts:51
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=43, params=0, returns=1, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/CommanderMacShell.ts:21
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=44, params=2, returns=1, complexity=1, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/task-start-support.ts:160
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=46, params=3, returns=1, complexity=1, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/task-start-support.ts:207
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=45, params=4, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-runtime/settings.ts:174
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=41, params=2, returns=2, complexity=2, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-runtime/structured-log-terminal.ts:86
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=17, params=1, returns=1, complexity=5, switchCases=0, nesting=4
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-runtime/structured-log-terminal.ts:87
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=15, params=1, returns=0, complexity=5, switchCases=0, nesting=4
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-runtime/workbench-assembly.ts:103
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=105, params=1, returns=2, complexity=3, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-runtime/workbench-nerve-bus-dispatcher.ts:143
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=129, params=1, returns=10, complexity=15, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-runtime/workbench-nerve-bus-dispatcher.ts:147
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=45, params=1, returns=5, complexity=6, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-runtime/workbench-nerve-bus-dispatcher.ts:210
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=60, params=1, returns=2, complexity=6, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-runtime/workbench-status.ts:96
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=46, params=2, returns=1, complexity=5, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-runtime/workbench.ts:128
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=101, params=0, returns=21, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/online-ai/gemini-client.ts:63
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=98, params=1, returns=1, complexity=8, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/runtime-logs/sinks.ts:16
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=40, params=2, returns=2, complexity=16, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/storage/file-storage.ts:31
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=44, params=1, returns=4, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts:39
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=91, params=2, returns=10, complexity=9, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts:131
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=64, params=2, returns=5, complexity=4, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts:196
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=51, params=2, returns=4, complexity=4, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/plugins/amazon-invoice-upload/amazon-result-detector.ts:36
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=42, params=1, returns=6, complexity=5, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/core/import-graph.ts:35
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=16, params=1, returns=7, complexity=8, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/core/law-registry.ts:40
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=44, params=3, returns=6, complexity=5, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/core/law-registry.ts:171
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=55, params=0, returns=3, complexity=9, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/law-enforcement/all-law-enforcement-matrix.ts:81
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=35, params=2, returns=1, complexity=8, switchCases=0, nesting=4
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/law-enforcement/all-law-enforcement-matrix.ts:157
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=207, params=1, returns=2, complexity=19, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/law-enforcement/all-law-enforcement-matrix.ts:206
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=65, params=1, returns=1, complexity=14, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/law-enforcement/clause-parser.ts:92
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=26, params=5, returns=1, complexity=1, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/law-enforcement/clause-parser.ts:119
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=51, params=1, returns=3, complexity=6, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/law-enforcement/clause-parser.ts:171
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=42, params=2, returns=3, complexity=5, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/law-enforcement/source-discovery.ts:86
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=85, params=2, returns=1, complexity=8, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/startup/lib/dependency-check.mjs:54
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=47, params=1, returns=1, complexity=3, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/startup/lib/service-process.mjs:58
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=46, params=1, returns=1, complexity=1, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/ai/runtime/json-extract.ts:13
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=23, params=1, returns=1, complexity=10, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/ai/runtime/model-call.ts:17
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=84, params=1, returns=1, complexity=8, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/ai/runtime/result.ts:9
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=62, params=1, returns=0, complexity=3, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/ai/runtime/result.ts:72
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=66, params=1, returns=1, complexity=5, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/children/mission-control.ts:10
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=34, params=5, returns=2, complexity=1, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/runtime/commander-command-child-executor.ts:39
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=44, params=1, returns=4, complexity=1, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/runtime/commander-command-child-executor.ts:93
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=41, params=1, returns=3, complexity=2, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/runtime/commander-command-gate.ts:106
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=56, params=1, returns=5, complexity=4, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/runtime/commander-command-gate.ts:163
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=43, params=1, returns=3, complexity=2, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/runtime/commander-command-outcomes.ts:159
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=46, params=1, returns=1, complexity=3, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/runtime/commander-command-outcomes.ts:206
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=47, params=1, returns=1, complexity=1, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/runtime/commander-idempotency-gate.ts:42
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=56, params=1, returns=5, complexity=3, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/runtime/commander-proof-builder.ts:10
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=48, params=1, returns=1, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/runtime/commander-read-child-executor.ts:66
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=42, params=1, returns=1, complexity=2, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/runtime/dom-click.ts:28
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=54, params=2, returns=4, complexity=6, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/runtime/dom-fill.ts:29
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=51, params=2, returns=4, complexity=5, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/runtime/dom-locator.ts:39
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=19, params=1, returns=7, complexity=7, switchCases=7, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/runtime/dom-locator.ts:59
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=42, params=2, returns=1, complexity=7, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/runtime/dom-snapshot.ts:5
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=91, params=2, returns=1, complexity=1, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/runtime/dom-upload.ts:10
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=84, params=2, returns=7, complexity=9, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/runtime/dom-verify.ts:29
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=52, params=1, returns=6, complexity=6, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/tests/dom-snapshot.fixture.ts:4
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=99, params=0, returns=1, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/forensics-persistence/children/append-artifact.ts:6
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=49, params=2, returns=2, complexity=3, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/forensics-persistence/children/append-record.ts:6
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=49, params=2, returns=2, complexity=3, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/forensics-persistence/children/read-record-ref.ts:6
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=42, params=2, returns=2, complexity=3, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/geometry-guard/children/validate-bbox-grid-region.ts:20
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=143, params=0, returns=7, complexity=6, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/geometry-guard/children/validate-bbox-grid-region.ts:25
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=136, params=1, returns=6, complexity=6, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/geometry-guard/children/validate-click-grid-cell.ts:22
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=134, params=0, returns=5, complexity=6, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/geometry-guard/children/validate-click-grid-cell.ts:27
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=127, params=1, returns=4, complexity=6, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/geometry-guard/runtime/proof.ts:11
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=43, params=1, returns=1, complexity=1, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/geometry-guard/runtime/result.ts:10
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=43, params=1, returns=1, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/geometry-guard/runtime/result.ts:83
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=62, params=4, returns=1, complexity=2, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/mouse-click/runtime/execute-click.ts:30
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=47, params=8, returns=1, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/mouse-click/runtime/execute-click.ts:136
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=70, params=2, returns=4, complexity=7, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/mouse-scroll/runtime/pre-scroll-safety-gate.ts:200
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=41, params=3, returns=4, complexity=4, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/mouse-scroll/runtime/primitive-scroll-port-call.ts:3
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=47, params=1, returns=1, complexity=1, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/mouse-scroll/runtime/primitive-scroll-single-iteration.ts:112
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=48, params=4, returns=5, complexity=5, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/orchestration/runtime/mission-loop-ai.ts:72
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=42, params=1, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/orchestration/runtime/mission-loop-runner.ts:33
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=262, params=2, returns=13, complexity=19, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/orchestration/runtime/mission-loop-screen.ts:142
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=49, params=1, returns=8, complexity=13, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/screenshot/children/capture-browser-viewport.ts:12
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=118, params=2, returns=3, complexity=4, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/screenshot/children/capture-grid-region.ts:29
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=140, params=2, returns=4, complexity=4, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/screenshot/children/render-coordinate-grid.ts:19
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=131, params=2, returns=3, complexity=3, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/text-input/runtime/execute-text-input.ts:33
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=45, params=7, returns=1, complexity=1, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/text-input/runtime/execute-text-input.ts:79
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=35, params=7, returns=1, complexity=1, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/text-input/runtime/execute-text-input.ts:115
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=15, params=2, returns=5, complexity=7, switchCases=0, nesting=4
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/text-input/runtime/execute-text-input.ts:131
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=82, params=3, returns=3, complexity=6, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/audit-system/inspector.ts:13
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=57, params=1, returns=1, complexity=7, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-audit-plan.ts:54
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=15, params=5, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-binary-checks.ts:336
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=55, params=1, returns=1, complexity=16, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-binary-checks.ts:392
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=35, params=1, returns=1, complexity=9, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-binary-checks.ts:573
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=41, params=1, returns=1, complexity=7, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-binary-checks.ts:640
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=45, params=1, returns=2, complexity=8, switchCases=0, nesting=1
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-enforcement-matrix.ts:55
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=16, params=6, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/inspector.ts:51
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=73, params=0, returns=2, complexity=8, switchCases=0, nesting=4
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/shared/manifest-owner-helper.ts:40
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=7, params=5, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/audit-system/components/ast-symbol-enforcement.ts:76
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=42, params=1, returns=1, complexity=7, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/audit-system/components/ci-full-coverage.ts:20
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=60, params=2, returns=1, complexity=9, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/audit-system/components/owner-manifest-census.ts:21
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=70, params=1, returns=1, complexity=15, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/agent-channel-support.ts:21
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=7, params=5, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/collect-dom-automation-project.ts:126
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=29, params=1, returns=7, complexity=8, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/runtime-contract-support.ts:10
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=7, params=5, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-acceptance-runtime.ts:14
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, params=5, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-agent-start-channel-runtime.ts:33
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=28, params=1, returns=2, complexity=13, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-agent-start-channel-ui.ts:12
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=45, params=1, returns=1, complexity=10, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-audit-plan-coverage.ts:29
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=64, params=1, returns=1, complexity=11, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-catalog-registry.ts:26
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, params=5, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-catalog-registry.ts:41
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=50, params=1, returns=3, complexity=11, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-ci-entry.ts:15
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, params=5, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-ci-entry.ts:30
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=48, params=1, returns=2, complexity=6, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-import-boundaries.ts:21
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, params=5, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-import-boundaries.ts:58
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=67, params=1, returns=1, complexity=11, switchCases=0, nesting=4
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-phase-coverage.ts:12
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, params=5, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-phase-coverage.ts:27
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=47, params=1, returns=1, complexity=8, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-runtime-contracts-actions.ts:19
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=21, params=6, returns=2, complexity=8, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-runtime-contracts-actions.ts:53
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=20, params=1, returns=2, complexity=10, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-sensitive-data-anti-escape.ts:44
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, params=5, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-sensitive-data-anti-escape.ts:88
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=69, params=1, returns=1, complexity=9, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-symbol-boundaries.ts:18
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=14, params=5, returns=0, complexity=0, switchCases=0, nesting=0
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-symbol-boundaries.ts:49
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=56, params=1, returns=2, complexity=7, switchCases=0, nesting=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/validate-symbol-boundaries.ts:106
+  rule: CP-AST-008
+  violation: function exceeds hard limits: lines=64, params=1, returns=1, complexity=8, switchCases=0, nesting=3
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/platforms/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=10
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/types/local-browser-session.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=16
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/types/runtime.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=10
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/types/structured-log.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=2, importSources=2, exports=36
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/types/visual-action.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=13
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/types/visual-mission-action-plan.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=11
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/types/visual-only-runtime.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=11
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/ai/contract.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=4, importSources=4, exports=9
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/ai/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=22
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/children.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=14
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/contract.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=7, importSources=6, exports=24
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=20
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/schema.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=43
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=35
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/schema.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=37
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/forensics-persistence/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=22
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/forensics-persistence/schema.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=21
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/geometry-guard/contract.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=2, importSources=2, exports=15
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/geometry-guard/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=28
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/geometry-guard/schema.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=13
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/mouse-click/contract.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=3, importSources=3, exports=14
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/mouse-click/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=2, importSources=2, exports=27
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/mouse-scroll/contract.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=6, importSources=6, exports=29
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/mouse-scroll/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=44
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/mouse-scroll/schema.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=6, importSources=6, exports=35
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/nerve-bus/contract.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=18
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/nerve-bus/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=23
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/nerve-bus/schema.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=19
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/open/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=19
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/open/schema.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=19
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/orchestration/children.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=14, importSources=13, exports=8
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/orchestration/contract.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=2, importSources=2, exports=11
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/orchestration/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=21
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/orchestration/schema.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=25
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/screenshot/contract.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=36
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/screenshot/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=34
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/screenshot/schema.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=2, importSources=2, exports=40
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/text-input/contract.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=3, importSources=3, exports=15
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/text-input/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=2, importSources=2, exports=25
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/browser/browser-controller.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=2, importSources=2, exports=11
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/browser/current-chrome-browser-controller-primitives.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=3, importSources=2, exports=15
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/browser/current-chrome-window-control.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=12
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/commander-console-dashboard.types.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=11
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/render-utils.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=2, importSources=2, exports=9
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/types.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=26
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/view-helpers.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=2, importSources=2, exports=12
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-runtime/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=13
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-runtime/settings.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=3, importSources=3, exports=10
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-runtime/workbench-assembly.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=23, importSources=22, exports=2
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-runtime/workbench-status.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=2, importSources=2, exports=9
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/online-ai/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=14
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/runtime-logs/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=36
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/storage/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=17
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=7, importSources=6, exports=11
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/plugins/amazon-invoice-upload/index.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=33
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/visual-mission/round/pure-visual-round-output.schema.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=6, importSources=5, exports=11
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/core/schema.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=11
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/ports/commander-port-types.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=14
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/shared/commander-contract-support.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=12
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/shared/commander-schema-base.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=77
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/shared/commander-schema-foundation.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=1, importSources=1, exports=49
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/shared/commander-transport-schema.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=2, importSources=2, exports=17
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/shared/commander-view-schema.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=2, importSources=2, exports=12
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/commander-console/shared/commander-view-types.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=2, importSources=2, exports=13
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/mouse-scroll/runtime/primitive-scroll-runner-result.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=14
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-enforcement-matrix.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=0, importSources=0, exports=12
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/agent-channel-support.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=4, importSources=4, exports=14
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/components/collect-dom-automation-project.ts:1
+  rule: CP-AST-009
+  violation: module boundary exceeds hard limits: imports=7, importSources=7, exports=13
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/acceptance/amazon-invoice-agent-start-smoke.ts:59
+  rule: CP-AST-007
+  violation: as unknown as laundering is forbidden
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/acceptance/amazon-invoice-upload-complete-smoke.ts:57
+  rule: CP-AST-007
+  violation: as unknown as laundering is forbidden
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/law-enforcement/owner-verdicts.ts:72
+  rule: CP-AST-007
+  violation: dynamic import escape is forbidden
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/shared/run-manifest-owner.ts:15
+  rule: CP-AST-007
+  violation: dynamic import escape is forbidden
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/acceptance/amazon-invoice-agent-start-smoke.ts:23
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/acceptance/amazon-invoice-upload-complete-smoke.ts:23
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/acceptance/amazon-invoice-upload-smoke.ts:13
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/acceptance/dom-automation-smoke.ts:21
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/acceptance/screenshot-visual-mission-smoke.ts:11
+  rule: CP-AST-006
+  violation: retired surface token is active: prepare-visual-mission-input
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/schema.ts:40
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/schema.ts:235
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: fallback
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/ai-provider-settings-client.ts:1
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/localization/dictionaries.ts:99
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: noop
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/localization/dictionaries.ts:218
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: noop
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/core/law-registry.ts:25
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: fallback
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/core/law-registry.ts:49
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: fallback
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/core/result.ts:35
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: fake
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/core/schema.ts:12
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: fake
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/startup/lib/startup-main-support.mjs:4
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: no-op
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/runtime/dom-locator.ts:13
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/runtime/dom-locator.ts:68
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/runtime/dom-verify.ts:17
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/capabilities/dom-automation/tests/dom-snapshot.fixture.ts:25
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/modules/VisualMissionPromptLauncher.ts:28
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/modules/VisualMissionPromptLauncher.ts:72
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/pages/AmazonInvoiceUploadPage.ts:8
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: src/lib/local-app-shell/pages/AmazonInvoiceUploadPage.ts:13
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/audit-system/inspector.ts:43
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: fake
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-binary-checks.ts:435
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: fallback
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-binary-checks.ts:442
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-binary-checks.ts:451
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: fallback
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-enforcement-matrix.ts:104
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: placeholder
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/audit/domains/dom-automation/dom-automation-law-enforcement-matrix.ts:123
+  rule: CP-AST-010
+  violation: fake/compat/fallback token is active: fallback
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+  file: scripts/acceptance/screenshot-visual-mission-smoke.ts:11
+  rule: CP-AST-004
+  violation: console scatter is forbidden outside logging sinks
+  fixDirection: Remove or replace this pattern — no suppressions allowed.
+
+[CI-FULL][STEP-FAIL] name=code-purity-owner
+[CI-FULL] FAIL — code-purity-owner failed.

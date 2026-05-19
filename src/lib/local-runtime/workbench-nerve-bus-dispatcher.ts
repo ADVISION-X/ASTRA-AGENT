@@ -142,130 +142,95 @@ function buildHumanCommandResultEnvelope(
 
 export function createWorkbenchNerveBusHandlerPort(deps: WorkbenchNerveBusDispatcherDeps): NerveBusHandlerPort {
   const abilityGroups = buildAbilityGroupRegistry(deps);
-
   return {
-    async dispatchAbilityCommand(input: {
-      envelope: AbilityCommandEnvelope;
-      inputPayload: NerveBusPayloadDocument;
-      signal: AbortSignal;
-    }): Promise<NerveBusHandledResult<AbilityResultEnvelope> | null> {
-      const { envelope, inputPayload } = input;
-
-      // Special case: orchestration dispatches to itself (nested execute)
-      if (envelope.abilityGroupId === "orchestration") {
-        const orchestration = deps.getOrchestration();
-        try {
-          const result = await orchestration.execute({
-            childCapabilityId: envelope.childCapabilityId as OrchestrationChildCapabilityId,
-            payload: inputPayload,
-          });
-          const status = (result.status ?? "success") as "success" | "failed" | "review_required";
-          const resultEnvelope = buildAbilityResultEnvelope(envelope, status, result.failureReason ?? null);
-          return { envelope: resultEnvelope, outputPayload: toPayloadDocument(result) };
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : "orchestration execute failed";
-          return { envelope: buildAbilityResultEnvelope(envelope, "failed", msg), outputPayload: null };
-        }
-      }
-
-      const group = abilityGroups.get(envelope.abilityGroupId);
-      if (!group) {
-        return {
-          envelope: buildAbilityResultEnvelope(envelope, "failed", `Unknown ability group: ${envelope.abilityGroupId}`),
-          outputPayload: null,
-        };
-      }
-
-      try {
-        // Pure transport: orchestration builds the complete input for each
-        // ability group. NerveBus does NOT enrich or rewrite fields.
-        const ip = inputPayload as Record<string, unknown>;
-        const result = await group.execute(ip);
-        const status = (result.status ?? "success") as "success" | "failed" | "review_required";
-        const resultEnvelope = buildAbilityResultEnvelope(envelope, status, result.failureReason ?? null);
-        return { envelope: resultEnvelope, outputPayload: toPayloadDocument(result) };
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "ability group execute failed";
-        return { envelope: buildAbilityResultEnvelope(envelope, "failed", msg), outputPayload: null };
-      }
-    },
-
-    async requestAi(input: {
-      envelope: AiRequestEnvelope;
-      inputPayload: NerveBusPayloadDocument;
-      signal: AbortSignal;
-    }): Promise<NerveBusHandledResult<AiResponseEnvelope> | null> {
-      const { envelope, inputPayload } = input;
-      try {
-        const result = await deps.aiAbilityGroup.execute(AiAbilityInputSchema.parse(inputPayload));
-        const status = result.status === "success" ? "success" : "failed";
-        const resultEnvelope = buildAiResponseEnvelope(envelope, status, result.failureReason ?? null);
-        return { envelope: resultEnvelope, outputPayload: toPayloadDocument(result) };
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "AI execute failed";
-        return { envelope: buildAiResponseEnvelope(envelope, "failed", msg), outputPayload: null };
-      }
-    },
-
-    async dispatchHumanCommand(input: {
-      envelope: HumanCommandEnvelope;
-      inputPayload: NerveBusPayloadDocument;
-      signal: AbortSignal;
-    }): Promise<NerveBusHandledResult<HumanCommandResultEnvelope> | null> {
-      const { envelope, inputPayload } = input;
-      const orchestration = deps.getOrchestration();
-
-      // Build a MissionCommandSchema-compatible payload from the transport payload.
-      // The transport payload (StartMissionTransportPayload) uses different field names
-      // and has extra fields not in MissionCommandSchema.strict().
-      const tp = inputPayload as Record<string, unknown>;
-      const initialPayload = tp["initialPayload"] as Record<string, unknown> | null | undefined;
-
-      let orchestrationPayload: Record<string, unknown>;
-      if (envelope.commandType === "start-mission") {
-        orchestrationPayload = {
-          missionId: envelope.missionId,
-          runId: envelope.runId,
-          humanGoal:
-            (tp["humanGoal"] as string | undefined) ??
-            (initialPayload?.["humanGoal"] as string | undefined) ??
-            "",
-          requestedPlatform:
-            (tp["requestedPlatformId"] as string | undefined) ??
-            (initialPayload?.["requestedPlatformId"] as string | undefined) ??
-            (initialPayload?.["primaryPlatformId"] as string | undefined) ??
-            "facebook-web",
-          selectedPlatforms:
-            (tp["selectedPlatforms"] as string[] | undefined) ??
-            (initialPayload?.["selectedPlatforms"] as string[] | undefined) ??
-            [],
-          maxRounds: (tp["maxRounds"] as number | null | undefined) ?? null,
-          maxMinutes: (tp["maxMinutes"] as number | null | undefined) ?? null,
-          initialPayload: initialPayload ?? { requestedBy: "commander-console" },
-        };
-      } else {
-        // For other command types, inject identity fields into the existing payload.
-        orchestrationPayload = { ...tp };
-        if (orchestrationPayload["missionId"] == null) {
-          orchestrationPayload["missionId"] = envelope.missionId;
-        }
-        if (orchestrationPayload["runId"] == null) {
-          orchestrationPayload["runId"] = envelope.runId;
-        }
-      }
-
-      try {
-        const result = await orchestration.execute({
-          childCapabilityId: envelope.commandType as OrchestrationChildCapabilityId,
-          payload: orchestrationPayload,
-        });
-        const status = result.status === "success" ? "success" : "failed";
-        const resultEnvelope = buildHumanCommandResultEnvelope(envelope, status, result.failureReason ?? null);
-        return { envelope: resultEnvelope, outputPayload: toPayloadDocument(result) };
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "human command dispatch failed";
-        return { envelope: buildHumanCommandResultEnvelope(envelope, "failed", msg), outputPayload: null };
-      }
-    },
+    dispatchAbilityCommand: (input) => dispatchAbilityCommand(input, deps, abilityGroups),
+    requestAi: (input) => requestAi(input, deps),
+    dispatchHumanCommand: (input) => dispatchHumanCommand(input, deps),
   };
 }
+
+const dispatchAbilityCommand = async (
+  input: { envelope: AbilityCommandEnvelope; inputPayload: NerveBusPayloadDocument; signal: AbortSignal },
+  deps: WorkbenchNerveBusDispatcherDeps,
+  abilityGroups: Map<string, GenericAbilityGroup>,
+): Promise<NerveBusHandledResult<AbilityResultEnvelope> | null> => {
+  if (input.envelope.abilityGroupId === "orchestration") return dispatchOrchestrationAbility(input, deps.getOrchestration());
+  const group = abilityGroups.get(input.envelope.abilityGroupId);
+  if (!group) return { envelope: buildAbilityResultEnvelope(input.envelope, "failed", `Unknown ability group: ${input.envelope.abilityGroupId}`), outputPayload: null };
+  try {
+    const result = await group.execute(input.inputPayload);
+    const status = (result.status ?? "success") as "success" | "failed" | "review_required";
+    return { envelope: buildAbilityResultEnvelope(input.envelope, status, result.failureReason ?? null), outputPayload: toPayloadDocument(result) };
+  } catch (error) {
+    return { envelope: buildAbilityResultEnvelope(input.envelope, "failed", errorMessage(error, "ability group execute failed")), outputPayload: null };
+  }
+};
+
+const dispatchOrchestrationAbility = async (
+  input: { envelope: AbilityCommandEnvelope; inputPayload: NerveBusPayloadDocument },
+  orchestration: OrchestrationAbilityGroup,
+): Promise<NerveBusHandledResult<AbilityResultEnvelope>> => {
+  try {
+    const result = await orchestration.execute({ childCapabilityId: input.envelope.childCapabilityId as OrchestrationChildCapabilityId, payload: input.inputPayload });
+    const status = (result.status ?? "success") as "success" | "failed" | "review_required";
+    return { envelope: buildAbilityResultEnvelope(input.envelope, status, result.failureReason ?? null), outputPayload: toPayloadDocument(result) };
+  } catch (error) {
+    return { envelope: buildAbilityResultEnvelope(input.envelope, "failed", errorMessage(error, "orchestration execute failed")), outputPayload: null };
+  }
+};
+
+const requestAi = async (
+  input: { envelope: AiRequestEnvelope; inputPayload: NerveBusPayloadDocument; signal: AbortSignal },
+  deps: WorkbenchNerveBusDispatcherDeps,
+): Promise<NerveBusHandledResult<AiResponseEnvelope> | null> => {
+  try {
+    const result = await deps.aiAbilityGroup.execute(AiAbilityInputSchema.parse(input.inputPayload));
+    const status = result.status === "success" ? "success" : "failed";
+    return { envelope: buildAiResponseEnvelope(input.envelope, status, result.failureReason ?? null), outputPayload: toPayloadDocument(result) };
+  } catch (error) {
+    return { envelope: buildAiResponseEnvelope(input.envelope, "failed", errorMessage(error, "AI execute failed")), outputPayload: null };
+  }
+};
+
+const dispatchHumanCommand = async (
+  input: { envelope: HumanCommandEnvelope; inputPayload: NerveBusPayloadDocument; signal: AbortSignal },
+  deps: WorkbenchNerveBusDispatcherDeps,
+): Promise<NerveBusHandledResult<HumanCommandResultEnvelope> | null> => {
+  const orchestrationPayload = buildHumanCommandPayload(input.envelope, input.inputPayload);
+  try {
+    const result = await deps.getOrchestration().execute({ childCapabilityId: input.envelope.commandType as OrchestrationChildCapabilityId, payload: orchestrationPayload });
+    const status = result.status === "success" ? "success" : "failed";
+    return { envelope: buildHumanCommandResultEnvelope(input.envelope, status, result.failureReason ?? null), outputPayload: toPayloadDocument(result) };
+  } catch (error) {
+    return { envelope: buildHumanCommandResultEnvelope(input.envelope, "failed", errorMessage(error, "human command dispatch failed")), outputPayload: null };
+  }
+};
+
+const buildHumanCommandPayload = (
+  envelope: HumanCommandEnvelope,
+  inputPayload: NerveBusPayloadDocument,
+): Record<string, unknown> => {
+  const payload = inputPayload as Record<string, unknown>;
+  if (envelope.commandType === "start-mission") return buildStartMissionPayload(envelope, payload);
+  return { ...payload, missionId: payload["missionId"] ?? envelope.missionId, runId: payload["runId"] ?? envelope.runId };
+};
+
+const buildStartMissionPayload = (
+  envelope: HumanCommandEnvelope,
+  payload: Record<string, unknown>,
+): Record<string, unknown> => {
+  const initialPayload = payload["initialPayload"] as Record<string, unknown> | null | undefined;
+  return {
+    missionId: envelope.missionId,
+    runId: envelope.runId,
+    humanGoal: (payload["humanGoal"] as string | undefined) ?? (initialPayload?.["humanGoal"] as string | undefined) ?? "",
+    requestedPlatform: (payload["requestedPlatformId"] as string | undefined) ?? (initialPayload?.["requestedPlatformId"] as string | undefined) ?? (initialPayload?.["primaryPlatformId"] as string | undefined) ?? "facebook-web",
+    selectedPlatforms: (payload["selectedPlatforms"] as string[] | undefined) ?? (initialPayload?.["selectedPlatforms"] as string[] | undefined) ?? [],
+    maxRounds: (payload["maxRounds"] as number | null | undefined) ?? null,
+    maxMinutes: (payload["maxMinutes"] as number | null | undefined) ?? null,
+    initialPayload: initialPayload ?? { requestedBy: "commander-console" },
+  };
+};
+
+const errorMessage = (error: unknown, defaultMessage: string): string =>
+  error instanceof Error ? error.message : defaultMessage;

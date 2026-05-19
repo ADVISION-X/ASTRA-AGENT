@@ -25,7 +25,7 @@ const START_PLATFORMS: Array<{ id: CommanderConsoleStartPlatformId; labelZh: str
   },
 ];
 
-function renderHistoryPlaceholder(t: Localize): string {
+function renderHistoryEmptyState(t: Localize): string {
   return `<div class="cc-history-empty" data-user-requirement-history-empty>
       <p class="cc-section-title">${escapeHtml(t("还没有需求历史", "No Requirement History Yet"))}</p>
       <p class="cc-note">${escapeHtml(t("启动成功后会自动写入最近需求，后续可一键复用。", "Successful starts will be saved here so you can reuse them in one click."))}</p>
@@ -69,7 +69,7 @@ function renderHistoryItem(input: {
 
 function renderHistoryList(viewModel: CommanderConsoleViewModel, t: Localize): string {
   if (viewModel.userRequirementHistory.length === 0) {
-    return renderHistoryPlaceholder(t);
+    return renderHistoryEmptyState(t);
   }
 
   return `<div class="cc-history-list" data-user-requirement-history-list>

@@ -7,6 +7,7 @@ import {
   type DomAutomationAuditProject,
   type DomAutomationValidationResult,
 } from "./collect-dom-automation-project.js";
+import { hasPropertyAccess, hasStringLiteral } from "./runtime-contract-support.js";
 
 const phaseFinding = (
   lawId: string,
@@ -28,29 +29,31 @@ export const validatePhaseCoverage = (
 ): DomAutomationValidationResult => {
   const findings: Finding[] = [];
   const flowFile = getSourceFileAtRepoPath(auditProject.project, "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts");
+  const flowSupportFile = getSourceFileAtRepoPath(auditProject.project, "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts");
   const uploadFile = getSourceFileAtRepoPath(auditProject.project, "src/capabilities/dom-automation/runtime/dom-upload.ts");
   const domSmokeFile = getSourceFileAtRepoPath(auditProject.project, "scripts/acceptance/dom-automation-smoke.ts");
 
-  if (!flowFile || !uploadFile || !domSmokeFile) {
+  if (!flowFile || !flowSupportFile || !uploadFile || !domSmokeFile) {
     findings.push(phaseFinding("GRASSEYE-DOM-009-V1", "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts", 1, "phase-coverage inputs are missing", "Restore plugin flow, upload runtime, and DOM smoke files before phase validation."));
   } else {
-    const flowText = flowFile.getFullText();
-    if (!flowText.includes('status: "review_required"')) {
-      findings.push(phaseFinding("GRASSEYE-DOM-009-V1", "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts", 1, "Amazon phase one does not stop in review_required", "Phase one must stop at the review-required upload-entry boundary."));
+    if (!hasStringLiteral(flowFile, "review_required")) {
+      findings.push(phaseFinding("GRASSEYE-DOM-009-V1", "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts", 1, "Amazon flow is missing review_required gates", "Keep login, 2FA, ambiguity, and human-final-submit states gated by review_required."));
     }
-    if (hasIdentifierCall(flowFile, "uploadApprovedFileOnce")) {
-      findings.push(phaseFinding("GRASSEYE-DOM-009-V1", "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts", 1, "Amazon phase one already performs upload instead of governed pending stop", "Keep phase one at the review-required boundary until phase two is explicitly implemented."));
+    if (!hasIdentifierCall(flowFile, "uploadApprovedFileOnce")) {
+      findings.push(phaseFinding("GRASSEYE-DOM-006-V1", "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts", 1, "Amazon complete flow does not call uploadApprovedFileOnce", "Full upload closure must use the governed DOM upload ability."));
     }
-    const uploadText = uploadFile.getFullText();
-    if (!uploadText.includes('status: "not_implemented"') && !uploadText.includes('status: "review_required"')) {
-      findings.push(phaseFinding("GRASSEYE-DOM-006-V1", "src/capabilities/dom-automation/runtime/dom-upload.ts", 1, "Phase-four upload runtime is neither implemented nor explicitly pending-governed", "Return not_implemented or review_required until real file-input upload exists."));
+    if (hasStringLiteral(uploadFile, "not_implemented")) {
+      findings.push(phaseFinding("GRASSEYE-DOM-006-V1", "src/capabilities/dom-automation/runtime/dom-upload.ts", 1, "DOM upload still exposes not_implemented", "Complete closure requires a real BrowserController file-input upload call."));
+    }
+    if (!hasPropertyAccess(uploadFile, "browser", "setFileInputFiles")) {
+      findings.push(phaseFinding("GRASSEYE-DOM-006-V1", "src/capabilities/dom-automation/runtime/dom-upload.ts", 1, "DOM upload does not call BrowserController.setFileInputFiles", "Set approved PDFs through the governed browser controller upload port."));
     }
     if (!hasIdentifierCall(domSmokeFile, "uploadApprovedFileOnce")) {
-      findings.push(phaseFinding("GRASSEYE-DOM-009-V1", "scripts/acceptance/dom-automation-smoke.ts", 1, "DOM smoke does not exercise the phase-four upload boundary", "Use DOM smoke to prove the pending-governed upload boundary."));
+      findings.push(phaseFinding("GRASSEYE-DOM-009-V1", "scripts/acceptance/dom-automation-smoke.ts", 1, "DOM smoke does not exercise real upload", "Use DOM smoke to prove the governed upload ability."));
     }
     for (const phaseOneCall of ["readDomSnapshotOnce", "locateDomElementOnce", "verifyDomStateOnce"]) {
-      if (!hasIdentifierCall(flowFile, phaseOneCall)) {
-        findings.push(phaseFinding("GRASSEYE-DOM-009-V1", "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts", 1, `Amazon phase one is missing required phase call: ${phaseOneCall}`, "Keep phase one active through snapshot, locate, and verify execution."));
+      if (!hasIdentifierCall(flowFile, phaseOneCall) && !hasIdentifierCall(flowSupportFile, phaseOneCall)) {
+        findings.push(phaseFinding("GRASSEYE-DOM-009-V1", "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts", 1, `Amazon flow is missing required call: ${phaseOneCall}`, "Keep search, locate, verify, upload, submit, and success verification active."));
       }
     }
   }
@@ -64,7 +67,7 @@ export const validatePhaseCoverage = (
       "BLUEPRINT-09",
       "BLUEPRINT-11",
     ],
-    passSummary: "phase 1-3 are active and phase 4-5 stay governed pending behind review-required or not_implemented boundaries.",
+    passSummary: "complete Amazon invoice upload flow uses governed DOM search, upload, submit, and review gates.",
     failSummary: "phase coverage drifts from the blueprint or law-mandated review gates.",
   });
 };

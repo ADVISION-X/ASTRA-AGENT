@@ -1,10 +1,17 @@
+import { z } from "zod";
+
 import { listScreenshotChildren } from "./registry.js";
+import type { ScreenshotChildId } from "./schema-ids.js";
 import {
-  ScreenshotAbilityInputSchema,
-  type ScreenshotAbilityInput,
-  type ScreenshotAbilityResult,
-  type ScreenshotChildId,
-} from "./schema.js";
+  CaptureBrowserViewportInputSchema,
+  type CaptureBrowserViewportResult,
+  CaptureGridRegionInputSchema,
+  type CaptureGridRegionResult,
+} from "./schema-capture.js";
+import {
+  RenderCoordinateGridInputSchema,
+  type RenderCoordinateGridResult,
+} from "./schema-render.js";
 import { captureBrowserViewport } from "./children/capture-browser-viewport.js";
 import { renderCoordinateGrid } from "./children/render-coordinate-grid.js";
 import { captureGridRegion } from "./children/capture-grid-region.js";
@@ -20,6 +27,22 @@ export type ScreenshotAbilityGroup = {
   listChildCapabilityIds(): readonly ScreenshotChildId[];
   execute(input: unknown): Promise<ScreenshotAbilityResult>;
 };
+
+const ScreenshotAbilityInputSchema = z.discriminatedUnion(
+  "childCapabilityId",
+  [
+    CaptureBrowserViewportInputSchema,
+    RenderCoordinateGridInputSchema,
+    CaptureGridRegionInputSchema,
+  ],
+);
+
+type ScreenshotAbilityInput = z.infer<typeof ScreenshotAbilityInputSchema>;
+
+type ScreenshotAbilityResult =
+  | CaptureBrowserViewportResult
+  | RenderCoordinateGridResult
+  | CaptureGridRegionResult;
 
 export function createScreenshotAbilityGroup(ports: ScreenshotAbilityGroupPorts): ScreenshotAbilityGroup {
   return {

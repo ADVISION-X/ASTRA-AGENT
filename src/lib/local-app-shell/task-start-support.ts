@@ -8,6 +8,18 @@ import type { StartApproval, StartDraft } from "./task-start-types.js";
 
 const toNullableString = (value: string | null | undefined): string | null => value ?? null;
 
+type LocalAiReadinessComponent = {
+  ok?: boolean;
+  detail?: string | null;
+  actionableMessage?: string | null;
+  ownerResponsible?: string | null;
+  [key: string]: unknown;
+} | undefined;
+
+type MissionStartPreflight = Awaited<
+  ReturnType<GrassEyeWorkbenchHandle["getMissionStartPreflight"]>
+>;
+
 export async function recordTaskStartDraftEvents(activeWorkbench: GrassEyeWorkbenchHandle, draft: StartDraft) {
   recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "HUMAN_COMMAND_DRAFTED",
@@ -157,11 +169,23 @@ export async function recordTaskStartCommandAccepted(activeWorkbench: GrassEyeWo
   });
 }
 
-export async function recordTaskStartLocalAiReadiness(
+const buildLocalAiReadinessFailureEvent = (
+  approval: StartApproval,
+  component: LocalAiReadinessComponent,
+) => ({
+  traceId: approval.traceId,
+  attemptId: approval.attemptId,
+  missionId: approval.traceId,
+  runId: approval.traceId,
+  failureReason: toNullableString(component?.detail),
+  actionableMessage: toNullableString(component?.actionableMessage),
+  ownerResponsible: toNullableString(component?.ownerResponsible),
+});
+
+const recordLocalAiReadinessStarted = (
   activeWorkbench: GrassEyeWorkbenchHandle,
   approval: StartApproval,
-  component: { ok?: boolean; detail?: string | null; actionableMessage?: string | null; ownerResponsible?: string | null; [key: string]: unknown } | undefined,
-) {
+) => {
   recordTaskStartDebugEvent(activeWorkbench, {
     eventType: "ONLINE_AI_READINESS_STARTED",
     status: "started",
@@ -174,78 +198,87 @@ export async function recordTaskStartLocalAiReadiness(
     actionableMessage: "Confirm the Google Gemini API key and selected online model in Settings.",
     ownerResponsible: "AI Capability / Online AI Runtime",
   });
+};
+
+export async function recordTaskStartLocalAiReadiness(
+  activeWorkbench: GrassEyeWorkbenchHandle,
+  approval: StartApproval,
+  component: LocalAiReadinessComponent,
+) {
+  const baseFailureEvent = buildLocalAiReadinessFailureEvent(approval, component);
+
+  recordLocalAiReadinessStarted(activeWorkbench, approval);
   if (!component || component.ok) {
     return;
   }
 
   recordTaskStartDebugEvent(activeWorkbench, {
+    ...baseFailureEvent,
     eventType: "ONLINE_AI_READINESS_DEGRADED",
     status: "failed",
-    traceId: approval.traceId,
     spanId: "online-ai-readiness-degraded",
-    attemptId: approval.attemptId,
-    missionId: approval.traceId,
-    runId: approval.traceId,
-    failureReason: toNullableString(component.detail),
-    actionableMessage: toNullableString(component.actionableMessage),
-    ownerResponsible: toNullableString(component.ownerResponsible),
   });
   recordTaskStartDebugEvent(activeWorkbench, {
+    ...baseFailureEvent,
     eventType: "LOCAL_AI_READINESS_BLOCKING_REASON",
     status: "failed",
-    traceId: approval.traceId,
     spanId: "local-ai-readiness-blocking-reason",
+  });
+}
+
+const buildBlockedPreflightPayload = (
+  approval: StartApproval,
+  preflight: MissionStartPreflight,
+) => ({
+  error: "mission_preflight_failed",
+  actionableMessage: preflight.actionableMessage,
+  failureReason: preflight.failureReason,
+  nextAction: preflight.nextAction,
+  ownerResponsible: preflight.ownerResponsible,
+  readinessStatus: "degraded" as const,
+  primaryBlockingReason:
+    preflight.components.find((component) => component.ok !== true) ?? null,
+  blockingReasons: preflight.components.filter((component) => component.ok !== true),
+  commandSource: approval.commandSource,
+  traceId: approval.traceId,
+  attemptId: approval.attemptId,
+  components: preflight.components,
+});
+
+const recordBlockedPreflightEvents = (
+  activeWorkbench: GrassEyeWorkbenchHandle,
+  approval: StartApproval,
+  preflight: MissionStartPreflight,
+) => {
+  const baseFailureEvent = {
+    status: "failed" as const,
+    traceId: approval.traceId,
     attemptId: approval.attemptId,
     missionId: approval.traceId,
     runId: approval.traceId,
-    failureReason: toNullableString(component.detail),
-    actionableMessage: toNullableString(component.actionableMessage),
-    ownerResponsible: toNullableString(component.ownerResponsible),
+    failureReason: preflight.failureReason,
+    actionableMessage: preflight.nextAction,
+    ownerResponsible: preflight.ownerResponsible,
+  };
+
+  recordTaskStartDebugEvent(activeWorkbench, {
+    ...baseFailureEvent,
+    eventType: "MISSION_PREFLIGHT_FAILED",
+    spanId: "mission-preflight-failed",
   });
-}
+  recordTaskStartDebugEvent(activeWorkbench, {
+    ...baseFailureEvent,
+    eventType: "COMMAND_REJECTED",
+    spanId: "command-rejected",
+  });
+};
 
 export async function sendBlockedTaskStartPreflight(
   response: ServerResponse,
   activeWorkbench: GrassEyeWorkbenchHandle,
   approval: StartApproval,
-  preflight: Awaited<ReturnType<GrassEyeWorkbenchHandle["getMissionStartPreflight"]>>,
+  preflight: MissionStartPreflight,
 ) {
-  recordTaskStartDebugEvent(activeWorkbench, {
-    eventType: "MISSION_PREFLIGHT_FAILED",
-    status: "failed",
-    traceId: approval.traceId,
-    spanId: "mission-preflight-failed",
-    attemptId: approval.attemptId,
-    missionId: approval.traceId,
-    runId: approval.traceId,
-    failureReason: preflight.failureReason,
-    actionableMessage: preflight.nextAction,
-    ownerResponsible: preflight.ownerResponsible,
-  });
-  recordTaskStartDebugEvent(activeWorkbench, {
-    eventType: "COMMAND_REJECTED",
-    status: "failed",
-    traceId: approval.traceId,
-    spanId: "command-rejected",
-    attemptId: approval.attemptId,
-    missionId: approval.traceId,
-    runId: approval.traceId,
-    failureReason: preflight.failureReason,
-    actionableMessage: preflight.nextAction,
-    ownerResponsible: preflight.ownerResponsible,
-  });
-  writeTaskJsonResponse(response, 409, {
-    error: "mission_preflight_failed",
-    actionableMessage: preflight.actionableMessage,
-    failureReason: preflight.failureReason,
-    nextAction: preflight.nextAction,
-    ownerResponsible: preflight.ownerResponsible,
-    readinessStatus: "degraded",
-    primaryBlockingReason: preflight.components.find((component) => component.ok !== true) ?? null,
-    blockingReasons: preflight.components.filter((component) => component.ok !== true),
-    commandSource: approval.commandSource,
-    traceId: approval.traceId,
-    attemptId: approval.attemptId,
-    components: preflight.components,
-  });
+  recordBlockedPreflightEvents(activeWorkbench, approval, preflight);
+  writeTaskJsonResponse(response, 409, buildBlockedPreflightPayload(approval, preflight));
 }

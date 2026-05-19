@@ -8,52 +8,156 @@ import type {
 import { MouseClickAbilityInputSchema, MouseClickAbilityResultSchema } from "./schema.js";
 import { createMouseClickCapabilityRegistry, listMouseClickChildren } from "./registry.js";
 
-function buildInputParseFailureResult(input: MouseClickAbilityInput) {
-  const abilityGroupId = "mouse-click" as const;
-  const childCapabilityId =
-    typeof input.childCapabilityId === "string" &&
-    ["left-click-browser-viewport-once", "double-left-click-browser-viewport", "right-click-browser-viewport-once"].includes(input.childCapabilityId as string)
-      ? (input.childCapabilityId as MouseClickChildCapabilityId)
-      : ("left-click-browser-viewport-once" as MouseClickChildCapabilityId);
+type MouseClickAbilityGroupFailureReason =
+  | "input_schema_invalid"
+  | "unknown_child_capability"
+  | "child_execution_failed";
 
+type MouseClickAbilityGroupFailure = {
+  proofId: string;
+  childCapabilityId: MouseClickChildCapabilityId;
+  failureReason: MouseClickAbilityGroupFailureReason;
+  missionId: string;
+  runId: string;
+  sessionId: string | null;
+  roundId: string | null;
+  videoVisitId: string | null;
+  stepId: string;
+  capabilityCallId: string;
+  nerveBusEnvelopeId: string;
+  geometryGuardRef: string;
+  geometryGuardProofRef: string;
+  sourceCoordinateProofRef: string;
+  normalizedClickPoint: { x: number; y: number };
+  button: "left" | "right";
+  clickCount: 1 | 2;
+};
+
+type ParsedFailureInput = {
+  parsed: ParsedMouseClickAbilityInput;
+  childCapabilityId: MouseClickChildCapabilityId;
+  failureReason: Exclude<
+    MouseClickAbilityGroupFailureReason,
+    "input_schema_invalid"
+  >;
+  proofId: string;
+};
+
+const resolveDefaultChildCapabilityId = (
+  input: MouseClickAbilityInput,
+): MouseClickChildCapabilityId =>
+  typeof input.childCapabilityId === "string"
+  && [
+    "left-click-browser-viewport-once",
+    "double-left-click-browser-viewport",
+    "right-click-browser-viewport-once",
+  ].includes(input.childCapabilityId as string)
+    ? (input.childCapabilityId as MouseClickChildCapabilityId)
+    : "left-click-browser-viewport-once";
+
+const resolveStringOrUnknown = (value: unknown): string =>
+  typeof value === "string" ? value : "unknown";
+
+const buildFailureOutput = (
+  childCapabilityId: MouseClickChildCapabilityId,
+) => ({
+  abilityGroupId: "mouse-click" as const,
+  childCapabilityId,
+  status: "failed" as const,
+  actionExecutionRef: null,
+  primitiveExecutionRef: null,
+});
+
+const buildFailureRuntimeProof = (
+  failure: MouseClickAbilityGroupFailure,
+  now: string,
+) => ({
+  proofId: failure.proofId,
+  missionId: failure.missionId,
+  runId: failure.runId,
+  sessionId: failure.sessionId,
+  roundId: failure.roundId,
+  videoVisitId: failure.videoVisitId,
+  stepId: failure.stepId,
+  capabilityCallId: failure.capabilityCallId,
+  nerveBusEnvelopeId: failure.nerveBusEnvelopeId,
+  abilityGroupId: "mouse-click",
+  childCapabilityId: failure.childCapabilityId,
+  geometryGuardRef: failure.geometryGuardRef,
+  geometryGuardProofRef: failure.geometryGuardProofRef,
+  sourceCoordinateProofRef: failure.sourceCoordinateProofRef,
+  coordinateSpace: "browserViewport",
+  normalizedClickPoint: failure.normalizedClickPoint,
+  executableCoordinate: failure.normalizedClickPoint,
+  button: failure.button,
+  clickCount: failure.clickCount,
+  status: "failed",
+  failureReason: failure.failureReason,
+  reviewRequiredReason: null,
+  startedAt: now,
+  endedAt: now,
+  primitiveStartedAt: null,
+  primitiveEndedAt: null,
+  durationMs: 0,
+  primitiveExecutionRef: null,
+});
+
+const buildFailureResult = (
+  failure: MouseClickAbilityGroupFailure,
+) => {
   const now = new Date().toISOString();
   return MouseClickAbilityResultSchema.parse({
-    abilityGroupId,
-    childCapabilityId,
+    abilityGroupId: "mouse-click",
+    childCapabilityId: failure.childCapabilityId,
     status: "failed",
-    failureReason: "input_schema_invalid",
+    failureReason: failure.failureReason,
     reviewRequiredReason: null,
-    output: { abilityGroupId, childCapabilityId, status: "failed", actionExecutionRef: null, primitiveExecutionRef: null },
-    runtimeProof: {
-      proofId: `mc:proof:parse-fail:${Date.now()}`,
-      missionId: typeof input.missionId === "string" ? input.missionId : "unknown",
-      runId: typeof input.runId === "string" ? input.runId : "unknown",
-      sessionId: typeof input.sessionId === "string" ? input.sessionId : "unknown",
-      roundId: null,
-      videoVisitId: null,
-      stepId: typeof input.stepId === "string" ? input.stepId : "unknown",
-      capabilityCallId: typeof input.capabilityCallId === "string" ? input.capabilityCallId : "unknown",
-      nerveBusEnvelopeId: typeof input.nerveBusEnvelopeId === "string" ? input.nerveBusEnvelopeId : "unknown",
-      abilityGroupId,
-      childCapabilityId,
-      geometryGuardRef: typeof input.geometryGuardRef === "string" ? input.geometryGuardRef : "unknown",
-      geometryGuardProofRef: typeof input.geometryGuardProofRef === "string" ? input.geometryGuardProofRef : "unknown",
-      sourceCoordinateProofRef: typeof input.sourceCoordinateProofRef === "string" ? input.sourceCoordinateProofRef : "unknown",
-      coordinateSpace: "browserViewport",
-      normalizedClickPoint: { x: 0, y: 0 },
-      executableCoordinate: { x: 0, y: 0 },
-      button: "left",
-      clickCount: 1,
-      status: "failed",
-      failureReason: "input_schema_invalid",
-      reviewRequiredReason: null,
-      startedAt: now,
-      endedAt: now,
-      primitiveStartedAt: null,
-      primitiveEndedAt: null,
-      durationMs: 0,
-      primitiveExecutionRef: null,
-    },
+    output: buildFailureOutput(failure.childCapabilityId),
+    runtimeProof: buildFailureRuntimeProof(failure, now),
+  });
+};
+
+const buildParsedFailureResult = (
+  input: ParsedFailureInput,
+) => buildFailureResult({
+  proofId: input.proofId,
+  childCapabilityId: input.childCapabilityId,
+  failureReason: input.failureReason,
+  missionId: input.parsed.missionId,
+  runId: input.parsed.runId,
+  sessionId: input.parsed.sessionId,
+  roundId: input.parsed.roundId,
+  videoVisitId: input.parsed.videoVisitId,
+  stepId: input.parsed.stepId,
+  capabilityCallId: input.parsed.capabilityCallId,
+  nerveBusEnvelopeId: input.parsed.nerveBusEnvelopeId,
+  geometryGuardRef: input.parsed.geometryGuardRef,
+  geometryGuardProofRef: input.parsed.geometryGuardProofRef,
+  sourceCoordinateProofRef: input.parsed.sourceCoordinateProofRef,
+  normalizedClickPoint: input.parsed.geometryGuardNormalizedClickPoint,
+  button: "left",
+  clickCount: 1,
+});
+
+function buildInputParseFailureResult(input: MouseClickAbilityInput) {
+  return buildFailureResult({
+    proofId: `mc:proof:parse-fail:${Date.now()}`,
+    childCapabilityId: resolveDefaultChildCapabilityId(input),
+    failureReason: "input_schema_invalid",
+    missionId: resolveStringOrUnknown(input.missionId),
+    runId: resolveStringOrUnknown(input.runId),
+    sessionId: resolveStringOrUnknown(input.sessionId),
+    roundId: null,
+    videoVisitId: null,
+    stepId: resolveStringOrUnknown(input.stepId),
+    capabilityCallId: resolveStringOrUnknown(input.capabilityCallId),
+    nerveBusEnvelopeId: resolveStringOrUnknown(input.nerveBusEnvelopeId),
+    geometryGuardRef: resolveStringOrUnknown(input.geometryGuardRef),
+    geometryGuardProofRef: resolveStringOrUnknown(input.geometryGuardProofRef),
+    sourceCoordinateProofRef: resolveStringOrUnknown(input.sourceCoordinateProofRef),
+    normalizedClickPoint: { x: 0, y: 0 },
+    button: "left",
+    clickCount: 1,
   });
 }
 
@@ -65,88 +169,22 @@ async function dispatchToChild(
 ) {
   const capability = registry.get(childCapabilityId);
   if (!capability) {
-    const now = new Date().toISOString();
-    return MouseClickAbilityResultSchema.parse({
-      abilityGroupId: "mouse-click",
+    return buildParsedFailureResult({
+      parsed,
       childCapabilityId,
-      status: "failed",
       failureReason: "unknown_child_capability",
-      reviewRequiredReason: null,
-      output: { abilityGroupId: "mouse-click", childCapabilityId, status: "failed", actionExecutionRef: null, primitiveExecutionRef: null },
-      runtimeProof: {
-        proofId: `mc:proof:unknown-child:${Date.now()}`,
-        missionId: parsed.missionId,
-        runId: parsed.runId,
-        sessionId: parsed.sessionId,
-        roundId: parsed.roundId,
-        videoVisitId: parsed.videoVisitId,
-        stepId: parsed.stepId,
-        capabilityCallId: parsed.capabilityCallId,
-        nerveBusEnvelopeId: parsed.nerveBusEnvelopeId,
-        abilityGroupId: "mouse-click",
-        childCapabilityId,
-        geometryGuardRef: parsed.geometryGuardRef,
-        geometryGuardProofRef: parsed.geometryGuardProofRef,
-        sourceCoordinateProofRef: parsed.sourceCoordinateProofRef,
-        coordinateSpace: "browserViewport",
-        normalizedClickPoint: parsed.geometryGuardNormalizedClickPoint,
-        executableCoordinate: parsed.geometryGuardNormalizedClickPoint,
-        button: "left",
-        clickCount: 1,
-        status: "failed",
-        failureReason: "unknown_child_capability",
-        reviewRequiredReason: null,
-        startedAt: now,
-        endedAt: now,
-        primitiveStartedAt: null,
-        primitiveEndedAt: null,
-        durationMs: 0,
-        primitiveExecutionRef: null,
-      },
+      proofId: `mc:proof:unknown-child:${Date.now()}`,
     });
   }
 
   try {
     return MouseClickAbilityResultSchema.parse(await capability.execute(parsed, context));
-  } catch (error) {
-    const now = new Date().toISOString();
-    return MouseClickAbilityResultSchema.parse({
-      abilityGroupId: "mouse-click",
+  } catch {
+    return buildParsedFailureResult({
+      parsed,
       childCapabilityId,
-      status: "failed",
       failureReason: "child_execution_failed",
-      reviewRequiredReason: null,
-      output: { abilityGroupId: "mouse-click", childCapabilityId, status: "failed", actionExecutionRef: null, primitiveExecutionRef: null },
-      runtimeProof: {
-        proofId: `mc:proof:exec-fail:${Date.now()}`,
-        missionId: parsed.missionId,
-        runId: parsed.runId,
-        sessionId: parsed.sessionId,
-        roundId: parsed.roundId,
-        videoVisitId: parsed.videoVisitId,
-        stepId: parsed.stepId,
-        capabilityCallId: parsed.capabilityCallId,
-        nerveBusEnvelopeId: parsed.nerveBusEnvelopeId,
-        abilityGroupId: "mouse-click",
-        childCapabilityId,
-        geometryGuardRef: parsed.geometryGuardRef,
-        geometryGuardProofRef: parsed.geometryGuardProofRef,
-        sourceCoordinateProofRef: parsed.sourceCoordinateProofRef,
-        coordinateSpace: "browserViewport",
-        normalizedClickPoint: parsed.geometryGuardNormalizedClickPoint,
-        executableCoordinate: parsed.geometryGuardNormalizedClickPoint,
-        button: "left",
-        clickCount: 1,
-        status: "failed",
-        failureReason: "child_execution_failed",
-        reviewRequiredReason: null,
-        startedAt: now,
-        endedAt: now,
-        primitiveStartedAt: null,
-        primitiveEndedAt: null,
-        durationMs: 0,
-        primitiveExecutionRef: null,
-      },
+      proofId: `mc:proof:exec-fail:${Date.now()}`,
     });
   }
 }

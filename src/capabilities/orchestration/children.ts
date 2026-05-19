@@ -1,13 +1,8 @@
-import type { MissionState } from "./contract.js";
-import type { NerveBusAbilityGroup } from "../nerve-bus/contract.js";
-import type { ForensicsPersistenceAbilityGroup } from "../forensics-persistence/contract.js";
-import type { ScreenshotAbilityGroup } from "../screenshot/index.js";
-import type { AiAbilityGroup } from "../ai/index.js";
-import type { GeometryGuardAbilityGroup } from "../geometry-guard/index.js";
-import type { OpenAbilityGroup } from "../open/index.js";
-import type { MouseScrollAbilityGroup } from "../mouse-scroll/contract.js";
-import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
-import type { DispatchRegisteredAbilityActionInput } from "./contract.js";
+import type {
+  DispatchRegisteredAbilityActionInput,
+  MissionState,
+} from "./contract.js";
+import type { OrchestrationChildrenContext } from "./children-context.js";
 import {
   getMissionState,
   upsertMissionState,
@@ -28,17 +23,15 @@ import {
   FinalizeMissionChildInputSchema,
 } from "./schema.js";
 
-type OrchestrationForensics = ForensicsPersistenceAbilityGroup;
-
-export type OrchestrationChildrenContext = {
-  nerveBus: NerveBusAbilityGroup;
-  forensics: OrchestrationForensics;
-  screenshotAbilityGroup: ScreenshotAbilityGroup;
-  aiAbilityGroup: AiAbilityGroup;
-  geometryGuard: GeometryGuardAbilityGroup;
-  openAbilityGroup: OpenAbilityGroup;
-  mouseScrollAbilityGroup: MouseScrollAbilityGroup;
-  runtimeLogger: RuntimeLogger;
+type StartMissionCommand = {
+  missionId: string;
+  runId: string;
+  humanGoal: string;
+  requestedPlatform: string;
+  selectedPlatforms?: string[] | null;
+  maxRounds?: number | null;
+  maxMinutes?: number | null;
+  initialPayload?: Record<string, unknown> | null;
 };
 
 type ChildResult = {
@@ -48,17 +41,15 @@ type ChildResult = {
   reviewRequiredReason?: string | null;
 };
 
-export async function handleStartMission(rawInput: unknown, ctx: OrchestrationChildrenContext): Promise<ChildResult> {
-  const parsed = StartMissionChildInputSchema.safeParse(rawInput);
-  if (!parsed.success) {
-    const idle = getMissionState();
-    return { status: "failed", stateSnapshot: idle, failureReason: `Invalid start-mission input: ${parsed.error.message}` };
-  }
-  const cmd = parsed.data;
-  const existing = getMissionState(cmd.missionId);
-  if (existing.status === "running" || existing.status === "pending") {
-    return { status: "success", stateSnapshot: existing };
-  }
+const buildInvalidInputResult = (failureReason: string): ChildResult => ({
+  status: "failed",
+  stateSnapshot: getMissionState(),
+  failureReason,
+});
+
+const buildRunningMissionState = (
+  cmd: StartMissionCommand,
+): MissionState => {
   const initial = createInitialMissionState({
     missionId: cmd.missionId,
     runId: cmd.runId,
@@ -67,14 +58,27 @@ export async function handleStartMission(rawInput: unknown, ctx: OrchestrationCh
     selectedPlatforms: cmd.selectedPlatforms ?? [],
     maxRounds: cmd.maxRounds ?? null,
     maxMinutes: cmd.maxMinutes ?? null,
-    targetProfileRef: (cmd.initialPayload?.["targetProfileRef"] as string | null | undefined) ?? null,
-    targetUrl: (cmd.initialPayload?.["targetUrl"] as string | null | undefined) ?? null,
-    targetTitle: (cmd.initialPayload?.["targetTitle"] as string | null | undefined) ?? null,
+    targetProfileRef:
+      (cmd.initialPayload?.["targetProfileRef"] as string | null | undefined)
+      ?? null,
+    targetUrl:
+      (cmd.initialPayload?.["targetUrl"] as string | null | undefined)
+      ?? null,
+    targetTitle:
+      (cmd.initialPayload?.["targetTitle"] as string | null | undefined)
+      ?? null,
   });
-  const running = applyMissionStatus(initial, { status: "running", lastHumanCommand: "start-mission" });
-  upsertMissionState(running);
-  setActiveMission(cmd.missionId);
 
+  return applyMissionStatus(initial, {
+    status: "running",
+    lastHumanCommand: "start-mission",
+  });
+};
+
+const emitMissionStarted = (
+  cmd: StartMissionCommand,
+  ctx: OrchestrationChildrenContext,
+) => {
   ctx.runtimeLogger.emit({
     traceId: cmd.missionId,
     level: "info",
@@ -86,15 +90,43 @@ export async function handleStartMission(rawInput: unknown, ctx: OrchestrationCh
     status: "started",
     reason: `Mission started platform=${cmd.requestedPlatform}`,
   });
+};
 
-  // Fire-and-forget: start the autonomous round loop asynchronously.
-  // If the loop throws unexpectedly, record the failure in mission state.
-  void runMissionRoundLoop(cmd.missionId, ctx).catch((err) => {
+const startMissionLoop = (
+  missionId: string,
+  ctx: OrchestrationChildrenContext,
+) => {
+  void runMissionRoundLoop(missionId, ctx).catch((err) => {
     const errMsg = err instanceof Error ? err.message : String(err);
-    const failed = applyMissionStatus(getMissionState(cmd.missionId), { status: "failed", failureReason: errMsg });
+    const failed = applyMissionStatus(getMissionState(missionId), {
+      status: "failed",
+      failureReason: errMsg,
+    });
     upsertMissionState(failed);
     setActiveMission(null);
   });
+};
+
+export async function handleStartMission(rawInput: unknown, ctx: OrchestrationChildrenContext): Promise<ChildResult> {
+  const parsed = StartMissionChildInputSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return buildInvalidInputResult(
+      `Invalid start-mission input: ${parsed.error.message}`,
+    );
+  }
+
+  const cmd = parsed.data;
+  const existing = getMissionState(cmd.missionId);
+  if (existing.status === "running" || existing.status === "pending") {
+    return { status: "success", stateSnapshot: existing };
+  }
+
+  const running = buildRunningMissionState(cmd);
+  upsertMissionState(running);
+  setActiveMission(cmd.missionId);
+
+  emitMissionStarted(cmd, ctx);
+  startMissionLoop(cmd.missionId, ctx);
 
   return { status: "success", stateSnapshot: running };
 }
@@ -102,7 +134,7 @@ export async function handleStartMission(rawInput: unknown, ctx: OrchestrationCh
 export async function handlePauseMission(rawInput: unknown, _ctx: OrchestrationChildrenContext): Promise<ChildResult> {
   const parsed = PauseMissionChildInputSchema.safeParse(rawInput);
   if (!parsed.success) {
-    return { status: "failed", stateSnapshot: getMissionState(), failureReason: `Invalid pause-mission input` };
+    return buildInvalidInputResult("Invalid pause-mission input");
   }
   const current = getMissionState(parsed.data.missionId);
   if (current.status !== "running") {
@@ -116,7 +148,7 @@ export async function handlePauseMission(rawInput: unknown, _ctx: OrchestrationC
 export async function handleResumeMission(rawInput: unknown, _ctx: OrchestrationChildrenContext): Promise<ChildResult> {
   const parsed = ResumeMissionChildInputSchema.safeParse(rawInput);
   if (!parsed.success) {
-    return { status: "failed", stateSnapshot: getMissionState(), failureReason: `Invalid resume-mission input` };
+    return buildInvalidInputResult("Invalid resume-mission input");
   }
   const current = getMissionState(parsed.data.missionId);
   if (current.status !== "paused") {
@@ -130,7 +162,7 @@ export async function handleResumeMission(rawInput: unknown, _ctx: Orchestration
 export async function handleStopMission(rawInput: unknown, _ctx: OrchestrationChildrenContext): Promise<ChildResult> {
   const parsed = StopMissionChildInputSchema.safeParse(rawInput);
   if (!parsed.success) {
-    return { status: "failed", stateSnapshot: getMissionState(), failureReason: `Invalid stop-mission input` };
+    return buildInvalidInputResult("Invalid stop-mission input");
   }
   const { missionId, reason } = parsed.data;
   const current = getMissionState(missionId);
@@ -148,7 +180,7 @@ export async function handleStopMission(rawInput: unknown, _ctx: OrchestrationCh
 export async function handleEmergencyStop(rawInput: unknown, _ctx: OrchestrationChildrenContext): Promise<ChildResult> {
   const parsed = EmergencyStopChildInputSchema.safeParse(rawInput);
   if (!parsed.success) {
-    return { status: "failed", stateSnapshot: getMissionState(), failureReason: `Invalid emergency-stop input` };
+    return buildInvalidInputResult("Invalid emergency-stop input");
   }
   const { missionId, reason } = parsed.data;
   const current = getMissionState(missionId);
@@ -166,7 +198,9 @@ export async function handleEmergencyStop(rawInput: unknown, _ctx: Orchestration
 export async function handleDispatchRegisteredAbilityAction(rawInput: unknown, ctx: OrchestrationChildrenContext): Promise<ChildResult> {
   const parsed = DispatchRegisteredAbilityActionInputSchema.safeParse(rawInput);
   if (!parsed.success) {
-    return { status: "failed", stateSnapshot: getMissionState(), failureReason: `Invalid dispatch input: ${parsed.error.message}` };
+    return buildInvalidInputResult(
+      `Invalid dispatch input: ${parsed.error.message}`,
+    );
   }
   const input = parsed.data as DispatchRegisteredAbilityActionInput;
   const result = await dispatchRegisteredAbilityAction(input, {
@@ -187,7 +221,7 @@ export async function handleDispatchRegisteredAbilityAction(rawInput: unknown, c
 export async function handleFinalizeMission(rawInput: unknown, _ctx: OrchestrationChildrenContext): Promise<ChildResult> {
   const parsed = FinalizeMissionChildInputSchema.safeParse(rawInput);
   if (!parsed.success) {
-    return { status: "failed", stateSnapshot: getMissionState(), failureReason: `Invalid finalize-mission input` };
+    return buildInvalidInputResult("Invalid finalize-mission input");
   }
   const { missionId, reason } = parsed.data;
   const current = getMissionState(missionId);

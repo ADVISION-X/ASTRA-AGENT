@@ -17,6 +17,10 @@ export const commanderConsoleShellClient = `(function () {
   const tabDefaults = new Map(((appViewModel && appViewModel.tabGroups) || []).map((group) => [group.groupId, group.defaultTabId]));
   const text = {
     startSubmitted: locale === "zh" ? "启动任务命令已提交" : "Start mission command submitted",
+    amazonAdminOpened: locale === "zh" ? "Amazon 后台页打开请求已提交" : "Amazon admin open submitted",
+    amazonAdminBlocked: locale === "zh" ? "Amazon 后台页未打开" : "Amazon admin page not opened",
+    amazonMissionSubmitted: locale === "zh" ? "Amazon 上传任务已提交" : "Amazon upload task submitted",
+    amazonMissionFailed: locale === "zh" ? "Amazon 上传任务未完成" : "Amazon upload task did not complete",
     pauseSubmitted: locale === "zh" ? "暂停命令已提交" : "Pause mission command submitted",
     resumeSubmitted: locale === "zh" ? "继续命令已提交" : "Resume mission command submitted",
     stopSubmitted: locale === "zh" ? "停止命令已提交" : "Stop mission command submitted",
@@ -37,6 +41,8 @@ export const commanderConsoleShellClient = `(function () {
     selectedPlatforms: Array.isArray(viewModel.commandDraft.selectedPlatforms) ? [...viewModel.commandDraft.selectedPlatforms] : [],
     selectedHistoryEntryId: viewModel.commandDraft.historyEntryId || null,
     runtimeStartError: null,
+    amazonAdminResult: null,
+    amazonMissionResult: null,
     activeTabs: {
       mission: tabDefaults.get("mission") || "mission-overview",
       results: tabDefaults.get("results") || "results-summary",
@@ -85,6 +91,16 @@ ${commanderConsoleShellClientSupport}
         if (error && error.payload) { presentRuntimeStartError(error.payload); }
         showToast(error.message);
       }
+    },
+    async onOpenAmazonAdmin(input) {
+      const payload = await requestJson("POST", "/api/plugins/amazon-invoice-upload/open-admin", input);
+      presentAmazonAdminResult(payload);
+      showToast(payload.ok ? text.amazonAdminOpened : text.amazonAdminBlocked);
+    },
+    async onStartAmazonInvoiceUpload(input) {
+      const payload = await requestForm("/api/plugins/amazon-invoice-upload/start", input);
+      presentAmazonMissionResult(payload);
+      showToast(payload.ok ? text.amazonMissionSubmitted : text.amazonMissionFailed);
     },
     async onPauseMission() { await requestJson("POST", "/api/tasks/pause"); showToast(text.pauseSubmitted); },
     async onResumeMission() { await requestJson("POST", "/api/tasks/resume"); showToast(text.resumeSubmitted); },

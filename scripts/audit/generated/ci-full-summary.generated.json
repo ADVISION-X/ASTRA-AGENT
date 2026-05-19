@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-05-19T18:14:41.537Z",
+  "status": "FAIL",
+  "failedStep": "code-purity-owner",
+  "steps": [
+    {
+      "name": "code-purity-owner",
+      "status": "FAIL"
+    }
+  ]
+}

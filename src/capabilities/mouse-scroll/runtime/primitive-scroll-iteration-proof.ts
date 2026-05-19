@@ -1,4 +1,5 @@
-import { buildPrimitiveIterationProof, type PrimitiveAbortDecision, type PrimitiveIterationStatus, type PrimitiveTimeoutDecision } from "./primitive-scroll-runner-result.js";
+import { buildPrimitiveIterationProof } from "./primitive-scroll-runner-result.js";
+import type { PrimitiveAbortDecision, PrimitiveIterationStatus, PrimitiveTimeoutDecision } from "./primitive-scroll-runner-result.types.js";
 import type { PrimitiveClockSnapshot, PrimitiveExecutionStore } from "./primitive-scroll-runner-types.js";
 
 type AppendIterationProofInput = {

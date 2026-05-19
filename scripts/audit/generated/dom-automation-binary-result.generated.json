@@ -1,0 +1,1100 @@
+{
+  "inspectorId": "dom-automation",
+  "status": "PASS",
+  "lawResults": [
+    {
+      "lawId": "GRASSEYE-DOM-001-V1",
+      "status": "PASS",
+      "clauseResults": [
+        {
+          "clauseId": "summary.01",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "required.01",
+          "status": "PASS",
+          "enforcementLevel": "fs",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "required.02",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "required.03",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "required.04",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "required.05",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "forbidden.01",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "forbidden.02",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "forbidden.03",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "forbidden.04",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "forbidden.05",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "blueprint.01",
+          "status": "PASS",
+          "enforcementLevel": "fs",
+          "evidence": "blueprint structure paths for DOM runtime, plugin orchestration, and acceptance smoke files all exist"
+        },
+        {
+          "clauseId": "blueprint.03",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "blueprint.05",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "DOM catalog entries are defined in the source manifest and merged into the muscle-memory catalog without generated-file pollution"
+        },
+        {
+          "clauseId": "acceptance.01",
+          "status": "PASS",
+          "enforcementLevel": "fs",
+          "evidence": "blueprint structure paths for DOM runtime, plugin orchestration, and acceptance smoke files all exist"
+        },
+        {
+          "clauseId": "acceptance.02",
+          "status": "PASS",
+          "enforcementLevel": "fs",
+          "evidence": "blueprint structure paths for DOM runtime, plugin orchestration, and acceptance smoke files all exist"
+        },
+        {
+          "clauseId": "acceptance.03",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "DOM catalog entries are defined in the source manifest and merged into the muscle-memory catalog without generated-file pollution"
+        },
+        {
+          "clauseId": "acceptance.04",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "acceptance.13",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "acceptance.15",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced"
+        },
+        {
+          "clauseId": "ci.01",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "ci:full is the only complete gate, delegates to scripts/audit/ci-full.ts, and pulls dom-automation through the governed owner-manifest plan"
+        },
+        {
+          "clauseId": "ci.02",
+          "status": "PASS",
+          "enforcementLevel": "fs",
+          "evidence": "ci:full is the only complete gate, delegates to scripts/audit/ci-full.ts, and pulls dom-automation through the governed owner-manifest plan"
+        },
+        {
+          "clauseId": "ci.03",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "ci:full is the only complete gate, delegates to scripts/audit/ci-full.ts, and pulls dom-automation through the governed owner-manifest plan"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-DOM-002-V1",
+      "status": "PASS",
+      "clauseResults": [
+        {
+          "clauseId": "summary.01",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "required.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "required.02",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "required.03",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "required.04",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "required.05",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "required.06",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "required.07",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "required.08",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "required.09",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "required.10",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "forbidden.01",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "forbidden.02",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "forbidden.03",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "forbidden.04",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "forbidden.05",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "forbidden.06",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "forbidden.07",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "forbidden.08",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        },
+        {
+          "clauseId": "acceptance.06",
+          "status": "PASS",
+          "enforcementLevel": "runtime_smoke",
+          "evidence": "command passed: npm run acceptance:dom-automation-smoke :: > grasseye-local-workbench@0.1.0 acceptance:dom-automation-smoke | > node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | [DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed"
+        },
+        {
+          "clauseId": "acceptance.18",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-DOM-003-V1",
+      "status": "PASS",
+      "clauseResults": [
+        {
+          "clauseId": "summary.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "required.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "required.02",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "required.03",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "required.04",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "required.05",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "required.06",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "required.07",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "forbidden.01",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "forbidden.02",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "forbidden.03",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "forbidden.04",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "forbidden.05",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "forbidden.06",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity"
+        },
+        {
+          "clauseId": "acceptance.07",
+          "status": "PASS",
+          "enforcementLevel": "runtime_smoke",
+          "evidence": "command passed: npm run acceptance:dom-automation-smoke :: > grasseye-local-workbench@0.1.0 acceptance:dom-automation-smoke | > node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | [DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-DOM-004-V1",
+      "status": "PASS",
+      "clauseResults": [
+        {
+          "clauseId": "summary.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-fill is bound to elementRef + approvedText, rejects empty/password input, captures before/after evidence, and avoids clipboard/paste escape paths"
+        },
+        {
+          "clauseId": "required.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-fill is bound to elementRef + approvedText, rejects empty/password input, captures before/after evidence, and avoids clipboard/paste escape paths"
+        },
+        {
+          "clauseId": "required.02",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-fill is bound to elementRef + approvedText, rejects empty/password input, captures before/after evidence, and avoids clipboard/paste escape paths"
+        },
+        {
+          "clauseId": "required.03",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-fill is bound to elementRef + approvedText, rejects empty/password input, captures before/after evidence, and avoids clipboard/paste escape paths"
+        },
+        {
+          "clauseId": "required.04",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-fill is bound to elementRef + approvedText, rejects empty/password input, captures before/after evidence, and avoids clipboard/paste escape paths"
+        },
+        {
+          "clauseId": "required.05",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-fill is bound to elementRef + approvedText, rejects empty/password input, captures before/after evidence, and avoids clipboard/paste escape paths"
+        },
+        {
+          "clauseId": "forbidden.01",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-fill is bound to elementRef + approvedText, rejects empty/password input, captures before/after evidence, and avoids clipboard/paste escape paths"
+        },
+        {
+          "clauseId": "forbidden.02",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-fill is bound to elementRef + approvedText, rejects empty/password input, captures before/after evidence, and avoids clipboard/paste escape paths"
+        },
+        {
+          "clauseId": "forbidden.03",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-fill is bound to elementRef + approvedText, rejects empty/password input, captures before/after evidence, and avoids clipboard/paste escape paths"
+        },
+        {
+          "clauseId": "forbidden.04",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-fill is bound to elementRef + approvedText, rejects empty/password input, captures before/after evidence, and avoids clipboard/paste escape paths"
+        },
+        {
+          "clauseId": "forbidden.05",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-fill is bound to elementRef + approvedText, rejects empty/password input, captures before/after evidence, and avoids clipboard/paste escape paths"
+        },
+        {
+          "clauseId": "forbidden.06",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-fill is bound to elementRef + approvedText, rejects empty/password input, captures before/after evidence, and avoids clipboard/paste escape paths"
+        },
+        {
+          "clauseId": "acceptance.08",
+          "status": "PASS",
+          "enforcementLevel": "runtime_smoke",
+          "evidence": "command passed: npm run acceptance:dom-automation-smoke :: > grasseye-local-workbench@0.1.0 acceptance:dom-automation-smoke | > node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | [DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed"
+        },
+        {
+          "clauseId": "acceptance.17",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-fill is bound to elementRef + approvedText, rejects empty/password input, captures before/after evidence, and avoids clipboard/paste escape paths"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-DOM-005-V1",
+      "status": "PASS",
+      "clauseResults": [
+        {
+          "clauseId": "summary.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-click requires elementRef-bound execution, blocks dangerous/hidden/disabled/ambiguous targets, and captures before/after evidence"
+        },
+        {
+          "clauseId": "required.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-click requires elementRef-bound execution, blocks dangerous/hidden/disabled/ambiguous targets, and captures before/after evidence"
+        },
+        {
+          "clauseId": "required.02",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-click requires elementRef-bound execution, blocks dangerous/hidden/disabled/ambiguous targets, and captures before/after evidence"
+        },
+        {
+          "clauseId": "required.03",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-click requires elementRef-bound execution, blocks dangerous/hidden/disabled/ambiguous targets, and captures before/after evidence"
+        },
+        {
+          "clauseId": "required.04",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-click requires elementRef-bound execution, blocks dangerous/hidden/disabled/ambiguous targets, and captures before/after evidence"
+        },
+        {
+          "clauseId": "forbidden.01",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-click requires elementRef-bound execution, blocks dangerous/hidden/disabled/ambiguous targets, and captures before/after evidence"
+        },
+        {
+          "clauseId": "forbidden.02",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-click requires elementRef-bound execution, blocks dangerous/hidden/disabled/ambiguous targets, and captures before/after evidence"
+        },
+        {
+          "clauseId": "forbidden.03",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-click requires elementRef-bound execution, blocks dangerous/hidden/disabled/ambiguous targets, and captures before/after evidence"
+        },
+        {
+          "clauseId": "forbidden.04",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-click requires elementRef-bound execution, blocks dangerous/hidden/disabled/ambiguous targets, and captures before/after evidence"
+        },
+        {
+          "clauseId": "forbidden.05",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-click requires elementRef-bound execution, blocks dangerous/hidden/disabled/ambiguous targets, and captures before/after evidence"
+        },
+        {
+          "clauseId": "acceptance.09",
+          "status": "PASS",
+          "enforcementLevel": "runtime_smoke",
+          "evidence": "command passed: npm run acceptance:dom-automation-smoke :: > grasseye-local-workbench@0.1.0 acceptance:dom-automation-smoke | > node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | [DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-DOM-006-V1",
+      "status": "PASS",
+      "clauseResults": [
+        {
+          "clauseId": "summary.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "required.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "required.02",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "required.03",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "required.04",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "required.05",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "required.06",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "forbidden.01",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "forbidden.02",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "forbidden.03",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "forbidden.04",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "forbidden.05",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "forbidden.06",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "blueprint.04",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "blueprint.08",
+          "status": "PASS",
+          "enforcementLevel": "runtime_smoke",
+          "evidence": "command passed: npm run acceptance:amazon-invoice-upload-complete-smoke :: > grasseye-local-workbench@0.1.0 acceptance:amazon-invoice-upload-complete-smoke | > node --import tsx scripts/acceptance/amazon-invoice-upload-complete-smoke.ts |  | [AMAZON-INVOICE-UPLOAD-COMPLETE-SMOKE][PASS] multipart API saved approved PDF and completed search-upload-submit-verify"
+        },
+        {
+          "clauseId": "acceptance.16",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-upload validates approved file path equality, file existence/type, file-input target, before/after evidence, and the governed browser file-input bridge"
+        },
+        {
+          "clauseId": "runtime.04",
+          "status": "PASS",
+          "enforcementLevel": "runtime_smoke",
+          "evidence": "command passed: npm run acceptance:amazon-invoice-upload-complete-smoke :: > grasseye-local-workbench@0.1.0 acceptance:amazon-invoice-upload-complete-smoke | > node --import tsx scripts/acceptance/amazon-invoice-upload-complete-smoke.ts |  | [AMAZON-INVOICE-UPLOAD-COMPLETE-SMOKE][PASS] multipart API saved approved PDF and completed search-upload-submit-verify"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-DOM-007-V1",
+      "status": "PASS",
+      "clauseResults": [
+        {
+          "clauseId": "summary.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
+        },
+        {
+          "clauseId": "required.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
+        },
+        {
+          "clauseId": "required.02",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
+        },
+        {
+          "clauseId": "required.03",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
+        },
+        {
+          "clauseId": "required.04",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
+        },
+        {
+          "clauseId": "required.05",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
+        },
+        {
+          "clauseId": "required.06",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
+        },
+        {
+          "clauseId": "required.07",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
+        },
+        {
+          "clauseId": "forbidden.01",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
+        },
+        {
+          "clauseId": "forbidden.02",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
+        },
+        {
+          "clauseId": "forbidden.03",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
+        },
+        {
+          "clauseId": "forbidden.04",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
+        },
+        {
+          "clauseId": "forbidden.05",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-DOM-008-V1",
+      "status": "PASS",
+      "clauseResults": [
+        {
+          "clauseId": "summary.01",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+        },
+        {
+          "clauseId": "required.01",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+        },
+        {
+          "clauseId": "required.02",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+        },
+        {
+          "clauseId": "required.03",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+        },
+        {
+          "clauseId": "required.04",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+        },
+        {
+          "clauseId": "required.05",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+        },
+        {
+          "clauseId": "forbidden.01",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+        },
+        {
+          "clauseId": "forbidden.02",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+        },
+        {
+          "clauseId": "forbidden.03",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+        },
+        {
+          "clauseId": "forbidden.04",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+        },
+        {
+          "clauseId": "forbidden.05",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+        },
+        {
+          "clauseId": "blueprint.02",
+          "status": "PASS",
+          "enforcementLevel": "fs",
+          "evidence": "blueprint structure paths for DOM runtime, plugin orchestration, and acceptance smoke files all exist"
+        },
+        {
+          "clauseId": "acceptance.05",
+          "status": "PASS",
+          "enforcementLevel": "symbol",
+          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+        },
+        {
+          "clauseId": "acceptance.14",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+        },
+        {
+          "clauseId": "runtime.02",
+          "status": "PASS",
+          "enforcementLevel": "runtime_smoke",
+          "evidence": "command passed: npm run acceptance:amazon-invoice-agent-start-smoke :: > grasseye-local-workbench@0.1.0 acceptance:amazon-invoice-agent-start-smoke | > node --import tsx scripts/acceptance/amazon-invoice-agent-start-smoke.ts |  | [AMAZON-INVOICE-AGENT-START-SMOKE][PASS] independent plugin route accepted multipart, avoided task-start path, and reached upload_success"
+        },
+        {
+          "clauseId": "runtime.03",
+          "status": "PASS",
+          "enforcementLevel": "runtime_smoke",
+          "evidence": "command passed: npm run acceptance:amazon-invoice-upload-smoke :: > grasseye-local-workbench@0.1.0 acceptance:amazon-invoice-upload-smoke | > node --import tsx scripts/acceptance/amazon-invoice-upload-smoke.ts |  | [AMAZON-INVOICE-UPLOAD-SMOKE][PASS] plugin dry-run flow reached upload_success"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-DOM-009-V1",
+      "status": "PASS",
+      "clauseResults": [
+        {
+          "clauseId": "summary.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "required.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "required.02",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "required.03",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "required.04",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "required.05",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "required.06",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "required.07",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "required.08",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "required.09",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "forbidden.01",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "forbidden.02",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "forbidden.03",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "forbidden.04",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "forbidden.05",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "blueprint.07",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "acceptance.10",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        },
+        {
+          "clauseId": "acceptance.11",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-DOM-010-V1",
+      "status": "PASS",
+      "clauseResults": [
+        {
+          "clauseId": "summary.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "required.01",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "required.02",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "required.03",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "required.04",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "required.05",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "required.06",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "required.07",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "required.08",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "forbidden.01",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "forbidden.02",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "forbidden.03",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "forbidden.04",
+          "status": "PASS",
+          "enforcementLevel": "anti_escape",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "forbidden.05",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "forbidden.06",
+          "status": "PASS",
+          "enforcementLevel": "ast",
+          "evidence": "DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage"
+        },
+        {
+          "clauseId": "blueprint.06",
+          "status": "PASS",
+          "enforcementLevel": "fs",
+          "evidence": "package.json exposes the governed DOM audit and acceptance commands declared by the blueprint"
+        },
+        {
+          "clauseId": "acceptance.12",
+          "status": "PASS",
+          "enforcementLevel": "runtime_smoke",
+          "evidence": "command passed: npm run acceptance:dom-automation-smoke :: > grasseye-local-workbench@0.1.0 acceptance:dom-automation-smoke | > node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | [DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed"
+        },
+        {
+          "clauseId": "blueprint.commands.01",
+          "status": "PASS",
+          "enforcementLevel": "fs",
+          "evidence": "package.json exposes the governed DOM audit and acceptance commands declared by the blueprint"
+        },
+        {
+          "clauseId": "blueprint.commands.02",
+          "status": "PASS",
+          "enforcementLevel": "fs",
+          "evidence": "package.json exposes the governed DOM audit and acceptance commands declared by the blueprint"
+        },
+        {
+          "clauseId": "blueprint.commands.03",
+          "status": "PASS",
+          "enforcementLevel": "fs",
+          "evidence": "package.json exposes the governed DOM audit and acceptance commands declared by the blueprint"
+        },
+        {
+          "clauseId": "blueprint.commands.04",
+          "status": "PASS",
+          "enforcementLevel": "fs",
+          "evidence": "package.json exposes the governed DOM audit and acceptance commands declared by the blueprint"
+        },
+        {
+          "clauseId": "blueprint.commands.05",
+          "status": "PASS",
+          "enforcementLevel": "fs",
+          "evidence": "package.json exposes the governed DOM audit and acceptance commands declared by the blueprint"
+        },
+        {
+          "clauseId": "runtime.01",
+          "status": "PASS",
+          "enforcementLevel": "runtime_smoke",
+          "evidence": "command passed: npm run acceptance:dom-automation-smoke :: > grasseye-local-workbench@0.1.0 acceptance:dom-automation-smoke | > node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | [DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "totalLaws": 10,
+    "passedLaws": 10,
+    "failedLaws": 0,
+    "totalClauses": 171,
+    "passedClauses": 171,
+    "failedClauses": 0
+  }
+}

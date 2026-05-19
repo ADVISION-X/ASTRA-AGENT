@@ -18,6 +18,30 @@ type CommanderMacShellInput = {
 };
 type CommanderMacShellLocale = Parameters<typeof buildCommanderShellRenderState>[0]["locale"];
 
+function renderCommanderMacShellDocument(input: {
+  locale: CommanderMacShellLocale;
+  title: string;
+  macShell: string;
+  inspectorHtml: string;
+  scriptsHtml: string;
+}): string {
+  return `<!doctype html>
+<html lang="${input.locale === "zh" ? "zh-CN" : "en"}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(input.title)}</title>
+    <style>${commanderConsoleStyles}</style>
+  </head>
+  <body class="cc-theme-mac-shell">
+    ${input.macShell}
+    ${input.inspectorHtml}
+    <div class="cc-toast" data-cc-toast></div>
+    ${input.scriptsHtml}
+  </body>
+</html>`;
+}
+
 function renderCommanderMacShell(input: CommanderMacShellInput, options: {
   locale: CommanderMacShellLocale;
   requestUrl: URL;
@@ -46,21 +70,13 @@ function renderCommanderMacShell(input: CommanderMacShellInput, options: {
     inspectHtmlMap,
   });
 
-  return `<!doctype html>
-<html lang="${options.locale === "zh" ? "zh-CN" : "en"}">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeHtml(viewModel.appTitle)}</title>
-    <style>${commanderConsoleStyles}</style>
-  </head>
-  <body class="cc-theme-mac-shell">
-    ${macShell}
-    ${renderRightInspector(viewModel)}
-    <div class="cc-toast" data-cc-toast></div>
-    ${scriptsHtml}
-  </body>
-</html>`;
+  return renderCommanderMacShellDocument({
+    locale: options.locale,
+    title: viewModel.appTitle,
+    macShell,
+    inspectorHtml: renderRightInspector(viewModel),
+    scriptsHtml,
+  });
 }
 
 export { renderCommanderMacShell };

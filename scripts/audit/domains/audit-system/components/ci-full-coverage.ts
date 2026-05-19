@@ -35,6 +35,11 @@ export const runCiFullCoverage = (
     findings.push(finding("package.json", `second CI entrypoint exposed: ${scriptName}`, "Keep ci:full as the only complete quality-gate entrypoint."));
   }
 
+  const forbiddenFullEntryNames = ["audit:all", "compliance:full", "full-audit", "complete-audit", "ci:full2"];
+  for (const scriptName of forbiddenFullEntryNames.filter((name) => Boolean(scripts[name]))) {
+    findings.push(finding("package.json", `parallel complete quality gate exposed: ${scriptName}`, "Delete the parallel full-entry script or delegate it to ci:full only."));
+  }
+
   const plannedSteps = buildCiFullSteps();
   for (const manifest of manifests.filter((item) => item.capabilityDomain !== "audit-system")) {
     if (!plannedSteps.some((step) => step.name === manifest.inspectorId)) {

@@ -2,8 +2,11 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 
 import type { ArtifactStoragePort } from "../ports/artifact-storage-port.js";
-import type { CaptureGridRegionInput, CaptureGridRegionResult } from "../schema.js";
-import { decodeGridCell, type ScreenshotGridSpec } from "../schema.js";
+import type {
+  CaptureGridRegionInput,
+  CaptureGridRegionResult,
+} from "../schema-capture.js";
+import { decodeGridCell, type ScreenshotGridSpec } from "../schema-grid.js";
 import { cropImageRegion } from "../runtime/grid-renderer.js";
 import { buildScreenshotProof } from "../runtime/proof.js";
 import { resolveScreenshotStructuredDataRefPayload } from "../runtime/structured-ref-store.js";
@@ -12,7 +15,14 @@ type Ports = {
   artifactStorage: ArtifactStoragePort;
 };
 
-function resolveCropBbox(input: CaptureGridRegionInput): { x: number; y: number; width: number; height: number } | null {
+type CaptureTiming = {
+  startedAt: string;
+  startMs: number;
+};
+
+type CropBbox = { x: number; y: number; width: number; height: number };
+
+function resolveCropBbox(input: CaptureGridRegionInput): CropBbox | null {
   if (input.bbox) return input.bbox;
 
   if (input.regionGridCell && input.gridSpecRef) {
@@ -30,139 +40,130 @@ export async function captureGridRegion(
   input: CaptureGridRegionInput,
   ports: Ports,
 ): Promise<CaptureGridRegionResult> {
-  const startedAt = new Date().toISOString();
-  const startMs = Date.now();
+  const timing = startCaptureTiming();
 
   if (!existsSync(input.sourceScreenshotRef)) {
-    const endedAt = new Date().toISOString();
-    const durationMs = Date.now() - startMs;
-    return {
-      status: "failed",
-      sourceScreenshotRef: input.sourceScreenshotRef,
-      screenshotProof: buildScreenshotProof({
-        childCapabilityId: "capture-grid-region",
-        missionId: input.missionId,
-        runId: input.runId,
-        sessionId: input.sessionId,
-        roundId: input.roundId,
-        stepId: input.stepId,
-        capabilityCallId: input.capabilityCallId,
-        nerveBusEnvelopeId: input.nerveBusEnvelopeId,
-        inputRef: input.inputRef,
-        totalScreenshotStepMs: durationMs,
-        status: "failed",
-        failureReason: `Source screenshot not found: ${input.sourceScreenshotRef}`,
-        startedAt,
-        endedAt,
-        durationMs,
-      }),
-      failureReason: `Source screenshot not found: ${input.sourceScreenshotRef}`,
-      reviewRequiredReason: null,
-    };
+    const reason = `Source screenshot not found: ${input.sourceScreenshotRef}`;
+    return buildCaptureGridFailure({ input, timing, failureReason: reason });
   }
 
   const bbox = resolveCropBbox(input);
   if (!bbox) {
-    const endedAt = new Date().toISOString();
-    const durationMs = Date.now() - startMs;
-    return {
-      status: "failed",
-      screenshotProof: buildScreenshotProof({
-        childCapabilityId: "capture-grid-region",
-        missionId: input.missionId,
-        runId: input.runId,
-        sessionId: input.sessionId,
-        roundId: input.roundId,
-        stepId: input.stepId,
-        capabilityCallId: input.capabilityCallId,
-        nerveBusEnvelopeId: input.nerveBusEnvelopeId,
-        inputRef: input.inputRef,
-        totalScreenshotStepMs: durationMs,
-        status: "failed",
-        failureReason: "No bbox or resolvable regionGridCell provided",
-        startedAt,
-        endedAt,
-        durationMs,
-      }),
+    return buildCaptureGridFailure({
+      input,
+      timing,
       failureReason: "No bbox or resolvable regionGridCell provided",
-      reviewRequiredReason: null,
-    };
+    });
   }
 
   const artifactId = randomUUID();
-  let cropResult: Awaited<ReturnType<typeof cropImageRegion>>;
+  const cropResult = await tryCropRegion(input.sourceScreenshotRef, bbox);
+  if (!cropResult.ok) {
+    return buildCaptureGridFailure({
+      input,
+      timing,
+      failureReason: `Crop failed: ${cropResult.reason}`,
+    });
+  }
+
+  const artifactRef = await ports.artifactStorage.writeArtifact({
+    sourceTempFilePath: cropResult.value.outputFilePath,
+    artifactId,
+    mimeType: cropResult.value.mimeType,
+    createdAt: timing.startedAt,
+  });
+
+  return buildCaptureGridSuccess({ input, timing, artifactRef });
+}
+
+async function tryCropRegion(sourceScreenshotRef: string, bbox: CropBbox) {
   try {
-    cropResult = await cropImageRegion({
-      sourceFilePath: input.sourceScreenshotRef,
+    const value = await cropImageRegion({
+      sourceFilePath: sourceScreenshotRef,
       x: bbox.x,
       y: bbox.y,
       width: bbox.width,
       height: bbox.height,
     });
+    return { ok: true as const, value };
   } catch (err) {
-    const endedAt = new Date().toISOString();
-    const durationMs = Date.now() - startMs;
     const reason = err instanceof Error ? err.message : String(err);
-    return {
-      status: "failed",
-      screenshotProof: buildScreenshotProof({
-        childCapabilityId: "capture-grid-region",
-        missionId: input.missionId,
-        runId: input.runId,
-        sessionId: input.sessionId,
-        roundId: input.roundId,
-        stepId: input.stepId,
-        capabilityCallId: input.capabilityCallId,
-        nerveBusEnvelopeId: input.nerveBusEnvelopeId,
-        inputRef: input.inputRef,
-        totalScreenshotStepMs: durationMs,
-        status: "failed",
-        failureReason: `Crop failed: ${reason}`,
-        startedAt,
-        endedAt,
-        durationMs,
-      }),
-      failureReason: `Crop failed: ${reason}`,
-      reviewRequiredReason: null,
-    };
+    return { ok: false as const, reason };
   }
+}
 
-  const artifactRef = await ports.artifactStorage.writeArtifact({
-    sourceTempFilePath: cropResult.outputFilePath,
-    artifactId,
-    mimeType: cropResult.mimeType,
-    createdAt: startedAt,
-  });
+function startCaptureTiming(): CaptureTiming {
+  return { startedAt: new Date().toISOString(), startMs: Date.now() };
+}
 
-  const endedAt = new Date().toISOString();
-  const durationMs = Date.now() - startMs;
+function buildCaptureGridFailure(params: {
+  input: CaptureGridRegionInput;
+  timing: CaptureTiming;
+  failureReason: string;
+}): CaptureGridRegionResult {
+  const { endedAt, durationMs } = endCaptureTiming(params.timing);
+  return {
+    status: "failed",
+    sourceScreenshotRef: params.input.sourceScreenshotRef,
+    screenshotProof: buildScreenshotProof({
+      ...captureProofIdentity(params.input),
+      totalScreenshotStepMs: durationMs,
+      status: "failed",
+      failureReason: params.failureReason,
+      startedAt: params.timing.startedAt,
+      endedAt,
+      durationMs,
+    }),
+    failureReason: params.failureReason,
+    reviewRequiredReason: null,
+  };
+}
 
+function buildCaptureGridSuccess(params: {
+  input: CaptureGridRegionInput;
+  timing: CaptureTiming;
+  artifactRef: Awaited<ReturnType<ArtifactStoragePort["writeArtifact"]>>;
+}): CaptureGridRegionResult {
+  const { endedAt, durationMs } = endCaptureTiming(params.timing);
+  const artifactRef = params.artifactRef;
   return {
     status: "success",
     regionScreenshotRef: artifactRef.storageRef,
     regionArtifactRef: artifactRef,
-    sourceScreenshotRef: input.sourceScreenshotRef,
+    sourceScreenshotRef: params.input.sourceScreenshotRef,
     screenshotProof: buildScreenshotProof({
-      childCapabilityId: "capture-grid-region",
-      missionId: input.missionId,
-      runId: input.runId,
-      sessionId: input.sessionId,
-      roundId: input.roundId,
-      stepId: input.stepId,
-      capabilityCallId: input.capabilityCallId,
-      nerveBusEnvelopeId: input.nerveBusEnvelopeId,
-      inputRef: input.inputRef,
+      ...captureProofIdentity(params.input),
       screenshotRef: artifactRef.storageRef,
       artifactRef: artifactRef.artifactId,
       capturePhaseMs: durationMs,
       artifactWritePhaseMs: 0,
       totalScreenshotStepMs: durationMs,
       status: "success",
-      startedAt,
+      startedAt: params.timing.startedAt,
       endedAt,
       durationMs,
     }),
     failureReason: null,
     reviewRequiredReason: null,
+  };
+}
+
+function endCaptureTiming(timing: CaptureTiming) {
+  const endedAt = new Date().toISOString();
+  const durationMs = Date.now() - timing.startMs;
+  return { endedAt, durationMs };
+}
+
+function captureProofIdentity(input: CaptureGridRegionInput) {
+  return {
+    childCapabilityId: "capture-grid-region" as const,
+    missionId: input.missionId,
+    runId: input.runId,
+    sessionId: input.sessionId,
+    roundId: input.roundId,
+    stepId: input.stepId,
+    capabilityCallId: input.capabilityCallId,
+    nerveBusEnvelopeId: input.nerveBusEnvelopeId,
+    inputRef: input.inputRef,
   };
 }

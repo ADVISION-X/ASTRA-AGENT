@@ -4,5 +4,8 @@
  * contract explicit and narrow.
  */
 
-export { decodeGridCell } from "../../screenshot/contract.js";
-export type { ScreenshotGridSpec, ScreenshotGridCell } from "../../screenshot/schema.js";
+export { decodeGridCell } from "../../screenshot/schema-grid.js";
+export type {
+  ScreenshotGridCell,
+  ScreenshotGridSpec,
+} from "../../screenshot/schema-grid.js";

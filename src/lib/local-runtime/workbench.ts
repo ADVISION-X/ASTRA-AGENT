@@ -34,8 +34,8 @@ import {
   getMissionReadinessReport,
   getMissionStartPreflight,
   getModeInfo,
-  type WorkbenchPreflightInput,
 } from "./workbench-status.js";
+import type { WorkbenchPreflightInput } from "./workbench-status-types.js";
 import {
   createWorkbenchAssembly,
   type WorkbenchAssembly,
@@ -50,6 +50,13 @@ import {
 } from "./workbench-commander-console.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import type { GrassEyeWorkbenchHandle } from "./workbench-handle.js";
+import {
+  getAmazonInvoiceUploadTaskStatus,
+  openAmazonInvoiceAdminPage,
+  resumeAmazonInvoiceUploadTask,
+  startAmazonInvoiceUploadTask,
+  startAmazonInvoiceUploadMission,
+} from "../../plugins/amazon-invoice-upload/index.js";
 
 // ─── Active Capability Group IDs ───────────────────────────────────────────
 
@@ -67,46 +74,171 @@ const ACTIVE_CAPABILITY_GROUP_IDS = [
   "commander-console",
 ] as const;
 
+type CommanderConsoleSurface = ReturnType<typeof createWorkbenchCommanderConsole>;
+
+type WorkbenchCore = {
+  assembly: WorkbenchAssembly;
+  nerveBus: NerveBusAbilityGroup;
+  orchestration: OrchestrationAbilityGroup;
+  commanderConsole: CommanderConsoleSurface;
+};
+
+type BuildWorkbenchHandleInput = {
+  init: () => Promise<void>;
+  assembly: WorkbenchAssembly;
+  orchestration: OrchestrationAbilityGroup;
+  commanderConsole: CommanderConsoleSurface;
+};
+
+const createWorkbenchOrchestration = (
+  assembly: WorkbenchAssembly,
+  nerveBus: NerveBusAbilityGroup,
+): OrchestrationAbilityGroup =>
+  createOrchestrationAbilityGroup({
+    nerveBus,
+    forensics: assembly.forensicsPersistenceAbilityGroup,
+    screenshot: assembly.screenshotAbilityGroup,
+    ai: assembly.aiAbilityGroup,
+    geometryGuard: assembly.geometryGuardAbilityGroup,
+    open: assembly.openAbilityGroup,
+    mouseScroll: assembly.mouseScrollAbilityGroup,
+    runtimeLogger: assembly.runtimeLogger,
+  });
+
+const initializeWorkbenchCore = (
+  options: GrassEyeWorkbenchOptions,
+): WorkbenchCore => {
+  const assembly = createWorkbenchAssembly(options);
+  const orchestrationRef: { instance: OrchestrationAbilityGroup | null } = {
+    instance: null,
+  };
+  const handlerPort = createWorkbenchNerveBusHandlerPort({
+    ...assembly,
+    getOrchestration: () => {
+      if (!orchestrationRef.instance) {
+        throw new Error("Orchestration not yet initialized");
+      }
+      return orchestrationRef.instance;
+    },
+  });
+  const nerveBus = createNerveBusAbilityGroup({ handlerPort });
+  const orchestration = createWorkbenchOrchestration(assembly, nerveBus);
+  orchestrationRef.instance = orchestration;
+
+  return {
+    assembly,
+    nerveBus,
+    orchestration,
+    commanderConsole: createWorkbenchCommanderConsole({
+      nerveBus,
+      getOrchestration: () => orchestration,
+    }),
+  };
+};
+
+const buildSettingsHandle = (dataDir: string) => ({
+  async getAppRunLimitSettings() {
+    return loadAppRunLimitSettings(dataDir);
+  },
+  async saveAppRunLimitSettings(input: Parameters<typeof saveAppRunLimitSettings>[1]) {
+    return saveAppRunLimitSettings(dataDir, input);
+  },
+  async getOnlineAiProviderSettings() {
+    return loadOnlineAiProviderPublicStatus(dataDir);
+  },
+  async saveOnlineAiProviderSettings(input: Parameters<typeof saveOnlineAiProviderConfig>[1]) {
+    return saveOnlineAiProviderConfig(dataDir, input);
+  },
+});
+
+const buildRequirementHistoryHandle = (dataDir: string) => ({
+  async getUserRequirementHistory(limit?: number) {
+    return loadUserRequirementHistory(dataDir, limit);
+  },
+  async upsertUserRequirementHistory(input: UserRequirementHistoryUpsertInput) {
+    return upsertUserRequirementHistory(dataDir, input);
+  },
+  async deleteUserRequirementHistory(id: string) {
+    return deleteUserRequirementHistory(dataDir, id);
+  },
+  async reuseUserRequirementHistory(id: string) {
+    return markUserRequirementHistoryReused(dataDir, id);
+  },
+});
+
+const buildAmazonInvoiceHandle = (
+  assembly: WorkbenchAssembly,
+  dataDir: string,
+) => ({
+  async openAdminInvoicePage(input: Parameters<typeof openAmazonInvoiceAdminPage>[1]) {
+    return openAmazonInvoiceAdminPage(assembly.browserController, input);
+  },
+  async startAmazonInvoiceUploadMission(
+    input: Parameters<typeof startAmazonInvoiceUploadMission>[1],
+  ) {
+    return startAmazonInvoiceUploadMission(assembly.browserController, input);
+  },
+  async startAmazonInvoiceUploadTask(input: Parameters<typeof startAmazonInvoiceUploadTask>[0]["task"]) {
+    return startAmazonInvoiceUploadTask({
+      browser: assembly.browserController,
+      dataDir,
+      task: input,
+    });
+  },
+  async resumeAmazonInvoiceUploadTask(input: { taskId: string }) {
+    return resumeAmazonInvoiceUploadTask({
+      browser: assembly.browserController,
+      dataDir,
+      taskId: input.taskId,
+    });
+  },
+  async getAmazonInvoiceUploadTaskStatus(taskId: string) {
+    return getAmazonInvoiceUploadTaskStatus({ dataDir, taskId });
+  },
+});
+
+const buildWorkbenchHandle = (
+  input: BuildWorkbenchHandleInput,
+): GrassEyeWorkbenchHandle => {
+  const dataDir = input.assembly.dataDir;
+
+  return {
+    commanderConsole: input.commanderConsole,
+    init: input.init,
+    getHealthReport: async () => getHealthReport(input.assembly),
+    getMissionReadinessReport: async () =>
+      getMissionReadinessReport(input.assembly, input.assembly.options),
+    getMissionStartPreflight: async (preflightInput: WorkbenchPreflightInput) =>
+      getMissionStartPreflight(input.assembly, input.assembly.options, preflightInput),
+    async getCommanderConsoleSnapshot(): Promise<WorkbenchCommanderMissionDashboardView> {
+      return getCommanderConsoleSnapshot({
+        commanderConsole: input.commanderConsole,
+        getOrchestration: () => input.orchestration,
+        capabilityGroupIds: [...ACTIVE_CAPABILITY_GROUP_IDS],
+      });
+    },
+    getDataDir: () => dataDir,
+    getModeInfo: () => getModeInfo(input.assembly.options),
+    ...buildSettingsHandle(dataDir),
+    ...buildRequirementHistoryHandle(dataDir),
+    ...buildAmazonInvoiceHandle(input.assembly, dataDir),
+  };
+};
+
 // ─── GrassEyeWorkbench ───────────────────────────────────────────────────────
 
 export class GrassEyeWorkbench {
   private readonly _assembly: WorkbenchAssembly;
   private readonly _nerveBus: NerveBusAbilityGroup;
   private readonly _orchestration: OrchestrationAbilityGroup;
-  private readonly _commanderConsole: ReturnType<typeof createWorkbenchCommanderConsole>;
+  private readonly _commanderConsole: CommanderConsoleSurface;
 
   constructor(options: GrassEyeWorkbenchOptions) {
-    this._assembly = createWorkbenchAssembly(options);
-
-    // Bootstrap: dispatcher holds a late-bound ref to orchestration
-    const orchestrationRef: { instance: OrchestrationAbilityGroup | null } = { instance: null };
-
-    const handlerPort = createWorkbenchNerveBusHandlerPort({
-      ...this._assembly,
-      getOrchestration: () => {
-        if (!orchestrationRef.instance) throw new Error("Orchestration not yet initialized");
-        return orchestrationRef.instance;
-      },
-    });
-
-    this._nerveBus = createNerveBusAbilityGroup({ handlerPort });
-
-    this._orchestration = createOrchestrationAbilityGroup({
-      nerveBus: this._nerveBus,
-      forensics: this._assembly.forensicsPersistenceAbilityGroup,
-      screenshot: this._assembly.screenshotAbilityGroup,
-      ai: this._assembly.aiAbilityGroup,
-      geometryGuard: this._assembly.geometryGuardAbilityGroup,
-      open: this._assembly.openAbilityGroup,
-      mouseScroll: this._assembly.mouseScrollAbilityGroup,
-      runtimeLogger: this._assembly.runtimeLogger,
-    });
-    orchestrationRef.instance = this._orchestration;
-
-    this._commanderConsole = createWorkbenchCommanderConsole({
-      nerveBus: this._nerveBus,
-      getOrchestration: () => this._orchestration,
-    });
+    const core = initializeWorkbenchCore(options);
+    this._assembly = core.assembly;
+    this._nerveBus = core.nerveBus;
+    this._orchestration = core.orchestration;
+    this._commanderConsole = core.commanderConsole;
   }
 
   // ─── Init ────────────────────────────────────────────────────────────────
@@ -119,76 +251,11 @@ export class GrassEyeWorkbench {
   // ─── Handle ──────────────────────────────────────────────────────────────
 
   createHandle(): GrassEyeWorkbenchHandle {
-    const self = this;
-    const { _assembly, _orchestration, _commanderConsole } = self;
-    const dataDir = _assembly.dataDir;
-
-    return {
-      commanderConsole: _commanderConsole,
-
-      async init() {
-        return self.init();
-      },
-
-      async getHealthReport() {
-        return getHealthReport(_assembly);
-      },
-
-      async getMissionReadinessReport() {
-        return getMissionReadinessReport(_assembly, _assembly.options);
-      },
-
-      async getMissionStartPreflight(input: WorkbenchPreflightInput) {
-        return getMissionStartPreflight(_assembly, _assembly.options, input);
-      },
-
-      async getCommanderConsoleSnapshot(): Promise<WorkbenchCommanderMissionDashboardView> {
-        return getCommanderConsoleSnapshot({
-          commanderConsole: _commanderConsole,
-          getOrchestration: () => _orchestration,
-          capabilityGroupIds: [...ACTIVE_CAPABILITY_GROUP_IDS],
-        });
-      },
-
-      async getAppRunLimitSettings() {
-        return loadAppRunLimitSettings(dataDir);
-      },
-
-      async saveAppRunLimitSettings(input) {
-        return saveAppRunLimitSettings(dataDir, input);
-      },
-
-      async getOnlineAiProviderSettings() {
-        return loadOnlineAiProviderPublicStatus(dataDir);
-      },
-
-      async saveOnlineAiProviderSettings(input) {
-        return saveOnlineAiProviderConfig(dataDir, input);
-      },
-
-      getDataDir() {
-        return dataDir;
-      },
-
-      async getUserRequirementHistory(limit?: number) {
-        return loadUserRequirementHistory(dataDir, limit);
-      },
-
-      async upsertUserRequirementHistory(input: UserRequirementHistoryUpsertInput) {
-        return upsertUserRequirementHistory(dataDir, input);
-      },
-
-      async deleteUserRequirementHistory(id: string) {
-        return deleteUserRequirementHistory(dataDir, id);
-      },
-
-      async reuseUserRequirementHistory(id: string) {
-        return markUserRequirementHistoryReused(dataDir, id);
-      },
-
-      getModeInfo() {
-        return getModeInfo(_assembly.options);
-      },
-    };
+    return buildWorkbenchHandle({
+      init: () => this.init(),
+      assembly: this._assembly,
+      orchestration: this._orchestration,
+      commanderConsole: this._commanderConsole,
+    });
   }
 }

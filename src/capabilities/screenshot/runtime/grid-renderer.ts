@@ -6,10 +6,11 @@ import sharp from "sharp";
 
 import {
   buildGridSpec,
-  MIN_GRID_CELL_WIDTH_PX,
-  MIN_GRID_CELL_HEIGHT_PX,
   type ScreenshotGridSpec,
-} from "../schema.js";
+} from "../schema-grid.js";
+
+const MIN_GRID_CELL_WIDTH_PX = 20;
+const MIN_GRID_CELL_HEIGHT_PX = 15;
 
 // ─── shared helpers ───────────────────────────────────────────────────────────
 
@@ -19,7 +20,7 @@ export async function ensureTempFile(extension: string): Promise<string> {
   return path.join(dir, `artifact${extension}`);
 }
 
-export async function getImageDimensions(filePath: string): Promise<{ width: number; height: number }> {
+async function getImageDimensions(filePath: string): Promise<{ width: number; height: number }> {
   const meta = await sharp(filePath).metadata();
   if (!meta.width || !meta.height) {
     throw new Error(`Unable to read dimensions for ${filePath}`);

@@ -1,6 +1,6 @@
-import type { ActionableErrorView } from "./view-helpers.js";
+import type { ActionableErrorView } from "./view-helper-actionable-errors.js";
 
-export type CommanderAppPageId = "home" | "mission" | "results" | "review" | "settings" | "health";
+export type CommanderAppPageId = "home" | "amazon-invoice-upload" | "mission" | "results" | "review" | "settings" | "health";
 
 export type CommanderAppNavItem = {
   pageId: CommanderAppPageId;

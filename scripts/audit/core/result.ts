@@ -32,7 +32,8 @@ export const resolveClassification = (
     "LAW GAP": 4,
     "CODE VIOLATION": 5,
     "SCRIPT OVERREACH": 6,
-    "FAKE ENFORCEMENT": 7,
+    "INVALID ENFORCEMENT": 7,
+    "FAKE ENFORCEMENT": 8,
   };
 
   if (findings.length > 0) {

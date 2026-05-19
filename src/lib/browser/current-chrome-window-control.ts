@@ -70,14 +70,6 @@ end tell
 `;
 };
 
-const activateChrome = async (): Promise<void> => {
-  await runAppleScript('tell application "Google Chrome" to activate');
-};
-
-const openUrlInChrome = async (url: string): Promise<void> => {
-  await runAppleScript(buildOpenUrlScript(url));
-};
-
 const readFrontChromeWindowState = async (): Promise<ChromeWindowState> => {
   const output = await runAppleScript(`
 tell application "Google Chrome" to activate
@@ -109,30 +101,5 @@ end tell
   };
 };
 
-const clickAt = async (x: number, y: number): Promise<void> => {
-  await runJxa(`
-ObjC.import('ApplicationServices');
-function post(type, x, y) {
-  const point = $.CGPointMake(x, y);
-  const event = $.CGEventCreateMouseEvent(null, type, point, $.kCGMouseButtonLeft);
-  $.CGEventPost($.kCGHIDEventTap, event);
-}
-post($.kCGEventMouseMoved, ${x}, ${y});
-delay(0.02);
-post($.kCGEventLeftMouseDown, ${x}, ${y});
-delay(0.02);
-post($.kCGEventLeftMouseUp, ${x}, ${y});
-`);
-};
-
-const pressBrowserKey = async (keyCode: number): Promise<void> => {
-  await runAppleScript(`
-tell application "Google Chrome" to activate
-tell application "System Events"
-    key code ${keyCode}
-end tell
-`);
-};
-
-export { runSpawn, runAppleScript, runJxa, buildOpenUrlScript, activateChrome, openUrlInChrome, readFrontChromeWindowState, clickAt, pressBrowserKey };
+export { runSpawn, runAppleScript, runJxa, buildOpenUrlScript, readFrontChromeWindowState };
 export type { ChromeWindowState };

@@ -24,6 +24,13 @@ const STEP_TIMEOUT_MS = 120_000;
 
 export const FOUNDATION_STEPS: CiFullStepDefinition[] = [
   {
+    name: "code-purity-owner",
+    layer: "foundation-layer",
+    command: ["node", "--import", "tsx", "scripts/audit/domains/code-purity/run-inspector.ts"],
+    timeoutMs: STEP_TIMEOUT_MS,
+    artifactPaths: [],
+  },
+  {
     name: "typecheck",
     layer: "foundation-layer",
     command: ["npm", "run", "typecheck"],
@@ -45,6 +52,7 @@ export const FOUNDATION_STEPS: CiFullStepDefinition[] = [
     artifactPaths: [
       "scripts/audit/generated/active-law-census.generated.json",
       "scripts/audit/generated/owner-inspector-matrix.generated.json",
+      "scripts/audit/generated/all-law-enforcement-matrix.generated.json",
       "scripts/audit/generated/audit-system-summary.generated.json",
     ],
   },
@@ -52,7 +60,7 @@ export const FOUNDATION_STEPS: CiFullStepDefinition[] = [
 
 export const buildOwnerSteps = (): CiFullStepDefinition[] =>
   sortOwnerManifests(loadOwnerManifests())
-    .filter((manifest) => manifest.capabilityDomain !== "audit-system")
+    .filter((manifest) => manifest.capabilityDomain !== "audit-system" && manifest.capabilityDomain !== "code-purity")
     .map((manifest) => ({
       name: manifest.inspectorId,
       layer: "owner-layer" as const,

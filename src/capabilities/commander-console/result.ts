@@ -66,7 +66,7 @@ export const buildCommanderFailureResult = (
     reviewRequiredReason: null,
   });
 
-export const buildCommanderReviewRequiredResult = (
+const buildCommanderReviewRequiredResult = (
   reviewRequiredReason: string,
   proof: ReturnType<typeof buildCommanderProof> | null,
 ) =>

@@ -93,11 +93,32 @@ export const commanderConsoleShellClientEvents = `  document.addEventListener("c
   });
   document.addEventListener("submit", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLFormElement) || !target.matches("[data-start-mission-form]")) { return; }
+    if (!(target instanceof HTMLFormElement)) { return; }
+    if (target.matches("[data-start-mission-form]")) {
+      event.preventDefault();
+      try {
+        const draft = collectDraft();
+        if (draft) { handlers.onSubmitHumanCommand(draft); }
+      } catch (error) {
+        showToast(error.message);
+      }
+      return;
+    }
+    if (target.matches("[data-amazon-admin-open-form]")) {
+      event.preventDefault();
+      try {
+        const draft = collectAmazonAdminDraft();
+        if (draft) { handlers.onOpenAmazonAdmin(draft).catch((error) => showToast(error.message)); }
+      } catch (error) {
+        showToast(error.message);
+      }
+      return;
+    }
+    if (!target.matches("[data-amazon-invoice-upload-form]")) { return; }
     event.preventDefault();
     try {
-      const draft = collectDraft();
-      if (draft) { handlers.onSubmitHumanCommand(draft); }
+      const draft = collectAmazonMissionDraft();
+      if (draft) { handlers.onStartAmazonInvoiceUpload(draft).catch((error) => showToast(error.message)); }
     } catch (error) {
       showToast(error.message);
     }

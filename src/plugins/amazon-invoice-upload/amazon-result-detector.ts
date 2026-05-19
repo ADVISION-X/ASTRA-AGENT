@@ -1,8 +1,6 @@
-import { verifyDomStateOnce } from "../../capabilities/dom-automation/index.js";
-import type { DomSnapshot } from "../../capabilities/dom-automation/index.js";
-import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
-
 export const AMAZON_INVOICE_UPLOAD_STATUS_VALUES = [
+  "received",
+  "uploading",
   "pending",
   "opened_amazon",
   "login_required",
@@ -12,8 +10,13 @@ export const AMAZON_INVOICE_UPLOAD_STATUS_VALUES = [
   "order_found",
   "order_detail_opened",
   "upload_entry_found",
+  "order_not_found",
+  "ambiguous",
+  "upload_entry_not_found",
+  "file_input_not_found",
   "file_attached",
   "upload_submitted",
+  "submit_failed",
   "upload_success",
   "review_required",
   "failed",
@@ -25,46 +28,3 @@ export type AmazonInvoiceUploadDetectedState = {
   status: AmazonInvoiceUploadStatus;
   reason: string;
 };
-
-export function detectAmazonInvoiceUploadState(input: {
-  snapshot: DomSnapshot;
-  mission: Pick<AmazonInvoiceUploadMissionInput, "amazonOrderId">;
-  hasSearchInput?: boolean;
-  hasOrderRow?: boolean;
-  hasUploadEntry?: boolean;
-}): AmazonInvoiceUploadDetectedState {
-  const gate = verifyDomStateOnce({
-    snapshot: input.snapshot,
-    expectedStates: ["login-required", "captcha-or-2fa-required"],
-    successHints: [],
-    failureHints: [],
-  });
-  if (gate.status === "login_required") {
-    return { status: "login_required", reason: gate.reason };
-  }
-  if (gate.status === "captcha_or_2fa_required") {
-    return { status: "captcha_or_2fa_required", reason: gate.reason };
-  }
-  if (input.hasUploadEntry) {
-    return {
-      status: "upload_entry_found",
-      reason: `upload entry located for order ${input.mission.amazonOrderId}`,
-    };
-  }
-  if (input.hasOrderRow) {
-    return {
-      status: "order_found",
-      reason: `order row located for ${input.mission.amazonOrderId}`,
-    };
-  }
-  if (input.hasSearchInput) {
-    return {
-      status: "search_input_found",
-      reason: "order search input located on the seller central entry page",
-    };
-  }
-  return {
-    status: "opened_amazon",
-    reason: "seller central entry page opened and awaiting governed next step",
-  };
-}

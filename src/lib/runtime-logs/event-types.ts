@@ -63,7 +63,7 @@ export const FLOW_VISIBLE_EVENT_TYPES = new Set<RuntimeLogEventType>([
 ]);
 
 // DEBUG-visible events: all FLOW + debug-tier events
-export const DEBUG_VISIBLE_EVENT_TYPES = new Set<RuntimeLogEventType>([
+const DEBUG_VISIBLE_EVENT_TYPES = new Set<RuntimeLogEventType>([
   ...FLOW_VISIBLE_EVENT_TYPES,
   RuntimeLogEventType.HUMAN_COMMAND_RECEIVED,
   RuntimeLogEventType.HUMAN_COMMAND_VALIDATED,

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { ScreenshotProof } from "../schema.js";
-import { SCREENSHOT_ABILITY_GROUP_ID } from "../schema.js";
+import type { ScreenshotProof } from "../schema-artifact.js";
+import { SCREENSHOT_ABILITY_GROUP_ID } from "../schema-ids.js";
 
 type ProofInput = {
   childCapabilityId: ScreenshotProof["childCapabilityId"];

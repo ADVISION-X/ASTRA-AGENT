@@ -6,7 +6,7 @@ import type { AiAbilityInput, AiAbilityResult } from "../contract.js";
 const hashJson = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const hashText = (value: string) => createHash("sha256").update(value).digest("hex");
 
-const buildBaseRuntimeProof = (input: {
+type BuildBaseRuntimeProofInput = {
   request: AiAbilityInput;
   status: AiAbilityResult["status"];
   startedAt: string;
@@ -21,7 +21,18 @@ const buildBaseRuntimeProof = (input: {
   promptContractHash: string;
   modelConfigHash: string;
   schemaIssueCount?: number;
-}) => ({
+};
+
+type BuildAiResultInput = BuildBaseRuntimeProofInput & {
+  output: VisualMissionActionPlanOutput | null;
+  rawOutputText: string | null;
+  modelName: string;
+  runtime: string;
+  promptContractVersion: string;
+  promptCatalogVersion: string;
+};
+
+const buildProofRequestFields = (input: BuildBaseRuntimeProofInput) => ({
   proofId: `${input.request.capabilityCallId}:ai-proof`,
   abilityGroupId: "ai" as const,
   childCapabilityId: "visual-mission-judge-once" as const,
@@ -39,6 +50,12 @@ const buildBaseRuntimeProof = (input: {
   inputPayloadHash: hashJson(input.request.input),
   promptContractHash: input.promptContractHash,
   modelConfigHash: input.modelConfigHash,
+});
+
+const buildProofRuntimeFields = (
+  input: BuildBaseRuntimeProofInput,
+  rawOutputHash: string | null,
+) => ({
   runtimeCallId: input.runtimeCallId ?? null,
   startedAt: input.startedAt,
   endedAt: input.endedAt,
@@ -60,6 +77,9 @@ const buildBaseRuntimeProof = (input: {
   actionLogRefs: [],
   nextAbilityGroup: null,
   nextChildAbility: null,
+});
+
+const buildProofDecisionFields = (input: BuildBaseRuntimeProofInput) => ({
   schemaIssueCount: input.schemaIssueCount ?? 0,
   boundaryViolationCount: 0,
   qualityDecisionReason: null,
@@ -69,70 +89,67 @@ const buildBaseRuntimeProof = (input: {
   outputBoundaryDecision: input.status === "success" ? "passed" : "blocked",
 });
 
-const buildAiResult = (input: {
-  request: AiAbilityInput;
-  status: AiAbilityResult["status"];
-  output: VisualMissionActionPlanOutput | null;
-  rawOutputText: string | null;
-  startedAt: string;
-  endedAt: string;
-  durationMs: number;
-  reason: string;
-  modelName: string;
-  runtime: string;
-  timeoutMs: number | null;
-  failureReason?: string | null;
-  reviewRequiredReason?: string | null;
-  runtimeCallId?: string | null;
-  promptContractVersion: string;
-  promptCatalogVersion: string;
-  promptContractHash: string;
-  modelConfigHash: string;
-  schemaIssueCount?: number;
-}): AiAbilityResult => {
+const buildBaseRuntimeProof = (
+  input: BuildBaseRuntimeProofInput,
+  rawOutputHash: string | null,
+) => ({
+  ...buildProofRequestFields(input),
+  ...buildProofRuntimeFields(input, rawOutputHash),
+  ...buildProofDecisionFields(input),
+});
+
+const buildAiIdentityFields = (
+  input: BuildAiResultInput,
+  rawOutputHash: string | null,
+) => ({
+  abilityGroupId: "ai" as const,
+  childCapabilityId: "visual-mission-judge-once" as const,
+  status: input.status,
+  taskType: input.request.taskType,
+  missionId: input.request.missionId,
+  runId: input.request.runId,
+  modelProvider: "online" as const,
+  modelName: input.modelName,
+  modelRole: "vision" as const,
+  runtime: input.runtime,
+  implementationStatus:
+    input.status === "success" ? "model_backed" : "online_ai_unavailable",
+  output: input.output,
+  rawOutputRef: null,
+  rawOutputHash,
+});
+
+const buildAiOutcomeFields = (
+  input: BuildAiResultInput,
+  rawOutputHash: string | null,
+) => ({
+  schemaValidationStatus: input.output
+    ? "valid"
+    : input.status === "review_required"
+      ? "invalid"
+      : "not_applicable",
+  confidence: input.output?.confidence ?? null,
+  failureReason: input.failureReason ?? null,
+  reviewRequiredReason: input.reviewRequiredReason ?? null,
+  durationMs: input.durationMs,
+  runtimeProof: buildBaseRuntimeProof(input, rawOutputHash),
+});
+
+const buildAiPromptFields = (input: BuildAiResultInput) => ({
+  promptContractId: input.request.promptContractId,
+  promptContractVersion: input.promptContractVersion,
+  promptCatalogVersion: input.promptCatalogVersion,
+  promptVersion: input.promptContractVersion,
+  schemaVersion: input.output?.schemaVersion ?? "pureVisualRound.v1",
+  createdAt: input.endedAt,
+});
+
+const buildAiResult = (input: BuildAiResultInput): AiAbilityResult => {
   const rawOutputHash = input.rawOutputText ? hashText(input.rawOutputText) : null;
   return {
-    abilityGroupId: "ai",
-    childCapabilityId: "visual-mission-judge-once",
-    status: input.status,
-    taskType: input.request.taskType,
-    missionId: input.request.missionId,
-    runId: input.request.runId,
-    modelProvider: "online",
-    modelName: input.modelName,
-    modelRole: "vision",
-    runtime: input.runtime,
-    implementationStatus: input.status === "success" ? "model_backed" : "online_ai_unavailable",
-    output: input.output,
-    rawOutputRef: null,
-    rawOutputHash,
-    schemaValidationStatus: input.output ? "valid" : input.status === "review_required" ? "invalid" : "not_applicable",
-    confidence: input.output?.confidence ?? null,
-    failureReason: input.failureReason ?? null,
-    reviewRequiredReason: input.reviewRequiredReason ?? null,
-    durationMs: input.durationMs,
-    runtimeProof: buildBaseRuntimeProof({
-      request: input.request,
-      status: input.status,
-      startedAt: input.startedAt,
-      endedAt: input.endedAt,
-      durationMs: input.durationMs,
-      reason: input.reason,
-      rawOutputHash,
-      timeoutMs: input.timeoutMs,
-      failureReason: input.failureReason ?? null,
-      reviewRequiredReason: input.reviewRequiredReason ?? null,
-      runtimeCallId: input.runtimeCallId ?? null,
-      promptContractHash: input.promptContractHash,
-      modelConfigHash: input.modelConfigHash,
-      ...(input.schemaIssueCount !== undefined ? { schemaIssueCount: input.schemaIssueCount } : {}),
-    }),
-    promptContractId: input.request.promptContractId,
-    promptContractVersion: input.promptContractVersion,
-    promptCatalogVersion: input.promptCatalogVersion,
-    promptVersion: input.promptContractVersion,
-    schemaVersion: input.output?.schemaVersion ?? "pureVisualRound.v1",
-    createdAt: input.endedAt,
+    ...buildAiIdentityFields(input, rawOutputHash),
+    ...buildAiOutcomeFields(input, rawOutputHash),
+    ...buildAiPromptFields(input),
   };
 };
 

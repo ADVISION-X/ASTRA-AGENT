@@ -3,7 +3,7 @@ import type { URL } from "node:url";
 
 import { parseJsonBody, writeJsonResponse } from "./workbench-api-helpers.js";
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
-import type { UserRequirementHistoryPlatformId } from "../lib/local-runtime/settings.js";
+import type { UserRequirementHistoryPlatformId } from "../lib/local-runtime/settings-types.js";
 
 type UserRequirementHistoryBody = {
   id?: string | null;

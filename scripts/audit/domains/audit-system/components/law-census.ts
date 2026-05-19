@@ -25,6 +25,7 @@ export const runLawCensus = (): LawCensusResult => {
   writeGeneratedJson("active-law-census.generated.json", {
     generatedAt: new Date().toISOString(),
     filesScanned: registry.filesScanned,
+    scannedFiles: registry.scannedFiles,
     lawCount: registry.laws.length,
     domainCount,
     laws: registry.laws,

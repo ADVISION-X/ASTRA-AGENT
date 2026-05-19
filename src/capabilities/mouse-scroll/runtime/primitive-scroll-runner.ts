@@ -1,4 +1,4 @@
-import type { PrimitiveScrollResult } from "./primitive-scroll-runner-result.js";
+import type { PrimitiveScrollResult } from "./primitive-scroll-runner-result.types.js";
 import { createPrimitiveCallFrame } from "./primitive-scroll-frame.js";
 import { buildImmediateRejection } from "./primitive-scroll-failure-builder.js";
 import { buildSuccessResult } from "./primitive-scroll-success-builder.js";

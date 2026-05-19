@@ -58,6 +58,11 @@ type BrowserScrollCoordinateSpace = "browserViewport" | "desktopScreen";
 type BrowserTextInputAction = "type-text" | "clear-input" | "press-key";
 type BrowserTextInputKey = "Enter" | "Tab" | "Escape" | "Backspace" | "Delete" | "L" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
 
+type BrowserFileInputRef = {
+  selector: string;
+  targetKind: "file-input";
+};
+
 interface BrowserController {
   getHealth(): { ok: boolean; detail: string };
   getSessionState(): BrowserStateSnapshot;
@@ -91,8 +96,14 @@ interface BrowserController {
     description: string;
     abortSignal?: AbortSignal;
   }): Promise<T>;
+  setFileInputFiles(input: {
+    elementRef: BrowserFileInputRef;
+    filePath: string;
+    description: string;
+    abortSignal?: AbortSignal;
+  }): Promise<BrowserActionResult>;
   wait(durationMs: number): Promise<BrowserActionResult>;
   close(): Promise<BrowserActionResult>;
 }
 
-export type { BrowserActionResult, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserController };
+export type { BrowserActionResult, BrowserCaptureResult, BrowserStateSnapshot, BrowserGeometrySnapshot, BrowserClickCoordinateSpace, BrowserScrollCoordinateSpace, BrowserTextInputAction, BrowserTextInputKey, BrowserFileInputRef, BrowserController };

@@ -1,0 +1,216 @@
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=summary.01 inspector=law001.sovereignty processed=0 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=required.01 inspector=law001.sovereignty processed=1 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=required.02 inspector=law001.sovereignty processed=2 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=required.03 inspector=law001.sovereignty processed=3 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=required.04 inspector=law001.sovereignty processed=4 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=required.05 inspector=law001.sovereignty processed=5 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=forbidden.01 inspector=law001.sovereignty processed=6 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=forbidden.02 inspector=law001.sovereignty processed=7 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=forbidden.03 inspector=law001.sovereignty processed=8 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=forbidden.04 inspector=law001.sovereignty processed=9 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=forbidden.05 inspector=law001.sovereignty processed=10 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=blueprint.01 inspector=blueprint.structure processed=11 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=blueprint.03 inspector=law001.sovereignty processed=12 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=blueprint.05 inspector=blueprint.catalog processed=13 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=acceptance.01 inspector=blueprint.structure processed=14 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=acceptance.02 inspector=blueprint.structure processed=15 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=acceptance.03 inspector=blueprint.catalog processed=16 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=acceptance.04 inspector=law001.sovereignty processed=17 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=acceptance.13 inspector=law001.sovereignty processed=18 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=acceptance.15 inspector=law001.sovereignty processed=19 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=ci.01 inspector=ci.unique-entry processed=20 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=ci.02 inspector=ci.unique-entry processed=21 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-001-V1 clause=ci.03 inspector=ci.unique-entry processed=22 total=171 status=running
+[DOM-AUTOMATION][LAW-PASS] law=GRASSEYE-DOM-001-V1 passed=23 failed=0
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=summary.01 inspector=law002.snapshot-summary processed=23 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=required.01 inspector=law002.snapshot-summary processed=24 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=required.02 inspector=law002.snapshot-summary processed=25 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=required.03 inspector=law002.snapshot-summary processed=26 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=required.04 inspector=law002.snapshot-summary processed=27 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=required.05 inspector=law002.snapshot-summary processed=28 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=required.06 inspector=law002.snapshot-summary processed=29 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=required.07 inspector=law002.snapshot-summary processed=30 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=required.08 inspector=law002.snapshot-summary processed=31 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=required.09 inspector=law002.snapshot-summary processed=32 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=required.10 inspector=law002.snapshot-summary processed=33 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=forbidden.01 inspector=law002.snapshot-summary processed=34 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=forbidden.02 inspector=law002.snapshot-summary processed=35 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=forbidden.03 inspector=law002.snapshot-summary processed=36 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=forbidden.04 inspector=law002.snapshot-summary processed=37 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=forbidden.05 inspector=law002.snapshot-summary processed=38 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=forbidden.06 inspector=law002.snapshot-summary processed=39 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=forbidden.07 inspector=law002.snapshot-summary processed=40 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=forbidden.08 inspector=law002.snapshot-summary processed=41 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=acceptance.06 inspector=runtime_smoke.dom-automation processed=42 total=171 status=running
+
+> grasseye-local-workbench@0.1.0 acceptance:dom-automation-smoke
+> node --import tsx scripts/acceptance/dom-automation-smoke.ts
+
+[DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-002-V1 clause=acceptance.18 inspector=law002.snapshot-summary processed=43 total=171 status=running
+[DOM-AUTOMATION][LAW-PASS] law=GRASSEYE-DOM-002-V1 passed=21 failed=0
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=summary.01 inspector=law003.locator-semantic processed=44 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=required.01 inspector=law003.locator-semantic processed=45 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=required.02 inspector=law003.locator-semantic processed=46 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=required.03 inspector=law003.locator-semantic processed=47 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=required.04 inspector=law003.locator-semantic processed=48 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=required.05 inspector=law003.locator-semantic processed=49 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=required.06 inspector=law003.locator-semantic processed=50 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=required.07 inspector=law003.locator-semantic processed=51 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=forbidden.01 inspector=law003.locator-semantic processed=52 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=forbidden.02 inspector=law003.locator-semantic processed=53 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=forbidden.03 inspector=law003.locator-semantic processed=54 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=forbidden.04 inspector=law003.locator-semantic processed=55 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=forbidden.05 inspector=law003.locator-semantic processed=56 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=forbidden.06 inspector=law003.locator-semantic processed=57 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-003-V1 clause=acceptance.07 inspector=runtime_smoke.dom-automation processed=58 total=171 status=running
+[DOM-AUTOMATION][LAW-PASS] law=GRASSEYE-DOM-003-V1 passed=15 failed=0
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=summary.01 inspector=law004.fill-approved-text processed=59 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=required.01 inspector=law004.fill-approved-text processed=60 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=required.02 inspector=law004.fill-approved-text processed=61 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=required.03 inspector=law004.fill-approved-text processed=62 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=required.04 inspector=law004.fill-approved-text processed=63 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=required.05 inspector=law004.fill-approved-text processed=64 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=forbidden.01 inspector=law004.fill-approved-text processed=65 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=forbidden.02 inspector=law004.fill-approved-text processed=66 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=forbidden.03 inspector=law004.fill-approved-text processed=67 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=forbidden.04 inspector=law004.fill-approved-text processed=68 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=forbidden.05 inspector=law004.fill-approved-text processed=69 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=forbidden.06 inspector=law004.fill-approved-text processed=70 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=acceptance.08 inspector=runtime_smoke.dom-automation processed=71 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-004-V1 clause=acceptance.17 inspector=law004.fill-approved-text processed=72 total=171 status=running
+[DOM-AUTOMATION][LAW-PASS] law=GRASSEYE-DOM-004-V1 passed=14 failed=0
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-005-V1 clause=summary.01 inspector=law005.click-located-element processed=73 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-005-V1 clause=required.01 inspector=law005.click-located-element processed=74 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-005-V1 clause=required.02 inspector=law005.click-located-element processed=75 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-005-V1 clause=required.03 inspector=law005.click-located-element processed=76 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-005-V1 clause=required.04 inspector=law005.click-located-element processed=77 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-005-V1 clause=forbidden.01 inspector=law005.click-located-element processed=78 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-005-V1 clause=forbidden.02 inspector=law005.click-located-element processed=79 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-005-V1 clause=forbidden.03 inspector=law005.click-located-element processed=80 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-005-V1 clause=forbidden.04 inspector=law005.click-located-element processed=81 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-005-V1 clause=forbidden.05 inspector=law005.click-located-element processed=82 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-005-V1 clause=acceptance.09 inspector=runtime_smoke.dom-automation processed=83 total=171 status=running
+[DOM-AUTOMATION][LAW-PASS] law=GRASSEYE-DOM-005-V1 passed=11 failed=0
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=summary.01 inspector=law006.upload-approved-file processed=84 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=required.01 inspector=law006.upload-approved-file processed=85 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=required.02 inspector=law006.upload-approved-file processed=86 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=required.03 inspector=law006.upload-approved-file processed=87 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=required.04 inspector=law006.upload-approved-file processed=88 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=required.05 inspector=law006.upload-approved-file processed=89 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=required.06 inspector=law006.upload-approved-file processed=90 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=forbidden.01 inspector=law006.upload-approved-file processed=91 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=forbidden.02 inspector=law006.upload-approved-file processed=92 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=forbidden.03 inspector=law006.upload-approved-file processed=93 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=forbidden.04 inspector=law006.upload-approved-file processed=94 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=forbidden.05 inspector=law006.upload-approved-file processed=95 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=forbidden.06 inspector=law006.upload-approved-file processed=96 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=blueprint.04 inspector=law006.upload-approved-file processed=97 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=blueprint.08 inspector=runtime_smoke.amazon-upload-complete processed=98 total=171 status=running
+
+> grasseye-local-workbench@0.1.0 acceptance:amazon-invoice-upload-complete-smoke
+> node --import tsx scripts/acceptance/amazon-invoice-upload-complete-smoke.ts
+
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=blueprint.08 inspector=runtime_smoke.amazon-upload-complete processed=98 total=171 status=running
+[AMAZON-INVOICE-UPLOAD-COMPLETE-SMOKE][PASS] multipart API saved approved PDF and completed search-upload-submit-verify
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=acceptance.16 inspector=law006.upload-approved-file processed=99 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-006-V1 clause=runtime.04 inspector=runtime_smoke.amazon-upload-complete processed=100 total=171 status=running
+[DOM-AUTOMATION][LAW-PASS] law=GRASSEYE-DOM-006-V1 passed=17 failed=0
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-007-V1 clause=summary.01 inspector=law007.verify-evidence processed=101 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-007-V1 clause=required.01 inspector=law007.verify-evidence processed=102 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-007-V1 clause=required.02 inspector=law007.verify-evidence processed=103 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-007-V1 clause=required.03 inspector=law007.verify-evidence processed=104 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-007-V1 clause=required.04 inspector=law007.verify-evidence processed=105 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-007-V1 clause=required.05 inspector=law007.verify-evidence processed=106 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-007-V1 clause=required.06 inspector=law007.verify-evidence processed=107 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-007-V1 clause=required.07 inspector=law007.verify-evidence processed=108 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-007-V1 clause=forbidden.01 inspector=law007.verify-evidence processed=109 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-007-V1 clause=forbidden.02 inspector=law007.verify-evidence processed=110 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-007-V1 clause=forbidden.03 inspector=law007.verify-evidence processed=111 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-007-V1 clause=forbidden.04 inspector=law007.verify-evidence processed=112 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-007-V1 clause=forbidden.05 inspector=law007.verify-evidence processed=113 total=171 status=running
+[DOM-AUTOMATION][LAW-PASS] law=GRASSEYE-DOM-007-V1 passed=13 failed=0
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=summary.01 inspector=law008.plugin-boundary processed=114 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=required.01 inspector=law008.plugin-boundary processed=115 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=required.02 inspector=law008.plugin-boundary processed=116 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=required.03 inspector=law008.plugin-boundary processed=117 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=required.04 inspector=law008.plugin-boundary processed=118 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=required.05 inspector=law008.plugin-boundary processed=119 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=forbidden.01 inspector=law008.plugin-boundary processed=120 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=forbidden.02 inspector=law008.plugin-boundary processed=121 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=forbidden.03 inspector=law008.plugin-boundary processed=122 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=forbidden.04 inspector=law008.plugin-boundary processed=123 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=forbidden.05 inspector=law008.plugin-boundary processed=124 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=blueprint.02 inspector=blueprint.structure processed=125 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=acceptance.05 inspector=law008.plugin-boundary processed=126 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=acceptance.14 inspector=law008.plugin-boundary processed=127 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=runtime.02 inspector=runtime_smoke.amazon-agent-start processed=128 total=171 status=running
+
+> grasseye-local-workbench@0.1.0 acceptance:amazon-invoice-agent-start-smoke
+> node --import tsx scripts/acceptance/amazon-invoice-agent-start-smoke.ts
+
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=runtime.02 inspector=runtime_smoke.amazon-agent-start processed=128 total=171 status=running
+[AMAZON-INVOICE-AGENT-START-SMOKE][PASS] independent plugin route accepted multipart, avoided task-start path, and reached upload_success
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-008-V1 clause=runtime.03 inspector=runtime_smoke.amazon-upload processed=129 total=171 status=running
+
+> grasseye-local-workbench@0.1.0 acceptance:amazon-invoice-upload-smoke
+> node --import tsx scripts/acceptance/amazon-invoice-upload-smoke.ts
+
+[AMAZON-INVOICE-UPLOAD-SMOKE][PASS] plugin dry-run flow reached upload_success
+[DOM-AUTOMATION][LAW-PASS] law=GRASSEYE-DOM-008-V1 passed=16 failed=0
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=summary.01 inspector=law009.review-boundary processed=130 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=required.01 inspector=law009.review-boundary processed=131 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=required.02 inspector=law009.review-boundary processed=132 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=required.03 inspector=law009.review-boundary processed=133 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=required.04 inspector=law009.review-boundary processed=134 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=required.05 inspector=law009.review-boundary processed=135 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=required.06 inspector=law009.review-boundary processed=136 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=required.07 inspector=law009.review-boundary processed=137 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=required.08 inspector=law009.review-boundary processed=138 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=required.09 inspector=law009.review-boundary processed=139 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=forbidden.01 inspector=law009.review-boundary processed=140 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=forbidden.02 inspector=law009.review-boundary processed=141 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=forbidden.03 inspector=law009.review-boundary processed=142 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=forbidden.04 inspector=law009.review-boundary processed=143 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=forbidden.05 inspector=law009.review-boundary processed=144 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=blueprint.07 inspector=law009.review-boundary processed=145 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=acceptance.10 inspector=law009.review-boundary processed=146 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-009-V1 clause=acceptance.11 inspector=law009.review-boundary processed=147 total=171 status=running
+[DOM-AUTOMATION][LAW-PASS] law=GRASSEYE-DOM-009-V1 passed=18 failed=0
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=summary.01 inspector=law010.evidence-logging processed=148 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=required.01 inspector=law010.evidence-logging processed=149 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=required.02 inspector=law010.evidence-logging processed=150 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=required.03 inspector=law010.evidence-logging processed=151 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=required.04 inspector=law010.evidence-logging processed=152 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=required.05 inspector=law010.evidence-logging processed=153 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=required.06 inspector=law010.evidence-logging processed=154 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=required.07 inspector=law010.evidence-logging processed=155 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=required.08 inspector=law010.evidence-logging processed=156 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=forbidden.01 inspector=law010.evidence-logging processed=157 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=forbidden.02 inspector=law010.evidence-logging processed=158 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=forbidden.03 inspector=law010.evidence-logging processed=159 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=forbidden.04 inspector=law010.evidence-logging processed=160 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=forbidden.05 inspector=law010.evidence-logging processed=161 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=forbidden.06 inspector=law010.evidence-logging processed=162 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=blueprint.06 inspector=blueprint.commands processed=163 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=acceptance.12 inspector=runtime_smoke.dom-automation processed=164 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=blueprint.commands.01 inspector=blueprint.commands processed=165 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=blueprint.commands.02 inspector=blueprint.commands processed=166 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=blueprint.commands.03 inspector=blueprint.commands processed=167 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=blueprint.commands.04 inspector=blueprint.commands processed=168 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=blueprint.commands.05 inspector=blueprint.commands processed=169 total=171 status=running
+[DOM-AUTOMATION][HEARTBEAT] law=GRASSEYE-DOM-010-V1 clause=runtime.01 inspector=runtime_smoke.dom-automation processed=170 total=171 status=running
+[DOM-AUTOMATION][LAW-PASS] law=GRASSEYE-DOM-010-V1 passed=23 failed=0
+
+[DOM-AUTOMATION-OWNER][FAIL] findings=undefined
+
+/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/shared/run-manifest-owner.ts:32
+for (const finding of result.findings) {
+                             ^
+
+
+TypeError: result.findings is not iterable
+    at <anonymous> (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/audit/domains/shared/run-manifest-owner.ts:32:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+Node.js v24.4.1

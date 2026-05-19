@@ -36,14 +36,14 @@ export function getAiOptionalActionFields(entry: RegisteredAtomicAbility): strin
   );
 }
 
-export function getSystemInjectedActionFields(entry: RegisteredAtomicAbility): string[] {
+function getSystemInjectedActionFields(entry: RegisteredAtomicAbility): string[] {
   return dedupeFields(
     [...entry.inputContract.requiredFields, ...entry.inputContract.optionalFields]
       .filter((field) => isSystemInjectedActionField(field)),
   );
 }
 
-export function getAiForbiddenActionFields(entry: RegisteredAtomicAbility): string[] {
+function getAiForbiddenActionFields(entry: RegisteredAtomicAbility): string[] {
   return dedupeFields(entry.inputContract.forbiddenFields.filter((field) => !isSystemInjectedActionField(field)));
 }
 

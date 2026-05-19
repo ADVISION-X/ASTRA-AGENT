@@ -15,6 +15,7 @@ import type {
 } from "./contract.js";
 import { listOrchestrationChildren } from "./registry.js";
 import { getMissionState } from "./runtime/mission-state.js";
+import type { OrchestrationChildrenContext } from "./children-context.js";
 import {
   handleStartMission,
   handlePauseMission,
@@ -23,7 +24,6 @@ import {
   handleEmergencyStop,
   handleDispatchRegisteredAbilityAction,
   handleFinalizeMission,
-  type OrchestrationChildrenContext,
 } from "./children.js";
 
 type ForensicsSurface = OrchestrationChildrenContext["forensics"];
@@ -38,6 +38,8 @@ type OrchestrationDeps = {
   mouseScroll: MouseScrollAbilityGroup;
   runtimeLogger: RuntimeLogger;
 };
+
+type MissionStopInput = { missionId: string; reason?: string | null };
 
 async function executeChild(
   childCapabilityId: OrchestrationChildCapabilityId,
@@ -68,66 +70,76 @@ async function executeChild(
   };
 }
 
+const buildChildrenContext = (
+  deps: OrchestrationDeps,
+): OrchestrationChildrenContext => ({
+  nerveBus: deps.nerveBus,
+  forensics: deps.forensics,
+  screenshotAbilityGroup: deps.screenshot,
+  aiAbilityGroup: deps.ai,
+  geometryGuard: deps.geometryGuard,
+  openAbilityGroup: deps.open,
+  mouseScrollAbilityGroup: deps.mouseScroll,
+  runtimeLogger: deps.runtimeLogger,
+});
+
+const executeMissionStateCommand = async (
+  ctx: OrchestrationChildrenContext,
+  childCapabilityId: OrchestrationChildCapabilityId,
+  payload: unknown,
+): Promise<MissionControlState> => {
+  const result = await executeChild(childCapabilityId, payload, ctx);
+  return result.stateSnapshot;
+};
+
+const buildNeutralMissionPayload = (missionId: string) => ({
+  missionId,
+  reason: null,
+  note: null,
+});
+
+const buildReasonedMissionPayload = (input: MissionStopInput) => ({
+  missionId: input.missionId,
+  reason: input.reason ?? null,
+  note: null,
+});
+
 export function createOrchestrationAbilityGroup(deps: OrchestrationDeps): OrchestrationAbilityGroup {
-  const ctx: OrchestrationChildrenContext = {
-    nerveBus: deps.nerveBus,
-    forensics: deps.forensics,
-    screenshotAbilityGroup: deps.screenshot,
-    aiAbilityGroup: deps.ai,
-    geometryGuard: deps.geometryGuard,
-    openAbilityGroup: deps.open,
-    mouseScrollAbilityGroup: deps.mouseScroll,
-    runtimeLogger: deps.runtimeLogger,
-  };
-
-  async function execute(input: OrchestrationExecuteInput): Promise<OrchestrationExecuteResult> {
-    return executeChild(input.childCapabilityId, input.payload, ctx);
-  }
-
-  async function startMission(command: MissionCommand): Promise<MissionControlState> {
-    const result = await execute({ childCapabilityId: "start-mission", payload: command });
-    return result.stateSnapshot;
-  }
-
-  async function executeMission(command: MissionCommand): Promise<MissionControlState> {
-    return startMission(command);
-  }
-
-  async function pauseMission(missionId: string): Promise<MissionControlState> {
-    const result = await execute({ childCapabilityId: "pause-mission", payload: { missionId, reason: null, note: null } });
-    return result.stateSnapshot;
-  }
-
-  async function resumeMission(missionId: string): Promise<MissionControlState> {
-    const result = await execute({ childCapabilityId: "resume-mission", payload: { missionId, reason: null, note: null } });
-    return result.stateSnapshot;
-  }
-
-  async function stopMission(input: { missionId: string; reason?: string | null }): Promise<MissionControlState> {
-    const result = await execute({ childCapabilityId: "stop-mission", payload: { missionId: input.missionId, reason: input.reason ?? null, note: null } });
-    return result.stateSnapshot;
-  }
-
-  async function emergencyStop(input: { missionId: string; reason?: string | null }): Promise<MissionControlState> {
-    const result = await execute({ childCapabilityId: "emergency-stop", payload: { missionId: input.missionId, reason: input.reason ?? null, note: null } });
-    return result.stateSnapshot;
-  }
-
-  async function getMissionStateMethod(missionId?: string | null): Promise<MissionControlState> {
-    return getMissionState(missionId);
-  }
+  const ctx = buildChildrenContext(deps);
 
   return {
-    listChildCapabilityIds(): OrchestrationChildCapabilityId[] {
-      return listOrchestrationChildren();
-    },
-    execute,
-    executeMission,
-    startMission,
-    pauseMission,
-    resumeMission,
-    stopMission,
-    emergencyStop,
-    getMissionState: getMissionStateMethod,
+    listChildCapabilityIds: listOrchestrationChildren,
+    execute: (input: OrchestrationExecuteInput): Promise<OrchestrationExecuteResult> =>
+      executeChild(input.childCapabilityId, input.payload, ctx),
+    executeMission: (command: MissionCommand): Promise<MissionControlState> =>
+      executeMissionStateCommand(ctx, "start-mission", command),
+    startMission: (command: MissionCommand): Promise<MissionControlState> =>
+      executeMissionStateCommand(ctx, "start-mission", command),
+    pauseMission: (missionId: string): Promise<MissionControlState> =>
+      executeMissionStateCommand(
+        ctx,
+        "pause-mission",
+        buildNeutralMissionPayload(missionId),
+      ),
+    resumeMission: (missionId: string): Promise<MissionControlState> =>
+      executeMissionStateCommand(
+        ctx,
+        "resume-mission",
+        buildNeutralMissionPayload(missionId),
+      ),
+    stopMission: (input: MissionStopInput): Promise<MissionControlState> =>
+      executeMissionStateCommand(
+        ctx,
+        "stop-mission",
+        buildReasonedMissionPayload(input),
+      ),
+    emergencyStop: (input: MissionStopInput): Promise<MissionControlState> =>
+      executeMissionStateCommand(
+        ctx,
+        "emergency-stop",
+        buildReasonedMissionPayload(input),
+      ),
+    getMissionState: (missionId?: string | null): Promise<MissionControlState> =>
+      Promise.resolve(getMissionState(missionId)),
   };
 }

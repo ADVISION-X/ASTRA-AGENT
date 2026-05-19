@@ -2,6 +2,23 @@ export const commanderConsoleShellClientSupport = `
   function getStartForm() {
     return document.querySelector("[data-start-mission-form]");
   }
+  function getAmazonInvoiceUploadPage() {
+    return pageHost instanceof HTMLElement ? pageHost.querySelector("[data-amazon-invoice-upload-page]") : null;
+  }
+  function getAmazonAdminOpenForm() {
+    return document.querySelector("[data-amazon-admin-open-form]");
+  }
+  function getAmazonMissionStartForm() {
+    return document.querySelector("[data-amazon-invoice-upload-form]");
+  }
+  function getAmazonAdminResultHost() {
+    const page = getAmazonInvoiceUploadPage();
+    return page instanceof HTMLElement ? page.querySelector("[data-amazon-admin-result]") : null;
+  }
+  function getAmazonMissionResultHost() {
+    const page = getAmazonInvoiceUploadPage();
+    return page instanceof HTMLElement ? page.querySelector("[data-amazon-upload-result]") : null;
+  }
   function getHomePage() {
     return pageHost instanceof HTMLElement ? pageHost.querySelector("[data-home-page]") : null;
   }
@@ -131,12 +148,72 @@ export const commanderConsoleShellClientSupport = `
     if (!(startForm instanceof HTMLFormElement)) { return; }
     syncPlatformUi();
   }
+  function presentAmazonAdminResult(payload) {
+    state.amazonAdminResult = payload;
+    const host = getAmazonAdminResultHost();
+    if (!(host instanceof HTMLElement)) { return; }
+    if (!payload) {
+      host.innerHTML = "<div class=\"cc-empty\">" + escapeHtml(locale === "zh" ? "还没有后台打开结果。" : "No admin open result yet.") + "</div>";
+      return;
+    }
+    host.innerHTML = "<div class=\"cc-developer-grid\"><div><span>status</span><strong>" + escapeHtml(payload.ok ? (locale === "zh" ? "已打开" : "opened") : (locale === "zh" ? "被阻断" : "blocked")) + "</strong></div><div><span>currentUrl</span><strong>" + escapeHtml(payload.currentUrl || "") + "</strong></div><div><span>error</span><strong>" + escapeHtml(payload.error || "none") + "</strong></div><div><span>detail</span><strong>" + escapeHtml(payload.failureReason || (locale === "zh" ? "允许继续下一步。" : "Ready for the next step.")) + "</strong></div></div>";
+  }
+  function presentAmazonMissionResult(payload) {
+    state.amazonMissionResult = payload;
+    const host = getAmazonMissionResultHost();
+    if (!(host instanceof HTMLElement)) { return; }
+    if (!payload) {
+      host.innerHTML = "<div class=\"cc-empty\">" + escapeHtml(locale === "zh" ? "还没有任务结果。" : "No mission result yet.") + "</div>";
+      return;
+    }
+    host.innerHTML = "<div class=\"cc-developer-grid\"><div><span>taskId</span><strong>" + escapeHtml(payload.taskId || "none") + "</strong></div><div><span>status</span><strong>" + escapeHtml(payload.status || "unknown") + "</strong></div><div><span>reachedStep</span><strong>" + escapeHtml(payload.reachedStep || "") + "</strong></div><div><span>reason</span><strong>" + escapeHtml(payload.reason || "") + "</strong></div><div><span>evidence</span><strong>" + escapeHtml(payload.evidenceRef || "none") + "</strong></div></div>";
+  }
+  function syncAmazonInvoiceUploadUi() {
+    presentAmazonAdminResult(state.amazonAdminResult);
+    presentAmazonMissionResult(state.amazonMissionResult);
+  }
+  function collectAmazonAdminDraft() {
+    const form = getAmazonAdminOpenForm();
+    if (!(form instanceof HTMLFormElement)) { return null; }
+    const formData = new FormData(form);
+    const adminUrl = String(formData.get("adminUrl") || "").trim();
+    if (!adminUrl) { throw new Error(locale === "zh" ? "请填写后台地址" : "Provide an admin URL"); }
+    return { adminUrl };
+  }
+  function collectAmazonMissionDraft() {
+    const form = getAmazonMissionStartForm();
+    if (!(form instanceof HTMLFormElement)) { return null; }
+    const formData = new FormData(form);
+    const marketplace = String(formData.get("marketplace") || "").trim();
+    const amazonOrderId = String(formData.get("amazonOrderId") || "").trim();
+    const invoiceNo = String(formData.get("invoiceNo") || "").trim();
+    const invoicePdf = formData.get("invoicePdf");
+    const sellerCentralEntryUrl = String(formData.get("sellerCentralEntryUrl") || "").trim();
+    const adminOrderUrl = String(formData.get("adminOrderUrl") || "").trim();
+    if (!marketplace || !amazonOrderId || !invoiceNo || !(invoicePdf instanceof File) || !invoicePdf.name || !sellerCentralEntryUrl) {
+      throw new Error(locale === "zh" ? "请完整填写 Amazon 上传任务参数并选择 PDF" : "Provide all required Amazon upload task fields and choose a PDF");
+    }
+    const payload = new FormData();
+    payload.set("mission", JSON.stringify({
+      missionType: "amazon_invoice_upload",
+      marketplace,
+      amazonOrderId,
+      invoiceNo,
+      invoicePdfPath: "approved-task-file://pending",
+      sellerCentralEntryUrl,
+      adminOrderUrl: adminOrderUrl || undefined,
+      requireHumanFinalSubmit: formData.get("requireHumanFinalSubmit") === "on"
+    }));
+    payload.set("invoicePdf", invoicePdf);
+    return payload;
+  }
   function renderActivePage() {
     if (!(pageHost instanceof HTMLElement)) { return; }
     pageHost.innerHTML = pageHtml[state.activePage] || pageHtml.home || "";
     pageHost.setAttribute("data-active-page", state.activePage);
     syncPrimaryNav(state.activePage);
     syncHomeUi();
+    syncAmazonInvoiceUploadUi();
     syncTabUi();
     syncUrlState();
     document.dispatchEvent(new CustomEvent("grasseye:page-rendered"));
@@ -195,6 +272,16 @@ export const commanderConsoleShellClientSupport = `
       headers: { "content-type": "application/json" },
       body: body ? JSON.stringify(body) : undefined
     });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = new Error(payload.actionableMessage || payload.failureReason || payload.error || (locale === "zh" ? "请求失败" : "Request failed"));
+      error.payload = payload;
+      throw error;
+    }
+    return payload;
+  }
+  async function requestForm(path, formData) {
+    const response = await fetch(path, { method: "POST", body: formData });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       const error = new Error(payload.actionableMessage || payload.failureReason || payload.error || (locale === "zh" ? "请求失败" : "Request failed"));

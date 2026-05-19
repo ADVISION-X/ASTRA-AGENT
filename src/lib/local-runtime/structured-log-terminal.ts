@@ -83,17 +83,31 @@ export function resolveStructuredLogLevel(): StructuredLogLevel {
   return raw === "debug" ? "debug" : "info";
 }
 
+const writeEventLog = (
+  level: StructuredLogLevel,
+  entry: Extract<StructuredLogEntry, { kind: "event" }>,
+): void => {
+  if (level !== "debug" && !shouldLogAtInfoLevel(entry.entry)) return;
+  process.stdout.write(formatRuntimeEvent(entry.entry) + "\n");
+};
+
+const writeActionLog = (
+  level: StructuredLogLevel,
+  entry: Extract<StructuredLogEntry, { kind: "action" }>,
+): void => {
+  if (level !== "debug") return;
+  process.stdout.write(formatActionLog(entry.entry as Record<string, unknown>) + "\n");
+};
+
 export function createStructuredTerminalLogListener(level: StructuredLogLevel): StructuredLogListener {
   return (entry: StructuredLogEntry) => {
     try {
       if (entry.kind === "event") {
-        if (level === "debug" || shouldLogAtInfoLevel(entry.entry)) {
-          process.stdout.write(formatRuntimeEvent(entry.entry) + "\n");
-        }
-      } else if (entry.kind === "action") {
-        if (level === "debug") {
-          process.stdout.write(formatActionLog(entry.entry as Record<string, unknown>) + "\n");
-        }
+        writeEventLog(level, entry);
+        return;
+      }
+      if (entry.kind === "action") {
+        writeActionLog(level, entry);
       }
     } catch {
       // terminal logging must not throw

@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { BrowserCapturePort } from "../ports/browser-capture-port.js";
 import type { ArtifactStoragePort } from "../ports/artifact-storage-port.js";
-import type { CaptureBrowserViewportInput, CaptureBrowserViewportResult } from "../schema.js";
+import type {
+  CaptureBrowserViewportInput,
+  CaptureBrowserViewportResult,
+} from "../schema-capture.js";
 import { buildScreenshotProof } from "../runtime/proof.js";
 
 type Ports = {
@@ -9,90 +12,99 @@ type Ports = {
   artifactStorage: ArtifactStoragePort;
 };
 
+type ViewportTiming = {
+  startedAt: string;
+  startMs: number;
+};
+
 export async function captureBrowserViewport(
   input: CaptureBrowserViewportInput,
   ports: Ports,
 ): Promise<CaptureBrowserViewportResult> {
-  const startedAt = new Date().toISOString();
-  const startMs = Date.now();
-
+  const timing = startViewportTiming();
   const artifactId = randomUUID();
-
-  let captureResult: Awaited<ReturnType<BrowserCapturePort["captureViewport"]>>;
   const captureStart = Date.now();
-  try {
-    captureResult = await ports.browserCapture.captureViewport();
-  } catch (err) {
-    const endedAt = new Date().toISOString();
-    const durationMs = Date.now() - startMs;
-    const reason = err instanceof Error ? err.message : String(err);
-    return {
-      status: "failed",
-      screenshotProof: buildScreenshotProof({
-        childCapabilityId: "capture-browser-viewport",
-        missionId: input.missionId,
-        runId: input.runId,
-        sessionId: input.sessionId,
-        roundId: input.roundId,
-        stepId: input.stepId,
-        capabilityCallId: input.capabilityCallId,
-        nerveBusEnvelopeId: input.nerveBusEnvelopeId,
-        inputRef: input.inputRef,
-        totalScreenshotStepMs: durationMs,
-        status: "failed",
-        failureReason: `Browser capture failed: ${reason}`,
-        startedAt,
-        endedAt,
-        durationMs,
-      }),
-      failureReason: `Browser capture failed: ${reason}`,
-      reviewRequiredReason: null,
-    };
+  const captureResult = await tryCaptureViewport(ports.browserCapture);
+  if (!captureResult.ok) {
+    return buildViewportFailure({
+      input,
+      timing,
+      failureReason: `Browser capture failed: ${captureResult.reason}`,
+    });
   }
   const capturePhaseMs = Date.now() - captureStart;
-
-  const artifactStart = Date.now();
-  let artifactRef: Awaited<ReturnType<ArtifactStoragePort["writeArtifact"]>>;
-  try {
-    artifactRef = await ports.artifactStorage.writeArtifact({
-      sourceTempFilePath: captureResult.filePath,
-      artifactId,
-      mimeType: captureResult.mimeType,
-      createdAt: startedAt,
+  const artifact = await tryWriteViewportArtifact({
+    ports,
+    timing,
+    artifactId,
+    captureResult: captureResult.value,
+  });
+  if (!artifact.ok) {
+    return buildViewportFailure({
+      input,
+      timing,
+      failureReason: `Artifact write failed: ${artifact.reason}`,
+      capturePhaseMs,
     });
-  } catch (err) {
-    const endedAt = new Date().toISOString();
-    const durationMs = Date.now() - startMs;
-    const reason = err instanceof Error ? err.message : String(err);
-    return {
-      status: "failed",
-      screenshotProof: buildScreenshotProof({
-        childCapabilityId: "capture-browser-viewport",
-        missionId: input.missionId,
-        runId: input.runId,
-        sessionId: input.sessionId,
-        roundId: input.roundId,
-        stepId: input.stepId,
-        capabilityCallId: input.capabilityCallId,
-        nerveBusEnvelopeId: input.nerveBusEnvelopeId,
-        inputRef: input.inputRef,
-        capturePhaseMs,
-        totalScreenshotStepMs: durationMs,
-        status: "failed",
-        failureReason: `Artifact write failed: ${reason}`,
-        startedAt,
-        endedAt,
-        durationMs,
-      }),
-      failureReason: `Artifact write failed: ${reason}`,
-      reviewRequiredReason: null,
-    };
   }
-  const artifactWritePhaseMs = Date.now() - artifactStart;
+  return buildViewportSuccess({
+    input,
+    timing,
+    captureResult: captureResult.value,
+    artifactRef: artifact.value.artifactRef,
+    capturePhaseMs,
+    artifactWritePhaseMs: artifact.value.artifactWritePhaseMs,
+  });
+}
 
+function startViewportTiming(): ViewportTiming {
+  return { startedAt: new Date().toISOString(), startMs: Date.now() };
+}
+
+async function tryCaptureViewport(browserCapture: BrowserCapturePort) {
+  try {
+    const value = await browserCapture.captureViewport();
+    return { ok: true as const, value };
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    return { ok: false as const, reason };
+  }
+}
+
+async function tryWriteViewportArtifact(params: {
+  ports: Ports;
+  timing: ViewportTiming;
+  artifactId: string;
+  captureResult: Awaited<ReturnType<BrowserCapturePort["captureViewport"]>>;
+}) {
+  try {
+    const artifactStart = Date.now();
+    const value = await params.ports.artifactStorage.writeArtifact({
+      sourceTempFilePath: params.captureResult.filePath,
+      artifactId: params.artifactId,
+      mimeType: params.captureResult.mimeType,
+      createdAt: params.timing.startedAt,
+    });
+    const artifactWritePhaseMs = Date.now() - artifactStart;
+    return { ok: true as const, value: { artifactRef: value, artifactWritePhaseMs } };
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    return { ok: false as const, reason };
+  }
+}
+
+function buildViewportSuccess(params: {
+  input: CaptureBrowserViewportInput;
+  timing: ViewportTiming;
+  captureResult: Awaited<ReturnType<BrowserCapturePort["captureViewport"]>>;
+  artifactRef: Awaited<ReturnType<ArtifactStoragePort["writeArtifact"]>>;
+  capturePhaseMs: number;
+  artifactWritePhaseMs: number;
+}): CaptureBrowserViewportResult {
   const endedAt = new Date().toISOString();
-  const durationMs = Date.now() - startMs;
-
+  const durationMs = Date.now() - params.timing.startMs;
+  const artifactRef = params.artifactRef;
+  const captureResult = params.captureResult;
   return {
     status: "success",
     screenshotRef: artifactRef.storageRef,
@@ -104,26 +116,60 @@ export async function captureBrowserViewport(
     viewportHeight: captureResult.viewportHeight,
     mimeType: captureResult.mimeType,
     screenshotProof: buildScreenshotProof({
-      childCapabilityId: "capture-browser-viewport",
-      missionId: input.missionId,
-      runId: input.runId,
-      sessionId: input.sessionId,
-      roundId: input.roundId,
-      stepId: input.stepId,
-      capabilityCallId: input.capabilityCallId,
-      nerveBusEnvelopeId: input.nerveBusEnvelopeId,
-      inputRef: input.inputRef,
+      ...viewportProofIdentity(params.input),
       screenshotRef: artifactRef.storageRef,
       artifactRef: artifactRef.artifactId,
-      capturePhaseMs,
-      artifactWritePhaseMs,
+      capturePhaseMs: params.capturePhaseMs,
+      artifactWritePhaseMs: params.artifactWritePhaseMs,
       totalScreenshotStepMs: durationMs,
       status: "success",
-      startedAt,
+      startedAt: params.timing.startedAt,
       endedAt,
       durationMs,
     }),
     failureReason: null,
     reviewRequiredReason: null,
+  };
+}
+
+function buildViewportFailure(params: {
+  input: CaptureBrowserViewportInput;
+  timing: ViewportTiming;
+  failureReason: string;
+  capturePhaseMs?: number;
+}): CaptureBrowserViewportResult {
+  const endedAt = new Date().toISOString();
+  const durationMs = Date.now() - params.timing.startMs;
+  const phase = params.capturePhaseMs === undefined
+    ? {}
+    : { capturePhaseMs: params.capturePhaseMs };
+  return {
+    status: "failed",
+    screenshotProof: buildScreenshotProof({
+      ...viewportProofIdentity(params.input),
+      ...phase,
+      totalScreenshotStepMs: durationMs,
+      status: "failed",
+      failureReason: params.failureReason,
+      startedAt: params.timing.startedAt,
+      endedAt,
+      durationMs,
+    }),
+    failureReason: params.failureReason,
+    reviewRequiredReason: null,
+  };
+}
+
+function viewportProofIdentity(input: CaptureBrowserViewportInput) {
+  return {
+    childCapabilityId: "capture-browser-viewport" as const,
+    missionId: input.missionId,
+    runId: input.runId,
+    sessionId: input.sessionId,
+    roundId: input.roundId,
+    stepId: input.stepId,
+    capabilityCallId: input.capabilityCallId,
+    nerveBusEnvelopeId: input.nerveBusEnvelopeId,
+    inputRef: input.inputRef,
   };
 }

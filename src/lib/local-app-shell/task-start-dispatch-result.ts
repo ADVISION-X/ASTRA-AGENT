@@ -25,7 +25,7 @@ const resolveTargetMissionId = (output: unknown): string | null => {
     : null;
 };
 
-export const collectDispatchResultRefs = (result: StartCommandResult): string[] => {
+const collectDispatchResultRefs = (result: StartCommandResult): string[] => {
   const proof = result.runtimeProof;
   return [
     proof?.runId ? `runId=${proof.runId}` : null,

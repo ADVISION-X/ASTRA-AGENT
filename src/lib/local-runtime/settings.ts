@@ -14,13 +14,16 @@ import { dirname, join } from "node:path";
 
 import { z } from "zod";
 
-// ─── App Run Limit Settings ───────────────────────────────────────────────────
+import type {
+  AppRunLimitSettings,
+  UserRequirementHistoryEntry,
+  UserRequirementHistoryPlatformId,
+  UserRequirementHistoryUpsertInput,
+} from "./settings-types.js";
 
-export type AppRunLimitSettings = {
-  defaultMaxRounds: number;
-  defaultMaxMinutes: number;
-  updatedAt: string | null;
-};
+export type { UserRequirementHistoryUpsertInput } from "./settings-types.js";
+
+// ─── App Run Limit Settings ───────────────────────────────────────────────────
 
 const APP_RUN_LIMIT_SETTINGS_PATH = ["config", "app-run-limit-settings.json"] as const;
 
@@ -92,29 +95,6 @@ export async function saveAppRunLimitSettings(
 
 // ─── User Requirement History ─────────────────────────────────────────────────
 
-export type UserRequirementHistoryPlatformId = "facebook-web" | "tiktok-web";
-
-export type UserRequirementHistoryEntry = {
-  id: string;
-  title: string;
-  userRequirementText: string;
-  selectedPlatforms: UserRequirementHistoryPlatformId[];
-  maxRounds: number;
-  maxMinutes: number;
-  createdAt: string;
-  lastUsedAt: string;
-  useCount: number;
-};
-
-export type UserRequirementHistoryUpsertInput = {
-  id?: string | null;
-  title?: string | null;
-  userRequirementText: string;
-  selectedPlatforms: UserRequirementHistoryPlatformId[];
-  maxRounds: number;
-  maxMinutes: number;
-};
-
 const USER_HISTORY_PATH = ["user-requirement-history.json"] as const;
 
 const UserRequirementHistoryEntrySchema = z.object({
@@ -161,6 +141,36 @@ function buildTitle(text: string): string {
   return text.length > 60 ? `${text.slice(0, 57)}...` : text;
 }
 
+const buildUpdatedHistoryEntry = (
+  existing: UserRequirementHistoryEntry,
+  input: UserRequirementHistoryUpsertInput,
+  now: string,
+): UserRequirementHistoryEntry => ({
+  ...existing,
+  title: input.title?.trim() || buildTitle(input.userRequirementText),
+  userRequirementText: input.userRequirementText,
+  selectedPlatforms: input.selectedPlatforms,
+  maxRounds: input.maxRounds,
+  maxMinutes: input.maxMinutes,
+  lastUsedAt: now,
+  useCount: existing.useCount + 1,
+});
+
+const buildNewHistoryEntry = (
+  input: UserRequirementHistoryUpsertInput,
+  now: string,
+): UserRequirementHistoryEntry => ({
+  id: input.id?.trim() || generateHistoryId(),
+  title: input.title?.trim() || buildTitle(input.userRequirementText),
+  userRequirementText: input.userRequirementText,
+  selectedPlatforms: input.selectedPlatforms,
+  maxRounds: input.maxRounds,
+  maxMinutes: input.maxMinutes,
+  createdAt: now,
+  lastUsedAt: now,
+  useCount: 1,
+});
+
 export async function loadUserRequirementHistory(
   dataDir: string,
   limit = 20,
@@ -177,37 +187,16 @@ export async function upsertUserRequirementHistory(
 ): Promise<UserRequirementHistoryEntry> {
   const entries = await loadHistoryEntries(dataDir);
   const now = new Date().toISOString();
-
   const existingIndex = input.id ? entries.findIndex((e) => e.id === input.id) : -1;
 
   if (existingIndex >= 0) {
-    const existing = entries[existingIndex]!;
-    const updated: UserRequirementHistoryEntry = {
-      ...existing,
-      title: input.title?.trim() || buildTitle(input.userRequirementText),
-      userRequirementText: input.userRequirementText,
-      selectedPlatforms: input.selectedPlatforms,
-      maxRounds: input.maxRounds,
-      maxMinutes: input.maxMinutes,
-      lastUsedAt: now,
-      useCount: existing.useCount + 1,
-    };
+    const updated = buildUpdatedHistoryEntry(entries[existingIndex]!, input, now);
     entries[existingIndex] = updated;
     await saveHistoryEntries(dataDir, entries);
     return updated;
   }
 
-  const newEntry: UserRequirementHistoryEntry = {
-    id: input.id?.trim() || generateHistoryId(),
-    title: input.title?.trim() || buildTitle(input.userRequirementText),
-    userRequirementText: input.userRequirementText,
-    selectedPlatforms: input.selectedPlatforms,
-    maxRounds: input.maxRounds,
-    maxMinutes: input.maxMinutes,
-    createdAt: now,
-    lastUsedAt: now,
-    useCount: 1,
-  };
+  const newEntry = buildNewHistoryEntry(input, now);
   entries.unshift(newEntry);
   await saveHistoryEntries(dataDir, entries);
   return newEntry;

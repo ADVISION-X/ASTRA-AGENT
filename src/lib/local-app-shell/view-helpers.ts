@@ -1,6 +1,5 @@
 import type { CommanderConsoleTaskTemplate, CommanderConsoleViewModel } from "./types.js";
 import { localizeCommanderText } from "./locale.js";
-export type { ActionableErrorView } from "./view-helper-actionable-errors.js";
 
 const RUNTIME_STATE_LABELS = {
   idle: ["未启动", "Not Started"],
@@ -51,10 +50,6 @@ function canStopMission(viewModel: CommanderConsoleViewModel): boolean {
 
 function canEmergencyStopMission(viewModel: CommanderConsoleViewModel): boolean {
   return Boolean(viewModel.rawSnapshot.mission?.missionId) && canStopMission(viewModel);
-}
-
-function canRequestCandidateExport(_viewModel: CommanderConsoleViewModel): boolean {
-  return false;
 }
 
 function formatRuntimeState(viewModel: CommanderConsoleViewModel): string {
@@ -129,4 +124,4 @@ function formatHealthStatus(viewModel: CommanderConsoleViewModel): string {
   }
   return localizeCommanderText(viewModel.locale, "运行健康", "Healthy");
 }
-export { getActiveTaskTemplate, getRuntimeTone, canStopMission, canEmergencyStopMission, canRequestCandidateExport, formatRuntimeState, formatElapsed, buildHumanStepLabel, buildHumanStepDetail };
+export { getActiveTaskTemplate, getRuntimeTone, canStopMission, canEmergencyStopMission, formatRuntimeState, formatElapsed, buildHumanStepLabel, buildHumanStepDetail };

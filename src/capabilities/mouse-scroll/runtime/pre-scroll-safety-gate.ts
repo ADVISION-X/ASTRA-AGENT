@@ -239,6 +239,33 @@ const validateScrollRegionPayload = (
       });
 };
 
+const buildExecutableAnchor = (requestedAnchor: { x: number; y: number }) => ({
+  x: Math.round(requestedAnchor.x),
+  y: Math.round(requestedAnchor.y),
+});
+
+const resolveValidatedRegion = (
+  request: ParsedMouseScrollAbilityInput,
+  bounds: { width: number; height: number },
+  executableAnchor: { x: number; y: number },
+): PreScrollSafetyFailure | MouseScrollRegion | null => {
+  if (request.childCapabilityId !== "scroll-region") {
+    return validateNonRegionScroll(request);
+  }
+  return validateScrollRegionPayload(request, bounds, executableAnchor);
+};
+
+const validateSharedPreScrollRules = (
+  request: ParsedMouseScrollAbilityInput,
+  expectedCoordinateSpace: MouseScrollCoordinateSpace,
+  executableAnchor: { x: number; y: number },
+): PreScrollSafetyFailure | null =>
+  validatePreScrollCoordinateSpace(request, expectedCoordinateSpace)
+  ?? validatePreScrollBounds(request)
+  ?? validatePreScrollRepeatPolicy(request)
+  ?? validatePreScrollDurationPolicy(request)
+  ?? validateAnchorWithinBounds(executableAnchor, request.bounds);
+
 export function validatePreScrollSafety(input: {
   request: ParsedMouseScrollAbilityInput;
   expectedCoordinateSpace: MouseScrollCoordinateSpace;
@@ -247,32 +274,25 @@ export function validatePreScrollSafety(input: {
   | PreScrollSafetyFailure {
   const requestedAnchor = input.request.geometryScrollProof.normalizedAnchorPoint;
   const bounds = input.request.bounds;
-  const executableAnchor = {
-    x: Math.round(requestedAnchor.x),
-    y: Math.round(requestedAnchor.y),
-  };
-  const failure = validatePreScrollCoordinateSpace(input.request, input.expectedCoordinateSpace)
-    ?? validatePreScrollBounds(input.request)
-    ?? validatePreScrollRepeatPolicy(input.request)
-    ?? validatePreScrollDurationPolicy(input.request)
-    ?? validateAnchorWithinBounds(executableAnchor, bounds);
+  const executableAnchor = buildExecutableAnchor(requestedAnchor);
+  const failure = validateSharedPreScrollRules(
+    input.request,
+    input.expectedCoordinateSpace,
+    executableAnchor,
+  );
   if (failure) {
     return failure;
   }
 
-  if (input.request.childCapabilityId !== "scroll-region") {
-    const nonRegionFailure = validateNonRegionScroll(input.request);
-    if (nonRegionFailure) {
-      return nonRegionFailure;
-    }
-
-    return createPreScrollSafetySuccess({ requestedAnchor, executableAnchor, bounds, region: null });
-  }
-
-  const regionOutcome = validateScrollRegionPayload(input.request, bounds, executableAnchor);
+  const regionOutcome = resolveValidatedRegion(input.request, bounds, executableAnchor);
   if ("ok" in regionOutcome) {
     return regionOutcome;
   }
 
-  return createPreScrollSafetySuccess({ requestedAnchor, executableAnchor, bounds, region: regionOutcome });
+  return createPreScrollSafetySuccess({
+    requestedAnchor,
+    executableAnchor,
+    bounds,
+    region: regionOutcome,
+  });
 }

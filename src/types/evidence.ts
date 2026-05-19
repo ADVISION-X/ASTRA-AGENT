@@ -16,7 +16,7 @@ export const EvidenceRefSchema = z.object({
   filePath: z.string().min(1).optional()
 });
 
-export const ImageEvidenceSchema = z.object({
+const ImageEvidenceSchema = z.object({
   id: z.string().min(1),
   taskRunId: z.string().min(1),
   roundId: z.string().min(1),
@@ -33,7 +33,7 @@ export const ImageEvidenceSchema = z.object({
   createdAt: z.string().datetime()
 });
 
-export const OcrTextResultSchema = z.object({
+const OcrTextResultSchema = z.object({
   id: z.string().min(1),
   taskRunId: z.string().min(1),
   roundId: z.string().min(1),

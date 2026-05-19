@@ -18,56 +18,88 @@ import type {
   ForensicsStoragePort,
 } from "./storage-port.js";
 
+const assignOptional = <T extends object, K extends keyof T>(
+  target: T,
+  key: K,
+  value: T[K] | undefined,
+): void => {
+  if (value === undefined) return;
+  target[key] = value;
+};
+
+const buildRecordEnvelope = (
+  input: ForensicsAppendRecordInput,
+): RecordEnvelope => {
+  const envelope: RecordEnvelope = {
+    recordType: input.recordType,
+    missionId: input.missionId,
+    runId: input.runId,
+    payload: input.recordPayload,
+    createdAt: input.createdAt ?? new Date().toISOString(),
+  };
+
+  assignOptional(envelope, "sessionId", input.sessionId);
+  assignOptional(envelope, "roundId", input.roundId);
+  assignOptional(envelope, "stepId", input.stepId);
+  assignOptional(envelope, "capabilityCallId", input.capabilityCallId);
+  assignOptional(envelope, "sourceAbilityGroupId", input.sourceCapabilityId);
+  assignOptional(envelope, "sourceChildCapabilityId", input.sourceChildCapabilityId);
+  assignOptional(envelope, "parentRefs", input.parentRefs);
+  assignOptional(envelope, "artifactRefs", input.artifactRefs);
+  assignOptional(envelope, "idempotencyKey", input.idempotencyKey);
+
+  return envelope;
+};
+
+const buildArtifactEnvelope = (
+  input: ForensicsAppendArtifactInput,
+): ArtifactEnvelope => {
+  const artifact: ArtifactEnvelope = {
+    artifactType: input.artifactType,
+    missionId: input.missionId,
+    runId: input.runId,
+    createdAt: new Date().toISOString(),
+  };
+
+  assignOptional(artifact, "sessionId", input.sessionId);
+  assignOptional(artifact, "roundId", input.roundId);
+  assignOptional(artifact, "capabilityCallId", input.capabilityCallId);
+  assignOptional(artifact, "mimeType", input.mimeType);
+  assignOptional(artifact, "content", input.content);
+  assignOptional(artifact, "bytesRef", input.bytesRef);
+  assignOptional(artifact, "sourceRef", input.sourceRef);
+  assignOptional(artifact, "parentRefs", input.parentRefs);
+  assignOptional(artifact, "idempotencyKey", input.idempotencyKey);
+
+  return artifact;
+};
+
+const appendRecord = (
+  storage: GrassEyeStoragePort,
+  input: ForensicsAppendRecordInput,
+): Promise<AppendRecordStorageResult> =>
+  storage.appendRecord(buildRecordEnvelope(input));
+
+const appendArtifact = (
+  storage: GrassEyeStoragePort,
+  input: ForensicsAppendArtifactInput,
+): Promise<AppendArtifactStorageResult> =>
+  storage.appendArtifact(buildArtifactEnvelope(input));
+
+const readRecord = async (
+  storage: GrassEyeStoragePort,
+  recordRef: string,
+): Promise<Record<string, unknown> | null> => {
+  const result = await storage.readRecord(recordRef);
+  return result as Record<string, unknown> | null;
+};
+
 export function createForensicsStorageAdapter(
   storage: GrassEyeStoragePort,
 ): ForensicsStoragePort {
   return {
-    async appendRecord(
-      input: ForensicsAppendRecordInput,
-    ): Promise<AppendRecordStorageResult> {
-      const envelope: RecordEnvelope = {
-        recordType: input.recordType,
-        missionId: input.missionId,
-        runId: input.runId,
-        ...(input.sessionId !== undefined ? { sessionId: input.sessionId } : {}),
-        ...(input.roundId !== undefined ? { roundId: input.roundId } : {}),
-        ...(input.stepId !== undefined ? { stepId: input.stepId } : {}),
-        ...(input.capabilityCallId !== undefined ? { capabilityCallId: input.capabilityCallId } : {}),
-        ...(input.sourceCapabilityId !== undefined ? { sourceAbilityGroupId: input.sourceCapabilityId } : {}),
-        ...(input.sourceChildCapabilityId !== undefined ? { sourceChildCapabilityId: input.sourceChildCapabilityId } : {}),
-        ...(input.parentRefs !== undefined ? { parentRefs: input.parentRefs } : {}),
-        ...(input.artifactRefs !== undefined ? { artifactRefs: input.artifactRefs } : {}),
-        payload: input.recordPayload,
-        ...(input.idempotencyKey !== undefined ? { idempotencyKey: input.idempotencyKey } : {}),
-        createdAt: input.createdAt ?? new Date().toISOString(),
-      };
-      return storage.appendRecord(envelope);
-    },
-
-    async appendArtifact(
-      input: ForensicsAppendArtifactInput,
-    ): Promise<AppendArtifactStorageResult> {
-      const artifact: ArtifactEnvelope = {
-        artifactType: input.artifactType,
-        missionId: input.missionId,
-        runId: input.runId,
-        ...(input.sessionId !== undefined ? { sessionId: input.sessionId } : {}),
-        ...(input.roundId !== undefined ? { roundId: input.roundId } : {}),
-        ...(input.capabilityCallId !== undefined ? { capabilityCallId: input.capabilityCallId } : {}),
-        ...(input.mimeType !== undefined ? { mimeType: input.mimeType } : {}),
-        ...(input.content !== undefined ? { content: input.content } : {}),
-        ...(input.bytesRef !== undefined ? { bytesRef: input.bytesRef } : {}),
-        ...(input.sourceRef !== undefined ? { sourceRef: input.sourceRef } : {}),
-        ...(input.parentRefs !== undefined ? { parentRefs: input.parentRefs } : {}),
-        ...(input.idempotencyKey !== undefined ? { idempotencyKey: input.idempotencyKey } : {}),
-        createdAt: new Date().toISOString(),
-      };
-      return storage.appendArtifact(artifact);
-    },
-
-    async readRecord(recordRef: string): Promise<Record<string, unknown> | null> {
-      const result = await storage.readRecord(recordRef);
-      return result as Record<string, unknown> | null;
-    },
+    appendRecord: (input) => appendRecord(storage, input),
+    appendArtifact: (input) => appendArtifact(storage, input),
+    readRecord: (recordRef) => readRecord(storage, recordRef),
   };
 }

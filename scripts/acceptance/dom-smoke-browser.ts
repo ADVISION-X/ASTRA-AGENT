@@ -107,6 +107,15 @@ export class PlaywrightDomBrowserAdapter implements BrowserController {
     }, input.script) as Promise<T>;
   }
 
+  async setFileInputFiles(input: {
+    elementRef: { selector: string; targetKind: "file-input" };
+    filePath: string;
+    description: string;
+  }): Promise<BrowserActionResult> {
+    await this.page.locator(input.elementRef.selector).setInputFiles(input.filePath);
+    return action(`set approved file for ${input.description}`);
+  }
+
   async wait(durationMs: number): Promise<BrowserActionResult> {
     await this.page.waitForTimeout(durationMs);
     return action(`waited ${durationMs}`);

@@ -98,7 +98,10 @@ const validateCatalogMergeSource = (
   if (!catalogFile || !mergeFile) {
     return [catalogFinding("GRASSEYE-DOM-001-V1", "src/muscle-memory/catalog.ts", 1, "MuscleMemory source catalog files are missing", "Keep DOM catalog merge in source registry code.")];
   }
-  const domImport = catalogFile.getImportDeclarations().find((importDeclaration) => importDeclaration.getModuleSpecifierValue().includes("dom-automation/manifest"));
+  const domImport = catalogFile.getImportDeclarations().find((importDeclaration) => {
+    const target = importDeclaration.getModuleSpecifierSourceFile();
+    return target?.getFilePath().endsWith("/src/capabilities/dom-automation/manifest.ts") === true;
+  });
   if (!domImport) {
     findings.push(catalogFinding("GRASSEYE-DOM-001-V1", "src/muscle-memory/catalog.ts", 1, "catalog.ts does not import DOM_AUTOMATION_CATALOG_ENTRIES from source manifest", "Join DOM entries through source registry imports only."));
   }
@@ -110,10 +113,14 @@ const validateCatalogMergeSource = (
   if (!mergeArgs.includes("DOM_AUTOMATION_CATALOG_ENTRIES")) {
     findings.push(catalogFinding("GRASSEYE-DOM-001-V1", "src/muscle-memory/catalog.ts", 1, "catalog.ts does not merge DOM_AUTOMATION_CATALOG_ENTRIES into the source registry", "Merge DOM entries through mergeCapabilityCatalogEntries."));
   }
-  if (!mergeFile.getFullText().includes("duplicateMessage")
-    || !mergeFile.getFullText().includes("actionCodes.has(entry.actionCode)")
-    || !mergeFile.getFullText().includes("childKeys.has(childKey)")
-    || !mergeFile.getFullText().includes("throw new Error")) {
+  const hasThrow = mergeFile.getDescendantsOfKind(SyntaxKind.ThrowStatement).length > 0;
+  const hasActionDuplicateGuard = mergeFile.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((callExpression) => callExpression.getExpression().getText() === "actionCodes.has");
+  const hasChildDuplicateGuard = mergeFile.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((callExpression) => callExpression.getExpression().getText() === "childKeys.has");
+  const hasDuplicateMessageSymbol = mergeFile.getFunction("duplicateMessage") != null
+    || mergeFile.getVariableDeclaration("duplicateMessage") != null;
+  if (!hasDuplicateMessageSymbol || !hasActionDuplicateGuard || !hasChildDuplicateGuard || !hasThrow) {
     findings.push(catalogFinding("GRASSEYE-DOM-001-V1", "src/muscle-memory/catalog-merge.ts", 1, "catalog merge does not prove duplicate guards for actionCode and ability child keys", "Fail fast on duplicate actionCode and abilityGroupId:childCapabilityId merges."));
   }
   return findings;

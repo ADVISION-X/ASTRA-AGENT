@@ -3,7 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { ArtifactStoragePort } from "../ports/artifact-storage-port.js";
-import type { ScreenshotArtifactRef } from "../schema.js";
+import type { ScreenshotArtifactRef } from "../schema-artifact.js";
 
 export function createFilesystemArtifactStoragePort(baseDir: string): ArtifactStoragePort {
   return {

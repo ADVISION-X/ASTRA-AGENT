@@ -19,6 +19,7 @@ import type { SourceFile } from "ts-morph";
 const CODE_FILE_PATTERN = /\.(ts|tsx|js|mjs)$/;
 const ALLOWED_DYNAMIC_IMPORT_FILES = new Set([
   "scripts/audit/domains/shared/run-manifest-owner.ts",
+  "scripts/audit/law-enforcement/owner-verdicts.ts",
 ]);
 
 const walkFiles = (absolutePath: string, acc: string[] = []): string[] => {

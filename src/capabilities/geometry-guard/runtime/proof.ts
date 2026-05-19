@@ -1,12 +1,31 @@
 import { randomUUID } from "node:crypto";
 
 import {
-  GEOMETRY_GUARD_ABILITY_GROUP_ID,
-  type GeometryGuardRuntimeProof,
   type ParsedGeometryGuardAbilityInput,
-  type GeometryGuardPoint,
-  type GeometryGuardBoundingBox,
 } from "../contract.js";
+import { GEOMETRY_GUARD_ABILITY_GROUP_ID } from "../schema-constants.js";
+import type {
+  GeometryGuardBoundingBox,
+  GeometryGuardPoint,
+} from "../geometry-types.js";
+import type { GeometryGuardRuntimeProof } from "../geometry-io-types.js";
+
+type ProofIdentity = Pick<
+  GeometryGuardRuntimeProof,
+  | "missionId"
+  | "runId"
+  | "sessionId"
+  | "roundId"
+  | "stepId"
+  | "capabilityCallId"
+  | "nerveBusEnvelopeId"
+  | "inputRef"
+  | "sourceRef"
+  | "sourceScreenshotEvidenceRef"
+  | "sourceAbilityGroupId"
+  | "sourceChildCapabilityId"
+  | "gridSpecRef"
+>;
 
 export function buildGeometryGuardProof(params: {
   input: ParsedGeometryGuardAbilityInput;
@@ -23,20 +42,7 @@ export function buildGeometryGuardProof(params: {
     proofId: randomUUID(),
     abilityGroupId: GEOMETRY_GUARD_ABILITY_GROUP_ID,
     childCapabilityId: params.input.childCapabilityId,
-    missionId: params.input.missionId ?? null,
-    runId: params.input.runId ?? null,
-    sessionId: params.input.sessionId ?? "unknown",
-    roundId: params.input.roundId ?? null,
-    stepId: params.input.stepId ?? null,
-    capabilityCallId: params.input.capabilityCallId ?? null,
-    nerveBusEnvelopeId: params.input.nerveBusEnvelopeId ?? null,
-    inputRef: params.input.inputRef ?? null,
-    sourceRef: params.input.sourceRef ?? null,
-    sourceScreenshotEvidenceRef:
-      params.input.sourceScreenshotEvidenceRef ?? null,
-    sourceAbilityGroupId: params.input.sourceAbilityGroupId ?? null,
-    sourceChildCapabilityId: params.input.sourceChildCapabilityId ?? null,
-    gridSpecRef: params.input.gridSpecRef ?? null,
+    ...buildProofIdentity(params.input),
     sourceCoordinateSpace: params.input.sourceCoordinateSpace,
     requestedExecutionSpace: params.input.requestedExecutionSpace,
     normalizedCoordinateSpace:
@@ -49,5 +55,25 @@ export function buildGeometryGuardProof(params: {
     startedAt: params.startedAt,
     endedAt: params.endedAt,
     durationMs: params.durationMs,
+  };
+}
+
+function buildProofIdentity(
+  input: ParsedGeometryGuardAbilityInput,
+): ProofIdentity {
+  return {
+    missionId: input.missionId ?? null,
+    runId: input.runId ?? null,
+    sessionId: input.sessionId ?? "unknown",
+    roundId: input.roundId ?? null,
+    stepId: input.stepId ?? null,
+    capabilityCallId: input.capabilityCallId ?? null,
+    nerveBusEnvelopeId: input.nerveBusEnvelopeId ?? null,
+    inputRef: input.inputRef ?? null,
+    sourceRef: input.sourceRef ?? null,
+    sourceScreenshotEvidenceRef: input.sourceScreenshotEvidenceRef ?? null,
+    sourceAbilityGroupId: input.sourceAbilityGroupId ?? null,
+    sourceChildCapabilityId: input.sourceChildCapabilityId ?? null,
+    gridSpecRef: input.gridSpecRef ?? null,
   };
 }

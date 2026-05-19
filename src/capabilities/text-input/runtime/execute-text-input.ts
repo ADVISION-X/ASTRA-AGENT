@@ -16,6 +16,21 @@ import {
   TextInputAbilityResultSchema,
   TextInputRuntimeProofSchema,
 } from "../schema.js";
+import type { TextInputPrimitiveResult } from "../ports/text-input-primitive-port.js";
+
+type TextInputRun = {
+  input: ParsedTextInputAbilityInput;
+  writeMode: TextInputWriteMode;
+  startedAt: string;
+  endedAt: string;
+  status: "success" | "failed";
+  failureReason: TextInputFailureReason | null;
+  primitiveExecutionRef: string | null;
+};
+
+type TextInputPolicyChecker = (
+  input: ParsedTextInputAbilityInput,
+) => TextInputFailureReason | null;
 
 function buildProofId(
   input: ParsedTextInputAbilityInput,
@@ -30,103 +45,186 @@ function buildProofId(
   ]);
 }
 
-function buildRuntimeProof(
-  input: ParsedTextInputAbilityInput,
-  writeMode: TextInputWriteMode,
-  status: "success" | "failed",
-  failureReason: TextInputFailureReason | null,
-  startedAt: string,
-  endedAt: string,
-  primitiveExecutionRef: string | null,
-) {
+function buildRuntimeProof(run: TextInputRun) {
   const durationMs = Math.max(
     0,
-    new Date(endedAt).getTime() - new Date(startedAt).getTime(),
+    new Date(run.endedAt).getTime() - new Date(run.startedAt).getTime(),
   );
   const proofId = buildProofId(
-    input,
-    primitiveExecutionRef ?? `fail:${Date.now()}`,
+    run.input,
+    run.primitiveExecutionRef ?? `fail:${Date.now()}`,
   );
 
   return TextInputRuntimeProofSchema.parse({
     proofId,
     abilityGroupId: TEXT_INPUT_ABILITY_GROUP_ID,
-    childCapabilityId: input.childCapabilityId,
-    missionId: input.missionId,
-    runId: input.runId,
-    sessionId: input.sessionId,
-    roundId: input.roundId,
-    stepId: input.stepId,
-    capabilityCallId: input.capabilityCallId,
-    nerveBusEnvelopeId: input.nerveBusEnvelopeId,
-    inputRef: input.inputRef,
-    targetRef: input.targetRef,
-    focusRef: input.focusRef,
-    writeMode,
+    childCapabilityId: run.input.childCapabilityId,
+    missionId: run.input.missionId,
+    runId: run.input.runId,
+    sessionId: run.input.sessionId,
+    roundId: run.input.roundId,
+    stepId: run.input.stepId,
+    capabilityCallId: run.input.capabilityCallId,
+    nerveBusEnvelopeId: run.input.nerveBusEnvelopeId,
+    inputRef: run.input.inputRef,
+    targetRef: run.input.targetRef,
+    focusRef: run.input.focusRef,
+    writeMode: run.writeMode,
     approvedTextHash:
-      input.approvedText != null ? hashApprovedText(input.approvedText) : null,
-    approvedKey: input.approvedKey,
-    status,
-    failureReason,
+      run.input.approvedText != null
+        ? hashApprovedText(run.input.approvedText)
+        : null,
+    approvedKey: run.input.approvedKey,
+    status: run.status,
+    failureReason: run.failureReason,
     reviewRequiredReason: null,
-    startedAt,
-    endedAt,
+    startedAt: run.startedAt,
+    endedAt: run.endedAt,
     durationMs,
-    primitiveExecutionRef,
+    primitiveExecutionRef: run.primitiveExecutionRef,
   });
 }
 
-function buildResult(
-  input: ParsedTextInputAbilityInput,
-  writeMode: TextInputWriteMode,
-  status: "success" | "failed",
-  failureReason: TextInputFailureReason | null,
-  startedAt: string,
-  endedAt: string,
-  primitiveExecutionRef: string | null,
-): TextInputAbilityResult {
-  const runtimeProof = buildRuntimeProof(
-    input,
-    writeMode,
-    status,
-    failureReason,
-    startedAt,
-    endedAt,
-    primitiveExecutionRef,
-  );
+function buildResult(run: TextInputRun): TextInputAbilityResult {
+  const runtimeProof = buildRuntimeProof(run);
   const textInputProofRef =
-    status === "success" ? runtimeProof.proofId : null;
+    run.status === "success" ? runtimeProof.proofId : null;
 
   return TextInputAbilityResultSchema.parse({
     abilityGroupId: TEXT_INPUT_ABILITY_GROUP_ID,
-    childCapabilityId: input.childCapabilityId,
-    status,
-    failureReason,
+    childCapabilityId: run.input.childCapabilityId,
+    status: run.status,
+    failureReason: run.failureReason,
     reviewRequiredReason: null,
-    writeMode,
+    writeMode: run.writeMode,
     textInputProofRef,
-    primitiveExecutionRef,
-    targetRef: input.targetRef,
-    focusRef: input.focusRef,
+    primitiveExecutionRef: run.primitiveExecutionRef,
+    targetRef: run.input.targetRef,
+    focusRef: run.input.focusRef,
     runtimeProof,
   });
 }
 
-function policyCheck(
+const missingTargetOrFocusRef = (
+  input: ParsedTextInputAbilityInput,
+): TextInputFailureReason | null =>
+  !input.targetRef && !input.focusRef
+    ? "missing_target_or_focus_ref"
+    : null;
+
+const validateTypeTextInput: TextInputPolicyChecker = (input) => {
+  if (!input.approvedText) return "missing_approved_text";
+  return missingTargetOrFocusRef(input);
+};
+
+const validatePressKeyInput: TextInputPolicyChecker = (input) =>
+  input.approvedKey ? null : "missing_approved_key";
+
+const POLICY_CHECKERS = {
+  type_text_once: validateTypeTextInput,
+  press_key_once: validatePressKeyInput,
+  clear_focused_input_once: missingTargetOrFocusRef,
+} satisfies Record<TextInputWriteMode, TextInputPolicyChecker>;
+
+const policyCheck = (
   input: ParsedTextInputAbilityInput,
   writeMode: TextInputWriteMode,
-): TextInputFailureReason | null {
+): TextInputFailureReason | null => POLICY_CHECKERS[writeMode](input);
+
+const buildFailedRun = (
+  input: ParsedTextInputAbilityInput,
+  writeMode: TextInputWriteMode,
+  startedAt: string,
+  failureReason: TextInputFailureReason,
+): TextInputRun => ({
+  input,
+  writeMode,
+  startedAt,
+  endedAt: new Date().toISOString(),
+  status: "failed",
+  failureReason,
+  primitiveExecutionRef: null,
+});
+
+const buildPrimitiveRef = (input: ParsedTextInputAbilityInput): string =>
+  buildTextInputRef("ti:primitive", [
+    input.missionId,
+    input.runId,
+    input.stepId,
+    input.capabilityCallId,
+    randomUUID(),
+  ]);
+
+const buildPrimitiveInputBase = (
+  input: ParsedTextInputAbilityInput,
+  primitiveRef: string,
+) => ({
+  primitiveRef,
+  idempotencyKey: input.idempotencyKey,
+  timeoutMs: input.timeoutMs,
+});
+
+const executePrimitiveOperation = (
+  input: ParsedTextInputAbilityInput,
+  writeMode: TextInputWriteMode,
+  context: TextInputExecutionContext,
+  primitiveRef: string,
+): Promise<TextInputPrimitiveResult> => {
+  const primitiveInputBase = buildPrimitiveInputBase(input, primitiveRef);
   if (writeMode === "type_text_once") {
-    if (!input.approvedText) return "missing_approved_text";
-    if (!input.targetRef && !input.focusRef) return "missing_target_or_focus_ref";
-  } else if (writeMode === "press_key_once") {
-    if (!input.approvedKey) return "missing_approved_key";
-    // allowlist is enforced by Zod schema
-  } else if (writeMode === "clear_focused_input_once") {
-    if (!input.targetRef && !input.focusRef) return "missing_target_or_focus_ref";
+    return context.primitivePort.typeText({
+      ...primitiveInputBase,
+      text: input.approvedText!,
+    });
   }
-  return null;
-}
+  if (writeMode === "press_key_once") {
+    return context.primitivePort.pressKey({
+      ...primitiveInputBase,
+      key: input.approvedKey!,
+    });
+  }
+  return context.primitivePort.clearFocusedInput(primitiveInputBase);
+};
+
+const buildRunFromPrimitiveResult = (
+  input: ParsedTextInputAbilityInput,
+  writeMode: TextInputWriteMode,
+  startedAt: string,
+  primitiveResult: TextInputPrimitiveResult,
+): TextInputRun => ({
+  input,
+  writeMode,
+  startedAt,
+  endedAt: new Date().toISOString(),
+  status: primitiveResult.ok ? "success" : "failed",
+  failureReason: primitiveResult.ok ? null : "primitive_failed",
+  primitiveExecutionRef: primitiveResult.primitiveExecutionRef,
+});
+
+const executePrimitiveRun = async (
+  input: ParsedTextInputAbilityInput,
+  writeMode: TextInputWriteMode,
+  context: TextInputExecutionContext,
+  startedAt: string,
+): Promise<TextInputRun> => {
+  const primitiveRef = buildPrimitiveRef(input);
+  try {
+    const primitiveResult = await executePrimitiveOperation(
+      input,
+      writeMode,
+      context,
+      primitiveRef,
+    );
+    return buildRunFromPrimitiveResult(
+      input,
+      writeMode,
+      startedAt,
+      primitiveResult,
+    );
+  } catch {
+    return buildFailedRun(input, writeMode, startedAt, "primitive_failed");
+  }
+};
 
 export async function executeTextInput(
   input: ParsedTextInputAbilityInput,
@@ -137,76 +235,11 @@ export async function executeTextInput(
 
   const policyFailure = policyCheck(input, writeMode);
   if (policyFailure) {
-    const endedAt = new Date().toISOString();
     return buildResult(
-      input,
-      writeMode,
-      "failed",
-      policyFailure,
-      startedAt,
-      endedAt,
-      null,
+      buildFailedRun(input, writeMode, startedAt, policyFailure),
     );
   }
 
-  const primitiveRef = buildTextInputRef("ti:primitive", [
-    input.missionId,
-    input.runId,
-    input.stepId,
-    input.capabilityCallId,
-    randomUUID(),
-  ]);
-
-  try {
-    let primitiveResult;
-
-    if (writeMode === "type_text_once") {
-      primitiveResult = await context.primitivePort.typeText({
-        primitiveRef,
-        idempotencyKey: input.idempotencyKey,
-        timeoutMs: input.timeoutMs,
-        text: input.approvedText!,
-      });
-    } else if (writeMode === "press_key_once") {
-      primitiveResult = await context.primitivePort.pressKey({
-        primitiveRef,
-        idempotencyKey: input.idempotencyKey,
-        timeoutMs: input.timeoutMs,
-        key: input.approvedKey!,
-      });
-    } else {
-      primitiveResult = await context.primitivePort.clearFocusedInput({
-        primitiveRef,
-        idempotencyKey: input.idempotencyKey,
-        timeoutMs: input.timeoutMs,
-      });
-    }
-
-    const endedAt = new Date().toISOString();
-    const status = primitiveResult.ok ? "success" : "failed";
-    const failureReason: TextInputFailureReason | null = primitiveResult.ok
-      ? null
-      : "primitive_failed";
-
-    return buildResult(
-      input,
-      writeMode,
-      status,
-      failureReason,
-      startedAt,
-      endedAt,
-      primitiveResult.primitiveExecutionRef,
-    );
-  } catch {
-    const endedAt = new Date().toISOString();
-    return buildResult(
-      input,
-      writeMode,
-      "failed",
-      "primitive_failed",
-      startedAt,
-      endedAt,
-      null,
-    );
-  }
+  const run = await executePrimitiveRun(input, writeMode, context, startedAt);
+  return buildResult(run);
 }

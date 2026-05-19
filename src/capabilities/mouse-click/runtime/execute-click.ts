@@ -17,6 +17,21 @@ import {
   releaseMouseClickIdempotency,
 } from "./idempotency.js";
 
+type RuntimeProofInput = {
+  input: ParsedMouseClickAbilityInput;
+  status: "success" | "failed";
+  failureReason: MouseClickFailureReason | null;
+  startedAt: string;
+  endedAt: string;
+  primitiveStartedAt: string | null;
+  primitiveEndedAt: string | null;
+  primitiveExecutionRef: string | null;
+};
+
+type PrimitiveClickResult = Awaited<
+  ReturnType<MouseClickExecutionContext["primitivePort"]["click"]>
+>;
+
 function buildProofId(input: ParsedMouseClickAbilityInput, suffix: string): string {
   return buildMouseClickRef("mc:proof", [
     input.missionId,
@@ -27,51 +42,57 @@ function buildProofId(input: ParsedMouseClickAbilityInput, suffix: string): stri
   ]);
 }
 
-function buildRuntimeProof(
-  input: ParsedMouseClickAbilityInput,
-  status: "success" | "failed",
-  failureReason: MouseClickFailureReason | null,
-  startedAt: string,
-  endedAt: string,
-  primitiveStartedAt: string | null,
-  primitiveEndedAt: string | null,
-  primitiveExecutionRef: string | null,
-) {
+const buildRuntimeProofExecutionFields = (input: RuntimeProofInput) => ({
+  missionId: input.input.missionId,
+  runId: input.input.runId,
+  sessionId: input.input.sessionId,
+  roundId: input.input.roundId,
+  videoVisitId: input.input.videoVisitId,
+  stepId: input.input.stepId,
+  capabilityCallId: input.input.capabilityCallId,
+  nerveBusEnvelopeId: input.input.nerveBusEnvelopeId,
+  abilityGroupId: MOUSE_CLICK_ABILITY_GROUP_ID,
+  childCapabilityId: input.input.childCapabilityId,
+  geometryGuardRef: input.input.geometryGuardRef,
+  geometryGuardProofRef: input.input.geometryGuardProofRef,
+  sourceCoordinateProofRef: input.input.sourceCoordinateProofRef,
+  coordinateSpace: "browserViewport" as const,
+  normalizedClickPoint: input.input.geometryGuardNormalizedClickPoint,
+  executableCoordinate: input.input.geometryGuardNormalizedClickPoint,
+  button: MOUSE_CLICK_BUTTON_MAP[input.input.childCapabilityId],
+  clickCount: MOUSE_CLICK_COUNT_MAP[input.input.childCapabilityId],
+  status: input.status,
+  failureReason: input.failureReason,
+  reviewRequiredReason: null,
+});
+
+const buildRuntimeProofTimingFields = (input: RuntimeProofInput) => ({
+  startedAt: input.startedAt,
+  endedAt: input.endedAt,
+  primitiveStartedAt: input.primitiveStartedAt,
+  primitiveEndedAt: input.primitiveEndedAt,
+  durationMs: Math.max(
+    0,
+    new Date(input.endedAt).getTime() - new Date(input.startedAt).getTime(),
+  ),
+  primitiveExecutionRef: input.primitiveExecutionRef,
+});
+
+function buildRuntimeProof(input: RuntimeProofInput) {
   const durationMs = Math.max(
     0,
-    new Date(endedAt).getTime() - new Date(startedAt).getTime(),
+    new Date(input.endedAt).getTime() - new Date(input.startedAt).getTime(),
   );
-  const proofId = buildProofId(input, primitiveExecutionRef ?? `fail:${Date.now()}`);
+  const proofId = buildProofId(
+    input.input,
+    input.primitiveExecutionRef ?? `fail:${Date.now()}`,
+  );
 
   return MouseClickRuntimeProofSchema.parse({
     proofId,
-    missionId: input.missionId,
-    runId: input.runId,
-    sessionId: input.sessionId,
-    roundId: input.roundId,
-    videoVisitId: input.videoVisitId,
-    stepId: input.stepId,
-    capabilityCallId: input.capabilityCallId,
-    nerveBusEnvelopeId: input.nerveBusEnvelopeId,
-    abilityGroupId: MOUSE_CLICK_ABILITY_GROUP_ID,
-    childCapabilityId: input.childCapabilityId,
-    geometryGuardRef: input.geometryGuardRef,
-    geometryGuardProofRef: input.geometryGuardProofRef,
-    sourceCoordinateProofRef: input.sourceCoordinateProofRef,
-    coordinateSpace: "browserViewport",
-    normalizedClickPoint: input.geometryGuardNormalizedClickPoint,
-    executableCoordinate: input.geometryGuardNormalizedClickPoint,
-    button: MOUSE_CLICK_BUTTON_MAP[input.childCapabilityId],
-    clickCount: MOUSE_CLICK_COUNT_MAP[input.childCapabilityId],
-    status,
-    failureReason,
-    reviewRequiredReason: null,
-    startedAt,
-    endedAt,
-    primitiveStartedAt,
-    primitiveEndedAt,
+    ...buildRuntimeProofExecutionFields(input),
+    ...buildRuntimeProofTimingFields(input),
     durationMs,
-    primitiveExecutionRef,
   });
 }
 
@@ -104,18 +125,71 @@ function buildFailureResult(
   startedAt: string,
 ): MouseClickAbilityResult {
   const endedAt = new Date().toISOString();
-  const proof = buildRuntimeProof(
+  const proof = buildRuntimeProof({
     input,
-    "failed",
+    status: "failed",
     failureReason,
     startedAt,
     endedAt,
-    null,
-    null,
-    null,
-  );
+    primitiveStartedAt: null,
+    primitiveEndedAt: null,
+    primitiveExecutionRef: null,
+  });
   return buildResult(input, "failed", failureReason, proof);
 }
+
+const resolvePolicyFailureReason = (
+  reason: string,
+): MouseClickFailureReason =>
+  reason === "geometry_guard_not_allow"
+    ? "geometry_guard_not_allow"
+    : "policy_blocked";
+
+const buildPrimitiveClickRequest = (
+  input: ParsedMouseClickAbilityInput,
+  primitiveRef: string,
+) => ({
+  primitiveRef,
+  idempotencyKey: input.idempotencyKey,
+  sessionId: input.sessionId,
+  roundId: input.roundId,
+  videoVisitId: input.videoVisitId,
+  geometryGuardProofRef: input.geometryGuardProofRef,
+  coordinateSpace: "browserViewport" as const,
+  executableCoordinate: input.geometryGuardNormalizedClickPoint,
+  button: MOUSE_CLICK_BUTTON_MAP[input.childCapabilityId],
+  clickCount: MOUSE_CLICK_COUNT_MAP[input.childCapabilityId],
+  timeoutMs: input.timeoutMs,
+});
+
+const buildPrimitiveResult = (
+  input: ParsedMouseClickAbilityInput,
+  startedAt: string,
+  primitiveResult: PrimitiveClickResult,
+): MouseClickAbilityResult => {
+  const endedAt = new Date().toISOString();
+  const status = primitiveResult.ok ? "success" : "failed";
+  const failureReason: MouseClickFailureReason | null = primitiveResult.ok
+    ? null
+    : "primitive_failed";
+
+  if (!primitiveResult.ok) {
+    releaseMouseClickIdempotency(input.idempotencyKey);
+  }
+
+  const proof = buildRuntimeProof({
+    input,
+    status,
+    failureReason,
+    startedAt,
+    endedAt,
+    primitiveStartedAt: primitiveResult.startedAt,
+    primitiveEndedAt: primitiveResult.endedAt,
+    primitiveExecutionRef: primitiveResult.primitiveExecutionRef,
+  });
+
+  return buildResult(input, status, failureReason, proof);
+};
 
 /**
  * Core mouse click executor.
@@ -142,7 +216,11 @@ export async function executeMouseClick(
   // 1. Policy
   const policy = checkMouseClickPolicy(input);
   if (!policy.ok) {
-    return buildFailureResult(input, policy.reason === "geometry_guard_not_allow" ? "geometry_guard_not_allow" : "policy_blocked", startedAt);
+    return buildFailureResult(
+      input,
+      resolvePolicyFailureReason(policy.reason),
+      startedAt,
+    );
   }
 
   // 2. Idempotency
@@ -156,50 +234,13 @@ export async function executeMouseClick(
     startedAt,
   ]);
 
-  let primitiveResult: Awaited<
-    ReturnType<MouseClickExecutionContext["primitivePort"]["click"]>
-  >;
-
   try {
-    primitiveResult = await context.primitivePort.click({
-      primitiveRef,
-      idempotencyKey: input.idempotencyKey,
-      sessionId: input.sessionId,
-      roundId: input.roundId,
-      videoVisitId: input.videoVisitId,
-      geometryGuardProofRef: input.geometryGuardProofRef,
-      coordinateSpace: "browserViewport",
-      executableCoordinate: input.geometryGuardNormalizedClickPoint,
-      button: MOUSE_CLICK_BUTTON_MAP[input.childCapabilityId],
-      clickCount: MOUSE_CLICK_COUNT_MAP[input.childCapabilityId],
-      timeoutMs: input.timeoutMs,
-    });
+    const primitiveResult = await context.primitivePort.click(
+      buildPrimitiveClickRequest(input, primitiveRef),
+    );
+    return buildPrimitiveResult(input, startedAt, primitiveResult);
   } catch {
     releaseMouseClickIdempotency(input.idempotencyKey);
     return buildFailureResult(input, "primitive_failed", startedAt);
   }
-
-  // 4. Build proof
-  const endedAt = new Date().toISOString();
-  const status = primitiveResult.ok ? "success" : "failed";
-  const failureReason: MouseClickFailureReason | null = primitiveResult.ok
-    ? null
-    : "primitive_failed";
-
-  if (!primitiveResult.ok) {
-    releaseMouseClickIdempotency(input.idempotencyKey);
-  }
-
-  const proof = buildRuntimeProof(
-    input,
-    status,
-    failureReason,
-    startedAt,
-    endedAt,
-    primitiveResult.startedAt,
-    primitiveResult.endedAt,
-    primitiveResult.primitiveExecutionRef,
-  );
-
-  return buildResult(input, status, failureReason, proof);
 }

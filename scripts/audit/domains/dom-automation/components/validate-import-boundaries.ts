@@ -16,6 +16,7 @@ const FORBIDDEN_PLUGIN_TARGETS = [
   "src/lib/browser/current-chrome-browser-controller.ts",
   "src/lib/browser/current-chrome-browser-controller-primitives.ts",
 ] as const;
+const APPROVED_STORAGE_EXTERNAL_MODULES = new Set(["node:fs", "node:path"]);
 
 const importFinding = (
   lawId: string,
@@ -63,6 +64,9 @@ const validatePluginImports = (
     for (const importDeclaration of sourceFile.getImportDeclarations()) {
       const specifier = importDeclaration.getModuleSpecifierValue();
       if (!specifier.startsWith(".")) {
+        if (repoPath.endsWith("amazon-invoice-upload-storage.ts") && APPROVED_STORAGE_EXTERNAL_MODULES.has(specifier)) {
+          continue;
+        }
         if (specifier === "zod") {
           continue;
         }

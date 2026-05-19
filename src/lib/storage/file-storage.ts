@@ -28,43 +28,47 @@ function safeRunSegment(runId: string | undefined): string {
   return (runId ?? "default").replace(/[^a-z0-9]/gi, "_").slice(0, 64);
 }
 
+const createAppendRecord = (storageDir: string) =>
+  async (record: RecordEnvelope): Promise<AppendRecordResult> => {
+    ensureDir(storageDir);
+    const recordRef = createRecordRef();
+    const stored = { ...record, recordRef };
+    const integrityHash = stableJsonHash(stored);
+    const line = JSON.stringify({ ...stored, integrityHash }) + "\n";
+    const file = join(storageDir, `records-${safeRunSegment(record.runId)}.ndjson`);
+    await appendFile(file, line, "utf8");
+    return {
+      recordRef,
+      storageRef: `forensics://records/${recordRef}`,
+      integrityHash,
+    };
+  };
+
+const createAppendArtifact = (storageDir: string) =>
+  async (artifact: ArtifactEnvelope): Promise<AppendArtifactResult> => {
+    ensureDir(storageDir);
+    const artifactRef = createArtifactRef();
+    // Exclude binary content from the NDJSON index line to keep it scannable.
+    const { content: _content, ...meta } = artifact;
+    const stored = { ...meta, artifactRef };
+    const integrityHash = stableJsonHash(stored);
+    const line = JSON.stringify({ ...stored, integrityHash }) + "\n";
+    const logFile = join(storageDir, "artifacts.ndjson");
+    await appendFile(logFile, line, "utf8");
+    return {
+      artifactRef,
+      storageRef: `forensics://artifacts/${artifactRef}`,
+      integrityHash,
+      sizeBytes: 0,
+    };
+  };
+
 export function createGrassEyeFileStorage(dataDir: string): GrassEyeStoragePort {
   const storageDir = join(dataDir, "forensics");
 
   return {
-    async appendRecord(record: RecordEnvelope): Promise<AppendRecordResult> {
-      ensureDir(storageDir);
-      const recordRef = createRecordRef();
-      const stored = { ...record, recordRef };
-      const integrityHash = stableJsonHash(stored);
-      const line = JSON.stringify({ ...stored, integrityHash }) + "\n";
-      const file = join(storageDir, `records-${safeRunSegment(record.runId)}.ndjson`);
-      await appendFile(file, line, "utf8");
-      return {
-        recordRef,
-        storageRef: `forensics://records/${recordRef}`,
-        integrityHash,
-      };
-    },
-
-    async appendArtifact(artifact: ArtifactEnvelope): Promise<AppendArtifactResult> {
-      ensureDir(storageDir);
-      const artifactRef = createArtifactRef();
-      // Exclude binary content from the NDJSON index line to keep it scannable.
-      const { content: _content, ...meta } = artifact;
-      const stored = { ...meta, artifactRef };
-      const integrityHash = stableJsonHash(stored);
-      const line = JSON.stringify({ ...stored, integrityHash }) + "\n";
-      const logFile = join(storageDir, "artifacts.ndjson");
-      await appendFile(logFile, line, "utf8");
-      return {
-        artifactRef,
-        storageRef: `forensics://artifacts/${artifactRef}`,
-        integrityHash,
-        sizeBytes: 0,
-      };
-    },
-
+    appendRecord: createAppendRecord(storageDir),
+    appendArtifact: createAppendArtifact(storageDir),
     async readRecord(_recordRef: string): Promise<RecordEnvelope | null> {
       // Phase-1: linear scan not on critical execution path; returns null.
       // Callers that need record lookup should use the artifact/mission ref chain.

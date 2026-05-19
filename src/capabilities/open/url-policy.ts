@@ -12,7 +12,7 @@ import { createHash } from "node:crypto";
 const ALLOWED_SCHEMES = ["https:", "http:"] as const;
 
 /** Hash a URL for proof without storing the raw URL. */
-export function hashTargetUrl(url: string): string {
+function hashTargetUrl(url: string): string {
   return createHash("sha256").update(url).digest("hex").slice(0, 16);
 }
 
