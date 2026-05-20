@@ -7,6 +7,12 @@ import { BROWSER_CONTROLLER_PATH, CURRENT_CHROME_EXECUTION_PATH, CURRENT_CHROME_
 import { findForbiddenImports, hasSecondBrowserController, hasVisualMissionDomImport, sourceText } from "./dom-automation-source-helpers.js";
 import { domCoreContainsBusinessVocabulary, forbiddenLogFields, hasSensitiveDomAccess, manifestHasAllLawIds, pluginUsesFacadeSymbols, routeUsesWorkbenchFacade, usesForbiddenPluginPrimitives } from "./dom-automation-policy-helpers.js";
 import { classMethods, hasFields, hasIdentifierCall, hasPropertyCall, interfaceMethods, sourceFile, variableFields } from "./dom-automation-shape-helpers.js";
+import type { Finding } from "../../core/schema.js";
+import { domClickFindings } from "./components/validate-runtime-contracts-actions.js";
+import { domLocatorFindings, domSchemaFindings, domSnapshotFindings } from "./components/validate-runtime-contracts-basic.js";
+
+const findingMessages = (findings: readonly Finding[]): string[] =>
+  findings.map((finding) => `${finding.file}:${finding.line} ${finding.message}`);
 
 const collectLaw001PathIssues = (): string[] => {
   const issues: string[] = [];
@@ -54,6 +60,13 @@ const collectLaw001BrowserIssues = (context: DomAutomationBinaryCheckContext): s
   const secondBrowser = hasSecondBrowserController(context);
   if (secondBrowser.length > 0) {
     issues.push(`second BrowserController implementation detected: ${secondBrowser[0]}`);
+  }
+  const currentChromeExecutionText = sourceText(context, CURRENT_CHROME_EXECUTION_PATH);
+  if (!currentChromeExecutionText.includes("return JSON.stringify(result ?? null);")) {
+    issues.push("CurrentChrome active-tab wrapper does not synchronously return JSON");
+  }
+  if (currentChromeExecutionText.includes("async ()") || currentChromeExecutionText.includes("await (")) {
+    issues.push("CurrentChrome active-tab wrapper contains async/await semantics");
   }
   return issues;
 };
@@ -139,6 +152,8 @@ export const checkLaw002SnapshotSummary = (context: DomAutomationBinaryCheckCont
     ...collectLaw002SchemaIssues(context),
     ...collectLaw002RuntimeIssues(context),
     ...collectLaw002BrowserGuardIssues(context),
+    ...findingMessages(domSchemaFindings(context.auditProject)),
+    ...findingMessages(domSnapshotFindings(context.auditProject)),
   ];
   return issues.length === 0
     ? pass("dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns")
@@ -167,6 +182,7 @@ export const checkLaw003LocatorSemantic = (context: DomAutomationBinaryCheckCont
   if (inputFields.has("x") || inputFields.has("y")) {
     issues.push("locator input schema still exposes coordinate fields");
   }
+  issues.push(...findingMessages(domLocatorFindings(context.auditProject)));
   return issues.length === 0
     ? pass("dom-locator scores semantic signals in priority order, returns confidence/reason/matchedSignals/fallbackUsed, and rejects coordinate-only ambiguity")
     : fail("DOM locator semantic-first check failed", issues.join("; "));
@@ -228,6 +244,7 @@ export const checkLaw005ClickLocatedElement = (context: DomAutomationBinaryCheck
   if (clickText.includes("browser.click(")) {
     issues.push("dom-click bypasses DOM element execution with direct coordinate click");
   }
+  issues.push(...findingMessages(domClickFindings(context.auditProject)));
   return issues.length === 0
     ? pass("dom-click requires elementRef-bound execution, blocks dangerous/hidden/disabled/ambiguous targets, and captures before/after evidence")
     : fail("DOM click located-element check failed", issues.join("; "));

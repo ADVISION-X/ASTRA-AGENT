@@ -2,6 +2,7 @@ import type { DomAutomationAuditProject, DomAutomationValidationResult } from ".
 import { buildValidationResult } from "./dom-automation-validation-result.js";
 import {
   domLocatorFindings,
+  domSchemaFindings,
   domSnapshotFindings,
 } from "./validate-runtime-contracts-basic.js";
 import {
@@ -18,6 +19,7 @@ const validateRuntimeContracts = (
   auditProject: DomAutomationAuditProject,
 ): DomAutomationValidationResult => {
   const findings = [
+    ...domSchemaFindings(auditProject),
     ...domSnapshotFindings(auditProject),
     ...domLocatorFindings(auditProject),
     ...domFillFindings(auditProject),

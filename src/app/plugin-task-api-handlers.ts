@@ -15,6 +15,7 @@ const PLUGIN_PREFIX = "/api/plugins/amazon-invoice-upload";
 const ROUTE_OPEN_ADMIN = "/api/plugins/amazon-invoice-upload/open-admin";
 const ROUTE_START = "/api/plugins/amazon-invoice-upload/start";
 const ROUTE_RESUME = "/api/plugins/amazon-invoice-upload/resume";
+const ROUTE_LATEST = "/api/plugins/amazon-invoice-upload/latest";
 const ROUTE_STATUS_PREFIX = "/api/plugins/amazon-invoice-upload/status/";
 const DEFAULT_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"] as const;
 
@@ -35,10 +36,13 @@ function applyCors(request: IncomingMessage, response: ServerResponse): void {
   const origin = request.headers.origin;
   if (typeof origin === "string" && getAllowedOrigins().has(origin)) {
     response.setHeader("access-control-allow-origin", origin);
-    response.setHeader("vary", "origin");
+    response.setHeader("vary", "origin, access-control-request-private-network");
   }
   response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
   response.setHeader("access-control-allow-headers", "content-type");
+  if (request.headers["access-control-request-private-network"] === "true") {
+    response.setHeader("access-control-allow-private-network", "true");
+  }
 }
 
 async function readRequestBuffer(request: IncomingMessage): Promise<Buffer> {
@@ -146,6 +150,18 @@ async function handlePluginStatusRequest(
   activeWorkbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> {
+  if (url.pathname === ROUTE_LATEST) {
+    const input = z.object({
+      amazonOrderId: z.string().min(1),
+      invoiceNo: z.string().min(1).optional(),
+    }).strict().parse(Object.fromEntries(url.searchParams.entries()));
+    const record = await activeWorkbench.getLatestAmazonInvoiceUploadTaskForInvoice(input);
+    writeJsonResponse(response, 200, {
+      found: record !== null,
+      record,
+    });
+    return true;
+  }
   const statusMatch = new RegExp(`^${ROUTE_STATUS_PREFIX.replaceAll("/", "\\/")}([^/]+)$`, "u").exec(url.pathname);
   if (!statusMatch?.[1]) {
     return false;

@@ -4,6 +4,7 @@ import { DomElementRefSchema, LocateDomElementInputSchema } from "../schema.js";
 import type { DomElementRef, LocateDomElementInput } from "../schema.js";
 
 type Candidate = {
+  tagName?: string | undefined;
   selectorCandidate: string;
   candidateKind?: string | undefined;
   type?: string | undefined;
@@ -44,12 +45,33 @@ function textMatches(value: string | undefined, hints: string[]): boolean {
   return normalized.length > 0 && hints.some((hint) => normalized.includes(normalize(hint)));
 }
 
+function candidateContainsText(candidate: Candidate, requiredText: string): boolean {
+  return [
+    candidate.role,
+    candidate.ariaLabel,
+    candidate.labelText,
+    candidate.placeholder,
+    candidate.name,
+    candidate.id,
+    candidate.visibleText,
+    candidate.nearbyText,
+    candidate.testId,
+  ].some((value) => textMatches(value, [requiredText]));
+}
+
+function exactTextMatches(value: string | undefined, hints: string[]): boolean {
+  const normalized = normalize(value);
+  return normalized.length > 0 && hints.some((hint) => normalized === normalize(hint));
+}
+
 const CANDIDATE_RESOLVERS = {
   "search-input": (snapshot: DomSnapshot) =>
-    snapshot.inputs.filter((item) => item.type !== "file"),
+    snapshot.inputs.filter((item) => item.tagName === "textarea" || item.type === "text" || item.type === "search"),
   button: (snapshot: DomSnapshot) => snapshot.buttons,
   link: (snapshot: DomSnapshot) => snapshot.links,
   "file-input": (snapshot: DomSnapshot) => snapshot.fileInputs,
+  "invoice-number": (snapshot: DomSnapshot) =>
+    snapshot.inputs.filter((item) => item.type === "text" || item.tagName === "textarea"),
   "order-row": (snapshot: DomSnapshot) => [
     ...snapshot.tableRows,
     ...snapshot.roleRows,
@@ -60,7 +82,7 @@ const CANDIDATE_RESOLVERS = {
     ...snapshot.buttons,
     ...snapshot.links,
     ...snapshot.genericClickableElements,
-    ...snapshot.textBlocks,
+    ...snapshot.textBlocks.filter((item) => (item.visibleText ?? "").length <= 80),
   ],
   "success-message": (snapshot: DomSnapshot) => [
     ...snapshot.dialogs,
@@ -102,25 +124,74 @@ function scoreTextSignals(
   return candidateScore;
 }
 
+const addScoreSignal = (
+  candidateScore: CandidateScore,
+  score: number,
+  signal: string,
+): void => {
+  candidateScore.score += score;
+  candidateScore.matchedSignals.push(signal);
+};
+
+const applyExactSignalScore = (
+  candidate: Candidate,
+  input: LocateDomElementInput,
+  candidateScore: CandidateScore,
+): void => {
+  if (exactTextMatches(candidate.id, input.hints) || exactTextMatches(candidate.name, input.hints)) {
+    addScoreSignal(candidateScore, 0.28, "exact-name-id");
+  }
+  if (exactTextMatches(candidate.visibleText, input.hints) || exactTextMatches(candidate.ariaLabel, input.hints)) {
+    addScoreSignal(candidateScore, 0.18, "exact-visible-name");
+  }
+};
+
+const applyInputKindScore = (
+  candidate: Candidate,
+  input: LocateDomElementInput,
+  candidateScore: CandidateScore,
+): boolean => {
+  if (input.targetKind === "search-input" && textMatches(candidate.type, ["search", "text"])) {
+    addScoreSignal(candidateScore, 0.12, "input-type");
+  }
+  if (input.targetKind === "invoice-number" && textMatches(candidate.name, ["documentNumber", "invoice", "invoiceNumber"])) {
+    addScoreSignal(candidateScore, 0.36, "invoice-number-name");
+  }
+  return input.targetKind === "search-input";
+};
+
+const applyElementKindScore = (
+  candidate: Candidate,
+  input: LocateDomElementInput,
+  candidateScore: CandidateScore,
+): void => {
+  if (input.targetKind === "file-input" && candidate.type === "file") {
+    addScoreSignal(candidateScore, 0.52, "file-input-type");
+    return;
+  }
+  if (input.targetKind === "button" && candidate.type === "submit") {
+    addScoreSignal(candidateScore, 0.16, "submit-input-button");
+  }
+  if (input.targetKind === "order-row" && (candidate.candidateKind === "table-row" || candidate.candidateKind === "role-row")) {
+    addScoreSignal(candidateScore, 0.32, "row-kind");
+    return;
+  }
+  if (input.targetKind === "upload-invoice-entry" && candidate.candidateKind === "clickable") {
+    addScoreSignal(candidateScore, 0.12, "clickable-kind");
+  }
+  if (input.targetKind === "upload-invoice-entry" && (candidate.tagName === "button" || candidate.type === "submit" || candidate.type === "button")) {
+    addScoreSignal(candidateScore, 0.24, "button-like-upload-entry");
+  }
+};
+
 function applyTargetKindScore(
   candidate: Candidate,
   input: LocateDomElementInput,
   candidateScore: CandidateScore,
 ): void {
-  if (input.targetKind === "search-input" && textMatches(candidate.type, ["search", "text"])) {
-    candidateScore.score += 0.12;
-    candidateScore.matchedSignals.push("input-type");
-    return;
-  }
-  if (input.targetKind === "order-row" && (candidate.candidateKind === "table-row" || candidate.candidateKind === "role-row")) {
-    candidateScore.score += 0.16;
-    candidateScore.matchedSignals.push("row-kind");
-    return;
-  }
-  if (input.targetKind === "upload-invoice-entry" && candidate.candidateKind === "clickable") {
-    candidateScore.score += 0.12;
-    candidateScore.matchedSignals.push("clickable-kind");
-  }
+  if (applyInputKindScore(candidate, input, candidateScore)) return;
+  applyExactSignalScore(candidate, input, candidateScore);
+  applyElementKindScore(candidate, input, candidateScore);
 }
 
 const applyVisibilityScore = (
@@ -165,7 +236,9 @@ function buildElementRef(input: LocateDomElementInput, scored: ScoredCandidate):
 
 export function locateDomElementOnce(rawInput: LocateDomElementInput): DomElementRef {
   const input = LocateDomElementInputSchema.parse(rawInput);
-  const visibleCandidates = candidatesFor(input).filter((candidate) => !candidate.hidden);
+  const visibleCandidates = candidatesFor(input)
+    .filter((candidate) => input.targetKind === "file-input" || !candidate.hidden)
+    .filter((candidate) => !input.requiredText || candidateContainsText(candidate, input.requiredText));
   const scored = visibleCandidates
     .map((candidate) => scoreCandidate(candidate, input))
     .filter((item) => item.score > 0)

@@ -25,6 +25,7 @@ import {
 } from "./current-chrome-browser-scroll-support.js";
 import {
   closeCurrentChrome,
+  closeCurrentChromeActiveTab,
   evaluateActiveTab,
   type EvaluateActiveTabInput,
   screenshotCurrentChromeRegion,
@@ -272,11 +273,19 @@ export const createCurrentChromeBrowserControllerRuntime = (
     open: (input) => openCurrentChrome(state, input),
     scroll: (input) => scrollCurrentChrome(state, input),
     click: (input) => clickCurrentChrome(state, input),
+    clickLocatedDomElement: (input) => clickCurrentChrome(state, {
+      targetLabel: input.targetLabel,
+      point: input.point,
+      coordinateSpace: "desktopScreen",
+      button: "left",
+      clickCount: 1,
+    }),
     textInput: (input: TextInput) => textInputCurrentChrome(state, input, refreshSnapshot),
     screenshotRegion: (input: ScreenshotRegionInput) => screenshotCurrentChromeRegion(state, input, getGeometrySnapshot, refreshSnapshot),
     evaluateActiveTab: <T>(input: EvaluateActiveTabInput) => evaluateActiveTab<T>(state, input, refreshSnapshot),
     setFileInputFiles: (input: SetFileInputFilesInput) => setCurrentChromeFileInputFiles(state, input, refreshSnapshot, sleep),
     wait: (durationMs) => waitForDuration(state, durationMs, refreshSnapshot, sleep),
+    closeActiveTab: (input) => closeCurrentChromeActiveTab(state, input, refreshSnapshot),
     close: () => closeCurrentChrome(state, refreshSnapshot),
   };
 };

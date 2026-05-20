@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
@@ -92,4 +92,26 @@ export function loadTaskRecord(dataDir: string, taskId: string): AmazonInvoiceUp
     return null;
   }
   return JSON.parse(readFileSync(recordPath, "utf8")) as AmazonInvoiceUploadTaskRecord;
+}
+
+export function findLatestTaskRecordForInvoice(input: {
+  dataDir: string;
+  amazonOrderId: string;
+  invoiceNo?: string;
+}): AmazonInvoiceUploadTaskRecord | null {
+  const tasksDir = path.join(input.dataDir, "plugin-tasks", "amazon-invoice-upload");
+  if (!existsSync(tasksDir)) {
+    return null;
+  }
+  const records = readdirSync(tasksDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => loadTaskRecord(input.dataDir, entry.name))
+    .filter((record): record is AmazonInvoiceUploadTaskRecord => {
+      if (!record || record.amazonOrderId !== input.amazonOrderId) {
+        return false;
+      }
+      return input.invoiceNo ? record.invoiceNo === input.invoiceNo : true;
+    })
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  return records[0] ?? null;
 }

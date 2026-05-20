@@ -90,9 +90,15 @@ const collectReviewGuardIssues = (
 const collectMarketplaceGuardIssues = (context: DomAutomationBinaryCheckContext): string[] => {
   const platformText = sourceText(context, "src/plugins/amazon-invoice-upload/amazon-platform.config.ts");
   const missionText = sourceText(context, "src/plugins/amazon-invoice-upload/mission.schema.ts");
-  return platformText.includes("AMAZON_MARKETPLACE_HOST_HINTS") && missionText.includes("marketplace")
+  const issues = platformText.includes("AMAZON_MARKETPLACE_HOST_HINTS") && missionText.includes("marketplace")
     ? []
     : ["marketplace host hints or marketplace mission input are missing"];
+  const hintFile = sourceFile(context, "src/plugins/amazon-invoice-upload/amazon-dom-hints.ts");
+  const hintTexts = hintFile ? collectStringLiteralNodes(hintFile).map((literal) => literal.text) : [];
+  for (const hint of ["myo-search-input", "搜索", "订单编号"]) {
+    if (!hintTexts.includes(hint)) issues.push(`Amazon DOM hints are missing real Seller Central order-search signal: ${hint}`);
+  }
+  return issues;
 };
 
 export const checkLaw006UploadApprovedFile = (context: DomAutomationBinaryCheckContext): ClauseCheckOutcome => {
@@ -238,9 +244,7 @@ const pushMissingFieldIssue = (
   missingFields: string[],
   message: string,
 ): void => {
-  if (missingFields.length > 0) {
-    issues.push(`${message}: ${missingFields.join(", ")}`);
-  }
+  if (missingFields.length > 0) issues.push(`${message}: ${missingFields.join(", ")}`);
 };
 
 const collectLaw010StructuredFieldIssues = (context: DomAutomationBinaryCheckContext): string[] => {
@@ -279,12 +283,10 @@ const collectLaw010EvidenceCaptureIssues = (context: DomAutomationBinaryCheckCon
     ? [`DOM runtimes are missing evidence capture: ${evidenceCaptureMissing.join(", ")}`]
     : [];
 };
-
 const collectLaw010LogLeakIssues = (context: DomAutomationBinaryCheckContext): string[] => {
   const logViolations = forbiddenLogFields(context);
   return logViolations.length > 0 ? [`forbidden sensitive log field detected: ${logViolations[0]}`] : [];
 };
-
 export const checkLaw010EvidenceLogging = (context: DomAutomationBinaryCheckContext): ClauseCheckOutcome => {
   const issues = [
     ...collectLaw010StructuredFieldIssues(context),
@@ -292,7 +294,5 @@ export const checkLaw010EvidenceLogging = (context: DomAutomationBinaryCheckCont
     ...collectLaw010EvidenceCaptureIssues(context),
     ...collectLaw010LogLeakIssues(context),
   ];
-  return issues.length === 0
-    ? pass("DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage")
-    : fail("Evidence and logging check failed", issues.join("; "));
+  return issues.length === 0 ? pass("DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage") : fail("Evidence and logging check failed", issues.join("; "));
 };

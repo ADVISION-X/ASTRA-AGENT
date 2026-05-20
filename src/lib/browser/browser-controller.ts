@@ -83,6 +83,11 @@ interface BrowserController {
     button?: BrowserClickButton;
     clickCount?: 1 | 2;
   }): Promise<BrowserActionResult>;
+  clickLocatedDomElement(input: {
+    targetLabel: string;
+    point: { x: number; y: number };
+    abortSignal?: AbortSignal;
+  }): Promise<BrowserActionResult>;
   textInput(input: {
     targetLabel: string;
     action: BrowserTextInputAction;
@@ -103,6 +108,7 @@ interface BrowserController {
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
   wait(durationMs: number): Promise<BrowserActionResult>;
+  closeActiveTab(input: { reason: string; abortSignal?: AbortSignal }): Promise<BrowserActionResult>;
   close(): Promise<BrowserActionResult>;
 }
 

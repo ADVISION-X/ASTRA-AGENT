@@ -2,7 +2,7 @@ import type { BrowserController } from "../../../lib/browser/browser-controller.
 import { DomSnapshotSchema, ReadDomSnapshotInputSchema } from "../schema.js";
 import type { DomSnapshot, ReadDomSnapshotInput } from "../schema.js";
 
-function buildSnapshotScriptPrimitives(maxTextLengthPerNode: number): string {
+function buildSnapshotScriptTextPrimitives(maxTextLengthPerNode: number): string {
   return `
 const limit = ${maxTextLengthPerNode};
 const clip = (value) => String(value || "").replace(/\\s+/g, " ").trim().slice(0, limit);
@@ -12,14 +12,28 @@ const isHidden = (el) => {
   const rect = el.getBoundingClientRect();
   return style.display === "none" || style.visibility === "hidden" || rect.width === 0 || rect.height === 0;
 };
+`;
+}
+
+function buildSnapshotScriptSelectorPrimitive(): string {
+  return `
 const selectorFor = (el) => {
   const testId = el.getAttribute("data-testid") || el.getAttribute("data-automation-id");
   if (testId) return "[data-testid='" + CSS.escape(testId) + "'],[data-automation-id='" + CSS.escape(testId) + "']";
   if (el.id) return "#" + CSS.escape(el.id);
+  const type = (el.getAttribute("type") || "").toLowerCase();
+  const value = el.getAttribute("value");
+  if (el.tagName.toLowerCase() === "input" && (type === "submit" || type === "button") && value) {
+    return "input[type='" + CSS.escape(type) + "'][value='" + CSS.escape(value) + "']";
+  }
   const name = el.getAttribute("name");
   if (name) return el.tagName.toLowerCase() + "[name='" + CSS.escape(name) + "']";
   const role = el.getAttribute("role");
   if (role) return el.tagName.toLowerCase() + "[role='" + CSS.escape(role) + "']";
+  const componentLabel = el.getAttribute("label");
+  if (componentLabel && el.tagName.toLowerCase().includes("-")) {
+    return el.tagName.toLowerCase() + "[label='" + CSS.escape(componentLabel) + "']";
+  }
   const parent = el.parentElement;
   if (!parent) return el.tagName.toLowerCase();
   const sameTag = Array.from(parent.children).filter((child) => child.tagName === el.tagName);
@@ -27,6 +41,11 @@ const selectorFor = (el) => {
   const parentSelector = parent.id ? "#" + CSS.escape(parent.id) : parent.tagName.toLowerCase();
   return parentSelector + " > " + el.tagName.toLowerCase() + ":nth-of-type(" + index + ")";
 };
+`;
+}
+
+function buildSnapshotScriptLabelPrimitives(): string {
+  return `
 const labelText = (el) => {
   if (el.id) {
     const label = document.querySelector("label[for='" + CSS.escape(el.id) + "']");
@@ -40,18 +59,26 @@ const nearbyText = (el) => clip([el.previousElementSibling?.textContent, el.pare
 `;
 }
 
+function buildSnapshotScriptPrimitives(maxTextLengthPerNode: number): string {
+  return [
+    buildSnapshotScriptTextPrimitives(maxTextLengthPerNode),
+    buildSnapshotScriptSelectorPrimitive(),
+    buildSnapshotScriptLabelPrimitives(),
+  ].join("");
+}
+
 function buildSnapshotScriptBaseSection(): string {
   return `
 const base = (el) => ({
   tagName: el.tagName.toLowerCase(),
   type: attr(el, "type") || undefined,
   role: attr(el, "role") || undefined,
-  ariaLabel: attr(el, "aria-label") || undefined,
+  ariaLabel: attr(el, "aria-label") || attr(el, "label") || undefined,
   labelText: labelText(el) || undefined,
   placeholder: attr(el, "placeholder") || undefined,
   name: attr(el, "name") || undefined,
   id: attr(el, "id") || undefined,
-  visibleText: clip(el.innerText || el.textContent) || undefined,
+  visibleText: clip((el.tagName.toLowerCase() === "input" && (attr(el, "type") === "submit" || attr(el, "type") === "button") ? el.value : "") || el.innerText || el.textContent || attr(el, "label")) || undefined,
   nearbyText: nearbyText(el) || undefined,
   disabled: Boolean(el.disabled || el.getAttribute("aria-disabled") === "true"),
   hidden: isHidden(el),
@@ -65,17 +92,17 @@ const visible = (item) => !item.hidden;
 
 function buildSnapshotScriptCollections(includeFrames: boolean): string {
   return `
-const inputs = Array.from(document.querySelectorAll("input, textarea, select"))
+const inputs = Array.from(document.querySelectorAll("input, textarea, select, kat-input"))
   .map((el) => ({...base(el), type: (attr(el, "type") || el.tagName.toLowerCase()), valuePreview: el.type === "password" || el.type === "hidden" ? undefined : clip(el.value)}))
   .filter((item) => item.type !== "hidden").filter(visible);
-const buttons = Array.from(document.querySelectorAll("button, [role='button'], input[type='button'], input[type='submit']"))
+const buttons = Array.from(document.querySelectorAll("button, kat-button, [role='button'], input[type='button'], input[type='submit']"))
   .map(base).filter(visible);
 const links = Array.from(document.querySelectorAll("a[href]")).map((el) => {
   let hrefHost;
   try { hrefHost = new URL(el.href).host || undefined; } catch {}
   return {...base(el), hrefHost};
 }).filter(visible);
-const fileInputs = Array.from(document.querySelectorAll("input[type='file']")).map((el) => ({...base(el), type: "file", accept: attr(el, "accept") || undefined})).filter(visible);
+const fileInputs = Array.from(document.querySelectorAll("input[type='file']")).map((el) => ({...base(el), type: "file", accept: attr(el, "accept") || undefined}));
 const forms = Array.from(document.querySelectorAll("form")).map((el) => ({
   selectorCandidate: selectorFor(el),
   id: attr(el, "id") || undefined,
@@ -104,7 +131,7 @@ const detectedStates = [];
 if (/sign\\s*in|log\\s*in|password|session expired/i.test(pageText)) detectedStates.push("login_required");
 if (/captcha|verification code|two[- ]?factor|2fa|otp/i.test(pageText)) detectedStates.push("captcha_or_2fa_required");
 if (/file attached|attachment added|file selected/i.test(pageText)) detectedStates.push("file_attached");
-if (/upload completed|file uploaded successfully|submitted successfully/i.test(pageText)) detectedStates.push("upload_success");
+if (/upload completed|file uploaded successfully|submitted successfully|感谢您上传文件|管理发票|上传其他发票或贷记单/i.test(pageText)) detectedStates.push("upload_success");
 return {url: location.href, title: document.title, forms, inputs, buttons, links, fileInputs, dialogs, frames, textBlocks, tableRows, roleRows, genericClickableElements, detectedStates: Array.from(new Set(detectedStates)), capturedAt: new Date().toISOString()};
 `;
 }

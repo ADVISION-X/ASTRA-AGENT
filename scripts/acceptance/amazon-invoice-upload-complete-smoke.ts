@@ -31,7 +31,9 @@ writeFileSync(htmlPath, `
   <section id="upload-panel" hidden>
     <label for="invoice-file">Choose file</label>
     <input id="invoice-file" type="file" />
-    <button id="submit-upload">Submit</button>
+    <label for="invoice-number">Invoice number</label>
+    <input id="invoice-number" name="documentNumber" type="text" />
+    <button id="submit-upload">上传</button>
   </section>
   <div id="status"></div>
   <script>

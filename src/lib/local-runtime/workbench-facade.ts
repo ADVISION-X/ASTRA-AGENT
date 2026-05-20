@@ -45,5 +45,6 @@ export type WorkbenchFacade = {
   startAmazonInvoiceUploadTask(input: AmazonInvoiceUploadTaskStartInput): Promise<AmazonInvoiceUploadTaskRecord>;
   resumeAmazonInvoiceUploadTask(input: AmazonInvoiceUploadTaskResumeInput): Promise<AmazonInvoiceUploadTaskRecord>;
   getAmazonInvoiceUploadTaskStatus(taskId: string): Promise<AmazonInvoiceUploadTaskRecord>;
+  getLatestAmazonInvoiceUploadTaskForInvoice(input: { amazonOrderId: string; invoiceNo?: string }): Promise<AmazonInvoiceUploadTaskRecord | null>;
   getModeInfo(): unknown;
 };

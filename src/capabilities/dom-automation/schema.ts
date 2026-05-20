@@ -17,6 +17,7 @@ export const DomTargetKindSchema = z.enum([
   "button",
   "link",
   "file-input",
+  "invoice-number",
   "order-row",
   "upload-invoice-entry",
   "success-message",
@@ -76,13 +77,7 @@ export const DomFormSummarySchema = z.object({
   buttonCount: z.number().int().nonnegative(),
 }).strict();
 
-export const DomDialogSummarySchema = z.object({
-  selectorCandidate: z.string(),
-  role: z.string().optional(),
-  ariaLabel: z.string().optional(),
-  visibleText: z.string().optional(),
-  hidden: z.boolean(),
-}).strict();
+export const DomDialogSummarySchema = DomElementSummaryBaseSchema.strict();
 
 export const DomFrameSummarySchema = z.object({
   selectorCandidate: z.string(),

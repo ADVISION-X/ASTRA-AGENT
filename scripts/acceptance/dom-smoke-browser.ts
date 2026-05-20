@@ -16,6 +16,26 @@ function action(message: string, ok = true): BrowserActionResult {
   return { browserActionId: `smoke:${Date.now()}`, ok, message, createdAt: now() };
 }
 
+type SmokeOpenInput = { url: string; title: string };
+type SmokeClickInput = {
+  targetLabel: string;
+  point: { x: number; y: number };
+  coordinateSpace?: "browserViewport" | "desktopScreen";
+  button?: "left" | "right" | "middle";
+  clickCount?: 1 | 2;
+};
+type SmokeTextInput = {
+  targetLabel: string;
+  action: "type-text" | "clear-input" | "press-key";
+  text?: string | null;
+  key?: "Enter" | "Tab" | "Escape" | "Backspace" | "Delete" | "L" | "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight" | null;
+};
+type SmokeFileInput = {
+  elementRef: { selector: string; targetKind: "file-input" };
+  filePath: string;
+  description: string;
+};
+
 function buildFixtureBrowserState(page: Page): BrowserStateSnapshot {
   return {
     browserMode: "fixture",
@@ -86,42 +106,66 @@ async function evaluateFixtureScript<T>(page: Page, input: { script: string }): 
 
 async function setFixtureFileInput(
   page: Page,
-  input: {
-    elementRef: { selector: string; targetKind: "file-input" };
-    filePath: string;
-    description: string;
-  },
+  input: SmokeFileInput,
 ): Promise<BrowserActionResult> {
   await page.locator(input.elementRef.selector).setInputFiles(input.filePath);
   return action(`set approved file for ${input.description}`);
 }
 
+async function openFixturePage(page: Page, input: SmokeOpenInput): Promise<BrowserActionResult> {
+  await page.goto(input.url);
+  return action(`opened ${input.title}`);
+}
+
+async function clickFixturePoint(page: Page, input: SmokeClickInput): Promise<BrowserActionResult> {
+  await page.mouse.click(input.point.x, input.point.y, {
+    button: input.button ?? "left",
+    clickCount: input.clickCount ?? 1,
+  });
+  return action(`clicked ${input.targetLabel}`);
+}
+
+async function clickLocatedFixturePoint(
+  page: Page,
+  input: Pick<SmokeClickInput, "targetLabel" | "point">,
+): Promise<BrowserActionResult> {
+  await page.mouse.click(input.point.x, input.point.y);
+  return action(`clicked located DOM element ${input.targetLabel}`);
+}
+
+async function typeFixtureTextInput(page: Page, input: SmokeTextInput): Promise<BrowserActionResult> {
+  if (input.action === "clear-input") {
+    await page.keyboard.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
+    await page.keyboard.press("Backspace");
+    return action(`cleared active input for ${input.targetLabel}`);
+  }
+  if (input.action === "press-key") {
+    await page.keyboard.press(input.key ?? "Enter");
+    return action(`pressed key for ${input.targetLabel}`);
+  }
+  await page.keyboard.type(input.text ?? "");
+  return action(`typed text for ${input.targetLabel}`);
+}
+
+async function waitForFixtureDuration(page: Page, durationMs: number): Promise<BrowserActionResult> {
+  await page.waitForTimeout(durationMs);
+  return action(`waited ${durationMs}`);
+}
+
 export class PlaywrightDomBrowserAdapter implements BrowserController {
-  constructor(
-    private readonly page: Page,
-    private readonly screenshotDir: string,
-  ) {}
+  constructor(private readonly page: Page, private readonly screenshotDir: string) {}
   getHealth(): { ok: boolean; detail: string } { return { ok: true, detail: "playwright local DOM smoke adapter" }; }
   getSessionState(): BrowserStateSnapshot { return buildFixtureBrowserState(this.page); }
   async getGeometrySnapshot(): Promise<BrowserGeometrySnapshot> { return buildFixtureGeometrySnapshot(this.page); }
-  async open(input: { url: string; title: string }): Promise<BrowserActionResult> {
-    await this.page.goto(input.url);
-    return action(`opened ${input.title}`);
-  }
+  async open(input: SmokeOpenInput): Promise<BrowserActionResult> { return openFixturePage(this.page, input); }
   async scroll(): Promise<BrowserActionResult> { return action("scroll not needed"); }
-  async click(): Promise<BrowserActionResult> { return action("coordinate click not used"); }
-  async textInput(): Promise<BrowserActionResult> { return action("text input primitive not used"); }
+  async click(input: SmokeClickInput): Promise<BrowserActionResult> { return clickFixturePoint(this.page, input); }
+  async clickLocatedDomElement(input: Pick<SmokeClickInput, "targetLabel" | "point">): Promise<BrowserActionResult> { return clickLocatedFixturePoint(this.page, input); }
+  async textInput(input: SmokeTextInput): Promise<BrowserActionResult> { return typeFixtureTextInput(this.page, input); }
   async screenshotRegion(input: { regionLabel: string }): Promise<BrowserCaptureResult> { return captureFixtureViewport(this.page, this.screenshotDir, input); }
-  async evaluateActiveTab<T>(input: { script: string }): Promise<T> {
-    return evaluateFixtureScript(this.page, input);
-  }
-  async setFileInputFiles(input: {
-    elementRef: { selector: string; targetKind: "file-input" };
-    filePath: string;
-    description: string;
-  }): Promise<BrowserActionResult> {
-    return setFixtureFileInput(this.page, input);
-  }
-  async wait(durationMs: number): Promise<BrowserActionResult> { await this.page.waitForTimeout(durationMs); return action(`waited ${durationMs}`); }
+  async evaluateActiveTab<T>(input: { script: string }): Promise<T> { return evaluateFixtureScript(this.page, input); }
+  async setFileInputFiles(input: SmokeFileInput): Promise<BrowserActionResult> { return setFixtureFileInput(this.page, input); }
+  async wait(durationMs: number): Promise<BrowserActionResult> { return waitForFixtureDuration(this.page, durationMs); }
+  async closeActiveTab(): Promise<BrowserActionResult> { return action("active tab closed"); }
   async close(): Promise<BrowserActionResult> { return action("adapter closed"); }
 }

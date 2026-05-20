@@ -7,6 +7,7 @@ import { findNamedImport, resolveModuleTargetPath } from "./dom-automation-modul
 import type { DomAutomationAuditProject, DomAutomationValidationResult } from "./dom-automation-project-types.js";
 import { hasIdentifierCall } from "./dom-automation-static-strings.js";
 import { buildValidationResult } from "./dom-automation-validation-result.js";
+import { hasStaticText } from "./runtime-contract-support.js";
 
 const DOM_FACADE_PATH = "src/capabilities/dom-automation/index.ts";
 const BROWSER_CONTROLLER_PATH = "src/lib/browser/browser-controller.ts";
@@ -116,6 +117,26 @@ const validateCurrentChromeMethods = (auditProject: DomAutomationAuditProject): 
   return findings;
 };
 
+const validateCurrentChromeActiveTabWrapper = (auditProject: DomAutomationAuditProject): Finding[] => {
+  const repoPath = "src/lib/browser/current-chrome-browser-controller-execution.ts";
+  const sourceFile = getSourceFileAtRepoPath(auditProject.project, repoPath);
+  if (!sourceFile) {
+    return [symbolFinding("GRASSEYE-DOM-001-V1", repoPath, 1, "CurrentChrome active-tab execution module is missing", "Restore the governed CurrentChrome evaluateActiveTab execution module.")];
+  }
+  const wrapper = sourceFile.getVariableDeclaration("buildWrappedActiveTabScript");
+  const findings: Finding[] = [];
+  if (!wrapper) {
+    findings.push(symbolFinding("GRASSEYE-DOM-001-V1", repoPath, 1, "CurrentChrome active-tab wrapper is missing", "Keep active-tab JavaScript wrapping inside the governed CurrentChrome execution module."));
+  }
+  if (!hasStaticText(sourceFile, "return JSON.stringify(result ?? null);")) {
+    findings.push(symbolFinding("GRASSEYE-DOM-001-V1", repoPath, wrapper?.getStartLineNumber() ?? 1, "CurrentChrome active-tab wrapper does not synchronously return JSON", "Google Chrome AppleScript execute-javascript must receive a synchronous JSON string return."));
+  }
+  if (hasStaticText(sourceFile, "async ()") || hasStaticText(sourceFile, "await (")) {
+    findings.push(symbolFinding("GRASSEYE-DOM-001-V1", repoPath, wrapper?.getStartLineNumber() ?? 1, "CurrentChrome active-tab wrapper contains async/await semantics", "Do not wrap active-tab JavaScript in an async IIFE; AppleScript can lose the Promise result."));
+  }
+  return findings;
+};
+
 const validateNoSecondBrowserController = (auditProject: DomAutomationAuditProject): Finding[] =>
   auditProject.project.getSourceFiles("src/**/*.ts").flatMap((sourceFile) => {
     const repoPath = sourceFile.getFilePath().replace(`${auditProject.project.getDirectoryOrThrow(".").getPath()}/`, "");
@@ -131,6 +152,7 @@ const validateBrowserControllerSymbolProof = (
 ): Finding[] => [
   ...validateBrowserControllerInterfaceMethods(auditProject),
   ...validateCurrentChromeMethods(auditProject),
+  ...validateCurrentChromeActiveTabWrapper(auditProject),
   ...validateNoSecondBrowserController(auditProject),
 ];
 

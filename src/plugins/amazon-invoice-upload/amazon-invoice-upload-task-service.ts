@@ -5,6 +5,7 @@ import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import {
   buildReceivedTaskRecord,
   createAmazonInvoiceUploadTaskId,
+  findLatestTaskRecordForInvoice,
   loadTaskRecord,
   saveApprovedInvoicePdf,
   saveTaskRecord,
@@ -119,6 +120,14 @@ export function getAmazonInvoiceUploadTaskStatus(input: {
   taskId: string;
 }): AmazonInvoiceUploadTaskRecord {
   return loadRequiredTaskRecord(input.dataDir, input.taskId);
+}
+
+export function getLatestAmazonInvoiceUploadTaskForInvoice(input: {
+  dataDir: string;
+  amazonOrderId: string;
+  invoiceNo?: string;
+}): AmazonInvoiceUploadTaskRecord | null {
+  return findLatestTaskRecordForInvoice(input);
 }
 
 function isAllowedAmazonAdminUrl(url: URL): boolean {

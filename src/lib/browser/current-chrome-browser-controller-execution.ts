@@ -9,13 +9,14 @@ import { createCurrentChromeBrowserActionResult } from "./current-chrome-browser
 import type { RuntimeState } from "./current-chrome-browser-controller-runtime.js";
 import {
   activateChrome,
+  clickAt,
   escapeAppleScriptText,
-  keystrokeBrowserText,
-  pressBrowserKey,
 } from "./current-chrome-browser-controller-primitives.js";
-import { runAppleScript } from "./current-chrome-window-control.js";
+import { runAppleScript, runJxa } from "./current-chrome-window-control.js";
 import { captureCurrentChromeScreenshot } from "./current-chrome-browser-screenshot.js";
 import { executeCurrentChromeTextInput } from "./current-chrome-browser-text-input.js";
+import { setFileInputFilesWithCurrentChromeCdp } from "./current-chrome-cdp-file-input.js";
+import { runNativeFileInputSelection } from "./current-chrome-native-file-input.js";
 
 type TextInput = Parameters<BrowserController["textInput"]>[0];
 type ScreenshotRegionInput = Parameters<BrowserController["screenshotRegion"]>[0];
@@ -31,24 +32,14 @@ type GetGeometrySnapshot = (state: RuntimeState) => Promise<BrowserGeometrySnaps
 type Sleep = (durationMs: number, abortSignal?: AbortSignal) => Promise<void>;
 
 const buildWrappedActiveTabScript = (script: string): string => `
-(async () => {
-  const result = await (async () => {
+(() => {
+  const result = (() => {
 ${script}
   })();
   return JSON.stringify(result ?? null);
 })()
 `;
 
-const buildFileInputSelectionScript = (selector: string): string => `
-const resolvedSelector = ${JSON.stringify(selector)};
-const matches = Array.from(document.querySelectorAll(resolvedSelector));
-if (matches.length === 0) return {status: "not_found", message: "file input not found"};
-if (matches.length > 1) return {status: "ambiguous", message: "file input selector matched multiple elements"};
-const el = matches[0];
-if (!(el instanceof HTMLInputElement) || el.type !== "file") return {status: "failed", message: "target is not input[type=file]"};
-el.click();
-return {status: "success", message: "file chooser opened for approved file"};
-`;
 
 export const textInputCurrentChrome = async (
   state: RuntimeState,
@@ -116,32 +107,24 @@ export const setCurrentChromeFileInputFiles = async (
   refreshSnapshot: RefreshSnapshot,
   sleep: Sleep,
 ): Promise<BrowserActionResult> => {
-  const clickResult = await evaluateActiveTab<{ status: string; message: string }>(
-    state,
-    {
-      description: input.description,
-      script: buildFileInputSelectionScript(input.elementRef.selector),
-      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-    },
-    refreshSnapshot,
-  );
-
-  if (clickResult.status !== "success") {
+  const cdpResult = await setFileInputFilesWithCurrentChromeCdp({
+    currentUrl: state.snapshot.currentUrl,
+    selector: input.elementRef.selector,
+    filePath: input.filePath,
+  });
+  if (cdpResult.ok) {
+    await refreshSnapshot(state);
+    return createCurrentChromeBrowserActionResult({ message: cdpResult.message });
+  }
+  const nativeFailure = await runNativeFileInputSelection({ evaluateActiveTab, state, input, refreshSnapshot, sleep });
+  if (nativeFailure) {
     return createCurrentChromeBrowserActionResult({
       ok: false,
-      message: clickResult.message,
+      message: `approved file selection failed; CDP unavailable: ${cdpResult.message}; ${nativeFailure.message}`,
     });
   }
-
-  await activateChrome(input.abortSignal);
-  await sleep(350, input.abortSignal);
-  await keystrokeBrowserText(input.filePath, input.abortSignal);
-  await pressBrowserKey(36, input.abortSignal);
-  await sleep(700, input.abortSignal);
   await refreshSnapshot(state);
-  return createCurrentChromeBrowserActionResult({
-    message: "approved file selected for located file input",
-  });
+  return createCurrentChromeBrowserActionResult({ message: `approved file selected for located file input; CDP unavailable: ${cdpResult.message}` });
 };
 
 export const waitForDuration = async (
@@ -154,6 +137,25 @@ export const waitForDuration = async (
   await refreshSnapshot(state);
   return createCurrentChromeBrowserActionResult({
     message: `waited ${durationMs}ms`,
+  });
+};
+
+export const closeCurrentChromeActiveTab = async (
+  state: RuntimeState,
+  input: { reason: string; abortSignal?: AbortSignal },
+  refreshSnapshot: RefreshSnapshot,
+): Promise<BrowserActionResult> => {
+  await runAppleScript(`
+tell application "Google Chrome" to activate
+tell application "Google Chrome"
+  if (count of windows) = 0 then return "no_window"
+  close active tab of front window
+  return "closed_active_tab"
+end tell
+`, input.abortSignal ? { signal: input.abortSignal } : undefined);
+  await refreshSnapshot(state).catch(() => undefined);
+  return createCurrentChromeBrowserActionResult({
+    message: `closed active Chrome tab after ${input.reason}`,
   });
 };
 

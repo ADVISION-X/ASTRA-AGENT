@@ -1,0 +1,65 @@
+import { waitForDomStateOnce } from "../../capabilities/dom-automation/index.js";
+import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import { taskResult } from "./amazon-invoice-upload-flow-support.js";
+import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
+import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
+
+const UPLOAD_SUCCESS_HINTS = [
+  "invoice uploaded successfully",
+  "upload completed",
+  "submitted successfully",
+  "感谢您上传文件",
+  "客户可以直接从自己的账户下载文件",
+  "管理发票",
+  "上传其他发票或贷记单",
+];
+
+type VerifySuccessResult = Awaited<ReturnType<typeof waitForDomStateOnce>>;
+
+export async function verifyUploadSuccess(
+  browser: BrowserController,
+  mission: AmazonInvoiceUploadMissionInput,
+): Promise<AmazonInvoiceUploadTaskResult> {
+  const success = await waitForDomStateOnce(browser, {
+    expectedStates: ["upload-success"],
+    successHints: UPLOAD_SUCCESS_HINTS,
+    failureHints: ["failed", "invalid", "error"],
+    timeoutMs: 5000,
+    pollIntervalMs: 500,
+  });
+  if (success.status !== "success") return buildUploadReviewResult(mission, success);
+  const closeResult = await browser.closeActiveTab({
+    reason: "Amazon invoice upload success verified",
+  });
+  return buildUploadSuccessResult(mission, success, closeResult);
+}
+
+const buildUploadReviewResult = (
+  mission: AmazonInvoiceUploadMissionInput,
+  success: VerifySuccessResult,
+): AmazonInvoiceUploadTaskResult =>
+  taskResult({
+    status: "review_required",
+    reason: success.reason,
+    reachedStep: "verify upload success",
+    amazonOrderId: mission.amazonOrderId,
+    invoiceNo: mission.invoiceNo,
+    evidenceRef: success.evidenceRef,
+    reviewRequired: true,
+  });
+
+const buildUploadSuccessResult = (
+  mission: AmazonInvoiceUploadMissionInput,
+  success: VerifySuccessResult,
+  closeResult: Awaited<ReturnType<BrowserController["closeActiveTab"]>>,
+): AmazonInvoiceUploadTaskResult =>
+  taskResult({
+    status: "upload_success",
+    reason: closeResult.ok
+      ? "Amazon Seller Central shows invoice uploaded successfully; active order tab closed."
+      : `Amazon Seller Central shows invoice uploaded successfully; active tab close needs review: ${closeResult.message}`,
+    reachedStep: "upload success verified",
+    amazonOrderId: mission.amazonOrderId,
+    invoiceNo: mission.invoiceNo,
+    evidenceRef: success.evidenceRef,
+  });

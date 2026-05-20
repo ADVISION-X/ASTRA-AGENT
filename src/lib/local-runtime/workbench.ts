@@ -51,6 +51,7 @@ import {
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import type { GrassEyeWorkbenchHandle } from "./workbench-handle.js";
 import {
+  getLatestAmazonInvoiceUploadTaskForInvoice,
   getAmazonInvoiceUploadTaskStatus,
   openAmazonInvoiceAdminPage,
   resumeAmazonInvoiceUploadTask,
@@ -194,6 +195,9 @@ const buildAmazonInvoiceHandle = (
   },
   async getAmazonInvoiceUploadTaskStatus(taskId: string) {
     return getAmazonInvoiceUploadTaskStatus({ dataDir, taskId });
+  },
+  async getLatestAmazonInvoiceUploadTaskForInvoice(input: { amazonOrderId: string; invoiceNo?: string }) {
+    return getLatestAmazonInvoiceUploadTaskForInvoice({ dataDir, ...input });
   },
 });
 

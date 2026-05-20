@@ -19,6 +19,7 @@ export {
 	type AmazonInvoiceUploadTaskStartInput,
 } from "./amazon-invoice-upload-task-service.types.js";
 export {
+	getLatestAmazonInvoiceUploadTaskForInvoice,
 	getAmazonInvoiceUploadTaskStatus,
 	openAmazonInvoiceAdminPage,
 	resumeAmazonInvoiceUploadTask,

@@ -1,6 +1,5 @@
 import {
   clickDomElementOnce,
-  fillDomElementOnce,
   locateDomElementOnce,
   verifyDomStateOnce,
 } from "../../capabilities/dom-automation/index.js";
@@ -79,30 +78,6 @@ export function locateOrStatus(input: {
       reason,
     };
   }
-}
-
-export async function fillOrderSearch(
-  browser: BrowserController,
-  element: DomElementRef,
-  mission: AmazonInvoiceUploadMissionInput,
-): Promise<AmazonInvoiceUploadTaskResult | null> {
-  const fill = await fillDomElementOnce(browser, {
-    elementRef: element,
-    approvedText: mission.amazonOrderId,
-    clearBeforeType: true,
-    inputPurpose: "order-search",
-  });
-  if (fill.ok) {
-    return null;
-  }
-  return taskResult({
-    status: "failed",
-    reason: fill.reviewRequiredReason ?? fill.message,
-    reachedStep: "fill order search",
-    amazonOrderId: mission.amazonOrderId,
-    invoiceNo: mission.invoiceNo,
-    ...evidenceField(fill.afterEvidenceRef ?? fill.beforeEvidenceRef),
-  });
 }
 
 export async function clickLocated(input: {

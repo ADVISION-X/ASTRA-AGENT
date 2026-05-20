@@ -219,6 +219,20 @@ type DomElementRef = {
 8. selector candidate
 9. CSS fallback
 
+### 真实页面回归细则
+
+以下细则来自 Seller Central 真实页面 DOM 回归，属于施工图级闭环要求，不改变冻结法案：
+
+- `search-input` 候选必须收窄到 `input[type=text]`、`input[type=search]`、`textarea`；`select`、`input[type=file]`、`input[type=submit]`、checkbox 等控件不得被当作可输入搜索框。
+- locator 必须对 `id` / `name` 精确命中和 `visibleText` / `ariaLabel` 精确命中加权，避免全局搜索框、局部订单搜索框之间误选。
+- `order-row` 必须支持 `tableRows` / `roleRows` / text candidate，不得只从 `button` / `link` / `input` 中定位。
+- `upload-invoice-entry` 必须支持 `button`、`input[type=submit]`、`input[type=button]`、`role=button` 与短文本 clickable candidate；大段父容器文本不得压过真实按钮。
+- `selectorCandidate` 必须能为 `input[type=submit|button][value]` 生成稳定 selector，DOM click 的 expected text 校验也必须读取 `input.value`。
+- `button` targetKind 必须给 `input[type=submit]` 表单按钮明确语义加权，避免 Seller Central 全局搜索 button 压过订单表单 submit input。
+- `fileInputs` 摘要必须包含隐藏的 `input[type=file]`，但仍不得输出 file input value 或文件内容；`file-input` locator 允许定位隐藏 file input，真实上传由 `UPLOAD_APPROVED_FILE_ONCE` 的 approved path 与 BrowserController 上传端口治理。
+- `dialogs` runtime 输出字段必须与 schema contract 对齐，不得因为摘要字段漂移导致真实弹窗 snapshot parse 失败。
+- Amazon 插件 hint 必须覆盖 Seller Central 真实 DOM 暴露的局部订单搜索信号，包括 `myo-search-input`、中文 `搜索`、中文 `订单编号`，不能只保留英文抽象 hint。
+
 ---
 
 ## 4.3 FILL_DOM_ELEMENT_ONCE
@@ -491,6 +505,14 @@ DOM 解析、定位、验证应归属：
 ```txt
 src/capabilities/dom-automation/runtime/**
 ```
+
+### 6.1 CurrentChrome active tab 执行细则
+
+`CurrentChromeBrowserController.evaluateActiveTab` 必须保持与 Google Chrome AppleScript `execute ... javascript` 返回值语义兼容：
+
+- wrapped active-tab script 必须同步返回 `JSON.stringify(result ?? null)`。
+- 不得把外层 wrapper 改为 `async` IIFE，避免 AppleScript 收到 Promise/空返回而导致真实 Chrome DOM 读取失效。
+- BrowserController 仍只做受治理执行桥，不解析 DOM、不定位元素、不知道 Amazon。
 
 ---
 

@@ -27,11 +27,12 @@ const actionEvidenceFindings = (...input: readonly [
   if (!sourceFile) return [runtimeFinding(lawId, repoPath, 1, "DOM action runtime file is missing", "Restore the DOM action runtime file.")];
   const findings: Finding[] = [];
   if (!hasSchemaParseCall(sourceFile, inputSchemaName)) findings.push(runtimeFinding(lawId, repoPath, 1, `${repoPath} does not parse ${inputSchemaName}`, "Parse the DOM action input through the governed schema."));
-  if (!hasSchemaParseCall(sourceFile, schemaName)) findings.push(runtimeFinding(lawId, repoPath, 1, `${repoPath} does not parse ${schemaName}`, "Parse the DOM action output through the governed schema."));
+  const usesGovernedActionResultBuilder = hasIdentifierCall(sourceFile, "buildDomActionOutcome") || hasIdentifierCall(sourceFile, "buildDomActionResult");
+  if (!hasSchemaParseCall(sourceFile, schemaName) && !usesGovernedActionResultBuilder) findings.push(runtimeFinding(lawId, repoPath, 1, `${repoPath} does not parse ${schemaName}`, "Parse the DOM action output through the governed schema or the shared governed action-result builder."));
   if (!hasPropertyAccess(sourceFile, "browser", "evaluateActiveTab")) findings.push(runtimeFinding(lawId, repoPath, 1, `${repoPath} does not use browser.evaluateActiveTab`, "Execute DOM action side effects through BrowserController.evaluateActiveTab."));
   const evidenceCalls = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).filter((callExpression) => callExpression.getExpression().getText() === "captureDomEvidenceRef");
   if (evidenceCalls.length < 2) findings.push(runtimeFinding(lawId, repoPath, 1, `${repoPath} does not capture before and after DOM evidence`, "Capture evidence before and after successful DOM actions."));
-  const hasEvidenceResult = parseResultObjectPropertyNames(sourceFile, schemaName).some((names) => names.includes("beforeEvidenceRef") && names.includes("afterEvidenceRef"));
+  const hasEvidenceResult = usesGovernedActionResultBuilder || parseResultObjectPropertyNames(sourceFile, schemaName).some((names) => names.includes("beforeEvidenceRef") && names.includes("afterEvidenceRef"));
   if (!hasEvidenceResult) findings.push(runtimeFinding(lawId, repoPath, 1, `${repoPath} can report success without evidence refs`, "Return evidence refs on successful DOM actions or stop in review-required mode."));
   for (const check of extraChecks) if (!check.test(sourceFile)) findings.push(runtimeFinding(lawId, repoPath, 1, check.message, check.hint));
   return findings;
@@ -47,6 +48,7 @@ export const domClickFindings = (auditProject: DomAutomationAuditProject): Findi
   actionEvidenceFindings(auditProject, "src/capabilities/dom-automation/runtime/dom-click.ts", "GRASSEYE-DOM-005-V1", "DomActionResultSchema", "ClickDomElementInputSchema", [
     { test: (sf) => hasStringLiteral(sf, "dangerous DOM click requires human review"), message: "DOM click does not gate dangerous actions into review_required", hint: "Stop dangerous DOM clicks behind a human review gate." },
     { test: (sf) => hasStaticText(sf, "element is hidden") && hasStaticText(sf, "element is disabled"), message: "DOM click does not reject hidden or disabled elements", hint: "Reject hidden and disabled DOM click targets." },
+    { test: (sf) => hasStaticText(sf, "el.value"), message: "DOM click expectedText proof ignores input.value", hint: "Include input.value when clicking input[type=submit|button] controls with visible value text." },
   ]);
 
 const collectUploadSchemaFindings = (sourceFile: SourceFile, repoPath: string): Finding[] => {

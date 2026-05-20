@@ -1,5 +1,8 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
-import { readDomSnapshotOnce } from "../../capabilities/dom-automation/index.js";
+import {
+  readDomSnapshotOnce,
+  type DomSnapshot,
+} from "../../capabilities/dom-automation/index.js";
 import { AmazonInvoiceUploadMissionInputSchema } from "./mission.schema.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import { AMAZON_INVOICE_UPLOAD_DOM_HINTS } from "./amazon-dom-hints.js";
@@ -8,10 +11,9 @@ import {
   normalizeSubmitFailure,
   openOrderDetail,
   openUploadInvoiceEntry,
-  searchOrder,
   uploadApprovedInvoice,
-  verifyUploadSuccess,
 } from "./amazon-invoice-upload-steps.js";
+import { verifyUploadSuccess } from "./amazon-invoice-upload-verify.js";
 import {
   clickLocated,
   gatedResult,
@@ -38,20 +40,30 @@ export type AmazonInvoiceUploadPhaseOneResult = {
   phaseStatus: AmazonInvoiceUploadStatus;
 };
 
+const ENTRY_READY_TIMEOUT_MS = 10000;
+const ENTRY_READY_POLL_INTERVAL_MS = 500;
+
 export async function runAmazonInvoiceUpload(
   browser: BrowserController,
   rawMission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult> {
   const mission = AmazonInvoiceUploadMissionInputSchema.parse(rawMission);
   await browser.open({ url: mission.sellerCentralEntryUrl, title: "Amazon Seller Central invoice upload entry" });
-  const entrySnapshot = await readDomSnapshotOnce(browser);
-  const gate = gatedResult(entrySnapshot, mission, "open seller central");
+  const entryReady = await waitForSellerCentralEntry(browser, mission);
+  const gate = gatedResult(entryReady.snapshot, mission, "open seller central");
   if (gate) {
     return gate;
   }
-
-  const searchResult = await searchOrder(browser, mission, entrySnapshot);
-  if (!searchResult.ok) return searchResult.failure;
+  if (!entryReady.ready) {
+    return taskResult({
+      status: "review_required",
+      reason: entryReady.reason,
+      reachedStep: "wait for seller central order search",
+      amazonOrderId: mission.amazonOrderId,
+      invoiceNo: mission.invoiceNo,
+      reviewRequired: true,
+    });
+  }
 
   const orderDetailResult = await openOrderDetail(browser, mission);
   if (!orderDetailResult.ok) return orderDetailResult.failure;
@@ -60,6 +72,36 @@ export async function runAmazonInvoiceUpload(
   if (!uploadEntryResult.ok) return uploadEntryResult.failure;
 
   return uploadAndSubmitInvoice(browser, mission);
+}
+
+async function waitForSellerCentralEntry(
+  browser: BrowserController,
+  mission: AmazonInvoiceUploadMissionInput,
+): Promise<{ ready: true; snapshot: DomSnapshot } | { ready: false; snapshot: DomSnapshot; reason: string }> {
+  const startedAt = Date.now();
+  let lastSnapshot = await readDomSnapshotOnce(browser);
+  while (Date.now() - startedAt <= ENTRY_READY_TIMEOUT_MS) {
+    const gate = gatedResult(lastSnapshot, mission, "open seller central");
+    if (gate) {
+      return { ready: true, snapshot: lastSnapshot };
+    }
+    const searchInput = locateOrStatus({
+      snapshot: lastSnapshot,
+      targetKind: "search-input",
+      hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.orderSearch],
+      notFoundStatus: "failed",
+    });
+    if (searchInput.ok) {
+      return { ready: true, snapshot: lastSnapshot };
+    }
+    await browser.wait(ENTRY_READY_POLL_INTERVAL_MS);
+    lastSnapshot = await readDomSnapshotOnce(browser);
+  }
+  return {
+    ready: false,
+    snapshot: lastSnapshot,
+    reason: "Seller Central order search did not become available before timeout.",
+  };
 }
 
 async function uploadAndSubmitInvoice(
@@ -102,6 +144,7 @@ async function submitAndVerifyInvoice(
     expectedKind: "submit-invoice-upload",
     reachedStep: "submit invoice upload",
     mission,
+    expectedText: "上传",
   });
   if (submitFailure) return normalizeSubmitFailure(submitFailure);
 
