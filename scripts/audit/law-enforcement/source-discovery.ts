@@ -83,66 +83,81 @@ const appendBlueprintLink = (
   });
 };
 
-export const discoverLawSources = (
-  laws: LawRecord[],
-  manifests: OwnerManifest[],
-): {
-  sources: DiscoveredLawSource[];
-  unmappedBlueprints: string[];
-} => {
-  const instructionFiles = toSortedRelativePaths(
+const discoverInstructionFiles = (): string[] =>
+  toSortedRelativePaths(
     walkFiles(pathFromRepoRoot(".github/instructions"), (fileName) => fileName.endsWith(".instructions.md")),
   );
-  const blueprintFiles = toSortedRelativePaths(
+
+const discoverBlueprintFiles = (): string[] =>
+  toSortedRelativePaths(
     walkFiles(pathFromRepoRoot("docs/法案辅助文件"), (fileName) => fileName.endsWith(".md")),
   );
-  const generatedFiles = toSortedRelativePaths(
+
+const discoverGeneratedFiles = (): string[] =>
+  toSortedRelativePaths(
     walkFiles(pathFromRepoRoot("scripts/audit/generated"), (fileName) => fileName.endsWith(".json") || fileName.endsWith(".jsonc")),
   );
+
+const groupLawsByFile = (laws: LawRecord[]): Map<string, LawRecord[]> => {
   const lawsByFile = new Map<string, LawRecord[]>();
   for (const law of laws) {
-    const current = lawsByFile.get(law.lawFile) ?? [];
-    current.push(law);
-    lawsByFile.set(law.lawFile, current);
+    lawsByFile.set(law.lawFile, [...(lawsByFile.get(law.lawFile) ?? []), law]);
   }
+  return lawsByFile;
+};
 
-  const linkedBlueprints = new Map<string, LinkedBlueprint>();
+const linkManifestBlueprints = (
+  manifests: OwnerManifest[],
+  linkedBlueprints: Map<string, LinkedBlueprint>,
+): void => {
   for (const manifest of manifests) {
     for (const blueprintFile of manifest.readsBlueprintFiles ?? []) {
       appendBlueprintLink(linkedBlueprints, blueprintFile, manifest.capabilityDomain, manifest.allowedLawIds);
     }
   }
+};
 
-  for (const instructionFile of instructionFiles) {
-    const fileLaws = lawsByFile.get(instructionFile) ?? [];
+const linkApplyToBlueprints = (input: {
+  instructionFiles: string[];
+  blueprintFiles: string[];
+  lawsByFile: Map<string, LawRecord[]>;
+  linkedBlueprints: Map<string, LinkedBlueprint>;
+}): void => {
+  for (const instructionFile of input.instructionFiles) {
+    const fileLaws = input.lawsByFile.get(instructionFile) ?? [];
     if (fileLaws.length === 0) continue;
-    const patterns = parseApplyToPatterns(instructionFile);
-    for (const pattern of patterns) {
+    const lawIds = fileLaws.map((law) => law.lawId);
+    for (const pattern of parseApplyToPatterns(instructionFile)) {
       const matcher = globToRegExp(pattern);
-      for (const blueprintFile of blueprintFiles.filter((filePath) => matcher.test(filePath))) {
-        appendBlueprintLink(
-          linkedBlueprints,
-          blueprintFile,
-          fileLaws[0]?.capabilityDomain ?? "unknown",
-          fileLaws.map((law) => law.lawId),
-        );
+      for (const blueprintFile of input.blueprintFiles.filter((filePath) => matcher.test(filePath))) {
+        appendBlueprintLink(input.linkedBlueprints, blueprintFile, fileLaws[0]?.capabilityDomain ?? "unknown", lawIds);
       }
     }
   }
+};
 
-  const lawSources: DiscoveredLawSource[] = instructionFiles.map((filePath) => ({
-    filePath,
-    sourceKind: "law" as const,
-    capabilityDomain: lawsByFile.get(filePath)?.[0]?.capabilityDomain ?? null,
-    relatedLawIds: (lawsByFile.get(filePath) ?? []).map((law) => law.lawId),
-  }));
-  const blueprintSources: DiscoveredLawSource[] = blueprintFiles.map((filePath) => ({
-    filePath,
-    sourceKind: "blueprint" as const,
-    capabilityDomain: linkedBlueprints.get(filePath)?.capabilityDomain ?? null,
-    relatedLawIds: linkedBlueprints.get(filePath)?.lawIds ?? [],
-  }));
-  const manifestSources: DiscoveredLawSource[] = manifests
+const buildLawSources = (
+  instructionFiles: string[],
+  lawsByFile: Map<string, LawRecord[]>,
+): DiscoveredLawSource[] => instructionFiles.map((filePath) => ({
+  filePath,
+  sourceKind: "law" as const,
+  capabilityDomain: lawsByFile.get(filePath)?.[0]?.capabilityDomain ?? null,
+  relatedLawIds: (lawsByFile.get(filePath) ?? []).map((law) => law.lawId),
+}));
+
+const buildBlueprintSources = (
+  blueprintFiles: string[],
+  linkedBlueprints: Map<string, LinkedBlueprint>,
+): DiscoveredLawSource[] => blueprintFiles.map((filePath) => ({
+  filePath,
+  sourceKind: "blueprint" as const,
+  capabilityDomain: linkedBlueprints.get(filePath)?.capabilityDomain ?? null,
+  relatedLawIds: linkedBlueprints.get(filePath)?.lawIds ?? [],
+}));
+
+const buildManifestSources = (manifests: OwnerManifest[]): DiscoveredLawSource[] =>
+  manifests
     .map((manifest) => ({
       filePath: `scripts/audit/domains/${manifest.capabilityDomain}/manifest.json`,
       sourceKind: "manifest" as const,
@@ -150,18 +165,42 @@ export const discoverLawSources = (
       relatedLawIds: manifest.allowedLawIds,
     }))
     .sort((left, right) => left.filePath.localeCompare(right.filePath));
-  const generatedSources: DiscoveredLawSource[] = generatedFiles.map((filePath) => ({
-    filePath,
-    sourceKind: "generated" as const,
-    capabilityDomain: null,
-    relatedLawIds: filePath.endsWith("active-law-census.generated.json")
-      || filePath.endsWith("owner-inspector-matrix.generated.json")
-      ? laws.map((law) => law.lawId)
-      : [],
-  }));
 
+const buildGeneratedSources = (
+  generatedFiles: string[],
+  laws: LawRecord[],
+): DiscoveredLawSource[] => generatedFiles.map((filePath) => ({
+  filePath,
+  sourceKind: "generated" as const,
+  capabilityDomain: null,
+  relatedLawIds: filePath.endsWith("active-law-census.generated.json")
+    || filePath.endsWith("owner-inspector-matrix.generated.json")
+    ? laws.map((law) => law.lawId)
+    : [],
+}));
+
+export const discoverLawSources = (
+  laws: LawRecord[],
+  manifests: OwnerManifest[],
+): {
+  sources: DiscoveredLawSource[];
+  unmappedBlueprints: string[];
+} => {
+  const instructionFiles = discoverInstructionFiles();
+  const blueprintFiles = discoverBlueprintFiles();
+  const lawsByFile = groupLawsByFile(laws);
+  const linkedBlueprints = new Map<string, LinkedBlueprint>();
+  linkManifestBlueprints(manifests, linkedBlueprints);
+  linkApplyToBlueprints({ instructionFiles, blueprintFiles, lawsByFile, linkedBlueprints });
+
+  const blueprintSources = buildBlueprintSources(blueprintFiles, linkedBlueprints);
   return {
-    sources: [...lawSources, ...blueprintSources, ...manifestSources, ...generatedSources]
+    sources: [
+      ...buildLawSources(instructionFiles, lawsByFile),
+      ...blueprintSources,
+      ...buildManifestSources(manifests),
+      ...buildGeneratedSources(discoverGeneratedFiles(), laws),
+    ]
       .sort((left, right) => left.filePath.localeCompare(right.filePath)),
     unmappedBlueprints: blueprintSources
       .filter((source) => source.relatedLawIds.length === 0)

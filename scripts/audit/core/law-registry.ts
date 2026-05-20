@@ -22,6 +22,17 @@ type MutableLawRecord = {
   sourceKind: LawRecord["sourceKind"];
 };
 
+type NormalizedLawFields = {
+  lawId: string | undefined;
+  status: string | undefined;
+  tier: string | undefined;
+  capabilityDomain: string | undefined;
+  enforcementMode: string | undefined;
+  evidenceMode: string;
+  summary: string;
+  sourceKind: LawRecord["sourceKind"];
+};
+
 const FILE_DOMAIN_DEFAULTS: Record<string, string> = {
   "module-code-purity.instructions.md": "code-purity",
   "module-RuntimeLogSpine.instructions.md": "runtime-logging",
@@ -37,49 +48,89 @@ const toLawFilePath = (absolutePath: string): string => toRepoRelativePath(absol
 const summaryFromHeading = (headingSummary: string | undefined, lawId: string): string =>
   headingSummary?.trim() || `${lawId} summary`;
 
+const normalizeLawFields = (
+  filePath: string,
+  raw: MutableLawRecord,
+): NormalizedLawFields => {
+  const fileName = basename(filePath);
+  const lawId = normalizeValue(raw.lawId);
+  const status = normalizeValue(raw.status);
+  return {
+    lawId,
+    status,
+    tier: normalizeValue(raw.tier),
+    capabilityDomain: normalizeValue(raw.capabilityDomain) ?? FILE_DOMAIN_DEFAULTS[fileName],
+    enforcementMode: normalizeValue(raw.enforcementMode),
+    evidenceMode: normalizeValue(raw.evidenceMode) ?? DEFAULT_EVIDENCE_MODE,
+    summary: normalizeValue(raw.summary) ?? summaryFromHeading(raw.summary, lawId ?? "UNKNOWN-LAW"),
+    sourceKind: raw.sourceKind,
+  };
+};
+
+const pushLawRegistryViolation = (
+  violations: LawRegistryViolation[],
+  filePath: string,
+  lawId: string | undefined,
+  message: string,
+): void => {
+  violations.push({
+    file: toLawFilePath(filePath),
+    ...(lawId ? { lawId } : {}),
+    message,
+  });
+};
+
+const validateActiveLawFields = (
+  filePath: string,
+  fields: NormalizedLawFields,
+  violations: LawRegistryViolation[],
+): boolean => {
+  let valid = true;
+  if (!fields.lawId) {
+    pushLawRegistryViolation(violations, filePath, undefined, "active law is missing lawId");
+    valid = false;
+  }
+  if (!fields.capabilityDomain) {
+    pushLawRegistryViolation(violations, filePath, fields.lawId, "active law is missing capabilityDomain");
+    valid = false;
+  }
+  if (!fields.tier) {
+    pushLawRegistryViolation(violations, filePath, fields.lawId, "active law is missing tier");
+    valid = false;
+  }
+  if (!fields.enforcementMode) {
+    pushLawRegistryViolation(violations, filePath, fields.lawId, "active law is missing enforcementMode");
+    valid = false;
+  }
+  return valid;
+};
+
+const buildNormalizedLawRecord = (
+  filePath: string,
+  fields: NormalizedLawFields,
+): LawRecord => {
+  return {
+    lawId: fields.lawId ?? "UNKNOWN-LAW",
+    status: "active",
+    tier: fields.tier ?? "UNKNOWN-TIER",
+    capabilityDomain: fields.capabilityDomain ?? "unknown",
+    enforcementMode: fields.enforcementMode ?? "unknown",
+    evidenceMode: fields.evidenceMode,
+    summary: fields.summary,
+    lawFile: toLawFilePath(filePath),
+    sourceKind: fields.sourceKind,
+  };
+};
+
 const buildLawRecord = (
   filePath: string,
   raw: MutableLawRecord,
   violations: LawRegistryViolation[],
 ): LawRecord | undefined => {
-  const fileName = basename(filePath);
-  const lawId = normalizeValue(raw.lawId);
-  const status = normalizeValue(raw.status);
-  if (status !== "active") return undefined;
-  const capabilityDomain = normalizeValue(raw.capabilityDomain) ?? FILE_DOMAIN_DEFAULTS[fileName];
-  const tier = normalizeValue(raw.tier);
-  const enforcementMode = normalizeValue(raw.enforcementMode);
-  const evidenceMode = normalizeValue(raw.evidenceMode) ?? DEFAULT_EVIDENCE_MODE;
-  const summary = normalizeValue(raw.summary) ?? summaryFromHeading(raw.summary, lawId ?? "UNKNOWN-LAW");
-
-  if (!lawId) {
-    violations.push({ file: toLawFilePath(filePath), message: "active law is missing lawId" });
-    return undefined;
-  }
-  if (!capabilityDomain) {
-    violations.push({ file: toLawFilePath(filePath), lawId, message: "active law is missing capabilityDomain" });
-    return undefined;
-  }
-  if (!tier) {
-    violations.push({ file: toLawFilePath(filePath), lawId, message: "active law is missing tier" });
-    return undefined;
-  }
-  if (!enforcementMode) {
-    violations.push({ file: toLawFilePath(filePath), lawId, message: "active law is missing enforcementMode" });
-    return undefined;
-  }
-
-  return {
-    lawId,
-    status,
-    tier,
-    capabilityDomain,
-    enforcementMode,
-    evidenceMode,
-    summary,
-    lawFile: toLawFilePath(filePath),
-    sourceKind: raw.sourceKind,
-  };
+  const fields = normalizeLawFields(filePath, raw);
+  if (fields.status !== "active") return undefined;
+  if (!validateActiveLawFields(filePath, fields, violations)) return undefined;
+  return buildNormalizedLawRecord(filePath, fields);
 };
 
 const parseMetadataField = (block: string, fieldName: string): string | undefined =>
@@ -168,32 +219,23 @@ const collectLawRecords = (filePath: string): MutableLawRecord[] => {
   ];
 };
 
-export const loadActiveLawRegistry = (): {
-  laws: LawRecord[];
-  violations: LawRegistryViolation[];
-  filesScanned: number;
-  scannedFiles: string[];
-} => {
-  const walkInstructionFiles = (dirPath: string, acc: string[] = []): string[] => {
-    if (!existsSync(dirPath)) return acc;
-    for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
-      const nextPath = join(dirPath, entry.name);
-      if (entry.isDirectory()) {
-        walkInstructionFiles(nextPath, acc);
-        continue;
-      }
-      if (entry.isFile() && entry.name.endsWith(".instructions.md")) {
-        acc.push(nextPath);
-      }
+const walkInstructionFiles = (dirPath: string, acc: string[] = []): string[] => {
+  if (!existsSync(dirPath)) return acc;
+  for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
+    const nextPath = join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      walkInstructionFiles(nextPath, acc);
+      continue;
     }
-    return acc;
-  };
+    if (entry.isFile() && entry.name.endsWith(".instructions.md")) {
+      acc.push(nextPath);
+    }
+  }
+  return acc;
+};
 
-  const files = walkInstructionFiles(pathFromRepoRoot(".github/instructions"))
-    .sort((left, right) => left.localeCompare(right));
+const collectNormalizedLaws = (files: string[], violations: LawRegistryViolation[]): LawRecord[] => {
   const laws: LawRecord[] = [];
-  const violations: LawRegistryViolation[] = [];
-
   for (const filePath of files) {
     for (const record of collectLawRecords(filePath)) {
       const normalized = buildLawRecord(filePath, record, violations);
@@ -202,7 +244,10 @@ export const loadActiveLawRegistry = (): {
       }
     }
   }
+  return laws;
+};
 
+const collectLawOwnershipViolations = (laws: LawRecord[], violations: LawRegistryViolation[]): void => {
   const lawOwnership = new Map<string, string>();
   for (const law of laws) {
     const current = lawOwnership.get(law.lawId);
@@ -216,6 +261,19 @@ export const loadActiveLawRegistry = (): {
     }
     lawOwnership.set(law.lawId, law.capabilityDomain);
   }
+};
+
+export const loadActiveLawRegistry = (): {
+  laws: LawRecord[];
+  violations: LawRegistryViolation[];
+  filesScanned: number;
+  scannedFiles: string[];
+} => {
+  const files = walkInstructionFiles(pathFromRepoRoot(".github/instructions"))
+    .sort((left, right) => left.localeCompare(right));
+  const violations: LawRegistryViolation[] = [];
+  const laws = collectNormalizedLaws(files, violations);
+  collectLawOwnershipViolations(laws, violations);
   return {
     laws,
     violations,

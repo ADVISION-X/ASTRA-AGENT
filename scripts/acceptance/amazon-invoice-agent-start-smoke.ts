@@ -56,33 +56,39 @@ const browser = new PlaywrightDomBrowserAdapter(page, tmp);
 let commanderExecuteCount: number = 0;
 let startMissionCount: number = 0;
 
-const workbench = {
-  commanderConsole: {
-    async execute() {
-      commanderExecuteCount += 1;
-      throw new Error("plugin route must not call commander console task start");
-    },
+const commanderConsole: GrassEyeWorkbenchHandle["commanderConsole"] = {
+  abilityGroupId: "commander-console",
+  listChildCapabilityIds() {
+    return [];
   },
-  async init() {},
-  async getHealthReport() { throw new Error("unused"); },
-  async getMissionReadinessReport() { throw new Error("unused"); },
-  async getMissionStartPreflight() { throw new Error("unused"); },
-  async getCommanderConsoleSnapshot() { throw new Error("unused"); },
-  async getAppRunLimitSettings() { throw new Error("unused"); },
-  async saveAppRunLimitSettings() { throw new Error("unused"); },
-  async getOnlineAiProviderSettings() { throw new Error("unused"); },
-  async saveOnlineAiProviderSettings() { throw new Error("unused"); },
+  async execute() {
+    commanderExecuteCount += 1;
+    throw new Error("plugin route must not call commander console task start");
+  },
+};
+
+const createUnusedAsync = <TValue>(message = "unused") => async (): Promise<TValue> => {
+  throw new Error(message);
+};
+
+const createSmokeWorkbench = (): GrassEyeWorkbenchHandle => ({
+  commanderConsole,
+  init: async () => {},
+  getHealthReport: createUnusedAsync(),
+  getMissionReadinessReport: createUnusedAsync(),
+  getMissionStartPreflight: createUnusedAsync(),
+  getCommanderConsoleSnapshot: createUnusedAsync(),
+  getAppRunLimitSettings: createUnusedAsync(),
+  saveAppRunLimitSettings: createUnusedAsync(),
+  getOnlineAiProviderSettings: createUnusedAsync(),
+  saveOnlineAiProviderSettings: createUnusedAsync(),
   getDataDir() { return tmp; },
-  async getUserRequirementHistory() { return []; },
-  async upsertUserRequirementHistory() { throw new Error("unused"); },
-  async deleteUserRequirementHistory() { throw new Error("unused"); },
-  async reuseUserRequirementHistory() { return null; },
-  async openAdminInvoicePage(input: { adminUrl: string }) {
-    return openAmazonInvoiceAdminPage(browser, input);
-  },
-  async startAmazonInvoiceUploadMission() {
-    throw new Error("legacy mission start path must not be used by plugin start route");
-  },
+  getUserRequirementHistory: async () => [],
+  upsertUserRequirementHistory: createUnusedAsync(),
+  deleteUserRequirementHistory: createUnusedAsync(),
+  reuseUserRequirementHistory: async () => null,
+  openAdminInvoicePage: async (input: { adminUrl: string }) => openAmazonInvoiceAdminPage(browser, input),
+  startAmazonInvoiceUploadMission: createUnusedAsync("legacy mission start path must not be used by plugin start route"),
   async startAmazonInvoiceUploadTask(input: Parameters<typeof startAmazonInvoiceUploadTask>[0]["task"]) {
     startMissionCount += 1;
     return startAmazonInvoiceUploadTask({ browser, dataDir: tmp, task: input });
@@ -94,7 +100,9 @@ const workbench = {
     return getAmazonInvoiceUploadTaskStatus({ dataDir: tmp, taskId });
   },
   getModeInfo() { return {}; },
-} as unknown as GrassEyeWorkbenchHandle;
+});
+
+const workbench = createSmokeWorkbench();
 
 const server = createWorkbenchServer({ workbench, baseUrl: "http://127.0.0.1" });
 

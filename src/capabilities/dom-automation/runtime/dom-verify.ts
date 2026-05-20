@@ -11,6 +11,13 @@ const STATE_MAP = {
   "captcha-or-2fa-required": "captcha_or_2fa_required",
 } as const;
 
+type VerificationSignals = {
+  detected: Set<string>;
+  successHintMatched: boolean;
+  failureHintMatched: boolean;
+  strongDetected: boolean;
+};
+
 function snapshotText(input: VerifyDomStateInput): string {
   const parts = [
     input.snapshot.title,
@@ -26,55 +33,87 @@ function snapshotText(input: VerifyDomStateInput): string {
   return parts.join(" ").toLowerCase();
 }
 
-export function verifyDomStateOnce(rawInput: VerifyDomStateInput): DomVerificationResult {
-  const input = VerifyDomStateInputSchema.parse(rawInput);
-  const detected = new Set(input.snapshot.detectedStates);
+function buildDomVerificationResult(
+  status: DomVerificationResult["status"],
+  confidence: number,
+  reason: string,
+): DomVerificationResult {
+  return DomVerificationResultSchema.parse({
+    status,
+    confidence,
+    evidenceRef: `dom-verify:${createId("dom")}`,
+    reason,
+  });
+}
+
+function resolveDetectedVerificationResult(detected: Set<string>): DomVerificationResult | null {
   if (detected.has("login_required")) {
-    return DomVerificationResultSchema.parse({
-      status: "login_required",
-      confidence: 0.9,
-      evidenceRef: `dom-verify:${createId("dom")}`,
-      reason: "DOM snapshot detected login-required state.",
-    });
+    return buildDomVerificationResult("login_required", 0.9, "DOM snapshot detected login-required state.");
   }
   if (detected.has("captcha_or_2fa_required")) {
-    return DomVerificationResultSchema.parse({
-      status: "captcha_or_2fa_required",
-      confidence: 0.9,
-      evidenceRef: `dom-verify:${createId("dom")}`,
-      reason: "DOM snapshot detected captcha or 2FA state.",
-    });
+    return buildDomVerificationResult("captcha_or_2fa_required", 0.9, "DOM snapshot detected captcha or 2FA state.");
   }
+  return null;
+}
 
-  const text = snapshotText(input);
-  const successHintMatched = input.successHints.some((hint) => text.includes(hint.toLowerCase()));
-  const failureHintMatched = input.failureHints.some((hint) => text.includes(hint.toLowerCase()));
-  const strongDetected = input.expectedStates.some((state) => {
+function hasStrongDetectedState(input: VerifyDomStateInput, detected: Set<string>): boolean {
+  return input.expectedStates.some((state) => {
     const detectedState = STATE_MAP[state];
     return detectedState === "file_attached" || detectedState === "upload_success"
       ? detected.has(detectedState)
       : false;
   });
-  if (failureHintMatched) {
-    return DomVerificationResultSchema.parse({
-      status: "failed",
-      confidence: 0.75,
-      evidenceRef: `dom-verify:${createId("dom")}`,
-      reason: "DOM snapshot matched failure hints.",
-    });
+}
+
+function needsUploadReview(input: VerifyDomStateInput, detected: Set<string>): boolean {
+  return input.expectedStates.includes("upload-success")
+    && detected.has("file_attached")
+    && !detected.has("upload_success");
+}
+
+function collectVerificationSignals(input: VerifyDomStateInput): VerificationSignals {
+  const detected = new Set(input.snapshot.detectedStates);
+  const text = snapshotText(input);
+  const successHints = input.successHints ?? [];
+  const failureHints = input.failureHints ?? [];
+  return {
+    detected,
+    successHintMatched: successHints.some((hint) => text.includes(hint.toLowerCase())),
+    failureHintMatched: failureHints.some((hint) => text.includes(hint.toLowerCase())),
+    strongDetected: hasStrongDetectedState(input, detected),
+  };
+}
+
+function resolveSignalVerificationResult(
+  input: VerifyDomStateInput,
+  signals: VerificationSignals,
+): DomVerificationResult {
+  if (signals.successHintMatched && signals.failureHintMatched) {
+    return buildDomVerificationResult("ambiguous", 0.6, "DOM snapshot matched both success and failure hints.");
   }
-  if (strongDetected || successHintMatched) {
-    return DomVerificationResultSchema.parse({
-      status: "success",
-      confidence: strongDetected ? 0.8 : 0.65,
-      evidenceRef: `dom-verify:${createId("dom")}`,
-      reason: "DOM snapshot matched expected state.",
-    });
+  if (needsUploadReview(input, signals.detected)) {
+    return buildDomVerificationResult(
+      "review_required",
+      0.7,
+      "DOM snapshot shows a selected file but cannot confirm the expected final state.",
+    );
   }
-  return DomVerificationResultSchema.parse({
-    status: "not_found",
-    confidence: 0.55,
-    evidenceRef: `dom-verify:${createId("dom")}`,
-    reason: "DOM snapshot did not match expected state.",
-  });
+  if (signals.failureHintMatched) {
+    return buildDomVerificationResult("failed", 0.75, "DOM snapshot matched failure hints.");
+  }
+  if (signals.strongDetected || signals.successHintMatched) {
+    return buildDomVerificationResult(
+      "success",
+      signals.strongDetected ? 0.8 : 0.65,
+      "DOM snapshot matched expected state.",
+    );
+  }
+  return buildDomVerificationResult("not_found", 0.55, "DOM snapshot did not match expected state.");
+}
+
+export function verifyDomStateOnce(rawInput: VerifyDomStateInput): DomVerificationResult {
+  const input = VerifyDomStateInputSchema.parse(rawInput);
+  const signals = collectVerificationSignals(input);
+  const detectedResult = resolveDetectedVerificationResult(signals.detected);
+  return detectedResult ?? resolveSignalVerificationResult(input, signals);
 }

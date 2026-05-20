@@ -1,7 +1,11 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import { createId } from "../../../lib/local-runtime/ids.js";
-import { DomActionResultSchema, DomElementRefSchema, FillDomElementInputSchema } from "../schema.js";
+import { DomElementRefSchema, FillDomElementInputSchema } from "../schema.js";
 import type { DomActionResult, FillDomElementInput } from "../schema.js";
+import {
+  buildDomActionOutcome,
+  buildDomFailureResult,
+  buildDomReviewRequiredResult,
+} from "./dom-action-result.js";
 import { captureDomEvidenceRef } from "./dom-evidence.js";
 
 function buildFillScript(selector: string, approvedText: string, clearBeforeType: boolean): string {
@@ -33,47 +37,28 @@ export async function fillDomElementOnce(
   const input = FillDomElementInputSchema.parse(rawInput) as FillDomElementInput;
   const elementRef = DomElementRefSchema.parse(input.elementRef) as FillDomElementInput["elementRef"];
   if (input.approvedText.length === 0) {
-    return DomActionResultSchema.parse({
-      ok: false,
-      status: "review_required",
-      actionId: createId("dom"),
-      message: "approvedText is empty",
-      reviewRequiredReason: "DOM fill requires task-approved non-empty text.",
-    });
+    return buildDomReviewRequiredResult(
+      "approvedText is empty",
+      "DOM fill requires task-approved non-empty text.",
+    );
   }
 
   const beforeEvidenceRef = await captureDomEvidenceRef(browser, "dom-fill-before");
   if (!beforeEvidenceRef) {
-    return DomActionResultSchema.parse({
-      ok: false,
-      status: "review_required",
-      actionId: createId("dom"),
-      message: "before-action evidence capture failed",
-      reviewRequiredReason: "DOM fill requires evidence before action.",
-    });
+    return buildDomReviewRequiredResult(
+      "before-action evidence capture failed",
+      "DOM fill requires evidence before action.",
+    );
   }
-  const result = await browser.evaluateActiveTab<{ status: string; message: string }>({
+  const result = await browser.evaluateActiveTab<Pick<DomActionResult, "status" | "message">>({
     description: "fill approved text into located DOM element",
     script: buildFillScript(elementRef.selector, input.approvedText, input.clearBeforeType),
   });
   const afterEvidenceRef = await captureDomEvidenceRef(browser, "dom-fill-after");
   if (!afterEvidenceRef) {
-    return DomActionResultSchema.parse({
-      ok: false,
-      status: "failed",
-      actionId: createId("dom"),
-      message: "after-action evidence capture failed",
+    return buildDomFailureResult("after-action evidence capture failed", {
       beforeEvidenceRef,
     });
   }
-  const ok = result.status === "success";
-  return DomActionResultSchema.parse({
-    ok,
-    status: ok ? "success" : result.status,
-    actionId: createId("dom"),
-    message: result.message,
-    beforeEvidenceRef,
-    afterEvidenceRef,
-    ...(ok ? {} : { reviewRequiredReason: result.message }),
-  });
+  return buildDomActionOutcome(result, beforeEvidenceRef, afterEvidenceRef);
 }

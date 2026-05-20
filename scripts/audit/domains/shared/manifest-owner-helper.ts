@@ -37,13 +37,16 @@ const walkCodeFiles = (absolutePath: string, acc: string[] = []): string[] => {
 
 const ownerLawId = (manifest: OwnerManifest): string => manifest.allowedLawIds[0] ?? "GRASSEYE-AUDIT-SYSTEM-001-V1";
 
-const ownerFinding = (
+const ownerFinding = (...input: readonly [
   manifest: OwnerManifest,
   file: string,
   message: string,
   hint: string,
-  line = 1,
-): Finding => createFinding({ lawId: ownerLawId(manifest), file, line, severity: "fatal", message, hint });
+  line?: number,
+]): Finding => {
+  const [manifest, file, message, hint, line = 1] = input;
+  return createFinding({ lawId: ownerLawId(manifest), file, line, severity: "fatal", message, hint });
+};
 
 const loadOwnedSourceFiles = (manifest: OwnerManifest): SourceFile[] => {
   const project = getAuditProject();

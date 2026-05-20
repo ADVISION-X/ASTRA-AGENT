@@ -5,35 +5,27 @@ import { Node, SyntaxKind } from "ts-morph";
 import { pathFromRepoRoot } from "../../../core/paths.js";
 import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
-import {
-  getSourceFileAtRepoPath,
-  buildValidationResult,
-  type DomAutomationAuditProject,
-  type DomAutomationValidationResult,
-} from "./collect-dom-automation-project.js";
+import { getSourceFileAtRepoPath } from "./collect-dom-automation-project.js";
+import type { DomAutomationAuditProject, DomAutomationValidationResult } from "./dom-automation-project-types.js";
+import { buildValidationResult } from "./dom-automation-validation-result.js";
 
-const ciFinding = (
+const ciFinding = (...input: readonly [
   lawId: string,
   file: string,
   line: number,
   message: string,
   hint: string,
-): Finding => createFinding({
-  lawId,
-  file,
-  line,
-  severity: "fatal",
-  message,
-  hint,
-});
+]): Finding => {
+  const [lawId, file, line, message, hint] = input;
+  return createFinding({ lawId, file, line, severity: "fatal", message, hint });
+};
 
-export const validateCiEntry = (
-  auditProject: DomAutomationAuditProject,
-): DomAutomationValidationResult => {
-  const packageJson = JSON.parse(readFileSync(pathFromRepoRoot("package.json"), "utf8")) as {
-    scripts?: Record<string, string>;
-  };
-  const scripts = packageJson.scripts ?? {};
+const readPackageScripts = (): Record<string, string> => {
+  const packageJson = JSON.parse(readFileSync(pathFromRepoRoot("package.json"), "utf8")) as { scripts?: Record<string, string> };
+  return packageJson.scripts ?? {};
+};
+
+const collectCiPackageFindings = (scripts: Record<string, string>): Finding[] => {
   const findings: Finding[] = [];
   if (scripts["ci:full"] !== "node --import tsx scripts/audit/ci-full.ts") {
     findings.push(ciFinding("GRASSEYE-DOM-001-V1", "package.json", 1, "package.json ci:full does not point to scripts/audit/ci-full.ts", "Keep ci:full as the single authoritative full-chain entry."));
@@ -46,23 +38,37 @@ export const validateCiEntry = (
   if (secondFullEntry) {
     findings.push(ciFinding("GRASSEYE-DOM-001-V1", "package.json", 1, `package.json declares a forbidden second full audit entry: ${secondFullEntry[0]}`, "Keep CI-FULL as the only complete audit chain entry."));
   }
+  return findings;
+};
+
+const collectCiFileFindings = (auditProject: DomAutomationAuditProject): Finding[] => {
   const ciFile = getSourceFileAtRepoPath(auditProject.project, "scripts/audit/ci-full.ts");
   if (!ciFile) {
-    findings.push(ciFinding("GRASSEYE-DOM-001-V1", "scripts/audit/ci-full.ts", 1, "scripts/audit/ci-full.ts is missing", "Keep the full-chain CI entrypoint in scripts/audit/ci-full.ts."));
-  } else {
-    const importsPlanBuilder = ciFile.getImportDeclarations().some((importDeclaration) => importDeclaration.getModuleSpecifierValue().includes("ci-full-plan")
-      && importDeclaration.getNamedImports().some((namedImport) => namedImport.getNameNode().getText() === "buildCiFullSteps"));
-    if (!importsPlanBuilder) {
-      findings.push(ciFinding("GRASSEYE-DOM-001-V1", "scripts/audit/ci-full.ts", 1, "CI-FULL does not import buildCiFullSteps from the canonical plan", "Build CI-FULL from the single manifest-driven plan."));
-    }
-    const stepCall = ciFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
-      const expression = callExpression.getExpression();
-      return Node.isIdentifier(expression) && expression.getText() === "buildCiFullSteps";
-    });
-    if (!stepCall) {
-      findings.push(ciFinding("GRASSEYE-DOM-001-V1", "scripts/audit/ci-full.ts", 1, "CI-FULL does not call buildCiFullSteps", "Execute the canonical CI plan instead of maintaining a second chain."));
-    }
+    return [ciFinding("GRASSEYE-DOM-001-V1", "scripts/audit/ci-full.ts", 1, "scripts/audit/ci-full.ts is missing", "Keep the full-chain CI entrypoint in scripts/audit/ci-full.ts.")];
   }
+  const findings: Finding[] = [];
+  const importsPlanBuilder = ciFile.getImportDeclarations().some((importDeclaration) => importDeclaration.getModuleSpecifierValue().includes("ci-full-plan")
+    && importDeclaration.getNamedImports().some((namedImport) => namedImport.getNameNode().getText() === "buildCiFullSteps"));
+  if (!importsPlanBuilder) {
+    findings.push(ciFinding("GRASSEYE-DOM-001-V1", "scripts/audit/ci-full.ts", 1, "CI-FULL does not import buildCiFullSteps from the canonical plan", "Build CI-FULL from the single manifest-driven plan."));
+  }
+  const stepCall = ciFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => {
+    const expression = callExpression.getExpression();
+    return Node.isIdentifier(expression) && expression.getText() === "buildCiFullSteps";
+  });
+  if (!stepCall) {
+    findings.push(ciFinding("GRASSEYE-DOM-001-V1", "scripts/audit/ci-full.ts", 1, "CI-FULL does not call buildCiFullSteps", "Execute the canonical CI plan instead of maintaining a second chain."));
+  }
+  return findings;
+};
+
+const validateCiEntry = (
+  auditProject: DomAutomationAuditProject,
+): DomAutomationValidationResult => {
+  const findings = [
+    ...collectCiPackageFindings(readPackageScripts()),
+    ...collectCiFileFindings(auditProject),
+  ];
   return buildValidationResult({
     name: "ci-entry",
     findings,

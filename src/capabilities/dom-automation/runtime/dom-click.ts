@@ -1,7 +1,11 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import { createId } from "../../../lib/local-runtime/ids.js";
-import { ClickDomElementInputSchema, DomActionResultSchema, DomElementRefSchema } from "../schema.js";
+import { ClickDomElementInputSchema, DomElementRefSchema } from "../schema.js";
 import type { ClickDomElementInput, DomActionResult } from "../schema.js";
+import {
+  buildDomActionOutcome,
+  buildDomFailureResult,
+  buildDomReviewRequiredResult,
+} from "./dom-action-result.js";
 import { captureDomEvidenceRef } from "./dom-evidence.js";
 
 const DANGEROUS_TEXT = /delete|refund|cancel|pay now|submit payment|remove/i;
@@ -32,26 +36,20 @@ export async function clickDomElementOnce(
   const input = ClickDomElementInputSchema.parse(rawInput) as ClickDomElementInput;
   const elementRef = DomElementRefSchema.parse(input.elementRef) as ClickDomElementInput["elementRef"];
   if (DANGEROUS_TEXT.test(input.expectedText ?? input.expectedKind)) {
-    return DomActionResultSchema.parse({
-      ok: false,
-      status: "review_required",
-      actionId: createId("dom"),
-      message: "dangerous DOM click requires human review",
-      reviewRequiredReason: "Sensitive irreversible action text matched.",
-    });
+    return buildDomReviewRequiredResult(
+      "dangerous DOM click requires human review",
+      "Sensitive irreversible action text matched.",
+    );
   }
 
   const beforeEvidenceRef = await captureDomEvidenceRef(browser, "dom-click-before");
   if (!beforeEvidenceRef) {
-    return DomActionResultSchema.parse({
-      ok: false,
-      status: "review_required",
-      actionId: createId("dom"),
-      message: "before-action evidence capture failed",
-      reviewRequiredReason: "DOM click requires evidence before action.",
-    });
+    return buildDomReviewRequiredResult(
+      "before-action evidence capture failed",
+      "DOM click requires evidence before action.",
+    );
   }
-  const result = await browser.evaluateActiveTab<{ status: string; message: string }>({
+  const result = await browser.evaluateActiveTab<Pick<DomActionResult, "status" | "message">>({
     description: "click located visible enabled DOM element",
     script: buildClickScript(elementRef.selector, input.expectedText),
   });
@@ -60,22 +58,9 @@ export async function clickDomElementOnce(
   }
   const afterEvidenceRef = await captureDomEvidenceRef(browser, "dom-click-after");
   if (!afterEvidenceRef) {
-    return DomActionResultSchema.parse({
-      ok: false,
-      status: "failed",
-      actionId: createId("dom"),
-      message: "after-action evidence capture failed",
+    return buildDomFailureResult("after-action evidence capture failed", {
       beforeEvidenceRef,
     });
   }
-  const ok = result.status === "success";
-  return DomActionResultSchema.parse({
-    ok,
-    status: ok ? "success" : result.status,
-    actionId: createId("dom"),
-    message: result.message,
-    beforeEvidenceRef,
-    afterEvidenceRef,
-    ...(ok ? {} : { reviewRequiredReason: result.message }),
-  });
+  return buildDomActionOutcome(result, beforeEvidenceRef, afterEvidenceRef);
 }

@@ -36,20 +36,5 @@ export function createNerveBusCommandTransportPort(nerveBus: NerveBusAbilityGrou
         return { ok: false, transportRef: null, failureReason: error instanceof Error ? error.message : "transport error" };
       }
     },
-    async emitHumanCommand(command) {
-      const runId = randomUUID();
-      try {
-        const result = await dispatchHumanCommand(nerveBus, {
-          commandType: command.commandType,
-          missionId: command.targetMissionId ?? null,
-          payload: command.payload,
-          runId,
-        });
-        return { commandId: command.commandId, runId, envelopeRef: command.commandId, resultEnvelopeRef: null, status: result.status === "success" ? "accepted" as const : "failed" as const, failureReason: result.failureReason ?? null, reviewRequiredReason: null, message: result.failureReason ?? "dispatched", debugLogRef: null };
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "transport error";
-        return { commandId: command.commandId, runId, envelopeRef: null, resultEnvelopeRef: null, status: "failed" as const, failureReason: message, reviewRequiredReason: null, message, debugLogRef: null };
-      }
-    },
   };
 }

@@ -121,16 +121,42 @@ const checkNoRandomUuidAsTraceId = (project: Project): RlogCheck => {
   return pass("RLOG-AST-007", "traceId never comes from randomUUID?", "No randomUUID traceId source found.");
 };
 
-const checkRuntimeLoggerInjection = (project: Project): RlogCheck => {
-  const sourceFile = getSfOrNull(project, "src/lib/local-runtime/workbench-assembly.ts");
+const objectArgHasProperty = (node: Node | undefined, propertyName: string): boolean => {
+  if (!node || !Node.isObjectLiteralExpression(node)) return false;
+  return node.getProperties().some((property) => {
+    if (Node.isShorthandPropertyAssignment(property)) return property.getName() === propertyName;
+    if (!Node.isPropertyAssignment(property)) return false;
+    const nameNode = property.getNameNode();
+    return Node.isIdentifier(nameNode) && nameNode.getText() === propertyName;
+  });
+};
+
+const fileHasCallWithRuntimeLogger = (
+  project: Project,
+  filePath: string,
+  callName: string,
+): boolean => {
+  const sourceFile = getSfOrNull(project, filePath);
   let found = false;
   sourceFile?.forEachDescendant((node) => {
     if (!Node.isCallExpression(node) || found) return;
     const expression = node.getExpression();
-    if (!Node.isIdentifier(expression) || expression.getText() !== "createConfiguredAiAbilityGroup") return;
-    const objectArg = getObjectArg(node);
-    found = Boolean(objectArg?.getText().includes("runtimeLogger"));
+    if (!Node.isIdentifier(expression) || expression.getText() !== callName) return;
+    found = objectArgHasProperty(getObjectArg(node), "runtimeLogger");
   });
+  return found;
+};
+
+const checkRuntimeLoggerInjection = (project: Project): RlogCheck => {
+  const found = fileHasCallWithRuntimeLogger(
+    project,
+    "src/lib/local-runtime/workbench-assembly.ts",
+    "createWorkbenchCapabilityGroups",
+  ) && fileHasCallWithRuntimeLogger(
+    project,
+    "src/lib/local-runtime/workbench-capability-support.ts",
+    "createConfiguredAiAbilityGroup",
+  );
   if (!found) return fail("RLOG-AST-008", "runtimeLogger is injected into AI ability group?", "runtimeLogger argument missing.");
   return pass("RLOG-AST-008", "runtimeLogger is injected into AI ability group?", "runtimeLogger injection exists.");
 };

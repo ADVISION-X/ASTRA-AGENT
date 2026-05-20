@@ -10,6 +10,7 @@ import {
   CommanderConsoleInputSchema,
   CommanderConsoleResultSchema,
   COMMANDER_CONSOLE_ABILITY_GROUP_ID,
+  type CommanderChildCapabilityId,
   type CommanderConsoleResult,
 } from "./schema.js";
 import { createCommanderRegistry, listCommanderChildren } from "./registry.js";
@@ -24,7 +25,7 @@ type CommanderRawInput = {
 };
 
 type CommanderFailureInput = {
-  childCapabilityId: string;
+  childCapabilityId: CommanderChildCapabilityId;
   commandType: string;
   operatorRef: string;
   failureReason: string;
@@ -77,7 +78,7 @@ const buildGlobalInputFailure = (
 };
 
 const buildUnknownChildFailure = (
-  childCapabilityId: string,
+  childCapabilityId: CommanderChildCapabilityId,
   operatorRef: string,
 ): CommanderConsoleResult => {
   const startedAt = new Date().toISOString();
@@ -92,7 +93,7 @@ const buildUnknownChildFailure = (
 };
 
 const buildChildExecutionFailure = (
-  childCapabilityId: string,
+  childCapabilityId: CommanderChildCapabilityId,
   operatorRef: string,
   reason: string,
 ): CommanderConsoleResult => {

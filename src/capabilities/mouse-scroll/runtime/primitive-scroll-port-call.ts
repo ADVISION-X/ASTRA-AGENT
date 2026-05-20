@@ -1,3 +1,4 @@
+import type { MouseScrollPrimitiveInput } from "../ports/mouse-scroll-primitive-port.js";
 import type { PrimitivePortResult, RunPrimitiveScrollInput } from "./primitive-scroll-runner-types.js";
 
 type PrimitivePortCallInput = {
@@ -8,7 +9,7 @@ type PrimitivePortCallInput = {
   markTimeoutTriggered(): void;
 };
 
-const buildPrimitivePortRequest = (input: PrimitivePortCallInput) => ({
+const buildPrimitivePortRequest = (input: PrimitivePortCallInput): MouseScrollPrimitiveInput => ({
   attemptRef: input.input.attemptRef,
   scrollExecutionRef: input.input.scrollExecutionRef,
   idempotencyKey: input.input.idempotencyKey,

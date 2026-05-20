@@ -1,13 +1,9 @@
 import { createFinding } from "../../../core/result.js";
+import type { ImportDeclaration } from "ts-morph";
 import type { Finding } from "../../../core/schema.js";
-import {
-  buildValidationResult,
-  isRepoPathWithin,
-  resolveImportedDeclarationPaths,
-  resolveModuleTargetPath,
-  type DomAutomationAuditProject,
-  type DomAutomationValidationResult,
-} from "./collect-dom-automation-project.js";
+import { isRepoPathWithin, resolveImportedDeclarationPaths, resolveModuleTargetPath } from "./dom-automation-module-resolution.js";
+import type { DomAutomationAuditProject, DomAutomationValidationResult } from "./dom-automation-project-types.js";
+import { buildValidationResult } from "./dom-automation-validation-result.js";
 
 const DOM_FACADE_PATH = "src/capabilities/dom-automation/index.ts";
 const BROWSER_CONTROLLER_PATH = "src/lib/browser/browser-controller.ts";
@@ -18,20 +14,16 @@ const FORBIDDEN_PLUGIN_TARGETS = [
 ] as const;
 const APPROVED_STORAGE_EXTERNAL_MODULES = new Set(["node:fs", "node:path"]);
 
-const importFinding = (
+const importFinding = (...input: readonly [
   lawId: string,
   file: string,
   line: number,
   message: string,
   hint: string,
-): Finding => createFinding({
-  lawId,
-  file,
-  line,
-  severity: "fatal",
-  message,
-  hint,
-});
+]): Finding => {
+  const [lawId, file, line, message, hint] = input;
+  return createFinding({ lawId, file, line, severity: "fatal", message, hint });
+};
 
 const validateVisualMissionBoundary = (
   auditProject: DomAutomationAuditProject,
@@ -55,73 +47,63 @@ const validateVisualMissionBoundary = (
   return findings;
 };
 
+const isApprovedPluginExternalImport = (repoPath: string, specifier: string): boolean =>
+  specifier === "zod"
+  || (repoPath.endsWith("amazon-invoice-upload-storage.ts") && APPROVED_STORAGE_EXTERNAL_MODULES.has(specifier));
+
+const pluginExternalImportFinding = (
+  repoPath: string,
+  importDeclaration: ImportDeclaration,
+): Finding | null => {
+  const specifier = importDeclaration.getModuleSpecifierValue();
+  return isApprovedPluginExternalImport(repoPath, specifier)
+    ? null
+    : importFinding("GRASSEYE-DOM-008-V1", repoPath, importDeclaration.getStartLineNumber(), `plugin imports unsupported external module: ${specifier}`, "Amazon plugin may only import DOM facade, BrowserController type, its own files, and zod.");
+};
+
+const pluginBrowserImportFinding = (
+  repoPath: string,
+  importDeclaration: ImportDeclaration,
+): Finding | null => importDeclaration.getImportClause()?.isTypeOnly() === true
+  ? null
+  : importFinding("GRASSEYE-DOM-008-V1", repoPath, importDeclaration.getStartLineNumber(), "plugin imports BrowserController as runtime code instead of type-only contract", "Keep BrowserController imported as a type-only boundary.");
+
+const pluginForbiddenRelativeImportFinding = (
+  repoPath: string,
+  importDeclaration: ImportDeclaration,
+  moduleTargetPath: string,
+): Finding => {
+  const targetsPrivateImplementation = FORBIDDEN_PLUGIN_TARGETS.some((target) => isRepoPathWithin(moduleTargetPath, target));
+  return importFinding("GRASSEYE-DOM-008-V1", repoPath, importDeclaration.getStartLineNumber(), targetsPrivateImplementation ? `plugin imports forbidden private DOM or browser implementation: ${moduleTargetPath}` : `plugin imports forbidden module outside its allowed boundary: ${moduleTargetPath}`, targetsPrivateImplementation ? "Amazon plugin must call DOM facade only, never runtime or browser primitives." : "Keep Amazon plugin scoped to its own files, DOM facade, BrowserController type, and zod.");
+};
+
+const pluginRelativeImportFinding = (
+  repoPath: string,
+  importDeclaration: ImportDeclaration,
+): Finding | null => {
+  const moduleTargetPath = resolveModuleTargetPath(importDeclaration);
+  if (!moduleTargetPath || isRepoPathWithin(moduleTargetPath, "src/plugins/amazon-invoice-upload") || moduleTargetPath === DOM_FACADE_PATH) return null;
+  return moduleTargetPath === BROWSER_CONTROLLER_PATH
+    ? pluginBrowserImportFinding(repoPath, importDeclaration)
+    : pluginForbiddenRelativeImportFinding(repoPath, importDeclaration, moduleTargetPath);
+};
+
+const pluginImportFinding = (
+  repoPath: string,
+  importDeclaration: ImportDeclaration,
+): Finding | null => importDeclaration.getModuleSpecifierValue().startsWith(".")
+  ? pluginRelativeImportFinding(repoPath, importDeclaration)
+  : pluginExternalImportFinding(repoPath, importDeclaration);
+
 const validatePluginImports = (
   auditProject: DomAutomationAuditProject,
-): Finding[] => {
-  const findings: Finding[] = [];
-  for (const sourceFile of auditProject.sourceFiles.plugin) {
-    const repoPath = sourceFile.getFilePath().replace(`${auditProject.project.getDirectoryOrThrow(".").getPath()}/`, "");
-    for (const importDeclaration of sourceFile.getImportDeclarations()) {
-      const specifier = importDeclaration.getModuleSpecifierValue();
-      if (!specifier.startsWith(".")) {
-        if (repoPath.endsWith("amazon-invoice-upload-storage.ts") && APPROVED_STORAGE_EXTERNAL_MODULES.has(specifier)) {
-          continue;
-        }
-        if (specifier === "zod") {
-          continue;
-        }
-        findings.push(importFinding(
-          "GRASSEYE-DOM-008-V1",
-          repoPath,
-          importDeclaration.getStartLineNumber(),
-          `plugin imports unsupported external module: ${specifier}`,
-          "Amazon plugin may only import DOM facade, BrowserController type, its own files, and zod.",
-        ));
-        continue;
-      }
-      const moduleTargetPath = resolveModuleTargetPath(importDeclaration);
-      if (!moduleTargetPath) {
-        continue;
-      }
-      if (isRepoPathWithin(moduleTargetPath, "src/plugins/amazon-invoice-upload")) {
-        continue;
-      }
-      if (moduleTargetPath === DOM_FACADE_PATH) {
-        continue;
-      }
-      if (moduleTargetPath === BROWSER_CONTROLLER_PATH) {
-        if (importDeclaration.getImportClause()?.isTypeOnly() !== true) {
-          findings.push(importFinding(
-            "GRASSEYE-DOM-008-V1",
-            repoPath,
-            importDeclaration.getStartLineNumber(),
-            "plugin imports BrowserController as runtime code instead of type-only contract",
-            "Keep BrowserController imported as a type-only boundary.",
-          ));
-        }
-        continue;
-      }
-      if (FORBIDDEN_PLUGIN_TARGETS.some((target) => isRepoPathWithin(moduleTargetPath, target))) {
-        findings.push(importFinding(
-          "GRASSEYE-DOM-008-V1",
-          repoPath,
-          importDeclaration.getStartLineNumber(),
-          `plugin imports forbidden private DOM or browser implementation: ${moduleTargetPath}`,
-          "Amazon plugin must call DOM facade only, never runtime or browser primitives.",
-        ));
-        continue;
-      }
-      findings.push(importFinding(
-        "GRASSEYE-DOM-008-V1",
-        repoPath,
-        importDeclaration.getStartLineNumber(),
-        `plugin imports forbidden module outside its allowed boundary: ${moduleTargetPath}`,
-        "Keep Amazon plugin scoped to its own files, DOM facade, BrowserController type, and zod.",
-      ));
-    }
-  }
-  return findings;
-};
+): Finding[] => auditProject.sourceFiles.plugin.flatMap((sourceFile) => {
+  const repoPath = sourceFile.getFilePath().replace(`${auditProject.project.getDirectoryOrThrow(".").getPath()}/`, "");
+  return sourceFile.getImportDeclarations().flatMap((importDeclaration) => {
+    const finding = pluginImportFinding(repoPath, importDeclaration);
+    return finding ? [finding] : [];
+  });
+});
 
 const validateDomCoreAgainstPlugin = (
   auditProject: DomAutomationAuditProject,
@@ -159,7 +141,7 @@ const validateDomCoreAgainstPlugin = (
   return findings;
 };
 
-export const validateImportBoundaries = (
+const validateImportBoundaries = (
   auditProject: DomAutomationAuditProject,
 ): DomAutomationValidationResult => {
   const findings = [

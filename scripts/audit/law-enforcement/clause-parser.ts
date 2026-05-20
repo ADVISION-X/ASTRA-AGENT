@@ -89,13 +89,14 @@ const resolveSectionSource = (line: string): ClauseSource | null => {
   return null;
 };
 
-const collectSectionClauses = (
+const collectSectionClauses = (...input: readonly [
   lawId: string,
   lawFilePath: string,
   prefix: string,
   source: ClauseSource,
   lines: string[],
-): ParsedClause[] => {
+]): ParsedClause[] => {
+  const [lawId, lawFilePath, prefix, source, lines] = input;
   const text = stripCodeFences(lines.join("\n"));
   const bulletItems = [...text.matchAll(/^\s*(?:[-*]|\d+\.)\s+(.+)$/gm)]
     .map((match) => normalizeText(match[1] ?? ""))
@@ -116,6 +117,108 @@ const collectSectionClauses = (
   }));
 };
 
+type LawClauseParseState = {
+  currentSource: ClauseSource | null;
+  currentPrefix: string;
+  currentLines: string[];
+};
+
+const buildLawSummaryClause = (law: LawRecord): ParsedClause => ({
+  lawId: law.lawId,
+  lawFilePath: law.lawFile,
+  clauseId: `${law.lawId}.summary.01`,
+  clauseSource: "law-summary",
+  clauseText: normalizeText(law.summary),
+});
+
+const createLawClauseParseState = (): LawClauseParseState => ({
+  currentSource: null,
+  currentPrefix: "summary",
+  currentLines: [],
+});
+
+const flushLawSectionClauses = (
+  law: LawRecord,
+  state: LawClauseParseState,
+  clauses: ParsedClause[],
+): LawClauseParseState => {
+  if (!state.currentSource || state.currentLines.length === 0) {
+    return { ...state, currentLines: [] };
+  }
+  clauses.push(...collectSectionClauses(
+    law.lawId,
+    law.lawFile,
+    state.currentPrefix,
+    state.currentSource,
+    state.currentLines,
+  ));
+  return { ...state, currentLines: [] };
+};
+
+const stepLawClauseLine = (
+  law: LawRecord,
+  state: LawClauseParseState,
+  clauses: ParsedClause[],
+  line: string,
+): LawClauseParseState => {
+  const trimmed = line.trim();
+  const nextSource = resolveSectionSource(trimmed);
+  if (nextSource) {
+    flushLawSectionClauses(law, state, clauses);
+    return { currentSource: nextSource, currentPrefix: nextSource, currentLines: [] };
+  }
+  if (/^#{2,6}\s+/.test(trimmed)) {
+    flushLawSectionClauses(law, state, clauses);
+    return createLawClauseParseState();
+  }
+  return state.currentSource
+    ? { ...state, currentLines: [...state.currentLines, line] }
+    : state;
+};
+
+type BlueprintSection = {
+  source: ClauseSource;
+  heading: string;
+  lines: string[];
+};
+
+const createBlueprintSection = (trimmedHeading: string): BlueprintSection => ({
+  source: resolveSectionSource(trimmedHeading) ?? "blueprint",
+  heading: trimmedHeading.replace(/^#+\s*/, ""),
+  lines: [],
+});
+
+const collectBlueprintSections = (lines: string[]): BlueprintSection[] => {
+  const sections: BlueprintSection[] = [];
+  let current: BlueprintSection | null = null;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^#{2,6}\s+/.test(trimmed)) {
+      if (current) sections.push(current);
+      current = createBlueprintSection(trimmed);
+      continue;
+    }
+    if (current) {
+      current.lines.push(line);
+    }
+  }
+  if (current) sections.push(current);
+  return sections;
+};
+
+const collectBlueprintLawClauses = (
+  filePath: string,
+  lawId: string,
+  sections: BlueprintSection[],
+): ParsedClause[] => sections.flatMap((section, index) =>
+  collectSectionClauses(
+    lawId,
+    filePath,
+    `${section.source}.${String(index + 1).padStart(2, "0")}.${sanitizeId(section.heading)}`,
+    section.source,
+    section.lines,
+  ));
+
 export const parseLawClauses = (law: LawRecord): {
   clauses: ParsedClause[];
   parseFailure?: string;
@@ -125,45 +228,14 @@ export const parseLawClauses = (law: LawRecord): {
     return { clauses: [], parseFailure: "law_parse_failed" };
   }
 
-  const clauses: ParsedClause[] = [{
-    lawId: law.lawId,
-    lawFilePath: law.lawFile,
-    clauseId: `${law.lawId}.summary.01`,
-    clauseSource: "law-summary",
-    clauseText: normalizeText(law.summary),
-  }];
+  const clauses: ParsedClause[] = [buildLawSummaryClause(law)];
   const lines = stripCodeFences(block).split("\n");
-  let currentSource: ClauseSource | null = null;
-  let currentPrefix = "summary";
-  let currentLines: string[] = [];
-
-  const flush = (): void => {
-    if (!currentSource || currentLines.length === 0) return;
-    clauses.push(...collectSectionClauses(law.lawId, law.lawFile, currentPrefix, currentSource, currentLines));
-    currentLines = [];
-  };
+  let state = createLawClauseParseState();
 
   for (const line of lines) {
-    const trimmed = line.trim();
-    const nextSource = resolveSectionSource(trimmed);
-    if (nextSource) {
-      flush();
-      currentSource = nextSource;
-      currentPrefix = nextSource;
-      currentLines = [];
-      continue;
-    }
-    if (/^#{2,6}\s+/.test(trimmed)) {
-      flush();
-      currentSource = null;
-      currentLines = [];
-      continue;
-    }
-    if (currentSource) {
-      currentLines.push(line);
-    }
+    state = stepLawClauseLine(law, state, clauses, line);
   }
-  flush();
+  flushLawSectionClauses(law, state, clauses);
 
   return { clauses };
 };
@@ -174,39 +246,7 @@ export const parseBlueprintClauses = (
 ): ParsedClause[] => {
   if (relatedLawIds.length === 0) return [];
   const text = stripCodeFences(readFileSync(pathFromRepoRoot(filePath), "utf8"));
-  const lines = text.split("\n");
-  const sections: Array<{ source: ClauseSource; heading: string; lines: string[] }> = [];
-  let current: { source: ClauseSource; heading: string; lines: string[] } | null = null;
-
-  const flush = (): void => {
-    if (!current) return;
-    sections.push(current);
-    current = null;
-  };
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (/^#{2,6}\s+/.test(trimmed)) {
-      flush();
-      current = {
-        source: resolveSectionSource(trimmed) ?? "blueprint",
-        heading: trimmed.replace(/^#+\s*/, ""),
-        lines: [],
-      };
-      continue;
-    }
-    if (current) {
-      current.lines.push(line);
-    }
-  }
-  flush();
-
-  return relatedLawIds.flatMap((lawId) => sections.flatMap((section, index) =>
-    collectSectionClauses(
-      lawId,
-      filePath,
-      `${section.source}.${String(index + 1).padStart(2, "0")}.${sanitizeId(section.heading)}`,
-      section.source,
-      section.lines,
-    )));
+  const sections = collectBlueprintSections(text.split("\n"));
+  return relatedLawIds.flatMap((lawId) =>
+    collectBlueprintLawClauses(filePath, lawId, sections));
 };

@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
 
 import { Node, type Identifier, type SourceFile } from "ts-morph";
 
@@ -11,7 +12,29 @@ const ownerFromPath = (path: string): string | undefined => {
   return match?.[1];
 };
 
-const publicSurfacePattern = /(^|\/)(index|contract|schema[^/]*|types|manifest|run-inspector)\.(ts|tsx|js|mjs|cjs)$/;
+const publicSurfacePattern = /(^|\/)(index|contract|schema[^/]*|types|manifest|run-inspector|inspector)\.(ts|tsx|js|mjs|cjs)$/;
+
+type OwnerManifestEntry = {
+  readonly entry?: string;
+  readonly exportName?: string;
+};
+
+const readManifestEntrypointExports = (): Set<string> => {
+  const domainsDir = pathFromRepoRoot("scripts/audit/domains");
+  const active = new Set<string>();
+  if (!existsSync(domainsDir)) return active;
+  for (const dirent of readdirSync(domainsDir, { withFileTypes: true })) {
+    if (!dirent.isDirectory()) continue;
+    const manifestPath = path.join(domainsDir, dirent.name, "manifest.json");
+    if (!existsSync(manifestPath)) continue;
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as OwnerManifestEntry;
+    if (!manifest.entry || !manifest.exportName) continue;
+    active.add(`${manifest.entry}:${manifest.exportName}`);
+  }
+  return active;
+};
+
+const manifestEntrypointExports = readManifestEntrypointExports();
 
 const readPackageEntrypoints = (): Set<string> => {
   const packageJson = JSON.parse(
@@ -114,6 +137,7 @@ const collectUnusedExportFindings = (sourceFile: SourceFile): PurityFinding[] =>
       : node.getDeclarations().map((declaration) => declaration.getNameNode()).filter(Node.isIdentifier);
     for (const symbol of symbols) {
       if (!node.hasExportKeyword()) continue;
+      if (manifestEntrypointExports.has(`${file}:${symbol.getText()}`)) continue;
       const refs = safeFindReferences(symbol);
       if (refs <= 1) {
         findings.push({

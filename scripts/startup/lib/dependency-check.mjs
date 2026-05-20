@@ -51,52 +51,83 @@ function ensureSupportedNodeVersion(packageMetadata) {
   return nodeVersion;
 }
 
-export async function assessDependencyState({
-  rootDir,
-  npmCommand = getDefaultNpmCommand(),
-  npmVersion,
-  updateRequested = false,
-}) {
+function buildDependencyPaths(rootDir) {
   const packageJsonPath = path.join(rootDir, "package.json");
   const packageLockPath = path.join(rootDir, "package-lock.json");
   const nodeModulesPath = path.join(rootDir, "node_modules");
-  const nodeModulesLockPath = path.join(nodeModulesPath, ".package-lock.json");
-
-  if (!(await pathExists(packageJsonPath))) {
-    throw new Error(`Missing package.json at ${packageJsonPath}`);
-  }
-
-  const packageMetadata = await readPackageMetadata(rootDir);
-  const nodeVersion = ensureSupportedNodeVersion(packageMetadata);
-  const resolvedNpmVersion = npmVersion ?? (await getNpmVersion(npmCommand, rootDir));
-  const { reasons, nodeModulesExists } = await collectMetadataReasons({
+  return {
     packageJsonPath,
     packageLockPath,
     nodeModulesPath,
-    nodeModulesLockPath,
-  });
-  const missingPackages = await findMissingPackages(packageMetadata, nodeModulesPath, nodeModulesExists);
+    nodeModulesLockPath: path.join(nodeModulesPath, ".package-lock.json"),
+  };
+}
+
+async function collectDependencyReasons(packageMetadata, paths) {
+  const { reasons, nodeModulesExists } = await collectMetadataReasons(paths);
+  const missingPackages = await findMissingPackages(packageMetadata, paths.nodeModulesPath, nodeModulesExists);
 
   if (missingPackages.length > 0) {
     reasons.push(`node_modules is missing package entries: ${missingPackages.join(", ")}.`);
   }
 
-  const unsafeUpdateRanges = updateRequested ? findUnsafeDependencyRanges(packageMetadata) : [];
+  return reasons;
+}
 
+function buildDependencyAssessment({
+  rootDir,
+  npmCommand,
+  resolvedNpmVersion,
+  nodeVersion,
+  paths,
+  reasons,
+  updateRequested,
+  unsafeUpdateRanges,
+}) {
   return {
     rootDir,
     npmCommand,
     npmVersion: resolvedNpmVersion,
     nodeVersion,
-    packageJsonPath,
-    packageLockPath,
-    nodeModulesPath,
+    packageJsonPath: paths.packageJsonPath,
+    packageLockPath: paths.packageLockPath,
+    nodeModulesPath: paths.nodeModulesPath,
     requiresInstall: reasons.length > 0,
     reasons,
     updateRequested,
     unsafeUpdateRanges,
     safeToUpdate: unsafeUpdateRanges.length === 0,
   };
+}
+
+export async function assessDependencyState({
+  rootDir,
+  npmCommand = getDefaultNpmCommand(),
+  npmVersion,
+  updateRequested = false,
+}) {
+  const paths = buildDependencyPaths(rootDir);
+
+  if (!(await pathExists(paths.packageJsonPath))) {
+    throw new Error(`Missing package.json at ${paths.packageJsonPath}`);
+  }
+
+  const packageMetadata = await readPackageMetadata(rootDir);
+  const nodeVersion = ensureSupportedNodeVersion(packageMetadata);
+  const resolvedNpmVersion = npmVersion ?? (await getNpmVersion(npmCommand, rootDir));
+  const reasons = await collectDependencyReasons(packageMetadata, paths);
+  const unsafeUpdateRanges = updateRequested ? findUnsafeDependencyRanges(packageMetadata) : [];
+
+  return buildDependencyAssessment({
+    rootDir,
+    npmCommand,
+    resolvedNpmVersion,
+    nodeVersion,
+    paths,
+    reasons,
+    updateRequested,
+    unsafeUpdateRanges,
+  });
 }
 
 export async function installDependencies({ rootDir, npmCommand = getDefaultNpmCommand(), updateRequested = false }) {

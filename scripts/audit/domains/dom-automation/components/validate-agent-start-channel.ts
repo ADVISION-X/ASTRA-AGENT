@@ -1,8 +1,5 @@
-import {
-  buildValidationResult,
-  type DomAutomationAuditProject,
-  type DomAutomationValidationResult,
-} from "./collect-dom-automation-project.js";
+import type { DomAutomationAuditProject, DomAutomationValidationResult } from "./dom-automation-project-types.js";
+import { buildValidationResult } from "./dom-automation-validation-result.js";
 import {
   validatePluginRouteContract,
   validateTaskServiceChannel,
@@ -11,7 +8,7 @@ import {
 } from "./validate-agent-start-channel-runtime.js";
 import { validateAmazonUiChannel } from "./validate-agent-start-channel-ui.js";
 
-export const validateAgentStartChannel = (
+const validateAgentStartChannel = (
   auditProject: DomAutomationAuditProject,
 ): DomAutomationValidationResult => {
   const findings = [

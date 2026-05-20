@@ -15,6 +15,7 @@ import {
 import {
   clickLocated,
   gatedResult,
+  locateOrStatus,
   locateFailureResult,
   taskResult,
 } from "./amazon-invoice-upload-flow-support.js";
@@ -74,7 +75,7 @@ async function uploadAndSubmitInvoice(
       reachedStep: "file attached before final submit",
       amazonOrderId: mission.amazonOrderId,
       invoiceNo: mission.invoiceNo,
-      evidenceRef: uploadResult.value,
+      ...(uploadResult.value ? { evidenceRef: uploadResult.value } : {}),
       reviewRequired: true,
     });
   }

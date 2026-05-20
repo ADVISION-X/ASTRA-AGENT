@@ -144,6 +144,41 @@ const toBinaryVerdict = (manifest: OwnerManifest, result: BinaryInspectorLike): 
   };
 };
 
+const toInspectorExecutionFailureVerdict = (
+  manifest: OwnerManifest,
+  error: unknown,
+): DomainInspectorVerdict => ({
+  capabilityDomain: manifest.capabilityDomain,
+  inspectorId: manifest.inspectorId,
+  status: "FAIL",
+  evidence: `owner inspector execution failed: ${manifest.entry}`,
+  findingLawIds: manifest.allowedLawIds,
+  failureReason: error instanceof Error ? error.message : String(error),
+});
+
+const runGenericOwnerInspector = async (
+  manifest: OwnerManifest,
+): Promise<DomainInspectorVerdict> => {
+  const inspector = await resolveInspector(manifest);
+  const result = await inspector({ repoRoot: process.cwd() });
+  if (isLegacyInspectorResult(result)) {
+    return toLegacyVerdict(manifest, result);
+  }
+  if (isBinaryInspectorResult(result)) {
+    return toBinaryVerdict(manifest, result);
+  }
+  throw new Error(`unsupported owner inspector result shape: ${manifest.entry}`);
+};
+
+const loadOwnerInspectorVerdict = async (
+  manifest: OwnerManifest,
+): Promise<DomainInspectorVerdict> => {
+  if (manifest.capabilityDomain === "code-purity") return toCodePurityVerdict(manifest);
+  if (manifest.capabilityDomain === "dom-automation") return toDomAutomationVerdict(manifest);
+  if (manifest.capabilityDomain === "runtime-logging") return toRuntimeLoggingVerdict(manifest);
+  return runGenericOwnerInspector(manifest);
+};
+
 export const loadOwnerInspectorVerdicts = async (
   manifests: OwnerManifest[],
 ): Promise<Map<string, DomainInspectorVerdict>> => {
@@ -151,40 +186,10 @@ export const loadOwnerInspectorVerdicts = async (
   for (const manifest of manifests) {
     if (manifest.capabilityDomain === "audit-system") continue;
     process.stdout.write(`[CI-FULL][HEARTBEAT] owner=${manifest.capabilityDomain} status=running\n`);
-    if (manifest.capabilityDomain === "code-purity") {
-      verdicts.set(manifest.capabilityDomain, toCodePurityVerdict(manifest));
-      continue;
-    }
-    if (manifest.capabilityDomain === "dom-automation") {
-      verdicts.set(manifest.capabilityDomain, toDomAutomationVerdict(manifest));
-      continue;
-    }
-    if (manifest.capabilityDomain === "runtime-logging") {
-      verdicts.set(manifest.capabilityDomain, toRuntimeLoggingVerdict(manifest));
-      continue;
-    }
-
     try {
-      const inspector = await resolveInspector(manifest);
-      const result = await inspector({ repoRoot: process.cwd() });
-      if (isLegacyInspectorResult(result)) {
-        verdicts.set(manifest.capabilityDomain, toLegacyVerdict(manifest, result));
-        continue;
-      }
-      if (isBinaryInspectorResult(result)) {
-        verdicts.set(manifest.capabilityDomain, toBinaryVerdict(manifest, result));
-        continue;
-      }
-      throw new Error(`unsupported owner inspector result shape: ${manifest.entry}`);
+      verdicts.set(manifest.capabilityDomain, await loadOwnerInspectorVerdict(manifest));
     } catch (error) {
-      verdicts.set(manifest.capabilityDomain, {
-        capabilityDomain: manifest.capabilityDomain,
-        inspectorId: manifest.inspectorId,
-        status: "FAIL",
-        evidence: `owner inspector execution failed: ${manifest.entry}`,
-        findingLawIds: manifest.allowedLawIds,
-        failureReason: error instanceof Error ? error.message : String(error),
-      });
+      verdicts.set(manifest.capabilityDomain, toInspectorExecutionFailureVerdict(manifest, error));
     }
   }
 

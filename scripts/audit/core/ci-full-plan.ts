@@ -5,9 +5,9 @@ import { buildOwnerRunnerCommand, loadOwnerManifests, sortOwnerManifests } from 
 
 export type CiFullLayerLabel = "foundation-layer" | "owner-layer";
 
-export const CI_FULL_LAYER_ORDER = ["foundation-layer", "owner-layer"] as const;
+const CI_FULL_LAYER_ORDER = ["foundation-layer", "owner-layer"] as const;
 
-export const CI_FULL_LAYER_EXECUTION = {
+const CI_FULL_LAYER_EXECUTION = {
   "foundation-layer": { executionMode: "serial" as const },
   "owner-layer": { executionMode: "serial" as const },
 } as const;
@@ -22,7 +22,20 @@ export type CiFullStepDefinition = {
 
 const STEP_TIMEOUT_MS = 120_000;
 
-export const FOUNDATION_STEPS: CiFullStepDefinition[] = [
+const FOUNDATION_STEPS: CiFullStepDefinition[] = [
+  {
+    name: "audit-build",
+    layer: "foundation-layer",
+    command: ["node", "--import", "tsx", "scripts/audit/build-audit-artifacts.ts"],
+    timeoutMs: STEP_TIMEOUT_MS,
+    artifactPaths: [
+      "scripts/audit/generated/active-law-census.generated.json",
+      "scripts/audit/generated/owner-inspector-matrix.generated.json",
+      "scripts/audit/generated/all-law-enforcement-matrix.generated.json",
+      "scripts/audit/generated/audit-system-summary.generated.json",
+      "scripts/audit/generated/audit-artifact-provenance.generated.json",
+    ],
+  },
   {
     name: "code-purity-owner",
     layer: "foundation-layer",
@@ -58,7 +71,7 @@ export const FOUNDATION_STEPS: CiFullStepDefinition[] = [
   },
 ];
 
-export const buildOwnerSteps = (): CiFullStepDefinition[] =>
+const buildOwnerSteps = (): CiFullStepDefinition[] =>
   sortOwnerManifests(loadOwnerManifests())
     .filter((manifest) => manifest.capabilityDomain !== "audit-system" && manifest.capabilityDomain !== "code-purity")
     .map((manifest) => ({
@@ -74,5 +87,5 @@ export const buildCiFullSteps = (): CiFullStepDefinition[] => [
   ...buildOwnerSteps(),
 ];
 
-export const getCiFullStepsByLayer = (layer: CiFullLayerLabel): CiFullStepDefinition[] =>
+const getCiFullStepsByLayer = (layer: CiFullLayerLabel): CiFullStepDefinition[] =>
   buildCiFullSteps().filter((s) => s.layer === layer);

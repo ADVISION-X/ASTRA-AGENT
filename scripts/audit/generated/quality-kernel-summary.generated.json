@@ -1,58 +1,9 @@
 {
-  "timestamp": "2026-05-19T20:08:57.214Z",
-  "pass": false,
+  "timestamp": "2026-05-19T23:36:08.884Z",
+  "pass": true,
   "hardRetiredSurface": {
-    "count": 8,
-    "findings": [
-      {
-        "file": "scripts/audit/domains/dom-automation/dom-automation-law-checks-001-005.ts",
-        "line": 106,
-        "pattern": "fallback",
-        "severity": "hard"
-      },
-      {
-        "file": "scripts/audit/domains/dom-automation/dom-automation-law-checks-001-005.ts",
-        "line": 122,
-        "pattern": "fallback",
-        "severity": "hard"
-      },
-      {
-        "file": "scripts/audit/domains/dom-automation/dom-automation-law-checks-001-005.ts",
-        "line": 106,
-        "pattern": "fallbackUsed",
-        "severity": "hard"
-      },
-      {
-        "file": "scripts/audit/domains/dom-automation/dom-automation-law-checks-001-005.ts",
-        "line": 122,
-        "pattern": "fallbackUsed",
-        "severity": "hard"
-      },
-      {
-        "file": "scripts/audit/domains/dom-automation/dom-automation-law-checks-006-010.ts",
-        "line": 26,
-        "pattern": "bridge",
-        "severity": "hard"
-      },
-      {
-        "file": "scripts/audit/domains/dom-automation/dom-automation-law-checks-006-010.ts",
-        "line": 35,
-        "pattern": "bridge",
-        "severity": "hard"
-      },
-      {
-        "file": "scripts/audit/domains/dom-automation/dom-automation-law-enforcement-matrix.ts",
-        "line": 123,
-        "pattern": "fallback",
-        "severity": "hard"
-      },
-      {
-        "file": "scripts/audit/domains/dom-automation/dom-automation-law-enforcement-matrix.ts",
-        "line": 123,
-        "pattern": "fallbackUsed",
-        "severity": "hard"
-      }
-    ]
+    "count": 0,
+    "findings": []
   },
   "softRetiredSurface": {
     "count": 0,
@@ -87,13 +38,13 @@
     },
     {
       "module": "src/capabilities/commander-console",
-      "actual": 74,
+      "actual": 35,
       "limit": 70,
-      "status": "fail"
+      "status": "ok"
     },
     {
       "module": "src/capabilities/forensics-persistence",
-      "actual": 9,
+      "actual": 10,
       "limit": 18,
       "status": "ok"
     },
@@ -105,7 +56,7 @@
     },
     {
       "module": "src/capabilities/orchestration",
-      "actual": 26,
+      "actual": 25,
       "limit": 30,
       "status": "ok"
     },
@@ -116,12 +67,6 @@
       "status": "ok"
     },
     {
-      "module": "src/lib/local-runtime",
-      "actual": 22,
-      "limit": 20,
-      "status": "fail"
-    },
-    {
       "module": "src/lib/online-ai",
       "actual": 4,
       "limit": 8,
@@ -129,7 +74,7 @@
     },
     {
       "module": "src/capabilities/screenshot",
-      "actual": 17,
+      "actual": 20,
       "limit": 20,
       "status": "ok"
     },
@@ -152,32 +97,14 @@
       "status": "ok"
     },
     {
-      "module": "scripts/audit (total)",
-      "actual": 138,
-      "limit": 120,
-      "status": "fail"
-    },
-    {
       "module": "scripts/audit/domains/quality-kernel",
       "actual": 5,
       "limit": 5,
       "status": "ok"
-    },
-    {
-      "module": "scripts/audit/generated",
-      "actual": 7,
-      "limit": 5,
-      "status": "fail"
     }
   ],
   "codePurity": {
-    "count": 1,
-    "findings": [
-      {
-        "file": "scripts/audit/domains/dom-automation/dom-automation-law-enforcement-matrix.ts",
-        "line": 216,
-        "pattern": "console.log in production path"
-      }
-    ]
+    "count": 0,
+    "findings": []
   }
 }

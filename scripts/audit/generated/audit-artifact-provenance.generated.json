@@ -1,0 +1,33 @@
+{
+  "generatedBy": "scripts/audit/build-audit-artifacts.ts",
+  "artifacts": [
+    {
+      "file": "scripts/audit/generated/active-law-census.generated.json",
+      "sha256": "b186dfa6994051291b27c32da573f9613f0cff632c46a5f8fb968e37d1aca195"
+    },
+    {
+      "file": "scripts/audit/generated/all-law-enforcement-matrix.generated.json",
+      "sha256": "30ad413ea0f0d0cd11cdcb4c7a4bc04f2941a8d24f8d4ab47082fc835d8f1c05"
+    },
+    {
+      "file": "scripts/audit/generated/audit-system-summary.generated.json",
+      "sha256": "77f176d9b8051ebef7f708fc69586fcdcc26a0822b5af00c660f18b087600ced"
+    },
+    {
+      "file": "scripts/audit/generated/ci-full-summary.generated.json",
+      "sha256": "93b99daf077ad198c584223869b5e220c2eb081264b214b38c93459240212df7"
+    },
+    {
+      "file": "scripts/audit/generated/dom-automation-binary-result.generated.json",
+      "sha256": "b3c4750e22e7811dc2a0114fed752c97777cebe35ac344c24454cc20d79ca844"
+    },
+    {
+      "file": "scripts/audit/generated/owner-inspector-matrix.generated.json",
+      "sha256": "bc7ca86653353a032cb5d425b763027b81df551572ee639a461a811c7fc38659"
+    },
+    {
+      "file": "scripts/audit/generated/quality-kernel-summary.generated.json",
+      "sha256": "57f88803a3d121fafb1ada4efa7d75d57dbd3de5126986f3a14f353f8815648e"
+    }
+  ]
+}

@@ -54,8 +54,12 @@ const browser = new PlaywrightDomBrowserAdapter(page, tmp);
 let commanderExecuteCount = 0;
 let startMissionCount = 0;
 
-const workbench = {
-  commanderConsole: { async execute() { commanderExecuteCount += 1; throw new Error("plugin route must not call commander console task start"); } },
+const workbench: GrassEyeWorkbenchHandle = {
+  commanderConsole: {
+    abilityGroupId: "commander-console",
+    listChildCapabilityIds() { return []; },
+    async execute() { commanderExecuteCount += 1; throw new Error("plugin route must not call commander console task start"); },
+  },
   async init() {},
   async getHealthReport() { throw new Error("unused"); },
   async getMissionReadinessReport() { throw new Error("unused"); },
@@ -83,7 +87,7 @@ const workbench = {
     return getAmazonInvoiceUploadTaskStatus({ dataDir: tmp, taskId });
   },
   getModeInfo() { return {}; },
-} as unknown as GrassEyeWorkbenchHandle;
+};
 
 const server = createWorkbenchServer({ workbench, baseUrl: "http://127.0.0.1" });
 

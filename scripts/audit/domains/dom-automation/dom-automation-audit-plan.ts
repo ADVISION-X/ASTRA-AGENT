@@ -51,13 +51,15 @@ const lawClause = (
   status: "active",
 });
 
-const blueprintClause = (
+const blueprintClause = (...input: readonly [
   clauseId: (typeof DOM_AUTOMATION_BLUEPRINT_SECTION_IDS)[number],
   lawId: (typeof DOM_AUTOMATION_LAW_IDS)[number],
   requirement: string,
   enforcementLevel: DomAutomationAuditClause["enforcementLevel"],
   inspectorPhase: string,
-): DomAutomationAuditClause => ({
+]): DomAutomationAuditClause => {
+  const [clauseId, lawId, requirement, enforcementLevel, inspectorPhase] = input;
+  return ({
   lawId,
   clauseId,
   source: "blueprint",
@@ -65,7 +67,8 @@ const blueprintClause = (
   enforcementLevel,
   inspectorPhase,
   status: "active",
-});
+  });
+};
 
 export const DOM_AUTOMATION_AUDIT_PLAN: readonly DomAutomationAuditClause[] = [
   lawClause("GRASSEYE-DOM-001-V1", "DOM automation stays a standalone pluggable capability group and reuses the governed BrowserController owner.", "symbol", "import-boundaries"),

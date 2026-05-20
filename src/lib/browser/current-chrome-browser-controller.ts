@@ -1,5 +1,5 @@
 import type {
-  BrowserTextInputAction,
+  BrowserController,
 } from "./browser-controller.js";
 import {
   createCurrentChromeBrowserControllerRuntime,

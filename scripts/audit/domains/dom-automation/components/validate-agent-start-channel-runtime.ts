@@ -1,13 +1,14 @@
 import { SyntaxKind } from "ts-morph";
 
 import type { Finding } from "../../../core/schema.js";
+import type { DomAutomationAuditProject } from "./dom-automation-project-types.js";
+import { findNamedImport, resolveModuleTargetPath } from "./dom-automation-module-resolution.js";
+import { collectStringLiteralNodes, hasIdentifierCall } from "./dom-automation-static-strings.js";
 import {
-  collectStringLiteralNodes,
-  findNamedImport,
-  hasIdentifierCall,
-  resolveModuleTargetPath,
-  type DomAutomationAuditProject,
-} from "./collect-dom-automation-project.js";
+  agentChannelFinding,
+  hasPropertyAccessCall,
+  requireSourceFile,
+} from "./agent-channel-support.js";
 import {
   AMAZON_TASK_SERVICE_PATH,
   CURRENT_BROWSER_OWNER_PATH,
@@ -16,10 +17,38 @@ import {
   VISUAL_TASK_START_ROUTE_PATH,
   WORKBENCH_FACADE_PATH,
   WORKBENCH_IMPL_PATH,
-  agentChannelFinding,
-  hasPropertyAccessCall,
-  requireSourceFile,
-} from "./agent-channel-support.js";
+} from "./agent-channel-runtime-paths.js";
+
+const routeFinding = (message: string, hint: string): Finding =>
+  agentChannelFinding("GRASSEYE-DOM-008-V1", PLUGIN_TASK_ROUTE_PATH, 1, message, hint);
+
+const collectRoutePathFindings = (routeStrings: Set<string>): Finding[] =>
+  ["/api/plugins/amazon-invoice-upload/open-admin", "/api/plugins/amazon-invoice-upload/start", "/api/plugins/amazon-invoice-upload/resume", "/api/plugins/amazon-invoice-upload/status/"]
+    .filter((requiredPath) => !routeStrings.has(requiredPath))
+    .map((requiredPath) => routeFinding(`plugin route is missing required path: ${requiredPath}`, "Expose independent open-admin and start endpoints for the Amazon task channel."));
+
+const collectRouteSchemaFindings = (sourceFile: import("ts-morph").SourceFile): Finding[] =>
+  ["AmazonInvoiceUploadMissionInputSchema", "AmazonInvoiceUploadAdminOpenInputSchema"].flatMap((schemaName) => {
+    const findings: Finding[] = [];
+    const schemaImport = findNamedImport(sourceFile, schemaName);
+    if (!schemaImport || resolveModuleTargetPath(schemaImport) !== PLUGIN_INDEX_PATH) {
+      findings.push(routeFinding(`${schemaName} is not imported from the plugin boundary`, "Validate Amazon payloads with governed plugin schemas."));
+    }
+    if (!hasPropertyAccessCall(sourceFile, schemaName, "parse")) {
+      findings.push(routeFinding(`${schemaName}.parse is missing`, "Parse payloads before invoking the workbench facade."));
+    }
+    return findings;
+  });
+
+const collectRouteFacadeFindings = (sourceFile: import("ts-morph").SourceFile): Finding[] =>
+  ["startAmazonInvoiceUploadTask", "resumeAmazonInvoiceUploadTask", "getAmazonInvoiceUploadTaskStatus", "openAdminInvoicePage"]
+    .filter((methodName) => !hasPropertyAccessCall(sourceFile, "activeWorkbench", methodName))
+    .map((methodName) => agentChannelFinding("GRASSEYE-DOM-001-V1", PLUGIN_TASK_ROUTE_PATH, 1, `plugin route does not call activeWorkbench.${methodName}`, "Route Amazon tasks through the public workbench facade only."));
+
+const collectRouteForbiddenImportFindings = (sourceFile: import("ts-morph").SourceFile): Finding[] =>
+  ["startAmazonInvoiceUploadMission", "openAmazonInvoiceAdminPage", "runAmazonInvoiceUploadPhaseOne", "BrowserController", "CurrentChromeBrowserController"]
+    .filter((forbiddenImport) => findNamedImport(sourceFile, forbiddenImport))
+    .map((forbiddenImport) => agentChannelFinding("GRASSEYE-DOM-001-V1", PLUGIN_TASK_ROUTE_PATH, 1, `plugin task route imports forbidden implementation symbol: ${forbiddenImport}`, "Keep route handlers limited to schemas plus the public workbench handle boundary."));
 
 export const validateVisualTaskStartIsolation = (auditProject: DomAutomationAuditProject): Finding[] => {
   const sourceFileOrFinding = requireSourceFile(auditProject, VISUAL_TASK_START_ROUTE_PATH, "GRASSEYE-DOM-008-V1", "Keep the Amazon channel out of the visual mission task-start route.");
@@ -36,21 +65,10 @@ export const validatePluginRouteContract = (auditProject: DomAutomationAuditProj
   const sourceFile = sourceFileOrFinding;
   const findings: Finding[] = [];
   const routeStrings = new Set(collectStringLiteralNodes(sourceFile).map(({ text }) => text));
-  for (const requiredPath of ["/api/plugins/amazon-invoice-upload/open-admin", "/api/plugins/amazon-invoice-upload/start", "/api/plugins/amazon-invoice-upload/resume", "/api/plugins/amazon-invoice-upload/status/"]) {
-    if (!routeStrings.has(requiredPath)) findings.push(agentChannelFinding("GRASSEYE-DOM-008-V1", PLUGIN_TASK_ROUTE_PATH, 1, `plugin route is missing required path: ${requiredPath}`, "Expose independent open-admin and start endpoints for the Amazon task channel."));
-  }
-  for (const schemaName of ["AmazonInvoiceUploadMissionInputSchema", "AmazonInvoiceUploadAdminOpenInputSchema"]) {
-    const schemaImport = findNamedImport(sourceFile, schemaName);
-    if (!schemaImport || resolveModuleTargetPath(schemaImport) !== PLUGIN_INDEX_PATH) findings.push(agentChannelFinding("GRASSEYE-DOM-008-V1", PLUGIN_TASK_ROUTE_PATH, 1, `${schemaName} is not imported from the plugin boundary`, "Validate Amazon payloads with governed plugin schemas."));
-    if (!hasPropertyAccessCall(sourceFile, schemaName, "parse")) findings.push(agentChannelFinding("GRASSEYE-DOM-008-V1", PLUGIN_TASK_ROUTE_PATH, 1, `${schemaName}.parse is missing`, "Parse payloads before invoking the workbench facade."));
-  }
-  for (const methodName of ["startAmazonInvoiceUploadTask", "resumeAmazonInvoiceUploadTask", "getAmazonInvoiceUploadTaskStatus", "openAdminInvoicePage"]) {
-    if (!hasPropertyAccessCall(sourceFile, "activeWorkbench", methodName)) findings.push(agentChannelFinding("GRASSEYE-DOM-001-V1", PLUGIN_TASK_ROUTE_PATH, 1, `plugin route does not call activeWorkbench.${methodName}`, "Route Amazon tasks through the public workbench facade only."));
-  }
-  const forbiddenNamedImports = ["startAmazonInvoiceUploadMission", "openAmazonInvoiceAdminPage", "runAmazonInvoiceUploadPhaseOne", "BrowserController", "CurrentChromeBrowserController"];
-  for (const forbiddenImport of forbiddenNamedImports) {
-    if (findNamedImport(sourceFile, forbiddenImport)) findings.push(agentChannelFinding("GRASSEYE-DOM-001-V1", PLUGIN_TASK_ROUTE_PATH, 1, `plugin task route imports forbidden implementation symbol: ${forbiddenImport}`, "Keep route handlers limited to schemas plus the public workbench handle boundary."));
-  }
+  findings.push(...collectRoutePathFindings(routeStrings));
+  findings.push(...collectRouteSchemaFindings(sourceFile));
+  findings.push(...collectRouteFacadeFindings(sourceFile));
+  findings.push(...collectRouteForbiddenImportFindings(sourceFile));
   const hasForbiddenBrowserOwnerImport = sourceFile.getImportDeclarations().some((importDeclaration) => resolveModuleTargetPath(importDeclaration) === CURRENT_BROWSER_OWNER_PATH);
   if (hasForbiddenBrowserOwnerImport) findings.push(agentChannelFinding("GRASSEYE-DOM-001-V1", PLUGIN_TASK_ROUTE_PATH, 1, "plugin task route imports CurrentChromeBrowserController directly", "Keep browser ownership inside workbench assembly only."));
   const hasForbiddenNewBrowserOwner = sourceFile.getDescendantsOfKind(SyntaxKind.NewExpression).some((newExpression) => newExpression.getExpression().getText() === "CurrentChromeBrowserController");

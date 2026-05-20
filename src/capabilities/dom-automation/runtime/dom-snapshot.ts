@@ -2,7 +2,7 @@ import type { BrowserController } from "../../../lib/browser/browser-controller.
 import { DomSnapshotSchema, ReadDomSnapshotInputSchema } from "../schema.js";
 import type { DomSnapshot, ReadDomSnapshotInput } from "../schema.js";
 
-function buildSnapshotScript(maxTextLengthPerNode: number, includeFrames: boolean): string {
+function buildSnapshotScriptPrimitives(maxTextLengthPerNode: number): string {
   return `
 const limit = ${maxTextLengthPerNode};
 const clip = (value) => String(value || "").replace(/\\s+/g, " ").trim().slice(0, limit);
@@ -37,6 +37,11 @@ const labelText = (el) => {
   return "";
 };
 const nearbyText = (el) => clip([el.previousElementSibling?.textContent, el.parentElement?.textContent].filter(Boolean).join(" "));
+`;
+}
+
+function buildSnapshotScriptBaseSection(): string {
+  return `
 const base = (el) => ({
   tagName: el.tagName.toLowerCase(),
   type: attr(el, "type") || undefined,
@@ -55,6 +60,11 @@ const base = (el) => ({
   testId: attr(el, "data-testid") || attr(el, "data-automation-id") || undefined
 });
 const visible = (item) => !item.hidden;
+`;
+}
+
+function buildSnapshotScriptCollections(includeFrames: boolean): string {
+  return `
 const inputs = Array.from(document.querySelectorAll("input, textarea, select"))
   .map((el) => ({...base(el), type: (attr(el, "type") || el.tagName.toLowerCase()), valuePreview: el.type === "password" || el.type === "hidden" ? undefined : clip(el.value)}))
   .filter((item) => item.type !== "hidden").filter(visible);
@@ -84,14 +94,28 @@ const tableRows = summarizeCandidates("tr", "table-row", 80);
 const roleRows = summarizeCandidates("[role='row']", "role-row", 80);
 const genericClickableElements = summarizeCandidates("[onclick], [tabindex], [role='button'], [role='link']", "clickable", 80);
 const textBlocks = summarizeCandidates("td, th, div, span, p, li", "text-block", 120);
+`;
+}
+
+function buildSnapshotScriptResultSection(): string {
+  return `
 const pageText = clip(document.body?.innerText || "");
 const detectedStates = [];
 if (/sign\\s*in|log\\s*in|password|session expired/i.test(pageText)) detectedStates.push("login_required");
 if (/captcha|verification code|two[- ]?factor|2fa|otp/i.test(pageText)) detectedStates.push("captcha_or_2fa_required");
-if (/file attached|invoice attached|attachment added/i.test(pageText)) detectedStates.push("file_attached");
-if (/invoice uploaded successfully|upload completed|submitted successfully/i.test(pageText)) detectedStates.push("upload_success");
+if (/file attached|attachment added|file selected/i.test(pageText)) detectedStates.push("file_attached");
+if (/upload completed|file uploaded successfully|submitted successfully/i.test(pageText)) detectedStates.push("upload_success");
 return {url: location.href, title: document.title, forms, inputs, buttons, links, fileInputs, dialogs, frames, textBlocks, tableRows, roleRows, genericClickableElements, detectedStates: Array.from(new Set(detectedStates)), capturedAt: new Date().toISOString()};
 `;
+}
+
+function buildSnapshotScript(maxTextLengthPerNode: number, includeFrames: boolean): string {
+  return [
+    buildSnapshotScriptPrimitives(maxTextLengthPerNode),
+    buildSnapshotScriptBaseSection(),
+    buildSnapshotScriptCollections(includeFrames),
+    buildSnapshotScriptResultSection(),
+  ].join("");
 }
 
 export async function readDomSnapshotOnce(

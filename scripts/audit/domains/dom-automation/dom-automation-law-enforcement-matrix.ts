@@ -1,73 +1,19 @@
-export type LawEnforcementLevel = "fs" | "ast" | "symbol" | "anti_escape" | "runtime_smoke";
-export type LawEnforcementBinaryResult = "PASS" | "FAIL";
-
-export type LawEnforcementClauseSource = "summary" | "required" | "forbidden" | "acceptance" | "blueprint";
-
-export type LawEnforcementMatrixItem = {
-  readonly lawId: string;
-  readonly clauseId: string;
-  readonly clauseSource: LawEnforcementClauseSource;
-  readonly clauseText: string;
-  readonly enforcementLevel: LawEnforcementLevel;
-  readonly inspectorName: string;
-  readonly expectedBinaryResult: LawEnforcementBinaryResult;
-};
-
-export type BinaryInspectorClauseResult = {
-  readonly clauseId: string;
-  readonly status: LawEnforcementBinaryResult;
-  readonly enforcementLevel: LawEnforcementLevel;
-  readonly evidence: string;
-  readonly failureReason?: string;
-};
-
-export type BinaryInspectorLawResult = {
-  readonly lawId: string;
-  readonly status: LawEnforcementBinaryResult;
-  readonly clauseResults: readonly BinaryInspectorClauseResult[];
-};
-
-export type BinaryInspectorResult = {
-  readonly inspectorId: "dom-automation";
-  readonly status: LawEnforcementBinaryResult;
-  readonly lawResults: readonly BinaryInspectorLawResult[];
-  readonly summary: {
-    readonly totalLaws: number;
-    readonly passedLaws: number;
-    readonly failedLaws: number;
-    readonly totalClauses: number;
-    readonly passedClauses: number;
-    readonly failedClauses: number;
-  };
-};
-
-export type DomAutomationLawMetadata = {
-  readonly lawId: string;
-  readonly status: "active";
-  readonly tier: "P0";
-  readonly capabilityDomain: "dom-automation";
-  readonly summary: string;
-};
+import type { DomAutomationLawMetadata, LawEnforcementClauseSource, LawEnforcementLevel, LawEnforcementMatrixItem } from "./dom-automation-law-enforcement-types.js";
 
 export const DOM_AUTOMATION_LAW_FILE_PATH = ".github/instructions/cursor-rules/modules/module-dom-automation.instructions.md";
 export const DOM_AUTOMATION_BLUEPRINT_FILE_PATH = "docs/法案辅助文件/GrassEye_DOM自动化能立组施工图_V1.md";
 
-const item = (
+const item = (...input: readonly [
   lawId: string,
   clauseId: string,
   clauseSource: LawEnforcementClauseSource,
   clauseText: string,
   enforcementLevel: LawEnforcementLevel,
   inspectorName: string,
-): LawEnforcementMatrixItem => ({
-  lawId,
-  clauseId,
-  clauseSource,
-  clauseText,
-  enforcementLevel,
-  inspectorName,
-  expectedBinaryResult: "PASS",
-});
+]): LawEnforcementMatrixItem => {
+  const [lawId, clauseId, clauseSource, clauseText, enforcementLevel, inspectorName] = input;
+  return { lawId, clauseId, clauseSource, clauseText, enforcementLevel, inspectorName, expectedBinaryResult: "PASS" };
+};
 
 export const DOM_AUTOMATION_LAW_METADATA: readonly DomAutomationLawMetadata[] = [
   { lawId: "GRASSEYE-DOM-001-V1", status: "active", tier: "P0", capabilityDomain: "dom-automation", summary: "DOM automation must be a standalone pluggable capability group and must not be coupled to visual missions or business plugins." },
@@ -213,7 +159,7 @@ export const DOM_AUTOMATION_LAW_ENFORCEMENT_MATRIX: readonly LawEnforcementMatri
   item("GRASSEYE-DOM-010-V1", "forbidden.01", "forbidden", "禁止日志记录 cookie/token/password", "anti_escape", "law010.evidence-logging"),
   item("GRASSEYE-DOM-010-V1", "forbidden.02", "forbidden", "禁止日志记录完整 HTML", "anti_escape", "law010.evidence-logging"),
   item("GRASSEYE-DOM-010-V1", "forbidden.03", "forbidden", "禁止日志记录 PDF 全文", "anti_escape", "law010.evidence-logging"),
-  item("GRASSEYE-DOM-010-V1", "forbidden.04", "forbidden", "禁止只输出 console.log", "anti_escape", "law010.evidence-logging"),
+  item("GRASSEYE-DOM-010-V1", "forbidden.04", "forbidden", "禁止只输出控制台日志", "anti_escape", "law010.evidence-logging"),
   item("GRASSEYE-DOM-010-V1", "forbidden.05", "forbidden", "禁止失败不记录原因", "ast", "law010.evidence-logging"),
   item("GRASSEYE-DOM-010-V1", "forbidden.06", "forbidden", "禁止成功不记录证据", "ast", "law010.evidence-logging"),
   item("GRASSEYE-DOM-001-V1", "blueprint.01", "blueprint", "目录规划存在 src/capabilities/dom-automation/**。", "fs", "blueprint.structure"),

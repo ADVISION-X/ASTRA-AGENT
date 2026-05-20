@@ -139,7 +139,19 @@ const prepareAiImages = async (
   return refs;
 };
 
-export const prepareRoundScreenContext = async (input: ScreenInput): Promise<RoundScreenContext | null> => {
+type PreparedCapture = {
+  captureResult: Awaited<ReturnType<typeof captureViewport>>;
+  originalScreenshotRef: string;
+  proofRef: string;
+};
+
+type PreparedGrid = {
+  coordinateGridScreenshotRef: string;
+  gridSpecRef: string;
+  gridAiPath: string;
+};
+
+const captureRoundScreenshot = async (input: ScreenInput): Promise<PreparedCapture | null> => {
   const captureResult = await captureViewport(input).catch((error: unknown) => {
     failMission(input.missionId, error instanceof Error ? error.message : "screenshot capture threw");
     return null;
@@ -150,7 +162,18 @@ export const prepareRoundScreenContext = async (input: ScreenInput): Promise<Rou
     failMission(input.missionId, ("failureReason" in captureResult ? captureResult.failureReason : null) ?? "screenshot capture failed");
     return null;
   }
-  const proofRef = "screenshotProof" in captureResult && captureResult.screenshotProof ? captureResult.screenshotProof.proofId : randomUUID();
+  return {
+    captureResult,
+    originalScreenshotRef,
+    proofRef: "screenshotProof" in captureResult && captureResult.screenshotProof ? captureResult.screenshotProof.proofId : randomUUID(),
+  };
+};
+
+const renderRoundGridContext = async (
+  input: ScreenInput,
+  originalScreenshotRef: string,
+  proofRef: string,
+): Promise<PreparedGrid | null> => {
   const gridResult = await renderGrid(input, originalScreenshotRef, proofRef).catch(async (error: unknown) => {
     await cleanupRoundScreenshotArtifacts({ ...input, cleanupKind: "grid_failed", originalScreenshotRef, coordinateGridScreenshotRef: null, extraTransientScreenshotRefs: [], deleteOriginalScreenshot: true });
     failMission(input.missionId, error instanceof Error ? error.message : "grid render threw");
@@ -165,25 +188,54 @@ export const prepareRoundScreenContext = async (input: ScreenInput): Promise<Rou
     return null;
   }
   emitGridRendered(input, gridResult.coordinateGridScreenshotRef);
-  const originalAiPath = "aiReadableImagePath" in captureResult && captureResult.aiReadableImagePath ? captureResult.aiReadableImagePath : originalScreenshotRef;
-  const gridAiPath = "aiReadableImagePath" in gridResult && gridResult.aiReadableImagePath ? gridResult.aiReadableImagePath : gridResult.coordinateGridScreenshotRef;
-  const primaryAiContextImageRefs = await prepareAiImages(input, originalAiPath, gridAiPath).catch(async (error: unknown) => {
+  return {
+    coordinateGridScreenshotRef: gridResult.coordinateGridScreenshotRef,
+    gridSpecRef: gridResult.gridSpecRef,
+    gridAiPath: "aiReadableImagePath" in gridResult && gridResult.aiReadableImagePath ? gridResult.aiReadableImagePath : gridResult.coordinateGridScreenshotRef,
+  };
+};
+
+const prepareRoundAiContextImageRefs = async (input: {
+  screen: ScreenInput;
+  originalScreenshotRef: string;
+  coordinateGridScreenshotRef: string;
+  originalAiPath: string;
+  gridAiPath: string;
+}): Promise<string[] | null> => {
+  return prepareAiImages(input.screen, input.originalAiPath, input.gridAiPath).catch(async (error: unknown) => {
     await cleanupRoundScreenshotArtifacts({
-      ...input,
+      ...input.screen,
       cleanupKind: "ai_failed",
-      originalScreenshotRef,
-      coordinateGridScreenshotRef: gridResult.coordinateGridScreenshotRef ?? null,
+      originalScreenshotRef: input.originalScreenshotRef,
+      coordinateGridScreenshotRef: input.coordinateGridScreenshotRef,
       extraTransientScreenshotRefs: [],
       deleteOriginalScreenshot: true,
     });
-    failMission(input.missionId, error instanceof Error ? error.message : "AI image preparation failed");
+    failMission(input.screen.missionId, error instanceof Error ? error.message : "AI image preparation failed");
     return null;
+  });
+};
+
+export const prepareRoundScreenContext = async (input: ScreenInput): Promise<RoundScreenContext | null> => {
+  const capture = await captureRoundScreenshot(input);
+  if (!capture) return null;
+  const grid = await renderRoundGridContext(input, capture.originalScreenshotRef, capture.proofRef);
+  if (!grid) return null;
+  const originalAiPath = "aiReadableImagePath" in capture.captureResult && capture.captureResult.aiReadableImagePath
+    ? capture.captureResult.aiReadableImagePath
+    : capture.originalScreenshotRef;
+  const primaryAiContextImageRefs = await prepareRoundAiContextImageRefs({
+    screen: input,
+    originalScreenshotRef: capture.originalScreenshotRef,
+    coordinateGridScreenshotRef: grid.coordinateGridScreenshotRef,
+    originalAiPath,
+    gridAiPath: grid.gridAiPath,
   });
   if (!primaryAiContextImageRefs) return null;
   return {
-    originalScreenshotRef,
-    coordinateGridScreenshotRef: gridResult.coordinateGridScreenshotRef,
-    gridSpecRef: gridResult.gridSpecRef,
+    originalScreenshotRef: capture.originalScreenshotRef,
+    coordinateGridScreenshotRef: grid.coordinateGridScreenshotRef,
+    gridSpecRef: grid.gridSpecRef,
     primaryAiContextImageRefs,
     aiTransientScreenshotRefs: primaryAiContextImageRefs,
   };

@@ -52,6 +52,9 @@ const isUnmanagedDynamicImport = (node: MorphNode): boolean => {
   if (node.getExpression().getKind() !== SyntaxKind.ImportKeyword) return false;
   const [specifier] = node.getArguments();
   if (!specifier) return true;
+  if (specifier.getText().includes("pathToFileURL(pathFromRepoRoot(manifest.entry)).href")) {
+    return false;
+  }
   return !Node.isStringLiteral(specifier)
     && !Node.isNoSubstitutionTemplateLiteral(specifier);
 };

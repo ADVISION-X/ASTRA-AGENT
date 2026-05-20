@@ -8,7 +8,7 @@ let tempFileSequence = 0;
 const isMissingPathError = (error: unknown): boolean =>
   error instanceof Error && "code" in error && error.code === "ENOENT";
 
-export const fileExists = async (targetPath: string): Promise<boolean> => {
+const fileExists = async (targetPath: string): Promise<boolean> => {
   try {
     await access(targetPath);
     return true;
@@ -25,14 +25,14 @@ const ensureDirectory = async (dirPath: string): Promise<void> => {
   await mkdir(dirPath, { recursive: true });
 };
 
-export const readTextFile = async (filePath: string): Promise<string> => readFile(filePath, "utf8");
+const readTextFile = async (filePath: string): Promise<string> => readFile(filePath, "utf8");
 
-export const readJsonFile = async <T>(filePath: string): Promise<T> => {
+const readJsonFile = async <T>(filePath: string): Promise<T> => {
   const text = await readTextFile(filePath);
   return JSON.parse(text) as T;
 };
 
-export const writeJsonFile = async (filePath: string, value: unknown): Promise<void> => {
+const writeJsonFile = async (filePath: string, value: unknown): Promise<void> => {
   await writeTextFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
 };
 
@@ -44,14 +44,14 @@ export const writeTextFile = async (filePath: string, value: string): Promise<vo
   await rename(tempPath, filePath);
 };
 
-export const listImmediateFiles = async (dirPath: string): Promise<string[]> => {
+const listImmediateFiles = async (dirPath: string): Promise<string[]> => {
   const entries = await readdir(dirPath, { withFileTypes: true, encoding: "utf8" });
   return entries
     .filter((entry) => entry.isFile())
     .map((entry) => path.join(dirPath, entry.name));
 };
 
-export const listImmediateDirectories = async (dirPath: string): Promise<string[]> => {
+const listImmediateDirectories = async (dirPath: string): Promise<string[]> => {
   const entries = await readdir(dirPath, { withFileTypes: true, encoding: "utf8" });
   return entries
     .filter((entry) => entry.isDirectory())
@@ -129,7 +129,7 @@ const createRecursiveFileListCacheKey = (
     ignoreDirs: [...(options?.ignoreDirs ?? [])].sort(),
   });
 
-export const listFilesRecursive = async (
+const listFilesRecursive = async (
   dirPath: string,
   options?: {
     extensions?: string[];

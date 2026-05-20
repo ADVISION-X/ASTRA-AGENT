@@ -1,7 +1,6 @@
 import type { MouseScrollCoordinateSpace, MouseScrollRegion, ParsedMouseScrollAbilityInput } from "../contract.js";
 
 const MAX_ALLOWED_BOUND = 12_000;
-
 type PreScrollSafetyFailureReason =
   | "invalid_coordinate_space"
   | "invalid_bounds"
@@ -24,7 +23,6 @@ type PreScrollSafetySuccess = {
   safetyDecision: "allow";
   safetyDecisionReason: string;
 };
-
 type PreScrollSafetyFailure = {
   ok: false;
   status: "failed";
@@ -51,7 +49,6 @@ const createPreScrollSafetyFailure = (input: {
   safetyDecisionReason: input.safetyDecisionReason,
   dataQualityFlags: input.dataQualityFlags,
 });
-
 const createPreScrollSafetySuccess = (input: {
   requestedAnchor: { x: number; y: number };
   executableAnchor: { x: number; y: number };
@@ -67,7 +64,6 @@ const createPreScrollSafetySuccess = (input: {
   safetyDecision: "allow",
   safetyDecisionReason: "bounds_and_anchor_valid",
 });
-
 function isPointWithinBounds(point: { x: number; y: number }, bounds: { width: number; height: number }): boolean {
   return point.x >= 0 && point.y >= 0 && point.x < bounds.width && point.y < bounds.height;
 }
@@ -87,7 +83,6 @@ function isPointWithinRegion(point: { x: number; y: number }, region: MouseScrol
     && point.x < region.x + region.width
     && point.y < region.y + region.height;
 }
-
 function regionsMatch(left: MouseScrollRegion, right: MouseScrollRegion): boolean {
   return left.x === right.x && left.y === right.y && left.width === right.width && left.height === right.height;
 }
@@ -116,7 +111,6 @@ const validatePreScrollBounds = (request: ParsedMouseScrollAbilityInput): PreScr
       dataQualityFlags: ["invalid_bounds"],
     });
   }
-
   return bounds.width > MAX_ALLOWED_BOUND || bounds.height > MAX_ALLOWED_BOUND
     ? createPreScrollSafetyFailure({
         failureReason: "bounds_too_large",
@@ -136,7 +130,6 @@ const validatePreScrollRepeatPolicy = (request: ParsedMouseScrollAbilityInput): 
       dataQualityFlags: ["invalid_repeat"],
     });
   }
-
   return null;
 };
 
@@ -197,6 +190,34 @@ const validateNonRegionScroll = (request: ParsedMouseScrollAbilityInput): PreScr
       });
 };
 
+const createRegionPayloadIncompleteFailure = () => createPreScrollSafetyFailure({
+  failureReason: "invalid_region",
+  statusMessage: "scroll-region requires region, regionRef, and Geometry Guard normalizedRegion proof.",
+  safetyDecisionReason: "region_payload_incomplete",
+  dataQualityFlags: ["region_payload_incomplete"],
+});
+
+const createRegionProofMismatchFailure = () => createPreScrollSafetyFailure({
+  failureReason: "invalid_region",
+  statusMessage: "scroll-region region must match Geometry Guard normalizedRegion exactly.",
+  safetyDecisionReason: "region_proof_mismatch",
+  dataQualityFlags: ["region_proof_mismatch"],
+});
+
+const createRegionOutOfBoundsFailure = () => createPreScrollSafetyFailure({
+  failureReason: "invalid_region",
+  statusMessage: "scroll-region region must stay inside the governed bounds window.",
+  safetyDecisionReason: "region_out_of_bounds",
+  dataQualityFlags: ["region_out_of_bounds"],
+});
+
+const createAnchorOutsideRegionFailure = () => createPreScrollSafetyFailure({
+  failureReason: "anchor_outside_region",
+  statusMessage: "scroll-region anchor must stay inside the Geometry Guard normalizedRegion.",
+  safetyDecisionReason: "anchor_outside_region",
+  dataQualityFlags: ["anchor_outside_region"],
+});
+
 const validateScrollRegionPayload = (
   request: ParsedMouseScrollAbilityInput,
   bounds: { width: number; height: number },
@@ -205,38 +226,18 @@ const validateScrollRegionPayload = (
   const region = request.region;
   const proofRegion = request.geometryScrollProof.normalizedRegion;
   if (region === null || request.regionRef === null || proofRegion === null) {
-    return createPreScrollSafetyFailure({
-      failureReason: "invalid_region",
-      statusMessage: "scroll-region requires region, regionRef, and Geometry Guard normalizedRegion proof.",
-      safetyDecisionReason: "region_payload_incomplete",
-      dataQualityFlags: ["region_payload_incomplete"],
-    });
+    return createRegionPayloadIncompleteFailure();
   }
   if (!regionsMatch(region, proofRegion)) {
-    return createPreScrollSafetyFailure({
-      failureReason: "invalid_region",
-      statusMessage: "scroll-region region must match Geometry Guard normalizedRegion exactly.",
-      safetyDecisionReason: "region_proof_mismatch",
-      dataQualityFlags: ["region_proof_mismatch"],
-    });
+    return createRegionProofMismatchFailure();
   }
   if (!isRegionWithinBounds(region, bounds)) {
-    return createPreScrollSafetyFailure({
-      failureReason: "invalid_region",
-      statusMessage: "scroll-region region must stay inside the governed bounds window.",
-      safetyDecisionReason: "region_out_of_bounds",
-      dataQualityFlags: ["region_out_of_bounds"],
-    });
+    return createRegionOutOfBoundsFailure();
   }
 
   return isPointWithinRegion(executableAnchor, region)
     ? region
-    : createPreScrollSafetyFailure({
-        failureReason: "anchor_outside_region",
-        statusMessage: "scroll-region anchor must stay inside the Geometry Guard normalizedRegion.",
-        safetyDecisionReason: "anchor_outside_region",
-        dataQualityFlags: ["anchor_outside_region"],
-      });
+    : createAnchorOutsideRegionFailure();
 };
 
 const buildExecutableAnchor = (requestedAnchor: { x: number; y: number }) => ({
@@ -285,7 +286,7 @@ export function validatePreScrollSafety(input: {
   }
 
   const regionOutcome = resolveValidatedRegion(input.request, bounds, executableAnchor);
-  if ("ok" in regionOutcome) {
+  if (regionOutcome && "ok" in regionOutcome) {
     return regionOutcome;
   }
 

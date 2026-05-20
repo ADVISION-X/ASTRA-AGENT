@@ -1,7 +1,4 @@
-export const DOM_FACADE_PATH = "src/capabilities/dom-automation/index.ts";
-export const BROWSER_CONTROLLER_PATH = "src/lib/browser/browser-controller.ts";
-export const CURRENT_CHROME_PATH = "src/lib/browser/current-chrome-browser-controller.ts";
-export const PLUGIN_ROUTE_PATH = "src/app/plugin-task-api-handlers.ts";
+import { PLUGIN_ROUTE_PATH } from "./dom-automation-path-constants.js";
 
 export const DOM_EXPORTS = [
   "readDomSnapshotOnce",
@@ -64,4 +61,3 @@ export const PLUGIN_REQUIRED_PATHS = [
 export const DOM_BUSINESS_VOCAB = ["amazon", "seller central", "sellercentral", "invoice upload", "marketplace"] as const;
 export const SENSITIVE_PROPERTY_NAMES = ["cookie", "localstorage", "sessionstorage", "outerhtml", "innerhtml"] as const;
 export const LOG_FIELD_FORBIDDEN = ["cookie", "token", "password", "localStorage", "sessionStorage", "fullHtml", "pdfContent", "rawHtml"] as const;
-

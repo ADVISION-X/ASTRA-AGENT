@@ -19,7 +19,7 @@ export const createPhase = (
   summary,
 });
 
-export const resolveClassification = (
+const resolveClassification = (
   findings: Finding[],
   phases: InspectorPhase[],
 ): InspectionClassification => {
@@ -62,5 +62,5 @@ export const finalizeInspectorResult = (input: Omit<InspectorResult, "violationC
   };
 };
 
-export const hasBlockingFindings = (findings: Finding[]): boolean =>
+const hasBlockingFindings = (findings: Finding[]): boolean =>
   findings.some((finding) => finding.severity === "error" || finding.severity === "fatal");

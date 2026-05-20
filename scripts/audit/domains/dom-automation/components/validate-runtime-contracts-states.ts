@@ -1,10 +1,8 @@
 import { Node, SyntaxKind } from "ts-morph";
 
 import type { Finding } from "../../../core/schema.js";
-import {
-  getSourceFileAtRepoPath,
-  type DomAutomationAuditProject,
-} from "./collect-dom-automation-project.js";
+import { getSourceFileAtRepoPath } from "./collect-dom-automation-project.js";
+import type { DomAutomationAuditProject } from "./dom-automation-project-types.js";
 import { hasPropertyAccess, hasSchemaParseCall, hasStringLiteral, runtimeFinding } from "./runtime-contract-support.js";
 
 export const domVerifyFindings = (auditProject: DomAutomationAuditProject): Finding[] => {

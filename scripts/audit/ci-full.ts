@@ -31,7 +31,6 @@ const runStep = async (
   const child = spawn(executable, args, {
     cwd: repoRoot,
     stdio: "inherit",
-    shell: true,
   });
   const heartbeat = setInterval(() => {
     process.stdout.write(`[CI-FULL][HEARTBEAT] step=${label} processed=${processed}/${total} status=running\n`);

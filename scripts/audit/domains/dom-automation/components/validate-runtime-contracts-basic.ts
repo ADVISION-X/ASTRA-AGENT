@@ -1,11 +1,9 @@
 import { SyntaxKind } from "ts-morph";
 
 import type { Finding } from "../../../core/schema.js";
-import {
-  getSourceFileAtRepoPath,
-  objectLiteralPropertyNames,
-  type DomAutomationAuditProject,
-} from "./collect-dom-automation-project.js";
+import { getSourceFileAtRepoPath } from "./collect-dom-automation-project.js";
+import type { DomAutomationAuditProject } from "./dom-automation-project-types.js";
+import { objectLiteralPropertyNames } from "./dom-automation-static-strings.js";
 import { hasPropertyAccess, hasSchemaParseCall, runtimeFinding } from "./runtime-contract-support.js";
 
 const LOCATOR_LAST_RESORT_FLAG = "fall" + "backUsed";

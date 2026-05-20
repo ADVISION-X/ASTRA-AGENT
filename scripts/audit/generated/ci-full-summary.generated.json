@@ -1,11 +1,86 @@
 {
-  "generatedAt": "2026-05-19T18:14:41.537Z",
-  "status": "FAIL",
-  "failedStep": "code-purity-owner",
+  "generatedAt": "2026-05-19T23:37:05.994Z",
+  "status": "PASS",
   "steps": [
     {
+      "name": "audit-build",
+      "status": "PASS"
+    },
+    {
       "name": "code-purity-owner",
-      "status": "FAIL"
+      "status": "PASS"
+    },
+    {
+      "name": "typecheck",
+      "status": "PASS"
+    },
+    {
+      "name": "audit:quality-kernel",
+      "status": "PASS"
+    },
+    {
+      "name": "audit:audit-system",
+      "status": "PASS"
+    },
+    {
+      "name": "dom-automation-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "runtime-logging-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "capability-group-governance-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "ai-capability-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "commander-console-capability-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "forensics-persistence-capability-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "geometry-guard-capability-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "mouse-click-capability-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "mouse-scroll-capability-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "nerve-bus-capability-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "open-capability-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "screenshot-capability-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "security-privacy-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "text-input-capability-owner",
+      "status": "PASS"
+    },
+    {
+      "name": "type-safety-owner",
+      "status": "PASS"
     }
   ]
 }

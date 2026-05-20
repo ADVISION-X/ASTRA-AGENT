@@ -1,7 +1,11 @@
-import { randomUUID } from "node:crypto";
-
 import type { ForensicsAppendArtifactInput, ForensicsResult } from "../schema.js";
 import type { ForensicsStoragePort } from "../storage-port.js";
+import {
+  buildForensicsFailureProof,
+  buildForensicsSuccessProof,
+  createForensicsProofTiming,
+  resolveForensicsFailureReason,
+} from "./proof-support.js";
 
 export async function executeAppendArtifact(
   input: ForensicsAppendArtifactInput,
@@ -10,13 +14,10 @@ export async function executeAppendArtifact(
   const startedAt = new Date().toISOString();
   try {
     const result = await storage.appendArtifact(input);
-    const endedAt = new Date().toISOString();
     return {
       status: "success",
       artifactRef: result.artifactRef,
-      proof: {
-        proofId: randomUUID(),
-        abilityGroupId: "forensics-persistence",
+      proof: buildForensicsSuccessProof({
         childCapabilityId: "append-artifact",
         missionId: input.missionId,
         runId: input.runId,
@@ -26,29 +27,22 @@ export async function executeAppendArtifact(
         artifactRef: result.artifactRef,
         storageRef: result.storageRef,
         integrityHash: result.integrityHash,
-        status: "success",
-        startedAt,
-        endedAt,
-        durationMs: Date.now() - new Date(startedAt).getTime(),
-      },
+      }, createForensicsProofTiming(startedAt)),
     };
   } catch (err) {
-    const endedAt = new Date().toISOString();
+    const failureReason = resolveForensicsFailureReason(err);
     return {
       status: "failed",
-      failureReason: err instanceof Error ? err.message : String(err),
-      proof: {
-        proofId: randomUUID(),
-        abilityGroupId: "forensics-persistence",
-        childCapabilityId: "append-artifact",
+      failureReason,
+      proof: buildForensicsFailureProof(
+        "append-artifact",
+        failureReason,
+        createForensicsProofTiming(startedAt),
+        {
         missionId: input.missionId,
         runId: input.runId,
-        status: "failed",
-        failureReason: err instanceof Error ? err.message : String(err),
-        startedAt,
-        endedAt,
-        durationMs: Date.now() - new Date(startedAt).getTime(),
-      },
+        },
+      ),
     };
   }
 }

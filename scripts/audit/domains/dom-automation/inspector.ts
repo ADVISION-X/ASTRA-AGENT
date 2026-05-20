@@ -6,9 +6,8 @@ import {
   DOM_AUTOMATION_LAW_ENFORCEMENT_MATRIX,
   DOM_AUTOMATION_LAW_FILE_PATH,
   DOM_AUTOMATION_LAW_METADATA,
-  type BinaryInspectorClauseResult,
-  type BinaryInspectorResult,
 } from "./dom-automation-law-enforcement-matrix.js";
+import type { BinaryInspectorClauseResult, BinaryInspectorLawResult, BinaryInspectorResult, LawEnforcementMatrixItem } from "./dom-automation-law-enforcement-types.js";
 import {
   createDomAutomationBinaryCheckContext,
   evaluateDomAutomationMatrixItem,
@@ -48,75 +47,100 @@ const buildSummary = (lawResults: ReadonlyArray<BinaryInspectorResult["lawResult
   };
 };
 
-export async function runDomAutomationInspector(): Promise<BinaryInspectorResult> {
+type InspectorHeartbeatState = {
+  currentClause: LawEnforcementMatrixItem | undefined;
+  processedClauses: number;
+  totalClauses: number;
+};
+
+const assertDomAutomationAuthorityFiles = (): void => {
   readFileSync(pathFromRepoRoot(DOM_AUTOMATION_LAW_FILE_PATH), "utf8");
   readFileSync(pathFromRepoRoot(DOM_AUTOMATION_BLUEPRINT_FILE_PATH), "utf8");
+};
 
-  const context = createDomAutomationBinaryCheckContext();
-  const totalClauses = DOM_AUTOMATION_LAW_ENFORCEMENT_MATRIX.length;
-  let processedClauses = 0;
-  let currentClause = DOM_AUTOMATION_LAW_ENFORCEMENT_MATRIX[0];
-
-  const heartbeat = setInterval(() => {
-    if (!currentClause) {
+const startHeartbeat = (state: InspectorHeartbeatState): ReturnType<typeof setInterval> =>
+  setInterval(() => {
+    if (!state.currentClause) {
       return;
     }
     heartbeatLine({
-      lawId: currentClause.lawId,
-      clauseId: currentClause.clauseId,
-      inspectorName: currentClause.inspectorName,
-      processed: processedClauses,
-      total: totalClauses,
+      lawId: state.currentClause.lawId,
+      clauseId: state.currentClause.clauseId,
+      inspectorName: state.currentClause.inspectorName,
+      processed: state.processedClauses,
+      total: state.totalClauses,
     });
   }, 5000);
 
+const runMatrixClause = async (
+  clause: LawEnforcementMatrixItem,
+  context: ReturnType<typeof createDomAutomationBinaryCheckContext>,
+): Promise<BinaryInspectorClauseResult> => {
   try {
-    const lawResults: BinaryInspectorResult["lawResults"][number][] = [];
-    for (const law of DOM_AUTOMATION_LAW_METADATA) {
-      const clauses = DOM_AUTOMATION_LAW_ENFORCEMENT_MATRIX.filter((item) => item.lawId === law.lawId);
-      const clauseResults: BinaryInspectorClauseResult[] = [];
-      for (const clause of clauses) {
-        currentClause = clause;
-        heartbeatLine({
-          lawId: clause.lawId,
-          clauseId: clause.clauseId,
-          inspectorName: clause.inspectorName,
-          processed: processedClauses,
-          total: totalClauses,
-        });
-        try {
-          const outcome = await evaluateDomAutomationMatrixItem(clause, context);
-          clauseResults.push({
-            clauseId: clause.clauseId,
-            status: outcome.status,
-            enforcementLevel: clause.enforcementLevel,
-            evidence: outcome.evidence,
-            ...(outcome.failureReason ? { failureReason: outcome.failureReason } : {}),
-          });
-        } catch (error) {
-          clauseResults.push({
-            clauseId: clause.clauseId,
-            status: "FAIL",
-            enforcementLevel: clause.enforcementLevel,
-            evidence: `inspector ${clause.inspectorName} threw unexpectedly`,
-            failureReason: error instanceof Error ? error.message : String(error),
-          });
-        }
-        processedClauses += 1;
-      }
-      const failed = clauseResults.filter((clause) => clause.status === "FAIL").length;
-      const passed = clauseResults.length - failed;
-      const status = failed === 0 ? "PASS" : "FAIL";
-      lawLine({ lawId: law.lawId, status, passed, failed });
-      lawResults.push({ lawId: law.lawId, status, clauseResults });
-    }
-    const summary = buildSummary(lawResults);
+    const outcome = await evaluateDomAutomationMatrixItem(clause, context);
     return {
-      inspectorId: "dom-automation",
-      status: summary.failedClauses === 0 ? "PASS" : "FAIL",
-      lawResults,
-      summary,
+      clauseId: clause.clauseId,
+      status: outcome.status,
+      enforcementLevel: clause.enforcementLevel,
+      evidence: outcome.evidence,
+      ...(outcome.failureReason ? { failureReason: outcome.failureReason } : {}),
     };
+  } catch (error) {
+    return {
+      clauseId: clause.clauseId,
+      status: "FAIL",
+      enforcementLevel: clause.enforcementLevel,
+      evidence: `inspector ${clause.inspectorName} threw unexpectedly`,
+      failureReason: error instanceof Error ? error.message : String(error),
+    };
+  }
+};
+
+const runLawMatrix = async (
+  lawId: string,
+  context: ReturnType<typeof createDomAutomationBinaryCheckContext>,
+  state: InspectorHeartbeatState,
+): Promise<BinaryInspectorLawResult> => {
+  const clauses = DOM_AUTOMATION_LAW_ENFORCEMENT_MATRIX.filter((item) => item.lawId === lawId);
+  const clauseResults: BinaryInspectorClauseResult[] = [];
+  for (const clause of clauses) {
+    state.currentClause = clause;
+    heartbeatLine({ lawId: clause.lawId, clauseId: clause.clauseId, inspectorName: clause.inspectorName, processed: state.processedClauses, total: state.totalClauses });
+    clauseResults.push(await runMatrixClause(clause, context));
+    state.processedClauses += 1;
+  }
+  const failed = clauseResults.filter((clause) => clause.status === "FAIL").length;
+  const passed = clauseResults.length - failed;
+  const status = failed === 0 ? "PASS" : "FAIL";
+  lawLine({ lawId, status, passed, failed });
+  return { lawId, status, clauseResults };
+};
+
+const buildInspectorResult = (lawResults: BinaryInspectorLawResult[]): BinaryInspectorResult => {
+  const summary = buildSummary(lawResults);
+  return {
+    inspectorId: "dom-automation",
+    status: summary.failedClauses === 0 ? "PASS" : "FAIL",
+    lawResults,
+    summary,
+  };
+};
+
+export async function runDomAutomationInspector(): Promise<BinaryInspectorResult> {
+  assertDomAutomationAuthorityFiles();
+  const context = createDomAutomationBinaryCheckContext();
+  const state: InspectorHeartbeatState = {
+    currentClause: DOM_AUTOMATION_LAW_ENFORCEMENT_MATRIX[0],
+    processedClauses: 0,
+    totalClauses: DOM_AUTOMATION_LAW_ENFORCEMENT_MATRIX.length,
+  };
+  const heartbeat = startHeartbeat(state);
+  try {
+    const lawResults = [];
+    for (const law of DOM_AUTOMATION_LAW_METADATA) {
+      lawResults.push(await runLawMatrix(law.lawId, context, state));
+    }
+    return buildInspectorResult(lawResults);
   } finally {
     clearInterval(heartbeat);
   }

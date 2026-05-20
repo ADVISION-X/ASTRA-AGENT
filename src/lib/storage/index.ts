@@ -8,5 +8,5 @@
 export type { RecordEnvelope, ArtifactEnvelope, RecordType, ArtifactType } from "./schema.js";
 export type { GrassEyeStoragePort, AppendRecordResult, AppendArtifactResult } from "./storage-port.js";
 export { createGrassEyeFileStorage } from "./file-storage.js";
-export { stableJsonHash, sha256Bytes } from "./hash.js";
+export { stableJsonHash } from "./hash.js";
 export { createRecordRef, createArtifactRef } from "./refs.js";

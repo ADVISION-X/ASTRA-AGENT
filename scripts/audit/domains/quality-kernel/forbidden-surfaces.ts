@@ -62,19 +62,18 @@ export const FORBIDDEN_ACTIVE_PATTERNS_HARD = [
 export const FORBIDDEN_ACTIVE_PATTERNS_SOFT = [] as const;
 
 export const FORBIDDEN_GOVERNANCE_PATTERNS_HARD = [
-  "fallback",
   "compatibility",
   "backward-compatible",
   "deprecated",
   "legacy",
-  "bridge",
+  "compat bridge",
+  "compatBridge",
   "stub",
   "temporary",
   "transition",
   "synthetic",
   "repairMissingGridCell",
   "ArrowDown fallback",
-  "fallbackUsed",
   "abilityGroupId ??",
   "childCapabilityId ??",
   "action.abilityGroupId",

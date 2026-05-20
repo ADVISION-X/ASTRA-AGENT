@@ -15,7 +15,7 @@ export const getAuditProject = (): Project => {
   return cachedProject;
 };
 
-export const clearAuditProjectCache = (): void => {
+const clearAuditProjectCache = (): void => {
   cachedProject = undefined;
 };
 
@@ -29,9 +29,9 @@ export const getSourceFileOrThrow = (project: Project, relativePath: string): So
   return sourceFile;
 };
 
-export const getNodeLine = (node: Node): number => node.getStartLineNumber();
+const getNodeLine = (node: Node): number => node.getStartLineNumber();
 
-export const toRelativeSourcePath = (sourceFile: SourceFile): string =>
+const toRelativeSourcePath = (sourceFile: SourceFile): string =>
   toRepoRelativePath(sourceFile.getFilePath());
 
 export const getExpressionPath = (expression: Expression | undefined): string[] => {
@@ -95,7 +95,7 @@ const getPropertyAccessLiteralValue = (initializer: Expression): string | undefi
     : undefined;
 };
 
-export const getObjectLiteralString = (
+const getObjectLiteralString = (
   objectLiteral: ObjectLiteralExpression,
   propertyName: string,
 ): string | undefined => {
@@ -110,7 +110,7 @@ export const getObjectLiteralString = (
     ?? (initializer ? getPropertyAccessLiteralValue(initializer) : undefined);
 };
 
-export const getReferencePaths = (identifier: Identifier): string[] => {
+const getReferencePaths = (identifier: Identifier): string[] => {
   const paths = new Set<string>();
   for (const referenceNode of identifier.findReferencesAsNodes()) {
     paths.add(toRelativeSourcePath(referenceNode.getSourceFile()));

@@ -5,13 +5,10 @@ import { Node, SyntaxKind } from "ts-morph";
 import { pathFromRepoRoot } from "../../../core/paths.js";
 import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
-import {
-  getSourceFileAtRepoPath,
-  objectLiteralPropertyNames,
-  buildValidationResult,
-  type DomAutomationAuditProject,
-  type DomAutomationValidationResult,
-} from "./collect-dom-automation-project.js";
+import { getSourceFileAtRepoPath } from "./collect-dom-automation-project.js";
+import type { DomAutomationAuditProject, DomAutomationValidationResult } from "./dom-automation-project-types.js";
+import { objectLiteralPropertyNames } from "./dom-automation-static-strings.js";
+import { buildValidationResult } from "./dom-automation-validation-result.js";
 
 const REQUIRED_ACTION_CODES = [
   "READ_DOM_SNAPSHOT_ONCE",
@@ -23,20 +20,58 @@ const REQUIRED_ACTION_CODES = [
   "WAIT_FOR_DOM_STATE_ONCE",
 ] as const;
 
-const catalogFinding = (
+const catalogFinding = (...input: readonly [
   lawId: string,
   file: string,
   line: number,
   message: string,
   hint: string,
-): Finding => createFinding({
-  lawId,
-  file,
-  line,
-  severity: "fatal",
-  message,
-  hint,
-});
+]): Finding => {
+  const [lawId, file, line, message, hint] = input;
+  return createFinding({ lawId, file, line, severity: "fatal", message, hint });
+};
+
+type CatalogEntryFields = {
+  actionCode: string | null;
+  abilityGroupId: string | null;
+  childCapabilityId: string | null;
+};
+
+const readCatalogEntryFields = (element: Node): CatalogEntryFields => {
+  if (!Node.isObjectLiteralExpression(element)) {
+    return { actionCode: null, abilityGroupId: null, childCapabilityId: null };
+  }
+  const readStringProperty = (propertyName: string): string | null => {
+    const property = element.getProperty(propertyName);
+    return Node.isPropertyAssignment(property) && Node.isStringLiteral(property.getInitializerIfKindOrThrow(SyntaxKind.StringLiteral))
+      ? property.getInitializerIfKindOrThrow(SyntaxKind.StringLiteral).getLiteralText()
+      : null;
+  };
+  return {
+    actionCode: readStringProperty("actionCode"),
+    abilityGroupId: readStringProperty("abilityGroupId"),
+    childCapabilityId: readStringProperty("childCapabilityId"),
+  };
+};
+
+const collectCatalogEntryFindings = (
+  repoPath: string,
+  element: Node,
+  actionCodes: Set<string>,
+  childKeys: Set<string>,
+): Finding[] => {
+  const { actionCode, abilityGroupId, childCapabilityId } = readCatalogEntryFields(element);
+  if (!actionCode || !abilityGroupId || !childCapabilityId) {
+    return [catalogFinding("GRASSEYE-DOM-001-V1", repoPath, element.getStartLineNumber(), "DOM catalog entry is missing actionCode or child ownership fields", "Keep DOM catalog entries fully declared in source.")];
+  }
+  actionCodes.add(actionCode);
+  const childKey = `${abilityGroupId}:${childCapabilityId}`;
+  const findings = childKeys.has(childKey)
+    ? [catalogFinding("GRASSEYE-DOM-001-V1", repoPath, element.getStartLineNumber(), `duplicate DOM ability child pair: ${childKey}`, "Keep every DOM catalog entry bound to one unique child capability.")]
+    : [];
+  childKeys.add(childKey);
+  return findings;
+};
 
 const validateDomCatalogEntries = (
   auditProject: DomAutomationAuditProject,
@@ -55,31 +90,7 @@ const validateDomCatalogEntries = (
   const childKeys = new Set<string>();
   const findings: Finding[] = [];
   for (const element of initializer.getElements()) {
-    if (!Node.isObjectLiteralExpression(element)) {
-      continue;
-    }
-    const actionCodeProperty = element.getProperty("actionCode");
-    const abilityGroupProperty = element.getProperty("abilityGroupId");
-    const childCapabilityProperty = element.getProperty("childCapabilityId");
-    const actionCode = Node.isPropertyAssignment(actionCodeProperty) && Node.isStringLiteral(actionCodeProperty.getInitializerIfKindOrThrow(SyntaxKind.StringLiteral))
-      ? actionCodeProperty.getInitializerIfKindOrThrow(SyntaxKind.StringLiteral).getLiteralText()
-      : null;
-    const abilityGroupId = Node.isPropertyAssignment(abilityGroupProperty) && Node.isStringLiteral(abilityGroupProperty.getInitializerIfKindOrThrow(SyntaxKind.StringLiteral))
-      ? abilityGroupProperty.getInitializerIfKindOrThrow(SyntaxKind.StringLiteral).getLiteralText()
-      : null;
-    const childCapabilityId = Node.isPropertyAssignment(childCapabilityProperty) && Node.isStringLiteral(childCapabilityProperty.getInitializerIfKindOrThrow(SyntaxKind.StringLiteral))
-      ? childCapabilityProperty.getInitializerIfKindOrThrow(SyntaxKind.StringLiteral).getLiteralText()
-      : null;
-    if (!actionCode || !abilityGroupId || !childCapabilityId) {
-      findings.push(catalogFinding("GRASSEYE-DOM-001-V1", repoPath, element.getStartLineNumber(), "DOM catalog entry is missing actionCode or child ownership fields", "Keep DOM catalog entries fully declared in source."));
-      continue;
-    }
-    actionCodes.add(actionCode);
-    const childKey = `${abilityGroupId}:${childCapabilityId}`;
-    if (childKeys.has(childKey)) {
-      findings.push(catalogFinding("GRASSEYE-DOM-001-V1", repoPath, element.getStartLineNumber(), `duplicate DOM ability child pair: ${childKey}`, "Keep every DOM catalog entry bound to one unique child capability."));
-    }
-    childKeys.add(childKey);
+    findings.push(...collectCatalogEntryFindings(repoPath, element, actionCodes, childKeys));
   }
   for (const actionCode of REQUIRED_ACTION_CODES) {
     if (!actionCodes.has(actionCode)) {
@@ -136,7 +147,7 @@ const validateGeneratedCatalog = (): Finding[] => {
     : [];
 };
 
-export const validateCatalogRegistry = (
+const validateCatalogRegistry = (
   auditProject: DomAutomationAuditProject,
 ): DomAutomationValidationResult => {
   const findings = [

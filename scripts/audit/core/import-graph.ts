@@ -23,6 +23,13 @@ const CAPABILITY_DOMAIN_BY_GROUP: Record<string, string> = {
   "text-input": "text-input-capability",
 };
 
+const DOMAIN_PREFIXES: ReadonlyArray<readonly [string, string]> = [
+  ["src/lib/runtime-logs/", "runtime-logging"],
+  ["src/lib/browser/", "security-privacy"],
+  ["src/lib/storage/", "forensics-persistence-capability"],
+  ["src/types/", "type-safety"],
+];
+
 const isPrivateOwnerPath = (repoRelativePath: string): boolean =>
   /\/(children|runtime|shared)\//.test(repoRelativePath);
 
@@ -38,10 +45,8 @@ export const inferDomainFromPath = (repoRelativePath: string): string | null => 
     const capabilityGroup = capabilityMatch[1];
     return capabilityGroup ? CAPABILITY_DOMAIN_BY_GROUP[capabilityGroup] ?? null : null;
   }
-  if (repoRelativePath.startsWith("src/lib/runtime-logs/")) return "runtime-logging";
-  if (repoRelativePath.startsWith("src/lib/browser/")) return "security-privacy";
-  if (repoRelativePath.startsWith("src/lib/storage/")) return "forensics-persistence-capability";
-  if (repoRelativePath.startsWith("src/types/")) return "type-safety";
+  const domainPrefix = DOMAIN_PREFIXES.find(([prefix]) => repoRelativePath.startsWith(prefix));
+  if (domainPrefix) return domainPrefix[1];
   if (repoRelativePath.startsWith("scripts/audit/domains/")) {
     const domainName = repoRelativePath.split("/")[3];
     return domainName === "shared" ? null : domainName ?? null;

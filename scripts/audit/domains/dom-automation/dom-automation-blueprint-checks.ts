@@ -1,8 +1,9 @@
 import { existsSync } from "node:fs";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import type { ClauseCheckOutcome, DomAutomationBinaryCheckContext } from "./dom-automation-binary-types.js";
-import { pass, fail, sourceText } from "./dom-automation-binary-helpers.js";
+import { pass, fail } from "./dom-automation-binary-outcome.js";
 import { DOM_ACTION_CODES, DOM_REQUIRED_PATHS, PLUGIN_REQUIRED_PATHS } from "./dom-automation-binary-constants.js";
+import { sourceText } from "./dom-automation-source-helpers.js";
 
 export const checkBlueprintStructure = (context: DomAutomationBinaryCheckContext): ClauseCheckOutcome => {
   const missing = [...DOM_REQUIRED_PATHS, ...PLUGIN_REQUIRED_PATHS].filter((repoPath) => !existsSync(pathFromRepoRoot(repoPath)));
@@ -73,4 +74,3 @@ export const checkCiUniqueEntry = (context: DomAutomationBinaryCheckContext): Cl
     ? pass("ci:full is the only complete gate, delegates to scripts/audit/ci-full.ts, and pulls dom-automation through the governed owner-manifest plan")
     : fail("CI unique-entry check failed", issues.join("; "));
 };
-

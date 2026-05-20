@@ -10,25 +10,49 @@ type JsonScannerState = {
   escaping: boolean;
 };
 
+function advanceJsonStringState(state: JsonScannerState, char: string): boolean {
+  if (state.escaping) {
+    state.escaping = false;
+    return true;
+  }
+  if (char === "\\") {
+    state.escaping = true;
+    return true;
+  }
+  if (char === '"') {
+    state.inString = !state.inString;
+    return true;
+  }
+  return state.inString;
+}
+
+function scanJsonBoundary(text: string, state: JsonScannerState, char: string, index: number): string | null {
+  if (char === "{") {
+    if (state.depth === 0) {
+      state.startIndex = index;
+    }
+    state.depth += 1;
+    return null;
+  }
+  if (char !== "}") {
+    return null;
+  }
+  state.depth -= 1;
+  return state.depth === 0 && state.startIndex >= 0
+    ? text.slice(state.startIndex, index + 1)
+    : null;
+}
+
 function extractFirstJsonObject(text: string): string {
   const state: JsonScannerState = { startIndex: -1, depth: 0, inString: false, escaping: false };
   for (let i = 0; i < text.length; i += 1) {
     const char = text[i];
-    if (char === undefined) continue;
-    if (state.escaping) { state.escaping = false; continue; }
-    if (char === "\\") { state.escaping = true; continue; }
-    if (char === '"') { state.inString = !state.inString; continue; }
-    if (state.inString) continue;
-    if (char === "{") {
-      if (state.depth === 0) state.startIndex = i;
-      state.depth += 1;
+    if (char === undefined || advanceJsonStringState(state, char)) {
       continue;
     }
-    if (char === "}") {
-      state.depth -= 1;
-      if (state.depth === 0 && state.startIndex >= 0) {
-        return text.slice(state.startIndex, i + 1);
-      }
+    const extracted = scanJsonBoundary(text, state, char, i);
+    if (extracted) {
+      return extracted;
     }
   }
   throw new Error("AI model output did not contain a JSON object.");

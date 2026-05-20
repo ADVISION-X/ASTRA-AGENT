@@ -1,19 +1,28 @@
 import { existsSync } from "node:fs";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import type { ClauseCheckOutcome, DomAutomationBinaryCheckContext } from "./dom-automation-binary-types.js";
-import { pass, fail, sourceFile, sourceText, variableFields, typeFields, hasFields, hasPropertyCall, classMethods, interfaceMethods, sourceFilesWithin, repoPathOf, findForbiddenImports, hasVisualMissionDomImport, hasSecondBrowserController, usesForbiddenPluginPrimitives, domCoreContainsBusinessVocabulary, hasSensitiveDomAccess, forbiddenLogFields, manifestHasAllLawIds, pluginUsesFacadeSymbols, routeUsesWorkbenchFacade, hasIdentifierCall } from "./dom-automation-binary-helpers.js";
-import { BROWSER_CONTROLLER_PATH, CURRENT_CHROME_PATH, DOM_ACTION_CODES, DOM_EXPORTS, DOM_FACADE_PATH, DOM_REQUIRED_PATHS, PLUGIN_REQUIRED_PATHS } from "./dom-automation-binary-constants.js";
+import { pass, fail } from "./dom-automation-binary-outcome.js";
+import { DOM_ACTION_CODES, DOM_EXPORTS, DOM_REQUIRED_PATHS } from "./dom-automation-binary-constants.js";
+import { BROWSER_CONTROLLER_PATH, CURRENT_CHROME_EXECUTION_PATH, CURRENT_CHROME_PATH } from "./dom-automation-path-constants.js";
+import { findForbiddenImports, hasSecondBrowserController, hasVisualMissionDomImport, sourceText } from "./dom-automation-source-helpers.js";
+import { domCoreContainsBusinessVocabulary, forbiddenLogFields, hasSensitiveDomAccess, manifestHasAllLawIds, pluginUsesFacadeSymbols, routeUsesWorkbenchFacade, usesForbiddenPluginPrimitives } from "./dom-automation-policy-helpers.js";
+import { classMethods, hasFields, hasIdentifierCall, hasPropertyCall, interfaceMethods, sourceFile, variableFields } from "./dom-automation-shape-helpers.js";
 
-export const checkLaw001Sovereignty = (context: DomAutomationBinaryCheckContext): ClauseCheckOutcome => {
+const collectLaw001PathIssues = (): string[] => {
   const issues: string[] = [];
-  const indexFile = sourceFile(context, "src/capabilities/dom-automation/index.ts");
-  const manifestFileText = sourceText(context, "src/capabilities/dom-automation/manifest.ts");
-  const catalogText = sourceText(context, "src/muscle-memory/catalog.ts");
   for (const repoPath of ["src/capabilities/dom-automation", "src/plugins/amazon-invoice-upload", ...DOM_REQUIRED_PATHS]) {
     if (!existsSync(pathFromRepoRoot(repoPath))) {
       issues.push(`missing required path: ${repoPath}`);
     }
   }
+  return issues;
+};
+
+const collectLaw001FacadeIssues = (context: DomAutomationBinaryCheckContext): string[] => {
+  const issues: string[] = [];
+  const indexFile = sourceFile(context, "src/capabilities/dom-automation/index.ts");
+  const manifestFileText = sourceText(context, "src/capabilities/dom-automation/manifest.ts");
+  const catalogText = sourceText(context, "src/muscle-memory/catalog.ts");
   for (const exportName of DOM_EXPORTS) {
     if (!indexFile?.getExportedDeclarations().has(exportName)) {
       issues.push(`dom facade is missing export: ${exportName}`);
@@ -27,6 +36,11 @@ export const checkLaw001Sovereignty = (context: DomAutomationBinaryCheckContext)
   if (!catalogText.includes("DOM_AUTOMATION_CATALOG_ENTRIES") || !catalogText.includes("mergeCapabilityCatalogEntries")) {
     issues.push("muscle-memory catalog does not source-merge DOM entries");
   }
+  return issues;
+};
+
+const collectLaw001BrowserIssues = (context: DomAutomationBinaryCheckContext): string[] => {
+  const issues: string[] = [];
   const browserMethods = interfaceMethods(sourceFile(context, BROWSER_CONTROLLER_PATH), "BrowserController");
   const currentChromeMethods = classMethods(sourceFile(context, CURRENT_CHROME_PATH), "CurrentChromeBrowserController");
   for (const methodName of ["evaluateActiveTab", "setFileInputFiles"]) {
@@ -37,6 +51,15 @@ export const checkLaw001Sovereignty = (context: DomAutomationBinaryCheckContext)
       issues.push(`CurrentChromeBrowserController is missing ${methodName}`);
     }
   }
+  const secondBrowser = hasSecondBrowserController(context);
+  if (secondBrowser.length > 0) {
+    issues.push(`second BrowserController implementation detected: ${secondBrowser[0]}`);
+  }
+  return issues;
+};
+
+const collectLaw001BoundaryIssues = (context: DomAutomationBinaryCheckContext): string[] => {
+  const issues: string[] = [];
   if (hasVisualMissionDomImport(context)) {
     issues.push("visual-mission imports DOM automation code");
   }
@@ -48,24 +71,29 @@ export const checkLaw001Sovereignty = (context: DomAutomationBinaryCheckContext)
   if (pluginImportsRuntime.length > 0) {
     issues.push(`plugin crosses owner boundary: ${pluginImportsRuntime[0]}`);
   }
-  const secondBrowser = hasSecondBrowserController(context);
-  if (secondBrowser.length > 0) {
-    issues.push(`second BrowserController implementation detected: ${secondBrowser[0]}`);
-  }
   if (!manifestHasAllLawIds(context)) {
     issues.push("dom owner manifest does not authorize all active DOM laws");
   }
+  return issues;
+};
+
+export const checkLaw001Sovereignty = (context: DomAutomationBinaryCheckContext): ClauseCheckOutcome => {
+  const issues = [
+    ...collectLaw001PathIssues(),
+    ...collectLaw001FacadeIssues(context),
+    ...collectLaw001BrowserIssues(context),
+    ...collectLaw001BoundaryIssues(context),
+  ];
   return issues.length === 0
     ? pass("dom owner paths, registry exposure, single BrowserController ownership, visual decoupling, and owner-manifest law coverage are all enforced")
     : fail("DOM sovereignty check failed", issues.join("; "));
 };
 
-export const checkLaw002SnapshotSummary = (context: DomAutomationBinaryCheckContext): ClauseCheckOutcome => {
+const collectLaw002SchemaIssues = (context: DomAutomationBinaryCheckContext): string[] => {
   const issues: string[] = [];
   const schemaFile = sourceFile(context, "src/capabilities/dom-automation/schema.ts");
   const snapshotFields = variableFields(schemaFile, "DomSnapshotSchema");
   const readInputFields = variableFields(schemaFile, "ReadDomSnapshotInputSchema");
-  const snapshotText = sourceText(context, "src/capabilities/dom-automation/runtime/dom-snapshot.ts");
   const missingSnapshotFields = hasFields(snapshotFields, ["url", "title", "forms", "inputs", "buttons", "links", "fileInputs", "dialogs", "frames", "textBlocks", "tableRows", "roleRows", "genericClickableElements", "detectedStates"]);
   const missingReadInputFields = hasFields(readInputFields, ["includeFrames", "includeHidden", "maxTextLengthPerNode", "targetScope"]);
   if (missingSnapshotFields.length > 0) {
@@ -74,23 +102,44 @@ export const checkLaw002SnapshotSummary = (context: DomAutomationBinaryCheckCont
   if (missingReadInputFields.length > 0) {
     issues.push(`ReadDomSnapshotInputSchema is missing fields: ${missingReadInputFields.join(", ")}`);
   }
+  return issues;
+};
+
+const collectMissingTokens = (
+  text: string,
+  tokens: string[],
+  messagePrefix: string,
+): string[] => tokens
+  .filter((token) => !text.includes(token))
+  .map((token) => `${messagePrefix}: ${token}`);
+
+const collectLaw002RuntimeIssues = (context: DomAutomationBinaryCheckContext): string[] => {
+  const issues: string[] = [];
+  const snapshotFile = sourceFile(context, "src/capabilities/dom-automation/runtime/dom-snapshot.ts");
+  const snapshotText = sourceText(context, "src/capabilities/dom-automation/runtime/dom-snapshot.ts");
   if (!hasPropertyCall(sourceFile(context, "src/capabilities/dom-automation/runtime/dom-snapshot.ts"), "browser", "evaluateActiveTab")) {
     issues.push("dom-snapshot does not call browser.evaluateActiveTab");
   }
-  for (const token of ["clip", "selectorFor", "labelText", "selectorCandidate", "detectedStates.push(\"login_required\")", "detectedStates.push(\"captcha_or_2fa_required\")", "item.type !== \"hidden\"", "password"]) {
-    if (!snapshotText.includes(token)) {
-      issues.push(`dom-snapshot is missing governed summary token: ${token}`);
-    }
-  }
-  if (hasSensitiveDomAccess(sourceFile(context, "src/capabilities/dom-automation/runtime/dom-snapshot.ts"))) {
+  issues.push(...collectMissingTokens(snapshotText, ["clip", "selectorFor", "labelText", "selectorCandidate", "detectedStates.push(\"login_required\")", "detectedStates.push(\"captcha_or_2fa_required\")", "item.type !== \"hidden\"", "password"], "dom-snapshot is missing governed summary token"));
+  if (hasSensitiveDomAccess(snapshotFile)) {
     issues.push("dom-snapshot contains forbidden cookie/storage/full-html access");
   }
-  const currentChromeText = sourceText(context, CURRENT_CHROME_PATH);
-  for (const token of ["document\\.cookie", "localStorage", "sessionStorage", "outerHTML", "document\\.documentElement\\.innerHTML"]) {
-    if (!currentChromeText.includes(token)) {
-      issues.push(`current Chrome evaluateActiveTab guard is missing token: ${token}`);
-    }
-  }
+  return issues;
+};
+
+const collectLaw002BrowserGuardIssues = (context: DomAutomationBinaryCheckContext): string[] =>
+  collectMissingTokens(
+    sourceText(context, CURRENT_CHROME_EXECUTION_PATH),
+    ["document\\.cookie", "localStorage", "sessionStorage", "outerHTML", "document\\.documentElement\\.innerHTML"],
+    "current Chrome evaluateActiveTab guard is missing token",
+  );
+
+export const checkLaw002SnapshotSummary = (context: DomAutomationBinaryCheckContext): ClauseCheckOutcome => {
+  const issues = [
+    ...collectLaw002SchemaIssues(context),
+    ...collectLaw002RuntimeIssues(context),
+    ...collectLaw002BrowserGuardIssues(context),
+  ];
   return issues.length === 0
     ? pass("dom-snapshot exposes only governed summary fields, clips node text, filters hidden/password values, and blocks cookie/storage/full-html escape patterns")
     : fail("DOM snapshot summary check failed", issues.join("; "));

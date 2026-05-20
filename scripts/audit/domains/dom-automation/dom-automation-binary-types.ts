@@ -1,5 +1,5 @@
-import type { DomAutomationAuditProject } from "./components/collect-dom-automation-project.js";
-import type { LawEnforcementBinaryResult } from "./dom-automation-law-enforcement-matrix.js";
+import type { DomAutomationAuditProject } from "./components/dom-automation-project-types.js";
+import type { LawEnforcementBinaryResult } from "./dom-automation-law-enforcement-types.js";
 
 export type ClauseCheckOutcome = {
   readonly status: LawEnforcementBinaryResult;
@@ -13,4 +13,3 @@ export type DomAutomationBinaryCheckContext = {
   readonly manifest: { allowedLawIds?: string[] };
   readonly memo: Map<string, ClauseCheckOutcome>;
 };
-

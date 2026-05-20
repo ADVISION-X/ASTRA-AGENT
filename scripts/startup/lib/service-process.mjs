@@ -55,15 +55,7 @@ async function runNpmScript({
   });
 }
 
-export async function startLocalService({
-  rootDir,
-  npmCommand = getDefaultNpmCommand(),
-  preStartScripts = ["build"],
-  scriptName = "internal:app-server",
-  env = {},
-  onStdoutLine,
-  onStderrLine,
-}) {
+async function runPreStartScripts({ rootDir, npmCommand, preStartScripts, onStdoutLine, onStderrLine }) {
   for (const preStartScript of preStartScripts) {
     await runNpmScript({
       rootDir,
@@ -73,24 +65,48 @@ export async function startLocalService({
       onStderrLine,
     });
   }
+}
 
-  const child = spawn(npmCommand, ["run", scriptName], {
+function buildServiceEnv(env) {
+  return {
+    ...process.env,
+    GRASSEYE_PLATFORM_TARGET: process.env.GRASSEYE_PLATFORM_TARGET ?? "tiktok-web",
+    ...env,
+  };
+}
+
+function spawnLocalServiceProcess({ rootDir, npmCommand, scriptName, env }) {
+  return spawn(npmCommand, ["run", scriptName], {
     cwd: rootDir,
-    env: {
-      ...process.env,
-      GRASSEYE_PLATFORM_TARGET: process.env.GRASSEYE_PLATFORM_TARGET ?? "tiktok-web",
-      ...env,
-    },
+    env: buildServiceEnv(env),
     stdio: ["ignore", "pipe", "pipe"],
   });
+}
 
-  wireLineStream(child.stdout, (line) => onStdoutLine?.(line, scriptName));
-  wireLineStream(child.stderr, (line) => onStderrLine?.(line, scriptName));
-
+async function waitForChildSpawn(child) {
   await new Promise((resolve, reject) => {
     child.once("spawn", resolve);
     child.once("error", reject);
   });
+}
+
+export async function startLocalService({
+  rootDir,
+  npmCommand = getDefaultNpmCommand(),
+  preStartScripts = ["build"],
+  scriptName = "internal:app-server",
+  env = {},
+  onStdoutLine,
+  onStderrLine,
+}) {
+  await runPreStartScripts({ rootDir, npmCommand, preStartScripts, onStdoutLine, onStderrLine });
+
+  const child = spawnLocalServiceProcess({ rootDir, npmCommand, scriptName, env });
+
+  wireLineStream(child.stdout, (line) => onStdoutLine?.(line, scriptName));
+  wireLineStream(child.stderr, (line) => onStderrLine?.(line, scriptName));
+
+  await waitForChildSpawn(child);
 
   const waitForExit = () =>
     new Promise((resolve) => {

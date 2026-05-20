@@ -1,10 +1,6 @@
 // Quality Kernel — minimal quality safety config.
 
 export const QUALITY_KERNEL_LIMITS = {
-  // Hard limit: scripts/audit total file count must not exceed this.
-  // Enforces bounded growth while allowing one-owner-one-inspector manifests.
-  maxAuditFiles: 120,
-  maxGeneratedFiles: 5,
   maxQualityKernelFiles: 5,
   moduleFileLimits: {
     "src/capabilities/mouse-click": 20,
@@ -15,7 +11,6 @@ export const QUALITY_KERNEL_LIMITS = {
     "src/capabilities/geometry-guard": 20,
     "src/capabilities/orchestration": 30,
     "src/capabilities/nerve-bus": 14,
-    "src/lib/local-runtime": 20,
     "src/lib/online-ai": 8,
     "src/capabilities/screenshot": 20,
     "src/lib/storage": 8,

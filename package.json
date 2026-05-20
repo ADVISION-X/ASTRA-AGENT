@@ -15,6 +15,7 @@
 
     "internal:app-server:dev": "tsx src/app/server.ts",
 
+    "audit:build": "node --import tsx scripts/audit/build-audit-artifacts.ts",
     "audit:code-purity": "node --import tsx scripts/audit/domains/code-purity/run-inspector.ts",
     "audit:runtime-logging": "node --import tsx scripts/audit/domains/runtime-logging/run-inspector.ts",
     "audit:quality-kernel": "node --import tsx scripts/audit/domains/quality-kernel/run-inspector.ts",

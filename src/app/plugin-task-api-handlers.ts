@@ -141,47 +141,98 @@ async function handleJsonPluginPost(
   return null;
 }
 
+async function handlePluginStatusRequest(
+  response: ServerResponse,
+  activeWorkbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> {
+  const statusMatch = new RegExp(`^${ROUTE_STATUS_PREFIX.replaceAll("/", "\\/")}([^/]+)$`, "u").exec(url.pathname);
+  if (!statusMatch?.[1]) {
+    return false;
+  }
+  writeJsonResponse(response, 200, await activeWorkbench.getAmazonInvoiceUploadTaskStatus(statusMatch[1]));
+  return true;
+}
+
+async function handlePluginPostRequest(input: {
+  request: IncomingMessage;
+  response: ServerResponse;
+  activeWorkbench: GrassEyeWorkbenchHandle;
+  url: URL;
+}): Promise<boolean> {
+  if (input.url.pathname === ROUTE_START) {
+    writeJsonResponse(input.response, 200, await handleStart(input.request, input.activeWorkbench));
+    return true;
+  }
+  if (input.request.method !== "POST") {
+    return false;
+  }
+  const payload = await handleJsonPluginPost(input.request, input.activeWorkbench, input.url);
+  if (!payload) {
+    return false;
+  }
+  writeJsonResponse(input.response, 200, payload);
+  return true;
+}
+
+function writeInvalidPluginRequest(response: ServerResponse, error: Error): void {
+  writeJsonResponse(response, 400, {
+    ok: false,
+    error: "invalid_plugin_request",
+    failureReason: error.message,
+  });
+}
+
+function preparePluginTaskRequest(
+  request: IncomingMessage,
+  response: ServerResponse,
+  url: URL,
+): boolean | null {
+  if (!url.pathname.startsWith(PLUGIN_PREFIX)) {
+    return false;
+  }
+  applyCors(request, response);
+  if (request.method !== "OPTIONS") {
+    return null;
+  }
+  response.writeHead(204);
+  response.end();
+  return true;
+}
+
+async function tryHandlePluginTaskRoute(input: {
+  request: IncomingMessage;
+  response: ServerResponse;
+  activeWorkbench: GrassEyeWorkbenchHandle;
+  url: URL;
+}): Promise<boolean> {
+  if (input.request.method === "GET" && await handlePluginStatusRequest(input.response, input.activeWorkbench, input.url)) {
+    return true;
+  }
+  return handlePluginPostRequest(input);
+}
+
+function handlePluginTaskError(response: ServerResponse, error: unknown): boolean {
+  if (!(error instanceof z.ZodError || error instanceof SyntaxError || error instanceof Error)) {
+    return false;
+  }
+  writeInvalidPluginRequest(response, error);
+  return true;
+}
+
 export async function handlePluginTaskRequest(
   request: IncomingMessage,
   response: ServerResponse,
   activeWorkbench: GrassEyeWorkbenchHandle,
   url: URL,
 ): Promise<boolean> {
-  if (!url.pathname.startsWith(PLUGIN_PREFIX)) {
-    return false;
-  }
-  applyCors(request, response);
-  if (request.method === "OPTIONS") {
-    response.writeHead(204);
-    response.end();
-    return true;
+  const prepared = preparePluginTaskRequest(request, response, url);
+  if (prepared !== null) {
+    return prepared;
   }
   try {
-    if (request.method === "POST" && url.pathname === ROUTE_START) {
-      writeJsonResponse(response, 200, await handleStart(request, activeWorkbench));
-      return true;
-    }
-    const statusMatch = new RegExp(`^${ROUTE_STATUS_PREFIX.replaceAll("/", "\\/")}([^/]+)$`, "u").exec(url.pathname);
-    if (request.method === "GET" && statusMatch?.[1]) {
-      writeJsonResponse(response, 200, await activeWorkbench.getAmazonInvoiceUploadTaskStatus(statusMatch[1]));
-      return true;
-    }
-    if (request.method === "POST") {
-      const payload = await handleJsonPluginPost(request, activeWorkbench, url);
-      if (payload) {
-        writeJsonResponse(response, 200, payload);
-        return true;
-      }
-    }
+    return await tryHandlePluginTaskRoute({ request, response, activeWorkbench, url });
   } catch (error) {
-    if (error instanceof z.ZodError || error instanceof SyntaxError || error instanceof Error) {
-      writeJsonResponse(response, 400, {
-        ok: false,
-        error: "invalid_plugin_request",
-        failureReason: error.message,
-      });
-      return true;
-    }
+    return handlePluginTaskError(response, error);
   }
-  return false;
 }

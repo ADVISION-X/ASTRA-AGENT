@@ -1,15 +1,11 @@
-import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+import { Node, SyntaxKind, type ElementAccessExpression, type Identifier, type PropertyAccessExpression, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
-import {
-  collectStringLiteralNodes,
-  getSourceFileAtRepoPath,
-  resolveStaticString,
-  buildValidationResult,
-  type DomAutomationAuditProject,
-  type DomAutomationValidationResult,
-} from "./collect-dom-automation-project.js";
+import { getSourceFileAtRepoPath } from "./collect-dom-automation-project.js";
+import type { DomAutomationAuditProject, DomAutomationValidationResult } from "./dom-automation-project-types.js";
+import { collectStringLiteralNodes, resolveStaticString } from "./dom-automation-static-strings.js";
+import { buildValidationResult } from "./dom-automation-validation-result.js";
 
 const DOM_CORE_FORBIDDEN_VOCAB = [
   "amazon",
@@ -41,20 +37,16 @@ const SCRIPT_LITERAL_PATTERNS: Array<{ label: string; regex: RegExp }> = [
   { label: "password.value", regex: /password[^\n]{0,80}\.value|input\s*\[\s*type\s*=\s*['"]password['"]\s*\][^\n]{0,80}\.value/iu },
 ] as const;
 
-const antiEscapeFinding = (
+const antiEscapeFinding = (...input: readonly [
   lawId: string,
   file: string,
   line: number,
   message: string,
   hint: string,
-): Finding => createFinding({
-  lawId,
-  file,
-  line,
-  severity: "fatal",
-  message,
-  hint,
-});
+]): Finding => {
+  const [lawId, file, line, message, hint] = input;
+  return createFinding({ lawId, file, line, severity: "fatal", message, hint });
+};
 
 const fileRepoPath = (
   auditProject: DomAutomationAuditProject,
@@ -85,6 +77,75 @@ const validateDomCoreBusinessVocabulary = (
   return findings;
 };
 
+const isForbiddenSensitiveProperty = (propertyText: string): boolean => {
+  const normalized = propertyText.replace(/\s+/g, "").toLowerCase();
+  return [
+    "document.cookie",
+    "window.localstorage",
+    "window.sessionstorage",
+    "globalthis.localstorage",
+    "globalthis.sessionstorage",
+    "document.documentelement.innerhtml",
+  ].includes(normalized) || normalized.endsWith(".outerhtml");
+};
+
+const propertyAccessFinding = (
+  repoPath: string,
+  propertyAccess: PropertyAccessExpression,
+): Finding[] => isForbiddenSensitiveProperty(propertyAccess.getText())
+  ? [antiEscapeFinding(
+    "GRASSEYE-DOM-002-V1",
+    repoPath,
+    propertyAccess.getStartLineNumber(),
+    `forbidden sensitive DOM property access: ${propertyAccess.getText()}`,
+    "Do not read cookies, storage, password values, or full HTML inside DOM automation.",
+  )]
+  : [];
+
+const pluginDomApiFinding = (
+  repoPath: string,
+  propertyAccess: PropertyAccessExpression,
+): Finding[] => repoPath.startsWith("src/plugins/amazon-invoice-upload/")
+  && ["querySelector", "querySelectorAll"].includes(propertyAccess.getName())
+  ? [antiEscapeFinding(
+    "GRASSEYE-DOM-008-V1",
+    repoPath,
+    propertyAccess.getStartLineNumber(),
+    `plugin bypasses DOM facade with direct DOM API: ${propertyAccess.getText()}`,
+    "Amazon plugin must not query the DOM directly.",
+  )]
+  : [];
+
+const elementAccessFinding = (
+  repoPath: string,
+  elementAccess: ElementAccessExpression,
+): Finding[] => {
+  const propertyName = resolveStaticString(elementAccess.getArgumentExpression())?.toLowerCase();
+  return propertyName && ["cookie", "localstorage", "sessionstorage", "outerhtml", "innerhtml"].includes(propertyName)
+    ? [antiEscapeFinding(
+      "GRASSEYE-DOM-002-V1",
+      repoPath,
+      elementAccess.getStartLineNumber(),
+      `forbidden sensitive element-access escape: ${elementAccess.getText()}`,
+      "Do not route sensitive DOM reads through bracket notation or string concatenation.",
+    )]
+    : [];
+};
+
+const pluginPrimitiveIdentifierFinding = (
+  repoPath: string,
+  identifier: Identifier,
+): Finding[] => repoPath.startsWith("src/plugins/amazon-invoice-upload/")
+  && ["runAppleScript", "clickAt", "scrollAt"].includes(identifier.getText())
+  ? [antiEscapeFinding(
+    "GRASSEYE-DOM-008-V1",
+    repoPath,
+    identifier.getStartLineNumber(),
+    `plugin references forbidden browser primitive symbol: ${identifier.getText()}`,
+    "Amazon plugin must not touch browser primitives directly.",
+  )]
+  : [];
+
 const validateForbiddenPropertyAccess = (
   auditProject: DomAutomationAuditProject,
 ): Finding[] => {
@@ -96,60 +157,14 @@ const validateForbiddenPropertyAccess = (
   for (const sourceFile of scopedFiles) {
     const repoPath = fileRepoPath(auditProject, sourceFile);
     for (const propertyAccess of sourceFile.getDescendantsOfKind(SyntaxKind.PropertyAccessExpression)) {
-      const normalized = propertyAccess.getText().replace(/\s+/g, "").toLowerCase();
-      if ([
-        "document.cookie",
-        "window.localstorage",
-        "window.sessionstorage",
-        "globalthis.localstorage",
-        "globalthis.sessionstorage",
-        "document.documentelement.innerhtml",
-      ].includes(normalized)
-        || normalized.endsWith(".outerhtml")) {
-        findings.push(antiEscapeFinding(
-          "GRASSEYE-DOM-002-V1",
-          repoPath,
-          propertyAccess.getStartLineNumber(),
-          `forbidden sensitive DOM property access: ${propertyAccess.getText()}`,
-          "Do not read cookies, storage, password values, or full HTML inside DOM automation.",
-        ));
-      }
-      if (repoPath.startsWith("src/plugins/amazon-invoice-upload/")
-        && ["querySelector", "querySelectorAll"].includes(propertyAccess.getName())) {
-        findings.push(antiEscapeFinding(
-          "GRASSEYE-DOM-008-V1",
-          repoPath,
-          propertyAccess.getStartLineNumber(),
-          `plugin bypasses DOM facade with direct DOM API: ${propertyAccess.getText()}`,
-          "Amazon plugin must not query the DOM directly.",
-        ));
-      }
+      findings.push(...propertyAccessFinding(repoPath, propertyAccess));
+      findings.push(...pluginDomApiFinding(repoPath, propertyAccess));
     }
     for (const elementAccess of sourceFile.getDescendantsOfKind(SyntaxKind.ElementAccessExpression)) {
-      const propertyName = resolveStaticString(elementAccess.getArgumentExpression())?.toLowerCase();
-      if (!propertyName) {
-        continue;
-      }
-      if (["cookie", "localstorage", "sessionstorage", "outerhtml", "innerhtml"].includes(propertyName)) {
-        findings.push(antiEscapeFinding(
-          "GRASSEYE-DOM-002-V1",
-          repoPath,
-          elementAccess.getStartLineNumber(),
-          `forbidden sensitive element-access escape: ${elementAccess.getText()}`,
-          "Do not route sensitive DOM reads through bracket notation or string concatenation.",
-        ));
-      }
+      findings.push(...elementAccessFinding(repoPath, elementAccess));
     }
     for (const identifier of sourceFile.getDescendantsOfKind(SyntaxKind.Identifier)) {
-      if (repoPath.startsWith("src/plugins/amazon-invoice-upload/") && ["runAppleScript", "clickAt", "scrollAt"].includes(identifier.getText())) {
-        findings.push(antiEscapeFinding(
-          "GRASSEYE-DOM-008-V1",
-          repoPath,
-          identifier.getStartLineNumber(),
-          `plugin references forbidden browser primitive symbol: ${identifier.getText()}`,
-          "Amazon plugin must not touch browser primitives directly.",
-        ));
-      }
+      findings.push(...pluginPrimitiveIdentifierFinding(repoPath, identifier));
     }
   }
   return findings;
@@ -159,7 +174,7 @@ const validateScriptLiteralAntiEscape = (
   auditProject: DomAutomationAuditProject,
 ): Finding[] => {
   const findings: Finding[] = [];
-  const currentChromeFile = getSourceFileAtRepoPath(auditProject.project, "src/lib/browser/current-chrome-browser-controller.ts");
+  const currentChromeFile = getSourceFileAtRepoPath(auditProject.project, "src/lib/browser/current-chrome-browser-controller-execution.ts");
   const scopedFiles = [
     ...auditProject.sourceFiles.domRuntime,
     ...(currentChromeFile ? [currentChromeFile] : []),
@@ -221,7 +236,7 @@ const validateLogFields = (
   return findings;
 };
 
-export const validateSensitiveDataAntiEscape = (
+const validateSensitiveDataAntiEscape = (
   auditProject: DomAutomationAuditProject,
 ): DomAutomationValidationResult => {
   const findings = [

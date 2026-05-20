@@ -109,6 +109,53 @@ const buildThrownFailureState = (error: unknown) => {
   };
 };
 
+const handlePrimitivePortResult = (input: {
+  input: RunPrimitiveScrollInput;
+  frame: PrimitiveCallFrame;
+  store: PrimitiveExecutionStore;
+  iteration: number;
+  iterationCallId: string;
+  iterationStarted: ReturnType<RunPrimitiveScrollInput["context"]["clock"]["now"]>;
+  timeoutTriggered: boolean;
+  primitiveResult: Awaited<ReturnType<typeof runPrimitivePortCall>>;
+}): PrimitiveScrollResult | null => {
+  const iterationEnded = input.input.context.clock.now();
+  const { timeoutDecision, abortDecision } = buildTimeoutMetadata(input.timeoutTriggered);
+  const executionRef = resolveExecutionRef(input.primitiveResult.primitiveExecutionRef);
+
+  if (executionRef === null) {
+    appendPrimitiveIteration({ store: input.store, repeatIndex: input.iteration, primitiveCallId: input.iterationCallId, primitiveExecutionRef: null, status: "failed", iterationStarted: input.iterationStarted, iterationEnded, timeoutDecision, abortDecision, portHangDetected: input.timeoutTriggered, primitivePortKind: input.primitiveResult.portKind });
+    return buildIterationFailure({ frame: input.frame, store: input.store, endedSnapshot: iterationEnded, primitiveExecutionRef: null, primitiveDecision: "failed", failureReason: "primitive_execution_ref_missing", statusMessage: "Mouse Scroll primitive returned no primitiveExecutionRef.", timeoutDecision, abortDecision, portHangDetected: input.timeoutTriggered, primitivePortKind: input.primitiveResult.portKind, dataQualityFlags: ["primitive_execution_ref_missing"] });
+  }
+
+  input.store.primitiveExecutionRefs.push(executionRef);
+  appendPrimitiveIteration({ store: input.store, repeatIndex: input.iteration, primitiveCallId: input.iterationCallId, primitiveExecutionRef: executionRef, status: input.primitiveResult.ok ? "succeeded" : "failed", iterationStarted: input.iterationStarted, iterationEnded, timeoutDecision, abortDecision, portHangDetected: input.timeoutTriggered, primitivePortKind: input.primitiveResult.portKind });
+  if (!input.primitiveResult.ok) {
+    return buildIterationFailure({ frame: input.frame, store: input.store, endedSnapshot: iterationEnded, primitiveExecutionRef: executionRef, primitiveDecision: "failed", failureReason: "primitive_failed", statusMessage: input.primitiveResult.message, timeoutDecision, abortDecision, portHangDetected: input.timeoutTriggered, primitivePortKind: input.primitiveResult.portKind, dataQualityFlags: ["primitive_failed"] });
+  }
+
+  if (buildRunDurationMs(input.frame, iterationEnded) > input.input.maxDurationMs) {
+    return buildIterationFailure({ frame: input.frame, store: input.store, endedSnapshot: iterationEnded, primitiveExecutionRef: executionRef, primitiveDecision: "failed", failureReason: "primitive_timeout", statusMessage: `Mouse Scroll primitive exceeded maxDurationMs ${input.input.maxDurationMs}.`, timeoutDecision: "timed_out", abortDecision, portHangDetected: input.timeoutTriggered, primitivePortKind: input.primitiveResult.portKind, dataQualityFlags: ["primitive_timeout"] });
+  }
+
+  return null;
+};
+
+const handleThrownIterationFailure = (input: {
+  error: unknown;
+  input: RunPrimitiveScrollInput;
+  frame: PrimitiveCallFrame;
+  store: PrimitiveExecutionStore;
+  iteration: number;
+  iterationCallId: string;
+  iterationStarted: ReturnType<RunPrimitiveScrollInput["context"]["clock"]["now"]>;
+}): PrimitiveScrollResult => {
+  const iterationEnded = input.input.context.clock.now();
+  const thrownFailure = buildThrownFailureState(input.error);
+  appendPrimitiveIteration({ store: input.store, repeatIndex: input.iteration, primitiveCallId: input.iterationCallId, primitiveExecutionRef: null, status: thrownFailure.primitiveDecision, iterationStarted: input.iterationStarted, iterationEnded, timeoutDecision: thrownFailure.timeoutDecision, abortDecision: thrownFailure.abortDecision, portHangDetected: thrownFailure.portHangDetected, primitivePortKind: "browser-controller" });
+  return buildIterationFailure({ frame: input.frame, store: input.store, endedSnapshot: iterationEnded, primitiveExecutionRef: null, primitiveDecision: thrownFailure.primitiveDecision, failureReason: thrownFailure.failureReason, statusMessage: thrownFailure.statusMessage, timeoutDecision: thrownFailure.timeoutDecision, abortDecision: thrownFailure.abortDecision, portHangDetected: thrownFailure.portHangDetected, primitivePortKind: "browser-controller", dataQualityFlags: thrownFailure.dataQualityFlags });
+};
+
 export const runScrollIteration = async (
   input: RunPrimitiveScrollInput,
   frame: PrimitiveCallFrame,
@@ -119,7 +166,6 @@ export const runScrollIteration = async (
   const abortController = new AbortController();
   let timeoutTriggered = false;
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-
   try {
     const primitiveResult = await runPrimitivePortCall({
       input,
@@ -129,31 +175,9 @@ export const runScrollIteration = async (
       markTimeoutTriggered: () => { timeoutTriggered = true; },
     });
     clearPrimitiveTimeout(timeoutHandle);
-    const iterationEnded = input.context.clock.now();
-    const { timeoutDecision, abortDecision } = buildTimeoutMetadata(timeoutTriggered);
-    const executionRef = resolveExecutionRef(primitiveResult.primitiveExecutionRef);
-
-    if (executionRef === null) {
-      appendPrimitiveIteration({ store, repeatIndex: iteration, primitiveCallId: iterationCallId, primitiveExecutionRef: null, status: "failed", iterationStarted, iterationEnded, timeoutDecision, abortDecision, portHangDetected: timeoutTriggered, primitivePortKind: primitiveResult.portKind });
-      return buildIterationFailure({ frame, store, endedSnapshot: iterationEnded, primitiveExecutionRef: null, primitiveDecision: "failed", failureReason: "primitive_execution_ref_missing", statusMessage: "Mouse Scroll primitive returned no primitiveExecutionRef.", timeoutDecision, abortDecision, portHangDetected: timeoutTriggered, primitivePortKind: primitiveResult.portKind, dataQualityFlags: ["primitive_execution_ref_missing"] });
-    }
-
-    store.primitiveExecutionRefs.push(executionRef);
-    appendPrimitiveIteration({ store, repeatIndex: iteration, primitiveCallId: iterationCallId, primitiveExecutionRef: executionRef, status: primitiveResult.ok ? "succeeded" : "failed", iterationStarted, iterationEnded, timeoutDecision, abortDecision, portHangDetected: timeoutTriggered, primitivePortKind: primitiveResult.portKind });
-    if (!primitiveResult.ok) {
-      return buildIterationFailure({ frame, store, endedSnapshot: iterationEnded, primitiveExecutionRef: executionRef, primitiveDecision: "failed", failureReason: "primitive_failed", statusMessage: primitiveResult.message, timeoutDecision, abortDecision, portHangDetected: timeoutTriggered, primitivePortKind: primitiveResult.portKind, dataQualityFlags: ["primitive_failed"] });
-    }
-
-    if (buildRunDurationMs(frame, iterationEnded) > input.maxDurationMs) {
-      return buildIterationFailure({ frame, store, endedSnapshot: iterationEnded, primitiveExecutionRef: executionRef, primitiveDecision: "failed", failureReason: "primitive_timeout", statusMessage: `Mouse Scroll primitive exceeded maxDurationMs ${input.maxDurationMs}.`, timeoutDecision: "timed_out", abortDecision, portHangDetected: timeoutTriggered, primitivePortKind: primitiveResult.portKind, dataQualityFlags: ["primitive_timeout"] });
-    }
-
-    return null;
+    return handlePrimitivePortResult({ input, frame, store, iteration, iterationCallId, iterationStarted, timeoutTriggered, primitiveResult });
   } catch (error) {
     clearPrimitiveTimeout(timeoutHandle);
-    const iterationEnded = input.context.clock.now();
-    const thrownFailure = buildThrownFailureState(error);
-    appendPrimitiveIteration({ store, repeatIndex: iteration, primitiveCallId: iterationCallId, primitiveExecutionRef: null, status: thrownFailure.primitiveDecision, iterationStarted, iterationEnded, timeoutDecision: thrownFailure.timeoutDecision, abortDecision: thrownFailure.abortDecision, portHangDetected: thrownFailure.portHangDetected, primitivePortKind: "browser-controller" });
-    return buildIterationFailure({ frame, store, endedSnapshot: iterationEnded, primitiveExecutionRef: null, primitiveDecision: thrownFailure.primitiveDecision, failureReason: thrownFailure.failureReason, statusMessage: thrownFailure.statusMessage, timeoutDecision: thrownFailure.timeoutDecision, abortDecision: thrownFailure.abortDecision, portHangDetected: thrownFailure.portHangDetected, primitivePortKind: "browser-controller", dataQualityFlags: thrownFailure.dataQualityFlags });
+    return handleThrownIterationFailure({ error, input, frame, store, iteration, iterationCallId, iterationStarted });
   }
 };

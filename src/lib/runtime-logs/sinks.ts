@@ -13,42 +13,61 @@ import { redactRuntimeLogPayload } from "./redaction.js";
 
 // ─── Terminal Sink ───────────────────────────────────────────────────────────
 
+function appendRecordParts<TValue>(
+  parts: string[],
+  record: Record<string, TValue> | undefined,
+  render: (key: string, value: TValue) => string,
+): void {
+  if (!record) {
+    return;
+  }
+  for (const [key, value] of Object.entries(record)) {
+    parts.push(render(key, value));
+  }
+}
+
+function appendDebugParts(parts: string[], event: RuntimeLogEvent): void {
+  appendRecordParts(parts, event.preview, (key, value) => `${key}=${JSON.stringify(value).slice(0, 80)}`);
+  appendRecordParts(parts, event.hashes, (key, value) => `${key}=${value.slice(0, 16)}…`);
+  appendRecordParts(parts, event.refs, (key, value) => `${key}=${value}`);
+}
+
+function formatFlowTerminalLine(base: string, event: RuntimeLogEvent): string {
+  const suffix = event.status ? ` status=${event.status}` : "";
+  const mission = event.missionId ? ` mission=${event.missionId.slice(0, 8)}` : "";
+  return `${base}${mission}${suffix}`;
+}
+
+function appendCoreParts(parts: string[], event: RuntimeLogEvent): void {
+  const coreParts = [
+    event.missionId ? `mission=${event.missionId.slice(0, 8)}` : null,
+    event.traceId ? `trace=${event.traceId.slice(0, 8)}` : null,
+    event.status ? `status=${event.status}` : null,
+    event.reason ? `reason=${event.reason}` : null,
+    event.durationMs !== undefined ? `durationMs=${event.durationMs}` : null,
+    event.actionableMessage ? `=> ${event.actionableMessage}` : null,
+  ];
+  for (const part of coreParts) {
+    if (part) {
+      parts.push(part);
+    }
+  }
+}
+
 function formatTerminalLine(event: RuntimeLogEvent, mode: RuntimeLogMode): string {
   const ts = event.createdAt.slice(11, 23); // HH:mm:ss.sss
   const level = event.level.toUpperCase().padEnd(5);
   const base = `[${ts}] ${level} [${event.owner}] ${event.eventType}`;
 
   if (mode === "FLOW") {
-    const suffix =
-      event.status ? ` status=${event.status}` : "";
-    const mission = event.missionId ? ` mission=${event.missionId.slice(0, 8)}` : "";
-    return `${base}${mission}${suffix}`;
+    return formatFlowTerminalLine(base, event);
   }
 
   const parts: string[] = [base];
-  if (event.missionId) parts.push(`mission=${event.missionId.slice(0, 8)}`);
-  if (event.traceId) parts.push(`trace=${event.traceId.slice(0, 8)}`);
-  if (event.status) parts.push(`status=${event.status}`);
-  if (event.reason) parts.push(`reason=${event.reason}`);
-  if (event.durationMs !== undefined) parts.push(`durationMs=${event.durationMs}`);
-  if (event.actionableMessage) parts.push(`=> ${event.actionableMessage}`);
+  appendCoreParts(parts, event);
 
   if (mode === "TRACE" || mode === "DEBUG") {
-    if (event.preview) {
-      for (const [k, v] of Object.entries(event.preview)) {
-        parts.push(`${k}=${JSON.stringify(v).slice(0, 80)}`);
-      }
-    }
-    if (event.hashes) {
-      for (const [k, v] of Object.entries(event.hashes)) {
-        parts.push(`${k}=${v.slice(0, 16)}…`);
-      }
-    }
-    if (event.refs) {
-      for (const [k, v] of Object.entries(event.refs)) {
-        parts.push(`${k}=${v}`);
-      }
-    }
+    appendDebugParts(parts, event);
   }
 
   return parts.join(" | ");

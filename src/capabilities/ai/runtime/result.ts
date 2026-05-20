@@ -13,7 +13,6 @@ type BuildBaseRuntimeProofInput = {
   endedAt: string;
   durationMs: number;
   reason: string;
-  rawOutputHash: string | null;
   timeoutMs: number | null;
   failureReason?: string | null;
   reviewRequiredReason?: string | null;
@@ -68,7 +67,7 @@ const buildProofRuntimeFields = (
   outputRefs: [],
   evidenceRefs: input.request.inputRefs.map((entry) => entry.id),
   rawOutputRef: null,
-  rawOutputHash: input.rawOutputHash,
+  rawOutputHash,
   timeoutMs: input.timeoutMs,
   attemptIndex: 0,
   retryCount: 0,
@@ -119,15 +118,20 @@ const buildAiIdentityFields = (
   rawOutputHash,
 });
 
+const resolveSchemaValidationStatus = (
+  input: BuildAiResultInput,
+): AiAbilityResult["schemaValidationStatus"] => {
+  if (input.output) {
+    return "valid";
+  }
+  return input.status === "review_required" ? "invalid" : "not_applicable";
+};
+
 const buildAiOutcomeFields = (
   input: BuildAiResultInput,
   rawOutputHash: string | null,
 ) => ({
-  schemaValidationStatus: input.output
-    ? "valid"
-    : input.status === "review_required"
-      ? "invalid"
-      : "not_applicable",
+  schemaValidationStatus: resolveSchemaValidationStatus(input),
   confidence: input.output?.confidence ?? null,
   failureReason: input.failureReason ?? null,
   reviewRequiredReason: input.reviewRequiredReason ?? null,

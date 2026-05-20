@@ -1,10 +1,8 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 
 import type { Finding } from "../../../core/schema.js";
-import {
-  getSourceFileAtRepoPath,
-  type DomAutomationAuditProject,
-} from "./collect-dom-automation-project.js";
+import { getSourceFileAtRepoPath } from "./collect-dom-automation-project.js";
+import type { DomAutomationAuditProject } from "./dom-automation-project-types.js";
 import {
   hasIdentifierCall,
   hasPropertyAccess,
@@ -16,14 +14,15 @@ import {
   runtimeFinding,
 } from "./runtime-contract-support.js";
 
-const actionEvidenceFindings = (
+const actionEvidenceFindings = (...input: readonly [
   auditProject: DomAutomationAuditProject,
   repoPath: string,
   lawId: string,
   schemaName: string,
   inputSchemaName: string,
   extraChecks: Array<{ test: (sourceFile: SourceFile) => boolean; message: string; hint: string }>,
-): Finding[] => {
+]): Finding[] => {
+  const [auditProject, repoPath, lawId, schemaName, inputSchemaName, extraChecks] = input;
   const sourceFile = getSourceFileAtRepoPath(auditProject.project, repoPath);
   if (!sourceFile) return [runtimeFinding(lawId, repoPath, 1, "DOM action runtime file is missing", "Restore the DOM action runtime file.")];
   const findings: Finding[] = [];
@@ -50,23 +49,45 @@ export const domClickFindings = (auditProject: DomAutomationAuditProject): Findi
     { test: (sf) => hasStaticText(sf, "element is hidden") && hasStaticText(sf, "element is disabled"), message: "DOM click does not reject hidden or disabled elements", hint: "Reject hidden and disabled DOM click targets." },
   ]);
 
-export const domUploadFindings = (auditProject: DomAutomationAuditProject): Finding[] => {
-  const repoPath = "src/capabilities/dom-automation/runtime/dom-upload.ts";
-  const sourceFile = getSourceFileAtRepoPath(auditProject.project, repoPath);
-  if (!sourceFile) return [runtimeFinding("GRASSEYE-DOM-006-V1", repoPath, 1, "DOM upload runtime file is missing", "Restore the DOM upload runtime file.")];
+const collectUploadSchemaFindings = (sourceFile: SourceFile, repoPath: string): Finding[] => {
   const findings: Finding[] = [];
-  if (!hasSchemaParseCall(sourceFile, "UploadApprovedFileInputSchema")) findings.push(runtimeFinding("GRASSEYE-DOM-006-V1", repoPath, 1, "DOM upload does not parse UploadApprovedFileInputSchema", "Parse approved upload input through the governed schema."));
-  for (const callName of ["existsSync", "statSync"]) {
-    if (!hasIdentifierCall(sourceFile, callName)) findings.push(runtimeFinding("GRASSEYE-DOM-006-V1", repoPath, 1, `DOM upload is missing ${callName} validation`, "Validate approved file existence and file type before upload."));
+  if (!hasSchemaParseCall(sourceFile, "UploadApprovedFileInputSchema")) {
+    findings.push(runtimeFinding("GRASSEYE-DOM-006-V1", repoPath, 1, "DOM upload does not parse UploadApprovedFileInputSchema", "Parse approved upload input through the governed schema."));
   }
+  for (const callName of ["existsSync", "statSync"]) {
+    if (!hasIdentifierCall(sourceFile, callName)) {
+      findings.push(runtimeFinding("GRASSEYE-DOM-006-V1", repoPath, 1, `DOM upload is missing ${callName} validation`, "Validate approved file existence and file type before upload."));
+    }
+  }
+  return findings;
+};
+
+const collectUploadGuardFindings = (sourceFile: SourceFile, repoPath: string): Finding[] => {
+  const findings: Finding[] = [];
   const validatesPath = sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((binaryExpression) => binaryExpression.getLeft().getText() === "approvedPath" && binaryExpression.getRight().getText() === "taskPath");
   if (!validatesPath) findings.push(runtimeFinding("GRASSEYE-DOM-006-V1", repoPath, 1, "DOM upload does not verify approvedFilePath against approvedTaskFilePath", "Reject arbitrary file paths during DOM upload."));
   if (!hasPropertyAccess(sourceFile, "input.allowedExtensions", "includes")) findings.push(runtimeFinding("GRASSEYE-DOM-006-V1", repoPath, 1, "DOM upload does not validate allowedExtensions", "Restrict upload to approved extensions only."));
   const validatesTarget = sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression).some((expression) => isNotEqualsCheck(expression, "input.elementRef.targetKind", "file-input"));
   if (!validatesTarget) findings.push(runtimeFinding("GRASSEYE-DOM-006-V1", repoPath, 1, "DOM upload does not validate targetKind === file-input", "Upload only to governed file-input targets."));
+  return findings;
+};
+
+const collectUploadExecutionFindings = (sourceFile: SourceFile, repoPath: string): Finding[] => {
+  const findings: Finding[] = [];
   if (!hasPropertyAccess(sourceFile, "browser", "setFileInputFiles")) findings.push(runtimeFinding("GRASSEYE-DOM-006-V1", repoPath, 1, "DOM upload does not call browser.setFileInputFiles", "Complete upload closure must use the governed BrowserController file-input port."));
   if (hasStringLiteral(sourceFile, "not_implemented")) findings.push(runtimeFinding("GRASSEYE-DOM-006-V1", repoPath, 1, "DOM upload still returns not_implemented", "Complete upload closure must perform the approved file upload or fail/review with evidence."));
   const readsFileContent = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => ["readFile", "readFileSync"].includes(identifier.getText()));
   if (readsFileContent) findings.push(runtimeFinding("GRASSEYE-DOM-006-V1", repoPath, 1, "DOM upload reads file content", "Validate file metadata only; never read file body into AI/runtime payload."));
   return findings;
+};
+
+export const domUploadFindings = (auditProject: DomAutomationAuditProject): Finding[] => {
+  const repoPath = "src/capabilities/dom-automation/runtime/dom-upload.ts";
+  const sourceFile = getSourceFileAtRepoPath(auditProject.project, repoPath);
+  if (!sourceFile) return [runtimeFinding("GRASSEYE-DOM-006-V1", repoPath, 1, "DOM upload runtime file is missing", "Restore the DOM upload runtime file.")];
+  return [
+    ...collectUploadSchemaFindings(sourceFile, repoPath),
+    ...collectUploadGuardFindings(sourceFile, repoPath),
+    ...collectUploadExecutionFindings(sourceFile, repoPath),
+  ];
 };

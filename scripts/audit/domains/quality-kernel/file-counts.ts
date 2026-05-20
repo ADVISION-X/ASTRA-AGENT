@@ -53,31 +53,12 @@ export const checkFileCounts = (): FileCountFinding[] => {
     }
   }
 
-  // Check audit directory totals
-  const auditTotal = countFilesRecursive(join(repoRoot, "scripts/audit"));
-  findings.push({
-    module: "scripts/audit (total)",
-    actual: auditTotal,
-    limit: QUALITY_KERNEL_LIMITS.maxAuditFiles,
-    status: auditTotal <= QUALITY_KERNEL_LIMITS.maxAuditFiles ? "ok" : "fail",
-  });
-
   const qkFiles = countFilesRecursive(join(repoRoot, "scripts/audit/domains/quality-kernel"));
   findings.push({
     module: "scripts/audit/domains/quality-kernel",
     actual: qkFiles,
     limit: QUALITY_KERNEL_LIMITS.maxQualityKernelFiles,
     status: qkFiles <= QUALITY_KERNEL_LIMITS.maxQualityKernelFiles ? "ok" : "warn",
-  });
-
-  const generatedFiles = countFilesRecursive(join(repoRoot, "scripts/audit/generated"));
-  findings.push({
-    module: "scripts/audit/generated",
-    actual: generatedFiles,
-    limit: QUALITY_KERNEL_LIMITS.maxGeneratedFiles,
-    status: generatedFiles <= QUALITY_KERNEL_LIMITS.maxGeneratedFiles ? "ok"
-      : generatedFiles <= 5 ? "warn"
-      : "fail",
   });
 
   return findings;

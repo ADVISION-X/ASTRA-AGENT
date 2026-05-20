@@ -3,10 +3,8 @@ import { existsSync } from "node:fs";
 import { pathFromRepoRoot } from "../../../core/paths.js";
 import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
-import {
-  buildValidationResult,
-  type DomAutomationValidationResult,
-} from "./collect-dom-automation-project.js";
+import type { DomAutomationValidationResult } from "./dom-automation-project-types.js";
+import { buildValidationResult } from "./dom-automation-validation-result.js";
 
 const DOM_REQUIRED_PATHS = [
   "src/capabilities/dom-automation/index.ts",
@@ -61,7 +59,7 @@ const structureFinding = (
   hint,
 });
 
-export const validateStructure = (): DomAutomationValidationResult => {
+const validateStructure = (): DomAutomationValidationResult => {
   const findings = [
     ...DOM_REQUIRED_PATHS
       .filter((repoPath) => !existsSync(pathFromRepoRoot(repoPath)))

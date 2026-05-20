@@ -2,33 +2,25 @@ import { Node, SyntaxKind } from "ts-morph";
 
 import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
-import {
-  findNamedImport,
-  getSourceFileAtRepoPath,
-  hasIdentifierCall,
-  resolveModuleTargetPath,
-  buildValidationResult,
-  type DomAutomationAuditProject,
-  type DomAutomationValidationResult,
-} from "./collect-dom-automation-project.js";
+import { getSourceFileAtRepoPath } from "./collect-dom-automation-project.js";
+import { findNamedImport, resolveModuleTargetPath } from "./dom-automation-module-resolution.js";
+import type { DomAutomationAuditProject, DomAutomationValidationResult } from "./dom-automation-project-types.js";
+import { hasIdentifierCall } from "./dom-automation-static-strings.js";
+import { buildValidationResult } from "./dom-automation-validation-result.js";
 
 const DOM_FACADE_PATH = "src/capabilities/dom-automation/index.ts";
 const BROWSER_CONTROLLER_PATH = "src/lib/browser/browser-controller.ts";
 
-const symbolFinding = (
+const symbolFinding = (...input: readonly [
   lawId: string,
   file: string,
   line: number,
   message: string,
   hint: string,
-): Finding => createFinding({
-  lawId,
-  file,
-  line,
-  severity: "fatal",
-  message,
-  hint,
-});
+]): Finding => {
+  const [lawId, file, line, message, hint] = input;
+  return createFinding({ lawId, file, line, severity: "fatal", message, hint });
+};
 
 const hasBrowserEvaluateCall = (repoPath: string, auditProject: DomAutomationAuditProject): Finding[] => {
   const sourceFile = getSourceFileAtRepoPath(auditProject.project, repoPath);
@@ -46,6 +38,44 @@ const hasBrowserEvaluateCall = (repoPath: string, auditProject: DomAutomationAud
     : [symbolFinding("GRASSEYE-DOM-001-V1", repoPath, 1, "DOM runtime does not call BrowserController.evaluateActiveTab", "Route governed DOM execution through the BrowserController contract." )];
 };
 
+const REQUIRED_DOM_FACADE_CALLS = [
+  "readDomSnapshotOnce",
+  "locateDomElementOnce",
+  "fillDomElementOnce",
+  "clickDomElementOnce",
+  "verifyDomStateOnce",
+  "uploadApprovedFileOnce",
+  "waitForDomStateOnce",
+] as const;
+
+const validateRequiredFacadeCall = (
+  auditProject: DomAutomationAuditProject,
+  callName: (typeof REQUIRED_DOM_FACADE_CALLS)[number],
+): Finding[] => {
+  const repoPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts";
+  const pluginFiles = auditProject.sourceFiles.plugin;
+  const targetPath = pluginFiles.map((pluginFile) => findNamedImport(pluginFile, callName)).find((item) => item !== null);
+  const findings: Finding[] = [];
+  if ((targetPath ? resolveModuleTargetPath(targetPath) : null) !== DOM_FACADE_PATH) {
+    findings.push(symbolFinding("GRASSEYE-DOM-008-V1", repoPath, 1, `plugin does not import ${callName} from the DOM facade`, "Amazon plugin must bind its DOM calls through src/capabilities/dom-automation/index.ts only."));
+  }
+  if (!pluginFiles.some((pluginFile) => hasIdentifierCall(pluginFile, callName))) {
+    findings.push(symbolFinding("GRASSEYE-DOM-008-V1", repoPath, 1, `plugin does not call required DOM facade symbol: ${callName}`, "Execute the governed DOM facade symbol inside the Amazon plugin flow."));
+  }
+  return findings;
+};
+
+const validatePluginBrowserControllerImport = (
+  auditProject: DomAutomationAuditProject,
+): Finding[] => {
+  const repoPath = "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts";
+  const sourceFile = getSourceFileAtRepoPath(auditProject.project, repoPath);
+  const browserControllerImport = sourceFile ? findNamedImport(sourceFile, "BrowserController") : null;
+  return (browserControllerImport ? resolveModuleTargetPath(browserControllerImport) : null) === BROWSER_CONTROLLER_PATH
+    ? []
+    : [symbolFinding("GRASSEYE-DOM-001-V1", repoPath, 1, "plugin does not import BrowserController through the public contract", "Type plugin browser dependencies through src/lib/browser/browser-controller.ts.")];
+};
+
 const validatePluginFacadeCalls = (
   auditProject: DomAutomationAuditProject,
 ): Finding[] => {
@@ -54,121 +84,57 @@ const validatePluginFacadeCalls = (
   if (!sourceFile) {
     return [symbolFinding("GRASSEYE-DOM-008-V1", repoPath, 1, "Amazon phase-one flow is missing", "Restore the plugin flow and call the DOM facade from it." )];
   }
+  return [
+    ...REQUIRED_DOM_FACADE_CALLS.flatMap((callName) => validateRequiredFacadeCall(auditProject, callName)),
+    ...validatePluginBrowserControllerImport(auditProject),
+  ];
+};
+
+const validateBrowserControllerInterfaceMethods = (auditProject: DomAutomationAuditProject): Finding[] => {
+  const browserControllerFile = getSourceFileAtRepoPath(auditProject.project, BROWSER_CONTROLLER_PATH);
+  const browserControllerInterface = browserControllerFile?.getInterface("BrowserController");
   const findings: Finding[] = [];
-  const pluginFiles = auditProject.sourceFiles.plugin;
-  const requiredCalls = [
-    "readDomSnapshotOnce",
-    "locateDomElementOnce",
-    "fillDomElementOnce",
-    "clickDomElementOnce",
-    "verifyDomStateOnce",
-    "uploadApprovedFileOnce",
-    "waitForDomStateOnce",
-  ] as const;
-  for (const callName of requiredCalls) {
-    const importDeclaration = pluginFiles
-      .map((pluginFile) => findNamedImport(pluginFile, callName))
-      .find((item) => item !== null);
-    const targetPath = importDeclaration ? resolveModuleTargetPath(importDeclaration) : null;
-    if (targetPath !== DOM_FACADE_PATH) {
-      findings.push(symbolFinding(
-        "GRASSEYE-DOM-008-V1",
-        repoPath,
-        1,
-        `plugin does not import ${callName} from the DOM facade`,
-        "Amazon plugin must bind its DOM calls through src/capabilities/dom-automation/index.ts only.",
-      ));
-    }
-    if (!pluginFiles.some((pluginFile) => hasIdentifierCall(pluginFile, callName))) {
-      findings.push(symbolFinding(
-        "GRASSEYE-DOM-008-V1",
-        repoPath,
-        1,
-        `plugin does not call required DOM facade symbol: ${callName}`,
-        "Execute the governed DOM facade symbol inside the Amazon plugin flow.",
-      ));
-    }
+  if (!browserControllerInterface?.getMethod("evaluateActiveTab")) {
+    findings.push(symbolFinding("GRASSEYE-DOM-001-V1", BROWSER_CONTROLLER_PATH, 1, "BrowserController interface is missing evaluateActiveTab", "Expose evaluateActiveTab on the governed BrowserController contract."));
   }
-  const browserImport = findNamedImport(sourceFile, "BrowserController");
-  const browserImportTarget = browserImport ? resolveModuleTargetPath(browserImport) : null;
-  if (browserImportTarget !== BROWSER_CONTROLLER_PATH) {
-    findings.push(symbolFinding(
-      "GRASSEYE-DOM-001-V1",
-      repoPath,
-      1,
-      "plugin does not import BrowserController through the public contract",
-      "Type plugin browser dependencies through src/lib/browser/browser-controller.ts.",
-    ));
+  if (!browserControllerInterface?.getMethod("setFileInputFiles")) {
+    findings.push(symbolFinding("GRASSEYE-DOM-006-V1", BROWSER_CONTROLLER_PATH, 1, "BrowserController interface is missing setFileInputFiles", "Expose a governed file-input upload port on the BrowserController contract."));
   }
   return findings;
 };
+
+const validateCurrentChromeMethods = (auditProject: DomAutomationAuditProject): Finding[] => {
+  const currentChromeFile = getSourceFileAtRepoPath(auditProject.project, "src/lib/browser/current-chrome-browser-controller.ts");
+  const currentChromeClass = currentChromeFile?.getClass("CurrentChromeBrowserController");
+  const findings: Finding[] = [];
+  if (!currentChromeClass?.getMethod("evaluateActiveTab")) {
+    findings.push(symbolFinding("GRASSEYE-DOM-001-V1", "src/lib/browser/current-chrome-browser-controller.ts", 1, "CurrentChromeBrowserController does not implement evaluateActiveTab", "Keep DOM execution inside the single browser owner implementation."));
+  }
+  if (!currentChromeClass?.getMethod("setFileInputFiles")) {
+    findings.push(symbolFinding("GRASSEYE-DOM-006-V1", "src/lib/browser/current-chrome-browser-controller.ts", 1, "CurrentChromeBrowserController does not implement setFileInputFiles", "Keep real file upload inside the single browser owner implementation."));
+  }
+  return findings;
+};
+
+const validateNoSecondBrowserController = (auditProject: DomAutomationAuditProject): Finding[] =>
+  auditProject.project.getSourceFiles("src/**/*.ts").flatMap((sourceFile) => {
+    const repoPath = sourceFile.getFilePath().replace(`${auditProject.project.getDirectoryOrThrow(".").getPath()}/`, "");
+    if (repoPath === "src/lib/browser/current-chrome-browser-controller.ts") return [];
+    return sourceFile.getClasses().flatMap((classDeclaration) =>
+      classDeclaration.getImplements().some((heritage) => heritage.getText().includes("BrowserController"))
+        ? [symbolFinding("GRASSEYE-DOM-001-V1", repoPath, classDeclaration.getStartLineNumber(), "second BrowserController implementation is forbidden", "Keep browser ownership in the existing CurrentChromeBrowserController only.")]
+        : []);
+  });
 
 const validateBrowserControllerSymbolProof = (
   auditProject: DomAutomationAuditProject,
-): Finding[] => {
-  const findings: Finding[] = [];
-  const browserControllerFile = getSourceFileAtRepoPath(auditProject.project, BROWSER_CONTROLLER_PATH);
-  const currentChromeFile = getSourceFileAtRepoPath(auditProject.project, "src/lib/browser/current-chrome-browser-controller.ts");
-  const browserControllerInterface = browserControllerFile?.getInterface("BrowserController");
-  if (!browserControllerInterface?.getMethod("evaluateActiveTab")) {
-    findings.push(symbolFinding(
-      "GRASSEYE-DOM-001-V1",
-      BROWSER_CONTROLLER_PATH,
-      1,
-      "BrowserController interface is missing evaluateActiveTab",
-      "Expose evaluateActiveTab on the governed BrowserController contract.",
-    ));
-  }
-  if (!browserControllerInterface?.getMethod("setFileInputFiles")) {
-    findings.push(symbolFinding(
-      "GRASSEYE-DOM-006-V1",
-      BROWSER_CONTROLLER_PATH,
-      1,
-      "BrowserController interface is missing setFileInputFiles",
-      "Expose a governed file-input upload port on the BrowserController contract.",
-    ));
-  }
-  const currentChromeClass = currentChromeFile?.getClass("CurrentChromeBrowserController");
-  if (!currentChromeClass?.getMethod("evaluateActiveTab")) {
-    findings.push(symbolFinding(
-      "GRASSEYE-DOM-001-V1",
-      "src/lib/browser/current-chrome-browser-controller.ts",
-      1,
-      "CurrentChromeBrowserController does not implement evaluateActiveTab",
-      "Keep DOM execution inside the single browser owner implementation.",
-    ));
-  }
-  if (!currentChromeClass?.getMethod("setFileInputFiles")) {
-    findings.push(symbolFinding(
-      "GRASSEYE-DOM-006-V1",
-      "src/lib/browser/current-chrome-browser-controller.ts",
-      1,
-      "CurrentChromeBrowserController does not implement setFileInputFiles",
-      "Keep real file upload inside the single browser owner implementation.",
-    ));
-  }
-  for (const sourceFile of auditProject.project.getSourceFiles("src/**/*.ts")) {
-    const repoPath = sourceFile.getFilePath().replace(`${auditProject.project.getDirectoryOrThrow(".").getPath()}/`, "");
-    if (repoPath === "src/lib/browser/current-chrome-browser-controller.ts") {
-      continue;
-    }
-    for (const classDeclaration of sourceFile.getClasses()) {
-      const implementsBrowserController = classDeclaration.getImplements().some((heritage) => heritage.getText().includes("BrowserController"));
-      if (implementsBrowserController) {
-        findings.push(symbolFinding(
-          "GRASSEYE-DOM-001-V1",
-          repoPath,
-          classDeclaration.getStartLineNumber(),
-          "second BrowserController implementation is forbidden",
-          "Keep browser ownership in the existing CurrentChromeBrowserController only.",
-        ));
-      }
-    }
-  }
-  return findings;
-};
+): Finding[] => [
+  ...validateBrowserControllerInterfaceMethods(auditProject),
+  ...validateCurrentChromeMethods(auditProject),
+  ...validateNoSecondBrowserController(auditProject),
+];
 
-export const validateSymbolBoundaries = (
+const validateSymbolBoundaries = (
   auditProject: DomAutomationAuditProject,
 ): DomAutomationValidationResult => {
   const findings = [

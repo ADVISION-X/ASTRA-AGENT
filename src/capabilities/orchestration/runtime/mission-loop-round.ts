@@ -131,28 +131,59 @@ const cleanupDispatchSuccess = async (
   await cleanupRoundScreenshotArtifacts({ ctx: input.ctx, missionId: input.missionId, runId: input.runId, roundId: input.roundId, cleanupKind: evidenceSaved ? "matched_evidence" : "no_match", originalScreenshotRef: screen.originalScreenshotRef, coordinateGridScreenshotRef: screen.coordinateGridScreenshotRef, extraTransientScreenshotRefs: screen.aiTransientScreenshotRefs, deleteOriginalScreenshot: !evidenceSaved });
 };
 
-export const runMissionRound = async (input: RoundInput): Promise<RoundResult> => {
+type PreparedRoundExecution = {
+  validated: NonNullable<ReturnType<typeof validateRoundRequest>>;
+  screen: RoundScreenContext;
+  aiResult: NonNullable<Awaited<ReturnType<typeof runAiVisualJudgment>>>;
+  aiResultRef: string | null;
+  saved: boolean;
+};
+
+const prepareRoundStart = async (input: RoundInput): Promise<{
+  validated: NonNullable<ReturnType<typeof validateRoundRequest>>;
+  screen: RoundScreenContext;
+} | null> => {
   const validated = validateRoundRequest(input);
-  if (!validated) return "stop";
+  if (!validated) return null;
   emitRoundStarted(input);
-  const openReady = await maybeOpenInitialPlatformEntry(input);
-  if (!openReady) return "stop";
+  if (!await maybeOpenInitialPlatformEntry(input)) return null;
   const screen = await prepareRoundScreenContext({ ...input, roundIndex: input.state.roundIndex ?? 0 });
-  if (!screen) return "stop";
+  return screen ? { validated, screen } : null;
+};
+
+const prepareRoundAiExecution = async (
+  input: RoundInput,
+  validated: NonNullable<ReturnType<typeof validateRoundRequest>>,
+  screen: RoundScreenContext,
+): Promise<Pick<PreparedRoundExecution, "aiResult" | "aiResultRef" | "saved"> | null> => {
   const aiResult = await runAiVisualJudgment({ ...input, ...validated, catalogVersion: input.catalog.catalogVersion, targetUrl: input.state.targetUrl ?? null, targetTitle: input.state.targetTitle ?? null, targetProfileRef: input.state.targetProfileRef ?? null, screen });
-  if (!aiResult) return "stop";
+  if (!aiResult) return null;
   emitAiDecisionSummary(input, aiResult.output);
   const aiResultRef = aiResult.runtimeProof?.proofId ?? null;
   const saved = await saveRoundEvidenceIfRequested({ ...input, userRequirementText: validated.userRequirementText, aiResultRef, aiOutput: aiResult.output, screen });
-  if (saved === null) return "stop";
-  const decisionInput = { ...input, aiOutput: aiResult.output, evidenceSaved: saved, screen };
-  if (await stopForTerminalAiDecision(decisionInput)) return "stop";
-  if (!aiResult.output.nextAction) {
+  if (saved === null) return null;
+  if (await stopForTerminalAiDecision({ ...input, aiOutput: aiResult.output, evidenceSaved: saved, screen })) return null;
+  return { aiResult, aiResultRef, saved };
+};
+
+const prepareRoundExecution = async (input: RoundInput): Promise<PreparedRoundExecution | null> => {
+  const start = await prepareRoundStart(input);
+  if (!start) return null;
+  const aiExecution = await prepareRoundAiExecution(input, start.validated, start.screen);
+  if (!aiExecution) return null;
+  return { validated: start.validated, screen: start.screen, ...aiExecution };
+};
+
+export const runMissionRound = async (input: RoundInput): Promise<RoundResult> => {
+  const prepared = await prepareRoundExecution(input);
+  if (!prepared) return "stop";
+  const decisionInput = { ...input, aiOutput: prepared.aiResult.output, evidenceSaved: prepared.saved, screen: prepared.screen };
+  if (!prepared.aiResult.output.nextAction) {
     await failMissingNextAction(decisionInput);
     return "stop";
   }
-  const actionResult = await dispatchNextAction(input, screen, aiResultRef, aiResult.output.nextAction);
-  if (actionResult.status !== "success") return await handleDispatchFailure(input, screen, saved, actionResult);
-  await cleanupDispatchSuccess(input, screen, saved);
+  const actionResult = await dispatchNextAction(input, prepared.screen, prepared.aiResultRef, prepared.aiResult.output.nextAction);
+  if (actionResult.status !== "success") return await handleDispatchFailure(input, prepared.screen, prepared.saved, actionResult);
+  await cleanupDispatchSuccess(input, prepared.screen, prepared.saved);
   return "continue";
 };

@@ -1,8 +1,5 @@
-import {
-  buildValidationResult,
-  type DomAutomationAuditProject,
-  type DomAutomationValidationResult,
-} from "./collect-dom-automation-project.js";
+import type { DomAutomationAuditProject, DomAutomationValidationResult } from "./dom-automation-project-types.js";
+import { buildValidationResult } from "./dom-automation-validation-result.js";
 import {
   domLocatorFindings,
   domSnapshotFindings,
@@ -17,7 +14,7 @@ import {
   domWaitFindings,
 } from "./validate-runtime-contracts-states.js";
 
-export const validateRuntimeContracts = (
+const validateRuntimeContracts = (
   auditProject: DomAutomationAuditProject,
 ): DomAutomationValidationResult => {
   const findings = [

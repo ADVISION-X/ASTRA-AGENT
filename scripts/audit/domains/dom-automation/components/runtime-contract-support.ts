@@ -2,18 +2,18 @@ import { Node, SyntaxKind, type Expression, type SourceFile } from "ts-morph";
 
 import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
-import {
-  collectStringLiteralNodes,
-  objectLiteralPropertyNames,
-} from "./collect-dom-automation-project.js";
+import { collectStringLiteralNodes, objectLiteralPropertyNames } from "./dom-automation-static-strings.js";
 
-export const runtimeFinding = (
+export const runtimeFinding = (...input: readonly [
   lawId: string,
   file: string,
   line: number,
   message: string,
   hint: string,
-): Finding => createFinding({ lawId, file, line, severity: "fatal", message, hint });
+]): Finding => {
+  const [lawId, file, line, message, hint] = input;
+  return createFinding({ lawId, file, line, severity: "fatal", message, hint });
+};
 
 export const hasSchemaParseCall = (sourceFile: SourceFile, schemaName: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).some((callExpression) => {

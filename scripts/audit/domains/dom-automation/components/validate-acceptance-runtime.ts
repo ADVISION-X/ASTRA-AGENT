@@ -2,29 +2,21 @@ import { Node, SyntaxKind } from "ts-morph";
 
 import { createFinding } from "../../../core/result.js";
 import type { Finding } from "../../../core/schema.js";
-import {
-  getSourceFileAtRepoPath,
-  hasIdentifierCall,
-  objectLiteralPropertyNames,
-  buildValidationResult,
-  type DomAutomationAuditProject,
-  type DomAutomationValidationResult,
-} from "./collect-dom-automation-project.js";
+import { getSourceFileAtRepoPath } from "./collect-dom-automation-project.js";
+import type { DomAutomationAuditProject, DomAutomationValidationResult } from "./dom-automation-project-types.js";
+import { hasIdentifierCall, objectLiteralPropertyNames } from "./dom-automation-static-strings.js";
+import { buildValidationResult } from "./dom-automation-validation-result.js";
 
-const acceptanceFinding = (
+const acceptanceFinding = (...input: readonly [
   lawId: string,
   file: string,
   line: number,
   message: string,
   hint: string,
-): Finding => createFinding({
-  lawId,
-  file,
-  line,
-  severity: "fatal",
-  message,
-  hint,
-});
+]): Finding => {
+  const [lawId, file, line, message, hint] = input;
+  return createFinding({ lawId, file, line, severity: "fatal", message, hint });
+};
 
 const validateDomAutomationAcceptance = (
   auditProject: DomAutomationAuditProject,
@@ -106,7 +98,7 @@ const validateAmazonCompleteAcceptance = (
   return findings;
 };
 
-export const validateAcceptanceRuntime = (
+const validateAcceptanceRuntime = (
   auditProject: DomAutomationAuditProject,
 ): DomAutomationValidationResult => {
   const findings = [

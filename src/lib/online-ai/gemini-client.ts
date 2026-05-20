@@ -7,6 +7,13 @@ import type { OnlineAiProviderConfig } from "./config.js";
 
 const buildHash = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
 
+const buildGeminiConfigHash = (config: OnlineAiProviderConfig) => buildHash(JSON.stringify({
+  providerCompany: config.providerCompany,
+  providerKind: config.providerKind,
+  modelName: config.modelName,
+  endpoint: config.endpoint,
+}));
+
 export type GeminiGenerateInput = {
   config: OnlineAiProviderConfig;
   promptText: string;
@@ -60,18 +67,12 @@ async function readImageParts(imagePaths: string[]) {
   }));
 }
 
-export async function invokeGemini(input: GeminiGenerateInput): Promise<GeminiGenerateResult> {
-  const startedAt = Date.now();
-  const runtimeCallId = randomUUID();
-  const imageParts = await readImageParts(input.imagePaths);
-  const promptHash = buildHash(input.promptText);
-  const configHash = buildHash(JSON.stringify({
-    providerCompany: input.config.providerCompany,
-    providerKind: input.config.providerKind,
-    modelName: input.config.modelName,
-    endpoint: input.config.endpoint,
-  }));
-
+function emitGeminiRequestDebug(
+  input: GeminiGenerateInput,
+  imageParts: Awaited<ReturnType<typeof readImageParts>>,
+  promptHash: string,
+  configHash: string,
+): void {
   input.runtimeLogger?.emit({
     eventType: RuntimeLogEventType.AI_REQUEST_DEBUG,
     level: "debug",
@@ -86,14 +87,8 @@ export async function invokeGemini(input: GeminiGenerateInput): Promise<GeminiGe
       imageCount: String(imageParts.length),
       ...Object.fromEntries(imageParts.map((img) => [img.hashKey, img.hashValue])),
     },
-    preview: {
-      promptPreview: input.promptText.slice(0, 200).replace(/\s+/g, " ").trim(),
-    },
-    refs: {
-      modelName: input.config.modelName,
-      runtimeName: "gemini-api",
-      imagePaths: input.imagePaths.join(";"),
-    },
+    preview: { promptPreview: input.promptText.slice(0, 200).replace(/\s+/g, " ").trim() },
+    refs: { modelName: input.config.modelName, runtimeName: "gemini-api", imagePaths: input.imagePaths.join(";") },
     metrics: {
       promptLength: input.promptText.length,
       timeoutMs: input.timeoutMs,
@@ -101,6 +96,68 @@ export async function invokeGemini(input: GeminiGenerateInput): Promise<GeminiGe
       ...Object.fromEntries(imageParts.map((img) => [img.bytesKey, img.bytesValue])),
     },
   });
+}
+
+function buildGeminiRequestBody(
+  input: GeminiGenerateInput,
+  imageParts: Awaited<ReturnType<typeof readImageParts>>,
+): Record<string, unknown> {
+  return {
+    contents: [{
+      parts: [
+        { text: input.promptText },
+        ...imageParts.map((img) => img.part),
+      ],
+    }],
+    generationConfig: {
+      temperature: 0,
+      maxOutputTokens: 2048,
+      responseMimeType: "application/json",
+      ...(input.responseSchema ? { responseSchema: input.responseSchema } : {}),
+    },
+  };
+}
+
+function resolveGeminiFailureMessage(text: string): string {
+  try {
+    return (JSON.parse(text) as { error?: { message?: string } }).error?.message ?? text;
+  } catch {
+    return text;
+  }
+}
+
+function extractGeminiRawText(text: string, modelName: string): string {
+  const data = JSON.parse(text) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+  const rawText = data.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("") ?? "";
+  if (!rawText.trim()) {
+    throw new Error(`Gemini ${modelName} returned an empty response.`);
+  }
+  return rawText;
+}
+
+function emitGeminiRawResponseDebug(input: GeminiGenerateInput, rawText: string, durationMs: number): void {
+  input.runtimeLogger?.emit({
+    eventType: RuntimeLogEventType.AI_RAW_RESPONSE_DEBUG,
+    level: "debug",
+    modeVisibility: ["DEBUG", "TRACE"],
+    owner: "ai-capability",
+    traceId: input.traceContext?.traceId ?? input.missionId ?? "no-trace",
+    ...(input.missionId ? { missionId: input.missionId } : {}),
+    ...(input.roundId ? { roundId: input.roundId } : {}),
+    status: "success",
+    hashes: { rawOutputHash: buildHash(rawText) },
+    preview: { rawResponsePreview: rawText.slice(0, 220).replace(/\s+/g, " ").trim() },
+    metrics: { durationMs, rawTextLength: rawText.length },
+  });
+}
+
+export async function invokeGemini(input: GeminiGenerateInput): Promise<GeminiGenerateResult> {
+  const startedAt = Date.now();
+  const runtimeCallId = randomUUID();
+  const imageParts = await readImageParts(input.imagePaths);
+  const promptHash = buildHash(input.promptText);
+  const configHash = buildGeminiConfigHash(input.config);
+  emitGeminiRequestDebug(input, imageParts, promptHash, configHash);
 
   const url = `${input.config.endpoint}/models/${input.config.modelName}:generateContent?key=${encodeURIComponent(input.config.apiKey)}`;
   const ctx = createAbortContext(input.timeoutMs, input.abortSignal);
@@ -109,50 +166,15 @@ export async function invokeGemini(input: GeminiGenerateInput): Promise<GeminiGe
       method: "POST",
       signal: ctx.requestSignal,
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: input.promptText },
-            ...imageParts.map((img) => img.part),
-          ],
-        }],
-        generationConfig: {
-          temperature: 0,
-          maxOutputTokens: 2048,
-          responseMimeType: "application/json",
-          ...(input.responseSchema ? { responseSchema: input.responseSchema } : {}),
-        },
-      }),
+      body: JSON.stringify(buildGeminiRequestBody(input, imageParts)),
     });
     const text = await response.text();
     if (!response.ok) {
-      let message = text;
-      try {
-        message = (JSON.parse(text) as { error?: { message?: string } }).error?.message ?? text;
-      } catch {
-        // keep raw text
-      }
-      throw new Error(`Gemini HTTP ${response.status}: ${message}`);
+      throw new Error(`Gemini HTTP ${response.status}: ${resolveGeminiFailureMessage(text)}`);
     }
-    const data = JSON.parse(text) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
-    const rawText = data.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("") ?? "";
-    if (!rawText.trim()) {
-      throw new Error(`Gemini ${input.config.modelName} returned an empty response.`);
-    }
+    const rawText = extractGeminiRawText(text, input.config.modelName);
     const durationMs = Date.now() - startedAt;
-    input.runtimeLogger?.emit({
-      eventType: RuntimeLogEventType.AI_RAW_RESPONSE_DEBUG,
-      level: "debug",
-      modeVisibility: ["DEBUG", "TRACE"],
-      owner: "ai-capability",
-      traceId: input.traceContext?.traceId ?? input.missionId ?? "no-trace",
-      ...(input.missionId ? { missionId: input.missionId } : {}),
-      ...(input.roundId ? { roundId: input.roundId } : {}),
-      status: "success",
-      hashes: { rawOutputHash: buildHash(rawText) },
-      preview: { rawResponsePreview: rawText.slice(0, 220).replace(/\s+/g, " ").trim() },
-      metrics: { durationMs, rawTextLength: rawText.length },
-    });
+    emitGeminiRawResponseDebug(input, rawText, durationMs);
     return { rawText, modelName: input.config.modelName, runtimeName: "gemini-api", durationMs, runtimeCallId };
   } finally {
     ctx.clear();

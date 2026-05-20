@@ -14,6 +14,87 @@ const resolveImagePaths = (input: AiAbilityInput) =>
     .map((entry) => entry.filePath)
     .filter((filePath): filePath is string => typeof filePath === "string" && filePath.length > 0);
 
+type OnlineVisualMissionCallState = {
+  config: Awaited<ReturnType<typeof loadOnlineAiProviderConfig>>;
+  prompt: ReturnType<typeof buildVisualMissionJudgePrompt>;
+  imagePaths: string[];
+  timeoutMs: number;
+  logger?: RuntimeLogger;
+  trace?: TraceContext;
+  spanId: string;
+  promptHash: string;
+  configHash: string;
+};
+
+async function buildOnlineVisualMissionCallState(input: {
+  dataDir: string;
+  request: AiAbilityInput;
+  runtimeLogger?: RuntimeLogger;
+  traceContext?: TraceContext;
+}): Promise<OnlineVisualMissionCallState> {
+  const config = await loadOnlineAiProviderConfig(input.dataDir);
+  const prompt = buildVisualMissionJudgePrompt(input.request.input);
+  const imagePaths = resolveImagePaths(input.request);
+  if (imagePaths.length === 0) {
+    throw new Error("AI visual mission judgment requires at least one governed image input with filePath.");
+  }
+  return {
+    config,
+    prompt,
+    imagePaths,
+    timeoutMs: resolveAiDispatchTimeoutMs(input.request.taskType),
+    ...(input.runtimeLogger ? { logger: input.runtimeLogger } : {}),
+    ...(input.traceContext ? { trace: input.traceContext } : {}),
+    spanId: randomUUID(),
+    promptHash: buildHash(prompt.fullPrompt),
+    configHash: buildHash(JSON.stringify(config)),
+  };
+}
+
+function emitOnlineAiRequestDebug(state: OnlineVisualMissionCallState, request: AiAbilityInput): void {
+  state.logger?.emit({
+    eventType: RuntimeLogEventType.AI_REQUEST_DEBUG,
+    level: "debug",
+    modeVisibility: ["DEBUG", "TRACE"],
+    owner: "ai-capability",
+    traceId: state.trace?.traceId ?? request.missionId ?? "no-trace",
+    spanId: state.spanId,
+    ...(request.missionId ? { missionId: request.missionId } : {}),
+    hashes: { promptHash: state.promptHash, modelConfigHash: state.configHash },
+    preview: {
+      promptPreview: state.prompt.fullPrompt.slice(0, 200).replace(/\s+/g, " ").trim(),
+      promptContractId: request.promptContractId,
+    },
+    refs: { modelName: state.config.modelName, runtimeName: "gemini-api", imagePaths: state.imagePaths.join(";") },
+    metrics: { imageCount: state.imagePaths.length, timeoutMs: state.timeoutMs, promptLength: state.prompt.fullPrompt.length },
+  });
+}
+
+function buildOnlineVisualMissionModelResult(
+  state: OnlineVisualMissionCallState,
+  result: Awaited<ReturnType<typeof invokeGemini>>,
+) {
+  return {
+    rawOutputText: result.rawText,
+    prompt: state.prompt,
+    modelName: result.modelName,
+    runtime: "gemini-api",
+    timeoutMs: state.timeoutMs,
+    promptVersion: "v1",
+    modelConfig: {
+      providerCompany: state.config.providerCompany,
+      providerKind: state.config.providerKind,
+      modelName: state.config.modelName,
+      endpoint: state.config.endpoint,
+    },
+    promptHash: state.promptHash,
+    configHash: state.configHash,
+    runtimeCallId: result.runtimeCallId,
+    spanId: state.spanId,
+    ...(state.trace?.traceId ? { traceId: state.trace.traceId } : {}),
+  };
+}
+
 async function callOnlineVisualMissionModel(input: {
   dataDir: string;
   request: AiAbilityInput;
@@ -21,82 +102,23 @@ async function callOnlineVisualMissionModel(input: {
   runtimeLogger?: RuntimeLogger;
   traceContext?: TraceContext;
 }) {
-  const config = await loadOnlineAiProviderConfig(input.dataDir);
-  const prompt = buildVisualMissionJudgePrompt(input.request.input);
-  const imagePaths = resolveImagePaths(input.request);
-  const timeoutMs = resolveAiDispatchTimeoutMs(input.request.taskType);
-  const logger = input.runtimeLogger;
-  const trace = input.traceContext;
-  const spanId = randomUUID();
-
-  if (imagePaths.length === 0) {
-    throw new Error("AI visual mission judgment requires at least one governed image input with filePath.");
-  }
-
-  const promptHash = buildHash(prompt.fullPrompt);
-  const configHash = buildHash(JSON.stringify(config));
-
-  // ── AI_REQUEST_DEBUG ──────────────────────────────────────────────────────
-  logger?.emit({
-    eventType: RuntimeLogEventType.AI_REQUEST_DEBUG,
-    level: "debug",
-    modeVisibility: ["DEBUG", "TRACE"],
-    owner: "ai-capability",
-    traceId: trace?.traceId ?? input.request.missionId ?? "no-trace",
-    spanId,
-    ...(input.request.missionId ? { missionId: input.request.missionId } : {}),
-    hashes: {
-      promptHash,
-      modelConfigHash: configHash,
-    },
-    preview: {
-      promptPreview: prompt.fullPrompt.slice(0, 200).replace(/\s+/g, " ").trim(),
-      promptContractId: input.request.promptContractId,
-    },
-    refs: {
-      modelName: config.modelName,
-      runtimeName: "gemini-api",
-      imagePaths: imagePaths.join(";"),
-    },
-    metrics: {
-      imageCount: imagePaths.length,
-      timeoutMs,
-      promptLength: prompt.fullPrompt.length,
-    },
-  });
+  const state = await buildOnlineVisualMissionCallState(input);
+  emitOnlineAiRequestDebug(state, input.request);
 
   const result = await invokeGemini({
-    config,
+    config: state.config,
     ...(input.request.missionId ? { missionId: input.request.missionId } : {}),
     ...(input.request.roundId ? { roundId: input.request.roundId } : {}),
-    promptText: prompt.fullPrompt,
-    imagePaths,
-    timeoutMs,
+    promptText: state.prompt.fullPrompt,
+    imagePaths: state.imagePaths,
+    timeoutMs: state.timeoutMs,
     responseSchema: GeminiVisualMissionResponseSchema,
     ...(input.signal ? { abortSignal: input.signal } : {}),
-    ...(logger ? { runtimeLogger: logger } : {}),
-    ...(trace ? { traceContext: { ...trace, spanId } } : {}),
+    ...(state.logger ? { runtimeLogger: state.logger } : {}),
+    ...(state.trace ? { traceContext: { ...state.trace, spanId: state.spanId } } : {}),
   });
 
-  return {
-    rawOutputText: result.rawText,
-    prompt,
-    modelName: result.modelName,
-    runtime: "gemini-api",
-    timeoutMs,
-    promptVersion: "v1",
-    modelConfig: {
-      providerCompany: config.providerCompany,
-      providerKind: config.providerKind,
-      modelName: config.modelName,
-      endpoint: config.endpoint,
-    },
-    promptHash: buildHash(prompt.fullPrompt),
-    configHash,
-    runtimeCallId: result.runtimeCallId,
-    spanId,
-    ...(trace?.traceId ? { traceId: trace.traceId } : {}),
-  };
+  return buildOnlineVisualMissionModelResult(state, result);
 }
 
 export { buildHash, callOnlineVisualMissionModel };
