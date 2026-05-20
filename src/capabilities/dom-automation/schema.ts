@@ -214,7 +214,7 @@ export const WaitForDomStateInputSchema = z.object({
   successHints: z.array(z.string().min(1)).default([]),
   failureHints: z.array(z.string().min(1)).default([]),
   timeoutMs: z.number().int().min(100).max(30000).default(5000),
-  pollIntervalMs: z.number().int().min(100).max(5000).default(500),
+  pollIntervalMs: z.number().int().min(50).max(5000).default(500),
 }).strict();
 
 export type DomAutomationChildCapabilityId = z.infer<typeof DomAutomationChildCapabilityIdSchema>;

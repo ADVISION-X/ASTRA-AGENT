@@ -13,6 +13,7 @@ import {
   openUploadInvoiceEntry,
   uploadApprovedInvoice,
 } from "./amazon-invoice-upload-steps.js";
+import { verifyAlreadyUploadedInvoice } from "./amazon-invoice-upload-existing.js";
 import { verifyUploadSuccess } from "./amazon-invoice-upload-verify.js";
 import {
   clickLocated,
@@ -48,31 +49,50 @@ export async function runAmazonInvoiceUpload(
   rawMission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult> {
   const mission = AmazonInvoiceUploadMissionInputSchema.parse(rawMission);
-  await browser.open({ url: mission.sellerCentralEntryUrl, title: "Amazon Seller Central invoice upload entry" });
-  const entryReady = await waitForSellerCentralEntry(browser, mission);
-  const gate = gatedResult(entryReady.snapshot, mission, "open seller central");
-  if (gate) {
-    return gate;
-  }
-  if (!entryReady.ready) {
-    return taskResult({
-      status: "review_required",
-      reason: entryReady.reason,
-      reachedStep: "wait for seller central order search",
-      amazonOrderId: mission.amazonOrderId,
-      invoiceNo: mission.invoiceNo,
-      reviewRequired: true,
-    });
-  }
+  const entryResult = await openSellerCentralEntry(browser, mission);
+  if (entryResult) return entryResult;
+  return continueInvoiceUpload(browser, mission);
+}
 
+async function continueInvoiceUpload(
+  browser: BrowserController,
+  mission: AmazonInvoiceUploadMissionInput,
+): Promise<AmazonInvoiceUploadTaskResult> {
   const orderDetailResult = await openOrderDetail(browser, mission);
   if (!orderDetailResult.ok) return orderDetailResult.failure;
+
+  const alreadyUploaded = await verifyAlreadyUploadedInvoice(browser, mission);
+  if (alreadyUploaded) return alreadyUploaded;
 
   const uploadEntryResult = await openUploadInvoiceEntry(browser, mission);
   if (!uploadEntryResult.ok) return uploadEntryResult.failure;
 
   return uploadAndSubmitInvoice(browser, mission);
 }
+
+async function openSellerCentralEntry(
+  browser: BrowserController,
+  mission: AmazonInvoiceUploadMissionInput,
+): Promise<AmazonInvoiceUploadTaskResult | null> {
+  await browser.open({ url: mission.sellerCentralEntryUrl, title: "Amazon Seller Central invoice upload entry" });
+  const entryReady = await waitForSellerCentralEntry(browser, mission);
+  const gate = gatedResult(entryReady.snapshot, mission, "open seller central");
+  if (gate) return gate;
+  return entryReady.ready ? null : sellerCentralEntryNotReadyResult(mission, entryReady.reason);
+}
+
+const sellerCentralEntryNotReadyResult = (
+  mission: AmazonInvoiceUploadMissionInput,
+  reason: string,
+): AmazonInvoiceUploadTaskResult =>
+  taskResult({
+    status: "review_required",
+    reason,
+    reachedStep: "wait for seller central order search",
+    amazonOrderId: mission.amazonOrderId,
+    invoiceNo: mission.invoiceNo,
+    reviewRequired: true,
+  });
 
 async function waitForSellerCentralEntry(
   browser: BrowserController,

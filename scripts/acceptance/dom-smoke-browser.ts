@@ -153,7 +153,9 @@ async function waitForFixtureDuration(page: Page, durationMs: number): Promise<B
 }
 
 export class PlaywrightDomBrowserAdapter implements BrowserController {
+  private closedActiveTabCount = 0;
   constructor(private readonly page: Page, private readonly screenshotDir: string) {}
+  getClosedActiveTabCount(): number { return this.closedActiveTabCount; }
   getHealth(): { ok: boolean; detail: string } { return { ok: true, detail: "playwright local DOM smoke adapter" }; }
   getSessionState(): BrowserStateSnapshot { return buildFixtureBrowserState(this.page); }
   async getGeometrySnapshot(): Promise<BrowserGeometrySnapshot> { return buildFixtureGeometrySnapshot(this.page); }
@@ -166,6 +168,9 @@ export class PlaywrightDomBrowserAdapter implements BrowserController {
   async evaluateActiveTab<T>(input: { script: string }): Promise<T> { return evaluateFixtureScript(this.page, input); }
   async setFileInputFiles(input: SmokeFileInput): Promise<BrowserActionResult> { return setFixtureFileInput(this.page, input); }
   async wait(durationMs: number): Promise<BrowserActionResult> { return waitForFixtureDuration(this.page, durationMs); }
-  async closeActiveTab(): Promise<BrowserActionResult> { return action("active tab closed"); }
+  async closeActiveTab(): Promise<BrowserActionResult> {
+    this.closedActiveTabCount += 1;
+    return action("active tab closed");
+  }
   async close(): Promise<BrowserActionResult> { return action("adapter closed"); }
 }

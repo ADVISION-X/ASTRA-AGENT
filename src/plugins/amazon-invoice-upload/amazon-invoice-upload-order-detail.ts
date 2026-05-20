@@ -12,7 +12,6 @@ export async function openApprovedOrderDetail(
 ): Promise<AmazonInvoiceUploadTaskResult | null> {
   const detailUrl = buildApprovedOrderDetailUrl(mission);
   await browser.open({ url: detailUrl, title: "Amazon Seller Central approved order detail" });
-  await reloadApprovedOrderDetail(browser, detailUrl);
   return await waitForApprovedOrderDetail(browser, mission, detailUrl) ? null : buildOrderDetailNotFoundResult(mission);
 }
 
@@ -24,21 +23,30 @@ function buildApprovedOrderDetailUrl(mission: AmazonInvoiceUploadMissionInput): 
   return url.toString();
 }
 
-const reloadApprovedOrderDetail = (browser: BrowserController, detailUrl: string): Promise<unknown> =>
-  browser.evaluateActiveTab({
-    description: "force approved order detail reload for task-clean page state",
-    script: `if (location.href === ${JSON.stringify(detailUrl)}) { location.reload(); return {status: "reloading"}; } return {status: "not_current_detail"};`,
-  });
-
 const snapshotContainsApprovedOrder = (snapshot: DomSnapshot, amazonOrderId: string): boolean =>
   [
-    snapshot.url,
     ...snapshot.tableRows.map((item) => item.visibleText),
     ...snapshot.roleRows.map((item) => item.visibleText),
     ...snapshot.textBlocks.map((item) => item.visibleText),
     ...snapshot.links.map((item) => item.visibleText),
     ...snapshot.buttons.map((item) => item.visibleText),
   ].some((value) => String(value ?? "").includes(amazonOrderId));
+
+const snapshotHasInvoiceActionState = (snapshot: DomSnapshot): boolean =>
+  [
+    ...snapshot.buttons.map((item) => item.visibleText),
+    ...snapshot.links.map((item) => item.visibleText),
+    ...snapshot.genericClickableElements.map((item) => item.visibleText),
+    ...snapshot.textBlocks.map((item) => item.visibleText),
+  ].some((value) => {
+    const text = String(value ?? "").toLowerCase();
+    return text.includes("上传发票")
+      || text.includes("upload invoice")
+      || text.includes("管理发票")
+      || text.includes("manage invoice")
+      || text.includes("感谢您上传文件")
+      || text.includes("invoice uploaded successfully");
+  });
 
 const snapshotIsLoading = (snapshot: DomSnapshot): boolean =>
   [...snapshot.textBlocks.map((item) => item.visibleText), ...snapshot.dialogs.map((item) => item.visibleText)]
@@ -60,14 +68,18 @@ const waitForApprovedOrderDetail = async (
   detailUrl: string,
 ): Promise<boolean> => {
   const startedAt = Date.now();
-  while (Date.now() - startedAt < 9000) {
-    await browser.wait(1000);
+  while (Date.now() - startedAt < 7000) {
     const snapshot = await readDomSnapshotOnce(browser);
-    if (snapshotContainsApprovedOrder(snapshot, mission.amazonOrderId) && !snapshotIsLoading(snapshot)) {
-      await browser.wait(1200);
+    if (
+      snapshotContainsApprovedOrder(snapshot, mission.amazonOrderId)
+      && snapshotHasInvoiceActionState(snapshot)
+      && !snapshotIsLoading(snapshot)
+    ) {
+      await browser.wait(100);
       return true;
     }
     await retryOrderDetailIfNeeded(browser, snapshot, detailUrl, mission.amazonOrderId);
+    await browser.wait(350);
   }
   return false;
 };

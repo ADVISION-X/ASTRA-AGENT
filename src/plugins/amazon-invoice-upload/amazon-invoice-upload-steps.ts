@@ -38,7 +38,7 @@ export async function openUploadInvoiceEntry(
   browser: BrowserController,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<StepResult<void>> {
-  await browser.wait(800);
+  await browser.wait(50);
   const snapshot = await readDomSnapshotOnce(browser);
   const uploadEntry = locateUploadInvoiceButton(snapshot);
   if (!uploadEntry.ok) {
@@ -91,12 +91,12 @@ function locateUploadInvoiceButton(snapshot: Awaited<ReturnType<typeof readDomSn
 
 async function waitForUploadDialog(browser: BrowserController): Promise<boolean> {
   const startedAt = Date.now();
-  while (Date.now() - startedAt < 5000) {
+  while (Date.now() - startedAt < 2500) {
     const snapshot = await readDomSnapshotOnce(browser);
     if (snapshot.fileInputs.length > 0 || snapshot.textBlocks.some((item) => String(item.visibleText ?? "").includes("请上传"))) {
       return true;
     }
-    await browser.wait(400);
+    await browser.wait(50);
   }
   return false;
 }
@@ -112,8 +112,8 @@ const locateFileInput = async (
     hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.chooseFile],
     notFoundStatus: "file_input_not_found",
   });
-  while (!fileInput.ok && Date.now() - startedAt < 6000) {
-    await browser.wait(400);
+  while (!fileInput.ok && Date.now() - startedAt < 3000) {
+    await browser.wait(50);
     fileInput = locateOrStatus({
       snapshot: await readDomSnapshotOnce(browser),
       targetKind: "file-input",
@@ -158,8 +158,8 @@ const waitForAttachedInvoice = async (
     expectedStates: ["file-attached"],
     successHints: ["file attached", "invoice attached", mission.invoiceNo],
     failureHints: ["failed", "invalid file", "error", "文件上传失败", "文件未上传"],
-    timeoutMs: 3000,
-    pollIntervalMs: 300,
+    timeoutMs: 1500,
+    pollIntervalMs: 50,
   });
   if (attached.status === "success") return stepSuccess(attached.evidenceRef);
   return stepFailure(taskResult({

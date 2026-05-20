@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import type { AmazonInvoiceUploadStatus } from "./amazon-result-detector.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
-import type { AmazonInvoiceUploadPdfFile } from "./amazon-invoice-upload-storage.js";
+import type { AmazonInvoiceUploadPdfFile } from "./amazon-invoice-upload-storage.types.js";
 
 export const AmazonInvoiceUploadAdminOpenInputSchema = z.object({
   adminUrl: z.string().url(),

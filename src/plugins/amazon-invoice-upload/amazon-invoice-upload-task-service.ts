@@ -10,9 +10,8 @@ import {
   saveApprovedInvoicePdf,
   saveTaskRecord,
   updateTaskRecord,
-  type AmazonInvoiceUploadPdfFile,
-  type AmazonInvoiceUploadTaskRecord,
 } from "./amazon-invoice-upload-storage.js";
+import type { AmazonInvoiceUploadPdfFile, AmazonInvoiceUploadTaskRecord } from "./amazon-invoice-upload-storage.types.js";
 import {
   AmazonInvoiceUploadAdminOpenInputSchema,
   type AmazonInvoiceUploadAdminOpenInput,
@@ -79,6 +78,7 @@ export async function startAmazonInvoiceUploadTask(input: {
   const approvedPath = saveApprovedInvoicePdf({
     dataDir: input.dataDir,
     taskId,
+    amazonOrderId: mission.amazonOrderId,
     invoiceNo: mission.invoiceNo,
     file: input.task.invoicePdf,
   });

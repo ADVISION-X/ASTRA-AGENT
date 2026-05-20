@@ -139,7 +139,7 @@ export async function fillDomElementOnce(
   if (directFillResult.status !== "success") {
     return buildIntermediateFillOutcome(browser, directFillResult, beforeEvidenceRef);
   }
-  await browser.wait(100);
+  await browser.wait(50);
   const result = await evaluateFillScript(browser, "verify approved text in located DOM element", buildVerifyScript(elementRef.selector, input.approvedText));
   return buildFinalFillOutcome(browser, result, beforeEvidenceRef);
 }

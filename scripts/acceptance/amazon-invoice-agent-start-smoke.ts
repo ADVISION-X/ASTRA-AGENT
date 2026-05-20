@@ -1,6 +1,6 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -9,6 +9,7 @@ import { chromium } from "playwright";
 import { createWorkbenchServer } from "../../src/app/create-workbench-server.js";
 import type { GrassEyeWorkbenchHandle } from "../../src/lib/local-runtime/workbench-handle.js";
 import {
+  getLatestAmazonInvoiceUploadTaskForInvoice,
   getAmazonInvoiceUploadTaskStatus,
   openAmazonInvoiceAdminPage,
   resumeAmazonInvoiceUploadTask,
@@ -101,6 +102,11 @@ const createSmokeWorkbench = (): GrassEyeWorkbenchHandle => ({
   async getAmazonInvoiceUploadTaskStatus(taskId: string) {
     return getAmazonInvoiceUploadTaskStatus({ dataDir: tmp, taskId });
   },
+  async getLatestAmazonInvoiceUploadTaskForInvoice(input: { amazonOrderId: string; invoiceNo?: string }) {
+    return getLatestAmazonInvoiceUploadTaskForInvoice(input.invoiceNo
+      ? { dataDir: tmp, amazonOrderId: input.amazonOrderId, invoiceNo: input.invoiceNo }
+      : { dataDir: tmp, amazonOrderId: input.amazonOrderId });
+  },
   getModeInfo() { return {}; },
 });
 
@@ -150,13 +156,16 @@ try {
   const payload = await response.json();
   const executedMissionCount = Number(startMissionCount);
   const executedCommanderCount = Number(commanderExecuteCount);
+  const approvedPdfPath = String(payload.mission?.invoicePdfPath || "");
+  const expectedPdfPath = join(homedir(), "Downloads", "invoice", "123-1234567-1234567.pdf");
 
   if (
     !response.ok
     || payload.ok !== true
     || payload.status !== "upload_success"
     || payload.reachedStep !== "upload success verified"
-    || !String(payload.mission?.invoicePdfPath || "").includes("approved-task-files")
+    || approvedPdfPath !== expectedPdfPath
+    || !existsSync(approvedPdfPath)
     || executedMissionCount !== 1
     || executedCommanderCount !== 0
   ) {

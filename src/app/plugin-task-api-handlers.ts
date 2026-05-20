@@ -3,10 +3,7 @@ import type { URL } from "node:url";
 
 import { z } from "zod";
 
-import {
-  AmazonInvoiceUploadAdminOpenInputSchema,
-  AmazonInvoiceUploadMissionInputSchema,
-} from "../plugins/amazon-invoice-upload/index.js";
+import { AmazonInvoiceUploadAdminOpenInputSchema, AmazonInvoiceUploadMissionInputSchema } from "../plugins/amazon-invoice-upload/index.js";
 import type { AmazonInvoiceUploadPdfFile } from "../plugins/amazon-invoice-upload/index.js";
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { parseJsonBody, writeJsonResponse } from "./workbench-api-helpers.js";
@@ -19,10 +16,7 @@ const ROUTE_LATEST = "/api/plugins/amazon-invoice-upload/latest";
 const ROUTE_STATUS_PREFIX = "/api/plugins/amazon-invoice-upload/status/";
 const DEFAULT_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"] as const;
 
-type MultipartMissionPayload = {
-  mission: unknown;
-  invoicePdf: AmazonInvoiceUploadPdfFile;
-};
+type MultipartMissionPayload = { mission: unknown; invoicePdf: AmazonInvoiceUploadPdfFile };
 
 function getAllowedOrigins(): Set<string> {
   const configured = process.env.GRASSEYE_ALLOWED_ORIGINS
@@ -115,10 +109,7 @@ async function handleStart(
 ): Promise<unknown> {
   const payload = await parseMultipartMission(request);
   const mission = AmazonInvoiceUploadMissionInputSchema.parse(payload.mission);
-  return activeWorkbench.startAmazonInvoiceUploadTask({
-    mission,
-    invoicePdf: payload.invoicePdf,
-  });
+  return activeWorkbench.startAmazonInvoiceUploadTask({ mission, invoicePdf: payload.invoicePdf });
 }
 
 async function handleResume(
@@ -155,11 +146,10 @@ async function handlePluginStatusRequest(
       amazonOrderId: z.string().min(1),
       invoiceNo: z.string().min(1).optional(),
     }).strict().parse(Object.fromEntries(url.searchParams.entries()));
-    const record = await activeWorkbench.getLatestAmazonInvoiceUploadTaskForInvoice(input);
-    writeJsonResponse(response, 200, {
-      found: record !== null,
-      record,
-    });
+    const record = await activeWorkbench.getLatestAmazonInvoiceUploadTaskForInvoice(input.invoiceNo
+      ? { amazonOrderId: input.amazonOrderId, invoiceNo: input.invoiceNo }
+      : { amazonOrderId: input.amazonOrderId });
+    writeJsonResponse(response, 200, { found: record !== null, record });
     return true;
   }
   const statusMatch = new RegExp(`^${ROUTE_STATUS_PREFIX.replaceAll("/", "\\/")}([^/]+)$`, "u").exec(url.pathname);

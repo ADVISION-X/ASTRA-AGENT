@@ -9,6 +9,8 @@ import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import type { AmazonInvoiceUploadStatus } from "./amazon-result-detector.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 
+const DOM_CLICK_SETTLE_MS = 50;
+
 export function evidenceField(evidenceRef: string | undefined): { evidenceRef: string } | Record<string, never> {
   return evidenceRef ? { evidenceRef } : {};
 }
@@ -91,7 +93,7 @@ export async function clickLocated(input: {
   const clicked = await clickDomElementOnce(input.browser, {
     elementRef: input.element,
     expectedKind: input.expectedKind,
-    waitAfterMs: 800,
+    waitAfterMs: DOM_CLICK_SETTLE_MS,
     ...(input.expectedText ? { expectedText: input.expectedText } : {}),
   });
   if (clicked.ok) {

@@ -29,4 +29,4 @@ export {
 export type {
 	AmazonInvoiceUploadPdfFile,
 	AmazonInvoiceUploadTaskRecord,
-} from "./amazon-invoice-upload-storage.js";
+} from "./amazon-invoice-upload-storage.types.js";

@@ -6,13 +6,17 @@ import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 
 const UPLOAD_SUCCESS_HINTS = [
   "invoice uploaded successfully",
+  "file uploaded successfully",
   "upload completed",
   "submitted successfully",
+  "上传成功",
   "感谢您上传文件",
   "客户可以直接从自己的账户下载文件",
   "管理发票",
   "上传其他发票或贷记单",
 ];
+const UPLOAD_SUCCESS_TIMEOUT_MS = 15000;
+const UPLOAD_SUCCESS_POLL_INTERVAL_MS = 250;
 
 type VerifySuccessResult = Awaited<ReturnType<typeof waitForDomStateOnce>>;
 
@@ -23,14 +27,15 @@ export async function verifyUploadSuccess(
   const success = await waitForDomStateOnce(browser, {
     expectedStates: ["upload-success"],
     successHints: UPLOAD_SUCCESS_HINTS,
-    failureHints: ["failed", "invalid", "error"],
-    timeoutMs: 5000,
-    pollIntervalMs: 500,
+    failureHints: ["failed", "invalid", "error", "文件上传失败", "无法上传"],
+    timeoutMs: UPLOAD_SUCCESS_TIMEOUT_MS,
+    pollIntervalMs: UPLOAD_SUCCESS_POLL_INTERVAL_MS,
   });
   if (success.status !== "success") return buildUploadReviewResult(mission, success);
   const closeResult = await browser.closeActiveTab({
     reason: "Amazon invoice upload success verified",
   });
+  if (!closeResult.ok) return buildCloseReviewResult(mission, success, closeResult.message);
   return buildUploadSuccessResult(mission, success, closeResult);
 }
 
@@ -62,4 +67,19 @@ const buildUploadSuccessResult = (
     amazonOrderId: mission.amazonOrderId,
     invoiceNo: mission.invoiceNo,
     evidenceRef: success.evidenceRef,
+  });
+
+const buildCloseReviewResult = (
+  mission: AmazonInvoiceUploadMissionInput,
+  success: VerifySuccessResult,
+  closeMessage: string,
+): AmazonInvoiceUploadTaskResult =>
+  taskResult({
+    status: "review_required",
+    reason: `Amazon Seller Central shows invoice uploaded successfully, but active tab close needs review: ${closeMessage}`,
+    reachedStep: "close uploaded order tab",
+    amazonOrderId: mission.amazonOrderId,
+    invoiceNo: mission.invoiceNo,
+    evidenceRef: success.evidenceRef,
+    reviewRequired: true,
   });

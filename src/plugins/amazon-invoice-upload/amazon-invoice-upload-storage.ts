@@ -1,17 +1,13 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
-import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadStatus } from "./amazon-result-detector.js";
+import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
+import type { AmazonInvoiceUploadPdfFile } from "./amazon-invoice-upload-storage.types.js";
 
-export type AmazonInvoiceUploadPdfFile = {
-  filename: string;
-  mimeType: string;
-  bytes: Buffer;
-};
-
-export type AmazonInvoiceUploadTaskRecord = AmazonInvoiceUploadTaskResult & {
+type AmazonInvoiceUploadTaskRecord = AmazonInvoiceUploadTaskResult & {
   taskId: string;
   mission: AmazonInvoiceUploadMissionInput;
   createdAt: string;
@@ -28,6 +24,7 @@ export function createAmazonInvoiceUploadTaskId(): string {
 export function saveApprovedInvoicePdf(input: {
   dataDir: string;
   taskId: string;
+  amazonOrderId: string;
   invoiceNo: string;
   file: AmazonInvoiceUploadPdfFile;
 }): string {
@@ -35,9 +32,9 @@ export function saveApprovedInvoicePdf(input: {
   if (extension !== ".pdf" || !input.file.mimeType.toLowerCase().includes("pdf")) {
     throw new Error("invoicePdf must be a PDF file.");
   }
-  const taskDir = path.join(input.dataDir, "approved-task-files", "amazon-invoice-upload", safeSegment(input.taskId));
-  mkdirSync(taskDir, { recursive: true });
-  const approvedPath = path.join(taskDir, `${safeSegment(input.invoiceNo)}.pdf`);
+  const invoiceDir = path.join(os.homedir(), "Downloads", "invoice");
+  mkdirSync(invoiceDir, { recursive: true });
+  const approvedPath = path.join(invoiceDir, `${safeSegment(input.amazonOrderId)}.pdf`);
   writeFileSync(approvedPath, input.file.bytes);
   return approvedPath;
 }

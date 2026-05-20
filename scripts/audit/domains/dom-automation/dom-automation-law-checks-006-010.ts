@@ -6,43 +6,10 @@ import { pass, fail } from "./dom-automation-binary-outcome.js";
 import { PLUGIN_REQUIRED_PATHS } from "./dom-automation-binary-constants.js";
 import { BROWSER_CONTROLLER_PATH, CURRENT_CHROME_PATH } from "./dom-automation-path-constants.js";
 import { collectStringLiteralNodes } from "./components/dom-automation-static-strings.js";
+import { collectAmazonOrderReadinessIssues, collectAmazonUploadClosureIssues, collectApprovedInvoiceStorageIssues, collectVerificationResultStatuses } from "./components/validate-approved-invoice-storage.js";
 import { findForbiddenImports, sourceText } from "./dom-automation-source-helpers.js";
 import { domCoreContainsBusinessVocabulary, forbiddenLogFields, usesForbiddenPluginPrimitives, pluginUsesFacadeSymbols, routeUsesWorkbenchFacade } from "./dom-automation-policy-helpers.js";
 import { classMethods, hasFields, hasIdentifierCall, interfaceMethods, sourceFile, typeFields, variableFields } from "./dom-automation-shape-helpers.js";
-
-const collectVerificationResultStatuses = (file: SourceFile | null): Set<string> => {
-  const statuses = new Set<string>();
-  if (!file) {
-    return statuses;
-  }
-  for (const callExpression of file.getDescendantsOfKind(SyntaxKind.CallExpression)) {
-    const expression = callExpression.getExpression();
-    const firstArgument = callExpression.getArguments()[0];
-    if (
-      Node.isIdentifier(expression)
-      && expression.getText() === "buildDomVerificationResult"
-      && Node.isStringLiteral(firstArgument)
-    ) {
-      statuses.add(firstArgument.getLiteralText());
-      continue;
-    }
-    if (!Node.isPropertyAccessExpression(expression) || expression.getExpression().getText() !== "DomVerificationResultSchema" || expression.getName() !== "parse") {
-      continue;
-    }
-    if (!Node.isObjectLiteralExpression(firstArgument)) {
-      continue;
-    }
-    const statusProperty = firstArgument.getProperty("status");
-    if (!Node.isPropertyAssignment(statusProperty)) {
-      continue;
-    }
-    const initializer = statusProperty.getInitializer();
-    if (Node.isStringLiteral(initializer)) {
-      statuses.add(initializer.getLiteralText());
-    }
-  }
-  return statuses;
-};
 
 const fileHasIdentifier = (file: SourceFile | null, identifierName: string): boolean =>
   Boolean(file?.getDescendantsOfKind(SyntaxKind.Identifier).some((identifier) => identifier.getText() === identifierName));
@@ -101,11 +68,28 @@ const collectMarketplaceGuardIssues = (context: DomAutomationBinaryCheckContext)
   return issues;
 };
 
+const collectAmazonReadinessGuardIssues = (context: DomAutomationBinaryCheckContext): string[] =>
+  collectAmazonOrderReadinessIssues(sourceFile(context, "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts"));
+
+const hasForbiddenUploadFileContentAccess = (file: SourceFile | null): boolean => {
+  if (!file) return true;
+  const forbiddenIdentifiers = new Set(["fileContent", "pdfContent", "readFileSync"]);
+  const hasForbiddenIdentifier = file.getDescendantsOfKind(SyntaxKind.Identifier)
+    .some((identifier) => forbiddenIdentifiers.has(identifier.getText()));
+  const hasToStringCall = file.getDescendantsOfKind(SyntaxKind.CallExpression)
+    .some((call) => {
+      const expression = call.getExpression();
+      return Node.isPropertyAccessExpression(expression) && expression.getName() === "toString";
+    });
+  return hasForbiddenIdentifier || hasToStringCall;
+};
+
 export const checkLaw006UploadApprovedFile = (context: DomAutomationBinaryCheckContext): ClauseCheckOutcome => {
   const issues: string[] = [];
   const schemaFile = sourceFile(context, "src/capabilities/dom-automation/schema.ts");
+  const uploadFile = sourceFile(context, "src/capabilities/dom-automation/runtime/dom-upload.ts");
   const uploadText = sourceText(context, "src/capabilities/dom-automation/runtime/dom-upload.ts");
-  const storageText = sourceText(context, "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts");
+  const storageFile = sourceFile(context, "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts");
   const taskServiceText = sourceText(context, "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts");
   const uploadFields = variableFields(schemaFile, "UploadApprovedFileInputSchema");
   const missingFields = hasFields(uploadFields, ["elementRef", "approvedFilePath", "approvedTaskFilePath", "allowedExtensions", "uploadPurpose"]);
@@ -122,10 +106,14 @@ export const checkLaw006UploadApprovedFile = (context: DomAutomationBinaryCheckC
   if (!browserMethods.has("setFileInputFiles") || !currentChromeMethods.has("setFileInputFiles")) {
     issues.push("browser owner bridge does not expose setFileInputFiles end-to-end");
   }
-  if (!taskServiceText.includes("saveApprovedInvoicePdf") || !storageText.includes("approved-task-files")) {
-    issues.push("approved task file persistence path is not enforced through plugin storage");
+  if (!taskServiceText.includes("saveApprovedInvoicePdf")) {
+    issues.push("approved invoice PDF persistence is not enforced through plugin task service");
   }
-  if (/fileContent|pdfContent|readFileSync\(|toString\(\)/iu.test(uploadText)) {
+  const storageIssues = collectApprovedInvoiceStorageIssues(storageFile);
+  if (storageIssues.length > 0) {
+    issues.push(...storageIssues);
+  }
+  if (hasForbiddenUploadFileContentAccess(uploadFile)) {
     issues.push("dom-upload reads file content instead of using approved file references only");
   }
   return issues.length === 0
@@ -233,6 +221,7 @@ export const checkLaw009ReviewBoundary = (context: DomAutomationBinaryCheckConte
     ...collectReviewTokenIssues(reviewFiles),
     ...collectReviewGuardIssues(reviewFiles, domClickFile),
     ...collectMarketplaceGuardIssues(context),
+    ...collectAmazonReadinessGuardIssues(context),
   ];
   return issues.length === 0
     ? pass("login/captcha/ambiguity/review-required flows are wired through verify/gatedResult/phase-one boundaries, with marketplace hints and human-final-submit support")
@@ -283,6 +272,13 @@ const collectLaw010EvidenceCaptureIssues = (context: DomAutomationBinaryCheckCon
     ? [`DOM runtimes are missing evidence capture: ${evidenceCaptureMissing.join(", ")}`]
     : [];
 };
+const collectLaw010UploadClosureIssues = (context: DomAutomationBinaryCheckContext): string[] =>
+  collectAmazonUploadClosureIssues(
+    sourceFile(context, "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts"),
+    sourceFile(context, "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts"),
+    sourceFile(context, "src/capabilities/dom-automation/runtime/dom-snapshot.ts"),
+    sourceFile(context, "scripts/acceptance/amazon-invoice-upload-complete-smoke.ts"),
+  );
 const collectLaw010LogLeakIssues = (context: DomAutomationBinaryCheckContext): string[] => {
   const logViolations = forbiddenLogFields(context);
   return logViolations.length > 0 ? [`forbidden sensitive log field detected: ${logViolations[0]}`] : [];
@@ -292,6 +288,7 @@ export const checkLaw010EvidenceLogging = (context: DomAutomationBinaryCheckCont
     ...collectLaw010StructuredFieldIssues(context),
     ...collectLaw010PersistenceIssues(context),
     ...collectLaw010EvidenceCaptureIssues(context),
+    ...collectLaw010UploadClosureIssues(context),
     ...collectLaw010LogLeakIssues(context),
   ];
   return issues.length === 0 ? pass("DOM action/verification results and Amazon task records stay structured, persist evidence refs, and avoid sensitive log-field leakage") : fail("Evidence and logging check failed", issues.join("; "));
