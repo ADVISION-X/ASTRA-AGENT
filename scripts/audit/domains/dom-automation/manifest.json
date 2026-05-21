@@ -1,0 +1,12 @@
+{
+  "capabilityDomain": "dom-automation",
+  "ownerInspectorPath": "scripts/audit/domains/dom-automation/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "description": "DOM automation capability audit ownership."
+}

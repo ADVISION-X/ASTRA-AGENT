@@ -1,74 +1,55 @@
-# GrassEye Forensics Persistence 取证记账能力组施工图 FINAL
+# GrassEye Evidence Store 取证记账施工图
 
-## 文件身份
+版本：2026-05-21  
+状态：active
 
-- owner: forensics-persistence-capability
-- 目标：Forensics 只做 append-only 记账，不恢复旧地图链字段
+## 1. 当前定位
 
-## 主链位置
+Forensics Persistence 已收缩为简单 evidence store。
 
-```txt
-AI result / action result / observation result
-→ record envelope
-→ append-only persistence
-→ record refs / artifact refs
-```
+它写入：
 
-## 记录最小链路
+- step trace
+- DOM snapshot ref
+- screenshot ref
+- upload result
+- failure reason
+- artifact ref
 
-```txt
-missionId
-runId
-sessionId when applicable
-roundId when applicable
-stepId when applicable
-capabilityCallId when applicable
-promptContractId when AI record exists
-actionPlanRef or actionCodes when action record exists
-decisionRef when AI decision record exists
-artifactRefs when evidence exists
-parentRefs when linking records
-```
+## 2. 它不再负责
 
-## Product Lead Record 最小字段
+- owner universe
+- 多层审计矩阵
+- 流程控制
+- AI 判断真相
+- 业务分支
+
+## 3. 当前调用链
 
 ```txt
-platformId
-targetUrl when available
-targetTitle when available
-screenshotEvidenceRef
-aiResultRef
-decision
-actionCodes
-confidence
-reason
-createdAt
-missionId
-runId
+flow script -> evidence store -> generic file storage
 ```
 
-禁止字段：
+## 4. 当前必须保留的记录字段
 
-```txt
-retired package field
-retired package version field
-retired selection field
-retired selection version field
-retired binding field
-运行计划字段
-retired branch-token field
-```
+- `missionId` 或 `taskId`
+- `stepId`（如果有）
+- `status`
+- `reason`
+- `artifactRefs`
+- `createdAt`
 
-## 输出原则
+## 5. 当前存储原则
 
-- Forensics 保存 AI 输出 refs、action refs、observation refs、artifact refs
-- Forensics 不重建业务真相
-- proof 只保留 durability truth + short-chain mission refs
+- append-first
+- traceable
+- 不静默成功
+- 不静默失败
+- 记录已经由其他层决定的事实，不反推流程真相
 
-## 漂移信号
+## 6. Amazon 主线中的职责
 
-```txt
-product_lead_record 继续要求 retired branch-token field
-record proof 携带 retired binding field
-Forensics 反向推理 mission flow
-```
+- 保存任务步骤状态
+- 保存失败原因
+- 保存上传结果 ref
+- 让人工接管时能看到发生了什么

@@ -1,54 +1,50 @@
 # GrassEye APP 用户需求启动施工图
 
-## 文件身份
+版本：2026-05-21  
+状态：active
 
-本施工图定义普通用户的唯一任务入口。
+说明：本文件保留旧路径，仅作为当前 Amazon 主线的任务入口约束文档。
 
-Owner boundary: commander-console
+## 1. 当前入口不是通用需求引擎
 
-## 允许输入
+当前启动入口只服务 Amazon 发票上传岗位流，不服务通用任务理解或多平台需求编排。
 
-APP 启动页只允许以下字段：
-- userRequirementText
-- selectedPlatforms
-- maxRounds
-- maxMinutes
-- optional historyEntryId
+## 2. 操作者提交的最小输入
 
-## 禁止输入
+- `sellerCentralEntryUrl`
+- `amazonOrderId`
+- `invoiceNo`
+- `invoicePdf`
+- `requireHumanFinalSubmit`
 
-APP 启动页不得暴露：
-- 能力组内部字段
-- 调度字段
-- 浏览器命令
-- 坐标字段
-- 多动作计划字段
-- 证据写入 payload
+可选辅助输入：
 
-## 启动 payload
+- `adminUrl`
+- `marketplace`
 
-```json
-{
-  "userRequirementText": "寻找适合种草的蓝牙耳机视频",
-  "selectedPlatforms": ["facebook-web"],
-  "maxRounds": 20,
-  "maxMinutes": 30,
-  "historyEntryId": "history_123"
-}
+## 3. 启动链
+
+```txt
+operator input
+  -> local HTTP workbench
+  -> amazon task service
+  -> save approved PDF
+  -> start amazon-invoice-upload.flow.ts
+  -> persist task status
 ```
 
-## 运行时初始载荷
+## 4. 当前接口面
 
-Runtime initial payload may carry:
-- selectedPlatforms
-- primaryPlatformId
-- platformProfiles
-- targetUrl
-- targetTitle
-- userRequirementRef
-- userRequirementText
-- maxRounds
-- maxMinutes
-- operatorNote
+- `POST /api/amazon-invoice-upload/mission`
+- `POST /api/amazon-invoice-upload/task`
+- `POST /api/amazon-invoice-upload/task/resume`
+- `GET /api/amazon-invoice-upload/task?taskId=...`
+- `GET /api/amazon-invoice-upload/latest?amazonOrderId=...`
 
-Runtime initial payload must not carry execution plans. AI chooses one registered atomic action per visual round.
+## 5. 禁止项
+
+- 通用用户需求解析器
+- 多岗位路由器
+- 根据自然语言自动生成流程
+- 启动入口直接控制 DOM 或浏览器动作
+- 未批准文件自动上传

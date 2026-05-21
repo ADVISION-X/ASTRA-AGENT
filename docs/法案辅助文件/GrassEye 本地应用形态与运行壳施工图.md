@@ -1,55 +1,42 @@
 # GrassEye 本地应用形态与运行壳施工图
 
-## 统一身份与冻结边界
+版本：2026-05-21  
+状态：active
 
-- 本文件是当前主题的建设级落地映射或冻结说明，不新增 lawId，不修改冻结法案。
-- 本文件只服从当前 14 个 active ability groups、5 个 foundation laws、0 个 support governance domains；若与 Kernel / Index / 法案冻结基线冲突，以 Kernel / Index / 冻结基线为准。
-- 若本文档涉及 support boundary、共享子契约或已退役主题，只能从属于现有父能力组或冻结结论，不得借此恢复独立 owner、phase gate、audit plan 或 runner。
-- 若与 .github/instructions/cursor-rules/** 或 docs/法案辅助文件/GrassEye 法案冻结基线.md 冲突，以冻结法案与现行 owner law 为准。
+## 1. 当前形态
 
-## 定位
+GrassEye 当前是一个本地 HTTP workbench，服务 Amazon 发票上传主线。
 
-GrassEye 是本地优先工作台，不是公开 SaaS，也不是浏览器插件主产品。
+它不是 SaaS，不是浏览器扩展主产品，不是 CLI-only 运行面。
 
-本图只描述 Commander Console 之下的本地壳层子边界，不定义独立 Commander Console 或 Orchestration 主权。
+## 2. 当前页面与接口
 
-## 本地运行壳分层
+根页面提供最小入口说明。  
+当前现役接口：
 
-- Operator UI：控制、复核、状态呈现
-- Commander Console：人工命令入口与控制台真相
-- local-app-shell：Commander Console 的本地承载壳层
-- Orchestration：mission 与原子能力序列调度
-- Browser session / browser primitives：本地真实浏览器基础设施
-- AI Ability Group：本地 AI 执行与结构化输出
-- Forensics Persistence：公共写账
+- `GET /api/health`
+- `GET /api/mode`
+- `POST /api/amazon-invoice-upload/mission`
+- `POST /api/amazon-invoice-upload/task`
+- `POST /api/amazon-invoice-upload/task/resume`
+- `GET /api/amazon-invoice-upload/task`
+- `GET /api/amazon-invoice-upload/latest`
 
-## open-local-workbench 的位置
+## 3. 当前运行壳职责
 
-- open-local-workbench 是 Open Ability Group 的子能力
-- 本地壳只能调用它，不能把它改造成第二调度链
+- 承载最小本地页面
+- 暴露最小 HTTP API
+- 连接 local workbench handle
 
-## Local Runtime 边界
+## 4. 当前运行壳禁止项
 
-`src/lib/local-runtime` is only a local dependency assembly and thin workbench facade.
-It must not host mission runtime, AI routing, Forensics finalization, Commander read-model universe, map-chain support, page-state/visual-target/PAV support systems, or Nerve Bus special routes.
+- 自己拥有流程顺序
+- 自己拥有 evidence truth
+- 自己拥有 AI judgment
+- 自己变成第二套 runtime
 
-## 禁止边界
+## 5. 当前 owner 边界
 
-- 不让本地壳拥有 Commander Console 主权
-- 不让本地壳拥有 Orchestration command truth
-- 不让启动脚本侵入业务调度
-- 不允许 verify 脚本作为壳层验收
-
-## 验收信号
-
-建对表现：
-
-- 本地壳只做容器与监督
-- 命令入口和 mission truth 仍然分属各自能力组
-- 文档不再重写能力组规则
-
-漂移信号：
-
-- localhost shell 重新变成第二总调度
-- 启动逻辑被写成平台打开主权
-- UI 文档开始持有浏览器、AI 或数据真相
+- `src/app/**`：HTTP surface
+- `src/lib/local-runtime/**`：本地装配与 handle
+- `src/plugins/amazon-invoice-upload/**`：业务流程

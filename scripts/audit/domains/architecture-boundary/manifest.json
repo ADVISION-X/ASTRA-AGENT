@@ -1,0 +1,12 @@
+{
+  "capabilityDomain": "architecture-boundary",
+  "ownerInspectorPath": "scripts/audit/domains/architecture-boundary/inspector.ts",
+  "executionGroup": "foundation",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "description": "AST and filesystem architecture-boundary enforcement."
+}

@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-05-21T12:14:19.784Z",
+  "status": "FAIL",
+  "steps": [
+    {
+      "name": "build-audit-artifacts",
+      "status": "PASS"
+    },
+    {
+      "name": "run-generated-plan",
+      "status": "FAIL",
+      "error": "One or more audit domains reported findings."
+    },
+    {
+      "name": "typecheck",
+      "status": "PASS"
+    },
+    {
+      "name": "amazon-invoice-upload-smoke",
+      "status": "PASS"
+    }
+  ],
+  "domains": [
+    {
+      "capabilityDomain": "architecture-boundary",
+      "executionGroup": "foundation",
+      "status": "PASS",
+      "findingCount": 0,
+      "reportPath": "scripts/audit/generated/architecture-boundary-report.generated.json"
+    },
+    {
+      "capabilityDomain": "capability-group-governance",
+      "executionGroup": "foundation",
+      "status": "PASS",
+      "findingCount": 0,
+      "reportPath": "scripts/audit/generated/capability-group-governance-report.generated.json"
+    },
+    {
+      "capabilityDomain": "code-purity",
+      "executionGroup": "foundation",
+      "status": "FAIL",
+      "findingCount": 9,
+      "reportPath": "scripts/audit/generated/code-purity-report.generated.json"
+    },
+    {
+      "capabilityDomain": "dom-automation",
+      "executionGroup": "domain",
+      "status": "PASS",
+      "findingCount": 0,
+      "reportPath": "scripts/audit/generated/dom-automation-report.generated.json"
+    },
+    {
+      "capabilityDomain": "audit-system",
+      "executionGroup": "meta",
+      "status": "PASS",
+      "findingCount": 0,
+      "reportPath": "scripts/audit/generated/audit-system-report.generated.json"
+    }
+  ]
+}

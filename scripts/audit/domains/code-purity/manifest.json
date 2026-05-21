@@ -1,0 +1,12 @@
+{
+  "capabilityDomain": "code-purity",
+  "ownerInspectorPath": "scripts/audit/domains/code-purity/inspector.ts",
+  "executionGroup": "foundation",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "description": "AST-first code purity enforcement for active source files."
+}

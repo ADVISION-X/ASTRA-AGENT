@@ -1,0 +1,1051 @@
+{
+  "generatedAt": "2026-05-21T12:14:16.006Z",
+  "laws": [
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "GrassEye must expand only through the single-line mediator to job-flow to ability-group architecture.",
+      "appliesTo": [
+        "src/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/**/*.{ts,js,mjs}",
+        ".github/instructions/agent-rules/**/*.md"
+      ],
+      "forbidden": [
+        "Second orchestration layer.",
+        "Universal agent runtime.",
+        "Parallel planner.",
+        "NerveBus or central dispatcher resurrection.",
+        "New active architecture outside mediator -> flow -> ability group -> child ability."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast",
+      "summary": "The mediator may route user demands to job flows but must not execute business steps or browser actions.",
+      "appliesTo": [
+        "src/mediator/**/*.{ts,tsx}",
+        "src/lib/local-runtime/**/*.{ts,tsx}"
+      ],
+      "forbidden": [
+        "Mediator directly calling browser click/fill/upload primitives.",
+        "Mediator containing Amazon-specific or Facebook-specific step logic.",
+        "Mediator becoming a workflow engine.",
+        "Mediator storing business process state."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Each new user demand must be implemented as one explicit job flow under src/plugins/<job-id>.",
+      "appliesTo": [
+        "src/plugins/**/*.{ts,tsx}"
+      ],
+      "forbidden": [
+        "One flow owning multiple unrelated jobs.",
+        "Job flow creating generic orchestration.",
+        "Business logic placed inside ability groups.",
+        "Flow importing private runtime internals from other jobs."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Ability groups must own same-kind reusable actions and must not contain business-specific workflow logic.",
+      "appliesTo": [
+        "src/capabilities/**/*.{ts,tsx}"
+      ],
+      "forbidden": [
+        "Amazon-specific workflow inside an ability group.",
+        "Facebook-specific workflow inside an ability group.",
+        "Ability group importing job flow files.",
+        "Ability group deciding business success.",
+        "Ability group dispatching multiple unrelated action kinds."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
+      "blockIndex": 3
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast",
+      "summary": "Each child ability must perform one atomic action and must not contain multi-step business workflow.",
+      "appliesTo": [
+        "src/capabilities/**/runtime/**/*.{ts,tsx}",
+        "src/capabilities/**/children/**/*.{ts,tsx}"
+      ],
+      "forbidden": [
+        "Child ability performing a full business flow.",
+        "Child ability calling unrelated ability groups.",
+        "Child ability making business decisions.",
+        "Child ability containing hidden orchestration."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
+      "blockIndex": 4
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs",
+      "summary": "New active directories must belong to the approved architecture root allowlist.",
+      "appliesTo": [
+        "src/**",
+        "scripts/**"
+      ],
+      "forbidden": [
+        "New active top-level source folders outside the architecture allowlist.",
+        "Ad-hoc folders for experiments.",
+        "Unowned helper folders.",
+        "Temporary architecture roots."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
+      "blockIndex": 5
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Shared infrastructure under src/lib must remain infrastructure-only and must not absorb business flow or ability logic.",
+      "appliesTo": [
+        "src/lib/**/*.{ts,tsx}"
+      ],
+      "forbidden": [
+        "Business job flow inside src/lib.",
+        "Ability group implementation inside src/lib.",
+        "Generic service layer hiding business workflow.",
+        "Shared helper created before two real call sites exist."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
+      "blockIndex": 6
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Every new user demand must enter through a job schema, mediator route, explicit flow, and acceptance proof.",
+      "appliesTo": [
+        "src/mediator/**/*.{ts,tsx}",
+        "src/plugins/**/*.{ts,tsx}",
+        "scripts/acceptance/**/*.{ts,js,mjs}"
+      ],
+      "forbidden": [
+        "New demand without job schema.",
+        "New demand without mediator route.",
+        "New demand without explicit flow.",
+        "New demand without acceptance smoke.",
+        "New demand hidden inside existing unrelated flow."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
+      "blockIndex": 7
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast",
+      "summary": "AI may only serve bounded choice judging and must not become a workflow planner or next-action controller.",
+      "appliesTo": [
+        "src/capabilities/ai-input-gateway/**/*.{ts,tsx}",
+        "src/plugins/**/*.{ts,tsx}",
+        "src/mediator/**/*.{ts,tsx}"
+      ],
+      "forbidden": [
+        "AI outputting nextAction.",
+        "AI outputting actionPlan.",
+        "AI outputting browser command.",
+        "AI outputting selector or coordinate.",
+        "AI deciding final sensitive actions.",
+        "AI generating workflow steps at runtime."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
+      "blockIndex": 8
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "architecture-boundary",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "hybrid",
+      "summary": "Any new architecture layer, source root, job category, or ability group family must update architecture law before code is accepted.",
+      "appliesTo": [
+        "src/**",
+        "scripts/**",
+        ".github/instructions/agent-rules/**"
+      ],
+      "forbidden": [
+        "Code-first architecture change.",
+        "Unapproved new root folder.",
+        "Unapproved new layer.",
+        "Silent architectural expansion."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
+      "blockIndex": 9
+    },
+    {
+      "lawId": "APEX-AUDIT-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "meta",
+      "evidenceMode": "hybrid",
+      "summary": "The audit system must keep one real execution chain from laws to manifests to generated artifacts to runner.",
+      "appliesTo": [
+        "scripts/audit/**/*.{ts,js,mjs,json}",
+        ".github/workflows/**/*.yml"
+      ],
+      "forbidden": [
+        "Manual enforcement matrix truth.",
+        "Runner-owned law binding truth.",
+        "Parallel audit truth chains."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "APEX-AUDIT-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "meta",
+      "evidenceMode": "hybrid",
+      "summary": "Each active audit law must remain structurally parseable from the law file with stable metadata.",
+      "appliesTo": [
+        "scripts/audit/**/*.{ts,js,mjs,json}"
+      ],
+      "forbidden": [
+        "Unstructured active laws that cannot be parsed stably.",
+        "Hard-binding inspector filenames inside the law body.",
+        "One law spanning multiple capability domains."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-AUDIT-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "meta",
+      "evidenceMode": "hybrid",
+      "summary": "Each capabilityDomain must have one owner inspector and one manifest-owned execution authority.",
+      "appliesTo": [
+        "scripts/audit/**/*.{ts,js,mjs,json}"
+      ],
+      "forbidden": [
+        "One script carrying multiple capability domains.",
+        "Multiple owner inspectors for one capability domain.",
+        "Helper or wrapper paths pretending to be owner inspectors."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "APEX-AUDIT-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "meta",
+      "evidenceMode": "hybrid",
+      "summary": "The law registry, enforcement matrix, audit plan, and conflict snapshots must be generated artifacts.",
+      "appliesTo": [
+        "scripts/audit/**/*.{ts,js,mjs,json}"
+      ],
+      "forbidden": [
+        "Manual editing of generated audit artifacts.",
+        "Runner consumption of legacy manual matrix files.",
+        "CI skipping artifact regeneration."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
+      "blockIndex": 3
+    },
+    {
+      "lawId": "APEX-AUDIT-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "meta",
+      "evidenceMode": "hybrid",
+      "summary": "The runner is an executor only and must not own law truth, ordering truth, or binding truth.",
+      "appliesTo": [
+        "scripts/audit/**/*.{ts,js,mjs,json}"
+      ],
+      "forbidden": [
+        "Runner-maintained manual script ordering truth.",
+        "Runner-maintained law to inspector mapping.",
+        "Runner interpreting business laws directly."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
+      "blockIndex": 4
+    },
+    {
+      "lawId": "APEX-AUDIT-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "meta",
+      "evidenceMode": "hybrid",
+      "summary": "Inspector evidence must remain consistent with the declared evidenceMode and cannot fake AST or hybrid enforcement.",
+      "appliesTo": [
+        "scripts/audit/**/*.{ts,js,mjs,json}"
+      ],
+      "forbidden": [
+        "String search pretending to be AST primary judgment.",
+        "Blind delegate or hollow enforcement.",
+        "Blueprint or law drift hidden behind PASS results."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
+      "blockIndex": 5
+    },
+    {
+      "lawId": "APEX-AUDIT-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "meta",
+      "evidenceMode": "hybrid",
+      "summary": "Law, blueprint, and inspector must form a closed authority chain whenever blueprint-backed enforcement is declared.",
+      "appliesTo": [
+        "scripts/audit/**/*.{ts,js,mjs,json}",
+        "docs/法案辅助文件/*.md"
+      ],
+      "forbidden": [
+        "Inspector claiming blueprint integration without reading blueprint anchors.",
+        "PASS results when law or blueprint anchors are missing.",
+        "Blueprint-only or law-only enforcement claims."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
+      "blockIndex": 6
+    },
+    {
+      "lawId": "APEX-AUDIT-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "meta",
+      "evidenceMode": "hybrid",
+      "summary": "The audit system must have a meta-inspection capability domain that can inspect the audit system itself.",
+      "appliesTo": [
+        "scripts/audit/**/*.{ts,js,mjs,json}"
+      ],
+      "forbidden": [
+        "Dispersed patch scripts holding long-term system-level audit truth.",
+        "Generated-artifact drift with no meta inspector alarm.",
+        "Duplicate owner or fake enforcement escaping the audit-system gate."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
+      "blockIndex": 7
+    },
+    {
+      "lawId": "APEX-AUDIT-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "meta",
+      "evidenceMode": "hybrid",
+      "summary": "Manual matrix truth, duplicate mappings, giant cross-domain inspectors, and retired enforcement remnants should converge toward deletion.",
+      "appliesTo": [
+        "scripts/audit/**/*.{ts,js,mjs,json}"
+      ],
+      "forbidden": [
+        "Manual matrix truth surviving as runtime authority.",
+        "Parallel registry or mapping chains.",
+        "Generated and source files with overlapping authority."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
+      "blockIndex": 8
+    },
+    {
+      "lawId": "APEX-AUDIT-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "audit-system",
+      "enforcementMode": "meta",
+      "evidenceMode": "hybrid",
+      "summary": "Executable audit outputs must be binary PASS/FAIL results only and must not introduce warning-grade verdict tiers.",
+      "filePath": ".github/instructions/agent-rules/modules/module-audit-system.instructions.md",
+      "blockIndex": 9
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "An ability group may exist only when it owns one same-kind reusable action family and has an active governing law.",
+      "appliesTo": [
+        "src/capabilities/**/*.{ts,tsx,js,jsx,mjs}",
+        ".github/instructions/agent-rules/modules/**/*.md"
+      ],
+      "forbidden": [
+        "Ability group without active law.",
+        "Ability group created for one business job only.",
+        "Ability group owning multiple unrelated action kinds.",
+        "Business flow disguised as ability group.",
+        "Universal agent runtime disguised as ability group."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-capability-group-governance.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Each child ability must perform one atomic action and must not hide workflow logic.",
+      "appliesTo": [
+        "src/capabilities/**/runtime/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/capabilities/**/children/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "Child ability performing a full business flow.",
+        "Child ability deciding next business step.",
+        "Child ability calling unrelated ability groups.",
+        "Child ability importing job plugins.",
+        "Child ability hiding planner behavior."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-capability-group-governance.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast",
+      "summary": "Job flows may use ability groups only through public facades and must not import private runtime internals.",
+      "appliesTo": [
+        "src/plugins/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/capabilities/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "Plugin importing ability runtime internals.",
+        "Plugin importing ability private child files.",
+        "Ability group importing plugin files.",
+        "Facade re-exporting unrelated owners.",
+        "Barrel laundering of private imports."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-capability-group-governance.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Ability groups must stay business-neutral and must not contain platform-specific workflow logic.",
+      "appliesTo": [
+        "src/capabilities/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "Amazon-specific workflow inside an ability group.",
+        "Facebook-specific workflow inside an ability group.",
+        "Order upload process order inside an ability group.",
+        "Product-video mining workflow inside an ability group.",
+        "Business final status inside an ability group."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-capability-group-governance.instructions.md",
+      "blockIndex": 3
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast",
+      "summary": "Ability groups must not use AI as planner, next-action chooser, selector generator, or browser-command generator.",
+      "appliesTo": [
+        "src/capabilities/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/plugins/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "AI returning nextAction.",
+        "AI returning actionPlan.",
+        "AI returning browserCommand.",
+        "AI returning selector or coordinate.",
+        "AI generating runtime workflow steps."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-capability-group-governance.instructions.md",
+      "blockIndex": 4
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Ability groups may create action evidence refs but must not own separate evidence stores or private log systems.",
+      "appliesTo": [
+        "src/capabilities/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/lib/runtime-logs/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/capabilities/forensics-persistence/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "Private evidence database inside an ability group.",
+        "Private JSONL log system inside an ability group.",
+        "Forged evidence ref.",
+        "Stale evidence reused as fresh proof.",
+        "Sensitive data logged by an ability group."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-capability-group-governance.instructions.md",
+      "blockIndex": 5
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Retired standalone ability owners must not return as active capability groups.",
+      "appliesTo": [
+        "src/capabilities/**/*",
+        "src/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/**/*.{ts,js,mjs}",
+        "package.json"
+      ],
+      "forbidden": [
+        "nerve-bus active owner.",
+        "orchestration active owner.",
+        "geometry-guard active owner.",
+        "mouse-click active owner.",
+        "mouse-scroll active owner.",
+        "text-input active owner.",
+        "open active owner.",
+        "screenshot active owner.",
+        "video-download active owner.",
+        "universal-agent active owner.",
+        "planner active owner."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-capability-group-governance.instructions.md",
+      "blockIndex": 6
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "hybrid",
+      "summary": "Capability group governance must be enforceable by audit before production readiness is claimed.",
+      "appliesTo": [
+        "scripts/audit/**/*.{ts,js,mjs,json}",
+        "package.json"
+      ],
+      "forbidden": [
+        "Production readiness without capability-group audit.",
+        "Warning-only P0 capability-group finding.",
+        "Generated fake PASS.",
+        "Runner detached from active capability laws.",
+        "Manual generated artifact truth."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-capability-group-governance.instructions.md",
+      "blockIndex": 7
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "fs+ast",
+      "summary": "Active source files must remain owner-clear, role-clear, and small enough for safe Codex iteration.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "fs+ast",
+      "summary": "Touched files must not get dirtier and must not cross hard purity limits.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "ast",
+      "summary": "Files must not mix incompatible GrassEye runtime roles.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "fs+ast",
+      "summary": "Each job flow must own one business demand and must not become a generic workflow engine.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 3
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "ast",
+      "summary": "The mediator may route user demands but must not execute business steps or browser actions.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 4
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "fs+ast",
+      "summary": "Ability groups must own same-kind reusable actions and must not absorb business workflow.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 5
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "ast",
+      "summary": "Child abilities must remain atomic and must not hide multi-step business workflow.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 6
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "ast+typecheck",
+      "summary": "Type escapes must not bypass GrassEye contracts, schemas, or runtime safety.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 7
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "fs+ast",
+      "summary": "Fake, mock, placeholder, no-op, demo, and fallback runtime paths must not survive in active source truth.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 8
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "fs+ast",
+      "summary": "Bridge, compatibility, legacy, shadow, and dual-truth structures are forbidden unless an active law explicitly authorizes them.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 9
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-011-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "fs+ast",
+      "summary": "Shared files must prove infrastructure ownership and must not become dumping grounds.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 10
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-012-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "fs+ast",
+      "summary": "Evidence, logs, and result records must be truthful and must not be forged to satisfy acceptance.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 11
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-013-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "hybrid",
+      "summary": "Code-purity enforcement must be real, runner-visible, and unable to fake PASS.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 12
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-014-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "fs",
+      "summary": "Generated artifacts are evidence outputs, not hand-written source truth.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 13
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "status": "active",
+      "tier": "P1",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "fs+ast",
+      "summary": "Code-purity enforcement should produce actionable inventories and split recommendations without pretending every inventory item is a P0 blocker.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 14
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-016-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "hybrid",
+      "summary": "Purity remediation must simplify the real structure, not hide the same mess behind another file.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 15
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "DOM Automation must remain business-neutral and must not contain platform-specific workflow logic.",
+      "appliesTo": [
+        "src/capabilities/dom-automation/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "Amazon-specific workflow inside DOM Automation.",
+        "Facebook-specific workflow inside DOM Automation.",
+        "Business success decision inside DOM Automation.",
+        "DOM code importing src/plugins.",
+        "DOM code calling AI to plan browser actions."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast",
+      "summary": "Public consumers may import DOM Automation only through its public facade.",
+      "appliesTo": [
+        "src/plugins/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/mediator/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/app/**/*.{ts,tsx,js,jsx,mjs}"
+      ],
+      "forbidden": [
+        "Consumer importing src/capabilities/dom-automation/runtime.",
+        "Consumer importing DOM private contract internals.",
+        "Mediator importing any DOM runtime file.",
+        "App shell importing any DOM runtime file."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+typecheck",
+      "summary": "Expected DOM uncertainty must return structured statuses instead of escaping as ordinary exceptions.",
+      "appliesTo": [
+        "src/capabilities/dom-automation/**/*.{ts,tsx}"
+      ],
+      "forbidden": [
+        "Locator not_found thrown as normal control flow.",
+        "Locator ambiguous thrown as normal control flow.",
+        "Fill/click/upload/verify returning success after unverified uncertainty.",
+        "Catch-and-swallow inside DOM runtime."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+runtime-evidence",
+      "summary": "DOM snapshots must be privacy-safe structural summaries, not raw page dumps.",
+      "appliesTo": [
+        "src/capabilities/dom-automation/runtime/dom-snapshot.ts",
+        "src/capabilities/dom-automation/schema.ts"
+      ],
+      "forbidden": [
+        "Snapshot returning full HTML.",
+        "Snapshot returning cookies or storage.",
+        "Snapshot returning password values.",
+        "Snapshot returning full file input values.",
+        "Snapshot returning unbounded page text."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 3
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+runtime-evidence",
+      "summary": "DOM location must use semantic signals and revalidation, not selector-only guesswork.",
+      "appliesTo": [
+        "src/capabilities/dom-automation/runtime/dom-locator.ts",
+        "src/capabilities/dom-automation/schema.ts"
+      ],
+      "forbidden": [
+        "Selector-only element identity.",
+        "CSS fallback marked as high confidence.",
+        "Ambiguous candidates returned as success.",
+        "Frame hint ignored when frame support is requested.",
+        "Business-specific selector hardcoding in DOM core."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 4
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+runtime-evidence",
+      "summary": "Frame and shadow DOM handling must be explicit and must not pretend unsupported scopes are supported.",
+      "appliesTo": [
+        "src/capabilities/dom-automation/**/*.{ts,tsx}"
+      ],
+      "forbidden": [
+        "Returning frameRef without action support.",
+        "Ignoring frameRef during fill/click/upload.",
+        "Pretending cross-origin frame contents were inspected.",
+        "Shadow DOM action without host-level revalidation."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 5
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+runtime-evidence",
+      "summary": "DOM fill may write only caller-approved text into a revalidated writable element.",
+      "appliesTo": [
+        "src/capabilities/dom-automation/runtime/dom-fill.ts",
+        "src/capabilities/dom-automation/schema.ts"
+      ],
+      "forbidden": [
+        "Filling password inputs.",
+        "Filling empty or AI-generated business values.",
+        "Filling hidden or disabled elements.",
+        "Success without value verification.",
+        "Fill without before and after evidence."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 6
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+runtime-evidence",
+      "summary": "DOM click must be located-element-first and must block sensitive irreversible actions.",
+      "appliesTo": [
+        "src/capabilities/dom-automation/runtime/dom-click.ts",
+        "src/capabilities/dom-automation/schema.ts"
+      ],
+      "forbidden": [
+        "Coordinate-first click as DOM action identity.",
+        "Clicking hidden or disabled elements.",
+        "Sensitive irreversible click without review_required.",
+        "Click success without after evidence.",
+        "Expected text mismatch treated as success."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 7
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast+runtime-evidence",
+      "summary": "DOM upload may attach only a task-approved local file to a located file input.",
+      "appliesTo": [
+        "src/capabilities/dom-automation/runtime/dom-upload.ts",
+        "src/capabilities/dom-automation/schema.ts",
+        "src/lib/browser/**/*.{ts,tsx}"
+      ],
+      "forbidden": [
+        "Arbitrary file path upload.",
+        "Upload target not located as file input.",
+        "Reading file content into AI or DOM snapshot.",
+        "Upload success without before and after evidence.",
+        "Business plugin directly using browser file-input private implementation."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 8
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+runtime-evidence",
+      "summary": "DOM wait and verify must report observed page state, not business completion fiction.",
+      "appliesTo": [
+        "src/capabilities/dom-automation/runtime/dom-wait.ts",
+        "src/capabilities/dom-automation/runtime/dom-verify.ts",
+        "src/capabilities/dom-automation/schema.ts"
+      ],
+      "forbidden": [
+        "Unknown state returned as success.",
+        "File-selected state treated as final business success.",
+        "Login or captcha state downgraded to not_found.",
+        "Verification evidence ref that cannot be traced to an observed snapshot or action.",
+        "Business success terms hardcoded in DOM core."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 9
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast+runtime-evidence",
+      "summary": "DOM action evidence must be truthful while storage and logging ownership stay outside DOM Automation.",
+      "appliesTo": [
+        "src/capabilities/dom-automation/**/*.{ts,tsx}",
+        "src/lib/runtime-logs/**/*.{ts,tsx}",
+        "src/capabilities/forensics-persistence/**/*.{ts,tsx}"
+      ],
+      "forbidden": [
+        "DOM runtime owning evidence storage truth.",
+        "DOM runtime creating a private log system.",
+        "Forged screenshot or snapshot evidence.",
+        "Stale evidence reused as fresh proof.",
+        "Sensitive data logged from DOM snapshots or actions."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 10
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "DOM Automation replaces retired standalone text input, mouse click, open, screenshot, and upload action owners for DOM page work.",
+      "appliesTo": [
+        "src/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/**/*.{ts,js,mjs}",
+        "package.json"
+      ],
+      "forbidden": [
+        "Standalone text-input ability owner resurrection.",
+        "Standalone mouse-click ability owner resurrection.",
+        "Coordinate-first page action owner resurrection.",
+        "Open/screenshot/upload standalone workflow owner resurrection.",
+        "Muscle-memory or platform registry as DOM workflow truth."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 11
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "hybrid",
+      "summary": "DOM Automation must have runner-visible enforcement before production readiness can be claimed.",
+      "appliesTo": [
+        "scripts/audit/**/*.{ts,js,mjs,json}",
+        "scripts/acceptance/**/*.{ts,js,mjs}",
+        "package.json"
+      ],
+      "forbidden": [
+        "Claiming DOM production readiness without DOM audit coverage.",
+        "DOM inspector detached from CI or audit plan.",
+        "Warning-only P0 DOM findings.",
+        "Acceptance smoke that uses fake success instead of real DOM actions.",
+        "Generated audit artifacts hand-edited to include DOM pass."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 12
+    }
+  ]
+}

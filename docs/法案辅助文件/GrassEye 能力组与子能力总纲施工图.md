@@ -1,44 +1,77 @@
 # GrassEye 能力组与子能力总纲施工图
 
-status: active
-version: 2026-05-17
+版本：2026-05-21  
+状态：active
 
-## 最高定义
+## 1. 系统身份
 
-用户给目标。AI 下命令。系统按原子能力执行。证据和日志证明没有越界。
+GrassEye 当前不是通用智能体。  
+GrassEye 当前是岗位型自动化执行系统。
 
-## 当前唯一能力组
+主架构只有一条：
 
-1. commander-console
-2. orchestration
-3. nerve-bus
-4. ai
-5. open
-6. screenshot
-7. geometry-guard
-8. mouse-click
-9. text-input
-10. mouse-scroll
-11. forensics-persistence
-12. dom-automation
-13. video-download
-14. ai-input-gateway
+```txt
+Business Flow Script
+  -> Ability Groups
+      -> Child Abilities
+          -> Evidence and Logs
+```
 
-业务插件 / 任务流不属于能力组。Amazon 发票上传、Product Video DOM Runtime、Facebook 种草视频等流程只能作为 consumer 调用能力组，不能进入能力组清单，也不能成为某个能力组的子能力。
+## 2. Owner 分工
 
-## 物理边界
+### 2.1 Flow Script
 
-- 用户只提供需求、平台、完成条件。
-- AI 只看用户需求、当前画面、坐标图、能力登记册，并输出一个 `nextAction`。
-- 系统只截图、画坐标图、保存证据、校验输入、调度 AI 选择的一个原子能力。
-- 调度只把 AI 选择的能力送到对应能力组，不猜、不造、不追加第二步。
-- 能力组只执行自己的 child capability。
-- DOM 能力组只执行读、找、填、点、等、验、传等 DOM 原子能力；业务插件决定业务目标、业务字段、业务保存和下一步业务流程。
-- AI Input Gateway 只执行外部 AI 投喂、provider adapter 调用、响应读取、输出证明和解析状态；业务判断仍归 AI 能立组。
+- 拥有流程顺序
+- 拥有业务分支
+- 拥有 review_required 决策
+- 直接调用浏览器、DOM、AI choice、evidence、runtime logs
 
-## 禁止复活
+### 2.2 Ability Group
 
-- 不存在 page-state、post-action-verification、visual-target 能力组。
-- 不存在多动作序列调度。
-- 不存在产品 yes/no 分支。
-- 不存在兼容、回退、旧路线、第二实现。
+- 只做同类型稳定动作
+- 不懂业务
+- 不决定流程
+- 不拥有岗位真相
+
+### 2.3 Child Ability
+
+- 只完成一个明确原子动作
+- 属于且仅属于一个 ability group
+
+## 3. 当前现役能力组
+
+- DOM Automation：snapshot、locate、fill、click、upload、wait、verify
+- Browser：本地 Chrome 会话、open、wait、screenshot evidence、file input foundation
+- AI Input Gateway / Choice Judge：有限选项问题投递、provider proof、schema 校验
+- Evidence Store：step trace、artifact ref、失败原因、结果记录
+- Runtime Logs：FLOW / DEBUG / TRACE 结构化日志
+
+## 4. 当前第一主线
+
+第一主线只有：
+
+```txt
+Amazon invoice upload
+```
+
+样板 flow：
+
+```txt
+src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts
+```
+
+## 5. 禁止项
+
+- 通用流程调度器
+- 中央总线
+- 通用 mission loop
+- AI 自主规划多步动作
+- AI 输出浏览器命令
+- 流程真相落到 catalog、registry 或 UI 层
+
+## 6. 目录原则
+
+- 业务流程只留在 `src/plugins/<job-id>/**`
+- 通用动作只留在 `src/capabilities/<group-id>/**`
+- 基础设施只留在 `src/lib/**`
+- 文档只保留现役蓝图，不保留旧宇宙旁支

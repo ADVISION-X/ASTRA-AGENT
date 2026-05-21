@@ -1,0 +1,12 @@
+{
+  "capabilityDomain": "capability-group-governance",
+  "ownerInspectorPath": "scripts/audit/domains/capability-group-governance/inspector.ts",
+  "executionGroup": "foundation",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "description": "Capability-group governance enforcement for approved ability roots and facade-only imports."
+}

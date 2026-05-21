@@ -1,0 +1,160 @@
+{
+  "generatedAt": "2026-05-21T12:14:16.006Z",
+  "entries": [
+    {
+      "capabilityDomain": "architecture-boundary",
+      "manifestPath": "scripts/audit/domains/architecture-boundary/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/architecture-boundary/inspector.ts",
+      "executionGroup": "foundation",
+      "lawIds": [
+        "APEX-ARCH-001-V1",
+        "APEX-ARCH-002-V1",
+        "APEX-ARCH-003-V1",
+        "APEX-ARCH-004-V1",
+        "APEX-ARCH-005-V1",
+        "APEX-ARCH-006-V1",
+        "APEX-ARCH-007-V1",
+        "APEX-ARCH-008-V1",
+        "APEX-ARCH-009-V1",
+        "APEX-ARCH-010-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "ast",
+        "fs",
+        "fs+ast",
+        "hybrid"
+      ],
+      "blueprintRefs": []
+    },
+    {
+      "capabilityDomain": "audit-system",
+      "manifestPath": "scripts/audit/domains/audit-system/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/audit-system/inspector.ts",
+      "executionGroup": "meta",
+      "lawIds": [
+        "APEX-AUDIT-001-V1",
+        "APEX-AUDIT-002-V1",
+        "APEX-AUDIT-003-V1",
+        "APEX-AUDIT-004-V1",
+        "APEX-AUDIT-005-V1",
+        "APEX-AUDIT-006-V1",
+        "APEX-AUDIT-007-V1",
+        "APEX-AUDIT-008-V1",
+        "APEX-AUDIT-009-V1",
+        "APEX-AUDIT-010-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "hybrid"
+      ],
+      "blueprintRefs": [
+        {
+          "filePath": "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+          "requiredAnchors": [
+            "## 唯一链路",
+            "## 主矩阵",
+            "## audit-system 边界"
+          ]
+        }
+      ]
+    },
+    {
+      "capabilityDomain": "capability-group-governance",
+      "manifestPath": "scripts/audit/domains/capability-group-governance/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/capability-group-governance/inspector.ts",
+      "executionGroup": "foundation",
+      "lawIds": [
+        "APEX-CAPABILITY-GROUP-001-V1",
+        "APEX-CAPABILITY-GROUP-002-V1",
+        "APEX-CAPABILITY-GROUP-003-V1",
+        "APEX-CAPABILITY-GROUP-004-V1",
+        "APEX-CAPABILITY-GROUP-005-V1",
+        "APEX-CAPABILITY-GROUP-006-V1",
+        "APEX-CAPABILITY-GROUP-007-V1",
+        "APEX-CAPABILITY-GROUP-008-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "ast",
+        "fs+ast",
+        "hybrid"
+      ],
+      "blueprintRefs": []
+    },
+    {
+      "capabilityDomain": "code-purity",
+      "manifestPath": "scripts/audit/domains/code-purity/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/code-purity/inspector.ts",
+      "executionGroup": "foundation",
+      "lawIds": [
+        "APEX-CODE-PURITY-001-V1",
+        "APEX-CODE-PURITY-002-V1",
+        "APEX-CODE-PURITY-003-V1",
+        "APEX-CODE-PURITY-004-V1",
+        "APEX-CODE-PURITY-005-V1",
+        "APEX-CODE-PURITY-006-V1",
+        "APEX-CODE-PURITY-007-V1",
+        "APEX-CODE-PURITY-008-V1",
+        "APEX-CODE-PURITY-009-V1",
+        "APEX-CODE-PURITY-010-V1",
+        "APEX-CODE-PURITY-011-V1",
+        "APEX-CODE-PURITY-012-V1",
+        "APEX-CODE-PURITY-013-V1",
+        "APEX-CODE-PURITY-014-V1",
+        "APEX-CODE-PURITY-015-V1",
+        "APEX-CODE-PURITY-016-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "ast",
+        "ast+typecheck",
+        "fs",
+        "fs+ast",
+        "hybrid"
+      ],
+      "blueprintRefs": []
+    },
+    {
+      "capabilityDomain": "dom-automation",
+      "manifestPath": "scripts/audit/domains/dom-automation/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/dom-automation/inspector.ts",
+      "executionGroup": "domain",
+      "lawIds": [
+        "APEX-DOM-001-V1",
+        "APEX-DOM-002-V1",
+        "APEX-DOM-003-V1",
+        "APEX-DOM-004-V1",
+        "APEX-DOM-005-V1",
+        "APEX-DOM-006-V1",
+        "APEX-DOM-007-V1",
+        "APEX-DOM-008-V1",
+        "APEX-DOM-009-V1",
+        "APEX-DOM-010-V1",
+        "APEX-DOM-011-V1",
+        "APEX-DOM-012-V1",
+        "APEX-DOM-013-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "ast",
+        "ast+runtime-evidence",
+        "ast+typecheck",
+        "fs+ast",
+        "fs+ast+runtime-evidence",
+        "hybrid"
+      ],
+      "blueprintRefs": []
+    }
+  ]
+}

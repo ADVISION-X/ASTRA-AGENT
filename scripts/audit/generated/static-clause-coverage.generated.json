@@ -1,0 +1,580 @@
+{
+  "generatedAt": "2026-05-21T12:14:16.006Z",
+  "summary": {
+    "activeLawCount": 57,
+    "coveredLawCount": 57,
+    "coveragePercent": 100
+  },
+  "coverage": [
+    {
+      "lawId": "APEX-ARCH-001-V1",
+      "capabilityDomain": "architecture-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/architecture-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-ARCH-002-V1",
+      "capabilityDomain": "architecture-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/architecture-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-ARCH-003-V1",
+      "capabilityDomain": "architecture-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/architecture-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-ARCH-004-V1",
+      "capabilityDomain": "architecture-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/architecture-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-ARCH-005-V1",
+      "capabilityDomain": "architecture-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/architecture-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-ARCH-006-V1",
+      "capabilityDomain": "architecture-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/architecture-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-ARCH-007-V1",
+      "capabilityDomain": "architecture-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/architecture-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-ARCH-008-V1",
+      "capabilityDomain": "architecture-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/architecture-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-ARCH-009-V1",
+      "capabilityDomain": "architecture-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/architecture-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-ARCH-010-V1",
+      "capabilityDomain": "architecture-boundary",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/architecture-boundary/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AUDIT-001-V1",
+      "capabilityDomain": "audit-system",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/audit-system/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AUDIT-002-V1",
+      "capabilityDomain": "audit-system",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/audit-system/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AUDIT-003-V1",
+      "capabilityDomain": "audit-system",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/audit-system/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AUDIT-004-V1",
+      "capabilityDomain": "audit-system",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/audit-system/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AUDIT-005-V1",
+      "capabilityDomain": "audit-system",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/audit-system/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AUDIT-006-V1",
+      "capabilityDomain": "audit-system",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/audit-system/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AUDIT-007-V1",
+      "capabilityDomain": "audit-system",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/audit-system/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AUDIT-008-V1",
+      "capabilityDomain": "audit-system",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/audit-system/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AUDIT-009-V1",
+      "capabilityDomain": "audit-system",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/audit-system/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-AUDIT-010-V1",
+      "capabilityDomain": "audit-system",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/audit-system/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-001-V1",
+      "capabilityDomain": "capability-group-governance",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/capability-group-governance/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-002-V1",
+      "capabilityDomain": "capability-group-governance",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/capability-group-governance/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-003-V1",
+      "capabilityDomain": "capability-group-governance",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/capability-group-governance/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-004-V1",
+      "capabilityDomain": "capability-group-governance",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/capability-group-governance/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-005-V1",
+      "capabilityDomain": "capability-group-governance",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/capability-group-governance/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-006-V1",
+      "capabilityDomain": "capability-group-governance",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/capability-group-governance/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-007-V1",
+      "capabilityDomain": "capability-group-governance",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/capability-group-governance/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CAPABILITY-GROUP-008-V1",
+      "capabilityDomain": "capability-group-governance",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/capability-group-governance/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-002-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-003-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-004-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-005-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-006-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-007-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-008-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-009-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-010-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-011-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-012-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-013-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-014-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-016-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-001-V1",
+      "capabilityDomain": "dom-automation",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/dom-automation/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-002-V1",
+      "capabilityDomain": "dom-automation",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/dom-automation/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-003-V1",
+      "capabilityDomain": "dom-automation",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/dom-automation/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-004-V1",
+      "capabilityDomain": "dom-automation",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/dom-automation/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-005-V1",
+      "capabilityDomain": "dom-automation",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/dom-automation/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-006-V1",
+      "capabilityDomain": "dom-automation",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/dom-automation/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-007-V1",
+      "capabilityDomain": "dom-automation",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/dom-automation/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-008-V1",
+      "capabilityDomain": "dom-automation",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/dom-automation/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-009-V1",
+      "capabilityDomain": "dom-automation",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/dom-automation/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-010-V1",
+      "capabilityDomain": "dom-automation",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/dom-automation/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-011-V1",
+      "capabilityDomain": "dom-automation",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/dom-automation/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-012-V1",
+      "capabilityDomain": "dom-automation",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/dom-automation/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-DOM-013-V1",
+      "capabilityDomain": "dom-automation",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/dom-automation/manifest.json"
+        }
+      ]
+    }
+  ]
+}
