@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T12:53:38.368Z",
+  "generatedAt": "2026-05-21T12:54:18.432Z",
   "capabilityDomain": "code-purity",
   "executionGroup": "foundation",
   "lawIds": [
@@ -87,36 +87,12 @@
       "evidence": "{\"owner\":\"audit:capability-group-governance\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts has an over-limit function near line 150.",
-      "filePath": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
       "checkId": "code-purity/file-budget-hard-limit",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts has 249 lines and exceeds the audit helper/phase file hard-limit budget.",
+      "message": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts has 298 lines and exceeds the audit helper/phase file hard-limit budget.",
       "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
       "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts has an over-limit function near line 75.",
-      "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts has an over-limit function near line 122.",
-      "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/function-budget",

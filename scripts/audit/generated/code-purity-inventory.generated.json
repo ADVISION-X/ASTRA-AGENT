@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-21T12:53:38.367Z",
-  "itemCount": 38,
+  "generatedAt": "2026-05-21T12:54:18.431Z",
+  "itemCount": 35,
   "items": [
     {
       "checkId": "code-purity/class-budget",
@@ -83,42 +83,12 @@
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:code-purity",
-      "reason": "Function near line 150 breaks function budget: return branch count 6 exceeds hard limit 5.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
       "checkId": "code-purity/file-budget-hard-limit",
       "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "owner": "audit:code-purity",
-      "reason": "audit helper/phase file has 249 lines and exceeds hard limit 240.",
+      "reason": "audit helper/phase file has 298 lines and exceeds hard limit 240.",
       "remediation": "Split or reduce the file by runtime role until it falls under the hard limit.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:code-purity",
-      "reason": "Function near line 75 breaks function budget: physical line count 46 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:code-purity",
-      "reason": "Function near line 122 breaks function budget: physical line count 49 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "audit-phase",
       "verificationCommand": "npm run ci:full"
     },
