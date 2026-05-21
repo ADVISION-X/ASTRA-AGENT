@@ -140,6 +140,53 @@ const hasCloseFailureGate = (file: SourceFile | null, functionName: string): boo
     statement.getExpression().getText().includes("!closeResult.ok")));
 };
 
+const numericConstantValue = (file: SourceFile | null, name: string): number | null => {
+  const initializer = file?.getVariableDeclaration(name)?.getInitializer();
+  return initializer && Node.isNumericLiteral(initializer) ? Number(initializer.getLiteralText()) : null;
+};
+
+const numericPropertyValue = (objectLiteral: MorphNode | undefined, name: string): number | null => {
+  if (!objectLiteral || !Node.isObjectLiteralExpression(objectLiteral)) return null;
+  const property = objectLiteral.getProperty(name);
+  if (!property || !Node.isPropertyAssignment(property)) return null;
+  const initializer = property.getInitializer();
+  if (Node.isNumericLiteral(initializer)) return Number(initializer.getLiteralText());
+  return Node.isIdentifier(initializer) ? numericConstantValue(objectLiteral.getSourceFile(), initializer.getText()) : null;
+};
+
+const uploadSuccessWaitConfig = (file: SourceFile | null): { timeoutMs: number | null; pollIntervalMs: number | null } => {
+  const verify = file?.getFunction("verifyUploadSuccess");
+  const waitCall = verify?.getDescendantsOfKind(SyntaxKind.CallExpression).find((call) =>
+    Node.isIdentifier(call.getExpression()) && call.getExpression().getText() === "waitForDomStateOnce");
+  const config = waitCall?.getArguments()[1];
+  return {
+    timeoutMs: numericPropertyValue(config, "timeoutMs"),
+    pollIntervalMs: numericPropertyValue(config, "pollIntervalMs"),
+  };
+};
+
+const uploadDialogWaitConfig = (file: SourceFile | null): { timeoutMs: number | null; pollIntervalMs: number | null } => {
+  const waitBody = functionBodyText(file, "waitForUploadDialog") ?? "";
+  return {
+    timeoutMs: waitBody.includes("UPLOAD_DIALOG_READY_TIMEOUT_MS")
+      ? numericConstantValue(file, "UPLOAD_DIALOG_READY_TIMEOUT_MS")
+      : null,
+    pollIntervalMs: waitBody.includes("UPLOAD_DIALOG_READY_POLL_INTERVAL_MS")
+      ? numericConstantValue(file, "UPLOAD_DIALOG_READY_POLL_INTERVAL_MS")
+      : null,
+  };
+};
+
+const stringArrayValues = (file: SourceFile | null, name: string): Set<string> => {
+  const initializer = file?.getVariableDeclaration(name)?.getInitializer();
+  const values = new Set<string>();
+  if (!initializer || !Node.isArrayLiteralExpression(initializer)) return values;
+  for (const element of initializer.getElements()) {
+    if (Node.isStringLiteral(element)) values.add(element.getLiteralText());
+  }
+  return values;
+};
+
 export const collectAmazonOrderReadinessIssues = (file: SourceFile | null): string[] => {
   const issues: string[] = [];
   const containsBody = functionBodyText(file, "snapshotContainsApprovedOrder");
@@ -163,12 +210,7 @@ export const collectAmazonOrderReadinessIssues = (file: SourceFile | null): stri
   return issues;
 };
 
-export const collectAmazonUploadClosureIssues = (
-  verifyFile: SourceFile | null,
-  existingFile: SourceFile | null,
-  snapshotFile: SourceFile | null,
-  completeSmokeFile: SourceFile | null,
-): string[] => {
+const collectUploadCloseIssues = (verifyFile: SourceFile | null, existingFile: SourceFile | null): string[] => {
   const issues: string[] = [];
   if (!callsMethod(verifyFile, "closeActiveTab")) {
     issues.push("Amazon upload success verification must close the active order tab");
@@ -179,12 +221,70 @@ export const collectAmazonUploadClosureIssues = (
   if (!hasCloseFailureGate(existingFile, "closeAlreadyUploadedTab")) {
     issues.push("Already-uploaded Amazon flow must not report upload_success when active tab close fails");
   }
+  return issues;
+};
+
+const collectSnapshotSuccessIssues = (snapshotFile: SourceFile | null): string[] => {
+  const issues: string[] = [];
   const snapshotResultBody = functionBodyText(snapshotFile, "buildSnapshotScriptResultSection");
   if (!snapshotResultBody?.includes("test(rawPageText)) detectedStates.push(\"upload_success\")")) {
     issues.push("DOM snapshot state detection must use uncropped internal page text without returning full text");
   }
+  return issues;
+};
+
+const collectUploadSuccessWaitIssues = (verifyFile: SourceFile | null): string[] => {
+  const issues: string[] = [];
+  const successHints = stringArrayValues(verifyFile, "UPLOAD_SUCCESS_HINTS");
+  if (!successHints.has("invoice uploaded successfully") || !successHints.has("客户可以直接从自己的账户下载文件")) {
+    issues.push("Amazon plugin upload-success hints must include Seller Central invoice-success copy variants");
+  }
+  const waitConfig = uploadSuccessWaitConfig(verifyFile);
+  if (waitConfig.timeoutMs === null || waitConfig.timeoutMs < 12000) {
+    issues.push("Amazon upload success verification must wait at least 12000ms before returning review_required");
+  }
+  if (waitConfig.pollIntervalMs === null || waitConfig.pollIntervalMs > 500) {
+    issues.push("Amazon upload success verification must poll at least twice per second while waiting for final success state");
+  }
+  return issues;
+};
+
+const collectUploadDialogWaitIssues = (stepsFile: SourceFile | null): string[] => {
+  const issues: string[] = [];
+  const dialogConfig = uploadDialogWaitConfig(stepsFile);
+  if (dialogConfig.timeoutMs === null || dialogConfig.timeoutMs < 12000) {
+    issues.push("Amazon upload dialog readiness must wait at least 12000ms before returning upload_entry_not_found");
+  }
+  if (dialogConfig.pollIntervalMs === null || dialogConfig.pollIntervalMs > 500) {
+    issues.push("Amazon upload dialog readiness must poll at least twice per second while waiting for file input");
+  }
+  const uploadDialogBody = functionBodyText(stepsFile, "snapshotHasUploadDialogCopy") ?? "";
+  if (!uploadDialogBody.includes("choose file") || !uploadDialogBody.includes("invoice file")) {
+    issues.push("Amazon upload dialog readiness must include Seller Central English upload-dialog copy variants");
+  }
+  return issues;
+};
+
+const collectCompleteSmokeIssues = (completeSmokeFile: SourceFile | null): string[] => {
+  const issues: string[] = [];
   if (!completeSmokeFile?.getText().includes("getClosedActiveTabCount()")) {
     issues.push("Amazon complete smoke must assert the upload-success tab close side effect");
   }
   return issues;
 };
+
+type AmazonUploadClosureFiles = {
+  verifyFile: SourceFile | null;
+  existingFile: SourceFile | null;
+  stepsFile: SourceFile | null;
+  snapshotFile: SourceFile | null;
+  completeSmokeFile: SourceFile | null;
+};
+
+export const collectAmazonUploadClosureIssues = (files: AmazonUploadClosureFiles): string[] => [
+  ...collectUploadCloseIssues(files.verifyFile, files.existingFile),
+  ...collectSnapshotSuccessIssues(files.snapshotFile),
+  ...collectUploadSuccessWaitIssues(files.verifyFile),
+  ...collectUploadDialogWaitIssues(files.stepsFile),
+  ...collectCompleteSmokeIssues(files.completeSmokeFile),
+];

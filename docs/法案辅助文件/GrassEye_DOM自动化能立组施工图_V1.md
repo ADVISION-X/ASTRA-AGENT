@@ -666,6 +666,26 @@ pdfContent
 遇到登录/验证码/页面歧义必须 review_required
 ```
 
+真实 Seller Central 成功态等待细则：
+
+```txt
+上传提交后，Amazon 页面可能先完成服务端上传，再延迟渲染成功文案。
+Amazon Invoice Upload Plugin 不得用 3 秒级短窗口判定最终成功态。
+verifyUploadSuccess 必须等待至少 12 秒，并保持不低于每 500ms 一次的 DOM success polling。
+Amazon 插件层的 upload-success hints 必须覆盖 invoice uploaded successfully 与「客户可以直接从自己的账户下载文件」等 Seller Central 成功文案；DOM 核心能力不得注入 Amazon 业务词。
+未确认成功时仍然 review_required，禁止把未知状态伪装成 upload_success。
+```
+
+真实 Seller Central 上传弹窗等待细则：
+
+```txt
+点击上传发票入口后，Seller Central 弹窗可能延迟渲染 file input。
+Amazon Invoice Upload Plugin 不得用 2.5 秒级短窗口判定上传弹窗失败。
+waitForUploadDialog 必须等待至少 12 秒，并保持不低于每 500ms 一次的 DOM polling。
+上传弹窗 readiness 必须覆盖中文「请上传」和英文 choose file / select file / invoice file 等文案。
+未出现 file input 或上传弹窗文案时仍然 review_required / upload_entry_not_found，禁止伪造上传成功。
+```
+
 ---
 
 ## 10. 验收命令建议

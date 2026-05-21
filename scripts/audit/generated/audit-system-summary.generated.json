@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-20T12:28:23.221Z",
+  "generatedAt": "2026-05-21T04:59:55.127Z",
   "passed": true,
   "lawCount": 83,
   "domainCount": 17,
@@ -5957,7 +5957,21 @@
                 "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
               },
               {
-                "clauseId": "GRASSEYE-DOM-001-V1.blueprint.50.phase-5-amazon.03.clause",
+                "clauseId": "GRASSEYE-DOM-001-V1.blueprint.50.phase-5-amazon.03.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-001-V1.blueprint.50.phase-5-amazon.04.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-001-V1.blueprint.50.phase-5-amazon.05.clause",
                 "status": "PASS",
                 "enforcementLevel": "ast",
                 "inspectorId": "dom-automation-owner",
@@ -7077,7 +7091,21 @@
                 "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
               },
               {
-                "clauseId": "GRASSEYE-DOM-002-V1.blueprint.50.phase-5-amazon.03.clause",
+                "clauseId": "GRASSEYE-DOM-002-V1.blueprint.50.phase-5-amazon.03.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-002-V1.blueprint.50.phase-5-amazon.04.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-002-V1.blueprint.50.phase-5-amazon.05.clause",
                 "status": "PASS",
                 "enforcementLevel": "ast",
                 "inspectorId": "dom-automation-owner",
@@ -8162,7 +8190,21 @@
                 "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
               },
               {
-                "clauseId": "GRASSEYE-DOM-003-V1.blueprint.50.phase-5-amazon.03.clause",
+                "clauseId": "GRASSEYE-DOM-003-V1.blueprint.50.phase-5-amazon.03.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-003-V1.blueprint.50.phase-5-amazon.04.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-003-V1.blueprint.50.phase-5-amazon.05.clause",
                 "status": "PASS",
                 "enforcementLevel": "ast",
                 "inspectorId": "dom-automation-owner",
@@ -9233,7 +9275,21 @@
                 "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
               },
               {
-                "clauseId": "GRASSEYE-DOM-004-V1.blueprint.50.phase-5-amazon.03.clause",
+                "clauseId": "GRASSEYE-DOM-004-V1.blueprint.50.phase-5-amazon.03.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-004-V1.blueprint.50.phase-5-amazon.04.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-004-V1.blueprint.50.phase-5-amazon.05.clause",
                 "status": "PASS",
                 "enforcementLevel": "ast",
                 "inspectorId": "dom-automation-owner",
@@ -10297,7 +10353,21 @@
                 "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
               },
               {
-                "clauseId": "GRASSEYE-DOM-005-V1.blueprint.50.phase-5-amazon.03.clause",
+                "clauseId": "GRASSEYE-DOM-005-V1.blueprint.50.phase-5-amazon.03.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-005-V1.blueprint.50.phase-5-amazon.04.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-005-V1.blueprint.50.phase-5-amazon.05.clause",
                 "status": "PASS",
                 "enforcementLevel": "ast",
                 "inspectorId": "dom-automation-owner",
@@ -11375,7 +11445,21 @@
                 "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
               },
               {
-                "clauseId": "GRASSEYE-DOM-006-V1.blueprint.50.phase-5-amazon.03.clause",
+                "clauseId": "GRASSEYE-DOM-006-V1.blueprint.50.phase-5-amazon.03.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-006-V1.blueprint.50.phase-5-amazon.04.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-006-V1.blueprint.50.phase-5-amazon.05.clause",
                 "status": "PASS",
                 "enforcementLevel": "ast",
                 "inspectorId": "dom-automation-owner",
@@ -12453,7 +12537,21 @@
                 "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
               },
               {
-                "clauseId": "GRASSEYE-DOM-007-V1.blueprint.50.phase-5-amazon.03.clause",
+                "clauseId": "GRASSEYE-DOM-007-V1.blueprint.50.phase-5-amazon.03.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-007-V1.blueprint.50.phase-5-amazon.04.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-007-V1.blueprint.50.phase-5-amazon.05.clause",
                 "status": "PASS",
                 "enforcementLevel": "ast",
                 "inspectorId": "dom-automation-owner",
@@ -13517,7 +13615,21 @@
                 "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
               },
               {
-                "clauseId": "GRASSEYE-DOM-008-V1.blueprint.50.phase-5-amazon.03.clause",
+                "clauseId": "GRASSEYE-DOM-008-V1.blueprint.50.phase-5-amazon.03.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-008-V1.blueprint.50.phase-5-amazon.04.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-008-V1.blueprint.50.phase-5-amazon.05.clause",
                 "status": "PASS",
                 "enforcementLevel": "ast",
                 "inspectorId": "dom-automation-owner",
@@ -14609,7 +14721,21 @@
                 "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
               },
               {
-                "clauseId": "GRASSEYE-DOM-009-V1.blueprint.50.phase-5-amazon.03.clause",
+                "clauseId": "GRASSEYE-DOM-009-V1.blueprint.50.phase-5-amazon.03.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-009-V1.blueprint.50.phase-5-amazon.04.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-009-V1.blueprint.50.phase-5-amazon.05.clause",
                 "status": "PASS",
                 "enforcementLevel": "ast",
                 "inspectorId": "dom-automation-owner",
@@ -15848,7 +15974,21 @@
                 "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
               },
               {
-                "clauseId": "GRASSEYE-DOM-010-V1.blueprint.50.phase-5-amazon.03.clause",
+                "clauseId": "GRASSEYE-DOM-010-V1.blueprint.50.phase-5-amazon.03.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-010-V1.blueprint.50.phase-5-amazon.04.seller-central",
+                "status": "PASS",
+                "enforcementLevel": "ast",
+                "inspectorId": "dom-automation-owner",
+                "evidence": "owner inspector passed: laws=10/10 clauses=171/171"
+              },
+              {
+                "clauseId": "GRASSEYE-DOM-010-V1.blueprint.50.phase-5-amazon.05.clause",
                 "status": "PASS",
                 "enforcementLevel": "ast",
                 "inspectorId": "dom-automation-owner",
@@ -23625,10 +23765,10 @@
     "summary": {
       "totalLawFiles": 19,
       "totalLaws": 83,
-      "totalClauses": 3274,
+      "totalClauses": 3294,
       "passedLaws": 83,
       "failedLaws": 0,
-      "passedClauses": 3274,
+      "passedClauses": 3294,
       "failedClauses": 0
     },
     "discovery": {

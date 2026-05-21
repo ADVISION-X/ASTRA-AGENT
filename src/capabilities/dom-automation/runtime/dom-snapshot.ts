@@ -132,7 +132,7 @@ const detectedStates = [];
 if (/sign\\s*in|log\\s*in|password|session expired/i.test(rawPageText)) detectedStates.push("login_required");
 if (/captcha|verification code|two[- ]?factor|2fa|otp/i.test(rawPageText)) detectedStates.push("captcha_or_2fa_required");
 if (/file attached|attachment added|file selected/i.test(rawPageText)) detectedStates.push("file_attached");
-if (/upload completed|file uploaded successfully|invoice uploaded successfully|submitted successfully|感谢您上传文件|客户可以直接从自己的账户下载文件|管理发票|上传其他发票或贷记单/i.test(rawPageText)) detectedStates.push("upload_success");
+if (/upload completed|file uploaded successfully|submitted successfully|感谢您上传文件|管理发票|上传其他发票或贷记单/i.test(rawPageText)) detectedStates.push("upload_success");
 return {url: location.href, title: document.title, forms, inputs, buttons, links, fileInputs, dialogs, frames, textBlocks, tableRows, roleRows, genericClickableElements, detectedStates: Array.from(new Set(detectedStates)), capturedAt: new Date().toISOString()};
 `;
 }

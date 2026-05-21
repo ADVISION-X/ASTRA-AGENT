@@ -18,6 +18,12 @@ import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import { openApprovedOrderDetail } from "./amazon-invoice-upload-order-detail.js";
 type StepResult<T> = { ok: true; value: T } | { ok: false; failure: AmazonInvoiceUploadTaskResult };
+const UPLOAD_DIALOG_NOT_READY_REASON =
+  "Upload invoice entry was clicked, but the upload dialog did not expose a file upload control";
+const UPLOAD_DIALOG_READY_TIMEOUT_MS = 15000;
+const UPLOAD_DIALOG_READY_POLL_INTERVAL_MS = 250;
+const FILE_INPUT_READY_TIMEOUT_MS = 10000;
+const FILE_INPUT_READY_POLL_INTERVAL_MS = 250;
 
 const stepSuccess = <T>(value: T): StepResult<T> => ({ ok: true, value });
 
@@ -56,7 +62,7 @@ export async function openUploadInvoiceEntry(
   if (modalReady) return stepSuccess(undefined);
   return stepFailure(taskResult({
     status: "upload_entry_not_found",
-    reason: "Upload invoice entry was clicked, but the upload dialog did not expose a file upload control.",
+    reason: `${UPLOAD_DIALOG_NOT_READY_REASON} within ${UPLOAD_DIALOG_READY_TIMEOUT_MS}ms.`,
     reachedStep: "open upload invoice entry",
     amazonOrderId: mission.amazonOrderId,
     invoiceNo: mission.invoiceNo,
@@ -91,14 +97,27 @@ function locateUploadInvoiceButton(snapshot: Awaited<ReturnType<typeof readDomSn
 
 async function waitForUploadDialog(browser: BrowserController): Promise<boolean> {
   const startedAt = Date.now();
-  while (Date.now() - startedAt < 2500) {
+  while (Date.now() - startedAt < UPLOAD_DIALOG_READY_TIMEOUT_MS) {
     const snapshot = await readDomSnapshotOnce(browser);
-    if (snapshot.fileInputs.length > 0 || snapshot.textBlocks.some((item) => String(item.visibleText ?? "").includes("请上传"))) {
+    if (snapshot.fileInputs.length > 0 || snapshotHasUploadDialogCopy(snapshot)) {
       return true;
     }
-    await browser.wait(50);
+    await browser.wait(UPLOAD_DIALOG_READY_POLL_INTERVAL_MS);
   }
   return false;
+}
+
+function snapshotHasUploadDialogCopy(snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>): boolean {
+  const dialogText = [
+    ...snapshot.dialogs,
+    ...snapshot.textBlocks,
+    ...snapshot.buttons,
+    ...snapshot.genericClickableElements,
+  ].map((item) =>
+    `${item.visibleText ?? ""} ${item.ariaLabel ?? ""} ${item.nearbyText ?? ""}`,
+  ).join(" ").toLowerCase();
+  return ["请上传", "choose file", "select file", "upload invoice", "invoice file"].some((hint) =>
+    dialogText.includes(hint));
 }
 
 const locateFileInput = async (
@@ -112,8 +131,8 @@ const locateFileInput = async (
     hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.chooseFile],
     notFoundStatus: "file_input_not_found",
   });
-  while (!fileInput.ok && Date.now() - startedAt < 3000) {
-    await browser.wait(50);
+  while (!fileInput.ok && Date.now() - startedAt < FILE_INPUT_READY_TIMEOUT_MS) {
+    await browser.wait(FILE_INPUT_READY_POLL_INTERVAL_MS);
     fileInput = locateOrStatus({
       snapshot: await readDomSnapshotOnce(browser),
       targetKind: "file-input",

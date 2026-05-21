@@ -273,12 +273,13 @@ const collectLaw010EvidenceCaptureIssues = (context: DomAutomationBinaryCheckCon
     : [];
 };
 const collectLaw010UploadClosureIssues = (context: DomAutomationBinaryCheckContext): string[] =>
-  collectAmazonUploadClosureIssues(
-    sourceFile(context, "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts"),
-    sourceFile(context, "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts"),
-    sourceFile(context, "src/capabilities/dom-automation/runtime/dom-snapshot.ts"),
-    sourceFile(context, "scripts/acceptance/amazon-invoice-upload-complete-smoke.ts"),
-  );
+  collectAmazonUploadClosureIssues({
+    verifyFile: sourceFile(context, "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts"),
+    existingFile: sourceFile(context, "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts"),
+    stepsFile: sourceFile(context, "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts"),
+    snapshotFile: sourceFile(context, "src/capabilities/dom-automation/runtime/dom-snapshot.ts"),
+    completeSmokeFile: sourceFile(context, "scripts/acceptance/amazon-invoice-upload-complete-smoke.ts"),
+  });
 const collectLaw010LogLeakIssues = (context: DomAutomationBinaryCheckContext): string[] => {
   const logViolations = forbiddenLogFields(context);
   return logViolations.length > 0 ? [`forbidden sensitive log field detected: ${logViolations[0]}`] : [];
