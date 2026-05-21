@@ -24,11 +24,13 @@
     ".github/instructions/cursor-rules/modules/module-dom-automation.instructions.md"
   ],
   "readsBlueprintFiles": [
-    "docs/法案辅助文件/GrassEye_DOM自动化能立组施工图_V1.md"
+    "docs/法案辅助文件/GrassEye_DOM自动化能立组施工图_V1.md",
+    "docs/法案辅助文件/GrassEye DOM种草视频模式施工图.md"
   ],
   "ownedRoots": [
     "src/capabilities/dom-automation",
-    "src/plugins/amazon-invoice-upload"
+    "src/plugins/amazon-invoice-upload",
+    "src/plugins/product-video-dom-runtime"
   ],
   "requiredPaths": [
     "src/capabilities/dom-automation",
@@ -50,6 +52,16 @@
     "scripts/acceptance/dom-automation-smoke.ts",
     "scripts/acceptance/amazon-invoice-agent-start-smoke.ts",
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
-    "scripts/acceptance/amazon-invoice-upload-complete-smoke.ts"
+    "scripts/acceptance/amazon-invoice-upload-complete-smoke.ts",
+    "src/plugins/product-video-dom-runtime/index.ts",
+    "src/plugins/product-video-dom-runtime/product-video-dom.schema.ts",
+    "src/plugins/product-video-dom-runtime/product-video-dom.flow.ts",
+    "src/plugins/product-video-dom-runtime/product-video-dom-extractor.ts",
+    "src/plugins/product-video-dom-runtime/product-video-comment-extractor.ts",
+    "src/plugins/product-video-dom-runtime/product-video-evidence-packet.ts",
+    "src/plugins/product-video-dom-runtime/product-video-task-service.ts",
+    "src/plugins/product-video-dom-runtime/product-video-task-storage.ts",
+    "src/app/product-video-plugin-api-handlers.ts",
+    "scripts/acceptance/product-video-dom-runtime-smoke.ts"
   ]
 }

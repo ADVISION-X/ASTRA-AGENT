@@ -77,6 +77,10 @@ const browser = new PlaywrightDomBrowserAdapter(page, tmp);
 let commanderExecuteCount = 0;
 let startMissionCount = 0;
 const getStartMissionCount = (): number => startMissionCount;
+const unusedProductVideoHandle = {
+  async startProductVideoDomMiningTask() { throw new Error("product video plugin path must not be used by amazon smoke"); },
+  async getProductVideoDomTaskStatus() { throw new Error("product video plugin path must not be used by amazon smoke"); },
+};
 
 const workbench: GrassEyeWorkbenchHandle = {
   commanderConsole: {
@@ -115,6 +119,7 @@ const workbench: GrassEyeWorkbenchHandle = {
       ? { dataDir: tmp, amazonOrderId: input.amazonOrderId, invoiceNo: input.invoiceNo }
       : { dataDir: tmp, amazonOrderId: input.amazonOrderId });
   },
+  ...unusedProductVideoHandle,
   getModeInfo() { return {}; },
 };
 

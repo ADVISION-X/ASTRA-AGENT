@@ -37,6 +37,7 @@ export const checkBlueprintCommands = (context: DomAutomationBinaryCheckContext)
     "acceptance:amazon-invoice-agent-start-smoke",
     "acceptance:amazon-invoice-upload-smoke",
     "acceptance:amazon-invoice-upload-complete-smoke",
+    "acceptance:product-video-dom-runtime-smoke",
   ] as const;
   const missingScripts = requiredScripts.filter((scriptName) => !scripts[scriptName]);
   return missingScripts.length === 0

@@ -57,7 +57,9 @@ import {
   resumeAmazonInvoiceUploadTask,
   startAmazonInvoiceUploadTask,
   startAmazonInvoiceUploadMission,
-} from "../../plugins/amazon-invoice-upload/index.js";
+  getProductVideoDomTaskStatus,
+  startProductVideoDomMiningTask,
+} from "../../plugins/local-workbench-plugin-tasks.js";
 
 // ─── Active Capability Group IDs ───────────────────────────────────────────
 
@@ -201,6 +203,22 @@ const buildAmazonInvoiceHandle = (
   },
 });
 
+const buildProductVideoDomHandle = (
+  assembly: WorkbenchAssembly,
+  dataDir: string,
+) => ({
+  async startProductVideoDomMiningTask(input: Parameters<GrassEyeWorkbenchHandle["startProductVideoDomMiningTask"]>[0]) {
+    return startProductVideoDomMiningTask({
+      browser: assembly.browserController,
+      dataDir,
+      mission: input.mission,
+    });
+  },
+  async getProductVideoDomTaskStatus(taskId: string) {
+    return getProductVideoDomTaskStatus({ dataDir, taskId });
+  },
+});
+
 const buildWorkbenchHandle = (
   input: BuildWorkbenchHandleInput,
 ): GrassEyeWorkbenchHandle => {
@@ -226,6 +244,7 @@ const buildWorkbenchHandle = (
     ...buildSettingsHandle(dataDir),
     ...buildRequirementHistoryHandle(dataDir),
     ...buildAmazonInvoiceHandle(input.assembly, dataDir),
+    ...buildProductVideoDomHandle(input.assembly, dataDir),
   };
 };
 

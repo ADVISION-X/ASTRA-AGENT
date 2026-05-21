@@ -13,6 +13,10 @@ const FORBIDDEN_PLUGIN_TARGETS = [
   "src/lib/browser/current-chrome-browser-controller-primitives.ts",
 ] as const;
 const APPROVED_STORAGE_EXTERNAL_MODULES = new Set(["node:fs", "node:path"]);
+const PLUGIN_ROOTS = [
+  "src/plugins/amazon-invoice-upload",
+  "src/plugins/product-video-dom-runtime",
+] as const;
 
 const importFinding = (...input: readonly [
   lawId: string,
@@ -49,7 +53,7 @@ const validateVisualMissionBoundary = (
 
 const isApprovedPluginExternalImport = (repoPath: string, specifier: string): boolean =>
   specifier === "zod"
-  || (repoPath.endsWith("amazon-invoice-upload-storage.ts") && APPROVED_STORAGE_EXTERNAL_MODULES.has(specifier));
+  || (repoPath.endsWith("-storage.ts") && APPROVED_STORAGE_EXTERNAL_MODULES.has(specifier));
 
 const pluginExternalImportFinding = (
   repoPath: string,
@@ -82,7 +86,7 @@ const pluginRelativeImportFinding = (
   importDeclaration: ImportDeclaration,
 ): Finding | null => {
   const moduleTargetPath = resolveModuleTargetPath(importDeclaration);
-  if (!moduleTargetPath || isRepoPathWithin(moduleTargetPath, "src/plugins/amazon-invoice-upload") || moduleTargetPath === DOM_FACADE_PATH) return null;
+  if (!moduleTargetPath || PLUGIN_ROOTS.some((root) => isRepoPathWithin(moduleTargetPath, root)) || moduleTargetPath === DOM_FACADE_PATH) return null;
   return moduleTargetPath === BROWSER_CONTROLLER_PATH
     ? pluginBrowserImportFinding(repoPath, importDeclaration)
     : pluginForbiddenRelativeImportFinding(repoPath, importDeclaration, moduleTargetPath);
@@ -116,7 +120,7 @@ const validateDomCoreAgainstPlugin = (
       if (!moduleTargetPath) {
         continue;
       }
-      if (isRepoPathWithin(moduleTargetPath, "src/plugins/amazon-invoice-upload")) {
+      if (PLUGIN_ROOTS.some((root) => isRepoPathWithin(moduleTargetPath, root))) {
         findings.push(importFinding(
           "GRASSEYE-DOM-008-V1",
           repoPath,

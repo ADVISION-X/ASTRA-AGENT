@@ -193,6 +193,7 @@ export const DOM_AUTOMATION_LAW_ENFORCEMENT_MATRIX: readonly LawEnforcementMatri
   item("GRASSEYE-DOM-010-V1", "blueprint.commands.03", "blueprint", "必须存在 npm run acceptance:amazon-invoice-agent-start-smoke。", "fs", "blueprint.commands"),
   item("GRASSEYE-DOM-010-V1", "blueprint.commands.04", "blueprint", "必须存在 npm run acceptance:amazon-invoice-upload-smoke。", "fs", "blueprint.commands"),
   item("GRASSEYE-DOM-010-V1", "blueprint.commands.05", "blueprint", "必须存在 npm run acceptance:amazon-invoice-upload-complete-smoke。", "fs", "blueprint.commands"),
+  item("GRASSEYE-DOM-010-V1", "blueprint.commands.06", "blueprint", "必须存在 npm run acceptance:product-video-dom-runtime-smoke。", "fs", "blueprint.commands"),
   item("GRASSEYE-DOM-001-V1", "ci.01", "blueprint", "ci:full 是唯一完整质检入口。", "symbol", "ci.unique-entry"),
   item("GRASSEYE-DOM-001-V1", "ci.02", "blueprint", "ci:full 必须调用 scripts/audit/ci-full.ts。", "fs", "ci.unique-entry"),
   item("GRASSEYE-DOM-001-V1", "ci.03", "blueprint", "dom-automation inspector 必须被 ci:full 调用。", "symbol", "ci.unique-entry"),
@@ -200,4 +201,5 @@ export const DOM_AUTOMATION_LAW_ENFORCEMENT_MATRIX: readonly LawEnforcementMatri
   item("GRASSEYE-DOM-008-V1", "runtime.02", "acceptance", "Amazon agent start smoke 必须通过独立插件路由启动任务。", "runtime_smoke", "runtime_smoke.amazon-agent-start"),
   item("GRASSEYE-DOM-008-V1", "runtime.03", "acceptance", "Amazon upload smoke 必须覆盖插件 dry-run 到 upload_success。", "runtime_smoke", "runtime_smoke.amazon-upload"),
   item("GRASSEYE-DOM-006-V1", "runtime.04", "acceptance", "Amazon upload complete smoke 必须保存 approved PDF 并完成 search-upload-submit-verify。", "runtime_smoke", "runtime_smoke.amazon-upload-complete"),
+  item("GRASSEYE-DOM-008-V1", "runtime.05", "acceptance", "Product video DOM smoke 必须通过插件 API 完成 like-comments-record-next。", "runtime_smoke", "runtime_smoke.product-video-dom"),
 ] as const;

@@ -56,8 +56,18 @@ export const PLUGIN_REQUIRED_PATHS = [
   "scripts/acceptance/amazon-invoice-agent-start-smoke.ts",
   "scripts/acceptance/amazon-invoice-upload-smoke.ts",
   "scripts/acceptance/amazon-invoice-upload-complete-smoke.ts",
+  "src/plugins/product-video-dom-runtime/index.ts",
+  "src/plugins/product-video-dom-runtime/product-video-dom.schema.ts",
+  "src/plugins/product-video-dom-runtime/product-video-dom.flow.ts",
+  "src/plugins/product-video-dom-runtime/product-video-dom-extractor.ts",
+  "src/plugins/product-video-dom-runtime/product-video-comment-extractor.ts",
+  "src/plugins/product-video-dom-runtime/product-video-evidence-packet.ts",
+  "src/plugins/product-video-dom-runtime/product-video-task-service.ts",
+  "src/plugins/product-video-dom-runtime/product-video-task-storage.ts",
+  "src/app/product-video-plugin-api-handlers.ts",
+  "scripts/acceptance/product-video-dom-runtime-smoke.ts",
 ] as const;
 
-export const DOM_BUSINESS_VOCAB = ["amazon", "seller central", "sellercentral", "invoice upload", "marketplace"] as const;
+export const DOM_BUSINESS_VOCAB = ["amazon", "seller central", "sellercentral", "invoice upload", "marketplace", "product video", "seed video"] as const;
 export const SENSITIVE_PROPERTY_NAMES = ["cookie", "localstorage", "sessionstorage", "outerhtml", "innerhtml"] as const;
 export const LOG_FIELD_FORBIDDEN = ["cookie", "token", "password", "localStorage", "sessionStorage", "fullHtml", "pdfContent", "rawHtml"] as const;

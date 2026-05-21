@@ -107,6 +107,8 @@ const createSmokeWorkbench = (): GrassEyeWorkbenchHandle => ({
       ? { dataDir: tmp, amazonOrderId: input.amazonOrderId, invoiceNo: input.invoiceNo }
       : { dataDir: tmp, amazonOrderId: input.amazonOrderId });
   },
+  startProductVideoDomMiningTask: createUnusedAsync("product video plugin path must not be used by amazon smoke"),
+  getProductVideoDomTaskStatus: createUnusedAsync("product video plugin path must not be used by amazon smoke"),
   getModeInfo() { return {}; },
 });
 

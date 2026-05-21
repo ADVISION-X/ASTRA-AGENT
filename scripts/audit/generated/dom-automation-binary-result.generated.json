@@ -1,6 +1,6 @@
 {
   "inspectorId": "dom-automation",
-  "status": "PASS",
+  "status": "FAIL",
   "lawResults": [
     {
       "lawId": "GRASSEYE-DOM-001-V1",
@@ -730,73 +730,84 @@
     },
     {
       "lawId": "GRASSEYE-DOM-008-V1",
-      "status": "PASS",
+      "status": "FAIL",
       "clauseResults": [
         {
           "clauseId": "summary.01",
-          "status": "PASS",
+          "status": "FAIL",
           "enforcementLevel": "symbol",
-          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+          "evidence": "Plugin boundary check failed",
+          "failureReason": "plugin imports forbidden private implementation: src/plugins/product-video-dom-runtime/product-video-dom.flow.ts:8 -> src/capabilities/dom-automation/runtime/dom-click.ts"
         },
         {
           "clauseId": "required.01",
-          "status": "PASS",
+          "status": "FAIL",
           "enforcementLevel": "symbol",
-          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+          "evidence": "Plugin boundary check failed",
+          "failureReason": "plugin imports forbidden private implementation: src/plugins/product-video-dom-runtime/product-video-dom.flow.ts:8 -> src/capabilities/dom-automation/runtime/dom-click.ts"
         },
         {
           "clauseId": "required.02",
-          "status": "PASS",
+          "status": "FAIL",
           "enforcementLevel": "symbol",
-          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+          "evidence": "Plugin boundary check failed",
+          "failureReason": "plugin imports forbidden private implementation: src/plugins/product-video-dom-runtime/product-video-dom.flow.ts:8 -> src/capabilities/dom-automation/runtime/dom-click.ts"
         },
         {
           "clauseId": "required.03",
-          "status": "PASS",
+          "status": "FAIL",
           "enforcementLevel": "symbol",
-          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+          "evidence": "Plugin boundary check failed",
+          "failureReason": "plugin imports forbidden private implementation: src/plugins/product-video-dom-runtime/product-video-dom.flow.ts:8 -> src/capabilities/dom-automation/runtime/dom-click.ts"
         },
         {
           "clauseId": "required.04",
-          "status": "PASS",
+          "status": "FAIL",
           "enforcementLevel": "symbol",
-          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+          "evidence": "Plugin boundary check failed",
+          "failureReason": "plugin imports forbidden private implementation: src/plugins/product-video-dom-runtime/product-video-dom.flow.ts:8 -> src/capabilities/dom-automation/runtime/dom-click.ts"
         },
         {
           "clauseId": "required.05",
-          "status": "PASS",
+          "status": "FAIL",
           "enforcementLevel": "symbol",
-          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+          "evidence": "Plugin boundary check failed",
+          "failureReason": "plugin imports forbidden private implementation: src/plugins/product-video-dom-runtime/product-video-dom.flow.ts:8 -> src/capabilities/dom-automation/runtime/dom-click.ts"
         },
         {
           "clauseId": "forbidden.01",
-          "status": "PASS",
+          "status": "FAIL",
           "enforcementLevel": "symbol",
-          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+          "evidence": "Plugin boundary check failed",
+          "failureReason": "plugin imports forbidden private implementation: src/plugins/product-video-dom-runtime/product-video-dom.flow.ts:8 -> src/capabilities/dom-automation/runtime/dom-click.ts"
         },
         {
           "clauseId": "forbidden.02",
-          "status": "PASS",
+          "status": "FAIL",
           "enforcementLevel": "symbol",
-          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+          "evidence": "Plugin boundary check failed",
+          "failureReason": "plugin imports forbidden private implementation: src/plugins/product-video-dom-runtime/product-video-dom.flow.ts:8 -> src/capabilities/dom-automation/runtime/dom-click.ts"
         },
         {
           "clauseId": "forbidden.03",
-          "status": "PASS",
+          "status": "FAIL",
           "enforcementLevel": "symbol",
-          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+          "evidence": "Plugin boundary check failed",
+          "failureReason": "plugin imports forbidden private implementation: src/plugins/product-video-dom-runtime/product-video-dom.flow.ts:8 -> src/capabilities/dom-automation/runtime/dom-click.ts"
         },
         {
           "clauseId": "forbidden.04",
-          "status": "PASS",
+          "status": "FAIL",
           "enforcementLevel": "symbol",
-          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+          "evidence": "Plugin boundary check failed",
+          "failureReason": "plugin imports forbidden private implementation: src/plugins/product-video-dom-runtime/product-video-dom.flow.ts:8 -> src/capabilities/dom-automation/runtime/dom-click.ts"
         },
         {
           "clauseId": "forbidden.05",
-          "status": "PASS",
+          "status": "FAIL",
           "enforcementLevel": "anti_escape",
-          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+          "evidence": "Plugin boundary check failed",
+          "failureReason": "plugin imports forbidden private implementation: src/plugins/product-video-dom-runtime/product-video-dom.flow.ts:8 -> src/capabilities/dom-automation/runtime/dom-click.ts"
         },
         {
           "clauseId": "blueprint.02",
@@ -806,15 +817,17 @@
         },
         {
           "clauseId": "acceptance.05",
-          "status": "PASS",
+          "status": "FAIL",
           "enforcementLevel": "symbol",
-          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+          "evidence": "Plugin boundary check failed",
+          "failureReason": "plugin imports forbidden private implementation: src/plugins/product-video-dom-runtime/product-video-dom.flow.ts:8 -> src/capabilities/dom-automation/runtime/dom-click.ts"
         },
         {
           "clauseId": "acceptance.14",
-          "status": "PASS",
+          "status": "FAIL",
           "enforcementLevel": "anti_escape",
-          "evidence": "plugin ownership stays inside src/plugins, calls DOM facade symbols, routes through the workbench facade, and avoids browser/runtime primitive bypasses"
+          "evidence": "Plugin boundary check failed",
+          "failureReason": "plugin imports forbidden private implementation: src/plugins/product-video-dom-runtime/product-video-dom.flow.ts:8 -> src/capabilities/dom-automation/runtime/dom-click.ts"
         },
         {
           "clauseId": "runtime.02",
@@ -827,6 +840,12 @@
           "status": "PASS",
           "enforcementLevel": "runtime_smoke",
           "evidence": "command passed: npm run acceptance:amazon-invoice-upload-smoke :: > grasseye-local-workbench@0.1.0 acceptance:amazon-invoice-upload-smoke | > node --import tsx scripts/acceptance/amazon-invoice-upload-smoke.ts |  | [AMAZON-INVOICE-UPLOAD-SMOKE][PASS] plugin dry-run flow reached upload_success"
+        },
+        {
+          "clauseId": "runtime.05",
+          "status": "PASS",
+          "enforcementLevel": "runtime_smoke",
+          "evidence": "command passed: npm run acceptance:product-video-dom-runtime-smoke :: > grasseye-local-workbench@0.1.0 acceptance:product-video-dom-runtime-smoke | > node --import tsx scripts/acceptance/product-video-dom-runtime-smoke.ts |  | [PRODUCT-VIDEO-DOM-SMOKE][PASS] API task liked product video, recorded comments, persisted packet, and advanced to next video"
         }
       ]
     },
@@ -1081,6 +1100,12 @@
           "evidence": "package.json exposes the governed DOM audit and acceptance commands declared by the blueprint"
         },
         {
+          "clauseId": "blueprint.commands.06",
+          "status": "PASS",
+          "enforcementLevel": "fs",
+          "evidence": "package.json exposes the governed DOM audit and acceptance commands declared by the blueprint"
+        },
+        {
           "clauseId": "runtime.01",
           "status": "PASS",
           "enforcementLevel": "runtime_smoke",
@@ -1091,10 +1116,10 @@
   ],
   "summary": {
     "totalLaws": 10,
-    "passedLaws": 10,
-    "failedLaws": 0,
-    "totalClauses": 171,
-    "passedClauses": 171,
-    "failedClauses": 0
+    "passedLaws": 9,
+    "failedLaws": 1,
+    "totalClauses": 173,
+    "passedClauses": 160,
+    "failedClauses": 13
   }
 }

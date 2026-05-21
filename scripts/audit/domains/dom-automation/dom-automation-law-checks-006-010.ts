@@ -157,7 +157,10 @@ const collectLaw008PathIssues = (): string[] => {
 };
 
 const collectLaw008ImportIssues = (context: DomAutomationBinaryCheckContext): string[] => {
-  const forbiddenImports = findForbiddenImports(context, "src/plugins/amazon-invoice-upload", ["src/capabilities/dom-automation/runtime", CURRENT_CHROME_PATH, "src/lib/local-runtime"]);
+  const forbiddenImports = [
+    ...findForbiddenImports(context, "src/plugins/amazon-invoice-upload", ["src/capabilities/dom-automation/runtime", CURRENT_CHROME_PATH, "src/lib/local-runtime"]),
+    ...findForbiddenImports(context, "src/plugins/product-video-dom-runtime", ["src/capabilities/dom-automation/runtime", CURRENT_CHROME_PATH, "src/lib/local-runtime"]),
+  ];
   return forbiddenImports.length > 0
     ? [`plugin imports forbidden private implementation: ${forbiddenImports[0]}`]
     : [];

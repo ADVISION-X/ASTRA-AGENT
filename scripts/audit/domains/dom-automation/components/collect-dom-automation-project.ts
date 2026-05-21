@@ -32,6 +32,9 @@ const loadSourceFiles = (project: Project, repoPath: string): SourceFile[] =>
     .map((absolutePath) => project.addSourceFileAtPathIfExists(absolutePath))
     .filter((sourceFile): sourceFile is SourceFile => Boolean(sourceFile));
 
+const loadSourceFilesFromRoots = (project: Project, repoPaths: readonly string[]): SourceFile[] =>
+  repoPaths.flatMap((repoPath) => loadSourceFiles(project, repoPath));
+
 export const loadDomAutomationAuditProject = (): DomAutomationAuditProject => {
   const project = getAuditProject();
   return {
@@ -40,7 +43,10 @@ export const loadDomAutomationAuditProject = (): DomAutomationAuditProject => {
       dom: loadSourceFiles(project, "src/capabilities/dom-automation"),
       domRuntime: loadSourceFiles(project, "src/capabilities/dom-automation/runtime"),
       domContracts: loadSourceFiles(project, "src/capabilities/dom-automation/contracts"),
-      plugin: loadSourceFiles(project, "src/plugins/amazon-invoice-upload"),
+      plugin: loadSourceFilesFromRoots(project, [
+        "src/plugins/amazon-invoice-upload",
+        "src/plugins/product-video-dom-runtime",
+      ]),
       visualMission: loadSourceFiles(project, "src/visual-mission"),
       browser: loadSourceFiles(project, "src/lib/browser"),
       muscleMemory: loadSourceFiles(project, "src/muscle-memory"),

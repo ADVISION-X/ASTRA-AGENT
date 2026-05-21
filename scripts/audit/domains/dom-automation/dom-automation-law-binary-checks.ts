@@ -27,6 +27,7 @@ const CHECKS: Record<string, (context: DomAutomationBinaryCheckContext) => Claus
   "runtime_smoke.amazon-agent-start": async () => await runCommand(["npm", "run", "acceptance:amazon-invoice-agent-start-smoke"]),
   "runtime_smoke.amazon-upload": async () => await runCommand(["npm", "run", "acceptance:amazon-invoice-upload-smoke"]),
   "runtime_smoke.amazon-upload-complete": async () => await runCommand(["npm", "run", "acceptance:amazon-invoice-upload-complete-smoke"]),
+  "runtime_smoke.product-video-dom": async () => await runCommand(["npm", "run", "acceptance:product-video-dom-runtime-smoke"]),
 };
 
 export const createDomAutomationBinaryCheckContext = (): DomAutomationBinaryCheckContext => ({

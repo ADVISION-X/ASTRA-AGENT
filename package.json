@@ -29,6 +29,7 @@
     "acceptance:amazon-invoice-agent-start-smoke": "node --import tsx scripts/acceptance/amazon-invoice-agent-start-smoke.ts",
     "acceptance:amazon-invoice-upload-complete-smoke": "node --import tsx scripts/acceptance/amazon-invoice-upload-complete-smoke.ts",
     "acceptance:amazon-invoice-upload-smoke": "node --import tsx scripts/acceptance/amazon-invoice-upload-smoke.ts",
+    "acceptance:product-video-dom-runtime-smoke": "node --import tsx scripts/acceptance/product-video-dom-runtime-smoke.ts",
 
     "lint": "npm run typecheck"
   },

@@ -19,7 +19,7 @@ export const findForbiddenImports = (context: DomAutomationBinaryCheckContext, o
   for (const file of sourceFilesWithin(context, ownerRoot)) {
     for (const importDeclaration of file.getImportDeclarations()) {
       const moduleTargetPath = resolveModuleTargetPath(importDeclaration);
-      if (ownerRoot === "src/plugins/amazon-invoice-upload" && moduleTargetPath === DOM_FACADE_PATH) {
+      if (ownerRoot.startsWith("src/plugins/") && moduleTargetPath === DOM_FACADE_PATH) {
         continue;
       }
       const targets = resolveImportedDeclarationPaths(importDeclaration);

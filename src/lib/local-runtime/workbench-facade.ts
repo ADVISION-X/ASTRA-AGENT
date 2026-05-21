@@ -21,6 +21,10 @@ import type {
   AmazonInvoiceUploadTaskResumeInput,
   AmazonInvoiceUploadTaskStartInput,
 } from "../../plugins/amazon-invoice-upload/index.js";
+import type {
+  ProductVideoDomMissionInput,
+  ProductVideoDomTaskRecord,
+} from "../../plugins/product-video-dom-runtime/index.js";
 import type { AppRunLimitSettings, UserRequirementHistoryEntry, UserRequirementHistoryUpsertInput } from "./settings-types.js";
 import type { WorkbenchHealthReport, WorkbenchMissionReadinessReport, WorkbenchPreflightResult, WorkbenchPreflightInput } from "./workbench-status-types.js";
 import type { WorkbenchCommanderMissionDashboardView } from "./workbench-commander-console.js";
@@ -46,5 +50,7 @@ export type WorkbenchFacade = {
   resumeAmazonInvoiceUploadTask(input: AmazonInvoiceUploadTaskResumeInput): Promise<AmazonInvoiceUploadTaskRecord>;
   getAmazonInvoiceUploadTaskStatus(taskId: string): Promise<AmazonInvoiceUploadTaskRecord>;
   getLatestAmazonInvoiceUploadTaskForInvoice(input: { amazonOrderId: string; invoiceNo?: string }): Promise<AmazonInvoiceUploadTaskRecord | null>;
+  startProductVideoDomMiningTask(input: { mission: ProductVideoDomMissionInput }): Promise<ProductVideoDomTaskRecord>;
+  getProductVideoDomTaskStatus(taskId: string): Promise<ProductVideoDomTaskRecord>;
   getModeInfo(): unknown;
 };
