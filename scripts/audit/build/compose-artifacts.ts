@@ -12,6 +12,40 @@ import { resolveFromRepo } from "../shared/paths.js";
 
 const uniqueSorted = (values: readonly string[]): string[] => [...new Set(values)].sort();
 
+type LawIndexes = {
+  lawsById: Map<string, LawSource[]>;
+  lawsByDomain: Map<string, LawSource[]>;
+  manifestsByDomain: Map<string, ManifestSource[]>;
+};
+
+type ArtifactOutputs = {
+  conflicts: AuditConflict[];
+  matrixRows: EnforcementMatrixRow[];
+  planEntries: AuditPlanEntry[];
+  staticCoverage: StaticClauseCoverageEntry[];
+};
+
+const indexSources = (
+  activeLaws: readonly LawSource[],
+  manifests: readonly ManifestSource[],
+): LawIndexes => {
+  const lawsById = new Map<string, LawSource[]>();
+  const lawsByDomain = new Map<string, LawSource[]>();
+  const manifestsByDomain = new Map<string, ManifestSource[]>();
+  for (const law of activeLaws) {
+    lawsById.set(law.lawId, [...(lawsById.get(law.lawId) ?? []), law]);
+    lawsByDomain.set(law.capabilityDomain, [...(lawsByDomain.get(law.capabilityDomain) ?? []), law]);
+  }
+  for (const manifest of manifests) {
+    manifestsByDomain.set(manifest.capabilityDomain, [...(manifestsByDomain.get(manifest.capabilityDomain) ?? []), manifest]);
+  }
+  return {
+    lawsById,
+    lawsByDomain,
+    manifestsByDomain,
+  };
+};
+
 const pushDuplicates = (
   conflicts: AuditConflict[],
   lawsById: ReadonlyMap<string, readonly LawSource[]>,
@@ -32,30 +66,10 @@ const pushDuplicates = (
   }
 };
 
-export const composeArtifacts = (
-  laws: readonly LawSource[],
-  manifests: readonly ManifestSource[],
-): {
-  conflicts: AuditConflict[];
-  matrixRows: EnforcementMatrixRow[];
-  planEntries: AuditPlanEntry[];
-  staticCoverage: StaticClauseCoverageEntry[];
-} => {
-  const conflicts: AuditConflict[] = [];
-  const activeLaws = laws.filter((law) => law.status === "active");
-  const lawsById = new Map<string, LawSource[]>();
-  const lawsByDomain = new Map<string, LawSource[]>();
-  const manifestsByDomain = new Map<string, ManifestSource[]>();
-
-  for (const law of activeLaws) {
-    lawsById.set(law.lawId, [...(lawsById.get(law.lawId) ?? []), law]);
-    lawsByDomain.set(law.capabilityDomain, [...(lawsByDomain.get(law.capabilityDomain) ?? []), law]);
-  }
-  for (const manifest of manifests) {
-    manifestsByDomain.set(manifest.capabilityDomain, [...(manifestsByDomain.get(manifest.capabilityDomain) ?? []), manifest]);
-  }
-
-  pushDuplicates(conflicts, lawsById);
+const pushDuplicateManifestConflicts = (
+  conflicts: AuditConflict[],
+  manifestsByDomain: ReadonlyMap<string, readonly ManifestSource[]>,
+): void => {
   for (const [capabilityDomain, sources] of manifestsByDomain) {
     if (sources.length < 2) {
       continue;
@@ -69,64 +83,104 @@ export const composeArtifacts = (
       });
     }
   }
+};
 
-  const matrixRows: EnforcementMatrixRow[] = [];
-  const planEntries: AuditPlanEntry[] = [];
-  const staticCoverage: StaticClauseCoverageEntry[] = [];
+const pushMissingManifestConflicts = (
+  conflicts: AuditConflict[],
+  capabilityDomain: string,
+  domainLaws: readonly LawSource[],
+): void => {
+  for (const law of domainLaws) {
+    conflicts.push({
+      kind: "missing-manifest",
+      lawId: law.lawId,
+      capabilityDomain,
+      filePath: law.filePath,
+      message: `No manifest found for capabilityDomain ${capabilityDomain}.`,
+    });
+  }
+};
 
-  for (const [capabilityDomain, domainLaws] of lawsByDomain) {
-    const manifest = manifestsByDomain.get(capabilityDomain)?.[0];
-    const lawIds = uniqueSorted(domainLaws.map((law) => law.lawId));
+const pushMissingInspectorConflict = (
+  conflicts: AuditConflict[],
+  manifest: ManifestSource,
+  capabilityDomain: string,
+): void => {
+  if (existsSync(resolveFromRepo(manifest.ownerInspectorPath))) {
+    return;
+  }
+  conflicts.push({
+    kind: "missing-inspector-entry",
+    capabilityDomain,
+    filePath: manifest.manifestPath,
+    message: `Owner inspector entry ${manifest.ownerInspectorPath} does not exist.`,
+  });
+};
+
+const appendStaticCoverage = (
+  staticCoverage: StaticClauseCoverageEntry[],
+  capabilityDomain: string,
+  domainLaws: readonly LawSource[],
+  manifest: ManifestSource,
+): void => {
+  for (const law of domainLaws) {
+    staticCoverage.push({
+      lawId: law.lawId,
+      capabilityDomain,
+      clauses: manifest.coverage.clauseIds.map((clauseId) => ({
+        clauseId,
+        source: manifest.manifestPath,
+      })),
+    });
+  }
+};
+
+const appendDomainArtifacts = (
+  outputs: ArtifactOutputs,
+  capabilityDomain: string,
+  domainLaws: readonly LawSource[],
+  manifest: ManifestSource,
+): void => {
+  const lawIds = uniqueSorted(domainLaws.map((law) => law.lawId));
+  pushMissingInspectorConflict(outputs.conflicts, manifest, capabilityDomain);
+  outputs.matrixRows.push({
+    capabilityDomain,
+    manifestPath: manifest.manifestPath,
+    ownerInspectorPath: manifest.ownerInspectorPath,
+    lawIds,
+  });
+  outputs.planEntries.push({
+    capabilityDomain,
+    manifestPath: manifest.manifestPath,
+    ownerInspectorPath: manifest.ownerInspectorPath,
+    executionGroup: manifest.executionGroup,
+    lawIds,
+    clauseIds: manifest.coverage.clauseIds,
+    evidenceModes: uniqueSorted(domainLaws.map((law) => law.evidenceMode)),
+    blueprintRefs: manifest.blueprintRefs ?? [],
+  });
+  appendStaticCoverage(outputs.staticCoverage, capabilityDomain, domainLaws, manifest);
+};
+
+const appendDomainArtifactsFromIndexes = (
+  outputs: ArtifactOutputs,
+  indexes: LawIndexes,
+): void => {
+  for (const [capabilityDomain, domainLaws] of indexes.lawsByDomain) {
+    const manifest = indexes.manifestsByDomain.get(capabilityDomain)?.[0];
     if (!manifest) {
-      for (const law of domainLaws) {
-        conflicts.push({
-          kind: "missing-manifest",
-          lawId: law.lawId,
-          capabilityDomain,
-          filePath: law.filePath,
-          message: `No manifest found for capabilityDomain ${capabilityDomain}.`,
-        });
-      }
+      pushMissingManifestConflicts(outputs.conflicts, capabilityDomain, domainLaws);
       continue;
     }
-
-    if (!existsSync(resolveFromRepo(manifest.ownerInspectorPath))) {
-      conflicts.push({
-        kind: "missing-inspector-entry",
-        capabilityDomain,
-        filePath: manifest.manifestPath,
-        message: `Owner inspector entry ${manifest.ownerInspectorPath} does not exist.`,
-      });
-    }
-
-    matrixRows.push({
-      capabilityDomain,
-      manifestPath: manifest.manifestPath,
-      ownerInspectorPath: manifest.ownerInspectorPath,
-      lawIds,
-    });
-    planEntries.push({
-      capabilityDomain,
-      manifestPath: manifest.manifestPath,
-      ownerInspectorPath: manifest.ownerInspectorPath,
-      executionGroup: manifest.executionGroup,
-      lawIds,
-      clauseIds: manifest.coverage.clauseIds,
-      evidenceModes: uniqueSorted(domainLaws.map((law) => law.evidenceMode)),
-      blueprintRefs: manifest.blueprintRefs ?? [],
-    });
-    for (const law of domainLaws) {
-      staticCoverage.push({
-        lawId: law.lawId,
-        capabilityDomain,
-        clauses: manifest.coverage.clauseIds.map((clauseId) => ({
-          clauseId,
-          source: manifest.manifestPath,
-        })),
-      });
-    }
+    appendDomainArtifacts(outputs, capabilityDomain, domainLaws, manifest);
   }
+};
 
+const pushUncoveredLawConflicts = (
+  conflicts: AuditConflict[],
+  activeLaws: readonly LawSource[],
+  staticCoverage: readonly StaticClauseCoverageEntry[],
+): void => {
   for (const law of activeLaws) {
     if (staticCoverage.some((entry) => entry.lawId === law.lawId)) {
       continue;
@@ -139,11 +193,28 @@ export const composeArtifacts = (
       message: `Active law ${law.lawId} has no generated static clause coverage.`,
     });
   }
+};
 
-  return {
-    conflicts,
-    matrixRows,
-    planEntries,
-    staticCoverage,
+export const composeArtifacts = (
+  laws: readonly LawSource[],
+  manifests: readonly ManifestSource[],
+): {
+  conflicts: AuditConflict[];
+  matrixRows: EnforcementMatrixRow[];
+  planEntries: AuditPlanEntry[];
+  staticCoverage: StaticClauseCoverageEntry[];
+} => {
+  const activeLaws = laws.filter((law) => law.status === "active");
+  const outputs: ArtifactOutputs = {
+    conflicts: [],
+    matrixRows: [],
+    planEntries: [],
+    staticCoverage: [],
   };
+  const indexes = indexSources(activeLaws, manifests);
+  pushDuplicates(outputs.conflicts, indexes.lawsById);
+  pushDuplicateManifestConflicts(outputs.conflicts, indexes.manifestsByDomain);
+  appendDomainArtifactsFromIndexes(outputs, indexes);
+  pushUncoveredLawConflicts(outputs.conflicts, activeLaws, outputs.staticCoverage);
+  return outputs;
 };

@@ -1,6 +1,7 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import { DismissOverlayInputSchema } from "../schema.js";
-import type { DismissOverlayInput, DomActionResult } from "../schema.js";
+import { DOM_SCHEMAS } from "../schema.js";
+import type { DomActionResult } from "../../../types/dom-automation.js";
+import type { DismissOverlayInput } from "../../../types/dom-automation-inputs.js";
 import {
   buildDomActionOutcome,
   buildDomFailureResult,
@@ -60,7 +61,7 @@ export async function dismissOverlayOnce(
   browser: BrowserController,
   rawInput: DismissOverlayInput,
 ): Promise<DomActionResult> {
-  const input = DismissOverlayInputSchema.parse(rawInput) as DismissOverlayInput;
+  const input = DOM_SCHEMAS.DismissOverlayInput.parse(rawInput) as DismissOverlayInput;
   if (!SAFE_OVERLAY_TYPES.has(input.overlayType)) {
     return buildDomReviewRequiredResult(
       "overlay type is not safe for automatic dismissal",

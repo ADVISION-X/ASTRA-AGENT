@@ -14,12 +14,7 @@ import type {
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { runAmazonInvoiceUpload } from "../../src/plugins/amazon-invoice-upload/index.js";
 
-async function main(): Promise<void> {
-const tmp = mkdtempSync(join(tmpdir(), "grasseye-amazon-smoke-"));
-const htmlPath = join(tmp, "seller-central.html");
-const pdfPath = join(tmp, "invoice.pdf");
-writeFileSync(pdfPath, "local smoke pdf");
-writeFileSync(htmlPath, `
+const smokeFixtureHtml = `
 <html><head><title>Seller Central Local Dry Run</title></head>
 <body>
   <label for="order-search">Order search</label>
@@ -49,35 +44,53 @@ writeFileSync(htmlPath, `
     });
   </script>
 </body></html>
-`);
+`;
 
-const launched = await chromium.launch({ headless: true });
-const page = await launched.newPage({ viewport: { width: 900, height: 700 } });
-const browser = new AmazonSmokeBrowserAdapter(page, tmp);
-const runtimeLogger = createRuntimeLogger({ terminalEnabled: false });
+type SmokeFixturePaths = {
+  tmp: string;
+  htmlPath: string;
+  pdfPath: string;
+};
 
-try {
-  const result = await runAmazonInvoiceUpload(browser, runtimeLogger, {
-    missionType: "amazon_invoice_upload",
-    marketplace: "AE",
-    amazonOrderId: "123-1234567-1234567",
-    invoiceNo: "INV-1",
-    invoicePdfPath: pdfPath,
-    sellerCentralEntryUrl: pathToFileURL(htmlPath).href,
-    requireHumanFinalSubmit: false,
-  });
+const createSmokeFixturePaths = (): SmokeFixturePaths => {
+  const tmp = mkdtempSync(join(tmpdir(), "grasseye-amazon-smoke-"));
+  const htmlPath = join(tmp, "seller-central.html");
+  const pdfPath = join(tmp, "invoice.pdf");
+  writeFileSync(pdfPath, "local smoke pdf");
+  writeFileSync(htmlPath, smokeFixtureHtml);
+  return { tmp, htmlPath, pdfPath };
+};
 
-  if (
-    result.status !== "upload_success"
-    || result.reachedStep !== "upload success verified"
-  ) {
-    process.stdout.write(`[AMAZON-INVOICE-UPLOAD-SMOKE][FAIL] unexpected dry-run result: ${JSON.stringify(result)}\n`);
-    process.exit(1);
+const assertSmokeResult = (result: Awaited<ReturnType<typeof runAmazonInvoiceUpload>>): void => {
+  if (result.status === "upload_success" && result.reachedStep === "upload success verified") {
+    process.stdout.write("[AMAZON-INVOICE-UPLOAD-SMOKE][PASS] plugin dry-run flow reached upload_success\n");
+    return;
   }
-  process.stdout.write("[AMAZON-INVOICE-UPLOAD-SMOKE][PASS] plugin dry-run flow reached upload_success\n");
-} finally {
-  await launched.close();
-}
+  process.stdout.write(`[AMAZON-INVOICE-UPLOAD-SMOKE][FAIL] unexpected dry-run result: ${JSON.stringify(result)}\n`);
+  process.exit(1);
+};
+
+async function main(): Promise<void> {
+  const fixture = createSmokeFixturePaths();
+  const launched = await chromium.launch({ headless: true });
+  const page = await launched.newPage({ viewport: { width: 900, height: 700 } });
+  const browser = new AmazonSmokeBrowserAdapter(page, fixture.tmp);
+  const runtimeLogger = createRuntimeLogger({ terminalEnabled: false });
+
+  try {
+    const result = await runAmazonInvoiceUpload(browser, runtimeLogger, {
+      missionType: "amazon_invoice_upload",
+      marketplace: "AE",
+      amazonOrderId: "123-1234567-1234567",
+      invoiceNo: "INV-1",
+      invoicePdfPath: fixture.pdfPath,
+      sellerCentralEntryUrl: pathToFileURL(fixture.htmlPath).href,
+      requireHumanFinalSubmit: false,
+    });
+    assertSmokeResult(result);
+  } finally {
+    await launched.close();
+  }
 }
 
 function now(): string {
@@ -127,11 +140,8 @@ async function buildGeometrySnapshot(page: Page): Promise<BrowserGeometrySnapsho
 }
 
 class AmazonSmokeBrowserAdapter implements BrowserController {
-  private closedActiveTabCount = 0;
-
   constructor(private readonly page: Page, private readonly screenshotDir: string) {}
 
-  getClosedActiveTabCount(): number { return this.closedActiveTabCount; }
   getHealth(): { ok: boolean; detail: string } { return { ok: true, detail: "playwright Amazon upload smoke adapter" }; }
   getSessionState(): BrowserStateSnapshot { return buildBrowserState(this.page); }
   async getGeometrySnapshot(): Promise<BrowserGeometrySnapshot> { return buildGeometrySnapshot(this.page); }
@@ -197,7 +207,6 @@ class AmazonSmokeBrowserAdapter implements BrowserController {
     return action(`waited ${durationMs}`);
   }
   async closeActiveTab(): Promise<BrowserActionResult> {
-    this.closedActiveTabCount += 1;
     return action("active tab closed");
   }
   async close(): Promise<BrowserActionResult> { return action("adapter closed"); }

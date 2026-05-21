@@ -1,4 +1,4 @@
-import type { LocateDomElementInput } from "../schema.js";
+import type { LocateDomElementInput } from "../../../types/dom-automation-inputs.js";
 import { DOM_SNAPSHOT_FIXTURE } from "./dom-snapshot.fixture.js";
 
 const DOM_LOCATOR_FIXTURE: LocateDomElementInput = {

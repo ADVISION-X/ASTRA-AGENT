@@ -174,42 +174,7 @@ type StructuredJointCheckpoint = z.infer<typeof StructuredJointCheckpointSchema>
 type StructuredRuntimeEvent = z.infer<typeof StructuredRuntimeEventSchema>;
 type RuntimeActionEvent = z.infer<typeof RuntimeActionEventSchema>;
 
-export {
-  StructuredRuntimeLogLevelSchema,
-  StructuredLogStatusSchema,
-  StructuredRuntimeEventTypeSchema,
-  StructuredActionTypeSchema,
-  StructuredActionPurposeSchema,
-  StructuredLogRefSchema,
-  StructuredRuntimeMissingFrameSchema,
-  StructuredAiImageInputSchema,
-  StructuredRuntimeResourceSummarySchema,
-  StructuredRuntimeSnapshotSummarySchema,
-  StructuredJointStageSchema,
-  StructuredJointCheckpointStatusSchema,
-  StructuredFailureSnapshotSchema,
-  StructuredJointCheckpointSchema,
-  StructuredRuntimeEventSchema,
-  RuntimeActionEventSchema,
-  LiveProofLogSequence,
-  LiveProofLogSequenceSchema,
-};
-
 export type {
-  StructuredLogStatus,
-  StructuredRuntimeLogLevel,
-  StructuredRuntimeEventType,
-  StructuredActionType,
-  StructuredActionPurpose,
-  StructuredLogRef,
-  StructuredRuntimeMissingFrame,
-  StructuredAiImageInput,
-  StructuredRuntimeResourceSummary,
-  StructuredRuntimeSnapshotSummary,
-  StructuredJointStage,
-  StructuredJointCheckpointStatus,
-  StructuredFailureSnapshot,
-  StructuredJointCheckpoint,
   StructuredRuntimeEvent,
   RuntimeActionEvent,
 };

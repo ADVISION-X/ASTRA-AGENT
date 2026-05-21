@@ -1,4 +1,4 @@
-import type { UploadApprovedFileInput } from "../schema.js";
+import type { UploadApprovedFileInput } from "../../../types/dom-automation-inputs.js";
 
 const DOM_UPLOAD_FIXTURE: UploadApprovedFileInput = {
   elementRef: {

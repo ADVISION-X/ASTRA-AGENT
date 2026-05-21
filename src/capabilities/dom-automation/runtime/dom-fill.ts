@@ -1,6 +1,7 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import { DomElementRefSchema, FillDomElementInputSchema } from "../schema.js";
-import type { DomActionResult, FillDomElementInput } from "../schema.js";
+import { DOM_SCHEMAS } from "../schema.js";
+import type { DomActionResult } from "../../../types/dom-automation.js";
+import type { FillDomElementInput } from "../../../types/dom-automation-inputs.js";
 import {
   buildDomActionOutcome,
   buildDomFailureResult,
@@ -121,8 +122,8 @@ export async function fillDomElementOnce(
   browser: BrowserController,
   rawInput: FillDomElementInput,
 ): Promise<DomActionResult> {
-  const input = FillDomElementInputSchema.parse(rawInput) as FillDomElementInput;
-  const elementRef = DomElementRefSchema.parse(input.elementRef) as FillDomElementInput["elementRef"];
+  const input = DOM_SCHEMAS.FillDomElementInput.parse(rawInput) as FillDomElementInput;
+  const elementRef = DOM_SCHEMAS.DomElementRef.parse(input.elementRef) as FillDomElementInput["elementRef"];
   if (input.approvedText.length === 0) {
     return buildDomReviewRequiredResult(
       "approvedText is empty",

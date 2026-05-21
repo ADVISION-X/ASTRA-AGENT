@@ -1,6 +1,6 @@
 import { createId } from "../../../lib/local-runtime/ids.js";
-import { DomActionResultSchema } from "../schema.js";
-import type { DomActionResult } from "../schema.js";
+import { DOM_SCHEMAS } from "../schema.js";
+import type { DomActionResult } from "../../../types/dom-automation.js";
 
 type DomActionResultDraft = Omit<DomActionResult, "actionId">;
 
@@ -15,10 +15,10 @@ type BrowserDomActionOutcome = {
 };
 
 export function buildDomActionResult(input: DomActionResultDraft): DomActionResult {
-  return DomActionResultSchema.parse({
+  return DOM_SCHEMAS.DomActionResult.parse({
     actionId: createId("dom"),
     ...input,
-  });
+  }) as DomActionResult;
 }
 
 export function buildDomReviewRequiredResult(

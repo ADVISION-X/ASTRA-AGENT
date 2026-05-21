@@ -1,7 +1,5 @@
-import type {
-  DomElementRef,
-  LocateDomElementInput,
-} from "../schema.js";
+import type { DomElementRef } from "../../../types/dom-automation.js";
+import type { LocateDomElementInput } from "../../../types/dom-automation-inputs.js";
 
 export type DomElementRefContract = DomElementRef;
 

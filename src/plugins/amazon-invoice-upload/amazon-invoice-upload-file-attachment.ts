@@ -1,6 +1,5 @@
-import type { DomElementRef } from "../../capabilities/dom-automation/index.js";
+import type { DomElementRef } from "../../types/dom-automation.js";
 import {
-  fillDomElementOnce,
   readDomSnapshotOnce,
   uploadApprovedFileOnce,
   waitForDomStateOnce,
@@ -17,9 +16,9 @@ import {
 } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
+import { fillInvoiceNumber } from "./amazon-invoice-upload-invoice-number.js";
 
 type StepResult<T> = { ok: true; value: T } | { ok: false; failure: AmazonInvoiceUploadTaskResult };
-type LocateFailure = Extract<ReturnType<typeof locateOrStatus>, { ok: false }>;
 
 const FILE_INPUT_READY_TIMEOUT_MS = 10000;
 const FILE_INPUT_READY_POLL_INTERVAL_MS = 250;
@@ -182,86 +181,4 @@ function traceAttachedInvoice(
     reason: attached.reason,
     evidenceRef: attached.evidenceRef,
   });
-}
-
-async function fillInvoiceNumber(
-  browser: BrowserController,
-  runtimeLogger: RuntimeLogger,
-  mission: AmazonInvoiceUploadMissionInput,
-): Promise<StepResult<void>> {
-  const invoiceNumber = locateOrStatus({
-    snapshot: await readAndTraceInvoiceNumberSnapshot(browser, runtimeLogger, mission),
-    targetKind: "text-input",
-    hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.invoiceNumber],
-    notFoundStatus: "review_required",
-  });
-  if (!invoiceNumber.ok) return invoiceNumberFailure(runtimeLogger, mission, invoiceNumber);
-  traceInvoiceNumberLocated(runtimeLogger, mission, invoiceNumber.element);
-  const filled = await fillDomElementOnce(browser, {
-    elementRef: invoiceNumber.element,
-    approvedText: mission.invoiceNo,
-    clearBeforeType: true,
-    inputPurpose: "approved-form-text",
-  });
-  return buildInvoiceNumberFillResult(runtimeLogger, mission, invoiceNumber.element, filled);
-}
-
-async function readAndTraceInvoiceNumberSnapshot(
-  browser: BrowserController,
-  runtimeLogger: RuntimeLogger,
-  mission: AmazonInvoiceUploadMissionInput,
-): Promise<Awaited<ReturnType<typeof readDomSnapshotOnce>>> {
-  const snapshot = await readDomSnapshotOnce(browser);
-  recordAmazonDomStepTrace({ runtimeLogger, mission, stepName: "locate invoice number input", status: "snapshot", snapshot });
-  return snapshot;
-}
-
-function invoiceNumberFailure(
-  runtimeLogger: RuntimeLogger,
-  mission: AmazonInvoiceUploadMissionInput,
-  invoiceNumber: LocateFailure,
-): StepResult<void> {
-  recordAmazonDomStepTrace({ runtimeLogger, mission, stepName: "locate invoice number input", status: "failed", reason: invoiceNumber.reason });
-  return stepFailure(locateFailureResult(mission, invoiceNumber, "locate invoice number input"));
-}
-
-function traceInvoiceNumberLocated(
-  runtimeLogger: RuntimeLogger,
-  mission: AmazonInvoiceUploadMissionInput,
-  element: DomElementRef,
-): void {
-  recordAmazonDomStepTrace({
-    runtimeLogger,
-    mission,
-    stepName: "locate invoice number input",
-    status: "success",
-    selectedElement: element,
-    reason: element.reason,
-  });
-}
-
-function buildInvoiceNumberFillResult(
-  runtimeLogger: RuntimeLogger,
-  mission: AmazonInvoiceUploadMissionInput,
-  element: DomElementRef,
-  filled: Awaited<ReturnType<typeof fillDomElementOnce>>,
-): StepResult<void> {
-  recordAmazonDomStepTrace({
-    runtimeLogger,
-    mission,
-    stepName: "fill invoice number",
-    status: filled.ok ? "success" : filled.status === "review_required" ? "review_required" : "failed",
-    selectedElement: element,
-    reason: filled.ok ? filled.message : filled.reviewRequiredReason ?? filled.message,
-    evidenceRef: filled.afterEvidenceRef ?? filled.beforeEvidenceRef,
-  });
-  if (filled.ok) return stepSuccess(undefined);
-  return stepFailure(taskResult({
-    status: "failed",
-    reason: filled.reviewRequiredReason ?? filled.message,
-    reachedStep: "fill invoice number",
-    amazonOrderId: mission.amazonOrderId,
-    invoiceNo: mission.invoiceNo,
-    ...evidenceField(filled.afterEvidenceRef ?? filled.beforeEvidenceRef),
-  }));
 }

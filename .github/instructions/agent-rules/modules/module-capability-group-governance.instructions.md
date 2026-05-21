@@ -33,6 +33,7 @@ Approved active ability groups:
 src/capabilities/dom-automation/**
 src/capabilities/ai-input-gateway/**
 src/capabilities/forensics-persistence/**
+src/capabilities/video-download/**
 ```
 
 Approved infrastructure roots that are not ability groups:

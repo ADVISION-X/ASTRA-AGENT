@@ -1,5 +1,5 @@
 import type {
-  ParsedDownloadFacebookVideoInput,
+  ParsedVideoDownloadAbilityInput,
   VideoDownloadAbilityInput,
   VideoDownloadChildCapabilityId,
   VideoDownloadResult,
@@ -24,7 +24,7 @@ export interface VideoDownloadChildCapability {
   readonly abilityGroupId: VideoDownloadAbilityGroupId;
   readonly childCapabilityId: VideoDownloadChildCapabilityId;
   execute(
-    input: ParsedDownloadFacebookVideoInput,
+    input: ParsedVideoDownloadAbilityInput,
     context: VideoDownloadExecutionContext,
   ): Promise<VideoDownloadResult>;
 }

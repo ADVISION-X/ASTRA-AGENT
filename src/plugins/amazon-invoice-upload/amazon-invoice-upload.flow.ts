@@ -2,9 +2,8 @@ import type { BrowserController } from "../../lib/browser/browser-controller.js"
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import {
   readDomSnapshotOnce,
-  type DomElementRef,
-  type DomSnapshot,
 } from "../../capabilities/dom-automation/index.js";
+import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
 import { AmazonInvoiceUploadMissionInputSchema } from "./mission.schema.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import { AMAZON_INVOICE_UPLOAD_DOM_HINTS } from "./amazon-dom-hints.js";

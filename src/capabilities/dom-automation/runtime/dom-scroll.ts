@@ -1,6 +1,7 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import { ScrollToElementInputSchema } from "../schema.js";
-import type { DomActionResult, ScrollToElementInput } from "../schema.js";
+import { DOM_SCHEMAS } from "../schema.js";
+import type { DomActionResult } from "../../../types/dom-automation.js";
+import type { ScrollToElementInput } from "../../../types/dom-automation-inputs.js";
 import {
   buildDomActionOutcome,
   buildDomFailureResult,
@@ -53,7 +54,7 @@ export async function scrollToElementOnce(
   browser: BrowserController,
   rawInput: ScrollToElementInput,
 ): Promise<DomActionResult> {
-  const input = ScrollToElementInputSchema.parse(rawInput) as ScrollToElementInput;
+  const input = DOM_SCHEMAS.ScrollToElementInput.parse(rawInput) as ScrollToElementInput;
   if (!input.elementRef.elementRef.startsWith("dom:")) {
     return buildDomReviewRequiredResult(
       "scroll requires a located DOM element ref",

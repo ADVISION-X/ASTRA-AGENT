@@ -1,6 +1,7 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import { SelectOptionInputSchema } from "../schema.js";
-import type { DomActionResult, SelectOptionInput } from "../schema.js";
+import { DOM_SCHEMAS } from "../schema.js";
+import type { DomActionResult } from "../../../types/dom-automation.js";
+import type { SelectOptionInput } from "../../../types/dom-automation-inputs.js";
 import {
   buildDomActionOutcome,
   buildDomFailureResult,
@@ -55,7 +56,7 @@ export async function selectOptionOnce(
   browser: BrowserController,
   rawInput: SelectOptionInput,
 ): Promise<DomActionResult> {
-  const input = SelectOptionInputSchema.parse(rawInput) as SelectOptionInput;
+  const input = DOM_SCHEMAS.SelectOptionInput.parse(rawInput) as SelectOptionInput;
   const allowedKinds = new Set(["select", "combobox", "dropdown-trigger"]);
   if (!allowedKinds.has(input.elementRef.targetKind)) {
     return buildDomReviewRequiredResult("select target kind is not selectable", "DOM select requires select, combobox, or dropdown-trigger.");

@@ -1,10 +1,15 @@
-import type { VideoDownloadArtifact } from "../schema.js";
+export type VideoDownloadArtifact = {
+  artifactRef: string;
+  storageRef: string;
+  filePath: string;
+  sha256: string;
+};
 
 export type WriteVideoArtifactInput = {
   missionId: string;
   runId: string;
   artifactId: string;
-  extension: ".mp4";
+  extension: ".mp4" | ".webm" | ".m4v";
   bytes: Uint8Array;
   contentType: string;
   createdAt: string;

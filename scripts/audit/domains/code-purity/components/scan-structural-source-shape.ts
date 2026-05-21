@@ -1,9 +1,10 @@
-import { Node, SyntaxKind } from "ts-morph";
+import { SyntaxKind } from "ts-morph";
 
 import { selectLawId } from "../../../shared/finding-utils.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
-import { collectDirectiveComments, countCrossOwnerImports } from "./structural-metrics.js";
+import { countCrossOwnerImports } from "./structural-metrics.js";
+import { scanStructuralTypeEscapes } from "./scan-structural-type-escapes.js";
 
 const bannedPathTokenPattern = /(bridge|compatibility|legacy|shadow|fallback|universal-agent|planner|next-action|action-plan|mission-loop|nerve-bus|commander-console)/u;
 
@@ -218,72 +219,6 @@ const scanRequireCall = (
   }
 };
 
-const scanTypeEscapes = (
-  collector: InventoryFindingCollector,
-  governedFile: GovernedFile,
-  typeEscapeLawId: string,
-): void => {
-  scanAssertionEscapes(collector, governedFile, typeEscapeLawId);
-  scanDirectiveEscapes(collector, governedFile, typeEscapeLawId);
-};
-
-const scanAssertionEscapes = (
-  collector: InventoryFindingCollector,
-  governedFile: GovernedFile,
-  typeEscapeLawId: string,
-): void => {
-  const anyKeyword = governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.AnyKeyword)[0];
-  if (anyKeyword) {
-    pushSourceAtomicityFinding(collector, {
-      checkId: "code-purity/any-keyword",
-      governedFile,
-      lawId: typeEscapeLawId,
-      reason: `any escape appears near line ${anyKeyword.getStartLineNumber()}.`,
-      remediation: "Replace any with a schema-validated unknown or a specific contract type.",
-      message: `${governedFile.repoPath} contains an any escape near line ${anyKeyword.getStartLineNumber()}.`,
-    });
-  }
-  const anyAssertion = governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.AsExpression).find((expression) => expression.getTypeNode()?.getKind() === SyntaxKind.AnyKeyword);
-  if (anyAssertion) {
-    pushSourceAtomicityFinding(collector, {
-      checkId: "code-purity/as-any",
-      governedFile,
-      lawId: typeEscapeLawId,
-      reason: `as any appears near line ${anyAssertion.getStartLineNumber()}.`,
-      remediation: "Replace as any with validated narrowing or a lawful type contract.",
-      message: `${governedFile.repoPath} uses as any near line ${anyAssertion.getStartLineNumber()}.`,
-    });
-  }
-  const unknownAsChain = governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.AsExpression).find((expression) => expression.getTypeNode()?.getKind() === SyntaxKind.UnknownKeyword && Node.isAsExpression(expression.getParent()));
-  if (unknownAsChain) {
-    pushSourceAtomicityFinding(collector, {
-      checkId: "code-purity/as-unknown-as",
-      governedFile,
-      lawId: typeEscapeLawId,
-      reason: `as unknown as appears near line ${unknownAsChain.getStartLineNumber()}.`,
-      remediation: "Replace double assertion with schema validation or an explicit narrowing guard.",
-      message: `${governedFile.repoPath} uses as unknown as near line ${unknownAsChain.getStartLineNumber()}.`,
-    });
-  }
-};
-
-const scanDirectiveEscapes = (
-  collector: InventoryFindingCollector,
-  governedFile: GovernedFile,
-  typeEscapeLawId: string,
-): void => {
-  for (const directive of collectDirectiveComments(governedFile)) {
-    pushSourceAtomicityFinding(collector, {
-      checkId: "code-purity/directive-comment",
-      governedFile,
-      lawId: typeEscapeLawId,
-      reason: `suppression directive ${directive.text.trim()} appears near line ${directive.line}.`,
-      remediation: "Repair the type or lint defect directly instead of suppressing it.",
-      message: `${governedFile.repoPath} contains a suppression directive near line ${directive.line}.`,
-    });
-  }
-};
-
 export const scanStructuralSourceShape = (
   governedFile: GovernedFile,
   lawIds: readonly string[],
@@ -294,5 +229,5 @@ export const scanStructuralSourceShape = (
   const bridgeLawId = selectLawId(lawIds, "APEX-CODE-PURITY-010-V1");
   scanPathBudget(collector, governedFile, sourceAtomicityLawId, bridgeLawId);
   scanImportExportBudgets(collector, governedFile, sourceAtomicityLawId);
-  scanTypeEscapes(collector, governedFile, typeEscapeLawId);
+  scanStructuralTypeEscapes(collector, governedFile, typeEscapeLawId);
 };

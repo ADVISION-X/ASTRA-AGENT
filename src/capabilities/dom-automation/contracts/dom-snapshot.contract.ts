@@ -1,7 +1,5 @@
-import type {
-  DomSnapshot,
-  ReadDomSnapshotInput,
-} from "../schema.js";
+import type { DomSnapshot } from "../../../types/dom-automation.js";
+import type { ReadDomSnapshotInput } from "../../../types/dom-automation-inputs.js";
 
 export type DomSnapshotContract = DomSnapshot;
 

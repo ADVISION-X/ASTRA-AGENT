@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const DOM_AUTOMATION_ABILITY_GROUP_ID = "dom-automation" as const;
 
-export const DomAutomationChildCapabilityIdSchema = z.enum([
+const DomAutomationChildCapabilityIdSchema = z.enum([
   "read-dom-snapshot-once",
   "locate-dom-element-once",
   "fill-dom-element-once",
@@ -15,7 +15,7 @@ export const DomAutomationChildCapabilityIdSchema = z.enum([
   "wait-for-dom-state-once",
 ]);
 
-export const DomTargetKindSchema = z.enum([
+const DomTargetKindSchema = z.enum([
   "text-input",
   "search-input",
   "button",
@@ -33,7 +33,7 @@ export const DomTargetKindSchema = z.enum([
   "rich-text-editor",
 ]);
 
-export const DomDetectedStateSchema = z.enum([
+const DomDetectedStateSchema = z.enum([
   "login_required",
   "captcha_or_2fa_required",
   "file_selected",
@@ -67,21 +67,21 @@ const DomElementSummaryBaseSchema = z.object({
   testId: z.string().optional(),
 }).strict();
 
-export const DomInputSummarySchema = DomElementSummaryBaseSchema.extend({
+const DomInputSummarySchema = DomElementSummaryBaseSchema.extend({
   tagName: z.string(),
   type: z.string(),
   valuePreview: z.string().optional(),
 }).strict();
 
-export const DomButtonSummarySchema = DomElementSummaryBaseSchema.strict();
-export const DomLinkSummarySchema = DomElementSummaryBaseSchema.extend({
+const DomButtonSummarySchema = DomElementSummaryBaseSchema.strict();
+const DomLinkSummarySchema = DomElementSummaryBaseSchema.extend({
   hrefHost: z.string().optional(),
 }).strict();
-export const DomFileInputSummarySchema = DomElementSummaryBaseSchema.extend({
+const DomFileInputSummarySchema = DomElementSummaryBaseSchema.extend({
   type: z.literal("file"),
   accept: z.string().optional(),
 }).strict();
-export const DomCandidateSummarySchema = DomElementSummaryBaseSchema.extend({
+const DomCandidateSummarySchema = DomElementSummaryBaseSchema.extend({
   candidateKind: z.enum([
     "table-row",
     "role-row",
@@ -94,7 +94,7 @@ export const DomCandidateSummarySchema = DomElementSummaryBaseSchema.extend({
   ]),
 }).strict();
 
-export const DomFormSummarySchema = z.object({
+const DomFormSummarySchema = z.object({
   selectorCandidate: z.string(),
   id: z.string().optional(),
   name: z.string().optional(),
@@ -103,16 +103,16 @@ export const DomFormSummarySchema = z.object({
   buttonCount: z.number().int().nonnegative(),
 }).strict();
 
-export const DomDialogSummarySchema = DomElementSummaryBaseSchema.strict();
+const DomDialogSummarySchema = DomElementSummaryBaseSchema.strict();
 
-export const DomFrameSummarySchema = z.object({
+const DomFrameSummarySchema = z.object({
   selectorCandidate: z.string(),
   title: z.string().optional(),
   name: z.string().optional(),
   srcHost: z.string().optional(),
 }).strict();
 
-export const DomSnapshotSchema = z.object({
+const DomSnapshotSchema = z.object({
   url: z.string(),
   title: z.string(),
   forms: z.array(DomFormSummarySchema),
@@ -134,14 +134,14 @@ export const DomSnapshotSchema = z.object({
   capturedAt: z.string().datetime(),
 }).strict();
 
-export const ReadDomSnapshotInputSchema = z.object({
+const ReadDomSnapshotInputSchema = z.object({
   includeFrames: z.boolean().optional().default(false),
   includeHidden: z.literal(false).optional().default(false),
   maxTextLengthPerNode: z.number().int().min(20).max(240).optional().default(120),
   targetScope: z.enum(["active-tab", "current-frame"]).optional().default("active-tab"),
 }).strict();
 
-export const DomElementRefSchema = z.object({
+const DomElementRefSchema = z.object({
   elementRef: z.string().min(1),
   selector: z.string().min(1),
   frameRef: z.string().min(1).optional(),
@@ -157,7 +157,7 @@ export const DomElementRefSchema = z.object({
   capturedAt: z.string().datetime().optional(),
 }).strict();
 
-export const LocateDomElementInputSchema = z.object({
+const LocateDomElementInputSchema = z.object({
   snapshot: DomSnapshotSchema,
   targetKind: DomTargetKindSchema,
   hints: z.array(z.string().min(1)).min(1),
@@ -166,7 +166,7 @@ export const LocateDomElementInputSchema = z.object({
   proximityAnchorText: z.string().min(1).optional(),
 }).strict();
 
-export const DomLocateResultSchema = z.discriminatedUnion("ok", [
+const DomLocateResultSchema = z.discriminatedUnion("ok", [
   z.object({
     ok: z.literal(true),
     status: z.literal("success"),
@@ -180,7 +180,7 @@ export const DomLocateResultSchema = z.discriminatedUnion("ok", [
   }).strict(),
 ]);
 
-export const DomActionStatusSchema = z.enum([
+const DomActionStatusSchema = z.enum([
   "success",
   "failed",
   "not_found",
@@ -188,7 +188,7 @@ export const DomActionStatusSchema = z.enum([
   "review_required",
 ]);
 
-export const DomActionResultSchema = z.object({
+const DomActionResultSchema = z.object({
   ok: z.boolean(),
   status: DomActionStatusSchema,
   actionId: z.string().min(1),
@@ -198,21 +198,21 @@ export const DomActionResultSchema = z.object({
   reviewRequiredReason: z.string().min(1).optional(),
 }).strict();
 
-export const FillDomElementInputSchema = z.object({
+const FillDomElementInputSchema = z.object({
   elementRef: DomElementRefSchema,
   approvedText: z.string(),
   clearBeforeType: z.boolean(),
   inputPurpose: z.string().min(1).max(80),
 }).strict();
 
-export const ClickDomElementInputSchema = z.object({
+const ClickDomElementInputSchema = z.object({
   elementRef: DomElementRefSchema,
   expectedKind: z.string().min(1),
   expectedText: z.string().min(1).optional(),
   waitAfterMs: z.number().int().min(0).max(10000).optional(),
 }).strict();
 
-export const UploadApprovedFileInputSchema = z.object({
+const UploadApprovedFileInputSchema = z.object({
   elementRef: DomElementRefSchema,
   approvedFilePath: z.string().min(1),
   approvedTaskFilePath: z.string().min(1),
@@ -220,7 +220,7 @@ export const UploadApprovedFileInputSchema = z.object({
   uploadPurpose: z.string().min(1).max(80),
 }).strict();
 
-export const ScrollToElementInputSchema = z.object({
+const ScrollToElementInputSchema = z.object({
   elementRef: DomElementRefSchema,
   scrollBudget: z.object({
     maxPixels: z.number().int().min(1).max(20000).optional().default(8000),
@@ -230,7 +230,7 @@ export const ScrollToElementInputSchema = z.object({
   scrollPurpose: z.string().min(1).max(80),
 }).strict();
 
-export const SelectOptionInputSchema = z.object({
+const SelectOptionInputSchema = z.object({
   elementRef: DomElementRefSchema,
   approvedOptionText: z.string().min(1),
   matchMode: z.enum(["exact", "contains"]),
@@ -238,7 +238,7 @@ export const SelectOptionInputSchema = z.object({
   selectPurpose: z.string().min(1).max(80),
 }).strict();
 
-export const DismissOverlayInputSchema = z.object({
+const DismissOverlayInputSchema = z.object({
   overlayType: z.enum([
     "cookie-consent-overlay",
     "promotional-overlay",
@@ -252,7 +252,7 @@ export const DismissOverlayInputSchema = z.object({
   dismissPurpose: z.string().min(1).max(80),
 }).strict();
 
-export const DomVerificationStatusSchema = z.enum([
+const DomVerificationStatusSchema = z.enum([
   "success",
   "failed",
   "not_found",
@@ -262,7 +262,7 @@ export const DomVerificationStatusSchema = z.enum([
   "review_required",
 ]);
 
-export const VerifyDomStateInputSchema = z.object({
+const VerifyDomStateInputSchema = z.object({
   snapshot: DomSnapshotSchema,
 	  expectedStates: z.array(z.enum([
     "file-selected",
@@ -275,14 +275,14 @@ export const VerifyDomStateInputSchema = z.object({
   failureHints: z.array(z.string().min(1)).default([]),
 }).strict();
 
-export const DomVerificationResultSchema = z.object({
+const DomVerificationResultSchema = z.object({
   status: DomVerificationStatusSchema,
   confidence: z.number().min(0).max(1),
   evidenceRef: z.string().min(1),
   reason: z.string().min(1),
 }).strict();
 
-export const WaitForDomStateInputSchema = z.object({
+const WaitForDomStateInputSchema = z.object({
   initialSnapshot: DomSnapshotSchema.optional(),
 	  expectedStates: z.array(z.enum([
     "file-selected",
@@ -297,73 +297,21 @@ export const WaitForDomStateInputSchema = z.object({
   pollIntervalMs: z.number().int().min(50).max(5000).default(500),
 }).strict();
 
-export type DomAutomationChildCapabilityId = z.infer<typeof DomAutomationChildCapabilityIdSchema>;
-export type DomSnapshot = z.infer<typeof DomSnapshotSchema>;
-export type DomElementRef = {
-  elementRef: string;
-  selector: string;
-  frameRef?: string;
-  targetKind: z.infer<typeof DomTargetKindSchema>;
-  confidence: number;
-  matchedSignals: string[];
-  reason: string;
-  "fall\u0062ackUsed": boolean;
-  proximityAnchor?: string;
-  componentLibHint?: string;
-  sourceSnapshotRef?: string;
-  textFingerprint?: string;
-  capturedAt?: string;
-};
-export type ReadDomSnapshotInput = z.input<typeof ReadDomSnapshotInputSchema>;
-export type LocateDomElementInput = z.input<typeof LocateDomElementInputSchema>;
-export type DomLocateResult =
-  | { ok: true; status: "success"; elementRef: DomElementRef }
-  | { ok: false; status: "not_found" | "ambiguous" | "review_required"; reason: string; candidates?: DomElementRef[] };
-export type FillDomElementInput = {
-  elementRef: DomElementRef;
-  approvedText: string;
-  clearBeforeType: boolean;
-  inputPurpose: string;
-};
-export type ClickDomElementInput = {
-  elementRef: DomElementRef;
-  expectedKind: string;
-  expectedText?: string;
-  waitAfterMs?: number;
-};
-export type UploadApprovedFileInput = {
-  elementRef: DomElementRef;
-  approvedFilePath: string;
-  approvedTaskFilePath: string;
-  allowedExtensions: string[];
-  uploadPurpose: string;
-};
-export type ScrollToElementInput = {
-  elementRef: DomElementRef;
-  scrollBudget?: { maxPixels?: number; maxSteps?: number };
-  stickyHeaderOffset?: number;
-  scrollPurpose: string;
-};
-export type SelectOptionInput = {
-  elementRef: DomElementRef;
-  approvedOptionText: string;
-  matchMode: "exact" | "contains";
-  approvedOptionList?: string[];
-  selectPurpose: string;
-};
-export type DismissOverlayInput = {
-  overlayType:
-    | "cookie-consent-overlay"
-    | "promotional-overlay"
-    | "informational-banner"
-    | "gdpr-consent"
-    | "app-install-prompt"
-    | "modal-dialog"
-    | "drawer-panel";
-  approvedDismissalText: string;
-  dismissPurpose: string;
-};
-export type DomActionResult = z.infer<typeof DomActionResultSchema>;
-export type VerifyDomStateInput = z.input<typeof VerifyDomStateInputSchema>;
-export type DomVerificationResult = z.infer<typeof DomVerificationResultSchema>;
-export type WaitForDomStateInput = z.input<typeof WaitForDomStateInputSchema>;
+export const DOM_SCHEMAS = {
+  DomActionResult: DomActionResultSchema,
+  DomAutomationChildCapabilityId: DomAutomationChildCapabilityIdSchema,
+  DomElementRef: DomElementRefSchema,
+  DomLocateResult: DomLocateResultSchema,
+  DomSnapshot: DomSnapshotSchema,
+  DomVerificationResult: DomVerificationResultSchema,
+  ClickDomElementInput: ClickDomElementInputSchema,
+  DismissOverlayInput: DismissOverlayInputSchema,
+  FillDomElementInput: FillDomElementInputSchema,
+  LocateDomElementInput: LocateDomElementInputSchema,
+  ReadDomSnapshotInput: ReadDomSnapshotInputSchema,
+  ScrollToElementInput: ScrollToElementInputSchema,
+  SelectOptionInput: SelectOptionInputSchema,
+  UploadApprovedFileInput: UploadApprovedFileInputSchema,
+  VerifyDomStateInput: VerifyDomStateInputSchema,
+  WaitForDomStateInput: WaitForDomStateInputSchema,
+} as const;

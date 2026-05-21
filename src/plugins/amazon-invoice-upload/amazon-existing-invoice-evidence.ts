@@ -1,0 +1,66 @@
+import type { DomSnapshot } from "../../types/dom-automation.js";
+import { locateOrStatus } from "./amazon-invoice-upload-flow-support.js";
+import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
+
+const EXISTING_INVOICE_HINTS = [
+  "invoice uploaded successfully",
+  "感谢您上传文件",
+  "客户可以直接从自己的账户下载文件",
+  "由卖家生成",
+  "待处理",
+  "管理发票",
+];
+
+export function locateManageInvoiceEntry(snapshot: DomSnapshot): ReturnType<typeof locateOrStatus> {
+  const zhEntry = locateOrStatus({
+    snapshot,
+    targetKind: "button",
+    hints: ["管理发票"],
+    requiredText: "管理发票",
+    notFoundStatus: "upload_entry_not_found",
+  });
+  if (zhEntry.ok) return zhEntry;
+  return locateOrStatus({
+    snapshot,
+    targetKind: "button",
+    hints: ["manage invoice"],
+    requiredText: "manage invoice",
+    notFoundStatus: "upload_entry_not_found",
+  });
+}
+
+export function hasExistingInvoiceEvidence(
+  snapshot: DomSnapshot,
+  mission: AmazonInvoiceUploadMissionInput,
+): boolean {
+  const text = normalizeText(collectSnapshotEvidenceText(snapshot));
+  return hasExpectedInvoiceId(text, mission) && hasKnownInvoiceState(text);
+}
+
+function collectSnapshotEvidenceText(snapshot: DomSnapshot): string {
+  return [
+    snapshot.title,
+    ...snapshot.buttons.map((item) => `${item.visibleText ?? ""} ${item.ariaLabel ?? ""}`),
+    ...snapshot.dialogs.map((item) => `${item.visibleText ?? ""} ${item.ariaLabel ?? ""}`),
+    ...snapshot.tableRows.map((item) => item.visibleText ?? ""),
+    ...snapshot.roleRows.map((item) => item.visibleText ?? ""),
+    ...snapshot.textBlocks.map((item) => item.visibleText ?? ""),
+    ...snapshot.genericClickableElements.map((item) => item.visibleText ?? ""),
+  ].join(" ");
+}
+
+function hasExpectedInvoiceId(
+  text: string,
+  mission: AmazonInvoiceUploadMissionInput,
+): boolean {
+  const normalizedIds = [mission.invoiceNo, mission.amazonOrderId].map(normalizeText);
+  return normalizedIds.some((value) => text.includes(value));
+}
+
+function hasKnownInvoiceState(text: string): boolean {
+  return EXISTING_INVOICE_HINTS.some((hint) => text.includes(normalizeText(hint)));
+}
+
+function normalizeText(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, " ").trim();
+}

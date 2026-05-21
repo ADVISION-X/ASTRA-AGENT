@@ -3,10 +3,10 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type {
+  VideoDownloadArtifact,
   VideoArtifactStoragePort,
   WriteVideoArtifactInput,
 } from "../ports/video-artifact-storage-port.js";
-import type { VideoDownloadArtifact } from "../schema.js";
 
 const safeSegment = (value: string): string =>
   value.replace(/[^a-z0-9_-]/gi, "_").slice(0, 80);

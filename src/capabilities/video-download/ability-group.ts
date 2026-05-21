@@ -5,7 +5,7 @@ import type {
 import {
   VIDEO_DOWNLOAD_ABILITY_GROUP_ID,
   VideoDownloadAbilityInputSchema,
-  type ParsedDownloadFacebookVideoInput,
+  type ParsedVideoDownloadAbilityInput,
   type VideoDownloadAbilityInput,
   type VideoDownloadChildCapabilityId,
   type VideoDownloadResult,
@@ -16,21 +16,21 @@ import {
 } from "./registry.js";
 import { buildVideoDownloadFailure } from "./runtime/result.js";
 
-const resolveRecoveryInput = (input: VideoDownloadAbilityInput): ParsedDownloadFacebookVideoInput => ({
+const buildRecoveryInput = (input: VideoDownloadAbilityInput): ParsedVideoDownloadAbilityInput => ({
   abilityGroupId: VIDEO_DOWNLOAD_ABILITY_GROUP_ID,
-  childCapabilityId: "download-facebook-video-once" as const,
+  childCapabilityId: "download-web-video-once" as const,
   missionId: typeof input.missionId === "string" ? input.missionId : "unknown",
   runId: typeof input.runId === "string" ? input.runId : "unknown",
   capabilityCallId: typeof input.capabilityCallId === "string" ? input.capabilityCallId : "unknown",
-  sourcePageUrl: typeof input.sourcePageUrl === "string" ? input.sourcePageUrl : "https://www.facebook.com/",
+  sourcePageUrl: typeof input.sourcePageUrl === "string" ? input.sourcePageUrl : "https://example.com/",
   preferredQuality: "best_available" as const,
-  maxBytes: 100_000_000,
-  timeoutMs: 30_000,
+  maxBytes: 200_000_000,
+  timeoutMs: 60_000,
 });
 
 const inputParseFailure = (input: VideoDownloadAbilityInput): VideoDownloadResult =>
   buildVideoDownloadFailure(
-    { input: resolveRecoveryInput(input), startedAt: new Date().toISOString() },
+    { input: buildRecoveryInput(input), startedAt: new Date().toISOString() },
     "input_schema_invalid",
     "Video download input schema is invalid.",
     "invalid_input",

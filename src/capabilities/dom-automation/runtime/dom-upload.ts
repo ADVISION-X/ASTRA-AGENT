@@ -2,8 +2,9 @@ import { existsSync, statSync } from "node:fs";
 import { extname, resolve } from "node:path";
 
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import { UploadApprovedFileInputSchema } from "../schema.js";
-import type { DomActionResult, UploadApprovedFileInput } from "../schema.js";
+import { DOM_SCHEMAS } from "../schema.js";
+import type { DomActionResult } from "../../../types/dom-automation.js";
+import type { UploadApprovedFileInput } from "../../../types/dom-automation-inputs.js";
 import {
   buildDomActionOutcome,
   buildDomFailureResult,
@@ -59,7 +60,7 @@ export async function uploadApprovedFileOnce(
   browser: BrowserController,
   rawInput: UploadApprovedFileInput,
 ): Promise<DomActionResult> {
-  const input = UploadApprovedFileInputSchema.parse(rawInput) as UploadApprovedFileInput;
+  const input = DOM_SCHEMAS.UploadApprovedFileInput.parse(rawInput) as UploadApprovedFileInput;
   const validated = validateApprovedUploadRequest(input);
   if ("ok" in validated) {
     return validated;

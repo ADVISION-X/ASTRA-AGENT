@@ -1,6 +1,7 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import { DomSnapshotSchema, ReadDomSnapshotInputSchema } from "../schema.js";
-import type { DomSnapshot, ReadDomSnapshotInput } from "../schema.js";
+import { DOM_SCHEMAS } from "../schema.js";
+import type { DomSnapshot } from "../../../types/dom-automation.js";
+import type { ReadDomSnapshotInput } from "../../../types/dom-automation-inputs.js";
 
 function buildSnapshotScriptTextPrimitives(maxTextLengthPerNode: number): string {
   return `
@@ -165,10 +166,10 @@ export async function readDomSnapshotOnce(
   browser: BrowserController,
   input: ReadDomSnapshotInput = {},
 ): Promise<DomSnapshot> {
-  const parsed = ReadDomSnapshotInputSchema.parse(input);
+  const parsed = DOM_SCHEMAS.ReadDomSnapshotInput.parse(input);
   const raw = await browser.evaluateActiveTab<unknown>({
     description: "read governed DOM structural summary from active tab",
     script: buildSnapshotScript(parsed.maxTextLengthPerNode, parsed.includeFrames),
   });
-  return DomSnapshotSchema.parse(raw);
+  return DOM_SCHEMAS.DomSnapshot.parse(raw) as DomSnapshot;
 }

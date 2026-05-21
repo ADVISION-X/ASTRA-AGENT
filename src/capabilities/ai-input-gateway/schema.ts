@@ -2,24 +2,24 @@ import { z } from "zod";
 
 export const AI_INPUT_GATEWAY_ABILITY_GROUP_ID = "ai-input-gateway" as const;
 
-export const AiInputGatewayProviderKindSchema = z.enum([
+const AiInputGatewayProviderKindSchema = z.enum([
   "gemini-api",
   "gemini-web-chat",
   "gpt-web-chat",
 ]);
 
-export const AiInputGatewayChildCapabilityIdSchema = z.enum([
+const AiInputGatewayChildCapabilityIdSchema = z.enum([
   "feed-gemini-api-once",
   "feed-gemini-web-chat-once",
   "feed-gpt-web-chat-once",
 ]);
 
-export const AiFeedStatusSchema = z.enum(["success", "failed", "review_required"]);
-export const AiFeedParseStatusSchema = z.enum(["json_valid", "json_invalid", "not_requested"]);
-export const AiFeedSchemaValidationStatusSchema = z.enum(["valid", "invalid", "not_applicable"]);
-export const AiFeedTransportSchema = z.enum(["api", "web-chat"]);
+const AiFeedStatusSchema = z.enum(["success", "failed", "review_required"]);
+const AiFeedParseStatusSchema = z.enum(["json_valid", "json_invalid", "not_requested"]);
+const AiFeedSchemaValidationStatusSchema = z.enum(["valid", "invalid", "not_applicable"]);
+const AiFeedTransportSchema = z.enum(["api", "web-chat"]);
 
-export const AiFeedInputRefSchema = z.object({
+const AiFeedInputRefSchema = z.object({
   id: z.string().min(1),
   kind: z.string().min(1),
   summary: z.string().min(1),
@@ -45,7 +45,7 @@ export const AiFeedInputSchema = z.object({
   roundId: z.string().min(1).nullable().default(null),
 }).strict();
 
-export const AiFeedProviderProofSchema = z.object({
+const AiFeedProviderProofSchema = z.object({
   providerKind: AiInputGatewayProviderKindSchema,
   modelName: z.string().min(1).nullable(),
   inputHash: z.string().min(1),
@@ -89,5 +89,3 @@ export type AiFeedInput = z.infer<typeof AiFeedInputSchema>;
 export type AiFeedProviderProof = z.infer<typeof AiFeedProviderProofSchema>;
 export type AiFeedResult = z.infer<typeof AiFeedResultSchema>;
 export type AiFeedStatus = z.infer<typeof AiFeedStatusSchema>;
-export type AiFeedParseStatus = z.infer<typeof AiFeedParseStatusSchema>;
-export type AiFeedSchemaValidationStatus = z.infer<typeof AiFeedSchemaValidationStatusSchema>;

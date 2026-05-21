@@ -1,24 +1,19 @@
-import { readDomSnapshotOnce, type DomElementRef } from "../../capabilities/dom-automation/index.js";
+import { readDomSnapshotOnce } from "../../capabilities/dom-automation/index.js";
+import type { DomElementRef } from "../../types/dom-automation.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import {
   clickLocated,
   evidenceField,
-  locateOrStatus,
   taskResult,
 } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
-
-const EXISTING_INVOICE_HINTS = [
-  "invoice uploaded successfully",
-  "感谢您上传文件",
-  "客户可以直接从自己的账户下载文件",
-  "由卖家生成",
-  "待处理",
-  "管理发票",
-];
+import {
+  hasExistingInvoiceEvidence,
+  locateManageInvoiceEntry,
+} from "./amazon-existing-invoice-evidence.js";
 
 type CloseAlreadyUploadedTabInput = {
   browser: BrowserController;
@@ -139,24 +134,6 @@ function existingInvoiceNeedsReview(mission: AmazonInvoiceUploadMissionInput): A
   });
 }
 
-function locateManageInvoiceEntry(snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>): ReturnType<typeof locateOrStatus> {
-  const zhEntry = locateOrStatus({
-    snapshot,
-    targetKind: "button",
-    hints: ["管理发票"],
-    requiredText: "管理发票",
-    notFoundStatus: "upload_entry_not_found",
-  });
-  if (zhEntry.ok) return zhEntry;
-  return locateOrStatus({
-    snapshot,
-    targetKind: "button",
-    hints: ["manage invoice"],
-    requiredText: "manage invoice",
-    notFoundStatus: "upload_entry_not_found",
-  });
-}
-
 async function waitForExistingInvoiceEvidence(
   browser: BrowserController,
   runtimeLogger: RuntimeLogger,
@@ -181,24 +158,6 @@ async function waitForExistingInvoiceEvidence(
     await browser.wait(200);
   }
   return undefined;
-}
-
-function hasExistingInvoiceEvidence(
-  snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>,
-  mission: AmazonInvoiceUploadMissionInput,
-): boolean {
-  const text = normalizeText([
-    snapshot.title,
-    ...snapshot.buttons.map((item) => `${item.visibleText ?? ""} ${item.ariaLabel ?? ""}`),
-    ...snapshot.dialogs.map((item) => `${item.visibleText ?? ""} ${item.ariaLabel ?? ""}`),
-    ...snapshot.tableRows.map((item) => item.visibleText ?? ""),
-    ...snapshot.roleRows.map((item) => item.visibleText ?? ""),
-    ...snapshot.textBlocks.map((item) => item.visibleText ?? ""),
-    ...snapshot.genericClickableElements.map((item) => item.visibleText ?? ""),
-  ].join(" "));
-  const expectedIdSeen = text.includes(normalizeText(mission.invoiceNo)) || text.includes(normalizeText(mission.amazonOrderId));
-  const invoiceStateSeen = EXISTING_INVOICE_HINTS.some((hint) => text.includes(normalizeText(hint)));
-  return expectedIdSeen && invoiceStateSeen;
 }
 
 async function closeAlreadyUploadedTab(input: CloseAlreadyUploadedTabInput): Promise<AmazonInvoiceUploadTaskResult> {
@@ -256,8 +215,4 @@ function alreadyUploadedSuccess(
     invoiceNo: mission.invoiceNo,
     ...evidenceField(evidenceRef),
   });
-}
-
-function normalizeText(value: string): string {
-  return value.toLowerCase().replace(/\s+/g, " ").trim();
 }

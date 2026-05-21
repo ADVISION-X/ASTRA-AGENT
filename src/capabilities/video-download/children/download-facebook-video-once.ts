@@ -5,7 +5,7 @@ import type {
   VideoDownloadExecutionContext,
 } from "../contract.js";
 import type {
-  ParsedDownloadFacebookVideoInput,
+  ParsedVideoDownloadAbilityInput,
   VideoDownloadCandidate,
   VideoDownloadResult,
 } from "../schema.js";
@@ -20,6 +20,11 @@ import {
   buildVideoDownloadFailure,
   buildVideoDownloadSuccess,
 } from "../runtime/result.js";
+
+type ParsedDownloadFacebookVideoInput = Extract<
+  ParsedVideoDownloadAbilityInput,
+  { childCapabilityId: "download-facebook-video-once" }
+>;
 
 const sameFacebookPage = (actual: string, expected: string): boolean => {
   const actualUrl = new URL(actual);
@@ -154,5 +159,6 @@ async function executeDownloadFacebookVideoOnce(
 export const downloadFacebookVideoOnce: VideoDownloadChildCapability = {
   abilityGroupId: "video-download",
   childCapabilityId: "download-facebook-video-once",
-  execute: executeDownloadFacebookVideoOnce,
+  execute: (input: ParsedVideoDownloadAbilityInput, context: VideoDownloadExecutionContext) =>
+    executeDownloadFacebookVideoOnce(input as ParsedDownloadFacebookVideoInput, context),
 };

@@ -1,12 +1,3 @@
-import type {
-  AmazonInvoiceUploadAdminOpenInput,
-  AmazonInvoiceUploadAdminOpenResult,
-  AmazonInvoiceUploadMissionInput,
-  AmazonInvoiceUploadMissionStartResult,
-  AmazonInvoiceUploadTaskRecord,
-  AmazonInvoiceUploadTaskResumeInput,
-  AmazonInvoiceUploadTaskStartInput,
-} from "../../plugins/amazon-invoice-upload/index.js";
 import type { OnlineAiProviderPublicStatus } from "../online-ai/index.js";
 import type { AppRunLimitSettings } from "./settings-types.js";
 import type {
@@ -15,6 +6,19 @@ import type {
   WorkbenchPreflightInput,
   WorkbenchPreflightResult,
 } from "./workbench-status-types.js";
+
+type OpenAmazonInvoiceAdminPage = typeof import("../../plugins/amazon-invoice-upload/index.js").openAmazonInvoiceAdminPage;
+type StartAmazonInvoiceUploadMission = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceUploadMission;
+type StartAmazonInvoiceUploadTask = typeof import("../../plugins/amazon-invoice-upload/index.js").startAmazonInvoiceUploadTask;
+type GetAmazonInvoiceUploadTaskStatus = typeof import("../../plugins/amazon-invoice-upload/index.js").getAmazonInvoiceUploadTaskStatus;
+
+type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
+type AmazonInvoiceUploadAdminOpenResult = Awaited<ReturnType<OpenAmazonInvoiceAdminPage>>;
+type AmazonInvoiceUploadMissionInput = Parameters<StartAmazonInvoiceUploadMission>[2];
+type AmazonInvoiceUploadMissionStartResult = Awaited<ReturnType<StartAmazonInvoiceUploadMission>>;
+type AmazonInvoiceUploadTaskStartInput = Parameters<StartAmazonInvoiceUploadTask>[0]["task"];
+type AmazonInvoiceUploadTaskResumeInput = { taskId: string };
+type AmazonInvoiceUploadTaskRecord = Awaited<ReturnType<GetAmazonInvoiceUploadTaskStatus>>;
 
 export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;

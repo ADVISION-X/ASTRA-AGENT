@@ -1,4 +1,4 @@
-import type { DomSnapshot } from "../schema.js";
+import type { DomSnapshot } from "../../../types/dom-automation.js";
 
 const DOM_SNAPSHOT_FORMS: DomSnapshot["forms"] = [{
   selectorCandidate: "form[data-testid='task-form']",

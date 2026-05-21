@@ -94,6 +94,43 @@ const loadInspector = async (planEntry: AuditPlanEntry): Promise<(context: Inspe
   return moduleExports.inspectDomain;
 };
 
+const executePlanEntry = async (
+  project: InspectorContext["project"],
+  planEntry: AuditPlanEntry,
+  generatedPlan: readonly AuditPlanEntry[],
+  completedReports: Record<string, CompletedReport>,
+): Promise<InspectorOutput> => {
+  try {
+    const inspectDomain = await loadInspector(planEntry);
+    return validateInspectorOutput(
+      planEntry,
+      await inspectDomain({
+        project,
+        planEntry,
+        generatedPlan,
+        completedReports,
+      }),
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown inspector execution failure.";
+    return buildFailureOutput(planEntry, message);
+  }
+};
+
+const buildDomainExecutionReport = (
+  planEntry: AuditPlanEntry,
+  output: InspectorOutput,
+): DomainExecutionReport => {
+  const status = output.findings.length > 0 ? "FAIL" : "PASS";
+  return {
+    capabilityDomain: planEntry.capabilityDomain,
+    executionGroup: planEntry.executionGroup,
+    status,
+    findingCount: output.findings.length,
+    reportPath: writeDomainReport(planEntry, output, status),
+  };
+};
+
 export const runGeneratedPlan = async (): Promise<{
   domainReports: DomainExecutionReport[];
   hasFailures: boolean;
@@ -104,36 +141,12 @@ export const runGeneratedPlan = async (): Promise<{
   const domainReports: DomainExecutionReport[] = [];
 
   for (const planEntry of generatedPlan) {
-    let output: InspectorOutput;
-    try {
-      const inspectDomain = await loadInspector(planEntry);
-      output = validateInspectorOutput(
-        planEntry,
-        await inspectDomain({
-          project,
-          planEntry,
-          generatedPlan,
-          completedReports,
-        }),
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown inspector execution failure.";
-      output = buildFailureOutput(planEntry, message);
-    }
-
-    const status = output.findings.length > 0 ? "FAIL" : "PASS";
-    const reportPath = writeDomainReport(planEntry, output, status);
-    const report: DomainExecutionReport = {
-      capabilityDomain: planEntry.capabilityDomain,
-      executionGroup: planEntry.executionGroup,
-      status,
-      findingCount: output.findings.length,
-      reportPath,
-    };
+    const output = await executePlanEntry(project, planEntry, generatedPlan, completedReports);
+    const report = buildDomainExecutionReport(planEntry, output);
     completedReports[planEntry.capabilityDomain] = {
-      status,
-      findingCount: output.findings.length,
-      reportPath,
+      status: report.status,
+      findingCount: report.findingCount,
+      reportPath: report.reportPath,
     };
     domainReports.push(report);
   }

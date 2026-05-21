@@ -16,6 +16,8 @@ const writeJson = (fileName: string, payload: unknown): void => {
 
 const quote = (value: string): string => JSON.stringify(value);
 
+const countActiveLaws = (laws: readonly LawSource[]): number => laws.filter((law) => law.status === "active").length;
+
 const renderMatrixYaml = (generatedAt: string, rows: readonly EnforcementMatrixRow[]): string => {
   const lines = [`generatedAt: ${quote(generatedAt)}`, "rows:"];
   for (const row of rows) {
@@ -28,6 +30,33 @@ const renderMatrixYaml = (generatedAt: string, rows: readonly EnforcementMatrixR
     }
   }
   return `${lines.join("\n")}\n`;
+};
+
+const writeMatrixArtifacts = (generatedAt: string, matrixRows: readonly EnforcementMatrixRow[]): void => {
+  writeJson("enforcement-matrix.generated.json", {
+    generatedAt,
+    rows: matrixRows,
+  });
+  writeFileSync(
+    resolve(generatedDir, "enforcement-matrix.generated.yaml"),
+    renderMatrixYaml(generatedAt, matrixRows),
+  );
+};
+
+const buildStaticCoverageSummary = (
+  laws: readonly LawSource[],
+  staticCoverage: readonly StaticClauseCoverageEntry[],
+): {
+  activeLawCount: number;
+  coveredLawCount: number;
+  coveragePercent: number;
+} => {
+  const activeLawCount = countActiveLaws(laws);
+  return {
+    activeLawCount,
+    coveredLawCount: staticCoverage.length,
+    coveragePercent: activeLawCount === 0 ? 100 : Math.round((staticCoverage.length / activeLawCount) * 100),
+  };
 };
 
 export const writeGeneratedArtifacts = (input: {
@@ -43,14 +72,7 @@ export const writeGeneratedArtifacts = (input: {
     generatedAt,
     laws: input.laws,
   });
-  writeJson("enforcement-matrix.generated.json", {
-    generatedAt,
-    rows: input.matrixRows,
-  });
-  writeFileSync(
-    resolve(generatedDir, "enforcement-matrix.generated.yaml"),
-    renderMatrixYaml(generatedAt, input.matrixRows),
-  );
+  writeMatrixArtifacts(generatedAt, input.matrixRows);
   writeJson("audit-plan.generated.json", {
     generatedAt,
     entries: input.planEntries,
@@ -62,16 +84,7 @@ export const writeGeneratedArtifacts = (input: {
   });
   writeJson("static-clause-coverage.generated.json", {
     generatedAt,
-    summary: {
-      activeLawCount: input.laws.filter((law) => law.status === "active").length,
-      coveredLawCount: input.staticCoverage.length,
-      coveragePercent:
-        input.laws.filter((law) => law.status === "active").length === 0
-          ? 100
-          : Math.round(
-              (input.staticCoverage.length / input.laws.filter((law) => law.status === "active").length) * 100,
-            ),
-    },
+    summary: buildStaticCoverageSummary(input.laws, input.staticCoverage),
     coverage: input.staticCoverage,
   });
 };

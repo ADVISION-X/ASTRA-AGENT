@@ -114,21 +114,10 @@ type ForensicsResult = z.infer<typeof ForensicsResultSchema>;
 
 export {
   FORENSICS_PERSISTENCE_ABILITY_GROUP_ID,
-  ForensicsChildCapabilityIdSchema,
-  ForensicsRecordTypeSchema,
-  ForensicsArtifactTypeSchema,
-  ForensicsAppendRecordInputSchema,
-  ForensicsAppendArtifactInputSchema,
-  ForensicsReadRecordRefInputSchema,
-  ForensicsAbilityInputSchema,
-  ForensicsProofSchema,
-  ForensicsResultSchema,
 };
 
 export type {
   ForensicsChildCapabilityId,
-  ForensicsRecordType,
-  ForensicsArtifactType,
   ForensicsProof,
   ForensicsAppendRecordInput,
   ForensicsAppendArtifactInput,

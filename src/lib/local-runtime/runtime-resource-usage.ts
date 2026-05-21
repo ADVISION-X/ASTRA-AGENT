@@ -50,9 +50,7 @@ function normalizeLimit(limit: number | undefined): number {
   return Math.max(1, Math.min(MAX_PROCESS_LIMIT, Math.trunc(limit ?? DEFAULT_PROCESS_LIMIT)));
 }
 
-function toMb(kb: number): number {
-  return Math.round((kb / 1024) * 10) / 10;
-}
+const toMb = (kb: number): number => Math.round((kb / 1024) * 10) / 10;
 
 const RUNTIME_RESOURCE_USAGE_TAG_RULES = [
   { tag: "workbench-server", matches: (normalizedCommand: string, pid: number) => pid === process.pid },
@@ -72,7 +70,6 @@ function extractPsLineTextFields(match: RegExpMatchArray): PsLineTextFields | nu
   if (!hasCompletePsLineTextFieldTuple(values)) {
     return null;
   }
-
   const [pidText, ppidText, cpuPercentText, rssKbText, vszKbText, elapsed, state, command] = values;
   return {
     pidText,
@@ -111,7 +108,6 @@ function parsePsLineParts(match: RegExpMatchArray) {
   if (!textFields) {
     return null;
   }
-
   const numericFields = parsePsLineNumericFields(textFields);
   if (!numericFields) {
     return null;
@@ -201,34 +197,30 @@ function buildResourceUsageCollections(processes: RawProcessSnapshot[], processL
   };
 }
 
-function buildResourceUsageHost() {
-  return {
-    platform: process.platform,
-    arch: process.arch,
-    nodeVersion: process.version,
-    pid: process.pid,
-    ppid: process.ppid,
-    uptimeSeconds: Math.round(process.uptime()),
-    loadAverage: os.loadavg(),
-    totalMemoryBytes: os.totalmem(),
-    freeMemoryBytes: os.freemem(),
-    cpuCount: os.cpus().length,
-  };
-}
+const buildResourceUsageHost = () => ({
+  platform: process.platform,
+  arch: process.arch,
+  nodeVersion: process.version,
+  pid: process.pid,
+  ppid: process.ppid,
+  uptimeSeconds: Math.round(process.uptime()),
+  loadAverage: os.loadavg(),
+  totalMemoryBytes: os.totalmem(),
+  freeMemoryBytes: os.freemem(),
+  cpuCount: os.cpus().length,
+});
 
-function buildResourceUsageNodeProcess(nodeMemoryUsage: NodeJS.MemoryUsage) {
-  return {
-    rssBytes: nodeMemoryUsage.rss,
-    heapTotalBytes: nodeMemoryUsage.heapTotal,
-    heapUsedBytes: nodeMemoryUsage.heapUsed,
-    externalBytes: nodeMemoryUsage.external,
-    arrayBuffersBytes: nodeMemoryUsage.arrayBuffers,
-  };
-}
+const buildResourceUsageNodeProcess = (nodeMemoryUsage: NodeJS.MemoryUsage) => ({
+  rssBytes: nodeMemoryUsage.rss,
+  heapTotalBytes: nodeMemoryUsage.heapTotal,
+  heapUsedBytes: nodeMemoryUsage.heapUsed,
+  externalBytes: nodeMemoryUsage.external,
+  arrayBuffersBytes: nodeMemoryUsage.arrayBuffers,
+});
 
 export async function getRuntimeResourceUsageSnapshot(input?: { limit?: number; modeInfo?: unknown }) {
   const processLimit = normalizeLimit(input?.limit);
-  const [{ processes, collectionError }] = await Promise.all([listProcessSnapshots()]);
+  const { processes, collectionError } = await listProcessSnapshots();
   const nodeMemoryUsage = process.memoryUsage();
   const collections = buildResourceUsageCollections(processes, processLimit);
 

@@ -1,28 +1,30 @@
 ---
 name: "GrassEye Video Download Capability"
-description: "Use when defining governed video media download capability boundaries, platform-specific media source extraction, download evidence, or handoff from downloaded video artifacts to AI analysis."
-applyTo: ".github/instructions/cursor-rules/modules/module-video-download-capability.instructions.md, docs/法案辅助文件/GrassEye Video Download 视频下载能力组施工图.md, scripts/audit/domains/video-download-capability/**"
+description: "Use when defining universal web video download capability, platform-specific media source extraction, download evidence, or handoff from downloaded video artifacts to AI analysis."
+applyTo: ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md, docs/法案辅助文件/GrassEye Video Download 视频下载能力组施工图.md, src/capabilities/video-download/**/*.{ts,tsx,js,jsx,mjs,json}, scripts/audit/domains/video-download-capability/**"
 ---
 
 # GrassEye Video Download Capability
 
-Scope: governs the future `video-download` ability group and its child capabilities.
-Boundary: this module governs media-source discovery, download authorization, artifact proof, platform child boundaries, and AI handoff boundaries.
-Excludes: product value judgment, AI product-seeding classification, visual mission planning, cookie/session handling, login bypass, and platform business workflows.
+version: 2026-05-21-v2
+Scope: governs the active `video-download` ability group — universal web video extraction plus named-platform child capabilities.
+Boundary: this module governs media-source discovery, download authorization, platform routing, artifact proof, and AI handoff boundaries.
+Excludes: product value judgment, AI product-seeding classification, visual mission planning, login bypass, platform business workflows, and credential handling.
 Authority: this file is authoritative only for the video-download-capability domain.
 
-## Phase 0 Construction Status
+## Phase 1 Construction Status
 
-The current construction phase is governance-first.
+The current construction phase is active source build with governance in place.
 
-Before runtime implementation exists, the quality gate must protect these facts:
+Phase 1 must deliver:
 
-- no `video-download` child capability may be exposed to MuscleMemoryCatalog or AI action planning;
-- no private plugin, DOM helper, or platform profile may implement a shadow video downloader;
-- no downloaded-video success may be faked by screenshot, poster image, HTML, or raw page text;
-- no cookie, session, token, CAPTCHA, login, risk-control, DRM, or third-party downloader bypass may appear as a positive implementation path.
+- `download-web-video-once` universal child capability — extracts video from any web page the user can see;
+- named platform children: `download-facebook-video-once`, `download-tiktok-video-once`, `download-instagram-video-once`, `download-bilibili-video-once`, `download-douyin-video-once`, `download-x-video-once`, `download-xiaohongshu-video-once`;
+- platform router that selects the correct child from the current page URL;
+- forensics artifact proof for every attempt;
+- honest failure for DRM, login walls, private videos, and unsupported formats.
 
-Runtime implementation requires a later code phase that adds owner contracts, schemas, child registry, execution path, Forensics artifact writing, and stronger inspector coverage.
+All security redlines from Law 002 remain fully active. No law upgrade changes the credential, cookie, CAPTCHA, DRM, or login-bypass prohibitions.
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-001-V1
 
@@ -100,33 +102,53 @@ capabilityDomain: video-download-capability
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: Facebook and TikTok downloaders are platform child capabilities that download one target video once and must not become business workflows.
+summary: The video-download group exposes one universal child and named-platform children that each download one video artifact per invocation and must not become business workflows.
 
 ### 主题
 
-平台子能力边界
+子能力边界 — 通用 + 多平台
 
 ### 法条
 
-The first two child capabilities are platform-specific media-source extraction and download actions:
+The approved child capabilities are:
 
-- `download-facebook-video-once`
-- `download-tiktok-video-once`
+**Universal:**
+- `download-web-video-once` — works on any web page the user can see; uses generic extraction (video elements, performance entries, HLS/DASH manifests, script data).
 
-Required direction:
-- Each child capability must download at most one target video artifact per invocation.
-- Each child must declare explicit input schema, forbidden inputs, output proof, failure policy, and platform host allowlist.
-- Facebook extraction may parse current-page DOM, inline script state, performance resource entries, video element state, and public media candidate fields such as native MP4 or DASH references.
-- TikTok extraction may parse current-page DOM, script state, performance resource entries, video element state, and media requests that are already available to the user-authorized page.
-- Any platform-specific parser must stay under the video-download owner.
+**Named-platform:**
+- `download-facebook-video-once` — Facebook Relay data / native MP4 extraction.
+- `download-tiktok-video-once` — TikTok `__NEXT_DATA__` / SIGI_STATE media extraction.
+- `download-instagram-video-once` — Instagram shared data / video element extraction.
+- `download-bilibili-video-once` — Bilibili page data / video element extraction.
+- `download-douyin-video-once` — Douyin page data extraction (same engine family as TikTok).
+- `download-x-video-once` — X/Twitter `__NEXT_DATA__` / video CDN extraction.
+- `download-xiaohongshu-video-once` — 小红书/RED page data / video element extraction.
+
+Required for every child capability:
+- Downloads at most one target video artifact per invocation.
+- Declares explicit input schema, forbidden inputs, output proof, failure policy, and platform host allowlist.
+- Returns structured result: `success`, `failed`, or `review_required`.
+- Any platform-specific parser stays under the video-download owner inside `runtime/` or a `providers/` subfolder.
+- If extraction is uncertain or blocked, returns `review_required` with an explicit reason — never fake success.
+
+Universal child (`download-web-video-once`) detection order:
+1. `<video>` element `currentSrc` / `src` / `<source>` children.
+2. Performance resource entries with video MIME types or URL patterns (`.mp4`, `.webm`, `.m3u8`, `.mpd`, `.ts`).
+3. HLS/M3U8 manifest URLs found in inline script text.
+4. DASH/MPD manifest URLs found in inline script text.
+5. Direct MP4/WebM URLs in script data.
+
+Named-platform children take priority when a platform router identifies the current page URL as a known platform host.
 
 ### 禁止
 
 FORBIDDEN:
 - combining open page, classify product, like, comment, save lead, next video, and download into one child capability;
-- adding `download-facebook` or `download-tiktok` as Open child capabilities;
+- adding any `download-*` as a child of DOM Automation, Open, or Screenshot;
 - storing platform-specific media parser logic in DOM Automation or Product Video DOM Runtime;
-- using platform names as business-flow packages instead of child media download boundaries.
+- using platform names as business-flow packages instead of child media download boundaries;
+- treating the universal child as a bypass for platform-specific security boundaries;
+- universal child returning DRM-protected or login-required content as success.
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-004-V1
 
@@ -225,3 +247,93 @@ FORBIDDEN:
 - video-download scoring product value, profit, procurement, ads, comment intent, or market fit;
 - hiding AI analysis prompt logic inside media downloader code;
 - treating successful download as successful product discovery.
+
+## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-007-V1
+
+status: active
+tier: P0
+capabilityDomain: video-download-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: the universal child must extract video candidates using only publicly observable browser media data and must never bypass platform security.
+
+### 主题
+
+通用网页视频提取边界
+
+### 法条
+
+The `download-web-video-once` child extracts video from any web page the user can see using only observable browser media data.
+
+Required detection methods (in priority order):
+1. `<video>` element `currentSrc`, `src`, and `<source>` element children.
+2. `window.performance.getEntriesByType('resource')` entries with video MIME types or URL patterns (`.mp4`, `.webm`, `.m3u8`, `.mpd`, `.ts`, `.m4v`).
+3. Inline `<script>` text searched for HLS/M3U8 manifest URL patterns.
+4. Inline `<script>` text searched for DASH/MPD manifest URL patterns.
+5. Direct MP4/WebM URLs found in script data matching media host allowlist.
+
+Required quality ranking:
+- Prefer higher-quality candidates when multiple candidates exist.
+- `native_hd` > `video_element` (with `currentSrc`) > `media_resource` (performance entry) > `hls_manifest` > `dash_manifest` > `source_element` > `native_sd`.
+
+Required output:
+- `platformId` derived from the actual page URL host, or `"universal-web"` when no named platform matches.
+- All other proof fields as required by Law 005.
+
+Required failure behavior:
+- If no candidates are found, return `failed` with `candidate_not_found`.
+- If only DRM-protected, login-required, or expired candidates are found, return `review_required` with explicit reason.
+- Never return success with a poster image, thumbnail, HTML document, or JSON response body.
+
+### 禁止
+
+FORBIDDEN:
+- using third-party downloader websites or hidden paid APIs as default or fallback runtime paths;
+- calling platform-named extraction logic from the universal child (use platform router + named children instead);
+- treating blob: URLs without streaming validation as confirmed video artifacts;
+- running the universal probe on a page the user has not authorized or cannot currently see;
+- writing the universal probe result as evidence before media validation confirms a real video stream.
+
+## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-008-V1
+
+status: active
+tier: P0
+capabilityDomain: video-download-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: platform detection must route to the correct child capability and must not silently fall back to the universal extractor on a known platform.
+
+### 主题
+
+平台检测与路由边界
+
+### 法条
+
+The video-download ability group must expose a platform router that maps the current page URL to the correct child capability ID.
+
+Required routing rules:
+- `facebook.com`, `fb.watch` → `download-facebook-video-once`
+- `tiktok.com` (non-CN) → `download-tiktok-video-once`
+- `instagram.com` → `download-instagram-video-once`
+- `bilibili.com`, `b23.tv` → `download-bilibili-video-once`
+- `douyin.com`, `iesdouyin.com` → `download-douyin-video-once`
+- `x.com`, `twitter.com` → `download-x-video-once`
+- `xiaohongshu.com`, `xhslink.com` → `download-xiaohongshu-video-once`
+- all other hosts → `download-web-video-once`
+
+Required behavior:
+- Platform routing is a pure URL-to-childCapabilityId mapping; it must not perform any DOM access or page execution.
+- When a job flow calls the video-download ability group without specifying a child, the router selects the child automatically from `sourcePageUrl`.
+- The router result must be logged (redacted URL host only, not query parameters or path tokens).
+- If a named platform child returns `candidate_not_found` or `review_required`, the job flow (not the router and not the child) may decide to retry with the universal child.
+
+### 禁止
+
+FORBIDDEN:
+- router performing DOM reads, network requests, or screenshot evidence;
+- router containing platform-specific business decisions;
+- router silently substituting `download-web-video-once` for a named platform without logging the substitution;
+- child capabilities calling the router internally (router is caller-owned, not child-owned);
+- adding routing logic inside `src/mediator` or any job flow.

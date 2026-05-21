@@ -1,7 +1,4 @@
-import type {
-  DomActionResult,
-  DomVerificationResult,
-} from "../schema.js";
+import type { DomActionResult, DomVerificationResult } from "../../../types/dom-automation.js";
 
 export type DomReviewRequiredStatus =
   | "login_required"

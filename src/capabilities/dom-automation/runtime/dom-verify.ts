@@ -1,6 +1,7 @@
 import { createId } from "../../../lib/local-runtime/ids.js";
-import { DomVerificationResultSchema, VerifyDomStateInputSchema } from "../schema.js";
-import type { DomVerificationResult, VerifyDomStateInput } from "../schema.js";
+import { DOM_SCHEMAS } from "../schema.js";
+import type { DomVerificationResult } from "../../../types/dom-automation.js";
+import type { VerifyDomStateInput } from "../../../types/dom-automation-inputs.js";
 
 const STATE_MAP = {
   "file-selected": "file_selected",
@@ -39,7 +40,7 @@ function buildDomVerificationResult(
   confidence: number,
   reason: string,
 ): DomVerificationResult {
-  return DomVerificationResultSchema.parse({
+  return DOM_SCHEMAS.DomVerificationResult.parse({
     status,
     confidence,
     evidenceRef: `dom-verify:${createId("dom")}`,
@@ -113,7 +114,7 @@ function resolveSignalVerificationResult(
 }
 
 export function verifyDomStateOnce(rawInput: VerifyDomStateInput): DomVerificationResult {
-  const input = VerifyDomStateInputSchema.parse(rawInput);
+  const input = DOM_SCHEMAS.VerifyDomStateInput.parse(rawInput) as VerifyDomStateInput;
   const signals = collectVerificationSignals(input);
   const detectedResult = resolveDetectedVerificationResult(signals.detected);
   return detectedResult ?? resolveSignalVerificationResult(input, signals);

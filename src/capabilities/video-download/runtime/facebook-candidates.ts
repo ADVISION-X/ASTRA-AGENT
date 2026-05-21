@@ -1,7 +1,7 @@
 import {
-  VideoDownloadCandidateSchema,
   type VideoDownloadCandidate,
 } from "../schema.js";
+import { videoDownloadCandidateSchema } from "./candidate-schema.js";
 
 type FacebookProbeResult = {
   pageUrl: string;
@@ -46,7 +46,7 @@ export const normalizeFacebookCandidates = (
   preferredQuality: "hd" | "sd" | "best_available",
 ): VideoDownloadCandidate[] => {
   const parsed = probe.candidates
-    .map((candidate) => VideoDownloadCandidateSchema.safeParse(candidate))
+    .map((candidate) => videoDownloadCandidateSchema.safeParse(candidate))
     .filter((result) => result.success)
     .map((result) => result.data)
     .filter((candidate) => candidate.url.includes(".mp4"));

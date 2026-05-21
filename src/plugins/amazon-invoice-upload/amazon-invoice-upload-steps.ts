@@ -1,4 +1,5 @@
-import { readDomSnapshotOnce, type DomElementRef } from "../../capabilities/dom-automation/index.js";
+import { readDomSnapshotOnce } from "../../capabilities/dom-automation/index.js";
+import type { DomElementRef } from "../../types/dom-automation.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { AMAZON_INVOICE_UPLOAD_DOM_HINTS } from "./amazon-dom-hints.js";

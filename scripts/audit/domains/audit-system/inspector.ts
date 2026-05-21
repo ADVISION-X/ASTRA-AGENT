@@ -29,33 +29,35 @@ const extractMarkdownHeadings = (text: string): ReadonlySet<string> =>
     [...text.matchAll(/^#{1,6}\s+(.+)$/gmu)].map((match) => normalizeAnchor(match[0] ?? match[1] ?? "")),
   );
 
-export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
-  const chainLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-001-V1");
-  const manifestLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-003-V1");
-  const artifactLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-004-V1");
-  const runnerLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-005-V1");
-  const blueprintLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-007-V1");
-  const metaLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-008-V1");
-  const findings = [];
-  const inspectedFiles = new Set<string>();
-
+const pushRequiredArtifactFindings = (
+  findings: ReturnType<typeof createFinding>[],
+  inspectedFiles: Set<string>,
+  artifactLawId: string,
+): void => {
   for (const artifactPath of requiredArtifacts) {
     inspectedFiles.add(artifactPath);
-    if (!fileHasContent(artifactPath)) {
-      findings.push(
-        createFinding({
-          checkId: "audit-system/generated-artifact",
-          lawId: artifactLawId,
-          filePath: artifactPath,
-          message: `${artifactPath} is missing or empty.`,
-        }),
-      );
+    if (fileHasContent(artifactPath)) {
+      continue;
     }
+    findings.push(
+      createFinding({
+        checkId: "audit-system/generated-artifact",
+        lawId: artifactLawId,
+        filePath: artifactPath,
+        message: `${artifactPath} is missing or empty.`,
+      }),
+    );
   }
+};
 
+const pushGeneratedPlanUniquenessFindings = (
+  findings: ReturnType<typeof createFinding>[],
+  manifestLawId: string,
+  generatedPlan: readonly InspectorContext["generatedPlan"][number][],
+): void => {
   const uniqueDomains = new Set<string>();
   const uniqueInspectors = new Set<string>();
-  for (const entry of context.generatedPlan) {
+  for (const entry of generatedPlan) {
     if (uniqueDomains.has(entry.capabilityDomain)) {
       findings.push(
         createFinding({
@@ -79,8 +81,15 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     }
     uniqueInspectors.add(entry.ownerInspectorPath);
   }
+};
 
-  for (const blueprintRef of context.planEntry.blueprintRefs) {
+const pushBlueprintAnchorFindings = (
+  findings: ReturnType<typeof createFinding>[],
+  inspectedFiles: Set<string>,
+  blueprintLawId: string,
+  blueprintRefs: ReadonlyArray<NonNullable<InspectorContext["planEntry"]["blueprintRefs"]>[number]>,
+): void => {
+  for (const blueprintRef of blueprintRefs) {
     inspectedFiles.add(blueprintRef.filePath);
     const blueprintText = readFileSync(resolveFromRepo(blueprintRef.filePath), "utf8");
     const headings = extractMarkdownHeadings(blueprintText);
@@ -98,67 +107,122 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
       );
     }
   }
+};
 
-  const codePurityReport = context.completedReports["code-purity"];
-  if (!codePurityReport || !fileHasContent(codePurityReport.reportPath)) {
+const pushCodePurityPrerequisiteFinding = (
+  findings: ReturnType<typeof createFinding>[],
+  metaLawId: string,
+  completedReports: InspectorContext["completedReports"],
+): void => {
+  const codePurityReport = completedReports["code-purity"];
+  if (codePurityReport && fileHasContent(codePurityReport.reportPath)) {
+    return;
+  }
+  findings.push(
+    createFinding({
+      checkId: "audit-system/code-purity-report",
+      lawId: metaLawId,
+      filePath: codePurityReport?.reportPath,
+      message: "CI-FULL did not produce a code-purity report before audit-system execution.",
+    }),
+  );
+};
+
+const findHardcodedLawLiteral = (sourceFile: NonNullable<ReturnType<InspectorContext["project"]["getSourceFile"]>>) =>
+  sourceFile
+    .getDescendantsOfKind(SyntaxKind.StringLiteral)
+    .find((literal) => literal.getLiteralValue().startsWith("APEX-"));
+
+const findHardcodedDomainArray = (
+  sourceFile: NonNullable<ReturnType<InspectorContext["project"]["getSourceFile"]>>,
+  knownDomains: ReadonlySet<string>,
+) =>
+  sourceFile.getDescendantsOfKind(SyntaxKind.ArrayLiteralExpression).find((arrayLiteral) => {
+    const elements = arrayLiteral.getElements();
+    return elements.length > 1 && elements.every((element) => Node.isStringLiteral(element) && knownDomains.has(element.getLiteralValue()));
+  });
+
+const pushMissingRunnerSourceFinding = (
+  findings: ReturnType<typeof createFinding>[],
+  chainLawId: string,
+  runnerFile: string,
+): void => {
+  findings.push(
+    createFinding({
+      checkId: "audit-system/runner-source",
+      lawId: chainLawId,
+      filePath: runnerFile,
+      message: `${runnerFile} is missing from the ts-morph project.`,
+    }),
+  );
+};
+
+const pushRunnerPolicyFindings = (
+  findings: ReturnType<typeof createFinding>[],
+  runnerLawId: string,
+  runnerFile: string,
+  sourceFile: NonNullable<ReturnType<InspectorContext["project"]["getSourceFile"]>>,
+  knownDomains: ReadonlySet<string>,
+): void => {
+  const hardcodedLawLiteral = findHardcodedLawLiteral(sourceFile);
+  if (hardcodedLawLiteral) {
     findings.push(
       createFinding({
-        checkId: "audit-system/code-purity-report",
-        lawId: metaLawId,
-        filePath: codePurityReport?.reportPath,
-        message: "CI-FULL did not produce a code-purity report before audit-system execution.",
+        checkId: "audit-system/runner-law-truth",
+        lawId: runnerLawId,
+        filePath: runnerFile,
+        message: `${runnerFile} hard-codes law literal ${hardcodedLawLiteral.getLiteralValue()}.`,
       }),
     );
   }
+  const hardcodedDomainArray = findHardcodedDomainArray(sourceFile, knownDomains);
+  if (!hardcodedDomainArray) {
+    return;
+  }
+  findings.push(
+    createFinding({
+      checkId: "audit-system/runner-order-truth",
+      lawId: runnerLawId,
+      filePath: runnerFile,
+      message: `${runnerFile} contains a hard-coded owner ordering array ${hardcodedDomainArray.getText()}.`,
+    }),
+  );
+};
 
+const pushRunnerTruthFindings = (
+  findings: ReturnType<typeof createFinding>[],
+  inspectedFiles: Set<string>,
+  chainLawId: string,
+  runnerLawId: string,
+  context: InspectorContext,
+): void => {
   const knownDomains = new Set(context.generatedPlan.map((entry) => entry.capabilityDomain));
   for (const runnerFile of runnerFiles) {
     inspectedFiles.add(runnerFile);
     const sourceFile = context.project.getSourceFile(resolveFromRepo(runnerFile));
     if (!sourceFile) {
-      findings.push(
-        createFinding({
-          checkId: "audit-system/runner-source",
-          lawId: chainLawId,
-          filePath: runnerFile,
-          message: `${runnerFile} is missing from the ts-morph project.`,
-        }),
-      );
+      pushMissingRunnerSourceFinding(findings, chainLawId, runnerFile);
       continue;
     }
-
-    const hardcodedLawLiteral = sourceFile
-      .getDescendantsOfKind(SyntaxKind.StringLiteral)
-      .find((literal) => literal.getLiteralValue().startsWith("APEX-"));
-    if (hardcodedLawLiteral) {
-      findings.push(
-        createFinding({
-          checkId: "audit-system/runner-law-truth",
-          lawId: runnerLawId,
-          filePath: runnerFile,
-          message: `${runnerFile} hard-codes law literal ${hardcodedLawLiteral.getLiteralValue()}.`,
-        }),
-      );
-    }
-
-    const hardcodedDomainArray = sourceFile.getDescendantsOfKind(SyntaxKind.ArrayLiteralExpression).find((arrayLiteral) => {
-      const elements = arrayLiteral.getElements();
-      return (
-        elements.length > 1 &&
-        elements.every((element) => Node.isStringLiteral(element) && knownDomains.has(element.getLiteralValue()))
-      );
-    });
-    if (hardcodedDomainArray) {
-      findings.push(
-        createFinding({
-          checkId: "audit-system/runner-order-truth",
-          lawId: runnerLawId,
-          filePath: runnerFile,
-          message: `${runnerFile} contains a hard-coded owner ordering array ${hardcodedDomainArray.getText()}.`,
-        }),
-      );
-    }
+    pushRunnerPolicyFindings(findings, runnerLawId, runnerFile, sourceFile, knownDomains);
   }
+};
+
+export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
+  const chainLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-001-V1");
+  const manifestLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-003-V1");
+  const artifactLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-004-V1");
+  const runnerLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-005-V1");
+  const blueprintLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-007-V1");
+  const metaLawId = selectLawId(context.planEntry.lawIds, "APEX-AUDIT-008-V1");
+  const findings: ReturnType<typeof createFinding>[] = [];
+  const inspectedFiles = new Set<string>();
+
+  pushRequiredArtifactFindings(findings, inspectedFiles, artifactLawId);
+  pushGeneratedPlanUniquenessFindings(findings, manifestLawId, context.generatedPlan);
+  pushBlueprintAnchorFindings(findings, inspectedFiles, blueprintLawId, context.planEntry.blueprintRefs ?? []);
+  pushCodePurityPrerequisiteFinding(findings, metaLawId, context.completedReports);
+  pushRunnerTruthFindings(findings, inspectedFiles, chainLawId, runnerLawId, context);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

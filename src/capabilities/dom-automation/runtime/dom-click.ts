@@ -1,6 +1,7 @@
 import type { BrowserController } from "../../../lib/browser/browser-controller.js";
-import { ClickDomElementInputSchema, DomElementRefSchema } from "../schema.js";
-import type { ClickDomElementInput, DomActionResult } from "../schema.js";
+import { DOM_SCHEMAS } from "../schema.js";
+import type { DomActionResult } from "../../../types/dom-automation.js";
+import type { ClickDomElementInput } from "../../../types/dom-automation-inputs.js";
 import {
   buildDomActionOutcome,
   buildDomFailureResult,
@@ -62,8 +63,8 @@ export async function clickDomElementOnce(
   browser: BrowserController,
   rawInput: ClickDomElementInput,
 ): Promise<DomActionResult> {
-  const input = ClickDomElementInputSchema.parse(rawInput) as ClickDomElementInput;
-  const elementRef = DomElementRefSchema.parse(input.elementRef) as ClickDomElementInput["elementRef"];
+  const input = DOM_SCHEMAS.ClickDomElementInput.parse(rawInput) as ClickDomElementInput;
+  const elementRef = DOM_SCHEMAS.DomElementRef.parse(input.elementRef) as ClickDomElementInput["elementRef"];
   if (DANGEROUS_TEXT.test(input.expectedText ?? input.expectedKind)) {
     return buildDomReviewRequiredResult(
       "dangerous DOM click requires human review",

@@ -46,6 +46,11 @@ const buildAmazonInvoiceHandle = (
   assembly: WorkbenchAssembly,
   dataDir: string,
 ) => ({
+  ...buildAmazonInvoiceMissionHandle(assembly),
+  ...buildAmazonInvoiceTaskHandle(assembly, dataDir),
+});
+
+const buildAmazonInvoiceMissionHandle = (assembly: WorkbenchAssembly) => ({
   async openAdminInvoicePage(input: Parameters<typeof openAmazonInvoiceAdminPage>[1]) {
     return openAmazonInvoiceAdminPage(assembly.browserController, input);
   },
@@ -54,6 +59,12 @@ const buildAmazonInvoiceHandle = (
   ) {
     return startAmazonInvoiceUploadMission(assembly.browserController, assembly.runtimeLogger, input);
   },
+});
+
+const buildAmazonInvoiceTaskHandle = (
+  assembly: WorkbenchAssembly,
+  dataDir: string,
+) => ({
   async startAmazonInvoiceUploadTask(input: Parameters<typeof startAmazonInvoiceUploadTask>[0]["task"]) {
     return startAmazonInvoiceUploadTask({
       browser: assembly.browserController,

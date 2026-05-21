@@ -1,9 +1,9 @@
 import {
   clickDomElementOnce,
-  locateDomElementResultOnce,
+  locateDomElementOnce,
   verifyDomStateOnce,
 } from "../../capabilities/dom-automation/index.js";
-import type { DomElementRef, DomSnapshot } from "../../capabilities/dom-automation/index.js";
+import type { DomElementRef, DomSnapshot } from "../../types/dom-automation.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
@@ -63,28 +63,22 @@ export function gatedResult(
 
 export function locateOrStatus(input: {
   snapshot: DomSnapshot;
-  targetKind: Parameters<typeof locateDomElementResultOnce>[0]["targetKind"];
+  targetKind: DomElementRef["targetKind"];
   hints: string[];
   requiredText?: string;
   notFoundStatus: AmazonInvoiceUploadStatus;
 }): { ok: true; element: DomElementRef } | { ok: false; status: AmazonInvoiceUploadStatus; reason: string } {
-  const result = locateDomElementResultOnce({
+  const element = locateDomElementOnce({
     snapshot: input.snapshot,
     targetKind: input.targetKind,
     hints: input.hints,
     ...(input.requiredText ? { requiredText: input.requiredText } : {}),
   });
-  if (result.ok) {
-    return {
-      ok: true,
-      element: result.elementRef,
-    };
+  if (element.elementRef.startsWith("dom:unresolved:")) {
+    const status = element.elementRef.endsWith(":ambiguous") ? "ambiguous" : input.notFoundStatus;
+    return { ok: false, status, reason: element.reason };
   }
-  return {
-    ok: false,
-    status: result.status === "ambiguous" ? "ambiguous" : input.notFoundStatus,
-    reason: result.reason,
-  };
+  return { ok: true, element };
 }
 
 export async function clickLocated(input: {

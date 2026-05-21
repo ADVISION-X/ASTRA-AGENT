@@ -5,8 +5,11 @@ import {
   isStructuredLogStdoutEnabled,
   resolveStructuredLogLevel,
 } from "./structured-log-terminal.js";
-import { createRuntimeLogger, setDefaultRuntimeLogger } from "../runtime-logs/logger.js";
-import type { RuntimeLogger } from "../runtime-logs/index.js";
+import {
+  createRuntimeLogger,
+  setDefaultRuntimeLogger,
+  type RuntimeLogger,
+} from "../runtime-logs/index.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import { createWorkbenchBrowserController } from "./workbench-browser-support.js";
 import { createWorkbenchEvidenceStore } from "./workbench-capability-support.js";

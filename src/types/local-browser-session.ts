@@ -58,21 +58,13 @@ type LocalBrowserSessionConfig = z.infer<typeof LocalBrowserSessionConfigSchema>
 type LocalBrowserSessionState = z.infer<typeof LocalBrowserSessionStateSchema>;
 
 export {
-  BrowserLoginStateSchema,
-  BrowserModeSchema,
-  BrowserProfileProvisioningSchema,
-  BrowserProfileStatusSchema,
-  BrowserProfileVerificationStatusSchema,
   LocalBrowserSessionConfigSchema,
   LocalBrowserSessionStateSchema,
 };
 
 export type {
-  BrowserLoginState,
-  BrowserMode,
   BrowserProfileProvisioning,
   BrowserProfileStatus,
-  BrowserProfileVerificationStatus,
   LocalBrowserSessionConfig,
   LocalBrowserSessionState,
 };

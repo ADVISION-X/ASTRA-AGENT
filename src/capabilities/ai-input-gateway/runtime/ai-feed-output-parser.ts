@@ -1,7 +1,5 @@
-import type {
-  AiFeedParseStatus,
-  AiFeedSchemaValidationStatus,
-} from "../schema.js";
+type AiFeedParseStatus = "json_valid" | "json_invalid" | "not_requested";
+type AiFeedSchemaValidationStatus = "valid" | "invalid" | "not_applicable";
 
 export type AiFeedParsedOutput = {
   normalizedText: string;
