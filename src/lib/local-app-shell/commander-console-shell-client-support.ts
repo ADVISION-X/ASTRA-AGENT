@@ -250,6 +250,9 @@ export const commanderConsoleShellClientSupport = `
     if (!userRequirementText) { throw new Error(text.requirementRequired); }
     const selectedPlatforms = formData.getAll("selectedPlatforms").map((value) => String(value).trim()).filter(Boolean);
     if (selectedPlatforms.length === 0) { throw new Error(text.platformRequired); }
+    const missionMode = String(formData.get("missionMode") || "pure_visual") === "dom_product_video" ? "dom_product_video" : "pure_visual";
+    const productVideoPageUrl = String(formData.get("productVideoPageUrl") || "").trim();
+    if (missionMode === "dom_product_video" && !productVideoPageUrl) { throw new Error(text.productVideoUrlRequired); }
     const maxRounds = resolvePositiveInteger(formData.get("maxRounds"));
     const maxMinutes = resolvePositiveInteger(formData.get("maxMinutes"));
     state.maxRounds = maxRounds || viewModel.appRunLimitSettings.defaultMaxRounds;
@@ -259,8 +262,10 @@ export const commanderConsoleShellClientSupport = `
     return {
       commandType: "start-mission",
       commandSource: "commander-console:start-form-submit",
+      missionMode,
       userRequirementText,
       selectedPlatforms,
+      productVideoPageUrl: productVideoPageUrl || null,
       historyEntryId: state.selectedHistoryEntryId,
       maxRounds: state.maxRounds,
       maxMinutes: state.maxMinutes

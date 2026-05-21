@@ -116,6 +116,25 @@ function renderPlatformSelector(viewModel: CommanderConsoleViewModel, t: Localiz
     </section>`;
 }
 
+function renderMissionModeSelector(t: Localize): string {
+  return `<section class="cc-start-platforms">
+      <div class="cc-section-copy">
+        <p class="cc-section-title">${escapeHtml(t("任务模式", "Mission Mode"))}</p>
+        <p class="cc-note">${escapeHtml(t("纯视觉走原单轮视觉闭环；DOM 模式用于真实页面种草视频挖掘。", "Pure Visual uses the original visual loop; DOM mode mines product videos on real pages."))}</p>
+      </div>
+      <div class="cc-platform-option-grid" data-mission-mode-selector>
+        <label class="cc-platform-option is-selected" data-mission-mode-option="pure_visual">
+          <input type="radio" name="missionMode" value="pure_visual" checked />
+          <div><strong>${escapeHtml(t("纯视觉", "Pure Visual"))}</strong><p>${escapeHtml(t("看图判断与动作规划", "Visual judgment and action planning"))}</p></div>
+        </label>
+        <label class="cc-platform-option" data-mission-mode-option="dom_product_video">
+          <input type="radio" name="missionMode" value="dom_product_video" />
+          <div><strong>${escapeHtml(t("DOM 模式", "DOM Mode"))}</strong><p>${escapeHtml(t("AI 判定种草视频，DOM 点赞、取评、下一条", "AI judges product videos; DOM likes, records comments, and advances"))}</p></div>
+        </label>
+      </div>
+    </section>`;
+}
+
 function renderRequirementField(viewModel: CommanderConsoleViewModel, t: Localize): string {
   return `<label class="cc-field cc-visual-mission-field">
       <span>${escapeHtml(t("用户需求", "User Requirement"))}</span>
@@ -126,6 +145,19 @@ function renderRequirementField(viewModel: CommanderConsoleViewModel, t: Localiz
         placeholder="${escapeHtml(t("例如：帮我在 Facebook 上挖掘种草产品，是产品视频就保存线索 + 点赞 + 下一条。", "Example: Find product-seeding videos on Facebook. If it is a product video, save the lead, like it, and move to the next video."))}"
       >${escapeHtml(viewModel.commandDraft.userRequirementText)}</textarea>
       <small class="cc-note">${escapeHtml(t("这里写目标，不写内部能力组名称。AI 会把自然动作映射到系统动作手册。", "Describe the goal here, not internal ability names. AI will map natural actions to the governed action manual."))}</small>
+    </label>`;
+}
+
+function renderProductVideoDomField(t: Localize): string {
+  return `<label class="cc-field cc-visual-mission-field">
+      <span>${escapeHtml(t("DOM 视频页面 URL", "DOM Video Page URL"))}</span>
+      <input
+        id="cc-product-video-page-url"
+        name="productVideoPageUrl"
+        type="url"
+        placeholder="https://www.facebook.com/reel/..."
+      />
+      <small class="cc-note">${escapeHtml(t("DOM 模式必须填写真实视频页 URL；系统会用本机 Chrome 登录态打开页面。", "DOM mode requires a real video URL; the system opens it with local Chrome login state."))}</small>
     </label>`;
 }
 
@@ -145,7 +177,7 @@ function renderRunLimits(viewModel: CommanderConsoleViewModel, t: Localize): str
 
 function renderActionDock(launchLocked: boolean, t: Localize): string {
   return `<div class="cc-start-action-dock">
-      <button type="submit" class="cc-button cc-button-primary cc-button-large"${launchLocked ? ' disabled="disabled"' : ""}>${escapeHtml(t("启动视觉任务", "Start Visual Mission"))}</button>
+      <button type="submit" class="cc-button cc-button-primary cc-button-large"${launchLocked ? ' disabled="disabled"' : ""}>${escapeHtml(t("启动任务", "Start Mission"))}</button>
       <div class="cc-inline-actions">
         <button type="button" class="cc-button cc-button-tight" data-nav-page="mission">${escapeHtml(t("查看运行页", "Open Mission"))}</button>
         <button type="button" class="cc-button cc-button-tight cc-button-danger" data-command-action="emergency-stop">${escapeHtml(t("急停", "Emergency"))}</button>
@@ -159,12 +191,14 @@ export function renderVisualMissionPromptLauncher(viewModel: CommanderConsoleVie
       <div class="cc-start-library">
         <div class="cc-start-library-header">
           <div class="cc-section-copy">
-            <p class="cc-section-title">${escapeHtml(t("视觉任务启动入口", "Visual Mission Launcher"))}</p>
-            <p class="cc-note">${escapeHtml(t("用户写目标，系统给动作手册，AI 负责理解与组装动作。", "The user writes the goal, the system provides the action manual, and AI composes the action plan."))}</p>
+            <p class="cc-section-title">${escapeHtml(t("任务启动入口", "Mission Launcher"))}</p>
+            <p class="cc-note">${escapeHtml(t("用户写目标，系统按模式走纯视觉或 DOM 种草视频链路。", "Write the goal; the system follows Pure Visual or DOM product-video mode."))}</p>
           </div>
           ${renderStatusPill(launchLocked ? t("运行中", "Busy") : t("可启动", "Ready"), launchLocked ? "attention" : "ok")}
         </div>
+        ${renderMissionModeSelector(t)}
         ${renderRequirementField(viewModel, t)}
+        ${renderProductVideoDomField(t)}
         ${renderPlatformSelector(viewModel, t)}
         ${renderRunLimits(viewModel, t)}
       </div>

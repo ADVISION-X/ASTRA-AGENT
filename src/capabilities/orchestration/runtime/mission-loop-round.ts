@@ -11,7 +11,7 @@ import { applyMissionStatus, getMissionState, setActiveMission, upsertMissionSta
 import { loadMuscleMemoryCatalog } from "../../../muscle-memory/catalog.js";
 
 type ValidPlatformId = "facebook-web" | "tiktok-web";
-type RoundResult = "continue" | "stop";
+export type RoundResult = "continue" | "stop";
 
 type RoundInput = {
   missionId: string;

@@ -29,6 +29,8 @@ import {
 type ForensicsSurface = OrchestrationChildrenContext["forensics"];
 
 type OrchestrationDeps = {
+  dataDir: string;
+  browserController: OrchestrationChildrenContext["browserController"];
   nerveBus: NerveBusAbilityGroup;
   forensics: ForensicsSurface;
   screenshot: ScreenshotAbilityGroup;
@@ -73,6 +75,8 @@ async function executeChild(
 const buildChildrenContext = (
   deps: OrchestrationDeps,
 ): OrchestrationChildrenContext => ({
+  dataDir: deps.dataDir,
+  browserController: deps.browserController,
   nerveBus: deps.nerveBus,
   forensics: deps.forensics,
   screenshotAbilityGroup: deps.screenshot,

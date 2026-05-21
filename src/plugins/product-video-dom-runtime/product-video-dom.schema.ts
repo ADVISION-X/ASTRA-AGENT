@@ -24,7 +24,7 @@ export const ProductVideoDomMissionInputSchema = z.object({
   platformId: z.string().min(1).max(80),
   pageUrl: z.string().url(),
   videoVisitId: z.string().min(1).max(120),
-  aiDecision: ProductVideoAiDecisionSchema,
+  aiDecision: ProductVideoAiDecisionSchema.optional(),
   aiDecisionReason: z.string().min(1).max(500).optional(),
   targetHints: z.object({
     likeButton: z.array(z.string().min(1)).min(1),

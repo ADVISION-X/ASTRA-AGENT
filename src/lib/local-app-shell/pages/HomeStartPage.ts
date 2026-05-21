@@ -37,8 +37,8 @@ export function renderHomeStartPage(viewModel: CommanderConsoleViewModel, appVie
     `<header class="cc-page-header cc-home-compact-header">
       <div>
         <span class="cc-home-workspace-label">${t("主工作区", "Main Workspace")}</span>
-        <h2>${t("视觉任务启动", "Visual Mission Start")}</h2>
-        <p>${t("首页只保留用户需求、平台选择、运行边界和最近历史。", "The home page keeps only user requirement input, platform selection, run bounds, and recent history.")}</p>
+        <h2>${t("任务启动", "Mission Start")}</h2>
+        <p>${t("首页选择纯视觉或 DOM 模式，再填写目标、平台、页面和运行边界。", "Choose Pure Visual or DOM mode, then provide goal, platform, page, and run bounds.")}</p>
       </div>
     </header>`,
     renderActionableErrorBanner(viewModel.locale, appViewModel.actionableErrors),

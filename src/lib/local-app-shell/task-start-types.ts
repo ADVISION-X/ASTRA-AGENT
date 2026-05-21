@@ -4,10 +4,14 @@ import type {
   UserRequirementSelectedPlatformId,
 } from "./task-start-binding-contract.js";
 
-export type StartVisualMissionBody = {
+export type MissionMode = "pure_visual" | "dom_product_video";
+
+export type StartMissionBody = {
   commandSource?: string;
+  missionMode?: MissionMode;
   userRequirementText: string;
   selectedPlatforms: UserRequirementSelectedPlatformId[];
+  productVideoPageUrl?: string | null;
   maxRounds?: number;
   maxMinutes?: number;
   historyEntryId?: string | null;
@@ -18,8 +22,10 @@ export type StartDraft = {
   traceId: string;
   attemptId: string;
   commandSource: string;
+  missionMode: MissionMode;
   userRequirementText: string;
   selectedPlatforms: UserRequirementSelectedPlatformId[];
+  productVideoPageUrl: string | null;
   historyEntryId: string | null;
   requestedPlatformId: RequestedPlatformId | null;
   maxRounds: number | undefined;

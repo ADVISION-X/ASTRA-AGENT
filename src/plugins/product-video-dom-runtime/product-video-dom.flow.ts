@@ -7,6 +7,7 @@ import {
 } from "../../capabilities/dom-automation/index.js";
 import type { DomActionResult, DomSnapshot } from "../../capabilities/dom-automation/index.js";
 import { extractProductVideoComments } from "./product-video-comment-extractor.js";
+import { judgeProductVideoFromDomFacts } from "./product-video-dom-judge.js";
 import { buildProductVideoEvidencePacket } from "./product-video-evidence-packet.js";
 import type { ProductVideoDomMissionInput, ProductVideoDomTaskRecord } from "./product-video-dom.schema.js";
 import {
@@ -28,6 +29,8 @@ type ProductVideoFlowInput = {
 };
 type ProductVideoActionResult = {
   firstSnapshot: DomSnapshot;
+  aiDecision: NonNullable<ProductVideoDomMissionInput["aiDecision"]>;
+  aiDecisionReason: string;
   likeResult: DomActionResult;
   commentsButtonResult: DomActionResult;
   commentsSnapshot: DomSnapshot;
@@ -103,25 +106,44 @@ const openProductVideoPage = async (
   return await assertPageReady(firstSnapshot) ?? firstSnapshot;
 };
 
-const handleAiDecision = (mission: ProductVideoDomMissionInput): ProductVideoFlowResult | null => {
-  if (mission.aiDecision === "review_required") {
+const handleAiDecision = (
+  aiDecision: ProductVideoActionResult["aiDecision"],
+  aiDecisionReason: string,
+): ProductVideoFlowResult | null => {
+  if (aiDecision === "review_required") {
     return reviewResult("AI decision requested human review.", "ai decision");
   }
-  if (mission.aiDecision === "not_product_seed") {
-    return {
-      status: "not_product_seed",
-      ok: true,
-      reason: "AI decision says this is not a product-seeding video.",
-      reachedStep: "ai decision",
-      evidenceRefs: [],
-    };
-  }
+  if (aiDecision === "not_product_seed") return reviewResult(aiDecisionReason, "ai decision");
   return null;
+};
+
+const advanceNonProductVideo = async (
+  input: ProductVideoFlowInput,
+  snapshot: DomSnapshot,
+  reason: string,
+): Promise<ProductVideoFlowResult> => {
+  const nextButtonResult = await clickRequiredButton({
+    browser: input.browser,
+    snapshot,
+    hints: input.mission.targetHints.nextVideoButton,
+    expectedKind: "next product video button",
+    reachedStep: "advance next non-product video",
+  });
+  if (isFlowResult(nextButtonResult)) return nextButtonResult;
+  return {
+    status: "advanced_to_next_video",
+    ok: true,
+    reason,
+    reachedStep: "next non-product video opened",
+    evidenceRefs: evidenceRefsFrom(nextButtonResult),
+  };
 };
 
 const performProductVideoActions = async (
   input: ProductVideoFlowInput,
   firstSnapshot: DomSnapshot,
+  aiDecision: NonNullable<ProductVideoDomMissionInput["aiDecision"]>,
+  aiDecisionReason: string,
 ): Promise<ProductVideoActionResult | ProductVideoFlowResult> => {
   const likeResult = await clickRequiredButton({
     browser: input.browser,
@@ -144,6 +166,8 @@ const performProductVideoActions = async (
 
   return {
     firstSnapshot,
+    aiDecision,
+    aiDecisionReason,
     likeResult,
     commentsButtonResult,
     commentsSnapshot: await readDomSnapshotOnce(input.browser, READ_INPUT),
@@ -159,6 +183,8 @@ const persistCommentsAndAdvance = async (
     mission: input.mission,
     snapshot: action.commentsSnapshot,
     comments,
+    aiDecision: action.aiDecision,
+    aiDecisionReason: action.aiDecisionReason,
     liked: true,
     evidenceRefs: evidenceRefsFrom(action.likeResult, action.commentsButtonResult),
   });
@@ -184,11 +210,15 @@ const persistCommentsAndAdvance = async (
 };
 
 export const runProductVideoDomMining = async (input: ProductVideoFlowInput): Promise<ProductVideoFlowResult> => {
-  const aiDecisionResult = handleAiDecision(input.mission);
-  if (aiDecisionResult) return aiDecisionResult;
   const pageReadiness = await openProductVideoPage(input);
   if (isFlowResult(pageReadiness)) return pageReadiness;
-  const action = await performProductVideoActions(input, pageReadiness);
+  const ai = await judgeProductVideoFromDomFacts({ dataDir: input.dataDir, mission: input.mission, snapshot: pageReadiness });
+  if (ai.aiDecision === "not_product_seed") {
+    return advanceNonProductVideo(input, pageReadiness, ai.aiDecisionReason);
+  }
+  const aiDecisionResult = handleAiDecision(ai.aiDecision, ai.aiDecisionReason);
+  if (aiDecisionResult) return aiDecisionResult;
+  const action = await performProductVideoActions(input, pageReadiness, ai.aiDecision, ai.aiDecisionReason);
   return isFlowResult(action) ? action : persistCommentsAndAdvance(input, action);
 };
 

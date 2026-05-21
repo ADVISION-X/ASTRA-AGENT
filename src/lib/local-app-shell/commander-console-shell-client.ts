@@ -28,6 +28,7 @@ export const commanderConsoleShellClient = `(function () {
     exportUnavailable: locale === "zh" ? "当前构建未开放导出请求" : "Export requests are unavailable in this build",
     requirementRequired: locale === "zh" ? "请先填写用户需求" : "Provide a user requirement first",
     platformRequired: locale === "zh" ? "至少选择一个平台" : "Select at least one platform",
+    productVideoUrlRequired: locale === "zh" ? "DOM 模式请填写真实视频页面 URL" : "Provide a real video page URL for DOM mode",
     historyReused: locale === "zh" ? "已填充历史需求" : "Requirement history loaded",
     historyDeleted: locale === "zh" ? "历史需求已删除" : "Requirement history deleted",
     copied: locale === "zh" ? "检查详情已复制" : "Inspect detail copied",

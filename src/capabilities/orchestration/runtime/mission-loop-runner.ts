@@ -10,6 +10,7 @@ import {
 import { checkLoopGuardBeforeRound, checkLoopGuardAfterRound } from "./loop-guard.js";
 import { loadMuscleMemoryCatalog } from "../../../muscle-memory/catalog.js";
 import { runMissionRound } from "./mission-loop-round.js";
+import { runProductVideoDomRound } from "./product-video-dom-round.js";
 
 const roundDelayMs = 2500;
 
@@ -30,7 +31,9 @@ export async function runMissionRoundLoop(
     const runId = state.activeRunId ?? state.runId;
     const roundId = randomUUID();
     const sessionId = "local";
-    const roundResult = await runMissionRound({ missionId, runId, roundId, sessionId, state, ctx, catalog });
+    const roundResult = state.missionMode === "dom_product_video"
+      ? await runProductVideoDomRound({ missionId, runId, roundId, state, ctx })
+      : await runMissionRound({ missionId, runId, roundId, sessionId, state, ctx, catalog });
     if (roundResult === "stop") return;
     const stateAfter = getMissionState(missionId);
     const guardAfter = checkLoopGuardAfterRound(stateAfter);

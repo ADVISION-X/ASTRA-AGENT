@@ -39,6 +39,7 @@ export function createInitialMissionState(params: {
   selectedPlatforms: string[];
   maxRounds?: number | null;
   maxMinutes?: number | null;
+  missionMode?: MissionState["missionMode"];
   targetProfileRef?: string | null;
   targetUrl?: string | null;
   targetTitle?: string | null;
@@ -47,6 +48,7 @@ export function createInitialMissionState(params: {
     missionId: params.missionId,
     runId: params.runId,
     humanGoal: params.humanGoal,
+    missionMode: params.missionMode ?? "pure_visual",
     requestedPlatform: params.requestedPlatform,
     selectedPlatforms: params.selectedPlatforms,
     maxRounds: params.maxRounds ?? null,

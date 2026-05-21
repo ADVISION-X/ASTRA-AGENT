@@ -23,16 +23,21 @@ import {
 } from "./task-start-support.js";
 import { recordTaskStartDebugEvent } from "./task-start-debug-writer.js";
 import { writeTaskStartDispatchResult } from "./task-start-dispatch-result.js";
-import type { StartApproval, StartCommandResult, StartDraft, StartVisualMissionBody } from "./task-start-types.js";
+import type { MissionMode, StartApproval, StartCommandResult, StartDraft, StartMissionBody } from "./task-start-types.js";
+
+const normalizeMissionMode = (value: MissionMode | undefined): MissionMode =>
+  value === "dom_product_video" ? "dom_product_video" : "pure_visual";
 
 const buildStartDraft = async (request: IncomingMessage): Promise<StartDraft> => {
-  const body = await parseTaskJsonBody(request) as StartVisualMissionBody;
+  const body = await parseTaskJsonBody(request) as StartMissionBody;
   return {
     traceId: createId("trace"),
     attemptId: createId("attempt"),
     commandSource: body.commandSource?.trim() || "task-api:http-post",
+    missionMode: normalizeMissionMode(body.missionMode),
     userRequirementText: body.userRequirementText?.trim() || "",
     selectedPlatforms: normalizeSelectedPlatforms(body.selectedPlatforms),
+    productVideoPageUrl: body.productVideoPageUrl?.trim() || null,
     historyEntryId: body.historyEntryId?.trim() || null,
     requestedPlatformId: null,
     maxRounds: normalizePositiveInteger(body.maxRounds),
@@ -64,6 +69,12 @@ const buildApproval = (
 
 const buildStartMissionInput = (approval: StartApproval) => {
   const platformProfiles = resolvePlatformProfiles(approval.selectedPlatforms);
+  const targetUrl = approval.missionMode === "dom_product_video" && approval.productVideoPageUrl
+    ? approval.productVideoPageUrl
+    : approval.binding.targetUrl;
+  const targetTitle = approval.missionMode === "dom_product_video"
+    ? "DOM Product Video"
+    : approval.binding.targetTitle;
 
   return {
     userRequirementText: approval.userRequirementText,
@@ -75,14 +86,16 @@ const buildStartMissionInput = (approval: StartApproval) => {
     initialPayload: {
       kind: "start-mission" as const,
       requestedBy: "commander-console" as const,
+      missionMode: approval.missionMode,
+      runtimeMode: approval.missionMode,
       requestedPlatformId: approval.binding.requestedPlatformId,
       selectedPlatforms: approval.selectedPlatforms,
       primaryPlatformId: approval.binding.requestedPlatformId,
       platformProfiles,
       userRequirementRef: approval.binding.userRequirementRef,
       historyEntryId: approval.historyEntryId,
-      targetUrl: approval.binding.targetUrl,
-      targetTitle: approval.binding.targetTitle,
+      targetUrl,
+      targetTitle,
       targetProfileRef: approval.binding.targetProfileRef,
       ...(approval.userRequirementText ? { humanGoal: approval.userRequirementText } : {}),
       ...(approval.maxRounds ? { maxRounds: approval.maxRounds } : {}),
@@ -131,12 +144,15 @@ const getApprovedTaskStartPreflight = async (
   activeWorkbench: GrassEyeWorkbenchHandle,
   approval: StartApproval,
 ) => {
+  const targetUrl = approval.missionMode === "dom_product_video" && approval.productVideoPageUrl
+    ? approval.productVideoPageUrl
+    : approval.binding.targetUrl;
   await recordTaskStartPreflightStart(activeWorkbench, approval);
   const preflight = await activeWorkbench.getMissionStartPreflight({
     requestedPlatformId: approval.binding.requestedPlatformId,
     targetProfileRef: approval.binding.targetProfileRef,
-    targetUrl: approval.binding.targetUrl,
-    targetTitle: approval.binding.targetTitle,
+    targetUrl,
+    targetTitle: approval.missionMode === "dom_product_video" ? "DOM Product Video" : approval.binding.targetTitle,
     userRequirementRef: approval.binding.userRequirementRef,
   });
   await recordTaskStartLocalAiReadiness(activeWorkbench, approval, preflight.components.find((component) => component.name === "localAi"));

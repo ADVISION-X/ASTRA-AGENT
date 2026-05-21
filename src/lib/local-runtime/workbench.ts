@@ -98,6 +98,8 @@ const createWorkbenchOrchestration = (
   nerveBus: NerveBusAbilityGroup,
 ): OrchestrationAbilityGroup =>
   createOrchestrationAbilityGroup({
+    dataDir: assembly.dataDir,
+    browserController: assembly.browserController,
     nerveBus,
     forensics: assembly.forensicsPersistenceAbilityGroup,
     screenshot: assembly.screenshotAbilityGroup,

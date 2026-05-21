@@ -58,6 +58,10 @@ const buildRunningMissionState = (
     selectedPlatforms: cmd.selectedPlatforms ?? [],
     maxRounds: cmd.maxRounds ?? null,
     maxMinutes: cmd.maxMinutes ?? null,
+    missionMode:
+      cmd.initialPayload?.["missionMode"] === "dom_product_video"
+        ? "dom_product_video"
+        : "pure_visual",
     targetProfileRef:
       (cmd.initialPayload?.["targetProfileRef"] as string | null | undefined)
       ?? null,

@@ -85,6 +85,14 @@ export const commanderConsoleShellClientEvents = `  document.addEventListener("c
       syncPlatformUi();
       return;
     }
+    if (target instanceof HTMLInputElement && target.name === "missionMode") {
+      document.querySelectorAll("[data-mission-mode-option]").forEach((card) => {
+        if (card instanceof HTMLElement) {
+          card.classList.toggle("is-selected", card.getAttribute("data-mission-mode-option") === target.value);
+        }
+      });
+      return;
+    }
     if (target instanceof HTMLInputElement && target.id === "cc-max-rounds") { state.maxRounds = Number(target.value || state.maxRounds); return; }
     if (target instanceof HTMLInputElement && target.id === "cc-max-minutes") { state.maxMinutes = Number(target.value || state.maxMinutes); return; }
     if (target instanceof HTMLSelectElement && target.matches("[data-settings-locale-select]")) {

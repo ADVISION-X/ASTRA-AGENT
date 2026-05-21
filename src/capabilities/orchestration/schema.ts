@@ -41,6 +41,8 @@ export const MissionStatusSchema = z.enum([
   "stopped",
 ]);
 
+export const MissionModeSchema = z.enum(["pure_visual", "dom_product_video"]);
+
 // --- Last human command ---
 
 export const MissionLastHumanCommandSchema = z.enum([
@@ -58,6 +60,7 @@ export const MissionStateSchema = z.object({
   runId: z.string().min(1),
   sessionId: z.string().min(1).nullable().optional().default(null),
   status: MissionStatusSchema,
+  missionMode: MissionModeSchema.optional().default("pure_visual"),
   humanGoal: z.string().nullable().optional().default(null),
   requestedPlatform: OrchestrationRequestedPlatformIdSchema.nullable().optional().default(null),
   selectedPlatforms: z.array(z.string()).default([]),
@@ -98,6 +101,8 @@ export const MissionCommandSchema = z.object({
   initialPayload: z.object({
     requestedBy: z.string().min(1),
     userRequirementRef: z.string().min(1).nullable().optional().default(null),
+    missionMode: MissionModeSchema.optional().default("pure_visual"),
+    runtimeMode: MissionModeSchema.optional().default("pure_visual"),
     primaryPlatformId: z.string().min(1).nullable().optional().default(null),
     selectedPlatforms: z.array(z.string()).optional().default([]),
     operatorNote: z.string().min(1).nullable().optional().default(null),

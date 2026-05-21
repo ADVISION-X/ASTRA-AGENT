@@ -15,6 +15,15 @@ export {
   startProductVideoDomTask,
 } from "./product-video-dom.flow.js";
 export {
+  judgeProductVideoFromDomFacts,
+  type ProductVideoDomJudgeResult,
+} from "./product-video-dom-judge.js";
+export {
+  PRODUCT_VIDEO_JUDGE_PROMPT_CONTRACT_ID,
+  ProductVideoJudgeOutputSchema,
+  type ProductVideoJudgeOutput,
+} from "./product-video-judge.contract.js";
+export {
   getProductVideoDomTaskStatus,
   startProductVideoDomMiningTask,
 } from "./product-video-task-service.js";

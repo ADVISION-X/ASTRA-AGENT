@@ -19,6 +19,8 @@ export const buildProductVideoEvidencePacket = (input: {
   mission: ProductVideoDomMissionInput;
   snapshot: DomSnapshot;
   comments: ProductVideoComment[];
+  aiDecision: NonNullable<ProductVideoDomMissionInput["aiDecision"]>;
+  aiDecisionReason: string;
   liked: boolean;
   evidenceRefs: string[];
 }): ProductVideoEvidencePacket => ({
@@ -34,8 +36,8 @@ export const buildProductVideoEvidencePacket = (input: {
   productSignals: extractProductVideoProductSignals(input.snapshot),
   commentCountText: extractCommentCountText(input.snapshot),
   comments: input.comments,
-  aiDecision: input.mission.aiDecision,
-  aiDecisionReason: input.mission.aiDecisionReason,
+  aiDecision: input.aiDecision,
+  aiDecisionReason: input.aiDecisionReason,
   liked: input.liked,
   nextActionHint: "next-video",
   evidenceRefs: input.evidenceRefs,
