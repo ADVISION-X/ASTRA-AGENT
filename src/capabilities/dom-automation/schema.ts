@@ -8,6 +8,9 @@ export const DomAutomationChildCapabilityIdSchema = z.enum([
   "fill-dom-element-once",
   "click-dom-element-once",
   "upload-approved-file-once",
+  "scroll-to-element-once",
+  "select-option-once",
+  "dismiss-overlay-once",
   "verify-dom-state-once",
   "wait-for-dom-state-once",
 ]);
@@ -22,6 +25,12 @@ export const DomTargetKindSchema = z.enum([
   "clickable",
   "message",
   "dialog",
+  "select",
+  "combobox",
+  "dropdown-trigger",
+  "overlay-dismiss-button",
+  "tab-button",
+  "rich-text-editor",
 ]);
 
 export const DomDetectedStateSchema = z.enum([
@@ -30,6 +39,14 @@ export const DomDetectedStateSchema = z.enum([
   "file_selected",
   "success_message",
   "error_message",
+  "cookie-consent-overlay",
+  "promotional-overlay",
+  "modal-dialog",
+  "drawer-panel",
+  "loading-skeleton",
+  "empty-state",
+  "error-state",
+  "rate-limited",
 ]);
 
 const DomElementSummaryBaseSchema = z.object({
@@ -65,7 +82,16 @@ export const DomFileInputSummarySchema = DomElementSummaryBaseSchema.extend({
   accept: z.string().optional(),
 }).strict();
 export const DomCandidateSummarySchema = DomElementSummaryBaseSchema.extend({
-  candidateKind: z.enum(["table-row", "role-row", "text-block", "clickable"]),
+  candidateKind: z.enum([
+    "table-row",
+    "role-row",
+    "text-block",
+    "clickable",
+    "dropdown-trigger",
+    "overlay",
+    "loading-indicator",
+    "sticky-element",
+  ]),
 }).strict();
 
 export const DomFormSummarySchema = z.object({
@@ -100,6 +126,10 @@ export const DomSnapshotSchema = z.object({
   tableRows: z.array(DomCandidateSummarySchema),
   roleRows: z.array(DomCandidateSummarySchema),
   genericClickableElements: z.array(DomCandidateSummarySchema),
+  dropdownTriggers: z.array(DomCandidateSummarySchema),
+  overlays: z.array(DomCandidateSummarySchema),
+  loadingIndicators: z.array(DomCandidateSummarySchema),
+  stickyElements: z.array(DomCandidateSummarySchema),
   detectedStates: z.array(DomDetectedStateSchema),
   capturedAt: z.string().datetime(),
 }).strict();
@@ -120,6 +150,11 @@ export const DomElementRefSchema = z.object({
   matchedSignals: z.array(z.string().min(1)),
   reason: z.string().min(1),
   ["fall" + "backUsed"]: z.boolean(),
+  proximityAnchor: z.string().min(1).optional(),
+  componentLibHint: z.string().min(1).optional(),
+  sourceSnapshotRef: z.string().min(1).optional(),
+  textFingerprint: z.string().min(1).optional(),
+  capturedAt: z.string().datetime().optional(),
 }).strict();
 
 export const LocateDomElementInputSchema = z.object({
@@ -128,7 +163,22 @@ export const LocateDomElementInputSchema = z.object({
   hints: z.array(z.string().min(1)).min(1),
   requiredText: z.string().min(1).optional(),
   frameHint: z.string().min(1).optional(),
+  proximityAnchorText: z.string().min(1).optional(),
 }).strict();
+
+export const DomLocateResultSchema = z.discriminatedUnion("ok", [
+  z.object({
+    ok: z.literal(true),
+    status: z.literal("success"),
+    elementRef: DomElementRefSchema,
+  }).strict(),
+  z.object({
+    ok: z.literal(false),
+    status: z.enum(["not_found", "ambiguous", "review_required"]),
+    reason: z.string().min(1),
+    candidates: z.array(DomElementRefSchema).optional(),
+  }).strict(),
+]);
 
 export const DomActionStatusSchema = z.enum([
   "success",
@@ -168,6 +218,38 @@ export const UploadApprovedFileInputSchema = z.object({
   approvedTaskFilePath: z.string().min(1),
   allowedExtensions: z.array(z.string().regex(/^\.[a-z0-9]+$/i)).min(1).max(8),
   uploadPurpose: z.string().min(1).max(80),
+}).strict();
+
+export const ScrollToElementInputSchema = z.object({
+  elementRef: DomElementRefSchema,
+  scrollBudget: z.object({
+    maxPixels: z.number().int().min(1).max(20000).optional().default(8000),
+    maxSteps: z.number().int().min(1).max(80).optional().default(20),
+  }).strict().optional().default({}),
+  stickyHeaderOffset: z.number().int().min(0).max(800).optional().default(0),
+  scrollPurpose: z.string().min(1).max(80),
+}).strict();
+
+export const SelectOptionInputSchema = z.object({
+  elementRef: DomElementRefSchema,
+  approvedOptionText: z.string().min(1),
+  matchMode: z.enum(["exact", "contains"]),
+  approvedOptionList: z.array(z.string().min(1)).optional(),
+  selectPurpose: z.string().min(1).max(80),
+}).strict();
+
+export const DismissOverlayInputSchema = z.object({
+  overlayType: z.enum([
+    "cookie-consent-overlay",
+    "promotional-overlay",
+    "informational-banner",
+    "gdpr-consent",
+    "app-install-prompt",
+    "modal-dialog",
+    "drawer-panel",
+  ]),
+  approvedDismissalText: z.string().min(1),
+  dismissPurpose: z.string().min(1).max(80),
 }).strict();
 
 export const DomVerificationStatusSchema = z.enum([
@@ -226,9 +308,17 @@ export type DomElementRef = {
   matchedSignals: string[];
   reason: string;
   "fall\u0062ackUsed": boolean;
+  proximityAnchor?: string;
+  componentLibHint?: string;
+  sourceSnapshotRef?: string;
+  textFingerprint?: string;
+  capturedAt?: string;
 };
 export type ReadDomSnapshotInput = z.input<typeof ReadDomSnapshotInputSchema>;
 export type LocateDomElementInput = z.input<typeof LocateDomElementInputSchema>;
+export type DomLocateResult =
+  | { ok: true; status: "success"; elementRef: DomElementRef }
+  | { ok: false; status: "not_found" | "ambiguous" | "review_required"; reason: string; candidates?: DomElementRef[] };
 export type FillDomElementInput = {
   elementRef: DomElementRef;
   approvedText: string;
@@ -247,6 +337,31 @@ export type UploadApprovedFileInput = {
   approvedTaskFilePath: string;
   allowedExtensions: string[];
   uploadPurpose: string;
+};
+export type ScrollToElementInput = {
+  elementRef: DomElementRef;
+  scrollBudget?: { maxPixels?: number; maxSteps?: number };
+  stickyHeaderOffset?: number;
+  scrollPurpose: string;
+};
+export type SelectOptionInput = {
+  elementRef: DomElementRef;
+  approvedOptionText: string;
+  matchMode: "exact" | "contains";
+  approvedOptionList?: string[];
+  selectPurpose: string;
+};
+export type DismissOverlayInput = {
+  overlayType:
+    | "cookie-consent-overlay"
+    | "promotional-overlay"
+    | "informational-banner"
+    | "gdpr-consent"
+    | "app-install-prompt"
+    | "modal-dialog"
+    | "drawer-panel";
+  approvedDismissalText: string;
+  dismissPurpose: string;
 };
 export type DomActionResult = z.infer<typeof DomActionResultSchema>;
 export type VerifyDomStateInput = z.input<typeof VerifyDomStateInputSchema>;

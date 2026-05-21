@@ -1,9 +1,9 @@
 # GrassEye DOM 自动化生产稳定态施工图
 
 status: active
-version: 2026-05-21
+version: 2026-05-21-v2
 对应法案: `.github/instructions/agent-rules/modules/module-dom-automation.instructions.md`
-施工目标: 将 DOM Automation 从 MVP 子能力集合推进到生产级稳定态能力组。
+施工目标: 将 DOM Automation 从 MVP 子能力集合推进到生产级稳定态能力组，覆盖市面上大多数网页的识别与操作需求。
 
 ---
 
@@ -14,7 +14,7 @@ DOM Automation 是 GrassEye 的浏览器页面动作能力组。
 它负责把“页面结构”变成可操作、可验证、可审计的原子动作：
 
 ```txt
-read snapshot -> locate element -> fill/click/upload -> wait/verify -> return evidence-backed result
+read snapshot -> locate element -> scroll (if needed) -> fill / click / upload / select / dismiss-overlay -> wait/verify -> return evidence-backed result
 ```
 
 它不负责：
@@ -90,6 +90,9 @@ src/capabilities/dom-automation/
     dom-upload.ts
     dom-wait.ts
     dom-verify.ts
+    dom-scroll.ts              # 新增: 滚动到元素子能力
+    dom-select.ts              # 新增: 下拉选择子能力（原生 + 自定义）
+    dom-dismiss-overlay.ts     # 新增: 遮层消除子能力
   tests/
     dom-snapshot.fixture.ts
     dom-locator.fixture.ts
@@ -130,19 +133,22 @@ src/lib/dom/**
 
 ## 4. 法定子能力清单
 
-DOM 能力组只允许 7 个 child ability:
+DOM 能力组允许 **10 个** child ability（法案 v2 新增 scroll、select、dismiss-overlay）:
 
 | 子能力 | 输入 | 输出 | 生产级关键点 |
 |---|---|---|---|
-| `read-dom-snapshot-once` | browser + snapshot input | `DomSnapshot` | privacy-safe, clipped, schema-validated |
-| `locate-dom-element-once` | snapshot + target kind + hints | locate result / element ref | semantic scoring, ambiguity handling |
+| `read-dom-snapshot-once` | browser + snapshot input | `DomSnapshot` | privacy-safe, clipped, schema-validated, SPA 水合感知 |
+| `locate-dom-element-once` | snapshot + target kind + hints | locate result / element ref | semantic scoring, 近邻定位, 组件库模式, CJK 文本 |
 | `fill-dom-element-once` | browser + approved text + element ref | `DomActionResult` | writable revalidation, before/after evidence |
 | `click-dom-element-once` | browser + expected kind/text + element ref | `DomActionResult` | DOM-first, coordinate as transport only |
 | `upload-approved-file-once` | browser + approved file + file input ref | `DomActionResult` | path approval, file input only, no content leak |
 | `wait-for-dom-state-once` | browser + expected states | `DomVerificationResult` | polling, timeout truth |
 | `verify-dom-state-once` | snapshot + expected states | `DomVerificationResult` | observed page state, not business fiction |
+| `scroll-to-element-once` | browser + element ref + scroll budget | `DomActionResult` | viewport revalidation, sticky-header offset, 不得无限循环 |
+| `select-option-once` | browser + element ref + approved option text + match mode | `DomActionResult` | 原生 select + 自定义下拉, open/close 闭环, 选值校验 |
+| `dismiss-overlay-once` | browser + overlay type + approved dismissal text | `DomActionResult` | safe-type allowlist, 认证/确认对话框禁止消除 |
 
-新增子能力协议:
+新增子能力协议（每次新增必须按顺序走）:
 
 ```txt
 1. 先改 DOM 法案。
@@ -274,8 +280,27 @@ type ReadDomSnapshotInput = {
 - tableRows
 - roleRows
 - genericClickableElements
+- dropdownTriggers           ← 新增: combobox / aria-haspopup 控件
+- overlays                  ← 新增: 当前可见遮层列表
+- loadingIndicators         ← 新增: skeleton / spinner 状态
+- stickyElements            ← 新增: fixed / sticky 定位元素（影响滚动计算）
 - detectedStates
 - capturedAt
+
+`detectedStates` 必须能表达的状态（新增）:
+
+```txt
+cookie-consent-overlay      # Cookie / GDPR 同意横幅
+promotional-overlay         # 营销弹窗
+modal-dialog                # 通用对话框（purpose 未知时禁止自动消除）
+drawer-panel                # 侧边抽屉
+loading-skeleton            # 骨架屏 / 加载占位
+empty-state                 # 数据空状态
+error-state                 # 错误提示状态
+rate-limited                # 请求被限流
+login_required              # （原有，优先级最高）
+captcha_or_2fa_required     # （原有，优先级最高）
+```
 
 生产级规则:
 
@@ -288,6 +313,31 @@ type ReadDomSnapshotInput = {
 - file input 可以记录 hidden 状态，因为真实后台常用隐藏 file input。
 - `includeFrames` 只代表 frame metadata；跨域 frame 内容不能假装已读取。
 
+**SPA / 动态内容规则:**
+
+- React / Vue / Angular / Svelte 水合后 DOM 才算可读内容；水合前的占位不能报告为真实元素。
+- 懒加载内容未进入 DOM 时不得报告为存在。
+- 虚拟滚动容器只报告容器本身和当前可见行数，不伪造屏外行。
+- 页面仍在加载时，`detectedStates` 必须含 `loading-skeleton` 或返回明确的可观测状态。
+
+**自定义组件识别规则:**
+
+- Ant Design / Element Plus / Arco Design / Naive UI / Bootstrap / Material UI 中的交互控件必须以语义 role（`combobox`、`tab`、`dialog`、`textbox` 等）记录进快照。
+- 自定义下拉触发器（`role=combobox`、`aria-haspopup`、`aria-expanded`）进入 `dropdownTriggers`。
+- Tab 面板、Accordion 开关、日期选择器、富文本编辑器、滑块记录到 `genericClickableElements` 并标注 semantic role。
+- 作为行操作的表格单元格记录到 `genericClickableElements`。
+
+**遮层感知规则:**
+
+- 活跃遮层记录到 `overlays`，同时在 `detectedStates` 中标注类型。
+- 最上层可交互层必须明确；被遮层挡住的子层标注为 obscured。
+- GDPR / Cookie 固定横幅不得静默忽略。
+
+**多语言规则:**
+
+- CJK（中文、日文、韩文）文本不得因字符集截断而产生乱码。
+- placeholder 和 accessible name 的中文文本必须完整提取。
+
 验收:
 
 ```txt
@@ -295,6 +345,11 @@ type ReadDomSnapshotInput = {
 登录页能识别 login_required。
 验证码页能识别 captcha_or_2fa_required。
 包含 password 的页面不会输出 password value。
+React SPA 页面水合后能正确读取动态渲染的 input / button。
+含 Cookie 横幅的页面 detectedStates 包含 cookie-consent-overlay。
+含 Ant Design Select 的页面 dropdownTriggers 不为空。
+骨架屏状态下 detectedStates 包含 loading-skeleton。
+含中文 placeholder 的 input 能正确提取 placeholder 文本。
 ```
 
 ---
@@ -313,11 +368,21 @@ src/capabilities/dom-automation/runtime/dom-locator.ts
 2. aria-label
 3. label relation
 4. placeholder
-5. visible text
+5. visible text（含 CJK 文本子串匹配）
 6. exact id / name
 7. data-testid / data-automation-id
 8. semantic target kind
-9. selector fallback
+9. 近邻定位（proximity anchor）
+10. selector fallback
+
+新增 target kind:
+
+```txt
+dropdown-trigger       # role=combobox / aria-haspopup / aria-expanded 触发器
+overlay-dismiss-button # 遮层消除按钮（同意 / 关闭 / 确认类）
+tab-button             # role=tab / aria-selected 面板切换
+rich-text-editor       # contenteditable / role=textbox aria-multiline
+```
 
 生产级规则:
 
@@ -329,6 +394,37 @@ src/capabilities/dom-automation/runtime/dom-locator.ts
 - top two candidate 分差过小必须 `ambiguous`。
 - selector fallback 不得高置信。
 - `frameHint` 命中 frame 但 action 不支持 frame 时必须 `review_required`。
+
+**近邻定位规则:**
+
+- 当 target 无法通过文本或 ARIA 信号直接识别时，允许传入 `proximityAnchorText`（锚点文本）。
+- 定位器找到锚点后，在空间上最近的匹配 targetKind 元素作为候选。
+- 近邻匹配必须降低 confidence，记录使用的锚点文本。
+- 近邻 fallback 不得产生高置信错误命中。
+
+**组件库模式规则:**
+
+- 自定义下拉触发器通过以下信号识别（优先级顺序）：
+  1. `role=combobox` + `aria-haspopup=listbox`
+  2. `aria-expanded` 属性存在
+  3. Ant Design: `.ant-select-selector` 内的 input
+  4. Element Plus: `.el-select__input`
+  5. Arco Design: `.arco-select-view`
+  6. Select2: `.select2-selection`
+- 以上 3-6 为 secondary fallback，不得单独作为高置信信号。
+- 组件库类名只允许参与评分，不允许作为唯一定位依据。
+
+**动态 class 处理规则:**
+
+- styled-components / CSS Modules / Tailwind JIT 产生的哈希类名不得作为主要 identity。
+- 稳定信号（accessible name、role、aria-*、data-testid、id、name）优先。
+- 只有哈希类名可用时，必须降低 confidence 并标注 `fallbackUsed: true`。
+
+**CJK 文本匹配规则:**
+
+- visible text 匹配支持大小写不敏感 + 全半角等价比较。
+- 中文子串精确匹配无歧义时允许作为低置信 signal。
+- 不得因字节截断导致中文 label 匹配失败。
 
 生产级 element ref:
 
@@ -342,13 +438,13 @@ type DomElementRef = {
   matchedSignals: string[];
   reason: string;
   fallbackUsed: boolean;
+  proximityAnchor?: string;       // 近邻定位时记录锚点文本
+  componentLibHint?: string;      // 命中的组件库模式名称
   sourceSnapshotRef?: string;
   textFingerprint?: string;
   capturedAt?: string;
 };
 ```
-
-当前 `sourceSnapshotRef`、`textFingerprint`、`capturedAt` 可作为下一阶段 schema 扩展。
 
 ---
 
@@ -506,7 +602,196 @@ Amazon 插件建议:
 
 ---
 
-## 12. BrowserController 最小端口
+## 12. Scroll 图纸
+
+目标文件:
+
+```txt
+src/capabilities/dom-automation/runtime/dom-scroll.ts
+```
+
+输入:
+
+```ts
+type ScrollToElementInput = {
+  elementRef: DomElementRef;          // 必须来自已完成的 locate 结果
+  scrollBudget?: {
+    maxPixels?: number;               // 默认 8000px
+    maxSteps?: number;                // 默认 20 步
+  };
+  stickyHeaderOffset?: number;        // 固定头部高度（px），用于计算真实可见区
+  scrollPurpose: string;              // 供日志和证据引用
+};
+```
+
+生产级规则:
+
+- `elementRef` 必须来自同一 flow 步骤中已完成的 `locate-dom-element-once` 结果；不接受裸 selector。
+- 滚动后必须重新读取元素的 bounding rect，确认元素已进入 viewport 可见区域。
+- `stickyHeaderOffset` 不为零时，计算可见区必须扣除该偏移，避免被固定导航栏遮挡。
+- 滚动预算用尽仍未到达时，返回 `review_required`，reason: `element-not-reachable-by-scroll`。
+- 不触发无限滚动加载（禁止向下滚动超过 `maxPixels` 限制或 `maxSteps` 限制）。
+- 必须捕获 before/after 截图作为 evidence。
+- 滚动是支撑原语，不得在 dom-scroll.ts 内做任何业务判断。
+
+禁止:
+
+- 接受裸 selector 或坐标作为滚动目标。
+- 成功返回时元素仍被固定遮层遮挡（需重新检测 overlay）。
+- 利用滚动触发无限加载分页作为业务导航策略。
+
+验收:
+
+```txt
+普通长页面：滚动到折叠区 button 后能正确 click。
+固定导航栏页面：stickyHeaderOffset 生效，元素不被遮挡。
+预算用尽：返回 review_required，不抛普通异常。
+```
+
+---
+
+## 13. Select 图纸
+
+目标文件:
+
+```txt
+src/capabilities/dom-automation/runtime/dom-select.ts
+```
+
+输入:
+
+```ts
+type SelectOptionInput = {
+  elementRef: DomElementRef;           // targetKind: "select" | "combobox" | "dropdown-trigger"
+  approvedOptionText: string;          // 来自 flow payload
+  matchMode: "exact" | "contains";
+  approvedOptionList?: string[];       // 多选时提供完整选项列表
+  selectPurpose: string;
+};
+```
+
+处理流程:
+
+```txt
+1. 读取 targetKind：
+   - "select"（原生 <select>）→ 走原生路径
+   - "combobox" / "dropdown-trigger" → 走自定义下拉路径
+
+原生路径:
+  a. 用 JS 设置 .value（或 selectedIndex）。
+  b. dispatch "change" + "input" 事件（React/Vue controlled input 需要）。
+  c. 读取当前 .value 或显示文本，与 approvedOptionText 对比。
+  d. 不一致 → return failed。
+
+自定义下拉路径:
+  a. Click trigger 打开面板（等待 aria-expanded=true 或面板 DOM 出现）。
+  b. 等待选项渲染（最多 3s，poll 100ms）；选项懒加载时等待 DOM 更新。
+  c. 在面板内 locate approvedOptionText（exact 或 contains）。
+  d. 未找到 → return not_found。
+  e. 多个模糊匹配 → return ambiguous + candidate 列表。
+  f. Click 目标选项。
+  g. 等待面板关闭（aria-expanded=false 或面板 DOM 消失，最多 3s）。
+  h. 读取 trigger 显示文本或 hidden input value，与 approvedOptionText 比较。
+  i. 不匹配 → return failed，reason: "selection-not-reflected".
+```
+
+生产级规则:
+
+- 不得用 fill 操作原生 select（fill 无法触发 option 选择）。
+- 不得假设选项面板已打开；必须等待 DOM 确认。
+- 不得用 keyboard-only 作为唯一策略（部分页面无键盘 ARIA 支持）。
+- Ant Design / Element Plus / Arco Design / Select2 等库的类名只作为 secondary fallback，不作为主识别依据。
+- 多选模式必须有 `approvedOptionList`；禁止 caller 不传列表就执行多选。
+- 必须捕获 before/after evidence。
+
+验收:
+
+```txt
+原生 <select>：选中指定 option，.value 读取一致。
+Ant Design Select：click 触发打开，选中后 trigger 显示正确文本。
+Element Plus Select：同上。
+not_found：选项不存在时返回 not_found，不 crash。
+ambiguous：两个 contains 匹配时返回 ambiguous。
+多选：approvedOptionList 内每项均被选中，超出列表外的不被选中。
+```
+
+---
+
+## 14. Dismiss Overlay 图纸
+
+目标文件:
+
+```txt
+src/capabilities/dom-automation/runtime/dom-dismiss-overlay.ts
+```
+
+输入:
+
+```ts
+type DismissOverlayInput = {
+  overlayType:
+    | "cookie-consent-overlay"
+    | "promotional-overlay"
+    | "informational-banner"
+    | "gdpr-consent"
+    | "app-install-prompt";
+  approvedDismissalText: string;    // 来自 flow payload，例如 "Accept"、"关闭"、"Got it"
+  dismissPurpose: string;
+};
+```
+
+安全类型白名单（只允许消除以下类型）:
+
+```txt
+cookie-consent-overlay
+promotional-overlay
+informational-banner
+gdpr-consent
+app-install-prompt
+```
+
+处理流程:
+
+```txt
+1. 重新读取快照，确认遮层仍然存在且 overlayType 与输入一致。
+2. 检查 overlayType 是否在白名单内；不在 → review_required，reason: overlay-type-not-in-safe-dismissal-allowlist。
+3. 在遮层内 locate approvedDismissalText 对应的按钮/链接。
+4. 未找到 → not_found。
+5. 发现按钮文本含危险词（delete、confirm payment、refund 等）→ review_required，reason: dismissal-button-contains-dangerous-text。
+6. Click 按钮。
+7. 等待遮层 DOM 消失（最多 5s，poll 200ms）。
+8. 遮层仍存在 → failed，reason: overlay-still-present。
+9. 遮层消失 → 捕获 after evidence，return success。
+```
+
+生产级规则:
+
+- 消除前必须重新读快照（不信任旧快照的遮层状态）。
+- `modal-dialog` 不在白名单内；目的未知的对话框必须由 flow 决策，不得自动消除。
+- 不得使用 Escape 键作为通用消除策略（不适用于所有遮层）。
+- approvedDismissalText 来自 flow payload，DOM core 不内置任何固定文案。
+- 必须 before/after evidence。
+
+禁止:
+
+- 消除认证弹窗（login / 2FA / OAuth）。
+- 消除支付确认对话框。
+- 消除删除确认对话框。
+- 用坐标盲点击消除遮层。
+
+验收:
+
+```txt
+Cookie 横幅：找到"Accept"按钮，点击后横幅消失，返回 success。
+营销弹窗：找到"关闭"按钮，点击后弹窗消失，返回 success。
+modal-dialog：不在白名单，返回 review_required。
+按钮文本含 "confirm payment"：返回 review_required。
+横幅点击后未消失：返回 failed，reason: overlay-still-present。
+```
+
+---
+
+## 15. BrowserController 最小端口
 
 DOM 需要的浏览器端口:
 
@@ -530,6 +815,13 @@ interface DomCapableBrowserController {
     point: { x: number; y: number };
     abortSignal?: AbortSignal;
   }): Promise<BrowserActionResult>;
+
+  scrollElementIntoView(input: {
+    selector: string;
+    stickyHeaderOffset?: number;
+    description: string;
+    abortSignal?: AbortSignal;
+  }): Promise<BrowserActionResult>;                   // 新增: scroll 端口
 }
 ```
 
@@ -538,10 +830,11 @@ interface DomCapableBrowserController {
 - BrowserController 只执行受治理脚本和低层浏览器动作。
 - DOM 解析、定位、验证不能搬进 BrowserController。
 - Business plugin 不能直接调用 file-input private implementation。
+- select 的面板开/关检测逻辑在 DOM runtime 完成，BrowserController 只负责执行 click 和 evaluateActiveTab。
 
 ---
 
-## 13. Audit 图纸
+## 16. Audit 图纸
 
 目标目录:
 
@@ -570,39 +863,49 @@ manifest:
     "APEX-DOM-010-V1",
     "APEX-DOM-011-V1",
     "APEX-DOM-012-V1",
-    "APEX-DOM-013-V1"
+    "APEX-DOM-013-V1",
+    "APEX-DOM-014-V1",
+    "APEX-DOM-015-V1",
+    "APEX-DOM-016-V1"
   ]
 }
 ```
 
 Phase 1 inspector minimum:
 
-- Parse DOM law IDs.
-- Check schema child ability enum has exactly seven legal values.
-- Check public facade exports exactly the legal child functions.
-- Check `src/plugins/**` does not import `dom-automation/runtime`.
-- Check DOM runtime does not import `src/plugins`.
-- Check `src/mediator/**` does not import DOM runtime.
-- Check retired action owner roots do not exist.
-- Check `dom-upload.ts` contains approved path equality and file-input target checks.
-- Check `dom-click.ts` contains sensitive review gate.
+- Parse DOM law IDs（应包含 16 条）。
+- Check schema child ability enum has exactly **ten** legal values。
+- Check public facade exports exactly the legal child functions。
+- Check `src/plugins/**` does not import `dom-automation/runtime`。
+- Check DOM runtime does not import `src/plugins`。
+- Check `src/mediator/**` does not import DOM runtime。
+- Check retired action owner roots do not exist。
+- Check `dom-upload.ts` contains approved path equality and file-input target checks。
+- Check `dom-click.ts` contains sensitive review gate。
+- Check `dom-scroll.ts` requires located element ref（不接受裸 selector）。
+- Check `dom-scroll.ts` contains scroll budget limit（防无限滚动）。
+- Check `dom-select.ts` handles both native select path and custom dropdown path。
+- Check `dom-select.ts` verifies displayed value after selection。
+- Check `dom-dismiss-overlay.ts` contains safe-type allowlist check。
+- Check `dom-dismiss-overlay.ts` refuses authentication and confirmation dialog types。
 
 Phase 2 inspector:
 
-- AST check throw-based normal locator failure.
-- AST check evidence capture before/after fill/click/upload.
-- AST check no full HTML/cookie/storage/password snapshot fields.
-- AST check frameRef is not ignored by action paths once frame support is declared.
+- AST check throw-based normal locator failure。
+- AST check evidence capture before/after fill/click/upload/scroll/select/dismiss-overlay。
+- AST check no full HTML/cookie/storage/password snapshot fields。
+- AST check frameRef is not ignored by action paths once frame support is declared。
+- AST check snapshot has `overlays` and `dropdownTriggers` output fields。
 
 Phase 3 inspector:
 
-- Import graph owner-boundary enforcement.
-- Runtime evidence artifact traceability.
-- Acceptance smoke result validation.
+- Import graph owner-boundary enforcement。
+- Runtime evidence artifact traceability。
+- Acceptance smoke result validation。
 
 ---
 
-## 14. Acceptance 图纸
+## 17. Acceptance 图纸
 
 目标:
 
@@ -617,6 +920,10 @@ Smoke 页面必须覆盖:
 - button
 - clickable div
 - file input
+- below-fold element（需要滚动才能操作）
+- native `<select>` dropdown
+- custom dropdown（Ant Design Select 模式）
+- cookie consent overlay / promotional banner
 - success message
 - error message
 - login-required page
@@ -627,45 +934,51 @@ Smoke 页面必须覆盖:
 Smoke 子流程:
 
 ```txt
-1. launch local Playwright page
-2. read-dom-snapshot-once
-3. locate search input
-4. fill approved text
-5. locate and click search button
-6. locate file input
-7. upload approved file
-8. wait file-selected
-9. click submit
+1.  launch local Playwright page
+2.  read-dom-snapshot-once
+3.  locate search input
+4.  fill approved text
+5.  locate and click search button
+6.  locate file input
+7.  upload approved file
+8.  wait file-selected
+9.  click submit
 10. wait success-message
 11. assert ambiguous duplicate target returns ambiguous
 12. assert dangerous click returns review_required
 13. assert login/captcha states outrank generic success
+14. scroll-to-element-once → below-fold button → click-dom-element-once（验证滚动后操作成功）
+15. select-option-once → native <select>（验证 .value 一致）
+16. select-option-once → custom dropdown（验证 trigger 文本一致）
+17. select-option-once → option not found → assert not_found
+18. dismiss-overlay-once → cookie banner → assert overlay gone
+19. dismiss-overlay-once → modal-dialog type → assert review_required
 ```
 
 验收原则:
 
-- DOM smoke 是子能力证明。
+- DOM smoke 是子能力证明，10 个子能力全覆盖。
 - Amazon invoice upload smoke 是 job-flow 证明。
 - 两者不能互相替代。
 
 ---
 
-## 15. 生产稳定态路线
+## 18. 生产稳定态路线
 
 ### Phase 1: 法案与图纸
 
 目标:
 
-- DOM 法案升级为 `APEX-DOM-*`。
-- 本施工图落地。
+- DOM 法案升级为 `APEX-DOM-*`（16 条法律，含新增 014/015/016）。
+- 本施工图落地（v2，10 个子能力）。
 - 能力组上位法回到 GrassEye 体系。
 
 退出标准:
 
 ```txt
-法案可解析。
-施工图与法案 child ability 清单一致。
-无网站旧法案内容作为 DOM 主权。
+法案可解析，包含 16 条 APEX-DOM-* 法律。
+施工图与法案 child ability 清单一致（均为 10 个）。
+无旧法案内容作为 DOM 主权。
 ```
 
 ### Phase 2: 结构化失败
@@ -709,32 +1022,52 @@ ambiguous 有候选证据。
 不再出现假 frame 支持。
 ```
 
-### Phase 5: DOM Inspector + Acceptance
+### Phase 5: 新子能力生产稳定
 
 目标:
 
-- DOM inspector runner-visible。
-- DOM smoke 覆盖全部子能力。
+- `scroll-to-element-once`：viewport 重校验 + 滚动预算限制 + sticky offset。
+- `select-option-once`：原生 select + 至少两种自定义下拉库 + 选值校验。
+- `dismiss-overlay-once`：白名单类型检查 + 认证/确认对话框拒绝 + 消除后 DOM 校验。
+
+退出标准:
+
+```txt
+smoke 步骤 14-19 全部通过。
+不出现假 select 成功（选值不反映在 trigger 上视为失败）。
+不出现白名单外遮层被自动消除。
+```
+
+### Phase 6: DOM Inspector + Acceptance
+
+目标:
+
+- DOM inspector runner-visible，检查项覆盖全部 10 个子能力。
+- DOM smoke 覆盖全部 10 个子能力（包含新增三项）。
 
 退出标准:
 
 ```txt
 npm run ci:full 能证明 DOM P0 guard 与 Amazon flow smoke 均执行。
+inspector Phase 1 检查全部通过。
 ```
 
 ---
 
-## 16. 完成定义
+## 19. 完成定义
 
 DOM Automation 达到生产稳定态时，必须能回答：
 
 ```txt
 这个动作是谁批准的？
-定位依据是什么？
+定位依据是什么？（包含近邻锚点或组件库模式命中时）
 有没有歧义？
 操作前后证据在哪里？
 失败为什么失败？
 是否越过了业务边界？
+遮层是否被安全消除（类型是否在白名单内）？
+下拉选值是否在 trigger 上得到了反映？
+滚动是否真正把元素带入可见区（含 sticky 偏移计算）？
 是否有机器质检阻断 Codex 钻空子？
 ```
 

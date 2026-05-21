@@ -1,6 +1,6 @@
 import {
   clickDomElementOnce,
-  locateDomElementOnce,
+  locateDomElementResultOnce,
   verifyDomStateOnce,
 } from "../../capabilities/dom-automation/index.js";
 import type { DomElementRef, DomSnapshot } from "../../capabilities/dom-automation/index.js";
@@ -63,29 +63,28 @@ export function gatedResult(
 
 export function locateOrStatus(input: {
   snapshot: DomSnapshot;
-  targetKind: Parameters<typeof locateDomElementOnce>[0]["targetKind"];
+  targetKind: Parameters<typeof locateDomElementResultOnce>[0]["targetKind"];
   hints: string[];
   requiredText?: string;
   notFoundStatus: AmazonInvoiceUploadStatus;
 }): { ok: true; element: DomElementRef } | { ok: false; status: AmazonInvoiceUploadStatus; reason: string } {
-  try {
+  const result = locateDomElementResultOnce({
+    snapshot: input.snapshot,
+    targetKind: input.targetKind,
+    hints: input.hints,
+    ...(input.requiredText ? { requiredText: input.requiredText } : {}),
+  });
+  if (result.ok) {
     return {
       ok: true,
-      element: locateDomElementOnce({
-        snapshot: input.snapshot,
-        targetKind: input.targetKind,
-        hints: input.hints,
-        ...(input.requiredText ? { requiredText: input.requiredText } : {}),
-      }),
-    };
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    return {
-      ok: false,
-      status: reason.toLowerCase().includes("ambiguous") ? "ambiguous" : input.notFoundStatus,
-      reason,
+      element: result.elementRef,
     };
   }
+  return {
+    ok: false,
+    status: result.status === "ambiguous" ? "ambiguous" : input.notFoundStatus,
+    reason: result.reason,
+  };
 }
 
 export async function clickLocated(input: {

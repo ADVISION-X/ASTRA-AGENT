@@ -59,6 +59,10 @@ export const DOM_SNAPSHOT_FIXTURE: DomSnapshot = {
   tableRows: [],
   roleRows: [],
   genericClickableElements: [],
+  dropdownTriggers: [],
+  overlays: [],
+  loadingIndicators: [],
+  stickyElements: [],
   detectedStates: [],
   capturedAt: "2026-05-20T00:00:00.000Z",
 };

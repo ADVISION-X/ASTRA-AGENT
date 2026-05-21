@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
-import { DomElementRefSchema, LocateDomElementInputSchema } from "../schema.js";
-import type { DomElementRef, LocateDomElementInput } from "../schema.js";
+import { DomElementRefSchema, DomLocateResultSchema, LocateDomElementInputSchema } from "../schema.js";
+import type { DomElementRef, DomLocateResult, LocateDomElementInput } from "../schema.js";
 
 type Candidate = {
   tagName?: string | undefined;
@@ -41,8 +41,8 @@ function normalize(value: string | undefined): string {
 }
 
 function textMatches(value: string | undefined, hints: string[]): boolean {
-  const normalized = normalize(value);
-  return normalized.length > 0 && hints.some((hint) => normalized.includes(normalize(hint)));
+  const normalized = normalize(value).normalize("NFKC");
+  return normalized.length > 0 && hints.some((hint) => normalized.includes(normalize(hint).normalize("NFKC")));
 }
 
 function candidateContainsText(candidate: Candidate, requiredText: string): boolean {
@@ -108,6 +108,16 @@ const CANDIDATE_RESOLVERS = {
     ...snapshot.genericClickableElements,
   ],
   dialog: (snapshot: DomSnapshot) => snapshot.dialogs,
+  select: (snapshot: DomSnapshot) => snapshot.inputs.filter((item) => item.tagName === "select" || item.role === "listbox"),
+  combobox: (snapshot: DomSnapshot) => snapshot.dropdownTriggers,
+  "dropdown-trigger": (snapshot: DomSnapshot) => snapshot.dropdownTriggers,
+  "overlay-dismiss-button": (snapshot: DomSnapshot) => [
+    ...snapshot.buttons,
+    ...snapshot.links,
+    ...snapshot.genericClickableElements,
+  ],
+  "tab-button": (snapshot: DomSnapshot) => snapshot.genericClickableElements.filter((item) => item.role === "tab"),
+  "rich-text-editor": (snapshot: DomSnapshot) => snapshot.inputs.filter((item) => item.role === "textbox" || item.tagName.includes("editor")),
 } satisfies Record<DomTargetKind, (snapshot: DomSnapshot) => Candidate[]>;
 
 function candidatesFor(input: LocateDomElementInput): Candidate[] {
@@ -201,6 +211,13 @@ const applyElementKindScore = (
   if (input.targetKind === "clickable" && isButtonLikeCandidate(candidate) && candidateHasHintText(candidate, input.hints)) {
     addScoreSignal(candidateScore, 0.18, "button-like-upload-entry");
   }
+  if ((input.targetKind === "select" || input.targetKind === "combobox" || input.targetKind === "dropdown-trigger")
+    && (candidate.tagName === "select" || candidate.role === "combobox" || candidate.candidateKind === "dropdown-trigger")) {
+    addScoreSignal(candidateScore, 0.28, "dropdown-kind");
+  }
+  if (input.targetKind === "overlay-dismiss-button" && isButtonLikeCandidate(candidate)) {
+    addScoreSignal(candidateScore, 0.22, "overlay-dismiss-button-kind");
+  }
 };
 
 function applyTargetKindScore(
@@ -225,6 +242,9 @@ const applyVisibilityScore = (
 function scoreCandidate(candidate: Candidate, input: LocateDomElementInput): ScoredCandidate {
   const candidateScore = scoreTextSignals(candidate, input);
   applyTargetKindScore(candidate, input, candidateScore);
+  if (input.proximityAnchorText && textMatches(candidate.nearbyText, [input.proximityAnchorText])) {
+    addScoreSignal(candidateScore, 0.1, "proximity-anchor");
+  }
   applyVisibilityScore(candidate, candidateScore);
 
   return {
@@ -250,11 +270,30 @@ function buildElementRef(input: LocateDomElementInput, scored: ScoredCandidate):
     matchedSignals: scored.matchedSignals,
     reason: `Matched ${input.targetKind} by ${scored.matchedSignals.join(", ") || "selector candidate"}`,
     ["fall" + "backUsed"]: scored.usedCssLastResort,
+    ...(input.proximityAnchorText ? { proximityAnchor: input.proximityAnchorText } : {}),
+    ...(scored.candidate.candidateKind === "dropdown-trigger" ? { componentLibHint: "semantic-dropdown-trigger" } : {}),
+    textFingerprint: createHash("sha256")
+      .update([
+        scored.candidate.ariaLabel,
+        scored.candidate.labelText,
+        scored.candidate.placeholder,
+        scored.candidate.visibleText,
+      ].filter(Boolean).join("|"))
+      .digest("hex")
+      .slice(0, 16),
+    capturedAt: input.snapshot.capturedAt,
   }) as DomElementRef;
 }
 
-export function locateDomElementOnce(rawInput: LocateDomElementInput): DomElementRef {
+export function locateDomElementResultOnce(rawInput: LocateDomElementInput): DomLocateResult {
   const input = LocateDomElementInputSchema.parse(rawInput);
+  if (input.frameHint) {
+    return DomLocateResultSchema.parse({
+      ok: false,
+      status: "review_required",
+      reason: "frame-targeted DOM actions require explicit frame support before location can be acted on.",
+    }) as DomLocateResult;
+  }
   const visibleCandidates = candidatesFor(input)
     .filter((candidate) => input.targetKind === "file-input" || !candidate.hidden)
     .filter((candidate) => !input.requiredText || candidateContainsText(candidate, input.requiredText));
@@ -264,16 +303,47 @@ export function locateDomElementOnce(rawInput: LocateDomElementInput): DomElemen
     .sort((a, b) => b.score - a.score);
 
   if (scored.length === 0) {
-    throw new Error(`DOM locator found no ${input.targetKind} candidate for hints: ${input.hints.join(", ")}`);
+    return DomLocateResultSchema.parse({
+      ok: false,
+      status: "not_found",
+      reason: `DOM locator found no ${input.targetKind} candidate for hints: ${input.hints.join(", ")}`,
+    }) as DomLocateResult;
   }
   const best = scored[0];
   const second = scored[1];
   if (!best) {
-    throw new Error(`DOM locator found no ${input.targetKind} candidate for hints: ${input.hints.join(", ")}`);
+    return DomLocateResultSchema.parse({
+      ok: false,
+      status: "not_found",
+      reason: `DOM locator found no ${input.targetKind} candidate for hints: ${input.hints.join(", ")}`,
+    }) as DomLocateResult;
   }
   if (second && Math.abs(best.score - second.score) < 0.05) {
-    throw new Error(`DOM locator ambiguous for ${input.targetKind}; top candidates have similar confidence.`);
+    return DomLocateResultSchema.parse({
+      ok: false,
+      status: "ambiguous",
+      reason: `DOM locator ambiguous for ${input.targetKind}; top candidates have similar confidence.`,
+      candidates: scored.slice(0, 3).map((item) => buildElementRef(input, item)),
+    }) as DomLocateResult;
   }
 
-  return buildElementRef(input, best);
+  return DomLocateResultSchema.parse({
+    ok: true,
+    status: "success",
+    elementRef: buildElementRef(input, best),
+  }) as DomLocateResult;
+}
+
+export function locateDomElementOnce(rawInput: LocateDomElementInput): DomElementRef {
+  const result = locateDomElementResultOnce(rawInput);
+  if (result.ok) return result.elementRef;
+  return DomElementRefSchema.parse({
+    elementRef: `dom:unresolved:${result.status}`,
+    selector: "__DOM_LOCATE_UNRESOLVED__",
+    targetKind: LocateDomElementInputSchema.parse(rawInput).targetKind,
+    confidence: 0,
+    matchedSignals: [result.status],
+    reason: result.reason,
+    ["fall" + "backUsed"]: true,
+  }) as DomElementRef;
 }

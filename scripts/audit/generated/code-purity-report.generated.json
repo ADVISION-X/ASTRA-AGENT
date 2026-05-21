@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T12:14:17.020Z",
+  "generatedAt": "2026-05-21T12:42:38.723Z",
   "capabilityDomain": "code-purity",
   "executionGroup": "foundation",
   "lawIds": [
@@ -23,73 +23,338 @@
   "status": "FAIL",
   "findings": [
     {
-      "checkId": "code-purity/as-unknown-as",
-      "lawId": "APEX-CODE-PURITY-008-V1",
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/app/create-workbench-server.ts uses as unknown as near line 66.",
-      "filePath": "src/app/create-workbench-server.ts"
+      "message": "scripts/acceptance/amazon-invoice-upload-smoke.ts has an over-limit function near line 17.",
+      "filePath": "scripts/acceptance/amazon-invoice-upload-smoke.ts",
+      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/plugin-private-capability-import",
-      "lawId": "APEX-CODE-PURITY-004-V1",
+      "checkId": "code-purity/class-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts imports private ability runtime or child files instead of a public facade.",
+      "message": "scripts/acceptance/amazon-invoice-upload-smoke.ts has a class that exceeds the object hard budget.",
+      "filePath": "scripts/acceptance/amazon-invoice-upload-smoke.ts",
+      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Split the class into smaller owner-local collaborators or contract objects.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/build/compose-artifacts.ts has an over-limit function near line 35.",
+      "filePath": "scripts/audit/build/compose-artifacts.ts",
+      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/build/write-generated-artifacts.ts has an over-limit function near line 33.",
+      "filePath": "scripts/audit/build/write-generated-artifacts.ts",
+      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/core/run-generated-plan.ts has an over-limit function near line 97.",
+      "filePath": "scripts/audit/core/run-generated-plan.ts",
+      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/architecture-boundary/inspector.ts has an over-limit function near line 36.",
+      "filePath": "scripts/audit/domains/architecture-boundary/inspector.ts",
+      "evidence": "{\"owner\":\"audit:architecture-boundary\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/audit-system/inspector.ts has an over-limit function near line 32.",
+      "filePath": "scripts/audit/domains/audit-system/inspector.ts",
+      "evidence": "{\"owner\":\"audit:audit-system\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/capability-group-governance/inspector.ts has an over-limit function near line 13.",
+      "filePath": "scripts/audit/domains/capability-group-governance/inspector.ts",
+      "evidence": "{\"owner\":\"audit:capability-group-governance\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts has an over-limit function near line 58.",
+      "filePath": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts has an over-limit function near line 111.",
+      "filePath": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts has an over-limit function near line 156.",
+      "filePath": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/scan-owner-boundaries.ts has an over-limit function near line 35.",
+      "filePath": "scripts/audit/domains/code-purity/components/scan-owner-boundaries.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/scan-structural-function-budgets.ts has an over-limit function near line 35.",
+      "filePath": "scripts/audit/domains/code-purity/components/scan-structural-function-budgets.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts has an over-limit function near line 10.",
+      "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts has an over-limit function near line 34.",
+      "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "scripts/audit/domains/dom-automation/inspector.ts has an over-limit function near line 130.",
+      "filePath": "scripts/audit/domains/dom-automation/inspector.ts",
+      "evidence": "{\"owner\":\"audit:dom-automation\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/app/create-workbench-server.ts has an over-limit function near line 55.",
+      "filePath": "src/app/create-workbench-server.ts",
+      "evidence": "{\"owner\":\"app-shell\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/ai-input-gateway/index.ts exports 24 symbols and exceeds the hard limit 10.",
+      "filePath": "src/capabilities/ai-input-gateway/index.ts",
+      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/ai-input-gateway/schema.ts exports 20 symbols and exceeds the hard limit 10.",
+      "filePath": "src/capabilities/ai-input-gateway/schema.ts",
+      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/dom-automation/index.ts exports 34 symbols and exceeds the hard limit 10.",
+      "filePath": "src/capabilities/dom-automation/index.ts",
+      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-hard-limit",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/dom-automation/runtime/dom-locator.ts has 350 lines and exceeds the browser or DOM runtime primitive hard-limit budget.",
+      "filePath": "src/capabilities/dom-automation/runtime/dom-locator.ts",
+      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/dom-automation/runtime/dom-locator.ts has an over-limit function near line 189.",
+      "filePath": "src/capabilities/dom-automation/runtime/dom-locator.ts",
+      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/dom-automation/runtime/dom-locator.ts has an over-limit function near line 288.",
+      "filePath": "src/capabilities/dom-automation/runtime/dom-locator.ts",
+      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-hard-limit",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/dom-automation/schema.ts has 370 lines and exceeds the schema/result/type file hard-limit budget.",
+      "filePath": "src/capabilities/dom-automation/schema.ts",
+      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/dom-automation/schema.ts exports 45 symbols and exceeds the hard limit 10.",
+      "filePath": "src/capabilities/dom-automation/schema.ts",
+      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/forensics-persistence/index.ts exports 17 symbols and exceeds the hard limit 10.",
+      "filePath": "src/capabilities/forensics-persistence/index.ts",
+      "evidence": "{\"owner\":\"capability:forensics-persistence\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/forensics-persistence/schema.ts exports 19 symbols and exceeds the hard limit 10.",
+      "filePath": "src/capabilities/forensics-persistence/schema.ts",
+      "evidence": "{\"owner\":\"capability:forensics-persistence\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/index.ts exports 17 symbols and exceeds the hard limit 10.",
+      "filePath": "src/capabilities/video-download/index.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/runtime/result.ts has an over-limit function near line 30.",
+      "filePath": "src/capabilities/video-download/runtime/result.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/schema.ts exports 27 symbols and exceeds the hard limit 10.",
+      "filePath": "src/capabilities/video-download/schema.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-hard-limit",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/lib/local-runtime/runtime-resource-usage.ts has 245 lines and exceeds the local app shell file hard-limit budget.",
+      "filePath": "src/lib/local-runtime/runtime-resource-usage.ts",
+      "evidence": "{\"owner\":\"local-runtime\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/lib/local-runtime/workbench.ts has an over-limit function near line 45.",
+      "filePath": "src/lib/local-runtime/workbench.ts",
+      "evidence": "{\"owner\":\"local-runtime\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/lib/runtime-logs/index.ts exports 22 symbols and exceeds the hard limit 10.",
+      "filePath": "src/lib/runtime-logs/index.ts",
+      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/lib/storage/index.ts exports 11 symbols and exceeds the hard limit 10.",
+      "filePath": "src/lib/storage/index.ts",
+      "evidence": "{\"owner\":\"storage\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"storage-adapter\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-hard-limit",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts has 249 lines and exceeds the job step/support file hard-limit budget.",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-invoice-upload\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-hard-limit",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts has 264 lines and exceeds the job step/support file hard-limit budget.",
       "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
-      "evidence": "src/capabilities/dom-automation/index.ts, src/capabilities/dom-automation/runtime/dom-snapshot.ts, src/capabilities/dom-automation/schema.ts"
+      "evidence": "{\"owner\":\"plugin:amazon-invoice-upload\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/plugin-private-capability-import",
-      "lawId": "APEX-CODE-PURITY-004-V1",
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts imports private ability runtime or child files instead of a public facade.",
+      "message": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts has an over-limit function near line 186.",
+      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-invoice-upload\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-hard-limit",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts has 268 lines and exceeds the job step/support file hard-limit budget.",
       "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
-      "evidence": "src/capabilities/dom-automation/index.ts, src/capabilities/dom-automation/runtime/dom-fill.ts, src/capabilities/dom-automation/runtime/dom-snapshot.ts, src/capabilities/dom-automation/runtime/dom-upload.ts, src/capabilities/dom-automation/runtime/dom-wait.ts"
+      "evidence": "{\"owner\":\"plugin:amazon-invoice-upload\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/plugin-private-capability-import",
-      "lawId": "APEX-CODE-PURITY-004-V1",
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts imports private ability runtime or child files instead of a public facade.",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
-      "evidence": "src/capabilities/dom-automation/index.ts, src/capabilities/dom-automation/runtime/dom-click.ts, src/capabilities/dom-automation/runtime/dom-locator.ts, src/capabilities/dom-automation/runtime/dom-verify.ts"
+      "message": "src/plugins/amazon-invoice-upload/index.ts exports 23 symbols and exceeds the hard limit 10.",
+      "filePath": "src/plugins/amazon-invoice-upload/index.ts",
+      "evidence": "{\"owner\":\"plugin:amazon-invoice-upload\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/plugin-private-capability-import",
-      "lawId": "APEX-CODE-PURITY-004-V1",
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts imports private ability runtime or child files instead of a public facade.",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
-      "evidence": "src/capabilities/dom-automation/index.ts, src/capabilities/dom-automation/runtime/dom-snapshot.ts"
+      "message": "src/types/local-browser-session.ts exports 14 symbols and exceeds the hard limit 10.",
+      "filePath": "src/types/local-browser-session.ts",
+      "evidence": "{\"owner\":\"types\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/plugin-private-capability-import",
-      "lawId": "APEX-CODE-PURITY-004-V1",
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts imports private ability runtime or child files instead of a public facade.",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts",
-      "evidence": "src/capabilities/dom-automation/index.ts, src/capabilities/dom-automation/runtime/dom-snapshot.ts, src/capabilities/dom-automation/schema.ts"
+      "message": "src/types/structured-log.ts exports 34 symbols and exceeds the hard limit 10.",
+      "filePath": "src/types/structured-log.ts",
+      "evidence": "{\"owner\":\"types\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/plugin-private-capability-import",
-      "lawId": "APEX-CODE-PURITY-004-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts imports private ability runtime or child files instead of a public facade.",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts",
-      "evidence": "src/capabilities/dom-automation/index.ts, src/capabilities/dom-automation/runtime/dom-wait.ts"
-    },
-    {
-      "checkId": "code-purity/plugin-private-capability-import",
-      "lawId": "APEX-CODE-PURITY-004-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts imports private ability runtime or child files instead of a public facade.",
-      "filePath": "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
-      "evidence": "src/capabilities/dom-automation/index.ts, src/capabilities/dom-automation/runtime/dom-snapshot.ts, src/capabilities/dom-automation/schema.ts"
-    },
-    {
-      "checkId": "code-purity/audit-anti-evasion",
+      "checkId": "code-purity/audit-project-usage",
       "lawId": "APEX-CODE-PURITY-013-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/inspector.ts uses text-search judgment text.includes(\"@ts-ignore\") on ts-morph source text.",
+      "message": "scripts/audit/domains/code-purity/inspector.ts does not use context.project and cannot prove AST-first enforcement.",
       "filePath": "scripts/audit/domains/code-purity/inspector.ts"
     }
   ],
@@ -107,6 +372,17 @@
     "scripts/audit/domains/architecture-boundary/inspector.ts",
     "scripts/audit/domains/audit-system/inspector.ts",
     "scripts/audit/domains/capability-group-governance/inspector.ts",
+    "scripts/audit/domains/code-purity/components/code-purity-finding-collector.ts",
+    "scripts/audit/domains/code-purity/components/code-purity-governed-files.ts",
+    "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
+    "scripts/audit/domains/code-purity/components/code-purity-phase-runner.ts",
+    "scripts/audit/domains/code-purity/components/code-purity-report-writer.ts",
+    "scripts/audit/domains/code-purity/components/scan-audit-truth.ts",
+    "scripts/audit/domains/code-purity/components/scan-owner-boundaries.ts",
+    "scripts/audit/domains/code-purity/components/scan-structural-budgets.ts",
+    "scripts/audit/domains/code-purity/components/scan-structural-function-budgets.ts",
+    "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
+    "scripts/audit/domains/code-purity/components/structural-metrics.ts",
     "scripts/audit/domains/code-purity/inspector.ts",
     "scripts/audit/domains/dom-automation/inspector.ts",
     "scripts/audit/shared/finding-utils.ts",
@@ -146,17 +422,17 @@
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",
     "src/capabilities/dom-automation/runtime/dom-click.ts",
+    "src/capabilities/dom-automation/runtime/dom-dismiss-overlay.ts",
     "src/capabilities/dom-automation/runtime/dom-evidence.ts",
     "src/capabilities/dom-automation/runtime/dom-fill.ts",
     "src/capabilities/dom-automation/runtime/dom-locator.ts",
+    "src/capabilities/dom-automation/runtime/dom-scroll.ts",
+    "src/capabilities/dom-automation/runtime/dom-select.ts",
     "src/capabilities/dom-automation/runtime/dom-snapshot.ts",
     "src/capabilities/dom-automation/runtime/dom-upload.ts",
     "src/capabilities/dom-automation/runtime/dom-verify.ts",
     "src/capabilities/dom-automation/runtime/dom-wait.ts",
     "src/capabilities/dom-automation/schema.ts",
-    "src/capabilities/dom-automation/tests/dom-locator.fixture.ts",
-    "src/capabilities/dom-automation/tests/dom-snapshot.fixture.ts",
-    "src/capabilities/dom-automation/tests/dom-upload.fixture.ts",
     "src/capabilities/forensics-persistence/ability-group.ts",
     "src/capabilities/forensics-persistence/children/append-artifact.ts",
     "src/capabilities/forensics-persistence/children/append-record.ts",
@@ -167,6 +443,21 @@
     "src/capabilities/forensics-persistence/schema.ts",
     "src/capabilities/forensics-persistence/storage-adapter.ts",
     "src/capabilities/forensics-persistence/storage-port.ts",
+    "src/capabilities/video-download/ability-group.ts",
+    "src/capabilities/video-download/children/download-facebook-video-once.ts",
+    "src/capabilities/video-download/contract.ts",
+    "src/capabilities/video-download/index.ts",
+    "src/capabilities/video-download/manifest.ts",
+    "src/capabilities/video-download/ports/browser-media-source-port.ts",
+    "src/capabilities/video-download/ports/video-artifact-storage-port.ts",
+    "src/capabilities/video-download/registry.ts",
+    "src/capabilities/video-download/runtime/artifact-storage.ts",
+    "src/capabilities/video-download/runtime/candidate-validation.ts",
+    "src/capabilities/video-download/runtime/facebook-candidates.ts",
+    "src/capabilities/video-download/runtime/facebook-page-probe-script.ts",
+    "src/capabilities/video-download/runtime/media-download.ts",
+    "src/capabilities/video-download/runtime/result.ts",
+    "src/capabilities/video-download/schema.ts",
     "src/lib/browser/browser-controller.ts",
     "src/lib/browser/current-chrome-browser-action-result.ts",
     "src/lib/browser/current-chrome-browser-click-probe.ts",

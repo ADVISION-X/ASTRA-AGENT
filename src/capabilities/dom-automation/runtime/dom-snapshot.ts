@@ -103,6 +103,17 @@ const links = Array.from(document.querySelectorAll("a[href]")).map((el) => {
   return {...base(el), hrefHost};
 }).filter(visible);
 const fileInputs = Array.from(document.querySelectorAll("input[type='file']")).map((el) => ({...base(el), type: "file", accept: attr(el, "accept") || undefined}));
+const summarizeCandidates = (selector, candidateKind, maxCount) => Array.from(document.querySelectorAll(selector))
+  .map((el) => ({...base(el), candidateKind}))
+  .filter((item) => !item.hidden && Boolean(item.visibleText || item.ariaLabel || item.nearbyText))
+  .slice(0, maxCount);
+const dropdownTriggers = summarizeCandidates("[role='combobox'], [aria-haspopup='listbox'], [aria-expanded], .ant-select-selector, .el-select__input, .arco-select-view, .select2-selection, select", "dropdown-trigger", 80);
+const overlays = summarizeCandidates("dialog, [role='dialog'], [aria-modal='true'], [class*='modal'], [class*='drawer'], [class*='cookie'], [class*='consent'], [class*='banner']", "overlay", 40);
+const loadingIndicators = summarizeCandidates("[aria-busy='true'], [class*='skeleton'], [class*='spinner'], [class*='loading'], [role='progressbar']", "loading-indicator", 40);
+const stickyElements = Array.from(document.querySelectorAll("header, nav, [style*='position: fixed'], [style*='position: sticky']"))
+  .map((el) => ({...base(el), candidateKind: "sticky-element"}))
+  .filter((item) => !item.hidden)
+  .slice(0, 40);
 const forms = Array.from(document.querySelectorAll("form")).map((el) => ({
   selectorCandidate: selectorFor(el),
   id: attr(el, "id") || undefined,
@@ -113,10 +124,6 @@ const forms = Array.from(document.querySelectorAll("form")).map((el) => ({
 }));
 const dialogs = Array.from(document.querySelectorAll("dialog, [role='dialog'], [aria-modal='true']")).map(base).filter(visible);
 const frames = ${includeFrames ? "Array.from(document.querySelectorAll('iframe, frame')).map((el) => { let srcHost; try { srcHost = new URL(el.src).host || undefined; } catch {} return {selectorCandidate: selectorFor(el), title: attr(el, 'title') || undefined, name: attr(el, 'name') || undefined, srcHost}; })" : "[]"};
-const summarizeCandidates = (selector, candidateKind, maxCount) => Array.from(document.querySelectorAll(selector))
-  .map((el) => ({...base(el), candidateKind}))
-  .filter((item) => !item.hidden && Boolean(item.visibleText || item.ariaLabel || item.nearbyText))
-  .slice(0, maxCount);
 const tableRows = summarizeCandidates("tr", "table-row", 80);
 const roleRows = summarizeCandidates("[role='row']", "role-row", 80);
 const genericClickableElements = summarizeCandidates("[onclick], [tabindex], [role='button'], [role='link']", "clickable", 80);
@@ -134,7 +141,14 @@ if (/captcha|verification code|two[- ]?factor|2fa|otp/i.test(rawPageText)) detec
 if (/file attached|attachment added|file selected/i.test(rawPageText)) detectedStates.push("file_selected");
 if (/success|successful|completed|submitted|saved|done|完成|成功|已提交/i.test(rawPageText)) detectedStates.push("success_message");
 if (/failed|invalid|error|unable|cannot|失败|无效|错误|无法/i.test(rawPageText)) detectedStates.push("error_message");
-return {url: location.href, title: document.title, forms, inputs, buttons, links, fileInputs, dialogs, frames, textBlocks, tableRows, roleRows, genericClickableElements, detectedStates: Array.from(new Set(detectedStates)), capturedAt: new Date().toISOString()};
+if (overlays.some((item) => /cookie|consent|gdpr|同意|隐私/i.test([item.visibleText, item.ariaLabel, item.nearbyText].filter(Boolean).join(" ")))) detectedStates.push("cookie-consent-overlay");
+if (overlays.some((item) => /promo|offer|subscribe|discount|营销|优惠/i.test([item.visibleText, item.ariaLabel, item.nearbyText].filter(Boolean).join(" ")))) detectedStates.push("promotional-overlay");
+if (dialogs.length > 0) detectedStates.push("modal-dialog");
+if (overlays.some((item) => /drawer|side-panel|侧边/i.test([item.visibleText, item.ariaLabel, item.nearbyText].filter(Boolean).join(" ")))) detectedStates.push("drawer-panel");
+if (loadingIndicators.length > 0 || /loading|加载中/i.test(rawPageText)) detectedStates.push("loading-skeleton");
+if (/no data|empty|暂无|无数据/i.test(rawPageText)) detectedStates.push("empty-state");
+if (/rate limit|too many requests|限流/i.test(rawPageText)) detectedStates.push("rate-limited");
+return {url: location.href, title: document.title, forms, inputs, buttons, links, fileInputs, dialogs, frames, textBlocks, tableRows, roleRows, genericClickableElements, dropdownTriggers, overlays, loadingIndicators, stickyElements, detectedStates: Array.from(new Set(detectedStates)), capturedAt: new Date().toISOString()};
 `;
 }
 

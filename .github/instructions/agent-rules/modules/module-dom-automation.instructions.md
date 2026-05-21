@@ -1,13 +1,13 @@
 ---
 name: "GrassEye DOM Automation Capability"
-description: "Production-grade law for the DOM Automation ability group: snapshot, locate, fill, click, upload, wait, verify, structured failure, evidence truth, frame/shadow boundaries, and audit enforcement."
+description: "Production-grade law for the DOM Automation ability group: snapshot, locate, fill, click, upload, scroll, select-option, overlay-dismissal, wait, verify, structured failure, evidence truth, SPA/dynamic content, component-library patterns, frame/shadow boundaries, and audit enforcement."
 applyTo: "src/capabilities/dom-automation/**,src/plugins/**,src/mediator/**,src/lib/browser/**,scripts/acceptance/**,scripts/audit/**"
 ---
 
 # GrassEye DOM Automation Capability
 
 status: active
-version: 2026-05-21
+version: 2026-05-21-v2
 capabilityDomain: dom-automation
 constructionBlueprint: `docs/法案辅助文件/GrassEye_DOM自动化生产稳定态施工图.md`
 
@@ -24,6 +24,9 @@ DOM Automation owns same-kind browser-page primitives:
 - Approved text fill.
 - Located element click.
 - Approved file upload.
+- Scroll element into viewport.
+- Custom dropdown / select option.
+- Safe overlay dismissal.
 - DOM state wait.
 - DOM state verification.
 
@@ -64,9 +67,18 @@ click-dom-element-once
 upload-approved-file-once
 wait-for-dom-state-once
 verify-dom-state-once
+scroll-to-element-once
+select-option-once
+dismiss-overlay-once
 ```
 
 No new DOM child ability may be added until this law and its construction blueprint are updated first.
+
+Ability coverage rationale:
+
+- `scroll-to-element-once` — Most real-world pages have off-viewport content. Without scroll, fill/click on below-fold elements fail silently.
+- `select-option-once` — Native `<select>` and custom dropdowns (Ant Design, Element Plus, Select2, Bootstrap Select) cannot be operated by fill. This is a fundamental gap for back-office automation.
+- `dismiss-overlay-once` — Cookie consent banners, GDPR popups, promotional modals, and permission dialogs block every other action on virtually all commercial web pages.
 
 ## 3. Law APEX-DOM-001-V1 — Business Neutrality
 
@@ -212,11 +224,43 @@ Required:
 - File input values and file contents are never exposed.
 - Detected states are page-state hints only, not business truth.
 
+**SPA / Dynamic Content:**
+
+- Snapshot must support capturing post-hydration DOM state (React, Vue, Angular, Svelte rendered output).
+- If the page is still loading when snapshot is requested, detected state must include `loading` or return a clear observable status; fake completion is forbidden.
+- Lazy-loaded content that has not yet entered the DOM must not be reported as present.
+- Virtual scroll containers must report container presence and visible row count, not fabricate off-screen rows.
+
+**Custom Component Recognition:**
+
+- Snapshot must recognise interactive roles from common Chinese and international back-office component libraries: Ant Design, Element Plus, Arco Design, Naive UI, Bootstrap, Material UI.
+- Custom dropdown triggers (`role=combobox`, `aria-haspopup`, `aria-expanded`) must be detected as `dropdown-trigger` candidates.
+- Date pickers, tab panels, accordion toggles, rich-text editors, and slider controls must be reported with their semantic role, not ignored.
+- Table cells that act as clickable row actions must be captured as `genericClickableElements`.
+
+**Overlay / Modal Awareness:**
+
+- Snapshot must report active overlay presence as `detectedStates` entries: `cookie-consent-overlay`, `promotional-overlay`, `modal-dialog`, `drawer-panel`.
+- The topmost interactive layer must be identified; sub-layers behind an overlay must be marked as obscured.
+- Fixed-position banners (GDPR, cookie) must not be silently omitted.
+
+**Loading and Error States:**
+
+- `loading-skeleton`, `empty-state`, `error-state`, `success-state`, and `rate-limited` must be detectable and expressible as `detectedStates`.
+- Pagination controls must be captured so job flows can reason about multi-page content.
+
+**Multi-language Support:**
+
+- Snapshot must correctly capture CJK (Chinese, Japanese, Korean) text without truncation artefacts.
+- Placeholder and accessible-name extraction must handle UTF-8 label text without restriction.
+
 Forbidden:
 
 - Full DOM serialization.
 - Full page text dump.
 - Cookie, token, localStorage, sessionStorage, password, or file content capture.
+- Reporting skeleton or spinner state as interactive content.
+- Claiming overlay-obscured elements are actionable.
 
 ## 7. Law APEX-DOM-005-V1 — Locator Stability
 
@@ -251,11 +295,39 @@ Required:
 - CSS fallback must lower confidence and mark fallback use.
 - Locator must not embed platform-specific selectors or business terms.
 
+**Proximity-Based Location:**
+
+- When a target cannot be identified by text or ARIA signals alone, the locator must support proximity hints: find interactive element spatially nearest to a given label, heading, or anchor text.
+- Proximity match must document the anchor it used and lower confidence relative to a direct semantic match.
+- Proximity fallback must never produce high-confidence false positives.
+
+**Component Library Pattern Awareness:**
+
+- Custom dropdown triggers must be detectable: `role=combobox`, `aria-haspopup="listbox"`, `aria-expanded`, common class-name patterns for Ant Design (`ant-select`), Element Plus (`el-select`), Arco Design (`arco-select`), Select2 (`.select2-container`).
+- Tab panels: `role=tab`, `aria-selected` patterns.
+- Modal/dialog triggers: `role=dialog`, `aria-modal`, common overlay class patterns.
+- Rich-text editors: `contenteditable`, `role=textbox` with `aria-multiline`.
+- The locator must not hardcode platform-specific class names as primary identity signals; they may be secondary fallback signals with lowered confidence.
+
+**Dynamic Attribute Handling:**
+
+- Hashed CSS class names (styled-components, CSS Modules, Tailwind JIT variants) must not be used as primary identity.
+- Stable signals (accessible name, role, aria-*, data-testid, data-automation-id, id, name) take priority.
+- If only hashed classes are available, the locator must apply semantic-role scoring and lower confidence accordingly.
+
+**Fuzzy Text Matching:**
+
+- Visible text matching must support case-insensitive and diacritic-insensitive comparison.
+- CJK (Chinese, Japanese, Korean) text matching must not require byte-exact match when substring match is unambiguous.
+- Partial match with a uniqueness score above a defined threshold is allowed as a low-confidence signal only.
+
 Forbidden:
 
 - `nth-of-type` fallback as production-grade high confidence.
 - Silent best-guess selection when top candidates are close.
 - Ignoring hidden/disabled state except for lawful file input upload.
+- Hardcoded platform-specific CSS class as a primary high-confidence locator signal.
+- Proximity match reporting high confidence when the anchor was itself ambiguous.
 
 ## 8. Law APEX-DOM-006-V1 — Frame / Shadow Boundary
 
@@ -513,7 +585,167 @@ Forbidden:
 - AI-visible action codes for DOM internals.
 - Coordinate grid proof as DOM action identity.
 
-## 15. Law APEX-DOM-013-V1 — Audit Enforcement
+## 15. Law APEX-DOM-014-V1 — Scroll-to Safety
+
+```apex-law
+{
+  "lawId": "APEX-DOM-014-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "dom-automation",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+runtime-evidence",
+  "summary": "DOM scroll must bring a located element into viewport before any action and must not loop infinitely.",
+  "appliesTo": [
+    "src/capabilities/dom-automation/runtime/dom-scroll.ts",
+    "src/capabilities/dom-automation/schema.ts"
+  ],
+  "forbidden": [
+    "Infinite scroll loop without a max-iteration budget.",
+    "Claiming element is in viewport without revalidation.",
+    "Scroll success without post-scroll visibility recheck.",
+    "Scrolling to an element that was not previously located.",
+    "Business plugin calling browser scroll primitive directly."
+  ]
+}
+```
+
+Required:
+
+- `scroll-to-element-once` accepts a `DomElementRef` from a prior `locate-dom-element-once` result; it does not accept raw selectors.
+- After scrolling, the ability must revalidate that the element is within the visible viewport before returning success.
+- A scroll budget must be defined: maximum pixel distance or maximum scroll steps per call; exceeding the budget returns `review_required` with reason `element-not-reachable-by-scroll`.
+- Sticky headers, fixed toolbars, and anchored navigation must be accounted for in the viewport intersection check (offset calculation).
+- Scroll action must capture before/after evidence (screenshot or viewport report).
+- Scroll is a support primitive: it must never decide business flow order.
+
+Forbidden:
+
+- Scroll without a located element ref.
+- Claiming scroll success when the element is still obscured by a fixed overlay.
+- Triggering infinite scroll as a page navigation strategy.
+- Using scroll as a business-step decision point.
+
+## 16. Law APEX-DOM-015-V1 — Select / Dropdown Safety
+
+```apex-law
+{
+  "lawId": "APEX-DOM-015-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "dom-automation",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+runtime-evidence",
+  "summary": "DOM option selection must handle native select and common custom dropdown patterns, verify the selection was applied, and return structured results.",
+  "appliesTo": [
+    "src/capabilities/dom-automation/runtime/dom-select.ts",
+    "src/capabilities/dom-automation/schema.ts"
+  ],
+  "forbidden": [
+    "Selecting arbitrary option text not from caller-approved list.",
+    "Claiming selection success without verifying the displayed value changed.",
+    "Using fill to set a native select element's value directly.",
+    "Custom dropdown interaction without detecting its open/close state.",
+    "Multi-select without explicit caller approval of each selected value."
+  ]
+}
+```
+
+Required:
+
+- `select-option-once` accepts: the element ref (located as `select`, `combobox`, or `dropdown-trigger`), the `approvedOptionText` string from the job flow, and `matchMode` (`exact` or `contains`).
+- Native `<select>` elements must use programmatic value assignment and dispatch `change` event.
+- Custom dropdowns (Ant Design Select, Element Plus Select, Select2, Bootstrap Select, `role=combobox + aria-haspopup=listbox`, `aria-expanded` trigger patterns) must be operated by: (1) click the trigger to open the panel, (2) wait for the options panel to appear in the DOM, (3) locate the matching option by text, (4) click the option, (5) wait for the panel to close, (6) verify the trigger's displayed text reflects the selection.
+- The selected value must be verified by reading the element's displayed text or value after the interaction. If verification fails, return `failed` with reason.
+- If the option text is not found in the open panel, return `not_found`.
+- If multiple options partially match and none is an exact match, return `ambiguous` with candidate evidence.
+- Multi-select operations require `approvedOptionList` from the caller; selecting all vs. selecting specific items must be explicit.
+- Selection evidence must include before and after screenshots or DOM state capture.
+
+Forbidden:
+
+- Setting `.value` on a custom dropdown container without triggering its event system.
+- Assuming options are present without waiting for the panel to render (lazy option loading is common).
+- Using keyboard-only navigation as the sole selection strategy on pages where ARIA keyboard support is absent.
+- Hardcoding Ant Design or other library-specific class names as the option selection mechanism.
+
+## 17. Law APEX-DOM-016-V1 — Overlay Dismissal Safety
+
+```apex-law
+{
+  "lawId": "APEX-DOM-016-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "dom-automation",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "ast+runtime-evidence",
+  "summary": "DOM overlay dismissal may only remove safe non-blocking consent or informational overlays and must return review_required for all ambiguous or sensitive dialogs.",
+  "appliesTo": [
+    "src/capabilities/dom-automation/runtime/dom-dismiss-overlay.ts",
+    "src/capabilities/dom-automation/schema.ts"
+  ],
+  "forbidden": [
+    "Dismissing authentication dialogs.",
+    "Dismissing business confirmation dialogs (e.g. payment, refund, deletion).",
+    "Dismissing overlays whose purpose cannot be determined from detectedState.",
+    "Clicking Escape as a universal dismiss without verifying overlay type.",
+    "Claiming dismiss success when the overlay is still present in the DOM."
+  ]
+}
+```
+
+Required:
+
+- `dismiss-overlay-once` accepts: the detected overlay state from snapshot (`cookie-consent-overlay`, `promotional-overlay`, or `informational-banner`), and the `approvedDismissalText` string (the button/link text to click, e.g. "Accept", "Close", "Got it", "同意", "关闭").
+- Before acting, the ability must re-read the current snapshot to confirm the overlay is still present and matches the expected type.
+- Allowed dismissable overlay types: `cookie-consent-overlay`, `promotional-overlay`, `informational-banner`, `gdpr-consent`, `app-install-prompt`.
+- Forbidden to dismiss: `modal-dialog` with unknown purpose, authentication prompts, payment confirmation dialogs, delete confirmation dialogs, or any overlay not listed as safe.
+- If the detected overlay type is not in the safe allowlist, return `review_required` with reason `overlay-type-not-in-safe-dismissal-allowlist`.
+- After dismissal click, the ability must wait up to a defined timeout for the overlay to disappear from the DOM and capture after evidence.
+- If the overlay persists after the click, return `failed` with reason `overlay-still-present`.
+
+Forbidden:
+
+- Dismissing overlays whose content text suggests payment, deletion, or authentication.
+- Using Escape key dismiss without first classifying the overlay type.
+- Hardcoding "Accept all cookies" in DOM core; the job flow provides the approved text.
+- Treating overlay dismissal as a business step; it is a page-clearing support action only.
+
+## 18. Web Compatibility Covenant
+
+The ten child abilities collectively must cover the interaction surface of modern web back-office systems.
+
+### Capability Coverage Map
+
+| Web reality | Child ability |
+|---|---|
+| Static HTML pages | `read-dom-snapshot-once`, `locate-dom-element-once`, `fill-dom-element-once`, `click-dom-element-once` |
+| React / Vue / Angular SPAs | All of the above, with SPA hydration awareness in snapshot |
+| Pages with below-fold content | `scroll-to-element-once` → then fill/click |
+| Native `<select>` dropdowns | `select-option-once` |
+| Custom dropdowns (Ant Design, Element Plus, Select2) | `select-option-once` |
+| File upload fields | `upload-approved-file-once` |
+| Cookie / GDPR / promotional banners | `dismiss-overlay-once` → then proceed |
+| Login walls, CAPTCHA challenges | `wait-for-dom-state-once` returns `login_required` / `captcha_or_2fa_required` |
+| Post-action confirmation | `wait-for-dom-state-once` + `verify-dom-state-once` |
+| iframe-hosted forms | `locate-dom-element-once` with `frameRef`, then fill/click in frame |
+| Shadow DOM components | `locate-dom-element-once` with host-scoped revalidation |
+
+### Mandatory Scope Claim
+
+DOM Automation does not claim to handle:
+
+- CAPTCHA solving (returns `captcha_or_2fa_required`; human or external service handles it).
+- OAuth / SSO login flows (returns `login_required`; job flow decides how to proceed).
+- Fully canvas-rendered UIs with no accessible DOM (returns `review_required`; DOM cannot see what is not in the DOM).
+- Downloaded file content analysis (belongs to other capability groups).
+- AI-based visual understanding (forbidden by GrassEye architecture law).
+
+### Web Compatibility P0 Gate
+
+DOM Automation must not claim web compatibility readiness unless it can demonstrably handle all rows in the Capability Coverage Map above, or explicitly documents each gap with a structured `review_required` return and a known remediation path.
+
+## 19. Law APEX-DOM-013-V1 — Audit Enforcement
 
 ```apex-law
 {
@@ -542,7 +774,7 @@ Forbidden:
 Minimum DOM inspector checks:
 
 - DOM law parses as `apex-law`.
-- DOM public child ability list matches schema and facade.
+- DOM public child ability list matches schema and facade (ten legal values).
 - Plugins import only the DOM public facade.
 - DOM runtime does not import plugins.
 - Mediator does not import DOM runtime.
@@ -550,18 +782,21 @@ Minimum DOM inspector checks:
 - Locator does not use normal `throw` for `not_found` / `ambiguous` once structured locate result is implemented.
 - Upload requires approved path and file input target.
 - Click sensitive terms return review-required.
+- `dom-scroll.ts` requires a located element ref and revalidates viewport after scroll.
+- `dom-select.ts` verifies displayed value after selection and handles both native select and custom dropdown open/close cycle.
+- `dom-dismiss-overlay.ts` checks overlay type against safe allowlist before acting and refuses authentication / confirmation dialogs.
 
 Minimum acceptance:
 
-- Local DOM fixture smoke covers snapshot, locate, fill, click, upload, wait, and verify.
+- Local DOM fixture smoke covers all ten child abilities: snapshot, locate, fill, click, upload, wait, verify, scroll, select-option, and overlay dismissal.
 - Amazon invoice upload smoke remains a job-flow acceptance, not DOM-only proof.
 
-## 16. Production Readiness Gate
+## 20. Production Readiness Gate
 
 DOM Automation may be called production-stable only when all are true:
 
 - This law and the construction blueprint agree.
-- All seven legal child abilities exist and are exported from the public facade.
+- All ten legal child abilities exist and are exported from the public facade.
 - Normal uncertainty returns structured results.
 - Frame/shadow support is either implemented or explicitly returns review-required.
 - Action evidence is real and traceable.
@@ -570,7 +805,12 @@ DOM Automation may be called production-stable only when all are true:
 - DOM core contains no platform-specific workflow.
 - Plugins import only the public facade.
 - DOM inspector is runner-visible.
-- DOM acceptance smoke covers every child ability.
+- DOM acceptance smoke covers every child ability including scroll, select-option, and overlay dismissal.
+- Snapshot can detect SPA post-hydration state, overlay presence, and loading states.
+- Locator supports proximity hints, component library patterns, and CJK text matching.
+- Select-option handles both native `<select>` and at least two custom dropdown component patterns.
+- Overlay dismissal refuses authentication and confirmation dialogs and applies the safe-type allowlist.
+- Web Compatibility Coverage Map shows no unaddressed gaps without a structured `review_required` return path.
 
 If any item is missing, the correct status is:
 
@@ -578,12 +818,16 @@ If any item is missing, the correct status is:
 DOM Automation is active but not production-stable.
 ```
 
-## 17. Final Principle
+## 21. Final Principle
 
 ```txt
 DOM Automation is allowed to know the page structure.
 It is not allowed to know the business mission.
 
-DOM may locate, fill, click, upload, wait, and verify.
+DOM may look, find, fill, click, upload, scroll, select, dismiss overlays, wait, and verify.
 It may not plan, decide the workflow, forge evidence, or become a second flow.
+
+The ten child abilities are the complete hands of GrassEye on any web page.
+Each ability does exactly one thing. Together they can handle most web pages on the market.
+Strength comes from depth within boundary, not from crossing the boundary.
 ```

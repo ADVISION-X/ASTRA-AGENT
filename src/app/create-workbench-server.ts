@@ -3,12 +3,10 @@ import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 
-type JsonResponse = Record<string, unknown> | Array<unknown>;
-
 const writeJson = (
   response: import("node:http").ServerResponse,
   statusCode: number,
-  body: JsonResponse,
+  body: unknown,
 ): void => {
   response.writeHead(statusCode, { "content-type": "application/json; charset=utf-8" });
   response.end(JSON.stringify(body));
@@ -63,21 +61,21 @@ async function handleAmazonRequest(
   if (url.pathname === "/api/amazon-invoice-upload/mission" && request.method === "POST") {
     const input = await readJsonBody(request);
     const result = await workbench.startAmazonInvoiceUploadMission(input as Parameters<typeof workbench.startAmazonInvoiceUploadMission>[0]);
-    writeJson(response, 200, result as unknown as JsonResponse);
+    writeJson(response, 200, result);
     return true;
   }
 
   if (url.pathname === "/api/amazon-invoice-upload/task" && request.method === "POST") {
     const input = await readJsonBody(request);
     const result = await workbench.startAmazonInvoiceUploadTask(input as Parameters<typeof workbench.startAmazonInvoiceUploadTask>[0]);
-    writeJson(response, 200, result as unknown as JsonResponse);
+    writeJson(response, 200, result);
     return true;
   }
 
   if (url.pathname === "/api/amazon-invoice-upload/task/resume" && request.method === "POST") {
     const input = await readJsonBody(request);
     const result = await workbench.resumeAmazonInvoiceUploadTask(input as Parameters<typeof workbench.resumeAmazonInvoiceUploadTask>[0]);
-    writeJson(response, 200, result as unknown as JsonResponse);
+    writeJson(response, 200, result);
     return true;
   }
 
@@ -88,7 +86,7 @@ async function handleAmazonRequest(
       return true;
     }
     const result = await workbench.getAmazonInvoiceUploadTaskStatus(taskId);
-    writeJson(response, 200, result as unknown as JsonResponse);
+    writeJson(response, 200, result);
     return true;
   }
 
@@ -125,7 +123,7 @@ async function handleRequest(
   }
 
   if (request.method === "GET" && url.pathname === "/api/health") {
-    writeJson(response, 200, await workbench.getHealthReport() as unknown as JsonResponse);
+    writeJson(response, 200, await workbench.getHealthReport());
     return;
   }
 

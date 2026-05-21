@@ -27,6 +27,8 @@ function snapshotText(input: VerifyDomStateInput): string {
     ...input.snapshot.tableRows.map((item) => [item.ariaLabel, item.visibleText, item.nearbyText].filter(Boolean).join(" ")),
     ...input.snapshot.roleRows.map((item) => [item.ariaLabel, item.visibleText, item.nearbyText].filter(Boolean).join(" ")),
     ...input.snapshot.genericClickableElements.map((item) => [item.ariaLabel, item.visibleText, item.nearbyText].filter(Boolean).join(" ")),
+    ...input.snapshot.dropdownTriggers.map((item) => [item.ariaLabel, item.visibleText, item.nearbyText].filter(Boolean).join(" ")),
+    ...input.snapshot.overlays.map((item) => [item.ariaLabel, item.visibleText, item.nearbyText].filter(Boolean).join(" ")),
     ...input.snapshot.textBlocks.map((item) => [item.ariaLabel, item.visibleText, item.nearbyText].filter(Boolean).join(" ")),
   ];
   return parts.join(" ").toLowerCase();

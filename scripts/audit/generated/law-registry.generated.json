@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T12:14:16.006Z",
+  "generatedAt": "2026-05-21T12:42:37.277Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -1025,6 +1025,72 @@
       "blockIndex": 11
     },
     {
+      "lawId": "APEX-DOM-014-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+runtime-evidence",
+      "summary": "DOM scroll must bring a located element into viewport before any action and must not loop infinitely.",
+      "appliesTo": [
+        "src/capabilities/dom-automation/runtime/dom-scroll.ts",
+        "src/capabilities/dom-automation/schema.ts"
+      ],
+      "forbidden": [
+        "Infinite scroll loop without a max-iteration budget.",
+        "Claiming element is in viewport without revalidation.",
+        "Scroll success without post-scroll visibility recheck.",
+        "Scrolling to an element that was not previously located.",
+        "Business plugin calling browser scroll primitive directly."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 12
+    },
+    {
+      "lawId": "APEX-DOM-015-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+runtime-evidence",
+      "summary": "DOM option selection must handle native select and common custom dropdown patterns, verify the selection was applied, and return structured results.",
+      "appliesTo": [
+        "src/capabilities/dom-automation/runtime/dom-select.ts",
+        "src/capabilities/dom-automation/schema.ts"
+      ],
+      "forbidden": [
+        "Selecting arbitrary option text not from caller-approved list.",
+        "Claiming selection success without verifying the displayed value changed.",
+        "Using fill to set a native select element's value directly.",
+        "Custom dropdown interaction without detecting its open/close state.",
+        "Multi-select without explicit caller approval of each selected value."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 13
+    },
+    {
+      "lawId": "APEX-DOM-016-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "dom-automation",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+runtime-evidence",
+      "summary": "DOM overlay dismissal may only remove safe non-blocking consent or informational overlays and must return review_required for all ambiguous or sensitive dialogs.",
+      "appliesTo": [
+        "src/capabilities/dom-automation/runtime/dom-dismiss-overlay.ts",
+        "src/capabilities/dom-automation/schema.ts"
+      ],
+      "forbidden": [
+        "Dismissing authentication dialogs.",
+        "Dismissing business confirmation dialogs (e.g. payment, refund, deletion).",
+        "Dismissing overlays whose purpose cannot be determined from detectedState.",
+        "Clicking Escape as a universal dismiss without verifying overlay type.",
+        "Claiming dismiss success when the overlay is still present in the DOM."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
+      "blockIndex": 14
+    },
+    {
       "lawId": "APEX-DOM-013-V1",
       "status": "active",
       "tier": "P0",
@@ -1045,7 +1111,7 @@
         "Generated audit artifacts hand-edited to include DOM pass."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
-      "blockIndex": 12
+      "blockIndex": 15
     }
   ]
 }
