@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T12:42:38.723Z",
+  "generatedAt": "2026-05-21T12:51:03.217Z",
   "capabilityDomain": "code-purity",
   "executionGroup": "foundation",
   "lawIds": [
@@ -90,47 +90,23 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts has an over-limit function near line 58.",
+      "message": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts has an over-limit function near line 150.",
       "filePath": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
       "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
+      "checkId": "code-purity/file-budget-hard-limit",
+      "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts has an over-limit function near line 111.",
-      "filePath": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+      "message": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts has 249 lines and exceeds the audit helper/phase file hard-limit budget.",
+      "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
+      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts has an over-limit function near line 156.",
-      "filePath": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/scan-owner-boundaries.ts has an over-limit function near line 35.",
-      "filePath": "scripts/audit/domains/code-purity/components/scan-owner-boundaries.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/scan-structural-function-budgets.ts has an over-limit function near line 35.",
-      "filePath": "scripts/audit/domains/code-purity/components/scan-structural-function-budgets.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts has an over-limit function near line 10.",
+      "message": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts has an over-limit function near line 75.",
       "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
       "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
     },
@@ -138,7 +114,7 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts has an over-limit function near line 34.",
+      "message": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts has an over-limit function near line 122.",
       "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
       "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
     },
@@ -186,9 +162,9 @@
       "checkId": "code-purity/file-budget-hard-limit",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "src/capabilities/dom-automation/runtime/dom-locator.ts has 350 lines and exceeds the browser or DOM runtime primitive hard-limit budget.",
+      "message": "src/capabilities/dom-automation/runtime/dom-locator.ts has 350 lines and exceeds the child ability runtime file hard-limit budget.",
       "filePath": "src/capabilities/dom-automation/runtime/dom-locator.ts",
-      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
+      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/function-budget",
@@ -196,7 +172,7 @@
       "clauseId": "primary",
       "message": "src/capabilities/dom-automation/runtime/dom-locator.ts has an over-limit function near line 189.",
       "filePath": "src/capabilities/dom-automation/runtime/dom-locator.ts",
-      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
+      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/function-budget",
@@ -204,7 +180,7 @@
       "clauseId": "primary",
       "message": "src/capabilities/dom-automation/runtime/dom-locator.ts has an over-limit function near line 288.",
       "filePath": "src/capabilities/dom-automation/runtime/dom-locator.ts",
-      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
+      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/file-budget-hard-limit",

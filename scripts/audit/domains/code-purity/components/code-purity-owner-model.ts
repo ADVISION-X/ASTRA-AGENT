@@ -40,6 +40,12 @@ const auditPhaseBudget: FileBudget = { label: "audit helper/phase file", target:
 
 const schemaLikeFilePattern = /(schema|contract|types?|result)\.tsx?$/u;
 
+const resolveByPrefix = (repoPath: string, rules: readonly (readonly [string, string])[]): string | null =>
+  rules.find(([prefix]) => repoPath.startsWith(prefix))?.[1] ?? null;
+
+const resolveByPattern = (repoPath: string, rules: readonly (readonly [RegExp, string])[]): string | null =>
+  rules.find(([pattern]) => pattern.test(repoPath))?.[1] ?? null;
+
 const resolvePluginOwner = (repoPath: string): string | null => {
   const match = /^src\/plugins\/([^/]+)\//u.exec(repoPath);
   return match ? `plugin:${match[1]}` : null;
@@ -55,45 +61,41 @@ const resolveAuditOwner = (repoPath: string): string | null => {
   return match ? `audit:${match[1]}` : null;
 };
 
-const resolveRootOwner = (repoPath: string): string => {
+const resolveSourceOwner = (repoPath: string): string | null => {
   if (repoPath.startsWith("src/app/")) {
     return "app-shell";
   }
   if (repoPath.startsWith("src/mediator/")) {
     return "mediator";
   }
-  if (repoPath.startsWith("src/lib/browser/")) {
-    return "browser";
-  }
-  if (repoPath.startsWith("src/lib/storage/")) {
-    return "storage";
-  }
-  if (repoPath.startsWith("src/lib/runtime-logs/")) {
-    return "runtime-logs";
-  }
-  if (repoPath.startsWith("src/lib/local-runtime/")) {
-    return "local-runtime";
-  }
-  if (repoPath.startsWith("src/lib/online-ai/")) {
-    return "online-ai";
-  }
-  if (repoPath.startsWith("src/lib/")) {
-    return "lib";
-  }
-  if (repoPath.startsWith("src/types/")) {
-    return "types";
-  }
-  if (repoPath.startsWith("scripts/startup/")) {
-    return "startup";
-  }
-  if (repoPath.startsWith("scripts/acceptance/")) {
-    return "acceptance";
-  }
-  return repoPath.startsWith("scripts/audit/") ? "audit-core" : "unknown";
+  return repoPath.startsWith("src/types/") ? "types" : null;
+};
+
+const resolveLibOwner = (repoPath: string): string | null => {
+  return resolveByPrefix(repoPath, [
+    ["src/lib/browser/", "browser"],
+    ["src/lib/storage/", "storage"],
+    ["src/lib/runtime-logs/", "runtime-logs"],
+    ["src/lib/local-runtime/", "local-runtime"],
+    ["src/lib/online-ai/", "online-ai"],
+  ]) ?? (repoPath.startsWith("src/lib/") ? "lib" : null);
+};
+
+const resolveScriptOwner = (repoPath: string): string | null => {
+  return resolveByPrefix(repoPath, [
+    ["scripts/startup/", "startup"],
+    ["scripts/acceptance/", "acceptance"],
+  ]) ?? (repoPath.startsWith("scripts/audit/") ? "audit-core" : null);
 };
 
 export const resolveCodePurityOwner = (repoPath: string): string =>
-  resolvePluginOwner(repoPath) ?? resolveCapabilityOwner(repoPath) ?? resolveAuditOwner(repoPath) ?? resolveRootOwner(repoPath);
+  resolvePluginOwner(repoPath) ??
+  resolveCapabilityOwner(repoPath) ??
+  resolveAuditOwner(repoPath) ??
+  resolveSourceOwner(repoPath) ??
+  resolveLibOwner(repoPath) ??
+  resolveScriptOwner(repoPath) ??
+  "unknown";
 
 const resolveScriptRole = (repoPath: string): CodePurityRole | null => {
   if (/^scripts\/audit\/domains\/[^/]+\/inspector\.ts$/u.test(repoPath)) {
@@ -108,6 +110,43 @@ const resolveScriptRole = (repoPath: string): CodePurityRole | null => {
   return repoPath.startsWith("scripts/startup/") ? "startup-script" : null;
 };
 
+const resolvePluginRole = (repoPath: string): CodePurityRole | null => {
+  if (resolveByPattern(repoPath, [[/^src\/plugins\/[^/]+\/.*\.flow\.ts$/u, "job-flow"]] as const) === "job-flow") {
+    return "job-flow";
+  }
+  if (repoPath.startsWith("src/plugins/") && schemaLikeFilePattern.test(repoPath)) {
+    return "job-schema";
+  }
+  return repoPath.startsWith("src/plugins/") ? "job-step" : null;
+};
+
+const resolveCapabilityRole = (repoPath: string): CodePurityRole | null => {
+  const directRole = resolveByPattern(repoPath, [
+    [/^src\/capabilities\/[^/]+\/index\.ts$/u, "ability-group"],
+    [/^src\/capabilities\/[^/]+\/(runtime|children)\//u, "child-ability"],
+  ] as const);
+  if (directRole) {
+    return directRole as CodePurityRole;
+  }
+  if (repoPath.startsWith("src/capabilities/dom-automation/runtime/") || repoPath.startsWith("src/lib/browser/")) {
+    return "browser-primitive";
+  }
+  if (repoPath.startsWith("src/capabilities/") && (repoPath.includes("/contracts/") || schemaLikeFilePattern.test(repoPath))) {
+    return "type-contract";
+  }
+  return repoPath.startsWith("src/capabilities/") ? "ability-group" : null;
+};
+
+const resolveLibraryRole = (repoPath: string): CodePurityRole | null => {
+  if (repoPath.startsWith("src/lib/runtime-logs/") || repoPath.startsWith("src/capabilities/forensics-persistence/")) {
+    return "log-writer";
+  }
+  if (repoPath.startsWith("src/lib/storage/")) {
+    return "storage-adapter";
+  }
+  return repoPath.startsWith("src/lib/") ? "infrastructure" : null;
+};
+
 const resolveSourceRole = (repoPath: string): CodePurityRole => {
   if (repoPath.startsWith("src/app/") || repoPath.startsWith("src/lib/local-runtime/")) {
     return "app-shell";
@@ -115,75 +154,40 @@ const resolveSourceRole = (repoPath: string): CodePurityRole => {
   if (repoPath.startsWith("src/mediator/")) {
     return "mediator-route";
   }
-  if (/^src\/plugins\/[^/]+\/.*\.flow\.ts$/u.test(repoPath)) {
-    return "job-flow";
+  const pluginRole = resolvePluginRole(repoPath);
+  if (pluginRole) {
+    return pluginRole;
   }
-  if (repoPath.startsWith("src/plugins/") && schemaLikeFilePattern.test(repoPath)) {
-    return "job-schema";
+  const capabilityRole = resolveCapabilityRole(repoPath);
+  if (capabilityRole) {
+    return capabilityRole;
   }
-  if (repoPath.startsWith("src/plugins/")) {
-    return "job-step";
+  const libraryRole = resolveLibraryRole(repoPath);
+  if (libraryRole) {
+    return libraryRole;
   }
-  if (/^src\/capabilities\/[^/]+\/index\.ts$/u.test(repoPath)) {
-    return "ability-group";
-  }
-  if (repoPath.startsWith("src/capabilities/dom-automation/runtime/") || repoPath.startsWith("src/lib/browser/")) {
-    return "browser-primitive";
-  }
-  if (/^src\/capabilities\/[^/]+\/(runtime|children)\//u.test(repoPath)) {
-    return "child-ability";
-  }
-  if (repoPath.startsWith("src/capabilities/") && (repoPath.includes("/contracts/") || schemaLikeFilePattern.test(repoPath))) {
-    return "type-contract";
-  }
-  if (repoPath.startsWith("src/capabilities/")) {
-    return "ability-group";
-  }
-  if (repoPath.startsWith("src/lib/runtime-logs/") || repoPath.startsWith("src/capabilities/forensics-persistence/")) {
-    return "log-writer";
-  }
-  if (repoPath.startsWith("src/lib/storage/")) {
-    return "storage-adapter";
-  }
-  if (repoPath.startsWith("src/types/") || schemaLikeFilePattern.test(repoPath)) {
-    return "type-contract";
-  }
-  return "infrastructure";
+  return repoPath.startsWith("src/types/") || schemaLikeFilePattern.test(repoPath) ? "type-contract" : "infrastructure";
 };
 
 export const resolveCodePurityRole = (repoPath: string): CodePurityRole => resolveScriptRole(repoPath) ?? resolveSourceRole(repoPath);
 
-export const resolveCodePurityBudget = (repoPath: string, role: CodePurityRole): FileBudget => {
-  switch (role) {
-    case "job-flow":
-      return jobFlowBudget;
-    case "job-schema":
-    case "type-contract":
-      return schemaBudget;
-    case "mediator-route":
-      return mediatorBudget;
-    case "ability-group":
-      return abilityFacadeBudget;
-    case "child-ability":
-      return childAbilityBudget;
-    case "browser-primitive":
-      return browserPrimitiveBudget;
-    case "log-writer":
-    case "storage-adapter":
-      return evidenceBudget;
-    case "app-shell":
-      return appShellBudget;
-    case "startup-script":
-      return startupBudget;
-    case "acceptance-smoke":
-      return acceptanceBudget;
-    case "audit-inspector":
-      return auditInspectorBudget;
-    case "audit-phase":
-      return auditPhaseBudget;
-    case "job-step":
-      return jobStepBudget;
-    case "infrastructure":
-      return repoPath.startsWith("src/lib/") ? infrastructureBudget : jobStepBudget;
-  }
+const budgetByRole: Record<Exclude<CodePurityRole, "infrastructure">, FileBudget> = {
+  "ability-group": abilityFacadeBudget,
+  "acceptance-smoke": acceptanceBudget,
+  "app-shell": appShellBudget,
+  "audit-inspector": auditInspectorBudget,
+  "audit-phase": auditPhaseBudget,
+  "browser-primitive": browserPrimitiveBudget,
+  "child-ability": childAbilityBudget,
+  "job-flow": jobFlowBudget,
+  "job-schema": schemaBudget,
+  "job-step": jobStepBudget,
+  "log-writer": evidenceBudget,
+  "mediator-route": mediatorBudget,
+  "startup-script": startupBudget,
+  "storage-adapter": evidenceBudget,
+  "type-contract": schemaBudget,
 };
+
+export const resolveCodePurityBudget = (repoPath: string, role: CodePurityRole): FileBudget =>
+  role === "infrastructure" ? (repoPath.startsWith("src/lib/") ? infrastructureBudget : jobStepBudget) : budgetByRole[role];

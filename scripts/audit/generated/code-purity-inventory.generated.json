@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-21T12:42:38.722Z",
-  "itemCount": 41,
+  "generatedAt": "2026-05-21T12:51:03.215Z",
+  "itemCount": 38,
   "items": [
     {
       "checkId": "code-purity/class-budget",
@@ -87,47 +87,27 @@
       "filePath": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "audit:code-purity",
-      "reason": "Function near line 58 breaks function budget: return branch count 12 exceeds hard limit 5; cyclomatic complexity 13 exceeds hard limit 10.",
+      "reason": "Function near line 150 breaks function budget: return branch count 6 exceeds hard limit 5.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "audit-phase",
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
+      "checkId": "code-purity/file-budget-hard-limit",
+      "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
       "owner": "audit:code-purity",
-      "reason": "Function near line 111 breaks function budget: physical line count 42 exceeds hard limit 40; return branch count 14 exceeds hard limit 5; cyclomatic complexity 21 exceeds hard limit 10.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "reason": "audit helper/phase file has 249 lines and exceeds hard limit 240.",
+      "remediation": "Split or reduce the file by runtime role until it falls under the hard limit.",
       "role": "audit-phase",
       "verificationCommand": "npm run ci:full"
     },
     {
       "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/code-purity-owner-model.ts",
+      "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "audit:code-purity",
-      "reason": "Function near line 156 breaks function budget: return branch count 14 exceeds hard limit 5; cyclomatic complexity 19 exceeds hard limit 10.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/scan-owner-boundaries.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:code-purity",
-      "reason": "Function near line 35 breaks function budget: parameter count 6 exceeds hard limit 5.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/scan-structural-function-budgets.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:code-purity",
-      "reason": "Function near line 35 breaks function budget: physical line count 56 exceeds hard limit 40; cyclomatic complexity 13 exceeds hard limit 10.",
+      "reason": "Function near line 75 breaks function budget: physical line count 46 exceeds hard limit 40.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "audit-phase",
       "verificationCommand": "npm run ci:full"
@@ -137,17 +117,7 @@
       "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "audit:code-purity",
-      "reason": "Function near line 10 breaks function budget: parameter count 7 exceeds hard limit 5.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/code-purity/components/scan-structural-source-shape.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:code-purity",
-      "reason": "Function near line 34 breaks function budget: physical line count 160 exceeds hard limit 40; cyclomatic complexity 20 exceeds hard limit 10.",
+      "reason": "Function near line 122 breaks function budget: physical line count 49 exceeds hard limit 40.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "audit-phase",
       "verificationCommand": "npm run ci:full"
@@ -207,9 +177,9 @@
       "filePath": "src/capabilities/dom-automation/runtime/dom-locator.ts",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "owner": "capability:dom-automation",
-      "reason": "browser or DOM runtime primitive has 350 lines and exceeds hard limit 300.",
+      "reason": "child ability runtime file has 350 lines and exceeds hard limit 240.",
       "remediation": "Split or reduce the file by runtime role until it falls under the hard limit.",
-      "role": "browser-primitive",
+      "role": "child-ability",
       "verificationCommand": "npm run ci:full"
     },
     {
@@ -219,7 +189,7 @@
       "owner": "capability:dom-automation",
       "reason": "Function near line 189 breaks function budget: cyclomatic complexity 23 exceeds hard limit 10.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "browser-primitive",
+      "role": "child-ability",
       "verificationCommand": "npm run ci:full"
     },
     {
@@ -229,7 +199,7 @@
       "owner": "capability:dom-automation",
       "reason": "Function near line 288 breaks function budget: physical line count 48 exceeds hard limit 40.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "browser-primitive",
+      "role": "child-ability",
       "verificationCommand": "npm run ci:full"
     },
     {
