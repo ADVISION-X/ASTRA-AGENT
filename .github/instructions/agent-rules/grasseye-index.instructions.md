@@ -16,6 +16,7 @@ Kernel loads first. Current top-level authority is the 2026-05-21 job-flow autom
 | job flow, ability group boundary, child ability ownership, forbidden universal planner | modules/module-capability-group-governance.instructions.md |
 | Amazon invoice upload, order upload, approved PDF upload, Seller Central flow | modules/module-dom-automation.instructions.md |
 | new lawful job flow, Facebook/product/page/data workflows, flow admission | modules/module-architecture-boundary.instructions.md |
+| Facebook product video mining flow ownership, loop truth, app-shell exposure, acceptance ownership | modules/module-facebook-product-video-mining.instructions.md |
 | DOM snapshot, locator, fill, click, upload, wait, verify | modules/module-dom-automation.instructions.md |
 | AI bounded choice, A/B/C/D judgment, schema-validated choice result | modules/module-ai-capability.instructions.md |
 | external AI provider transport for bounded choice packages | modules/module-ai-input-gateway.instructions.md |

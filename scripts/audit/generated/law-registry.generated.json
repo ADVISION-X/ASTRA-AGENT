@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T13:52:12.226Z",
+  "generatedAt": "2026-05-21T20:03:21.522Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -1112,6 +1112,53 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-dom-automation.instructions.md",
       "blockIndex": 15
+    },
+    {
+      "lawId": "APEX-FACEBOOK-MINING-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "facebook-product-video-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Facebook product video mining must remain one explicit plugin-owned flow that performs truthful probe, comment loading, video download, bounded AI judgment, reject-or-save, and persistence per round.",
+      "appliesTo": [
+        "src/plugins/facebook-product-video-mining/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/acceptance/facebook-live-dom-probe.ts"
+      ],
+      "forbidden": [
+        "Business loop logic outside src/plugins/facebook-product-video-mining.",
+        "Skipping download, AI judgment, or persistence while claiming saved products.",
+        "Mock, fixture, or placeholder success for real-platform mining.",
+        "Parallel second flow for the same Facebook mining demand."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "APEX-FACEBOOK-MINING-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "facebook-product-video-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Facebook product video mining must expose lawful start/status/latest routes through the local workbench and must keep acceptance and audit ownership wired into CI-FULL.",
+      "appliesTo": [
+        "src/plugins/local-workbench-plugin-tasks.ts",
+        "src/lib/local-runtime/workbench*.ts",
+        "src/app/create-workbench-server.ts",
+        "src/app/server.ts",
+        "scripts/acceptance/facebook-product-video-mining*.ts",
+        "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}",
+        "package.json"
+      ],
+      "forbidden": [
+        "App shell owning Facebook step order.",
+        "Missing mission start, run status, or latest status surface.",
+        "CI-FULL omitting Facebook mining acceptance after the domain is active.",
+        "Manifest pointing to a non-existent owner inspector."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
+      "blockIndex": 1
     }
   ]
 }

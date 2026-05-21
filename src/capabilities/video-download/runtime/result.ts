@@ -5,10 +5,13 @@ import {
   VideoDownloadResultSchema,
   type ParsedVideoDownloadAbilityInput,
   type VideoDownloadCandidate,
-  type VideoDownloadFailureReason,
-  type VideoDownloadPlatformId,
   type VideoDownloadResult,
 } from "../schema.js";
+import type {
+  VideoDownloadFailureReason,
+  VideoDownloadPlatformId,
+  VideoDownloadSubtitleArtifact,
+} from "../type-contracts.js";
 import { routeToChildCapability } from "./platform-router.js";
 
 const CHILD_TO_PLATFORM: Record<string, VideoDownloadPlatformId> = {
@@ -20,6 +23,7 @@ const CHILD_TO_PLATFORM: Record<string, VideoDownloadPlatformId> = {
   "download-douyin-video-once": "douyin-web",
   "download-x-video-once": "x-web",
   "download-xiaohongshu-video-once": "xiaohongshu-web",
+  "download-youtube-video-once": "youtube-web",
 };
 
 const resolvePlatformId = (input: ParsedVideoDownloadAbilityInput): VideoDownloadPlatformId => {
@@ -41,6 +45,9 @@ type ResultBaseInput = {
   width?: number | null;
   height?: number | null;
   artifactRef?: string | null;
+  sha256?: string | null;
+  artifactDisposition?: ParsedVideoDownloadAbilityInput["artifactDisposition"] | null;
+  subtitleArtifacts?: readonly VideoDownloadSubtitleArtifact[];
 };
 
 const elapsedMs = (startedAt: string, endedAt: string): number =>
@@ -61,6 +68,8 @@ const buildProofIdentity = (base: ResultBaseInput, status: VideoDownloadResult["
   platformId: resolvePlatformId(base.input),
   status,
   selectedQuality: base.input.preferredQuality,
+  artifactDisposition: base.artifactDisposition ?? null,
+  sha256: base.sha256 ?? null,
 });
 
 const buildProofCandidateDetails = (base: ResultBaseInput) => ({
@@ -72,6 +81,7 @@ const buildProofCandidateDetails = (base: ResultBaseInput) => ({
   width: base.width ?? null,
   height: base.height ?? null,
   artifactRef: base.artifactRef ?? null,
+  subtitleArtifacts: [...(base.subtitleArtifacts ?? [])],
 });
 
 const baseProof = (base: ResultBaseInput, status: VideoDownloadResult["status"], endedAt: string) => ({
@@ -102,6 +112,9 @@ const buildSuccessOutput = (
     artifactRef: string;
     storageRef: string;
     filePath: string;
+    sha256: string;
+    artifactDisposition: ParsedVideoDownloadAbilityInput["artifactDisposition"];
+    subtitleArtifacts?: readonly VideoDownloadSubtitleArtifact[];
     videoId: string | null;
   },
   runtimeProof: ReturnType<typeof baseProof> & { failureReason: null; reviewRequiredReason: null },
@@ -114,6 +127,8 @@ const buildSuccessOutput = (
   artifactRef: base.artifactRef,
   storageRef: base.storageRef,
   filePath: base.filePath,
+  sha256: base.sha256,
+  artifactDisposition: base.artifactDisposition,
   contentType: base.contentType ?? "video/mp4",
   byteSize: base.byteSize ?? 0,
   durationMs: base.durationMs ?? null,
@@ -123,6 +138,7 @@ const buildSuccessOutput = (
   candidateKind: base.candidate?.kind ?? "media_resource",
   downloadedAt: endedAt,
   proofRef: runtimeProof.proofId,
+  subtitleArtifacts: [...(base.subtitleArtifacts ?? [])],
 });
 
 export const buildVideoDownloadFailure = (
@@ -153,6 +169,9 @@ export const buildVideoDownloadSuccess = (
     artifactRef: string;
     storageRef: string;
     filePath: string;
+    sha256: string;
+    artifactDisposition: ParsedVideoDownloadAbilityInput["artifactDisposition"];
+    subtitleArtifacts?: readonly VideoDownloadSubtitleArtifact[];
     videoId: string | null;
   },
 ): VideoDownloadResult => {
@@ -172,4 +191,3 @@ export const buildVideoDownloadSuccess = (
     runtimeProof,
   });
 };
-

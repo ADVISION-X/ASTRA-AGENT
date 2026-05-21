@@ -1,0 +1,12 @@
+{
+  "capabilityDomain": "facebook-product-video-mining",
+  "ownerInspectorPath": "scripts/audit/domains/facebook-product-video-mining/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "description": "Facebook product video mining job-flow owner audit."
+}

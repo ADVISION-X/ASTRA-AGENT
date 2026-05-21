@@ -17,8 +17,7 @@ type NativeFileInputSelectionContext = {
   sleep: Sleep;
 };
 
-const buildFileInputSelectionScript = (selector: string): string => `
-const resolvedSelector = ${JSON.stringify(selector)};
+const FILE_INPUT_SELECTION_SCRIPT_SUPPORT = `
 const browserChromeTopInset = Math.max(0, window.outerHeight - window.innerHeight);
 const clickPointFor = (target) => {
   const rect = target.getBoundingClientRect();
@@ -29,6 +28,23 @@ const isVisibleInput = (input) => {
   const rect = input.getBoundingClientRect();
   return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
 };
+const makeFileInputClickable = (input) => {
+  input.style.setProperty("position", "fixed", "important");
+  input.style.setProperty("left", "24px", "important");
+  input.style.setProperty("top", "24px", "important");
+  input.style.setProperty("width", "260px", "important");
+  input.style.setProperty("height", "56px", "important");
+  input.style.setProperty("opacity", "1", "important");
+  input.style.setProperty("z-index", "2147483647", "important");
+  input.style.setProperty("display", "block", "important");
+  input.style.setProperty("visibility", "visible", "important");
+  input.style.setProperty("pointer-events", "auto", "important");
+  input.removeAttribute("hidden");
+  return input;
+};
+`;
+
+const FILE_INPUT_SELECTION_SCRIPT_TARGETING = `
 const shadowUpload = Array.from(document.querySelectorAll("kat-file-upload"))
   .map((host) => {
     const input = host.shadowRoot ? host.shadowRoot.querySelector("input[type='file']") : null;
@@ -46,9 +62,15 @@ if (shadowUpload && (!candidate || !isVisibleInput(candidate))) {
 }
 const el = candidate;
 if (!(el instanceof HTMLInputElement) || el.type !== "file") return {status: "failed", message: "target is not input[type=file]"};
-const point = clickPointFor(el);
+const point = clickPointFor(isVisibleInput(el) ? el : makeFileInputClickable(el));
 return {status: "native_click_required", message: "native click required for file input", x: point.x, y: point.y};
 `;
+
+const buildFileInputSelectionScript = (selector: string): string => [
+  `const resolvedSelector = ${JSON.stringify(selector)};`,
+  FILE_INPUT_SELECTION_SCRIPT_SUPPORT,
+  FILE_INPUT_SELECTION_SCRIPT_TARGETING,
+].join("\n");
 
 const buildFileInputVerificationScript = (selector: string): string => `
 const resolvedSelector = ${JSON.stringify(selector)};
@@ -103,20 +125,32 @@ const clickNativeFileInput = async (
   return null;
 };
 
+const verifyNativeFileInputSelection = (
+  context: NativeFileInputSelectionContext,
+): Promise<FileInputClickProbe> => context.evaluateActiveTab<FileInputClickProbe>(context.state, {
+    description: "verify approved file selected on located file input",
+    script: buildFileInputVerificationScript(context.input.elementRef.selector),
+    ...(context.input.abortSignal ? { abortSignal: context.input.abortSignal } : {}),
+  }, context.refreshSnapshot);
+
+const finishNativeFileInputSelection = async (
+  context: NativeFileInputSelectionContext,
+): Promise<BrowserActionResult | null> => {
+  await activateChrome(context.input.abortSignal);
+  await context.sleep(1200, context.input.abortSignal);
+  await pasteApprovedFilePathIntoChooser(context.input.filePath, context.input.abortSignal);
+  await context.sleep(1400, context.input.abortSignal);
+  const verification = await verifyNativeFileInputSelection(context);
+  return verification.status === "success"
+    ? null
+    : createCurrentChromeBrowserActionResult({ ok: false, message: verification.message });
+};
+
 export const runNativeFileInputSelection = async (
   context: NativeFileInputSelectionContext,
 ): Promise<BrowserActionResult | null> => {
   const { evaluateActiveTab, state, input, refreshSnapshot, sleep } = context;
   const clickFailure = await clickNativeFileInput(input, await probeFileInputNativeClick(evaluateActiveTab, state, input, refreshSnapshot));
   if (clickFailure) return clickFailure;
-  await activateChrome(input.abortSignal);
-  await sleep(1200, input.abortSignal);
-  await pasteApprovedFilePathIntoChooser(input.filePath, input.abortSignal);
-  await sleep(1400, input.abortSignal);
-  const verification = await evaluateActiveTab<FileInputClickProbe>(state, {
-    description: "verify approved file selected on located file input",
-    script: buildFileInputVerificationScript(input.elementRef.selector),
-    ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-  }, refreshSnapshot);
-  return verification.status === "success" ? null : createCurrentChromeBrowserActionResult({ ok: false, message: verification.message });
+  return finishNativeFileInputSelection({ evaluateActiveTab, state, input, refreshSnapshot, sleep });
 };

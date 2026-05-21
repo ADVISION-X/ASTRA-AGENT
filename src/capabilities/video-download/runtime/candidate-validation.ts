@@ -1,7 +1,7 @@
 import type {
   VideoDownloadCandidate,
-  VideoDownloadFailureReason,
 } from "../schema.js";
+import type { VideoDownloadFailureReason } from "../type-contracts.js";
 
 export type CandidateValidationSuccess = {
   ok: true;
@@ -24,7 +24,8 @@ export type CandidateValidationResult =
   | CandidateValidationFailure;
 
 const isAllowedFacebookMediaHost = (host: string): boolean =>
-  /^video\.[a-z0-9.-]+\.fbcdn\.net$/iu.test(host);
+  /^video\.[a-z0-9.-]+\.fbcdn\.net$/iu.test(host)
+  || /^scontent\.[a-z0-9-]+(?:\.[a-z0-9-]+)*\.fbcdn\.net$/iu.test(host);
 
 const parseContentRangeTotal = (contentRange: string | null): number | null => {
   const matched = contentRange?.match(/\/(\d+)$/u);

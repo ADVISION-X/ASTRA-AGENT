@@ -18,6 +18,7 @@ export type GrassEyeWorkbenchOptions = {
   dataDir?: string;
   baseUrl: string;
   platformTarget: GrassEyePlatformTarget;
+  browserModeMarker?: string;
   startupReadiness?: {
     localAiReady: boolean;
     platformTarget: GrassEyePlatformTarget;

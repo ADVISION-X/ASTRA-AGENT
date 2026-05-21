@@ -49,6 +49,7 @@ const writeArtifact = (
   bytes: downloaded.bytes,
   contentType: downloaded.contentType,
   createdAt: new Date().toISOString(),
+  artifactDisposition: input.artifactDisposition,
 });
 
 async function tryCandidate(
@@ -74,6 +75,8 @@ async function tryCandidate(
     artifactRef: artifact.artifactRef,
     storageRef: artifact.storageRef,
     filePath: artifact.filePath,
+    sha256: artifact.sha256,
+    artifactDisposition: artifact.artifactDisposition,
     videoId: null,
   });
 }

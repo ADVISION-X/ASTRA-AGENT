@@ -94,6 +94,7 @@ export function getModeInfo(options: GrassEyeWorkbenchOptions): unknown {
     platformTarget: options.platformTarget,
     baseUrl: options.baseUrl,
     dataDir: options.dataDir ?? null,
+    browserModeMarker: options.browserModeMarker ?? null,
     browserHeadless: options.browserHeadless ?? false,
   };
 }

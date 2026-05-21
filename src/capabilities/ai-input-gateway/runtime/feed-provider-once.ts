@@ -64,6 +64,76 @@ const buildProviderFailure = (input: {
     cooldownMs: input.cooldownMs,
   });
 
+const buildRestoreFailure = (input: {
+  request: AiFeedInput;
+  childCapabilityId: AiInputGatewayChildCapabilityId;
+  inputPackage: AiFeedInputPackage;
+  startedAt: string;
+  transport: "api" | "web-chat";
+  cooldownMs: number;
+  response: {
+    webChatUrl: string | null;
+    sourcePageUrlBeforeFeed: string | null;
+    restoredSourcePage: boolean | null;
+  };
+}): AiFeedResult => buildAiFeedFailure({
+    request: input.request,
+    childCapabilityId: input.childCapabilityId,
+    inputPackage: input.inputPackage,
+    startedAt: input.startedAt,
+    transport: input.transport,
+    status: "review_required",
+    reason: "review_required: source page restoration failed after web chat feed.",
+    cooldownMs: input.cooldownMs,
+    response: input.response,
+  });
+
+const buildAdapterFeedContext = (input: ExecuteAiFeedOnceInput) => ({
+  dataDir: input.dataDir,
+  ...(input.browser ? { browser: input.browser } : {}),
+  ...(input.signal ? { abortSignal: input.signal } : {}),
+});
+
+const executeProviderFeed = (
+  input: ExecuteAiFeedOnceInput,
+) => input.adapter.feed(input.request, buildAdapterFeedContext(input));
+
+const buildProviderSuccess = async (input: {
+  request: AiFeedInput;
+  dataDir: string;
+  childCapabilityId: AiInputGatewayChildCapabilityId;
+  inputPackage: AiFeedInputPackage;
+  startedAt: string;
+  cooldownMs: number;
+  response: Awaited<ReturnType<AiProviderAdapter["feed"]>>;
+}): Promise<AiFeedResult> => {
+  if (
+    input.response.transport === "web-chat"
+    && input.response.sourcePageUrlBeforeFeed
+    && input.response.restoredSourcePage === false
+  ) {
+    return buildRestoreFailure({
+      request: input.request,
+      childCapabilityId: input.childCapabilityId,
+      inputPackage: input.inputPackage,
+      startedAt: input.startedAt,
+      transport: input.response.transport,
+      cooldownMs: input.cooldownMs,
+      response: input.response,
+    });
+  }
+  return buildAiFeedSuccess({
+    dataDir: input.dataDir,
+    request: input.request,
+    childCapabilityId: input.childCapabilityId,
+    inputPackage: input.inputPackage,
+    response: input.response,
+    parsedOutput: parseAiFeedOutput(input.response.rawText, input.request.expectedOutputSchemaRef),
+    startedAt: input.startedAt,
+    cooldownMs: input.cooldownMs,
+  });
+};
+
 export const executeAiFeedOnce = async (
   input: ExecuteAiFeedOnceInput,
 ): Promise<AiFeedResult> => {
@@ -76,20 +146,14 @@ export const executeAiFeedOnce = async (
   });
   if (!rate.ok) return buildRateGuardFailure({ ...input, inputPackage, startedAt, ...rate });
   try {
-    const response = await input.adapter.feed(input.request, {
-      dataDir: input.dataDir,
-      ...(input.browser ? { browser: input.browser } : {}),
-      ...(input.signal ? { abortSignal: input.signal } : {}),
-    });
-    return buildAiFeedSuccess({
-      dataDir: input.dataDir,
+    return await buildProviderSuccess({
       request: input.request,
+      dataDir: input.dataDir,
       childCapabilityId: input.childCapabilityId,
       inputPackage,
-      response,
-      parsedOutput: parseAiFeedOutput(response.rawText, input.request.expectedOutputSchemaRef),
       startedAt,
       cooldownMs: rate.cooldownMs,
+      response: await executeProviderFeed(input),
     });
   } catch (error) {
     return buildProviderFailure({ ...input, inputPackage, startedAt, cooldownMs: rate.cooldownMs, error });

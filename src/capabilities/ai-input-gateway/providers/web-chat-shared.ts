@@ -4,55 +4,55 @@ import type {
   AiProviderRawResponse,
 } from "../contracts/ai-provider-adapter.contract.js";
 import type { AiFeedInput } from "../schema.js";
+import { assertExtracted, waitForStableAnswer } from "./web-chat-answer.js";
+import type { WebChatEvaluation } from "./web-chat-evaluation.js";
+import { openProviderPage } from "./web-chat-open.js";
+import { submitPromptViaClipboard } from "./web-chat-submit.js";
+import { uploadFiles as uploadFilesViaSetFileInputFiles } from "./web-chat-upload.js";
+import {
+  focusExistingSourceTab,
+  resolveWebChatWorkspaceId,
+  saveWorkspaceUrl,
+} from "./web-chat-workspace.js";
 
-type WebChatEvaluation = {
-  status: "success" | "review_required" | "failed";
-  message: string;
-  answerText?: string | null;
-  pageUrl?: string | null;
-};
-
-const buildSubmitPromptScript = (prompt: string): string => `
-const promptText = ${JSON.stringify(prompt)};
-const bodyText = document.body?.innerText || "";
-if (/captcha|verify|verification|2fa|two-factor|login|sign in/i.test(bodyText)) {
-  return {status: "review_required", message: "provider requires login or security verification", pageUrl: location.href};
-}
-const input = document.querySelector("textarea, [contenteditable='true'], input[type='text']");
-if (!input) return {status: "review_required", message: "provider input box not found", pageUrl: location.href};
-input.focus();
-if (input.isContentEditable) {
-  input.textContent = promptText;
-  input.dispatchEvent(new InputEvent("input", {bubbles: true, inputType: "insertText", data: promptText}));
-} else {
-  const descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), "value");
-  if (descriptor && typeof descriptor.set === "function") descriptor.set.call(input, promptText);
-  else input.value = promptText;
-  input.dispatchEvent(new InputEvent("input", {bubbles: true, inputType: "insertText", data: promptText}));
-}
-const buttons = Array.from(document.querySelectorAll("button"));
-const submit = buttons.find((button) => /send|submit|run|arrow|发送|提交/i.test(button.getAttribute("aria-label") || button.textContent || ""));
-if (submit instanceof HTMLElement) submit.click();
-return {status: "success", message: "prompt submitted", pageUrl: location.href};
-`;
-
-const EXTRACT_LAST_RESPONSE_SCRIPT = `
-const candidates = Array.from(document.querySelectorAll("[data-message-author-role='assistant'], .assistant, article, main p, main div"))
-  .map((node) => (node.textContent || "").trim())
-  .filter((text) => text.length > 0);
-const answerText = candidates[candidates.length - 1] || "";
-return answerText
-  ? {status: "success", message: "answer extracted", answerText, pageUrl: location.href}
-  : {status: "review_required", message: "provider answer was not found", answerText: null, pageUrl: location.href};
-`;
+const POLL_INTERVAL_MS = 1500;
+const STABLE_ROUNDS_REQUIRED = 3;
+const setFileInputFilesFlow = uploadFilesViaSetFileInputFiles;
 
 const restoreSourcePage = async (
   browser: BrowserController,
   sourceUrl: string | null,
+  abortSignal?: AbortSignal,
 ): Promise<boolean | null> => {
   if (!sourceUrl || sourceUrl === "about:blank") return null;
-  const restored = await browser.open({ url: sourceUrl, title: "Restore source page after AI feed" });
-  return restored.ok;
+  const focused = await focusExistingSourceTab({ sourceUrl, ...(abortSignal ? { abortSignal } : {}) });
+  if (!focused) return false;
+  try {
+    const restoredState = await browser.evaluateActiveTab<{ pageUrl: string; hostMatches: boolean }>({
+      description: "verify source page restored after AI feed",
+      script: `
+const expectedHost = ${JSON.stringify(new URL(sourceUrl).host)};
+return {pageUrl: location.href, hostMatches: location.host === expectedHost};
+`,
+    });
+    return restoredState.hostMatches;
+  } catch {
+    return false;
+  }
+};
+
+const readActivePageUrl = async (
+  browser: BrowserController,
+): Promise<string | null> => {
+  try {
+    const state = await browser.evaluateActiveTab<{ pageUrl: string }>({
+      description: "read active page URL before AI web chat feed",
+      script: "return {pageUrl: location.href};",
+    });
+    return state.pageUrl || null;
+  } catch {
+    return browser.getSessionState().currentUrl || null;
+  }
 };
 
 const requireBrowser = (context: AiProviderAdapterContext): BrowserController => {
@@ -62,56 +62,147 @@ const requireBrowser = (context: AiProviderAdapterContext): BrowserController =>
   return context.browser;
 };
 
-const openProviderPage = async (
-  browser: BrowserController,
-  providerUrl: string,
-  runtimeName: string,
-): Promise<void> => {
-  const opened = await browser.open({ url: providerUrl, title: runtimeName });
-  if (!opened.ok) {
-    throw new Error(`Web chat provider page could not be opened: ${opened.message}`);
-  }
-};
-
-const submitPrompt = (
-  browser: BrowserController,
-  request: AiFeedInput,
-  context: AiProviderAdapterContext,
-): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "submit governed prompt to AI web chat",
-    script: buildSubmitPromptScript(request.textPrompt),
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-  });
-
-const extractAnswer = (
-  browser: BrowserController,
-  context: AiProviderAdapterContext,
-): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "extract last AI web chat response",
-    script: EXTRACT_LAST_RESPONSE_SCRIPT,
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-  });
-
-const assertSubmitted = async (input: {
-  submitted: WebChatEvaluation;
-  browser: BrowserController;
-  sourceUrl: string | null;
-}): Promise<void> => {
-  if (input.submitted.status === "success") return;
-  const restoredSourcePage = await restoreSourcePage(input.browser, input.sourceUrl);
-  throw new Error(`${input.submitted.status}: ${input.submitted.message}; restoredSourcePage=${String(restoredSourcePage)}`);
-};
-
-const assertExtracted = (input: {
+const buildWebChatRawResponse = (input: {
+  request: AiFeedInput;
+  runtimeName: string;
+  providerUrl: string;
+  sourcePageUrlBeforeFeed: string | null;
   extracted: WebChatEvaluation;
-  restoredSourcePage: boolean | null;
-}): string => {
-  if (input.extracted.status === "success" && input.extracted.answerText) {
-    return input.extracted.answerText;
+  answerText: string;
+}): AiProviderRawResponse => ({
+  rawText: input.answerText,
+  modelName: input.request.modelName,
+  runtimeName: input.runtimeName,
+  transport: "web-chat",
+  webChatUrl: input.extracted.pageUrl ?? input.providerUrl,
+  sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
+  restoredSourcePage: null,
+  estimatedInputTokens: null,
+  estimatedOutputTokens: null,
+  tokenEstimateUnavailableReason: "web chat token estimates are unavailable.",
+});
+
+const persistWorkspaceAfterResponse = (input: {
+  request: AiFeedInput;
+  context: AiProviderAdapterContext;
+  response: AiProviderRawResponse;
+}): void => {
+  const workspaceId = resolveWebChatWorkspaceId(input.request);
+  if (!workspaceId) return;
+  saveWorkspaceUrl({
+    dataDir: input.context.dataDir,
+    providerKind: input.request.providerKind,
+    workspaceId,
+    url: input.response.webChatUrl,
+  });
+};
+
+const submitWebChatPrompt = async (input: {
+  browser: BrowserController;
+  request: AiFeedInput;
+  context: AiProviderAdapterContext;
+  sourcePageUrlBeforeFeed: string | null;
+  previousAssistantCount: number;
+}): Promise<void> => {
+  await submitPromptViaClipboard({
+    browser: input.browser,
+    request: input.request,
+    context: input.context,
+    sourceUrl: input.sourcePageUrlBeforeFeed,
+    previousAssistantCount: input.previousAssistantCount,
+    restoreSourcePage,
+  });
+};
+
+const extractWebChatConversation = async (input: {
+  browser: BrowserController;
+  request: AiFeedInput;
+  context: AiProviderAdapterContext;
+  previousAnswerText: string | null;
+}): Promise<{ extracted: WebChatEvaluation; answerText: string }> => {
+  const extracted = await waitForStableAnswer({
+    browser: input.browser,
+    context: input.context,
+    timeoutMs: input.request.timeoutMs,
+    pollIntervalMs: POLL_INTERVAL_MS,
+    stableRoundsRequired: STABLE_ROUNDS_REQUIRED,
+    previousAnswerText: input.previousAnswerText,
+  });
+  return {
+    extracted,
+    answerText: assertExtracted({ extracted, restoredSourcePage: null }),
+  };
+};
+
+const executeWebChatConversation = async (input: {
+  browser: BrowserController;
+  request: AiFeedInput;
+  context: AiProviderAdapterContext;
+  providerUrl: string;
+  runtimeName: string;
+  sourcePageUrlBeforeFeed: string | null;
+}): Promise<AiProviderRawResponse> => {
+  await setFileInputFilesFlow(input.browser, input.request, input.context);
+  const beforeSubmit = await waitForStableAnswer({
+    browser: input.browser,
+    context: input.context,
+    timeoutMs: 1_000,
+    pollIntervalMs: 250,
+    stableRoundsRequired: 1,
+  });
+  const previousAssistantCount = beforeSubmit.assistantCount ?? 0;
+  const previousAnswerText = beforeSubmit.answerText?.trim() ?? null;
+  await submitWebChatPrompt({
+    browser: input.browser,
+    request: input.request,
+    context: input.context,
+    sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
+    previousAssistantCount,
+  });
+  const conversation = await extractWebChatConversation({
+    browser: input.browser,
+    request: input.request,
+    context: input.context,
+    previousAnswerText,
+  });
+  return buildWebChatRawResponse({
+    request: input.request,
+    runtimeName: input.runtimeName,
+    providerUrl: input.providerUrl,
+    sourcePageUrlBeforeFeed: input.sourcePageUrlBeforeFeed,
+    extracted: conversation.extracted,
+    answerText: conversation.answerText,
+  });
+};
+
+const restoreAfterWebChatFeed = async (input: {
+  browser: BrowserController;
+  context: AiProviderAdapterContext;
+  sourcePageUrlBeforeFeed: string | null;
+  response: AiProviderRawResponse | null;
+}): Promise<void> => {
+  const restoredSourcePage = await restoreSourcePage(input.browser, input.sourcePageUrlBeforeFeed, input.context.abortSignal);
+  if (input.response) input.response.restoredSourcePage = restoredSourcePage;
+  if (restoredSourcePage === false) {
+    throw new Error("review_required: source page restoration failed after web chat feed.");
   }
-  throw new Error(`${input.extracted.status}: ${input.extracted.message}; restoredSourcePage=${String(input.restoredSourcePage)}`);
+};
+
+const executeOpenedWebChatAdapter = async (input: {
+  browser: BrowserController;
+  request: AiFeedInput;
+  context: AiProviderAdapterContext;
+  providerUrl: string;
+  runtimeName: string;
+  sourcePageUrlBeforeFeed: string | null;
+}): Promise<AiProviderRawResponse> => {
+  const response = await executeWebChatConversation(input);
+  persistWorkspaceAfterResponse({
+    request: input.request,
+    context: input.context,
+    response,
+  });
+  return response;
 };
 
 export const runWebChatAdapter = async (input: {
@@ -121,27 +212,26 @@ export const runWebChatAdapter = async (input: {
   runtimeName: string;
 }): Promise<AiProviderRawResponse> => {
   const browser = requireBrowser(input.context);
-  const sourcePageUrlBeforeFeed = browser.getSessionState().currentUrl || null;
-  await openProviderPage(browser, input.providerUrl, input.runtimeName);
-  await assertSubmitted({
-    submitted: await submitPrompt(browser, input.request, input.context),
+  const sourcePageUrlBeforeFeed = await readActivePageUrl(browser);
+  let response: AiProviderRawResponse | null = null;
+  await openProviderPage({
     browser,
-    sourceUrl: sourcePageUrlBeforeFeed,
-  });
-  await browser.wait(500);
-  const extracted = await extractAnswer(browser, input.context);
-  const restoredSourcePage = await restoreSourcePage(browser, sourcePageUrlBeforeFeed);
-  const answerText = assertExtracted({ extracted, restoredSourcePage });
-  return {
-    rawText: answerText,
-    modelName: input.request.modelName,
+    providerUrl: input.providerUrl,
     runtimeName: input.runtimeName,
-    transport: "web-chat",
-    webChatUrl: extracted.pageUrl ?? input.providerUrl,
-    sourcePageUrlBeforeFeed,
-    restoredSourcePage,
-    estimatedInputTokens: null,
-    estimatedOutputTokens: null,
-    tokenEstimateUnavailableReason: "web chat token estimates are unavailable.",
-  };
+    context: input.context,
+    request: input.request,
+  });
+  try {
+    response = await executeOpenedWebChatAdapter({
+      browser,
+      request: input.request,
+      context: input.context,
+      providerUrl: input.providerUrl,
+      runtimeName: input.runtimeName,
+      sourcePageUrlBeforeFeed,
+    });
+    return response;
+  } finally {
+    await restoreAfterWebChatFeed({ browser, context: input.context, sourcePageUrlBeforeFeed, response });
+  }
 };

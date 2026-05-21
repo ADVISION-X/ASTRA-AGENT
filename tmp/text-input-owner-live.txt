@@ -1,3 +1,0 @@
-
-[TEXT-INPUT-CAPABILITY-OWNER][PASS] findings=0 phases=4
-

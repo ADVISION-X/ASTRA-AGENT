@@ -133,6 +133,7 @@ const buildFailureProviderProof = (input: {
   endedAt: string;
   transport: "api" | "web-chat";
   cooldownMs?: number;
+  response?: Partial<AiProviderRawResponse>;
 }): AiFeedProviderProof => ({
   providerKind: input.request.providerKind,
   modelName: input.request.modelName,
@@ -144,9 +145,9 @@ const buildFailureProviderProof = (input: {
   endedAt: input.endedAt,
   durationMs: Date.parse(input.endedAt) - Date.parse(input.startedAt),
   transport: input.transport,
-  webChatUrl: null,
-  sourcePageUrlBeforeFeed: null,
-  restoredSourcePage: null,
+  webChatUrl: input.response?.webChatUrl ?? null,
+  sourcePageUrlBeforeFeed: input.response?.sourcePageUrlBeforeFeed ?? null,
+  restoredSourcePage: input.response?.restoredSourcePage ?? null,
   retryCount: 0,
   cooldownMs: input.cooldownMs ?? 0,
   estimatedInputTokens: null,
@@ -185,6 +186,7 @@ export const buildAiFeedFailure = (input: {
   status: "failed" | "review_required";
   reason: string;
   cooldownMs?: number;
+  response?: Partial<AiProviderRawResponse>;
 }): AiFeedResult => {
   const endedAt = new Date().toISOString();
   return buildFailureResult({

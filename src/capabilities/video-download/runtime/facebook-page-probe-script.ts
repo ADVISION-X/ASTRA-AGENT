@@ -5,6 +5,10 @@ const decodeFacebookEscapedUrl = (value) => {
     output = output
       .replaceAll('\\\\/', '/')
       .replaceAll('&amp;', '&')
+      .replaceAll('\\\\u003C', '<')
+      .replaceAll('\\\\u003c', '<')
+      .replaceAll('\\\\u003E', '>')
+      .replaceAll('\\\\u003e', '>')
       .replaceAll('\\\\u0025', '%')
       .replaceAll('\\\\u0026', '&')
       .replaceAll('\\\\u003D', '=')
@@ -26,6 +30,22 @@ const pushCandidate = (candidates, seen, kind, url, source, quality) => {
   candidates.push({ kind, url: decoded, source, quality });
 };
 
+const collectDashManifestCandidates = (candidates, seen) => {
+  for (const script of Array.from(document.scripts)) {
+    const text = script.textContent || '';
+    const manifestPattern = /"manifest_xml":"((?:\\\\.|[^"\\\\])*)"/gu;
+    let match = manifestPattern.exec(text);
+    while (match) {
+      const manifestXml = decodeFacebookEscapedUrl(match[1] || '');
+      const mp4Urls = manifestXml.match(/https?:[^<"\\s]+?\\.mp4[^<"\\s]*/gu) || [];
+      for (const url of mp4Urls) {
+        pushCandidate(candidates, seen, 'dash_manifest', url, 'embedded_dash_manifest', 'unknown');
+      }
+      match = manifestPattern.exec(text);
+    }
+  }
+};
+
 const collectScriptCandidates = (candidates, seen) => {
   const fieldMap = {
     browser_native_hd_url: ['native_hd', 'hd'],
@@ -45,6 +65,11 @@ const collectScriptCandidates = (candidates, seen) => {
     const generic = text.match(/https?:\\\\\\/\\\\\\/video\\.[^"'<>]+?\\.mp4[^"'<>]*/gu) || [];
     for (const item of generic) {
       pushCandidate(candidates, seen, 'media_resource', item, 'script_mp4', 'unknown');
+    }
+    const decodedText = decodeFacebookEscapedUrl(text);
+    const embeddedMp4 = decodedText.match(/https?:[^<"\\s]+?\\.mp4[^<"\\s]*/gu) || [];
+    for (const item of embeddedMp4) {
+      pushCandidate(candidates, seen, 'dash_manifest', item, 'decoded_script_mp4', 'unknown');
     }
   }
 };
@@ -76,6 +101,7 @@ const collectVideoFacts = () => Array.from(document.querySelectorAll('video')).m
 const candidates = [];
 const seen = new Set();
 collectScriptCandidates(candidates, seen);
+collectDashManifestCandidates(candidates, seen);
 collectVideoElementCandidates(candidates, seen);
 collectPerformanceCandidates(candidates, seen);
 

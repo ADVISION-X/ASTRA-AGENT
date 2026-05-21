@@ -21,8 +21,11 @@ import type { GrassEyeWorkbenchHandle } from "./workbench-handle.js";
 import {
   getLatestAmazonInvoiceUploadTaskForInvoice,
   getAmazonInvoiceUploadTaskStatus,
+  getFacebookProductVideoMiningRunStatus,
+  getLatestFacebookProductVideoMiningRun,
   openAmazonInvoiceAdminPage,
   resumeAmazonInvoiceUploadTask,
+  startFacebookProductVideoMiningMission,
   startAmazonInvoiceUploadTask,
   startAmazonInvoiceUploadMission,
 } from "../../plugins/local-workbench-plugin-tasks.js";
@@ -89,6 +92,29 @@ const buildAmazonInvoiceTaskHandle = (
   },
 });
 
+const buildFacebookMiningHandle = (
+  assembly: WorkbenchAssembly,
+  dataDir: string,
+) => ({
+  async startFacebookProductVideoMiningMission(
+    input: Parameters<typeof startFacebookProductVideoMiningMission>[0],
+  ) {
+    return startFacebookProductVideoMiningMission(input, {
+      browser: assembly.browserController,
+      videoDownload: assembly.videoDownload,
+      aiInputGateway: assembly.aiInputGateway,
+      runtimeLogger: assembly.runtimeLogger,
+      dataDir,
+    });
+  },
+  async getFacebookProductVideoMiningRunStatus(runId: string) {
+    return getFacebookProductVideoMiningRunStatus({ dataDir, runId });
+  },
+  async getLatestFacebookProductVideoMiningRun() {
+    return getLatestFacebookProductVideoMiningRun({ dataDir });
+  },
+});
+
 const buildWorkbenchHandle = (
   assembly: WorkbenchAssembly,
   init: () => Promise<void>,
@@ -102,9 +128,12 @@ const buildWorkbenchHandle = (
     getMissionStartPreflight: async (input) =>
       getMissionStartPreflight(assembly, assembly.options, input),
     getDataDir: () => dataDir,
+    getVideoDownloadAbilityGroup: () => assembly.videoDownload,
+    getAiInputGatewayAbilityGroup: () => assembly.aiInputGateway,
     getModeInfo: () => getModeInfo(assembly.options),
     ...buildSettingsHandle(dataDir),
     ...buildAmazonInvoiceHandle(assembly, dataDir),
+    ...buildFacebookMiningHandle(assembly, dataDir),
   };
 };
 

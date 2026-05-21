@@ -94,6 +94,7 @@ const writeDownloadedArtifact = (
   bytes: downloaded.bytes,
   contentType: downloaded.contentType,
   createdAt: new Date().toISOString(),
+  artifactDisposition: base.input.artifactDisposition,
 });
 
 const successFromDownload = async (input: SuccessfulCandidateDownload): Promise<VideoDownloadResult> => {
@@ -111,6 +112,8 @@ const successFromDownload = async (input: SuccessfulCandidateDownload): Promise<
     artifactRef: artifact.artifactRef,
     storageRef: artifact.storageRef,
     filePath: artifact.filePath,
+    sha256: artifact.sha256,
+    artifactDisposition: artifact.artifactDisposition,
     videoId: input.probe.videoId,
   });
 };

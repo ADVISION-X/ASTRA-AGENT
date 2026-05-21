@@ -1,0 +1,109 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+
+import { runAppleScript } from "../../../lib/browser/current-chrome-window-control.js";
+import type { AiFeedInput } from "../schema.js";
+
+const FACEBOOK_WORKSPACE_ID = "facebook";
+
+const escapeAppleScriptText = (value: string): string =>
+  value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
+
+const workspaceDir = (dataDir: string): string =>
+  path.join(dataDir, "runtime-data", "ai-input-gateway", "web-chat-workspaces");
+
+const workspaceUrlPath = (dataDir: string, providerKind: string, workspaceId: string): string =>
+  path.join(workspaceDir(dataDir), `${providerKind}-${workspaceId}.url`);
+
+export const resolveWebChatWorkspaceId = (request: AiFeedInput): string | null =>
+  request.promptContractId.includes("facebook-product-video-mining") ? FACEBOOK_WORKSPACE_ID : null;
+
+export const readSavedWorkspaceUrl = (input: {
+  dataDir: string;
+  providerKind: string;
+  workspaceId: string;
+}): string | null => {
+  const filePath = workspaceUrlPath(input.dataDir, input.providerKind, input.workspaceId);
+  if (!existsSync(filePath)) return null;
+  const value = readFileSync(filePath, "utf8").trim();
+  return value.startsWith("http") ? value : null;
+};
+
+export const saveWorkspaceUrl = (input: {
+  dataDir: string;
+  providerKind: string;
+  workspaceId: string;
+  url: string | null;
+}): void => {
+  if (!input.url || !input.url.startsWith("https://")) return;
+  mkdirSync(workspaceDir(input.dataDir), { recursive: true });
+  writeFileSync(
+    workspaceUrlPath(input.dataDir, input.providerKind, input.workspaceId),
+    `${input.url}\n`,
+  );
+};
+
+export const focusExistingWorkspaceTab = async (input: {
+  providerHost: string;
+  workspaceId: string;
+  savedUrl: string | null;
+  allowAnyProviderTab: boolean;
+  abortSignal?: AbortSignal;
+}): Promise<boolean> => {
+  const result = await runAppleScript(`
+tell application "Google Chrome" to activate
+tell application "Google Chrome"
+  if (count of windows) = 0 then return "not_found"
+  repeat with w in windows
+    set tIndex to 1
+    repeat with t in tabs of w
+      set tabUrl to URL of t
+      set tabTitle to title of t
+      set lowerTitle to do shell script "printf %s " & quoted form of tabTitle & " | tr '[:upper:]' '[:lower:]'"
+      if tabUrl contains "${escapeAppleScriptText(input.providerHost)}" then
+        if ${input.savedUrl ? `tabUrl is "${escapeAppleScriptText(input.savedUrl)}" or ` : ""}lowerTitle contains "${escapeAppleScriptText(input.workspaceId.toLowerCase())}" then
+          set active tab index of w to tIndex
+          set index of w to 1
+          return "focused"
+        end if
+        if ${input.allowAnyProviderTab ? "true" : "false"} then
+          set active tab index of w to tIndex
+          set index of w to 1
+          return "focused_any_provider_tab"
+        end if
+      end if
+      set tIndex to tIndex + 1
+    end repeat
+  end repeat
+  return "not_found"
+end tell
+`, input.abortSignal ? { signal: input.abortSignal } : undefined);
+  return result.trim() === "focused";
+};
+
+export const focusExistingSourceTab = async (input: {
+  sourceUrl: string;
+  abortSignal?: AbortSignal;
+}): Promise<boolean> => {
+  const parsed = new URL(input.sourceUrl);
+  const result = await runAppleScript(`
+tell application "Google Chrome" to activate
+tell application "Google Chrome"
+  if (count of windows) = 0 then return "not_found"
+  repeat with w in windows
+    set tIndex to 1
+    repeat with t in tabs of w
+      set tabUrl to URL of t
+      if tabUrl is "${escapeAppleScriptText(input.sourceUrl)}" or tabUrl contains "${escapeAppleScriptText(parsed.host)}${escapeAppleScriptText(parsed.pathname)}" then
+        set active tab index of w to tIndex
+        set index of w to 1
+        return "focused"
+      end if
+      set tIndex to tIndex + 1
+    end repeat
+  end repeat
+  return "not_found"
+end tell
+`, input.abortSignal ? { signal: input.abortSignal } : undefined);
+  return result.trim() === "focused";
+};

@@ -11,6 +11,7 @@ const VideoDownloadPlatformIdSchema = z.enum([
   "douyin-web",
   "x-web",
   "xiaohongshu-web",
+  "youtube-web",
 ]);
 
 const VideoDownloadChildCapabilityIdSchema = z.enum([
@@ -22,13 +23,22 @@ const VideoDownloadChildCapabilityIdSchema = z.enum([
   "download-douyin-video-once",
   "download-x-video-once",
   "download-xiaohongshu-video-once",
+  "download-youtube-video-once",
 ]);
 
 const VideoDownloadPreferredQualitySchema = z.enum([
+  "2160p",
+  "1440p",
+  "1080p",
+  "720p",
+  "480p",
+  "360p",
   "hd",
   "sd",
   "best_available",
 ]);
+
+const VideoArtifactDispositionSchema = z.enum(["staging", "final"]);
 
 const VideoDownloadStatusSchema = z.enum([
   "success",
@@ -46,6 +56,7 @@ const VideoDownloadFailureReasonSchema = z.enum([
   "candidate_host_forbidden",
   "download_expired",
   "download_too_large",
+  "downloaded_file_invalid",
   "login_required",
   "captcha_or_2fa_required",
   "drm_or_private_video",
@@ -54,6 +65,17 @@ const VideoDownloadFailureReasonSchema = z.enum([
   "metadata_validation_failed",
   "artifact_write_failed",
 ]);
+
+const VideoDownloadSubtitleArtifactSchema = z.object({
+  artifactRef: z.string().min(1),
+  storageRef: z.string().min(1),
+  filePath: z.string().min(1),
+  sha256: z.string().min(64).max(64),
+  language: z.string().min(1),
+  contentType: z.string().min(1),
+  byteSize: z.number().int().positive(),
+  sourceKind: z.enum(["manual", "automatic"]),
+}).strict();
 
 const VideoDownloadCandidateKindSchema = z.enum([
   "native_hd",
@@ -84,7 +106,10 @@ const VideoDownloadInputBaseSchema = z.object({
   sourcePageUrl: z.string().url(),
   preferredQuality: VideoDownloadPreferredQualitySchema.default("best_available"),
   maxBytes: z.number().int().min(1024).max(500_000_000).default(200_000_000),
-  timeoutMs: z.number().int().min(1000).max(180_000).default(60_000),
+  timeoutMs: z.number().int().min(1000).max(3_600_000).default(60_000),
+  artifactDisposition: VideoArtifactDispositionSchema.default("final"),
+  downloadSubtitles: z.boolean().default(false),
+  subtitleLanguages: z.array(z.string().min(1)).max(8).default(["en"]),
 });
 
 // ─── Per-child input schemas ──────────────────────────────────────────────────
@@ -121,6 +146,10 @@ const DownloadXiaohongshuVideoInputSchema = VideoDownloadInputBaseSchema.extend(
   childCapabilityId: z.literal("download-xiaohongshu-video-once"),
 }).strict();
 
+const DownloadYoutubeVideoInputSchema = VideoDownloadInputBaseSchema.extend({
+  childCapabilityId: z.literal("download-youtube-video-once"),
+}).strict();
+
 export const VideoDownloadAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
   DownloadWebVideoInputSchema,
   DownloadFacebookVideoInputSchema,
@@ -130,6 +159,7 @@ export const VideoDownloadAbilityInputSchema = z.discriminatedUnion("childCapabi
   DownloadDouyinVideoInputSchema,
   DownloadXVideoInputSchema,
   DownloadXiaohongshuVideoInputSchema,
+  DownloadYoutubeVideoInputSchema,
 ]);
 
 // ─── Proof + artifact ────────────────────────────────────────────────────────
@@ -139,6 +169,7 @@ const VideoDownloadArtifactSchema = z.object({
   storageRef: z.string().min(1),
   filePath: z.string().min(1),
   sha256: z.string().min(64).max(64),
+  artifactDisposition: VideoArtifactDispositionSchema,
 }).strict();
 
 const VideoDownloadProofSchema = z.object({
@@ -162,8 +193,11 @@ const VideoDownloadProofSchema = z.object({
   durationMs: z.number().nonnegative().nullable(),
   width: z.number().int().positive().nullable(),
   height: z.number().int().positive().nullable(),
-  selectedQuality: z.enum(["hd", "sd", "best_available", "unknown"]),
+  selectedQuality: z.union([VideoDownloadPreferredQualitySchema, z.literal("unknown")]),
   artifactRef: z.string().min(1).nullable(),
+  artifactDisposition: VideoArtifactDispositionSchema.nullable(),
+  sha256: z.string().min(64).max(64).nullable(),
+  subtitleArtifacts: z.array(VideoDownloadSubtitleArtifactSchema).default([]),
   startedAt: z.string().min(1),
   endedAt: z.string().min(1),
   durationMsTotal: z.number().nonnegative(),
@@ -177,15 +211,18 @@ const VideoDownloadSuccessOutputSchema = z.object({
   artifactRef: z.string().min(1),
   storageRef: z.string().min(1),
   filePath: z.string().min(1),
+  sha256: z.string().min(64).max(64),
+  artifactDisposition: VideoArtifactDispositionSchema,
   contentType: z.string().min(1),
   byteSize: z.number().int().positive(),
   durationMs: z.number().nonnegative().nullable(),
   width: z.number().int().positive().nullable(),
   height: z.number().int().positive().nullable(),
-  selectedQuality: z.enum(["hd", "sd", "best_available", "unknown"]),
+  selectedQuality: z.union([VideoDownloadPreferredQualitySchema, z.literal("unknown")]),
   candidateKind: VideoDownloadCandidateKindSchema,
   downloadedAt: z.string().min(1),
   proofRef: z.string().min(1),
+  subtitleArtifacts: z.array(VideoDownloadSubtitleArtifactSchema),
 }).strict();
 
 const VideoDownloadFailureOutputSchema = z.object({
@@ -210,10 +247,10 @@ export const VideoDownloadResultSchema = z.object({
   runtimeProof: VideoDownloadProofSchema,
 }).strict();
 
-export type VideoDownloadPlatformId = z.infer<typeof VideoDownloadPlatformIdSchema>;
 export type VideoDownloadChildCapabilityId = z.infer<typeof VideoDownloadChildCapabilityIdSchema>;
-export type VideoDownloadFailureReason = z.infer<typeof VideoDownloadFailureReasonSchema>;
 export type VideoDownloadCandidate = z.infer<typeof VideoDownloadCandidateSchema>;
+export type VideoDownloadArtifactDisposition = z.infer<typeof VideoArtifactDispositionSchema>;
+export type VideoDownloadArtifact = z.infer<typeof VideoDownloadArtifactSchema>;
 export type VideoDownloadAbilityInput = z.input<typeof VideoDownloadAbilityInputSchema>;
 export type ParsedVideoDownloadAbilityInput = z.output<typeof VideoDownloadAbilityInputSchema>;
 export type VideoDownloadResult = z.infer<typeof VideoDownloadResultSchema>;

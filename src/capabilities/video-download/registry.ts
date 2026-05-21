@@ -10,6 +10,7 @@ import { downloadBilibiliVideoOnce } from "./children/download-bilibili-video-on
 import { downloadDouyinVideoOnce } from "./children/download-douyin-video-once.js";
 import { downloadXVideoOnce } from "./children/download-x-video-once.js";
 import { downloadXiaohongshuVideoOnce } from "./children/download-xiaohongshu-video-once.js";
+import { downloadYoutubeVideoOnce } from "./children/download-youtube-video-once.js";
 
 const VIDEO_DOWNLOAD_CHILDREN: VideoDownloadChildCapability[] = [
   downloadWebVideoOnce,
@@ -20,6 +21,7 @@ const VIDEO_DOWNLOAD_CHILDREN: VideoDownloadChildCapability[] = [
   downloadDouyinVideoOnce,
   downloadXVideoOnce,
   downloadXiaohongshuVideoOnce,
+  downloadYoutubeVideoOnce,
 ];
 
 export const listVideoDownloadChildren = (): VideoDownloadChildCapabilityId[] =>

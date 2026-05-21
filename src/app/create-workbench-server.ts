@@ -2,159 +2,50 @@ import { createServer } from "node:http";
 import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
+import { handleAmazonRequest } from "./workbench-amazon-routes.js";
+import { handleFacebookRequest } from "./workbench-facebook-routes.js";
+import { writeJson } from "./workbench-http.js";
+import { renderWorkbenchHomePage } from "./workbench-home-page.js";
 
-const writeJson = (
-  response: import("node:http").ServerResponse,
-  statusCode: number,
-  body: unknown,
-): void => {
-  response.writeHead(statusCode, { "content-type": "application/json; charset=utf-8" });
-  response.end(JSON.stringify(body));
-};
+const HOME_PAGE_PATHS = new Set(["/", "/index.html"]);
 
-const readJsonBody = async (request: import("node:http").IncomingMessage): Promise<unknown> => {
-  const chunks: Buffer[] = [];
-  for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-  const raw = Buffer.concat(chunks).toString("utf8").trim();
-  return raw ? JSON.parse(raw) : {};
-};
+const resolveWorkbenchRequestUrl = (
+  request: import("node:http").IncomingMessage,
+  baseUrl: string,
+): URL => new URL(request.url || "/", baseUrl);
 
-const renderHome = (): string => `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GrassEye Amazon Invoice Upload</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #f7f7f4; color: #1f2933; }
-    main { max-width: 900px; margin: 0 auto; padding: 32px 20px; }
-    h1 { font-size: 28px; margin: 0 0 8px; }
-    section { margin-top: 24px; padding: 18px; border: 1px solid #d7d7cf; background: #fff; border-radius: 8px; }
-    pre { overflow: auto; padding: 12px; background: #f1f1ec; border-radius: 4px; }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>GrassEye Amazon Invoice Upload</h1>
-    <p>Local workbench for the Amazon invoice upload flow.</p>
-    <section>
-      <h2>Endpoints</h2>
-      <pre>GET  /api/health
-GET  /api/mode
-POST /api/amazon-invoice-upload/mission
-POST /api/amazon-invoice-upload/task
-POST /api/amazon-invoice-upload/task/resume
-GET  /api/amazon-invoice-upload/task?taskId=...</pre>
-    </section>
-  </main>
-</body>
-</html>`;
-
-const handleAmazonMissionRequest = async (
+const handleWorkbenchHomeRequest = (
   request: import("node:http").IncomingMessage,
   response: import("node:http").ServerResponse,
-  workbench: GrassEyeWorkbenchHandle,
-): Promise<boolean> => {
-  if (request.method !== "POST") {
-    return false;
-  }
-  const input = await readJsonBody(request);
-  const result = await workbench.startAmazonInvoiceUploadMission(input as Parameters<typeof workbench.startAmazonInvoiceUploadMission>[0]);
-  writeJson(response, 200, result);
-  return true;
-};
-
-const handleAmazonTaskCreateRequest = async (
-  request: import("node:http").IncomingMessage,
-  response: import("node:http").ServerResponse,
-  workbench: GrassEyeWorkbenchHandle,
-): Promise<boolean> => {
-  if (request.method !== "POST") {
-    return false;
-  }
-  const input = await readJsonBody(request);
-  const result = await workbench.startAmazonInvoiceUploadTask(input as Parameters<typeof workbench.startAmazonInvoiceUploadTask>[0]);
-  writeJson(response, 200, result);
-  return true;
-};
-
-const handleAmazonTaskResumeRequest = async (
-  request: import("node:http").IncomingMessage,
-  response: import("node:http").ServerResponse,
-  workbench: GrassEyeWorkbenchHandle,
-): Promise<boolean> => {
-  if (request.method !== "POST") {
-    return false;
-  }
-  const input = await readJsonBody(request);
-  const result = await workbench.resumeAmazonInvoiceUploadTask(input as Parameters<typeof workbench.resumeAmazonInvoiceUploadTask>[0]);
-  writeJson(response, 200, result);
-  return true;
-};
-
-const handleAmazonTaskStatusRequest = async (
-  response: import("node:http").ServerResponse,
-  workbench: GrassEyeWorkbenchHandle,
   url: URL,
-): Promise<boolean> => {
-  const taskId = url.searchParams.get("taskId");
-  if (!taskId) {
-    writeJson(response, 400, { error: "missing_task_id" });
+): boolean => {
+  if (request.method !== "GET" || !HOME_PAGE_PATHS.has(url.pathname)) {
+    return false;
+  }
+  response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+  response.end(renderWorkbenchHomePage());
+  return true;
+};
+
+const handleWorkbenchMetaRequest = async (input: {
+  request: import("node:http").IncomingMessage;
+  response: import("node:http").ServerResponse;
+  workbench: GrassEyeWorkbenchHandle;
+  url: URL;
+}): Promise<boolean> => {
+  if (input.request.method !== "GET") {
+    return false;
+  }
+  if (input.url.pathname === "/api/health") {
+    writeJson(input.response, 200, await input.workbench.getHealthReport());
     return true;
   }
-  const result = await workbench.getAmazonInvoiceUploadTaskStatus(taskId);
-  writeJson(response, 200, result);
-  return true;
-};
-
-const handleAmazonLatestRequest = async (
-  response: import("node:http").ServerResponse,
-  workbench: GrassEyeWorkbenchHandle,
-  url: URL,
-): Promise<boolean> => {
-  const amazonOrderId = url.searchParams.get("amazonOrderId");
-  if (!amazonOrderId) {
-    writeJson(response, 400, { error: "missing_amazon_order_id" });
+  if (input.url.pathname === "/api/mode") {
+    writeJson(input.response, 200, { mode: input.workbench.getModeInfo() });
     return true;
   }
-  const invoiceNo = url.searchParams.get("invoiceNo") ?? undefined;
-  const result = await workbench.getLatestAmazonInvoiceUploadTaskForInvoice({
-    amazonOrderId,
-    ...(invoiceNo ? { invoiceNo } : {}),
-  });
-  writeJson(response, 200, { task: result });
-  return true;
+  return false;
 };
-
-type AmazonRouteHandler = () => Promise<boolean>;
-
-const selectAmazonRequestHandler = (
-  request: import("node:http").IncomingMessage,
-  response: import("node:http").ServerResponse,
-  workbench: GrassEyeWorkbenchHandle,
-  url: URL,
-): AmazonRouteHandler | undefined => {
-  const routeHandlers: Partial<Record<string, AmazonRouteHandler>> = {
-    "POST:/api/amazon-invoice-upload/mission": () => handleAmazonMissionRequest(request, response, workbench),
-    "POST:/api/amazon-invoice-upload/task": () => handleAmazonTaskCreateRequest(request, response, workbench),
-    "POST:/api/amazon-invoice-upload/task/resume": () => handleAmazonTaskResumeRequest(request, response, workbench),
-    "GET:/api/amazon-invoice-upload/task": () => handleAmazonTaskStatusRequest(response, workbench, url),
-    "GET:/api/amazon-invoice-upload/latest": () => handleAmazonLatestRequest(response, workbench, url),
-  };
-  return routeHandlers[`${request.method ?? ""}:${url.pathname}`];
-};
-
-async function handleAmazonRequest(
-  request: import("node:http").IncomingMessage,
-  response: import("node:http").ServerResponse,
-  workbench: GrassEyeWorkbenchHandle,
-  url: URL,
-): Promise<boolean> {
-  const routeHandler = selectAmazonRequestHandler(request, response, workbench, url);
-  return routeHandler ? routeHandler() : false;
-}
 
 async function handleRequest(
   request: import("node:http").IncomingMessage,
@@ -162,25 +53,21 @@ async function handleRequest(
   workbench: GrassEyeWorkbenchHandle,
   baseUrl: string,
 ): Promise<void> {
-  const url = new URL(request.url ?? "/", baseUrl);
+  const url = resolveWorkbenchRequestUrl(request, baseUrl);
 
-  if (request.method === "GET" && (url.pathname === "/" || url.pathname === "/index.html")) {
-    response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    response.end(renderHome());
+  if (handleWorkbenchHomeRequest(request, response, url)) {
     return;
   }
 
-  if (request.method === "GET" && url.pathname === "/api/health") {
-    writeJson(response, 200, await workbench.getHealthReport());
-    return;
-  }
-
-  if (request.method === "GET" && url.pathname === "/api/mode") {
-    writeJson(response, 200, { mode: workbench.getModeInfo() });
+  if (await handleWorkbenchMetaRequest({ request, response, workbench, url })) {
     return;
   }
 
   if (await handleAmazonRequest(request, response, workbench, url)) {
+    return;
+  }
+
+  if (await handleFacebookRequest(request, response, workbench, url)) {
     return;
   }
 

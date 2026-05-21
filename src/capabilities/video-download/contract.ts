@@ -1,6 +1,7 @@
 import type {
   ParsedVideoDownloadAbilityInput,
   VideoDownloadAbilityInput,
+  VideoDownloadArtifact,
   VideoDownloadChildCapabilityId,
   VideoDownloadResult,
 } from "./schema.js";
@@ -18,6 +19,13 @@ export interface VideoDownloadAbilityGroup {
   readonly abilityGroupId: VideoDownloadAbilityGroupId;
   listChildCapabilityIds(): VideoDownloadChildCapabilityId[];
   execute(input: VideoDownloadAbilityInput): Promise<VideoDownloadResult>;
+  promoteArtifact(input: {
+    artifact: VideoDownloadArtifact;
+    destinationFilePath: string;
+  }): Promise<VideoDownloadArtifact>;
+  deleteArtifact(input: {
+    artifact: VideoDownloadArtifact;
+  }): Promise<void>;
 }
 
 export interface VideoDownloadChildCapability {

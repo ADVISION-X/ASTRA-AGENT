@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-05-21T20:03:23.194Z",
+  "capabilityDomain": "facebook-product-video-mining",
+  "executionGroup": "domain",
+  "lawIds": [
+    "APEX-FACEBOOK-MINING-001-V1",
+    "APEX-FACEBOOK-MINING-002-V1"
+  ],
+  "status": "PASS",
+  "findings": [],
+  "inspectedFiles": [
+    "package.json",
+    "scripts/acceptance/facebook-live-dom-probe.ts",
+    "scripts/acceptance/facebook-product-video-mining-ai-upload.acceptance.ts",
+    "scripts/acceptance/facebook-product-video-mining-dom-probe.acceptance.ts",
+    "scripts/acceptance/facebook-product-video-mining-flow.acceptance.ts",
+    "scripts/acceptance/facebook-product-video-mining-storage.acceptance.ts",
+    "src/app/workbench-facebook-routes.ts",
+    "src/lib/local-runtime/workbench.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.result.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
+    "src/plugins/facebook-product-video-mining/index.ts",
+    "src/plugins/local-workbench-plugin-tasks.ts"
+  ]
+}

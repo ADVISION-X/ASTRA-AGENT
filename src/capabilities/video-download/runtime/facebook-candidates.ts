@@ -43,14 +43,14 @@ export const parseFacebookMediaProbe = (value: unknown): FacebookMediaProbe | nu
 
 export const normalizeFacebookCandidates = (
   probe: FacebookMediaProbe,
-  preferredQuality: "hd" | "sd" | "best_available",
+  preferredQuality: "2160p" | "1440p" | "1080p" | "720p" | "480p" | "360p" | "hd" | "sd" | "best_available",
 ): VideoDownloadCandidate[] => {
   const parsed = probe.candidates
     .map((candidate) => videoDownloadCandidateSchema.safeParse(candidate))
     .filter((result) => result.success)
     .map((result) => result.data)
     .filter((candidate) => candidate.url.includes(".mp4"));
-  const quality = preferredQuality === "best_available" ? null : preferredQuality;
+  const quality = preferredQuality === "hd" || preferredQuality === "sd" ? preferredQuality : null;
   return parsed
     .filter((candidate) => quality === null || candidate.quality === quality)
     .sort((left, right) => candidateRank(left) - candidateRank(right));

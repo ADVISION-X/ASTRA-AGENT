@@ -1,8 +1,0 @@
-{
-  "runId": "2026-05-11T08:41:38.603Z",
-  "baseUrl": "http://127.0.0.1:4173",
-  "ownerResponsible": "startup-entrypoint",
-  "failureReason": "Timed out waiting for Commander Console shell probe at http://127.0.0.1:4173: Commander Console returned HTTP 500",
-  "actionableMessage": "Inspect startup structured logs and rerun npm run grasseye:start.",
-  "writtenAt": "2026-05-11T08:42:09.446Z"
-}

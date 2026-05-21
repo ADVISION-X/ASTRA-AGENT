@@ -2,6 +2,7 @@
 __MACOSX/
 ._*
 Users/nexgen/
+/*.zip
 dist/
 node_modules/
 .grasseye-data/
@@ -9,3 +10,4 @@ node_modules/
 .grasseye-local/browser-profiles/
 .grasseye-demo-data/
 runtime-evidence/
+tmp/

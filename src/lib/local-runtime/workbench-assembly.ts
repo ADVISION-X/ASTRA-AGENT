@@ -12,7 +12,9 @@ import {
 } from "../runtime-logs/index.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import { createWorkbenchBrowserController } from "./workbench-browser-support.js";
-import { createWorkbenchEvidenceStore } from "./workbench-capability-support.js";
+import { createWorkbenchAiInputGateway } from "./workbench-ai-gateway-support.js";
+import { createWorkbenchEvidenceStore } from "./workbench-evidence-support.js";
+import { createWorkbenchVideoDownload } from "./workbench-video-download-support.js";
 
 export type WorkbenchAssembly = {
   options: GrassEyeWorkbenchOptions;
@@ -20,6 +22,8 @@ export type WorkbenchAssembly = {
   structuredLogBus: StructuredLogBus;
   browserController: ReturnType<typeof createWorkbenchBrowserController>;
   evidenceStore: ReturnType<typeof createWorkbenchEvidenceStore>;
+  videoDownload: ReturnType<typeof createWorkbenchVideoDownload>;
+  aiInputGateway: ReturnType<typeof createWorkbenchAiInputGateway>;
   runtimeLogger: RuntimeLogger;
 };
 
@@ -31,6 +35,8 @@ export function createWorkbenchAssembly(
   const structuredLogBus = createWorkbenchStructuredLogBus();
   const browserController = createWorkbenchBrowserController(options, dataDir);
   const evidenceStore = createWorkbenchEvidenceStore(dataDir, runtimeLogger);
+  const videoDownload = createWorkbenchVideoDownload(dataDir, browserController);
+  const aiInputGateway = createWorkbenchAiInputGateway(dataDir, browserController);
 
   return {
     options,
@@ -38,6 +44,8 @@ export function createWorkbenchAssembly(
     structuredLogBus,
     browserController,
     evidenceStore,
+    videoDownload,
+    aiInputGateway,
     runtimeLogger,
   };
 }
