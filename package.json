@@ -14,7 +14,8 @@
     "grasseye:start": "node scripts/startup/launch-grasseye.mjs",
     "internal:app-server:dev": "tsx src/app/server.ts",
     "acceptance:amazon-invoice-upload-smoke": "node --import tsx scripts/acceptance/amazon-invoice-upload-smoke.ts",
-    "ci:full": "node --import tsx scripts/audit/ci-full.ts",
+    "codex:entry-gate": "node --import tsx scripts/audit/codex-entry-gate.ts",
+    "ci:full": "npm run codex:entry-gate && node --import tsx scripts/audit/ci-full.ts",
     "lint": "npm run typecheck"
   },
   "dependencies": {

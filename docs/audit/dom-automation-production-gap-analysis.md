@@ -33,14 +33,26 @@ The original law file authorizes ten child abilities and contains DOM 014/015/01
 ## Implementation Checklist
 
 - [x] Create this gap analysis document.
-- [ ] Extend schema and public facade to the ten legal child abilities.
-- [ ] Implement scroll/select/dismiss-overlay runtime files.
-- [ ] Convert locator normal uncertainty to structured result.
-- [ ] Extend snapshot output for overlays, dropdowns, loading, sticky elements.
+- [x] Extend schema and public facade to the ten legal child abilities.
+- [x] Implement scroll/select/dismiss-overlay runtime files.
+- [x] Convert locator normal uncertainty to structured result.
+- [x] Extend snapshot output for overlays, dropdowns, loading, sticky elements.
 - [ ] Add DOM-specific acceptance proof only after owner inspector enforcement is runner-visible.
-- [ ] Expand DOM inspector coverage.
-- [ ] Rebuild generated audit artifacts through the audit chain.
+- [x] Expand DOM inspector coverage.
+- [x] Rebuild generated audit artifacts through the audit chain.
 - [ ] Run `npm run ci:full` and fix first lawful blocker until green.
+
+## Current Verification
+
+- `npm run typecheck`: PASS.
+- DOM owner report: PASS, zero findings, DOM law IDs 001-016 present.
+- `npm run ci:full`: BLOCKED outside DOM by capability-group-governance and code-purity findings.
+
+## LAW-GAP / External Blockers
+
+1. `src/capabilities/video-download/**` exists, but capability-group-governance currently approves only `dom-automation`, `ai-input-gateway`, and `forensics-persistence` as active ability groups. Adding video-download to that allowlist would be a law change, not an implementation fix.
+2. DOM law requires the public facade to expose all ten child ability functions and public contracts, while code-purity enforces a hard named-export limit of 10 on the same facade. This creates a conflict once DOM reaches the legal ten-child surface.
+3. Existing global code-purity findings remain outside DOM, including audit helper budgets, Amazon acceptance/file budgets, and existing broad facade export surfaces.
 
 ## Non-Editable Law Note
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T12:51:02.642Z",
+  "generatedAt": "2026-05-21T12:53:37.794Z",
   "capabilityDomain": "capability-group-governance",
   "executionGroup": "foundation",
   "lawIds": [
@@ -31,6 +31,7 @@
     "scripts/audit/build/parse-apex-laws.ts",
     "scripts/audit/build/write-generated-artifacts.ts",
     "scripts/audit/ci-full.ts",
+    "scripts/audit/codex-entry-gate.ts",
     "scripts/audit/core/load-audit-plan.ts",
     "scripts/audit/core/run-generated-plan.ts",
     "scripts/audit/domains/architecture-boundary/inspector.ts",
@@ -114,7 +115,6 @@
     "src/capabilities/video-download/children/download-facebook-video-once.ts",
     "src/capabilities/video-download/contract.ts",
     "src/capabilities/video-download/index.ts",
-    "src/capabilities/video-download/manifest.ts",
     "src/capabilities/video-download/ports/browser-media-source-port.ts",
     "src/capabilities/video-download/ports/video-artifact-storage-port.ts",
     "src/capabilities/video-download/registry.ts",

@@ -77,10 +77,30 @@ const scanImportBudgets = (
   governedFile: GovernedFile,
   sourceAtomicityLawId: string,
 ): void => {
+  for (const check of collectImportBudgetChecks(governedFile)) {
+    pushSourceAtomicityFinding(collector, {
+      checkId: check.checkId,
+      governedFile,
+      lawId: sourceAtomicityLawId,
+      reason: check.reason,
+      remediation: check.remediation,
+      message: check.message,
+    });
+  }
+};
+
+const collectImportBudgetChecks = (
+  governedFile: GovernedFile,
+): Array<{
+  checkId: string;
+  reason: string;
+  remediation: string;
+  message: string;
+}> => {
   const importDeclarations = governedFile.sourceFile.getImportDeclarations();
   const uniqueImportSources = new Set(importDeclarations.map((declaration) => declaration.getModuleSpecifierValue()));
   const crossOwnerImports = countCrossOwnerImports(governedFile);
-  const importShapeChecks = [
+  return [
     importDeclarations.length > 16
       ? {
           checkId: "code-purity/import-declaration-budget",
@@ -106,20 +126,18 @@ const scanImportBudgets = (
         }
       : null,
   ].filter((check): check is NonNullable<typeof check> => check !== null);
-
-  for (const check of importShapeChecks) {
-    pushSourceAtomicityFinding(collector, {
-      checkId: check.checkId,
-      governedFile,
-      lawId: sourceAtomicityLawId,
-      reason: check.reason,
-      remediation: check.remediation,
-      message: check.message,
-    });
-  }
 };
 
 const scanExportShape = (
+  collector: InventoryFindingCollector,
+  governedFile: GovernedFile,
+  sourceAtomicityLawId: string,
+): void => {
+  scanNamedExportBudget(collector, governedFile, sourceAtomicityLawId);
+  scanExportSurfaceEscapes(collector, governedFile, sourceAtomicityLawId);
+};
+
+const scanNamedExportBudget = (
   collector: InventoryFindingCollector,
   governedFile: GovernedFile,
   sourceAtomicityLawId: string,
@@ -135,6 +153,23 @@ const scanExportShape = (
       message: `${governedFile.repoPath} exports ${namedExports} symbols and exceeds the hard limit 10.`,
     });
   }
+};
+
+const scanExportSurfaceEscapes = (
+  collector: InventoryFindingCollector,
+  governedFile: GovernedFile,
+  sourceAtomicityLawId: string,
+): void => {
+  scanExportStar(collector, governedFile, sourceAtomicityLawId);
+  scanDefaultExport(collector, governedFile, sourceAtomicityLawId);
+  scanRequireCall(collector, governedFile, sourceAtomicityLawId);
+};
+
+const scanExportStar = (
+  collector: InventoryFindingCollector,
+  governedFile: GovernedFile,
+  sourceAtomicityLawId: string,
+): void => {
   const exportStar = governedFile.sourceFile.getExportDeclarations().find((declaration) => declaration.getNamedExports().length === 0 && declaration.getModuleSpecifierValue() !== undefined);
   if (exportStar) {
     pushSourceAtomicityFinding(collector, {
@@ -146,6 +181,13 @@ const scanExportShape = (
       message: `${governedFile.repoPath} uses export * and hides ownership boundaries.`,
     });
   }
+};
+
+const scanDefaultExport = (
+  collector: InventoryFindingCollector,
+  governedFile: GovernedFile,
+  sourceAtomicityLawId: string,
+): void => {
   if (governedFile.sourceFile.getDefaultExportSymbol()) {
     pushSourceAtomicityFinding(collector, {
       checkId: "code-purity/default-export",
@@ -156,6 +198,13 @@ const scanExportShape = (
       message: `${governedFile.repoPath} uses a default export in active source.`,
     });
   }
+};
+
+const scanRequireCall = (
+  collector: InventoryFindingCollector,
+  governedFile: GovernedFile,
+  sourceAtomicityLawId: string,
+): void => {
   const requireCall = governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).find((callExpression) => callExpression.getExpression().getText() === "require");
   if (requireCall) {
     pushSourceAtomicityFinding(collector, {

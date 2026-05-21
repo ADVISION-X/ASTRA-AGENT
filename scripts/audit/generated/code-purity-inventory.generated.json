@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T12:51:03.215Z",
+  "generatedAt": "2026-05-21T12:53:38.367Z",
   "itemCount": 38,
   "items": [
     {
@@ -247,7 +247,7 @@
       "filePath": "src/capabilities/video-download/index.ts",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "owner": "capability:video-download",
-      "reason": "Named export count 17 exceeds hard limit 10.",
+      "reason": "Named export count 16 exceeds hard limit 10.",
       "remediation": "Reduce the export surface or split the file into explicit owner-local contracts.",
       "role": "ability-group",
       "verificationCommand": "npm run ci:full"

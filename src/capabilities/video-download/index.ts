@@ -2,9 +2,6 @@ export {
   createVideoDownloadAbilityGroup,
 } from "./ability-group.js";
 export {
-  VIDEO_DOWNLOAD_CATALOG_ENTRIES,
-} from "./manifest.js";
-export {
   createFilesystemVideoArtifactStoragePort,
 } from "./runtime/artifact-storage.js";
 export {
