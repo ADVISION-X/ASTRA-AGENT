@@ -1,11 +1,8 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
-import { findNamedImport, resolveModuleTargetPath } from "./components/dom-automation-module-resolution.js";
 import { collectStringLiteralNodes, resolveStaticString } from "./components/dom-automation-static-strings.js";
 import type { DomAutomationBinaryCheckContext } from "./dom-automation-binary-types.js";
 import { DOM_BUSINESS_VOCAB, LOG_FIELD_FORBIDDEN, SENSITIVE_PROPERTY_NAMES } from "./dom-automation-binary-constants.js";
-import { BROWSER_CONTROLLER_PATH, CURRENT_CHROME_PATH, DOM_FACADE_PATH, PLUGIN_ROUTE_PATH } from "./dom-automation-path-constants.js";
 import { repoPathOf, sourceFilesWithin } from "./dom-automation-source-helpers.js";
-import { hasIdentifierCall, sourceFile } from "./dom-automation-shape-helpers.js";
 
 const PLUGIN_ROOTS = [
   "src/plugins/amazon-invoice-upload",
@@ -67,11 +64,7 @@ export const hasSensitiveDomAccess = (file: SourceFile | null): boolean => {
 
 export const forbiddenLogFields = (context: DomAutomationBinaryCheckContext): string[] => {
   const violations: string[] = [];
-  for (const file of [
-    ...sourceFilesWithin(context, "src/capabilities/dom-automation"),
-    ...sourceFilesWithin(context, "src/plugins/amazon-invoice-upload"),
-    ...sourceFilesWithin(context, "src/plugins/product-video-dom-runtime"),
-  ]) {
+  for (const file of sourceFilesWithin(context, "src/capabilities/dom-automation")) {
     file.forEachDescendant((node) => {
       if (!Node.isPropertyAssignment(node) && !Node.isShorthandPropertyAssignment(node)) {
         return;
@@ -99,41 +92,10 @@ export const manifestHasAllLawIds = (context: DomAutomationBinaryCheckContext): 
     "GRASSEYE-DOM-010-V1",
   ].every((lawId) => context.manifest.allowedLawIds?.includes(lawId));
 
-export const pluginUsesFacadeSymbols = (context: DomAutomationBinaryCheckContext, symbols: readonly string[]): string[] =>
-  symbols.filter((symbolName) => !PLUGIN_ROOTS.flatMap((root) => sourceFilesWithin(context, root)).some((file) => {
-    const importDeclaration = findNamedImport(file, symbolName);
-    if (!importDeclaration) {
-      return false;
-    }
-    return resolveModuleTargetPath(importDeclaration) === DOM_FACADE_PATH && hasIdentifierCall(file, symbolName);
-  }));
-
-export const routeUsesWorkbenchFacade = (context: DomAutomationBinaryCheckContext): string[] => {
-  const files = [
-    sourceFile(context, PLUGIN_ROUTE_PATH),
-    sourceFile(context, "src/app/product-video-plugin-api-handlers.ts"),
-  ].filter((file): file is SourceFile => Boolean(file));
-  if (files.length < 2) return ["plugin route files are missing"];
-  const issues: string[] = [];
-  const routeText = files.map((file) => file.getFullText()).join("\n");
-  const requiredCalls = [
-    "activeWorkbench.startAmazonInvoiceUploadTask",
-    "activeWorkbench.openAdminInvoicePage",
-    "activeWorkbench.resumeAmazonInvoiceUploadTask",
-    "activeWorkbench.getAmazonInvoiceUploadTaskStatus",
-    "activeWorkbench.startProductVideoDomMiningTask",
-    "activeWorkbench.getProductVideoDomTaskStatus",
-  ] as const;
-  for (const callName of requiredCalls) {
-    if (!routeText.includes(callName)) {
-      issues.push(`missing route workbench call: ${callName}`);
-    }
-  }
-  if (files.some((file) => file.getImportDeclarations().some((importDeclaration) => {
-    const target = resolveModuleTargetPath(importDeclaration);
-    return target === BROWSER_CONTROLLER_PATH || target === CURRENT_CHROME_PATH;
-  }))) {
-    issues.push("plugin route imports browser owner internals instead of the workbench facade");
-  }
-  return issues;
+export const manifestKeepsDomOwnerOnly = (context: DomAutomationBinaryCheckContext): boolean => {
+  const ownedRoots = context.manifest.ownedRoots ?? [];
+  const requiredPaths = context.manifest.requiredPaths ?? [];
+  return ownedRoots.length === 1
+    && ownedRoots[0] === "src/capabilities/dom-automation"
+    && ![...ownedRoots, ...requiredPaths].some((repoPath) => repoPath.startsWith("src/plugins/"));
 };

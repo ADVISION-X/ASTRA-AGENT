@@ -58,6 +58,7 @@ import {
   startAmazonInvoiceUploadTask,
   startAmazonInvoiceUploadMission,
   getProductVideoDomTaskStatus,
+  listProductVideoEvidenceRecords,
   startProductVideoDomMiningTask,
 } from "../../plugins/local-workbench-plugin-tasks.js";
 
@@ -179,13 +180,14 @@ const buildAmazonInvoiceHandle = (
     return openAmazonInvoiceAdminPage(assembly.browserController, input);
   },
   async startAmazonInvoiceUploadMission(
-    input: Parameters<typeof startAmazonInvoiceUploadMission>[1],
+    input: Parameters<typeof startAmazonInvoiceUploadMission>[2],
   ) {
-    return startAmazonInvoiceUploadMission(assembly.browserController, input);
+    return startAmazonInvoiceUploadMission(assembly.browserController, assembly.runtimeLogger, input);
   },
   async startAmazonInvoiceUploadTask(input: Parameters<typeof startAmazonInvoiceUploadTask>[0]["task"]) {
     return startAmazonInvoiceUploadTask({
       browser: assembly.browserController,
+      runtimeLogger: assembly.runtimeLogger,
       dataDir,
       task: input,
     });
@@ -193,6 +195,7 @@ const buildAmazonInvoiceHandle = (
   async resumeAmazonInvoiceUploadTask(input: { taskId: string }) {
     return resumeAmazonInvoiceUploadTask({
       browser: assembly.browserController,
+      runtimeLogger: assembly.runtimeLogger,
       dataDir,
       taskId: input.taskId,
     });
@@ -218,6 +221,12 @@ const buildProductVideoDomHandle = (
   },
   async getProductVideoDomTaskStatus(taskId: string) {
     return getProductVideoDomTaskStatus({ dataDir, taskId });
+  },
+  async listProductVideoEvidenceRecords(limit?: number) {
+    return listProductVideoEvidenceRecords({
+      dataDir,
+      ...(limit !== undefined ? { limit } : {}),
+    });
   },
 });
 

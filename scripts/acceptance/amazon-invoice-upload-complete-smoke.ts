@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,6 +8,7 @@ import { chromium } from "playwright";
 
 import { createWorkbenchServer } from "../../src/app/create-workbench-server.js";
 import type { GrassEyeWorkbenchHandle } from "../../src/lib/local-runtime/workbench-handle.js";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import {
   getLatestAmazonInvoiceUploadTaskForInvoice,
   getAmazonInvoiceUploadTaskStatus,
@@ -74,12 +75,19 @@ writeFileSync(alreadyUploadedHtmlPath, `
 const launched = await chromium.launch({ headless: true });
 const page = await launched.newPage({ viewport: { width: 900, height: 700 } });
 const browser = new PlaywrightDomBrowserAdapter(page, tmp);
+const runtimeLogger = createRuntimeLogger({
+  terminalEnabled: false,
+  fileSink: {
+    bundlePath: join(process.cwd(), "runtime-evidence", "amazon-invoice-upload", "123-1234567-1234567-INV-1.jsonl"),
+  },
+});
 let commanderExecuteCount = 0;
 let startMissionCount = 0;
 const getStartMissionCount = (): number => startMissionCount;
 const unusedProductVideoHandle = {
   async startProductVideoDomMiningTask() { throw new Error("product video plugin path must not be used by amazon smoke"); },
   async getProductVideoDomTaskStatus() { throw new Error("product video plugin path must not be used by amazon smoke"); },
+  async listProductVideoEvidenceRecords() { return []; },
 };
 
 const workbench: GrassEyeWorkbenchHandle = {
@@ -106,10 +114,10 @@ const workbench: GrassEyeWorkbenchHandle = {
   async startAmazonInvoiceUploadMission() { throw new Error("legacy mission start path must not be used"); },
   async startAmazonInvoiceUploadTask(input: Parameters<typeof startAmazonInvoiceUploadTask>[0]["task"]) {
     startMissionCount += 1;
-    return startAmazonInvoiceUploadTask({ browser, dataDir: tmp, task: input });
+    return startAmazonInvoiceUploadTask({ browser, runtimeLogger, dataDir: tmp, task: input });
   },
   async resumeAmazonInvoiceUploadTask(input: { taskId: string }) {
-    return resumeAmazonInvoiceUploadTask({ browser, dataDir: tmp, taskId: input.taskId });
+    return resumeAmazonInvoiceUploadTask({ browser, runtimeLogger, dataDir: tmp, taskId: input.taskId });
   },
   async getAmazonInvoiceUploadTaskStatus(taskId: string) {
     return getAmazonInvoiceUploadTaskStatus({ dataDir: tmp, taskId });
@@ -154,7 +162,13 @@ try {
   const latestResponse = await fetch(`${baseUrl}/api/plugins/amazon-invoice-upload/latest?amazonOrderId=${encodeURIComponent("123-1234567-1234567")}&invoiceNo=${encodeURIComponent("INV-1")}`);
   const latestPayload = await latestResponse.json();
   const firstCloseCount = browser.getClosedActiveTabCount();
-  if (!response.ok || payload.status !== "upload_success" || statusPayload.status !== "upload_success" || latestPayload.record?.status !== "upload_success" || firstCloseCount !== 1 || getStartMissionCount() !== 1 || commanderExecuteCount !== 0) {
+  const traceRef = String(payload.domTraceRef ?? "");
+  const tracePath = join(process.cwd(), traceRef);
+  const traceBody = existsSync(tracePath) ? readFileSync(tracePath, "utf8") : "";
+  const traceHasDomProof = traceBody.includes("locate upload invoice entry")
+    && traceBody.includes("locate file input")
+    && traceBody.includes("click submit upload");
+  if (!response.ok || payload.status !== "upload_success" || statusPayload.status !== "upload_success" || latestPayload.record?.status !== "upload_success" || !traceRef || !traceHasDomProof || firstCloseCount !== 1 || getStartMissionCount() !== 1 || commanderExecuteCount !== 0) {
     process.stdout.write(`[AMAZON-INVOICE-UPLOAD-COMPLETE-SMOKE][FAIL] ${JSON.stringify({ payload, statusPayload, latestPayload, startMissionCount, commanderExecuteCount })}\n`);
     process.exit(1);
   }

@@ -5,9 +5,11 @@ import {
 } from "../../capabilities/dom-automation/index.js";
 import type { DomElementRef, DomSnapshot } from "../../capabilities/dom-automation/index.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import type { AmazonInvoiceUploadStatus } from "./amazon-result-detector.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
+import { amazonDomTraceRefFromIds, recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 
 const DOM_CLICK_SETTLE_MS = 50;
 
@@ -26,6 +28,10 @@ export function taskResult(input: Omit<AmazonInvoiceUploadTaskResult, "ok"> & {
     amazonOrderId: input.amazonOrderId,
     invoiceNo: input.invoiceNo,
     ...(input.evidenceRef ? { evidenceRef: input.evidenceRef } : {}),
+    domTraceRef: amazonDomTraceRefFromIds({
+      amazonOrderId: input.amazonOrderId,
+      invoiceNo: input.invoiceNo,
+    }),
     ...(input.reviewRequired ? { reviewRequired: true } : {}),
   };
 }
@@ -84,6 +90,7 @@ export function locateOrStatus(input: {
 
 export async function clickLocated(input: {
   browser: BrowserController;
+  runtimeLogger: RuntimeLogger;
   element: DomElementRef;
   expectedKind: string;
   reachedStep: string;
@@ -99,6 +106,15 @@ export async function clickLocated(input: {
   if (clicked.ok) {
     return null;
   }
+  recordAmazonDomStepTrace({
+    runtimeLogger: input.runtimeLogger,
+    mission: input.mission,
+    stepName: input.reachedStep,
+    status: clicked.status === "review_required" ? "review_required" : "failed",
+    selectedElement: input.element,
+    reason: clicked.reviewRequiredReason ?? clicked.message,
+    evidenceRef: clicked.afterEvidenceRef ?? clicked.beforeEvidenceRef,
+  });
   return taskResult({
     status: clicked.status === "ambiguous" ? "ambiguous" : "failed",
     reason: clicked.reviewRequiredReason ?? clicked.message,

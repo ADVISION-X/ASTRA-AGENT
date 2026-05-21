@@ -1,5 +1,3 @@
-import { PLUGIN_ROUTE_PATH } from "./dom-automation-path-constants.js";
-
 export const DOM_EXPORTS = [
   "readDomSnapshotOnce",
   "locateDomElementOnce",
@@ -38,34 +36,6 @@ export const DOM_REQUIRED_PATHS = [
   "src/capabilities/dom-automation/tests/dom-snapshot.fixture.ts",
   "src/capabilities/dom-automation/tests/dom-locator.fixture.ts",
   "src/capabilities/dom-automation/tests/dom-upload.fixture.ts",
-] as const;
-
-export const PLUGIN_REQUIRED_PATHS = [
-  "src/plugins/amazon-invoice-upload/index.ts",
-  "src/plugins/amazon-invoice-upload/mission.schema.ts",
-  "src/plugins/amazon-invoice-upload/amazon-dom-hints.ts",
-  "src/plugins/amazon-invoice-upload/amazon-platform.config.ts",
-  "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
-  "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
-  "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
-  "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts",
-  "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
-  "src/plugins/amazon-invoice-upload/README.md",
-  PLUGIN_ROUTE_PATH,
-  "scripts/acceptance/dom-automation-smoke.ts",
-  "scripts/acceptance/amazon-invoice-agent-start-smoke.ts",
-  "scripts/acceptance/amazon-invoice-upload-smoke.ts",
-  "scripts/acceptance/amazon-invoice-upload-complete-smoke.ts",
-  "src/plugins/product-video-dom-runtime/index.ts",
-  "src/plugins/product-video-dom-runtime/product-video-dom.schema.ts",
-  "src/plugins/product-video-dom-runtime/product-video-dom.flow.ts",
-  "src/plugins/product-video-dom-runtime/product-video-dom-extractor.ts",
-  "src/plugins/product-video-dom-runtime/product-video-comment-extractor.ts",
-  "src/plugins/product-video-dom-runtime/product-video-evidence-packet.ts",
-  "src/plugins/product-video-dom-runtime/product-video-task-service.ts",
-  "src/plugins/product-video-dom-runtime/product-video-task-storage.ts",
-  "src/app/product-video-plugin-api-handlers.ts",
-  "scripts/acceptance/product-video-dom-runtime-smoke.ts",
 ] as const;
 
 export const DOM_BUSINESS_VOCAB = ["amazon", "seller central", "sellercentral", "invoice upload", "marketplace", "product video", "seed video"] as const;

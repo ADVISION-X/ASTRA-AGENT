@@ -23,6 +23,8 @@ export type RuntimeLogOwner =
   | "browser-session"
   | "local-runtime"
   | "startup-entrypoint"
+  | "amazon-invoice-upload"
+  | "dom-automation"
   | "unknown";
 
 export type RuntimeLogLevel = "debug" | "info" | "warn" | "error";

@@ -46,6 +46,7 @@ export type WorkbenchAssembly = {
   mouseClickAbilityGroup: ReturnType<typeof createWorkbenchCapabilityGroups>["mouseClickAbilityGroup"];
   mouseScrollAbilityGroup: ReturnType<typeof createWorkbenchCapabilityGroups>["mouseScrollAbilityGroup"];
   textInputAbilityGroup: ReturnType<typeof createWorkbenchCapabilityGroups>["textInputAbilityGroup"];
+  videoDownloadAbilityGroup: ReturnType<typeof createWorkbenchCapabilityGroups>["videoDownloadAbilityGroup"];
   runtimeLogger: RuntimeLogger;
 };
 
@@ -73,6 +74,7 @@ export function createWorkbenchAssembly(
     dataDir,
     runtimeLogger,
     primitivePorts,
+    browserController,
   });
 
   return {

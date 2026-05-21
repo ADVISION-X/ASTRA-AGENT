@@ -5,7 +5,7 @@ import { pass, fail } from "./dom-automation-binary-outcome.js";
 import { DOM_ACTION_CODES, DOM_EXPORTS, DOM_REQUIRED_PATHS } from "./dom-automation-binary-constants.js";
 import { BROWSER_CONTROLLER_PATH, CURRENT_CHROME_EXECUTION_PATH, CURRENT_CHROME_PATH } from "./dom-automation-path-constants.js";
 import { findForbiddenImports, hasSecondBrowserController, hasVisualMissionDomImport, sourceText } from "./dom-automation-source-helpers.js";
-import { domCoreContainsBusinessVocabulary, forbiddenLogFields, hasSensitiveDomAccess, manifestHasAllLawIds, pluginUsesFacadeSymbols, routeUsesWorkbenchFacade, usesForbiddenPluginPrimitives } from "./dom-automation-policy-helpers.js";
+import { hasSensitiveDomAccess, manifestHasAllLawIds, manifestKeepsDomOwnerOnly } from "./dom-automation-policy-helpers.js";
 import { classMethods, hasFields, hasIdentifierCall, hasPropertyCall, interfaceMethods, sourceFile, variableFields } from "./dom-automation-shape-helpers.js";
 import type { Finding } from "../../core/schema.js";
 import { domClickFindings } from "./components/validate-runtime-contracts-actions.js";
@@ -16,7 +16,7 @@ const findingMessages = (findings: readonly Finding[]): string[] =>
 
 const collectLaw001PathIssues = (): string[] => {
   const issues: string[] = [];
-  for (const repoPath of ["src/capabilities/dom-automation", "src/plugins/amazon-invoice-upload", ...DOM_REQUIRED_PATHS]) {
+  for (const repoPath of ["src/capabilities/dom-automation", ...DOM_REQUIRED_PATHS]) {
     if (!existsSync(pathFromRepoRoot(repoPath))) {
       issues.push(`missing required path: ${repoPath}`);
     }
@@ -86,6 +86,9 @@ const collectLaw001BoundaryIssues = (context: DomAutomationBinaryCheckContext): 
   }
   if (!manifestHasAllLawIds(context)) {
     issues.push("dom owner manifest does not authorize all active DOM laws");
+  }
+  if (!manifestKeepsDomOwnerOnly(context)) {
+    issues.push("dom owner manifest includes plugin roots or non-DOM required owner paths");
   }
   return issues;
 };

@@ -1,18 +1,21 @@
 import { readDomSnapshotOnce } from "../../capabilities/dom-automation/index.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { taskResult } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
+import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 
 type DomSnapshot = Awaited<ReturnType<typeof readDomSnapshotOnce>>;
 
 export async function openApprovedOrderDetail(
   browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult | null> {
   const detailUrl = buildApprovedOrderDetailUrl(mission);
   await browser.open({ url: detailUrl, title: "Amazon Seller Central approved order detail" });
-  return await waitForApprovedOrderDetail(browser, mission, detailUrl) ? null : buildOrderDetailNotFoundResult(mission);
+  return await waitForApprovedOrderDetail(browser, runtimeLogger, mission, detailUrl) ? null : buildOrderDetailNotFoundResult(mission);
 }
 
 function buildApprovedOrderDetailUrl(mission: AmazonInvoiceUploadMissionInput): string {
@@ -64,6 +67,7 @@ const retryOrderDetailIfNeeded = (
 
 const waitForApprovedOrderDetail = async (
   browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
   detailUrl: string,
 ): Promise<boolean> => {
@@ -75,12 +79,27 @@ const waitForApprovedOrderDetail = async (
       && snapshotHasInvoiceActionState(snapshot)
       && !snapshotIsLoading(snapshot)
     ) {
+      recordAmazonDomStepTrace({
+        runtimeLogger,
+        mission,
+        stepName: "open approved order detail",
+        status: "success",
+        snapshot,
+        reason: "Order detail showed the requested order id and invoice action state.",
+      });
       await browser.wait(100);
       return true;
     }
     await retryOrderDetailIfNeeded(browser, snapshot, detailUrl, mission.amazonOrderId);
     await browser.wait(350);
   }
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "open approved order detail",
+    status: "failed",
+    reason: "Order detail page did not show the requested order id and invoice action state.",
+  });
   return false;
 };
 

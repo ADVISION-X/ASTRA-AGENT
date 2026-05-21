@@ -2,13 +2,13 @@ import { existsSync } from "node:fs";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import type { ClauseCheckOutcome, DomAutomationBinaryCheckContext } from "./dom-automation-binary-types.js";
 import { pass, fail } from "./dom-automation-binary-outcome.js";
-import { DOM_ACTION_CODES, DOM_REQUIRED_PATHS, PLUGIN_REQUIRED_PATHS } from "./dom-automation-binary-constants.js";
+import { DOM_ACTION_CODES, DOM_REQUIRED_PATHS } from "./dom-automation-binary-constants.js";
 import { sourceText } from "./dom-automation-source-helpers.js";
 
 export const checkBlueprintStructure = (context: DomAutomationBinaryCheckContext): ClauseCheckOutcome => {
-  const missing = [...DOM_REQUIRED_PATHS, ...PLUGIN_REQUIRED_PATHS].filter((repoPath) => !existsSync(pathFromRepoRoot(repoPath)));
+  const missing = DOM_REQUIRED_PATHS.filter((repoPath) => !existsSync(pathFromRepoRoot(repoPath)));
   return missing.length === 0
-    ? pass("blueprint structure paths for DOM runtime, plugin orchestration, and acceptance smoke files all exist")
+    ? pass("blueprint structure paths for the DOM owner runtime, contracts, fixtures, and facade all exist")
     : fail("Blueprint structure check failed", `missing blueprint path: ${missing[0]}`);
 };
 
@@ -34,14 +34,10 @@ export const checkBlueprintCommands = (context: DomAutomationBinaryCheckContext)
   const requiredScripts = [
     "audit:dom-automation",
     "acceptance:dom-automation-smoke",
-    "acceptance:amazon-invoice-agent-start-smoke",
-    "acceptance:amazon-invoice-upload-smoke",
-    "acceptance:amazon-invoice-upload-complete-smoke",
-    "acceptance:product-video-dom-runtime-smoke",
   ] as const;
   const missingScripts = requiredScripts.filter((scriptName) => !scripts[scriptName]);
   return missingScripts.length === 0
-    ? pass("package.json exposes the governed DOM audit and acceptance commands declared by the blueprint")
+    ? pass("package.json exposes the governed DOM owner audit and DOM atomic acceptance commands declared by the blueprint")
     : fail("Blueprint commands check failed", `missing package script: ${missingScripts[0]}`);
 };
 

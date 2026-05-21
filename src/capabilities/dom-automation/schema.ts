@@ -13,23 +13,23 @@ export const DomAutomationChildCapabilityIdSchema = z.enum([
 ]);
 
 export const DomTargetKindSchema = z.enum([
+  "text-input",
   "search-input",
   "button",
   "link",
   "file-input",
-  "invoice-number",
-  "order-row",
-  "upload-invoice-entry",
-  "success-message",
+  "row",
+  "clickable",
+  "message",
+  "dialog",
 ]);
 
 export const DomDetectedStateSchema = z.enum([
   "login_required",
   "captcha_or_2fa_required",
-  "order_found",
-  "upload_entry_visible",
-  "file_attached",
-  "upload_success",
+  "file_selected",
+  "success_message",
+  "error_message",
 ]);
 
 const DomElementSummaryBaseSchema = z.object({
@@ -152,7 +152,7 @@ export const FillDomElementInputSchema = z.object({
   elementRef: DomElementRefSchema,
   approvedText: z.string(),
   clearBeforeType: z.boolean(),
-  inputPurpose: z.enum(["order-search", "invoice-number", "generic-approved-text"]),
+  inputPurpose: z.string().min(1).max(80),
 }).strict();
 
 export const ClickDomElementInputSchema = z.object({
@@ -182,11 +182,10 @@ export const DomVerificationStatusSchema = z.enum([
 
 export const VerifyDomStateInputSchema = z.object({
   snapshot: DomSnapshotSchema,
-  expectedStates: z.array(z.enum([
-    "order-found",
-    "invoice-upload-entry-visible",
-    "file-attached",
-    "upload-success",
+	  expectedStates: z.array(z.enum([
+    "file-selected",
+    "success-message",
+    "error-message",
     "login-required",
     "captcha-or-2fa-required",
   ])).min(1),
@@ -203,11 +202,10 @@ export const DomVerificationResultSchema = z.object({
 
 export const WaitForDomStateInputSchema = z.object({
   initialSnapshot: DomSnapshotSchema.optional(),
-  expectedStates: z.array(z.enum([
-    "order-found",
-    "invoice-upload-entry-visible",
-    "file-attached",
-    "upload-success",
+	  expectedStates: z.array(z.enum([
+    "file-selected",
+    "success-message",
+    "error-message",
     "login-required",
     "captcha-or-2fa-required",
   ])).min(1),
@@ -235,7 +233,7 @@ export type FillDomElementInput = {
   elementRef: DomElementRef;
   approvedText: string;
   clearBeforeType: boolean;
-  inputPurpose: "order-search" | "invoice-number" | "generic-approved-text";
+  inputPurpose: string;
 };
 export type ClickDomElementInput = {
   elementRef: DomElementRef;

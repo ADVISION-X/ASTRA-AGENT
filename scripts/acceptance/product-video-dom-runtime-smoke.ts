@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -10,6 +10,7 @@ import { createWorkbenchServer } from "../../src/app/create-workbench-server.js"
 import type { GrassEyeWorkbenchHandle } from "../../src/lib/local-runtime/workbench-handle.js";
 import {
   getProductVideoDomTaskStatus,
+  listProductVideoEvidenceRecords,
   startProductVideoDomMiningTask,
 } from "../../src/plugins/product-video-dom-runtime/index.js";
 import { PlaywrightDomBrowserAdapter } from "./dom-smoke-browser.js";
@@ -98,6 +99,12 @@ const createSmokeWorkbench = (): GrassEyeWorkbenchHandle => ({
   async getProductVideoDomTaskStatus(taskId: string) {
     return getProductVideoDomTaskStatus({ dataDir: tmp, taskId });
   },
+  async listProductVideoEvidenceRecords(limit?: number) {
+    return listProductVideoEvidenceRecords({
+      dataDir: tmp,
+      ...(limit !== undefined ? { limit } : {}),
+    });
+  },
   getModeInfo() { return {}; },
 });
 
@@ -133,11 +140,18 @@ try {
   });
   const payload = await response.json();
   const packetPath = String(payload.evidencePacketPath ?? "");
-  const packet = packetPath ? JSON.parse(readFileSync(packetPath, "utf8")) as {
-    liked?: boolean;
-    comments?: Array<{ commentText?: string }>;
-    commentCountText?: string;
-  } : {};
+  const recordsResponse = await fetch(`http://127.0.0.1:${port}/api/product-video-dom/records?limit=10`);
+  const recordsPayload = await recordsResponse.json() as {
+    count: number;
+    records: Array<{
+      screenshotRef?: string | null;
+      screenshotPath?: string | null;
+      commentsText?: string | null;
+      commentsCount?: number | null;
+      commentDetails?: Array<unknown>;
+    }>;
+  };
+  const firstRecord = recordsPayload.records[0];
 
   if (
     !response.ok
@@ -146,12 +160,16 @@ try {
     || productStartCount !== 1
     || !packetPath
     || !existsSync(packetPath)
-    || packet.liked !== true
-    || (packet.comments?.length ?? 0) < 3
-    || !String(packet.commentCountText ?? "").includes("12")
+    || !recordsResponse.ok
+    || recordsPayload.count < 1
+    || !firstRecord
+    || (!firstRecord.screenshotPath && !firstRecord.screenshotRef)
+    || !String(firstRecord.commentsText ?? "").includes("12")
+    || firstRecord.commentsCount !== 12
+    || (firstRecord.commentDetails?.length ?? 0) < 3
     || !page.url().includes("video-two")
   ) {
-    process.stdout.write(`[PRODUCT-VIDEO-DOM-SMOKE][FAIL] unexpected payload: ${JSON.stringify(payload)} packet=${JSON.stringify(packet)}\n`);
+    process.stdout.write(`[PRODUCT-VIDEO-DOM-SMOKE][FAIL] unexpected payload: ${JSON.stringify({ payload, recordsPayload })}\n`);
     process.exit(1);
   }
 
@@ -162,7 +180,7 @@ try {
     process.exit(1);
   }
 
-  process.stdout.write("[PRODUCT-VIDEO-DOM-SMOKE][PASS] API task liked product video, recorded comments, persisted packet, and advanced to next video\n");
+  process.stdout.write("[PRODUCT-VIDEO-DOM-SMOKE][PASS] plugin start route saved a real product-video record, exposed it through records API, and advanced to the next video\n");
 } finally {
   server.close();
   await launched.close();

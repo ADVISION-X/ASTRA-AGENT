@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium } from "playwright";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import { runAmazonInvoiceUpload } from "../../src/plugins/amazon-invoice-upload/index.js";
 import { PlaywrightDomBrowserAdapter } from "./dom-smoke-browser.js";
 
@@ -45,9 +46,10 @@ writeFileSync(htmlPath, `
 const launched = await chromium.launch({ headless: true });
 const page = await launched.newPage({ viewport: { width: 900, height: 700 } });
 const browser = new PlaywrightDomBrowserAdapter(page, tmp);
+const runtimeLogger = createRuntimeLogger({ terminalEnabled: false });
 
 try {
-  const result = await runAmazonInvoiceUpload(browser, {
+  const result = await runAmazonInvoiceUpload(browser, runtimeLogger, {
     missionType: "amazon_invoice_upload",
     marketplace: "AE",
     amazonOrderId: "123-1234567-1234567",

@@ -1,4 +1,5 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { runAmazonInvoiceUpload } from "./amazon-invoice-upload.flow.js";
 import { AmazonInvoiceUploadMissionInputSchema } from "./mission.schema.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
@@ -62,14 +63,16 @@ export async function openAmazonInvoiceAdminPage(
 
 export async function startAmazonInvoiceUploadMission(
   browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
   rawInput: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadMissionStartResult> {
   const input = AmazonInvoiceUploadMissionInputSchema.parse(rawInput);
-  return runAmazonInvoiceUpload(browser, input);
+  return runAmazonInvoiceUpload(browser, runtimeLogger, input);
 }
 
 export async function startAmazonInvoiceUploadTask(input: {
   browser: BrowserController;
+  runtimeLogger: RuntimeLogger;
   dataDir: string;
   task: AmazonInvoiceUploadTaskStartInput;
 }): Promise<AmazonInvoiceUploadTaskRecord> {
@@ -91,7 +94,7 @@ export async function startAmazonInvoiceUploadTask(input: {
     reachedStep: "uploading",
   });
   saveTaskRecord(input.dataDir, uploading);
-  const result = await runAmazonInvoiceUpload(input.browser, approvedMission);
+  const result = await runAmazonInvoiceUpload(input.browser, input.runtimeLogger, approvedMission);
   const completed = updateTaskRecord(uploading, result);
   saveTaskRecord(input.dataDir, completed);
   return completed;
@@ -99,6 +102,7 @@ export async function startAmazonInvoiceUploadTask(input: {
 
 export async function resumeAmazonInvoiceUploadTask(input: {
   browser: BrowserController;
+  runtimeLogger: RuntimeLogger;
   dataDir: string;
   taskId: string;
 }): Promise<AmazonInvoiceUploadTaskRecord> {
@@ -109,7 +113,7 @@ export async function resumeAmazonInvoiceUploadTask(input: {
     reachedStep: "resume",
   });
   saveTaskRecord(input.dataDir, resumed);
-  const result = await runAmazonInvoiceUpload(input.browser, record.mission);
+  const result = await runAmazonInvoiceUpload(input.browser, input.runtimeLogger, record.mission);
   const completed = updateTaskRecord(resumed, result);
   saveTaskRecord(input.dataDir, completed);
   return completed;

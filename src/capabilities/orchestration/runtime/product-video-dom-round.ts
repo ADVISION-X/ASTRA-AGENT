@@ -1,7 +1,13 @@
 import type { OrchestrationChildrenContext } from "../children-context.js";
 import type { MissionState } from "../contract.js";
-import { startProductVideoDomTask } from "../../../plugins/product-video-dom-runtime/index.js";
-import { applyMissionStatus, getMissionState, setActiveMission, upsertMissionState } from "./mission-state.js";
+import { runProductVideoDomRoundRuntime } from "../../../plugins/product-video-dom-runtime/product-video-dom-round.js";
+import {
+  applyMissionStatus,
+  getMissionState,
+  now,
+  setActiveMission,
+  upsertMissionState,
+} from "./mission-state.js";
 import type { RoundResult } from "./mission-loop-round.js";
 
 type ProductVideoDomRoundInput = {
@@ -12,14 +18,14 @@ type ProductVideoDomRoundInput = {
   ctx: OrchestrationChildrenContext;
 };
 
-const PRODUCT_VIDEO_HINTS = {
-  likeButton: ["like", "like video", "赞", "点赞"],
-  commentsButton: ["comments", "comment", "评论", "留言"],
-  nextVideoButton: ["next", "next video", "下一个", "下一条"],
-};
+type ProductVideoDomRuntimeResult = Awaited<ReturnType<typeof runProductVideoDomRoundRuntime>>;
 
 const failDomRound = (missionId: string, failureReason: string): RoundResult => {
-  upsertMissionState(applyMissionStatus(getMissionState(missionId), { status: "failed", failureReason }));
+  upsertMissionState(applyMissionStatus(getMissionState(missionId), {
+    status: "stopped",
+    stopReason: failureReason,
+    endedAt: now(),
+  }));
   setActiveMission(null);
   return "stop";
 };
@@ -48,26 +54,65 @@ const emitDomRoundStarted = (input: ProductVideoDomRoundInput): void => {
   });
 };
 
+const resolveProductVideoPageUrl = (state: MissionState): string | null =>
+  state.productVideoPageUrl ?? state.targetUrl ?? null;
+
+const buildDomRuntimeInput = (
+  input: ProductVideoDomRoundInput,
+  productVideoPageUrl: string,
+) => ({
+  browser: input.ctx.browserController,
+  dataDir: input.ctx.dataDir,
+  missionId: input.missionId,
+  runId: input.runId,
+  roundId: input.roundId,
+  roundIndex: input.state.roundIndex ?? 0,
+  platformId: input.state.requestedPlatform ?? "unknown",
+  productVideoPageUrl,
+  userRequirementText: input.state.humanGoal ?? "Find product-seeding videos.",
+  consecutiveAdvanceFailures: input.state.domConsecutiveAdvanceFailures ?? 0,
+});
+
+const continueDomRound = (
+  input: ProductVideoDomRoundInput,
+  result: ProductVideoDomRuntimeResult,
+): RoundResult => {
+  const current = getMissionState(input.missionId);
+  upsertMissionState({
+    ...applyMissionStatus(current, { status: "running" }),
+    matchedEvidenceCount: (current.matchedEvidenceCount ?? 0) + (result.savedRecord ? 1 : 0),
+    domConsecutiveAdvanceFailures: result.advanceFailureCount,
+    lastActionStatus: "success",
+    lastFailureReason: null,
+    lastReviewRequiredReason: null,
+    reviewRequiredReason: null,
+    stopReason: null,
+    failureReason: null,
+  });
+  return "continue";
+};
+
+const resolveDomRoundResult = (
+  input: ProductVideoDomRoundInput,
+  result: ProductVideoDomRuntimeResult,
+): RoundResult => {
+  if (result.roundResult.status === "review_required") {
+    return reviewDomRound(input.missionId, result.roundResult.reason);
+  }
+  if (result.roundResult.status === "stop") {
+    return failDomRound(input.missionId, result.roundResult.reason);
+  }
+  return continueDomRound(input, result);
+};
+
 export const runProductVideoDomRound = async (
   input: ProductVideoDomRoundInput,
 ): Promise<RoundResult> => {
   emitDomRoundStarted(input);
-  if (!input.state.targetUrl) return failDomRound(input.missionId, "DOM product-video mode requires targetUrl.");
-  const task = await startProductVideoDomTask({
-    browser: input.ctx.browserController,
-    dataDir: input.ctx.dataDir,
-    mission: {
-      missionType: "product_video_dom_mining",
-      platformId: input.state.requestedPlatform ?? "unknown",
-      pageUrl: input.state.targetUrl,
-      videoVisitId: input.roundId,
-      aiDecisionReason: input.state.humanGoal ?? "Find product-seeding videos.",
-      targetHints: PRODUCT_VIDEO_HINTS,
-    },
-  });
-  if (task.status === "login_required" || task.status === "captcha_or_2fa_required" || task.status === "review_required") {
-    return reviewDomRound(input.missionId, task.reason);
+  const productVideoPageUrl = resolveProductVideoPageUrl(input.state);
+  if (!productVideoPageUrl) {
+    return failDomRound(input.missionId, "DOM product-video mode requires productVideoPageUrl.");
   }
-  if (!task.ok) return failDomRound(input.missionId, task.reason);
-  return "continue";
+  const result = await runProductVideoDomRoundRuntime(buildDomRuntimeInput(input, productVideoPageUrl));
+  return resolveDomRoundResult(input, result);
 };

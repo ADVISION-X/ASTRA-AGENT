@@ -62,6 +62,9 @@ const buildRunningMissionState = (
       cmd.initialPayload?.["missionMode"] === "dom_product_video"
         ? "dom_product_video"
         : "pure_visual",
+    productVideoPageUrl:
+      (cmd.initialPayload?.["productVideoPageUrl"] as string | null | undefined)
+      ?? null,
     targetProfileRef:
       (cmd.initialPayload?.["targetProfileRef"] as string | null | undefined)
       ?? null,

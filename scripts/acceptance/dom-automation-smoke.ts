@@ -46,14 +46,14 @@ try {
   const searchInput = locateDomElementOnce({ snapshot, targetKind: "search-input", hints: ["order search", "search orders"] });
   const searchButton = locateDomElementOnce({ snapshot, targetKind: "button", hints: ["search"] });
   const fileInput = locateDomElementOnce({ snapshot, targetKind: "file-input", hints: ["file"] });
-  const orderRow = locateDomElementOnce({ snapshot, targetKind: "order-row", hints: ["ready"], requiredText: "123-ORDER" });
+  const orderRow = locateDomElementOnce({ snapshot, targetKind: "row", hints: ["ready"], requiredText: "123-ORDER" });
 
-  const fill = await fillDomElementOnce(browser, { elementRef: searchInput, approvedText: "123-ORDER", clearBeforeType: true, inputPurpose: "order-search" });
+  const fill = await fillDomElementOnce(browser, { elementRef: searchInput, approvedText: "123-ORDER", clearBeforeType: true, inputPurpose: "approved-search-text" });
   const click = await clickDomElementOnce(browser, { elementRef: searchButton, expectedKind: "search", expectedText: "Search" });
   const latest = await readDomSnapshotOnce(browser);
-  const uploadEntry = locateDomElementOnce({ snapshot: latest, targetKind: "upload-invoice-entry", hints: ["upload invoice"] });
-  const verify = verifyDomStateOnce({ snapshot: latest, expectedStates: ["invoice-upload-entry-visible"], successHints: ["invoice upload entry visible"], failureHints: [] });
-  const waited = await waitForDomStateOnce(browser, { expectedStates: ["invoice-upload-entry-visible"], successHints: ["invoice upload entry visible"], failureHints: [], timeoutMs: 600, pollIntervalMs: 100 });
+  const uploadEntry = locateDomElementOnce({ snapshot: latest, targetKind: "clickable", hints: ["upload invoice"] });
+  const verify = verifyDomStateOnce({ snapshot: latest, expectedStates: ["success-message"], successHints: ["invoice upload entry visible"], failureHints: [] });
+  const waited = await waitForDomStateOnce(browser, { expectedStates: ["success-message"], successHints: ["invoice upload entry visible"], failureHints: [], timeoutMs: 600, pollIntervalMs: 100 });
   const upload = await uploadApprovedFileOnce(browser, { elementRef: fileInput, approvedFilePath: pdfPath, approvedTaskFilePath: pdfPath, allowedExtensions: [".pdf"], uploadPurpose: "approved-pdf-upload" });
 
   const evidenceOk = Boolean(fill.beforeEvidenceRef && fill.afterEvidenceRef && click.beforeEvidenceRef && click.afterEvidenceRef);

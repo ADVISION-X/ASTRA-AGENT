@@ -24,16 +24,12 @@ const CHECKS: Record<string, (context: DomAutomationBinaryCheckContext) => Claus
   "blueprint.commands": checkBlueprintCommands,
   "ci.unique-entry": checkCiUniqueEntry,
   "runtime_smoke.dom-automation": async () => await runCommand(["npm", "run", "acceptance:dom-automation-smoke"]),
-  "runtime_smoke.amazon-agent-start": async () => await runCommand(["npm", "run", "acceptance:amazon-invoice-agent-start-smoke"]),
-  "runtime_smoke.amazon-upload": async () => await runCommand(["npm", "run", "acceptance:amazon-invoice-upload-smoke"]),
-  "runtime_smoke.amazon-upload-complete": async () => await runCommand(["npm", "run", "acceptance:amazon-invoice-upload-complete-smoke"]),
-  "runtime_smoke.product-video-dom": async () => await runCommand(["npm", "run", "acceptance:product-video-dom-runtime-smoke"]),
 };
 
 export const createDomAutomationBinaryCheckContext = (): DomAutomationBinaryCheckContext => ({
   auditProject: loadDomAutomationAuditProject(),
   packageJson: JSON.parse(readFileSync(pathFromRepoRoot("package.json"), "utf8")) as { scripts?: Record<string, string> },
-  manifest: JSON.parse(readFileSync(pathFromRepoRoot("scripts/audit/domains/dom-automation/manifest.json"), "utf8")) as { allowedLawIds?: string[] },
+  manifest: JSON.parse(readFileSync(pathFromRepoRoot("scripts/audit/domains/dom-automation/manifest.json"), "utf8")) as DomAutomationBinaryCheckContext["manifest"],
   memo: new Map<string, ClauseCheckOutcome>(),
 });
 

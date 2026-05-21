@@ -40,6 +40,7 @@ export function createInitialMissionState(params: {
   maxRounds?: number | null;
   maxMinutes?: number | null;
   missionMode?: MissionState["missionMode"];
+  productVideoPageUrl?: string | null;
   targetProfileRef?: string | null;
   targetUrl?: string | null;
   targetTitle?: string | null;
@@ -49,10 +50,12 @@ export function createInitialMissionState(params: {
     runId: params.runId,
     humanGoal: params.humanGoal,
     missionMode: params.missionMode ?? "pure_visual",
+    productVideoPageUrl: params.productVideoPageUrl ?? null,
     requestedPlatform: params.requestedPlatform,
     selectedPlatforms: params.selectedPlatforms,
     maxRounds: params.maxRounds ?? null,
     maxMinutes: params.maxMinutes ?? null,
+    domConsecutiveAdvanceFailures: 0,
     ...(params.targetProfileRef ? { targetProfileRef: params.targetProfileRef } : {}),
     ...(params.targetUrl ? { targetUrl: params.targetUrl } : {}),
     ...(params.targetTitle ? { targetTitle: params.targetTitle } : {}),

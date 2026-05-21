@@ -47,6 +47,24 @@ src/capabilities/dom-automation/**
 并通过能力注册，使其成为 GrassEye 平级能力组。
 
 Amazon 发票上传作为插件使用 DOM 能力，不进入核心能力组。
+Product Video / Facebook 种草视频等流程作为业务插件使用 DOM 能力，不进入核心能力组。
+
+### 1.3 Owner 边界
+
+DOM 自动化能立组的 owner root 只有：
+
+```txt
+src/capabilities/dom-automation/**
+```
+
+以下目录属于业务插件 / 任务流 consumer，不属于 DOM owner root：
+
+```txt
+src/plugins/amazon-invoice-upload/**
+src/plugins/product-video-dom-runtime/**
+```
+
+DOM audit 可以检查这些 consumer 是否只调用 DOM public facade，但不得把它们列为 DOM required owner paths。
 
 ---
 
@@ -115,6 +133,8 @@ src/plugins/amazon-invoice-upload/
   └─ README.md
 ```
 
+插件目录不是 DOM 能力组内部目录。插件保存平台入口、业务 payload、业务 hints、业务状态、任务存储和流程编排；DOM 能力组只保存通用 DOM 原子能力。
+
 ### 3.3 禁止目录
 
 DOM 能力不得写入：
@@ -123,6 +143,7 @@ DOM 能力不得写入：
 src/visual-mission/**
 src/lib/browser/**   // 除非是必要的 BrowserController 接口扩展
 src/plugins/amazon-invoice-upload/dom-private-controller.ts
+src/plugins/**       // 插件可以调用 DOM，不能承载 DOM core
 ```
 
 ---
@@ -552,22 +573,33 @@ WAIT_FOR_DOM_STATE_ONCE
 
 ## 8. 运行日志设计
 
-每一步输出：
+每一步必须通过 Runtime Log Spine 输出，禁止插件私有写 JSONL 充当第二日志系统。业务插件只能把已注入的 `RuntimeLogger` 继续传入 DOM 编排链路，由 canonical runtime event 承载排障事实。
 
 ```ts
 type DomAutomationLogEvent = {
-  eventType: "dom_automation_step";
+  eventType:
+    | "DOM_AUTOMATION_STEP_STARTED"
+    | "DOM_AUTOMATION_STEP_COMPLETED"
+    | "DOM_AUTOMATION_STEP_FAILED";
   missionId: string;
   stepId: string;
   abilityId: string;
   targetHost: string;
   targetKind: string;
-  result: "ok" | "failed" | "review_required";
+  actionResult: "snapshot" | "success" | "failed" | "review_required";
   evidenceRef?: string;
   reason?: string;
   createdAt: string;
 };
 ```
+
+落地约束：
+
+- Amazon DOM 插件入口必须接收 Workbench 注入的 `RuntimeLogger`，不得从全局 singleton 偷取 logger。
+- Amazon DOM 每个 snapshot / locate / click / upload / verify / close step 必须调用统一 trace helper。
+- trace helper 只能调用 `runtimeLogger.emit`，不得 `appendFileSync`、不得创建第二持久化 owner。
+- 成功 step 默认 DEBUG/TRACE 可见；失败或 review_required step 允许 FLOW 可见，防止日志爆炸。
+- payload 只允许 host、计数、裁剪后的 locator summary、action result、evidence ref、reviewRequiredReason。
 
 禁止日志字段：
 

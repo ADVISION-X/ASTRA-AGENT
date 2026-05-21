@@ -1,8 +1,10 @@
 import { waitForDomStateOnce } from "../../capabilities/dom-automation/index.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { taskResult } from "./amazon-invoice-upload-flow-support.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
+import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 
 const UPLOAD_SUCCESS_HINTS = [
   "invoice uploaded successfully",
@@ -22,18 +24,34 @@ type VerifySuccessResult = Awaited<ReturnType<typeof waitForDomStateOnce>>;
 
 export async function verifyUploadSuccess(
   browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult> {
   const success = await waitForDomStateOnce(browser, {
-    expectedStates: ["upload-success"],
+    expectedStates: ["success-message"],
     successHints: UPLOAD_SUCCESS_HINTS,
     failureHints: ["failed", "invalid", "error", "文件上传失败", "无法上传"],
     timeoutMs: UPLOAD_SUCCESS_TIMEOUT_MS,
     pollIntervalMs: UPLOAD_SUCCESS_POLL_INTERVAL_MS,
   });
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "verify upload success",
+    status: success.status === "success" ? "success" : "review_required",
+    reason: success.reason,
+    evidenceRef: success.evidenceRef,
+  });
   if (success.status !== "success") return buildUploadReviewResult(mission, success);
   const closeResult = await browser.closeActiveTab({
     reason: "Amazon invoice upload success verified",
+  });
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "close uploaded order tab",
+    status: closeResult.ok ? "success" : "review_required",
+    reason: closeResult.ok ? "Active order tab closed." : closeResult.message,
   });
   if (!closeResult.ok) return buildCloseReviewResult(mission, success, closeResult.message);
   return buildUploadSuccessResult(mission, success, closeResult);

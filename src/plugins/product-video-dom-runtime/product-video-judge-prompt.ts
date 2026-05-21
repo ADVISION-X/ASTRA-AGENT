@@ -1,42 +1,32 @@
-import type { DomSnapshot } from "../../capabilities/dom-automation/index.js";
 import { PRODUCT_VIDEO_JUDGE_PROMPT_CONTRACT_ID } from "./product-video-judge.contract.js";
-import type { ProductVideoDomMissionInput } from "./product-video-dom.schema.js";
-import {
-  extractProductVideoEngagement,
-  extractProductVideoHashtags,
-  extractProductVideoProductSignals,
-} from "./product-video-dom-extractor.js";
-import { extractCommentCountText } from "./product-video-comment-extractor.js";
+import type { ProductVideoJudgeInput } from "./product-video-dom.schema.js";
 
-const collectText = (snapshot: DomSnapshot): string =>
-  [
-    snapshot.title,
-    ...snapshot.textBlocks.map((item) => item.visibleText ?? item.ariaLabel ?? item.nearbyText ?? ""),
-    ...snapshot.links.map((item) => item.visibleText ?? item.ariaLabel ?? item.nearbyText ?? ""),
-    ...snapshot.buttons.map((item) => item.visibleText ?? item.ariaLabel ?? item.nearbyText ?? ""),
-  ].filter(Boolean).join("\n").replace(/\s+/g, " ").slice(0, 3200);
-
-export const buildProductVideoJudgePrompt = (input: {
-  mission: ProductVideoDomMissionInput;
-  snapshot: DomSnapshot;
-}): string => {
-  const engagement = extractProductVideoEngagement(input.snapshot);
-  return `You are GrassEye product-video judge.
+export const buildProductVideoJudgePrompt = (input: ProductVideoJudgeInput): string => {
+  return `You are Product Video Judge.
 Prompt contract: ${PRODUCT_VIDEO_JUDGE_PROMPT_CONTRACT_ID}
 
-Your only job is to judge whether the current video is a product-seeding video worth DOM evidence collection.
-Do not choose browser coordinates, DOM selectors, browser commands, save payloads, or multi-step action plans.
-Use only the DOM facts below. If facts are insufficient, choose review_required.
+Role:
+- Judge whether the current video is a product-seeding video worth saving.
+- Do not control the browser.
+- Do not output multi-step action plans.
+- Do not make sourcing, profit, purchasing, or ad decisions.
 
-User goal: ${input.mission.aiDecisionReason ?? "Find product-seeding videos."}
-Platform: ${input.mission.platformId}
-URL: ${input.snapshot.url}
-Title: ${input.snapshot.title}
-Hashtags: ${extractProductVideoHashtags(input.snapshot).join(", ") || "none"}
-Product/link signals: ${extractProductVideoProductSignals(input.snapshot).join(" | ") || "none"}
-Engagement: likes=${engagement.likesText ?? "unknown"} comments=${engagement.commentsText ?? extractCommentCountText(input.snapshot) ?? "unknown"} saves=${engagement.savesText ?? "unknown"} shares=${engagement.sharesText ?? "unknown"}
-DOM visible text summary:
-${collectText(input.snapshot)}
+Decision standard:
+- A product-seeding video should satisfy at least two signal groups across product, seeding intent, transaction intent, comments, or real usage scene.
+- Reject pure entertainment, scenery, selfie, opinion-only, slogan-only, or cases with no clear product intent.
+- If facts are insufficient, choose review_required.
+
+Output rules:
+- Return strict JSON only.
+- Follow schema productVideoJudge.v1 exactly.
+- confidence must be between 0 and 1.
+- If isProductSeedingVideo=true then shouldSave must be true.
+- If nextDomAction=collect_evidence then shouldSave must be true.
+- If nextDomAction=next_video then shouldSave must be false.
+- review_required must include rejectReason or evidence.
+
+Sanitized structured facts:
+${JSON.stringify(input, null, 2)}
 
 Return strict JSON matching productVideoJudge.v1.`;
 };

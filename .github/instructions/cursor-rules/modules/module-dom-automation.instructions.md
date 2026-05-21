@@ -3,7 +3,7 @@
 版本：V1.0  
 建议路径：`.github/instructions/cursor-rules/modules/module-dom-automation.instructions.md`  
 能力组：`dom-automation`  
-状态：草案，可进入下一轮 Codex 施工  
+状态：active  
 定位：补全 GrassEye 当前 Agent 的 DOM 自动化子能力，不耦合视觉 Agent，不内置 Amazon 业务流程。
 
 ---
@@ -28,7 +28,24 @@ DOM 自动化能立组负责在当前本地 Chrome 会话中，对网页 DOM 进
 DOM 自动化能立组只提供可复用网页结构操作能力；具体业务流程由插件编排，不能写死在能力组内部。
 ```
 
-### 0.3 与现有视觉 Agent 的关系
+### 0.3 Owner 边界冻结
+
+DOM 自动化能立组的唯一 owner root 是：
+
+```txt
+src/capabilities/dom-automation/**
+```
+
+DOM 质检 owner 只能把该目录视为 DOM 能立组内部。以下目录是业务插件 / 任务流 consumer，不属于 DOM 能立组内部：
+
+```txt
+src/plugins/amazon-invoice-upload/**
+src/plugins/product-video-dom-runtime/**
+```
+
+插件可以调用 DOM public facade，但不得成为 DOM owner root、DOM required owner path、DOM 子能力目录或 DOM registry truth。
+
+### 0.4 与现有视觉 Agent 的关系
 
 DOM 自动化能立组与视觉能力组是平级能力，不是视觉能力的子模块。
 
@@ -112,6 +129,7 @@ src/visual-mission/**
 
 DOM 能力组不知道 Amazon 是什么。  
 Amazon 插件知道自己要调用哪些 DOM 能力。
+Product Video / Facebook 种草视频插件知道自己要采集什么、判断什么、保存到哪里；DOM 能力组只知道读、找、填、点、等、验、传。
 
 ### 1.4 当前 Chrome 原则
 
@@ -169,7 +187,7 @@ DOM 自动化任务默认使用 DOM 结构判断，不使用视觉作为主裁�
 
 DOM 自动化必须作为独立能立组存在。
 
-它只负责 DOM 层通用能力，不拥有任何业务流程。
+它只负责 DOM 层通用能力，不拥有任何业务流程。DOM owner root 必须收敛在 `src/capabilities/dom-automation/**`。
 
 ### Required
 
@@ -178,6 +196,7 @@ DOM 自动化必须作为独立能立组存在。
 - 必须通过 GrassEye 现有 ability registry 暴露 atomic abilities
 - 必须复用现有 BrowserController / CurrentChromeBrowserController
 - 必须与视觉能力组平级
+- DOM owner manifest 的 `ownedRoots` 只能包含 DOM 能力组根，不得包含业务插件根
 
 ### Forbidden
 
@@ -186,6 +205,7 @@ DOM 自动化必须作为独立能立组存在。
 - Amazon 业务逻辑写入 DOM 能力组
 - 新建第二套 browser controller
 - 新建第二套 Agent runtime
+- 把 `src/plugins/**` 业务插件列入 DOM owner roots 或 DOM required owner paths
 
 ---
 
@@ -474,7 +494,7 @@ DOM 状态验证不能只靠“没有报错”。必须输出证据化结果。
 
 Amazon 发票上传、ZATCA 上传、FTA 下载、银行后台下载等都必须作为插件存在。
 
-DOM 能立组只能提供通用能力。
+DOM 能立组只能提供通用能力。DOM 质检可以检查插件是否只通过 DOM public facade 调用能力，但这种检查属于 consumer boundary check，不等于插件归属 DOM owner。
 
 ### Required
 
@@ -493,6 +513,7 @@ DOM 能立组只能提供通用能力。
 - 私有实现文件上传
 - 私有实现元素定位器
 - 把 Amazon 选择器写入通用 DOM 能力组
+- 作为 DOM 子能力、DOM owner root、DOM registry truth 或 DOM required owner path
 
 ---
 

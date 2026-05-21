@@ -21,6 +21,7 @@ const CAPABILITY_DOMAIN_BY_GROUP: Record<string, string> = {
   orchestration: "orchestration-capability",
   screenshot: "screenshot-capability",
   "text-input": "text-input-capability",
+  "video-download": "video-download-capability",
 };
 
 const DOMAIN_PREFIXES: ReadonlyArray<readonly [string, string]> = [

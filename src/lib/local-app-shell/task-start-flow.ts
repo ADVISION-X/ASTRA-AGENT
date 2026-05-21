@@ -88,6 +88,7 @@ const buildStartMissionInput = (approval: StartApproval) => {
       requestedBy: "commander-console" as const,
       missionMode: approval.missionMode,
       runtimeMode: approval.missionMode,
+      productVideoPageUrl: approval.productVideoPageUrl,
       requestedPlatformId: approval.binding.requestedPlatformId,
       selectedPlatforms: approval.selectedPlatforms,
       primaryPlatformId: approval.binding.requestedPlatformId,

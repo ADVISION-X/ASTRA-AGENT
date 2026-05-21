@@ -5,8 +5,13 @@ import { createGeometryGuardAbilityGroup } from "../../capabilities/geometry-gua
 import { createMouseClickAbilityGroupWithPrimitivePort } from "../../capabilities/mouse-click/index.js";
 import { createMouseScrollAbilityGroupWithPrimitivePort } from "../../capabilities/mouse-scroll/index.js";
 import { createTextInputAbilityGroupWithPrimitivePort } from "../../capabilities/text-input/index.js";
+import {
+  createFilesystemVideoArtifactStoragePort,
+  createVideoDownloadAbilityGroup,
+} from "../../capabilities/video-download/index.js";
 import { createGrassEyeFileStorage } from "../storage/index.js";
 import type { RuntimeLogger } from "../runtime-logs/index.js";
+import type { BrowserController } from "../browser/browser-controller.js";
 import type { WorkbenchPrimitivePorts } from "./workbench-browser-support.js";
 
 export function createWorkbenchForensicsGroup(
@@ -22,6 +27,7 @@ export function createWorkbenchCapabilityGroups(input: {
   dataDir: string;
   runtimeLogger: RuntimeLogger;
   primitivePorts: WorkbenchPrimitivePorts;
+  browserController: BrowserController;
 }) {
   const geometryGuardAbilityGroup = createGeometryGuardAbilityGroup();
   const mouseClickAbilityGroup = createMouseClickAbilityGroupWithPrimitivePort({
@@ -37,11 +43,16 @@ export function createWorkbenchCapabilityGroups(input: {
     dataDir: input.dataDir,
     runtimeLogger: input.runtimeLogger,
   });
+  const videoDownloadAbilityGroup = createVideoDownloadAbilityGroup({
+    browserMediaSourcePort: input.browserController,
+    artifactStoragePort: createFilesystemVideoArtifactStoragePort(input.dataDir),
+  });
   return {
     aiAbilityGroup,
     geometryGuardAbilityGroup,
     mouseClickAbilityGroup,
     mouseScrollAbilityGroup,
     textInputAbilityGroup,
+    videoDownloadAbilityGroup,
   };
 }

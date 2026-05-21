@@ -28,45 +28,54 @@ const RUNTIME_LOG_AI_REQUIREMENTS = {
   loggerHelperMethods: ["isDebugEnabled", "isTraceEnabled"] as string[],
 } as const;
 
+const RUNTIME_LOG_FORBIDDEN_CONSOLE_PATTERNS = [
+  "console" + ".log",
+  "console" + ".error",
+  "console" + ".warn",
+  "console" + ".debug",
+] as string[];
+
+const RUNTIME_LOGGER_FORBIDDEN_IMPORTS = [
+  "forensics-persistence/runtime",
+  "orchestration/runtime",
+  "mouse-click/runtime",
+  "BrowserController",
+  "invokeGemini",
+] as string[];
+
+const RUNTIME_LOG_BOUNDARY_EVENT_TYPES = [
+  "HUMAN_COMMAND_RECEIVED",
+  "MISSION_STARTED",
+  "MISSION_COMPLETED",
+  "ROUND_STARTED",
+  "ROUND_COMPLETED",
+  "SCREENSHOT_CAPTURE_REQUESTED",
+  "SCREENSHOT_CAPTURED",
+  "COORDINATE_GRID_RENDERED",
+  "AI_REQUEST_DEBUG",
+  "AI_RAW_RESPONSE_DEBUG",
+  "AI_PARSE_RESULT_DEBUG",
+  "AI_ERROR_DEBUG",
+  "AI_DECISION_SUMMARY",
+  "CAPABILITY_DISPATCH_STARTED",
+  "CAPABILITY_DISPATCH_COMPLETED",
+  "CAPABILITY_DISPATCH_FAILED",
+  "GEOMETRY_GUARD_RESULT",
+  "BROWSER_ACTION_RESULT",
+  "TEXT_INPUT_RESULT",
+  "OPEN_RESULT",
+  "DOM_AUTOMATION_STEP_STARTED",
+  "DOM_AUTOMATION_STEP_COMPLETED",
+  "DOM_AUTOMATION_STEP_FAILED",
+  "FORENSICS_RECORD_APPENDED",
+  "FORENSICS_ARTIFACT_APPENDED",
+] as string[];
+
 const RUNTIME_LOG_BOUNDARY_RULES = {
-  forbiddenConsolePatterns: [
-    "console" + ".log",
-    "console" + ".error",
-    "console" + ".warn",
-    "console" + ".debug",
-  ] as string[],
+  forbiddenConsolePatterns: RUNTIME_LOG_FORBIDDEN_CONSOLE_PATTERNS,
   consoleWhitelist: ["src/lib/runtime-logs/sinks.ts"] as string[],
-  loggerForbiddenImports: [
-    "forensics-persistence/runtime",
-    "orchestration/runtime",
-    "mouse-click/runtime",
-    "BrowserController",
-    "invokeGemini",
-  ] as string[],
-  boundaryEventTypes: [
-    "HUMAN_COMMAND_RECEIVED",
-    "MISSION_STARTED",
-    "MISSION_COMPLETED",
-    "ROUND_STARTED",
-    "ROUND_COMPLETED",
-    "SCREENSHOT_CAPTURE_REQUESTED",
-    "SCREENSHOT_CAPTURED",
-    "COORDINATE_GRID_RENDERED",
-    "AI_REQUEST_DEBUG",
-    "AI_RAW_RESPONSE_DEBUG",
-    "AI_PARSE_RESULT_DEBUG",
-    "AI_ERROR_DEBUG",
-    "AI_DECISION_SUMMARY",
-    "CAPABILITY_DISPATCH_STARTED",
-    "CAPABILITY_DISPATCH_COMPLETED",
-    "CAPABILITY_DISPATCH_FAILED",
-    "GEOMETRY_GUARD_RESULT",
-    "BROWSER_ACTION_RESULT",
-    "TEXT_INPUT_RESULT",
-    "OPEN_RESULT",
-    "FORENSICS_RECORD_APPENDED",
-    "FORENSICS_ARTIFACT_APPENDED",
-  ] as string[],
+  loggerForbiddenImports: RUNTIME_LOGGER_FORBIDDEN_IMPORTS,
+  boundaryEventTypes: RUNTIME_LOG_BOUNDARY_EVENT_TYPES,
 } as const;
 
 const RUNTIME_LOG_HEAVY_PAYLOAD_RULES = {

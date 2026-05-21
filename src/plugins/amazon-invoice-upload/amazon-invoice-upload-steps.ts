@@ -1,15 +1,9 @@
-import type { DomElementRef } from "../../capabilities/dom-automation/index.js";
-import {
-  fillDomElementOnce,
-  readDomSnapshotOnce,
-  uploadApprovedFileOnce,
-  waitForDomStateOnce,
-} from "../../capabilities/dom-automation/index.js";
+import { readDomSnapshotOnce, type DomElementRef } from "../../capabilities/dom-automation/index.js";
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import { AMAZON_INVOICE_UPLOAD_DOM_HINTS } from "./amazon-dom-hints.js";
 import {
   clickLocated,
-  evidenceField,
   locateFailureResult,
   locateOrStatus,
   taskResult,
@@ -17,13 +11,14 @@ import {
 import type { AmazonInvoiceUploadMissionInput } from "./mission.schema.js";
 import type { AmazonInvoiceUploadTaskResult } from "./amazon-invoice-upload.flow.js";
 import { openApprovedOrderDetail } from "./amazon-invoice-upload-order-detail.js";
+import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
+export { uploadApprovedInvoice } from "./amazon-invoice-upload-file-attachment.js";
 type StepResult<T> = { ok: true; value: T } | { ok: false; failure: AmazonInvoiceUploadTaskResult };
+type LocateFailure = Extract<ReturnType<typeof locateOrStatus>, { ok: false }>;
 const UPLOAD_DIALOG_NOT_READY_REASON =
   "Upload invoice entry was clicked, but the upload dialog did not expose a file upload control";
 const UPLOAD_DIALOG_READY_TIMEOUT_MS = 15000;
 const UPLOAD_DIALOG_READY_POLL_INTERVAL_MS = 250;
-const FILE_INPUT_READY_TIMEOUT_MS = 10000;
-const FILE_INPUT_READY_POLL_INTERVAL_MS = 250;
 
 const stepSuccess = <T>(value: T): StepResult<T> => ({ ok: true, value });
 
@@ -34,32 +29,104 @@ const stepFailure = <T>(failure: AmazonInvoiceUploadTaskResult): StepResult<T> =
 
 export async function openOrderDetail(
   browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<StepResult<void>> {
-  const detailFailure = await openApprovedOrderDetail(browser, mission);
+  const detailFailure = await openApprovedOrderDetail(browser, runtimeLogger, mission);
   return detailFailure ? stepFailure(detailFailure) : stepSuccess(undefined);
 }
 
 export async function openUploadInvoiceEntry(
   browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<StepResult<void>> {
   await browser.wait(50);
   const snapshot = await readDomSnapshotOnce(browser);
+  traceUploadInvoiceEntrySnapshot(runtimeLogger, mission, snapshot);
   const uploadEntry = locateUploadInvoiceButton(snapshot);
-  if (!uploadEntry.ok) {
-    return stepFailure(locateFailureResult(mission, uploadEntry, "locate upload invoice entry"));
-  }
+  if (!uploadEntry.ok) return uploadInvoiceEntryFailure(runtimeLogger, mission, snapshot, uploadEntry);
+  traceUploadInvoiceEntryLocated(runtimeLogger, mission, snapshot, uploadEntry.element);
+  const clickFailure = await clickUploadInvoiceEntry(browser, runtimeLogger, mission, uploadEntry.element);
+  if (clickFailure) return stepFailure(clickFailure);
+  const modalReady = await waitForUploadDialog(browser, runtimeLogger, mission);
+  return modalReady ? stepSuccess(undefined) : uploadDialogNotReady(mission);
+}
+
+function traceUploadInvoiceEntrySnapshot(
+  runtimeLogger: RuntimeLogger,
+  mission: AmazonInvoiceUploadMissionInput,
+  snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>,
+): void {
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "locate upload invoice entry",
+    status: "snapshot",
+    snapshot,
+  });
+}
+
+function uploadInvoiceEntryFailure(
+  runtimeLogger: RuntimeLogger,
+  mission: AmazonInvoiceUploadMissionInput,
+  snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>,
+  uploadEntry: LocateFailure,
+): StepResult<void> {
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "locate upload invoice entry",
+    status: "failed",
+    snapshot,
+    reason: uploadEntry.reason,
+  });
+  return stepFailure(locateFailureResult(mission, uploadEntry, "locate upload invoice entry"));
+}
+
+function traceUploadInvoiceEntryLocated(
+  runtimeLogger: RuntimeLogger,
+  mission: AmazonInvoiceUploadMissionInput,
+  snapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>>,
+  element: DomElementRef,
+): void {
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "locate upload invoice entry",
+    status: "success",
+    snapshot,
+    selectedElement: element,
+    reason: element.reason,
+  });
+}
+
+async function clickUploadInvoiceEntry(
+  browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
+  mission: AmazonInvoiceUploadMissionInput,
+  element: DomElementRef,
+): Promise<AmazonInvoiceUploadTaskResult | null> {
   const clickFailure = await clickLocated({
     browser,
-    element: uploadEntry.element,
+    runtimeLogger,
+    element,
     expectedKind: "upload-invoice-entry",
     reachedStep: "open upload invoice entry",
     mission,
   });
-  if (clickFailure) return stepFailure(clickFailure);
-  const modalReady = await waitForUploadDialog(browser);
-  if (modalReady) return stepSuccess(undefined);
+  if (clickFailure) return clickFailure;
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "click upload invoice entry",
+    status: "success",
+    selectedElement: element,
+  });
+  return null;
+}
+
+function uploadDialogNotReady(mission: AmazonInvoiceUploadMissionInput): StepResult<void> {
   return stepFailure(taskResult({
     status: "upload_entry_not_found",
     reason: `${UPLOAD_DIALOG_NOT_READY_REASON} within ${UPLOAD_DIALOG_READY_TIMEOUT_MS}ms.`,
@@ -89,20 +156,44 @@ function locateUploadInvoiceButton(snapshot: Awaited<ReturnType<typeof readDomSn
   if (enButton.ok) return enButton;
   return locateOrStatus({
     snapshot,
-    targetKind: "upload-invoice-entry",
+    targetKind: "clickable",
     hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.uploadInvoiceEntry],
     notFoundStatus: "upload_entry_not_found",
   });
 }
 
-async function waitForUploadDialog(browser: BrowserController): Promise<boolean> {
+async function waitForUploadDialog(
+  browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
+  mission: AmazonInvoiceUploadMissionInput,
+): Promise<boolean> {
   const startedAt = Date.now();
+  let lastSnapshot: Awaited<ReturnType<typeof readDomSnapshotOnce>> | null = null;
   while (Date.now() - startedAt < UPLOAD_DIALOG_READY_TIMEOUT_MS) {
     const snapshot = await readDomSnapshotOnce(browser);
+    lastSnapshot = snapshot;
     if (snapshot.fileInputs.length > 0 || snapshotHasUploadDialogCopy(snapshot)) {
+      recordAmazonDomStepTrace({
+        runtimeLogger,
+        mission,
+        stepName: "wait upload dialog",
+        status: "success",
+        snapshot,
+        reason: "Upload dialog exposed upload copy or file input.",
+      });
       return true;
     }
     await browser.wait(UPLOAD_DIALOG_READY_POLL_INTERVAL_MS);
+  }
+  if (lastSnapshot) {
+    recordAmazonDomStepTrace({
+      runtimeLogger,
+      mission,
+      stepName: "wait upload dialog",
+      status: "failed",
+      snapshot: lastSnapshot,
+      reason: UPLOAD_DIALOG_NOT_READY_REASON,
+    });
   }
   return false;
 }
@@ -118,127 +209,6 @@ function snapshotHasUploadDialogCopy(snapshot: Awaited<ReturnType<typeof readDom
   ).join(" ").toLowerCase();
   return ["请上传", "choose file", "select file", "upload invoice", "invoice file"].some((hint) =>
     dialogText.includes(hint));
-}
-
-const locateFileInput = async (
-  browser: BrowserController,
-  mission: AmazonInvoiceUploadMissionInput,
-): Promise<StepResult<DomElementRef>> => {
-  const startedAt = Date.now();
-  let fileInput = locateOrStatus({
-    snapshot: await readDomSnapshotOnce(browser),
-    targetKind: "file-input",
-    hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.chooseFile],
-    notFoundStatus: "file_input_not_found",
-  });
-  while (!fileInput.ok && Date.now() - startedAt < FILE_INPUT_READY_TIMEOUT_MS) {
-    await browser.wait(FILE_INPUT_READY_POLL_INTERVAL_MS);
-    fileInput = locateOrStatus({
-      snapshot: await readDomSnapshotOnce(browser),
-      targetKind: "file-input",
-      hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.chooseFile],
-      notFoundStatus: "file_input_not_found",
-    });
-  }
-  return fileInput.ok
-    ? stepSuccess(fileInput.element)
-    : stepFailure(locateFailureResult(mission, fileInput, "locate file input"));
-};
-
-const uploadApprovedPdf = async (
-  browser: BrowserController,
-  mission: AmazonInvoiceUploadMissionInput,
-  fileInput: DomElementRef,
-): Promise<StepResult<void>> => {
-  const uploaded = await uploadApprovedFileOnce(browser, {
-    elementRef: fileInput,
-    approvedFilePath: mission.invoicePdfPath,
-    approvedTaskFilePath: mission.invoicePdfPath,
-    allowedExtensions: [".pdf"],
-    uploadPurpose: "approved-pdf-upload",
-  });
-  if (uploaded.ok) return stepSuccess(undefined);
-  return stepFailure(taskResult({
-    status: "failed",
-    reason: uploaded.reviewRequiredReason ?? uploaded.message,
-    reachedStep: "upload approved PDF",
-    amazonOrderId: mission.amazonOrderId,
-    invoiceNo: mission.invoiceNo,
-    ...evidenceField(uploaded.afterEvidenceRef ?? uploaded.beforeEvidenceRef),
-    reviewRequired: uploaded.status === "review_required",
-  }));
-};
-
-const waitForAttachedInvoice = async (
-  browser: BrowserController,
-  mission: AmazonInvoiceUploadMissionInput,
-): Promise<StepResult<string | undefined>> => {
-  const attached = await waitForDomStateOnce(browser, {
-    expectedStates: ["file-attached"],
-    successHints: ["file attached", "invoice attached", mission.invoiceNo],
-    failureHints: ["failed", "invalid file", "error", "文件上传失败", "文件未上传"],
-    timeoutMs: 1500,
-    pollIntervalMs: 50,
-  });
-  if (attached.status === "success") return stepSuccess(attached.evidenceRef);
-  return stepFailure(taskResult({
-    status: "review_required",
-    reason: attached.reason,
-    reachedStep: "verify file attached",
-    amazonOrderId: mission.amazonOrderId,
-    invoiceNo: mission.invoiceNo,
-    evidenceRef: attached.evidenceRef,
-    reviewRequired: true,
-  }));
-};
-
-export async function uploadApprovedInvoice(
-  browser: BrowserController,
-  mission: AmazonInvoiceUploadMissionInput,
-): Promise<StepResult<string | undefined>> {
-  const fileInput = await locateFileInput(browser, mission);
-  if (!fileInput.ok) return fileInput;
-
-  const uploadResult = await uploadApprovedPdf(browser, mission, fileInput.value);
-  if (!uploadResult.ok) return uploadResult;
-
-  const attached = await waitForAttachedInvoice(browser, mission);
-  if (!attached.ok) return attached;
-
-  const invoiceNumber = await fillInvoiceNumber(browser, mission);
-  if (!invoiceNumber.ok) return invoiceNumber;
-
-  return attached;
-}
-
-async function fillInvoiceNumber(
-  browser: BrowserController,
-  mission: AmazonInvoiceUploadMissionInput,
-): Promise<StepResult<void>> {
-  const invoiceNumber = locateOrStatus({
-    snapshot: await readDomSnapshotOnce(browser),
-    targetKind: "invoice-number",
-    hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.invoiceNumber],
-    notFoundStatus: "review_required",
-  });
-  if (!invoiceNumber.ok) {
-    return stepFailure(locateFailureResult(mission, invoiceNumber, "locate invoice number input"));
-  }
-  const filled = await fillDomElementOnce(browser, {
-    elementRef: invoiceNumber.element,
-    approvedText: mission.invoiceNo,
-    clearBeforeType: true,
-    inputPurpose: "invoice-number",
-  });
-  if (filled.ok) return stepSuccess(undefined);
-  return stepFailure(taskResult({
-    status: "failed",
-    reason: filled.reviewRequiredReason ?? filled.message,
-    reachedStep: "fill invoice number",
-    amazonOrderId: mission.amazonOrderId,
-    invoiceNo: mission.invoiceNo,
-    ...evidenceField(filled.afterEvidenceRef ?? filled.beforeEvidenceRef),
-  }));
 }
 
 export const normalizeSubmitFailure = (

@@ -20,6 +20,10 @@ version: 2026-05-17
 9. text-input
 10. mouse-scroll
 11. forensics-persistence
+12. dom-automation
+13. video-download
+
+业务插件 / 任务流不属于能力组。Amazon 发票上传、Product Video DOM Runtime、Facebook 种草视频等流程只能作为 consumer 调用能力组，不能进入能力组清单，也不能成为某个能力组的子能力。
 
 ## 物理边界
 
@@ -28,6 +32,7 @@ version: 2026-05-17
 - 系统只截图、画坐标图、保存证据、校验输入、调度 AI 选择的一个原子能力。
 - 调度只把 AI 选择的能力送到对应能力组，不猜、不造、不追加第二步。
 - 能力组只执行自己的 child capability。
+- DOM 能力组只执行读、找、填、点、等、验、传等 DOM 原子能力；业务插件决定业务目标、业务字段、业务保存和下一步业务流程。
 
 ## 禁止复活
 

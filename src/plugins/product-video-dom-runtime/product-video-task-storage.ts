@@ -2,10 +2,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import {
-  ProductVideoEvidencePacketSchema,
   type ProductVideoDomMissionInput,
   type ProductVideoDomTaskRecord,
-  type ProductVideoEvidencePacket,
 } from "./product-video-dom.schema.js";
 
 const safeSegment = (value: string): string =>
@@ -55,19 +53,3 @@ export const updateProductVideoTaskRecord = (
   ...patch,
   updatedAt: new Date().toISOString(),
 });
-
-export const saveProductVideoEvidencePacket = (input: {
-  dataDir: string;
-  taskId: string;
-  packet: ProductVideoEvidencePacket;
-}): string => {
-  const packet = ProductVideoEvidencePacketSchema.parse(input.packet);
-  const directory = taskDir(input.dataDir, input.taskId);
-  mkdirSync(directory, { recursive: true });
-  const packetPath = path.join(directory, "evidence-packet.json");
-  writeFileSync(packetPath, JSON.stringify(packet, null, 2));
-  const indexPath = path.join(input.dataDir, "plugin-records", "product-video-dom-runtime", "records.jsonl");
-  mkdirSync(path.dirname(indexPath), { recursive: true });
-  writeFileSync(indexPath, `${JSON.stringify({ taskId: input.taskId, packetPath, recordedAt: new Date().toISOString() })}\n`, { flag: "a" });
-  return packetPath;
-};

@@ -24,6 +24,7 @@ import type {
 import type {
   ProductVideoDomMissionInput,
   ProductVideoDomTaskRecord,
+  ProductVideoEvidenceRecord,
 } from "../../plugins/product-video-dom-runtime/index.js";
 import type { AppRunLimitSettings, UserRequirementHistoryEntry, UserRequirementHistoryUpsertInput } from "./settings-types.js";
 import type { WorkbenchHealthReport, WorkbenchMissionReadinessReport, WorkbenchPreflightResult, WorkbenchPreflightInput } from "./workbench-status-types.js";
@@ -52,5 +53,6 @@ export type WorkbenchFacade = {
   getLatestAmazonInvoiceUploadTaskForInvoice(input: { amazonOrderId: string; invoiceNo?: string }): Promise<AmazonInvoiceUploadTaskRecord | null>;
   startProductVideoDomMiningTask(input: { mission: ProductVideoDomMissionInput }): Promise<ProductVideoDomTaskRecord>;
   getProductVideoDomTaskStatus(taskId: string): Promise<ProductVideoDomTaskRecord>;
+  listProductVideoEvidenceRecords(limit?: number): Promise<ProductVideoEvidenceRecord[]>;
   getModeInfo(): unknown;
 };

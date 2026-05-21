@@ -64,31 +64,47 @@ function exactTextMatches(value: string | undefined, hints: string[]): boolean {
   return normalized.length > 0 && hints.some((hint) => normalized === normalize(hint));
 }
 
+function isButtonLikeCandidate(candidate: Candidate): boolean {
+  return candidate.tagName === "button" || candidate.type === "submit" || candidate.type === "button";
+}
+
+function candidateHasHintText(candidate: Candidate, hints: string[]): boolean {
+  return [
+    candidate.ariaLabel,
+    candidate.labelText,
+    candidate.visibleText,
+    candidate.nearbyText,
+    candidate.name,
+    candidate.id,
+  ].some((value) => textMatches(value, hints));
+}
+
 const CANDIDATE_RESOLVERS = {
+  "text-input": (snapshot: DomSnapshot) =>
+    snapshot.inputs.filter((item) => item.tagName === "textarea" || item.type === "text" || item.type === "search"),
   "search-input": (snapshot: DomSnapshot) =>
     snapshot.inputs.filter((item) => item.tagName === "textarea" || item.type === "text" || item.type === "search"),
   button: (snapshot: DomSnapshot) => snapshot.buttons,
   link: (snapshot: DomSnapshot) => snapshot.links,
   "file-input": (snapshot: DomSnapshot) => snapshot.fileInputs,
-  "invoice-number": (snapshot: DomSnapshot) =>
-    snapshot.inputs.filter((item) => item.type === "text" || item.tagName === "textarea"),
-  "order-row": (snapshot: DomSnapshot) => [
+  row: (snapshot: DomSnapshot) => [
     ...snapshot.tableRows,
     ...snapshot.roleRows,
     ...snapshot.textBlocks,
     ...snapshot.links,
   ],
-  "upload-invoice-entry": (snapshot: DomSnapshot) => [
+  clickable: (snapshot: DomSnapshot) => [
     ...snapshot.buttons,
     ...snapshot.links,
-    ...snapshot.genericClickableElements,
+    ...snapshot.genericClickableElements.filter((item) => !isButtonLikeCandidate(item)),
     ...snapshot.textBlocks.filter((item) => (item.visibleText ?? "").length <= 80),
   ],
-  "success-message": (snapshot: DomSnapshot) => [
+  message: (snapshot: DomSnapshot) => [
     ...snapshot.dialogs,
     ...snapshot.textBlocks,
     ...snapshot.genericClickableElements,
   ],
+  dialog: (snapshot: DomSnapshot) => snapshot.dialogs,
 } satisfies Record<DomTargetKind, (snapshot: DomSnapshot) => Candidate[]>;
 
 function candidatesFor(input: LocateDomElementInput): Candidate[] {
@@ -151,13 +167,10 @@ const applyInputKindScore = (
   input: LocateDomElementInput,
   candidateScore: CandidateScore,
 ): boolean => {
-  if (input.targetKind === "search-input" && textMatches(candidate.type, ["search", "text"])) {
+  if ((input.targetKind === "search-input" || input.targetKind === "text-input") && textMatches(candidate.type, ["search", "text"])) {
     addScoreSignal(candidateScore, 0.12, "input-type");
   }
-  if (input.targetKind === "invoice-number" && textMatches(candidate.name, ["documentNumber", "invoice", "invoiceNumber"])) {
-    addScoreSignal(candidateScore, 0.36, "invoice-number-name");
-  }
-  return input.targetKind === "search-input";
+  return input.targetKind === "search-input" || input.targetKind === "text-input";
 };
 
 const applyElementKindScore = (
@@ -172,15 +185,18 @@ const applyElementKindScore = (
   if (input.targetKind === "button" && candidate.type === "submit") {
     addScoreSignal(candidateScore, 0.16, "submit-input-button");
   }
-  if (input.targetKind === "order-row" && (candidate.candidateKind === "table-row" || candidate.candidateKind === "role-row")) {
+  if (input.targetKind === "row" && (candidate.candidateKind === "table-row" || candidate.candidateKind === "role-row")) {
     addScoreSignal(candidateScore, 0.32, "row-kind");
     return;
   }
-  if (input.targetKind === "upload-invoice-entry" && candidate.candidateKind === "clickable") {
+  if (input.targetKind === "clickable" && candidate.candidateKind === "clickable") {
     addScoreSignal(candidateScore, 0.12, "clickable-kind");
   }
-  if (input.targetKind === "upload-invoice-entry" && (candidate.tagName === "button" || candidate.type === "submit" || candidate.type === "button")) {
-    addScoreSignal(candidateScore, 0.24, "button-like-upload-entry");
+  if (input.targetKind === "clickable" && isButtonLikeCandidate(candidate)) {
+    addScoreSignal(candidateScore, 0.24, "button-like-clickable");
+  }
+  if (input.targetKind === "clickable" && isButtonLikeCandidate(candidate) && candidateHasHintText(candidate, input.hints)) {
+    addScoreSignal(candidateScore, 0.18, "button-like-upload-entry");
   }
 };
 

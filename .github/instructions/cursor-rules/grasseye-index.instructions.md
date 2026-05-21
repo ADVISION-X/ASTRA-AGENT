@@ -22,6 +22,8 @@ Kernel loads first. The current top-level authority is:
 | gridCell, cellZone, geometry proof | modules/module-geometry-guard-capability.instructions.md |
 | click action | modules/module-mouse-click-capability.instructions.md |
 | text or key input action | modules/module-text-input-capability.instructions.md |
+| DOM snapshot, DOM locator, DOM click, DOM wait, DOM verify, approved file upload | modules/module-dom-automation.instructions.md |
+| video download, media artifact, Facebook video download, TikTok video download | modules/module-video-download-capability.instructions.md |
 
 ## Retired Routes
 

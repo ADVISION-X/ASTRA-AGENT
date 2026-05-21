@@ -26,6 +26,7 @@ const buildGovernedInitialPayload = (input: StartPayloadInput): Record<string, u
     "userRequirementRef",
     "missionMode",
     "runtimeMode",
+    "productVideoPageUrl",
     "primaryPlatformId",
     "targetUrl",
     "targetTitle",

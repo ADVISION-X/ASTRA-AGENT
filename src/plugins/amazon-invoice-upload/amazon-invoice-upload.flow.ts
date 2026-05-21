@@ -1,6 +1,8 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
 import {
   readDomSnapshotOnce,
+  type DomElementRef,
   type DomSnapshot,
 } from "../../capabilities/dom-automation/index.js";
 import { AmazonInvoiceUploadMissionInputSchema } from "./mission.schema.js";
@@ -22,6 +24,7 @@ import {
   locateFailureResult,
   taskResult,
 } from "./amazon-invoice-upload-flow-support.js";
+import { recordAmazonDomStepTrace } from "./amazon-dom-step-trace.js";
 
 export type AmazonInvoiceUploadTaskResult = {
   ok: boolean;
@@ -31,6 +34,7 @@ export type AmazonInvoiceUploadTaskResult = {
   amazonOrderId: string;
   invoiceNo: string;
   evidenceRef?: string;
+  domTraceRef?: string;
   reviewRequired?: boolean;
 };
 
@@ -41,41 +45,54 @@ export type AmazonInvoiceUploadPhaseOneResult = {
   phaseStatus: AmazonInvoiceUploadStatus;
 };
 
+type LocateFailure = Extract<ReturnType<typeof locateOrStatus>, { ok: false }>;
+
 const ENTRY_READY_TIMEOUT_MS = 10000;
 const ENTRY_READY_POLL_INTERVAL_MS = 500;
 
 export async function runAmazonInvoiceUpload(
   browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
   rawMission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult> {
   const mission = AmazonInvoiceUploadMissionInputSchema.parse(rawMission);
-  const entryResult = await openSellerCentralEntry(browser, mission);
+  const entryResult = await openSellerCentralEntry(browser, runtimeLogger, mission);
   if (entryResult) return entryResult;
-  return continueInvoiceUpload(browser, mission);
+  return continueInvoiceUpload(browser, runtimeLogger, mission);
 }
 
 async function continueInvoiceUpload(
   browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult> {
-  const orderDetailResult = await openOrderDetail(browser, mission);
+  const orderDetailResult = await openOrderDetail(browser, runtimeLogger, mission);
   if (!orderDetailResult.ok) return orderDetailResult.failure;
 
-  const alreadyUploaded = await verifyAlreadyUploadedInvoice(browser, mission);
+  const alreadyUploaded = await verifyAlreadyUploadedInvoice(browser, runtimeLogger, mission);
   if (alreadyUploaded) return alreadyUploaded;
 
-  const uploadEntryResult = await openUploadInvoiceEntry(browser, mission);
+  const uploadEntryResult = await openUploadInvoiceEntry(browser, runtimeLogger, mission);
   if (!uploadEntryResult.ok) return uploadEntryResult.failure;
 
-  return uploadAndSubmitInvoice(browser, mission);
+  return uploadAndSubmitInvoice(browser, runtimeLogger, mission);
 }
 
 async function openSellerCentralEntry(
   browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult | null> {
   await browser.open({ url: mission.sellerCentralEntryUrl, title: "Amazon Seller Central invoice upload entry" });
   const entryReady = await waitForSellerCentralEntry(browser, mission);
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "wait seller central entry",
+    status: entryReady.ready ? "success" : "failed",
+    snapshot: entryReady.snapshot,
+    reason: entryReady.ready ? "Seller Central entry is ready." : entryReady.reason,
+  });
   const gate = gatedResult(entryReady.snapshot, mission, "open seller central");
   if (gate) return gate;
   return entryReady.ready ? null : sellerCentralEntryNotReadyResult(mission, entryReady.reason);
@@ -126,9 +143,10 @@ async function waitForSellerCentralEntry(
 
 async function uploadAndSubmitInvoice(
   browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult> {
-  const uploadResult = await uploadApprovedInvoice(browser, mission);
+  const uploadResult = await uploadApprovedInvoice(browser, runtimeLogger, mission);
   if (!uploadResult.ok) return uploadResult.failure;
   if (mission.requireHumanFinalSubmit === true) {
     return taskResult({
@@ -142,40 +160,105 @@ async function uploadAndSubmitInvoice(
     });
   }
 
-  return submitAndVerifyInvoice(browser, mission);
+  return submitAndVerifyInvoice(browser, runtimeLogger, mission);
 }
 
 async function submitAndVerifyInvoice(
   browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
   mission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadTaskResult> {
   const submitButton = locateOrStatus({
-    snapshot: await readDomSnapshotOnce(browser),
+    snapshot: await readAndTraceSubmitSnapshot(browser, runtimeLogger, mission),
     targetKind: "button",
     hints: [...AMAZON_INVOICE_UPLOAD_DOM_HINTS.submit],
     notFoundStatus: "submit_failed",
   });
-  if (!submitButton.ok) {
-    return locateFailureResult(mission, submitButton, "locate submit button");
-  }
+  if (!submitButton.ok) return submitButtonFailure(runtimeLogger, mission, submitButton);
+  traceSubmitButtonLocated(runtimeLogger, mission, submitButton.element);
+  const submitFailure = await clickSubmitButton(browser, runtimeLogger, mission, submitButton.element);
+  if (submitFailure) return normalizeSubmitFailure(submitFailure);
+  return verifyUploadSuccess(browser, runtimeLogger, mission);
+}
+
+function submitButtonFailure(
+  runtimeLogger: RuntimeLogger,
+  mission: AmazonInvoiceUploadMissionInput,
+  submitButton: LocateFailure,
+): AmazonInvoiceUploadTaskResult {
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "locate submit button",
+    status: "failed",
+    reason: submitButton.reason,
+  });
+  return locateFailureResult(mission, submitButton, "locate submit button");
+}
+
+function traceSubmitButtonLocated(
+  runtimeLogger: RuntimeLogger,
+  mission: AmazonInvoiceUploadMissionInput,
+  element: DomElementRef,
+): void {
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "locate submit button",
+    status: "success",
+    selectedElement: element,
+    reason: element.reason,
+  });
+}
+
+async function clickSubmitButton(
+  browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
+  mission: AmazonInvoiceUploadMissionInput,
+  element: DomElementRef,
+): Promise<AmazonInvoiceUploadTaskResult | null> {
   const submitFailure = await clickLocated({
     browser,
-    element: submitButton.element,
+    runtimeLogger,
+    element,
     expectedKind: "submit-invoice-upload",
     reachedStep: "submit invoice upload",
     mission,
     expectedText: "上传",
   });
-  if (submitFailure) return normalizeSubmitFailure(submitFailure);
+  if (submitFailure) return submitFailure;
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "click submit upload",
+    status: "success",
+    selectedElement: element,
+  });
+  return null;
+}
 
-  return verifyUploadSuccess(browser, mission);
+async function readAndTraceSubmitSnapshot(
+  browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
+  mission: AmazonInvoiceUploadMissionInput,
+): Promise<DomSnapshot> {
+  const snapshot = await readDomSnapshotOnce(browser);
+  recordAmazonDomStepTrace({
+    runtimeLogger,
+    mission,
+    stepName: "locate submit button",
+    status: "snapshot",
+    snapshot,
+  });
+  return snapshot;
 }
 
 async function runAmazonInvoiceUploadPhaseOne(
   browser: BrowserController,
+  runtimeLogger: RuntimeLogger,
   rawMission: AmazonInvoiceUploadMissionInput,
 ): Promise<AmazonInvoiceUploadPhaseOneResult> {
-  const fullResult = await runAmazonInvoiceUpload(browser, { ...rawMission, requireHumanFinalSubmit: true });
+  const fullResult = await runAmazonInvoiceUpload(browser, runtimeLogger, { ...rawMission, requireHumanFinalSubmit: true });
   return {
     status: fullResult.status === "failed" ? "failed" : "review_required",
     reason: fullResult.reason,

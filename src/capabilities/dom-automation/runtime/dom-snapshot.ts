@@ -131,8 +131,9 @@ const pageText = clip(rawPageText);
 const detectedStates = [];
 if (/sign\\s*in|log\\s*in|password|session expired/i.test(rawPageText)) detectedStates.push("login_required");
 if (/captcha|verification code|two[- ]?factor|2fa|otp/i.test(rawPageText)) detectedStates.push("captcha_or_2fa_required");
-if (/file attached|attachment added|file selected/i.test(rawPageText)) detectedStates.push("file_attached");
-if (/upload completed|file uploaded successfully|submitted successfully|感谢您上传文件|管理发票|上传其他发票或贷记单/i.test(rawPageText)) detectedStates.push("upload_success");
+if (/file attached|attachment added|file selected/i.test(rawPageText)) detectedStates.push("file_selected");
+if (/success|successful|completed|submitted|saved|done|完成|成功|已提交/i.test(rawPageText)) detectedStates.push("success_message");
+if (/failed|invalid|error|unable|cannot|失败|无效|错误|无法/i.test(rawPageText)) detectedStates.push("error_message");
 return {url: location.href, title: document.title, forms, inputs, buttons, links, fileInputs, dialogs, frames, textBlocks, tableRows, roleRows, genericClickableElements, detectedStates: Array.from(new Set(detectedStates)), capturedAt: new Date().toISOString()};
 `;
 }

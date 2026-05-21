@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-21T06:18:31.193Z",
-  "filesScanned": 27,
+  "generatedAt": "2026-05-21T07:48:27.323Z",
+  "filesScanned": 28,
   "scannedFiles": [
     ".github/instructions/cursor-rules/grasseye-index.instructions.md",
     ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md",
@@ -28,10 +28,11 @@
     ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md",
     ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
     ".github/instructions/cursor-rules/modules/module-text-input-capability.instructions.md",
-    ".github/instructions/cursor-rules/modules/module-type-safety.instructions.md"
+    ".github/instructions/cursor-rules/modules/module-type-safety.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-video-download-capability.instructions.md"
   ],
-  "lawCount": 83,
-  "domainCount": 17,
+  "lawCount": 89,
+  "domainCount": 18,
   "laws": [
     {
       "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
@@ -944,6 +945,72 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "all external uncertainty must become validated domain types before it can drive actions or records.",
       "lawFile": ".github/instructions/cursor-rules/modules/module-type-safety.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "video-download is a standalone media artifact capability group, not a DOM helper, product judge, plugin shortcut, or platform workflow.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-video-download-capability.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "video download must use only user-authorized local page access and must never bypass credentials, login, CAPTCHA, risk controls, DRM, or platform protections.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-video-download-capability.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Facebook and TikTok downloaders are platform child capabilities that download one target video once and must not become business workflows.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-video-download-capability.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "every media candidate must be validated before download success can be claimed.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-video-download-capability.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "every download attempt must leave Forensics-compatible artifact proof and structured failure evidence.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-video-download-capability.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "downloaded video artifacts may feed AI analysis, but video-download must not own AI product judgment.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-video-download-capability.instructions.md",
       "sourceKind": "markdown"
     }
   ],

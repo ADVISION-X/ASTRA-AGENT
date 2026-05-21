@@ -10,6 +10,6 @@ export type ClauseCheckOutcome = {
 export type DomAutomationBinaryCheckContext = {
   readonly auditProject: DomAutomationAuditProject;
   readonly packageJson: { scripts?: Record<string, string> };
-  readonly manifest: { allowedLawIds?: string[] };
+  readonly manifest: { allowedLawIds?: string[]; ownedRoots?: string[]; requiredPaths?: string[] };
   readonly memo: Map<string, ClauseCheckOutcome>;
 };

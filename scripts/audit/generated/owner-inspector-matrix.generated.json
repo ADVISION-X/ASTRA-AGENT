@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T06:18:31.194Z",
+  "generatedAt": "2026-05-21T07:48:27.325Z",
   "domains": [
     {
       "capabilityDomain": "ai-capability",
@@ -251,6 +251,22 @@
       "manifestPath": "scripts/audit/domains/type-safety/manifest.json",
       "inspectorId": "type-safety-owner",
       "inspectorEntry": "scripts/audit/domains/type-safety/inspector.ts",
+      "runner": "scripts/audit/domains/shared/run-manifest-owner.ts",
+      "status": "covered"
+    },
+    {
+      "capabilityDomain": "video-download-capability",
+      "lawIds": [
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-001-V1",
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-002-V1",
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-003-V1",
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-004-V1",
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-005-V1",
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-006-V1"
+      ],
+      "manifestPath": "scripts/audit/domains/video-download-capability/manifest.json",
+      "inspectorId": "video-download-capability-owner",
+      "inspectorEntry": "scripts/audit/domains/video-download-capability/inspector.ts",
       "runner": "scripts/audit/domains/shared/run-manifest-owner.ts",
       "status": "covered"
     }

@@ -8,6 +8,7 @@ import { chromium } from "playwright";
 
 import { createWorkbenchServer } from "../../src/app/create-workbench-server.js";
 import type { GrassEyeWorkbenchHandle } from "../../src/lib/local-runtime/workbench-handle.js";
+import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import {
   getLatestAmazonInvoiceUploadTaskForInvoice,
   getAmazonInvoiceUploadTaskStatus,
@@ -56,6 +57,7 @@ writeFileSync(htmlPath, `
 const launched = await chromium.launch({ headless: true });
 const page = await launched.newPage({ viewport: { width: 900, height: 700 } });
 const browser = new PlaywrightDomBrowserAdapter(page, tmp);
+const runtimeLogger = createRuntimeLogger({ terminalEnabled: false });
 let commanderExecuteCount: number = 0;
 let startMissionCount: number = 0;
 
@@ -94,10 +96,10 @@ const createSmokeWorkbench = (): GrassEyeWorkbenchHandle => ({
   startAmazonInvoiceUploadMission: createUnusedAsync("legacy mission start path must not be used by plugin start route"),
   async startAmazonInvoiceUploadTask(input: Parameters<typeof startAmazonInvoiceUploadTask>[0]["task"]) {
     startMissionCount += 1;
-    return startAmazonInvoiceUploadTask({ browser, dataDir: tmp, task: input });
+    return startAmazonInvoiceUploadTask({ browser, runtimeLogger, dataDir: tmp, task: input });
   },
   async resumeAmazonInvoiceUploadTask(input: { taskId: string }) {
-    return resumeAmazonInvoiceUploadTask({ browser, dataDir: tmp, taskId: input.taskId });
+    return resumeAmazonInvoiceUploadTask({ browser, runtimeLogger, dataDir: tmp, taskId: input.taskId });
   },
   async getAmazonInvoiceUploadTaskStatus(taskId: string) {
     return getAmazonInvoiceUploadTaskStatus({ dataDir: tmp, taskId });
@@ -109,6 +111,7 @@ const createSmokeWorkbench = (): GrassEyeWorkbenchHandle => ({
   },
   startProductVideoDomMiningTask: createUnusedAsync("product video plugin path must not be used by amazon smoke"),
   getProductVideoDomTaskStatus: createUnusedAsync("product video plugin path must not be used by amazon smoke"),
+  listProductVideoEvidenceRecords: async () => [],
   getModeInfo() { return {}; },
 });
 

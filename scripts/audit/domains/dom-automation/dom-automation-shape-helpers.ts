@@ -25,16 +25,6 @@ export const variableFields = (file: SourceFile | null, variableName: string): S
   return fields;
 };
 
-export const typeFields = (file: SourceFile | null, typeName: string): Set<string> => {
-  if (!file) {
-    return new Set<string>();
-  }
-  const fields = new Set<string>();
-  file.getInterface(typeName)?.getProperties().forEach((property) => fields.add(property.getName()));
-  file.getTypeAlias(typeName)?.getDescendantsOfKind(SyntaxKind.PropertySignature).forEach((property) => fields.add(property.getName()));
-  return fields;
-};
-
 export const hasFields = (fields: Set<string>, expected: readonly string[]): string[] =>
   expected.filter((field) => !fields.has(field));
 

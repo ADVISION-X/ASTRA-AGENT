@@ -3,10 +3,9 @@ import { DomVerificationResultSchema, VerifyDomStateInputSchema } from "../schem
 import type { DomVerificationResult, VerifyDomStateInput } from "../schema.js";
 
 const STATE_MAP = {
-  "order-found": "order_found",
-  "invoice-upload-entry-visible": "upload_entry_visible",
-  "file-attached": "file_attached",
-  "upload-success": "upload_success",
+  "file-selected": "file_selected",
+  "success-message": "success_message",
+  "error-message": "error_message",
   "login-required": "login_required",
   "captcha-or-2fa-required": "captcha_or_2fa_required",
 } as const;
@@ -58,17 +57,17 @@ function resolveDetectedVerificationResult(detected: Set<string>): DomVerificati
 
 function hasStrongDetectedState(input: VerifyDomStateInput, detected: Set<string>): boolean {
   return input.expectedStates.some((state) => {
-    const detectedState = STATE_MAP[state];
-    return detectedState === "file_attached" || detectedState === "upload_success"
+      const detectedState = STATE_MAP[state];
+    return detectedState === "file_selected" || detectedState === "success_message" || detectedState === "error_message"
       ? detected.has(detectedState)
       : false;
   });
 }
 
 function needsUploadReview(input: VerifyDomStateInput, detected: Set<string>): boolean {
-  return input.expectedStates.includes("upload-success")
-    && detected.has("file_attached")
-    && !detected.has("upload_success");
+  return input.expectedStates.includes("success-message")
+    && detected.has("file_selected")
+    && !detected.has("success_message");
 }
 
 function collectVerificationSignals(input: VerifyDomStateInput): VerificationSignals {
