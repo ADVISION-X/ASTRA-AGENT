@@ -49,10 +49,9 @@ export const validateFacebookMediaCandidate = async (
   if (!isAllowedFacebookMediaHost(url.host)) {
     return { ok: false, failureReason: "candidate_host_forbidden", reason: "Media host is outside Facebook CDN allowlist." };
   }
-  const response = await fetch(candidate.url, {
-    headers: buildHeaders(),
-    signal: abortSignal,
-  });
+  const requestInit: RequestInit = { headers: buildHeaders() };
+  if (abortSignal) requestInit.signal = abortSignal;
+  const response = await fetch(candidate.url, requestInit);
   if (response.status !== 200 && response.status !== 206) {
     return { ok: false, failureReason: "download_expired", reason: `Media candidate returned HTTP ${response.status}.` };
   }

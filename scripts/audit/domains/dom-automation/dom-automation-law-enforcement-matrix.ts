@@ -158,7 +158,7 @@ export const DOM_AUTOMATION_LAW_ENFORCEMENT_MATRIX: readonly LawEnforcementMatri
   item("GRASSEYE-DOM-010-V1", "required.08", "required", "每步记录：timestamp / reviewRequiredReason 可选", "ast", "law010.evidence-logging"),
   item("GRASSEYE-DOM-010-V1", "forbidden.01", "forbidden", "禁止日志记录 cookie/token/password", "anti_escape", "law010.evidence-logging"),
   item("GRASSEYE-DOM-010-V1", "forbidden.02", "forbidden", "禁止日志记录完整 HTML", "anti_escape", "law010.evidence-logging"),
-  item("GRASSEYE-DOM-010-V1", "forbidden.03", "forbidden", "禁止日志记录 PDF 全文", "anti_escape", "law010.evidence-logging"),
+  item("GRASSEYE-DOM-010-V1", "forbidden.03", "forbidden", "禁止日志记录文件全文", "anti_escape", "law010.evidence-logging"),
   item("GRASSEYE-DOM-010-V1", "forbidden.04", "forbidden", "禁止只输出控制台日志", "anti_escape", "law010.evidence-logging"),
   item("GRASSEYE-DOM-010-V1", "forbidden.05", "forbidden", "禁止失败不记录原因", "ast", "law010.evidence-logging"),
   item("GRASSEYE-DOM-010-V1", "forbidden.06", "forbidden", "禁止成功不记录证据", "ast", "law010.evidence-logging"),

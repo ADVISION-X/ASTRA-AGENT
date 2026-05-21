@@ -8,7 +8,7 @@ applyTo: ".github/instructions/cursor-rules/modules/module-local-ai-runtime.inst
 
 Scope: governs the local model call path used by the AI Ability Group.
 
-Boundary: local-ai is an internal implementation detail. It is not a public AI owner, not a provider router, and not a second prompt system.
+Boundary: local-ai is an internal implementation detail. It is not a public AI owner, not an external provider router, and not a second prompt system. External provider transport belongs to AI Input Gateway when that governed path is used.
 
 Authority: this file is authoritative only for the local model call boundary inside the AI domain.
 
@@ -28,6 +28,7 @@ Current allowed local runtime behavior:
 
 Forbidden local runtime behavior:
 - provider routing universe.
+- Gemini API, Gemini Web Chat, GPT Web Chat, or other external provider adapter ownership.
 - paid or future provider fallback.
 - cloud fallback.
 - role controls as runtime truth.
@@ -49,6 +50,7 @@ summary: local-ai remains an internal call boundary only.
 Required direction:
 - public callers enter through src/capabilities/ai only.
 - local-ai may expose helpers for model config, startup readiness, and low-level adapters.
+- external provider transport must enter through src/capabilities/ai-input-gateway rather than src/lib/local-ai.
 - AI root files must not recreate a runtime-adapter universe.
 
 FORBIDDEN:

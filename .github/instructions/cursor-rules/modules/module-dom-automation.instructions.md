@@ -1,3 +1,9 @@
+---
+name: "GrassEye DOM Automation Capability"
+description: "Use when governing the independent DOM Automation Ability Group, DOM snapshot, locator, fill, click, upload, wait, and DOM verification boundaries."
+applyTo: ".github/instructions/cursor-rules/modules/module-dom-automation.instructions.md, src/capabilities/dom-automation/**, docs/法案辅助文件/GrassEye_DOM自动化能立组施工图_V1.md"
+---
+
 # GrassEye DOM 自动化能立组法案
 
 版本：V1.0  
@@ -169,7 +175,9 @@ DOM 自动化任务默认使用 DOM 结构判断，不使用视觉作为主裁�
 
 ## 2. 法条
 
-## [GRASSEYE-DOM-001-V1] DOM 能立组主权
+法条标题采用标准 `## Law LAW-ID` 头部；后续 `apex-law` 代码块只作为该法条的补充机器元数据，不构成第二套主权格式。
+
+## Law GRASSEYE-DOM-001-V1
 
 ```apex-law
 {
@@ -209,7 +217,7 @@ DOM 自动化必须作为独立能立组存在。
 
 ---
 
-## [GRASSEYE-DOM-002-V1] DOM Snapshot 只读摘要
+## Law GRASSEYE-DOM-002-V1
 
 ```apex-law
 {
@@ -257,7 +265,7 @@ DOM Snapshot 禁止输出：
 
 ---
 
-## [GRASSEYE-DOM-003-V1] 元素定位必须语义优先
+## Law GRASSEYE-DOM-003-V1
 
 ```apex-law
 {
@@ -311,7 +319,7 @@ DOM Snapshot 禁止输出：
 
 ---
 
-## [GRASSEYE-DOM-004-V1] DOM 输入必须使用批准文本
+## Law GRASSEYE-DOM-004-V1
 
 ```apex-law
 {
@@ -331,11 +339,9 @@ DOM 输入能力只能输入任务 payload 中已经批准的文本。
 
 例如：
 
-- Amazon order id
-- invoice number
-- tracking number
-- marketplace code
-- search keyword
+- 已批准的记录编号
+- 已批准的表单字段值
+- 已批准的搜索关键词
 
 ### Required
 
@@ -358,7 +364,7 @@ DOM 输入能力只能输入任务 payload 中已经批准的文本。
 
 ---
 
-## [GRASSEYE-DOM-005-V1] DOM 点击必须基于已定位元素
+## Law GRASSEYE-DOM-005-V1
 
 ```apex-law
 {
@@ -396,7 +402,7 @@ DOM 点击必须点击已定位元素。
 
 ---
 
-## [GRASSEYE-DOM-006-V1] 文件上传必须使用批准文件
+## Law GRASSEYE-DOM-006-V1
 
 ```apex-law
 {
@@ -420,8 +426,7 @@ DOM 点击必须点击已定位元素。
 
 - 文件存在
 - 文件路径来自任务 payload 或本地批准清单
-- 文件类型符合允许列表
-- Amazon 发票上传第一阶段只允许 PDF
+- 文件类型符合任务允许列表
 - 目标元素是 file input 或合法上传入口
 - 上传前后必须保存 evidence
 
@@ -436,7 +441,7 @@ DOM 点击必须点击已定位元素。
 
 ---
 
-## [GRASSEYE-DOM-007-V1] DOM 状态验证必须证据化
+## Law GRASSEYE-DOM-007-V1
 
 ```apex-law
 {
@@ -476,7 +481,7 @@ DOM 状态验证不能只靠“没有报错”。必须输出证据化结果。
 
 ---
 
-## [GRASSEYE-DOM-008-V1] 业务插件不得污染 DOM 能立组
+## Law GRASSEYE-DOM-008-V1
 
 ```apex-law
 {
@@ -517,7 +522,7 @@ DOM 能立组只能提供通用能力。DOM 质检可以检查插件是否只通
 
 ---
 
-## [GRASSEYE-DOM-009-V1] 人工接管边界
+## Law GRASSEYE-DOM-009-V1
 
 ```apex-law
 {
@@ -559,7 +564,7 @@ DOM 自动化遇到登录、验证码、二次验证、页面歧义、危险提�
 
 ---
 
-## [GRASSEYE-DOM-010-V1] 证据与日志归属
+## Law GRASSEYE-DOM-010-V1
 
 ```apex-law
 {
@@ -595,7 +600,7 @@ DOM 自动化每一步都必须产生结构化日志与 evidence ref。
 
 - 日志记录 cookie/token/password
 - 日志记录完整 HTML
-- 日志记录 PDF 全文
+- 日志记录文件全文
 - 只输出 console.log
 - 失败不记录原因
 - 成功不记录证据

@@ -41,7 +41,7 @@ const collectLocatorSearchInputFindings = (sourceFile: SourceFile, repoPath: str
 const collectLocatorRealPageRegressionFindings = (sourceFile: SourceFile, repoPath: string): Finding[] => {
   const findings: Finding[] = [];
   if (!sourceFile.getFunction("exactTextMatches") || !hasStringLiteral(sourceFile, "exact-name-id") || !hasStringLiteral(sourceFile, "exact-visible-name")) {
-    findings.push(runtimeFinding("GRASSEYE-DOM-003-V1", repoPath, 1, "DOM locator is missing exact semantic scoring", "Keep exact id/name and visible/aria-label scoring so local order search controls outrank global page search."));
+    findings.push(runtimeFinding("GRASSEYE-DOM-003-V1", repoPath, 1, "DOM locator is missing exact semantic scoring", "Keep exact id/name and visible/aria-label scoring so local scoped controls outrank global page controls."));
   }
   const allowsHiddenFileInputs = sourceFile.getDescendantsOfKind(SyntaxKind.BinaryExpression)
     .some((expression) => expression.getText() === "input.targetKind === \"file-input\" || !candidate.hidden");
@@ -59,10 +59,10 @@ const collectLocatorUploadAndRowFindings = (sourceFile: SourceFile, repoPath: st
     findings.push(runtimeFinding("GRASSEYE-DOM-003-V1", repoPath, 1, "DOM locator does not protect upload entry scoring against oversized text containers", "Prefer button-like upload controls and keep text-block upload candidates short."));
   }
   if (!hasStringLiteral(sourceFile, "row-kind")) {
-    findings.push(runtimeFinding("GRASSEYE-DOM-003-V1", repoPath, 1, "DOM locator does not give row candidates a semantic score", "Order-row location must prefer table-row and role-row candidates over generic text."));
+    findings.push(runtimeFinding("GRASSEYE-DOM-003-V1", repoPath, 1, "DOM locator does not give row candidates a semantic score", "Row location must prefer table-row and role-row candidates over generic text."));
   }
   if (!hasStringLiteral(sourceFile, "submit-input-button")) {
-    findings.push(runtimeFinding("GRASSEYE-DOM-003-V1", repoPath, 1, "DOM locator does not score input[type=submit] as a form button", "Prefer form submit inputs when locating button targets so order search submit can outrank global page search."));
+    findings.push(runtimeFinding("GRASSEYE-DOM-003-V1", repoPath, 1, "DOM locator does not score input[type=submit] as a form button", "Prefer form submit inputs when locating button targets so local form submit can outrank global page controls."));
   }
   return findings;
 };
@@ -83,7 +83,7 @@ export const domSnapshotFindings = (auditProject: DomAutomationAuditProject): Fi
   if (!hasSchemaParseCall(sourceFile, "DomSnapshotSchema")) findings.push(runtimeFinding("GRASSEYE-DOM-002-V1", repoPath, 1, "DOM snapshot does not parse DomSnapshotSchema", "Parse DOM snapshot output through the governed schema."));
   if (!hasPropertyAccess(sourceFile, "browser", "evaluateActiveTab")) findings.push(runtimeFinding("GRASSEYE-DOM-002-V1", repoPath, 1, "DOM snapshot does not use browser.evaluateActiveTab", "Read DOM summaries through BrowserController.evaluateActiveTab."));
   if (!hasStaticText(sourceFile, "input[type='") || !hasStaticText(sourceFile, "'][value='") || !hasStaticText(sourceFile, "CSS.escape(value)")) {
-    findings.push(runtimeFinding("GRASSEYE-DOM-003-V1", repoPath, 1, "DOM snapshot does not build stable selectors for button-like input[value] elements", "Preserve input[type=submit|button][value] selector candidates for real Seller Central controls."));
+    findings.push(runtimeFinding("GRASSEYE-DOM-003-V1", repoPath, 1, "DOM snapshot does not build stable selectors for button-like input[value] elements", "Preserve input[type=submit|button][value] selector candidates for real page controls."));
   }
   if (!hasStaticText(sourceFile, "el.value : \"\") || el.innerText || el.textContent")) {
     findings.push(runtimeFinding("GRASSEYE-DOM-003-V1", repoPath, 1, "DOM snapshot visibleText does not include input.value for button-like inputs", "Use input.value when summarizing input[type=submit|button] text."));

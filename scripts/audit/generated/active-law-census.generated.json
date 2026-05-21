@@ -1,10 +1,11 @@
 {
-  "generatedAt": "2026-05-21T07:48:27.323Z",
-  "filesScanned": 28,
+  "generatedAt": "2026-05-21T09:08:06.980Z",
+  "filesScanned": 29,
   "scannedFiles": [
     ".github/instructions/cursor-rules/grasseye-index.instructions.md",
     ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md",
     ".github/instructions/cursor-rules/modules/module-ai-capability.instructions.md",
+    ".github/instructions/cursor-rules/modules/module-ai-input-gateway.instructions.md",
     ".github/instructions/cursor-rules/modules/module-audit-system.instructions.md",
     ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
     ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
@@ -31,9 +32,119 @@
     ".github/instructions/cursor-rules/modules/module-type-safety.instructions.md",
     ".github/instructions/cursor-rules/modules/module-video-download-capability.instructions.md"
   ],
-  "lawCount": 89,
-  "domainCount": 18,
+  "lawCount": 106,
+  "domainCount": 19,
   "laws": [
+    {
+      "lawId": "GRASSEYE-AI-FEED-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "auto",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "AI Input Gateway owns provider delivery, response retrieval, transport proof, and provider adapters, but must not own business judgment.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-ai-input-gateway.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-AI-FEED-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "auto",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "AI capability group owns cognitive tasks and output schemas; AI Input Gateway owns external AI transport and provider adapters.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-ai-input-gateway.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-AI-FEED-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "auto",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Each AI provider channel must be isolated as an adapter behind the AI Input Gateway contract.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-ai-input-gateway.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-AI-FEED-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "auto",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Web chat AI adapters must use only operator-authorized browser sessions and must not bypass login, captcha, account limits, or read secrets.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-ai-input-gateway.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-AI-FEED-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "auto",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Web chat adapters must not cause active mission tab drift and must preserve or restore the source browsing context.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-ai-input-gateway.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-AI-FEED-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "auto",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "AI feed input must be a governed prompt package with explicit refs, size limits, and no sensitive browser data.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-ai-input-gateway.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-AI-FEED-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "auto",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Every AI feed must produce raw output proof, normalized text, parse status, and schema validation result.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-ai-input-gateway.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-AI-FEED-008-V1",
+      "status": "active",
+      "tier": "P1",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "auto",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "AI feed gateway must expose provider cost and rate guard controls and must not submit unbounded requests.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-ai-input-gateway.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-AI-FEED-009-V1",
+      "status": "active",
+      "tier": "P1",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "manual",
+      "evidenceMode": "law+blueprint",
+      "summary": "Phase 1 is limited to Gemini API, Gemini Web Chat, and GPT Web Chat feeding only.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-ai-input-gateway.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-AI-FEED-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "ai-input-gateway",
+      "enforcementMode": "auto",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Business plugins must not call AI provider SDKs or web chat adapters directly; they must call AI task capabilities.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-ai-input-gateway.instructions.md",
+      "sourceKind": "markdown"
+    },
     {
       "lawId": "GRASSEYE-AUDIT-SYSTEM-001-V1",
       "status": "active",
@@ -217,7 +328,7 @@
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
-      "summary": "AI composes registered atomic capabilities while the system validates, injects, dispatches, and records evidence.",
+      "summary": "AI selects exactly one registered atomic capability per round while the system validates, injects, dispatches, and records evidence.",
       "lawFile": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "sourceKind": "markdown"
     },
@@ -229,6 +340,17 @@
       "enforcementMode": "machine-blocking",
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "semantic actions, package entries, and flow entries may exist only as transitional residue and must not define final registry truth.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-CAPABILITY-GROUP-016-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "support sub-contracts are active parent-domain supplements, not capability groups and not child capabilities.",
       "lawFile": ".github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md",
       "sourceKind": "markdown"
     },
@@ -341,6 +463,50 @@
       "summary": "Code Purity Inspector Must Stay Small",
       "lawFile": ".github/instructions/cursor-rules/modules/module-code-purity.instructions.md",
       "sourceKind": "final-law"
+    },
+    {
+      "lawId": "GRASSEYE-CODE-TOPOLOGY-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "code-topology is an active capability-group-governance support sub-contract for canonical roots, not an execution owner.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-CODE-TOPOLOGY-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "feature and support paths are consumers or boundaries, not owners.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-CODE-TOPOLOGY-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "retired feature roots must be physically deleted after migration.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-CODE-TOPOLOGY-004-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "capability-group-governance",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "Forensics Persistence must use one clean internal topology and must physically delete old runtime/store roots.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md",
+      "sourceKind": "markdown"
     },
     {
       "lawId": "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V3",
@@ -560,6 +726,83 @@
       "evidenceMode": "law+real-code-inspection",
       "summary": "local startup readiness stays governed and separate from AI business judgment.",
       "lawFile": ".github/instructions/cursor-rules/modules/module-local-ai-runtime.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-APP-SHELL-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "commander-console-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "local-app-shell is an active commander-console support sub-contract for local shell form, not an execution owner.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-APP-SHELL-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "commander-console-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "shell layers must stay separated from command and mission truth.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-APP-SHELL-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "commander-console-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "desktop packaging is a wrapper, not a second architecture.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-APP-SHELL-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "commander-console-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "startup is a bounded local bootstrap path.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-BROWSER-SESSION-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "open-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "browser-session is an active Open support sub-contract for real-Chrome reuse, not an execution owner.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-local-browser-session.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "forensics-persistence-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "local-persistence-schema is an active Forensics support sub-contract for schema truth, not an execution owner.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-local-persistence-schema.instructions.md",
+      "sourceKind": "markdown"
+    },
+    {
+      "lawId": "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "forensics-persistence-capability",
+      "enforcementMode": "manual-first",
+      "evidenceMode": "law",
+      "summary": "schema terms must align to ForensicsRecordEnvelope and artifact refs rather than legacy domain objects.",
+      "lawFile": ".github/instructions/cursor-rules/modules/module-local-persistence-schema.instructions.md",
       "sourceKind": "markdown"
     },
     {
@@ -857,61 +1100,6 @@
       "evidenceMode": "law+blueprint+real-code-inspection",
       "summary": "terminal structured logs are display channel only and must show bootstrap readiness truth without becoming a second record system.",
       "lawFile": ".github/instructions/cursor-rules/modules/module-startup-entrypoint.instructions.md",
-      "sourceKind": "markdown"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "runtime-logging",
-      "enforcementMode": "automated",
-      "evidenceMode": "law",
-      "summary": "Runtime Log Spine is a neutral observation spine, not an owner.",
-      "lawFile": ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
-      "sourceKind": "markdown"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "runtime-logging",
-      "enforcementMode": "automated",
-      "evidenceMode": "law",
-      "summary": "FLOW / DEBUG / TRACE three-tier mode must exist and be runtime-switchable.",
-      "lawFile": ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
-      "sourceKind": "markdown"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "runtime-logging",
-      "enforcementMode": "automated",
-      "evidenceMode": "law",
-      "summary": "AI I/O must be fully transparent through AI four-piece structured events.",
-      "lawFile": ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
-      "sourceKind": "markdown"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "runtime-logging",
-      "enforcementMode": "automated",
-      "evidenceMode": "law",
-      "summary": "Every runtime log event must carry required identity fields and secrets must be redacted.",
-      "lawFile": ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
-      "sourceKind": "markdown"
-    },
-    {
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
-      "status": "active",
-      "tier": "P0",
-      "capabilityDomain": "runtime-logging",
-      "enforcementMode": "automated",
-      "evidenceMode": "law",
-      "summary": "Terminal relay is display-only. File debug bundle and Forensics refs are governed truth.",
-      "lawFile": ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md",
       "sourceKind": "markdown"
     },
     {

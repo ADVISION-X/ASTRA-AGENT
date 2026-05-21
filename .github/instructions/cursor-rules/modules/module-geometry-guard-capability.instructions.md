@@ -44,6 +44,7 @@ Required input fields:
 - inputRef
 - sourceRef
 - sourceScreenshotEvidenceRef when applicable
+- gridSpecRef when grid-based targeting is used
 - sourceVisualTargetResultRef when applicable
 - sourceCoordinateSpace
 - requestedExecutionSpace
@@ -59,6 +60,7 @@ Required input fields:
 Required:
 - missing stepId, capabilityCallId, nerveBusEnvelopeId, inputRef, or sourceRef must fail closed.
 - missing idempotencyKey must fail closed.
+- Geometry Guard may consume gridSpecRef plus governed screenshot or coordinate evidence, but it must never guess executable coordinates without governed source refs.
 - public result may emit normalized executable geometry only after successful validation.
 
 Forbidden:

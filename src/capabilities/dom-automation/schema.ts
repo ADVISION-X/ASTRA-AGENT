@@ -166,8 +166,8 @@ export const UploadApprovedFileInputSchema = z.object({
   elementRef: DomElementRefSchema,
   approvedFilePath: z.string().min(1),
   approvedTaskFilePath: z.string().min(1),
-  allowedExtensions: z.tuple([z.literal(".pdf")]),
-  uploadPurpose: z.literal("approved-pdf-upload"),
+  allowedExtensions: z.array(z.string().regex(/^\.[a-z0-9]+$/i)).min(1).max(8),
+  uploadPurpose: z.string().min(1).max(80),
 }).strict();
 
 export const DomVerificationStatusSchema = z.enum([
@@ -245,8 +245,8 @@ export type UploadApprovedFileInput = {
   elementRef: DomElementRef;
   approvedFilePath: string;
   approvedTaskFilePath: string;
-  allowedExtensions: [".pdf"];
-  uploadPurpose: "approved-pdf-upload";
+  allowedExtensions: string[];
+  uploadPurpose: string;
 };
 export type DomActionResult = z.infer<typeof DomActionResultSchema>;
 export type VerifyDomStateInput = z.input<typeof VerifyDomStateInputSchema>;

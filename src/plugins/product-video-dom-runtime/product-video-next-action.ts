@@ -10,9 +10,9 @@ import {
   extractSnapshotSignature,
 } from "./product-video-dom-extractor.js";
 import {
-  appendProductVideoBrowseLedgerEntry,
+  appendProductVideoNavigationEntry,
 } from "./product-video-store.js";
-import type { ProductVideoBrowseLedgerEntry } from "./product-video-dom.schema.js";
+import type { ProductVideoNavigationEntry } from "./product-video-dom.schema.js";
 
 const READ_INPUT = { maxTextLengthPerNode: 160 } as const;
 const NEXT_BUTTON_HINTS = ["next", "next video", "下一条", "下一个视频", "下一个", "reel next"];
@@ -26,7 +26,7 @@ export type ProductVideoAdvanceResult = {
   action: AdvanceAction;
   reason: string;
   afterSnapshot: DomSnapshot | null;
-  browseEntry: ProductVideoBrowseLedgerEntry;
+  browseEntry: ProductVideoNavigationEntry;
 };
 
 const createLedgerEntry = (input: {
@@ -37,7 +37,7 @@ const createLedgerEntry = (input: {
   action: AdvanceAction;
   status: "success" | "failed";
   reason: string;
-}): ProductVideoBrowseLedgerEntry => ({
+}): ProductVideoNavigationEntry => ({
   missionId: input.missionId,
   roundId: input.roundId,
   pageUrlBefore: input.beforeSnapshot.url,
@@ -117,8 +117,8 @@ const tryScrollNext = async (browser: BrowserController): Promise<boolean> => {
 
 const persistBrowseEntry = (
   dataDir: string,
-  entry: ProductVideoBrowseLedgerEntry,
-): ProductVideoBrowseLedgerEntry => appendProductVideoBrowseLedgerEntry({ dataDir, entry });
+  entry: ProductVideoNavigationEntry,
+): ProductVideoNavigationEntry => appendProductVideoNavigationEntry({ dataDir, entry });
 
 const buildAdvanceFailureResult = (input: {
   dataDir: string;

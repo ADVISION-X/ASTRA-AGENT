@@ -1,12 +1,11 @@
 import type { DomSnapshot } from "../../capabilities/dom-automation/index.js";
-import { invokeGemini, loadOnlineAiProviderConfig } from "../../lib/online-ai/index.js";
+import { createAiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import type {
   ProductVideoAiDecision,
   ProductVideoDomMissionInput,
   ProductVideoJudgeInput,
 } from "./product-video-dom.schema.js";
 import {
-  ProductVideoJudgeGeminiResponseSchema,
   ProductVideoJudgeOutputSchema,
   type ProductVideoJudgeOutput,
 } from "./product-video-judge.contract.js";
@@ -151,15 +150,25 @@ const callRealJudge = async (input: {
   dataDir: string;
   judgeInput: ProductVideoJudgeInput;
 }): Promise<ProductVideoJudgeOutput> => {
-  const config = await loadOnlineAiProviderConfig(input.dataDir);
-  const result = await invokeGemini({
-    config,
-    promptText: buildProductVideoJudgePrompt(input.judgeInput),
-    imagePaths: [],
+  const gateway = createAiInputGatewayAbilityGroup({ dataDir: input.dataDir });
+  const result = await gateway.execute({
+    providerKind: "gemini-api",
+    promptPackageId: `product-video-judge:${input.judgeInput.pageUrl}`,
+    promptContractId: "product-video-judge-v1",
+    expectedOutputSchemaRef: "productVideoJudge.v1",
+    textPrompt: buildProductVideoJudgePrompt(input.judgeInput),
+    inputRefs: [{
+      id: "product-video-dom-facts",
+      kind: "sanitized-dom-facts",
+      summary: `Product video DOM facts for ${input.judgeInput.platformId}.`,
+    }],
     timeoutMs: 20_000,
-    responseSchema: ProductVideoJudgeGeminiResponseSchema,
+    requestedBy: "ai-capability",
   });
-  return ProductVideoJudgeOutputSchema.parse(JSON.parse(result.rawText));
+  if (result.status !== "success" || !result.parsedJson) {
+    throw new Error(result.failureReason ?? result.reviewRequiredReason ?? "Product-video AI feed failed.");
+  }
+  return ProductVideoJudgeOutputSchema.parse(result.parsedJson);
 };
 
 export const judgeProductVideoFromDomFacts = async (input: {

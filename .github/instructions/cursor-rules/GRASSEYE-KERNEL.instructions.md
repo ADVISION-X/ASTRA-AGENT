@@ -29,10 +29,11 @@ GrassEye is a pure visual goal-search agent. It is not a product-video-only judg
 - User Requirement: defines what to find.
 - Screenshot and coordinate grid: the only per-round visual evidence.
 - AI: judges whether the current screen matches the user goal and chooses one atomic next action.
-- Orchestration: captures, renders grid, calls AI, saves current evidence when `save=true`, then dispatches exactly one action.
+- Orchestration: captures, renders grid, sends governed round-judge or child-capability envelopes through Nerve Bus, saves current evidence when `save=true`, then dispatches exactly one action.
 - MuscleMemoryCatalog: exposes atomic next-action abilities only.
 - Forensics: system-owned evidence persistence only.
-- PlatformProfile: entry URL, title, allowed hosts, supported atomic action codes, and optional visual notes only.
+- PlatformProfile: system-owned target policy metadata for entry URL, title, allowed hosts, supported atomic action codes, and optional visual notes only; it constrains opening and safety boundaries but is not a per-round AI hint stream.
+- Support sub-contracts: active parent-domain supplements for shell, topology, startup, logging, schema, privacy, browser session, and audit boundaries only; they are allowed governance surfaces but are not capability groups and not AI-visible actions.
 
 ## Runtime Loop
 
@@ -40,7 +41,7 @@ GrassEye is a pure visual goal-search agent. It is not a product-video-only judg
 loop guard
 capture-browser-viewport
 render-coordinate-grid
-call AI pure visual round judge
+dispatch governed AI round-judge envelope through Nerve Bus
 parse pureVisualRound.v1
 if save=true: systemSaveCurrentRoundEvidence
 if decision=done: complete
@@ -58,6 +59,11 @@ next round
 - No platform-provided next/like/comment/recovery action hints.
 - No multi-step AI planning.
 - No raw coordinates, DOM selectors, browser commands, owner overrides, or Forensics payloads in AI output.
+
+## File Meta Rule
+
+- Frontmatter is routing metadata and may optionally carry file-level markers such as `final` or `redirect-only`.
+- Per-law `status:` fields inside the body remain the authoritative active or retired enforcement status unless the file is explicitly marked redirect-only.
 
 ## Current Narrative Authority
 

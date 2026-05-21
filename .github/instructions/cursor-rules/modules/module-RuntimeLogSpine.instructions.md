@@ -1,7 +1,7 @@
 ---
 name: "GrassEye Runtime Log Spine Final"
 description: "Final law for runtime logging, FLOW/DEBUG/TRACE visibility, AI I/O transparency, redaction, terminal/file separation, and anti-blind debugging."
-applyTo: ".github/instructions/cursor-rules/modules/module-structured-logging.instructions.md, src/lib/runtime-logs/**, src/capabilities/ai/**, src/lib/local-ai/**, scripts/audit/domains/runtime-logging/**"
+applyTo: ".github/instructions/cursor-rules/modules/module-RuntimeLogSpine.instructions.md, .github/instructions/cursor-rules/modules/module-structured-logging.instructions.md, src/lib/runtime-logs/**, src/capabilities/ai/**, src/capabilities/ai-input-gateway/**, src/lib/local-ai/**, scripts/audit/domains/runtime-logging/**"
 status: "final"
 ---
 
@@ -35,6 +35,13 @@ Runtime Log Spine 的最终价值：
 
 日志只是一根透明神经。
 
+历史兼容说明：
+
+```txt
+module-structured-logging.instructions.md 仅保留为 redirect-only 兼容壳。
+所有当前 runtime logging 主权、法条、审计口径、PASS 定义，全部以本文件为准。
+```
+
 ---
 
 ## 1. Scope
@@ -49,6 +56,7 @@ AI_REQUEST_DEBUG
 AI_RAW_RESPONSE_DEBUG
 AI_PARSE_RESULT_DEBUG
 AI_ERROR_DEBUG
+provider transport transparency
 redaction
 terminal sink
 file debug bundle
@@ -217,6 +225,8 @@ AI_RAW_RESPONSE_DEBUG  after model return, before parse/discard
 AI_PARSE_RESULT_DEBUG  after JSON extraction/schema validation
 AI_ERROR_DEBUG         before AI failure escapes
 ```
+
+This four-piece sequence applies to both governed local AI calls and governed external provider calls routed through AI Input Gateway.
 
 AI_REQUEST_DEBUG 必须包含：
 

@@ -83,7 +83,8 @@ Required envelope fields:
 Required:
 - Task API routes call Commander public interface only.
 - Candidate review API routes call Commander public interface only.
-- Commander emits governed HumanCommandEnvelope through transport only.
+- Commander emits governed HumanCommandEnvelope to Orchestration through Nerve Bus only.
+- pause-mission, resume-mission, stop-mission, emergency-stop, and mark-review-required remain governed command emissions only; Orchestration owns the resulting runtime state transition.
 - no silent default platform.
 
 Forbidden:

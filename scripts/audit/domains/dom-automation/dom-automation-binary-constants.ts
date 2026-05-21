@@ -38,6 +38,11 @@ export const DOM_REQUIRED_PATHS = [
   "src/capabilities/dom-automation/tests/dom-upload.fixture.ts",
 ] as const;
 
-export const DOM_BUSINESS_VOCAB = ["amazon", "seller central", "sellercentral", "invoice upload", "marketplace", "product video", "seed video"] as const;
+export const PLUGIN_CONSUMER_ROOTS = [
+  "src/plugins/amazon-invoice-upload",
+  "src/plugins/product-video-dom-runtime",
+] as const;
+
+export const DOM_BUSINESS_VOCAB = ["invoice", "marketplace", "product video", "seed video"] as const;
 export const SENSITIVE_PROPERTY_NAMES = ["cookie", "localstorage", "sessionstorage", "outerhtml", "innerhtml"] as const;
 export const LOG_FIELD_FORBIDDEN = ["cookie", "token", "password", "localStorage", "sessionStorage", "fullHtml", "pdfContent", "rawHtml"] as const;

@@ -10,10 +10,10 @@ const DOM_UPLOAD_FIXTURE: UploadApprovedFileInput = {
     reason: "Fixture file input is visible and enabled.",
     fallbackUsed: false,
   },
-  approvedFilePath: "/tmp/grasseye-approved-task.pdf",
-  approvedTaskFilePath: "/tmp/grasseye-approved-task.pdf",
-  allowedExtensions: [".pdf"],
-  uploadPurpose: "approved-pdf-upload",
+  approvedFilePath: "/tmp/grasseye-approved-task.txt",
+  approvedTaskFilePath: "/tmp/grasseye-approved-task.txt",
+  allowedExtensions: [".txt"],
+  uploadPurpose: "approved-file-upload",
 };
 
 void DOM_UPLOAD_FIXTURE;

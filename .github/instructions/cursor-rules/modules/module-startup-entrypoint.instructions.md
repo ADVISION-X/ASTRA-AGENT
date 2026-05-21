@@ -7,9 +7,9 @@ applyTo: ".github/instructions/cursor-rules/modules/module-startup-entrypoint.in
 # GrassEye Startup Entrypoint
 
 Scope: governs the unique local bootstrap source, canonical startup command, Commander Console opening handoff, startup readiness gating, and terminal structured startup log display.
-Boundary: this module governs startup bootstrap only as a Commander Console child sub-contract, not as an independent owner.
+Boundary: this module governs startup bootstrap only as a Commander Console support sub-contract, not as an independent owner.
 Excludes: human command entry, mission execution, command transport, AI task execution, capability-child execution, and record persistence ownership.
-Authority: this file is authoritative only for the commander-console-capability domain as the startup bootstrap child sub-contract.
+Authority: this file is authoritative only for the commander-console-capability domain as the startup bootstrap support sub-contract.
 
 ## Law GRASSEYE-STARTUP-ENTRYPOINT-001-V2
 

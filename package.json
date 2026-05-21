@@ -31,6 +31,8 @@
     "acceptance:amazon-invoice-upload-smoke": "node --import tsx scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "acceptance:product-video-dom-smoke": "node --import tsx scripts/acceptance/product-video-dom-smoke.ts",
     "acceptance:product-video-dom-runtime-smoke": "node --import tsx scripts/acceptance/product-video-dom-runtime-smoke.ts",
+    "acceptance:ai-input-gateway-smoke": "node --import tsx scripts/acceptance/ai-input-gateway-smoke.ts",
+    "acceptance:ai-input-gateway-web-chat-fixture-smoke": "node --import tsx scripts/acceptance/ai-input-gateway-web-chat-fixture-smoke.ts",
 
     "lint": "npm run typecheck"
   },

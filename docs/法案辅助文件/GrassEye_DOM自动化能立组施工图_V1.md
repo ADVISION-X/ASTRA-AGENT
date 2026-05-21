@@ -198,13 +198,15 @@ type DomSnapshot = {
 type LocateDomElementInput = {
   snapshotRef: string;
   targetKind:
+    | "text-input"
     | "search-input"
     | "button"
     | "link"
     | "file-input"
-    | "order-row"
-    | "upload-invoice-entry"
-    | "success-message";
+    | "row"
+    | "clickable"
+    | "message"
+    | "dialog";
   hints: string[];
   requiredText?: string;
   frameHint?: string;
@@ -240,19 +242,19 @@ type DomElementRef = {
 8. selector candidate
 9. CSS fallback
 
-### 真实页面回归细则
+### 通用页面回归细则
 
-以下细则来自 Seller Central 真实页面 DOM 回归，属于施工图级闭环要求，不改变冻结法案：
+以下细则来自真实页面 DOM 回归，属于施工图级闭环要求，不改变冻结法案：
 
 - `search-input` 候选必须收窄到 `input[type=text]`、`input[type=search]`、`textarea`；`select`、`input[type=file]`、`input[type=submit]`、checkbox 等控件不得被当作可输入搜索框。
-- locator 必须对 `id` / `name` 精确命中和 `visibleText` / `ariaLabel` 精确命中加权，避免全局搜索框、局部订单搜索框之间误选。
-- `order-row` 必须支持 `tableRows` / `roleRows` / text candidate，不得只从 `button` / `link` / `input` 中定位。
-- `upload-invoice-entry` 必须支持 `button`、`input[type=submit]`、`input[type=button]`、`role=button` 与短文本 clickable candidate；大段父容器文本不得压过真实按钮。
+- locator 必须对 `id` / `name` 精确命中和 `visibleText` / `ariaLabel` 精确命中加权，避免全局控件、局部控件之间误选。
+- `row` 必须支持 `tableRows` / `roleRows` / text candidate，不得只从 `button` / `link` / `input` 中定位。
+- `clickable` 必须支持 `button`、`input[type=submit]`、`input[type=button]`、`role=button` 与短文本 clickable candidate；大段父容器文本不得压过真实按钮。
 - `selectorCandidate` 必须能为 `input[type=submit|button][value]` 生成稳定 selector，DOM click 的 expected text 校验也必须读取 `input.value`。
-- `button` targetKind 必须给 `input[type=submit]` 表单按钮明确语义加权，避免 Seller Central 全局搜索 button 压过订单表单 submit input。
+- `button` targetKind 必须给 `input[type=submit]` 表单按钮明确语义加权，避免全局 button 压过局部表单 submit input。
 - `fileInputs` 摘要必须包含隐藏的 `input[type=file]`，但仍不得输出 file input value 或文件内容；`file-input` locator 允许定位隐藏 file input，真实上传由 `UPLOAD_APPROVED_FILE_ONCE` 的 approved path 与 BrowserController 上传端口治理。
 - `dialogs` runtime 输出字段必须与 schema contract 对齐，不得因为摘要字段漂移导致真实弹窗 snapshot parse 失败。
-- Amazon 插件 hint 必须覆盖 Seller Central 真实 DOM 暴露的局部订单搜索信号，包括 `myo-search-input`、中文 `搜索`、中文 `订单编号`，不能只保留英文抽象 hint。
+- 业务插件 hint 必须留在插件层；DOM core 只接收通用 targetKind、hints 和 requiredText，不内置业务词。
 
 ---
 
@@ -265,7 +267,7 @@ type FillDomElementInput = {
   elementRef: string;
   approvedText: string;
   clearBeforeType: boolean;
-  inputPurpose: "order-search" | "invoice-number" | "generic-approved-text";
+  inputPurpose: string;
 };
 ```
 
@@ -320,8 +322,9 @@ type ClickDomElementInput = {
 type UploadApprovedFileInput = {
   elementRef: string;
   approvedFilePath: string;
-  allowedExtensions: [".pdf"];
-  uploadPurpose: "amazon-invoice-pdf";
+  approvedTaskFilePath: string;
+  allowedExtensions: string[];
+  uploadPurpose: string;
 };
 ```
 
@@ -360,10 +363,9 @@ browser.setFileInputFiles(elementRef, approvedFilePath)
 type VerifyDomStateInput = {
   snapshotRef?: string;
   expectedStates: Array<
-    | "order-found"
-    | "invoice-upload-entry-visible"
-    | "file-attached"
-    | "upload-success"
+    | "file-selected"
+    | "success-message"
+    | "error-message"
     | "login-required"
     | "captcha-or-2fa-required"
   >;
@@ -672,13 +674,13 @@ pdfContent
 
 - UPLOAD_APPROVED_FILE_ONCE
 - 文件存在性验证
-- PDF 扩展名验证
+- 任务允许扩展名验证
 - 上传前后证据
 
 验收：
 
 ```txt
-能在测试 file input 页面上传指定 PDF
+能在测试 file input 页面上传指定已批准文件
 ```
 
 ---

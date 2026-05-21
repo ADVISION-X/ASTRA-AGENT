@@ -2,9 +2,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import {
-  ProductVideoBrowseLedgerEntrySchema,
+  ProductVideoNavigationEntrySchema,
   ProductVideoEvidenceRecordSchema,
-  type ProductVideoBrowseLedgerEntry,
+  type ProductVideoNavigationEntry,
   type ProductVideoEvidenceRecord,
 } from "./product-video-dom.schema.js";
 
@@ -123,13 +123,13 @@ export const listProductVideoEvidenceRecords = (input: {
     .map((line) => parseValidatedJsonLine(line, (value) => ProductVideoEvidenceRecordSchema.parse(value)));
 };
 
-export const appendProductVideoBrowseLedgerEntry = (input: {
+export const appendProductVideoNavigationEntry = (input: {
   dataDir: string;
-  entry: ProductVideoBrowseLedgerEntry;
-}): ProductVideoBrowseLedgerEntry => {
+  entry: ProductVideoNavigationEntry;
+}): ProductVideoNavigationEntry => {
   const paths = buildStorePaths(input.dataDir);
   ensureRuntimeDataDir(paths);
-  const entry = ProductVideoBrowseLedgerEntrySchema.parse(input.entry);
+  const entry = ProductVideoNavigationEntrySchema.parse(input.entry);
   appendJsonlLine(paths.browseLedgerJsonlPath, entry);
   const currentIndex = readIndexFile(paths.recordsIndexPath);
   writeIndexFile(paths.recordsIndexPath, {

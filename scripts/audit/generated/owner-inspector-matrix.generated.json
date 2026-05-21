@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T07:48:27.325Z",
+  "generatedAt": "2026-05-21T09:08:06.983Z",
   "domains": [
     {
       "capabilityDomain": "ai-capability",
@@ -12,6 +12,26 @@
       "manifestPath": "scripts/audit/domains/ai-capability/manifest.json",
       "inspectorId": "ai-capability-owner",
       "inspectorEntry": "scripts/audit/domains/ai-capability/inspector.ts",
+      "runner": "scripts/audit/domains/shared/run-manifest-owner.ts",
+      "status": "covered"
+    },
+    {
+      "capabilityDomain": "ai-input-gateway",
+      "lawIds": [
+        "GRASSEYE-AI-FEED-001-V1",
+        "GRASSEYE-AI-FEED-002-V1",
+        "GRASSEYE-AI-FEED-003-V1",
+        "GRASSEYE-AI-FEED-004-V1",
+        "GRASSEYE-AI-FEED-005-V1",
+        "GRASSEYE-AI-FEED-006-V1",
+        "GRASSEYE-AI-FEED-007-V1",
+        "GRASSEYE-AI-FEED-008-V1",
+        "GRASSEYE-AI-FEED-009-V1",
+        "GRASSEYE-AI-FEED-010-V1"
+      ],
+      "manifestPath": "scripts/audit/domains/ai-input-gateway/manifest.json",
+      "inspectorId": "ai-input-gateway-owner",
+      "inspectorEntry": "scripts/audit/domains/ai-input-gateway/inspector.ts",
       "runner": "scripts/audit/domains/shared/run-manifest-owner.ts",
       "status": "covered"
     },
@@ -46,7 +66,12 @@
         "GRASSEYE-CAPABILITY-GROUP-013-V1",
         "GRASSEYE-CAPABILITY-GROUP-014-V1",
         "GRASSEYE-CAPABILITY-GROUP-015-V1",
-        "GRASSEYE-CAPABILITY-STRENGTH-001-V1"
+        "GRASSEYE-CAPABILITY-GROUP-016-V1",
+        "GRASSEYE-CAPABILITY-STRENGTH-001-V1",
+        "GRASSEYE-CODE-TOPOLOGY-001-V1",
+        "GRASSEYE-CODE-TOPOLOGY-002-V1",
+        "GRASSEYE-CODE-TOPOLOGY-003-V1",
+        "GRASSEYE-CODE-TOPOLOGY-004-V2"
       ],
       "manifestPath": "scripts/audit/domains/capability-group-governance/manifest.json",
       "inspectorId": "capability-group-governance-owner",
@@ -78,6 +103,10 @@
       "lawIds": [
         "GRASSEYE-COMMANDER-CONSOLE-CAPABILITY-001-V3",
         "GRASSEYE-HUMAN-COMMAND-BOUNDARY-V1",
+        "GRASSEYE-LOCAL-APP-SHELL-001-V1",
+        "GRASSEYE-LOCAL-APP-SHELL-002-V1",
+        "GRASSEYE-LOCAL-APP-SHELL-003-V1",
+        "GRASSEYE-LOCAL-APP-SHELL-004-V1",
         "GRASSEYE-STARTUP-ENTRYPOINT-001-V2",
         "GRASSEYE-STARTUP-ENTRYPOINT-002-V2",
         "GRASSEYE-STARTUP-ENTRYPOINT-003-V2",
@@ -113,7 +142,9 @@
       "capabilityDomain": "forensics-persistence-capability",
       "lawIds": [
         "GRASSEYE-FORENSICS-PERSISTENCE-CAPABILITY-001-V3",
-        "GRASSEYE-FORENSICS-PERSISTENCE-CAPABILITY-002-V3"
+        "GRASSEYE-FORENSICS-PERSISTENCE-CAPABILITY-002-V3",
+        "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1",
+        "GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2"
       ],
       "manifestPath": "scripts/audit/domains/forensics-persistence-capability/manifest.json",
       "inspectorId": "forensics-persistence-capability-owner",
@@ -174,6 +205,7 @@
     {
       "capabilityDomain": "open-capability",
       "lawIds": [
+        "GRASSEYE-LOCAL-BROWSER-SESSION-001-V1",
         "GRASSEYE-OPEN-CAPABILITY-001-V2",
         "GRASSEYE-OPEN-CAPABILITY-002-V2"
       ],
@@ -193,12 +225,7 @@
         "LAW-RLS-005",
         "LAW-RLS-006",
         "LAW-RLS-007",
-        "LAW-RLS-008",
-        "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-        "GRASSEYE-RUNTIME-LOG-SPINE-005-V1"
+        "LAW-RLS-008"
       ],
       "manifestPath": "scripts/audit/domains/runtime-logging/manifest.json",
       "inspectorId": "runtime-logging-owner",

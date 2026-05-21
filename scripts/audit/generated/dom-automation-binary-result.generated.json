@@ -1,6 +1,6 @@
 {
   "inspectorId": "dom-automation",
-  "status": "FAIL",
+  "status": "PASS",
   "lawResults": [
     {
       "lawId": "GRASSEYE-DOM-001-V1",
@@ -148,7 +148,7 @@
     },
     {
       "lawId": "GRASSEYE-DOM-002-V1",
-      "status": "FAIL",
+      "status": "PASS",
       "clauseResults": [
         {
           "clauseId": "summary.01",
@@ -266,10 +266,9 @@
         },
         {
           "clauseId": "acceptance.06",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "runtime_smoke",
-          "evidence": "command failed: npm run acceptance:dom-automation-smoke",
-          "failureReason": "> node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | /Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/dom-automation/runtime/dom-locator.ts:272 |     throw new Error(`DOM locator ambiguous for ${input.targetKind}; top candidates have similar confidence.`); |           ^ |  |  | Error: DOM locator ambiguous for clickable; top candidates have similar confidence. |     at locateDomElementOnce (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/dom-automation/runtime/dom-locator.ts:272:11) |     at <anonymous> (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/acceptance/dom-automation-smoke.ts:54:23) |  | Node.js v24.4.1"
+          "evidence": "command passed: npm run acceptance:dom-automation-smoke :: > grasseye-local-workbench@0.1.0 acceptance:dom-automation-smoke | > node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | [DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed"
         },
         {
           "clauseId": "acceptance.18",
@@ -281,7 +280,7 @@
     },
     {
       "lawId": "GRASSEYE-DOM-003-V1",
-      "status": "FAIL",
+      "status": "PASS",
       "clauseResults": [
         {
           "clauseId": "summary.01",
@@ -369,16 +368,15 @@
         },
         {
           "clauseId": "acceptance.07",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "runtime_smoke",
-          "evidence": "command failed: npm run acceptance:dom-automation-smoke",
-          "failureReason": "> node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | /Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/dom-automation/runtime/dom-locator.ts:272 |     throw new Error(`DOM locator ambiguous for ${input.targetKind}; top candidates have similar confidence.`); |           ^ |  |  | Error: DOM locator ambiguous for clickable; top candidates have similar confidence. |     at locateDomElementOnce (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/dom-automation/runtime/dom-locator.ts:272:11) |     at <anonymous> (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/acceptance/dom-automation-smoke.ts:54:23) |  | Node.js v24.4.1"
+          "evidence": "command passed: npm run acceptance:dom-automation-smoke :: > grasseye-local-workbench@0.1.0 acceptance:dom-automation-smoke | > node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | [DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed"
         }
       ]
     },
     {
       "lawId": "GRASSEYE-DOM-004-V1",
-      "status": "FAIL",
+      "status": "PASS",
       "clauseResults": [
         {
           "clauseId": "summary.01",
@@ -454,10 +452,9 @@
         },
         {
           "clauseId": "acceptance.08",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "runtime_smoke",
-          "evidence": "command failed: npm run acceptance:dom-automation-smoke",
-          "failureReason": "> node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | /Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/dom-automation/runtime/dom-locator.ts:272 |     throw new Error(`DOM locator ambiguous for ${input.targetKind}; top candidates have similar confidence.`); |           ^ |  |  | Error: DOM locator ambiguous for clickable; top candidates have similar confidence. |     at locateDomElementOnce (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/dom-automation/runtime/dom-locator.ts:272:11) |     at <anonymous> (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/acceptance/dom-automation-smoke.ts:54:23) |  | Node.js v24.4.1"
+          "evidence": "command passed: npm run acceptance:dom-automation-smoke :: > grasseye-local-workbench@0.1.0 acceptance:dom-automation-smoke | > node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | [DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed"
         },
         {
           "clauseId": "acceptance.17",
@@ -469,7 +466,7 @@
     },
     {
       "lawId": "GRASSEYE-DOM-005-V1",
-      "status": "FAIL",
+      "status": "PASS",
       "clauseResults": [
         {
           "clauseId": "summary.01",
@@ -533,10 +530,9 @@
         },
         {
           "clauseId": "acceptance.09",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "runtime_smoke",
-          "evidence": "command failed: npm run acceptance:dom-automation-smoke",
-          "failureReason": "> node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | /Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/dom-automation/runtime/dom-locator.ts:272 |     throw new Error(`DOM locator ambiguous for ${input.targetKind}; top candidates have similar confidence.`); |           ^ |  |  | Error: DOM locator ambiguous for clickable; top candidates have similar confidence. |     at locateDomElementOnce (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/dom-automation/runtime/dom-locator.ts:272:11) |     at <anonymous> (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/acceptance/dom-automation-smoke.ts:54:23) |  | Node.js v24.4.1"
+          "evidence": "command passed: npm run acceptance:dom-automation-smoke :: > grasseye-local-workbench@0.1.0 acceptance:dom-automation-smoke | > node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | [DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed"
         }
       ]
     },
@@ -644,98 +640,85 @@
     },
     {
       "lawId": "GRASSEYE-DOM-007-V1",
-      "status": "FAIL",
+      "status": "PASS",
       "clauseResults": [
         {
           "clauseId": "summary.01",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "ast",
-          "evidence": "DOM verify evidence check failed",
-          "failureReason": "dom-verify is missing evidence-backed result branch: success; dom-verify is missing evidence-backed result branch: failed; dom-verify is missing evidence-backed result branch: not_found; dom-verify is missing evidence-backed result branch: ambiguous; dom-verify is missing evidence-backed result branch: login_required; dom-verify is missing evidence-backed result branch: captcha_or_2fa_required; dom-verify is missing evidence-backed result branch: review_required"
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
         },
         {
           "clauseId": "required.01",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "ast",
-          "evidence": "DOM verify evidence check failed",
-          "failureReason": "dom-verify is missing evidence-backed result branch: success; dom-verify is missing evidence-backed result branch: failed; dom-verify is missing evidence-backed result branch: not_found; dom-verify is missing evidence-backed result branch: ambiguous; dom-verify is missing evidence-backed result branch: login_required; dom-verify is missing evidence-backed result branch: captcha_or_2fa_required; dom-verify is missing evidence-backed result branch: review_required"
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
         },
         {
           "clauseId": "required.02",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "ast",
-          "evidence": "DOM verify evidence check failed",
-          "failureReason": "dom-verify is missing evidence-backed result branch: success; dom-verify is missing evidence-backed result branch: failed; dom-verify is missing evidence-backed result branch: not_found; dom-verify is missing evidence-backed result branch: ambiguous; dom-verify is missing evidence-backed result branch: login_required; dom-verify is missing evidence-backed result branch: captcha_or_2fa_required; dom-verify is missing evidence-backed result branch: review_required"
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
         },
         {
           "clauseId": "required.03",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "ast",
-          "evidence": "DOM verify evidence check failed",
-          "failureReason": "dom-verify is missing evidence-backed result branch: success; dom-verify is missing evidence-backed result branch: failed; dom-verify is missing evidence-backed result branch: not_found; dom-verify is missing evidence-backed result branch: ambiguous; dom-verify is missing evidence-backed result branch: login_required; dom-verify is missing evidence-backed result branch: captcha_or_2fa_required; dom-verify is missing evidence-backed result branch: review_required"
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
         },
         {
           "clauseId": "required.04",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "ast",
-          "evidence": "DOM verify evidence check failed",
-          "failureReason": "dom-verify is missing evidence-backed result branch: success; dom-verify is missing evidence-backed result branch: failed; dom-verify is missing evidence-backed result branch: not_found; dom-verify is missing evidence-backed result branch: ambiguous; dom-verify is missing evidence-backed result branch: login_required; dom-verify is missing evidence-backed result branch: captcha_or_2fa_required; dom-verify is missing evidence-backed result branch: review_required"
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
         },
         {
           "clauseId": "required.05",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "ast",
-          "evidence": "DOM verify evidence check failed",
-          "failureReason": "dom-verify is missing evidence-backed result branch: success; dom-verify is missing evidence-backed result branch: failed; dom-verify is missing evidence-backed result branch: not_found; dom-verify is missing evidence-backed result branch: ambiguous; dom-verify is missing evidence-backed result branch: login_required; dom-verify is missing evidence-backed result branch: captcha_or_2fa_required; dom-verify is missing evidence-backed result branch: review_required"
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
         },
         {
           "clauseId": "required.06",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "ast",
-          "evidence": "DOM verify evidence check failed",
-          "failureReason": "dom-verify is missing evidence-backed result branch: success; dom-verify is missing evidence-backed result branch: failed; dom-verify is missing evidence-backed result branch: not_found; dom-verify is missing evidence-backed result branch: ambiguous; dom-verify is missing evidence-backed result branch: login_required; dom-verify is missing evidence-backed result branch: captcha_or_2fa_required; dom-verify is missing evidence-backed result branch: review_required"
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
         },
         {
           "clauseId": "required.07",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "ast",
-          "evidence": "DOM verify evidence check failed",
-          "failureReason": "dom-verify is missing evidence-backed result branch: success; dom-verify is missing evidence-backed result branch: failed; dom-verify is missing evidence-backed result branch: not_found; dom-verify is missing evidence-backed result branch: ambiguous; dom-verify is missing evidence-backed result branch: login_required; dom-verify is missing evidence-backed result branch: captcha_or_2fa_required; dom-verify is missing evidence-backed result branch: review_required"
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
         },
         {
           "clauseId": "forbidden.01",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "anti_escape",
-          "evidence": "DOM verify evidence check failed",
-          "failureReason": "dom-verify is missing evidence-backed result branch: success; dom-verify is missing evidence-backed result branch: failed; dom-verify is missing evidence-backed result branch: not_found; dom-verify is missing evidence-backed result branch: ambiguous; dom-verify is missing evidence-backed result branch: login_required; dom-verify is missing evidence-backed result branch: captcha_or_2fa_required; dom-verify is missing evidence-backed result branch: review_required"
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
         },
         {
           "clauseId": "forbidden.02",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "anti_escape",
-          "evidence": "DOM verify evidence check failed",
-          "failureReason": "dom-verify is missing evidence-backed result branch: success; dom-verify is missing evidence-backed result branch: failed; dom-verify is missing evidence-backed result branch: not_found; dom-verify is missing evidence-backed result branch: ambiguous; dom-verify is missing evidence-backed result branch: login_required; dom-verify is missing evidence-backed result branch: captcha_or_2fa_required; dom-verify is missing evidence-backed result branch: review_required"
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
         },
         {
           "clauseId": "forbidden.03",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "anti_escape",
-          "evidence": "DOM verify evidence check failed",
-          "failureReason": "dom-verify is missing evidence-backed result branch: success; dom-verify is missing evidence-backed result branch: failed; dom-verify is missing evidence-backed result branch: not_found; dom-verify is missing evidence-backed result branch: ambiguous; dom-verify is missing evidence-backed result branch: login_required; dom-verify is missing evidence-backed result branch: captcha_or_2fa_required; dom-verify is missing evidence-backed result branch: review_required"
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
         },
         {
           "clauseId": "forbidden.04",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "anti_escape",
-          "evidence": "DOM verify evidence check failed",
-          "failureReason": "dom-verify is missing evidence-backed result branch: success; dom-verify is missing evidence-backed result branch: failed; dom-verify is missing evidence-backed result branch: not_found; dom-verify is missing evidence-backed result branch: ambiguous; dom-verify is missing evidence-backed result branch: login_required; dom-verify is missing evidence-backed result branch: captcha_or_2fa_required; dom-verify is missing evidence-backed result branch: review_required"
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
         },
         {
           "clauseId": "forbidden.05",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "ast",
-          "evidence": "DOM verify evidence check failed",
-          "failureReason": "dom-verify is missing evidence-backed result branch: success; dom-verify is missing evidence-backed result branch: failed; dom-verify is missing evidence-backed result branch: not_found; dom-verify is missing evidence-backed result branch: ambiguous; dom-verify is missing evidence-backed result branch: login_required; dom-verify is missing evidence-backed result branch: captcha_or_2fa_required; dom-verify is missing evidence-backed result branch: review_required"
+          "evidence": "dom-verify and dom-wait return evidence-backed success/failure/login/captcha/not_found results with bounded polling semantics"
         }
       ]
     },
@@ -945,7 +928,7 @@
     },
     {
       "lawId": "GRASSEYE-DOM-010-V1",
-      "status": "FAIL",
+      "status": "PASS",
       "clauseResults": [
         {
           "clauseId": "summary.01",
@@ -1045,10 +1028,9 @@
         },
         {
           "clauseId": "acceptance.12",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "runtime_smoke",
-          "evidence": "command failed: npm run acceptance:dom-automation-smoke",
-          "failureReason": "> node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | /Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/dom-automation/runtime/dom-locator.ts:272 |     throw new Error(`DOM locator ambiguous for ${input.targetKind}; top candidates have similar confidence.`); |           ^ |  |  | Error: DOM locator ambiguous for clickable; top candidates have similar confidence. |     at locateDomElementOnce (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/dom-automation/runtime/dom-locator.ts:272:11) |     at <anonymous> (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/acceptance/dom-automation-smoke.ts:54:23) |  | Node.js v24.4.1"
+          "evidence": "command passed: npm run acceptance:dom-automation-smoke :: > grasseye-local-workbench@0.1.0 acceptance:dom-automation-smoke | > node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | [DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed"
         },
         {
           "clauseId": "blueprint.commands.01",
@@ -1064,20 +1046,19 @@
         },
         {
           "clauseId": "runtime.01",
-          "status": "FAIL",
+          "status": "PASS",
           "enforcementLevel": "runtime_smoke",
-          "evidence": "command failed: npm run acceptance:dom-automation-smoke",
-          "failureReason": "> node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | /Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/dom-automation/runtime/dom-locator.ts:272 |     throw new Error(`DOM locator ambiguous for ${input.targetKind}; top candidates have similar confidence.`); |           ^ |  |  | Error: DOM locator ambiguous for clickable; top candidates have similar confidence. |     at locateDomElementOnce (/Users/nexgen/Documents/GrassEye -AI-AGENT/src/capabilities/dom-automation/runtime/dom-locator.ts:272:11) |     at <anonymous> (/Users/nexgen/Documents/GrassEye -AI-AGENT/scripts/acceptance/dom-automation-smoke.ts:54:23) |  | Node.js v24.4.1"
+          "evidence": "command passed: npm run acceptance:dom-automation-smoke :: > grasseye-local-workbench@0.1.0 acceptance:dom-automation-smoke | > node --import tsx scripts/acceptance/dom-automation-smoke.ts |  | [DOM-AUTOMATION-SMOKE][PASS] real DOM snapshot locate fill click wait verify upload-boundary checks passed"
         }
       ]
     }
   ],
   "summary": {
     "totalLaws": 10,
-    "passedLaws": 4,
-    "failedLaws": 6,
+    "passedLaws": 10,
+    "failedLaws": 0,
     "totalClauses": 165,
-    "passedClauses": 146,
-    "failedClauses": 19
+    "passedClauses": 165,
+    "failedClauses": 0
   }
 }

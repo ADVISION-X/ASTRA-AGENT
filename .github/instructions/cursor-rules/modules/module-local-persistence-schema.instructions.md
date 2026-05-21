@@ -7,19 +7,19 @@ applyTo: ".github/instructions/cursor-rules/modules/module-local-persistence-sch
 # GrassEye Local Persistence Schema
 
 Scope: governs local SQLite schema, evidence file store layout, record relationships, export-set storage, and persistence object boundaries.
-Boundary: this module governs schema truth only as a Forensics child sub-contract, not as an independent owner.
+Boundary: this module governs schema truth only as a Forensics support sub-contract, not as an independent owner.
 Excludes: public write ownership, browser behavior, AI reasoning, and platform action semantics.
-Authority: this file is authoritative only for the forensics-persistence-capability domain as the local persistence schema child sub-contract.
+Authority: this file is authoritative only for the forensics-persistence-capability domain as the local persistence schema support sub-contract.
 
 ## Law GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-001-V1
 
-status: retired
+status: active
 tier: P0
 capabilityDomain: forensics-persistence-capability
 enforcementMode: manual-first
 evidenceMode: law
 
-summary: local-persistence-schema is a Forensics child sub-contract for schema truth, not an active owner.
+summary: local-persistence-schema is an active Forensics support sub-contract for schema truth, not an execution owner.
 
 ### 主题
 
@@ -49,7 +49,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-LOCAL-PERSISTENCE-SCHEMA-002-V2
 
-status: retired
+status: active
 tier: P0
 capabilityDomain: forensics-persistence-capability
 enforcementMode: manual-first

@@ -6,10 +6,11 @@ applyTo: ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md, .gi
 
 # GrassEye Capability Group Governance
 
-Scope: governs the shared contract for all GrassEye ability groups and child abilities.
-Boundary: this module governs the constitutional layer only: system formula, parent-child ownership, topology contract, owner evidence minimums, and orchestration or commander boundaries.
+Scope: governs the shared contract for all GrassEye ability groups, child capabilities, and support sub-contracts.
+Boundary: this module governs the constitutional layer only: system formula, parent-child ownership, support sub-contract status, topology contract, owner evidence minimums, and orchestration or commander boundaries.
 Excludes: concrete click logic, concrete screenshot logic, AI prompt internals, storage schema internals, and any group-private business execution.
 Authority: this file is authoritative only for the capability-group-governance domain.
+Terminology: ability group and capability group refer to the same top-level owner; child capability is the canonical child term.
 
 ## Law GRASSEYE-CAPABILITY-GROUP-001-V1
 
@@ -101,8 +102,8 @@ Commander Console receives the user mission command, Orchestration owns the miss
 
 Required direction:
 - Human command enters Commander Console first.
-- Commander Console emits governed mission command into the Orchestration path.
-- Orchestration may request a named child capability only through Nerve Bus and the owning group's public interface.
+- Commander Console emits governed mission command into the Orchestration path through Nerve Bus and the Orchestration public command contract.
+- Orchestration may request the AI round judge or any other named child capability only through Nerve Bus and the owning group's public contract.
 - Nerve Bus transports governed envelopes; it does not become an execution owner.
 - The owning capability group executes the named atomic child capability through its public contract.
 - Forensics records evidence after governed execution.
@@ -437,7 +438,7 @@ capabilityDomain: capability-group-governance
 enforcementMode: machine-blocking
 evidenceMode: law+blueprint+real-code-inspection
 
-summary: AI composes registered atomic capabilities while the system validates, injects, dispatches, and records evidence.
+summary: AI selects exactly one registered atomic capability per round while the system validates, injects, dispatches, and records evidence.
 
 ### 主题
 
@@ -445,12 +446,13 @@ AI 负责组合，系统负责安全执行
 
 ### 法条
 
-AI receives the capability registry as an ability manual. AI may compose multiple registered atomic capabilities according to the user requirement and current visual evidence. The system validates the proposed capability sequence, injects system-owned refs, resolves executable geometry through Geometry Guard, dispatches governed child capabilities, and records evidence.
+AI receives the capability registry as an ability manual. Across a mission, the requirement is realized as a sequence of rounds, but in each round AI may select exactly one registered atomic capability according to the user requirement and current visual evidence. The system validates the proposed next action, injects system-owned refs, resolves executable geometry through Geometry Guard, dispatches the governed child capability, and records evidence.
 
 Required direction:
 - AI must use only registry-exposed capabilities and must not invent unknown capability groups, child capabilities, or semantic package names.
 - AI must not output raw coordinates or bypass the governed registry to call owner internals.
-- The system must validate whether each proposed capability is registered and whether each input matches the governed contract.
+- The system must validate whether the proposed next action is registered and whether its input matches the governed contract.
+- The system may convert a validated caller payload into contract-scoped approved inputs such as `approvedText` or `approvedKey`, but only after contract validation, redaction, and allowlist checks defined by the owning capability group.
 - The system may inject system fields and refs, resolve gridCell through Geometry Guard, dispatch the owning capability group, and persist evidence.
 - The system must not replace AI by composing business packages or performing user-intent judgment.
 
@@ -459,7 +461,8 @@ Required direction:
 FORBIDDEN:
 - AI inventing capabilities outside the registry.
 - AI outputting raw x/y or direct owner-internal invocation payloads.
-- system-owned business-package composition replacing AI composition.
+- system-owned business-package composition replacing single-round AI action selection.
+- child-local policy inventing `approvedText`, `approvedKey`, or other approved payload truth after dispatch has already entered the owning capability group.
 - system validators, schedulers, or registries owning business-process truth.
 
 ## Law GRASSEYE-CAPABILITY-GROUP-015-V1
@@ -491,6 +494,40 @@ FORBIDDEN:
 - positive final-direction descriptions for composite action, package, workflow, business flow, or semantic shortcut inside active law and blueprint authority.
 - treating semantic action names as mandatory retained capability definitions.
 - allowing package legality gates or workflow compilers to replace the simpler capability-registry definition.
+
+## Law GRASSEYE-CAPABILITY-GROUP-016-V1
+
+status: active
+tier: P0
+capabilityDomain: capability-group-governance
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: support sub-contracts are active parent-domain supplements, not capability groups and not child capabilities.
+
+### 主题
+
+支撑子法不是子能力
+
+### 法条
+
+Support sub-contract is an active constitutional supplement attached to exactly one parent capability domain or governance domain. It may govern shell, bootstrap, topology, schema, logging, privacy, browser-session, or audit boundaries, but it does not expose AI-visible children or dispatchable runtime actions.
+
+Required direction:
+- Every support sub-contract must declare exactly one parent domain and one bounded support topic.
+- Support sub-contracts may tighten shell, startup, topology, schema, session, logging, privacy, or audit rules only; they must not create a new execution owner.
+- Support sub-contracts must never appear as MuscleMemoryCatalog entries, AI action choices, targetAbilityGroupId values, or childCapabilityId values.
+- A support sub-contract remains `active` while its current constraints are in force, even when it retires historical paths or legacy surfaces.
+- If a support sub-contract is replaced, the newer single law must explicitly name the replacement; otherwise the current active support sub-contract remains authoritative.
+- Support sub-contracts must strengthen parent-boundary clarity and must not create cross-owner import or runtime ownership leakage.
+
+### 禁止
+
+FORBIDDEN:
+- treating a support sub-contract as an independent capability group, child capability, or public runtime entry.
+- dispatching or registry-exposing a support sub-contract as an executable action.
+- one support sub-contract serving multiple parent domains as final authority.
+- marking a currently governing support sub-contract as `retired` only because it forbids retired code paths.
 
 ## Law GRASSEYE-CAPABILITY-STRENGTH-001-V1
 

@@ -35,6 +35,8 @@ summary: every governed command envelope must carry short-chain mission truth on
 Every governed command envelope must carry traceable mission chain fields.
 
 Required envelope fields:
+- envelopeId
+- envelopeSchemaVersion
 - missionId
 - runId
 - sessionId when applicable
@@ -51,13 +53,15 @@ Required envelope fields:
 - timeoutMs when applicable
 
 Required:
-- missing stepId, capabilityCallId, nerve-bus envelope identity, or inputRef must fail closed.
+- missing stepId, capabilityCallId, nerve-bus envelope identity, envelopeSchemaVersion, or inputRef must fail closed.
 - AI transport must carry promptContractId.
-- result transport must preserve status, failureReason, reviewRequiredReason, outputRef, and timing.
+- result transport must preserve envelopeId, envelopeSchemaVersion, status, failureReason, reviewRequiredReason, outputRef, and timing.
+- Nerve Bus may generate transport-owned metadata such as envelopeId or emittedAt only; it must not inject business defaults or semantic payload fields.
+- idempotencyKey defines replay-safe transport identity; retries or replays must preserve the original governed payload instead of rebuilding it.
 
 Forbidden:
 - retired selection field, retired selection version field, retired package field, retired package version field, retired binding field, legacy route-plan field, retired branch-token field, or legacy template field in active envelopes.
-- Nerve Bus injecting defaults that were not present in the governed command.
+- Nerve Bus injecting defaults that were not present in the governed command, other than transport-owned metadata such as envelopeId or emittedAt.
 - Nerve Bus building prompt text or action plans.
 
 ## Law GRASSEYE-NERVE-BUS-CAPABILITY-002-V2
@@ -79,6 +83,8 @@ summary: transfer proof must preserve the same short-chain fields as the governe
 Transfer proof must preserve the chain fields carried by the governed envelope and nothing more.
 
 Required proof fields:
+- envelopeId
+- envelopeSchemaVersion
 - missionId
 - runId
 - sessionId when applicable
@@ -97,6 +103,7 @@ Forbidden:
 - retired selection field or retired selection version field in transfer proof.
 - retired package field or retired package version field in transfer proof.
 - retired deterministic flow planning or retired branch-token field as transport truth.
+- rewriting governed payload meaning during replay or proof reconstruction.
 
 ## Law GRASSEYE-NERVE-BUS-CAPABILITY-003-V1
 

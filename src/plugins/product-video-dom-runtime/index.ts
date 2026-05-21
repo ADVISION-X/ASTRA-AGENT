@@ -1,6 +1,6 @@
 export {
   ProductVideoAiDecisionSchema,
-  ProductVideoBrowseLedgerEntrySchema,
+  ProductVideoNavigationEntrySchema,
   ProductVideoDomMissionInputSchema,
   ProductVideoDomRoundResultSchema,
   ProductVideoEvidencePacketSchema,
@@ -9,7 +9,7 @@ export {
   ProductVideoDomTaskRecordSchema,
   ProductVideoDomTaskStatusSchema,
   type ProductVideoAiDecision,
-  type ProductVideoBrowseLedgerEntry,
+  type ProductVideoNavigationEntry,
   type ProductVideoDomMissionInput,
   type ProductVideoDomRoundResult,
   type ProductVideoDomTaskRecord,

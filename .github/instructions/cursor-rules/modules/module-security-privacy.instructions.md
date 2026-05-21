@@ -1,7 +1,7 @@
 ---
 name: "GrassEye Security Privacy"
 description: "Use when defining credential handling, cookie or session boundaries, sensitive screenshot minimization, or privacy red lines for GrassEye."
-applyTo: ".github/instructions/cursor-rules/modules/module-security-privacy.instructions.md, src/lib/browser/**, src/lib/local-ai/**"
+applyTo: ".github/instructions/cursor-rules/modules/module-security-privacy.instructions.md, src/lib/browser/**, src/lib/local-ai/**, src/capabilities/ai-input-gateway/**"
 ---
 
 # GrassEye Security Privacy
@@ -35,6 +35,7 @@ Required direction:
 - Credentials, cookies, sessions, and tokens must remain local and undisclosed.
 - Login persistence must rely on a local Chrome profile, not cookie export or session dumps.
 - AI execution must not transmit screenshots, OCR text, comments, session data, or product evidence to unauthorized external AI services.
+- Governed external AI transport may send only operator-authorized prompt packages and approved input refs through AI Input Gateway, with secrets redacted and browser/session material excluded.
 - Local consoles, local agent services, browser sessions, screenshots, and evidence stores must bind to the local authorized environment by default.
 - Screenshots must exclude unrelated sensitive regions wherever possible.
 - Logs must avoid passwords, tokens, sessions, cookies, and unnecessary identity data.

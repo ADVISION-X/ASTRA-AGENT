@@ -85,7 +85,7 @@ export const DOM_AUTOMATION_CATALOG_ENTRIES: RegisteredAtomicAbility[] = [
     actionCode: "UPLOAD_APPROVED_FILE_ONCE",
     type: "atomic",
     displayName: "Upload Approved File Once",
-    description: "Validate and set a task-approved PDF on a located file input.",
+    description: "Validate and set a task-approved file on a located file input.",
     abilityGroupId: "dom-automation",
     childCapabilityId: "upload-approved-file-once",
     inputSchemaRef: "dom-automation.upload-approved-file-once.input",
@@ -99,7 +99,7 @@ export const DOM_AUTOMATION_CATALOG_ENTRIES: RegisteredAtomicAbility[] = [
     inputContract: { requiredFields: ["elementRef", "approvedFilePath", "approvedTaskFilePath", "allowedExtensions", "uploadPurpose"], optionalFields: [], forbiddenFields: ["fileContent"] },
     successOutputRefs: ["domActionResultRef"],
     failurePolicy: "review_required",
-    forbiddenResponsibilities: ["read PDF content", "choose arbitrary files", "submit business workflow"],
+    forbiddenResponsibilities: ["read file content", "choose arbitrary files", "submit business workflow"],
   },
   {
     actionCode: "VERIFY_DOM_STATE_ONCE",

@@ -11,6 +11,7 @@
 
 import { readFileSync } from "node:fs";
 import { z } from "zod";
+import { AI_INPUT_GATEWAY_CATALOG_ENTRIES } from "../capabilities/ai-input-gateway/manifest.js";
 import { DOM_AUTOMATION_CATALOG_ENTRIES } from "../capabilities/dom-automation/manifest.js";
 import { VIDEO_DOWNLOAD_CATALOG_ENTRIES } from "../capabilities/video-download/manifest.js";
 import { mergeCapabilityCatalogEntries } from "./catalog-merge.js";
@@ -78,6 +79,7 @@ function readCatalog(): CapabilityRegistryCatalog {
   return CapabilityRegistryCatalogSchema.parse({
     ...parsed,
     entries: mergeCapabilityCatalogEntries(parsed.entries, [
+      ...AI_INPUT_GATEWAY_CATALOG_ENTRIES,
       ...DOM_AUTOMATION_CATALOG_ENTRIES,
       ...VIDEO_DOWNLOAD_CATALOG_ENTRIES,
     ]),

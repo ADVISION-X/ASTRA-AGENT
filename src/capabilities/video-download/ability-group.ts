@@ -16,7 +16,7 @@ import {
 } from "./registry.js";
 import { buildVideoDownloadFailure } from "./runtime/result.js";
 
-const resolveFallbackInput = (input: VideoDownloadAbilityInput): ParsedDownloadFacebookVideoInput => ({
+const resolveRecoveryInput = (input: VideoDownloadAbilityInput): ParsedDownloadFacebookVideoInput => ({
   abilityGroupId: VIDEO_DOWNLOAD_ABILITY_GROUP_ID,
   childCapabilityId: "download-facebook-video-once" as const,
   missionId: typeof input.missionId === "string" ? input.missionId : "unknown",
@@ -30,7 +30,7 @@ const resolveFallbackInput = (input: VideoDownloadAbilityInput): ParsedDownloadF
 
 const inputParseFailure = (input: VideoDownloadAbilityInput): VideoDownloadResult =>
   buildVideoDownloadFailure(
-    { input: resolveFallbackInput(input), startedAt: new Date().toISOString() },
+    { input: resolveRecoveryInput(input), startedAt: new Date().toISOString() },
     "input_schema_invalid",
     "Video download input schema is invalid.",
     "invalid_input",

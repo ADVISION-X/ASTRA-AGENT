@@ -1,25 +1,25 @@
 ---
 name: "GrassEye Local App Shell"
 description: "Use when defining GrassEye local application form, local runtime shell, desktop packaging boundary, or SaaS/browser-extension/CLI exclusion."
-applyTo: ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md, src/app/**, src/lib/local-runtime/**, src/lib/local-runtime/runtime-executor.ts, src/lib/local-runtime/runtime-bootstrap.ts, src/lib/local-runtime/runtime-state.ts, src/lib/local-runtime/runtime-step-support.ts, src/capabilities/commander-console/**, docs/法案辅助文件/GrassEye 本地应用形态与运行壳施工图.md"
+applyTo: ".github/instructions/cursor-rules/modules/module-local-app-shell.instructions.md, src/app/**, src/lib/local-runtime/**, src/capabilities/commander-console/**, docs/法案辅助文件/GrassEye 本地应用形态与运行壳施工图.md"
 ---
 
 # GrassEye Local App Shell
 
 Scope: governs GrassEye application form, local runtime shell, desktop packaging boundary, and non-SaaS execution posture.
-Boundary: this module governs the local shell only as a Commander Console child sub-contract, not as an independent owner.
+Boundary: this module governs the local shell only as a Commander Console support sub-contract, not as an independent owner.
 Excludes: Commander Console ownership, Orchestration command truth, browser action implementation, AI execution, and persistence ownership.
-Authority: this file is authoritative only for the commander-console-capability domain as the local app shell child sub-contract.
+Authority: this file is authoritative only for the commander-console-capability domain as the local app shell support sub-contract.
 
 ## Law GRASSEYE-LOCAL-APP-SHELL-001-V1
 
-status: retired
+status: active
 tier: P0
 capabilityDomain: commander-console-capability
 enforcementMode: manual-first
 evidenceMode: law
 
-summary: local-app-shell is a commander-console child sub-contract for local shell form, not an active owner.
+summary: local-app-shell is an active commander-console support sub-contract for local shell form, not an execution owner.
 
 ### 主题
 
@@ -43,7 +43,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-LOCAL-APP-SHELL-002-V1
 
-status: retired
+status: active
 tier: P0
 capabilityDomain: commander-console-capability
 enforcementMode: manual-first
@@ -77,7 +77,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-LOCAL-APP-SHELL-003-V1
 
-status: retired
+status: active
 tier: P0
 capabilityDomain: commander-console-capability
 enforcementMode: manual-first
@@ -105,7 +105,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-LOCAL-APP-SHELL-004-V1
 
-status: retired
+status: active
 tier: P0
 capabilityDomain: commander-console-capability
 enforcementMode: manual-first

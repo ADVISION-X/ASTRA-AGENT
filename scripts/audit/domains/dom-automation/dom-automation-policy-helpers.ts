@@ -1,17 +1,12 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import { collectStringLiteralNodes, resolveStaticString } from "./components/dom-automation-static-strings.js";
 import type { DomAutomationBinaryCheckContext } from "./dom-automation-binary-types.js";
-import { DOM_BUSINESS_VOCAB, LOG_FIELD_FORBIDDEN, SENSITIVE_PROPERTY_NAMES } from "./dom-automation-binary-constants.js";
+import { DOM_BUSINESS_VOCAB, LOG_FIELD_FORBIDDEN, PLUGIN_CONSUMER_ROOTS, SENSITIVE_PROPERTY_NAMES } from "./dom-automation-binary-constants.js";
 import { repoPathOf, sourceFilesWithin } from "./dom-automation-source-helpers.js";
-
-const PLUGIN_ROOTS = [
-  "src/plugins/amazon-invoice-upload",
-  "src/plugins/product-video-dom-runtime",
-] as const;
 
 export const usesForbiddenPluginPrimitives = (context: DomAutomationBinaryCheckContext): string[] => {
   const violations: string[] = [];
-  for (const file of PLUGIN_ROOTS.flatMap((root) => sourceFilesWithin(context, root))) {
+  for (const file of PLUGIN_CONSUMER_ROOTS.flatMap((root) => sourceFilesWithin(context, root))) {
     const text = file.getFullText();
     for (const token of ["runAppleScript", "clickAt", "scrollAt", "chromium.launch", "launchPersistentContext", "CurrentChromeBrowserController"]) {
       if (text.includes(token)) {

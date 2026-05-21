@@ -1,7 +1,7 @@
 ---
 name: "GrassEye Mouse Scroll Capability"
 description: "Use when governing the independent Mouse Scroll Ability Group, governed browser/desktop/region scroll execution, Geometry Guard approved anchor/region consumption, primitive scroll port boundary, scroll magnitude policy, idempotency, repeat limits, timeout/cancellation, post-action verification handoff, and the boundary that prevents Mouse Scroll from computing coordinates, remapping geometry, claiming scroll-result truth, or writing final action logs."
-applyTo: ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md, src/capabilities/mouse-scroll/**, docs/法案辅助文件/GrassEye Mouse Scroll 能力组施工图.md, scripts/audit/domains/mouse-scroll-capability/**, src/lib/local-runtime/**, src/lib/browser/**, src/features/platform-action/**"
+applyTo: ".github/instructions/cursor-rules/modules/module-mouse-scroll-capability.instructions.md, src/capabilities/mouse-scroll/**, docs/法案辅助文件/GrassEye Mouse Scroll 能力组施工图.md, scripts/audit/domains/mouse-scroll-capability/**, src/lib/local-runtime/**, src/lib/browser/**"
 ---
 
 # GrassEye Mouse Scroll Capability FINAL

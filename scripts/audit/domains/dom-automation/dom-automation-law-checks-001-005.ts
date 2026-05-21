@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import type { ClauseCheckOutcome, DomAutomationBinaryCheckContext } from "./dom-automation-binary-types.js";
 import { pass, fail } from "./dom-automation-binary-outcome.js";
-import { DOM_ACTION_CODES, DOM_EXPORTS, DOM_REQUIRED_PATHS } from "./dom-automation-binary-constants.js";
+import { DOM_ACTION_CODES, DOM_EXPORTS, DOM_REQUIRED_PATHS, PLUGIN_CONSUMER_ROOTS } from "./dom-automation-binary-constants.js";
 import { BROWSER_CONTROLLER_PATH, CURRENT_CHROME_EXECUTION_PATH, CURRENT_CHROME_PATH } from "./dom-automation-path-constants.js";
 import { findForbiddenImports, hasSecondBrowserController, hasVisualMissionDomImport, sourceText } from "./dom-automation-source-helpers.js";
 import { hasSensitiveDomAccess, manifestHasAllLawIds, manifestKeepsDomOwnerOnly } from "./dom-automation-policy-helpers.js";
@@ -76,11 +76,12 @@ const collectLaw001BoundaryIssues = (context: DomAutomationBinaryCheckContext): 
   if (hasVisualMissionDomImport(context)) {
     issues.push("visual-mission imports DOM automation code");
   }
-  const domImportsPlugin = findForbiddenImports(context, "src/capabilities/dom-automation", ["src/plugins/amazon-invoice-upload"]);
+  const domImportsPlugin = findForbiddenImports(context, "src/capabilities/dom-automation", [...PLUGIN_CONSUMER_ROOTS]);
   if (domImportsPlugin.length > 0) {
     issues.push(`DOM owner imports plugin code: ${domImportsPlugin[0]}`);
   }
-  const pluginImportsRuntime = findForbiddenImports(context, "src/plugins/amazon-invoice-upload", ["src/capabilities/dom-automation/runtime", CURRENT_CHROME_PATH, "src/lib/local-runtime"]);
+  const pluginImportsRuntime = PLUGIN_CONSUMER_ROOTS.flatMap((pluginRoot) =>
+    findForbiddenImports(context, pluginRoot, ["src/capabilities/dom-automation/runtime", CURRENT_CHROME_PATH, "src/lib/local-runtime"]));
   if (pluginImportsRuntime.length > 0) {
     issues.push(`plugin crosses owner boundary: ${pluginImportsRuntime[0]}`);
   }

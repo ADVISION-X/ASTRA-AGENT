@@ -64,6 +64,7 @@ Required:
 - missing stepId, capabilityCallId, nerveBusEnvelopeId, inputRef, or targetRef must fail closed.
 - approvedText is required for text write modes.
 - approvedKey is required for press-key modes.
+- approvedText or approvedKey must come from a governed upstream caller payload that has already passed contract validation; Text Input treats approved payload fields as immutable execution inputs.
 
 Forbidden:
 - retired selection field, retired selection version field, retired package field, retired package version field, retired binding field, legacy route-plan field, or retired branch-token field fields.

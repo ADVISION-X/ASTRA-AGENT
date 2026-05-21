@@ -21,10 +21,11 @@ const buildDownloadHeaders = (): HeadersInit => ({
 export const downloadValidatedMedia = async (
   validation: CandidateValidationSuccess,
   maxBytes: number,
+  abortSignal?: AbortSignal,
 ): Promise<MediaDownloadResult> => {
-  const response = await fetch(validation.candidate.url, {
-    headers: buildDownloadHeaders(),
-  });
+  const requestInit: RequestInit = { headers: buildDownloadHeaders() };
+  if (abortSignal) requestInit.signal = abortSignal;
+  const response = await fetch(validation.candidate.url, requestInit);
   if (!response.ok) {
     return { ok: false, reason: `Media download returned HTTP ${response.status}.` };
   }

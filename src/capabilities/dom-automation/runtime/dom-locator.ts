@@ -65,7 +65,10 @@ function exactTextMatches(value: string | undefined, hints: string[]): boolean {
 }
 
 function isButtonLikeCandidate(candidate: Candidate): boolean {
-  return candidate.tagName === "button" || candidate.type === "submit" || candidate.type === "button";
+  return candidate.tagName === "button"
+    || candidate.role === "button"
+    || candidate.type === "submit"
+    || candidate.type === "button";
 }
 
 function candidateHasHintText(candidate: Candidate, hints: string[]): boolean {
@@ -97,7 +100,7 @@ const CANDIDATE_RESOLVERS = {
     ...snapshot.buttons,
     ...snapshot.links,
     ...snapshot.genericClickableElements.filter((item) => !isButtonLikeCandidate(item)),
-    ...snapshot.textBlocks.filter((item) => (item.visibleText ?? "").length <= 80),
+    ...snapshot.textBlocks.filter((item) => !isButtonLikeCandidate(item) && (item.visibleText ?? "").length <= 80),
   ],
   message: (snapshot: DomSnapshot) => [
     ...snapshot.dialogs,

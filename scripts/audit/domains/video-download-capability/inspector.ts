@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { pathFromRepoRoot } from "../../core/paths.js";
 import { createFinding, createPhase, finalizeInspectorResult } from "../../core/result.js";
 import type { Finding, InspectorContext, InspectorResult } from "../../core/schema.js";
+import { collectVideoDownloadAstEvidenceFindings } from "./video-download-ast-evidence.js";
 
 const LAW_FILE = ".github/instructions/cursor-rules/modules/module-video-download-capability.instructions.md";
 const BLUEPRINT_FILE = "docs/法案辅助文件/GrassEye Video Download 视频下载能力组施工图.md";
@@ -219,6 +220,7 @@ export const runVideoDownloadCapabilityInspector = async (
     ...collectRequiredDocumentFindings(),
     ...collectPrematureExposureFindings(),
     ...collectFacebookRuntimeFindings(),
+    ...collectVideoDownloadAstEvidenceFindings(),
     ...collectShadowDownloaderFindings(),
     ...collectSecurityBypassFindings(),
   ];
@@ -232,6 +234,7 @@ export const runVideoDownloadCapabilityInspector = async (
       createPhase("phase-0-documents", passed ? "PASS" : "CODE VIOLATION", passed, "law and blueprint presence checked."),
       createPhase("catalog-exposure", passed ? "PASS" : "CODE VIOLATION", passed, "catalog exposure checked."),
       createPhase("facebook-runtime-shape", passed ? "PASS" : "CODE VIOLATION", passed, "Facebook runtime shape checked."),
+      createPhase("ast-runtime-evidence", passed ? "PASS" : "CODE VIOLATION", passed, "AST runtime evidence checked."),
       createPhase("shadow-downloader-boundary", passed ? "PASS" : "CODE VIOLATION", passed, "shadow downloader surfaces checked."),
       createPhase("security-bypass-redlines", passed ? "PASS" : "CODE VIOLATION", passed, "credential and bypass red lines checked."),
     ],

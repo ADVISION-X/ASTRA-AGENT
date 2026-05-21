@@ -1,9 +1,6 @@
-import { type ImportDeclaration, type SourceFile } from "ts-morph";
+import { type ImportDeclaration } from "ts-morph";
 
 import { toRepoRelativePath } from "../../../core/paths.js";
-
-export const isRepoPathWithin = (repoPath: string, ownerRoot: string): boolean =>
-  repoPath === ownerRoot || repoPath.startsWith(`${ownerRoot}/`);
 
 export const resolveModuleTargetPath = (
   importDeclaration: ImportDeclaration,
@@ -29,18 +26,4 @@ export const resolveImportedDeclarationPaths = (
     }
   }
   return [...resolved];
-};
-
-export const findNamedImport = (
-  sourceFile: SourceFile,
-  localName: string,
-): ImportDeclaration | null => {
-  for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    const namedImport = importDeclaration.getImportClause()?.getNamedImports().find((candidate) => {
-      const alias = candidate.getAliasNode()?.getText();
-      return alias === localName || candidate.getNameNode().getText() === localName;
-    });
-    if (namedImport) return importDeclaration;
-  }
-  return null;
 };

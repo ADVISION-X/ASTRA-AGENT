@@ -1,6 +1,7 @@
 import { Node, SyntaxKind, type SourceFile } from "ts-morph";
 import type { ClauseCheckOutcome, DomAutomationBinaryCheckContext } from "./dom-automation-binary-types.js";
 import { pass, fail } from "./dom-automation-binary-outcome.js";
+import { PLUGIN_CONSUMER_ROOTS } from "./dom-automation-binary-constants.js";
 import { BROWSER_CONTROLLER_PATH, CURRENT_CHROME_PATH } from "./dom-automation-path-constants.js";
 import { collectStringLiteralNodes } from "./components/dom-automation-static-strings.js";
 import { findForbiddenImports, sourceText } from "./dom-automation-source-helpers.js";
@@ -15,6 +16,13 @@ const anyFileHasStaticStringToken = (files: readonly (SourceFile | null)[], toke
 
 const collectVerificationResultStatuses = (file: SourceFile | null): Set<string> => {
   const statuses = new Set<string>();
+  file?.getDescendantsOfKind(SyntaxKind.CallExpression).forEach((callExpression) => {
+    const expression = callExpression.getExpression();
+    const firstArgument = callExpression.getArguments()[0];
+    if (Node.isIdentifier(expression) && expression.getText() === "buildDomVerificationResult" && Node.isStringLiteral(firstArgument)) {
+      statuses.add(firstArgument.getLiteralText());
+    }
+  });
   file?.getDescendantsOfKind(SyntaxKind.PropertyAssignment).forEach((property) => {
     if (property.getName() !== "status") return;
     const initializer = property.getInitializer();
@@ -123,10 +131,8 @@ export const checkLaw007VerifyEvidence = (context: DomAutomationBinaryCheckConte
 const collectLaw008PathIssues = (): string[] => [];
 
 const collectLaw008ImportIssues = (context: DomAutomationBinaryCheckContext): string[] => {
-  const forbiddenImports = [
-    ...findForbiddenImports(context, "src/plugins/amazon-invoice-upload", ["src/capabilities/dom-automation/runtime", CURRENT_CHROME_PATH, "src/lib/local-runtime"]),
-    ...findForbiddenImports(context, "src/plugins/product-video-dom-runtime", ["src/capabilities/dom-automation/runtime", CURRENT_CHROME_PATH, "src/lib/local-runtime"]),
-  ];
+  const forbiddenImports = PLUGIN_CONSUMER_ROOTS.flatMap((pluginRoot) =>
+    findForbiddenImports(context, pluginRoot, ["src/capabilities/dom-automation/runtime", CURRENT_CHROME_PATH, "src/lib/local-runtime"]));
   return forbiddenImports.length > 0
     ? [`plugin imports forbidden private implementation: ${forbiddenImports[0]}`]
     : [];

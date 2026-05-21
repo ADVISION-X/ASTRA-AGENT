@@ -1,7 +1,7 @@
 ---
 name: "GrassEye Forensics Persistence Capability"
 description: "Use when governing the Forensics Persistence Ability Group, append-only evidence ledger, record-envelope write authority, chain-proof persistence, artifact refs, runtime snapshot updates, and storage-port boundaries."
-applyTo: ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.FINAL.instructions.md, src/capabilities/forensics-persistence/**, scripts/audit/domains/forensics-persistence-capability/**, docs/法案辅助文件/GrassEye Forensics Persistence 取证记账能力组施工图_FINAL.md"
+applyTo: ".github/instructions/cursor-rules/modules/module-forensics-persistence-capability.instructions.md, src/capabilities/forensics-persistence/**, scripts/audit/domains/forensics-persistence-capability/**, docs/法案辅助文件/GrassEye Forensics Persistence 取证记账能力组施工图_FINAL.md"
 ---
 
 # GrassEye Forensics Persistence Capability FINAL

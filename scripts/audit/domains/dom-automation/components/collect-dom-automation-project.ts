@@ -5,6 +5,7 @@ import type { Project, SourceFile } from "ts-morph";
 
 import { pathFromRepoRoot, toRepoRelativePath } from "../../../core/paths.js";
 import { getAuditProject } from "../../../core/ts-morph.js";
+import { PLUGIN_CONSUMER_ROOTS } from "../dom-automation-binary-constants.js";
 import type { DomAutomationAuditProject } from "./dom-automation-project-types.js";
 
 const CODE_FILE_PATTERN = /\.(ts|tsx|js|mjs)$/;
@@ -43,10 +44,7 @@ export const loadDomAutomationAuditProject = (): DomAutomationAuditProject => {
       dom: loadSourceFiles(project, "src/capabilities/dom-automation"),
       domRuntime: loadSourceFiles(project, "src/capabilities/dom-automation/runtime"),
       domContracts: loadSourceFiles(project, "src/capabilities/dom-automation/contracts"),
-      plugin: loadSourceFilesFromRoots(project, [
-        "src/plugins/amazon-invoice-upload",
-        "src/plugins/product-video-dom-runtime",
-      ]),
+      plugin: loadSourceFilesFromRoots(project, PLUGIN_CONSUMER_ROOTS),
       visualMission: loadSourceFiles(project, "src/visual-mission"),
       browser: loadSourceFiles(project, "src/lib/browser"),
       muscleMemory: loadSourceFiles(project, "src/muscle-memory"),

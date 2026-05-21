@@ -13,6 +13,7 @@ Authority: this file is authoritative only for the screenshot-capability domain.
 Core doctrine:
 - Screenshot is image truth, not image meaning.
 - Screenshot owns coordinate-grid rendering and gridSpecRef generation.
+- Screenshot hands gridSpecRef and screenshot evidence to Geometry Guard or other governed consumers; Screenshot itself never turns them into executable x/y truth.
 - AI may return grid cell ids; Screenshot never turns them into executable action truth by itself.
 - Screenshot implementation must remain a small image-capture and coordinate-grid provider.
 - Screenshot must NOT contain page-state handoff, visual-target truth, post-action verification, AI prompt preparation, business semantic output, artifact lifecycle universe, or multi-phase executor systems.

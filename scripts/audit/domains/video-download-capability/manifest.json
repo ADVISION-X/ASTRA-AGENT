@@ -38,6 +38,7 @@
     "src/capabilities/video-download/manifest.ts",
     "src/capabilities/video-download/children/download-facebook-video-once.ts",
     "scripts/audit/domains/video-download-capability/manifest.json",
-    "scripts/audit/domains/video-download-capability/inspector.ts"
+    "scripts/audit/domains/video-download-capability/inspector.ts",
+    "scripts/audit/domains/video-download-capability/video-download-ast-evidence.ts"
   ]
 }

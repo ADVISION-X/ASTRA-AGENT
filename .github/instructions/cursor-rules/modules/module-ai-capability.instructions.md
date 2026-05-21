@@ -13,6 +13,8 @@ version: 2026-05-13
 
 AI is the visual judge and next-action chooser for one round. AI does not execute actions, save evidence, call Forensics, own browser commands, output owner fields, or plan multiple steps.
 
+Any surviving `src/visual-mission/round/**` files are AI-owned support schemas only; they do not create a second owner root outside `src/capabilities/ai`.
+
 ## Required Output
 
 AI output schema is `pureVisualRound.v1`:
@@ -34,6 +36,7 @@ AI output schema is `pureVisualRound.v1`:
 Prompt must say:
 
 - look only at current screenshot, coordinate grid, user goal, and ability registry
+- platform profiles may constrain system target policy outside the prompt, but the round judge must not receive platform-specific action hints beyond the governed ability registry
 - judge whether the current screen satisfies the user goal
 - if satisfied, output `save=true`
 - choose one atomic next action, or `done`, `review_required`, or `blocked`

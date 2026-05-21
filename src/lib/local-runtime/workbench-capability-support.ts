@@ -1,4 +1,5 @@
 import { createConfiguredAiAbilityGroup } from "../../capabilities/ai/index.js";
+import { createAiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import { createForensicsPersistenceAbilityGroup } from "../../capabilities/forensics-persistence/index.js";
 import { createForensicsStorageAdapter } from "../../capabilities/forensics-persistence/storage-adapter.js";
 import { createGeometryGuardAbilityGroup } from "../../capabilities/geometry-guard/index.js";
@@ -43,12 +44,16 @@ export function createWorkbenchCapabilityGroups(input: {
     dataDir: input.dataDir,
     runtimeLogger: input.runtimeLogger,
   });
+  const aiInputGatewayAbilityGroup = createAiInputGatewayAbilityGroup({
+    dataDir: input.dataDir,
+  }, input.browserController);
   const videoDownloadAbilityGroup = createVideoDownloadAbilityGroup({
     browserMediaSourcePort: input.browserController,
     artifactStoragePort: createFilesystemVideoArtifactStoragePort(input.dataDir),
   });
   return {
     aiAbilityGroup,
+    aiInputGatewayAbilityGroup,
     geometryGuardAbilityGroup,
     mouseClickAbilityGroup,
     mouseScrollAbilityGroup,

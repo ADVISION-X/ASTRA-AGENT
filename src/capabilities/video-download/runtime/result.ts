@@ -103,24 +103,35 @@ export const buildVideoDownloadSuccess = (
     status: "success",
     failureReason: null,
     reviewRequiredReason: null,
-    output: {
-      status: "success",
-      platformId: "facebook-web",
-      sourcePageUrl: base.input.sourcePageUrl,
-      videoId: base.videoId,
-      artifactRef: base.artifactRef,
-      storageRef: base.storageRef,
-      filePath: base.filePath,
-      contentType: base.contentType ?? "video/mp4",
-      byteSize: base.byteSize ?? 0,
-      durationMs: base.durationMs ?? null,
-      width: base.width ?? null,
-      height: base.height ?? null,
-      selectedQuality: base.input.preferredQuality,
-      candidateKind: base.candidate?.kind ?? "media_resource",
-      downloadedAt: endedAt,
-      proofRef: runtimeProof.proofId,
-    },
+    output: buildSuccessOutput(base, endedAt, runtimeProof.proofId),
     runtimeProof,
   });
 };
+
+const buildSuccessOutput = (
+  base: ResultBaseInput & {
+    artifactRef: string;
+    storageRef: string;
+    filePath: string;
+    videoId: string | null;
+  },
+  endedAt: string,
+  proofRef: string,
+) => ({
+  status: "success" as const,
+  platformId: "facebook-web" as const,
+  sourcePageUrl: base.input.sourcePageUrl,
+  videoId: base.videoId,
+  artifactRef: base.artifactRef,
+  storageRef: base.storageRef,
+  filePath: base.filePath,
+  contentType: base.contentType ?? "video/mp4",
+  byteSize: base.byteSize ?? 0,
+  durationMs: base.durationMs ?? null,
+  width: base.width ?? null,
+  height: base.height ?? null,
+  selectedQuality: base.input.preferredQuality,
+  candidateKind: base.candidate?.kind ?? "media_resource",
+  downloadedAt: endedAt,
+  proofRef,
+});

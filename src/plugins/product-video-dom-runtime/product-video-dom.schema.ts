@@ -142,7 +142,7 @@ export const ProductVideoDomRoundResultSchema = z.discriminatedUnion("status", [
   }).strict(),
 ]);
 
-export const ProductVideoBrowseLedgerEntrySchema = z.object({
+export const ProductVideoNavigationEntrySchema = z.object({
   missionId: z.string().min(1),
   roundId: z.string().min(1),
   pageUrlBefore: z.string().url(),
@@ -242,7 +242,7 @@ export type ProductVideoCommentDetail = z.infer<typeof ProductVideoCommentDetail
 export type ProductVideoJudgeInput = z.infer<typeof ProductVideoJudgeInputSchema>;
 export type ProductVideoJudgeOutput = z.infer<typeof ProductVideoJudgeOutputSchema>;
 export type ProductVideoDomRoundResult = z.infer<typeof ProductVideoDomRoundResultSchema>;
-export type ProductVideoBrowseLedgerEntry = z.infer<typeof ProductVideoBrowseLedgerEntrySchema>;
+export type ProductVideoNavigationEntry = z.infer<typeof ProductVideoNavigationEntrySchema>;
 export type ProductVideoCommentFetchStatus = z.infer<typeof ProductVideoCommentFetchStatusSchema>;
 export type ProductVideoScreenshotStatus = z.infer<typeof ProductVideoScreenshotStatusSchema>;
 export type ProductVideoEvidencePacket = z.infer<typeof ProductVideoEvidencePacketSchema>;

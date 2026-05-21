@@ -41,7 +41,7 @@ Required direction:
 - Public-index leakage, private-path escape, and legacy-contract escape must also close through decisive AST, symbol resolution, or import-graph checks.
 - Per-child capability-check or verify files may be referenced only as forbidden-shape targets and must never become inspection substitutes.
 - startup bootstrap checks are enforced by the commander-console-capability inspector as the startup child-contract checker and may not fall back to verify or smoke scripts.
-- No active support governance domains exist in the current baseline. If a future non-owner domain becomes enforcement truth for a controlled package architecture, it must provide manifest, inspector, required-shape, forbidden-shape, boundary-attack, anti-escape, and real-code-inspection coverage. Historical retired package-governance references remain retired only.
+- No standalone support governance domain exists in the current baseline. Active support sub-contracts remain enforced under their parent capability domain's owner manifest and inspector entry. If a future non-owner domain becomes independent enforcement truth for a controlled package architecture, it must provide manifest, inspector, required-shape, forbidden-shape, boundary-attack, anti-escape, and real-code-inspection coverage. Historical retired package-governance references remain retired only.
 
 ### 禁止
 

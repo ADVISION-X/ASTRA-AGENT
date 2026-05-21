@@ -1,7 +1,7 @@
 ---
 name: "GrassEye Mouse Click Capability"
 description: "Use when governing the independent Mouse Click Ability Group, governed browser/desktop click execution, Geometry Guard approved coordinate consumption, primitive click port boundary, click safety policy, idempotency, timeout/cancellation, post-action verification handoff, and the boundary that prevents Mouse Click from computing coordinates, remapping geometry, claiming action-result truth, or writing final action logs."
-applyTo: ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md, src/capabilities/mouse-click/**, docs/法案辅助文件/GrassEye Mouse Click 能力组施工图.md, scripts/audit/domains/mouse-click-capability/**, src/lib/local-runtime/**, src/lib/browser/**, src/features/platform-action/**"
+applyTo: ".github/instructions/cursor-rules/modules/module-mouse-click-capability.instructions.md, src/capabilities/mouse-click/**, docs/法案辅助文件/GrassEye Mouse Click 能力组施工图.md, scripts/audit/domains/mouse-click-capability/**, src/lib/local-runtime/**, src/lib/browser/**"
 ---
 
 # GrassEye Mouse Click Capability FINAL

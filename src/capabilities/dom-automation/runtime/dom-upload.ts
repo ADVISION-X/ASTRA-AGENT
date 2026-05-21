@@ -25,10 +25,10 @@ function validateApprovedUploadRequest(input: UploadApprovedFileInput): DomActio
   if (!existsSync(approvedPath) || !statSync(approvedPath).isFile()) {
     return buildDomFailureResult("approved file does not exist");
   }
-  if (!input.allowedExtensions.includes(extension as ".pdf")) {
+  if (!input.allowedExtensions.includes(extension)) {
     return buildDomReviewRequiredResult(
       "approved file extension is not allowed",
-      "Phase one approved file upload only allows PDF.",
+      "Approved file upload only allows task-listed extensions.",
     );
   }
   if (input.elementRef.targetKind !== "file-input") {
@@ -48,7 +48,7 @@ function buildDomUploadOutcome(
   return buildDomActionOutcome(
     {
       status: uploadResult.ok ? "success" : "failed",
-      message: uploadResult.ok ? "approved PDF selected for located file input" : uploadResult.message,
+      message: uploadResult.ok ? "approved file selected for located file input" : uploadResult.message,
     },
     beforeEvidenceRef,
     afterEvidenceRef,
@@ -78,7 +78,7 @@ export async function uploadApprovedFileOnce(
       targetKind: "file-input",
     },
     filePath: validated.approvedPath,
-    description: "set approved PDF on located file input",
+    description: "set approved file on located file input",
   });
   const afterEvidenceRef = await captureDomEvidenceRef(browser, "dom-upload-after");
   if (!afterEvidenceRef) {

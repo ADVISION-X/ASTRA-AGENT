@@ -1,25 +1,25 @@
 ---
 name: "GrassEye Code Topology"
 description: "Use when defining the capability-group topology contract, canonical capability roots, child-capability placement, or retired path deletion under capability-group governance."
-applyTo: ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md, src/lib/local-runtime/runtime-executor.ts, src/lib/local-runtime/runtime-bootstrap.ts, src/lib/local-runtime/runtime-state.ts, src/lib/local-runtime/runtime-step-support.ts"
+applyTo: ".github/instructions/cursor-rules/modules/module-code-topology.instructions.md, src/lib/local-runtime/**"
 ---
 
 # GrassEye Code Topology
 
 Scope: governs the directory constitution for capability-group governance.
-Boundary: this module governs canonical path ownership and retired-path deletion only as a capability-group-governance child sub-contract, not as an independent owner.
+Boundary: this module governs canonical path ownership and retired-path deletion only as a capability-group-governance support sub-contract, not as an independent owner.
 Excludes: business logic, runtime policy, scoring rules, and type-validation semantics.
-Authority: this file is authoritative only for the capability-group-governance domain as the topology sub-contract.
+Authority: this file is authoritative only for the capability-group-governance domain as the topology support sub-contract.
 
 ## Law GRASSEYE-CODE-TOPOLOGY-001-V1
 
-status: retired
+status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: manual-first
 evidenceMode: law
 
-summary: code-topology is a capability-group-governance child sub-contract for canonical roots, not an active owner.
+summary: code-topology is an active capability-group-governance support sub-contract for canonical roots, not an execution owner.
 
 ### 主题
 
@@ -30,16 +30,17 @@ summary: code-topology is a capability-group-governance child sub-contract for c
 Each active ability group must own exactly one canonical root under src/capabilities/<ability-group>.
 
 Required direction:
-- commander-console, orchestration, nerve-bus, ai, open, screenshot, visual-target, geometry-guard, mouse-click, mouse-scroll, post-action-verification, forensics-persistence, and page-state each own one canonical root under src/capabilities.
+- commander-console, orchestration, nerve-bus, ai, ai-input-gateway, open, screenshot, geometry-guard, mouse-click, mouse-scroll, text-input, forensics-persistence, dom-automation, and video-download each own one canonical root under src/capabilities.
 - Public contracts, child registries, and group-private implementations must live under the owning ability-group root.
 - Laws and blueprints must reference the same canonical root.
 - src/lib must remain infrastructure-only and must not host a replacement execution chain or shell-side runtime execution slice such as src/lib/local-runtime/runtime-executor.ts, runtime-bootstrap.ts, runtime-state.ts, or runtime-step-support.ts.
-- The AI canonical root is a thin machine and includes only the minimal public contract, prompt contract, one local model call path, and one active child implementation such as contract.ts, schema.ts, registry.ts, ability-group.ts, prompt/*, runtime/*, and children/visual-mission-judge-once.ts.
+- The AI canonical root is a thin machine and includes only the minimal public contract, prompt contract, governed task schemas, one local model call path, and active child implementations such as contract.ts, schema.ts, registry.ts, ability-group.ts, prompt/*, runtime/*, and children/*/implementation.ts.
 - AI prompt-contract shortcut files and AI-local legacy result translators are not canonical topology.
+- AI Input Gateway canonical topology includes contract.ts, schema.ts, ability-group.ts, manifest.ts, index.ts, contracts/*, providers/*, runtime/*, and other group-private transport-proof helpers under src/capabilities/ai-input-gateway only.
 - Commander Console child abilities must live under src/capabilities/commander-console/children/<child-id>/implementation.ts rather than a flat children.ts pseudo-catalog.
 - Commander Console canonical topology includes contract.ts, ability-group.ts, registry.ts, command-builder.ts, read-models.ts, ports/*, shared/*, and children/*/implementation.ts with no second command or dashboard root.
-- Mouse Click canonical topology includes contract.ts, ability-group.ts, registry.ts, primitive-port.ts, index.ts, shared/click-policy.ts, shared/click-result.ts, shared/click-failure.ts, shared/runtime-proof.ts, shared/coordinate.ts, and only children/click-browser-coordinate/implementation.ts plus children/click-desktop-coordinate/implementation.ts.
-- Mouse Scroll canonical topology includes contract.ts, ability-group.ts, registry.ts, primitive-port.ts, index.ts, shared/scroll-policy.ts, shared/scroll-result.ts, shared/scroll-failure.ts, shared/scroll-magnitude.ts, shared/runtime-proof.ts, shared/coordinate.ts, and only children/scroll-browser-viewport/implementation.ts plus children/scroll-desktop-screen/implementation.ts plus children/scroll-region/implementation.ts.
+- Mouse Click canonical topology includes contract.ts, ability-group.ts, registry.ts, primitive-port.ts, index.ts, shared/click-policy.ts, shared/click-result.ts, shared/click-failure.ts, shared/runtime-proof.ts, shared/coordinate.ts, and only children/*/implementation.ts for the active browser-viewport primitive click children declared by the Mouse Click law.
+- Mouse Scroll canonical topology includes contract.ts, ability-group.ts, registry.ts, primitive-port.ts, index.ts, shared/scroll-policy.ts, shared/scroll-result.ts, shared/scroll-failure.ts, shared/scroll-magnitude.ts, shared/runtime-proof.ts, shared/coordinate.ts, and only children/*/implementation.ts for the active primitive scroll children declared by the Mouse Scroll law.
 - Geometry Guard canonical topology includes contract.ts, ability-group.ts, registry.ts, index.ts, shared/*, and children/*/implementation.ts.
 - Geometry Guard child implementations must stay under src/capabilities/geometry-guard/children/<child-id>/implementation.ts.
 
@@ -59,7 +60,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-CODE-TOPOLOGY-002-V1
 
-status: retired
+status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: manual-first
@@ -94,7 +95,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-CODE-TOPOLOGY-003-V1
 
-status: retired
+status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: manual-first
@@ -126,7 +127,7 @@ FORBIDDEN:
 
 ## Law GRASSEYE-CODE-TOPOLOGY-004-V2
 
-status: retired
+status: active
 tier: P0
 capabilityDomain: capability-group-governance
 enforcementMode: manual-first
