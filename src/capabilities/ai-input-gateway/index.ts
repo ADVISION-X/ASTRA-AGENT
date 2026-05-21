@@ -1,5 +1,4 @@
 export { createAiInputGatewayAbilityGroup } from "./ability-group.js";
-export { AI_INPUT_GATEWAY_CATALOG_ENTRIES } from "./manifest.js";
 export {
   AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
   AiFeedInputRefSchema,
@@ -19,6 +18,15 @@ export type {
   AiInputGatewayAbilityGroup,
   AiInputGatewayExecutionContext,
 } from "./contract.js";
+export type {
+  AiFeedInput as AiFeedInputContract,
+  AiFeedInputRef as AiFeedInputRefContract,
+} from "./contracts/ai-feed-input.contract.js";
+export type {
+  AiFeedProviderProof as AiFeedProviderProofContract,
+  AiFeedResult as AiFeedResultContract,
+  AiFeedStatus as AiFeedStatusContract,
+} from "./contracts/ai-feed-result.contract.js";
 export type {
   AiProviderAdapter,
   AiProviderAdapterContext,

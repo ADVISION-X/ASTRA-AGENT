@@ -18,7 +18,6 @@ export {
   type VerifyDomStateInput,
   type WaitForDomStateInput,
 } from "./schema.js";
-export { DOM_AUTOMATION_CATALOG_ENTRIES } from "./manifest.js";
 export { readDomSnapshotOnce } from "./runtime/dom-snapshot.js";
 export { locateDomElementOnce } from "./runtime/dom-locator.js";
 export { fillDomElementOnce } from "./runtime/dom-fill.js";

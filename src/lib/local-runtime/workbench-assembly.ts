@@ -1,15 +1,3 @@
-/**
- * workbench-assembly.ts — All capability group assembly for the local workbench.
- *
- * Responsibilities:
- *   - Creates browser session + controller.
- *   - Wires capability-group support modules into one local workbench assembly.
- *
- * Does NOT contain: mission logic, AI routing, Forensics finalization,
- * Commander read models, map/binding, retired support systems,
- * or Nerve Bus special routes.
- */
-
 import { getDefaultPhase04LocalDataDir } from "./default-data-dir.js";
 import { StructuredLogBus } from "./structured-log-bus.js";
 import {
@@ -20,37 +8,17 @@ import {
 import { createRuntimeLogger, setDefaultRuntimeLogger } from "../runtime-logs/logger.js";
 import type { RuntimeLogger } from "../runtime-logs/index.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
-import {
-  createWorkbenchBrowserController,
-  createWorkbenchOpenAbilityGroup,
-  createWorkbenchPrimitivePorts,
-  createWorkbenchScreenshotGroup,
-} from "./workbench-browser-support.js";
-import {
-  createWorkbenchCapabilityGroups,
-  createWorkbenchForensicsGroup,
-} from "./workbench-capability-support.js";
-
-// ─── Assembly Type ─────────────────────────────────────────────────────────────
+import { createWorkbenchBrowserController } from "./workbench-browser-support.js";
+import { createWorkbenchEvidenceStore } from "./workbench-capability-support.js";
 
 export type WorkbenchAssembly = {
   options: GrassEyeWorkbenchOptions;
   dataDir: string;
   structuredLogBus: StructuredLogBus;
   browserController: ReturnType<typeof createWorkbenchBrowserController>;
-  forensicsPersistenceAbilityGroup: ReturnType<typeof createWorkbenchForensicsGroup>;
-  aiAbilityGroup: ReturnType<typeof createWorkbenchCapabilityGroups>["aiAbilityGroup"];
-  openAbilityGroup: ReturnType<typeof createWorkbenchOpenAbilityGroup>;
-  screenshotAbilityGroup: ReturnType<typeof createWorkbenchScreenshotGroup>;
-  geometryGuardAbilityGroup: ReturnType<typeof createWorkbenchCapabilityGroups>["geometryGuardAbilityGroup"];
-  mouseClickAbilityGroup: ReturnType<typeof createWorkbenchCapabilityGroups>["mouseClickAbilityGroup"];
-  mouseScrollAbilityGroup: ReturnType<typeof createWorkbenchCapabilityGroups>["mouseScrollAbilityGroup"];
-  textInputAbilityGroup: ReturnType<typeof createWorkbenchCapabilityGroups>["textInputAbilityGroup"];
-  videoDownloadAbilityGroup: ReturnType<typeof createWorkbenchCapabilityGroups>["videoDownloadAbilityGroup"];
+  evidenceStore: ReturnType<typeof createWorkbenchEvidenceStore>;
   runtimeLogger: RuntimeLogger;
 };
-
-// ─── Assembly ─────────────────────────────────────────────────────────────────
 
 export function createWorkbenchAssembly(
   options: GrassEyeWorkbenchOptions,
@@ -59,33 +27,14 @@ export function createWorkbenchAssembly(
   const runtimeLogger = createWorkbenchRuntimeLogger();
   const structuredLogBus = createWorkbenchStructuredLogBus();
   const browserController = createWorkbenchBrowserController(options, dataDir);
-  const forensicsPersistenceAbilityGroup =
-    createWorkbenchForensicsGroup(dataDir, runtimeLogger);
-  const primitivePorts = createWorkbenchPrimitivePorts(browserController);
-  const openAbilityGroup = createWorkbenchOpenAbilityGroup(
-    options,
-    browserController,
-  );
-  const screenshotAbilityGroup = createWorkbenchScreenshotGroup(
-    browserController,
-    dataDir,
-  );
-  const capabilityGroups = createWorkbenchCapabilityGroups({
-    dataDir,
-    runtimeLogger,
-    primitivePorts,
-    browserController,
-  });
+  const evidenceStore = createWorkbenchEvidenceStore(dataDir, runtimeLogger);
 
   return {
     options,
     dataDir,
     structuredLogBus,
     browserController,
-    forensicsPersistenceAbilityGroup,
-    openAbilityGroup,
-    screenshotAbilityGroup,
-    ...capabilityGroups,
+    evidenceStore,
     runtimeLogger,
   };
 }

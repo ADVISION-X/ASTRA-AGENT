@@ -1,567 +1,88 @@
 ---
 name: "GrassEye Capability Group Governance"
-description: "Use when defining GrassEye ability groups, child-ability boundaries, shared ability contracts, strength levels, debug evidence, or orchestration-to-ability-group authority."
-applyTo: ".github/instructions/cursor-rules/GRASSEYE-KERNEL.instructions.md, .github/instructions/cursor-rules/grasseye-index.instructions.md, .github/instructions/cursor-rules/modules/module-capability-group-governance.instructions.md, docs/法案辅助文件/GrassEye 能力组与子能力总纲施工图.md"
+description: "Governs job-flow scripts, ability groups, child abilities, AI choice judging, and retired architecture bans."
+applyTo: ".github/instructions/cursor-rules/**, src/capabilities/**, src/plugins/**, src/lib/local-runtime/**"
 ---
 
 # GrassEye Capability Group Governance
 
-Scope: governs the shared contract for all GrassEye ability groups, child capabilities, and support sub-contracts.
-Boundary: this module governs the constitutional layer only: system formula, parent-child ownership, support sub-contract status, topology contract, owner evidence minimums, and orchestration or commander boundaries.
-Excludes: concrete click logic, concrete screenshot logic, AI prompt internals, storage schema internals, and any group-private business execution.
-Authority: this file is authoritative only for the capability-group-governance domain.
-Terminology: ability group and capability group refer to the same top-level owner; child capability is the canonical child term.
-
-## Law GRASSEYE-CAPABILITY-GROUP-001-V1
-
 status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: GrassEye uses one simple capability-machine constitution: AI composes registry-backed atomic abilities and the system dispatches owner groups and records evidence.
-
-### 主题
-
-唯一能力宪法
-
-### 法条
-
-GrassEye = User Requirement + Platform Registry + MuscleMemoryCatalog + AI + Orchestration + Nerve Bus + Capability Groups + Commander Console + Forensics Persistence.
-
-Required direction:
-- Current top-level roots are implementation inventory, not equal semantic authority.
-- Only capability groups that expose executable atomic child capabilities may remain top-level execution owners.
-- Child abilities may exist only under one current active capability-group owner.
-- Support boundaries may describe shell, topology, schema, logging, privacy, and audit rules, but they do not become active execution owners.
-- The governed execution chain is: Commander Console receives the user mission command -> Orchestration owns the mission loop -> Nerve Bus transports governed envelopes -> the owning capability-group public contract executes an atomic child capability -> Forensics records evidence.
-
-### 禁止
-
-FORBIDDEN:
-- treating current root inventory as equal semantic authority.
-- retired support surfaces becoming active execution or evidence owners.
-- coordinate-action as a separate active ability group.
-- agent-runtime, browse-flow, mechanical-skills, visual-action, visual-only-runtime, evidence-packet, operator-control, product-signal, comment-intelligence, or vision-boundary as active owners.
-- compat, legacy, bridge, or dual-truth governance tracks.
-- Commander Console, Orchestration, or support boundaries swallowing child implementation ownership.
-
-## Law GRASSEYE-CAPABILITY-GROUP-002-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: every ability group owns one public contract and one child-boundary catalog.
-
-### 主题
-
-父子边界唯一
-
-### 法条
-
-Every ability group must expose one unified public contract that governs all of its child abilities.
-
-Required direction:
-- Every ability group must declare one stable abilityGroupId and one child catalog.
-- Every child ability must declare childCapabilityId and parentAbilityGroupId.
-- Shared fields must keep one spelling across laws, blueprints, types, and owner evidence.
-- Parent ability groups must expose the only public entry; child implementation paths remain private.
-- Child taxonomy must split by owned execution dimension rather than by input parameter variants when the underlying public contract is shared.
-- Child capability implementation directories must stay under the owning parent capability root.
-
-### 禁止
-
-FORBIDDEN:
-- child capabilities exposed as independent public owners.
-- per-child private result universes that bypass the parent contract.
-- duplicate ownership of page-state or post-action verification truth.
-- external imports of another group's child implementation path.
-- inflating child catalogs for parameter variants when one shared public contract already governs those variants.
-
-## Law GRASSEYE-CAPABILITY-GROUP-003-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: Commander, Orchestration, Nerve Bus, and Forensics each have one fixed authority boundary in the capability machine.
-
-### 主题
-
-指挥链边界
-
-### 法条
-
-Commander Console receives the user mission command, Orchestration owns the mission loop, Nerve Bus transports governed envelopes, and capability groups execute atomic child capabilities through public contracts only.
-
-Required direction:
-- Human command enters Commander Console first.
-- Commander Console emits governed mission command into the Orchestration path through Nerve Bus and the Orchestration public command contract.
-- Orchestration may request the AI round judge or any other named child capability only through Nerve Bus and the owning group's public contract.
-- Nerve Bus transports governed envelopes; it does not become an execution owner.
-- The owning capability group executes the named atomic child capability through its public contract.
-- Forensics records evidence after governed execution.
-- Cross-group collaboration must happen through public contracts and structured proof.
-- Cross-group imports must target the owning group's public index or declared public contract only.
-- verify, capability-check, and self-check files do not count as public contract or enforcement truth.
-- Commander Console remains read-model and command-entry only.
-- Orchestration remains orchestration only and must not execute browser, AI, click, scroll, screenshot, or persistence internals.
-
-### 禁止
-
-FORBIDDEN:
-- Orchestration importing child implementations directly.
-- one ability group reaching into another group's private folder.
-- one ability group importing another group's shared helpers, prompt shortcuts, or other non-public files.
-- skill catalogs, helper universes, or adapter layers bypassing group boundaries.
-- child readiness or acceptance being delegated to per-child verify scripts.
-- Commander Console directly executing runtime internals.
-- Nerve Bus becoming an execution owner.
-
-## Law GRASSEYE-CAPABILITY-GROUP-004-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: owner evidence minimum fields are fixed across every governed execution.
-
-### 主题
-
-统一运行证明合同
-
-### 法条
-
-Every governed execution must leave one minimum owner evidence contract that survives success and failure.
-
-Required direction:
-- owner evidence must carry runId, missionId, capabilityId, childCapabilityId when applicable, inputSummary, outputSummary, status, errorCode, evidenceRef, and timestamp.
-- evidence fields must keep one spelling across laws, blueprints, types, and audit output.
-- evidence must exist for both success and failure.
-
-### 禁止
-
-FORBIDDEN:
-- group-specific proof shapes that cannot be traced across capability boundaries.
-- silent success.
-- silent failure.
-
-## Law GRASSEYE-CAPABILITY-GROUP-005-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: every governed execution must leave evidence, log, and trace.
-
-### 主题
-
-证据闭环
-
-### 法条
-
-Every governed capability execution must leave stable proof that can be traced to Forensics Persistence.
-
-Required direction:
-- every capability execution must leave evidence, log, and trace.
-- proof, logs, and evidence must line up under one run identity.
-- capability outputs must describe success, failure, or review-required branches explicitly.
-
-### 禁止
-
-FORBIDDEN:
-- execution without evidence reference.
-- execution without failure branch.
-- support boundaries owning final evidence truth.
-
-## Law GRASSEYE-CAPABILITY-GROUP-006-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: ability groups must keep hard boundaries and topology must reflect ownership.
-
-### 主题
-
-边界与目录宪法
-
-### 法条
-
-Ability groups must keep hard ownership boundaries and must not absorb support-boundary responsibilities or deleted historical owners.
-
-Required direction:
-- Shared nouns that affect more than one group must be owned by one law and referenced elsewhere.
-- Each active capability group owns one canonical root under src/capabilities/<group>.
-- Child capability implementation must stay under the parent capability root.
-- No retired feature root, orphan capability directory, or cross-owner implementation import may survive the cutover.
-- Commander Console read-model truth must enter through named Commander-facing ports.
-- Screenshot provides visual evidence and coordinate grids.
-- AI chooses one registered atomic next action from current visual evidence.
-- Geometry Guard validates and normalizes executable geometry.
-- Mouse Click and Mouse Scroll execute primitives.
-- Text Input writes approved text into verified input targets through governed ports.
-- Action results are judged only by the next visual round.
-
-### 禁止
-
-FORBIDDEN:
-- Coordinate Action old layering.
-- hidden skill catalogs or browse chains.
-- platform-action, local-browser-session, local-app-shell, startup-entrypoint, structured-logging, local-persistence-schema, multi-frame-evidence, or local-ai-runtime claiming ability-group sovereignty.
-- src/features/local-data or src/features/platform-action surviving as public runtime roots, bridge roots, or compat roots.
-- Commander Console reviving operator snapshot, browse runtime snapshot, task-run truth, or agent skill matrix as a second owner universe.
-- Geometry Guard owning action planning, click execution, scroll execution, screenshot truth, or AI reasoning.
-
-## Law GRASSEYE-CAPABILITY-GROUP-007-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: Capability Catalog and MuscleMemoryCatalog are generated read models, not new owners.
-
-### 主题
-
-Capability Registry 只读不立组
-
-### 法条
-
-Capability Catalog is a generated read model from active ability group registries and child ability contracts. MuscleMemoryCatalog is the governed capability registry exposed to AI and governed runtime. Neither is a new ability group, business-flow owner, or semantic shortcut owner.
-
-## Law GRASSEYE-CAPABILITY-GROUP-008-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: AI-generated retired-flow drafting must use the governed capability catalog.
-
-### 主题
-
-退役流程草案不得编造能力
-
-### 法条
-
-AI-generated retired-flow drafting must use the capability catalog and must not invent unknown ability groups or child capabilities.
-
-## Law GRASSEYE-CAPABILITY-GROUP-009-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: non-AI body groups and support layers must not own video-change cognition or revive verify-video-changed-after-scroll.
-
-### 主题
-
-非 AI 视频变化判断禁令
-
-### 法条
-
-AI is the brain. Non-AI ability groups and support layers may capture observations, execute primitives, validate geometry, and transport proof, but they must not determine whether media or video content changed.
-
-Required direction:
-- Only AI may judge whether before/after video content is the same, changed, ambiguous, or semantically different.
-- Post-action Verification must not expose or revive `verify-video-changed-after-scroll`.
-- Browser or runtime support may observe page URL, DOM identity, screenshot refs, or video identity refs, but those observations must be handed to AI or downstream governed proof instead of becoming a local changed/unchanged verdict.
-- Mouse Scroll success remains primitive execution truth only; it must not claim video-change truth.
-
-### 禁止
-
-FORBIDDEN:
-- `verify-video-changed-after-scroll` as a child capability, expected outcome type, dispatch route, or support helper.
-- DOM, URL, perceptual hash, pixel diff, threshold, or hand-written rule deciding whether the video changed outside AI.
-- Browser support helpers that compare before/after video identity and return local video-change truth.
-
-## Law GRASSEYE-CAPABILITY-GROUP-010-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: non-AI active ability groups must not publish AI-owned cognition or revive retired support surfaces.
-
-### 主题
-
-非 AI 页面认知命名禁令
-
-### 法条
-
-AI is the brain. Open, Mouse Scroll, Screenshot, Text Input, Mouse Click, Geometry Guard, Forensics Persistence, Commander Console, Nerve Bus, and Orchestration must stay inside their current active responsibilities. They must not publish cognition-labelled surfaces that decide or classify page readiness, login state, safety review, freshness, sensitive-text verdict, page/domain truth, target ranking, ambiguity thresholds, or local target-selection policy.
-
-Required direction:
-- Mouse Scroll may expose primitive execution status, safety gate metadata, and proof refs only.
-- Open may expose navigation attempt status and post-open observation handoff refs only.
-- Screenshot may expose governed capture state and handoff proof only; it must not emit login-wall or wrong-domain verdict truth.
-- Text Input may consume approved sensitiveTextPolicy and redact payload proof only; it must not heuristically detect or classify sensitive text.
-- Mouse Click may expose primitive click execution status and proof refs only.
-- Geometry Guard may validate grid/bounds/coordinate safety only; it must not select targets or actions.
-- Nerve Bus transports only.
-- Orchestration captures, calls AI, saves current evidence on `save=true`, and dispatches exactly one AI-selected action.
-- Readiness, safety, stability, freshness, login, domain, sensitive-text, and page-kind judgment must be emitted by AI through an AI-owned contract instead of non-AI child ids, classification fields, or local verdict helpers.
-
-### 禁止
-
-FORBIDDEN:
-- `detect-*` child capabilities or child ids under non-AI cognition surfaces.
-- `classificationDecision`, `classificationSource`, `freshnessDecision`, `proceedDecision`, `alreadyOnTargetFreshnessDecision`, `detectSensitiveText`, `minimumConfidence`, `minimumAmbiguityGap`, `freshnessTtlMs`, `freshnessPolicy`, `maxSnapshotAgeMs`, `maxObservationAgeMs`, `maxObservationSkewMs`, `confidencePolicy`, `selectionPolicy`, `ambiguityPolicy`, `coordinatePolicy`, or `dataQualityPolicy` under non-AI cognition purge targets.
-- `post-open-state`, `state-classification`, or `proceed-decision` runtime gates outside AI.
-- positive Page State, Post-action Verification, Visual Target, or Platform Action support-surface ownership.
-- `login_wall`, `wrong_domain`, or `security_wall` as exported non-AI verdict literals.
-- Hand-written readiness, safety, stability, freshness, login, domain, sensitive-text, platform-kind, target-ranking, or ambiguity-threshold truth being published by non-AI groups.
-- Product-presence low-confidence or frame-count based truth being decided by production code. Production code may fail mechanically when required evidence is missing, but only AI output may decide product_yes/product_no.
-
-## Law GRASSEYE-CAPABILITY-GROUP-011-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: MuscleMemoryCatalog is the governed capability registry and must not become a workflow, package, or semantic-shortcut library.
-
-### 主题
-
-肌肉记忆只能是能力登记册
-
-### 法条
-
-GrassEye Muscle Memory is the governed capability registry.
-It is not a workflow library.
-It is not a package library.
-It is not a business-flow catalog.
-It is not a semantic-shortcut catalog.
-
-Required direction:
-- MuscleMemoryCatalog may register only system-owned executable abilities, their input boundaries, output proof shape, execution owner, and failure semantics.
-- MuscleMemoryCatalog is the AI-visible ability manual and the system-visible dispatch registry.
-- MuscleMemoryCatalog entries must point to atomic child capabilities or to clearly marked transitional aliases that are not final authority.
-- MuscleMemoryCatalog must not own user-intent judgment, business-flow routing, or semantic packaging truth.
-
-### 禁止
-
-FORBIDDEN:
-- treating MuscleMemoryCatalog as a package catalog, workflow catalog, semantic-shortcut catalog, or business-flow catalog.
-- storing multi-step business procedures as final registry truth.
-- letting composite, package, or flow entries become the final authority over child capabilities.
-- defining muscle memory as both a capability registry and a workflow-or-package library at the same time.
-
-## Law GRASSEYE-CAPABILITY-GROUP-012-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: every capability group is an owner department that provides one class of executable child capabilities.
-
-### 主题
-
-能力组是能力提供部门
-
-### 法条
-
-Capability Group is the owner department of a class of executable abilities. A capability group owns schemas, contracts, child capability registry, execution boundary, proof shape, and failure semantics for its child capabilities.
-
-Required direction:
-- A capability group provides real executable child capabilities only for its own execution dimension.
-- A capability group must not decide user intent, own business-process packages, or replace AI semantic judgment.
-- A capability group must keep child capability input schema, forbidden input, output proof, and failure policy explicit.
-- Owner evidence, contracts, and runtime dispatch must align with the capability-group boundary.
-
-### 禁止
-
-FORBIDDEN:
-- treating a capability group as a business-process owner, route-plan owner, or task-package owner.
-- letting a capability group mix AI judgment with primitive execution ownership.
-- hiding cross-department business flow inside one capability group's child registry.
-
-## Law GRASSEYE-CAPABILITY-GROUP-013-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: every child capability must be the smallest governed executable action and must stay atomic, concrete, and behaviorally unambiguous.
-
-### 主题
-
-子能力只能是最小原子动作
-
-### 法条
-
-Child Capability is the smallest governed executable action owned by a capability group. A child capability must be atomic, concrete, and behaviorally unambiguous.
-
-Required direction:
-- A child capability must represent one irreducible executable action such as one click, one key press, one text input, one capture, one open, one evidence write, or one governed stop/review handoff.
-- A child capability must define explicit input schema, forbidden inputs, output proof or refs, and failure semantics.
-- A child capability may be reused by AI composition and system scheduling only after its atomic boundary is clear.
-- Behavior names must describe executable action truth rather than business outcome truth.
-
-### 禁止
-
-FORBIDDEN:
-- business flows, semantic shortcuts, or multi-step packages being defined as child capabilities.
-- names such as `LIKE_CURRENT_VIDEO`, `OPEN_COMMENTS`, `NEXT_VIDEO`, `SAVE_PRODUCT_AND_LIKE`, `YES_SEEDING_VIDEO_FLOW`, or `NO_SEEDING_VIDEO_FLOW` being treated as final atomic child-capability truth.
-- mixing multiple business judgments and multiple execution steps into one child capability.
-
-## Law GRASSEYE-CAPABILITY-GROUP-014-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: AI selects exactly one registered atomic capability per round while the system validates, injects, dispatches, and records evidence.
-
-### 主题
-
-AI 负责组合，系统负责安全执行
-
-### 法条
-
-AI receives the capability registry as an ability manual. Across a mission, the requirement is realized as a sequence of rounds, but in each round AI may select exactly one registered atomic capability according to the user requirement and current visual evidence. The system validates the proposed next action, injects system-owned refs, resolves executable geometry through Geometry Guard, dispatches the governed child capability, and records evidence.
-
-Required direction:
-- AI must use only registry-exposed capabilities and must not invent unknown capability groups, child capabilities, or semantic package names.
-- AI must not output raw coordinates or bypass the governed registry to call owner internals.
-- The system must validate whether the proposed next action is registered and whether its input matches the governed contract.
-- The system may convert a validated caller payload into contract-scoped approved inputs such as `approvedText` or `approvedKey`, but only after contract validation, redaction, and allowlist checks defined by the owning capability group.
-- The system may inject system fields and refs, resolve gridCell through Geometry Guard, dispatch the owning capability group, and persist evidence.
-- The system must not replace AI by composing business packages or performing user-intent judgment.
-
-### 禁止
-
-FORBIDDEN:
-- AI inventing capabilities outside the registry.
-- AI outputting raw x/y or direct owner-internal invocation payloads.
-- system-owned business-package composition replacing single-round AI action selection.
-- child-local policy inventing `approvedText`, `approvedKey`, or other approved payload truth after dispatch has already entered the owning capability group.
-- system validators, schedulers, or registries owning business-process truth.
-
-## Law GRASSEYE-CAPABILITY-GROUP-015-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: semantic actions, package entries, and flow entries may exist only as transitional residue and must not define final registry truth.
-
-### 主题
-
-语义套餐只能过渡不得立法
-
-### 法条
-
-Composite, package, workflow, and semantic-action vocabulary may appear only as historical transition residue, anti-examples, or code-gap tracking. They must not define final MuscleMemoryCatalog authority, final child-capability truth, or final AI-manual truth.
-
-Required direction:
-- Any surviving semantic or composite entry must be marked transitional, historical, or pending code-level retirement.
-- Blueprints and laws must prefer atomic registry entries over package or flow wording.
-- Inspectors must later block business-flow packages from being accepted as atomic child capabilities.
-
-### 禁止
-
-FORBIDDEN:
-- positive final-direction descriptions for composite action, package, workflow, business flow, or semantic shortcut inside active law and blueprint authority.
-- treating semantic action names as mandatory retained capability definitions.
-- allowing package legality gates or workflow compilers to replace the simpler capability-registry definition.
-
-## Law GRASSEYE-CAPABILITY-GROUP-016-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: support sub-contracts are active parent-domain supplements, not capability groups and not child capabilities.
-
-### 主题
-
-支撑子法不是子能力
-
-### 法条
-
-Support sub-contract is an active constitutional supplement attached to exactly one parent capability domain or governance domain. It may govern shell, bootstrap, topology, schema, logging, privacy, browser-session, or audit boundaries, but it does not expose AI-visible children or dispatchable runtime actions.
-
-Required direction:
-- Every support sub-contract must declare exactly one parent domain and one bounded support topic.
-- Support sub-contracts may tighten shell, startup, topology, schema, session, logging, privacy, or audit rules only; they must not create a new execution owner.
-- Support sub-contracts must never appear as MuscleMemoryCatalog entries, AI action choices, targetAbilityGroupId values, or childCapabilityId values.
-- A support sub-contract remains `active` while its current constraints are in force, even when it retires historical paths or legacy surfaces.
-- If a support sub-contract is replaced, the newer single law must explicitly name the replacement; otherwise the current active support sub-contract remains authoritative.
-- Support sub-contracts must strengthen parent-boundary clarity and must not create cross-owner import or runtime ownership leakage.
-
-### 禁止
-
-FORBIDDEN:
-- treating a support sub-contract as an independent capability group, child capability, or public runtime entry.
-- dispatching or registry-exposing a support sub-contract as an executable action.
-- one support sub-contract serving multiple parent domains as final authority.
-- marking a currently governing support sub-contract as `retired` only because it forbids retired code paths.
-
-## Law GRASSEYE-CAPABILITY-STRENGTH-001-V1
-
-status: active
-tier: P0
-capabilityDomain: capability-group-governance
-enforcementMode: machine-blocking
-evidenceMode: law+blueprint+real-code-inspection
-
-summary: every child capability exposed to the capability registry or AI composition must prove atomic executable strength.
-
-### 主题
-
-子能力强度准入
-
-### 法条
-
-Every child capability that is exposed to MuscleMemoryCatalog or AI composition must first be an atomic executable action and must prove strength through owner contract, owner schema, owner runtime registry, implementation, governed dispatch reachability, and audit evidence.
-
-Required direction:
-- A child capability must be atomic and behaviorally unambiguous before it is eligible for MuscleMemoryCatalog or AI composition.
-- An AI-visible registry entry must map to one real atomic child capability path; current `actions[].actionCode` may survive only as a transitional transport alias.
-- A child capability is not eligible for AI action planning unless it is declared in owner contract, declared in owner schema union, registered in owner runtime registry, implemented, reachable through governed dispatch, and able to return governed success, failed, or review_required output.
-- A child capability that performs side effects must also prove a Forensics record path.
-- Capability-group-governance audit must emit machine findings for missing registry, schema drift, missing execute, fake success, naked public throw, missing dispatch coverage, and AI action child gaps; any inventory is support evidence only and must stay small, local, and violation-driven.
-- MuscleMemoryCatalog and AI action planning must not expose metadata-only or non-executable children.
-
-### 禁止
-
-FORBIDDEN:
-- metadata-only child capability in MuscleMemoryCatalog.
-- fake success child capability.
-- throw-only public execute boundary.
-- child existing in catalog but missing from runtime.
-- AI-allowed action path without executable child coverage.
-- side-effecting child without a Forensics record path.
-- semantic package or business-flow residue being graded as an atomic strong child capability.
+version: 2026-05-21
+
+## Law GRASSEYE-JOB-FLOW-001-V1
+
+GrassEye uses job-oriented flow scripts as process owners.
+
+Required:
+- One job has one explicit business flow script.
+- The business flow script owns step order, branch handling, stop conditions, and review-required decisions.
+- Ability groups provide stable same-kind primitives and do not own business process order.
+- Child abilities stay inside exactly one ability group.
+- Evidence and logs are recorded for every meaningful step.
+
+Forbidden:
+- universal workflow planners;
+- central dispatchers as process truth;
+- general mission loops as business owners;
+- muscle-memory or registry catalogs as workflow truth;
+- compatibility, bridge, fallback, or dual-truth architecture.
+
+## Law GRASSEYE-JOB-FLOW-002-V1
+
+The active first job is Amazon invoice upload.
+
+Required:
+- `src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts` is the canonical flow owner.
+- The flow may directly call browser, DOM automation, evidence, runtime logs, and AI choice judge facades.
+- Amazon-specific decisions remain in `src/plugins/amazon-invoice-upload/**`.
+
+Forbidden:
+- Amazon workflow logic inside generic DOM/browser/evidence/AI provider transports;
+- product-video or visual mission code on the active upload path;
+- old ability groups acting as hidden upload dependencies.
+
+## Law GRASSEYE-ABILITY-GROUP-003-V1
+
+Current ability groups are simple same-kind work groups.
+
+Active groups:
+- DOM Automation: read, locate, fill, click, upload, wait, verify.
+- Browser: open, wait, session state, screenshot evidence, file-input foundation.
+- AI Choice Judge: bounded option questions only.
+- Evidence Store: step trace and artifact references.
+- Runtime Logs: structured redacted logs.
+
+Forbidden top-level execution owners:
+- Nerve Bus;
+- Orchestration;
+- Geometry Guard;
+- Mouse Click;
+- Mouse Scroll;
+- Text Input;
+- Open;
+- Screenshot;
+- Video Download;
+- Product Video DOM Runtime;
+- Pure Visual Mission.
+
+## Law GRASSEYE-AI-CHOICE-004-V1
+
+AI is a bounded choice judge only.
+
+Required AI output:
+
+```txt
+selectedOptionId
+confidence
+reason
+```
+
+Forbidden AI output:
+- next action;
+- action plan;
+- browser command;
+- DOM selector;
+- coordinate;
+- arbitrary file path;
+- generated business data;
+- submission/payment/refund/delete decisions.

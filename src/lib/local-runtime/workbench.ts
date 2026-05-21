@@ -1,53 +1,21 @@
-/**
- * workbench.ts — GrassEyeWorkbench main class.
- *
- * Assembles all capability groups, nerve bus, orchestration, and commander console.
- * Provides a createHandle() method for the app layer.
- *
- * Does NOT contain: mission flow logic, AI routing, Forensics finalization,
- * Commander read-model universe, or map/binding chains.
- */
-
-import {
-  createNerveBusAbilityGroup,
-  type NerveBusAbilityGroup,
-} from "../../capabilities/nerve-bus/index.js";
-import {
-  createOrchestrationAbilityGroup,
-  type OrchestrationAbilityGroup,
-} from "../../capabilities/orchestration/index.js";
 import {
   loadAppRunLimitSettings,
   saveAppRunLimitSettings,
-  loadUserRequirementHistory,
-  upsertUserRequirementHistory,
-  deleteUserRequirementHistory,
-  markUserRequirementHistoryReused,
-  type UserRequirementHistoryUpsertInput,
 } from "./settings.js";
-import {
-  loadOnlineAiProviderPublicStatus,
-  saveOnlineAiProviderConfig,
-} from "../online-ai/index.js";
 import {
   getHealthReport,
   getMissionReadinessReport,
   getMissionStartPreflight,
   getModeInfo,
 } from "./workbench-status.js";
-import type { WorkbenchPreflightInput } from "./workbench-status-types.js";
+import {
+  loadOnlineAiProviderPublicStatus,
+  saveOnlineAiProviderConfig,
+} from "../online-ai/index.js";
 import {
   createWorkbenchAssembly,
   type WorkbenchAssembly,
 } from "./workbench-assembly.js";
-import {
-  createWorkbenchNerveBusHandlerPort,
-} from "./workbench-nerve-bus-dispatcher.js";
-import {
-  createWorkbenchCommanderConsole,
-  getCommanderConsoleSnapshot,
-  type WorkbenchCommanderMissionDashboardView,
-} from "./workbench-commander-console.js";
 import type { GrassEyeWorkbenchOptions } from "./contract.js";
 import type { GrassEyeWorkbenchHandle } from "./workbench-handle.js";
 import {
@@ -57,90 +25,7 @@ import {
   resumeAmazonInvoiceUploadTask,
   startAmazonInvoiceUploadTask,
   startAmazonInvoiceUploadMission,
-  getProductVideoDomTaskStatus,
-  listProductVideoEvidenceRecords,
-  startProductVideoDomMiningTask,
 } from "../../plugins/local-workbench-plugin-tasks.js";
-
-// ─── Active Capability Group IDs ───────────────────────────────────────────
-
-const ACTIVE_CAPABILITY_GROUP_IDS = [
-  "ai",
-  "open",
-  "screenshot",
-  "geometry-guard",
-  "mouse-click",
-  "mouse-scroll",
-  "text-input",
-  "forensics-persistence",
-  "orchestration",
-  "nerve-bus",
-  "commander-console",
-] as const;
-
-type CommanderConsoleSurface = ReturnType<typeof createWorkbenchCommanderConsole>;
-
-type WorkbenchCore = {
-  assembly: WorkbenchAssembly;
-  nerveBus: NerveBusAbilityGroup;
-  orchestration: OrchestrationAbilityGroup;
-  commanderConsole: CommanderConsoleSurface;
-};
-
-type BuildWorkbenchHandleInput = {
-  init: () => Promise<void>;
-  assembly: WorkbenchAssembly;
-  orchestration: OrchestrationAbilityGroup;
-  commanderConsole: CommanderConsoleSurface;
-};
-
-const createWorkbenchOrchestration = (
-  assembly: WorkbenchAssembly,
-  nerveBus: NerveBusAbilityGroup,
-): OrchestrationAbilityGroup =>
-  createOrchestrationAbilityGroup({
-    dataDir: assembly.dataDir,
-    browserController: assembly.browserController,
-    nerveBus,
-    forensics: assembly.forensicsPersistenceAbilityGroup,
-    screenshot: assembly.screenshotAbilityGroup,
-    ai: assembly.aiAbilityGroup,
-    geometryGuard: assembly.geometryGuardAbilityGroup,
-    open: assembly.openAbilityGroup,
-    mouseScroll: assembly.mouseScrollAbilityGroup,
-    runtimeLogger: assembly.runtimeLogger,
-  });
-
-const initializeWorkbenchCore = (
-  options: GrassEyeWorkbenchOptions,
-): WorkbenchCore => {
-  const assembly = createWorkbenchAssembly(options);
-  const orchestrationRef: { instance: OrchestrationAbilityGroup | null } = {
-    instance: null,
-  };
-  const handlerPort = createWorkbenchNerveBusHandlerPort({
-    ...assembly,
-    getOrchestration: () => {
-      if (!orchestrationRef.instance) {
-        throw new Error("Orchestration not yet initialized");
-      }
-      return orchestrationRef.instance;
-    },
-  });
-  const nerveBus = createNerveBusAbilityGroup({ handlerPort });
-  const orchestration = createWorkbenchOrchestration(assembly, nerveBus);
-  orchestrationRef.instance = orchestration;
-
-  return {
-    assembly,
-    nerveBus,
-    orchestration,
-    commanderConsole: createWorkbenchCommanderConsole({
-      nerveBus,
-      getOrchestration: () => orchestration,
-    }),
-  };
-};
 
 const buildSettingsHandle = (dataDir: string) => ({
   async getAppRunLimitSettings() {
@@ -154,21 +39,6 @@ const buildSettingsHandle = (dataDir: string) => ({
   },
   async saveOnlineAiProviderSettings(input: Parameters<typeof saveOnlineAiProviderConfig>[1]) {
     return saveOnlineAiProviderConfig(dataDir, input);
-  },
-});
-
-const buildRequirementHistoryHandle = (dataDir: string) => ({
-  async getUserRequirementHistory(limit?: number) {
-    return loadUserRequirementHistory(dataDir, limit);
-  },
-  async upsertUserRequirementHistory(input: UserRequirementHistoryUpsertInput) {
-    return upsertUserRequirementHistory(dataDir, input);
-  },
-  async deleteUserRequirementHistory(id: string) {
-    return deleteUserRequirementHistory(dataDir, id);
-  },
-  async reuseUserRequirementHistory(id: string) {
-    return markUserRequirementHistoryReused(dataDir, id);
   },
 });
 
@@ -208,88 +78,37 @@ const buildAmazonInvoiceHandle = (
   },
 });
 
-const buildProductVideoDomHandle = (
-  assembly: WorkbenchAssembly,
-  dataDir: string,
-) => ({
-  async startProductVideoDomMiningTask(input: Parameters<GrassEyeWorkbenchHandle["startProductVideoDomMiningTask"]>[0]) {
-    return startProductVideoDomMiningTask({
-      browser: assembly.browserController,
-      dataDir,
-      mission: input.mission,
-    });
-  },
-  async getProductVideoDomTaskStatus(taskId: string) {
-    return getProductVideoDomTaskStatus({ dataDir, taskId });
-  },
-  async listProductVideoEvidenceRecords(limit?: number) {
-    return listProductVideoEvidenceRecords({
-      dataDir,
-      ...(limit !== undefined ? { limit } : {}),
-    });
-  },
-});
-
 const buildWorkbenchHandle = (
-  input: BuildWorkbenchHandleInput,
+  assembly: WorkbenchAssembly,
+  init: () => Promise<void>,
 ): GrassEyeWorkbenchHandle => {
-  const dataDir = input.assembly.dataDir;
-
+  const dataDir = assembly.dataDir;
   return {
-    commanderConsole: input.commanderConsole,
-    init: input.init,
-    getHealthReport: async () => getHealthReport(input.assembly),
+    init,
+    getHealthReport: async () => getHealthReport(assembly),
     getMissionReadinessReport: async () =>
-      getMissionReadinessReport(input.assembly, input.assembly.options),
-    getMissionStartPreflight: async (preflightInput: WorkbenchPreflightInput) =>
-      getMissionStartPreflight(input.assembly, input.assembly.options, preflightInput),
-    async getCommanderConsoleSnapshot(): Promise<WorkbenchCommanderMissionDashboardView> {
-      return getCommanderConsoleSnapshot({
-        commanderConsole: input.commanderConsole,
-        getOrchestration: () => input.orchestration,
-        capabilityGroupIds: [...ACTIVE_CAPABILITY_GROUP_IDS],
-      });
-    },
+      getMissionReadinessReport(assembly, assembly.options),
+    getMissionStartPreflight: async (input) =>
+      getMissionStartPreflight(assembly, assembly.options, input),
     getDataDir: () => dataDir,
-    getModeInfo: () => getModeInfo(input.assembly.options),
+    getModeInfo: () => getModeInfo(assembly.options),
     ...buildSettingsHandle(dataDir),
-    ...buildRequirementHistoryHandle(dataDir),
-    ...buildAmazonInvoiceHandle(input.assembly, dataDir),
-    ...buildProductVideoDomHandle(input.assembly, dataDir),
+    ...buildAmazonInvoiceHandle(assembly, dataDir),
   };
 };
 
-// ─── GrassEyeWorkbench ───────────────────────────────────────────────────────
-
 export class GrassEyeWorkbench {
-  private readonly _assembly: WorkbenchAssembly;
-  private readonly _nerveBus: NerveBusAbilityGroup;
-  private readonly _orchestration: OrchestrationAbilityGroup;
-  private readonly _commanderConsole: CommanderConsoleSurface;
+  private readonly assembly: WorkbenchAssembly;
 
   constructor(options: GrassEyeWorkbenchOptions) {
-    const core = initializeWorkbenchCore(options);
-    this._assembly = core.assembly;
-    this._nerveBus = core.nerveBus;
-    this._orchestration = core.orchestration;
-    this._commanderConsole = core.commanderConsole;
+    this.assembly = createWorkbenchAssembly(options);
   }
-
-  // ─── Init ────────────────────────────────────────────────────────────────
 
   async init(): Promise<void> {
-    // Data directory is created on first write by the storage layer.
-    // No additional initialization is required for the minimal runtime shell.
+    // Storage is created lazily by the first evidence or task write.
   }
 
-  // ─── Handle ──────────────────────────────────────────────────────────────
-
   createHandle(): GrassEyeWorkbenchHandle {
-    return buildWorkbenchHandle({
-      init: () => this.init(),
-      assembly: this._assembly,
-      orchestration: this._orchestration,
-      commanderConsole: this._commanderConsole,
-    });
+    return buildWorkbenchHandle(this.assembly, () => this.init());
   }
 }

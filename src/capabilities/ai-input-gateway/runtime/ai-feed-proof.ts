@@ -64,6 +64,37 @@ const buildProviderProof = (input: {
   tokenEstimateUnavailableReason: input.response.tokenEstimateUnavailableReason ?? null,
 });
 
+const successStatus = (parsedOutput: AiFeedParsedOutput): "success" | "failed" =>
+  parsedOutput.schemaValidationStatus === "invalid" ? "failed" : "success";
+
+const successFailureReason = (parsedOutput: AiFeedParsedOutput): string | null =>
+  parsedOutput.schemaValidationStatus === "invalid"
+    ? "AI feed output failed requested parsing."
+    : null;
+
+const buildSuccessResult = (input: {
+  request: AiFeedInput;
+  childCapabilityId: AiInputGatewayChildCapabilityId;
+  parsedOutput: AiFeedParsedOutput;
+  providerProof: AiFeedProviderProof;
+  rawOutputRef: string;
+  outputHash: string;
+}): AiFeedResult => AiFeedResultSchema.parse({
+    abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
+    childCapabilityId: input.childCapabilityId,
+    providerKind: input.request.providerKind,
+    status: successStatus(input.parsedOutput),
+    normalizedText: input.parsedOutput.normalizedText,
+    rawOutputRef: input.rawOutputRef,
+    rawOutputHash: input.outputHash,
+    parseStatus: input.parsedOutput.parseStatus,
+    parsedJson: input.parsedOutput.parsedJson,
+    schemaValidationStatus: input.parsedOutput.schemaValidationStatus,
+    providerProof: input.providerProof,
+    failureReason: successFailureReason(input.parsedOutput),
+    reviewRequiredReason: null,
+  });
+
 export const buildAiFeedSuccess = async (input: {
   dataDir: string;
   request: AiFeedInput;
@@ -81,17 +112,10 @@ export const buildAiFeedSuccess = async (input: {
   });
   const outputHash = hashValue(input.response.rawText);
   const endedAt = new Date().toISOString();
-  return AiFeedResultSchema.parse({
-    abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
-    childCapabilityId: input.childCapabilityId,
-    providerKind: input.request.providerKind,
-    status: input.parsedOutput.schemaValidationStatus === "invalid" ? "failed" : "success",
-    normalizedText: input.parsedOutput.normalizedText,
+  return buildSuccessResult({
+    ...input,
     rawOutputRef,
-    rawOutputHash: outputHash,
-    parseStatus: input.parsedOutput.parseStatus,
-    parsedJson: input.parsedOutput.parsedJson,
-    schemaValidationStatus: input.parsedOutput.schemaValidationStatus,
+    outputHash,
     providerProof: buildProviderProof({
       ...input,
       rawOutputRef,
@@ -99,12 +123,58 @@ export const buildAiFeedSuccess = async (input: {
       endedAt,
       durationMs: Date.parse(endedAt) - Date.parse(input.startedAt),
     }),
-    failureReason: input.parsedOutput.schemaValidationStatus === "invalid"
-      ? "AI feed output failed requested parsing."
-      : null,
-    reviewRequiredReason: null,
   });
 };
+
+const buildFailureProviderProof = (input: {
+  request: AiFeedInput;
+  inputPackage: AiFeedInputPackage;
+  startedAt: string;
+  endedAt: string;
+  transport: "api" | "web-chat";
+  cooldownMs?: number;
+}): AiFeedProviderProof => ({
+  providerKind: input.request.providerKind,
+  modelName: input.request.modelName,
+  inputHash: input.inputPackage.inputHash,
+  outputHash: null,
+  inputRefs: input.inputPackage.inputRefIds,
+  outputRefs: [],
+  startedAt: input.startedAt,
+  endedAt: input.endedAt,
+  durationMs: Date.parse(input.endedAt) - Date.parse(input.startedAt),
+  transport: input.transport,
+  webChatUrl: null,
+  sourcePageUrlBeforeFeed: null,
+  restoredSourcePage: null,
+  retryCount: 0,
+  cooldownMs: input.cooldownMs ?? 0,
+  estimatedInputTokens: null,
+  estimatedOutputTokens: null,
+  tokenEstimateUnavailableReason: "feed did not reach provider output.",
+});
+
+const buildFailureResult = (input: {
+  request: AiFeedInput;
+  childCapabilityId: AiInputGatewayChildCapabilityId;
+  status: "failed" | "review_required";
+  reason: string;
+  providerProof: AiFeedProviderProof;
+}): AiFeedResult => AiFeedResultSchema.parse({
+    abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
+    childCapabilityId: input.childCapabilityId,
+    providerKind: input.request.providerKind,
+    status: input.status,
+    normalizedText: null,
+    rawOutputRef: null,
+    rawOutputHash: null,
+    parseStatus: input.request.expectedOutputSchemaRef ? "json_invalid" : "not_requested",
+    parsedJson: null,
+    schemaValidationStatus: input.request.expectedOutputSchemaRef ? "invalid" : "not_applicable",
+    providerProof: input.providerProof,
+    failureReason: input.status === "failed" ? input.reason : null,
+    reviewRequiredReason: input.status === "review_required" ? input.reason : null,
+  });
 
 export const buildAiFeedFailure = (input: {
   request: AiFeedInput;
@@ -117,38 +187,11 @@ export const buildAiFeedFailure = (input: {
   cooldownMs?: number;
 }): AiFeedResult => {
   const endedAt = new Date().toISOString();
-  return AiFeedResultSchema.parse({
-    abilityGroupId: AI_INPUT_GATEWAY_ABILITY_GROUP_ID,
-    childCapabilityId: input.childCapabilityId,
-    providerKind: input.request.providerKind,
-    status: input.status,
-    normalizedText: null,
-    rawOutputRef: null,
-    rawOutputHash: null,
-    parseStatus: input.request.expectedOutputSchemaRef ? "json_invalid" : "not_requested",
-    parsedJson: null,
-    schemaValidationStatus: input.request.expectedOutputSchemaRef ? "invalid" : "not_applicable",
-    providerProof: {
-      providerKind: input.request.providerKind,
-      modelName: input.request.modelName,
-      inputHash: input.inputPackage.inputHash,
-      outputHash: null,
-      inputRefs: input.inputPackage.inputRefIds,
-      outputRefs: [],
-      startedAt: input.startedAt,
+  return buildFailureResult({
+    ...input,
+    providerProof: buildFailureProviderProof({
+      ...input,
       endedAt,
-      durationMs: Date.parse(endedAt) - Date.parse(input.startedAt),
-      transport: input.transport,
-      webChatUrl: null,
-      sourcePageUrlBeforeFeed: null,
-      restoredSourcePage: null,
-      retryCount: 0,
-      cooldownMs: input.cooldownMs ?? 0,
-      estimatedInputTokens: null,
-      estimatedOutputTokens: null,
-      tokenEstimateUnavailableReason: "feed did not reach provider output.",
-    },
-    failureReason: input.status === "failed" ? input.reason : null,
-    reviewRequiredReason: input.status === "review_required" ? input.reason : null,
+    }),
   });
 };

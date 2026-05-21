@@ -1,83 +1,174 @@
-// ci:full entrypoint — the single authoritative CI gate.
-// Runs: foundation guardrails, then every governed owner runner declared by owner manifests.
-// package.json ci:full must delegate here. Do not maintain a second CI chain.
-import { fileURLToPath } from "node:url";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
-
-import { buildCiFullSteps } from "./core/ci-full-plan.js";
-import { pathFromRepoRoot } from "./core/paths.js";
-import { writeGeneratedJson } from "./core/generated-artifact.js";
+import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(fileURLToPath(new URL("../../", import.meta.url)));
-const DOM_AUTOMATION_RESULT_PATH = pathFromRepoRoot("scripts/audit/generated/dom-automation-binary-result.generated.json");
+const generatedDir = resolve(repoRoot, "scripts/audit/generated");
 
-const readDomAutomationBinaryResult = (): { status: string; summary?: { passedLaws?: number; totalLaws?: number; passedClauses?: number; totalClauses?: number } } | null => {
-  if (!existsSync(DOM_AUTOMATION_RESULT_PATH)) {
-    return null;
-  }
-  return JSON.parse(readFileSync(DOM_AUTOMATION_RESULT_PATH, "utf8")) as { status: string; summary?: { passedLaws?: number; totalLaws?: number; passedClauses?: number; totalClauses?: number } };
+type Violation = {
+  file: string;
+  reason: string;
 };
 
-const runStep = async (
-  label: string,
-  command: readonly [string, ...string[]],
-  processed: number,
-  total: number,
-): Promise<number> => {
-  process.stdout.write(`[CI-FULL][HEARTBEAT] step=${label} processed=${processed}/${total} status=running\n`);
-  const [executable, ...args] = command;
-  const child = spawn(executable, args, {
-    cwd: repoRoot,
-    stdio: "inherit",
-  });
-  const heartbeat = setInterval(() => {
-    process.stdout.write(`[CI-FULL][HEARTBEAT] step=${label} processed=${processed}/${total} status=running\n`);
-  }, 5_000);
+const sourceRoots = ["package.json", "scripts", "src"] as const;
 
-  return await new Promise<number>((resolvePromise, rejectPromise) => {
-    child.once("error", (error) => {
-      clearInterval(heartbeat);
-      rejectPromise(error);
-    });
-    child.once("exit", (code) => {
-      clearInterval(heartbeat);
-      resolvePromise(code ?? 1);
-    });
+const retiredPathFragments = [
+  "src/capabilities/nerve-bus",
+  "src/capabilities/orchestration",
+  "src/capabilities/geometry-guard",
+  "src/capabilities/mouse-click",
+  "src/capabilities/mouse-scroll",
+  "src/capabilities/text-input",
+  "src/capabilities/open",
+  "src/capabilities/screenshot",
+  "src/capabilities/video-download",
+  "src/capabilities/ai/",
+  "src/visual-mission",
+  "src/plugins/product-video-dom-runtime",
+] as const;
+
+const retiredScriptFragments = [
+  "audit:build",
+  "audit:code-purity",
+  "audit:runtime-logging",
+  "audit:quality-kernel",
+  "audit:audit-system",
+  "audit:pure-visual-round",
+  "audit:dom-automation",
+  "acceptance:product-video",
+  "acceptance:ai-input-gateway-web-chat-fixture-smoke",
+] as const;
+
+const aiPlannerFragments = ["nextAction", "actionPlan"] as const;
+
+const walkFiles = (root: string): string[] => {
+  const absolute = resolve(repoRoot, root);
+  if (!existsSync(absolute)) return [];
+  const stat = statSync(absolute);
+  if (stat.isFile()) return [absolute];
+  return readdirSync(absolute, { withFileTypes: true }).flatMap((entry) => {
+    const child = resolve(absolute, entry.name);
+    if (entry.isDirectory()) return walkFiles(relative(repoRoot, child));
+    return entry.isFile() ? [child] : [];
   });
+};
+
+const readText = (file: string): string => readFileSync(file, "utf8");
+
+const isTextFile = (file: string): boolean =>
+  /\.(ts|tsx|js|jsx|mjs|json|md)$/u.test(file) || file.endsWith("package.json");
+
+const runCommand = async (
+  name: string,
+  command: readonly [string, ...string[]],
+): Promise<void> => {
+  process.stdout.write(`[CI-FULL][RUN] ${name}\n`);
+  const [executable, ...args] = command;
+  const exitCode = await new Promise<number>((resolvePromise, rejectPromise) => {
+    const child = spawn(executable, args, {
+      cwd: repoRoot,
+      stdio: "inherit",
+    });
+    child.once("error", rejectPromise);
+    child.once("exit", (code) => resolvePromise(code ?? 1));
+  });
+  if (exitCode !== 0) {
+    throw new Error(`${name} failed with exit code ${exitCode}`);
+  }
+  process.stdout.write(`[CI-FULL][PASS] ${name}\n`);
+};
+
+const checkForbiddenFiles = (): Violation[] => {
+  const violations: Violation[] = [];
+  for (const fragment of retiredPathFragments) {
+    const absolute = resolve(repoRoot, fragment);
+    if (existsSync(absolute)) {
+      violations.push({
+        file: fragment,
+        reason: "Retired architecture path still exists.",
+      });
+    }
+  }
+  return violations;
+};
+
+const checkForbiddenReferences = (): Violation[] => {
+  const violations: Violation[] = [];
+  const files = sourceRoots.flatMap(walkFiles).filter(isTextFile);
+  for (const file of files) {
+    const repoPath = relative(repoRoot, file);
+    const text = readText(file);
+    if (repoPath === "MIGRATION_FILE_DECISION_TABLE.md") continue;
+    if (repoPath === "scripts/audit/ci-full.ts") continue;
+    for (const fragment of retiredPathFragments) {
+      if (text.includes(fragment)) {
+        violations.push({
+          file: repoPath,
+          reason: `Active file references retired path fragment: ${fragment}`,
+        });
+      }
+    }
+    if (repoPath === "package.json") {
+      for (const fragment of retiredScriptFragments) {
+        if (text.includes(fragment)) {
+          violations.push({
+            file: repoPath,
+            reason: `package.json still exposes retired script fragment: ${fragment}`,
+          });
+        }
+      }
+    }
+    if (repoPath.endsWith("local-workbench-plugin-tasks.ts") && text.includes("ProductVideo")) {
+      violations.push({
+        file: repoPath,
+        reason: "Local workbench plugin tasks still export product-video task surfaces.",
+      });
+    }
+    if (repoPath.includes("ai-input-gateway") || repoPath.includes("src/plugins/")) {
+      for (const fragment of aiPlannerFragments) {
+        if (text.includes(fragment)) {
+          violations.push({
+            file: repoPath,
+            reason: `AI choice judge surface still contains planner fragment: ${fragment}`,
+          });
+        }
+      }
+    }
+  }
+  return violations;
+};
+
+const runArchitectureCheck = (): void => {
+  const violations = [...checkForbiddenFiles(), ...checkForbiddenReferences()];
+  mkdirSync(generatedDir, { recursive: true });
+  writeFileSync(
+    resolve(generatedDir, "simple-architecture-summary.generated.json"),
+    `${JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        status: violations.length === 0 ? "PASS" : "FAIL",
+        violations,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  if (violations.length > 0) {
+    process.stdout.write("[CI-FULL] FAIL — simple architecture guard blocked retired surface resurrection.\n");
+    for (const violation of violations) {
+      process.stdout.write(`- ${violation.file}: ${violation.reason}\n`);
+    }
+    throw new Error("architecture-check failed");
+  }
+  process.stdout.write("[CI-FULL][PASS] architecture-check\n");
 };
 
 const main = async (): Promise<void> => {
-  const steps = buildCiFullSteps();
-  const stepResults: Array<{ name: string; status: "PASS" | "FAIL" }> = [];
-  for (const [index, definition] of steps.entries()) {
-    const label = `step-${index + 1}-${definition.name}`;
-    const exitCode = await runStep(label, definition.command, index, steps.length);
-    const status = exitCode === 0 ? "PASS" : "FAIL" as const;
-    stepResults.push({ name: definition.name, status });
-    process.stdout.write(`[CI-FULL][${definition.layer === "owner-layer" ? `OWNER-${status}` : `STEP-${status}`}] name=${definition.name}\n`);
-    if (exitCode !== 0) {
-      writeGeneratedJson("ci-full-summary.generated.json", {
-        generatedAt: new Date().toISOString(),
-        status: "FAIL",
-        failedStep: definition.name,
-        steps: stepResults,
-      });
-      process.stdout.write(`[CI-FULL] FAIL — ${definition.name} failed.\n`);
-      process.exit(1);
-    }
-  }
-
-  writeGeneratedJson("ci-full-summary.generated.json", {
-    generatedAt: new Date().toISOString(),
-    status: "PASS",
-    steps: stepResults,
-  });
-  process.stdout.write("[CI-FULL] PASS — all steps passed.\n");
-  process.exit(0);
+  await runCommand("typecheck", ["npm", "run", "typecheck"]);
+  runArchitectureCheck();
+  await runCommand("amazon-invoice-upload-smoke", ["npm", "run", "acceptance:amazon-invoice-upload-smoke"]);
+  process.stdout.write("[CI-FULL] PASS — typecheck, architecture, and Amazon smoke passed.\n");
 };
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  await main();
-}
+await main();

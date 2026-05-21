@@ -2,9 +2,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assessDependencyState, installDependencies } from "./lib/dependency-check.mjs";
-import { waitForCommanderConsolePage } from "./lib/health-check.mjs";
 import { ensureStartupRegistryReadiness } from "./lib/startup-registry-readiness.mjs";
-import { openCommanderConsole } from "./lib/open-commander-console.mjs";
+import { openWorkbenchPage } from "./lib/open-workbench-page.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
 import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
 import { createStartupLogHelpers } from "./lib/startup-log-helpers.mjs";
@@ -110,10 +109,14 @@ async function startService(root, aiReadiness) {
 
 async function verifyAppHealth(serviceHandle) {
   const healthStart = Date.now();
-  logEvent("APP", "app_shell", "APP_SHELL_HEALTH_CHECK_STARTED", "started", `probing Commander Console shell at ${baseUrl}`);
-  const pageReport = await waitForCommanderConsolePage({ url: baseUrl, serviceProcess: serviceHandle.child });
-  logPass("APP", "app_shell", "APP_SHELL_HEALTH_PASSED", "passed", `Commander Console reachable at ${baseUrl}`, {
-    refs: [`shellTopology=${pageReport.shellTopology}`, `contentType=${pageReport.contentType}`],
+  logEvent("APP", "app_shell", "APP_SHELL_HEALTH_CHECK_STARTED", "started", `probing Amazon upload workbench at ${baseUrl}`);
+  const response = await fetch(baseUrl);
+  if (!response.ok) {
+    throw new Error(`Amazon upload workbench returned HTTP ${response.status}`);
+  }
+  const contentType = response.headers.get("content-type") ?? "unknown";
+  logPass("APP", "app_shell", "APP_SHELL_HEALTH_PASSED", "passed", `Amazon upload workbench reachable at ${baseUrl}`, {
+    refs: [`contentType=${contentType}`],
     durationMs: Date.now() - healthStart,
   });
 }
@@ -138,9 +141,7 @@ async function ensureOnlineAiReadiness() {
 
 async function ensureStartupRegistryReadinessGate() {
   const startedAt = Date.now();
-  logEvent("STARTUP", "ai_prompt_contract", "ai_prompt_contract_check", "started", "checking AI prompt contract readability");
-  logEvent("STARTUP", "muscle_memory_catalog", "muscle_memory_catalog_check", "started", "checking MuscleMemoryCatalog readability");
-  logEvent("STARTUP", "platform_registry", "platform_registry_check", "started", "checking PlatformRegistry readability");
+  logEvent("STARTUP", "job_flow", "job_flow_check", "started", "checking Amazon job-flow readiness");
   const readiness = await ensureStartupRegistryReadiness({
     logger: (message) => logEvent("STARTUP", "registry_readiness", "registry_readiness_detail", "event", message),
   });
@@ -154,15 +155,11 @@ async function ensureStartupRegistryReadinessGate() {
   };
 
   if (readiness.status !== "ready") {
-    logFail("STARTUP", "ai_prompt_contract", "ai_prompt_contract_check", "failed", "AI prompt contract check failed before app shell start", extra);
-    logFail("STARTUP", "muscle_memory_catalog", "muscle_memory_catalog_check", "failed", "MuscleMemoryCatalog check failed before app shell start", extra);
-    logFail("STARTUP", "platform_registry", "platform_registry_check", "failed", "PlatformRegistry check failed before app shell start", extra);
+    logFail("STARTUP", "job_flow", "job_flow_check", "failed", "Amazon job-flow readiness failed before app shell start", extra);
     throw new Error(`${readiness.failureReason ?? "STARTUP_REGISTRY_READINESS_FAILED"} actionableMessage=${readiness.actionableMessage ?? "Fix startup registry readiness."}`);
   }
 
-  logPass("STARTUP", "ai_prompt_contract", "ai_prompt_contract_check", "passed", "AI prompt contract check passed", extra);
-  logPass("STARTUP", "muscle_memory_catalog", "muscle_memory_catalog_check", "passed", "MuscleMemoryCatalog check passed", extra);
-  logPass("STARTUP", "platform_registry", "platform_registry_check", "passed", "PlatformRegistry check passed", extra);
+  logPass("STARTUP", "job_flow", "job_flow_check", "passed", "Amazon job-flow readiness passed", extra);
   return readiness;
 }
 
@@ -197,28 +194,28 @@ async function performLaunch(flags, root) {
 
 async function openReadyPage(flags) {
   if (flags.skipOpen) {
-    logEvent("COMMANDER", "commander_console", "open_console", "skipped", `automatic open skipped; commander console url=${baseUrl}`);
+    logEvent("APP", "amazon_upload_workbench", "open_workbench", "skipped", `automatic open skipped; workbench url=${baseUrl}`);
     return;
   }
 
   const log = (message) => {
     terminalLogger.event({
-      phase: "COMMANDER",
-      component: "commander_console",
-      eventType: "open_console_detail",
+      phase: "APP",
+      component: "amazon_upload_workbench",
+      eventType: "open_workbench_detail",
       status: "event",
       message,
     });
   };
 
   try {
-    const openResult = await openCommanderConsole(baseUrl);
+    const openResult = await openWorkbenchPage(baseUrl);
     log(`Opened ${baseUrl} in ${openResult.browserName} (${openResult.browserPath})`);
-    logPass("COMMANDER", "commander_console", "open_console", "passed", `opened Commander Console via ${openResult.browserName}`, {
+    logPass("APP", "amazon_upload_workbench", "open_workbench", "passed", `opened Amazon upload workbench via ${openResult.browserName}`, {
       refs: [`browserPath=${openResult.browserPath}`],
     });
   } catch (error) {
-    logFail("COMMANDER", "commander_console", "open_console", "failed", `automatic open failed; open ${baseUrl} manually`, {
+    logFail("APP", "amazon_upload_workbench", "open_workbench", "failed", `automatic open failed; open ${baseUrl} manually`, {
       failureReason: toFailureReason(error),
     });
   }

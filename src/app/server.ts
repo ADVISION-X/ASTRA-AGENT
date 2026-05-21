@@ -72,7 +72,7 @@ function startServer(): ReturnType<typeof createServer> {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   await workbench.init();
   const server = startServer();
-  process.stdout.write(`GrassEye Commander Console shell listening on ${baseUrl}\n`);
+  process.stdout.write(`GrassEye Amazon invoice upload workbench listening on ${baseUrl}\n`);
   process.on("SIGINT", () => {
     server.close(() => {
       process.exit(0);

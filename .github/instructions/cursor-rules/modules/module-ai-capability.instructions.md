@@ -1,51 +1,49 @@
 ---
-name: "GrassEye AI Capability"
-description: "Governs the pure visual round judge prompt, schema, model call, and AI result proof."
-applyTo: "src/capabilities/ai/**/*.{ts,tsx,js,jsx,mjs,json,jsonc}, src/visual-mission/round/**/*.{ts,tsx}, docs/法案辅助文件/*AI*, docs/法案辅助文件/*Prompt*"
+name: "GrassEye AI Choice Judge"
+description: "Governs bounded AI option judging and forbids AI planning or browser control."
+applyTo: "src/capabilities/ai-input-gateway/**, src/plugins/**, src/lib/online-ai/**"
 ---
 
-# GrassEye AI Capability
+# GrassEye AI Choice Judge
 
 status: active
-version: 2026-05-13
+version: 2026-05-21
 
 ## Boundary
 
-AI is the visual judge and next-action chooser for one round. AI does not execute actions, save evidence, call Forensics, own browser commands, output owner fields, or plan multiple steps.
+AI is a choice judge only. It may classify a provided situation into finite options chosen by the calling flow script.
 
-Any surviving `src/visual-mission/round/**` files are AI-owned support schemas only; they do not create a second owner root outside `src/capabilities/ai`.
+Canonical question shape:
 
-## Required Output
+```ts
+type AiChoiceQuestion = {
+  questionId: string;
+  taskContext: string;
+  facts: Record<string, unknown>;
+  options: Array<{
+    id: "A" | "B" | "C" | "D";
+    label: string;
+    meaning: string;
+  }>;
+  requiredOutput: {
+    selectedOptionId: "A" | "B" | "C" | "D";
+    confidence: number;
+    reason: string;
+  };
+};
+```
 
-AI output schema is `pureVisualRound.v1`:
+## Law GRASSEYE-AI-CHOICE-001-V1
 
-- `goalMatched`
-- `save`
-- `saveReason`
-- `confidence`
-- `visualEvidence`
-- `decision`
-- `nextAction`
-- `reviewRequiredReason`
-- `doneReason`
+Required:
+- The caller supplies all options.
+- AI returns only `selectedOptionId`, `confidence`, and `reason`.
+- The flow script decides what to do with the selected option.
+- Provider proof is recorded when an external provider is used.
 
-`decision=act` requires exactly one `nextAction`. Other decisions require `nextAction=null`.
-
-## Prompt Contract
-
-Prompt must say:
-
-- look only at current screenshot, coordinate grid, user goal, and ability registry
-- platform profiles may constrain system target policy outside the prompt, but the round judge must not receive platform-specific action hints beyond the governed ability registry
-- judge whether the current screen satisfies the user goal
-- if satisfied, output `save=true`
-- choose one atomic next action, or `done`, `review_required`, or `blocked`
-- do not output raw coordinates, DOM selectors, browser commands, owner fields, or Forensics payloads
-
-## Forbidden
-
-- Product-video-specific truth fields.
-- UI inventory output layers.
-- Page-state decision layers.
-- Multi-action output.
-- AI-visible record save/read/write action calls.
+Forbidden:
+- AI deciding a full process;
+- AI outputting a multi-step plan;
+- AI outputting browser actions, DOM selectors, coordinates, or file paths;
+- AI selecting unbounded actions;
+- AI controlling submission, payment, refund, delete, or other sensitive final actions.

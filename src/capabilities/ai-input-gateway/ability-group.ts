@@ -26,6 +26,55 @@ const childForProvider = (input: AiFeedInput): AiInputGatewayChildCapabilityId =
   return "feed-gpt-web-chat-once";
 };
 
+const executeGeminiApi = (
+  context: AiInputGatewayExecutionContext,
+  request: AiFeedInput,
+  signal: AbortSignal | undefined,
+): Promise<AiFeedResult> => feedGeminiApiOnce({
+    request,
+    dataDir: context.dataDir,
+    ...(signal ? { signal } : {}),
+    ...(context.adapters?.["gemini-api"] ? { adapter: context.adapters["gemini-api"] } : {}),
+  });
+
+const executeGeminiWebChat = (
+  context: AiInputGatewayExecutionContext,
+  browser: BrowserController | undefined,
+  request: AiFeedInput,
+  signal: AbortSignal | undefined,
+): Promise<AiFeedResult> => feedGeminiWebChatOnce({
+    request,
+    dataDir: context.dataDir,
+    ...(signal ? { signal } : {}),
+    ...(browser ? { browser } : {}),
+    ...(context.adapters?.["gemini-web-chat"] ? { adapter: context.adapters["gemini-web-chat"] } : {}),
+  });
+
+const executeGptWebChat = (
+  context: AiInputGatewayExecutionContext,
+  browser: BrowserController | undefined,
+  request: AiFeedInput,
+  signal: AbortSignal | undefined,
+): Promise<AiFeedResult> => feedGptWebChatOnce({
+    request,
+    dataDir: context.dataDir,
+    ...(signal ? { signal } : {}),
+    ...(browser ? { browser } : {}),
+    ...(context.adapters?.["gpt-web-chat"] ? { adapter: context.adapters["gpt-web-chat"] } : {}),
+  });
+
+const executeParsedRequest = (
+  context: AiInputGatewayExecutionContext,
+  browser: BrowserController | undefined,
+  request: AiFeedInput,
+  signal: AbortSignal | undefined,
+): Promise<AiFeedResult> => {
+  const childCapabilityId = childForProvider(request);
+  if (childCapabilityId === "feed-gemini-api-once") return executeGeminiApi(context, request, signal);
+  if (childCapabilityId === "feed-gemini-web-chat-once") return executeGeminiWebChat(context, browser, request, signal);
+  return executeGptWebChat(context, browser, request, signal);
+};
+
 export const createAiInputGatewayAbilityGroup = (
   context: AiInputGatewayExecutionContext,
   browser?: BrowserController,
@@ -38,30 +87,6 @@ export const createAiInputGatewayAbilityGroup = (
 
   execute(rawInput: unknown, options?: { signal?: AbortSignal }): Promise<AiFeedResult> {
     const request = AiFeedInputSchema.parse(rawInput);
-    const childCapabilityId = childForProvider(request);
-    if (childCapabilityId === "feed-gemini-api-once") {
-      return feedGeminiApiOnce({
-        request,
-        dataDir: context.dataDir,
-        ...(options?.signal ? { signal: options.signal } : {}),
-        ...(context.adapters?.["gemini-api"] ? { adapter: context.adapters["gemini-api"] } : {}),
-      });
-    }
-    if (childCapabilityId === "feed-gemini-web-chat-once") {
-      return feedGeminiWebChatOnce({
-        request,
-        dataDir: context.dataDir,
-        ...(options?.signal ? { signal: options.signal } : {}),
-        ...(browser ? { browser } : {}),
-        ...(context.adapters?.["gemini-web-chat"] ? { adapter: context.adapters["gemini-web-chat"] } : {}),
-      });
-    }
-    return feedGptWebChatOnce({
-      request,
-      dataDir: context.dataDir,
-      ...(options?.signal ? { signal: options.signal } : {}),
-      ...(browser ? { browser } : {}),
-      ...(context.adapters?.["gpt-web-chat"] ? { adapter: context.adapters["gpt-web-chat"] } : {}),
-    });
+    return executeParsedRequest(context, browser, request, options?.signal);
   },
 });

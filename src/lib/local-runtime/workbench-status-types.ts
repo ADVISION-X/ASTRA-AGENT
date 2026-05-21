@@ -31,7 +31,7 @@ export type WorkbenchPreflightResult = {
   status: "ready" | "blocked" | "warning";
   actionableMessage: string;
   failureReason: string | null;
-  nextAction: string;
+  recommendedAction: string;
   ownerResponsible: string;
   components: WorkbenchHealthComponent[];
 };

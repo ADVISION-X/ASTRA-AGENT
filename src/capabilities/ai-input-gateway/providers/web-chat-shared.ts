@@ -55,42 +55,85 @@ const restoreSourcePage = async (
   return restored.ok;
 };
 
+const requireBrowser = (context: AiProviderAdapterContext): BrowserController => {
+  if (!context.browser) {
+    throw new Error("Web chat feed requires a governed BrowserController.");
+  }
+  return context.browser;
+};
+
+const openProviderPage = async (
+  browser: BrowserController,
+  providerUrl: string,
+  runtimeName: string,
+): Promise<void> => {
+  const opened = await browser.open({ url: providerUrl, title: runtimeName });
+  if (!opened.ok) {
+    throw new Error(`Web chat provider page could not be opened: ${opened.message}`);
+  }
+};
+
+const submitPrompt = (
+  browser: BrowserController,
+  request: AiFeedInput,
+  context: AiProviderAdapterContext,
+): Promise<WebChatEvaluation> =>
+  browser.evaluateActiveTab<WebChatEvaluation>({
+    description: "submit governed prompt to AI web chat",
+    script: buildSubmitPromptScript(request.textPrompt),
+    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
+  });
+
+const extractAnswer = (
+  browser: BrowserController,
+  context: AiProviderAdapterContext,
+): Promise<WebChatEvaluation> =>
+  browser.evaluateActiveTab<WebChatEvaluation>({
+    description: "extract last AI web chat response",
+    script: EXTRACT_LAST_RESPONSE_SCRIPT,
+    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
+  });
+
+const assertSubmitted = async (input: {
+  submitted: WebChatEvaluation;
+  browser: BrowserController;
+  sourceUrl: string | null;
+}): Promise<void> => {
+  if (input.submitted.status === "success") return;
+  const restoredSourcePage = await restoreSourcePage(input.browser, input.sourceUrl);
+  throw new Error(`${input.submitted.status}: ${input.submitted.message}; restoredSourcePage=${String(restoredSourcePage)}`);
+};
+
+const assertExtracted = (input: {
+  extracted: WebChatEvaluation;
+  restoredSourcePage: boolean | null;
+}): string => {
+  if (input.extracted.status === "success" && input.extracted.answerText) {
+    return input.extracted.answerText;
+  }
+  throw new Error(`${input.extracted.status}: ${input.extracted.message}; restoredSourcePage=${String(input.restoredSourcePage)}`);
+};
+
 export const runWebChatAdapter = async (input: {
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;
   runtimeName: string;
 }): Promise<AiProviderRawResponse> => {
-  const browser = input.context.browser;
-  if (!browser) {
-    throw new Error("Web chat feed requires a governed BrowserController.");
-  }
+  const browser = requireBrowser(input.context);
   const sourcePageUrlBeforeFeed = browser.getSessionState().currentUrl || null;
-  const opened = await browser.open({ url: input.providerUrl, title: input.runtimeName });
-  if (!opened.ok) {
-    throw new Error(`Web chat provider page could not be opened: ${opened.message}`);
-  }
-  const submitted = await browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "submit governed prompt to AI web chat",
-    script: buildSubmitPromptScript(input.request.textPrompt),
-    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  await openProviderPage(browser, input.providerUrl, input.runtimeName);
+  await assertSubmitted({
+    submitted: await submitPrompt(browser, input.request, input.context),
+    browser,
+    sourceUrl: sourcePageUrlBeforeFeed,
   });
-  if (submitted.status !== "success") {
-    const restoredSourcePage = await restoreSourcePage(browser, sourcePageUrlBeforeFeed);
-    throw new Error(`${submitted.status}: ${submitted.message}; restoredSourcePage=${String(restoredSourcePage)}`);
-  }
   await browser.wait(500);
-  const extracted = await browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "extract last AI web chat response",
-    script: EXTRACT_LAST_RESPONSE_SCRIPT,
-    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-  });
+  const extracted = await extractAnswer(browser, input.context);
   const restoredSourcePage = await restoreSourcePage(browser, sourcePageUrlBeforeFeed);
-  if (extracted.status !== "success" || !extracted.answerText) {
-    throw new Error(`${extracted.status}: ${extracted.message}; restoredSourcePage=${String(restoredSourcePage)}`);
-  }
+  const answerText = assertExtracted({ extracted, restoredSourcePage });
   return {
-    rawText: extracted.answerText,
+    rawText: answerText,
     modelName: input.request.modelName,
     runtimeName: input.runtimeName,
     transport: "web-chat",

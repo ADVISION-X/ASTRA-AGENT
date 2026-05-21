@@ -12,8 +12,8 @@ type MouseClickProbeInput = {
   geometry: Pick<BrowserGeometrySnapshot, "windowX" | "windowY" | "viewportWidth" | "viewportHeight" | "visibleContentBounds">;
 };
 
-const isMouseClickProbeEnabled = (): boolean =>
-  process.env.GRASSEYE_VISUAL_TARGET_INPUT_PROBE === "1" || process.env.GRASSEYE_MOUSE_CLICK_PROBE === "1";
+const isBrowserClickProbeEnabled = (): boolean =>
+  process.env.GRASSEYE_VISUAL_TARGET_INPUT_PROBE === "1" || process.env.GRASSEYE_BROWSER_CLICK_PROBE === "1";
 
 const writeProbeLine = async (probeFilePath: string, details: Omit<MouseClickProbeInput, "screenshotDir">): Promise<void> => {
   const line = JSON.stringify({
@@ -27,11 +27,11 @@ const writeProbeLine = async (probeFilePath: string, details: Omit<MouseClickPro
 };
 
 const emitCurrentChromeMouseClickProbe = async (input: MouseClickProbeInput): Promise<void> => {
-  if (!isMouseClickProbeEnabled()) {
+  if (!isBrowserClickProbeEnabled()) {
     return;
   }
 
-  const probeFilePath = path.join(input.screenshotDir, "..", "mouse-click-probe.log");
+  const probeFilePath = path.join(input.screenshotDir, "..", "browser-click-probe.log");
   const { screenshotDir: _screenshotDir, ...details } = input;
   await writeProbeLine(probeFilePath, details);
 };

@@ -12,28 +12,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "internal:app-server": "node dist/src/app/server.js",
     "grasseye:start": "node scripts/startup/launch-grasseye.mjs",
-
     "internal:app-server:dev": "tsx src/app/server.ts",
-
-    "audit:build": "node --import tsx scripts/audit/build-audit-artifacts.ts",
-    "audit:code-purity": "node --import tsx scripts/audit/domains/code-purity/run-inspector.ts",
-    "audit:runtime-logging": "node --import tsx scripts/audit/domains/runtime-logging/run-inspector.ts",
-    "audit:quality-kernel": "node --import tsx scripts/audit/domains/quality-kernel/run-inspector.ts",
-    "audit:audit-system": "node --import tsx scripts/audit/domains/audit-system/run-inspector.ts",
-    "audit:pure-visual-round": "node --import tsx scripts/audit/domains/pure-visual-round/run-inspector.ts",
-    "audit:dom-automation": "node --import tsx scripts/audit/domains/dom-automation/run-inspector.ts",
-    "ci:full": "node --import tsx scripts/audit/ci-full.ts",
-
-    "acceptance:delivery-smoke": "npm run build && GRASSEYE_PLATFORM_TARGET=tiktok-web node scripts/acceptance/delivery-smoke.mjs",
-    "acceptance:dom-automation-smoke": "node --import tsx scripts/acceptance/dom-automation-smoke.ts",
-    "acceptance:amazon-invoice-agent-start-smoke": "node --import tsx scripts/acceptance/amazon-invoice-agent-start-smoke.ts",
-    "acceptance:amazon-invoice-upload-complete-smoke": "node --import tsx scripts/acceptance/amazon-invoice-upload-complete-smoke.ts",
     "acceptance:amazon-invoice-upload-smoke": "node --import tsx scripts/acceptance/amazon-invoice-upload-smoke.ts",
-    "acceptance:product-video-dom-smoke": "node --import tsx scripts/acceptance/product-video-dom-smoke.ts",
-    "acceptance:product-video-dom-runtime-smoke": "node --import tsx scripts/acceptance/product-video-dom-runtime-smoke.ts",
-    "acceptance:ai-input-gateway-smoke": "node --import tsx scripts/acceptance/ai-input-gateway-smoke.ts",
-    "acceptance:ai-input-gateway-web-chat-fixture-smoke": "node --import tsx scripts/acceptance/ai-input-gateway-web-chat-fixture-smoke.ts",
-
+    "ci:full": "node --import tsx scripts/audit/ci-full.ts",
     "lint": "npm run typecheck"
   },
   "dependencies": {

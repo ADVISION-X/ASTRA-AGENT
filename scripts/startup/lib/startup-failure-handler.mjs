@@ -2,7 +2,7 @@ import { writeStartupFailureBundle } from "./startup-failure-bundle.mjs";
 
 const FAILURE_ACTIONS = [
   [/PROMPT_CONTRACT/i, "Fix AI prompt contract integrity and rerun npm run ci:full."],
-  [/MUSCLE_MEMORY_CATALOG/i, "Fix MuscleMemoryCatalog integrity and rerun npm run ci:full."],
+  [/AMAZON_JOB_FLOW/i, "Fix Amazon upload job-flow readiness and rerun npm run ci:full."],
   [/PLATFORM_REGISTRY/i, "Fix PlatformRegistry integrity and rerun npm run ci:full."],
 ];
 

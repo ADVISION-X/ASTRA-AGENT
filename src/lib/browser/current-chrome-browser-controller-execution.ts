@@ -14,7 +14,7 @@ import {
 } from "./current-chrome-browser-controller-primitives.js";
 import { runAppleScript, runJxa } from "./current-chrome-window-control.js";
 import { captureCurrentChromeScreenshot } from "./current-chrome-browser-screenshot.js";
-import { executeCurrentChromeTextInput } from "./current-chrome-browser-text-input.js";
+import { executeCurrentChromeFieldInput } from "./current-chrome-browser-field-input.js";
 import { setFileInputFilesWithCurrentChromeCdp } from "./current-chrome-cdp-file-input.js";
 import { runNativeFileInputSelection } from "./current-chrome-native-file-input.js";
 
@@ -46,7 +46,7 @@ export const textInputCurrentChrome = async (
   input: TextInput,
   refreshSnapshot: RefreshSnapshot,
 ): Promise<BrowserActionResult> => {
-  const result = await executeCurrentChromeTextInput(input, () => createId("browser"));
+  const result = await executeCurrentChromeFieldInput(input, () => createId("browser"));
   await refreshSnapshot(state);
   return result;
 };
