@@ -44,8 +44,8 @@ const inspectWebChatSafetyGuards = (
   if (!sources.open.includes("saveWorkspaceUrl") || /lowerTitle contains/u.test(sources.workspace)) {
     findings.push(createFinding({ checkId: "facebook-mining/workspace-url-pinning", lawId, filePath: webChatOpenPath, message: "Facebook web-chat feed must pin the opened workspace URL instead of matching old provider tabs by title." }));
   }
-  if (!/MAX_UPLOAD_COMPLETE_WAIT_MS\s*=\s*45_000/u.test(sources.pageActions)) {
-    findings.push(createFinding({ checkId: "facebook-mining/upload-wait-short-cap", lawId, filePath: webChatPageActionsPath, message: "Facebook web-chat upload completion wait must not consume the whole judgment timeout." }));
+  if (!/MAX_ATTACHMENT_COUNT_WAIT_MS\s*=\s*15_000/u.test(sources.pageActions) || !/CLIPBOARD_UPLOAD_TIMEOUT_MS\s*=\s*20_000/u.test(sources.upload)) {
+    findings.push(createFinding({ checkId: "facebook-mining/upload-wait-short-cap", lawId, filePath: webChatPageActionsPath, message: "Facebook web-chat clipboard paste and attachment verification waits must not consume the whole judgment timeout." }));
   }
   if (!/MAX_SUBMIT_BUTTON_WAIT_MS\s*=\s*45_000/u.test(sources.submit)) {
     findings.push(createFinding({ checkId: "facebook-mining/submit-wait-short-cap", lawId, filePath: webChatSubmitPath, message: "Facebook web-chat submit button wait must not consume the whole judgment timeout." }));

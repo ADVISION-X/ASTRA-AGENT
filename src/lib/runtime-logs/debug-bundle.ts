@@ -39,6 +39,14 @@ export type RuntimeDebugBundle = {
     failureClass?: string;
     failureReason?: string;
   }): void;
+  writeStageTimeline(input: {
+    roundId: string;
+    timeline: Record<string, unknown>;
+  }): string;
+  writeRecoveryTrail(input: {
+    roundId: string;
+    trail: Record<string, unknown>;
+  }): string;
   writeRoundArtifact(input: {
     roundId: string;
     fileName: string;
@@ -115,6 +123,20 @@ export const createRuntimeDebugBundle = (input: {
         roundEntry.stageRefs[roundArtifactInput.fileName.replace(/\.json$/u, "")] = filePath;
       }
       return filePath;
+    },
+    writeStageTimeline(stageTimelineInput) {
+      return this.writeRoundArtifact({
+        roundId: stageTimelineInput.roundId,
+        fileName: "stage-timeline.json",
+        data: stageTimelineInput.timeline,
+      });
+    },
+    writeRecoveryTrail(recoveryTrailInput) {
+      return this.writeRoundArtifact({
+        roundId: recoveryTrailInput.roundId,
+        fileName: "recovery-trail.json",
+        data: recoveryTrailInput.trail,
+      });
     },
     writeIndex() {
       writeJson(indexPath, index as unknown as Record<string, unknown>);

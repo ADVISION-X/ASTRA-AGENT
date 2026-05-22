@@ -39,7 +39,7 @@ export const createChildTrace = (input: {
   owner?: RuntimeLogOwner;
 }): RuntimeTraceContext => ({
   ...input.context,
-  stepId: input.stepId ?? input.context.stepId,
+  ...(input.stepId ?? input.context.stepId ? { stepId: input.stepId ?? input.context.stepId } : {}),
   parentSpanId: input.context.spanId,
   spanId: randomUUID(),
   owner: input.owner ?? input.context.owner,

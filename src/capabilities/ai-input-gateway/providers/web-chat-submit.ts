@@ -10,7 +10,6 @@ import {
 import {
   findComposerPoint,
   focusComposer,
-  setComposerText,
   waitForAttachmentCountAtLeast,
   verifyComposerText,
 } from "./web-chat-page-actions.js";
@@ -103,11 +102,7 @@ const populatePromptComposer = async (input: SubmitPromptViaClipboardInput): Pro
   const verified = await withWebChatStep("verify_prompt_text_after_paste", () =>
     verifyComposerText(input.browser, input.context, input.request.textPrompt));
   if (verified.status !== "success") {
-    const setResult = await withWebChatStep("set_prompt_text_after_paste_miss", () =>
-      setComposerText(input.browser, input.context, input.request.textPrompt));
-    if (setResult.status !== "success") {
-      throw new Error(`${setResult.status}: ${setResult.message}`);
-    }
+    throw new Error(`${verified.status}: ${verified.message}`);
   }
 };
 

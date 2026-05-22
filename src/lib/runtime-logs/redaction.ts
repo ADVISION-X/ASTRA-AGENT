@@ -5,6 +5,7 @@
 import type { RuntimeLogEvent } from "./schema.js";
 
 const REDACTED = "[REDACTED]";
+const API_KEY_PATTERN = /api_key|api-key|apiKey/iu;
 const SECRET_KEYS = /^(cookie|cookies|token|authorization|password|api[_-]?key|secret|session|auth|bearer|localStorage|sessionStorage)$/i;
 const BASE64_PATTERN = /^data:[^;]+;base64,/;
 const SIGNED_URL_QUERY_KEY = /(token|sig|signature|expires|auth|key|policy|session|credential|x-amz-|googleaccessid)/i;
@@ -33,7 +34,7 @@ const isSensitiveUrl = (value: string): boolean => {
 /** Redact a single value if it looks like a secret or base64 image. */
 function redactValue(key: string, value: unknown): unknown {
   if (typeof value === "string") {
-    if (SECRET_KEYS.test(key)) return REDACTED;
+    if (SECRET_KEYS.test(key) || API_KEY_PATTERN.test(key)) return REDACTED;
     if (BASE64_PATTERN.test(value)) return REDACTED;
     if (INLINE_SECRET_VALUE.test(value)) return REDACTED;
     if (isSensitiveUrl(value)) return redactUrlForLog(value);
@@ -72,7 +73,7 @@ export const redactRuntimeLogPayload = redactRuntimeLogRecord;
 export const redactRuntimeLogEvent = (event: RuntimeLogEvent): RuntimeLogEvent => ({
   ...event,
   ...(event.reason ? { reason: String(redactValue("reason", event.reason)) } : {}),
-  ...(event.preview ? { preview: redactRuntimeLogRecord(event.preview) } : {}),
+  ...(event.preview ? { preview: redactRuntimeLogRecord(event.preview) as Record<string, string> } : {}),
   ...(event.refs ? { refs: redactRuntimeLogRecord(event.refs) as Record<string, string> } : {}),
   ...(event.hashes ? { hashes: redactRuntimeLogRecord(event.hashes) as Record<string, string> } : {}),
   ...(event.payload ? { payload: redactRuntimeLogRecord(event.payload) } : {}),

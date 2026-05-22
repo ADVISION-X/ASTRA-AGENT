@@ -5,6 +5,9 @@ type FindingInput = {
   lawId: string;
   message: string;
   clauseId?: string;
+  line?: number;
+  severity?: "fatal";
+  hint?: string;
   filePath?: string | undefined;
   evidence?: string | undefined;
 };
@@ -22,6 +25,9 @@ export const createFinding = (input: FindingInput): InspectorFinding => ({
   lawId: input.lawId,
   clauseId: input.clauseId ?? "primary",
   message: input.message,
+  ...(input.line ? { line: input.line } : {}),
+  severity: input.severity ?? "fatal",
+  ...(input.hint ? { hint: input.hint } : {}),
   filePath: input.filePath,
   evidence: input.evidence,
 });

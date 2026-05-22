@@ -23,70 +23,10 @@ const assistantCount = Array.from(document.querySelectorAll("[data-message-autho
   .length;
 `;
 
-export const buildFindUploadTargetScript = (): string => `
-${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
-const findInput = () => {
-  const inputs = Array.from(document.querySelectorAll("input[type='file']"));
-  return inputs.find((candidate) => {
-    const id = candidate.getAttribute("id") || "";
-    const accept = candidate.getAttribute("accept") || "";
-    return id === "upload-files" || accept.length === 0 || /video|mp4|\\*/i.test(accept);
-  }) || inputs[0] || null;
-};
-let input = findInput();
-if (!input) {
-  const attachTrigger = Array.from(document.querySelectorAll("button, label, div[role='button'], span[role='button']")).find((node) => {
-    const text = clip(node.getAttribute("aria-label") || node.getAttribute("id") || node.textContent || "");
-    return /attach|upload|file|paperclip|plus|add files?|添加|上传|附件/i.test(text);
-  });
-  if (attachTrigger instanceof HTMLElement) {
-    attachTrigger.click();
-    input = findInput();
-  }
-}
-if (!(input instanceof HTMLInputElement)) {
-  return {status: "review_required", message: "provider file input not found", pageUrl: location.href, selector: null};
-}
-return {
-  status: "success",
-  message: "provider file input located",
-  pageUrl: location.href,
-  selector: selectorFor(input),
-};
-`;
-
-export const buildWaitForUploadScript = (fileName: string): string => `
-${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
-const targetFileName = ${JSON.stringify(fileName)};
-const composer = resolveComposerInput();
-let composerRoot = composer;
-for (let depth = 0; depth < 8 && composerRoot?.parentElement; depth += 1) {
-  const text = clip(composerRoot.textContent || "");
-  if (text.includes(targetFileName) || composerRoot.querySelector?.("#composer-submit-button, #composer-plus-btn")) break;
-  composerRoot = composerRoot.parentElement;
-}
-const composerText = clip(composerRoot?.textContent || "");
-const composerLabels = Array.from((composerRoot || document).querySelectorAll?.("[aria-label]") || [])
-  .map((node) => clip(node.getAttribute("aria-label") || ""))
-  .join(" ");
-const scopedText = composerText + " " + composerLabels;
-const hasFileName = scopedText.includes(targetFileName);
-const busy = Boolean(composerRoot?.querySelector?.("[aria-busy='true'], [role='progressbar']"));
-const uploadText = /uploading|processing|analyzing|preparing|加载|上传中|处理中/i.test(scopedText);
-if (hasFileName && !busy && !uploadText) {
-  return {status: "success", message: "provider upload complete", pageUrl: location.href};
-}
-return {
-  status: "pending",
-  message: hasFileName ? "waiting for provider upload completion" : "waiting for provider file chip",
-  pageUrl: location.href,
-};
-`;
-
 export const buildVerifyPromptSubmittedScript = (expectedText: string, previousAssistantCount: number): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const input = resolveComposerInput();
-const actual = input instanceof HTMLElement ? clip(input.textContent || input.value || "") : "";
+const actual = input instanceof HTMLElement ? clip(input.textContent || "") : "";
 const expectedPrefix = clip(${JSON.stringify(expectedText)}).slice(0, 80);
 ${WEB_CHAT_ASSISTANT_COUNT_SCRIPT}
 ${WEB_CHAT_GENERATION_STATE_SCRIPT}

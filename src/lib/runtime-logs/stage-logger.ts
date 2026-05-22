@@ -132,7 +132,7 @@ const emitTerminalStageEvent = (input: {
       ...(input.retryable !== undefined ? { retryable: input.retryable } : {}),
       ...(input.terminal !== undefined ? { terminal: input.terminal } : {}),
       ...(input.recoveryPolicy ? { recoveryPolicy: input.recoveryPolicy } : {}),
-      payload: input.payload,
+      ...(input.payload ? { payload: input.payload } : {}),
     }),
     durationMs: Date.now() - input.startedAt,
   }));
@@ -163,14 +163,14 @@ export const createStageLogger = (input: {
       payload: buildStagePayload({
         stageName: stageInput.stageName,
         stageAttempt,
-        payload: stageInput.payload,
+        ...(stageInput.payload ? { payload: stageInput.payload } : {}),
       }),
     }));
 
     return {
       stageName: stageInput.stageName,
       startedAt,
-      stepId: stageContext.stepId,
+      ...(stageContext.stepId ? { stepId: stageContext.stepId } : {}),
       complete(completeInput) {
         emitTerminalStageEvent({
           logger: input.logger,
@@ -200,7 +200,7 @@ export const createStageLogger = (input: {
           startedAt,
           status: "failed",
           reason: failInput.reason,
-          actionableMessage: failInput.actionableMessage,
+          ...(failInput.actionableMessage ? { actionableMessage: failInput.actionableMessage } : {}),
           failureClass: failInput.failureClass,
           retryable: failInput.retryable,
           terminal: failInput.terminal,
@@ -247,7 +247,7 @@ export const createStageLogger = (input: {
           startedAt,
           status: "review_required",
           reason: reviewInput.reason,
-          actionableMessage: reviewInput.actionableMessage,
+          ...(reviewInput.actionableMessage ? { actionableMessage: reviewInput.actionableMessage } : {}),
           failureClass: reviewInput.failureClass,
           retryable: reviewInput.retryable ?? false,
           terminal: reviewInput.terminal ?? true,

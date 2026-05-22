@@ -6,7 +6,7 @@ export type { TraceContext } from "./trace.js";
 export { createRuntimeLogger, setDefaultRuntimeLogger } from "./logger.js";
 export type { RuntimeLogger } from "./logger.js";
 export { RuntimeFailureClass } from "./failure-classes.js";
-export type { RuntimeFailureClass, RuntimeRecoveryPolicy } from "./failure-classes.js";
+export type { RuntimeRecoveryPolicy } from "./failure-classes.js";
 export {
 	createMissionTrace,
 	withRoundTrace,

@@ -1,4 +1,5 @@
-import type { RuntimeLogEventInput, RuntimeLogEventType, RuntimeLogLevel, RuntimeLogMode, RuntimeLogStatus } from "./schema.js";
+import type { RuntimeLogEventType } from "./event-types.js";
+import type { RuntimeLogEventInput, RuntimeLogLevel, RuntimeLogMode, RuntimeLogStatus } from "./schema.js";
 import type { RuntimeTraceContext } from "./trace-context.js";
 
 export const createRuntimeEvent = (input: {

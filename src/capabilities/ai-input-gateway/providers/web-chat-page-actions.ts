@@ -3,10 +3,8 @@ import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
 import {
   waitForAttachmentCountAtLeast as waitForAttachmentCountAtLeastImpl,
-  waitForUploadComplete as waitForUploadCompleteImpl,
 } from "./web-chat-upload-page-actions.js";
 import {
-  buildSetComposerTextScript,
   buildVerifyComposerTextScript,
   FOCUS_COMPOSER_SCRIPT,
   VERIFY_COMPOSER_FOCUSED_SCRIPT,
@@ -15,7 +13,6 @@ import {
   FIND_COMPOSER_POINT_SCRIPT,
 } from "./web-chat-page-action-scripts.js";
 
-const MAX_UPLOAD_COMPLETE_WAIT_MS = 45_000;
 const MAX_ATTACHMENT_COUNT_WAIT_MS = 15_000;
 
 export const focusComposer = (
@@ -48,17 +45,6 @@ export const findComposerPoint = (
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 
-export const setComposerText = (
-  browser: BrowserController,
-  context: AiProviderAdapterContext,
-  text: string,
-): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "set AI web chat composer prompt text",
-    script: buildSetComposerTextScript(text),
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-  });
-
 export const verifyComposerText = (
   browser: BrowserController,
   context: AiProviderAdapterContext,
@@ -69,18 +55,6 @@ export const verifyComposerText = (
     script: buildVerifyComposerTextScript(expectedText),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
-
-export const waitForUploadComplete = (
-  browser: BrowserController,
-  context: AiProviderAdapterContext,
-  filePath: string,
-  timeoutMs: number,
-): Promise<void> => waitForUploadCompleteImpl(
-  browser,
-  context,
-  filePath,
-  Math.min(timeoutMs, MAX_UPLOAD_COMPLETE_WAIT_MS),
-);
 
 export const waitForAttachmentCountAtLeast = (
   browser: BrowserController,

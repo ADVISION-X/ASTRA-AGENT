@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-05-22T14:53:52.261Z",
+  "generatedAt": "2026-05-22T15:28:35.358Z",
   "summary": {
     "activeLawCount": 92,
-    "coveredLawCount": 103,
-    "coveragePercent": 112
+    "coveredLawCount": 92,
+    "coveragePercent": 100
   },
   "coverage": [
     {

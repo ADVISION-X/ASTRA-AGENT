@@ -55,18 +55,6 @@ export const clickDesktopPoint = async (
   await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
 };
 
-export const pressEscapeInChrome = async (
-  abortSignal?: AbortSignal,
-): Promise<void> => {
-  const script = [
-    'tell application "Google Chrome" to activate',
-    'tell application "System Events"',
-    "  key code 53",
-    "end tell",
-  ].join("\n");
-  await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
-};
-
 export const pasteTextAndSubmitInChrome = async (
   prompt: string,
   abortSignal?: AbortSignal,

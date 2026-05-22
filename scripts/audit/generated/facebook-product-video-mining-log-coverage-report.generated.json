@@ -1,0 +1,377 @@
+{
+  "generatedAt": "2026-05-22T15:28:38.957Z",
+  "capabilityDomain": "facebook-product-video-mining-log-coverage",
+  "executionGroup": "domain",
+  "lawIds": [
+    "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-018-V1"
+  ],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_MISSION_PREFLIGHT in src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts. Missing fields: debugBundleRef, configHash, SCHEMA_CONTRACT_VIOLATION, INTERNAL_BUG.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_OPEN_FEED in src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts. Missing fields: browserSessionRef, durationMs, RECOVERABLE_BROWSER_DRIFT, ACCOUNT_SECURITY_BLOCKER, PLATFORM_RATE_LIMIT, INTERNAL_BUG.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_WAIT_VIDEO_STABLE in src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts, src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts. Missing fields: currentSrcHash, stableSampleCount, durationMs, DOM_PROBE_FAILURE, ACCOUNT_SECURITY_BLOCKER, PLATFORM_RATE_LIMIT.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_ROUND_START in src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts. Missing fields: INTERNAL_BUG.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_IDENTIFY_VIDEO in src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts. Missing fields: currentSrcHash, textHash, DOM_PROBE_FAILURE.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_DOM_PROBE in src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts. Missing fields: domSnapshotRef, domSignatureHash, DOM_PROBE_FAILURE.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_COMMENT_COLLECTION in src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts. Missing fields: commentsRef, commentsHash, commentsLoadedCount, durationMs, DOM_PROBE_FAILURE.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_VIDEO_DOWNLOAD in src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts, src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts. Missing fields: byteSize, durationMs, MEDIA_DOWNLOAD_FAILURE.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_AI_UPLOAD in src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts. Missing fields: fileRef, videoFileHash, promptHash, videoByteSize, AI_PROVIDER_FAILURE.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_AI_RESPONSE_WAIT in src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts. Missing fields: AI_PROVIDER_FAILURE.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_AI_PARSE in src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts. Missing fields: normalizedOutputHash, AI_PARSE_FAILURE.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_DECISION_APPLY in src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts, src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts. Missing fields: candidateId, confidence, INTERNAL_BUG.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_ARTIFACT_PROMOTE_OR_DELETE in src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts, src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts. Missing fields: byteSize, ARTIFACT_FAILURE.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 5,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_NOT_INTERESTED in src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts, src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts. Missing fields: beforeHash, afterHash, durationMs, RECOVERABLE_BROWSER_DRIFT.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_NAVIGATION_NEXT in src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts. Missing fields: recoveryTrail, beforeSignatureHash, afterSignatureHash, durationMs, NAVIGATION_FAILURE, RECOVERABLE_BROWSER_DRIFT.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_VERIFY_NEXT_STABLE in src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts. Missing fields: newVideoKey, stableSampleCount, durationMs, NAVIGATION_FAILURE.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/mandatory-stage",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining mandatory stage is missing log coverage",
+      "line": 1,
+      "severity": "fatal",
+      "hint": "Add started and terminal logs for FACEBOOK_ROUND_FINALIZE in src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts. Missing fields: roundSummaryRef, durationMs, SKIPPABLE_ROUND_FAILURE, INTERNAL_BUG.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/failure-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining failure path lacks failureClass contract",
+      "line": 34,
+      "severity": "fatal",
+      "hint": "Classify this path as DOM_PROBE_FAILURE / MEDIA_DOWNLOAD_FAILURE / AI_PARSE_FAILURE / NAVIGATION_FAILURE / RECOVERABLE_BROWSER_DRIFT / ACCOUNT_SECURITY_BLOCKER etc. Missing: failureClass, recoveryPolicy.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/failure-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining failure path lacks failureClass contract",
+      "line": 11,
+      "severity": "fatal",
+      "hint": "Classify this path as DOM_PROBE_FAILURE / MEDIA_DOWNLOAD_FAILURE / AI_PARSE_FAILURE / NAVIGATION_FAILURE / RECOVERABLE_BROWSER_DRIFT / ACCOUNT_SECURITY_BLOCKER etc. Missing: failureClass, reason, recoveryPolicy, terminal.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/failure-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining failure path lacks failureClass contract",
+      "line": 13,
+      "severity": "fatal",
+      "hint": "Classify this path as DOM_PROBE_FAILURE / MEDIA_DOWNLOAD_FAILURE / AI_PARSE_FAILURE / NAVIGATION_FAILURE / RECOVERABLE_BROWSER_DRIFT / ACCOUNT_SECURITY_BLOCKER etc. Missing: failureClass, recoveryPolicy, terminal.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/failure-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining failure path lacks failureClass contract",
+      "line": 127,
+      "severity": "fatal",
+      "hint": "Classify this path as DOM_PROBE_FAILURE / MEDIA_DOWNLOAD_FAILURE / AI_PARSE_FAILURE / NAVIGATION_FAILURE / RECOVERABLE_BROWSER_DRIFT / ACCOUNT_SECURITY_BLOCKER etc. Missing: failureClass, recoveryPolicy, terminal.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/failure-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining failure path lacks failureClass contract",
+      "line": 16,
+      "severity": "fatal",
+      "hint": "Classify this path as DOM_PROBE_FAILURE / MEDIA_DOWNLOAD_FAILURE / AI_PARSE_FAILURE / NAVIGATION_FAILURE / RECOVERABLE_BROWSER_DRIFT / ACCOUNT_SECURITY_BLOCKER etc. Missing: failureClass, recoveryPolicy, terminal.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/failure-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining failure path lacks failureClass contract",
+      "line": 105,
+      "severity": "fatal",
+      "hint": "Classify this path as DOM_PROBE_FAILURE / MEDIA_DOWNLOAD_FAILURE / AI_PARSE_FAILURE / NAVIGATION_FAILURE / RECOVERABLE_BROWSER_DRIFT / ACCOUNT_SECURITY_BLOCKER etc. Missing: failureClass, recoveryPolicy, terminal.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/failure-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining failure path lacks failureClass contract",
+      "line": 62,
+      "severity": "fatal",
+      "hint": "Classify this path as DOM_PROBE_FAILURE / MEDIA_DOWNLOAD_FAILURE / AI_PARSE_FAILURE / NAVIGATION_FAILURE / RECOVERABLE_BROWSER_DRIFT / ACCOUNT_SECURITY_BLOCKER etc. Missing: failureClass, recoveryPolicy.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/failure-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining failure path lacks failureClass contract",
+      "line": 13,
+      "severity": "fatal",
+      "hint": "Classify this path as DOM_PROBE_FAILURE / MEDIA_DOWNLOAD_FAILURE / AI_PARSE_FAILURE / NAVIGATION_FAILURE / RECOVERABLE_BROWSER_DRIFT / ACCOUNT_SECURITY_BLOCKER etc. Missing: failureClass, recoveryPolicy, terminal.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/failure-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+      "clauseId": "primary",
+      "message": "Facebook mining failure path lacks failureClass contract",
+      "line": 35,
+      "severity": "fatal",
+      "hint": "Classify this path as DOM_PROBE_FAILURE / MEDIA_DOWNLOAD_FAILURE / AI_PARSE_FAILURE / NAVIGATION_FAILURE / RECOVERABLE_BROWSER_DRIFT / ACCOUNT_SECURITY_BLOCKER etc. Missing: failureClass, recoveryPolicy.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/ai-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
+      "clauseId": "primary",
+      "message": "Facebook AI judgment path lacks upload/response/parse trace logs",
+      "line": 122,
+      "severity": "fatal",
+      "hint": "Add AI upload, response wait and parse stage logs with provider proof, rawOutputRef/hash and schema validation status. Missing: FACEBOOK_AI_UPLOAD, FACEBOOK_AI_RESPONSE_WAIT, FACEBOOK_AI_PARSE, videoFileHash, videoByteSize, promptHash.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/navigation-contract",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
+      "clauseId": "primary",
+      "message": "Facebook next navigation lacks before/action/after trace contract",
+      "line": 179,
+      "severity": "fatal",
+      "hint": "Log before signature, action/fallback trail, after signature and stable verification result. Missing: FACEBOOK_NAVIGATION_NEXT, FACEBOOK_VERIFY_NEXT_STABLE, beforeSignatureHash, afterSignatureHash, beforeVideoKey, afterVideoKey, actionStrategy, fallbackUsed, recoveryTrail, durationMs.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/recovery-trail",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
+      "clauseId": "primary",
+      "message": "Facebook recovery/fallback path lacks recoveryTrail logging",
+      "line": 15,
+      "severity": "fatal",
+      "hint": "Add RECOVERY_STARTED/COMPLETED/FAILED events and include recoveryTrail linked to original failure. Missing: recoveryTrail, action, durationMs, beforeHash, afterHash.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/recovery-trail",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
+      "clauseId": "primary",
+      "message": "Facebook recovery/fallback path lacks recoveryTrail logging",
+      "line": 42,
+      "severity": "fatal",
+      "hint": "Add RECOVERY_STARTED/COMPLETED/FAILED events and include recoveryTrail linked to original failure. Missing: recoveryTrail, action, reason, durationMs, beforeHash, afterHash.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/recovery-trail",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
+      "clauseId": "primary",
+      "message": "Facebook recovery/fallback path lacks recoveryTrail logging",
+      "line": 207,
+      "severity": "fatal",
+      "hint": "Add RECOVERY_STARTED/COMPLETED/FAILED events and include recoveryTrail linked to original failure. Missing: recoveryTrail, action, durationMs, beforeHash, afterHash.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/recovery-trail",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
+      "clauseId": "primary",
+      "message": "Facebook recovery/fallback path lacks recoveryTrail logging",
+      "line": 23,
+      "severity": "fatal",
+      "hint": "Add RECOVERY_STARTED/COMPLETED/FAILED events and include recoveryTrail linked to original failure. Missing: recoveryTrail, action, beforeHash, afterHash.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/recovery-trail",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
+      "clauseId": "primary",
+      "message": "Facebook recovery/fallback path lacks recoveryTrail logging",
+      "line": 3,
+      "severity": "fatal",
+      "hint": "Add RECOVERY_STARTED/COMPLETED/FAILED events and include recoveryTrail linked to original failure. Missing: recoveryTrail, durationMs, beforeHash, afterHash.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts"
+    },
+    {
+      "checkId": "facebook-log-coverage/artifact-refs",
+      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
+      "clauseId": "primary",
+      "message": "Facebook artifact operation lacks refs/hashes observability",
+      "line": 19,
+      "severity": "fatal",
+      "hint": "Log artifactRef, sha256, byteSize, disposition and candidateId. Missing operations: debug; missing fields: disposition.",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts"
+    }
+  ],
+  "inspectedFiles": [
+    "src/capabilities/ai-input-gateway/ability-group.ts",
+    "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.candidate-record.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-scripts.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts"
+  ]
+}

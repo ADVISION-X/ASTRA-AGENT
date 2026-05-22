@@ -8,7 +8,7 @@ import { assertExtracted, waitForStableAnswer } from "./web-chat-answer.js";
 import type { WebChatEvaluation } from "./web-chat-evaluation.js";
 import { openProviderPage } from "./web-chat-open.js";
 import { submitPromptViaClipboard } from "./web-chat-submit.js";
-import { uploadFiles as uploadFilesViaSetFileInputFiles } from "./web-chat-upload.js";
+import { uploadFiles as pasteFilesViaClipboard } from "./web-chat-upload.js";
 import {
   buildWebChatRawResponse,
   persistWorkspaceAfterResponse,
@@ -20,7 +20,6 @@ import { ensureProviderWorkspaceFocused } from "./web-chat-workspace.js";
 
 const POLL_INTERVAL_MS = 1500;
 const STABLE_ROUNDS_REQUIRED = 3;
-const setFileInputFilesFlow = uploadFilesViaSetFileInputFiles;
 
 const submitWebChatPrompt = async (input: {
   browser: BrowserController;
@@ -92,7 +91,7 @@ const executeWebChatConversation = async (input: {
   sourcePageUrlBeforeFeed: string | null;
 }): Promise<AiProviderRawResponse> => {
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
-  await setFileInputFilesFlow(input.browser, input.request, input.context);
+  await pasteFilesViaClipboard(input.browser, input.request, input.context);
   await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
   const preSubmit = await readPreSubmitConversationState({
     browser: input.browser,

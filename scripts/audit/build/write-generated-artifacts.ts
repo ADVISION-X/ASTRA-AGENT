@@ -52,10 +52,11 @@ const buildStaticCoverageSummary = (
   coveragePercent: number;
 } => {
   const activeLawCount = countActiveLaws(laws);
+  const coveredLawCount = new Set(staticCoverage.map((entry) => entry.lawId)).size;
   return {
     activeLawCount,
-    coveredLawCount: staticCoverage.length,
-    coveragePercent: activeLawCount === 0 ? 100 : Math.round((staticCoverage.length / activeLawCount) * 100),
+    coveredLawCount,
+    coveragePercent: activeLawCount === 0 ? 100 : Math.round((coveredLawCount / activeLawCount) * 100),
   };
 };
 

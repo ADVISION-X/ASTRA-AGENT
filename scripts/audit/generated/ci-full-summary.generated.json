@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-22T14:51:32.575Z",
-  "status": "PASS",
+  "generatedAt": "2026-05-22T15:28:44.021Z",
+  "status": "FAIL",
   "steps": [
     {
       "name": "build-audit-artifacts",
@@ -8,10 +8,15 @@
     },
     {
       "name": "run-generated-plan",
-      "status": "PASS"
+      "status": "FAIL",
+      "error": "One or more audit domains reported findings."
     },
     {
       "name": "typecheck",
+      "status": "PASS"
+    },
+    {
+      "name": "runtime-log-spine",
       "status": "PASS"
     },
     {
@@ -41,9 +46,16 @@
     {
       "capabilityDomain": "code-purity",
       "executionGroup": "foundation",
-      "status": "PASS",
-      "findingCount": 0,
+      "status": "FAIL",
+      "findingCount": 49,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json"
+    },
+    {
+      "capabilityDomain": "runtime-log-spine",
+      "executionGroup": "foundation",
+      "status": "FAIL",
+      "findingCount": 141,
+      "reportPath": "scripts/audit/generated/runtime-log-spine-report.generated.json"
     },
     {
       "capabilityDomain": "dom-automation",
@@ -58,6 +70,13 @@
       "status": "PASS",
       "findingCount": 0,
       "reportPath": "scripts/audit/generated/facebook-product-video-mining-report.generated.json"
+    },
+    {
+      "capabilityDomain": "facebook-product-video-mining-log-coverage",
+      "executionGroup": "domain",
+      "status": "FAIL",
+      "findingCount": 34,
+      "reportPath": "scripts/audit/generated/facebook-product-video-mining-log-coverage-report.generated.json"
     },
     {
       "capabilityDomain": "local-app-shell",

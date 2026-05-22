@@ -10,6 +10,9 @@ const inspectorFindingSchema = z
     lawId: lawIdSchema,
     clauseId: z.string().min(1),
     message: z.string().min(1),
+    line: z.number().int().positive().optional(),
+    severity: z.literal("fatal"),
+    hint: z.string().min(1).optional(),
     filePath: z.string().min(1).optional(),
     evidence: z.string().min(1).optional(),
   })
