@@ -14,5 +14,3 @@ export const videoDownloadCandidateSchema = z.object({
   source: z.string().min(1),
   quality: z.enum(["hd", "sd", "unknown"]),
 }).strict();
-
-export type VideoDownloadCandidateKind = z.infer<typeof videoDownloadCandidateSchema.shape.kind>;

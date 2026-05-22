@@ -104,6 +104,16 @@ Video download skill 必须作为独立受治理 job flow 入口展示。页面�
 - Download subtitles
 - Start
 
+Telegram Web 接入形态：
+
+- Video Download 面板内部必须用平台顶部导航选择平台，不得把所有平台压进一个普通 capability 下拉框。
+- 页面可以在 child capability 下拉中暴露 `download-telegram-web-video-once`。
+- 页面必须提示操作者先在本地 Chrome 打开并授权目标 Telegram Web 页面。
+- 页面可以提供“读取已打开 Telegram Web 标签页 URL”的按钮；该按钮只读取 URL/title 用于填表，不读取 cookie、storage、消息正文或群组内容。
+- 页面不得自动批量列出群组所有视频；允许后续建设“探测当前授权页面的单视频候选/缓存覆盖状态”，但探测结果只能作为 review / start 前提示，不能冒充下载成功。
+- Telegram Web 下载仍必须提交一个明确 `sourcePageUrl`，进入 mediator + `video-download-artifact` job flow，由 video-download child 在授权 Chrome 标签页中执行 Service Worker / CacheStorage 探针。
+- APP 只展示 `success` / `review_required` / `failed` / `invalid_input`、artifactRef、filePath、sha256、failureReason，不展示群组名称、消息正文、账号身份或 raw progressive URL。
+
 提交通过本地 HTTP API 进入 `src/mediator/**`，再进入 `src/plugins/video-download-artifact/**` job flow，由该 flow 调用 `video-download` public facade。
 页面不拥有下载算法、平台探针、业务价值判断、能力组调用或批量编排。
 
@@ -127,6 +137,7 @@ Video download skill 必须作为独立受治理 job flow 入口展示。页面�
 - CAPTCHA / DRM / 登录绕过开关
 - cookie、token、localStorage、sessionStorage 导出
 - 批量下载编排面板
+- 自动抓取整个 Telegram 群组视频列表
 - 截图或封面图冒充完整视频 artifact
 
 ## 禁止项
@@ -152,7 +163,7 @@ local-app-shell owner inspector 检查：
 - root page 是否暴露 job flow list。
 - Amazon 输入面是否包含必要字段。
 - Facebook 输入面是否只暴露目标数量、Start、Latest。
-- Video Download 输入面是否只暴露 source URL、child capability、quality、max MB、subtitles、Start。
+- Video Download 输入面是否只暴露 source URL、child capability、quality、max MB、subtitles、Start，以及 Telegram Web 授权页边界提示。
 - Video Download route 是否存在 `/api/video-download/start`，且 route 必须经 mediator + job flow 后再调用能力组，页面只展示真实 result 状态。
 - 页面是否包含 task status / evidence refs / failure reason 展示区域。
 - 页面是否仍出现 forbidden dashboard / planner / visual runtime 控制面。

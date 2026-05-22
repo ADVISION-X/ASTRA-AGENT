@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 import {
   Node,
@@ -21,6 +21,7 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
+import { inspectSmokeAcceptance } from "./inspector-smoke.js";
 
 const requiredFiles = [
   "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
@@ -33,6 +34,7 @@ const requiredFiles = [
   "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
   "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
   "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
+  "scripts/acceptance/deep-research-analysis-smoke.ts",
 ] as const;
 
 const forbiddenRuntimeFields = [
@@ -303,16 +305,17 @@ const inspectParserHonesty = (
       checkId: "deep-research/parser-catch-success",
       lawId,
       filePath: getRepoSourcePath(parserFile),
-      message: "Parser catch clauses must not return parsed.",
+      lawId: input.lawId,
+      filePath: smokePath,
+      message: `Smoke must verify runtime log signal ${runtimeSignal}.`,
     }));
   }
-  for (const symbolName of ["empty_sub_questions", "duplicate_sub_questions"]) {
-    if (parserFile.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralValue() === symbolName)) continue;
-    findings.push(createFinding({
-      checkId: "deep-research/parser-edge-case",
-      lawId,
-      filePath: getRepoSourcePath(parserFile),
-      message: `Parser must explicitly classify ${symbolName}.`,
+  if (countAstCoverageNodes(input.smokeFile.getProject(), input.smokeFile) === 0) {
+    input.findings.push(createFinding({
+      checkId: "deep-research/smoke-ast-symbol",
+      lawId: input.lawId,
+      filePath: smokePath,
+      message: "Smoke inspector must exercise ts-morph AST and symbol evidence.",
     }));
   }
 };
@@ -359,6 +362,7 @@ const inspectRegressionFixtures = (
 
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
   const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-001-V1");
+  const smokeLawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-DEEP-RESEARCH-013-V1");
   const findings: InspectorFinding[] = [];
   const inspectedFiles = new Set<string>();
   const sourceFiles = context.project.getSourceFiles("src/plugins/deep-research-analysis/**/*.ts");
@@ -369,7 +373,9 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const parserFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts");
   const flowFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts");
   const regressionFile = getSourceFile(context, "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts");
-  [promptFile, parserFile, flowFile, regressionFile].forEach((sourceFile) => track(inspectedFiles, sourceFile));
+  const smokeFile = getSourceFile(context, "scripts/acceptance/deep-research-analysis-smoke.ts");
+  const ciFullFile = getSourceFile(context, "scripts/audit/ci-full.ts");
+  [promptFile, parserFile, flowFile, regressionFile, smokeFile, ciFullFile].forEach((sourceFile) => track(inspectedFiles, sourceFile));
   const astCoverageCount = flowFile ? countAstCoverageNodes(context.project, flowFile) : 0;
 
   inspectPromptAsset(promptFile, findings, lawId);
@@ -379,6 +385,16 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectParserHonesty(parserFile, findings, lawId);
   inspectAntiEvasion(sourceFiles, findings, lawId);
   inspectRegressionFixtures(regressionFile, findings, lawId);
+  inspectSmokeAcceptance({
+    smokeFile,
+    ciFullFile,
+    findings,
+    inspectedFiles,
+    lawId: smokeLawId,
+    hasAstCoverage: smokeFile
+      ? countAstCoverageNodes(smokeFile.getProject(), smokeFile) > 0
+      : false,
+  });
   if (astCoverageCount === 0) {
     findings.push(createFinding({
       checkId: "deep-research/ast-coverage",

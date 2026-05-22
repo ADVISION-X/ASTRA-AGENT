@@ -7,9 +7,44 @@ import { DeepResearchFinalReportSchema } from "./deep-research-analysis.result.j
 
 const DeepResearchConfidenceSchema = z.enum(["low", "medium", "high"]);
 
+const DeepResearchPersistableSubQuestionSchema = z.object({
+  id: z.string().trim().min(1),
+  title: z.string().trim().min(1),
+  questionText: z.string().trim().min(1),
+  purpose: z.string().trim().min(1),
+  scope: z.string().trim().min(1),
+  expectedAnswerShape: z.string().trim().min(1),
+  dimension: z.string().trim().min(1).optional(),
+  requiredEvidence: z.array(z.string().trim().min(1)).optional(),
+  positiveAnalysisFocus: z.string().trim().min(1).optional(),
+  falsificationFocus: z.string().trim().min(1).optional(),
+  priority: z.enum(["low", "medium", "high"]).optional(),
+}).strict().transform((subQuestion) =>
+  DeepResearchSubQuestionSchema.parse({
+    id: subQuestion.id,
+    title: subQuestion.title,
+    questionText: subQuestion.questionText,
+    purpose: subQuestion.purpose,
+    scope: subQuestion.scope,
+    expectedAnswerShape: subQuestion.expectedAnswerShape,
+  }));
+
 const DeepResearchDecompositionResponseSchema = z.object({
   mainQuestion: z.string().trim().min(1),
-  subQuestions: z.array(DeepResearchSubQuestionSchema).min(1),
+  questionType: z.string().trim().min(1).optional(),
+  decompositionStrategy: z.string().trim().min(1).optional(),
+  missingInfo: z.array(z.string().trim().min(1)).optional(),
+  subQuestions: z.array(DeepResearchPersistableSubQuestionSchema).min(1),
+  qualitySelfCheck: z.object({
+    coversFacts: z.boolean(),
+    coversCausality: z.boolean(),
+    coversImpact: z.boolean(),
+    coversEvidence: z.boolean(),
+    coversFalsification: z.boolean(),
+    coversRisks: z.boolean(),
+    hasNoDuplicateQuestions: z.boolean(),
+    isReadyForPositiveAndFalsification: z.boolean(),
+  }).optional(),
 }).strict();
 
 const DeepResearchPositiveAnswerSchema = z.object({

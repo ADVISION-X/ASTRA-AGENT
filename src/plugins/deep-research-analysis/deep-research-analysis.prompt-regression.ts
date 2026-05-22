@@ -1,4 +1,4 @@
-export type DecompositionPromptRegressionFixture = {
+type DecompositionPromptRegressionFixture = {
   id: string;
   userQuestion: string;
   mustHaveFalsificationFocus: true;
@@ -27,4 +27,4 @@ export const DEEP_RESEARCH_DECOMPOSITION_REGRESSION_FIXTURES = [
   fixture("cash-flow", "现金流转好是否真实？", ["facts", "evidence", "falsification"]),
   fixture("valuation", "估值是否已经反映增长？", ["valuation", "impact", "risk"]),
   fixture("guidance", "管理层指引是否可信？", ["facts", "evidence", "falsification"]),
-] as const;
+];

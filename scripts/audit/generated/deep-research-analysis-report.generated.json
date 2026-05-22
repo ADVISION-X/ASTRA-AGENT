@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T22:14:52.355Z",
+  "generatedAt": "2026-05-22T23:09:38.706Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -20,24 +20,20 @@
   "status": "FAIL",
   "findings": [
     {
-      "checkId": "deep-research/prompt-asset",
+      "checkId": "deep-research/anti-evasion",
       "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
       "clauseId": "primary",
-      "message": "DEEP_RESEARCH_DECOMPOSITION_PROMPT must be an object literal prompt asset.",
+      "message": "Deep research decomposition files must not use any, dynamic import, or bracket property access.",
       "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts"
-    },
-    {
-      "checkId": "deep-research/regression-fixtures",
-      "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
-      "clauseId": "primary",
-      "message": "Regression fixture set must contain at least 10 fixtures.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts"
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts"
     }
   ],
   "inspectedFiles": [
+    "package.json",
+    "scripts/acceptance/deep-research-analysis-smoke.ts",
     "scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts",
+    "scripts/audit/ci-full.ts",
+    "src/plugins/deep-research-analysis/acceptance-surface.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.conflict-matrix.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
@@ -52,6 +48,9 @@
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.public.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.record-contracts.ts",
+    "src/plugins/deep-research-analysis/deep-research-analysis.record-db.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.records.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.result.ts",
     "src/plugins/deep-research-analysis/deep-research-analysis.schema.ts",

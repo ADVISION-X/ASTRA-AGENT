@@ -21,7 +21,7 @@ type DecompositionParseSuccess = {
   rawResponseHash: string;
 };
 
-export type DecompositionParseResult = DecompositionParseFailure | DecompositionParseSuccess;
+type DecompositionParseResult = DecompositionParseFailure | DecompositionParseSuccess;
 
 const normalizeRawText = (rawText: string): string => rawText.trim();
 
@@ -120,6 +120,3 @@ export const parseDecompositionResponse = (input: {
     rawResponseHash: buildDeepResearchTextHash(normalizedText),
   };
 };
-
-export const parseDecompositionSchemaOnly = (rawText: string): DecompositionParseResult =>
-  parseDecompositionResponse({ rawText, maxSubQuestions: 12 });

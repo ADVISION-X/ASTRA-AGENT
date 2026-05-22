@@ -16,7 +16,7 @@ import type {
   ResearchSubQuestion,
 } from "./deep-research-analysis.records.js";
 
-export const DeepResearchFinalPackageSchema = z.object({
+const DeepResearchFinalPackageSchema = z.object({
   jobId: z.string().trim().min(1),
   userQuestion: z.string().trim().min(1),
   decompositionRecords: z.array(z.unknown()),

@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { routeVideoDownloadArtifactJob } from "../mediator/video-download-artifact-route.js";
@@ -14,6 +15,7 @@ const VIDEO_DOWNLOAD_CHILD_IDS = [
   "download-x-video-once",
   "download-xiaohongshu-video-once",
   "download-youtube-video-once",
+  "download-telegram-web-video-once",
 ] as const;
 
 const VIDEO_DOWNLOAD_QUALITIES = [
@@ -39,6 +41,8 @@ type VideoDownloadRequestBody = {
   timeoutMs?: unknown;
   downloadSubtitles?: unknown;
 };
+
+type VideoDownloadSourcePlatform = "telegram-web";
 
 const isVideoDownloadChildId = (value: unknown): value is VideoDownloadChildId =>
   typeof value === "string" && VIDEO_DOWNLOAD_CHILD_IDS.some((childId) => childId === value);
@@ -78,11 +82,40 @@ const buildVideoDownloadJobInput = (body: VideoDownloadRequestBody): Parameters<
   return buildVideoDownloadJobInputForChild(body, childCapabilityId, sourcePageUrl);
 };
 
+const readSourcePlatform = (value: string | null): VideoDownloadSourcePlatform | null =>
+  value === "telegram-web" ? value : null;
+
+const handleVideoDownloadSourcePageRequest = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+): Promise<boolean> => {
+  if (request.method !== "GET" || request.url?.split("?")[0] !== "/api/video-download/source-page") {
+    return false;
+  }
+  const url = new URL(request.url, "http://127.0.0.1");
+  const platformId = readSourcePlatform(url.searchParams.get("platform"));
+  if (!platformId) {
+    writeJson(response, 400, { error: "unsupported_video_source_platform" });
+    return true;
+  }
+  const sourcePage = await workbench.findOpenVideoDownloadSourcePage(platformId);
+  if (!sourcePage) {
+    writeJson(response, 404, { error: "source_page_not_found", platformId });
+    return true;
+  }
+  writeJson(response, 200, sourcePage);
+  return true;
+};
+
 export const handleVideoDownloadRequest = async (
   request: IncomingMessage,
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
 ): Promise<boolean> => {
+  if (await handleVideoDownloadSourcePageRequest(request, response, workbench)) {
+    return true;
+  }
   if (request.method !== "POST" || request.url?.split("?")[0] !== "/api/video-download/start") {
     return false;
   }

@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 
+import { Node, SyntaxKind, type SourceFile } from "ts-morph";
+
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -10,6 +12,9 @@ type Finding = ReturnType<typeof createFinding>;
 const pagePath = "src/app/workbench-home-page.ts";
 const clientPath = "src/app/workbench-home-client.ts";
 const videoDownloadClientPath = "src/app/workbench-video-download-client.ts";
+const deepResearchPanelPath = "src/app/workbench-deep-research-panel.ts";
+const deepResearchClientPath = "src/app/workbench-deep-research-client.ts";
+const deepResearchRoutePath = "src/app/workbench-deep-research-routes.ts";
 const videoDownloadRoutePath = "src/app/workbench-video-download-routes.ts";
 const stylesPath = "src/app/workbench-home-styles.ts";
 const serverPath = "src/app/create-workbench-server.ts";
@@ -18,6 +23,9 @@ const publicPluginFacadePathPattern = /^src\/plugins\/[^/]+\/index\.ts$/u;
 const publicCapabilityFacadePathPattern = /^src\/capabilities\/[^/]+\/index\.ts$/u;
 
 const readRepoFile = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
+
+const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
+  context.project.getSourceFile(resolveFromRepo(repoPath));
 
 const pushFinding = (
   findings: Finding[],
@@ -51,6 +59,50 @@ const requireMarker = (input: {
   });
 };
 
+const requireImport = (input: {
+  findings: Finding[];
+  lawId: string;
+  filePath: string;
+  symbolName: string;
+  moduleSuffix: string;
+  checkId: string;
+  context: InspectorContext;
+}): void => {
+  const sourceFile = getSourceFile(input.context, input.filePath);
+  const found = sourceFile?.getImportDeclarations().some((declaration) =>
+    declaration.getModuleSpecifierValue().endsWith(input.moduleSuffix)
+    && declaration.getNamedImports().some((namedImport) => namedImport.getName() === input.symbolName),
+  );
+  if (found) return;
+  pushFinding(input.findings, {
+    checkId: input.checkId,
+    lawId: input.lawId,
+    filePath: input.filePath,
+    message: `${input.filePath} must import ${input.symbolName} from ${input.moduleSuffix}.`,
+  });
+};
+
+const requireCall = (input: {
+  findings: Finding[];
+  lawId: string;
+  filePath: string;
+  symbolName: string;
+  checkId: string;
+  context: InspectorContext;
+}): void => {
+  const sourceFile = getSourceFile(input.context, input.filePath);
+  const found = sourceFile?.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) =>
+    call.getExpression().getText() === input.symbolName,
+  );
+  if (found) return;
+  pushFinding(input.findings, {
+    checkId: input.checkId,
+    lawId: input.lawId,
+    filePath: input.filePath,
+    message: `${input.filePath} must call ${input.symbolName}.`,
+  });
+};
+
 const inspectRootSurface = (findings: Finding[], lawId: string): void => {
   const pageText = readRepoFile(pagePath);
   const clientText = readRepoFile(clientPath);
@@ -78,11 +130,12 @@ const inspectJobInputs = (findings: Finding[], lawId: string): void => {
     requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: fieldName, checkId: "local-app-shell/amazon-input" });
   }
   requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: "data-facebook-form", checkId: "local-app-shell/facebook-input" });
-  for (const marker of ["data-video-download-form", "sourcePageUrl", "childCapabilityId", "preferredQuality", "maxMegabytes", "downloadSubtitles"]) {
+  for (const marker of ["data-video-download-form", "sourcePageUrl", "childCapabilityId", "preferredQuality", "maxMegabytes", "downloadSubtitles", "download-telegram-web-video-once", "data-video-platform-tabs", "data-video-detect-source", "data-video-download-telegram-boundary"]) {
     requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker, checkId: "local-app-shell/video-download-input" });
   }
   requireMarker({ findings, lawId, filePath: videoDownloadClientPath, text: videoClientText, marker: "/api/video-download/start", checkId: "local-app-shell/video-download-client" });
   requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "routeVideoDownloadArtifactJob", checkId: "local-app-shell/video-download-route" });
+  requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "/api/video-download/source-page", checkId: "local-app-shell/video-download-source-page" });
   requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "missing_source_page_url", checkId: "local-app-shell/video-download-route" });
   if (/getVideoDownloadAbilityGroup\(\)\.execute/u.test(videoRouteText)) {
     pushFinding(findings, {
@@ -90,6 +143,82 @@ const inspectJobInputs = (findings: Finding[], lawId: string): void => {
       lawId,
       filePath: videoDownloadRoutePath,
       message: "Video Download app route must enter mediator and job flow before calling the ability group.",
+    });
+  }
+};
+
+const inspectDeepResearchAppSurface = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): void => {
+  const pageText = readRepoFile(pagePath);
+  const panelText = readRepoFile(deepResearchPanelPath);
+  const clientText = readRepoFile(deepResearchClientPath);
+  const routeText = readRepoFile(deepResearchRoutePath);
+  requireImport({ context, findings, lawId, filePath: pagePath, symbolName: "renderDeepResearchPanel", moduleSuffix: "./workbench-deep-research-panel.js", checkId: "local-app-shell/deep-research-ui-import" });
+  requireImport({ context, findings, lawId, filePath: serverPath, symbolName: "handleDeepResearchRequest", moduleSuffix: "./workbench-deep-research-routes.js", checkId: "local-app-shell/deep-research-route-import" });
+  requireCall({ context, findings, lawId, filePath: pagePath, symbolName: "renderDeepResearchPanel", checkId: "local-app-shell/deep-research-panel-call" });
+  requireCall({ context, findings, lawId, filePath: serverPath, symbolName: "handleDeepResearchRequest", checkId: "local-app-shell/deep-research-route-call" });
+  for (const marker of [
+    "data-job-card=\"deep-research\"",
+    "data-job-panel=\"deep-research\"",
+    "name=\"userQuestion\"",
+    "name=\"language\"",
+    "name=\"providerKind\"",
+    "name=\"maxSubQuestions\"",
+    "data-deep-research-final-report",
+    "data-deep-research-evidence",
+  ]) {
+    requireMarker({ findings, lawId, filePath: marker.startsWith("data-job-card") ? pagePath : deepResearchPanelPath, text: `${pageText}\n${panelText}`, marker, checkId: "local-app-shell/deep-research-surface" });
+  }
+  for (const marker of [
+    "/api/deep-research-analysis/start",
+    "/api/deep-research-analysis/timeline",
+    "readJsonBody",
+    "writeJson",
+    "workbench.startDeepResearchAnalysis",
+    "workbench.getDeepResearchAnalysisTimeline",
+  ]) {
+    requireMarker({ findings, lawId, filePath: deepResearchRoutePath, text: routeText, marker, checkId: "local-app-shell/deep-research-route" });
+  }
+  for (const marker of ["Full prompt", "AI response", "Parsed JSON", "<details>"]) {
+    requireMarker({ findings, lawId, filePath: deepResearchClientPath, text: clientText, marker, checkId: "local-app-shell/deep-research-collapsed-client" });
+  }
+};
+
+const inspectDeepResearchAppBoundary = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): void => {
+  const routeSource = getSourceFile(context, deepResearchRoutePath);
+  const forbiddenImport = routeSource?.getImportDeclarations().find((declaration) =>
+    declaration.getModuleSpecifierValue().includes("plugins/deep-research-analysis"),
+  );
+  if (forbiddenImport) {
+    pushFinding(findings, {
+      checkId: "local-app-shell/deep-research-private-import",
+      lawId,
+      filePath: deepResearchRoutePath,
+      message: "Deep Research app route must call WorkbenchHandle instead of importing plugin code.",
+    });
+  }
+  const appSources = [deepResearchPanelPath, deepResearchClientPath, deepResearchRoutePath]
+    .map((repoPath) => getSourceFile(context, repoPath))
+    .filter((sourceFile): sourceFile is SourceFile => Boolean(sourceFile));
+  const promptLikeNode = appSources.flatMap((sourceFile) =>
+    sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).filter((literal) =>
+      /output contract|return json|positiveAnalysisPrompt|falsificationPrompt/iu.test(literal.getLiteralValue()),
+    ).map((literal) => ({ sourceFile, literal })),
+  )[0];
+  if (promptLikeNode) {
+    pushFinding(findings, {
+      checkId: "local-app-shell/deep-research-business-logic",
+      lawId,
+      filePath: getRepoSourcePath(promptLikeNode.sourceFile),
+      message: "Deep Research APP files must not contain business prompt or parser logic.",
+      evidence: Node.isStringLiteral(promptLikeNode.literal) ? promptLikeNode.literal.getLiteralValue() : undefined,
     });
   }
 };
@@ -206,8 +335,10 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectAstProjectAccess(context, findings, boundaryLawId);
   inspectRootSurface(findings, surfaceLawId);
   inspectJobInputs(findings, inputLawId);
+  inspectDeepResearchAppSurface(context, findings, inputLawId);
   inspectStatusWindow(findings, statusLawId);
   inspectForbiddenPageTerms(findings, boundaryLawId);
+  inspectDeepResearchAppBoundary(context, findings, boundaryLawId);
   inspectAppImports(context, findings, boundaryLawId);
   inspectLocalRuntimeImports(context, findings, boundaryLawId);
 
@@ -215,6 +346,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
-    inspectedFiles: [pagePath, clientPath, videoDownloadClientPath, videoDownloadRoutePath, stylesPath, serverPath, inspectorPath],
+    inspectedFiles: [pagePath, clientPath, videoDownloadClientPath, videoDownloadRoutePath, deepResearchPanelPath, deepResearchClientPath, deepResearchRoutePath, stylesPath, serverPath, inspectorPath],
   };
 };

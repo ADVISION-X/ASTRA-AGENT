@@ -41,41 +41,58 @@ export const buildTelegramWebCacheProbeScript = (maxBytes: number): string => `
   };
 
   const cache = await caches.open(CACHE_NAME);
-  const requests = await cache.keys();
+  const resourceUrls = performance.getEntriesByType("resource")
+    .map((entry) => entry && entry.name)
+    .filter((url) => typeof url === "string" && url.includes("/progressive/document"));
+  const documentIds = [...new Set(resourceUrls.map(documentIdFromUrl).filter(Boolean))];
   const groups = new Map();
+  const chunkSize = 524288;
+  const maxProbeEnd = Math.min(MAX_BYTES, 10 * 1024 * 1024);
 
-  for (const request of requests) {
-    const requestUrl = request.url;
-    if (!requestUrl.includes("/progressive/") && !requestUrl.includes("/download/")) continue;
-    const documentId = documentIdFromUrl(requestUrl);
-    if (!documentId) continue;
-    const response = await cache.match(request);
-    if (!response) continue;
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.toLowerCase().startsWith("video/")) continue;
-    const range = parseRange(response.headers.get("content-range"));
-    if (!range) continue;
-    const bytes = new Uint8Array(await response.clone().arrayBuffer());
-    const entry = {
-      start: range.start,
-      end: range.end,
-      total: range.total,
-      byteLength: bytes.length,
-      contentType,
-      bytes,
-    };
-    const existing = groups.get(documentId) || [];
-    existing.push(entry);
-    groups.set(documentId, existing);
+  for (const documentId of documentIds) {
+    const entries = [];
+    for (let start = 0; start < maxProbeEnd; start += chunkSize) {
+      const requestedEnd = start + chunkSize - 1;
+      const baseUrl = new URL("/a/progressive/document" + documentId, location.origin);
+      baseUrl.searchParams.set("start", String(start));
+      baseUrl.searchParams.set("end", String(requestedEnd));
+      const partResponse = await cache.match(baseUrl.href + "&type=arrayBuffer");
+      const headersResponse = await cache.match(baseUrl.href + "&type=headers");
+      if (!partResponse || !headersResponse) break;
+      const headers = await headersResponse.clone().json();
+      const getHeader = (name) => {
+        const pair = Array.isArray(headers) ? headers.find((item) => String(item[0]).toLowerCase() === name) : null;
+        return pair ? String(pair[1]) : "";
+      };
+      const contentType = getHeader("content-type");
+      if (!contentType.toLowerCase().startsWith("video/")) break;
+      const range = parseRange(getHeader("content-range"));
+      if (!range) break;
+      const bytes = new Uint8Array(await partResponse.clone().arrayBuffer());
+      entries.push({
+        start: range.start,
+        end: range.end,
+        total: range.total,
+        byteLength: bytes.length,
+        contentType,
+        bytes,
+      });
+      if (range.end + 1 >= range.total) break;
+    }
+    if (entries.length > 0) {
+      groups.set(documentId, entries);
+    }
   }
 
   let sawPartial = false;
+  let sawTooLarge = false;
   for (const [documentId, entries] of groups) {
     entries.sort((left, right) => left.start - right.start);
     const total = entries[0]?.total || 0;
     if (total <= 0) continue;
     if (total > MAX_BYTES) {
-      return failure("download_too_large", "Telegram Web cached media exceeds maxBytes.", "review_required");
+      sawTooLarge = true;
+      continue;
     }
     let cursor = 0;
     let byteSize = 0;
@@ -116,6 +133,9 @@ export const buildTelegramWebCacheProbeScript = (maxBytes: number): string => `
 
   if (sawPartial || groups.size > 0) {
     return failure("candidate_not_found", "Telegram Web media cache exists but does not cover one complete contiguous video.", "review_required");
+  }
+  if (sawTooLarge) {
+    return failure("download_too_large", "Telegram Web cached media exceeds maxBytes.", "review_required");
   }
   return failure("candidate_not_found", "No Telegram Web video media cache entries were found.", "review_required");
 })()

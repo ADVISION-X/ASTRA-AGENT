@@ -12,7 +12,7 @@ import {
   parseDeepResearchFinalReportResponse,
   parseDeepResearchPositiveResponse,
   runDeepResearchAnalysis,
-} from "../../src/plugins/deep-research-analysis/index.js";
+} from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
 import type {
   AiProviderAdapter,
   AiProviderRawResponse,

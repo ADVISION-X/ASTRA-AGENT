@@ -48,8 +48,8 @@ const createStorage = (): VideoArtifactStoragePort => ({
 });
 
 const createBrowser = (result: unknown): BrowserMediaSourcePort => ({
-  async evaluateActiveTab() {
-    return result;
+  async evaluateActiveTab<T>() {
+    return result as T;
   },
 });
 
@@ -75,6 +75,9 @@ const successGroup = createVideoDownloadAbilityGroup({
 const successResult = await successGroup.execute(baseInput);
 assert(successResult.status === "success", "Telegram Web complete cache should produce success.");
 assert(successResult.output.status === "success", "Telegram Web output should be success.");
+if (successResult.output.status !== "success") {
+  throw new Error("Telegram Web output did not narrow to success.");
+}
 assert(successResult.output.platformId === "telegram-web", "Telegram Web platformId should be telegram-web.");
 assert(successResult.output.candidateKind === "telegram_sw_progressive_cache", "Telegram Web candidateKind should prove cache chain.");
 assert(successResult.output.byteSize === mp4Bytes.length, "Telegram Web byte size should match cached media.");

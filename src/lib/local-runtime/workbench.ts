@@ -1,4 +1,7 @@
 import {
+  findOpenVideoDownloadSourcePage,
+} from "./workbench-video-download-support.js";
+import {
   loadAppRunLimitSettings,
   saveAppRunLimitSettings,
 } from "./settings.js";
@@ -33,6 +36,77 @@ import {
   listFacebookProductVideoMiningSavedRecords,
   startFacebookProductVideoMiningMission,
 } from "../../plugins/facebook-product-video-mining/index.js";
+import {
+  deepResearchAnalysisPublicFacade,
+  type DeepResearchAnalysisStartInput,
+  type DeepResearchJobSnapshot,
+  type DeepResearchTimelineSnapshot,
+} from "../../plugins/deep-research-analysis/index.js";
+
+type DeepResearchExecutionState = {
+  status: DeepResearchJobSnapshot["job"]["status"];
+  phase: DeepResearchJobSnapshot["job"]["phase"];
+  failureReason: string | null;
+  reviewReason: string | null;
+};
+
+const applyDeepResearchExecutionState = <
+  T extends {
+    job: DeepResearchJobSnapshot["job"];
+    overview?: { currentPhase: DeepResearchJobSnapshot["overview"]["currentPhase"] };
+  },
+>(
+  executions: Map<string, DeepResearchExecutionState>,
+  snapshot: T | null,
+): T | null => {
+  if (!snapshot) return null;
+  const execution = executions.get(snapshot.job.id);
+  if (!execution) return snapshot;
+  return {
+    ...snapshot,
+    job: {
+      ...snapshot.job,
+      status: execution.status,
+      phase: execution.status === "running"
+        ? snapshot.overview?.currentPhase ?? execution.phase
+        : execution.phase,
+      failureReason: execution.failureReason ?? snapshot.job.failureReason,
+      reviewReason: execution.reviewReason ?? snapshot.job.reviewReason,
+    },
+  };
+};
+
+const trackDeepResearchExecution = (
+  input: {
+    executions: Map<string, DeepResearchExecutionState>;
+    snapshot: DeepResearchJobSnapshot;
+    runPromise: ReturnType<typeof deepResearchAnalysisPublicFacade.runDeepResearchAnalysis>;
+  },
+): void => {
+  input.executions.set(input.snapshot.job.id, {
+    status: "running",
+    phase: input.snapshot.overview.currentPhase,
+    failureReason: null,
+    reviewReason: null,
+  });
+  void input.runPromise
+    .then((result) => {
+      const execution = input.executions.get(result.jobId);
+      if (!execution) return;
+      execution.status = result.jobStatus;
+      execution.phase = result.phase;
+      execution.failureReason = result.failureReason;
+      execution.reviewReason = result.reviewReason;
+    })
+    .catch((error) => {
+      const execution = input.executions.get(input.snapshot.job.id);
+      if (!execution) return;
+      execution.status = "failed";
+      execution.phase = input.snapshot.overview.currentPhase;
+      execution.failureReason = error instanceof Error ? error.message : String(error);
+      execution.reviewReason = null;
+    });
+};
 
 const buildSettingsHandle = (dataDir: string) => ({
   async getAppRunLimitSettings() {
@@ -125,6 +199,72 @@ const buildFacebookMiningHandle = (
   },
 });
 
+const buildDeepResearchAnalysisHandle = (
+  assembly: WorkbenchAssembly,
+  dataDir: string,
+) => {
+  const executions = new Map<string, DeepResearchExecutionState>();
+  const applyExecutionState = <T extends { job: DeepResearchJobSnapshot["job"]; overview?: { currentPhase: DeepResearchJobSnapshot["overview"]["currentPhase"] } }>(snapshot: T | null) =>
+    applyDeepResearchExecutionState(executions, snapshot);
+  const loadLatestSnapshot = () =>
+    deepResearchAnalysisPublicFacade.getLatestDeepResearchAnalysisJob({ dataDir });
+
+  return {
+    async startDeepResearchAnalysis(input: DeepResearchAnalysisStartInput) {
+      const previousLatest = loadLatestSnapshot();
+      const runPromise = deepResearchAnalysisPublicFacade.runDeepResearchAnalysis(
+        {
+          userQuestion: input.userQuestion,
+          analysisGoal: input.analysisGoal ?? null,
+          language: input.language,
+          maxSubQuestions: input.maxSubQuestions,
+          outputFormat: input.outputFormat,
+        },
+        {
+          aiInputGateway: assembly.aiInputGateway,
+          runtimeLogger: assembly.runtimeLogger,
+          dataDir,
+          providerKind: input.providerKind,
+          modelName: "workbench-default",
+          timeoutMs: 180_000,
+        },
+      );
+
+      const latestSnapshot = loadLatestSnapshot();
+      const snapshot = latestSnapshot ?? previousLatest;
+      if (!snapshot) {
+        throw new Error("Deep Research job was not created.");
+      }
+      trackDeepResearchExecution({ executions, snapshot, runPromise });
+
+      return applyExecutionState(snapshot) ?? snapshot;
+    },
+    async getDeepResearchAnalysisJob(jobId: string) {
+      return applyExecutionState(
+        deepResearchAnalysisPublicFacade.getDeepResearchAnalysisJob({ dataDir, jobId }),
+      );
+    },
+    async getLatestDeepResearchAnalysisJob() {
+      return applyExecutionState(loadLatestSnapshot());
+    },
+    async getDeepResearchAnalysisTimeline(jobId: string) {
+      return applyExecutionState(
+        deepResearchAnalysisPublicFacade.getDeepResearchAnalysisTimeline({ dataDir, jobId }) as DeepResearchTimelineSnapshot | null,
+      );
+    },
+    async exportDeepResearchAnalysisArtifact(input: {
+      jobId: string;
+      kind: Parameters<typeof deepResearchAnalysisPublicFacade.getDeepResearchExportArtifact>[0]["kind"];
+    }) {
+      return deepResearchAnalysisPublicFacade.getDeepResearchExportArtifact({
+        dataDir,
+        jobId: input.jobId,
+        kind: input.kind,
+      });
+    },
+  };
+};
+
 const buildWorkbenchHandle = (
   assembly: WorkbenchAssembly,
   init: () => Promise<void>,
@@ -139,11 +279,13 @@ const buildWorkbenchHandle = (
       getMissionStartPreflight(assembly, assembly.options, input),
     getDataDir: () => dataDir,
     getVideoDownloadAbilityGroup: () => assembly.videoDownload,
+    findOpenVideoDownloadSourcePage,
     getAiInputGatewayAbilityGroup: () => assembly.aiInputGateway,
     getModeInfo: () => getModeInfo(assembly.options),
     ...buildSettingsHandle(dataDir),
     ...buildAmazonInvoiceHandle(assembly, dataDir),
     ...buildFacebookMiningHandle(assembly, dataDir),
+    ...buildDeepResearchAnalysisHandle(assembly, dataDir),
   };
 };
 

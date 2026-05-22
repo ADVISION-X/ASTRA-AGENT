@@ -10,7 +10,7 @@ import type {
   DeepResearchPhase,
 } from "./deep-research-analysis.schema.js";
 
-export const DEEP_RESEARCH_RUNTIME_LOG_OWNER = "deep-research-analysis" as const;
+const DEEP_RESEARCH_RUNTIME_LOG_OWNER = "deep-research-analysis" as const;
 
 type DeepResearchLogStatus = "started" | "success" | "failed" | "review_required";
 

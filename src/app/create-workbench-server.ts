@@ -3,6 +3,7 @@ import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { handleAmazonRequest } from "./workbench-amazon-routes.js";
+import { handleDeepResearchRequest } from "./workbench-deep-research-routes.js";
 import { handleFacebookRequest } from "./workbench-facebook-routes.js";
 import { writeCorsPreflight, writeJson } from "./workbench-http.js";
 import { renderWorkbenchHomePage } from "./workbench-home-page.js";
@@ -55,6 +56,9 @@ const handleKnownWorkbenchApiRequest = async (input: {
   url: URL;
 }): Promise<boolean> => {
   if (await handleWorkbenchMetaRequest(input)) {
+    return true;
+  }
+  if (await handleDeepResearchRequest(input.request, input.response, input.workbench, input.url)) {
     return true;
   }
   if (await handleAmazonRequest(input.request, input.response, input.workbench, input.url)) {

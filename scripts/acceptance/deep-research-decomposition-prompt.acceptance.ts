@@ -9,7 +9,7 @@ import {
   renderDecompositionPrompt,
   runDeepResearchDecompositionPhase,
   scoreDecompositionQuality,
-} from "../../src/plugins/deep-research-analysis/index.js";
+} from "../../src/plugins/deep-research-analysis/acceptance-surface.js";
 import { repoRoot } from "../audit/shared/paths.js";
 
 const fixturePath = resolve(

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T22:15:02.382Z",
+  "generatedAt": "2026-05-22T23:09:50.742Z",
   "status": "FAIL",
   "steps": [
     {
@@ -13,8 +13,7 @@
     },
     {
       "name": "typecheck",
-      "status": "FAIL",
-      "error": "typecheck failed with exit code 2"
+      "status": "PASS"
     },
     {
       "name": "runtime-log-spine",
@@ -26,8 +25,11 @@
     },
     {
       "name": "deep-research-analysis-smoke",
-      "status": "FAIL",
-      "error": "deep-research-analysis-smoke failed with exit code 1"
+      "status": "PASS"
+    },
+    {
+      "name": "deep-research-app-ui",
+      "status": "PASS"
     },
     {
       "name": "amazon-invoice-upload-smoke",
@@ -57,21 +59,21 @@
       "capabilityDomain": "code-purity",
       "executionGroup": "foundation",
       "status": "FAIL",
-      "findingCount": 115,
+      "findingCount": 14,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json"
     },
     {
       "capabilityDomain": "runtime-log-spine",
       "executionGroup": "foundation",
-      "status": "PASS",
-      "findingCount": 0,
+      "status": "FAIL",
+      "findingCount": 11,
       "reportPath": "scripts/audit/generated/runtime-log-spine-report.generated.json"
     },
     {
       "capabilityDomain": "deep-research-analysis",
       "executionGroup": "domain",
       "status": "FAIL",
-      "findingCount": 2,
+      "findingCount": 1,
       "reportPath": "scripts/audit/generated/deep-research-analysis-report.generated.json"
     },
     {
@@ -112,8 +114,8 @@
     {
       "capabilityDomain": "video-download-capability",
       "executionGroup": "domain",
-      "status": "FAIL",
-      "findingCount": 1,
+      "status": "PASS",
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/video-download-capability-report.generated.json"
     },
     {

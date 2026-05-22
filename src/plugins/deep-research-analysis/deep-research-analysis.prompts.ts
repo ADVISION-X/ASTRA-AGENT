@@ -4,10 +4,6 @@ import {
   type DeepResearchPrompt,
   type DeepResearchPromptOutputContract,
 } from "./deep-research-analysis.prompt-contracts.js";
-export {
-  DEEP_RESEARCH_DECOMPOSITION_PROMPT,
-  renderDecompositionPrompt,
-} from "./deep-research-analysis.decomposition-prompt.js";
 import type {
   DeepResearchInput,
   DeepResearchSubQuestion,
@@ -139,22 +135,6 @@ export const finalSynthesisPrompt = buildPrompt({
     ],
   }),
 });
-
-export const DeepResearchPromptCatalog = {
-  decomposition: decompositionPrompt,
-  positive: positiveAnalysisPrompt,
-  falsification: falsificationPrompt,
-  finalSynthesis: finalSynthesisPrompt,
-} as const;
-
-export const buildDeepResearchPromptHash = (prompt: DeepResearchPrompt): string =>
-  stableJsonHash({
-    promptId: prompt.promptId,
-    promptVersion: prompt.promptVersion,
-    phase: prompt.phase,
-    promptText: prompt.promptText,
-    expectedOutputContract: prompt.expectedOutputContract,
-  });
 
 export const buildRenderedDeepResearchPromptHash = (input: {
   prompt: DeepResearchPrompt;

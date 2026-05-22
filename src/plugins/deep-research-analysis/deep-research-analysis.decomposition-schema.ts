@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const DeepResearchDecompositionDimensionSchema = z.enum([
+const DEEP_RESEARCH_DECOMPOSITION_DIMENSIONS = [
   "facts",
   "causality",
   "impact",
@@ -10,11 +10,21 @@ export const DeepResearchDecompositionDimensionSchema = z.enum([
   "valuation",
   "operations",
   "falsification",
+] as const;
+
+const DeepResearchDecompositionDimensionAliasSchema = z.enum([
+  "market demand",
+  "execution risk",
+]).transform((value) => (value === "market demand" ? "market" : "risk"));
+
+const DeepResearchDecompositionDimensionSchema = z.union([
+  z.enum(DEEP_RESEARCH_DECOMPOSITION_DIMENSIONS),
+  DeepResearchDecompositionDimensionAliasSchema,
 ]);
 
-export const DeepResearchDecompositionPrioritySchema = z.enum(["low", "medium", "high"]);
+const DeepResearchDecompositionPrioritySchema = z.enum(["low", "medium", "high"]);
 
-export const DeepResearchDecompositionSubQuestionSchema = z.object({
+const DeepResearchDecompositionSubQuestionSchema = z.object({
   id: z.string().trim().min(1),
   title: z.string().trim().min(1),
   questionText: z.string().trim().min(1),
@@ -23,11 +33,12 @@ export const DeepResearchDecompositionSubQuestionSchema = z.object({
   requiredEvidence: z.array(z.string().trim().min(1)).min(1),
   positiveAnalysisFocus: z.string().trim().min(1),
   falsificationFocus: z.string().trim().min(1),
+  scope: z.string().trim().min(1).default("not_provided"),
   expectedAnswerShape: z.string().trim().min(1),
   priority: DeepResearchDecompositionPrioritySchema,
 }).strict();
 
-export const DeepResearchDecompositionQualitySelfCheckSchema = z.object({
+const DeepResearchDecompositionQualitySelfCheckSchema = z.object({
   coversFacts: z.boolean(),
   coversCausality: z.boolean(),
   coversImpact: z.boolean(),
@@ -48,4 +59,3 @@ export const DeepResearchDecompositionResponseSchema = z.object({
 }).strict();
 
 export type DeepResearchDecompositionResponse = z.infer<typeof DeepResearchDecompositionResponseSchema>;
-export type DeepResearchDecompositionSubQuestion = z.infer<typeof DeepResearchDecompositionSubQuestionSchema>;

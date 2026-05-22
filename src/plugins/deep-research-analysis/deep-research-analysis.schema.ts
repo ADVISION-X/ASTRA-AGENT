@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-export const DeepResearchLanguageSchema = z.enum(["zh-CN", "en"]);
+const DeepResearchLanguageSchema = z.enum(["zh-CN", "en"]);
 
-export const DeepResearchOutputFormatSchema = z.enum(["markdown"]);
+const DeepResearchOutputFormatSchema = z.enum(["markdown"]);
 
 export const DeepResearchJobStatusSchema = z.enum([
   "queued",
@@ -71,21 +71,3 @@ export type DeepResearchPhase = z.infer<typeof DeepResearchPhaseSchema>;
 export type DeepResearchSubQuestion = z.infer<typeof DeepResearchSubQuestionSchema>;
 export type DeepResearchInteractionPhase = z.infer<typeof DeepResearchInteractionPhaseSchema>;
 export type DeepResearchParseStatus = z.infer<typeof DeepResearchParseStatusSchema>;
-
-export const DeepResearchSchemas = {
-  DeepResearchInputSchema,
-  DeepResearchJobStatusSchema,
-  DeepResearchPhaseSchema,
-  DeepResearchSubQuestionSchema,
-  DeepResearchInteractionPhaseSchema,
-  DeepResearchParseStatusSchema,
-} as const;
-
-export type DeepResearchContracts = {
-  DeepResearchInput: DeepResearchInput;
-  DeepResearchJobStatus: DeepResearchJobStatus;
-  DeepResearchPhase: DeepResearchPhase;
-  DeepResearchSubQuestion: DeepResearchSubQuestion;
-  DeepResearchInteractionPhase: DeepResearchInteractionPhase;
-  DeepResearchParseStatus: DeepResearchParseStatus;
-};

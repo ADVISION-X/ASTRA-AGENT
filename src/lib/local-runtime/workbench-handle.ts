@@ -1,7 +1,17 @@
 import type { OnlineAiProviderPublicStatus } from "../online-ai/index.js";
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import type { VideoDownloadAbilityGroup } from "../../capabilities/video-download/index.js";
+import type {
+  DeepResearchAnalysisStartInput,
+  DeepResearchExportArtifactPayload,
+  DeepResearchJobSnapshot,
+  DeepResearchTimelineSnapshot,
+} from "../../plugins/deep-research-analysis/index.js";
 import type { AppRunLimitSettings } from "./settings-types.js";
+import type {
+  VideoDownloadSourcePage,
+  VideoDownloadSourcePagePlatform,
+} from "./workbench-video-download-support.js";
 import type {
   WorkbenchHealthReport,
   WorkbenchMissionReadinessReport,
@@ -34,6 +44,9 @@ export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;
   getDataDir: () => string;
   getVideoDownloadAbilityGroup: () => VideoDownloadAbilityGroup;
+  findOpenVideoDownloadSourcePage: (
+    platformId: VideoDownloadSourcePagePlatform,
+  ) => Promise<VideoDownloadSourcePage | null>;
   getAiInputGatewayAbilityGroup: () => AiInputGatewayAbilityGroup;
   getHealthReport: () => Promise<WorkbenchHealthReport>;
   getMissionReadinessReport: () => Promise<WorkbenchMissionReadinessReport>;
@@ -82,4 +95,18 @@ export type GrassEyeWorkbenchHandle = {
   exportFacebookProductVideoMiningSelectionRecords: (
     runId: string,
   ) => Promise<FacebookProductVideoMiningSelectionExport>;
+  startDeepResearchAnalysis: (
+    input: DeepResearchAnalysisStartInput,
+  ) => Promise<DeepResearchJobSnapshot>;
+  getDeepResearchAnalysisJob: (
+    jobId: string,
+  ) => Promise<DeepResearchJobSnapshot | null>;
+  getLatestDeepResearchAnalysisJob: () => Promise<DeepResearchJobSnapshot | null>;
+  getDeepResearchAnalysisTimeline: (
+    jobId: string,
+  ) => Promise<DeepResearchTimelineSnapshot | null>;
+  exportDeepResearchAnalysisArtifact: (input: {
+    jobId: string;
+    kind: DeepResearchExportArtifactPayload["kind"];
+  }) => Promise<DeepResearchExportArtifactPayload | null>;
 };

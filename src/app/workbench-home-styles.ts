@@ -89,6 +89,27 @@ h3 { font-size: 13px; margin-bottom: 8px; color: var(--muted); }
 .field { display: grid; gap: 5px; }
 .field.wide { grid-column: 1 / -1; }
 label { color: var(--muted); font-size: 12px; }
+.platform-tabs {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 2px;
+}
+.platform-tab {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 999px;
+  min-height: 34px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.platform-tab[aria-pressed="true"] {
+  border-color: var(--accent-strong);
+  background: var(--accent);
+  color: #fff;
+}
 input, select {
   width: 100%;
   border: 1px solid var(--line);
@@ -100,6 +121,17 @@ input, select {
 }
 .check { display: flex; align-items: center; gap: 8px; min-height: 36px; }
 .check input { width: auto; min-height: auto; }
+.notice {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  background: #fbfcf8;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--muted);
+}
+.notice b { color: var(--ink); }
 .actions { display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
 .btn {
   border: 1px solid var(--accent-strong);

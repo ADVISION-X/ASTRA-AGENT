@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-export const VideoDownloadArtifactJobTypeSchema = z.literal("video-download-artifact");
+const VideoDownloadArtifactJobTypeSchema = z.literal("video-download-artifact");
 
-export const VideoDownloadArtifactQualitySchema = z.enum([
+const VideoDownloadArtifactQualitySchema = z.enum([
   "2160p",
   "1440p",
   "1080p",
@@ -14,7 +14,7 @@ export const VideoDownloadArtifactQualitySchema = z.enum([
   "best_available",
 ]);
 
-export const VideoDownloadArtifactChildCapabilitySchema = z.enum([
+const VideoDownloadArtifactChildCapabilitySchema = z.enum([
   "download-web-video-once",
   "download-facebook-video-once",
   "download-tiktok-video-once",
@@ -24,6 +24,7 @@ export const VideoDownloadArtifactChildCapabilitySchema = z.enum([
   "download-x-video-once",
   "download-xiaohongshu-video-once",
   "download-youtube-video-once",
+  "download-telegram-web-video-once",
 ]);
 
 export const VideoDownloadArtifactJobInputSchema = z.object({
@@ -38,6 +39,3 @@ export const VideoDownloadArtifactJobInputSchema = z.object({
 }).strict();
 
 export type VideoDownloadArtifactJobInput = z.input<typeof VideoDownloadArtifactJobInputSchema>;
-export type ParsedVideoDownloadArtifactJobInput = z.output<typeof VideoDownloadArtifactJobInputSchema>;
-export type VideoDownloadArtifactChildCapabilityId = z.infer<typeof VideoDownloadArtifactChildCapabilitySchema>;
-export type VideoDownloadArtifactQuality = z.infer<typeof VideoDownloadArtifactQualitySchema>;

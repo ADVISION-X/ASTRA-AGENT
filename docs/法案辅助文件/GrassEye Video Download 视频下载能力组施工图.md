@@ -426,6 +426,8 @@ Telegram Web 验收口径：
 
 - 至少一个小视频通过 CacheStorage 完整分片拼接成功，并用媒体探针证明是完整 MP4，不是缓存碎片集合。
 - 至少一个大于 Service Worker 早期缓存范围的视频完成内部链路评估；如果无法合法取得完整分片，必须如实返回 `review_required`，不得退回 UI 点击或 direct URL。
+- APP 接入必须通过 Video Download 输入面提交 `download-telegram-web-video-once`，经 `/api/video-download/start` -> mediator -> `video-download-artifact` job flow -> video-download public facade；APP 不得直调 child/runtime。
+- 从 APP 发起时，video-download 浏览器端口必须按 `sourcePageUrl` 定位已授权 Telegram Web 标签页执行探针，不能误在 Workbench 页面上探测。
 - 成功输出必须包含 artifactRef、platformId=`telegram-web`、byteSize、durationMs、width、height、candidateKind、range coverage proof。
 - 失败输出必须说明阻断点：未登录、页面不可见、SW 未接管、缓存不完整、内部 chunk 链路不可用、超时、超限、验证失败。
 - 验收不得依赖群组名称、账号身份、消息正文或任何 secret。

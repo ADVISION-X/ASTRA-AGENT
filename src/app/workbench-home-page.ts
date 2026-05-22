@@ -1,3 +1,6 @@
+import { renderWorkbenchDeepResearchClient } from "./workbench-deep-research-client.js";
+import { renderDeepResearchPanel } from "./workbench-deep-research-panel.js";
+import { renderWorkbenchDeepResearchStyles } from "./workbench-deep-research-styles.js";
 import { renderWorkbenchHomeClient } from "./workbench-home-client.js";
 import { renderWorkbenchHomeStyles } from "./workbench-home-styles.js";
 import { renderWorkbenchVideoDownloadClient } from "./workbench-video-download-client.js";
@@ -17,6 +20,10 @@ const renderJobRail = (): string => `
     <button class="job-card" type="button" data-job-card="video-download" aria-pressed="false">
       <strong>Video download skill</strong>
       <span class="muted">source URL -> media artifact</span>
+    </button>
+    <button class="job-card" type="button" data-job-card="deep-research" aria-pressed="false">
+      <strong>Deep Research Analysis</strong>
+      <span class="muted">question -> debate -> final report</span>
     </button>
   </div>
 </aside>`;
@@ -65,22 +72,35 @@ const renderFacebookPanel = (): string => `
 const renderVideoDownloadPanel = (): string => `
 <section class="hidden" data-job-panel="video-download">
   <h1>Video download skill</h1>
-  <p class="muted">video-download ability group</p>
+  <p class="muted">one platform, one verified media artifact</p>
   <form class="form-grid" data-video-download-form>
+    <input name="childCapabilityId" type="hidden" value="download-telegram-web-video-once" />
+    <div class="platform-tabs wide" data-video-platform-tabs>
+      <button class="platform-tab" type="button" data-video-platform="telegram" data-child-capability-id="download-telegram-web-video-once" aria-pressed="true">Telegram Web</button>
+      <button class="platform-tab" type="button" data-video-platform="youtube" data-child-capability-id="download-youtube-video-once" aria-pressed="false">YouTube</button>
+      <button class="platform-tab" type="button" data-video-platform="universal" data-child-capability-id="download-web-video-once" aria-pressed="false">Universal</button>
+      <button class="platform-tab" type="button" data-video-platform="facebook" data-child-capability-id="download-facebook-video-once" aria-pressed="false">Facebook</button>
+      <button class="platform-tab" type="button" data-video-platform="tiktok" data-child-capability-id="download-tiktok-video-once" aria-pressed="false">TikTok</button>
+      <button class="platform-tab" type="button" data-video-platform="instagram" data-child-capability-id="download-instagram-video-once" aria-pressed="false">Instagram</button>
+      <button class="platform-tab" type="button" data-video-platform="bilibili" data-child-capability-id="download-bilibili-video-once" aria-pressed="false">Bilibili</button>
+      <button class="platform-tab" type="button" data-video-platform="douyin" data-child-capability-id="download-douyin-video-once" aria-pressed="false">Douyin</button>
+      <button class="platform-tab" type="button" data-video-platform="x" data-child-capability-id="download-x-video-once" aria-pressed="false">X</button>
+      <button class="platform-tab" type="button" data-video-platform="xiaohongshu" data-child-capability-id="download-xiaohongshu-video-once" aria-pressed="false">Xiaohongshu</button>
+    </div>
+    <div class="notice wide" data-video-platform-note="telegram" data-video-download-telegram-boundary><b>Telegram Web</b><span>Authorized Chrome tab -> Service Worker cache -> artifact proof.</span></div>
+    <div class="notice wide hidden" data-video-platform-note="youtube"><b>YouTube</b><span>URL -> governed local runtime -> optional subtitles.</span></div>
+    <div class="notice wide hidden" data-video-platform-note="universal"><b>Universal</b><span>Visible page media candidates -> one validated artifact.</span></div>
+    <div class="notice wide hidden" data-video-platform-note="facebook"><b>Facebook</b><span>Visible reel/video URL -> governed media artifact.</span></div>
+    <div class="notice wide hidden" data-video-platform-note="tiktok"><b>TikTok</b><span>Visible video URL -> governed media artifact.</span></div>
+    <div class="notice wide hidden" data-video-platform-note="instagram"><b>Instagram</b><span>Visible video URL -> governed media artifact.</span></div>
+    <div class="notice wide hidden" data-video-platform-note="bilibili"><b>Bilibili</b><span>Visible video URL -> governed media artifact.</span></div>
+    <div class="notice wide hidden" data-video-platform-note="douyin"><b>Douyin</b><span>Visible video URL -> governed media artifact.</span></div>
+    <div class="notice wide hidden" data-video-platform-note="x"><b>X</b><span>Visible post/video URL -> governed media artifact.</span></div>
+    <div class="notice wide hidden" data-video-platform-note="xiaohongshu"><b>Xiaohongshu</b><span>Visible note/video URL -> governed media artifact.</span></div>
     <div class="field wide"><label>Source page URL</label><input name="sourcePageUrl" type="url" required /></div>
-    <div class="field">
-      <label>Capability</label>
-      <select name="childCapabilityId">
-        <option value="download-web-video-once">Universal web</option>
-        <option value="download-facebook-video-once">Facebook</option>
-        <option value="download-tiktok-video-once">TikTok</option>
-        <option value="download-instagram-video-once">Instagram</option>
-        <option value="download-bilibili-video-once">Bilibili</option>
-        <option value="download-douyin-video-once">Douyin</option>
-        <option value="download-x-video-once">X / Twitter</option>
-        <option value="download-xiaohongshu-video-once">Xiaohongshu</option>
-        <option value="download-youtube-video-once">YouTube</option>
-      </select>
+    <div class="actions wide" data-video-detect-row>
+      <button class="btn secondary" type="button" data-video-detect-source="telegram-web">Use open Telegram tab</button>
+      <span class="muted" data-video-source-state>-</span>
     </div>
     <div class="field">
       <label>Quality</label>
@@ -94,7 +114,7 @@ const renderVideoDownloadPanel = (): string => `
       </select>
     </div>
     <div class="field"><label>Max MB</label><input name="maxMegabytes" type="number" min="1" max="500" value="200" required /></div>
-    <label class="check"><input name="downloadSubtitles" type="checkbox" /> download subtitles</label>
+    <label class="check" data-video-subtitles-field><input name="downloadSubtitles" type="checkbox" /> download subtitles</label>
     <div class="actions wide">
       <button class="btn" type="submit">Start</button>
     </div>
@@ -125,7 +145,7 @@ export const renderWorkbenchHomePage = (): string => `<!doctype html>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GrassEye Local Workbench</title>
-  <style>${renderWorkbenchHomeStyles()}</style>
+  <style>${renderWorkbenchHomeStyles()}${renderWorkbenchDeepResearchStyles()}</style>
 </head>
 <body>
   <div class="shell" data-workbench-shell>
@@ -139,7 +159,7 @@ export const renderWorkbenchHomePage = (): string => `<!doctype html>
     </header>
     <main class="main">
       ${renderJobRail()}
-      <div class="workspace">${renderAmazonPanel()}${renderFacebookPanel()}${renderVideoDownloadPanel()}</div>
+      <div class="workspace">${renderAmazonPanel()}${renderFacebookPanel()}${renderVideoDownloadPanel()}${renderDeepResearchPanel()}</div>
       ${renderLedger()}
     </main>
     <footer class="activity" data-activity-panel>
@@ -147,6 +167,6 @@ export const renderWorkbenchHomePage = (): string => `<!doctype html>
       <div class="activity-log" data-activity-log></div>
     </footer>
   </div>
-  <script>${renderWorkbenchHomeClient()}${renderWorkbenchVideoDownloadClient()}</script>
+  <script>${renderWorkbenchHomeClient()}${renderWorkbenchVideoDownloadClient()}${renderWorkbenchDeepResearchClient()}</script>
 </body>
 </html>`;

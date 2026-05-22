@@ -12,7 +12,7 @@ export const DEEP_RESEARCH_DECOMPOSITION_PROMPT = {
     "The response must include qualitySelfCheck for facts, causality, impact, evidence, falsification, risks, duplicate questions, and readiness.",
     "Do not output nextAction, actionPlan, browserCommand, selector, coordinate, workflow, multiStepPlan, runNext, databaseCommand, or filePath.",
   ].join("\n"),
-} as const;
+};
 
 export const renderDecompositionPrompt = (input: {
   userQuestion: string;
@@ -27,12 +27,3 @@ export const renderDecompositionPrompt = (input: {
     `Question type hint: ${input.questionTypeHint ?? "general"}`,
     "Return the JSON object now.",
   ].join("\n");
-
-export const buildRenderedDeepResearchPromptHash = (promptText: string): string =>
-  buildDeepResearchPromptHash({
-    outputContractId: DEEP_RESEARCH_DECOMPOSITION_PROMPT.outputContractId,
-    phase: DEEP_RESEARCH_DECOMPOSITION_PROMPT.phase,
-    promptId: DEEP_RESEARCH_DECOMPOSITION_PROMPT.promptId,
-    promptText,
-    promptVersion: DEEP_RESEARCH_DECOMPOSITION_PROMPT.promptVersion,
-  });

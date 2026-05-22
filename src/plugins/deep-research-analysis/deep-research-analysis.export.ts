@@ -27,11 +27,18 @@ type DeepResearchEvidenceIndexEntry = {
   domRef: string | null;
 };
 
-export type DeepResearchExportArtifacts = {
+type DeepResearchExportArtifacts = {
   finalReportMarkdown: ResearchExport;
   researchBundle: ResearchExport;
   evidenceIndex: ResearchExport;
   exportDir: string;
+};
+
+type DeepResearchPersistedExportState = {
+  finalReportRecord: ResearchFinalReportRecord;
+  interactions: ResearchInteraction[];
+  subQuestions: ResearchSubQuestion[];
+  answers: ResearchAnswer[];
 };
 
 const buildTextHash = (value: string): string =>
@@ -122,6 +129,50 @@ const buildEvidenceIndexEntries = (input: {
   return entries;
 };
 
+const loadPersistedExportState = (
+  store: DeepResearchRecordStore,
+  jobId: string,
+): DeepResearchPersistedExportState => {
+  const finalReportRecord = store.getLatestFinalReport(jobId);
+  if (!finalReportRecord) {
+    throw new Error(`Deep research job ${jobId} has no persisted final report.`);
+  }
+
+  return {
+    finalReportRecord,
+    interactions: store.listInteractions(jobId),
+    subQuestions: store.listSubQuestions(jobId),
+    answers: store.listAnswers({ jobId }),
+  };
+};
+
+const writeTextArtifact = (filePath: string, text: string): { filePath: string; fileHash: string } => {
+  const fileHash = buildTextHash(text);
+  writeFileSync(filePath, `${text.trimEnd()}\n`, "utf8");
+  return { filePath, fileHash };
+};
+
+const writeJsonArtifact = <TPayload>(filePath: string, payload: TPayload): { filePath: string; fileHash: string } => {
+  const fileHash = stableJsonHash(payload);
+  writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  return { filePath, fileHash };
+};
+
+const buildResearchBundle = (input: {
+  finalPackage: DeepResearchFinalPackage;
+  finalReport: DeepResearchFinalReport;
+}) => ({
+  jobId: input.finalPackage.jobId,
+  userQuestion: input.finalPackage.userQuestion,
+  promptVersions: input.finalPackage.promptVersions,
+  subQuestions: input.finalPackage.decompositionRecords,
+  positiveAnswers: input.finalPackage.positiveAnswerRecords,
+  falsificationAnswers: input.finalPackage.falsificationAnswerRecords,
+  conflictMatrix: input.finalPackage.conflictMatrix,
+  finalReport: input.finalReport,
+  recordHashes: input.finalPackage.recordHashes,
+});
+
 export const exportDeepResearchArtifacts = (input: {
   dataDir: string;
   store: DeepResearchRecordStore;
@@ -131,69 +182,48 @@ export const exportDeepResearchArtifacts = (input: {
 }): DeepResearchExportArtifacts => {
   const exportDir = buildExportDir(input.dataDir, input.jobId);
   mkdirSync(exportDir, { recursive: true });
-
-  const finalReportRecord = input.store.getLatestFinalReport(input.jobId);
-  if (!finalReportRecord) {
-    throw new Error(`Deep research job ${input.jobId} has no persisted final report.`);
-  }
-
-  const interactions = input.store.listInteractions(input.jobId);
-  const subQuestions = input.store.listSubQuestions(input.jobId);
-  const answers = input.store.listAnswers({ jobId: input.jobId });
+  const persisted = loadPersistedExportState(input.store, input.jobId);
 
   const finalReportMarkdownText = buildFinalReportMarkdown({
     finalReport: input.finalReport,
     finalPackage: input.finalPackage,
   });
-  const finalReportPath = path.join(exportDir, "final-report.md");
-  const finalReportHash = buildTextHash(finalReportMarkdownText);
-  writeFileSync(finalReportPath, `${finalReportMarkdownText.trimEnd()}\n`, "utf8");
+  const finalReportArtifact = writeTextArtifact(path.join(exportDir, "final-report.md"), finalReportMarkdownText);
 
-  const researchBundle = {
-    jobId: input.finalPackage.jobId,
-    userQuestion: input.finalPackage.userQuestion,
-    promptVersions: input.finalPackage.promptVersions,
-    subQuestions: input.finalPackage.decompositionRecords,
-    positiveAnswers: input.finalPackage.positiveAnswerRecords,
-    falsificationAnswers: input.finalPackage.falsificationAnswerRecords,
-    conflictMatrix: input.finalPackage.conflictMatrix,
+  const researchBundle = buildResearchBundle({
+    finalPackage: input.finalPackage,
     finalReport: input.finalReport,
-    recordHashes: input.finalPackage.recordHashes,
-  };
-  const researchBundlePath = path.join(exportDir, "research-bundle.json");
-  const researchBundleHash = stableJsonHash(researchBundle);
-  writeFileSync(researchBundlePath, `${JSON.stringify(researchBundle, null, 2)}\n`, "utf8");
+  });
+  const researchBundleArtifact = writeJsonArtifact(path.join(exportDir, "research-bundle.json"), researchBundle);
 
   const evidenceIndex = buildEvidenceIndexEntries({
-    interactions,
-    subQuestions,
-    answers,
-    finalReportRecord,
+    interactions: persisted.interactions,
+    subQuestions: persisted.subQuestions,
+    answers: persisted.answers,
+    finalReportRecord: persisted.finalReportRecord,
   });
-  const evidenceIndexPath = path.join(exportDir, "evidence-index.json");
-  const evidenceIndexHash = stableJsonHash(evidenceIndex);
-  writeFileSync(evidenceIndexPath, `${JSON.stringify(evidenceIndex, null, 2)}\n`, "utf8");
+  const evidenceIndexArtifact = writeJsonArtifact(path.join(exportDir, "evidence-index.json"), evidenceIndex);
 
   return {
     finalReportMarkdown: input.store.saveExport({
       jobId: input.jobId,
       exportKind: "final-report.md",
-      filePath: finalReportPath,
-      fileHash: finalReportHash,
-      payload: { finalReportHash, content: finalReportMarkdownText },
+      filePath: finalReportArtifact.filePath,
+      fileHash: finalReportArtifact.fileHash,
+      payload: { finalReportHash: finalReportArtifact.fileHash, content: finalReportMarkdownText },
     }),
     researchBundle: input.store.saveExport({
       jobId: input.jobId,
       exportKind: "research-bundle.json",
-      filePath: researchBundlePath,
-      fileHash: researchBundleHash,
+      filePath: researchBundleArtifact.filePath,
+      fileHash: researchBundleArtifact.fileHash,
       payload: researchBundle,
     }),
     evidenceIndex: input.store.saveExport({
       jobId: input.jobId,
       exportKind: "evidence-index.json",
-      filePath: evidenceIndexPath,
-      fileHash: evidenceIndexHash,
+      filePath: evidenceIndexArtifact.filePath,
+      fileHash: evidenceIndexArtifact.fileHash,
       payload: evidenceIndex,
     }),
     exportDir,

@@ -6,7 +6,7 @@ import {
   type VideoDownloadArtifactJobInput,
 } from "./video-download-artifact.schema.js";
 
-export type VideoDownloadArtifactFlowContext = {
+type VideoDownloadArtifactFlowContext = {
   videoDownload: VideoDownloadAbilityGroup;
 };
 

@@ -248,6 +248,8 @@ const inspectRoutingAndApi = (findings: Finding[], lawId: string): void => {
 const inspectTelegramWebChain = (findings: Finding[], lawId: string): void => {
   const schemaText = readRepoFile("src/capabilities/video-download/schema.ts");
   const routerText = readRepoFile("src/capabilities/video-download/runtime/platform-router.ts");
+  const appRouteText = readRepoFile("src/app/workbench-video-download-routes.ts");
+  const jobSchemaText = readRepoFile("src/plugins/video-download-artifact/video-download-artifact.schema.ts");
   const childText = readRepoFile("src/capabilities/video-download/children/download-telegram-web-video-once.ts");
   const probeText = readRepoFile("src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts");
   for (const marker of [
@@ -273,6 +275,19 @@ const inspectTelegramWebChain = (findings: Finding[], lawId: string): void => {
       text: routerText,
       marker,
       checkId: "video-download/telegram-routing",
+    });
+  }
+  for (const [filePath, text] of [
+    ["src/app/workbench-video-download-routes.ts", appRouteText],
+    ["src/plugins/video-download-artifact/video-download-artifact.schema.ts", jobSchemaText],
+  ] as const) {
+    requireText({
+      findings,
+      lawId,
+      filePath,
+      text,
+      marker: "download-telegram-web-video-once",
+      checkId: "video-download/telegram-app-job-entry",
     });
   }
   for (const marker of ["tt-media-progressive", "CacheStorage", "content-range", "bytesBase64", "telegram_sw_progressive_cache"]) {
@@ -320,10 +335,32 @@ const inspectForbiddenDownloadSurfaces = (findings: Finding[], lawId: string): v
   }
 };
 
+const inspectAstProjectCoverage = (
+  context: InspectorContext,
+  findings: Finding[],
+  lawId: string,
+): void => {
+  const missingFiles = sourceFiles.filter(
+    (filePath) => !context.project.getSourceFile(resolveFromRepo(filePath)),
+  );
+  if (missingFiles.length === 0) {
+    return;
+  }
+  pushFinding(
+    findings,
+    lawId,
+    missingFiles[0],
+    "video-download/ast-project-coverage",
+    "Video-download inspector must resolve governed source files through context.project.",
+    missingFiles.join(", "),
+  );
+};
+
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
   const lawId = selectLawId(context.planEntry.lawIds, "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1");
   const findings: Finding[] = [];
 
+  inspectAstProjectCoverage(context, findings, lawId);
   inspectChildRegistry(findings, lawId);
   inspectYoutubeQualityAndSubtitles(findings, lawId);
   inspectRoutingAndApi(findings, lawId);

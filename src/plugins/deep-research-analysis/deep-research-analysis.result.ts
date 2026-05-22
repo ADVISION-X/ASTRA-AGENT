@@ -5,19 +5,19 @@ import {
   DeepResearchPhaseSchema,
 } from "./deep-research-analysis.schema.js";
 
-export const DeepResearchResultStatusSchema = z.enum([
+const DeepResearchResultStatusSchema = z.enum([
   "success",
   "failed",
   "review_required",
 ]);
 
-export const DeepResearchReportConfidenceSchema = z.enum([
+const DeepResearchReportConfidenceSchema = z.enum([
   "low",
   "medium",
   "high",
 ]);
 
-export const DeepResearchConflictLevelSchema = z.enum([
+const DeepResearchConflictLevelSchema = z.enum([
   "low",
   "medium",
   "high",
@@ -45,7 +45,7 @@ export const DeepResearchFinalReportSchema = z.object({
   limitations: z.array(z.string().trim().min(1)).min(1),
 }).strict();
 
-export const DeepResearchResultSchema = z.object({
+const DeepResearchResultSchema = z.object({
   jobId: z.string().trim().min(1),
   status: DeepResearchResultStatusSchema,
   jobStatus: DeepResearchJobStatusSchema,
@@ -56,17 +56,6 @@ export const DeepResearchResultSchema = z.object({
   reviewReason: z.string().trim().min(1).nullable().default(null),
 }).strict();
 
-export type DeepResearchResultStatus = z.infer<typeof DeepResearchResultStatusSchema>;
-export type DeepResearchConflictLevel = z.infer<typeof DeepResearchConflictLevelSchema>;
 export type DeepResearchConflictMatrixRow = z.infer<typeof DeepResearchConflictMatrixRowSchema>;
 export type DeepResearchFinalReport = z.infer<typeof DeepResearchFinalReportSchema>;
 export type DeepResearchResult = z.infer<typeof DeepResearchResultSchema>;
-
-export const DeepResearchResultSchemas = {
-  DeepResearchResultStatusSchema,
-  DeepResearchReportConfidenceSchema,
-  DeepResearchConflictLevelSchema,
-  DeepResearchConflictMatrixRowSchema,
-  DeepResearchFinalReportSchema,
-  DeepResearchResultSchema,
-} as const;
