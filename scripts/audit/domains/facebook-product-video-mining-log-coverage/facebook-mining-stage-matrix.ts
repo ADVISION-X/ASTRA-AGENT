@@ -18,7 +18,7 @@ export const FACEBOOK_MINING_MANDATORY_STAGES = [
   "FACEBOOK_ROUND_FINALIZE",
 ] as const;
 
-export type FacebookMiningStageName = (typeof FACEBOOK_MINING_MANDATORY_STAGES)[number];
+type FacebookMiningStageName = (typeof FACEBOOK_MINING_MANDATORY_STAGES)[number];
 
 export type FacebookMiningStageContract = {
   stageName: FacebookMiningStageName;

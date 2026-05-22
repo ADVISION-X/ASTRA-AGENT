@@ -6,11 +6,12 @@ import type { RuntimeLogMode } from "./schema.js";
 import type { RuntimeTraceContext } from "./trace-context.js";
 import { createChildTrace } from "./trace-context.js";
 
-export type RuntimeStageHandle = {
+type RuntimeStageHandle = {
   stageName: string;
   startedAt: number;
   stepId?: string;
   complete(input?: {
+    durationMs?: number;
     preview?: Record<string, string>;
     refs?: Record<string, string>;
     hashes?: Record<string, string>;
@@ -20,6 +21,7 @@ export type RuntimeStageHandle = {
   fail(input: {
     reason: string;
     failureClass: RuntimeFailureClass;
+    durationMs?: number;
     retryable: boolean;
     terminal: boolean;
     recoveryPolicy: RuntimeRecoveryPolicy;
@@ -33,6 +35,7 @@ export type RuntimeStageHandle = {
   skip(input: {
     reason: string;
     failureClass: RuntimeFailureClass;
+    durationMs?: number;
     retryable?: boolean;
     terminal?: boolean;
     recoveryPolicy?: RuntimeRecoveryPolicy;
@@ -45,6 +48,7 @@ export type RuntimeStageHandle = {
   reviewRequired(input: {
     reason: string;
     failureClass: RuntimeFailureClass;
+    durationMs?: number;
     retryable?: boolean;
     terminal?: boolean;
     recoveryPolicy?: RuntimeRecoveryPolicy;
@@ -57,7 +61,7 @@ export type RuntimeStageHandle = {
   }): void;
 };
 
-export type RuntimeStageLogger = {
+type RuntimeStageLogger = {
   start(input: {
     context: RuntimeTraceContext;
     stageName: string;
@@ -99,6 +103,7 @@ const emitTerminalStageEvent = (input: {
   stageName: string;
   stageAttempt: number;
   startedAt: number;
+  durationMs?: number;
   status: "success" | "failed" | "review_required" | "skipped";
   reason?: string;
   actionableMessage?: string;
@@ -134,7 +139,7 @@ const emitTerminalStageEvent = (input: {
       ...(input.recoveryPolicy ? { recoveryPolicy: input.recoveryPolicy } : {}),
       ...(input.payload ? { payload: input.payload } : {}),
     }),
-    durationMs: Date.now() - input.startedAt,
+    durationMs: input.durationMs ?? Date.now() - input.startedAt,
   }));
 };
 
@@ -182,6 +187,7 @@ export const createStageLogger = (input: {
           startedAt,
           status: "success",
           modeVisibility,
+          ...(completeInput?.durationMs !== undefined ? { durationMs: completeInput.durationMs } : {}),
           ...(completeInput?.preview ? { preview: completeInput.preview } : {}),
           ...(completeInput?.refs ? { refs: completeInput.refs } : {}),
           ...(completeInput?.hashes ? { hashes: completeInput.hashes } : {}),
@@ -198,14 +204,15 @@ export const createStageLogger = (input: {
           stageName: stageInput.stageName,
           stageAttempt,
           startedAt,
-          status: "failed",
           reason: failInput.reason,
           ...(failInput.actionableMessage ? { actionableMessage: failInput.actionableMessage } : {}),
           failureClass: failInput.failureClass,
           retryable: failInput.retryable,
           terminal: failInput.terminal,
           recoveryPolicy: failInput.recoveryPolicy,
+          status: "failed",
           modeVisibility,
+          ...(failInput.durationMs !== undefined ? { durationMs: failInput.durationMs } : {}),
           ...(failInput.preview ? { preview: failInput.preview } : {}),
           ...(failInput.refs ? { refs: failInput.refs } : {}),
           ...(failInput.hashes ? { hashes: failInput.hashes } : {}),
@@ -222,13 +229,14 @@ export const createStageLogger = (input: {
           stageName: stageInput.stageName,
           stageAttempt,
           startedAt,
-          status: "skipped",
           reason: skipInput.reason,
           failureClass: skipInput.failureClass,
           retryable: skipInput.retryable ?? false,
           terminal: skipInput.terminal ?? false,
           recoveryPolicy: skipInput.recoveryPolicy ?? "skip_round",
+          status: "skipped",
           modeVisibility,
+          ...(skipInput.durationMs !== undefined ? { durationMs: skipInput.durationMs } : {}),
           ...(skipInput.preview ? { preview: skipInput.preview } : {}),
           ...(skipInput.refs ? { refs: skipInput.refs } : {}),
           ...(skipInput.hashes ? { hashes: skipInput.hashes } : {}),
@@ -245,14 +253,15 @@ export const createStageLogger = (input: {
           stageName: stageInput.stageName,
           stageAttempt,
           startedAt,
-          status: "review_required",
           reason: reviewInput.reason,
           ...(reviewInput.actionableMessage ? { actionableMessage: reviewInput.actionableMessage } : {}),
           failureClass: reviewInput.failureClass,
           retryable: reviewInput.retryable ?? false,
           terminal: reviewInput.terminal ?? true,
           recoveryPolicy: reviewInput.recoveryPolicy ?? "review_required",
+          status: "review_required",
           modeVisibility,
+          ...(reviewInput.durationMs !== undefined ? { durationMs: reviewInput.durationMs } : {}),
           ...(reviewInput.preview ? { preview: reviewInput.preview } : {}),
           ...(reviewInput.refs ? { refs: reviewInput.refs } : {}),
           ...(reviewInput.hashes ? { hashes: reviewInput.hashes } : {}),

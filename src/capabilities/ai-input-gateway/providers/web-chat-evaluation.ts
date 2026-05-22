@@ -9,11 +9,8 @@ const visibleButtonText = Array.from(document.querySelectorAll("button"))
   .filter((button) => isVisible(button))
   .map((button) => clip(button.getAttribute("aria-label") || button.textContent || ""))
   .join(" ");
-const generating = /\\b(stop generating|stop responding)\\b|停止生成|停止回答/i.test(visibleButtonText)
-  || (
-    /generating|thinking|reasoning|回答中|生成中|思考中/i.test(bodyText)
-    && !/已停止思考|stopped thinking/i.test(bodyText)
-  );
+const generating = /\\b(stop generating|stop responding|stop)\\b|停止生成|停止回答/i.test(visibleButtonText)
+  || Boolean(document.querySelector('[aria-busy="true"]'));
 `;
 
 const WEB_CHAT_ASSISTANT_COUNT_SCRIPT = `
@@ -57,17 +54,24 @@ return {
 
 export const EXTRACT_LAST_RESPONSE_SCRIPT = `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
-const assistantNodes = Array.from(document.querySelectorAll("[data-message-author-role='assistant']"));
-const responseNodes = assistantNodes.length > 0
-  ? assistantNodes
-  : [
-      ...document.querySelectorAll("main article"),
-      ...document.querySelectorAll("main [data-testid*='conversation']"),
-      ...document.querySelectorAll("main [role='presentation']"),
-    ];
+const isAssistantNode = (node) => {
+  if (!(node instanceof Element)) return false;
+  const className = String(node.className || "").toLowerCase();
+  if (/model|assistant|response|gemini/.test(className)) return true;
+  return Boolean(node.closest("[class*='model'], [class*='assistant'], [class*='response'], [class*='gemini']"));
+};
+const chatGptNodes = Array.from(document.querySelectorAll("[data-message-author-role='assistant']"));
+const geminiNodes = Array.from(document.querySelectorAll("[class*='turn'],[class*='message'],[class*='model-response'],[class*='modelResponse'],article,[role='listitem']"))
+  .filter(isAssistantNode);
+const responseNodes = chatGptNodes.length > 0 ? chatGptNodes : geminiNodes;
 const candidates = responseNodes
-  .map((node) => clip(node.textContent || ""))
-  .filter((text) => text.length > 0);
+  .map((node) => ({
+    text: clip(node.textContent || ""),
+    top: node instanceof Element ? node.getBoundingClientRect().top : 0,
+  }))
+  .filter((candidate) => candidate.text.length >= 5)
+  .sort((a, b) => a.top - b.top)
+  .map((candidate) => candidate.text);
 const answerText = candidates[candidates.length - 1] || "";
 const assistantCount = candidates.length;
 ${WEB_CHAT_GENERATION_STATE_SCRIPT}

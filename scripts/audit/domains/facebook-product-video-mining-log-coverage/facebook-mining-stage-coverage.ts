@@ -1,11 +1,12 @@
-import { existsSync, readFileSync } from "node:fs";
+import type { SourceFile } from "ts-morph";
 
-import { resolveFromRepo } from "../../shared/paths.js";
+import type { InspectorContext } from "../../shared/inspector-contracts.js";
+import { getRepoSourcePath } from "../../shared/source-files.js";
 import { findLine } from "../runtime-log-spine/source-read.js";
 import { FacebookLogCoverageLaw, type FacebookLogCoverageFinding } from "./constants.js";
 import { FACEBOOK_MINING_STAGE_CONTRACTS } from "./facebook-mining-stage-matrix.js";
 
-export type FacebookStageCoverageEntry = {
+type FacebookStageCoverageEntry = {
   stageName: string;
   ownerFiles: string[];
   hasStartedLog: boolean;
@@ -20,11 +21,16 @@ type StageCoverageScan = {
 
 const terminalPattern = /(?:complete|fail|skip|reviewRequired|RUNTIME_STAGE_COMPLETED|RUNTIME_STAGE_FAILED|RUNTIME_STAGE_SKIPPED|RUNTIME_STAGE_REVIEW_REQUIRED|status\s*:\s*["'](?:success|failed|skipped|review_required)["'])/u;
 
-const readOwners = (ownerFiles: readonly string[]): string =>
-  ownerFiles.map((file) => existsSync(resolveFromRepo(file)) ? readFileSync(resolveFromRepo(file), "utf8") : "").join("\n");
+const readOwners = (ownerFiles: readonly string[], sourceFiles: readonly SourceFile[]): string =>
+  ownerFiles
+    .map((file) => sourceFiles.find((sourceFile) => getRepoSourcePath(sourceFile) === file)?.getFullText() ?? "")
+    .join("\n");
 
-const buildStageCoverageScan = (contract: typeof FACEBOOK_MINING_STAGE_CONTRACTS[number]): StageCoverageScan => {
-  const text = readOwners(contract.ownerFiles);
+const buildStageCoverageScan = (
+  contract: typeof FACEBOOK_MINING_STAGE_CONTRACTS[number],
+  sourceFiles: readonly SourceFile[],
+): StageCoverageScan => {
+  const text = readOwners(contract.ownerFiles, sourceFiles);
   const hasStageName = text.includes(contract.stageName);
   const hasStartedLog = hasStageName && /(?:start\(|RUNTIME_STAGE_STARTED|status\s*:\s*["']started["'])/u.test(text);
   const hasTerminalLog = hasStageName && terminalPattern.test(text);
@@ -64,7 +70,7 @@ const buildStageCoverageFinding = (
   };
 };
 
-export const collectFacebookMiningStageCoverage = (): {
+export const collectFacebookMiningStageCoverage = (context: InspectorContext): {
   findings: FacebookLogCoverageFinding[];
   inspectedFiles: string[];
   stageCoverage: FacebookStageCoverageEntry[];
@@ -74,9 +80,10 @@ export const collectFacebookMiningStageCoverage = (): {
   const findings: FacebookLogCoverageFinding[] = [];
   const inspectedFiles = [...new Set(FACEBOOK_MINING_STAGE_CONTRACTS.flatMap((contract) => contract.ownerFiles))].sort();
   const stageCoverage: FacebookStageCoverageEntry[] = [];
+  const sourceFiles = context.project.getSourceFiles();
 
   for (const contract of FACEBOOK_MINING_STAGE_CONTRACTS) {
-    const scan = buildStageCoverageScan(contract);
+    const scan = buildStageCoverageScan(contract, sourceFiles);
     stageCoverage.push(scan.entry);
     if (scan.entry.hasStartedLog && scan.entry.hasTerminalLog && scan.entry.missingFields.length === 0) continue;
     findings.push(buildStageCoverageFinding(contract, scan.text, scan.entry.missingFields));

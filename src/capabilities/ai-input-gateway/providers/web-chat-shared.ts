@@ -19,7 +19,7 @@ import {
 import { ensureProviderWorkspaceFocused } from "./web-chat-workspace.js";
 
 const POLL_INTERVAL_MS = 1500;
-const STABLE_ROUNDS_REQUIRED = 3;
+const STABLE_ROUNDS_REQUIRED = 2;
 
 const submitWebChatPrompt = async (input: {
   browser: BrowserController;

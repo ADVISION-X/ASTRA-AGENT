@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const LAW_ID_PATTERN = /^(APEX|GRASSEYE)-[A-Z0-9-]+$/u;
+const LAW_ID_PATTERN = /^(APEX|GRASSEYE)-[A-Z0-9-]+$/u;
 
 export const lawIdSchema = z.string().regex(LAW_ID_PATTERN);
 

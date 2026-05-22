@@ -1,177 +1,118 @@
+import { statSync } from "node:fs";
+
 import type { AiFeedInput, AiFeedResult, AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
+import {
+  RuntimeFailureClass,
+  createMissionTrace,
+  createStageLogger,
+  type RuntimeLogger,
+  withRoundTrace,
+} from "../../lib/runtime-logs/index.js";
 import {
   FacebookProductVideoMiningSchemas,
   type FacebookProductVideoMiningContracts,
 } from "./facebook-product-video-mining.schema.js";
+import {
+  FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
+  buildAiFeedRequest,
+  buildAiHash,
+  buildParseStagePayload,
+  buildPrompt,
+  buildResponseStagePayload,
+  buildUploadStagePayload,
+  resolveFeedJudgment,
+} from "./facebook-product-video-mining.ai-judge-support.js";
 import { executeFacebookAiFeedWithHardTimeout } from "./facebook-product-video-mining.ai-timeout.js";
 
 type FacebookCommentRecord = FacebookProductVideoMiningContracts["FacebookCommentRecord"];
 type FacebookVideoAiJudgment = FacebookProductVideoMiningContracts["FacebookVideoAiJudgment"];
 type FacebookVideoDomProbeResult = FacebookProductVideoMiningContracts["FacebookVideoDomProbeResult"];
 
-const FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID = "facebook-product-video-mining.video-judge.v1";
-
-const COMMENT_SAMPLE_LIMIT = 8;
-
-const buildProviderProof = (input: {
-  providerKind: FacebookVideoAiJudgment["providerKind"];
-  result: AiFeedResult;
-}) => ({
-  providerKind: input.providerKind,
-  webChatUrl: input.result.providerProof.webChatUrl,
-  sourcePageUrlBeforeFeed: input.result.providerProof.sourcePageUrlBeforeFeed,
-  restoredSourcePage: input.result.providerProof.restoredSourcePage,
-  startedAt: input.result.providerProof.startedAt,
-  endedAt: input.result.providerProof.endedAt,
-  durationMs: input.result.providerProof.durationMs,
-  inputHash: input.result.providerProof.inputHash,
-  outputHash: input.result.providerProof.outputHash,
-});
-
-const buildVideoInputRef = (input: {
-  roundId: string;
-  videoFilePath: string;
-}) => ({
-  id: `${input.roundId}_video`,
-  kind: "video/mp4" as const,
-  summary: "staging Facebook video artifact for product-seeding judgment",
-  filePath: input.videoFilePath,
-  mimeType: "video/mp4" as const,
-  uploadStatus: "pending" as const,
-});
-
-const buildPrompt = (input: {
-  probe: FacebookVideoDomProbeResult;
-  comments: readonly FacebookCommentRecord[];
-}): string => {
-  const commentSummary = input.comments
-    .slice(0, COMMENT_SAMPLE_LIMIT)
-    .map((comment, index) => `${index + 1}. ${comment.authorDisplayText ?? "anonymous"}: ${comment.commentText}`)
-    .join("\n");
-  return [
-    "You are judging whether an uploaded Facebook video is a product-seeding / product recommendation video.",
-    "Return JSON only. Do not wrap the JSON in markdown.",
-    "Required JSON shape:",
-    '{"selectedOptionId":"PRODUCT_SEEDING | NOT_PRODUCT_SEEDING | UNCERTAIN","confidence":0.0,"visibleProduct":"","productCategory":"","sellingIntentSignals":[],"evidenceFromVideo":[],"reason":""}',
-    "Decision rules:",
-    "PRODUCT_SEEDING: the video clearly demonstrates, recommends, reviews, unboxes, compares, or intentionally sells a purchasable product.",
-    "NOT_PRODUCT_SEEDING: pure entertainment, news, story, vlog, or people content without clear product-selling intent.",
-    "UNCERTAIN: a product may appear but the selling intent is unclear, or the video is too ambiguous.",
-    `Page title: ${input.probe.pageTitle}`,
-    `Caption text: ${input.probe.captionText ?? ""}`,
-    `Author text: ${input.probe.authorText ?? ""}`,
-    `Displayed like count: ${input.probe.likeCount ?? "unknown"}`,
-    `Displayed comment count: ${input.probe.commentCountDisplayed ?? "unknown"}`,
-    commentSummary ? `Comment samples:\n${commentSummary}` : "No comments were loaded from the authorized page.",
-  ].join("\n\n");
-};
-
-const normalizeAiJson = (value: unknown): Omit<FacebookVideoAiJudgment, "providerKind" | "status" | "rawOutputRef" | "rawOutputHash" | "normalizedText" | "parseStatus" | "schemaValidationStatus" | "providerProof" | "createdAt"> => {
-  const objectValue = value as Record<string, unknown>;
-  return {
-    selectedOptionId: String(objectValue.selectedOptionId ?? "UNCERTAIN") as FacebookVideoAiJudgment["selectedOptionId"],
-    confidence: typeof objectValue.confidence === "number" ? objectValue.confidence : 0,
-    visibleProduct: typeof objectValue.visibleProduct === "string" ? objectValue.visibleProduct : null,
-    productCategory: typeof objectValue.productCategory === "string" ? objectValue.productCategory : null,
-    sellingIntentSignals: Array.isArray(objectValue.sellingIntentSignals) ? objectValue.sellingIntentSignals.map(String) : [],
-    evidenceFromVideo: Array.isArray(objectValue.evidenceFromVideo) ? objectValue.evidenceFromVideo.map(String) : [],
-    reason: typeof objectValue.reason === "string" && objectValue.reason.trim().length > 0
-      ? objectValue.reason.trim()
-      : "AI judgment did not provide a reason.",
-  };
-};
-
-const judgmentFromFeed = (input: {
-  providerKind: FacebookVideoAiJudgment["providerKind"];
-  result: AiFeedResult;
-}): FacebookVideoAiJudgment => FacebookProductVideoMiningSchemas.FacebookVideoAiJudgmentSchema.parse({
-  providerKind: input.providerKind,
-  status: input.result.status,
-  ...normalizeAiJson(input.result.parsedJson ?? {}),
-  rawOutputRef: input.result.rawOutputRef,
-  rawOutputHash: input.result.rawOutputHash,
-  normalizedText: input.result.normalizedText,
-  parseStatus: input.result.parseStatus,
-  schemaValidationStatus: input.result.schemaValidationStatus,
-  providerProof: buildProviderProof(input),
-  createdAt: new Date().toISOString(),
-});
-
-const buildFailedAiJudgment = (input: {
-  providerKind: FacebookVideoAiJudgment["providerKind"];
-  result: AiFeedResult;
-}): FacebookVideoAiJudgment => FacebookProductVideoMiningSchemas.FacebookVideoAiJudgmentSchema.parse({
-  providerKind: input.providerKind,
-  status: input.result.status === "review_required" ? "review_required" : "failed",
-  selectedOptionId: "UNCERTAIN",
-  confidence: 0,
-  visibleProduct: null,
-  productCategory: null,
-  sellingIntentSignals: [],
-  evidenceFromVideo: [],
-  reason: input.result.reviewRequiredReason ?? input.result.failureReason ?? "AI feed did not return valid JSON.",
-  rawOutputRef: input.result.rawOutputRef,
-  rawOutputHash: input.result.rawOutputHash,
-  normalizedText: input.result.normalizedText,
-  parseStatus: input.result.parseStatus,
-  schemaValidationStatus: input.result.schemaValidationStatus,
-  providerProof: buildProviderProof(input),
-  createdAt: new Date().toISOString(),
-});
-
-const buildAiFeedRequest = (input: {
+type JudgeFacebookProductVideoInput = {
+  aiInputGateway: AiInputGatewayAbilityGroup;
+  runtimeLogger: RuntimeLogger;
   providerKind: FacebookVideoAiJudgment["providerKind"];
   modelName?: string | null;
   missionId: string;
   runId: string;
   roundId: string;
-  prompt: string;
+  probe: FacebookVideoDomProbeResult;
+  comments: readonly FacebookCommentRecord[];
   videoFilePath: string;
   timeoutMs: number;
   maxFileBytes: number;
-}): AiFeedInput => ({
-  providerKind: input.providerKind,
-  promptPackageId: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
-  promptContractId: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
-  expectedOutputSchemaRef: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
-  textPrompt: input.prompt,
-  inputRefs: [buildVideoInputRef({ roundId: input.roundId, videoFilePath: input.videoFilePath })],
-  modelName: input.modelName ?? null,
-  timeoutMs: input.timeoutMs,
-  maxInputChars: 30_000,
-  maxFileCount: 1,
-  maxFileBytes: input.maxFileBytes,
-  requestedBy: "ai-capability",
-  missionId: input.missionId,
-  runId: input.runId,
+};
+
+const FACEBOOK_RUNTIME_LOG_OWNER = "facebook-product-video-mining" as const;
+
+const createFacebookRoundTrace = (input: {
+  missionId: string;
+  runId: string;
+  roundId: string;
+}) => withRoundTrace({
+  context: createMissionTrace({
+    missionId: input.missionId,
+    runId: input.runId,
+    owner: FACEBOOK_RUNTIME_LOG_OWNER,
+  }),
   roundId: input.roundId,
 });
 
-const resolveFeedJudgment = (input: {
-  providerKind: FacebookVideoAiJudgment["providerKind"];
-  feedResult: AiFeedResult;
-}): FacebookVideoAiJudgment => input.feedResult.status !== "success"
-    || input.feedResult.parseStatus !== "json_valid"
-    || input.feedResult.parsedJson === null
-      ? buildFailedAiJudgment({ providerKind: input.providerKind, result: input.feedResult })
-      : judgmentFromFeed({ providerKind: input.providerKind, result: input.feedResult });
-
-export const judgeFacebookProductVideo = async (input: {
-  aiInputGateway: AiInputGatewayAbilityGroup;
-  providerKind: FacebookVideoAiJudgment["providerKind"];
-  modelName?: string | null;
-  missionId: string;
-  runId: string;
-  roundId: string;
-  probe: FacebookVideoDomProbeResult;
-  comments: readonly FacebookCommentRecord[];
-  videoFilePath: string;
-  timeoutMs: number;
-  maxFileBytes: number;
-}): Promise<FacebookVideoAiJudgment> => {
+export const judgeFacebookProductVideo = async (input: JudgeFacebookProductVideoInput): Promise<FacebookVideoAiJudgment> => {
   const prompt = buildPrompt({ probe: input.probe, comments: input.comments });
   const request = buildAiFeedRequest({ ...input, prompt });
-  return executeFacebookAiFeedWithHardTimeout({
+  const traceContext = createFacebookRoundTrace(input);
+  const stageLogger = createStageLogger({ logger: input.runtimeLogger });
+  const fileRef = request.inputRefs[0]?.filePath ?? input.videoFilePath;
+  const videoFileHash = buildAiHash(input.videoFilePath);
+  const promptHash = buildAiHash(prompt);
+  const beforeHash = promptHash;
+  const videoByteSize = statSync(input.videoFilePath).size;
+  const uploadStage = stageLogger.start({
+    context: traceContext,
+    stageName: "FACEBOOK_AI_UPLOAD",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    refs: { fileRef },
+    hashes: { videoFileHash, promptHash },
+    metrics: { videoByteSize },
+    payload: buildUploadStagePayload({
+      providerKind: input.providerKind,
+      modelName: input.modelName ?? null,
+      inputRefs: request.inputRefs,
+      expectedOutputSchemaRef: request.expectedOutputSchemaRef ?? FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
+      timeoutMs: request.timeoutMs,
+      beforeHash,
+      afterHash: videoFileHash,
+    }),
+  });
+  const responseStage = stageLogger.start({
+    context: traceContext,
+    stageName: "FACEBOOK_AI_RESPONSE_WAIT",
+    modeVisibility: ["DEBUG", "TRACE"],
+    payload: buildResponseStagePayload({
+      providerKind: input.providerKind,
+      modelName: input.modelName ?? null,
+      promptHash,
+      timeoutMs: request.timeoutMs,
+      beforeHash,
+      afterHash: videoFileHash,
+    }),
+  });
+  const parseStage = stageLogger.start({
+    context: traceContext,
+    stageName: "FACEBOOK_AI_PARSE",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    payload: buildParseStagePayload({
+      providerKind: input.providerKind,
+      modelName: input.modelName ?? null,
+      promptHash,
+      expectedOutputSchemaRef: request.expectedOutputSchemaRef ?? FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
+      timeoutMs: request.timeoutMs,
+      beforeHash,
+      afterHash: videoFileHash,
+    }),
+  });
+  const judgment = await executeFacebookAiFeedWithHardTimeout({
     aiInputGateway: input.aiInputGateway,
     request,
     providerKind: input.providerKind,
@@ -180,6 +121,87 @@ export const judgeFacebookProductVideo = async (input: {
     timeoutMs: input.timeoutMs,
     resolveFeedResult: (feedResult) => resolveFeedJudgment({ providerKind: input.providerKind, feedResult }),
   });
+  const rawOutputRef = judgment.rawOutputRef ?? "ai-raw-output-missing";
+  const rawOutputHash = judgment.rawOutputHash ?? "ai-raw-hash-missing";
+  const normalizedOutputHash = buildAiHash(judgment.normalizedText ?? "");
+  const afterHash = judgment.rawOutputHash ?? videoFileHash;
+  if (judgment.rawOutputRef === null) {
+    uploadStage.fail({
+      reason: judgment.reason,
+      failureClass: RuntimeFailureClass.AI_PROVIDER_FAILURE,
+      retryable: false,
+      terminal: false,
+      recoveryPolicy: "review_required",
+    });
+    responseStage.fail({
+      reason: judgment.reason,
+      failureClass: RuntimeFailureClass.AI_PROVIDER_FAILURE,
+      retryable: false,
+      terminal: false,
+      recoveryPolicy: "review_required",
+      refs: { rawOutputRef },
+      hashes: { rawOutputHash },
+    });
+  } else {
+    uploadStage.complete({
+      durationMs: judgment.providerProof.durationMs,
+      refs: { fileRef },
+      hashes: { videoFileHash, promptHash },
+      metrics: { videoByteSize },
+    });
+    responseStage.complete({
+      durationMs: judgment.providerProof.durationMs,
+      refs: { rawOutputRef },
+      hashes: { rawOutputHash },
+      payload: {
+        parseStatus: judgment.parseStatus,
+        schemaValidationStatus: judgment.schemaValidationStatus,
+      },
+    });
+  }
+  if (judgment.status === "success") {
+    parseStage.complete({
+      durationMs: judgment.providerProof.durationMs,
+      refs: { rawOutputRef },
+      hashes: { normalizedOutputHash },
+      metrics: { confidence: judgment.confidence },
+      payload: {
+        parseStatus: judgment.parseStatus,
+        schemaValidationStatus: judgment.schemaValidationStatus,
+      },
+    });
+    return judgment;
+  }
+  if (judgment.parseStatus !== "json_valid" || judgment.schemaValidationStatus !== "valid") {
+    parseStage.fail({
+      reason: judgment.reason,
+      failureClass: RuntimeFailureClass.AI_PARSE_FAILURE,
+      retryable: false,
+      terminal: true,
+      recoveryPolicy: "review_required",
+      refs: { rawOutputRef },
+      hashes: { normalizedOutputHash },
+      payload: {
+        parseStatus: judgment.parseStatus,
+        schemaValidationStatus: judgment.schemaValidationStatus,
+      },
+    });
+  } else {
+    parseStage.fail({
+      reason: judgment.reason,
+      failureClass: RuntimeFailureClass.AI_PROVIDER_FAILURE,
+      retryable: false,
+      terminal: true,
+      recoveryPolicy: "review_required",
+      refs: { rawOutputRef },
+      hashes: { normalizedOutputHash },
+      payload: {
+        parseStatus: judgment.parseStatus,
+        schemaValidationStatus: judgment.schemaValidationStatus,
+      },
+    });
+  }
+  return judgment;
 };
 
 export { FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID };

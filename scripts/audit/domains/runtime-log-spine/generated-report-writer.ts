@@ -10,9 +10,26 @@ import {
   type RuntimeLogSpinePhase,
 } from "./constants.js";
 
-export type RuntimeLogSpineReport = {
+type RuntimeLogSpineReport = {
   generatedAt: string;
   status: "PASS" | "FAIL";
+  scannedFiles?: number;
+  inspectedFiles?: string[];
+  emitCallCount?: number;
+  consoleCallCount?: number;
+  consoleEscapeCount?: number;
+  eventTypeLiteralCount?: number;
+  missingModeVisibilityCount?: number;
+  missingTraceContractCount?: number;
+  catchBranchCount?: number;
+  catchBranchWithoutLogCount?: number;
+  failureBranchCount?: number;
+  failureWithoutClassCount?: number;
+  stageStartCount?: number;
+  stageTerminalCount?: number;
+  stagePairViolationCount?: number;
+  heavyPayloadFlowViolationCount?: number;
+  redactionViolationCount?: number;
   summary: {
     totalFindings: number;
     fatalFindings: number;
@@ -50,7 +67,7 @@ export const renderRuntimeLogSpineMarkdown = (report: RuntimeLogSpineReport): st
   `- Fatal findings: ${report.summary.fatalFindings}`,
   `- Scanned files: ${report.summary.scannedFiles}`,
   `- Emit calls: ${report.summary.emitCallCount}`,
-  `- Console violations: ${report.summary.consoleViolationCount}`,
+  `- Console violations: ${report.consoleEscapeCount ?? report.summary.consoleViolationCount}`,
   `- Failure events without class: ${report.summary.failureWithoutClassCount}`,
   `- Stage coverage: ${report.summary.stageCoveragePercent}%`,
   "",
@@ -84,4 +101,3 @@ export const writeRuntimeLogSpineReport = (report: RuntimeLogSpineReport): void 
   writeFileSync(resolve(generatedDir, "runtime-log-spine-report.generated.md"), renderRuntimeLogSpineMarkdown(report), "utf8");
 };
 
-export const runtimeReportPaths = [RUNTIME_LOG_GENERATED_JSON, RUNTIME_LOG_GENERATED_MD] as const;

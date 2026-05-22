@@ -1,13 +1,249 @@
 {
-  "generatedAt": "2026-05-22T15:30:21.220Z",
-  "status": "FAIL",
+  "generatedAt": "2026-05-22T18:54:08.702Z",
+  "status": "PASS",
+  "scannedFiles": 218,
+  "inspectedFiles": [
+    "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
+    "scripts/acceptance/runtime-log-redaction.acceptance.ts",
+    "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+    "scripts/audit/domains/runtime-log-spine/inspector.ts",
+    "src/app/create-workbench-server.ts",
+    "src/app/server.ts",
+    "src/app/workbench-amazon-routes.ts",
+    "src/app/workbench-facebook-routes.ts",
+    "src/app/workbench-home-client.ts",
+    "src/app/workbench-home-page.ts",
+    "src/app/workbench-home-styles.ts",
+    "src/app/workbench-http.ts",
+    "src/app/workbench-multipart.ts",
+    "src/capabilities/ai-input-gateway/ability-group.ts",
+    "src/capabilities/ai-input-gateway/contract.ts",
+    "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
+    "src/capabilities/ai-input-gateway/index.ts",
+    "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
+    "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts",
+    "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
+    "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
+    "src/capabilities/ai-input-gateway/runtime/ai-feed-output-parser.ts",
+    "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
+    "src/capabilities/ai-input-gateway/runtime/ai-feed-rate-guard.ts",
+    "src/capabilities/ai-input-gateway/runtime/feed-gemini-api-once.ts",
+    "src/capabilities/ai-input-gateway/runtime/feed-gemini-web-chat-once.ts",
+    "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
+    "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
+    "src/capabilities/ai-input-gateway/schema.ts",
+    "src/capabilities/dom-automation/index.ts",
+    "src/capabilities/dom-automation/runtime/dom-action-result.ts",
+    "src/capabilities/dom-automation/runtime/dom-click.ts",
+    "src/capabilities/dom-automation/runtime/dom-evidence.ts",
+    "src/capabilities/dom-automation/runtime/dom-fill.ts",
+    "src/capabilities/dom-automation/runtime/dom-locator-candidates.ts",
+    "src/capabilities/dom-automation/runtime/dom-locator.ts",
+    "src/capabilities/dom-automation/runtime/dom-snapshot.ts",
+    "src/capabilities/dom-automation/runtime/dom-upload.ts",
+    "src/capabilities/dom-automation/runtime/dom-verify.ts",
+    "src/capabilities/dom-automation/runtime/dom-wait.ts",
+    "src/capabilities/dom-automation/schema.ts",
+    "src/capabilities/dom-automation/tests/dom-locator.fixture.ts",
+    "src/capabilities/dom-automation/tests/dom-snapshot.fixture.ts",
+    "src/capabilities/dom-automation/tests/dom-upload.fixture.ts",
+    "src/capabilities/forensics-persistence/ability-group.ts",
+    "src/capabilities/forensics-persistence/children/append-artifact.ts",
+    "src/capabilities/forensics-persistence/children/append-record.ts",
+    "src/capabilities/forensics-persistence/children/proof-support.ts",
+    "src/capabilities/forensics-persistence/children/read-record-ref.ts",
+    "src/capabilities/forensics-persistence/contract.ts",
+    "src/capabilities/forensics-persistence/index.ts",
+    "src/capabilities/forensics-persistence/schema.ts",
+    "src/capabilities/forensics-persistence/storage-adapter.ts",
+    "src/capabilities/forensics-persistence/storage-port.ts",
+    "src/capabilities/video-download/ability-group.ts",
+    "src/capabilities/video-download/children/download-bilibili-video-once.ts",
+    "src/capabilities/video-download/children/download-douyin-video-once.ts",
+    "src/capabilities/video-download/children/download-facebook-video-once.ts",
+    "src/capabilities/video-download/children/download-instagram-video-once.ts",
+    "src/capabilities/video-download/children/download-tiktok-video-once.ts",
+    "src/capabilities/video-download/children/download-web-video-once.ts",
+    "src/capabilities/video-download/children/download-x-video-once.ts",
+    "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts",
+    "src/capabilities/video-download/children/download-youtube-video-once.ts",
+    "src/capabilities/video-download/contract.ts",
+    "src/capabilities/video-download/index.ts",
+    "src/capabilities/video-download/ports/browser-media-source-port.ts",
+    "src/capabilities/video-download/ports/video-artifact-storage-port.ts",
+    "src/capabilities/video-download/registry.ts",
+    "src/capabilities/video-download/runtime/artifact-storage.ts",
+    "src/capabilities/video-download/runtime/candidate-schema.ts",
+    "src/capabilities/video-download/runtime/candidate-validation.ts",
+    "src/capabilities/video-download/runtime/facebook-candidates.ts",
+    "src/capabilities/video-download/runtime/facebook-page-probe-script.ts",
+    "src/capabilities/video-download/runtime/media-download.ts",
+    "src/capabilities/video-download/runtime/platform-router.ts",
+    "src/capabilities/video-download/runtime/result.ts",
+    "src/capabilities/video-download/runtime/tiktok-candidates.ts",
+    "src/capabilities/video-download/runtime/tiktok-page-probe-script.ts",
+    "src/capabilities/video-download/runtime/universal-candidates.ts",
+    "src/capabilities/video-download/runtime/universal-page-probe-script.ts",
+    "src/capabilities/video-download/runtime/youtube-dlp-args.ts",
+    "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
+    "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
+    "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
+    "src/capabilities/video-download/runtime/youtube-url.ts",
+    "src/capabilities/video-download/schema.ts",
+    "src/capabilities/video-download/type-contracts.ts",
+    "src/lib/browser/browser-controller.ts",
+    "src/lib/browser/current-chrome-browser-action-result.ts",
+    "src/lib/browser/current-chrome-browser-click-probe.ts",
+    "src/lib/browser/current-chrome-browser-controller-execution.ts",
+    "src/lib/browser/current-chrome-browser-controller-primitives.ts",
+    "src/lib/browser/current-chrome-browser-controller-runtime.ts",
+    "src/lib/browser/current-chrome-browser-controller.ts",
+    "src/lib/browser/current-chrome-browser-field-input.ts",
+    "src/lib/browser/current-chrome-browser-screenshot.ts",
+    "src/lib/browser/current-chrome-browser-scroll-support.ts",
+    "src/lib/browser/current-chrome-cdp-file-input.ts",
+    "src/lib/browser/current-chrome-native-file-input.ts",
+    "src/lib/browser/current-chrome-window-control.ts",
+    "src/lib/browser/local-browser-session.ts",
+    "src/lib/local-runtime/contract.ts",
+    "src/lib/local-runtime/default-data-dir.ts",
+    "src/lib/local-runtime/ids.ts",
+    "src/lib/local-runtime/settings-types.ts",
+    "src/lib/local-runtime/settings.ts",
+    "src/lib/local-runtime/structured-log-bus.ts",
+    "src/lib/local-runtime/structured-log-terminal.ts",
+    "src/lib/local-runtime/workbench-ai-gateway-support.ts",
+    "src/lib/local-runtime/workbench-assembly.ts",
+    "src/lib/local-runtime/workbench-browser-support.ts",
+    "src/lib/local-runtime/workbench-evidence-support.ts",
+    "src/lib/local-runtime/workbench-handle.ts",
+    "src/lib/local-runtime/workbench-launch-contract.ts",
+    "src/lib/local-runtime/workbench-status-types.ts",
+    "src/lib/local-runtime/workbench-status.ts",
+    "src/lib/local-runtime/workbench-video-download-support.ts",
+    "src/lib/local-runtime/workbench.ts",
+    "src/lib/online-ai/config.ts",
+    "src/lib/online-ai/gemini-client.ts",
+    "src/lib/online-ai/index.ts",
+    "src/lib/runtime-logs/debug-bundle-index.ts",
+    "src/lib/runtime-logs/debug-bundle.ts",
+    "src/lib/runtime-logs/event-factory.ts",
+    "src/lib/runtime-logs/event-types.ts",
+    "src/lib/runtime-logs/failure-classes.ts",
+    "src/lib/runtime-logs/index.ts",
+    "src/lib/runtime-logs/logger.ts",
+    "src/lib/runtime-logs/mode.ts",
+    "src/lib/runtime-logs/redaction.ts",
+    "src/lib/runtime-logs/schema.ts",
+    "src/lib/runtime-logs/sinks.ts",
+    "src/lib/runtime-logs/stage-logger.ts",
+    "src/lib/runtime-logs/trace-context.ts",
+    "src/lib/runtime-logs/trace.ts",
+    "src/lib/storage/file-storage.ts",
+    "src/lib/storage/hash.ts",
+    "src/lib/storage/index.ts",
+    "src/lib/storage/refs.ts",
+    "src/lib/storage/schema.ts",
+    "src/lib/storage/storage-port.ts",
+    "src/plugins/amazon-invoice-upload/amazon-dom-hints.ts",
+    "src/plugins/amazon-invoice-upload/amazon-dom-step-trace-support.ts",
+    "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts",
+    "src/plugins/amazon-invoice-upload/amazon-existing-invoice-evidence.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-flow-support.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-invoice-number.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-storage.types.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-task-service.types.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts",
+    "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
+    "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
+    "src/plugins/amazon-invoice-upload/index.ts",
+    "src/plugins/amazon-invoice-upload/mission.schema.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge-support.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.candidate-record.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.chrome-tabs.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comment-scripts.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe-script.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.hints.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.logging.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-proof.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-scripts.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-support.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.outcome-support.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.records.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.result.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-execution.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime-support.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.selection-export.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage-candidates.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage-runs.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage-schema.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage-statements.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage-support.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video-support.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
+    "src/plugins/facebook-product-video-mining/index.ts",
+    "src/types/dom-automation-inputs.ts",
+    "src/types/dom-automation.ts",
+    "src/types/evidence.ts",
+    "src/types/local-browser-session.ts",
+    "src/types/structured-log.ts"
+  ],
+  "emitCallCount": 1,
+  "consoleCallCount": 0,
+  "consoleEscapeCount": 0,
+  "eventTypeLiteralCount": 0,
+  "missingModeVisibilityCount": 0,
+  "missingTraceContractCount": 0,
+  "catchBranchCount": 17,
+  "catchBranchWithoutLogCount": 0,
+  "failureBranchCount": 0,
+  "failureWithoutClassCount": 0,
+  "stageStartCount": 177,
+  "stageTerminalCount": 0,
+  "stagePairViolationCount": 0,
+  "heavyPayloadFlowViolationCount": 0,
+  "redactionViolationCount": 0,
   "summary": {
-    "totalFindings": 141,
-    "fatalFindings": 141,
-    "scannedFiles": 210,
-    "emitCallCount": 7,
+    "totalFindings": 0,
+    "fatalFindings": 0,
+    "scannedFiles": 218,
+    "emitCallCount": 1,
     "consoleViolationCount": 0,
-    "failureWithoutClassCount": 32,
+    "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
   },
   "phases": [
@@ -15,7 +251,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 207,
+      "scannedFiles": 213,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -24,45 +260,45 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 207
+      "scannedFiles": 176
     },
     {
       "name": "runtime-log-emit-contract",
-      "status": "FAIL",
-      "findingCount": 2,
-      "scannedFiles": 208,
+      "status": "PASS",
+      "findingCount": 0,
+      "scannedFiles": 174,
       "metrics": {
-        "emitCallCount": 7
+        "emitCallCount": 1
       }
     },
     {
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 208
+      "scannedFiles": 174
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 9,
+      "scannedFiles": 177,
       "metrics": {
         "stageCoveragePercent": 100
       }
     },
     {
       "name": "catch-branch-log",
-      "status": "FAIL",
-      "findingCount": 39,
-      "scannedFiles": 208
+      "status": "PASS",
+      "findingCount": 0,
+      "scannedFiles": 17
     },
     {
       "name": "failure-class",
-      "status": "FAIL",
-      "findingCount": 32,
-      "scannedFiles": 208,
+      "status": "PASS",
+      "findingCount": 0,
+      "scannedFiles": 177,
       "metrics": {
-        "failureWithoutClassCount": 32
+        "failureWithoutClassCount": 0
       }
     },
     {
@@ -79,1286 +315,22 @@
     },
     {
       "name": "ai-log-contract",
-      "status": "FAIL",
-      "findingCount": 35,
-      "scannedFiles": 35
+      "status": "PASS",
+      "findingCount": 0,
+      "scannedFiles": 36
     },
     {
       "name": "browser-action-log-contract",
-      "status": "FAIL",
-      "findingCount": 33,
-      "scannedFiles": 34
+      "status": "PASS",
+      "findingCount": 0,
+      "scannedFiles": 35
+    },
+    {
+      "name": "anti-fake-inspector",
+      "status": "PASS",
+      "findingCount": 0,
+      "scannedFiles": 2
     }
   ],
-  "findings": [
-    {
-      "checkId": "runtime-log-spine/emit-trace-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts",
-      "line": 15,
-      "severity": "fatal",
-      "message": "RuntimeLogger.emit is missing required trace contract fields",
-      "hint": "Add traceId, owner, or use an authorized stage logger/event factory."
-    },
-    {
-      "checkId": "runtime-log-spine/emit-trace-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-dom-step-trace.ts",
-      "line": 23,
-      "severity": "fatal",
-      "message": "RuntimeLogger.emit is missing required trace contract fields",
-      "hint": "Add traceId, owner, or use an authorized stage logger/event factory."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/app/create-workbench-server.ts",
-      "line": 89,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/lib/browser/current-chrome-browser-controller-runtime.ts",
-      "line": 138,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/lib/browser/current-chrome-cdp-file-input.ts",
-      "line": 58,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/lib/browser/current-chrome-cdp-file-input.ts",
-      "line": 187,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/lib/browser/local-browser-session.ts",
-      "line": 74,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/lib/local-runtime/settings.ts",
-      "line": 70,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/lib/local-runtime/workbench-status.ts",
-      "line": 24,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/lib/online-ai/config.ts",
-      "line": 48,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/lib/online-ai/gemini-client.ts",
-      "line": 124,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/lib/runtime-logs/redaction.ts",
-      "line": 20,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/lib/runtime-logs/redaction.ts",
-      "line": 29,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/lib/runtime-logs/sinks.ts",
-      "line": 102,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-dom-step-trace-support.ts",
-      "line": 147,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
-      "line": 43,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-proof.ts",
-      "line": 7,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
-      "line": 47,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.selection-export.ts",
-      "line": 63,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
-      "line": 31,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
-      "line": 45,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/ai-input-gateway/runtime/ai-feed-output-parser.ts",
-      "line": 31,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
-      "line": 158,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-evidence.ts",
-      "line": 13,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/forensics-persistence/children/append-artifact.ts",
-      "line": 32,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/forensics-persistence/children/append-record.ts",
-      "line": 32,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/forensics-persistence/children/read-record-ref.ts",
-      "line": 26,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/children/download-bilibili-video-once.ts",
-      "line": 37,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/children/download-douyin-video-once.ts",
-      "line": 44,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/children/download-facebook-video-once.ts",
-      "line": 155,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/children/download-instagram-video-once.ts",
-      "line": 37,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/children/download-tiktok-video-once.ts",
-      "line": 102,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/children/download-web-video-once.ts",
-      "line": 105,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/children/download-x-video-once.ts",
-      "line": 37,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/children/download-xiaohongshu-video-once.ts",
-      "line": 37,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/runtime/platform-router.ts",
-      "line": 22,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
-      "line": 41,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/runtime/youtube-dlp-binary.ts",
-      "line": 50,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
-      "line": 211,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/runtime/youtube-url.ts",
-      "line": 32,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/catch-branch-log",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
-      "file": "src/capabilities/video-download/runtime/youtube-url.ts",
-      "line": 55,
-      "severity": "fatal",
-      "message": "catch branch has no structured runtime log",
-      "hint": "Emit a failed/review_required event with failureClass, reason, stageName and recoveryPolicy before returning or throwing."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
-      "line": 127,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-existing.ts",
-      "line": 194,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
-      "line": 118,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-file-attachment.ts",
-      "line": 160,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-invoice-number.ts",
-      "line": 62,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-invoice-number.ts",
-      "line": 97,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
-      "line": 96,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts",
-      "line": 77,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-steps.ts",
-      "line": 190,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts",
-      "line": 64,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-verify.ts",
-      "line": 95,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
-      "line": 97,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
-      "line": 144,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts",
-      "line": 181,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts",
-      "line": 28,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
-      "line": 127,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
-      "line": 34,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
-      "line": 42,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
-      "line": 74,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
-      "line": 43,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
-      "line": 74,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
-      "line": 106,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts",
-      "line": 93,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
-      "line": 37,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
-      "line": 79,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-action-result.ts",
-      "line": 29,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-action-result.ts",
-      "line": 42,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-upload.ts",
-      "line": 86,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/capabilities/forensics-persistence/children/append-artifact.ts",
-      "line": 34,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/capabilities/forensics-persistence/children/append-record.ts",
-      "line": 34,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/capabilities/forensics-persistence/children/proof-support.ts",
-      "line": 55,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/failure-class-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/capabilities/forensics-persistence/children/read-record-ref.ts",
-      "line": 28,
-      "severity": "fatal",
-      "message": "failure event is missing failureClass contract",
-      "hint": "Use RuntimeFailureClass enum and include failureClass, stageName, retryable, terminal, recoveryPolicy."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/ability-group.ts",
-      "line": 3,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/contract.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/contracts/ai-provider-adapter.contract.ts",
-      "line": 3,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/index.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/gemini-api.adapter.ts",
-      "line": 3,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: promptHash, inputRefs, expectedOutputSchemaRef, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/gemini-web-chat.adapter.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/gpt-web-chat.adapter.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
-      "line": 15,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
-      "line": 53,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
-      "line": 3,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
-      "line": 15,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-selector-prelude.ts",
-      "line": 4,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-shared-support.ts",
-      "line": 3,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
-      "line": 3,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, expectedOutputSchemaRef, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, expectedOutputSchemaRef, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
-      "line": 5,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
-      "line": 4,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: modelName, promptHash, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/runtime/ai-feed-output-parser.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, timeoutMs, rawOutputRef, rawOutputHash."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/runtime/ai-feed-proof.ts",
-      "line": 5,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: promptHash, timeoutMs."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/runtime/ai-feed-rate-guard.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/runtime/feed-gemini-api-once.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/runtime/feed-gemini-web-chat-once.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/runtime/feed-gpt-web-chat-once.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/runtime/feed-provider-once.ts",
-      "line": 2,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/capabilities/ai-input-gateway/schema.ts",
-      "line": 3,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: promptHash."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/plugins/amazon-invoice-upload/amazon-invoice-upload-order-detail.ts",
-      "line": 9,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: providerKind, modelName, promptHash, inputRefs, expectedOutputSchemaRef, timeoutMs, rawOutputRef, rawOutputHash, parseStatus, schemaValidationStatus."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: promptHash."
-    },
-    {
-      "checkId": "runtime-log-spine/ai-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts",
-      "line": 3,
-      "severity": "fatal",
-      "message": "AI request/response/parse path lacks required observability contract",
-      "hint": "Add AI_REQUEST/AI_UPLOAD/AI_RESPONSE/AI_PARSE logs with refs, hashes, parse status and provider proof. Missing: modelName, promptHash, inputRefs, expectedOutputSchemaRef."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/index.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-action-result.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-click.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-evidence.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-fill.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-locator-candidates.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-locator.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: after, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-snapshot.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-upload.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-verify.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/runtime/dom-wait.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/schema.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/tests/dom-locator.fixture.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/tests/dom-snapshot.fixture.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/capabilities/dom-automation/tests/dom-upload.fixture.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/browser-controller.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/current-chrome-browser-action-result.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/current-chrome-browser-click-probe.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/current-chrome-browser-controller-execution.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/current-chrome-browser-controller-primitives.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/current-chrome-browser-controller-runtime.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: after, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/current-chrome-browser-controller.ts",
-      "line": 19,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/current-chrome-browser-field-input.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/current-chrome-browser-screenshot.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/current-chrome-browser-scroll-support.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/current-chrome-cdp-file-input.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/current-chrome-native-file-input.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/current-chrome-window-control.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/lib/browser/local-browser-session.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-proof.ts",
-      "line": 1,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: action, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-scripts.ts",
-      "line": 103,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, durationMs, failureClass, fallback."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
-      "line": 58,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: durationMs, failureClass."
-    },
-    {
-      "checkId": "runtime-log-spine/browser-action-log-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
-      "line": 40,
-      "severity": "fatal",
-      "message": "browser or DOM action lacks before/action/after observability",
-      "hint": "Add browser action log contract with beforeHash, action attempt, afterHash and failureClass. Missing: before, after, action, durationMs, failureClass, fallback."
-    }
-  ]
+  "findings": []
 }

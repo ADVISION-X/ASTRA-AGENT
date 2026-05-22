@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T15:30:25.903Z",
+  "generatedAt": "2026-05-22T16:58:57.942Z",
   "status": "FAIL",
   "steps": [
     {
@@ -47,14 +47,14 @@
       "capabilityDomain": "code-purity",
       "executionGroup": "foundation",
       "status": "FAIL",
-      "findingCount": 48,
+      "findingCount": 80,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json"
     },
     {
       "capabilityDomain": "runtime-log-spine",
       "executionGroup": "foundation",
-      "status": "FAIL",
-      "findingCount": 141,
+      "status": "PASS",
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/runtime-log-spine-report.generated.json"
     },
     {
@@ -75,7 +75,7 @@
       "capabilityDomain": "facebook-product-video-mining-log-coverage",
       "executionGroup": "domain",
       "status": "FAIL",
-      "findingCount": 34,
+      "findingCount": 30,
       "reportPath": "scripts/audit/generated/facebook-product-video-mining-log-coverage-report.generated.json"
     },
     {

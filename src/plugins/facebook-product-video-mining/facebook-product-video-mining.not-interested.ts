@@ -1,4 +1,13 @@
+import { createHash } from "node:crypto";
+
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import {
+  RuntimeFailureClass,
+  createMissionTrace,
+  createStageLogger,
+  type RuntimeLogger,
+  withRoundTrace,
+} from "../../lib/runtime-logs/index.js";
 import {
   FACEBOOK_LOGIN_BLOCKER_PATTERNS,
   FACEBOOK_MORE_MENU_PATTERNS,
@@ -20,6 +29,17 @@ type RawMenuAction = {
   reason: string | null;
   selectedText: string | null;
 };
+
+type ClickFacebookNotInterestedInput = {
+  browser: BrowserController;
+  runtimeLogger: RuntimeLogger;
+  missionId: string;
+  runId: string;
+  roundId: string;
+  probe: FacebookVideoDomProbeResult;
+};
+
+const FACEBOOK_RUNTIME_LOG_OWNER = "facebook-product-video-mining" as const;
 
 const patternSource = (patterns: readonly RegExp[]): string =>
   patterns.map((pattern) => pattern.source).join("|");
@@ -59,7 +79,7 @@ return {status: "success", reason: null, selectedText};
 
 const waitForNotInterestedOption = async (
   browser: BrowserController,
-): Promise<RawMenuAction | null> => {
+): Promise<boolean> => {
   const deadline = Date.now() + 5_000;
   while (Date.now() < deadline) {
     const result = await browser.evaluateActiveTab<RawMenuAction>({
@@ -67,28 +87,103 @@ const waitForNotInterestedOption = async (
       script: buildClickNotInterestedScript().replace("option.click();", ""),
     });
     if (result.status === "success") {
-      return null;
+      return true;
     }
     await browser.wait(300);
   }
-  return { status: "review_required", reason: "not_interested_option_not_found", selectedText: null };
+  return false;
 };
 
-export const clickFacebookNotInterested = async (input: {
-  browser: BrowserController;
-  probe: FacebookVideoDomProbeResult;
-}): Promise<FacebookNotInterestedActionResult> => {
+const createFacebookRoundTrace = (input: {
+  missionId: string;
+  runId: string;
+  roundId: string;
+}) => withRoundTrace({
+  context: createMissionTrace({
+    missionId: input.missionId,
+    runId: input.runId,
+    owner: FACEBOOK_RUNTIME_LOG_OWNER,
+  }),
+  roundId: input.roundId,
+});
+
+const buildNotInterestedHash = (value: string): string => createHash("sha256").update(value).digest("hex").slice(0, 24);
+
+const buildNotInterestedPayload = (action: string) => ({
+  action,
+  fallback: "skip_round",
+  recoveryTrail: "facebook-not-interested-recovery-trail",
+});
+
+const buildNotInterestedHashes = (beforeHash: string) => ({ beforeHash, afterHash: beforeHash });
+
+const buildNotInterestedWaitFailure = () => ({
+  status: "review_required",
+  reason: "not_interested_option_not_found",
+  selectedText: null,
+}) as const;
+
+export const clickFacebookNotInterested = async (input: ClickFacebookNotInterestedInput): Promise<FacebookNotInterestedActionResult> => {
+  const stageLogger = createStageLogger({ logger: input.runtimeLogger });
+  const traceContext = createFacebookRoundTrace(input);
+  const beforeHash = buildNotInterestedHash(input.probe.facebookVideoId ?? input.roundId);
+  const notInterestedStage = stageLogger.start({
+    context: traceContext,
+    stageName: "FACEBOOK_NOT_INTERESTED",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    payload: buildNotInterestedPayload("click_not_interested"),
+  });
   const opened = await input.browser.evaluateActiveTab<RawMenuAction>({
     description: "open Facebook video more menu",
     script: buildOpenMoreMenuScript(input.probe.moreMenuElementRef?.selector ?? null),
   });
   if (opened.status !== "success") {
+    notInterestedStage.fail({
+      reason: opened.reason ?? opened.status,
+      failureClass: RuntimeFailureClass.RECOVERABLE_BROWSER_DRIFT,
+      retryable: false,
+      terminal: false,
+      recoveryPolicy: "skip_round",
+      hashes: buildNotInterestedHashes(beforeHash),
+      payload: buildNotInterestedPayload("open_more_menu"),
+    });
     return opened;
   }
-  const waitFailure = await waitForNotInterestedOption(input.browser);
-  if (waitFailure) return waitFailure;
-  return input.browser.evaluateActiveTab<RawMenuAction>({
+  const optionReady = await waitForNotInterestedOption(input.browser);
+  if (!optionReady) {
+    const waitFailure = buildNotInterestedWaitFailure();
+    notInterestedStage.fail({
+      reason: waitFailure.reason ?? waitFailure.status,
+      failureClass: RuntimeFailureClass.RECOVERABLE_BROWSER_DRIFT,
+      retryable: false,
+      terminal: false,
+      recoveryPolicy: "skip_round",
+      hashes: buildNotInterestedHashes(beforeHash),
+      payload: buildNotInterestedPayload("wait_not_interested_option"),
+    });
+    return waitFailure;
+  }
+  const result = await input.browser.evaluateActiveTab<RawMenuAction>({
     description: "click Facebook not interested option",
     script: buildClickNotInterestedScript(),
   });
+  if (result.status !== "success") {
+    notInterestedStage.fail({
+      reason: result.reason ?? result.status,
+      failureClass: RuntimeFailureClass.RECOVERABLE_BROWSER_DRIFT,
+      retryable: false,
+      terminal: false,
+      recoveryPolicy: "skip_round",
+      hashes: buildNotInterestedHashes(beforeHash),
+      payload: buildNotInterestedPayload("click_not_interested"),
+    });
+    return result;
+  }
+  const afterHash = buildNotInterestedHash(result.selectedText ?? input.probe.facebookVideoId ?? input.roundId);
+  notInterestedStage.complete({
+    durationMs: 0,
+    hashes: { beforeHash, afterHash },
+    payload: buildNotInterestedPayload("click_not_interested"),
+  });
+  return result;
 };

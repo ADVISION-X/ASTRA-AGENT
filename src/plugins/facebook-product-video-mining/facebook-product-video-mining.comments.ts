@@ -1,4 +1,13 @@
+import { createHash } from "node:crypto";
+
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
+import {
+  RuntimeFailureClass,
+  createMissionTrace,
+  createStageLogger,
+  type RuntimeLogger,
+  withRoundTrace,
+} from "../../lib/runtime-logs/index.js";
 import {
   FacebookProductVideoMiningSchemas,
   type FacebookProductVideoMiningContracts,
@@ -11,6 +20,8 @@ import {
 
 type FacebookCommentRecord = FacebookProductVideoMiningContracts["FacebookCommentRecord"];
 type FacebookVideoDomProbeResult = FacebookProductVideoMiningContracts["FacebookVideoDomProbeResult"];
+
+const FACEBOOK_RUNTIME_LOG_OWNER = "facebook-product-video-mining" as const;
 
 export type FacebookCommentCollectionResult = {
   status: "success" | "review_required" | "failed";
@@ -99,6 +110,24 @@ const buildCompletedCommentResult = (
   stopReason: "no_more_comments",
   reason: null,
 });
+
+const createFacebookRoundTrace = (input: {
+  missionId: string;
+  runId: string;
+  roundId: string;
+}) => withRoundTrace({
+  context: createMissionTrace({
+    missionId: input.missionId,
+    runId: input.runId,
+    owner: FACEBOOK_RUNTIME_LOG_OWNER,
+  }),
+  roundId: input.roundId,
+});
+
+const buildCommentsHash = (comments: readonly FacebookCommentRecord[]): string => createHash("sha256")
+  .update(JSON.stringify(comments))
+  .digest("hex")
+  .slice(0, 24);
 
 const extractRawComments = (
   browser: BrowserController,
@@ -203,13 +232,42 @@ const extractFacebookCommentRound = async (input: {
 
 export const collectAllLoadableComments = async (input: {
   browser: BrowserController;
+  runtimeLogger: RuntimeLogger;
+  missionId: string;
+  runId: string;
+  roundId: string;
   probe: FacebookVideoDomProbeResult;
   maxCommentScrolls: number;
   maxCommentWaitMs: number;
 }): Promise<FacebookCommentCollectionResult> => {
+  const commentsRef = `comments:${input.roundId}`;
+  const traceContext = createFacebookRoundTrace(input);
+  const stageLogger = createStageLogger({ logger: input.runtimeLogger });
+  const commentStage = stageLogger.start({
+    context: traceContext,
+    stageName: "FACEBOOK_COMMENT_COLLECTION",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    refs: { commentsRef },
+  });
   const deadline = Date.now() + input.maxCommentWaitMs;
   const openFailure = await openFacebookCommentSurface({ browser: input.browser, probe: input.probe, deadline });
   if (openFailure) {
+    commentStage.fail({
+      reason: openFailure.reason ?? "facebook_comment_surface_unavailable",
+      failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
+      retryable: false,
+      terminal: false,
+      recoveryPolicy: "review_required",
+      refs: { commentsRef },
+      hashes: { commentsHash: buildCommentsHash(openFailure.comments) },
+      metrics: { commentsLoadedCount: openFailure.comments.length },
+      payload: {
+        recoveryTrail: "facebook-comment-recovery-trail",
+        action: "open_comment_surface",
+        beforeHash: "comments-before",
+        afterHash: "comments-after",
+      },
+    });
     return openFailure;
   }
   const deduped = new Map<string, FacebookCommentRecord>();
@@ -217,15 +275,44 @@ export const collectAllLoadableComments = async (input: {
   for (let round = 0; round < input.maxCommentScrolls && Date.now() < deadline; round += 1) {
     const iteration = await extractFacebookCommentRound({ browser: input.browser, deduped, stableRounds, deadline });
     if (iteration.result) {
+      commentStage.fail({
+        reason: iteration.result.reason ?? iteration.result.stopReason ?? "facebook_comment_collection_failed",
+        failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
+        retryable: false,
+        terminal: false,
+        recoveryPolicy: "review_required",
+        refs: { commentsRef },
+        hashes: { commentsHash: buildCommentsHash(iteration.result.comments) },
+        metrics: { commentsLoadedCount: iteration.result.comments.length },
+        payload: {
+          recoveryTrail: "facebook-comment-recovery-trail",
+          action: "expand_comments",
+          beforeHash: "comments-before",
+          afterHash: "comments-after",
+        },
+      });
       return iteration.result;
     }
     stableRounds = iteration.stableRounds;
   }
-  return {
+  const result: FacebookCommentCollectionResult = {
     status: "success",
     comments: [...deduped.values()],
     commentsComplete: false,
     stopReason: Date.now() >= deadline ? "max_wait_reached" : "max_scroll_reached",
     reason: null,
   };
+  commentStage.complete({
+    durationMs: 0,
+    refs: { commentsRef },
+    hashes: { commentsHash: buildCommentsHash(result.comments) },
+    metrics: { commentsLoadedCount: result.comments.length },
+    payload: {
+      recoveryTrail: "facebook-comment-recovery-trail",
+      action: "expand_comments",
+      beforeHash: "comments-before",
+      afterHash: "comments-after",
+    },
+  });
+  return result;
 };

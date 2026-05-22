@@ -2,7 +2,7 @@ import type { RuntimeLogEventType } from "./event-types.js";
 import type { RuntimeLogEventInput, RuntimeLogLevel, RuntimeLogMode, RuntimeLogStatus } from "./schema.js";
 import type { RuntimeTraceContext } from "./trace-context.js";
 
-export const createRuntimeEvent = (input: {
+type CreateRuntimeEventInput = {
   context: RuntimeTraceContext;
   eventType: RuntimeLogEventType;
   level: RuntimeLogLevel;
@@ -16,18 +16,20 @@ export const createRuntimeEvent = (input: {
   preview?: Record<string, string>;
   payload?: Record<string, unknown>;
   durationMs?: number;
-}): RuntimeLogEventInput => ({
-  traceId: input.context.traceId,
-  spanId: input.context.spanId,
-  ...(input.context.parentSpanId ? { parentSpanId: input.context.parentSpanId } : {}),
-  ...(input.context.missionId ? { missionId: input.context.missionId } : {}),
-  ...(input.context.runId ? { runId: input.context.runId } : {}),
-  ...(input.context.roundId ? { roundId: input.context.roundId } : {}),
-  ...(input.context.stepId ? { stepId: input.context.stepId } : {}),
-  level: input.level,
-  modeVisibility: input.modeVisibility,
-  eventType: input.eventType,
-  owner: input.context.owner,
+};
+
+const createTraceFields = (context: RuntimeTraceContext) => ({
+  traceId: context.traceId,
+  spanId: context.spanId,
+  ...(context.parentSpanId ? { parentSpanId: context.parentSpanId } : {}),
+  ...(context.missionId ? { missionId: context.missionId } : {}),
+  ...(context.runId ? { runId: context.runId } : {}),
+  ...(context.roundId ? { roundId: context.roundId } : {}),
+  ...(context.stepId ? { stepId: context.stepId } : {}),
+  owner: context.owner,
+});
+
+const createOptionalEventFields = (input: CreateRuntimeEventInput) => ({
   ...(input.status ? { status: input.status } : {}),
   ...(input.reason ? { reason: input.reason } : {}),
   ...(input.actionableMessage ? { actionableMessage: input.actionableMessage } : {}),
@@ -37,4 +39,12 @@ export const createRuntimeEvent = (input: {
   ...(input.preview ? { preview: input.preview } : {}),
   ...(input.payload ? { payload: input.payload } : {}),
   ...(input.durationMs !== undefined ? { durationMs: input.durationMs } : {}),
+});
+
+export const createRuntimeEvent = (input: CreateRuntimeEventInput): RuntimeLogEventInput => ({
+  ...createTraceFields(input.context),
+  level: input.level,
+  modeVisibility: input.modeVisibility,
+  eventType: input.eventType,
+  ...createOptionalEventFields(input),
 });

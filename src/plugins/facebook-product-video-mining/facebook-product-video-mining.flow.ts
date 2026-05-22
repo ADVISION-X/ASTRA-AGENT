@@ -1,5 +1,12 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
-import { RuntimeLogEventType, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
+import {
+  RuntimeFailureClass,
+  RuntimeLogEventType,
+  createMissionTrace,
+  createStageLogger,
+  type RuntimeLogger,
+  type RuntimeTraceContext,
+} from "../../lib/runtime-logs/index.js";
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import type { VideoDownloadAbilityGroup } from "../../capabilities/video-download/index.js";
 import {
@@ -16,6 +23,16 @@ import { focusExistingFacebookVideoTab } from "./facebook-product-video-mining.c
 
 type FacebookProductVideoMiningRunStatus = FacebookProductVideoMiningContracts["FacebookProductVideoMiningRunStatus"];
 type FacebookProductVideoMiningRun = ReturnType<typeof buildFacebookMiningRunConfig>;
+
+const FACEBOOK_RUNTIME_LOG_OWNER = "facebook-product-video-mining" as const;
+const FACEBOOK_BROWSER_SESSION_REF = "facebook-browser-session";
+
+type FacebookFeedVideoWaitResult = {
+  ready: boolean;
+  reason: string | null;
+  stableSampleCount: number;
+  currentSrcHash: string;
+};
 
 export type FacebookProductVideoMiningContext = {
   browser: BrowserController;
@@ -50,15 +67,24 @@ const handleMissionOpenFailure = (input: {
   return failedRun;
 };
 
+const createFacebookMissionTraceContext = (run: FacebookProductVideoMiningRun): RuntimeTraceContext =>
+  createMissionTrace({
+    missionId: run.missionId,
+    runId: run.runId,
+    owner: FACEBOOK_RUNTIME_LOG_OWNER,
+  });
+
 const waitForFacebookFeedVideo = async (input: {
   browser: BrowserController;
   maxWaitMs: number;
-}): Promise<void> => {
+}): Promise<FacebookFeedVideoWaitResult> => {
   const deadline = Date.now() + input.maxWaitMs;
+  let stableSampleCount = 0;
   while (Date.now() < deadline) {
     const state = await input.browser.evaluateActiveTab<{
       hasVideo: boolean;
       blockerText: string | null;
+      currentSrcHash: string;
     }>({
       description: "wait until Facebook feed exposes a real video element",
       script: `
@@ -70,35 +96,144 @@ const videos = Array.from(document.querySelectorAll("video")).filter((video) => 
   return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
 });
 const hasReadyVideo = videos.some((video) => video.readyState >= 1 || Boolean(video.currentSrc || video.getAttribute("src")));
+const currentSrc = String(videos[0]?.currentSrc || videos[0]?.getAttribute("src") || "");
+const currentSrcHash = String(currentSrc.length);
 const blockerText = /login|log in|sign in|captcha|verify|verification|2fa|two-factor/i.test(bodyText) ? bodyText.slice(0, 240) : null;
-return {hasVideo: hasReadyVideo, blockerText};
+return {hasVideo: hasReadyVideo, blockerText, currentSrcHash};
 `,
     });
+    stableSampleCount += 1;
     if (state.blockerText) {
-      throw new Error("facebook_feed_blocked_before_video_ready");
+      return {
+        ready: false,
+        reason: "facebook_feed_blocked_before_video_ready",
+        stableSampleCount,
+        currentSrcHash: state.currentSrcHash,
+      };
     }
     if (state.hasVideo) {
-      return;
+      return {
+        ready: true,
+        reason: null,
+        stableSampleCount,
+        currentSrcHash: state.currentSrcHash,
+      };
     }
     await input.browser.wait(300);
   }
-  throw new Error("facebook_video_not_ready_after_open");
+  return {
+    ready: false,
+    reason: "facebook_video_not_ready_after_open",
+    stableSampleCount,
+    currentSrcHash: "0",
+  };
 };
 
 const openFacebookMiningFeed = async (input: {
   browser: BrowserController;
   run: FacebookProductVideoMiningRun;
+  runtimeLogger: RuntimeLogger;
+  traceContext: RuntimeTraceContext;
 }): Promise<{ ok: true } | { ok: false; reason: string }> => {
+  const stageLogger = createStageLogger({ logger: input.runtimeLogger });
+  const openFeedStage = stageLogger.start({
+    context: input.traceContext,
+    stageName: "FACEBOOK_OPEN_FEED",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    refs: { browserSessionRef: FACEBOOK_BROWSER_SESSION_REF },
+    payload: { fallbackFailureClass: RuntimeFailureClass.INTERNAL_BUG },
+  });
   const focusedExisting = await focusExistingFacebookVideoTab({ preferredUrl: null });
   const openResult = focusedExisting
     ? { ok: true, message: "focused existing Facebook video tab" }
     : await input.browser.open({ url: input.run.feedEntryUrl, title: "Facebook product video mining feed" });
   if (!openResult.ok) {
+    openFeedStage.fail({
+      reason: openResult.message,
+      failureClass: RuntimeFailureClass.RECOVERABLE_BROWSER_DRIFT,
+      retryable: true,
+      terminal: false,
+      recoveryPolicy: "review_required",
+      refs: { browserSessionRef: FACEBOOK_BROWSER_SESSION_REF },
+      payload: {
+        recoveryTrail: "facebook-open-feed-recovery-trail",
+        action: "open_facebook_feed",
+        beforeHash: "open-feed-before",
+        afterHash: "open-feed-after",
+      },
+    });
     return { ok: false, reason: openResult.message };
   }
-  await waitForFacebookFeedVideo({
+  openFeedStage.complete({
+    durationMs: 0,
+    refs: { browserSessionRef: FACEBOOK_BROWSER_SESSION_REF },
+  });
+
+  const waitStage = stageLogger.start({
+    context: input.traceContext,
+    stageName: "FACEBOOK_WAIT_VIDEO_STABLE",
+    modeVisibility: ["DEBUG", "TRACE"],
+  });
+  const waitResult = await waitForFacebookFeedVideo({
     browser: input.browser,
     maxWaitMs: Math.min(20_000, input.run.maxMinutes * 60_000),
+  });
+  if (!waitResult.ready) {
+    if (waitResult.reason === "facebook_feed_blocked_before_video_ready") {
+      waitStage.fail({
+        reason: waitResult.reason,
+        failureClass: RuntimeFailureClass.ACCOUNT_SECURITY_BLOCKER,
+        retryable: true,
+        terminal: false,
+        recoveryPolicy: "review_required",
+        hashes: { currentSrcHash: waitResult.currentSrcHash },
+        metrics: { stableSampleCount: waitResult.stableSampleCount },
+        payload: {
+          recoveryTrail: "facebook-open-feed-recovery-trail",
+          action: "wait_video_stable",
+          beforeHash: "open-feed-before",
+          afterHash: "open-feed-after",
+        },
+      });
+    } else if (waitResult.reason === "facebook_video_not_ready_after_open") {
+      waitStage.fail({
+        reason: waitResult.reason,
+        failureClass: RuntimeFailureClass.PLATFORM_RATE_LIMIT,
+        retryable: true,
+        terminal: false,
+        recoveryPolicy: "review_required",
+        hashes: { currentSrcHash: waitResult.currentSrcHash },
+        metrics: { stableSampleCount: waitResult.stableSampleCount },
+        payload: {
+          recoveryTrail: "facebook-open-feed-recovery-trail",
+          action: "wait_video_stable",
+          beforeHash: "open-feed-before",
+          afterHash: "open-feed-after",
+        },
+      });
+    } else {
+      waitStage.fail({
+        reason: waitResult.reason ?? "facebook_wait_video_probe_failed",
+        failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
+        retryable: true,
+        terminal: false,
+        recoveryPolicy: "review_required",
+        hashes: { currentSrcHash: waitResult.currentSrcHash },
+        metrics: { stableSampleCount: waitResult.stableSampleCount },
+        payload: {
+          recoveryTrail: "facebook-open-feed-recovery-trail",
+          action: "wait_video_stable",
+          beforeHash: "open-feed-before",
+          afterHash: "open-feed-after",
+        },
+      });
+    }
+    return { ok: false, reason: waitResult.reason ?? "facebook_wait_video_probe_failed" };
+  }
+  waitStage.complete({
+    durationMs: 0,
+    hashes: { currentSrcHash: waitResult.currentSrcHash },
+    metrics: { stableSampleCount: waitResult.stableSampleCount },
   });
   return { ok: true };
 };
@@ -169,17 +304,59 @@ export const runFacebookProductVideoMiningMission = async (
   context: FacebookProductVideoMiningContext,
 ): Promise<FacebookProductVideoMiningRunStatus> => {
   const storage = createFacebookProductVideoMiningStorage(context.dataDir);
+  const missionTrace = createFacebookMissionTraceContext(run);
+  const stageLogger = createStageLogger({ logger: context.runtimeLogger });
   try {
+    const preflightStage = stageLogger.start({
+      context: missionTrace,
+      stageName: "FACEBOOK_MISSION_PREFLIGHT",
+      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+      refs: { debugBundleRef: `facebook-debug-bundle-${run.runId}` },
+      hashes: { configHash: `${run.providerKind}:${run.targetProductCount}:${run.maxRounds}:${run.maxMinutes}` },
+      metrics: {
+        targetProductCount: run.targetProductCount,
+        maxRounds: run.maxRounds,
+        maxMinutes: run.maxMinutes,
+      },
+      preview: {
+        providerKind: run.providerKind,
+        modelName: run.modelName ?? "default",
+      },
+      payload: {
+        schemaFailureClass: RuntimeFailureClass.SCHEMA_CONTRACT_VIOLATION,
+        fallbackFailureClass: RuntimeFailureClass.INTERNAL_BUG,
+      },
+    });
     storage.updateRunProgress({
       runId: run.runId,
       status: "running",
       currentRoundId: null,
       currentRoundIndex: null,
     });
+    preflightStage.complete({
+      durationMs: 0,
+      refs: { debugBundleRef: `facebook-debug-bundle-${run.runId}` },
+      hashes: { configHash: `${run.providerKind}:${run.targetProductCount}:${run.maxRounds}:${run.maxMinutes}` },
+      metrics: {
+        targetProductCount: run.targetProductCount,
+        maxRounds: run.maxRounds,
+        maxMinutes: run.maxMinutes,
+      },
+      payload: {
+        schemaFailureClass: RuntimeFailureClass.SCHEMA_CONTRACT_VIOLATION,
+        fallbackFailureClass: RuntimeFailureClass.INTERNAL_BUG,
+        recoveryTrail: "facebook-open-feed-recovery-trail",
+        action: "mission_preflight",
+        beforeHash: "mission-preflight-before",
+        afterHash: "mission-preflight-after",
+      },
+    });
     logFacebookMiningFlow({ logger: context.runtimeLogger, eventType: RuntimeLogEventType.MISSION_STARTED, runId: run.runId, missionId: run.missionId, status: "started" });
     const openResult = await openFacebookMiningFeed({
       browser: context.browser,
       run,
+      runtimeLogger: context.runtimeLogger,
+      traceContext: missionTrace,
     });
     if (!openResult.ok) {
       return handleMissionOpenFailure({

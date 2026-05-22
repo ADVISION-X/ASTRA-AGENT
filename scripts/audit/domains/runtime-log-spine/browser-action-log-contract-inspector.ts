@@ -1,6 +1,7 @@
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { RuntimeLogSpineLaw, type RuntimeLogSpineFinding } from "./constants.js";
 import { listRuntimeSourceFiles } from "./file-walk.js";
+import { hasRuntimeLogSignal } from "./runtime-log-scope.js";
 import { findLine } from "./source-read.js";
 
 const requiredBrowserTokens = [
@@ -25,6 +26,7 @@ export const collectBrowserActionLogContractFindings = (_context: InspectorConte
     const actionLike = /\.(?:open|evaluateActiveTab|textInput|scroll|click|fill|upload)\s*\(/u.test(file.text)
       || /\b(?:navigation|dom|browser|selector|candidate)\b/iu.test(file.path);
     if (!actionLike) continue;
+    if (!hasRuntimeLogSignal(file.text)) continue;
     const missing = requiredBrowserTokens.filter((token) => !file.text.includes(token));
     if (missing.length === 0) continue;
     findings.push({

@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import type { RuntimeDebugBundleIndex } from "./debug-bundle.js";
 
-export const loadRuntimeDebugBundleIndex = (bundleDir: string): RuntimeDebugBundleIndex =>
+const loadRuntimeDebugBundleIndex = (bundleDir: string): RuntimeDebugBundleIndex =>
   JSON.parse(readFileSync(join(bundleDir, "index.json"), "utf8")) as RuntimeDebugBundleIndex;
 
 export const findRuntimeDebugBundleRound = (

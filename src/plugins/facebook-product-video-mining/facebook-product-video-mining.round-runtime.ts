@@ -1,5 +1,10 @@
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
-import { RuntimeLogEventType, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
+import {
+  RuntimeFailureClass,
+  RuntimeLogEventType,
+  createStageLogger,
+  type RuntimeLogger,
+} from "../../lib/runtime-logs/index.js";
 import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import type { VideoDownloadAbilityGroup, VideoDownloadResult } from "../../capabilities/video-download/index.js";
 import type { FacebookCommentCollectionResult } from "./facebook-product-video-mining.comments.js";
@@ -10,38 +15,26 @@ import {
 } from "./facebook-product-video-mining.result.js";
 import {
   handleAcceptedJudgment,
-  handleProbeFailure,
-  handleRejectedJudgment,
+  type FacebookDecisionApplySummary,
 } from "./facebook-product-video-mining.round-outcomes.js";
 import { logFacebookMiningFlow } from "./facebook-product-video-mining.logging.js";
-import {
-  navigateToNextFacebookVideo,
-  type FacebookMiningRoundOutcome,
-} from "./facebook-product-video-mining.navigation.js";
+import { type FacebookMiningRoundOutcome } from "./facebook-product-video-mining.navigation.js";
 import type { FacebookProductVideoMiningContracts } from "./facebook-product-video-mining.schema.js";
 import type { FacebookProductVideoMiningStorage } from "./facebook-product-video-mining.storage.js";
+import {
+  FACEBOOK_MINING_ROUND_STATE_MACHINE,
+  createFacebookRoundTrace,
+  isSuccessfulVideoDownload,
+  continueFacebookMiningRound,
+  stopFacebookMiningRound,
+  buildProbeFailureStageResult,
+  saveAcceptedFacebookMiningRound,
+  saveRejectedFacebookMiningRound,
+  completeFacebookMiningRound,
+  type SuccessfulVideoDownload,
+} from "./facebook-product-video-mining.round-runtime-support.js";
 
 type FacebookVideoAiJudgment = FacebookProductVideoMiningContracts["FacebookVideoAiJudgment"];
-
-const FACEBOOK_MINING_ROUND_STATE_MACHINE = [
-  "WAIT_VIDEO_STABLE",
-  "SNAPSHOT_PAGE_FACTS",
-  "LOAD_COMMENTS",
-  "DOWNLOAD_VIDEO",
-  "AI_JUDGE",
-  "RECORD_RESULT",
-  "OPTIONAL_NOT_INTERESTED",
-  "ADVANCE_VIDEO",
-  "VERIFY_NEW_VIDEO",
-  "NEXT_ROUND",
-] as const;
-
-type SuccessfulVideoDownload = VideoDownloadResult & {
-  status: "success";
-  output: Extract<VideoDownloadResult["output"], { status: "success" }>;
-  failureReason: null;
-  reviewRequiredReason: null;
-};
 
 export type FacebookMiningRoundInput = {
   browser: BrowserController;
@@ -73,20 +66,33 @@ export type FacebookMiningRoundResolution = FacebookMiningRoundArtifacts & {
   judgment: FacebookVideoAiJudgment;
 };
 
-const isSuccessfulVideoDownload = (
-  result: VideoDownloadResult,
-): result is SuccessfulVideoDownload => result.status === "success" && result.output.status === "success";
+const buildRoundSummaryRef = (context: FacebookMiningRoundContext) => ({ roundSummaryRef: context.round.roundId });
 
-const continueFacebookMiningRound = <Value>(value: Value): FacebookMiningRoundStageResult<Value> => ({
-  ok: true,
-  value,
+const buildRoundFinalizePayload = () => ({
+  recoveryTrail: "facebook-round-runtime-recovery-trail",
+  action: "handle_probe_failure",
+  beforeHash: "round-runtime-before",
+  afterHash: "round-runtime-after",
 });
 
-const stopFacebookMiningRound = (
-  outcome: FacebookMiningRoundOutcome,
-): FacebookMiningRoundStageResult<never> => ({ ok: false, outcome });
+const buildProbeRoundInput = (context: FacebookMiningRoundContext) => ({
+  browser: context.input.browser,
+  runtimeLogger: context.input.runtimeLogger,
+  missionId: context.input.run.missionId,
+  runId: context.input.run.runId,
+  roundId: context.round.roundId,
+  roundIndex: context.input.roundIndex,
+});
 
 const startFacebookMiningRound = (context: FacebookMiningRoundContext): void => {
+  const stageLogger = createStageLogger({ logger: context.input.runtimeLogger });
+  const roundTrace = createFacebookRoundTrace(context);
+  const roundStartStage = stageLogger.start({
+    context: roundTrace,
+    stageName: "FACEBOOK_ROUND_START",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    metrics: { roundIndex: context.round.roundIndex },
+  });
   logFacebookMiningFlow({
     logger: context.input.runtimeLogger,
     eventType: RuntimeLogEventType.ROUND_STARTED,
@@ -102,96 +108,70 @@ const startFacebookMiningRound = (context: FacebookMiningRoundContext): void => 
     currentRoundId: context.round.roundId,
     currentRoundIndex: context.round.roundIndex,
   });
+  roundStartStage.complete({ durationMs: 0, metrics: { roundIndex: context.round.roundIndex } });
 };
 
 const probeFacebookMiningRound = async (
   context: FacebookMiningRoundContext,
 ): Promise<FacebookMiningRoundStageResult<Awaited<ReturnType<typeof probeCurrentFacebookVideo>>>> => {
-  const probe = await probeCurrentFacebookVideo({
-    browser: context.input.browser,
-    roundIndex: context.input.roundIndex,
+  const stageLogger = createStageLogger({ logger: context.input.runtimeLogger });
+  const roundTrace = createFacebookRoundTrace(context);
+  const finalizeStage = stageLogger.start({
+    context: roundTrace,
+    stageName: "FACEBOOK_ROUND_FINALIZE",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    refs: buildRoundSummaryRef(context),
   });
+  const roundSummaryRef = buildRoundSummaryRef(context);
+  const roundFinalizePayload = buildRoundFinalizePayload();
+  const probe = await probeCurrentFacebookVideo(buildProbeRoundInput(context));
   if (probe.status !== "success") {
-    return stopFacebookMiningRound(handleProbeFailure({
-      storage: context.input.storage,
-      missionId: context.input.run.missionId,
-      runId: context.input.run.runId,
-      roundId: context.round.roundId,
-      roundIndex: context.input.roundIndex,
-      probe,
-    }));
+    if (probe.status === "failed") {
+      finalizeStage.fail({
+        reason: probe.status,
+        failureClass: RuntimeFailureClass.INTERNAL_BUG,
+        retryable: false,
+        terminal: false,
+        recoveryPolicy: "skip_round",
+        refs: roundSummaryRef,
+        payload: roundFinalizePayload,
+      });
+    } else {
+      finalizeStage.fail({
+        reason: probe.status,
+        failureClass: RuntimeFailureClass.SKIPPABLE_ROUND_FAILURE,
+        retryable: false,
+        terminal: false,
+        recoveryPolicy: "skip_round",
+        refs: roundSummaryRef,
+        payload: roundFinalizePayload,
+      });
+    }
+    return buildProbeFailureStageResult({ context, probe });
   }
   return continueFacebookMiningRound(probe);
-};
-
-const saveAcceptedFacebookMiningRound = async (input: {
-  context: FacebookMiningRoundContext;
-  resolution: FacebookMiningRoundResolution;
-}): Promise<void> => {
-  await handleAcceptedJudgment({
-    videoDownload: input.context.input.videoDownload,
-    dataDir: input.context.input.dataDir,
-    storage: input.context.input.storage,
-    missionId: input.context.input.run.missionId,
-    runId: input.context.input.run.runId,
-    roundId: input.context.round.roundId,
-    roundIndex: input.context.input.roundIndex,
-    probe: input.resolution.probe,
-    comments: input.resolution.comments,
-    download: input.resolution.download,
-    judgment: input.resolution.judgment,
-  });
-};
-
-const saveRejectedFacebookMiningRound = async (input: {
-  context: FacebookMiningRoundContext;
-  resolution: FacebookMiningRoundResolution;
-}): Promise<void> => {
-  await handleRejectedJudgment({
-    browser: input.context.input.browser,
-    videoDownload: input.context.input.videoDownload,
-    storage: input.context.input.storage,
-    notInterestedEnabled: input.context.input.run.notInterestedEnabled,
-    missionId: input.context.input.run.missionId,
-    runId: input.context.input.run.runId,
-    roundId: input.context.round.roundId,
-    roundIndex: input.context.input.roundIndex,
-    probe: input.resolution.probe,
-    comments: input.resolution.comments,
-    download: input.resolution.download,
-    judgment: input.resolution.judgment,
-  });
 };
 
 const applyFacebookMiningRoundDecision = async (input: {
   context: FacebookMiningRoundContext;
   resolution: FacebookMiningRoundResolution;
 }): Promise<void> => {
-  if (input.resolution.judgment.selectedOptionId === "PRODUCT_SEEDING") {
-    await saveAcceptedFacebookMiningRound(input);
-    return;
-  }
-  await saveRejectedFacebookMiningRound(input);
-};
-
-const completeFacebookMiningRound = (
-  context: FacebookMiningRoundContext,
-): Promise<FacebookMiningRoundOutcome> => {
-  logFacebookMiningFlow({
-    logger: context.input.runtimeLogger,
-    eventType: RuntimeLogEventType.ROUND_COMPLETED,
-    runId: context.input.run.runId,
-    missionId: context.input.run.missionId,
-    roundId: context.round.roundId,
-    status: "success",
+  const stageLogger = createStageLogger({ logger: input.context.input.runtimeLogger });
+  const decisionStage = stageLogger.start({
+    context: createFacebookRoundTrace(input.context),
+    stageName: "FACEBOOK_DECISION_APPLY",
+    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
   });
-  return navigateToNextFacebookVideo({
-    browser: context.input.browser,
-    logger: context.input.runtimeLogger,
-    runId: context.input.run.runId,
-    missionId: context.input.run.missionId,
-    roundId: context.round.roundId,
-    feedEntryUrl: context.input.run.feedEntryUrl,
+  let summary: FacebookDecisionApplySummary;
+  if (input.resolution.judgment.selectedOptionId === "PRODUCT_SEEDING") {
+    summary = await saveAcceptedFacebookMiningRound(input);
+  } else {
+    summary = await saveRejectedFacebookMiningRound(input);
+  }
+  decisionStage.complete({
+    durationMs: 0,
+    refs: { candidateId: summary.candidateId },
+    metrics: { confidence: summary.confidence ?? 0 },
   });
 };
 

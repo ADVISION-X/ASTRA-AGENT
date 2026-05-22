@@ -1,5 +1,3 @@
-export const RUNTIME_LOG_SPINE_DOMAIN = "runtime-log-spine";
-
 export const RuntimeLogSpineLaw = {
   NO_CONSOLE: "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
   MODE_VISIBILITY: "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
@@ -15,9 +13,10 @@ export const RuntimeLogSpineLaw = {
   RECOVERY_TRAIL: "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
   MATRIX: "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
   EVENT_REGISTRY: "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
+  COVERAGE_REPORT: "GRASSEYE-RUNTIME-LOG-SPINE-018-V1",
 } as const;
 
-export type RuntimeLogSpineLawId = (typeof RuntimeLogSpineLaw)[keyof typeof RuntimeLogSpineLaw];
+type RuntimeLogSpineLawId = (typeof RuntimeLogSpineLaw)[keyof typeof RuntimeLogSpineLaw];
 
 export type RuntimeLogSpineFinding = {
   lawId: RuntimeLogSpineLawId;

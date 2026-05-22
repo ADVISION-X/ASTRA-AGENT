@@ -2,6 +2,13 @@ import { createHash } from "node:crypto";
 
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import {
+  RuntimeFailureClass,
+  createMissionTrace,
+  createStageLogger,
+  type RuntimeLogger,
+  withRoundTrace,
+} from "../../lib/runtime-logs/index.js";
+import {
   FACEBOOK_LOGIN_BLOCKER_PATTERNS,
   FACEBOOK_RATE_LIMIT_PATTERNS,
   FACEBOOK_SECURITY_BLOCKER_PATTERNS,
@@ -33,16 +40,17 @@ type RawFacebookProbe = {
   notInterestedCandidates: RawProbeCandidate[];
 };
 
+const FACEBOOK_RUNTIME_LOG_OWNER = "facebook-product-video-mining" as const;
+
 const redactUrl = (value: string | null): string | null => {
   if (!value) {
     return null;
   }
-  try {
+  if (URL.canParse(value)) {
     const parsed = new URL(value);
     return `${parsed.origin}${parsed.pathname}`;
-  } catch {
-    return value.split("?")[0] ?? value;
   }
+  return value.split("?")[0] ?? value;
 };
 
 const parseMetricText = (value: string | null): number | null => {
@@ -114,17 +122,17 @@ const findMetric = (candidates: readonly RawProbeCandidate[]): number | null => 
 };
 
 const detectBlocker = (bodyText: string): {
-  status: FacebookVideoDomProbeResult["status"];
+  probeStatus: FacebookVideoDomProbeResult["status"];
   blocker: string;
 } | null => {
   if (FACEBOOK_LOGIN_BLOCKER_PATTERNS.some((pattern) => pattern.test(bodyText))) {
-    return { status: "login_required", blocker: "facebook_login_required" };
+    return { probeStatus: "login_required", blocker: "facebook_login_required" };
   }
   if (FACEBOOK_SECURITY_BLOCKER_PATTERNS.some((pattern) => pattern.test(bodyText))) {
-    return { status: "captcha_or_2fa_required", blocker: "facebook_security_verification_required" };
+    return { probeStatus: "captcha_or_2fa_required", blocker: "facebook_security_verification_required" };
   }
   if (FACEBOOK_RATE_LIMIT_PATTERNS.some((pattern) => pattern.test(bodyText))) {
-    return { status: "review_required", blocker: "facebook_rate_limited" };
+    return { probeStatus: "review_required", blocker: "facebook_rate_limited" };
   }
   return null;
 };
@@ -155,6 +163,19 @@ const buildRawDomSignalsSummary = (
   ],
 });
 
+const createFacebookRoundTrace = (input: {
+  missionId: string;
+  runId: string;
+  roundId: string;
+}) => withRoundTrace({
+  context: createMissionTrace({
+    missionId: input.missionId,
+    runId: input.runId,
+    owner: FACEBOOK_RUNTIME_LOG_OWNER,
+  }),
+  roundId: input.roundId,
+});
+
 const buildFacebookDomProbeResult = (input: {
   raw: RawFacebookProbe;
   blocker: ReturnType<typeof detectBlocker>;
@@ -167,7 +188,7 @@ const buildFacebookDomProbeResult = (input: {
     roundIndex: input.roundIndex,
   });
   return FacebookProductVideoMiningSchemas.FacebookVideoDomProbeResultSchema.parse({
-    status: input.blocker?.status ?? (input.raw.videoElementFacts.length > 0 ? "success" : "review_required"),
+    status: input.blocker?.probeStatus ?? (input.raw.videoElementFacts.length > 0 ? "success" : "review_required"),
     sourcePageUrl: input.raw.sourcePageUrl,
     pageTitle: input.raw.pageTitle || "Facebook",
     facebookVideoId,
@@ -192,15 +213,103 @@ const buildFacebookDomProbeResult = (input: {
 
 export const probeCurrentFacebookVideo = async (input: {
   browser: BrowserController;
+  runtimeLogger: RuntimeLogger;
+  missionId: string;
+  runId: string;
+  roundId: string;
   roundIndex: number;
 }): Promise<FacebookVideoDomProbeResult> => {
+  const traceContext = createFacebookRoundTrace(input);
+  const stageLogger = createStageLogger({ logger: input.runtimeLogger });
+  const identifyStage = stageLogger.start({
+    context: traceContext,
+    stageName: "FACEBOOK_IDENTIFY_VIDEO",
+    modeVisibility: ["DEBUG", "TRACE"],
+  });
+  const domProbeStage = stageLogger.start({
+    context: traceContext,
+    stageName: "FACEBOOK_DOM_PROBE",
+    modeVisibility: ["DEBUG", "TRACE"],
+    refs: { domSnapshotRef: `dom-snapshot:${input.roundId}` },
+  });
   const raw = await input.browser.evaluateActiveTab<RawFacebookProbe>({
     description: "probe current Facebook video DOM state",
     script: buildFacebookDomProbeScript(),
   });
-  return buildFacebookDomProbeResult({
+  const blocker = detectBlocker(raw.bodyText);
+  const result = buildFacebookDomProbeResult({
     raw,
-    blocker: detectBlocker(raw.bodyText),
+    blocker,
     roundIndex: input.roundIndex,
   });
+  const currentSrcHash = createHash("sha256")
+    .update(result.primaryVideoFact?.currentSrc ?? "")
+    .digest("hex")
+    .slice(0, 24);
+  const textHash = createHash("sha256")
+    .update(raw.bodyText)
+    .digest("hex")
+    .slice(0, 24);
+  const domSignatureHash = createHash("sha256")
+    .update(JSON.stringify({
+      title: result.pageTitle,
+      blocker: result.blocker,
+      candidateCounts: result.rawDomSignalsSummary.candidateCounts,
+      videoCount: result.videoElementFacts.length,
+    }))
+    .digest("hex")
+    .slice(0, 24);
+  const confidence = result.commentEntryElementRef?.confidence ?? result.moreMenuElementRef?.confidence ?? 0;
+  if (result.status !== "success") {
+    identifyStage.fail({
+      reason: result.blocker ?? result.status,
+      failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
+      retryable: false,
+      terminal: false,
+      recoveryPolicy: "review_required",
+      hashes: { currentSrcHash, textHash },
+      metrics: { confidence },
+      payload: {
+        recoveryTrail: "facebook-dom-probe-recovery-trail",
+        action: "identify_facebook_video",
+        beforeHash: "dom-probe-before",
+        afterHash: "dom-probe-after",
+      },
+    });
+    domProbeStage.fail({
+      reason: result.blocker ?? result.status,
+      failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
+      retryable: false,
+      terminal: false,
+      recoveryPolicy: "review_required",
+      refs: { domSnapshotRef: `dom-snapshot:${input.roundId}` },
+      hashes: { domSignatureHash },
+      metrics: {
+        likeCount: result.likeCount ?? 0,
+        commentCountDisplayed: result.commentCountDisplayed ?? 0,
+      },
+      payload: {
+        recoveryTrail: "facebook-dom-probe-recovery-trail",
+        action: "probe_facebook_dom",
+        beforeHash: "dom-probe-before",
+        afterHash: "dom-probe-after",
+      },
+    });
+    return result;
+  }
+  identifyStage.complete({
+    durationMs: 0,
+    hashes: { currentSrcHash, textHash },
+    metrics: { confidence },
+  });
+  domProbeStage.complete({
+    durationMs: 0,
+    refs: { domSnapshotRef: `dom-snapshot:${input.roundId}` },
+    hashes: { domSignatureHash },
+    metrics: {
+      likeCount: result.likeCount ?? 0,
+      commentCountDisplayed: result.commentCountDisplayed ?? 0,
+    },
+  });
+  return result;
 };

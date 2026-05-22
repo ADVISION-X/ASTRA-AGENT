@@ -31,15 +31,19 @@ const isSensitiveUrl = (value: string): boolean => {
   }
 };
 
+const isSecretKeyValue = (key: string): boolean => SECRET_KEYS.test(key) || API_KEY_PATTERN.test(key);
+
+const isInlineSecretValue = (value: string): boolean =>
+  BASE64_PATTERN.test(value)
+  || INLINE_SECRET_VALUE.test(value)
+  || (value.length >= 500 && /^[A-Za-z0-9+/=]+$/.test(value));
+
 /** Redact a single value if it looks like a secret or base64 image. */
 function redactValue(key: string, value: unknown): unknown {
   if (typeof value === "string") {
-    if (SECRET_KEYS.test(key) || API_KEY_PATTERN.test(key)) return REDACTED;
-    if (BASE64_PATTERN.test(value)) return REDACTED;
-    if (INLINE_SECRET_VALUE.test(value)) return REDACTED;
+    if (isSecretKeyValue(key)) return REDACTED;
+    if (isInlineSecretValue(value)) return REDACTED;
     if (isSensitiveUrl(value)) return redactUrlForLog(value);
-    // Heuristic: long base64-looking strings (>= 500 chars, only base64 chars)
-    if (value.length >= 500 && /^[A-Za-z0-9+/=]+$/.test(value)) return REDACTED;
     if (/^https?:\/\//iu.test(value)) return redactUrlForLog(value);
   }
   return value;
@@ -67,8 +71,6 @@ export function redactRuntimeLogRecord(
   }
   return result;
 }
-
-export const redactRuntimeLogPayload = redactRuntimeLogRecord;
 
 export const redactRuntimeLogEvent = (event: RuntimeLogEvent): RuntimeLogEvent => ({
   ...event,

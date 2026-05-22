@@ -1,5 +1,3 @@
-export const FACEBOOK_LOG_COVERAGE_DOMAIN = "facebook-product-video-mining-log-coverage";
-
 export const FacebookLogCoverageLaw = {
   STAGE_MATRIX: "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
   FAILURE_CLASS: "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
@@ -9,7 +7,7 @@ export const FacebookLogCoverageLaw = {
   ARTIFACT_REFS: "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
 } as const;
 
-export type FacebookLogCoverageLawId = (typeof FacebookLogCoverageLaw)[keyof typeof FacebookLogCoverageLaw];
+type FacebookLogCoverageLawId = (typeof FacebookLogCoverageLaw)[keyof typeof FacebookLogCoverageLaw];
 
 export type FacebookLogCoverageFinding = {
   lawId: FacebookLogCoverageLawId;
@@ -27,9 +25,6 @@ export type FacebookLogCoverageSection = {
   findingCount: number;
   coveragePercent?: number;
 };
-
-export const FACEBOOK_LOG_REPORT_JSON = "scripts/audit/generated/facebook-product-video-mining-log-coverage-report.generated.json";
-export const FACEBOOK_LOG_REPORT_MD = "scripts/audit/generated/facebook-product-video-mining-log-coverage-report.generated.md";
 
 export const FACEBOOK_MINING_OWNER_FILES = [
   "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",

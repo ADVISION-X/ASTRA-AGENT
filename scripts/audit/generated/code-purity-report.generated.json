@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T15:30:21.038Z",
+  "generatedAt": "2026-05-22T18:54:07.702Z",
   "capabilityDomain": "code-purity",
   "executionGroup": "foundation",
   "lawIds": [
@@ -24,145 +24,19 @@
   "status": "FAIL",
   "findings": [
     {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts has an over-limit function near line 22.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
-      "evidence": "{\"owner\":\"audit:facebook-product-video-mining-log-coverage\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/facebook-product-video-mining/input-surface-safety-inspector.ts has an over-limit function near line 30.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining/input-surface-safety-inspector.ts",
-      "evidence": "{\"owner\":\"audit:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/debug-bundle-inspector.ts has an over-limit function near line 18.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/debug-bundle-inspector.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/failure-class-inspector.ts has an over-limit function near line 27.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/failure-class-inspector.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/forbidden-console-inspector.ts has an over-limit function near line 15.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/forbidden-console-inspector.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/inspector.ts has an over-limit function near line 26.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-inspector\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/mode-visibility-inspector.ts has an over-limit function near line 9.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/mode-visibility-inspector.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/redaction-inspector.ts has an over-limit function near line 26.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/redaction-inspector.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/runtime-log-emit-contract-inspector.ts has an over-limit function near line 30.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/runtime-log-emit-contract-inspector.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts has an over-limit function near line 11.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/as-unknown-as",
-      "lawId": "APEX-CODE-PURITY-008-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/debug-bundle.ts uses as unknown as near line 142.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/debug-bundle.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Replace double assertion with schema validation or an explicit narrowing guard.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/debug-bundle.ts has an over-limit function near line 65.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/debug-bundle.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/event-factory.ts has an over-limit function near line 5.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/event-factory.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
       "checkId": "code-purity/named-export-budget",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "src/lib/runtime-logs/index.ts exports 23 symbols and exceeds the hard limit 10.",
+      "message": "src/lib/runtime-logs/index.ts exports 14 symbols and exceeds the hard limit 10.",
       "severity": "fatal",
       "filePath": "src/lib/runtime-logs/index.ts",
       "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/redaction.ts has an over-limit function near line 35.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/redaction.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
       "checkId": "code-purity/file-budget-hard-limit",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "src/lib/runtime-logs/stage-logger.ts has 266 lines and exceeds the evidence/runtime log file hard-limit budget.",
+      "message": "src/lib/runtime-logs/stage-logger.ts has 275 lines and exceeds the evidence/runtime log file hard-limit budget.",
       "severity": "fatal",
       "filePath": "src/lib/runtime-logs/stage-logger.ts",
       "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -171,7 +45,7 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/lib/runtime-logs/stage-logger.ts has an over-limit function near line 94.",
+      "message": "src/lib/runtime-logs/stage-logger.ts has an over-limit function near line 98.",
       "severity": "fatal",
       "filePath": "src/lib/runtime-logs/stage-logger.ts",
       "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -180,7 +54,7 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/lib/runtime-logs/stage-logger.ts has an over-limit function near line 141.",
+      "message": "src/lib/runtime-logs/stage-logger.ts has an over-limit function near line 146.",
       "severity": "fatal",
       "filePath": "src/lib/runtime-logs/stage-logger.ts",
       "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -189,269 +63,118 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/lib/runtime-logs/stage-logger.ts has an over-limit function near line 144.",
+      "message": "src/lib/runtime-logs/stage-logger.ts has an over-limit function near line 149.",
       "severity": "fatal",
       "filePath": "src/lib/runtime-logs/stage-logger.ts",
       "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/facebook-product-video-mining-log-coverage/constants.ts exports FACEBOOK_LOG_COVERAGE_DOMAIN without any active consumer.",
+      "message": "src/lib/runtime-logs/stage-logger.ts has an over-limit function near line 247.",
       "severity": "fatal",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/constants.ts",
-      "evidence": "{\"owner\":\"audit:facebook-product-video-mining-log-coverage\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/lib/runtime-logs/stage-logger.ts",
+      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/facebook-product-video-mining-log-coverage/constants.ts exports FacebookLogCoverageLawId without any active consumer.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts has an over-limit function near line 61.",
       "severity": "fatal",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/constants.ts",
-      "evidence": "{\"owner\":\"audit:facebook-product-video-mining-log-coverage\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
+      "checkId": "code-purity/file-budget-hard-limit",
+      "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/facebook-product-video-mining-log-coverage/constants.ts exports FACEBOOK_LOG_REPORT_JSON without any active consumer.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts has 319 lines and exceeds the job step/support file hard-limit budget.",
       "severity": "fatal",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/constants.ts",
-      "evidence": "{\"owner\":\"audit:facebook-product-video-mining-log-coverage\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/facebook-product-video-mining-log-coverage/constants.ts exports FACEBOOK_LOG_REPORT_MD without any active consumer.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts has an over-limit function near line 233.",
       "severity": "fatal",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/constants.ts",
-      "evidence": "{\"owner\":\"audit:facebook-product-video-mining-log-coverage\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
+      "checkId": "code-purity/file-budget-hard-limit",
+      "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-report-writer.ts exports FacebookLogCoverageReport without any active consumer.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts has 316 lines and exceeds the job step/support file hard-limit budget.",
       "severity": "fatal",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-report-writer.ts",
-      "evidence": "{\"owner\":\"audit:facebook-product-video-mining-log-coverage\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-stage-coverage.ts exports FacebookStageCoverageEntry without any active consumer.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts has an over-limit function near line 214.",
       "severity": "fatal",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-stage-coverage.ts",
-      "evidence": "{\"owner\":\"audit:facebook-product-video-mining-log-coverage\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
+      "checkId": "code-purity/file-budget-hard-limit",
+      "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-stage-matrix.ts exports FacebookMiningStageName without any active consumer.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts has 382 lines and exceeds the job-flow file hard-limit budget.",
       "severity": "fatal",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-stage-matrix.ts",
-      "evidence": "{\"owner\":\"audit:facebook-product-video-mining-log-coverage\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/constants.ts exports RUNTIME_LOG_SPINE_DOMAIN without any active consumer.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts has an over-limit function near line 77.",
       "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/constants.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/constants.ts exports RuntimeLogSpineLawId without any active consumer.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts has an over-limit function near line 132.",
       "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/constants.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/generated-report-writer.ts exports RuntimeLogSpineReport without any active consumer.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts has an over-limit function near line 302.",
       "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/generated-report-writer.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/generated-report-writer.ts exports runtimeReportPaths without any active consumer.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts has an over-limit function near line 102.",
       "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/generated-report-writer.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/source-read.ts exports lineOfIndex without any active consumer.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts has an over-limit function near line 126.",
       "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/source-read.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/source-read.ts exports hasAllTokens without any active consumer.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/source-read.ts",
-      "evidence": "{\"owner\":\"audit:runtime-log-spine\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/shared/law-contracts.ts exports LAW_ID_PATTERN without any active consumer.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/shared/law-contracts.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/debug-bundle.ts exports RuntimeDebugBundle without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/debug-bundle.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/index.ts exports RuntimeRecoveryPolicy without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/index.ts exports withRoundTrace without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/index.ts exports createChildTrace without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/index.ts exports RuntimeTraceContext without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/index.ts exports createRuntimeEvent without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/index.ts exports RuntimeStageLogger without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/index.ts exports RuntimeStageHandle without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/index.ts exports appendRuntimeEventToDebugBundle without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/index.ts exports loadRuntimeDebugBundleIndex without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/index.ts exports redactRuntimeLogEvent without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/runtime-logs/index.ts exports redactRuntimeLogPayload without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/build/compose-artifacts.ts keeps an orphan top-level variable named pushMissingManifestConflicts.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/build/compose-artifacts.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Delete the declaration or reconnect it to a real caller in the same active source file.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/audit-project-usage",
-      "lawId": "APEX-CODE-PURITY-013-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts does not use context.project and cannot prove AST-first enforcement.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts"
-    },
-    {
-      "checkId": "code-purity/audit-project-usage",
-      "lawId": "APEX-CODE-PURITY-013-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/runtime-log-spine/inspector.ts does not use context.project and cannot prove AST-first enforcement.",
-      "severity": "fatal",
-      "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts"
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
   "inspectedFiles": [
@@ -465,6 +188,7 @@
     "scripts/acceptance/facebook-product-video-mining-storage.acceptance.ts",
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
+    "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
@@ -528,6 +252,15 @@
     "scripts/audit/domains/facebook-product-video-mining/state-machine-inspector.ts",
     "scripts/audit/domains/local-app-shell/inspector.ts",
     "scripts/audit/domains/runtime-log-spine/ai-log-contract-inspector.ts",
+    "scripts/audit/domains/runtime-log-spine/allowed-console-surfaces.ts",
+    "scripts/audit/domains/runtime-log-spine/anti-fake-inspector.ts",
+    "scripts/audit/domains/runtime-log-spine/ast/ast-call-expression-resolvers.ts",
+    "scripts/audit/domains/runtime-log-spine/ast/ast-call-resolver-support.ts",
+    "scripts/audit/domains/runtime-log-spine/ast/ast-call-resolver.ts",
+    "scripts/audit/domains/runtime-log-spine/ast/ast-control-flow-utils.ts",
+    "scripts/audit/domains/runtime-log-spine/ast/ast-node-utils.ts",
+    "scripts/audit/domains/runtime-log-spine/ast/ast-object-literal-reader.ts",
+    "scripts/audit/domains/runtime-log-spine/ast/ast-symbol-utils.ts",
     "scripts/audit/domains/runtime-log-spine/browser-action-log-contract-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/catch-branch-log-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/constants.ts",
@@ -542,6 +275,7 @@
     "scripts/audit/domains/runtime-log-spine/redaction-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/run-inspector.ts",
     "scripts/audit/domains/runtime-log-spine/runtime-log-emit-contract-inspector.ts",
+    "scripts/audit/domains/runtime-log-spine/runtime-log-scope.ts",
     "scripts/audit/domains/runtime-log-spine/source-read.ts",
     "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
     "scripts/audit/domains/startup-entrypoint/inspector.ts",
@@ -738,6 +472,7 @@
     "src/plugins/amazon-invoice-upload/amazon-result-detector.ts",
     "src/plugins/amazon-invoice-upload/index.ts",
     "src/plugins/amazon-invoice-upload/mission.schema.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.candidate-record.ts",
@@ -751,11 +486,15 @@
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.logging.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-proof.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-scripts.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.outcome-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.records.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.result.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-execution.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
@@ -766,6 +505,7 @@
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage-statements.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
     "src/plugins/facebook-product-video-mining/index.ts",
     "src/types/dom-automation-inputs.ts",

@@ -9,23 +9,59 @@ import {
   promoteAcceptedFacebookVideo,
 } from "./facebook-product-video-mining.video.js";
 import {
-  buildFacebookMiningCandidate,
-  saveFacebookMiningCandidateEvidence,
-} from "./facebook-product-video-mining.candidate-record.js";
-import {
   navigateToNextFacebookVideo,
   type FacebookMiningRoundOutcome,
 } from "./facebook-product-video-mining.navigation.js";
+import {
+  buildDecisionApplySummary,
+  buildRoundFailureOutcome,
+  saveRoundCandidateEvidence,
+  type FacebookRoundFailureContract,
+} from "./facebook-product-video-mining.outcome-support.js";
 import type { FacebookProductVideoMiningContracts } from "./facebook-product-video-mining.schema.js";
 
 type FacebookVideoAiJudgment = FacebookProductVideoMiningContracts["FacebookVideoAiJudgment"];
 type FacebookVideoDomProbeResult = FacebookProductVideoMiningContracts["FacebookVideoDomProbeResult"];
+
+export type FacebookDecisionApplySummary = {
+  candidateId: string;
+  confidence: number | null;
+};
 
 type SuccessfulVideoDownload = VideoDownloadResult & {
   status: "success";
   output: Extract<VideoDownloadResult["output"], { status: "success" }>;
   failureReason: null;
   reviewRequiredReason: null;
+};
+
+type RoundDecisionInput = {
+  videoDownload: VideoDownloadAbilityGroup;
+  runtimeLogger: RuntimeLogger;
+  storage: FacebookProductVideoMiningStorage;
+  missionId: string;
+  runId: string;
+  roundId: string;
+  roundIndex: number;
+  probe: FacebookVideoDomProbeResult;
+  comments: FacebookCommentCollectionResult;
+  download: SuccessfulVideoDownload;
+  judgment: FacebookVideoAiJudgment;
+};
+
+type JudgmentFailureInput = RoundDecisionInput & {
+  browser: BrowserController;
+  feedEntryUrl: string;
+  failureContract: FacebookRoundFailureContract;
+};
+
+type AcceptedJudgmentInput = RoundDecisionInput & {
+  dataDir: string;
+};
+
+type RejectedJudgmentInput = RoundDecisionInput & {
+  browser: BrowserController;
+  notInterestedEnabled: boolean;
 };
 
 const isSuccessfulVideoDownload = (
@@ -39,23 +75,29 @@ export const handleProbeFailure = (input: {
   roundId: string;
   roundIndex: number;
   probe: FacebookVideoDomProbeResult;
+  failureContract: FacebookRoundFailureContract;
 }): FacebookMiningRoundOutcome => {
-  const candidate = buildFacebookMiningCandidate({
+  saveRoundCandidateEvidence({
+    storage: input.storage,
     missionId: input.missionId,
     runId: input.runId,
     roundId: input.roundId,
     roundIndex: input.roundIndex,
     probe: input.probe,
-    status: "review_required",
+    comments: [],
     commentsLoadedCount: 0,
     commentsComplete: false,
     commentStopReason: input.probe.blocker,
+    status: "review_required",
   });
-  saveFacebookMiningCandidateEvidence({ storage: input.storage, candidate, comments: [], probe: input.probe });
   const terminal = input.probe.status === "login_required"
     || input.probe.status === "captcha_or_2fa_required"
     || input.probe.blocker === "facebook_rate_limited";
-  return { terminal, reason: input.probe.blocker ?? input.probe.status };
+  return buildRoundFailureOutcome({
+    failureContract: input.failureContract,
+    terminal,
+    reason: input.probe.blocker ?? input.probe.status,
+  });
 };
 
 export const handleDownloadFailure = (input: {
@@ -70,19 +112,21 @@ export const handleDownloadFailure = (input: {
   probe: FacebookVideoDomProbeResult;
   comments: FacebookCommentCollectionResult;
   download: VideoDownloadResult;
+  failureContract: FacebookRoundFailureContract;
 }): Promise<FacebookMiningRoundOutcome> => {
-  const candidate = buildFacebookMiningCandidate({
+  saveRoundCandidateEvidence({
+    storage: input.storage,
     missionId: input.missionId,
     runId: input.runId,
     roundId: input.roundId,
     roundIndex: input.roundIndex,
     probe: input.probe,
-    status: "failed",
+    comments: input.comments.comments,
     commentsLoadedCount: input.comments.comments.length,
     commentsComplete: input.comments.commentsComplete,
     commentStopReason: input.download.failureReason,
+    status: "failed",
   });
-  saveFacebookMiningCandidateEvidence({ storage: input.storage, candidate, comments: input.comments.comments, probe: input.probe });
   return navigateToNextFacebookVideo({
     browser: input.browser,
     logger: input.runtimeLogger,
@@ -90,125 +134,98 @@ export const handleDownloadFailure = (input: {
     missionId: input.missionId,
     roundId: input.roundId,
     feedEntryUrl: input.feedEntryUrl,
-  });
+  }).then((outcome) => buildRoundFailureOutcome({
+    failureContract: input.failureContract,
+    outcome,
+  }));
 };
 
-const saveJudgmentFailureCandidate = (input: {
-  storage: FacebookProductVideoMiningStorage;
-  missionId: string;
-  runId: string;
-  roundId: string;
-  roundIndex: number;
-  probe: FacebookVideoDomProbeResult;
-  comments: FacebookCommentCollectionResult;
-  judgment: FacebookVideoAiJudgment;
-}): void => {
-  const candidate = buildFacebookMiningCandidate({
+export const handleJudgmentFailure = async (input: JudgmentFailureInput): Promise<FacebookMiningRoundOutcome> => {
+  await deleteRejectedFacebookVideo({
+    videoDownload: input.videoDownload,
+    runtimeLogger: input.runtimeLogger,
+    missionId: input.missionId,
+    runId: input.runId,
+    roundId: input.roundId,
+    downloaded: input.download,
+  });
+  saveRoundCandidateEvidence({
+    storage: input.storage,
     missionId: input.missionId,
     runId: input.runId,
     roundId: input.roundId,
     roundIndex: input.roundIndex,
     probe: input.probe,
-    judgment: input.judgment,
-    status: "review_required",
+    comments: input.comments.comments,
     commentsLoadedCount: input.comments.comments.length,
     commentsComplete: input.comments.commentsComplete,
     commentStopReason: input.comments.stopReason,
-  });
-  saveFacebookMiningCandidateEvidence({
-    storage: input.storage,
-    candidate,
-    comments: input.comments.comments,
+    status: "review_required",
     judgment: input.judgment,
-    probe: input.probe,
   });
+  return buildRoundFailureOutcome({ failureContract: input.failureContract });
 };
 
-export const handleJudgmentFailure = async (input: {
-  browser: BrowserController;
-  runtimeLogger: RuntimeLogger;
-  videoDownload: VideoDownloadAbilityGroup;
-  storage: FacebookProductVideoMiningStorage;
-  feedEntryUrl: string;
-  missionId: string;
-  runId: string;
-  roundId: string;
-  roundIndex: number;
-  probe: FacebookVideoDomProbeResult;
-  comments: FacebookCommentCollectionResult;
-  download: SuccessfulVideoDownload;
-  judgment: FacebookVideoAiJudgment;
-}): Promise<FacebookMiningRoundOutcome> => {
-  await deleteRejectedFacebookVideo({ videoDownload: input.videoDownload, downloaded: input.download });
-  saveJudgmentFailureCandidate(input);
-  return { terminal: true, reason: input.judgment.reason };
-};
-
-export const handleAcceptedJudgment = async (input: {
-  videoDownload: VideoDownloadAbilityGroup;
-  dataDir: string;
-  storage: FacebookProductVideoMiningStorage;
-  missionId: string;
-  runId: string;
-  roundId: string;
-  roundIndex: number;
-  probe: FacebookVideoDomProbeResult;
-  comments: FacebookCommentCollectionResult;
-  download: SuccessfulVideoDownload;
-  judgment: FacebookVideoAiJudgment;
-}): Promise<void> => {
+export const handleAcceptedJudgment = async (input: AcceptedJudgmentInput): Promise<FacebookDecisionApplySummary> => {
   const promoted = await promoteAcceptedFacebookVideo({
     videoDownload: input.videoDownload,
+    runtimeLogger: input.runtimeLogger,
     dataDir: input.dataDir,
     missionId: input.missionId,
     runId: input.runId,
+    roundId: input.roundId,
     videoId: input.probe.facebookVideoId ?? input.roundId,
     downloaded: input.download,
   });
-  const candidate = buildFacebookMiningCandidate({
+  const candidate = saveRoundCandidateEvidence({
+    storage: input.storage,
     missionId: input.missionId,
     runId: input.runId,
     roundId: input.roundId,
     roundIndex: input.roundIndex,
     probe: input.probe,
+    comments: input.comments.comments,
+    commentsLoadedCount: input.comments.comments.length,
+    commentsComplete: input.comments.commentsComplete,
+    commentStopReason: input.comments.stopReason,
+    status: "saved",
     judgment: input.judgment,
     download: promoted && isSuccessfulVideoDownload(promoted) ? promoted : input.download,
-    status: "saved",
-    commentsLoadedCount: input.comments.comments.length,
-    commentsComplete: input.comments.commentsComplete,
-    commentStopReason: input.comments.stopReason,
   });
-  saveFacebookMiningCandidateEvidence({ storage: input.storage, candidate, comments: input.comments.comments, judgment: input.judgment, probe: input.probe });
+  return buildDecisionApplySummary(candidate.id, input.judgment.confidence);
 };
 
-export const handleRejectedJudgment = async (input: {
-  browser: BrowserController;
-  videoDownload: VideoDownloadAbilityGroup;
-  storage: FacebookProductVideoMiningStorage;
-  notInterestedEnabled: boolean;
-  missionId: string;
-  runId: string;
-  roundId: string;
-  roundIndex: number;
-  probe: FacebookVideoDomProbeResult;
-  comments: FacebookCommentCollectionResult;
-  download: SuccessfulVideoDownload;
-  judgment: FacebookVideoAiJudgment;
-}): Promise<void> => {
-  const action = input.notInterestedEnabled ? await clickFacebookNotInterested({ browser: input.browser, probe: input.probe }) : null;
-  await deleteRejectedFacebookVideo({ videoDownload: input.videoDownload, downloaded: input.download });
-  const candidate = buildFacebookMiningCandidate({
+export const handleRejectedJudgment = async (input: RejectedJudgmentInput): Promise<FacebookDecisionApplySummary> => {
+  const action = input.notInterestedEnabled ? await clickFacebookNotInterested({
+    browser: input.browser,
+    runtimeLogger: input.runtimeLogger,
+    missionId: input.missionId,
+    runId: input.runId,
+    roundId: input.roundId,
+    probe: input.probe,
+  }) : null;
+  await deleteRejectedFacebookVideo({
+    videoDownload: input.videoDownload,
+    runtimeLogger: input.runtimeLogger,
+    missionId: input.missionId,
+    runId: input.runId,
+    roundId: input.roundId,
+    downloaded: input.download,
+  });
+  const candidate = saveRoundCandidateEvidence({
+    storage: input.storage,
     missionId: input.missionId,
     runId: input.runId,
     roundId: input.roundId,
     roundIndex: input.roundIndex,
     probe: input.probe,
-    judgment: input.judgment,
-    status: input.judgment.selectedOptionId === "UNCERTAIN" ? "uncertain" : "rejected",
+    comments: input.comments.comments,
     commentsLoadedCount: input.comments.comments.length,
     commentsComplete: input.comments.commentsComplete,
     commentStopReason: input.comments.stopReason,
+    status: input.judgment.selectedOptionId === "UNCERTAIN" ? "uncertain" : "rejected",
+    judgment: input.judgment,
     notInterestedStatus: action?.status ?? "disabled",
   });
-  saveFacebookMiningCandidateEvidence({ storage: input.storage, candidate, comments: input.comments.comments, judgment: input.judgment, probe: input.probe });
+  return buildDecisionApplySummary(candidate.id, input.judgment.confidence);
 };

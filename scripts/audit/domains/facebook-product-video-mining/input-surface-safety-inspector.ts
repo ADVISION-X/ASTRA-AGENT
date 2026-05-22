@@ -27,11 +27,7 @@ type WebChatSafetySources = {
   workspace: string;
 };
 
-const inspectWebChatSafetyGuards = (
-  findings: InspectorFinding[],
-  lawId: string,
-  sources: WebChatSafetySources,
-): void => {
+const inspectWorkspaceGuards = (findings: InspectorFinding[], lawId: string, sources: WebChatSafetySources): void => {
   if (!sources.shared.includes("ensureProviderWorkspaceFocused")) {
     findings.push(createFinding({ checkId: "facebook-mining/provider-tab-focus-guard", lawId, filePath: webChatSharedPath, message: "Facebook web-chat feed must refocus provider workspace before upload, submit, and answer extraction." }));
   }
@@ -44,15 +40,31 @@ const inspectWebChatSafetyGuards = (
   if (!sources.open.includes("saveWorkspaceUrl") || /lowerTitle contains/u.test(sources.workspace)) {
     findings.push(createFinding({ checkId: "facebook-mining/workspace-url-pinning", lawId, filePath: webChatOpenPath, message: "Facebook web-chat feed must pin the opened workspace URL instead of matching old provider tabs by title." }));
   }
+};
+
+const inspectWaitBudgetGuards = (findings: InspectorFinding[], lawId: string, sources: WebChatSafetySources): void => {
   if (!/MAX_ATTACHMENT_COUNT_WAIT_MS\s*=\s*15_000/u.test(sources.pageActions) || !/CLIPBOARD_UPLOAD_TIMEOUT_MS\s*=\s*20_000/u.test(sources.upload)) {
     findings.push(createFinding({ checkId: "facebook-mining/upload-wait-short-cap", lawId, filePath: webChatPageActionsPath, message: "Facebook web-chat clipboard paste and attachment verification waits must not consume the whole judgment timeout." }));
   }
   if (!/MAX_SUBMIT_BUTTON_WAIT_MS\s*=\s*45_000/u.test(sources.submit)) {
     findings.push(createFinding({ checkId: "facebook-mining/submit-wait-short-cap", lawId, filePath: webChatSubmitPath, message: "Facebook web-chat submit button wait must not consume the whole judgment timeout." }));
   }
+};
+
+const inspectTerminalOutcomeGuard = (findings: InspectorFinding[], lawId: string, sources: WebChatSafetySources): void => {
   if (!/terminal:\s*true,\s*reason:\s*input\.judgment\.reason/u.test(sources.roundOutcomes)) {
     findings.push(createFinding({ checkId: "facebook-mining/ai-judgment-failure-terminal", lawId, filePath: facebookRoundOutcomesPath, message: "Facebook AI judgment failure must save evidence and terminate the mission for review." }));
   }
+};
+
+const inspectWebChatSafetyGuards = (
+  findings: InspectorFinding[],
+  lawId: string,
+  sources: WebChatSafetySources,
+): void => {
+  inspectWorkspaceGuards(findings, lawId, sources);
+  inspectWaitBudgetGuards(findings, lawId, sources);
+  inspectTerminalOutcomeGuard(findings, lawId, sources);
 };
 
 export const inspectFacebookSafetyDefaults = (

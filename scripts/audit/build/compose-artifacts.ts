@@ -81,22 +81,6 @@ const pushDuplicateManifestConflicts = (
   }
 };
 
-const pushMissingManifestConflicts = (
-  conflicts: AuditConflict[],
-  capabilityDomain: string,
-  domainLaws: readonly LawSource[],
-): void => {
-  for (const law of domainLaws) {
-    conflicts.push({
-      kind: "missing-manifest",
-      lawId: law.lawId,
-      capabilityDomain,
-      filePath: law.filePath,
-      message: `No manifest found for capabilityDomain ${capabilityDomain}.`,
-    });
-  }
-};
-
 const pushUncoveredLawConflicts = (
   conflicts: AuditConflict[],
   activeLaws: readonly LawSource[],

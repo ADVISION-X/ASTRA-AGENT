@@ -1,424 +1,14 @@
 {
-  "generatedAt": "2026-05-22T15:30:21.037Z",
-  "itemCount": 46,
+  "generatedAt": "2026-05-22T18:54:07.701Z",
+  "itemCount": 17,
   "items": [
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "filePath": "scripts/audit/build/compose-artifacts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit-core",
-      "reason": "Top-level variable pushMissingManifestConflicts has no live identifier usage in the file.",
-      "remediation": "Delete the declaration or reconnect it to a real caller in the same active source file.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/constants.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:facebook-product-video-mining-log-coverage",
-      "reason": "Export FACEBOOK_LOG_COVERAGE_DOMAIN has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/constants.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:facebook-product-video-mining-log-coverage",
-      "reason": "Export FacebookLogCoverageLawId has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/constants.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:facebook-product-video-mining-log-coverage",
-      "reason": "Export FACEBOOK_LOG_REPORT_JSON has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/constants.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:facebook-product-video-mining-log-coverage",
-      "reason": "Export FACEBOOK_LOG_REPORT_MD has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-report-writer.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:facebook-product-video-mining-log-coverage",
-      "reason": "Export FacebookLogCoverageReport has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-stage-coverage.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:facebook-product-video-mining-log-coverage",
-      "reason": "Export FacebookStageCoverageEntry has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-stage-matrix.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:facebook-product-video-mining-log-coverage",
-      "reason": "Export FacebookMiningStageName has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:facebook-product-video-mining-log-coverage",
-      "reason": "Function near line 22 breaks function budget: physical line count 63 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining/input-surface-safety-inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:facebook-product-video-mining",
-      "reason": "Function near line 30 breaks function budget: cyclomatic complexity 11 exceeds hard limit 10.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/runtime-log-spine/constants.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Export RUNTIME_LOG_SPINE_DOMAIN has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/runtime-log-spine/constants.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Export RuntimeLogSpineLawId has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/runtime-log-spine/debug-bundle-inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Function near line 18 breaks function budget: physical line count 50 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/runtime-log-spine/failure-class-inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Function near line 27 breaks function budget: physical line count 60 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/runtime-log-spine/forbidden-console-inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Function near line 15 breaks function budget: physical line count 49 exceeds hard limit 40; cyclomatic complexity 13 exceeds hard limit 10.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/runtime-log-spine/generated-report-writer.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Export RuntimeLogSpineReport has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/runtime-log-spine/generated-report-writer.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Export runtimeReportPaths has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Function near line 26 breaks function budget: physical line count 64 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-inspector",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/runtime-log-spine/mode-visibility-inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Function near line 9 breaks function budget: physical line count 49 exceeds hard limit 40; cyclomatic complexity 15 exceeds hard limit 10.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/runtime-log-spine/redaction-inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Function near line 26 breaks function budget: physical line count 60 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/runtime-log-spine/runtime-log-emit-contract-inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Function near line 30 breaks function budget: physical line count 62 exceeds hard limit 40; cyclomatic complexity 14 exceeds hard limit 10.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/runtime-log-spine/source-read.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Export lineOfIndex has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/domains/runtime-log-spine/source-read.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Export hasAllTokens has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/runtime-log-spine/stage-pair-coverage-inspector.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:runtime-log-spine",
-      "reason": "Function near line 11 breaks function budget: physical line count 53 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "scripts/audit/shared/law-contracts.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "audit-core",
-      "reason": "Export LAW_ID_PATTERN has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/as-unknown-as",
-      "filePath": "src/lib/runtime-logs/debug-bundle.ts",
-      "lawId": "APEX-CODE-PURITY-008-V1",
-      "owner": "runtime-logs",
-      "reason": "as unknown as appears near line 142.",
-      "remediation": "Replace double assertion with schema validation or an explicit narrowing guard.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/runtime-logs/debug-bundle.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "runtime-logs",
-      "reason": "Function near line 65 breaks function budget: physical line count 81 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/runtime-logs/debug-bundle.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "runtime-logs",
-      "reason": "Export RuntimeDebugBundle has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/runtime-logs/event-factory.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "runtime-logs",
-      "reason": "Function near line 5 breaks function budget: cyclomatic complexity 15 exceeds hard limit 10.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
     {
       "checkId": "code-purity/named-export-budget",
       "filePath": "src/lib/runtime-logs/index.ts",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "owner": "runtime-logs",
-      "reason": "Named export count 23 exceeds hard limit 10.",
+      "reason": "Named export count 14 exceeds hard limit 10.",
       "remediation": "Reduce the export surface or split the file into explicit owner-local contracts.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "runtime-logs",
-      "reason": "Export RuntimeRecoveryPolicy has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "runtime-logs",
-      "reason": "Export withRoundTrace has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "runtime-logs",
-      "reason": "Export createChildTrace has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "runtime-logs",
-      "reason": "Export RuntimeTraceContext has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "runtime-logs",
-      "reason": "Export createRuntimeEvent has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "runtime-logs",
-      "reason": "Export RuntimeStageLogger has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "runtime-logs",
-      "reason": "Export RuntimeStageHandle has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "runtime-logs",
-      "reason": "Export appendRuntimeEventToDebugBundle has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "runtime-logs",
-      "reason": "Export loadRuntimeDebugBundleIndex has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "runtime-logs",
-      "reason": "Export redactRuntimeLogEvent has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/lib/runtime-logs/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "runtime-logs",
-      "reason": "Export redactRuntimeLogPayload has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "log-writer",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/lib/runtime-logs/redaction.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "runtime-logs",
-      "reason": "Function near line 35 breaks function budget: return branch count 7 exceeds hard limit 5.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "log-writer",
       "verificationCommand": "npm run ci:full"
     },
@@ -427,7 +17,7 @@
       "filePath": "src/lib/runtime-logs/stage-logger.ts",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "owner": "runtime-logs",
-      "reason": "evidence/runtime log file has 266 lines and exceeds hard limit 260.",
+      "reason": "evidence/runtime log file has 275 lines and exceeds hard limit 260.",
       "remediation": "Split or reduce the file by runtime role until it falls under the hard limit.",
       "role": "log-writer",
       "verificationCommand": "npm run ci:full"
@@ -437,7 +27,7 @@
       "filePath": "src/lib/runtime-logs/stage-logger.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "runtime-logs",
-      "reason": "Function near line 94 breaks function budget: physical line count 46 exceeds hard limit 40; cyclomatic complexity 12 exceeds hard limit 10.",
+      "reason": "Function near line 98 breaks function budget: physical line count 47 exceeds hard limit 40; cyclomatic complexity 13 exceeds hard limit 10.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "log-writer",
       "verificationCommand": "npm run ci:full"
@@ -447,7 +37,7 @@
       "filePath": "src/lib/runtime-logs/stage-logger.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "runtime-logs",
-      "reason": "Function near line 141 breaks function budget: physical line count 125 exceeds hard limit 40; cyclomatic complexity 37 exceeds hard limit 10.",
+      "reason": "Function near line 146 breaks function budget: physical line count 129 exceeds hard limit 40; cyclomatic complexity 41 exceeds hard limit 10.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "log-writer",
       "verificationCommand": "npm run ci:full"
@@ -457,9 +47,129 @@
       "filePath": "src/lib/runtime-logs/stage-logger.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "runtime-logs",
-      "reason": "Function near line 144 breaks function budget: physical line count 121 exceeds hard limit 40; cyclomatic complexity 37 exceeds hard limit 10.",
+      "reason": "Function near line 149 breaks function budget: physical line count 125 exceeds hard limit 40; cyclomatic complexity 41 exceeds hard limit 10.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "log-writer",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/lib/runtime-logs/stage-logger.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "runtime-logs",
+      "reason": "Function near line 247 breaks function budget: cyclomatic complexity 11 exceeds hard limit 10.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "log-writer",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "Function near line 61 breaks function budget: physical line count 145 exceeds hard limit 40; cyclomatic complexity 15 exceeds hard limit 10.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/file-budget-hard-limit",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "job step/support file has 319 lines and exceeds hard limit 240.",
+      "remediation": "Split or reduce the file by runtime role until it falls under the hard limit.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "Function near line 233 breaks function budget: physical line count 86 exceeds hard limit 40.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/file-budget-hard-limit",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "job step/support file has 316 lines and exceeds hard limit 240.",
+      "remediation": "Split or reduce the file by runtime role until it falls under the hard limit.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "Function near line 214 breaks function budget: physical line count 102 exceeds hard limit 40; cyclomatic complexity 11 exceeds hard limit 10.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/file-budget-hard-limit",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "job-flow file has 382 lines and exceeds hard limit 280.",
+      "remediation": "Split or reduce the file by runtime role until it falls under the hard limit.",
+      "role": "job-flow",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "Function near line 77 breaks function budget: physical line count 54 exceeds hard limit 40.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-flow",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "Function near line 132 breaks function budget: physical line count 108 exceeds hard limit 40.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-flow",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "Function near line 302 breaks function budget: physical line count 80 exceeds hard limit 40.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-flow",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "Function near line 102 breaks function budget: physical line count 106 exceeds hard limit 40.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "Function near line 126 breaks function budget: physical line count 64 exceeds hard limit 40; cyclomatic complexity 11 exceeds hard limit 10.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-step",
       "verificationCommand": "npm run ci:full"
     }
   ]

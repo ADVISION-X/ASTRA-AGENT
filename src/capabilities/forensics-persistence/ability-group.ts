@@ -11,7 +11,7 @@ import type {
 } from "./schema.js";
 import { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID } from "./schema.js";
 import type { ForensicsStoragePort } from "./storage-port.js";
-import type { RuntimeLogger } from "../../lib/runtime-logs/index.js";
+import { RuntimeLogEventType, type RuntimeLogger } from "../../lib/runtime-logs/index.js";
 
 type AppendableForensicsInput =
   | ForensicsAppendArtifactInput
@@ -20,14 +20,14 @@ type AppendableForensicsInput =
 const emitAppendSuccess = (
   runtimeLogger: RuntimeLogger | undefined,
   input: AppendableForensicsInput,
-  eventType: "FORENSICS_RECORD_APPENDED" | "FORENSICS_ARTIFACT_APPENDED",
+  eventType: typeof RuntimeLogEventType.FORENSICS_RECORD_APPENDED | typeof RuntimeLogEventType.FORENSICS_ARTIFACT_APPENDED,
   capabilityLabel: "append-record" | "append-artifact",
 ) => {
   if (!runtimeLogger) {
     return;
   }
 
-  runtimeLogger.emit({
+  const baseEvent: Omit<Parameters<RuntimeLogger["emit"]>[0], "roundId"> = {
     traceId: input.missionId,
     level: "debug",
     modeVisibility: ["DEBUG", "TRACE"],
@@ -35,10 +35,11 @@ const emitAppendSuccess = (
     owner: "forensics-persistence",
     missionId: input.missionId,
     runId: input.runId,
-    ...(input.roundId ? { roundId: input.roundId } : {}),
     status: "success",
     reason: `${capabilityLabel} ok callId=${input.capabilityCallId ?? "?"}`,
-  });
+  };
+
+  runtimeLogger.emit(input.roundId ? { ...baseEvent, roundId: input.roundId } : baseEvent);
 };
 
 const appendRecordWithLog = async (
@@ -51,7 +52,7 @@ const appendRecordWithLog = async (
     emitAppendSuccess(
       runtimeLogger,
       input,
-      "FORENSICS_RECORD_APPENDED",
+      RuntimeLogEventType.FORENSICS_RECORD_APPENDED,
       "append-record",
     );
   }
@@ -68,7 +69,7 @@ const appendArtifactWithLog = async (
     emitAppendSuccess(
       runtimeLogger,
       input,
-      "FORENSICS_ARTIFACT_APPENDED",
+      RuntimeLogEventType.FORENSICS_ARTIFACT_APPENDED,
       "append-artifact",
     );
   }

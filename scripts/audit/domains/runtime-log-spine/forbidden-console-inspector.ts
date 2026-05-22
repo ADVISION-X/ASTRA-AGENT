@@ -1,16 +1,14 @@
-import { SyntaxKind } from "ts-morph";
-
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
+import { resolveCallsInSourceFile } from "./ast/ast-call-resolver.js";
+import { ALLOWED_CONSOLE_SURFACES } from "./allowed-console-surfaces.js";
 import { RuntimeLogSpineLaw, type RuntimeLogSpineFinding } from "./constants.js";
-
-const bannedMethods = new Set(["log", "error", "warn", "debug", "info"]);
 
 const isExcluded = (repoPath: string): boolean =>
   repoPath.startsWith("scripts/")
   || repoPath.endsWith(".test.ts")
   || repoPath.endsWith(".spec.ts")
-  || repoPath === "src/lib/runtime-logs/sinks.ts";
+  || ALLOWED_CONSOLE_SURFACES.includes(repoPath as (typeof ALLOWED_CONSOLE_SURFACES)[number]);
 
 export const collectForbiddenConsoleFindings = (context: InspectorContext): {
   findings: RuntimeLogSpineFinding[];
@@ -28,30 +26,15 @@ export const collectForbiddenConsoleFindings = (context: InspectorContext): {
 
   for (const sourceFile of inspectedSourceFiles) {
     const repoPath = getRepoSourcePath(sourceFile);
-    for (const call of sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)) {
-      const expression = call.getExpression();
-      let methodName: string | null = null;
-      let isConsole = false;
-      if (expression.getKind() === SyntaxKind.PropertyAccessExpression) {
-        const propertyAccess = expression.asKindOrThrow(SyntaxKind.PropertyAccessExpression);
-        methodName = propertyAccess.getName();
-        const receiver = propertyAccess.getExpression().getText();
-        isConsole = receiver === "console" || receiver === "globalThis.console";
-      } else if (expression.getKind() === SyntaxKind.ElementAccessExpression) {
-        const elementAccess = expression.asKindOrThrow(SyntaxKind.ElementAccessExpression);
-        const receiver = elementAccess.getExpression().getText();
-        methodName = elementAccess.getArgumentExpression()?.asKind(SyntaxKind.StringLiteral)?.getLiteralValue() ?? null;
-        isConsole = receiver === "console" || receiver === "globalThis.console";
-      }
-      if (!isConsole || !methodName || !bannedMethods.has(methodName)) continue;
+    for (const call of resolveCallsInSourceFile(sourceFile, repoPath).filter((resolvedCall) => resolvedCall.kind === "console-call")) {
       findings.push({
         checkId: "runtime-log-spine/forbidden-console",
         lawId: RuntimeLogSpineLaw.NO_CONSOLE,
         file: repoPath,
-        line: call.getStartLineNumber(),
+        line: call.line,
         severity: "fatal",
-        message: "console logging is forbidden in runtime code",
-        hint: "Replace console usage with RuntimeLogger.emit or authorized stage logger. Runtime facts must enter Runtime Log Spine.",
+        message: "console escape detected by AST/symbol inspector",
+        hint: "Replace console usage or alias with RuntimeLogger.emit / authorized stage logger. Console aliases and destructuring are forbidden.",
       });
     }
   }

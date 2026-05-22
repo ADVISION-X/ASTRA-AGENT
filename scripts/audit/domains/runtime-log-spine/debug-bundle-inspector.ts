@@ -15,18 +15,7 @@ const requiredDebugBundleTokens = [
   "redactRuntimeLog",
 ] as const;
 
-export const collectDebugBundleFindings = (_context: InspectorContext): {
-  findings: RuntimeLogSpineFinding[];
-  inspectedFiles: string[];
-} => {
-  const findings: RuntimeLogSpineFinding[] = [];
-  const inspectedFiles = [
-    "src/lib/runtime-logs/debug-bundle.ts",
-    "src/lib/runtime-logs/debug-bundle-index.ts",
-    "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
-  ];
-  const debugBundle = readRepoFile("src/lib/runtime-logs/debug-bundle.ts");
-  const debugBundleIndex = readRepoFile("src/lib/runtime-logs/debug-bundle-index.ts");
+const appendMissingDebugBundleFiles = (findings: RuntimeLogSpineFinding[]): void => {
   for (const repoPath of ["src/lib/runtime-logs/debug-bundle.ts", "src/lib/runtime-logs/debug-bundle-index.ts"]) {
     if (existsSync(resolveFromRepo(repoPath))) continue;
     findings.push({
@@ -39,7 +28,9 @@ export const collectDebugBundleFindings = (_context: InspectorContext): {
       hint: "Implement debug bundle writer/index and acceptance proving failed rounds can be reconstructed.",
     });
   }
-  const combined = `${debugBundle?.text ?? ""}\n${debugBundleIndex?.text ?? ""}`;
+};
+
+const appendMissingDebugBundleTokens = (findings: RuntimeLogSpineFinding[], combined: string): void => {
   for (const token of requiredDebugBundleTokens) {
     if (combined.includes(token)) continue;
     findings.push({
@@ -52,16 +43,36 @@ export const collectDebugBundleFindings = (_context: InspectorContext): {
       hint: `Debug bundle must write ${token} or prove equivalent replayable structure.`,
     });
   }
-  if (!existsSync(resolveFromRepo("scripts/acceptance/runtime-log-debug-bundle.acceptance.ts"))) {
-    findings.push({
-      checkId: "runtime-log-spine/debug-bundle-acceptance",
-      lawId: RuntimeLogSpineLaw.DEBUG_BUNDLE,
-      file: "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
-      line: 1,
-      severity: "fatal",
-      message: "debug bundle replay acceptance is missing",
-      hint: "Add acceptance proving bundle creation, runtime-log.jsonl, index.json, round lookup, and redaction.",
-    });
-  }
+};
+
+const appendMissingDebugBundleAcceptance = (findings: RuntimeLogSpineFinding[]): void => {
+  if (existsSync(resolveFromRepo("scripts/acceptance/runtime-log-debug-bundle.acceptance.ts"))) return;
+  findings.push({
+    checkId: "runtime-log-spine/debug-bundle-acceptance",
+    lawId: RuntimeLogSpineLaw.DEBUG_BUNDLE,
+    file: "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
+    line: 1,
+    severity: "fatal",
+    message: "debug bundle replay acceptance is missing",
+    hint: "Add acceptance proving bundle creation, runtime-log.jsonl, index.json, round lookup, and redaction.",
+  });
+};
+
+export const collectDebugBundleFindings = (_context: InspectorContext): {
+  findings: RuntimeLogSpineFinding[];
+  inspectedFiles: string[];
+} => {
+  const findings: RuntimeLogSpineFinding[] = [];
+  const inspectedFiles = [
+    "src/lib/runtime-logs/debug-bundle.ts",
+    "src/lib/runtime-logs/debug-bundle-index.ts",
+    "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
+  ];
+  const debugBundle = readRepoFile("src/lib/runtime-logs/debug-bundle.ts");
+  const debugBundleIndex = readRepoFile("src/lib/runtime-logs/debug-bundle-index.ts");
+  appendMissingDebugBundleFiles(findings);
+  const combined = `${debugBundle?.text ?? ""}\n${debugBundleIndex?.text ?? ""}`;
+  appendMissingDebugBundleTokens(findings, combined);
+  appendMissingDebugBundleAcceptance(findings);
   return { findings, inspectedFiles };
 };

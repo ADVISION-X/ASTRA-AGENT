@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T15:30:21.267Z",
+  "generatedAt": "2026-05-22T18:54:08.749Z",
   "capabilityDomain": "facebook-product-video-mining",
   "executionGroup": "domain",
   "lawIds": [
@@ -10,8 +10,97 @@
     "APEX-FACEBOOK-MINING-005-V1",
     "APEX-FACEBOOK-MINING-006-V1"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "facebook-mining/ai-judgment-failure-terminal",
+      "lawId": "APEX-FACEBOOK-MINING-004-V1",
+      "clauseId": "primary",
+      "message": "Facebook AI judgment failure must save evidence and terminate the mission for review.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts"
+    },
+    {
+      "checkId": "facebook-mining/round-state-machine",
+      "lawId": "APEX-FACEBOOK-MINING-006-V1",
+      "clauseId": "primary",
+      "message": "Facebook round state machine must declare WAIT_VIDEO_STABLE.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts"
+    },
+    {
+      "checkId": "facebook-mining/round-state-machine",
+      "lawId": "APEX-FACEBOOK-MINING-006-V1",
+      "clauseId": "primary",
+      "message": "Facebook round state machine must declare SNAPSHOT_PAGE_FACTS.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts"
+    },
+    {
+      "checkId": "facebook-mining/round-state-machine",
+      "lawId": "APEX-FACEBOOK-MINING-006-V1",
+      "clauseId": "primary",
+      "message": "Facebook round state machine must declare LOAD_COMMENTS.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts"
+    },
+    {
+      "checkId": "facebook-mining/round-state-machine",
+      "lawId": "APEX-FACEBOOK-MINING-006-V1",
+      "clauseId": "primary",
+      "message": "Facebook round state machine must declare DOWNLOAD_VIDEO.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts"
+    },
+    {
+      "checkId": "facebook-mining/round-state-machine",
+      "lawId": "APEX-FACEBOOK-MINING-006-V1",
+      "clauseId": "primary",
+      "message": "Facebook round state machine must declare AI_JUDGE.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts"
+    },
+    {
+      "checkId": "facebook-mining/round-state-machine",
+      "lawId": "APEX-FACEBOOK-MINING-006-V1",
+      "clauseId": "primary",
+      "message": "Facebook round state machine must declare RECORD_RESULT.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts"
+    },
+    {
+      "checkId": "facebook-mining/round-state-machine",
+      "lawId": "APEX-FACEBOOK-MINING-006-V1",
+      "clauseId": "primary",
+      "message": "Facebook round state machine must declare ADVANCE_VIDEO.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts"
+    },
+    {
+      "checkId": "facebook-mining/round-state-machine",
+      "lawId": "APEX-FACEBOOK-MINING-006-V1",
+      "clauseId": "primary",
+      "message": "Facebook round state machine must declare VERIFY_NEW_VIDEO.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-runtime.ts"
+    },
+    {
+      "checkId": "facebook-mining/fixed-navigation-action-ladder",
+      "lawId": "APEX-FACEBOOK-MINING-006-V1",
+      "clauseId": "primary",
+      "message": "Facebook next-video navigation must use the fixed ArrowDown, wheel scroll, safe-zone, recover action ladder.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts"
+    },
+    {
+      "checkId": "facebook-mining/navigation-proof-quorum",
+      "lawId": "APEX-FACEBOOK-MINING-006-V1",
+      "clauseId": "primary",
+      "message": "Facebook next-video verification must require a two-signal proof quorum and record unconfirmed navigation as non-terminal.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts"
+    }
+  ],
   "inspectedFiles": [
     "package.json",
     "scripts/acceptance/facebook-live-dom-probe.ts",
