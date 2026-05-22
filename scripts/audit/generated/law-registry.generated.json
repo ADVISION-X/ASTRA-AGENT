@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T20:03:21.522Z",
+  "generatedAt": "2026-05-22T10:28:31.978Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -1159,6 +1159,171 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
       "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "local-app-shell",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs",
+      "summary": "The root page must be a local workbench surface with health, mode, and lawful job flow entry points.",
+      "appliesTo": [
+        "src/app/**"
+      ],
+      "forbidden": [
+        "Root page as endpoint documentation only.",
+        "Root page as marketing page.",
+        "Root page without health or mode visibility.",
+        "Root page without lawful job flow entry points."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-local-app-shell.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "local-app-shell",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs",
+      "summary": "Workbench input surfaces must collect structured inputs for explicit job flows and must not become a natural-language task planner.",
+      "appliesTo": [
+        "src/app/**"
+      ],
+      "forbidden": [
+        "Natural-language universal task box.",
+        "AI generated action plan input.",
+        "Generic mission dashboard entry.",
+        "Single form mixing unrelated job flows."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-local-app-shell.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "local-app-shell",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs",
+      "summary": "The workbench must expose task status, failure reasons, and evidence references without replacing the evidence store.",
+      "appliesTo": [
+        "src/app/**",
+        "src/lib/local-runtime/**"
+      ],
+      "forbidden": [
+        "UI fabricating task success.",
+        "UI replacing evidence records.",
+        "UI hiding failureReason or review-required state.",
+        "Status panel pretending to be runtime logs or CI."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-local-app-shell.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "local-app-shell",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "The local app shell must not resurrect universal dashboards, command consoles, visual runtime control panels, planners, or second orchestration.",
+      "appliesTo": [
+        "src/app/**",
+        "src/lib/local-runtime/**"
+      ],
+      "forbidden": [
+        "Universal mission dashboard.",
+        "Old commander console as active architecture.",
+        "Visual-runtime control panel.",
+        "AI next-action planner.",
+        "Browser or DOM action controller in the app shell.",
+        "App shell deciding business flow steps."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-local-app-shell.instructions.md",
+      "blockIndex": 3
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "startup-entrypoint",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs",
+      "summary": "GrassEye startup must have exactly one user-facing startup command and one local startup entrypoint.",
+      "appliesTo": [
+        "package.json",
+        "scripts/startup/**"
+      ],
+      "forbidden": [
+        "Second user-facing startup command.",
+        "Startup entrypoint outside scripts/startup/launch-grasseye.mjs.",
+        "Startup acting as a general task launcher."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-startup-entrypoint.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "startup-entrypoint",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Startup may open the workbench but must not execute business flows, DOM abilities, browser actions, AI judgment, CI, or old registry readiness.",
+      "appliesTo": [
+        "scripts/startup/**/*.{mjs,ts}",
+        "package.json"
+      ],
+      "forbidden": [
+        "Startup invoking a job flow.",
+        "Startup invoking DOM, browser, upload, click, fill, or evidence actions.",
+        "Startup invoking AI judgment or declaring provider readiness as mission truth.",
+        "Startup running CI or audit gates.",
+        "Startup requiring old registry readiness before app shell launch."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-startup-entrypoint.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "startup-entrypoint",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs",
+      "summary": "Startup readiness must be proven by the local app health endpoint, not by the home page or job-specific readiness.",
+      "appliesTo": [
+        "scripts/startup/launch-grasseye.mjs",
+        "src/app/**"
+      ],
+      "forbidden": [
+        "Readiness probe against the home page as the primary gate.",
+        "Readiness probe against a job-specific endpoint.",
+        "Readiness success without an HTTP status check."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-startup-entrypoint.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "startup-entrypoint",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs",
+      "summary": "Startup must emit structured terminal events with failure reasons while remaining subordinate to runtime logs and evidence.",
+      "appliesTo": [
+        "scripts/startup/**"
+      ],
+      "forbidden": [
+        "Unstructured startup failure output.",
+        "Startup logs replacing evidence or task status truth.",
+        "Startup logs exposing credentials, cookies, tokens, or provider secrets."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-startup-entrypoint.instructions.md",
+      "blockIndex": 3
     }
   ]
 }

@@ -34,7 +34,7 @@ export function saveApprovedInvoicePdf(input: {
   }
   const invoiceDir = path.join(os.homedir(), "Downloads", "invoice");
   mkdirSync(invoiceDir, { recursive: true });
-  const approvedPath = path.join(invoiceDir, `${safeSegment(input.amazonOrderId)}.pdf`);
+  const approvedPath = path.join(invoiceDir, `${safeSegment(input.invoiceNo)}.pdf`);
   writeFileSync(approvedPath, input.file.bytes);
   return approvedPath;
 }

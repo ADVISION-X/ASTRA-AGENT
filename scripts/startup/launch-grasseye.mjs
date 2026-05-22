@@ -2,7 +2,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { assessDependencyState, installDependencies } from "./lib/dependency-check.mjs";
-import { ensureStartupRegistryReadiness } from "./lib/startup-registry-readiness.mjs";
 import { openWorkbenchPage } from "./lib/open-workbench-page.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
 import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
@@ -21,10 +20,6 @@ const {
   logEvent,
   logPass,
   logFail,
-  logMissionReadinessStarted,
-  logMissionReadinessPassed,
-  logMissionReadinessDegraded,
-  markMissionRuntimeAvailable,
   logStartupReady,
 } = createStartupLogHelpers({ terminalLogger, runId: startupRunId, baseUrl });
 
@@ -87,7 +82,7 @@ async function preparePort() {
   });
 }
 
-async function startService(root, aiReadiness) {
+async function startService(root) {
   const serviceStart = Date.now();
   logEvent("SERVICE", "app_server", "app_server", "starting", `starting local app shell on ${baseUrl}`);
   const serviceHandle = await startLocalService({
@@ -96,7 +91,6 @@ async function startService(root, aiReadiness) {
     scriptName: "internal:app-server:dev",
     env: {
       GRASSEYE_LOG_MODE: "TRACE",
-      GRASSEYE_STARTUP_ONLINE_AI_READINESS_JSON: JSON.stringify(aiReadiness),
     },
     onStdoutLine: (line, scriptName) => terminalLogger.relayServiceStdoutLine(line, scriptName),
     onStderrLine: (line, scriptName) => terminalLogger.relayServiceStderrLine(line, scriptName),
@@ -107,60 +101,39 @@ async function startService(root, aiReadiness) {
   return serviceHandle;
 }
 
-async function verifyAppHealth(serviceHandle) {
-  const healthStart = Date.now();
-  logEvent("APP", "app_shell", "APP_SHELL_HEALTH_CHECK_STARTED", "started", `probing Amazon upload workbench at ${baseUrl}`);
-  const response = await fetch(baseUrl);
+const waitForDelay = (delayMs) => new Promise((resolve) => {
+  setTimeout(resolve, delayMs);
+});
+
+async function probeHealth(healthUrl) {
+  const response = await fetch(healthUrl);
   if (!response.ok) {
-    throw new Error(`Amazon upload workbench returned HTTP ${response.status}`);
+    throw new Error(`Local workbench health returned HTTP ${response.status}`);
   }
-  const contentType = response.headers.get("content-type") ?? "unknown";
-  logPass("APP", "app_shell", "APP_SHELL_HEALTH_PASSED", "passed", `Amazon upload workbench reachable at ${baseUrl}`, {
-    refs: [`contentType=${contentType}`],
-    durationMs: Date.now() - healthStart,
-  });
+  return response.headers.get("content-type") ?? "unknown";
 }
 
-async function ensureOnlineAiReadiness() {
-  const readiness = {
-    component: "online-ai-runtime",
-    status: "ready",
-    runtimeBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
-    detail: "Online Gemini API runtime is selected; API key is validated by mission preflight/settings.",
-    modelRoles: [{ modelRole: "vision", health: "configured", modelName: "gemini-2.5-flash-lite" }],
-    missionRuntimeAvailable: true,
-    failureReason: null,
-    developmentOnly: false,
-    checkedAt: new Date().toISOString(),
-  };
-  logPass("AI", "online_ai_runtime", "online_ai_runtime_selected", "passed", readiness.detail, {
-    refs: readiness.modelRoles.map((role) => `${role.modelRole}=${role.health}:${role.modelName}`),
-  });
-  return readiness;
-}
+async function verifyAppHealth() {
+  const healthStart = Date.now();
+  const healthUrl = `${baseUrl}/api/health`;
+  logEvent("APP", "app_shell", "APP_SHELL_HEALTH_CHECK_STARTED", "started", `probing local workbench health at ${healthUrl}`);
+  let lastFailureReason = "health probe did not run";
 
-async function ensureStartupRegistryReadinessGate() {
-  const startedAt = Date.now();
-  logEvent("STARTUP", "job_flow", "job_flow_check", "started", "checking Amazon job-flow readiness");
-  const readiness = await ensureStartupRegistryReadiness({
-    logger: (message) => logEvent("STARTUP", "registry_readiness", "registry_readiness_detail", "event", message),
-  });
-  const refs = Array.isArray(readiness.refs) ? readiness.refs : [];
-  const extra = {
-    refs,
-    durationMs: Date.now() - startedAt,
-    ownerResponsible: readiness.ownerResponsible,
-    actionableMessage: readiness.actionableMessage ?? undefined,
-    failureReason: readiness.failureReason ?? undefined,
-  };
-
-  if (readiness.status !== "ready") {
-    logFail("STARTUP", "job_flow", "job_flow_check", "failed", "Amazon job-flow readiness failed before app shell start", extra);
-    throw new Error(`${readiness.failureReason ?? "STARTUP_REGISTRY_READINESS_FAILED"} actionableMessage=${readiness.actionableMessage ?? "Fix startup registry readiness."}`);
+  for (let attempt = 1; attempt <= 20; attempt += 1) {
+    try {
+      const contentType = await probeHealth(healthUrl);
+      logPass("APP", "app_shell", "APP_SHELL_HEALTH_PASSED", "passed", `local workbench health passed at ${healthUrl}`, {
+        refs: [`healthUrl=${healthUrl}`, `contentType=${contentType}`, `attempt=${attempt}`],
+        durationMs: Date.now() - healthStart,
+      });
+      return;
+    } catch (error) {
+      lastFailureReason = toFailureReason(error);
+      await waitForDelay(250);
+    }
   }
 
-  logPass("STARTUP", "job_flow", "job_flow_check", "passed", "Amazon job-flow readiness passed", extra);
-  return readiness;
+  throw new Error(`Local workbench health readiness failed: ${lastFailureReason}`);
 }
 
 function isControlledServiceExit(exit, shuttingDown) {
@@ -170,38 +143,24 @@ function isControlledServiceExit(exit, shuttingDown) {
 async function performLaunch(flags, root) {
   await ensureDependencies(root, flags);
   await runUpdatePreflight(root, flags);
-  logMissionReadinessStarted();
-
-  // Registry readiness is a hard gate — throw on failure.
-  try {
-    await ensureStartupRegistryReadinessGate();
-  } catch (error) {
-    logMissionReadinessDegraded(toFailureReason(error));
-    throw error;
-  }
-
-  const aiReadiness = await ensureOnlineAiReadiness();
-  logMissionReadinessPassed(aiReadiness);
-
   await preparePort();
-  const serviceHandle = await startService(root, aiReadiness);
-  await verifyAppHealth(serviceHandle);
+  const serviceHandle = await startService(root);
+  await verifyAppHealth();
   await openReadyPage(flags);
-  markMissionRuntimeAvailable(aiReadiness);
   logStartupReady();
   return serviceHandle;
 }
 
 async function openReadyPage(flags) {
   if (flags.skipOpen) {
-    logEvent("APP", "amazon_upload_workbench", "open_workbench", "skipped", `automatic open skipped; workbench url=${baseUrl}`);
+    logEvent("APP", "local_workbench", "open_workbench", "skipped", `automatic open skipped; workbench url=${baseUrl}`);
     return;
   }
 
   const log = (message) => {
     terminalLogger.event({
       phase: "APP",
-      component: "amazon_upload_workbench",
+      component: "local_workbench",
       eventType: "open_workbench_detail",
       status: "event",
       message,
@@ -211,11 +170,11 @@ async function openReadyPage(flags) {
   try {
     const openResult = await openWorkbenchPage(baseUrl);
     log(`Opened ${baseUrl} in ${openResult.browserName} (${openResult.browserPath})`);
-    logPass("APP", "amazon_upload_workbench", "open_workbench", "passed", `opened Amazon upload workbench via ${openResult.browserName}`, {
+    logPass("APP", "local_workbench", "open_workbench", "passed", `opened local workbench via ${openResult.browserName}`, {
       refs: [`browserPath=${openResult.browserPath}`],
     });
   } catch (error) {
-    logFail("APP", "amazon_upload_workbench", "open_workbench", "failed", `automatic open failed; open ${baseUrl} manually`, {
+    logFail("APP", "local_workbench", "open_workbench", "failed", `automatic open failed; open ${baseUrl} manually`, {
       failureReason: toFailureReason(error),
     });
   }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T20:03:26.850Z",
+  "generatedAt": "2026-05-22T10:28:37.320Z",
   "status": "PASS",
   "steps": [
     {
@@ -58,6 +58,20 @@
       "status": "PASS",
       "findingCount": 0,
       "reportPath": "scripts/audit/generated/facebook-product-video-mining-report.generated.json"
+    },
+    {
+      "capabilityDomain": "local-app-shell",
+      "executionGroup": "domain",
+      "status": "PASS",
+      "findingCount": 0,
+      "reportPath": "scripts/audit/generated/local-app-shell-report.generated.json"
+    },
+    {
+      "capabilityDomain": "startup-entrypoint",
+      "executionGroup": "domain",
+      "status": "PASS",
+      "findingCount": 0,
+      "reportPath": "scripts/audit/generated/startup-entrypoint-report.generated.json"
     },
     {
       "capabilityDomain": "audit-system",

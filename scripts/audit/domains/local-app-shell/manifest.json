@@ -1,0 +1,23 @@
+{
+  "capabilityDomain": "local-app-shell",
+  "ownerInspectorPath": "scripts/audit/domains/local-app-shell/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye 本地应用形态与运行壳施工图.md",
+      "requiredAnchors": [
+        "## 本地形态",
+        "## 首屏结构",
+        "## 当前法门入口",
+        "## 对口质检"
+      ]
+    }
+  ],
+  "description": "Local app shell owner inspector."
+}

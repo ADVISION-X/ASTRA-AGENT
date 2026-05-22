@@ -1,0 +1,152 @@
+const WORKBENCH_HOME_STYLES = `
+:root {
+  color-scheme: light;
+  --bg: #f5f6f2;
+  --panel: #ffffff;
+  --ink: #1d2730;
+  --muted: #66717c;
+  --line: #d8ded6;
+  --accent: #16745f;
+  --accent-strong: #0d5848;
+  --warn: #9a5818;
+  --bad: #a13a3a;
+  --mono: "SFMono-Regular", Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+button, input, select {
+  font: inherit;
+}
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: 54px 1fr 132px;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line);
+  background: #fbfcf8;
+}
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 260px; }
+.brand strong { font-size: 17px; }
+.brand span, .status span, .muted { color: var(--muted); }
+.status { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.pill {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--muted);
+}
+.pill b { margin-left: 5px; color: var(--ink); }
+.main {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 240px minmax(420px, 1fr) 330px;
+  gap: 0;
+}
+.rail, .ledger {
+  min-width: 0;
+  padding: 16px;
+  border-right: 1px solid var(--line);
+  overflow: auto;
+}
+.ledger {
+  border-right: 0;
+  border-left: 1px solid var(--line);
+}
+.workspace { min-width: 0; padding: 18px 20px; overflow: auto; }
+h1, h2, h3, p { margin: 0; }
+h2 { font-size: 14px; margin-bottom: 10px; }
+h3 { font-size: 13px; margin-bottom: 8px; color: var(--muted); }
+.job-list { display: grid; gap: 8px; }
+.job-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 11px;
+  cursor: pointer;
+}
+.job-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.job-card strong { display: block; margin-bottom: 4px; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 860px; }
+.field { display: grid; gap: 5px; }
+.field.wide { grid-column: 1 / -1; }
+label { color: var(--muted); font-size: 12px; }
+input, select {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 6px;
+  min-height: 36px;
+  padding: 7px 9px;
+}
+.check { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+.check input { width: auto; min-height: auto; }
+.actions { display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+.btn {
+  border: 1px solid var(--accent-strong);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+  min-height: 36px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.btn.secondary { background: #fff; color: var(--accent-strong); border-color: var(--line); }
+.panel {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 13px;
+  margin-bottom: 12px;
+}
+.kv { display: grid; gap: 6px; }
+.kv div { display: grid; grid-template-columns: 92px 1fr; gap: 8px; }
+.kv b { color: var(--muted); font-weight: 500; }
+pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 220px;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.activity {
+  border-top: 1px solid var(--line);
+  background: #fbfcf8;
+  padding: 12px 18px;
+  overflow: auto;
+}
+.activity-log { display: grid; gap: 4px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.hidden { display: none; }
+.ok { color: var(--accent-strong); }
+.warn { color: var(--warn); }
+.bad { color: var(--bad); }
+@media (max-width: 980px) {
+  .shell { grid-template-rows: auto 1fr 150px; }
+  .topbar { align-items: flex-start; flex-direction: column; padding: 12px 14px; }
+  .main { grid-template-columns: 1fr; }
+  .rail, .ledger { border: 0; border-bottom: 1px solid var(--line); }
+  .form-grid { grid-template-columns: 1fr; }
+}
+`;
+
+export const renderWorkbenchHomeStyles = (): string => WORKBENCH_HOME_STYLES;

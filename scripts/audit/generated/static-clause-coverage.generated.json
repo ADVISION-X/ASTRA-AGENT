@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-21T20:03:21.522Z",
+  "generatedAt": "2026-05-22T10:28:31.978Z",
   "summary": {
-    "activeLawCount": 62,
-    "coveredLawCount": 62,
+    "activeLawCount": 70,
+    "coveredLawCount": 70,
     "coveragePercent": 100
   },
   "coverage": [
@@ -623,6 +623,86 @@
         {
           "clauseId": "primary",
           "source": "scripts/audit/domains/facebook-product-video-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
+      "capabilityDomain": "local-app-shell",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/local-app-shell/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
+      "capabilityDomain": "local-app-shell",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/local-app-shell/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-003-V1",
+      "capabilityDomain": "local-app-shell",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/local-app-shell/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-LOCAL-APP-SHELL-004-V1",
+      "capabilityDomain": "local-app-shell",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/local-app-shell/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-STARTUP-001-V1",
+      "capabilityDomain": "startup-entrypoint",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/startup-entrypoint/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-STARTUP-002-V1",
+      "capabilityDomain": "startup-entrypoint",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/startup-entrypoint/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-STARTUP-003-V1",
+      "capabilityDomain": "startup-entrypoint",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/startup-entrypoint/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-STARTUP-004-V1",
+      "capabilityDomain": "startup-entrypoint",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/startup-entrypoint/manifest.json"
         }
       ]
     }

@@ -11,11 +11,12 @@ import {
   createFacebookProductVideoMiningStorage,
 } from "./facebook-product-video-mining.storage.js";
 import { runFacebookMiningRound } from "./facebook-product-video-mining.round.js";
-import { logFacebookMiningFlow } from "./facebook-product-video-mining.round-support.js";
+import { logFacebookMiningFlow } from "./facebook-product-video-mining.logging.js";
 import { focusExistingFacebookVideoTab } from "./facebook-product-video-mining.chrome-tabs.js";
 
 type FacebookProductVideoMiningMissionInput = FacebookProductVideoMiningContracts["FacebookProductVideoMiningMissionInput"];
 type FacebookProductVideoMiningRunStatus = FacebookProductVideoMiningContracts["FacebookProductVideoMiningRunStatus"];
+type FacebookProductVideoMiningRun = ReturnType<typeof buildFacebookMiningRunConfig>;
 
 export type FacebookProductVideoMiningContext = {
   browser: BrowserController;
@@ -85,6 +86,24 @@ return {hasVideo: hasReadyVideo, blockerText};
   throw new Error("facebook_video_not_ready_after_open");
 };
 
+const openFacebookMiningFeed = async (input: {
+  browser: BrowserController;
+  run: FacebookProductVideoMiningRun;
+}): Promise<{ ok: true } | { ok: false; reason: string }> => {
+  const focusedExisting = await focusExistingFacebookVideoTab({ preferredUrl: null });
+  const openResult = focusedExisting
+    ? { ok: true, message: "focused existing Facebook video tab" }
+    : await input.browser.open({ url: input.run.feedEntryUrl, title: "Facebook product video mining feed" });
+  if (!openResult.ok) {
+    return { ok: false, reason: openResult.message };
+  }
+  await waitForFacebookFeedVideo({
+    browser: input.browser,
+    maxWaitMs: Math.min(20_000, input.run.maxMinutes * 60_000),
+  });
+  return { ok: true };
+};
+
 const runFacebookMiningRounds = async (input: {
   context: FacebookProductVideoMiningContext;
   storage: ReturnType<typeof createFacebookProductVideoMiningStorage>;
@@ -147,7 +166,7 @@ const finalizeFacebookMiningMission = (input: {
 };
 
 export const runFacebookProductVideoMiningMission = async (
-  run: ReturnType<typeof buildFacebookMiningRunConfig>,
+  run: FacebookProductVideoMiningRun,
   context: FacebookProductVideoMiningContext,
 ): Promise<FacebookProductVideoMiningRunStatus> => {
   const storage = createFacebookProductVideoMiningStorage(context.dataDir);
@@ -159,22 +178,18 @@ export const runFacebookProductVideoMiningMission = async (
       currentRoundIndex: null,
     });
     logFacebookMiningFlow({ logger: context.runtimeLogger, eventType: RuntimeLogEventType.MISSION_STARTED, runId: run.runId, missionId: run.missionId, status: "started" });
-    const focusedExisting = await focusExistingFacebookVideoTab({ preferredUrl: null });
-    const openResult = focusedExisting
-      ? { ok: true, message: "focused existing Facebook video tab" }
-      : await context.browser.open({ url: run.feedEntryUrl, title: "Facebook product video mining feed" });
+    const openResult = await openFacebookMiningFeed({
+      browser: context.browser,
+      run,
+    });
     if (!openResult.ok) {
       return handleMissionOpenFailure({
         storage,
         runtimeLogger: context.runtimeLogger,
         run,
-        reason: openResult.message,
+        reason: openResult.reason,
       });
     }
-    await waitForFacebookFeedVideo({
-      browser: context.browser,
-      maxWaitMs: Math.min(20_000, run.maxMinutes * 60_000),
-    });
     const started = Date.now();
     const terminalReason = await runFacebookMiningRounds({ context, storage, run });
     return finalizeFacebookMiningMission({

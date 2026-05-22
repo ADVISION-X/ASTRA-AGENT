@@ -1,9 +1,10 @@
 import { writeStartupFailureBundle } from "./startup-failure-bundle.mjs";
 
 const FAILURE_ACTIONS = [
-  [/PROMPT_CONTRACT/i, "Fix AI prompt contract integrity and rerun npm run ci:full."],
-  [/AMAZON_JOB_FLOW/i, "Fix Amazon upload job-flow readiness and rerun npm run ci:full."],
-  [/PLATFORM_REGISTRY/i, "Fix PlatformRegistry integrity and rerun npm run ci:full."],
+  [/Dependency state/i, "Repair local dependencies and rerun npm run grasseye:start."],
+  [/UPDATE_PREFLIGHT_FAILED/i, "Review dependency ranges before rerunning npm run grasseye:start -- --update."],
+  [/health returned HTTP/i, "Inspect the local app health endpoint and rerun npm run grasseye:start."],
+  [/Could not clear/i, "Stop the remaining local listener or choose another GRASSEYE_PORT."],
 ];
 
 const ownerForFailure = () => "startup-entrypoint";

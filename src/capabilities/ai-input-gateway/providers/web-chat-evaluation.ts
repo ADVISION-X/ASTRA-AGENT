@@ -4,6 +4,25 @@ export type WebChatActionStatus = "success" | "review_required" | "failed" | "pe
 
 export type WebChatEvaluation = { status: WebChatActionStatus; message: string; answerText?: string | null; pageUrl?: string | null; selector?: string | null; generating?: boolean; target?: "composer-plus" | "upload-menu-item"; x?: number; y?: number; assistantCount?: number; composerText?: string | null };
 
+const WEB_CHAT_GENERATION_STATE_SCRIPT = `
+const visibleButtonText = Array.from(document.querySelectorAll("button"))
+  .filter((button) => isVisible(button))
+  .map((button) => clip(button.getAttribute("aria-label") || button.textContent || ""))
+  .join(" ");
+const generating = /\\b(stop generating|stop responding)\\b|停止生成|停止回答/i.test(visibleButtonText)
+  || (
+    /generating|thinking|reasoning|回答中|生成中|思考中/i.test(bodyText)
+    && !/已停止思考|stopped thinking/i.test(bodyText)
+  );
+`;
+
+const WEB_CHAT_ASSISTANT_COUNT_SCRIPT = `
+const assistantCount = Array.from(document.querySelectorAll("[data-message-author-role='assistant']"))
+  .map((node) => clip(node.textContent || ""))
+  .filter((text) => text.length > 0)
+  .length;
+`;
+
 export const buildFindUploadTargetScript = (): string => `
 ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const findInput = () => {
@@ -114,19 +133,8 @@ ${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
 const input = resolveComposerInput();
 const actual = input instanceof HTMLElement ? clip(input.textContent || input.value || "") : "";
 const expectedPrefix = clip(${JSON.stringify(expectedText)}).slice(0, 80);
-const assistantCount = Array.from(document.querySelectorAll("[data-message-author-role='assistant']"))
-  .map((node) => clip(node.textContent || ""))
-  .filter((text) => text.length > 0)
-  .length;
-const visibleButtonText = Array.from(document.querySelectorAll("button"))
-  .filter((button) => isVisible(button))
-  .map((button) => clip(button.getAttribute("aria-label") || button.textContent || ""))
-  .join(" ");
-const generating = /\\b(stop generating|stop responding)\\b|停止生成|停止回答/i.test(visibleButtonText)
-  || (
-    /generating|thinking|reasoning|回答中|生成中|思考中/i.test(bodyText)
-    && !/已停止思考|stopped thinking/i.test(bodyText)
-  );
+${WEB_CHAT_ASSISTANT_COUNT_SCRIPT}
+${WEB_CHAT_GENERATION_STATE_SCRIPT}
 const promptStillInComposer = actual.includes(expectedPrefix);
 if (assistantCount > ${JSON.stringify(previousAssistantCount)} || generating || !promptStillInComposer) {
   return {
@@ -167,15 +175,7 @@ const candidates = responseNodes
   .filter((text) => text.length > 0);
 const answerText = candidates[candidates.length - 1] || "";
 const assistantCount = candidates.length;
-const visibleButtonText = Array.from(document.querySelectorAll("button"))
-  .filter((button) => isVisible(button))
-  .map((button) => clip(button.getAttribute("aria-label") || button.textContent || ""))
-  .join(" ");
-const generating = /\\b(stop generating|stop responding)\\b|停止生成|停止回答/i.test(visibleButtonText)
-  || (
-    /generating|thinking|reasoning|回答中|生成中|思考中/i.test(bodyText)
-    && !/已停止思考|stopped thinking/i.test(bodyText)
-  );
+${WEB_CHAT_GENERATION_STATE_SCRIPT}
 if (!answerText && generating) {
   return {status: "pending", message: "provider still generating response", answerText: null, pageUrl: location.href, generating: true, assistantCount};
 }

@@ -10,10 +10,12 @@ import {
 } from "./facebook-product-video-mining.video.js";
 import {
   buildFacebookMiningCandidate,
-  navigateToNextFacebookVideo,
   saveFacebookMiningCandidateEvidence,
+} from "./facebook-product-video-mining.candidate-record.js";
+import {
+  navigateToNextFacebookVideo,
   type FacebookMiningRoundOutcome,
-} from "./facebook-product-video-mining.round-support.js";
+} from "./facebook-product-video-mining.navigation.js";
 import type { FacebookProductVideoMiningContracts } from "./facebook-product-video-mining.schema.js";
 
 type FacebookVideoAiJudgment = FacebookProductVideoMiningContracts["FacebookVideoAiJudgment"];

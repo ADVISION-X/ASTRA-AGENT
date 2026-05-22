@@ -13,11 +13,11 @@ import {
   handleProbeFailure,
   handleRejectedJudgment,
 } from "./facebook-product-video-mining.round-outcomes.js";
+import { logFacebookMiningFlow } from "./facebook-product-video-mining.logging.js";
 import {
-  logFacebookMiningFlow,
   navigateToNextFacebookVideo,
   type FacebookMiningRoundOutcome,
-} from "./facebook-product-video-mining.round-support.js";
+} from "./facebook-product-video-mining.navigation.js";
 import type { FacebookProductVideoMiningContracts } from "./facebook-product-video-mining.schema.js";
 import type { FacebookProductVideoMiningStorage } from "./facebook-product-video-mining.storage.js";
 

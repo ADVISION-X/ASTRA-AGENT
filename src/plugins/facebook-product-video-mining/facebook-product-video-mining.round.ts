@@ -3,7 +3,7 @@ import { judgeFacebookProductVideo } from "./facebook-product-video-mining.ai-ju
 import {
   collectAllLoadableComments,
 } from "./facebook-product-video-mining.comments.js";
-import type { FacebookMiningRoundOutcome } from "./facebook-product-video-mining.round-support.js";
+import type { FacebookMiningRoundOutcome } from "./facebook-product-video-mining.navigation.js";
 import {
   downloadCurrentFacebookVideo,
 } from "./facebook-product-video-mining.video.js";
@@ -21,14 +21,21 @@ import {
 } from "./facebook-product-video-mining.round-runtime.js";
 import {
   buildFacebookMiningCandidate,
-  navigateToNextFacebookVideo,
   saveFacebookMiningCandidateEvidence,
-} from "./facebook-product-video-mining.round-support.js";
+} from "./facebook-product-video-mining.candidate-record.js";
+import { navigateToNextFacebookVideo } from "./facebook-product-video-mining.navigation.js";
 import { deleteRejectedFacebookVideo } from "./facebook-product-video-mining.video.js";
 
-const downloadFacebookMiningRoundArtifacts = async (input: FacebookMiningRoundContext & {
+type FacebookMiningArtifactCollectionInput = FacebookMiningRoundContext & {
   probe: FacebookMiningRoundArtifacts["probe"];
-}): Promise<FacebookMiningRoundStageResult<FacebookMiningRoundArtifacts>> => {
+};
+
+type FacebookMiningRoundComments = Awaited<ReturnType<typeof collectAllLoadableComments>>;
+
+const collectFacebookMiningArtifacts = async (input: FacebookMiningArtifactCollectionInput): Promise<{
+  comments: FacebookMiningRoundComments;
+  download: Awaited<ReturnType<typeof downloadCurrentFacebookVideo>>;
+}> => {
   const comments = await collectAllLoadableComments({
     browser: input.input.browser,
     probe: input.probe,
@@ -44,7 +51,14 @@ const downloadFacebookMiningRoundArtifacts = async (input: FacebookMiningRoundCo
     preferredQuality: input.input.run.preferredQuality,
     maxVideoBytes: input.input.run.maxVideoBytes,
   });
-  if (!FacebookMiningRoundRuntime.isSuccessfulVideoDownload(download)) {
+  return { comments, download };
+};
+
+const requireSuccessfulDownload = async (input: FacebookMiningArtifactCollectionInput & {
+  comments: FacebookMiningRoundComments;
+  download: Awaited<ReturnType<typeof downloadCurrentFacebookVideo>>;
+}): Promise<FacebookMiningRoundStageResult<FacebookMiningRoundArtifacts["download"]>> => {
+  if (!FacebookMiningRoundRuntime.isSuccessfulVideoDownload(input.download)) {
     return FacebookMiningRoundRuntime.stopFacebookMiningRound(await handleDownloadFailure({
       browser: input.input.browser,
       runtimeLogger: input.input.runtimeLogger,
@@ -55,40 +69,79 @@ const downloadFacebookMiningRoundArtifacts = async (input: FacebookMiningRoundCo
       roundId: input.round.roundId,
       roundIndex: input.input.roundIndex,
       probe: input.probe,
-      comments,
-      download,
+      comments: input.comments,
+      download: input.download,
     }));
   }
-  if (input.input.storage.listCandidates(input.input.run.runId).some((candidate) =>
-    candidate.videoSha256 === download.output.sha256 && candidate.status === "saved")) {
-    await deleteRejectedFacebookVideo({ videoDownload: input.input.videoDownload, downloaded: download });
-    const candidate = buildFacebookMiningCandidate({
-      missionId: input.input.run.missionId,
-      runId: input.input.run.runId,
-      roundId: input.round.roundId,
-      roundIndex: input.input.roundIndex,
-      probe: input.probe,
-      status: "failed",
-      commentsLoadedCount: comments.comments.length,
-      commentsComplete: comments.commentsComplete,
-      commentStopReason: "duplicate_video_artifact",
-    });
-    saveFacebookMiningCandidateEvidence({
-      storage: input.input.storage,
-      candidate,
-      comments: comments.comments,
-      probe: input.probe,
-    });
-    return FacebookMiningRoundRuntime.stopFacebookMiningRound(await navigateToNextFacebookVideo({
-      browser: input.input.browser,
-      logger: input.input.runtimeLogger,
-      runId: input.input.run.runId,
-      missionId: input.input.run.missionId,
-      roundId: input.round.roundId,
-      feedEntryUrl: input.input.run.feedEntryUrl,
-    }));
+  return FacebookMiningRoundRuntime.continueFacebookMiningRound(input.download);
+};
+
+const hasDuplicateSavedVideo = (input: {
+  context: FacebookMiningRoundContext;
+  download: FacebookMiningRoundArtifacts["download"];
+}): boolean => input.context.input.storage.listCandidates(input.context.input.run.runId).some((candidate) =>
+  candidate.videoSha256 === input.download.output.sha256 && candidate.status === "saved");
+
+const handleDuplicateDownloadedVideo = async (input: FacebookMiningArtifactCollectionInput & {
+  comments: FacebookMiningRoundComments;
+  download: FacebookMiningRoundArtifacts["download"];
+}): Promise<FacebookMiningRoundStageResult<never> | null> => {
+  if (!hasDuplicateSavedVideo({ context: input, download: input.download })) {
+    return null;
   }
-  return FacebookMiningRoundRuntime.continueFacebookMiningRound({ probe: input.probe, comments, download });
+  await deleteRejectedFacebookVideo({ videoDownload: input.input.videoDownload, downloaded: input.download });
+  const candidate = buildFacebookMiningCandidate({
+    missionId: input.input.run.missionId,
+    runId: input.input.run.runId,
+    roundId: input.round.roundId,
+    roundIndex: input.input.roundIndex,
+    probe: input.probe,
+    status: "failed",
+    commentsLoadedCount: input.comments.comments.length,
+    commentsComplete: input.comments.commentsComplete,
+    commentStopReason: "duplicate_video_artifact",
+  });
+  saveFacebookMiningCandidateEvidence({
+    storage: input.input.storage,
+    candidate,
+    comments: input.comments.comments,
+    probe: input.probe,
+  });
+  return FacebookMiningRoundRuntime.stopFacebookMiningRound(await navigateToNextFacebookVideo({
+    browser: input.input.browser,
+    logger: input.input.runtimeLogger,
+    runId: input.input.run.runId,
+    missionId: input.input.run.missionId,
+    roundId: input.round.roundId,
+    feedEntryUrl: input.input.run.feedEntryUrl,
+  }));
+};
+
+const downloadFacebookMiningRoundArtifacts = async (
+  input: FacebookMiningArtifactCollectionInput,
+): Promise<FacebookMiningRoundStageResult<FacebookMiningRoundArtifacts>> => {
+  const { comments, download } = await collectFacebookMiningArtifacts(input);
+  const successfulDownload = await requireSuccessfulDownload({
+    ...input,
+    comments,
+    download,
+  });
+  if (!successfulDownload.ok) {
+    return successfulDownload;
+  }
+  const duplicateDownload = await handleDuplicateDownloadedVideo({
+    ...input,
+    comments,
+    download: successfulDownload.value,
+  });
+  if (duplicateDownload) {
+    return duplicateDownload;
+  }
+  return FacebookMiningRoundRuntime.continueFacebookMiningRound({
+    probe: input.probe,
+    comments,
+    download: successfulDownload.value,
+  });
 };
 
 const judgeFacebookMiningRound = async (input: FacebookMiningRoundContext & {

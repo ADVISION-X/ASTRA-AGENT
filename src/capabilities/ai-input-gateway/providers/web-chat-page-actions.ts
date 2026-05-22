@@ -5,15 +5,12 @@ import {
   buildSetComposerTextScript,
   buildWaitForUploadScript,
   buildVerifyComposerTextScript,
-  buildVerifyPromptSubmittedScript,
   FOCUS_COMPOSER_SCRIPT,
   type WebChatEvaluation,
 } from "./web-chat-evaluation.js";
 import {
   CLEAR_COMPOSER_SCRIPT,
-  CLICK_SUBMIT_BUTTON_SCRIPT,
   FIND_COMPOSER_POINT_SCRIPT,
-  FIND_SUBMIT_BUTTON_POINT_SCRIPT,
   FIND_UPLOAD_MENU_POINT_SCRIPT,
 } from "./web-chat-page-action-scripts.js";
 
@@ -80,26 +77,6 @@ export const findComposerPoint = (
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 
-export const clickSubmitButton = (
-  browser: BrowserController,
-  context: AiProviderAdapterContext,
-): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "click AI web chat submit button",
-    script: CLICK_SUBMIT_BUTTON_SCRIPT,
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-  });
-
-export const findSubmitButtonPoint = (
-  browser: BrowserController,
-  context: AiProviderAdapterContext,
-): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "locate AI web chat submit button point",
-    script: FIND_SUBMIT_BUTTON_POINT_SCRIPT,
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-  });
-
 export const setComposerText = (
   browser: BrowserController,
   context: AiProviderAdapterContext,
@@ -119,18 +96,6 @@ export const verifyComposerText = (
   browser.evaluateActiveTab<WebChatEvaluation>({
     description: "verify AI web chat composer prompt text",
     script: buildVerifyComposerTextScript(expectedText),
-    ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
-  });
-
-export const verifyPromptSubmitted = (
-  browser: BrowserController,
-  context: AiProviderAdapterContext,
-  expectedText: string,
-  previousAssistantCount: number,
-): Promise<WebChatEvaluation> =>
-  browser.evaluateActiveTab<WebChatEvaluation>({
-    description: "verify AI web chat prompt was submitted",
-    script: buildVerifyPromptSubmittedScript(expectedText, previousAssistantCount),
     ...(context.abortSignal ? { abortSignal: context.abortSignal } : {}),
   });
 

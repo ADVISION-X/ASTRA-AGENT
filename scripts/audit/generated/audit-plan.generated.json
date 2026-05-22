@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T20:03:21.522Z",
+  "generatedAt": "2026-05-22T10:28:31.978Z",
   "entries": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -175,6 +175,66 @@
         "fs+ast"
       ],
       "blueprintRefs": []
+    },
+    {
+      "capabilityDomain": "local-app-shell",
+      "manifestPath": "scripts/audit/domains/local-app-shell/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/local-app-shell/inspector.ts",
+      "executionGroup": "domain",
+      "lawIds": [
+        "APEX-LOCAL-APP-SHELL-001-V1",
+        "APEX-LOCAL-APP-SHELL-002-V1",
+        "APEX-LOCAL-APP-SHELL-003-V1",
+        "APEX-LOCAL-APP-SHELL-004-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "fs",
+        "fs+ast"
+      ],
+      "blueprintRefs": [
+        {
+          "filePath": "docs/法案辅助文件/GrassEye 本地应用形态与运行壳施工图.md",
+          "requiredAnchors": [
+            "## 本地形态",
+            "## 首屏结构",
+            "## 当前法门入口",
+            "## 对口质检"
+          ]
+        }
+      ]
+    },
+    {
+      "capabilityDomain": "startup-entrypoint",
+      "manifestPath": "scripts/audit/domains/startup-entrypoint/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
+      "executionGroup": "domain",
+      "lawIds": [
+        "APEX-STARTUP-001-V1",
+        "APEX-STARTUP-002-V1",
+        "APEX-STARTUP-003-V1",
+        "APEX-STARTUP-004-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "fs",
+        "fs+ast"
+      ],
+      "blueprintRefs": [
+        {
+          "filePath": "docs/法案辅助文件/GrassEye 唯一启动入口与终端结构化日志施工图.md",
+          "requiredAnchors": [
+            "## 唯一入口",
+            "## 启动顺序",
+            "## 启动禁止",
+            "## 质检对口"
+          ]
+        }
+      ]
     }
   ]
 }

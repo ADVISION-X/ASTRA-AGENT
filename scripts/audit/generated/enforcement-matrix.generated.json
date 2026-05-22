@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-21T20:03:21.522Z",
+  "generatedAt": "2026-05-22T10:28:31.978Z",
   "rows": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -103,6 +103,28 @@
       "lawIds": [
         "APEX-FACEBOOK-MINING-001-V1",
         "APEX-FACEBOOK-MINING-002-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "local-app-shell",
+      "manifestPath": "scripts/audit/domains/local-app-shell/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/local-app-shell/inspector.ts",
+      "lawIds": [
+        "APEX-LOCAL-APP-SHELL-001-V1",
+        "APEX-LOCAL-APP-SHELL-002-V1",
+        "APEX-LOCAL-APP-SHELL-003-V1",
+        "APEX-LOCAL-APP-SHELL-004-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "startup-entrypoint",
+      "manifestPath": "scripts/audit/domains/startup-entrypoint/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
+      "lawIds": [
+        "APEX-STARTUP-001-V1",
+        "APEX-STARTUP-002-V1",
+        "APEX-STARTUP-003-V1",
+        "APEX-STARTUP-004-V1"
       ]
     }
   ]

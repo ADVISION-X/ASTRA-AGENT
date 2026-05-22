@@ -1,0 +1,23 @@
+{
+  "capabilityDomain": "startup-entrypoint",
+  "ownerInspectorPath": "scripts/audit/domains/startup-entrypoint/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye 唯一启动入口与终端结构化日志施工图.md",
+      "requiredAnchors": [
+        "## 唯一入口",
+        "## 启动顺序",
+        "## 启动禁止",
+        "## 质检对口"
+      ]
+    }
+  ],
+  "description": "Startup entrypoint owner inspector."
+}

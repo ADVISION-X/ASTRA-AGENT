@@ -4,12 +4,14 @@ import type { AiFeedInput } from "../schema.js";
 import { clickDesktopPoint, pasteTextAndSubmitInChrome } from "./web-chat-clipboard.js";
 import {
   clickSubmitButton,
-  findComposerPoint,
   findSubmitButtonPoint,
+  verifyPromptSubmitted,
+} from "./web-chat-submit-page-actions.js";
+import {
+  findComposerPoint,
   focusComposer,
   setComposerText,
   verifyComposerText,
-  verifyPromptSubmitted,
 } from "./web-chat-page-actions.js";
 
 const withWebChatStep = async <T>(
@@ -67,20 +69,25 @@ const waitForPromptSubmitted = async (input: {
   throw new Error(`review_required: provider prompt was not submitted; last=${lastMessage}`);
 };
 
-export const submitPromptViaClipboard = async (input: {
+type SubmitPromptViaClipboardInput = {
   browser: BrowserController;
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   sourceUrl: string | null;
   previousAssistantCount: number;
   restoreSourcePage: (browser: BrowserController, sourceUrl: string | null, abortSignal?: AbortSignal) => Promise<boolean | null>;
-}): Promise<void> => {
+};
+
+const focusComposerBeforePrompt = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
   const focused = await withWebChatStep("focus_composer_before_prompt_paste", () =>
     focusComposer(input.browser, input.context));
   if (focused.status !== "success") {
     const restoredSourcePage = await input.restoreSourcePage(input.browser, input.sourceUrl, input.context.abortSignal);
     throw new Error(`${focused.status}: ${focused.message}; restoredSourcePage=${String(restoredSourcePage)}`);
   }
+};
+
+const populatePromptComposer = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
   const point = await withWebChatStep("find_composer_point_before_prompt_paste", () =>
     findComposerPoint(input.browser, input.context));
   if (point.status === "success" && typeof point.x === "number" && typeof point.y === "number") {
@@ -99,6 +106,9 @@ export const submitPromptViaClipboard = async (input: {
       throw new Error(`${setResult.status}: ${setResult.message}`);
     }
   }
+};
+
+const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
   const submitPoint = await waitForSubmitButtonPoint({
     browser: input.browser,
     context: input.context,
@@ -115,4 +125,10 @@ export const submitPromptViaClipboard = async (input: {
     previousAssistantCount: input.previousAssistantCount,
     timeoutMs: input.request.timeoutMs,
   });
+};
+
+export const submitPromptViaClipboard = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
+  await focusComposerBeforePrompt(input);
+  await populatePromptComposer(input);
+  await submitPromptFromComposer(input);
 };

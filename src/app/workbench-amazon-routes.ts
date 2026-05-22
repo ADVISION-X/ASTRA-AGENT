@@ -3,6 +3,7 @@ import { URL } from "node:url";
 
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { readJsonBody, writeJson } from "./workbench-http.js";
+import { readMultipartFormData } from "./workbench-multipart.js";
 
 type AmazonRouteHandler = () => Promise<boolean>;
 
@@ -24,6 +25,26 @@ const handleAmazonTaskCreateRequest = async (
 ): Promise<boolean> => {
   const input = await readJsonBody(request);
   const result = await workbench.startAmazonInvoiceUploadTask(input as Parameters<typeof workbench.startAmazonInvoiceUploadTask>[0]);
+  writeJson(response, 200, result);
+  return true;
+};
+
+const handleAmazonPluginStartRequest = async (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+): Promise<boolean> => {
+  const form = await readMultipartFormData(request);
+  const missionText = form.fields.get("mission");
+  const invoicePdf = form.files.get("invoicePdf");
+  if (!missionText || !invoicePdf) {
+    writeJson(response, 400, { error: "missing_mission_or_invoice_pdf" });
+    return true;
+  }
+  const result = await workbench.startAmazonInvoiceUploadTask({
+    mission: JSON.parse(missionText) as Parameters<typeof workbench.startAmazonInvoiceUploadTask>[0]["mission"],
+    invoicePdf,
+  });
   writeJson(response, 200, result);
   return true;
 };
@@ -53,6 +74,15 @@ const handleAmazonTaskStatusRequest = async (
   return true;
 };
 
+const handleAmazonPluginStatusRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  taskId: string,
+): Promise<boolean> => {
+  writeJson(response, 200, await workbench.getAmazonInvoiceUploadTaskStatus(taskId));
+  return true;
+};
+
 const handleAmazonLatestRequest = async (
   response: ServerResponse,
   workbench: GrassEyeWorkbenchHandle,
@@ -72,6 +102,44 @@ const handleAmazonLatestRequest = async (
   return true;
 };
 
+const handleAmazonPluginLatestRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> => {
+  const amazonOrderId = url.searchParams.get("amazonOrderId");
+  if (!amazonOrderId) {
+    writeJson(response, 400, { error: "missing_amazon_order_id" });
+    return true;
+  }
+  const invoiceNo = url.searchParams.get("invoiceNo") ?? undefined;
+  const record = await workbench.getLatestAmazonInvoiceUploadTaskForInvoice({
+    amazonOrderId,
+    ...(invoiceNo ? { invoiceNo } : {}),
+  });
+  writeJson(response, 200, record ? { found: true, record } : { found: false });
+  return true;
+};
+
+const handleAmazonPluginRequest = (
+  request: IncomingMessage,
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> | null => {
+  if (request.method === "POST" && url.pathname === "/api/plugins/amazon-invoice-upload/start") {
+    return handleAmazonPluginStartRequest(request, response, workbench);
+  }
+  if (request.method === "GET" && url.pathname === "/api/plugins/amazon-invoice-upload/latest") {
+    return handleAmazonPluginLatestRequest(response, workbench, url);
+  }
+  const statusPrefix = "/api/plugins/amazon-invoice-upload/status/";
+  if (request.method === "GET" && url.pathname.startsWith(statusPrefix)) {
+    return handleAmazonPluginStatusRequest(response, workbench, url.pathname.slice(statusPrefix.length));
+  }
+  return null;
+};
+
 export const handleAmazonRequest = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -80,6 +148,10 @@ export const handleAmazonRequest = async (
 ): Promise<boolean> => {
   if (request.method !== "POST" && request.method !== "GET") {
     return false;
+  }
+  const pluginResult = handleAmazonPluginRequest(request, response, workbench, url);
+  if (pluginResult) {
+    return pluginResult;
   }
   const routeHandlers: Partial<Record<string, AmazonRouteHandler>> = {
     "POST:/api/amazon-invoice-upload/mission": () => handleAmazonMissionRequest(request, response, workbench),

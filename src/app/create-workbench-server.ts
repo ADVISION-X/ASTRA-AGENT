@@ -4,7 +4,7 @@ import { URL } from "node:url";
 import type { GrassEyeWorkbenchHandle } from "../lib/local-runtime/workbench-handle.js";
 import { handleAmazonRequest } from "./workbench-amazon-routes.js";
 import { handleFacebookRequest } from "./workbench-facebook-routes.js";
-import { writeJson } from "./workbench-http.js";
+import { writeCorsPreflight, writeJson } from "./workbench-http.js";
 import { renderWorkbenchHomePage } from "./workbench-home-page.js";
 
 const HOME_PAGE_PATHS = new Set(["/", "/index.html"]);
@@ -55,6 +55,11 @@ async function handleRequest(
 ): Promise<void> {
   const url = resolveWorkbenchRequestUrl(request, baseUrl);
 
+  if (request.method === "OPTIONS") {
+    writeCorsPreflight(response);
+    return;
+  }
+
   if (handleWorkbenchHomeRequest(request, response, url)) {
     return;
   }
@@ -84,7 +89,8 @@ export function createWorkbenchServer(input: {
     } catch (error) {
       const failureReason = error instanceof Error ? error.message : String(error);
       if (!response.headersSent) {
-        response.writeHead(500, { "content-type": "application/json; charset=utf-8" });
+        writeJson(response, 500, { error: "workbench_request_failed", failureReason });
+        return;
       }
       response.end(JSON.stringify({ error: "workbench_request_failed", failureReason }));
     }

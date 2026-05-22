@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-05-22T10:28:33.698Z",
+  "capabilityDomain": "startup-entrypoint",
+  "executionGroup": "domain",
+  "lawIds": [
+    "APEX-STARTUP-001-V1",
+    "APEX-STARTUP-002-V1",
+    "APEX-STARTUP-003-V1",
+    "APEX-STARTUP-004-V1"
+  ],
+  "status": "PASS",
+  "findings": [],
+  "inspectedFiles": [
+    "package.json",
+    "scripts/audit/domains/startup-entrypoint/inspector.ts",
+    "scripts/startup/.DS_Store",
+    "scripts/startup/launch-grasseye.mjs",
+    "scripts/startup/lib/dependency-check.mjs",
+    "scripts/startup/lib/dependency-package-utils.mjs",
+    "scripts/startup/lib/dependency-state-analysis.mjs",
+    "scripts/startup/lib/open-workbench-page.mjs",
+    "scripts/startup/lib/port-listener-ops.mjs",
+    "scripts/startup/lib/process-control.mjs",
+    "scripts/startup/lib/service-process.mjs",
+    "scripts/startup/lib/startup-failure-bundle.mjs",
+    "scripts/startup/lib/startup-failure-handler.mjs",
+    "scripts/startup/lib/startup-log-helpers.mjs",
+    "scripts/startup/lib/startup-main-support.mjs",
+    "scripts/startup/lib/terminal-structured-log.mjs",
+    "scripts/startup/lib/terminal-structured-runtime-relay.mjs"
+  ]
+}
