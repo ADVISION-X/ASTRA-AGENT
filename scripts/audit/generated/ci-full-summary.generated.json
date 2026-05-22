@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-22T12:55:45.636Z",
-  "status": "FAIL",
+  "generatedAt": "2026-05-22T13:37:09.129Z",
+  "status": "PASS",
   "steps": [
     {
       "name": "build-audit-artifacts",
@@ -8,13 +8,11 @@
     },
     {
       "name": "run-generated-plan",
-      "status": "FAIL",
-      "error": "One or more audit domains reported findings."
+      "status": "PASS"
     },
     {
       "name": "typecheck",
-      "status": "FAIL",
-      "error": "typecheck failed with exit code 2"
+      "status": "PASS"
     },
     {
       "name": "amazon-invoice-upload-smoke",
@@ -22,8 +20,7 @@
     },
     {
       "name": "facebook-product-video-mining",
-      "status": "FAIL",
-      "error": "facebook-product-video-mining failed with exit code 1"
+      "status": "PASS"
     }
   ],
   "domains": [
@@ -44,8 +41,8 @@
     {
       "capabilityDomain": "code-purity",
       "executionGroup": "foundation",
-      "status": "FAIL",
-      "findingCount": 68,
+      "status": "PASS",
+      "findingCount": 0,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json"
     },
     {

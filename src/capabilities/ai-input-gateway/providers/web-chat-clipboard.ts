@@ -66,27 +66,6 @@ export const pressEscapeInChrome = async (
   await execFileAsync("osascript", ["-e", script], { signal: abortSignal });
 };
 
-export const chooseFileInNativeDialog = async (
-  filePath: string,
-  abortSignal?: AbortSignal,
-): Promise<void> => {
-  const script = [
-    'tell application "Google Chrome" to activate',
-    'tell application "System Events"',
-    "  delay 0.8",
-    '  keystroke "g" using {command down, shift down}',
-    "  delay 0.45",
-    `  set the clipboard to "${escapeAppleScriptText(filePath)}"`,
-    '  keystroke "v" using command down',
-    "  delay 0.25",
-    "  key code 36",
-    "  delay 0.8",
-    "  key code 36",
-    "end tell",
-  ].join("\n");
-  await execFileAsync("osascript", ["-e", script], { signal: abortSignal });
-};
-
 export const pasteTextAndSubmitInChrome = async (
   prompt: string,
   abortSignal?: AbortSignal,

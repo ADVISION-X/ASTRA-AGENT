@@ -7,9 +7,3 @@ export type TraceContext = {
   sessionId?: string;
 };
 
-export type CreateTraceContextInput = {
-  missionId?: string;
-  runId?: string;
-  sessionId?: string;
-  parentSpanId?: string;
-};

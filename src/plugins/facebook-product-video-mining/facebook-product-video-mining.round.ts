@@ -157,13 +157,16 @@ const judgeFacebookMiningRound = async (input: FacebookMiningRoundContext & {
     probe: input.artifacts.probe,
     comments: input.artifacts.comments.comments,
     videoFilePath: input.artifacts.download.output.filePath,
-    timeoutMs: 180_000,
+    timeoutMs: 90_000,
     maxFileBytes: input.input.run.maxVideoBytes,
   });
   if (judgment.status !== "success") {
     return FacebookMiningRoundRuntime.stopFacebookMiningRound(await handleJudgmentFailure({
+      browser: input.input.browser,
+      runtimeLogger: input.input.runtimeLogger,
       videoDownload: input.input.videoDownload,
       storage: input.input.storage,
+      feedEntryUrl: input.input.run.feedEntryUrl,
       missionId: input.input.run.missionId,
       runId: input.input.run.runId,
       roundId: input.round.roundId,

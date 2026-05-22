@@ -15,6 +15,7 @@ import {
 } from "./web-chat-page-action-scripts.js";
 
 const POLL_INTERVAL_MS = 1500;
+const MAX_UPLOAD_COMPLETE_WAIT_MS = 45_000;
 
 const locateUploadTarget = (
   browser: BrowserController,
@@ -135,7 +136,7 @@ export const waitForUploadComplete = async (
   filePath: string,
   timeoutMs: number,
 ): Promise<void> => {
-  const deadline = Date.now() + timeoutMs;
+  const deadline = Date.now() + Math.min(timeoutMs, MAX_UPLOAD_COMPLETE_WAIT_MS);
   const fileName = filePath.split("/").pop() ?? filePath;
   while (Date.now() < deadline) {
     const evaluation = await waitForUpload(browser, context, fileName);

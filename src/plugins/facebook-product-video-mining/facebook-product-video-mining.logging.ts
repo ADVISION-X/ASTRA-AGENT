@@ -9,6 +9,7 @@ const buildNavigationPreview = (signature?: FacebookNavigationSignature): string
   }
   return JSON.stringify({
     url: signature.url,
+    blockerReason: signature.blockerReason,
     videoCount: signature.videoCount,
     videoFacts: signature.videoFacts,
     metricTexts: signature.metricTexts,

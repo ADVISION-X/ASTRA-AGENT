@@ -5,7 +5,7 @@ import {
   type WebChatEvaluation,
 } from "./web-chat-evaluation.js";
 
-export type StableAnswerState = {
+type StableAnswerState = {
   lastText: string;
   lastGenerating: boolean;
   lastAssistantCount: number;

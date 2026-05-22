@@ -125,6 +125,32 @@ function readNodeId(payload: unknown): number {
   return payload.nodeId;
 }
 
+function buildDispatchFileInputEventsScript(selector: string): string {
+  return `
+const input = document.querySelector(${JSON.stringify(selector)});
+if (!(input instanceof HTMLInputElement) || input.type !== "file") {
+  return {attached: false, message: "file input not found after CDP selection"};
+}
+input.dispatchEvent(new Event("input", {bubbles: true}));
+input.dispatchEvent(new Event("change", {bubbles: true}));
+return {
+  attached: Boolean(input.files && input.files.length > 0),
+  fileCount: input.files ? input.files.length : 0,
+  message: input.files && input.files.length > 0 ? "file input has selected files" : "file input has no selected files",
+};
+`;
+}
+
+function readFileInputVerification(payload: unknown): { attached: boolean; message: string } {
+  const result = isRecord(payload) ? payload.result : null;
+  const value = isRecord(result) ? result.value : null;
+  if (!isRecord(value)) return { attached: false, message: "file input verification returned no value" };
+  return {
+    attached: value.attached === true,
+    message: typeof value.message === "string" ? value.message : "file input verification failed",
+  };
+}
+
 export async function setFileInputFilesWithCurrentChromeCdp(input: {
   currentUrl: string;
   selector: string;
@@ -148,6 +174,12 @@ export async function setFileInputFilesWithCurrentChromeCdp(input: {
         nodeId,
         files: [input.filePath],
       });
+      const verification = readFileInputVerification(await client.send("Runtime.evaluate", {
+        expression: buildDispatchFileInputEventsScript(input.selector),
+        awaitPromise: true,
+        returnByValue: true,
+      }));
+      if (!verification.attached) return { ok: false, message: verification.message };
       return { ok: true, message: "approved file selected through local Chrome CDP" };
     } finally {
       client.close();

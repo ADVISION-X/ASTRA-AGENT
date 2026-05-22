@@ -59,8 +59,11 @@ function buildFailureDebugProjection(payload, status) {
   };
 }
 
-export function buildRuntimeRelayEvent(phase, payload) {
-  const status = payload.status ?? payload.result ?? "emitted";
+function resolveRelayMessage(phase, payload) {
+  return payload.reason ?? payload.actionPurpose ?? payload.eventType ?? payload.actionType ?? `${phase.toLowerCase()} structured log emitted`;
+}
+
+function buildRuntimeRelayClassification(phase, payload, status) {
   return {
     timestamp: payload.createdAt ?? new Date().toISOString(),
     level: resolveLevel(payload.status ?? payload.result),
@@ -68,25 +71,62 @@ export function buildRuntimeRelayEvent(phase, payload) {
     component: payload.skillCategory ?? payload.skillId ?? phase.toLowerCase(),
     eventType: payload.eventType ?? payload.actionType ?? `${phase.toLowerCase()}_event`,
     status,
-    message: payload.reason ?? payload.actionPurpose ?? payload.eventType ?? payload.actionType ?? "structured log emitted",
+    message: resolveRelayMessage(phase, payload),
+  };
+}
+
+function buildRuntimeRelayOwnership(payload) {
+  return {
     failureReason: payload.failureReason ?? payload.reviewRequiredReason ?? null,
     ownerResponsible: payload.ownerResponsible ?? null,
     actionableMessage: payload.actionableMessage ?? null,
+  };
+}
+
+function buildRuntimeRelayTraceIds(payload) {
+  return {
     traceId: payload.traceId ?? null,
     runId: payload.runId ?? payload.sessionId ?? null,
     requestedPlatformId: payload.requestedPlatformId ?? null,
     capabilityCallId: payload.capabilityCallId ?? null,
+  };
+}
+
+function buildRuntimeRelayExecutionMetadata(payload) {
+  return {
     childCapabilityId: payload.childCapabilityId ? payload.childCapabilityId : null,
     implementationStatus: payload.implementationStatus ?? null,
     errorKind: payload.errorKind ?? null,
     runtimeCallId: payload.runtimeCallId ?? null,
     diagnosticPayloadRef: payload.diagnosticPayloadRef ?? null,
+  };
+}
+
+function buildRuntimeRelayTraceMetadata(payload) {
+  return {
+    ...buildRuntimeRelayTraceIds(payload),
+    ...buildRuntimeRelayExecutionMetadata(payload),
+  };
+}
+
+function buildRuntimeRelayDecisionMetadata(payload) {
+  return {
     promptContractId: payload.promptContractId ?? null,
     outputSchemaRef: payload.outputSchemaRef ?? null,
     decision: payload.decision ?? payload.parsedDecision ?? null,
     confidence: typeof payload.confidence === "number" ? payload.confidence : null,
-    ...buildFailureDebugProjection(payload, status),
     refs: resolvePayloadRefs(payload),
     durationMs: typeof payload.durationMs === "number" ? payload.durationMs : null,
+  };
+}
+
+export function buildRuntimeRelayEvent(phase, payload) {
+  const status = payload.status ?? payload.result ?? "emitted";
+  return {
+    ...buildRuntimeRelayClassification(phase, payload, status),
+    ...buildRuntimeRelayOwnership(payload),
+    ...buildRuntimeRelayTraceMetadata(payload),
+    ...buildRuntimeRelayDecisionMetadata(payload),
+    ...buildFailureDebugProjection(payload, status),
   };
 }

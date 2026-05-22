@@ -5,7 +5,7 @@
  * Business-specific record modules must not appear here.
  */
 
-export type RecordType =
+type RecordType =
   | "ai_result"
   | "ability_result"
   | "observation"
@@ -15,7 +15,7 @@ export type RecordType =
   | "review_required"
   | "mission_event";
 
-export type ArtifactType =
+type ArtifactType =
   | "screenshot"
   | "coordinate_grid"
   | "ai_raw_output"

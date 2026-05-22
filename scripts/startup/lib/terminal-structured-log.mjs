@@ -1,5 +1,3 @@
-const FAIL_STATUSES = new Set(["failed", "review_required", "error"]);
-const PASS_STATUSES = new Set(["success", "passed", "ready"]);
 const STANDARD_META_KEYS = [
   "ownerResponsible",
   "actionableMessage",

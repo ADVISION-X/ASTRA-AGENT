@@ -11,7 +11,7 @@ import type { FileSinkOptions } from "./sinks.js";
 import { resolveRuntimeLogMode } from "./mode.js";
 import { writeTerminalSink, writeFileSink } from "./sinks.js";
 
-export type RuntimeLoggerConfig = {
+type RuntimeLoggerConfig = {
   modeOverride?: RuntimeLogMode;
   terminalEnabled?: boolean;
   fileSink?: FileSinkOptions;
@@ -65,19 +65,8 @@ export function createRuntimeLogger(config: RuntimeLoggerConfig = {}): RuntimeLo
  *  that injected instance instead of this default. */
 let _defaultLogger: RuntimeLogger | null = null;
 
-export function getDefaultRuntimeLogger(): RuntimeLogger {
-  if (!_defaultLogger) {
-    _defaultLogger = createRuntimeLogger();
-  }
-  return _defaultLogger;
-}
-
 /** Replace the default logger (useful for tests or startup config). */
 export function setDefaultRuntimeLogger(logger: RuntimeLogger): void {
   _defaultLogger = logger;
 }
 
-/** Convenience: emit a single event via the default logger. */
-export function emitRuntimeLog(event: RuntimeLogEventInput): void {
-  getDefaultRuntimeLogger().emit(event);
-}

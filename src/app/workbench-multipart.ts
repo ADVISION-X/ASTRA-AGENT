@@ -1,12 +1,12 @@
 import type { IncomingMessage } from "node:http";
 
-export type WorkbenchMultipartFile = {
+type WorkbenchMultipartFile = {
   filename: string;
   mimeType: string;
   bytes: Buffer;
 };
 
-export type WorkbenchMultipartForm = {
+type WorkbenchMultipartForm = {
   fields: ReadonlyMap<string, string>;
   files: ReadonlyMap<string, WorkbenchMultipartFile>;
 };

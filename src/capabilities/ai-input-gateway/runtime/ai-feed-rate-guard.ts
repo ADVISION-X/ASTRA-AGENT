@@ -3,7 +3,7 @@ let lastWebChatFeedAt = 0;
 
 const WEB_CHAT_COOLDOWN_MS = 2_000;
 
-export type AiFeedRateDecision = {
+type AiFeedRateDecision = {
   ok: boolean;
   cooldownMs: number;
   reason: string | null;

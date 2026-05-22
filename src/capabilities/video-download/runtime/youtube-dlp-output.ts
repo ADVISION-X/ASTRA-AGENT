@@ -10,7 +10,7 @@ export type YoutubeSubtitleDownload = {
   extension: ".vtt" | ".srt";
 };
 
-export type YoutubeOutputFiles = {
+type YoutubeOutputFiles = {
   video: {
     bytes: Uint8Array;
     contentType: string;

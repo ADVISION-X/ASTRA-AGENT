@@ -1,6 +1,6 @@
 import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js";
 
-export type WebChatActionStatus = "success" | "review_required" | "failed" | "pending";
+type WebChatActionStatus = "success" | "review_required" | "failed" | "pending";
 
 export type WebChatEvaluation = { status: WebChatActionStatus; message: string; answerText?: string | null; pageUrl?: string | null; selector?: string | null; generating?: boolean; target?: "composer-plus" | "upload-menu-item"; x?: number; y?: number; assistantCount?: number; composerText?: string | null };
 

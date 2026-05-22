@@ -14,7 +14,6 @@ import { runFacebookMiningRound } from "./facebook-product-video-mining.round.js
 import { logFacebookMiningFlow } from "./facebook-product-video-mining.logging.js";
 import { focusExistingFacebookVideoTab } from "./facebook-product-video-mining.chrome-tabs.js";
 
-type FacebookProductVideoMiningMissionInput = FacebookProductVideoMiningContracts["FacebookProductVideoMiningMissionInput"];
 type FacebookProductVideoMiningRunStatus = FacebookProductVideoMiningContracts["FacebookProductVideoMiningRunStatus"];
 type FacebookProductVideoMiningRun = ReturnType<typeof buildFacebookMiningRunConfig>;
 
@@ -120,8 +119,8 @@ const runFacebookMiningRounds = async (input: {
       break;
     }
     const outcome = await runFacebookMiningRound({ ...input.context, storage: input.storage, run: input.run, roundIndex });
-    terminalReason = outcome.reason;
     if (outcome.terminal) {
+      terminalReason = outcome.reason;
       break;
     }
   }

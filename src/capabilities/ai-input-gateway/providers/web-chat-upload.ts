@@ -17,6 +17,20 @@ import {
   waitForUploadTarget,
 } from "./web-chat-page-actions.js";
 
+const FILE_SELECTION_TIMEOUT_MS = 20_000;
+const CLIPBOARD_UPLOAD_TIMEOUT_MS = 20_000;
+
+const withUploadTimeout = async <T>(
+  label: string,
+  timeoutMs: number,
+  action: Promise<T>,
+): Promise<T> => {
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error(`review_required: ${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+  });
+  return Promise.race([action, timeoutPromise]);
+};
+
 const uploadFileViaClipboardPaste = async (
   browser: BrowserController,
   context: AiProviderAdapterContext,
@@ -26,8 +40,12 @@ const uploadFileViaClipboardPaste = async (
   if (focused.status !== "success") {
     throw new Error(`${focused.status}: ${focused.message}`);
   }
-  await copyFileObjectToMacClipboard(filePath, context.abortSignal);
-  await pasteMacClipboardIntoChrome(context.abortSignal);
+  await withUploadTimeout(
+    "provider clipboard file paste",
+    CLIPBOARD_UPLOAD_TIMEOUT_MS,
+    copyFileObjectToMacClipboard(filePath, context.abortSignal)
+      .then(() => pasteMacClipboardIntoChrome(context.abortSignal)),
+  );
 };
 
 const getDesktopPoint = (point: { x?: number; y?: number; status: string; message: string }) => {
@@ -90,6 +108,29 @@ const waitForRefUploadComplete = async (input: {
   await waitForUploadComplete(input.browser, input.context, input.ref.filePath, input.request.timeoutMs);
 };
 
+const setProviderFileInputWithTimeout = async (input: {
+  browser: BrowserController;
+  context: AiProviderAdapterContext;
+  ref: UploadableAiFeedInputRef;
+  selector: string;
+}) => {
+  const uploadPromise = input.browser.setFileInputFiles({
+    elementRef: { selector: input.selector, targetKind: "file-input" },
+    filePath: input.ref.filePath,
+    description: `upload governed input file ${input.ref.id} to provider web chat`,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
+  const timeoutPromise = new Promise<Awaited<typeof uploadPromise>>((resolve) => {
+    setTimeout(() => resolve({
+      browserActionId: "browser_file_input_timeout",
+      ok: false,
+      message: "provider file input selection timed out",
+      createdAt: new Date().toISOString(),
+    }), FILE_SELECTION_TIMEOUT_MS);
+  });
+  return Promise.race([uploadPromise, timeoutPromise]);
+};
+
 const uploadLocatedFileInput = async (input: {
   browser: BrowserController;
   context: AiProviderAdapterContext;
@@ -97,12 +138,7 @@ const uploadLocatedFileInput = async (input: {
   ref: UploadableAiFeedInputRef;
 }): Promise<void> => {
   const selector = assertUploadTarget(await waitForUploadTarget(input.browser, input.context, input.request.timeoutMs));
-  const uploaded = await input.browser.setFileInputFiles({
-    elementRef: { selector, targetKind: "file-input" },
-    filePath: input.ref.filePath,
-    description: `upload governed input file ${input.ref.id} to provider web chat`,
-    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-  });
+  const uploaded = await setProviderFileInputWithTimeout({ ...input, selector });
   if (!uploaded.ok) {
     throw new Error(`failed: ${uploaded.message}`);
   }
@@ -126,15 +162,15 @@ const uploadSingleFile = async (input: {
   ref: UploadableAiFeedInputRef;
 }): Promise<void> => {
   try {
-    await tryClipboardUpload(input);
+    await uploadLocatedFileInput(input);
     return;
   } catch {
     try {
+      await uploadFileViaProviderMenu(input.browser, input.context);
       await uploadLocatedFileInput(input);
       return;
     } catch {
-      await uploadFileViaProviderMenu(input.browser, input.context);
-      await uploadLocatedFileInput(input);
+      await tryClipboardUpload(input);
     }
   }
 };

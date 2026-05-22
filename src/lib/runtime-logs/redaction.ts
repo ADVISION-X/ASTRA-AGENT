@@ -7,7 +7,7 @@ const SECRET_KEYS = /^(cookie|token|authorization|password|api[_-]?key|secret|se
 const BASE64_PATTERN = /^data:[^;]+;base64,/;
 
 /** Redact a single value if it looks like a secret or base64 image. */
-export function redactValue(key: string, value: unknown): unknown {
+function redactValue(key: string, value: unknown): unknown {
   if (typeof value === "string") {
     if (SECRET_KEYS.test(key)) return REDACTED;
     if (BASE64_PATTERN.test(value)) return REDACTED;

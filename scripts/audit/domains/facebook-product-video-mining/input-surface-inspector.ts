@@ -7,11 +7,7 @@ import { resolveFromRepo } from "../../shared/paths.js";
 const facebookPagePath = "src/app/workbench-home-page.ts";
 const facebookClientPath = "src/app/workbench-home-client.ts";
 const facebookSchemaPath = "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts";
-const facebookAiJudgePath = "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts";
-const facebookAiTimeoutPath = "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts";
 const facebookSelectionExportPath = "src/plugins/facebook-product-video-mining/facebook-product-video-mining.selection-export.ts";
-const webChatSharedPath = "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts";
-const webChatUploadPath = "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts";
 
 const readRepoText = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
 
@@ -148,56 +144,4 @@ export const inspectSavedRecordExportSurface = (
   inspectSelectionExportOwner(findings, lawId, readRepoText(facebookSelectionExportPath));
 };
 
-const inspectWebChatSafetyGuards = (
-  findings: InspectorFinding[],
-  lawId: string,
-  webChatSharedText: string,
-  webChatUploadText: string,
-): void => {
-  if (!webChatSharedText.includes("ensureProviderWorkspaceFocused")) {
-    findings.push(createFinding({
-      checkId: "facebook-mining/provider-tab-focus-guard",
-      lawId,
-      filePath: webChatSharedPath,
-      message: "Facebook web-chat feed must refocus provider workspace before upload, submit, and answer extraction.",
-    }));
-  }
-  if (/chooseFileInNativeDialog/u.test(webChatUploadText)) {
-    findings.push(createFinding({
-      checkId: "facebook-mining/no-blind-native-file-path-entry",
-      lawId,
-      filePath: webChatUploadPath,
-      message: "Facebook web-chat upload must not type file paths unless a provider file input is located.",
-    }));
-  }
-};
-
-export const inspectFacebookSafetyDefaults = (
-  findings: InspectorFinding[],
-  inspectedFiles: Set<string>,
-  lawId: string,
-): void => {
-  for (const repoPath of [facebookSchemaPath, facebookAiJudgePath, facebookAiTimeoutPath, webChatSharedPath, webChatUploadPath]) inspectedFiles.add(repoPath);
-  const schemaText = readRepoText(facebookSchemaPath);
-  const aiJudgeText = readRepoText(facebookAiJudgePath);
-  const aiTimeoutText = readRepoText(facebookAiTimeoutPath);
-  const webChatSharedText = readRepoText(webChatSharedPath);
-  const webChatUploadText = readRepoText(webChatUploadPath);
-  if (!/notInterestedEnabled:\s*z\.boolean\(\)\.default\(false\)/u.test(schemaText)) {
-    findings.push(createFinding({
-      checkId: "facebook-mining/not-interested-default-off",
-      lawId,
-      filePath: facebookSchemaPath,
-      message: "Facebook mining must keep notInterestedEnabled off by default to avoid polluting the operator's feed.",
-    }));
-  }
-  if (!/executeFacebookAiFeedWithHardTimeout/u.test(aiJudgeText) || !/AbortController/u.test(aiTimeoutText)) {
-    findings.push(createFinding({
-      checkId: "facebook-mining/ai-hard-timeout",
-      lawId,
-      filePath: facebookAiTimeoutPath,
-      message: "Facebook AI judgment must have a hard timeout and abort signal so runs cannot remain running indefinitely.",
-    }));
-  }
-  inspectWebChatSafetyGuards(findings, lawId, webChatSharedText, webChatUploadText);
-};
+export { inspectFacebookSafetyDefaults } from "./input-surface-safety-inspector.js";

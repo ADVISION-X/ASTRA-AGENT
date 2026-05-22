@@ -70,8 +70,10 @@ Facebook product video mining 必须作为单独法门输入面。页面只允�
 - max rounds、max minutes、评论加载、视频质量、视频大小、rejected trace 使用 schema 默认策略。
 - Not Interested 默认关闭，避免本地 Workbench 启动后对操作者 Facebook 推荐流做负反馈污染。
 - AI web-chat 判断必须有硬超时；超时后 run 进入复核终态，不能无限显示 running。
+- AI web-chat 上传完成等待必须短上限；AI judgment failure 保存候选后必须终止本次 mission 为复核态。
 - AI web-chat 上传/提交/读回答前必须重新聚焦 provider workspace tab，防止 Chrome active tab drift。
-- 文件上传必须先定位 provider file input，禁止把本地文件路径打进错误页面或 Chrome 查找栏。
+- 首次没有保存 workspace URL 时必须打开 provider 入口并保存实际 workspace URL，不得复用任意旧 ChatGPT 会话或按标题匹配旧会话。
+- 文件上传必须优先使用已定位 provider file input，剪贴板文件粘贴只能作为后备，禁止把本地文件路径打进错误页面或 Chrome 查找栏。
 - Start 后页面自动轮询当前 run，展示 saved product count / target count。
 - 页面展示 saved `PRODUCT_SEEDING` records，并提供 Export JSON 给高级 AI 选品。
 

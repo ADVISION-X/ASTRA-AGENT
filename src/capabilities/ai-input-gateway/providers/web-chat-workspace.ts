@@ -59,10 +59,8 @@ tell application "Google Chrome"
     set tIndex to 1
     repeat with t in tabs of w
       set tabUrl to URL of t
-      set tabTitle to title of t
-      set lowerTitle to do shell script "printf %s " & quoted form of tabTitle & " | tr '[:upper:]' '[:lower:]'"
       if tabUrl contains "${escapeAppleScriptText(input.providerHost)}" then
-        if ${input.savedUrl ? `tabUrl is "${escapeAppleScriptText(input.savedUrl)}" or ` : ""}lowerTitle contains "${escapeAppleScriptText(input.workspaceId.toLowerCase())}" then
+        if ${input.savedUrl ? `tabUrl is "${escapeAppleScriptText(input.savedUrl)}"` : "false"} then
           set active tab index of w to tIndex
           set index of w to 1
           return "focused"
@@ -86,6 +84,7 @@ export const ensureProviderWorkspaceFocused = async (input: {
   request: AiFeedInput;
   context: AiProviderAdapterContext;
   providerUrl: string;
+  allowAnyProviderTab?: boolean;
 }): Promise<void> => {
   const workspaceId = resolveWebChatWorkspaceId(input.request);
   if (!workspaceId) return;
@@ -98,7 +97,7 @@ export const ensureProviderWorkspaceFocused = async (input: {
     providerHost: new URL(input.providerUrl).host,
     workspaceId,
     savedUrl,
-    allowAnyProviderTab: savedUrl === null,
+    allowAnyProviderTab: false,
     ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
   });
   if (!focused) {

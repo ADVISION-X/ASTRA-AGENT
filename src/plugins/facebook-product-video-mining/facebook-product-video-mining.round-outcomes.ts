@@ -52,7 +52,10 @@ export const handleProbeFailure = (input: {
     commentStopReason: input.probe.blocker,
   });
   saveFacebookMiningCandidateEvidence({ storage: input.storage, candidate, comments: [], probe: input.probe });
-  return { terminal: true, reason: input.probe.blocker ?? input.probe.status };
+  const terminal = input.probe.status === "login_required"
+    || input.probe.status === "captcha_or_2fa_required"
+    || input.probe.blocker === "facebook_rate_limited";
+  return { terminal, reason: input.probe.blocker ?? input.probe.status };
 };
 
 export const handleDownloadFailure = (input: {
@@ -90,8 +93,7 @@ export const handleDownloadFailure = (input: {
   });
 };
 
-export const handleJudgmentFailure = async (input: {
-  videoDownload: VideoDownloadAbilityGroup;
+const saveJudgmentFailureCandidate = (input: {
   storage: FacebookProductVideoMiningStorage;
   missionId: string;
   runId: string;
@@ -99,10 +101,8 @@ export const handleJudgmentFailure = async (input: {
   roundIndex: number;
   probe: FacebookVideoDomProbeResult;
   comments: FacebookCommentCollectionResult;
-  download: SuccessfulVideoDownload;
   judgment: FacebookVideoAiJudgment;
-}): Promise<FacebookMiningRoundOutcome> => {
-  await deleteRejectedFacebookVideo({ videoDownload: input.videoDownload, downloaded: input.download });
+}): void => {
   const candidate = buildFacebookMiningCandidate({
     missionId: input.missionId,
     runId: input.runId,
@@ -122,6 +122,25 @@ export const handleJudgmentFailure = async (input: {
     judgment: input.judgment,
     probe: input.probe,
   });
+};
+
+export const handleJudgmentFailure = async (input: {
+  browser: BrowserController;
+  runtimeLogger: RuntimeLogger;
+  videoDownload: VideoDownloadAbilityGroup;
+  storage: FacebookProductVideoMiningStorage;
+  feedEntryUrl: string;
+  missionId: string;
+  runId: string;
+  roundId: string;
+  roundIndex: number;
+  probe: FacebookVideoDomProbeResult;
+  comments: FacebookCommentCollectionResult;
+  download: SuccessfulVideoDownload;
+  judgment: FacebookVideoAiJudgment;
+}): Promise<FacebookMiningRoundOutcome> => {
+  await deleteRejectedFacebookVideo({ videoDownload: input.videoDownload, downloaded: input.download });
+  saveJudgmentFailureCandidate(input);
   return { terminal: true, reason: input.judgment.reason };
 };
 

@@ -1,8 +1,12 @@
-import { Node, SyntaxKind, type SourceFile, type Statement } from "ts-morph";
+import { Node, SyntaxKind, type Identifier, type Node as MorphNode, type SourceFile, type Statement } from "ts-morph";
 
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
 import { pushZombieFinding } from "./zombie-surface-shared.js";
+
+const isWithinSelfBoundary = (referenceNode: MorphNode, selfBoundary: MorphNode): boolean =>
+  referenceNode === selfBoundary
+  || referenceNode.getAncestors().some((ancestor) => ancestor === selfBoundary);
 
 const collectIdentifierCounts = (sourceFile: SourceFile): Map<string, number> => {
   const identifierCounts = new Map<string, number>();
@@ -13,26 +17,64 @@ const collectIdentifierCounts = (sourceFile: SourceFile): Map<string, number> =>
   return identifierCounts;
 };
 
+const isTypeScriptSource = (sourceFile: SourceFile): boolean => /\.(?:ts|tsx)$/u.test(sourceFile.getBaseName());
+
+const hasLiveSameFileReference = (
+  nameNode: Identifier,
+  selfBoundary: MorphNode,
+  input: {
+    identifierCounts: ReadonlyMap<string, number>;
+    preferIdentifierFallback: boolean;
+  },
+): boolean => {
+  if (input.preferIdentifierFallback) {
+    return (input.identifierCounts.get(nameNode.getText()) ?? 0) > 1;
+  }
+  try {
+    return nameNode.findReferencesAsNodes().some((referenceNode) =>
+      referenceNode.getSourceFile() === nameNode.getSourceFile()
+      && referenceNode !== nameNode
+      && !isWithinSelfBoundary(referenceNode, selfBoundary)
+    );
+  } catch {
+    return (input.identifierCounts.get(nameNode.getText()) ?? 0) > 1;
+  }
+};
+
 const pushUnusedNamedDeclaration = (
   unusedDeclarations: Array<{ kind: string; name: string }>,
-  identifierCounts: ReadonlyMap<string, number>,
-  input: { kind: string; name: string | undefined; exported: boolean },
+  input: {
+    kind: string;
+    nameNode: MorphNode | undefined;
+    exported: boolean;
+    selfBoundary: MorphNode;
+    identifierCounts: ReadonlyMap<string, number>;
+    preferIdentifierFallback: boolean;
+  },
 ): void => {
-  if (!input.name || input.exported) {
+  if (!input.nameNode || input.exported || !Node.isIdentifier(input.nameNode)) {
     return;
   }
-  if ((identifierCounts.get(input.name) ?? 0) === 1) {
-    unusedDeclarations.push({ kind: input.kind, name: input.name });
+  if (!hasLiveSameFileReference(input.nameNode, input.selfBoundary, input)) {
+    unusedDeclarations.push({ kind: input.kind, name: input.nameNode.getText() });
   }
 };
 
 const collectUnusedFunctionDeclaration = (
   statement: Statement,
   identifierCounts: ReadonlyMap<string, number>,
+  preferIdentifierFallback: boolean,
   unusedDeclarations: Array<{ kind: string; name: string }>,
 ): boolean => {
   if (Node.isFunctionDeclaration(statement)) {
-    pushUnusedNamedDeclaration(unusedDeclarations, identifierCounts, { kind: "function", name: statement.getName(), exported: statement.isExported() });
+    pushUnusedNamedDeclaration(unusedDeclarations, {
+      kind: "function",
+      nameNode: statement.getNameNode(),
+      exported: statement.isExported(),
+      identifierCounts,
+      preferIdentifierFallback,
+      selfBoundary: statement,
+    });
     return true;
   }
   return false;
@@ -41,14 +83,29 @@ const collectUnusedFunctionDeclaration = (
 const collectUnusedClassLikeDeclaration = (
   statement: Statement,
   identifierCounts: ReadonlyMap<string, number>,
+  preferIdentifierFallback: boolean,
   unusedDeclarations: Array<{ kind: string; name: string }>,
 ): boolean => {
   if (Node.isClassDeclaration(statement)) {
-    pushUnusedNamedDeclaration(unusedDeclarations, identifierCounts, { kind: "class", name: statement.getName(), exported: statement.isExported() });
+    pushUnusedNamedDeclaration(unusedDeclarations, {
+      kind: "class",
+      nameNode: statement.getNameNode(),
+      exported: statement.isExported(),
+      identifierCounts,
+      preferIdentifierFallback,
+      selfBoundary: statement,
+    });
     return true;
   }
   if (Node.isEnumDeclaration(statement)) {
-    pushUnusedNamedDeclaration(unusedDeclarations, identifierCounts, { kind: "enum", name: statement.getName(), exported: statement.isExported() });
+    pushUnusedNamedDeclaration(unusedDeclarations, {
+      kind: "enum",
+      nameNode: statement.getNameNode(),
+      exported: statement.isExported(),
+      identifierCounts,
+      preferIdentifierFallback,
+      selfBoundary: statement,
+    });
     return true;
   }
   return false;
@@ -57,14 +114,29 @@ const collectUnusedClassLikeDeclaration = (
 const collectUnusedTypeDeclaration = (
   statement: Statement,
   identifierCounts: ReadonlyMap<string, number>,
+  preferIdentifierFallback: boolean,
   unusedDeclarations: Array<{ kind: string; name: string }>,
 ): boolean => {
   if (Node.isInterfaceDeclaration(statement)) {
-    pushUnusedNamedDeclaration(unusedDeclarations, identifierCounts, { kind: "interface", name: statement.getName(), exported: statement.isExported() });
+    pushUnusedNamedDeclaration(unusedDeclarations, {
+      kind: "interface",
+      nameNode: statement.getNameNode(),
+      exported: statement.isExported(),
+      identifierCounts,
+      preferIdentifierFallback,
+      selfBoundary: statement,
+    });
     return true;
   }
   if (Node.isTypeAliasDeclaration(statement)) {
-    pushUnusedNamedDeclaration(unusedDeclarations, identifierCounts, { kind: "type alias", name: statement.getName(), exported: statement.isExported() });
+    pushUnusedNamedDeclaration(unusedDeclarations, {
+      kind: "type alias",
+      nameNode: statement.getNameNode(),
+      exported: statement.isExported(),
+      identifierCounts,
+      preferIdentifierFallback,
+      selfBoundary: statement,
+    });
     return true;
   }
   return false;
@@ -73,6 +145,7 @@ const collectUnusedTypeDeclaration = (
 const collectUnusedVariableDeclarations = (
   statement: Statement,
   identifierCounts: ReadonlyMap<string, number>,
+  preferIdentifierFallback: boolean,
   unusedDeclarations: Array<{ kind: string; name: string }>,
 ): void => {
   if (!Node.isVariableStatement(statement) || statement.isExported()) {
@@ -80,7 +153,10 @@ const collectUnusedVariableDeclarations = (
   }
   for (const declaration of statement.getDeclarations()) {
     const nameNode = declaration.getNameNode();
-    if (Node.isIdentifier(nameNode) && (identifierCounts.get(nameNode.getText()) ?? 0) === 1) {
+    if (Node.isIdentifier(nameNode) && !hasLiveSameFileReference(nameNode, declaration, {
+      identifierCounts,
+      preferIdentifierFallback,
+    })) {
       unusedDeclarations.push({ kind: "variable", name: nameNode.getText() });
     }
   }
@@ -89,25 +165,27 @@ const collectUnusedVariableDeclarations = (
 const collectUnusedDeclarationsFromStatement = (
   statement: Statement,
   identifierCounts: ReadonlyMap<string, number>,
+  preferIdentifierFallback: boolean,
   unusedDeclarations: Array<{ kind: string; name: string }>,
 ): void => {
-  if (collectUnusedFunctionDeclaration(statement, identifierCounts, unusedDeclarations)) {
+  if (collectUnusedFunctionDeclaration(statement, identifierCounts, preferIdentifierFallback, unusedDeclarations)) {
     return;
   }
-  if (collectUnusedClassLikeDeclaration(statement, identifierCounts, unusedDeclarations)) {
+  if (collectUnusedClassLikeDeclaration(statement, identifierCounts, preferIdentifierFallback, unusedDeclarations)) {
     return;
   }
-  if (collectUnusedTypeDeclaration(statement, identifierCounts, unusedDeclarations)) {
+  if (collectUnusedTypeDeclaration(statement, identifierCounts, preferIdentifierFallback, unusedDeclarations)) {
     return;
   }
-  collectUnusedVariableDeclarations(statement, identifierCounts, unusedDeclarations);
+  collectUnusedVariableDeclarations(statement, identifierCounts, preferIdentifierFallback, unusedDeclarations);
 };
 
 const collectUnusedTopLevelDeclarations = (sourceFile: SourceFile): Array<{ kind: string; name: string }> => {
   const identifierCounts = collectIdentifierCounts(sourceFile);
+  const preferIdentifierFallback = !isTypeScriptSource(sourceFile);
   const unusedDeclarations: Array<{ kind: string; name: string }> = [];
   for (const statement of sourceFile.getStatements()) {
-    collectUnusedDeclarationsFromStatement(statement, identifierCounts, unusedDeclarations);
+    collectUnusedDeclarationsFromStatement(statement, identifierCounts, preferIdentifierFallback, unusedDeclarations);
   }
   return unusedDeclarations;
 };

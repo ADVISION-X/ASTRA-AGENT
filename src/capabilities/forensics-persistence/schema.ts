@@ -103,8 +103,6 @@ const ForensicsResultSchema = z.object({
 });
 
 type ForensicsChildCapabilityId = z.infer<typeof ForensicsChildCapabilityIdSchema>;
-type ForensicsRecordType = z.infer<typeof ForensicsRecordTypeSchema>;
-type ForensicsArtifactType = z.infer<typeof ForensicsArtifactTypeSchema>;
 type ForensicsProof = z.infer<typeof ForensicsProofSchema>;
 type ForensicsAppendRecordInput = z.infer<typeof ForensicsAppendRecordInputSchema>;
 type ForensicsAppendArtifactInput = z.infer<typeof ForensicsAppendArtifactInputSchema>;

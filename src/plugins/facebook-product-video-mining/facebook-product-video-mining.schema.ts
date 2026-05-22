@@ -132,7 +132,7 @@ const FacebookProductVideoMiningRoundStateSchema = z.object({
   reason: z.string().nullable().default(null),
 }).strict();
 
-export const FacebookVideoDomProbeResultSchema = z.object({
+const FacebookVideoDomProbeResultSchema = z.object({
   status: z.enum(["success", "login_required", "captcha_or_2fa_required", "review_required", "failed"]),
   sourcePageUrl: z.string().min(1),
   pageTitle: z.string().min(1),
@@ -179,7 +179,7 @@ const FacebookAiProviderProofSchema = z.object({
   outputHash: z.string().nullable().default(null),
 }).strict();
 
-export const FacebookVideoAiJudgmentSchema = z.object({
+const FacebookVideoAiJudgmentSchema = z.object({
   providerKind: FacebookProviderKindSchema,
   status: z.enum(["success", "review_required", "failed"]),
   selectedOptionId: z.enum(["PRODUCT_SEEDING", "NOT_PRODUCT_SEEDING", "UNCERTAIN"]),
@@ -229,7 +229,7 @@ const FacebookProductVideoCandidateRecordSchema = z.object({
   updatedAt: z.string().datetime().nullable().default(null),
 }).strict();
 
-export const FacebookProductVideoMiningRunStatusSchema = z.object({
+const FacebookProductVideoMiningRunStatusSchema = z.object({
   runId: z.string().min(1),
   missionId: z.string().min(1),
   feedEntryUrl: z.string().url(),

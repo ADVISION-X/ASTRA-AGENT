@@ -1,7 +1,6 @@
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
 import {
-  isLawfulZombieEntrypoint,
   isLawfulZombieExport,
   pushZombieFinding,
   type ZombieGraph,
@@ -14,17 +13,16 @@ const scanZombieFiles = (
   zombieLawId: string,
 ): void => {
   for (const governedFile of governedFiles) {
-    const inboundFiles = graph.inboundByFile.get(governedFile.repoPath);
-    if ((inboundFiles?.size ?? 0) > 0 || isLawfulZombieEntrypoint(governedFile, graph)) {
+    if (graph.reachableFiles.has(governedFile.repoPath)) {
       continue;
     }
     pushZombieFinding(collector, {
       checkId: "code-purity/zombie-file",
       governedFile,
       lawId: zombieLawId,
-      reason: "Active file has no lawful inbound reference and is not a declared entry surface.",
-      remediation: "Delete the file or reconnect it through a lawful package entry, generated-plan owner load, or active importer.",
-      message: `${governedFile.repoPath} has no lawful inbound reference and behaves like a zombie file.`,
+      reason: "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
+      remediation: "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
+      message: `${governedFile.repoPath} is not reachable from any lawful live entry surface and behaves like a zombie file.`,
     });
   }
 };
@@ -36,7 +34,7 @@ const scanZombieExports = (
   zombieLawId: string,
 ): void => {
   for (const governedFile of governedFiles) {
-    if (isLawfulZombieEntrypoint(governedFile, graph) || graph.namespaceImportedFiles.has(governedFile.repoPath)) {
+    if (!graph.reachableFiles.has(governedFile.repoPath) || graph.namespaceImportedFiles.has(governedFile.repoPath)) {
       continue;
     }
     const importedNames = graph.importedNamesByFile.get(governedFile.repoPath) ?? new Set<string>();

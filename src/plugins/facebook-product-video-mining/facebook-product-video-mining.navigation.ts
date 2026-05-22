@@ -4,11 +4,15 @@ import { focusExistingFacebookVideoTab } from "./facebook-product-video-mining.c
 import { logFacebookNavigationDebug } from "./facebook-product-video-mining.logging.js";
 import {
   buildFallbackNavigateToNextVideoScript,
-  buildNavigateToNextVideoScript,
   buildNavigationSignatureScript,
   buildPrepareForNextVideoScript,
+  buildSafeZoneNavigateToNextVideoScript,
   type FacebookNavigationSignature,
 } from "./facebook-product-video-mining.navigation-scripts.js";
+import {
+  collectChangedNavigationSignals,
+  hasNavigationProofQuorum,
+} from "./facebook-product-video-mining.navigation-proof.js";
 
 export type FacebookMiningRoundOutcome = {
   terminal: boolean;
@@ -21,26 +25,20 @@ type FacebookNavigationAction = {
   text: string | null;
 };
 
-type FacebookNavigationActions = {
-  closeAction: FacebookNavigationAction | null;
-  navigateAction: FacebookNavigationAction;
-  fallbackAction: FacebookNavigationAction | null;
-};
-
 type FacebookNavigationWaitResult = {
   after: FacebookNavigationSignature;
-  fallbackAction: FacebookNavigationAction | null;
   terminalReason: string | null;
+  changedSignals: string[];
+  quorumMet: boolean;
 };
 
 const captureNavigationSignature = (
   browser: BrowserController,
   description: string,
-): Promise<FacebookNavigationSignature> =>
-  browser.evaluateActiveTab<FacebookNavigationSignature>({
-    description,
-    script: buildNavigationSignatureScript(),
-  });
+): Promise<FacebookNavigationSignature> => browser.evaluateActiveTab<FacebookNavigationSignature>({
+  description,
+  script: buildNavigationSignatureScript(),
+});
 
 const isFacebookPageUrl = (value: string): boolean => {
   try {
@@ -56,123 +54,117 @@ const ensureFacebookFeedTab = async (input: {
   feedEntryUrl: string;
 }): Promise<string | null> => {
   const focusedFacebook = await focusExistingFacebookVideoTab({ preferredUrl: null });
-  if (focusedFacebook) {
-    return null;
-  }
+  if (focusedFacebook) return null;
   const opened = await input.browser.open({
     url: input.feedEntryUrl,
     title: "recover Facebook Reels feed before next navigation",
   });
-  if (!opened.ok) {
-    return "facebook_source_tab_not_found_before_next_navigation";
-  }
+  if (!opened.ok) return "facebook_source_tab_not_found_before_next_navigation";
   await input.browser.wait(1_000);
   return null;
 };
 
-const prepareNextNavigation = async (input: {
+const closeBlockingSurfaces = async (input: {
   browser: BrowserController;
   before: FacebookNavigationSignature;
-}): Promise<FacebookNavigationActions> => {
-  const closeAction = input.before.activeDialogCount > 0
-    ? await input.browser.evaluateActiveTab<FacebookNavigationAction>({
-      description: "prepare Facebook feed for next video navigation",
-      script: buildPrepareForNextVideoScript(),
-    })
-    : null;
-  const navigateAction = await input.browser.evaluateActiveTab<FacebookNavigationAction>({
-    description: "navigate to next Facebook video",
-    script: buildNavigateToNextVideoScript(),
-  });
-  return { closeAction, navigateAction, fallbackAction: null };
-};
+}): Promise<FacebookNavigationAction | null> => input.before.activeDialogCount > 0
+  ? input.browser.evaluateActiveTab<FacebookNavigationAction>({
+    description: "prepare Facebook feed for next video navigation",
+    script: buildPrepareForNextVideoScript(),
+  })
+  : null;
 
 const restoreFacebookSourceTab = async (input: {
   browser: BrowserController;
   preferredUrl: string;
 }): Promise<boolean> => {
   const focused = await focusExistingFacebookVideoTab({ preferredUrl: input.preferredUrl });
-  if (!focused) {
-    return false;
-  }
-  await input.browser.evaluateActiveTab<FacebookNavigationAction>({
-    description: "retry next Facebook video after tab drift restore",
-    script: buildNavigateToNextVideoScript(),
-  });
+  if (!focused) return false;
   await input.browser.wait(500);
   return true;
 };
+const isTerminalNavigationBlocker = (
+  signature: FacebookNavigationSignature,
+): boolean => signature.blockerReason === "facebook_login_required"
+  || signature.blockerReason === "facebook_security_or_rate_limit_blocker";
 
 const readNavigationAttempt = async (input: {
   browser: BrowserController;
   before: FacebookNavigationSignature;
-}): Promise<{
-  after: FacebookNavigationSignature;
-  changed: boolean;
-  terminalReason: string | null;
-}> => {
+}): Promise<FacebookNavigationWaitResult> => {
   const after = await captureNavigationSignature(input.browser, "capture Facebook video signature after navigation");
+  if (isTerminalNavigationBlocker(after)) {
+    return { after, terminalReason: after.blockerReason, changedSignals: [], quorumMet: false };
+  }
   if (!isFacebookPageUrl(after.url) && isFacebookPageUrl(input.before.url)) {
     const restored = await restoreFacebookSourceTab({ browser: input.browser, preferredUrl: input.before.url });
-    return {
-      after,
-      changed: false,
-      terminalReason: restored ? null : "facebook_source_tab_not_found_after_ai_feed",
-    };
+    return { after, terminalReason: restored ? null : "facebook_source_tab_not_found_after_ai_feed", changedSignals: [], quorumMet: false };
   }
-  return {
-    after,
-    changed: input.before.signature !== after.signature,
-    terminalReason: null,
-  };
+  const changedSignals = collectChangedNavigationSignals(input.before, after);
+  return { after, terminalReason: null, changedSignals, quorumMet: hasNavigationProofQuorum(changedSignals) };
 };
 
+const pressArrowDownForNextVideo = async (browser: BrowserController): Promise<FacebookNavigationAction> => {
+  await browser.textInput({ targetLabel: "press ArrowDown for next Facebook reel", action: "press-key", key: "ArrowDown" }).catch(() => null);
+  return { acted: true, action: "arrow_down", text: null };
+};
+
+const wheelScrollForNextVideo = async (browser: BrowserController): Promise<FacebookNavigationAction> => {
+  await browser.scroll({ targetLabel: "wheel scroll Facebook reels feed", deltaX: 0, deltaY: 900 }).catch(() => null);
+  return { acted: true, action: "wheel_scroll_095_viewport", text: null };
+};
+
+const safeZoneClickForNextVideo = (
+  browser: BrowserController,
+): Promise<FacebookNavigationAction> => browser.evaluateActiveTab<FacebookNavigationAction>({
+  description: "safe-zone click and scroll for next Facebook video",
+  script: buildSafeZoneNavigateToNextVideoScript(),
+});
+
 const runFallbackNavigation = async (browser: BrowserController): Promise<FacebookNavigationAction> => {
-  await browser.textInput({
-    targetLabel: "fallback press ArrowDown for next Facebook reel",
-    action: "press-key",
-    key: "ArrowDown",
-  }).catch(() => null);
-  await browser.scroll({
-    targetLabel: "fallback scroll Facebook reels feed",
-    deltaX: 0,
-    deltaY: 900,
-  }).catch(() => null);
+  await pressArrowDownForNextVideo(browser);
+  await wheelScrollForNextVideo(browser);
   return browser.evaluateActiveTab<FacebookNavigationAction>({
     description: "fallback navigate to next Facebook video with ArrowDown and scroll",
     script: buildFallbackNavigateToNextVideoScript(),
   });
 };
 
-const finalizeNavigationWait = (input: {
-  before: FacebookNavigationSignature;
-  after: FacebookNavigationSignature;
-  fallbackAction: FacebookNavigationAction | null;
-}): FacebookNavigationWaitResult => ({
-  after: input.after,
-  fallbackAction: input.fallbackAction,
-  terminalReason: input.before.signature === input.after.signature ? "next_video_did_not_change" : null,
-});
-
 const waitForNavigationChange = async (input: {
   browser: BrowserController;
   before: FacebookNavigationSignature;
 }): Promise<FacebookNavigationWaitResult> => {
-  const deadline = Date.now() + 8_000;
-  let after = input.before;
-  let fallbackAction: FacebookNavigationAction | null = null;
+  const deadline = Date.now() + 3_000;
+  let latest: FacebookNavigationWaitResult = {
+    after: input.before,
+    terminalReason: null,
+    changedSignals: [],
+    quorumMet: false,
+  };
   while (Date.now() < deadline) {
-    const attempt = await readNavigationAttempt(input);
-    after = attempt.after;
-    if (attempt.terminalReason || attempt.changed) {
-      return { after, fallbackAction, terminalReason: attempt.terminalReason };
-    }
-    if (!fallbackAction && Date.now() > deadline - 5_500) {
-      fallbackAction = await runFallbackNavigation(input.browser);
-    }
+    latest = await readNavigationAttempt(input);
+    if (latest.terminalReason || latest.quorumMet) return latest;
     await input.browser.wait(300);
   }
-  return finalizeNavigationWait({ before: input.before, after, fallbackAction });
+  return latest;
+};
+
+const runFixedNavigationActionLadder = async (input: {
+  browser: BrowserController;
+  before: FacebookNavigationSignature;
+  feedEntryUrl: string;
+}): Promise<FacebookNavigationWaitResult & { actionLadder: FacebookNavigationAction[] }> => {
+  const actionLadder: FacebookNavigationAction[] = [];
+  for (const action of [pressArrowDownForNextVideo, wheelScrollForNextVideo, safeZoneClickForNextVideo, runFallbackNavigation]) {
+    actionLadder.push(await action(input.browser));
+    const result = await waitForNavigationChange({ browser: input.browser, before: input.before });
+    if (result.terminalReason || result.quorumMet) return { ...result, actionLadder };
+  }
+  const recoverReason = await ensureFacebookFeedTab({ browser: input.browser, feedEntryUrl: input.feedEntryUrl });
+  if (recoverReason) return { after: input.before, terminalReason: null, changedSignals: [], quorumMet: false, actionLadder };
+  actionLadder.push(await pressArrowDownForNextVideo(input.browser));
+  const result = await waitForNavigationChange({ browser: input.browser, before: input.before });
+  return { ...result, actionLadder };
 };
 
 const closeCommentSurface = async (browser: BrowserController): Promise<void> => {
@@ -192,30 +184,23 @@ export const navigateToNextFacebookVideo = async (input: {
   roundId: string;
   feedEntryUrl: string;
 }): Promise<FacebookMiningRoundOutcome> => {
-  const sourceTabFailureReason = await ensureFacebookFeedTab({
-    browser: input.browser,
-    feedEntryUrl: input.feedEntryUrl,
-  });
-  if (sourceTabFailureReason) {
-    return { terminal: true, reason: sourceTabFailureReason };
-  }
+  const sourceTabFailureReason = await ensureFacebookFeedTab({ browser: input.browser, feedEntryUrl: input.feedEntryUrl });
+  if (sourceTabFailureReason) return { terminal: false, reason: sourceTabFailureReason };
   await closeCommentSurface(input.browser);
   const before = await captureNavigationSignature(input.browser, "capture Facebook video signature before navigation");
-  const actions = await prepareNextNavigation({ browser: input.browser, before });
-  const { after, fallbackAction, terminalReason } = await waitForNavigationChange({
-    browser: input.browser,
-    before,
-  });
+  const closeAction = await closeBlockingSurfaces({ browser: input.browser, before });
+  const result = await runFixedNavigationActionLadder({ browser: input.browser, before, feedEntryUrl: input.feedEntryUrl });
+  const reason = result.terminalReason ?? (result.quorumMet ? null : "next_video_not_confirmed");
   logFacebookNavigationDebug({
     logger: input.logger,
     runId: input.runId,
     missionId: input.missionId,
     roundId: input.roundId,
-    status: terminalReason ? "review_required" : "success",
-    reason: terminalReason,
+    status: result.terminalReason ? "review_required" : result.quorumMet ? "success" : "skipped",
+    reason,
     before,
-    after,
-    action: { ...actions, fallbackAction },
+    after: result.after,
+    action: { closeAction, actionLadder: result.actionLadder, changedSignals: result.changedSignals, quorumMet: result.quorumMet },
   });
-  return { terminal: Boolean(terminalReason), reason: terminalReason };
+  return { terminal: Boolean(result.terminalReason), reason };
 };

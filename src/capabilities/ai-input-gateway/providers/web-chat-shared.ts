@@ -50,6 +50,7 @@ const extractWebChatConversation = async (input: {
     request: input.request,
     context: input.context,
     providerUrl: input.providerUrl,
+    allowAnyProviderTab: false,
   });
   const extracted = await waitForStableAnswer({
     browser: input.browser,
@@ -90,14 +91,14 @@ const executeWebChatConversation = async (input: {
   runtimeName: string;
   sourcePageUrlBeforeFeed: string | null;
 }): Promise<AiProviderRawResponse> => {
-  await ensureProviderWorkspaceFocused(input);
+  await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
   await setFileInputFilesFlow(input.browser, input.request, input.context);
-  await ensureProviderWorkspaceFocused(input);
+  await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
   const preSubmit = await readPreSubmitConversationState({
     browser: input.browser,
     context: input.context,
   });
-  await ensureProviderWorkspaceFocused(input);
+  await ensureProviderWorkspaceFocused({ ...input, allowAnyProviderTab: false });
   await submitWebChatPrompt({
     browser: input.browser,
     request: input.request,

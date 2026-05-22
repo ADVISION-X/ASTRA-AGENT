@@ -1,4 +1,4 @@
-export const AMAZON_INVOICE_UPLOAD_STATUS_VALUES = [
+const AMAZON_INVOICE_UPLOAD_STATUS_VALUES = [
   "received",
   "uploading",
   "pending",
@@ -24,7 +24,3 @@ export const AMAZON_INVOICE_UPLOAD_STATUS_VALUES = [
 
 export type AmazonInvoiceUploadStatus = (typeof AMAZON_INVOICE_UPLOAD_STATUS_VALUES)[number];
 
-export type AmazonInvoiceUploadDetectedState = {
-  status: AmazonInvoiceUploadStatus;
-  reason: string;
-};

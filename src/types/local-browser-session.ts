@@ -49,11 +49,8 @@ const LocalBrowserSessionStateSchema = z.object({
   reviewRequiredReason: z.string().min(1).nullable().default(null),
 });
 
-type BrowserMode = z.infer<typeof BrowserModeSchema>;
 type BrowserProfileProvisioning = z.infer<typeof BrowserProfileProvisioningSchema>;
-type BrowserProfileVerificationStatus = z.infer<typeof BrowserProfileVerificationStatusSchema>;
 type BrowserProfileStatus = z.infer<typeof BrowserProfileStatusSchema>;
-type BrowserLoginState = z.infer<typeof BrowserLoginStateSchema>;
 type LocalBrowserSessionConfig = z.infer<typeof LocalBrowserSessionConfigSchema>;
 type LocalBrowserSessionState = z.infer<typeof LocalBrowserSessionStateSchema>;
 

@@ -7,6 +7,7 @@ import {
   focusExistingWorkspaceTab,
   readSavedWorkspaceUrl,
   resolveWebChatWorkspaceId,
+  saveWorkspaceUrl,
 } from "./web-chat-workspace.js";
 
 const PROVIDER_COMPOSER_READY_SCRIPT = `
@@ -38,13 +39,22 @@ const waitForProviderComposer = async (
   throw new Error("review_required: provider composer did not become ready.");
 };
 
-export const openProviderPage = async (input: {
-  browser: BrowserController;
-  providerUrl: string;
-  runtimeName: string;
+const readActiveProviderUrl = async (
+  browser: BrowserController,
+  abortSignal?: AbortSignal,
+): Promise<string | null> => {
+  const state = await browser.evaluateActiveTab<{ pageUrl: string | null }>({
+    description: "read active provider workspace URL",
+    script: "return {pageUrl: location.href};",
+    ...(abortSignal ? { abortSignal } : {}),
+  });
+  return state.pageUrl;
+};
+
+const resolveWorkspaceState = (input: {
   context: AiProviderAdapterContext;
   request: AiFeedInput;
-}): Promise<void> => {
+}): { workspaceId: string | null; savedUrl: string | null } => {
   const workspaceId = resolveWebChatWorkspaceId(input.request);
   const savedUrl = workspaceId
     ? readSavedWorkspaceUrl({
@@ -53,23 +63,87 @@ export const openProviderPage = async (input: {
         workspaceId,
       })
     : null;
-  const focusedExisting = workspaceId
-    ? await focusExistingWorkspaceTab({
-        providerHost: new URL(input.providerUrl).host,
-        workspaceId,
-        savedUrl,
-        allowAnyProviderTab: savedUrl === null,
-        ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
-      })
-    : false;
-  const opened = focusedExisting
-    ? { ok: true, message: "focused existing provider workspace tab" }
-    : await input.browser.open({
-        url: savedUrl ?? input.providerUrl,
-        title: `${input.runtimeName}${workspaceId ? `:${workspaceId}` : ""}`,
-      });
+  return { workspaceId, savedUrl };
+};
+
+const focusExistingProviderWorkspace = async (input: {
+  providerUrl: string;
+  context: AiProviderAdapterContext;
+  workspaceId: string | null;
+  savedUrl: string | null;
+}): Promise<boolean> => {
+  if (!input.workspaceId) {
+    return false;
+  }
+  return focusExistingWorkspaceTab({
+    providerHost: new URL(input.providerUrl).host,
+    workspaceId: input.workspaceId,
+    savedUrl: input.savedUrl,
+    allowAnyProviderTab: false,
+    ...(input.context.abortSignal ? { abortSignal: input.context.abortSignal } : {}),
+  });
+};
+
+const persistWorkspaceUrlIfNeeded = async (input: {
+  browser: BrowserController;
+  context: AiProviderAdapterContext;
+  request: AiFeedInput;
+  workspaceId: string | null;
+}): Promise<void> => {
+  if (!input.workspaceId) {
+    return;
+  }
+  saveWorkspaceUrl({
+    dataDir: input.context.dataDir,
+    providerKind: input.request.providerKind,
+    workspaceId: input.workspaceId,
+    url: await readActiveProviderUrl(input.browser, input.context.abortSignal),
+  });
+};
+
+const openOrReuseProviderWorkspace = async (input: {
+  browser: BrowserController;
+  providerUrl: string;
+  runtimeName: string;
+  workspaceId: string | null;
+  savedUrl: string | null;
+  focusedExisting: boolean;
+}): Promise<{ ok: boolean; message: string }> => input.focusedExisting
+  ? { ok: true, message: "focused existing provider workspace tab" }
+  : input.browser.open({
+    url: input.savedUrl ?? input.providerUrl,
+    title: `${input.runtimeName}${input.workspaceId ? `:${input.workspaceId}` : ""}`,
+  });
+
+const assertProviderPageOpened = (opened: { ok: boolean; message: string }): void => {
   if (!opened.ok) {
     throw new Error(`Web chat provider page could not be opened: ${opened.message}`);
   }
+};
+
+export const openProviderPage = async (input: {
+  browser: BrowserController;
+  providerUrl: string;
+  runtimeName: string;
+  context: AiProviderAdapterContext;
+  request: AiFeedInput;
+}): Promise<void> => {
+  const { workspaceId, savedUrl } = resolveWorkspaceState(input);
+  const focusedExisting = await focusExistingProviderWorkspace({
+    providerUrl: input.providerUrl,
+    context: input.context,
+    workspaceId,
+    savedUrl,
+  });
+  const opened = await openOrReuseProviderWorkspace({
+    browser: input.browser,
+    providerUrl: input.providerUrl,
+    runtimeName: input.runtimeName,
+    workspaceId,
+    savedUrl,
+    focusedExisting,
+  });
+  assertProviderPageOpened(opened);
   await waitForProviderComposer(input.browser, input.context.abortSignal);
+  await persistWorkspaceUrlIfNeeded({ browser: input.browser, context: input.context, request: input.request, workspaceId });
 };

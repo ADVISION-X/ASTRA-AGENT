@@ -39,7 +39,7 @@ type YoutubeMetadata = {
   fileSize: number | null;
 };
 
-export type YoutubeDownloadSuccess = {
+type YoutubeDownloadSuccess = {
   ok: true;
   bytes: Uint8Array;
   contentType: string;
@@ -51,13 +51,13 @@ export type YoutubeDownloadSuccess = {
   subtitles: YoutubeSubtitleDownload[];
 };
 
-export type YoutubeDownloadFailure = {
+type YoutubeDownloadFailure = {
   ok: false;
   reason: string;
   reviewRequired: boolean;
 };
 
-export type YoutubeDownloadResult = YoutubeDownloadSuccess | YoutubeDownloadFailure;
+type YoutubeDownloadResult = YoutubeDownloadSuccess | YoutubeDownloadFailure;
 
 const numberField = (value: unknown): number | null =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;

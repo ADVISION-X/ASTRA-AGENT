@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T12:55:39.763Z",
+  "generatedAt": "2026-05-22T14:15:23.970Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -1228,9 +1228,12 @@
         "Default notInterestedEnabled=true for operator-facing Facebook mining.",
         "AI web-chat judgment without a hard timeout.",
         "AI web-chat timeout that leaves the run in running with no candidate evidence.",
+        "AI web-chat upload completion wait that can consume the whole judgment timeout.",
         "Provider composer wait that ignores the task abort signal.",
         "Typing a governed file path unless a provider file input is located.",
-        "Continuing web-chat upload, submit, or answer extraction after the active Chrome tab drifts away from the provider workspace."
+        "Continuing web-chat upload, submit, or answer extraction after the active Chrome tab drifts away from the provider workspace.",
+        "Selecting an arbitrary existing provider tab when no saved Facebook workspace URL exists.",
+        "Matching old provider conversations by title text instead of pinning the opened workspace URL."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
       "blockIndex": 3
@@ -1260,6 +1263,29 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
       "blockIndex": 4
+    },
+    {
+      "lawId": "APEX-FACEBOOK-MINING-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "facebook-product-video-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Facebook mining rounds must be controlled by a fixed flow state machine, fixed next-video action ladder, and multi-signal proof quorum; DOM selector feedback may observe but must not decide the next action.",
+      "appliesTo": [
+        "src/plugins/facebook-product-video-mining/**/*.{ts,tsx,js,jsx,mjs}",
+        "scripts/acceptance/facebook-product-video-mining*.ts",
+        "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
+      ],
+      "forbidden": [
+        "DOM next button candidates as the primary next-video decision source.",
+        "Single DOM signature change as the only proof of video transition.",
+        "next_video_did_not_change or next_video_not_confirmed stopping the whole mission.",
+        "Per-video download, comments, AI, duplicate, or navigation uncertainty treated as mission terminal.",
+        "AI returning workflow, selector, coordinate, browser command, or next action."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
+      "blockIndex": 5
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-001-V1",

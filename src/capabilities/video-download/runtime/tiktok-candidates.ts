@@ -3,13 +3,13 @@ import {
 } from "../schema.js";
 import { videoDownloadCandidateSchema } from "./candidate-schema.js";
 
-export type TikTokVideoFact = {
+type TikTokVideoFact = {
   width: number | null;
   height: number | null;
   duration: number | null;
 };
 
-export type TikTokMediaProbe = {
+type TikTokMediaProbe = {
   pageUrl: string;
   pageTitle: string;
   videoFact: TikTokVideoFact | null;

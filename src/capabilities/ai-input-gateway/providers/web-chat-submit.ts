@@ -14,6 +14,8 @@ import {
   verifyComposerText,
 } from "./web-chat-page-actions.js";
 
+const MAX_SUBMIT_BUTTON_WAIT_MS = 45_000;
+
 const withWebChatStep = async <T>(
   step: string,
   action: () => Promise<T>,
@@ -30,7 +32,7 @@ const waitForSubmitButtonPoint = async (input: {
   context: AiProviderAdapterContext;
   timeoutMs: number;
 }): Promise<{ x: number; y: number }> => {
-  const deadline = Date.now() + input.timeoutMs;
+  const deadline = Date.now() + Math.min(input.timeoutMs, MAX_SUBMIT_BUTTON_WAIT_MS);
   let lastMessage = "provider submit button was not checked";
   while (Date.now() < deadline) {
     const submitPoint = await withWebChatStep("find_submit_button_point", () =>

@@ -5,8 +5,13 @@ import { judgeFacebookProductVideo } from "../../src/plugins/facebook-product-vi
 
 const judgeSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts", "utf8");
 const webChatSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-shared.ts", "utf8");
+const webChatOpenSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-open.ts", "utf8");
+const webChatPageActionsSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-page-actions.ts", "utf8");
+const webChatSubmitSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-submit.ts", "utf8");
 const uploadSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-upload.ts", "utf8");
 const workspaceSource = readFileSync("src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts", "utf8");
+const roundOutcomesSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts", "utf8");
+const roundSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts", "utf8");
 
 assert.match(judgeSource, /inputRefs:\s*\[/u);
 assert.match(judgeSource, /filePath:\s*input\.videoFilePath/u);
@@ -14,6 +19,17 @@ assert.match(judgeSource, /mimeType:\s*"video\/mp4"/u);
 assert.match(webChatSource, /setFileInputFiles/u);
 assert.match(webChatSource, /ensureProviderWorkspaceFocused/u);
 assert.match(workspaceSource, /startsWith\("focused"\)/u);
+assert.match(webChatOpenSource, /allowAnyProviderTab:\s*false/u);
+assert.match(workspaceSource, /allowAnyProviderTab:\s*false/u);
+assert.match(webChatOpenSource, /saveWorkspaceUrl/u);
+assert.doesNotMatch(workspaceSource, /lowerTitle contains/u);
+assert.match(webChatPageActionsSource, /MAX_UPLOAD_COMPLETE_WAIT_MS\s*=\s*45_000/u);
+assert.match(webChatSubmitSource, /MAX_SUBMIT_BUTTON_WAIT_MS\s*=\s*45_000/u);
+assert.match(uploadSource, /CLIPBOARD_UPLOAD_TIMEOUT_MS\s*=\s*20_000/u);
+assert.match(uploadSource, /provider file input selection timed out/u);
+assert.ok(uploadSource.indexOf("await uploadLocatedFileInput(input)") < uploadSource.indexOf("await tryClipboardUpload(input)"));
+assert.match(roundOutcomesSource, /terminal:\s*true,\s*reason:\s*input\.judgment\.reason/u);
+assert.match(roundSource, /timeoutMs:\s*90_000/u);
 assert.match(webChatSource, /waitForStableAnswer/u);
 assert.match(webChatSource, /STABLE_ROUNDS_REQUIRED\s*=\s*3/u);
 assert.doesNotMatch(uploadSource, /chooseFileInNativeDialog/u);

@@ -15,6 +15,7 @@
 - DOM、Video Download、AI Input Gateway、Local App Shell、Evidence、Runtime Log 相关 active law
 
 本文只解释当前代码已经形成的流程、入口、数据合同与技术要点；不得用来授权第二流程、fallback、bridge、AI planner、通用 mission loop 或绕过平台安全限制。
+`APEX-FACEBOOK-MINING-006-V1` 明确后，本文中的下一条导航说明必须服从状态机、固定动作梯和 proof quorum，不能再把 DOM next selector 当成控制权来源。
 
 ## 1. 技能目标
 
@@ -140,10 +141,30 @@ flowchart TD
   W -- "no / uncertain" --> Y["optional Not Interested, delete staging artifact, save rejected trace"]
   X --> Z["navigate next Facebook video"]
   Y --> Z
-  Z --> AA{"target / rounds / time reached?"}
+  Z --> AC["verify new video proof quorum"]
+  AC --> AA{"target / rounds / time reached?"}
   AA -- "continue" --> J
   AA -- "stop" --> AB["finalize run status"]
 ```
+
+## 4.1 Round state machine
+
+Facebook mining round 不是 DOM feedback loop。它是固定状态机：
+
+```txt
+WAIT_VIDEO_STABLE
+-> SNAPSHOT_PAGE_FACTS
+-> LOAD_COMMENTS
+-> DOWNLOAD_VIDEO
+-> AI_JUDGE
+-> RECORD_RESULT
+-> OPTIONAL_NOT_INTERESTED
+-> ADVANCE_VIDEO
+-> VERIFY_NEW_VIDEO
+-> NEXT_ROUND
+```
+
+DOM probe 只负责 `SNAPSHOT_PAGE_FACTS` 的观察证据。它可以提供当前视频、评论入口、菜单、指标、blocker 等事实，但不能直接决定下一步业务动作。AI 仍只允许 bounded choice 判断，不允许返回 selector、坐标、浏览器动作或 next action。
 
 ## 5. 单轮执行顺序
 
@@ -173,8 +194,11 @@ flowchart TD
    - 输入包括视频文件 ref、页面事实、评论样本。
    - 通过 AI Input Gateway 投递给 web-chat provider。
    - AI feed 有硬超时与 abort signal；超时返回 `review_required` / `UNCERTAIN`，不能让 run 长期停在 `running`。
+   - 上传完成等待有短上限；上传未完成要尽早进入复核，不得吃完整个 AI 判断超时。
+   - AI judgment failure 保存候选后直接终止本次 mission 为复核态，不继续下一条。
    - 每次上传、提交、读取回答前都会重新聚焦 provider workspace tab，避免 Chrome active tab drift。
-   - 文件上传必须先定位 provider file input；不能在 native dialog 未确认打开时输入本地文件路径。
+   - 首次没有保存 workspace URL 时只能打开 provider 入口并保存实际 workspace URL，不能复用任意旧 ChatGPT 会话或按标题匹配旧会话。
+   - 文件上传必须优先使用已定位 provider file input；剪贴板文件粘贴只能作为后备，不能在 native dialog 未确认打开时输入本地文件路径。
    - AI 必须返回 JSON 判断，不得返回工作流、选择器、坐标或浏览器动作。
 
 6. 决策落库
@@ -184,7 +208,15 @@ flowchart TD
 
 7. 下一条导航
    - round 完成后调用 `navigateToNextFacebookVideo`。
-   - 如果无法继续，返回 terminal reason。
+   - 下一条动作不依赖 DOM next button selector；动作梯固定为 `ArrowDown -> wheel scroll -> safe-zone click/scroll -> recover feed tab and retry`。
+   - DOM next candidate 可作为观察证据保留，但不能作为 primary decision source。
+
+8. 新视频确认
+   - `VERIFY_NEW_VIDEO` 使用 proof quorum，而不是单一 DOM signature。
+   - 至少两个独立信号变化才确认切换成功。
+   - 可用信号包括：video `currentSrc`、video duration/size、visible text hash、like/comment/share metric group、source URL / reel id、video count。
+   - downloaded video `sha256` 在下载后是最强身份锚点；duplicate 检查必须继续使用它。
+   - `next_video_not_confirmed` 只记录为本轮导航不确定并继续/恢复，不得直接停止 mission。
 
 ## 6. 数据与状态合同
 
@@ -242,6 +274,24 @@ failed
 - AI 判断：`aiSelectedOptionId`、`aiConfidence`、`aiReason`
 - 视频证据：`videoArtifactRef`、`videoFilePath`、`videoSha256`、`videoByteSize`、`videoContentType`
 - 动作结果：`notInterestedStatus`
+
+### 6.5 terminal / non-terminal failure policy
+
+以下失败属于单条视频失败，必须记录 candidate evidence 后尝试进入下一条：
+
+- comments 加载不完整。
+- download failed。
+- duplicate video artifact。
+- AI failed / review-required judgment。
+- next video proof quorum 未确认。
+
+以下失败才允许停止 mission：
+
+- login required。
+- captcha / 2FA / account security。
+- rate limited / account risk。
+
+因此 `next_video_not_confirmed`、`next_video_did_not_change` 这类导航不确定状态不能再作为 mission terminal reason。
 
 ### 6.4 selection export
 

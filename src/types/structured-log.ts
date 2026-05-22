@@ -10,14 +10,6 @@ const StructuredRuntimeEventTypeSchema = z.string().min(1);
 const StructuredActionTypeSchema = z.string().min(1);
 const StructuredActionPurposeSchema = z.enum(["observe", "open", "click", "type", "upload", "verify", "save", "stop"]);
 
-const StructuredLogRefSchema = z.object({
-  refId: z.string().min(1),
-  refType: z.enum(["evidence", "action_log", "ai_result", "snapshot", "other"]),
-  label: nullableString,
-}).strict();
-
-const StructuredRuntimeMissingFrameSchema = z.never();
-
 const StructuredAiImageInputSchema = z.object({
   refId: nullableString,
   artifactRef: nullableString,

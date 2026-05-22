@@ -209,9 +209,12 @@ Facebook 种草视频入口必须保持一键任务形态：
     "Default notInterestedEnabled=true for operator-facing Facebook mining.",
     "AI web-chat judgment without a hard timeout.",
     "AI web-chat timeout that leaves the run in running with no candidate evidence.",
+    "AI web-chat upload completion wait that can consume the whole judgment timeout.",
     "Provider composer wait that ignores the task abort signal.",
     "Typing a governed file path unless a provider file input is located.",
-    "Continuing web-chat upload, submit, or answer extraction after the active Chrome tab drifts away from the provider workspace."
+    "Continuing web-chat upload, submit, or answer extraction after the active Chrome tab drifts away from the provider workspace.",
+    "Selecting an arbitrary existing provider tab when no saved Facebook workspace URL exists.",
+    "Matching old provider conversations by title text instead of pinning the opened workspace URL."
   ]
 }
 ```
@@ -222,10 +225,12 @@ Facebook mining 的默认行为必须保护操作者当前 Facebook 账号与推
 
 - `notInterestedEnabled` 默认必须为 `false`；只有显式自动化输入才能开启负反馈动作。
 - AI 判断必须有硬超时，并在超时后返回 `review_required` / `UNCERTAIN` 判断。
-- AI 超时必须走正常 judgment failure 路径，保存候选 evidence 并让 mission 终止复核。
+- AI 超时必须走正常 judgment failure 路径，保存候选 evidence 并让 mission 终止复核；不得继续下一条后把 run 长期保持 `running`。
+- web-chat 上传完成等待必须有短上限，不能吃完整段 AI judgment timeout。
 - web-chat provider 页面等待必须接收并传递 abort signal。
 - 每次 upload / submit / answer extraction 前必须重新聚焦 provider workspace tab。
-- 文件上传只能在定位到 provider file input 后进入 file-input selection；不得在未确认 native file chooser 打开时输入本地文件路径。
+- 首次运行没有 saved workspace URL 时，必须打开 provider 入口并保存实际 workspace URL；不得复用任意旧 ChatGPT 会话或按标题文本匹配旧会话。
+- 文件上传必须优先使用已定位 provider file input；剪贴板文件粘贴只能作为后备，不得在未确认 native file chooser 打开时输入本地文件路径。
 
 ### 禁止
 
@@ -278,3 +283,82 @@ Facebook mining 的默认行为必须保护操作者当前 Facebook 账号与推
 - 把 rejected / uncertain / review_required 候选混入成功导出。
 - 页面伪造 50 完成。
 - 导出浏览器 session、cookie、localStorage、sessionStorage 或完整 HTML。
+
+## [APEX-FACEBOOK-MINING-006-V1] Round State Machine And Navigation Proof Quorum
+
+```apex-law
+{
+  "lawId": "APEX-FACEBOOK-MINING-006-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "facebook-product-video-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+ast",
+  "summary": "Facebook mining rounds must be controlled by a fixed flow state machine, fixed next-video action ladder, and multi-signal proof quorum; DOM selector feedback may observe but must not decide the next action.",
+  "appliesTo": [
+    "src/plugins/facebook-product-video-mining/**/*.{ts,tsx,js,jsx,mjs}",
+    "scripts/acceptance/facebook-product-video-mining*.ts",
+    "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
+  ],
+  "forbidden": [
+    "DOM next button candidates as the primary next-video decision source.",
+    "Single DOM signature change as the only proof of video transition.",
+    "next_video_did_not_change or next_video_not_confirmed stopping the whole mission.",
+    "Per-video download, comments, AI, duplicate, or navigation uncertainty treated as mission terminal.",
+    "AI returning workflow, selector, coordinate, browser command, or next action."
+  ]
+}
+```
+
+### 法条
+
+Facebook mining 的控制权属于 flow / round state machine，不属于 DOM 当前反馈。
+
+每轮必须按固定状态执行：
+
+```txt
+WAIT_VIDEO_STABLE
+-> SNAPSHOT_PAGE_FACTS
+-> LOAD_COMMENTS
+-> DOWNLOAD_VIDEO
+-> AI_JUDGE
+-> RECORD_RESULT
+-> OPTIONAL_NOT_INTERESTED
+-> ADVANCE_VIDEO
+-> VERIFY_NEW_VIDEO
+-> NEXT_ROUND
+```
+
+DOM probe 只能观察当前页面事实，不能决定下一步业务动作。
+下一条导航必须使用固定动作梯：
+
+```txt
+ArrowDown
+-> wheel scroll 0.95 viewport
+-> lower-center safe-zone click/scroll
+-> recover Facebook feed tab and retry
+```
+
+新视频确认必须使用 proof quorum。至少两个独立信号变化才可确认切换成功；合法信号包括：
+
+- video `currentSrc` 变化
+- downloaded video `sha256` 变化（可用时为最强身份锚点）
+- visible text hash 变化
+- like/comment/share metric group 变化
+- video duration/size 变化
+- source page URL 或 reel id 变化
+
+未达到 quorum 的 `next_video_not_confirmed` 只能记录为本轮导航不确定，并触发恢复/继续；不得让 mission 终止。
+
+只有以下平台阻断允许停止 mission 并进入复核或失败终态：
+
+- login required
+- captcha / 2FA / account security
+- rate limited / account risk
+
+### 禁止
+
+- 把 DOM selector candidate 当成下一步控制大脑。
+- 用单一 DOM signature 差异证明新视频。
+- 因单条视频 download/comment/AI/navigation 失败直接停止全部 mission。
+- 新增第二套 navigation flow、AI planner、bridge、fallback mainline 或 shadow controller。

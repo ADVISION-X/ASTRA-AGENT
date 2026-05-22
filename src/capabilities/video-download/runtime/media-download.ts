@@ -1,18 +1,18 @@
 import type { CandidateValidationSuccess } from "./candidate-validation.js";
 
-export type MediaDownloadSuccess = {
+type MediaDownloadSuccess = {
   ok: true;
   bytes: Uint8Array;
   contentType: string;
   byteSize: number;
 };
 
-export type MediaDownloadFailure = {
+type MediaDownloadFailure = {
   ok: false;
   reason: string;
 };
 
-export type MediaDownloadResult = MediaDownloadSuccess | MediaDownloadFailure;
+type MediaDownloadResult = MediaDownloadSuccess | MediaDownloadFailure;
 
 const buildDownloadHeaders = (): HeadersInit => ({
   "User-Agent": "Mozilla/5.0",

@@ -37,13 +37,6 @@ export type AmazonInvoiceUploadTaskResult = {
   reviewRequired?: boolean;
 };
 
-export type AmazonInvoiceUploadPhaseOneResult = {
-  status: "review_required" | "failed";
-  reason: string;
-  reachedStep: string;
-  phaseStatus: AmazonInvoiceUploadStatus;
-};
-
 type LocateFailure = Extract<ReturnType<typeof locateOrStatus>, { ok: false }>;
 
 const ENTRY_READY_TIMEOUT_MS = 10000;
@@ -252,16 +245,3 @@ async function readAndTraceSubmitSnapshot(
   return snapshot;
 }
 
-async function runAmazonInvoiceUploadPhaseOne(
-  browser: BrowserController,
-  runtimeLogger: RuntimeLogger,
-  rawMission: AmazonInvoiceUploadMissionInput,
-): Promise<AmazonInvoiceUploadPhaseOneResult> {
-  const fullResult = await runAmazonInvoiceUpload(browser, runtimeLogger, { ...rawMission, requireHumanFinalSubmit: true });
-  return {
-    status: fullResult.status === "failed" ? "failed" : "review_required",
-    reason: fullResult.reason,
-    reachedStep: fullResult.reachedStep,
-    phaseStatus: fullResult.status,
-  };
-}

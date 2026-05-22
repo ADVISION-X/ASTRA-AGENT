@@ -13,13 +13,13 @@ export type CandidateValidationSuccess = {
   host: string;
 };
 
-export type CandidateValidationFailure = {
+type CandidateValidationFailure = {
   ok: false;
   failureReason: VideoDownloadFailureReason;
   reason: string;
 };
 
-export type CandidateValidationResult =
+type CandidateValidationResult =
   | CandidateValidationSuccess
   | CandidateValidationFailure;
 

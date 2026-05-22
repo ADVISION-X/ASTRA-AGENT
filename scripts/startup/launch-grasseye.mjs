@@ -140,6 +140,43 @@ function isControlledServiceExit(exit, shuttingDown) {
   return shuttingDown || exit.signal === "SIGTERM" || exit.code === 143;
 }
 
+function toExitFailureReason(exit) {
+  return exit.signal ? `signal ${exit.signal}` : `code ${exit.code ?? "unknown"}`;
+}
+
+function createShutdownHandler(state) {
+  return async function shutdown(signal) {
+    if (state.shuttingDown) {
+      return;
+    }
+    state.shuttingDown = true;
+    logEvent("SERVICE", "app_server", "SERVICE_STOP_REQUESTED", "started", `stopping local service with ${signal}`);
+    if (state.serviceHandle) {
+      await stopLocalService(state.serviceHandle.child, signal);
+    }
+    logPass("SERVICE", "app_server", "SERVICE_SHUTDOWN_COMPLETED", "passed", `local service stopped with ${signal}`);
+  };
+}
+
+function classifyServiceExit(exit, shuttingDown) {
+  if (!isControlledServiceExit(exit, shuttingDown)) {
+    const failureReason = toExitFailureReason(exit);
+    logFail("SERVICE", "app_server", "SERVICE_UNEXPECTED_EXIT", "failed", "local service exited unexpectedly", {
+      failureReason,
+    });
+    logFail("SERVICE", "app_server", "SERVICE_EXIT_CLASSIFICATION", "failed", "classified local service exit", {
+      failureReason,
+    });
+    process.exitCode = exit.code ?? 1;
+    return;
+  }
+  if (!shuttingDown) {
+    logPass("SERVICE", "app_server", "SERVICE_EXIT_CLASSIFICATION", "passed", "classified local service exit as controlled shutdown", {
+      refs: [exit.signal ? `signal=${exit.signal}` : `code=${exit.code ?? "unknown"}`],
+    });
+  }
+}
+
 async function performLaunch(flags, root) {
   await ensureDependencies(root, flags);
   await runUpdatePreflight(root, flags);
@@ -182,39 +219,15 @@ async function openReadyPage(flags) {
 
 async function main() {
   const flags = parseFlags(process.argv.slice(2));
-  let serviceHandle;
-  let shuttingDown = false;
-
-  const shutdown = async (signal) => {
-    if (shuttingDown) {
-      return;
-    }
-    shuttingDown = true;
-    logEvent("SERVICE", "app_server", "SERVICE_STOP_REQUESTED", "started", `stopping local service with ${signal}`);
-    if (serviceHandle) {
-      await stopLocalService(serviceHandle.child, signal);
-    }
-    logPass("SERVICE", "app_server", "SERVICE_SHUTDOWN_COMPLETED", "passed", `local service stopped with ${signal}`);
-  };
+  const state = { serviceHandle: undefined, shuttingDown: false };
+  const shutdown = createShutdownHandler(state);
 
   registerSignalHandlers(shutdown);
 
   try {
-    serviceHandle = await performLaunch(flags, rootDir);
-    const exit = await serviceHandle.waitForExit();
-    if (!isControlledServiceExit(exit, shuttingDown)) {
-      logFail("SERVICE", "app_server", "SERVICE_UNEXPECTED_EXIT", "failed", "local service exited unexpectedly", {
-        failureReason: exit.signal ? `signal ${exit.signal}` : `code ${exit.code ?? "unknown"}`,
-      });
-      logFail("SERVICE", "app_server", "SERVICE_EXIT_CLASSIFICATION", "failed", "classified local service exit", {
-        failureReason: exit.signal ? `signal ${exit.signal}` : `code ${exit.code ?? "unknown"}`,
-      });
-      process.exitCode = exit.code ?? 1;
-    } else if (!shuttingDown) {
-      logPass("SERVICE", "app_server", "SERVICE_EXIT_CLASSIFICATION", "passed", "classified local service exit as controlled shutdown", {
-        refs: [exit.signal ? `signal=${exit.signal}` : `code=${exit.code ?? "unknown"}`],
-      });
-    }
+    state.serviceHandle = await performLaunch(flags, rootDir);
+    const exit = await state.serviceHandle.waitForExit();
+    classifyServiceExit(exit, state.shuttingDown);
     return;
   } catch (error) {
     await handleStartupBootstrapFailure({ rootDir, runId: startupRunId, baseUrl, failureReason: toFailureReason(error), logFail, shutdown });

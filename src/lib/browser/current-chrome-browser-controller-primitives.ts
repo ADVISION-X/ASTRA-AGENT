@@ -95,15 +95,6 @@ end tell
 `, abortSignal ? { signal: abortSignal } : undefined);
 };
 
-const pasteBrowserText = async (abortSignal?: AbortSignal): Promise<void> => {
-  await runAppleScript(`
-tell application "Google Chrome" to activate
-tell application "System Events"
-    keystroke "v" using command down
-end tell
-`, abortSignal ? { signal: abortSignal } : undefined);
-};
-
 const pressNamedBrowserKey = async (key: BrowserTextInputKey, abortSignal?: AbortSignal): Promise<void> => {
   await pressBrowserKey(BROWSER_TEXT_INPUT_KEY_CODES[key], abortSignal);
 };
@@ -129,4 +120,4 @@ $.CGEventPost($.kCGHIDEventTap, scrollEvent);
 `, input.abortSignal ? { signal: input.abortSignal } : undefined);
 };
 
-export { activateChrome, escapeAppleScriptText, clickAt, pressBrowserKey, keystrokeBrowserText, selectAllBrowserText, pressNamedBrowserKey, scrollAt };
+export { activateChrome, escapeAppleScriptText, clickAt, keystrokeBrowserText, selectAllBrowserText, pressNamedBrowserKey, scrollAt };

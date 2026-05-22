@@ -23,7 +23,20 @@ import type { FacebookProductVideoMiningStorage } from "./facebook-product-video
 
 type FacebookVideoAiJudgment = FacebookProductVideoMiningContracts["FacebookVideoAiJudgment"];
 
-export type SuccessfulVideoDownload = VideoDownloadResult & {
+const FACEBOOK_MINING_ROUND_STATE_MACHINE = [
+  "WAIT_VIDEO_STABLE",
+  "SNAPSHOT_PAGE_FACTS",
+  "LOAD_COMMENTS",
+  "DOWNLOAD_VIDEO",
+  "AI_JUDGE",
+  "RECORD_RESULT",
+  "OPTIONAL_NOT_INTERESTED",
+  "ADVANCE_VIDEO",
+  "VERIFY_NEW_VIDEO",
+  "NEXT_ROUND",
+] as const;
+
+type SuccessfulVideoDownload = VideoDownloadResult & {
   status: "success";
   output: Extract<VideoDownloadResult["output"], { status: "success" }>;
   failureReason: null;
@@ -81,6 +94,7 @@ const startFacebookMiningRound = (context: FacebookMiningRoundContext): void => 
     missionId: context.input.run.missionId,
     roundId: context.round.roundId,
     status: "started",
+    reason: FACEBOOK_MINING_ROUND_STATE_MACHINE[0],
   });
   context.input.storage.updateRunProgress({
     runId: context.input.run.runId,

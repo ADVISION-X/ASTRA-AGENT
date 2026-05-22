@@ -22,7 +22,7 @@ type TraceCandidate = {
 
 type CandidateSource = Omit<TraceCandidate, "kind">;
 
-export type AmazonDomTraceStatus = "snapshot" | "success" | "failed" | "review_required";
+type AmazonDomTraceStatus = "snapshot" | "success" | "failed" | "review_required";
 
 export type AmazonDomStepTraceContext = {
   mission: AmazonInvoiceUploadMissionInput;

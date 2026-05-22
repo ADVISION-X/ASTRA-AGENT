@@ -1,6 +1,6 @@
 import type { RuntimeLogEventType } from "./event-types.js";
 
-export type RuntimeLogOwner =
+type RuntimeLogOwner =
   | "ai-input-gateway"
   | "forensics-persistence"
   | "runtime-logs"
@@ -13,7 +13,7 @@ export type RuntimeLogOwner =
   | "dom-automation"
   | "unknown";
 
-export type RuntimeLogLevel = "debug" | "info" | "warn" | "error";
+type RuntimeLogLevel = "debug" | "info" | "warn" | "error";
 
 export type RuntimeLogMode = "FLOW" | "DEBUG" | "TRACE";
 

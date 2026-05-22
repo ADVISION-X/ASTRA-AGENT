@@ -6,7 +6,7 @@ import {
   videoDownloadCandidateSchema,
 } from "./candidate-schema.js";
 
-export type UniversalProbeResult = {
+type UniversalProbeResult = {
   pageUrl: string;
   pageTitle: string;
   candidates: unknown[];

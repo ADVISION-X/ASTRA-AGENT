@@ -16,7 +16,7 @@ type FacebookProbeResult = {
   candidates: unknown[];
 };
 
-export type FacebookMediaProbe = FacebookProbeResult;
+type FacebookMediaProbe = FacebookProbeResult;
 
 const candidateRank = (candidate: VideoDownloadCandidate): number => {
   if (candidate.kind === "native_hd") return 0;

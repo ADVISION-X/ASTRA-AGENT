@@ -46,46 +46,5 @@ export const RuntimeLogEventType = {
 
 export type RuntimeLogEventType = (typeof RuntimeLogEventType)[keyof typeof RuntimeLogEventType];
 
-// FLOW-visible events: the minimal mission lifecycle backbone
-export const FLOW_VISIBLE_EVENT_TYPES = new Set<RuntimeLogEventType>([
-  RuntimeLogEventType.MISSION_STARTED,
-  RuntimeLogEventType.MISSION_PREFLIGHT_FAILED,
-  RuntimeLogEventType.MISSION_STOPPED,
-  RuntimeLogEventType.MISSION_COMPLETED,
-  RuntimeLogEventType.MISSION_REVIEW_REQUIRED,
-  RuntimeLogEventType.ROUND_STARTED,
-  RuntimeLogEventType.ROUND_COMPLETED,
-  RuntimeLogEventType.SCREENSHOT_CAPTURED,
-  RuntimeLogEventType.AI_DECISION_SUMMARY,
-  RuntimeLogEventType.CAPABILITY_DISPATCH_STARTED,
-  RuntimeLogEventType.CAPABILITY_DISPATCH_COMPLETED,
-  RuntimeLogEventType.CAPABILITY_DISPATCH_FAILED,
-  RuntimeLogEventType.DOM_AUTOMATION_STEP_COMPLETED,
-  RuntimeLogEventType.DOM_AUTOMATION_STEP_FAILED,
-  RuntimeLogEventType.APP_SHELL_HEALTH,
-  RuntimeLogEventType.MISSION_READINESS,
-  RuntimeLogEventType.SERVICE_EXIT,
-]);
 
 // DEBUG-visible events: all FLOW + debug-tier events
-const DEBUG_VISIBLE_EVENT_TYPES = new Set<RuntimeLogEventType>([
-  ...FLOW_VISIBLE_EVENT_TYPES,
-  RuntimeLogEventType.HUMAN_COMMAND_RECEIVED,
-  RuntimeLogEventType.HUMAN_COMMAND_VALIDATED,
-  RuntimeLogEventType.HUMAN_COMMAND_REJECTED,
-  RuntimeLogEventType.SCREENSHOT_CAPTURE_REQUESTED,
-  RuntimeLogEventType.COORDINATE_GRID_RENDERED,
-  RuntimeLogEventType.AI_REQUEST_DEBUG,
-  RuntimeLogEventType.AI_RAW_RESPONSE_DEBUG,
-  RuntimeLogEventType.AI_PARSE_RESULT_DEBUG,
-  RuntimeLogEventType.AI_ERROR_DEBUG,
-  RuntimeLogEventType.GEOMETRY_GUARD_RESULT,
-  RuntimeLogEventType.BROWSER_ACTION_RESULT,
-  RuntimeLogEventType.TEXT_INPUT_RESULT,
-  RuntimeLogEventType.OPEN_RESULT,
-  RuntimeLogEventType.DOM_AUTOMATION_STEP_STARTED,
-  RuntimeLogEventType.DOM_AUTOMATION_STEP_COMPLETED,
-  RuntimeLogEventType.DOM_AUTOMATION_STEP_FAILED,
-  RuntimeLogEventType.FORENSICS_RECORD_APPENDED,
-  RuntimeLogEventType.FORENSICS_ARTIFACT_APPENDED,
-]);

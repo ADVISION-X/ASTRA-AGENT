@@ -9,7 +9,7 @@ import type { FacebookProductVideoMiningContracts } from "./facebook-product-vid
 
 type FacebookVideoDomProbeResult = FacebookProductVideoMiningContracts["FacebookVideoDomProbeResult"];
 
-export type FacebookNotInterestedActionResult = {
+type FacebookNotInterestedActionResult = {
   status: "success" | "review_required" | "failed";
   reason: string | null;
   selectedText: string | null;
