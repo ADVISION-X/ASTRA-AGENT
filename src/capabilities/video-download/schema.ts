@@ -12,6 +12,7 @@ const VideoDownloadPlatformIdSchema = z.enum([
   "x-web",
   "xiaohongshu-web",
   "youtube-web",
+  "telegram-web",
 ]);
 
 const VideoDownloadChildCapabilityIdSchema = z.enum([
@@ -24,6 +25,7 @@ const VideoDownloadChildCapabilityIdSchema = z.enum([
   "download-x-video-once",
   "download-xiaohongshu-video-once",
   "download-youtube-video-once",
+  "download-telegram-web-video-once",
 ]);
 
 const VideoDownloadPreferredQualitySchema = z.enum([
@@ -85,6 +87,8 @@ const VideoDownloadCandidateKindSchema = z.enum([
   "media_resource",
   "hls_manifest",
   "dash_manifest",
+  "telegram_sw_progressive_cache",
+  "telegram_sw_download_stream",
 ]);
 
 const VideoDownloadCandidateSchema = z.object({
@@ -150,6 +154,10 @@ const DownloadYoutubeVideoInputSchema = VideoDownloadInputBaseSchema.extend({
   childCapabilityId: z.literal("download-youtube-video-once"),
 }).strict();
 
+const DownloadTelegramWebVideoInputSchema = VideoDownloadInputBaseSchema.extend({
+  childCapabilityId: z.literal("download-telegram-web-video-once"),
+}).strict();
+
 export const VideoDownloadAbilityInputSchema = z.discriminatedUnion("childCapabilityId", [
   DownloadWebVideoInputSchema,
   DownloadFacebookVideoInputSchema,
@@ -160,6 +168,7 @@ export const VideoDownloadAbilityInputSchema = z.discriminatedUnion("childCapabi
   DownloadXVideoInputSchema,
   DownloadXiaohongshuVideoInputSchema,
   DownloadYoutubeVideoInputSchema,
+  DownloadTelegramWebVideoInputSchema,
 ]);
 
 // ─── Proof + artifact ────────────────────────────────────────────────────────

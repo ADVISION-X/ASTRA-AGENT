@@ -95,7 +95,7 @@ Facebook product video mining 必须作为单独法门输入面。页面只允�
 
 ## Video Download 输入面
 
-Video download skill 必须作为独立受治理能力入口展示。页面只允许操作者提供：
+Video download skill 必须作为独立受治理 job flow 入口展示。页面只允许操作者提供：
 
 - Source page URL
 - Capability child id
@@ -104,8 +104,8 @@ Video download skill 必须作为独立受治理能力入口展示。页面只�
 - Download subtitles
 - Start
 
-提交通过本地 HTTP API 进入 workbench handle，再调用 `video-download` public facade。
-页面不拥有下载算法、平台探针、业务价值判断或批量编排。
+提交通过本地 HTTP API 进入 `src/mediator/**`，再进入 `src/plugins/video-download-artifact/**` job flow，由该 flow 调用 `video-download` public facade。
+页面不拥有下载算法、平台探针、业务价值判断、能力组调用或批量编排。
 
 下载结果必须进入右侧账本窗展示真实状态：
 
@@ -153,7 +153,7 @@ local-app-shell owner inspector 检查：
 - Amazon 输入面是否包含必要字段。
 - Facebook 输入面是否只暴露目标数量、Start、Latest。
 - Video Download 输入面是否只暴露 source URL、child capability、quality、max MB、subtitles、Start。
-- Video Download route 是否存在 `/api/video-download/start`，且页面只展示真实 result 状态。
+- Video Download route 是否存在 `/api/video-download/start`，且 route 必须经 mediator + job flow 后再调用能力组，页面只展示真实 result 状态。
 - 页面是否包含 task status / evidence refs / failure reason 展示区域。
 - 页面是否仍出现 forbidden dashboard / planner / visual runtime 控制面。
 - `src/app/**` 是否直接导入 job flow 文件或能力 runtime 私有实现。

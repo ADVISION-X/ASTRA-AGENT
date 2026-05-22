@@ -1,19 +1,19 @@
-import { stableJsonHash } from "../../lib/storage/hash.js";
+import { createHash } from "node:crypto";
 
 export const buildDeepResearchTextHash = (value: string): string =>
-  stableJsonHash(value);
+  "sha256:" + createHash("sha256").update(value, "utf8").digest("hex");
 
 export const buildDeepResearchPromptHash = (input: {
   promptId: string;
   promptVersion: string;
   phase: string;
+  promptText: string;
   outputContractId: string;
-  text: string;
 }): string =>
-  stableJsonHash({
-    promptId: input.promptId,
-    promptVersion: input.promptVersion,
-    phase: input.phase,
+  buildDeepResearchTextHash(JSON.stringify({
     outputContractId: input.outputContractId,
-    text: input.text,
-  });
+    phase: input.phase,
+    promptId: input.promptId,
+    promptText: input.promptText,
+    promptVersion: input.promptVersion,
+  }));

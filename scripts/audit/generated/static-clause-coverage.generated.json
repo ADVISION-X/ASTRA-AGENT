@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-22T22:00:57.164Z",
+  "generatedAt": "2026-05-22T22:14:46.218Z",
   "summary": {
-    "activeLawCount": 115,
-    "coveredLawCount": 115,
+    "activeLawCount": 117,
+    "coveredLawCount": 117,
     "coveragePercent": 100
   },
   "coverage": [
@@ -568,6 +568,16 @@
     },
     {
       "lawId": "GRASSEYE-DEEP-RESEARCH-012-V1",
+      "capabilityDomain": "deep-research-analysis",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/deep-research-analysis/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-013-V1",
       "capabilityDomain": "deep-research-analysis",
       "clauses": [
         {
@@ -1258,6 +1268,16 @@
     },
     {
       "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1",
+      "capabilityDomain": "video-download-capability",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/video-download-capability/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-010-V1",
       "capabilityDomain": "video-download-capability",
       "clauses": [
         {

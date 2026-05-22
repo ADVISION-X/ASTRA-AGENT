@@ -24,6 +24,7 @@ const CHILD_TO_PLATFORM: Record<string, VideoDownloadPlatformId> = {
   "download-x-video-once": "x-web",
   "download-xiaohongshu-video-once": "xiaohongshu-web",
   "download-youtube-video-once": "youtube-web",
+  "download-telegram-web-video-once": "telegram-web",
 };
 
 const resolvePlatformId = (input: ParsedVideoDownloadAbilityInput): VideoDownloadPlatformId => {

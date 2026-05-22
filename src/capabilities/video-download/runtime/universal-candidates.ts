@@ -2,7 +2,6 @@ import {
   type VideoDownloadCandidate,
 } from "../schema.js";
 import {
-  type VideoDownloadCandidateKind,
   videoDownloadCandidateSchema,
 } from "./candidate-schema.js";
 
@@ -12,7 +11,7 @@ type UniversalProbeResult = {
   candidates: unknown[];
 };
 
-const KIND_RANK: Record<VideoDownloadCandidateKind, number> = {
+const KIND_RANK: Record<VideoDownloadCandidate["kind"], number> = {
   native_hd: 0,
   video_element: 1,
   media_resource: 2,
@@ -20,6 +19,8 @@ const KIND_RANK: Record<VideoDownloadCandidateKind, number> = {
   dash_manifest: 4,
   source_element: 5,
   native_sd: 6,
+  telegram_sw_progressive_cache: 7,
+  telegram_sw_download_stream: 8,
 };
 
 const candidateRank = (c: VideoDownloadCandidate): number =>

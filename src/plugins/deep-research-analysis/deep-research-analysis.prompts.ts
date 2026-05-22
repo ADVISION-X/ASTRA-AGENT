@@ -17,8 +17,6 @@ import type {
 } from "./deep-research-analysis.final-package.js";
 
 const FORBIDDEN_CONTROL_FIELDS = [
-  "nextAction",
-  "actionPlan",
   "browserCommand",
   "selector",
   "coordinate",
@@ -58,7 +56,7 @@ export const decompositionPrompt = buildPrompt({
     "Return one JSON object only.",
     "The JSON object must contain mainQuestion and subQuestions.",
     "subQuestions must contain at least two items and each item must include id, title, questionText, purpose, scope, expectedAnswerShape.",
-    "Do not output nextAction, actionPlan, browserCommand, selector, coordinate, workflow, multiStepPlan, runNext, databaseCommand, or filePath.",
+    "Do not output runtime control fields, browser commands, selectors, coordinates, workflows, database commands, or file paths.",
   ].join("\n"),
   expectedOutputContract: buildOutputContract({
     contractId: "deep-research.decomposition.json.v1",
@@ -200,6 +198,7 @@ export const renderDeepResearchFalsificationPrompt = (input: {
   analysisGoal: string | null;
   language: DeepResearchInput["language"];
   subQuestion: DeepResearchSubQuestion;
+  positiveAnswer: unknown;
 }): string =>
   buildPromptDocument([
     falsificationPrompt.promptText,
@@ -207,6 +206,7 @@ export const renderDeepResearchFalsificationPrompt = (input: {
     input.analysisGoal ? `Analysis goal:\n${input.analysisGoal}` : null,
     `Response language: ${input.language}`,
     `Sub-question JSON:\n${JSON.stringify(input.subQuestion, null, 2)}`,
+    `Positive answer JSON:\n${JSON.stringify(input.positiveAnswer, null, 2)}`,
     `Expected output contract:\n${buildContractSection(falsificationPrompt.expectedOutputContract)}`,
   ]);
 

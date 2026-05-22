@@ -7,7 +7,8 @@ export type VideoDownloadPlatformId =
   | "douyin-web"
   | "x-web"
   | "xiaohongshu-web"
-  | "youtube-web";
+  | "youtube-web"
+  | "telegram-web";
 
 export type VideoDownloadFailureReason =
   | "input_schema_invalid"

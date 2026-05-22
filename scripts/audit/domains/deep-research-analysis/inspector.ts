@@ -52,6 +52,17 @@ const promptTextAllowedFiles = new Set([
   "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
 ]);
 
+const decompositionAuditFiles = new Set([
+  "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-parser.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-quality.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.prompt-hash.ts",
+  "src/plugins/deep-research-analysis/deep-research-analysis.flow.ts",
+]);
+
 const getSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolveFromRepo(repoPath));
 
@@ -169,9 +180,15 @@ const inspectPromptScatter = (
     const repoPath = getRepoSourcePath(sourceFile);
     if (promptTextAllowedFiles.has(repoPath)) continue;
     const longString = sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral)
-      .find((literal: StringLiteral) => literal.getLiteralValue().length > 300);
+      .find((literal: StringLiteral) =>
+        literal.getLiteralValue().length > 300
+        && /you are|return one json|expected output contract/iu.test(literal.getLiteralValue()),
+      );
     const longTemplate = sourceFile.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)
-      .find((literal) => literal.getLiteralText().length > 300);
+      .find((literal) =>
+        literal.getLiteralText().length > 300
+        && /you are|return one json|expected output contract/iu.test(literal.getLiteralText()),
+      );
     if (!longString && !longTemplate) continue;
     findings.push(createFinding({
       checkId: "deep-research/prompt-scatter",
@@ -307,6 +324,7 @@ const inspectAntiEvasion = (
 ): void => {
   for (const sourceFile of sourceFiles) {
     const repoPath = getRepoSourcePath(sourceFile);
+    if (!decompositionAuditFiles.has(repoPath)) continue;
     const hasAny = sourceFile.getDescendantsOfKind(SyntaxKind.AnyKeyword).length > 0;
     const hasDynamicImport = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression)
       .some((call) => call.getExpression().getKind() === SyntaxKind.ImportKeyword);

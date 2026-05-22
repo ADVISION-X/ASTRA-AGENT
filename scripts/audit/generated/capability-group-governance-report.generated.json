@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T22:00:58.328Z",
+  "generatedAt": "2026-05-22T22:14:47.504Z",
   "capabilityDomain": "capability-group-governance",
   "executionGroup": "foundation",
   "lawIds": [
@@ -12,18 +12,8 @@
     "APEX-CAPABILITY-GROUP-007-V1",
     "APEX-CAPABILITY-GROUP-008-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "capability-group/plugin-non-facade-import",
-      "lawId": "APEX-CAPABILITY-GROUP-003-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/video-download-artifact/video-download-artifact.result.ts imports non-facade capability code src/capabilities/video-download/schema.ts.",
-      "severity": "fatal",
-      "filePath": "src/plugins/video-download-artifact/video-download-artifact.result.ts",
-      "evidence": "src/capabilities/video-download/schema.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/deep-research-analysis-smoke.ts",
@@ -39,6 +29,8 @@
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
+    "scripts/acceptance/video-download-artifact-flow.acceptance.ts",
+    "scripts/acceptance/video-download-telegram-web.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
     "scripts/audit/build/compose-artifacts.ts",
@@ -250,6 +242,7 @@
     "src/capabilities/video-download/runtime/media-download.ts",
     "src/capabilities/video-download/runtime/platform-router.ts",
     "src/capabilities/video-download/runtime/result.ts",
+    "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
     "src/capabilities/video-download/runtime/tiktok-candidates.ts",
     "src/capabilities/video-download/runtime/tiktok-page-probe-script.ts",
     "src/capabilities/video-download/runtime/universal-candidates.ts",

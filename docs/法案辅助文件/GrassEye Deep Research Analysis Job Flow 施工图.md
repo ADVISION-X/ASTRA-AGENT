@@ -810,6 +810,148 @@ actionableMessage
 
 ## 9. 验收路径
 
+## Smoke 活体链路验收
+
+Smoke 是 Deep Research Analysis 的最小活体链路验收。
+
+它的职责不是证明所有法案边界，而是证明最小业务主链真实可运行。
+
+### Smoke 与 Inspector 分工
+
+```txt
+Inspector / Audit:
+  静态执法链路
+  负责 AST、symbol、反逃逸、owner boundary、prompt scatter、parser honesty、runtime log contract
+
+Smoke / Acceptance:
+  活体运行链路
+  负责证明最小 Job Flow 从输入到导出真实跑通
+```
+
+### Deep Research Smoke 最小路径
+
+```txt
+create ResearchJob
+-> render decomposition prompt
+-> feed raw decomposition response fixture
+-> parse decomposition
+-> persist subQuestions
+-> render positive prompt
+-> feed raw positive response fixture
+-> parse positive answer
+-> persist positive answer
+-> render falsification prompt
+-> feed raw falsification response fixture
+-> parse falsification answer
+-> persist falsification answer
+-> build conflict matrix
+-> build final package from persisted records
+-> feed raw final report response fixture
+-> parse final report
+-> persist final report
+-> export final-report.md
+-> export research-bundle.json
+-> export evidence-index.json
+-> verify runtime log started/terminal events
+```
+
+### Fixture 使用边界
+
+Fixture 只允许模拟外部 AI raw response。
+
+允许：
+
+```txt
+fixture raw response
+-> parser
+-> records
+-> final package
+-> export
+```
+
+禁止：
+
+```txt
+fixture parsed object
+-> direct success
+```
+
+禁止绕过：
+
+```txt
+parser
+quality scorer
+records
+falsification
+conflict matrix
+final package
+export
+runtime log
+```
+
+### Smoke 文件建议
+
+```txt
+scripts/acceptance/deep-research-analysis-smoke.ts
+```
+
+可选专项 acceptance：
+
+```txt
+scripts/acceptance/deep-research-decomposition-prompt.acceptance.ts
+scripts/acceptance/deep-research-final-report.acceptance.ts
+scripts/acceptance/deep-research-export.acceptance.ts
+```
+
+### CI 接入
+
+允许新增 package script：
+
+```json
+{
+  "acceptance:deep-research-analysis-smoke": "node --import tsx scripts/acceptance/deep-research-analysis-smoke.ts"
+}
+```
+
+但该脚本必须被 `ci:full` 调用。  
+不得建立第二套完整质检入口。
+
+### Smoke PASS 条件
+
+```txt
+1. Job 创建成功。
+2. Decomposition prompt 渲染成功。
+3. Decomposition raw response 经 parser 解析成功。
+4. SubQuestions 入库成功。
+5. Positive raw response 经 parser 解析成功。
+6. Positive answer 入库成功。
+7. Falsification raw response 经 parser 解析成功。
+8. Falsification answer 入库成功。
+9. Conflict matrix 构建成功。
+10. Final package 从 persisted records 构建成功。
+11. Final report parser 成功。
+12. Final report 入库成功。
+13. final-report.md 导出成功。
+14. research-bundle.json 导出成功。
+15. evidence-index.json 导出成功。
+16. runtime log 有 started 和 terminal event。
+```
+
+### Smoke FAIL 条件
+
+```txt
+parse failed
+quality score failed
+DB persist failed
+falsification missing
+conflict matrix missing
+final package not from persisted records
+export file missing
+export hash missing
+runtime log terminal missing
+catch swallowed error
+```
+
 ### Phase 1：无浏览器假数据 smoke
 
 目的：验证 schema、parser、db、export。

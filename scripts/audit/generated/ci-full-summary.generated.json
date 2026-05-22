@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-22T20:53:42.827Z",
-  "status": "PASS",
+  "generatedAt": "2026-05-22T22:15:02.382Z",
+  "status": "FAIL",
   "steps": [
     {
       "name": "build-audit-artifacts",
@@ -8,15 +8,26 @@
     },
     {
       "name": "run-generated-plan",
-      "status": "PASS"
+      "status": "FAIL",
+      "error": "One or more audit domains reported findings."
     },
     {
       "name": "typecheck",
-      "status": "PASS"
+      "status": "FAIL",
+      "error": "typecheck failed with exit code 2"
     },
     {
       "name": "runtime-log-spine",
       "status": "PASS"
+    },
+    {
+      "name": "deep-research-decomposition-prompt",
+      "status": "PASS"
+    },
+    {
+      "name": "deep-research-analysis-smoke",
+      "status": "FAIL",
+      "error": "deep-research-analysis-smoke failed with exit code 1"
     },
     {
       "name": "amazon-invoice-upload-smoke",
@@ -45,8 +56,8 @@
     {
       "capabilityDomain": "code-purity",
       "executionGroup": "foundation",
-      "status": "PASS",
-      "findingCount": 0,
+      "status": "FAIL",
+      "findingCount": 115,
       "reportPath": "scripts/audit/generated/code-purity-report.generated.json"
     },
     {
@@ -55,6 +66,13 @@
       "status": "PASS",
       "findingCount": 0,
       "reportPath": "scripts/audit/generated/runtime-log-spine-report.generated.json"
+    },
+    {
+      "capabilityDomain": "deep-research-analysis",
+      "executionGroup": "domain",
+      "status": "FAIL",
+      "findingCount": 2,
+      "reportPath": "scripts/audit/generated/deep-research-analysis-report.generated.json"
     },
     {
       "capabilityDomain": "dom-automation",
@@ -90,6 +108,13 @@
       "status": "PASS",
       "findingCount": 0,
       "reportPath": "scripts/audit/generated/startup-entrypoint-report.generated.json"
+    },
+    {
+      "capabilityDomain": "video-download-capability",
+      "executionGroup": "domain",
+      "status": "FAIL",
+      "findingCount": 1,
+      "reportPath": "scripts/audit/generated/video-download-capability-report.generated.json"
     },
     {
       "capabilityDomain": "audit-system",

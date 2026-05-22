@@ -15,7 +15,12 @@ const sourceFiles = [
   "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
   "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
   "src/capabilities/video-download/runtime/youtube-url.ts",
+  "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
   "src/capabilities/video-download/children/download-youtube-video-once.ts",
+  "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
+  "src/mediator/video-download-artifact-route.ts",
+  "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
+  "src/plugins/video-download-artifact/video-download-artifact.schema.ts",
   "src/app/workbench-video-download-routes.ts",
   "src/lib/local-runtime/workbench-video-download-support.ts",
 ] as const;
@@ -30,6 +35,7 @@ const expectedChildren = [
   "download-x-video-once",
   "download-xiaohongshu-video-once",
   "download-youtube-video-once",
+  "download-telegram-web-video-once",
 ] as const;
 
 const expectedRegistrySymbols: Record<typeof expectedChildren[number], string> = {
@@ -42,6 +48,7 @@ const expectedRegistrySymbols: Record<typeof expectedChildren[number], string> =
   "download-x-video-once": "downloadXVideoOnce",
   "download-xiaohongshu-video-once": "downloadXiaohongshuVideoOnce",
   "download-youtube-video-once": "downloadYoutubeVideoOnce",
+  "download-telegram-web-video-once": "downloadTelegramWebVideoOnce",
 };
 
 const expectedQualities = [
@@ -176,6 +183,8 @@ const inspectYoutubeQualityAndSubtitles = (findings: Finding[], lawId: string): 
 const inspectRoutingAndApi = (findings: Finding[], lawId: string): void => {
   const routerText = readRepoFile("src/capabilities/video-download/runtime/platform-router.ts");
   const routeText = readRepoFile("src/app/workbench-video-download-routes.ts");
+  const mediatorText = readRepoFile("src/mediator/video-download-artifact-route.ts");
+  const flowText = readRepoFile("src/plugins/video-download-artifact/video-download-artifact.flow.ts");
   const localRuntimeText = readRepoFile("src/lib/local-runtime/workbench-video-download-support.ts");
   for (const marker of ["youtube.com", "youtu.be", "youtube-nocookie.com", "download-youtube-video-once"]) {
     requireText({
@@ -187,7 +196,7 @@ const inspectRoutingAndApi = (findings: Finding[], lawId: string): void => {
       checkId: "video-download/youtube-routing",
     });
   }
-  for (const marker of ["preferredQuality", "downloadSubtitles", "/api/video-download/start", "getVideoDownloadAbilityGroup"]) {
+  for (const marker of ["preferredQuality", "downloadSubtitles", "/api/video-download/start", "routeVideoDownloadArtifactJob"]) {
     requireText({
       findings,
       lawId,
@@ -195,6 +204,35 @@ const inspectRoutingAndApi = (findings: Finding[], lawId: string): void => {
       text: routeText,
       marker,
       checkId: "video-download/api-surface",
+    });
+  }
+  if (/getVideoDownloadAbilityGroup\(\)\.execute/u.test(routeText)) {
+    pushFinding(
+      findings,
+      lawId,
+      "src/app/workbench-video-download-routes.ts",
+      "video-download/direct-app-ability-call",
+      "App API must not directly execute the video-download ability group.",
+    );
+  }
+  for (const marker of ["VideoDownloadArtifactJobInputSchema", "runVideoDownloadArtifactFlow"]) {
+    requireText({
+      findings,
+      lawId,
+      filePath: "src/mediator/video-download-artifact-route.ts",
+      text: mediatorText,
+      marker,
+      checkId: "video-download/mediator-route",
+    });
+  }
+  for (const marker of ["videoDownload.execute", "VideoDownloadArtifactJobResultSchema", "jobType: \"video-download-artifact\""]) {
+    requireText({
+      findings,
+      lawId,
+      filePath: "src/plugins/video-download-artifact/video-download-artifact.flow.ts",
+      text: flowText,
+      marker,
+      checkId: "video-download/job-flow",
     });
   }
   requireText({
@@ -205,6 +243,58 @@ const inspectRoutingAndApi = (findings: Finding[], lawId: string): void => {
     marker: "../../capabilities/video-download/index.js",
     checkId: "video-download/public-facade",
   });
+};
+
+const inspectTelegramWebChain = (findings: Finding[], lawId: string): void => {
+  const schemaText = readRepoFile("src/capabilities/video-download/schema.ts");
+  const routerText = readRepoFile("src/capabilities/video-download/runtime/platform-router.ts");
+  const childText = readRepoFile("src/capabilities/video-download/children/download-telegram-web-video-once.ts");
+  const probeText = readRepoFile("src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts");
+  for (const marker of [
+    "telegram-web",
+    "download-telegram-web-video-once",
+    "telegram_sw_progressive_cache",
+    "telegram_sw_download_stream",
+  ]) {
+    requireText({
+      findings,
+      lawId,
+      filePath: "src/capabilities/video-download/schema.ts",
+      text: schemaText,
+      marker,
+      checkId: "video-download/telegram-schema",
+    });
+  }
+  for (const marker of ["web.telegram.org", "download-telegram-web-video-once"]) {
+    requireText({
+      findings,
+      lawId,
+      filePath: "src/capabilities/video-download/runtime/platform-router.ts",
+      text: routerText,
+      marker,
+      checkId: "video-download/telegram-routing",
+    });
+  }
+  for (const marker of ["tt-media-progressive", "CacheStorage", "content-range", "bytesBase64", "telegram_sw_progressive_cache"]) {
+    requireText({
+      findings,
+      lawId,
+      filePath: "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
+      text: probeText,
+      marker,
+      checkId: "video-download/telegram-cache-probe",
+    });
+  }
+  for (const marker of ["writeVideoArtifact", "metadata_validation_failed", "review_required", "telegram-document-", "source_page_mismatch"]) {
+    requireText({
+      findings,
+      lawId,
+      filePath: "src/capabilities/video-download/children/download-telegram-web-video-once.ts",
+      text: childText,
+      marker,
+      checkId: "video-download/telegram-child",
+    });
+  }
 };
 
 const inspectForbiddenDownloadSurfaces = (findings: Finding[], lawId: string): void => {
@@ -237,6 +327,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectChildRegistry(findings, lawId);
   inspectYoutubeQualityAndSubtitles(findings, lawId);
   inspectRoutingAndApi(findings, lawId);
+  inspectTelegramWebChain(findings, lawId);
   inspectForbiddenDownloadSurfaces(findings, lawId);
 
   return {

@@ -5,7 +5,12 @@ import path from "node:path";
 import { createAiInputGatewayAbilityGroup } from "../../src/capabilities/ai-input-gateway/index.js";
 import { createRuntimeLogger } from "../../src/lib/runtime-logs/index.js";
 import {
+  buildDeepResearchFinalPackage,
   createDeepResearchRecordStore,
+  exportDeepResearchArtifacts,
+  parseDeepResearchFalsificationResponse,
+  parseDeepResearchFinalReportResponse,
+  parseDeepResearchPositiveResponse,
   runDeepResearchAnalysis,
 } from "../../src/plugins/deep-research-analysis/index.js";
 import type {
@@ -45,19 +50,42 @@ const FIXTURE_RESPONSES = [
         id: "Q1",
         title: "Demand outlook",
         questionText: "What is the near-term demand outlook for robotics warehouses?",
+        dimension: "market demand",
         purpose: "Measure top-line market pull.",
+        requiredEvidence: ["budget data", "labor market data"],
+        positiveAnalysisFocus: "Demand growth and ROI support.",
+        falsificationFocus: "Demand softness and failed pilot risk.",
         scope: "2026-2028 global enterprise warehouse robotics.",
         expectedAnswerShape: "market-demand-summary",
+        priority: "high",
       },
       {
         id: "Q2",
         title: "Execution risk",
         questionText: "What execution risks would likely block entry success?",
+        dimension: "execution risk",
         purpose: "Measure downside and feasibility.",
+        requiredEvidence: ["deployment benchmarks", "partner capability"],
+        positiveAnalysisFocus: "Execution path and mitigations.",
+        falsificationFocus: "Integration and sales-cycle blockers.",
         scope: "Product, go-to-market, and integration risks.",
         expectedAnswerShape: "risk-summary",
+        priority: "high",
       },
     ],
+    questionType: "business",
+    decompositionStrategy: "Split the market-entry thesis into demand and execution-risk dimensions.",
+    missingInfo: [],
+    qualitySelfCheck: {
+      coversFacts: true,
+      coversCausality: true,
+      coversImpact: true,
+      coversEvidence: true,
+      coversFalsification: true,
+      coversRisks: true,
+      hasNoDuplicateQuestions: true,
+      isReadyForPositiveAndFalsification: true,
+    },
   }),
   JSON.stringify({
     subQuestionId: "Q1",
@@ -202,6 +230,14 @@ const assert = (condition: unknown, message: string): void => {
 
 const parseJsonFile = <T>(filePath: string): T => JSON.parse(readFileSync(filePath, "utf8")) as T;
 
+const verifySmokeUsesRealSurfaces = (): void => {
+  assert(typeof parseDeepResearchPositiveResponse === "function", "Positive parser must be imported by smoke.");
+  assert(typeof parseDeepResearchFalsificationResponse === "function", "Falsification parser must be imported by smoke.");
+  assert(typeof parseDeepResearchFinalReportResponse === "function", "Final parser must be imported by smoke.");
+  assert(typeof buildDeepResearchFinalPackage === "function", "Final package builder must be imported by smoke.");
+  assert(typeof exportDeepResearchArtifacts === "function", "Export function must be imported by smoke.");
+};
+
 const verifyRuntimeLogCoverage = (bundlePath: string): void => {
   assert(existsSync(bundlePath), `Runtime log bundle not found: ${bundlePath}`);
   const lines = readFileSync(bundlePath, "utf8").trim().split("\n").filter(Boolean);
@@ -227,6 +263,7 @@ const verifyRuntimeLogCoverage = (bundlePath: string): void => {
 };
 
 async function main(): Promise<void> {
+  verifySmokeUsesRealSurfaces();
   const dataDir = mkdtempSync(path.join(tmpdir(), "grasseye-deep-research-"));
   const runtimeLogBundlePath = path.join(dataDir, "runtime-logs", "deep-research-smoke.jsonl");
   const runtimeLogger = createRuntimeLogger({
@@ -292,6 +329,9 @@ async function main(): Promise<void> {
 
     const finalReport = store.getLatestFinalReport(result.jobId);
     assert(finalReport !== null, "Expected a persisted final report record.");
+    const finalPackage = buildDeepResearchFinalPackage({ store, jobId: result.jobId });
+    assert(finalPackage.positiveAnswerRecords.length === 2, "Final package must read persisted positive records.");
+    assert(finalPackage.falsificationAnswerRecords.length === 2, "Final package must read persisted falsification records.");
 
     const exports = store.listExports(result.jobId);
     assert(exports.length === 3, `Expected 3 export records, received ${exports.length}.`);

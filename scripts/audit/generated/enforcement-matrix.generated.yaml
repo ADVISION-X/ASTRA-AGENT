@@ -1,4 +1,4 @@
-generatedAt: "2026-05-22T22:00:57.164Z"
+generatedAt: "2026-05-22T22:14:46.218Z"
 rows:
   - capabilityDomain: "architecture-boundary"
     manifestPath: "scripts/audit/domains/architecture-boundary/manifest.json"
@@ -77,6 +77,7 @@ rows:
       - "GRASSEYE-DEEP-RESEARCH-010-V1"
       - "GRASSEYE-DEEP-RESEARCH-011-V1"
       - "GRASSEYE-DEEP-RESEARCH-012-V1"
+      - "GRASSEYE-DEEP-RESEARCH-013-V1"
   - capabilityDomain: "dom-automation"
     manifestPath: "scripts/audit/domains/dom-automation/manifest.json"
     ownerInspectorPath: "scripts/audit/domains/dom-automation/inspector.ts"
@@ -174,3 +175,4 @@ rows:
       - "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-007-V1"
       - "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-008-V1"
       - "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1"
+      - "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-010-V1"

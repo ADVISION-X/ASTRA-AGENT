@@ -19,7 +19,7 @@ The current construction phase is active source build with governance in place.
 Phase 1 must deliver:
 
 - `download-web-video-once` universal child capability — extracts video from any web page the user can see;
-- named platform children: `download-facebook-video-once`, `download-tiktok-video-once`, `download-instagram-video-once`, `download-bilibili-video-once`, `download-douyin-video-once`, `download-x-video-once`, `download-xiaohongshu-video-once`;
+- named platform children: `download-facebook-video-once`, `download-tiktok-video-once`, `download-instagram-video-once`, `download-bilibili-video-once`, `download-douyin-video-once`, `download-x-video-once`, `download-xiaohongshu-video-once`, `download-telegram-web-video-once`;
 - platform router that selects the correct child from the current page URL;
 - forensics artifact proof for every attempt;
 - honest failure for DRM, login walls, private videos, and unsupported formats.
@@ -160,6 +160,7 @@ The approved child capabilities are:
 - `download-x-video-once` — X/Twitter `__NEXT_DATA__` / video CDN extraction.
 - `download-xiaohongshu-video-once` — 小红书/RED page data / video element extraction.
 - `download-youtube-video-once` — YouTube governed artifact download through the local yt-dlp runtime for user-authorized videos.
+- `download-telegram-web-video-once` — Telegram Web governed artifact assembly from user-authorized Service Worker / CacheStorage media bytes.
 
 Required for every child capability:
 - Downloads at most one target video artifact per invocation.
@@ -419,6 +420,7 @@ Required routing rules:
 - `x.com`, `twitter.com` → `download-x-video-once`
 - `xiaohongshu.com`, `xhslink.com` → `download-xiaohongshu-video-once`
 - `youtube.com`, `youtu.be`, `youtube-nocookie.com` → `download-youtube-video-once`
+- `web.telegram.org` → `download-telegram-web-video-once`
 - all other hosts → `download-web-video-once`
 
 Required behavior:
@@ -471,7 +473,7 @@ Required behavior:
 - Each explicit quality must map to a bounded format selector that does not exceed the requested height.
 - `downloadSubtitles=true` must request subtitles using `subtitleLanguages` and persist subtitle artifacts when the platform provides them.
 - Success output and runtime proof must include `selectedQuality` and `subtitleArtifacts`.
-- App API requests must be able to pass `preferredQuality` and `downloadSubtitles` into the video-download public facade.
+- App API requests must pass `preferredQuality` and `downloadSubtitles` through a mediator route and explicit job flow before the job flow calls the video-download public facade.
 
 ### 禁止
 
@@ -481,3 +483,52 @@ FORBIDDEN:
 - storing subtitles outside the governed artifact path;
 - adding a YouTube downloader outside `src/capabilities/video-download/**`;
 - using a third-party downloader website or cookie/session export to fetch YouTube media.
+
+## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-010-V1
+
+```apex-law
+{
+  "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-010-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "video-download-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+real-code-inspection",
+  "summary": "Telegram Web downloads must use only the user-authorized Telegram Web Service Worker / CacheStorage media chain and must never treat raw progressive URLs or UI download buttons as success."
+}
+```
+
+status: active
+tier: P0
+capabilityDomain: video-download-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: Telegram Web downloads must use only the user-authorized Telegram Web Service Worker / CacheStorage media chain and must never treat raw progressive URLs or UI download buttons as success.
+
+### 主题
+
+Telegram Web 内部媒体链路下载边界
+
+### 法条
+
+`download-telegram-web-video-once` may assemble one verified video artifact only from media bytes already available through the user's authorized `web.telegram.org` browser page and Telegram Web's own Service Worker / CacheStorage media chain.
+
+Required behavior:
+- The child must only accept `web.telegram.org` source pages.
+- The child must use the active browser page as the authorization boundary and must not export browser credentials or Telegram session material.
+- CacheStorage media assembly is allowed only when range coverage proves a complete contiguous video payload for one Telegram document.
+- Success requires media bytes, video MIME, bounded byte size, MP4/WebM container validation, artifact storage, and structured proof.
+- Incomplete cache coverage, missing Service Worker control, missing visible media, login wall, permission denial, or unavailable internal chunk path must return `review_required` or `failed`.
+- Raw Telegram progressive/download URLs are expiring implementation details and must not be durable success proof.
+
+### 禁止
+
+FORBIDDEN:
+- clicking or depending on the Telegram UI download button as the programmatic capability path;
+- treating `/progressive/document...`, `video.currentSrc`, performance entries, curl, fetch, or XHR HTML/302 responses as downloaded media success;
+- reading, exporting, logging, or persisting Telegram cookies, sessions, account secrets, browser storage credentials, MTProto session material, or authorization tokens;
+- bypassing group membership, private message permissions, login, CAPTCHA, 2FA, risk controls, or Telegram access gates;
+- using third-party Telegram downloader websites, proxy download services, hidden paid APIs, or a second downloader owner;
+- returning partial CacheStorage chunks, thumbnails, posters, HTML, JSON, or empty files as success;
+- storing raw Telegram media URLs, group names, message text, account identity, or sensitive path/query material as durable proof.

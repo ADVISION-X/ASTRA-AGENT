@@ -82,8 +82,16 @@ const inspectJobInputs = (findings: Finding[], lawId: string): void => {
     requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker, checkId: "local-app-shell/video-download-input" });
   }
   requireMarker({ findings, lawId, filePath: videoDownloadClientPath, text: videoClientText, marker: "/api/video-download/start", checkId: "local-app-shell/video-download-client" });
-  requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "getVideoDownloadAbilityGroup", checkId: "local-app-shell/video-download-route" });
+  requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "routeVideoDownloadArtifactJob", checkId: "local-app-shell/video-download-route" });
   requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "missing_source_page_url", checkId: "local-app-shell/video-download-route" });
+  if (/getVideoDownloadAbilityGroup\(\)\.execute/u.test(videoRouteText)) {
+    pushFinding(findings, {
+      checkId: "local-app-shell/video-download-direct-ability-call",
+      lawId,
+      filePath: videoDownloadRoutePath,
+      message: "Video Download app route must enter mediator and job flow before calling the ability group.",
+    });
+  }
 };
 
 const inspectStatusWindow = (findings: Finding[], lawId: string): void => {

@@ -1,20 +1,20 @@
 {
-  "generatedAt": "2026-05-22T22:01:01.583Z",
-  "itemCount": 116,
+  "generatedAt": "2026-05-22T22:14:50.770Z",
+  "itemCount": 114,
   "items": [
     {
       "checkId": "code-purity/function-budget",
       "filePath": "scripts/acceptance/deep-research-analysis-smoke.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "acceptance",
-      "reason": "Function near line 229 breaks function budget: physical line count 90 exceeds red line 75.",
+      "reason": "Function near line 265 breaks function budget: physical line count 94 exceeds red line 75.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "acceptance-smoke",
       "verificationCommand": "npm run ci:full"
     },
     {
       "checkId": "code-purity/zombie-file",
-      "filePath": "scripts/acceptance/deep-research-analysis-smoke.ts",
+      "filePath": "scripts/acceptance/video-download-artifact-flow.acceptance.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "acceptance",
       "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
@@ -24,10 +24,50 @@
     },
     {
       "checkId": "code-purity/zombie-export",
+      "filePath": "src/capabilities/video-download/runtime/candidate-schema.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "capability:video-download",
+      "reason": "Export VideoDownloadCandidateKind has no active importer or namespace consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "child-ability",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "capability:video-download",
+      "reason": "Function near line 1 breaks function budget: physical line count 122 exceeds red line 75.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "child-ability",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-file",
+      "filePath": "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "capability:video-download",
+      "reason": "Active file is unreachable from every lawful entry surface and behaves like dead chain cargo.",
+      "remediation": "Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.",
+      "role": "child-ability",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Export buildRenderedDeepResearchPromptHash has no active importer or namespace consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:deep-research-analysis",
-      "reason": "Export DecompositionQuestionTypeSchema has no active importer or namespace consumer.",
+      "reason": "Export DeepResearchDecompositionDimensionSchema has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "job-schema",
       "verificationCommand": "npm run ci:full"
@@ -37,7 +77,7 @@
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:deep-research-analysis",
-      "reason": "Export DecompositionSubQuestionSchema has no active importer or namespace consumer.",
+      "reason": "Export DeepResearchDecompositionPrioritySchema has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "job-schema",
       "verificationCommand": "npm run ci:full"
@@ -47,7 +87,7 @@
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:deep-research-analysis",
-      "reason": "Export DecompositionQualitySelfCheckSchema has no active importer or namespace consumer.",
+      "reason": "Export DeepResearchDecompositionSubQuestionSchema has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "job-schema",
       "verificationCommand": "npm run ci:full"
@@ -57,7 +97,17 @@
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:deep-research-analysis",
-      "reason": "Export ParsedDecompositionOutput has no active importer or namespace consumer.",
+      "reason": "Export DeepResearchDecompositionQualitySelfCheckSchema has no active importer or namespace consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "job-schema",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Export DeepResearchDecompositionSubQuestion has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "job-schema",
       "verificationCommand": "npm run ci:full"
@@ -78,6 +128,16 @@
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:deep-research-analysis",
       "reason": "Export DeepResearchPromptPhase has no active importer or namespace consumer.",
+      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "owner": "plugin:deep-research-analysis",
+      "reason": "Export DeepResearchPromptAsset has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "job-step",
       "verificationCommand": "npm run ci:full"
@@ -657,16 +717,6 @@
       "filePath": "src/plugins/deep-research-analysis/index.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:deep-research-analysis",
-      "reason": "Export createDeepResearchRecordStore has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
       "reason": "Export DeepResearchRecordStore has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "job-step",
@@ -777,16 +827,6 @@
       "filePath": "src/plugins/deep-research-analysis/index.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:deep-research-analysis",
-      "reason": "Export buildDeepResearchFinalPackage has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
       "reason": "Export DeepResearchFinalPackageSchema has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "job-step",
@@ -798,16 +838,6 @@
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:deep-research-analysis",
       "reason": "Export DeepResearchFinalPackage has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Export exportDeepResearchArtifacts has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "job-step",
       "verificationCommand": "npm run ci:full"
@@ -967,36 +997,6 @@
       "filePath": "src/plugins/deep-research-analysis/index.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:deep-research-analysis",
-      "reason": "Export parseDeepResearchFalsificationResponse has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Export parseDeepResearchFinalReportResponse has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Export parseDeepResearchPositiveResponse has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
       "reason": "Export DeepResearchDecompositionResponse has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "job-step",
@@ -1028,16 +1028,6 @@
       "lawId": "APEX-CODE-PURITY-017-V1",
       "owner": "plugin:deep-research-analysis",
       "reason": "Export DeepResearchPositiveAnswer has no active importer or namespace consumer.",
-      "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "owner": "plugin:deep-research-analysis",
-      "reason": "Export runDeepResearchAnalysis has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "job-step",
       "verificationCommand": "npm run ci:full"
@@ -1140,16 +1130,6 @@
       "reason": "Export VideoDownloadArtifactJobResultSchema has no active importer or namespace consumer.",
       "remediation": "Delete the export, delete the file, or reconnect the consumer through a lawful import surface.",
       "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/plugin-non-facade-capability-import",
-      "filePath": "src/plugins/video-download-artifact/video-download-artifact.result.ts",
-      "lawId": "APEX-CODE-PURITY-004-V1",
-      "owner": "plugin:video-download-artifact",
-      "reason": "Plugin directly imports non-facade capability file src/capabilities/video-download/schema.ts.",
-      "remediation": "Route business flow through the public ability facade and keep private runtime children out of the plugin owner.",
-      "role": "job-schema",
       "verificationCommand": "npm run ci:full"
     },
     {

@@ -11,6 +11,7 @@ import { downloadDouyinVideoOnce } from "./children/download-douyin-video-once.j
 import { downloadXVideoOnce } from "./children/download-x-video-once.js";
 import { downloadXiaohongshuVideoOnce } from "./children/download-xiaohongshu-video-once.js";
 import { downloadYoutubeVideoOnce } from "./children/download-youtube-video-once.js";
+import { downloadTelegramWebVideoOnce } from "./children/download-telegram-web-video-once.js";
 
 const VIDEO_DOWNLOAD_CHILDREN: VideoDownloadChildCapability[] = [
   downloadWebVideoOnce,
@@ -22,6 +23,7 @@ const VIDEO_DOWNLOAD_CHILDREN: VideoDownloadChildCapability[] = [
   downloadXVideoOnce,
   downloadXiaohongshuVideoOnce,
   downloadYoutubeVideoOnce,
+  downloadTelegramWebVideoOnce,
 ];
 
 export const listVideoDownloadChildren = (): VideoDownloadChildCapabilityId[] =>

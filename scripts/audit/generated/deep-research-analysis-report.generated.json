@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T22:01:03.083Z",
+  "generatedAt": "2026-05-22T22:14:52.355Z",
   "capabilityDomain": "deep-research-analysis",
   "executionGroup": "domain",
   "lawIds": [
@@ -14,33 +14,26 @@
     "GRASSEYE-DEEP-RESEARCH-009-V1",
     "GRASSEYE-DEEP-RESEARCH-010-V1",
     "GRASSEYE-DEEP-RESEARCH-011-V1",
-    "GRASSEYE-DEEP-RESEARCH-012-V1"
+    "GRASSEYE-DEEP-RESEARCH-012-V1",
+    "GRASSEYE-DEEP-RESEARCH-013-V1"
   ],
   "status": "FAIL",
   "findings": [
     {
-      "checkId": "deep-research/prompt-scatter",
+      "checkId": "deep-research/prompt-asset",
       "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
       "clauseId": "primary",
-      "message": "Long prompt-like strings must stay in prompt asset files.",
+      "message": "DEEP_RESEARCH_DECOMPOSITION_PROMPT must be an object literal prompt asset.",
       "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.records.ts"
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts"
     },
     {
-      "checkId": "deep-research/anti-evasion",
+      "checkId": "deep-research/regression-fixtures",
       "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
       "clauseId": "primary",
-      "message": "Deep research decomposition files must not use any, dynamic import, or bracket property access.",
+      "message": "Regression fixture set must contain at least 10 fixtures.",
       "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.conflict-matrix.ts"
-    },
-    {
-      "checkId": "deep-research/anti-evasion",
-      "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
-      "clauseId": "primary",
-      "message": "Deep research decomposition files must not use any, dynamic import, or bracket property access.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.final-package.ts"
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-regression.ts"
     }
   ],
   "inspectedFiles": [

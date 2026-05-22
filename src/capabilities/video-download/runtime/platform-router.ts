@@ -9,6 +9,7 @@ const PLATFORM_ROUTES: Array<{ hosts: string[]; child: VideoDownloadChildCapabil
   { hosts: ["x.com", "www.x.com", "twitter.com", "www.twitter.com"], child: "download-x-video-once" },
   { hosts: ["xiaohongshu.com", "www.xiaohongshu.com", "xhslink.com"], child: "download-xiaohongshu-video-once" },
   { hosts: ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtube-nocookie.com", "youtu.be"], child: "download-youtube-video-once" },
+  { hosts: ["web.telegram.org"], child: "download-telegram-web-video-once" },
 ];
 
 /**

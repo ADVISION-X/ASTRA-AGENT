@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T22:00:58.316Z",
+  "generatedAt": "2026-05-22T22:14:47.492Z",
   "capabilityDomain": "architecture-boundary",
   "executionGroup": "foundation",
   "lawIds": [
@@ -14,26 +14,8 @@
     "APEX-ARCH-009-V1",
     "APEX-ARCH-010-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "architecture/ai-planner-ban",
-      "lawId": "APEX-ARCH-009-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts contains planner token \"nextAction\".",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompts.ts"
-    },
-    {
-      "checkId": "architecture/flow-non-facade-capability-import",
-      "lawId": "APEX-ARCH-003-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/video-download-artifact/video-download-artifact.result.ts imports non-facade capability code src/capabilities/video-download/schema.ts.",
-      "severity": "fatal",
-      "filePath": "src/plugins/video-download-artifact/video-download-artifact.result.ts",
-      "evidence": "src/capabilities/video-download/schema.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/deep-research-analysis-smoke.ts",
@@ -49,6 +31,8 @@
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
+    "scripts/acceptance/video-download-artifact-flow.acceptance.ts",
+    "scripts/acceptance/video-download-telegram-web.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
     "scripts/audit/build/compose-artifacts.ts",
@@ -260,6 +244,7 @@
     "src/capabilities/video-download/runtime/media-download.ts",
     "src/capabilities/video-download/runtime/platform-router.ts",
     "src/capabilities/video-download/runtime/result.ts",
+    "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
     "src/capabilities/video-download/runtime/tiktok-candidates.ts",
     "src/capabilities/video-download/runtime/tiktok-page-probe-script.ts",
     "src/capabilities/video-download/runtime/universal-candidates.ts",

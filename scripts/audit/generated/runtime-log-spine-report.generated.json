@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-22T22:01:02.895Z",
-  "status": "FAIL",
-  "scannedFiles": 247,
+  "generatedAt": "2026-05-22T22:14:52.194Z",
+  "status": "PASS",
+  "scannedFiles": 248,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -98,6 +98,7 @@
     "src/capabilities/video-download/runtime/media-download.ts",
     "src/capabilities/video-download/runtime/platform-router.ts",
     "src/capabilities/video-download/runtime/result.ts",
+    "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
     "src/capabilities/video-download/runtime/tiktok-candidates.ts",
     "src/capabilities/video-download/runtime/tiktok-page-probe-script.ts",
     "src/capabilities/video-download/runtime/universal-candidates.ts",
@@ -251,12 +252,12 @@
     "src/types/local-browser-session.ts",
     "src/types/structured-log.ts"
   ],
-  "emitCallCount": 10,
+  "emitCallCount": 11,
   "consoleCallCount": 0,
   "consoleEscapeCount": 0,
   "eventTypeLiteralCount": 0,
   "missingModeVisibilityCount": 0,
-  "missingTraceContractCount": 1,
+  "missingTraceContractCount": 0,
   "catchBranchCount": 0,
   "catchBranchWithoutLogCount": 0,
   "failureBranchCount": 24,
@@ -267,10 +268,10 @@
   "heavyPayloadFlowViolationCount": 0,
   "redactionViolationCount": 0,
   "summary": {
-    "totalFindings": 2,
-    "fatalFindings": 2,
-    "scannedFiles": 247,
-    "emitCallCount": 10,
+    "totalFindings": 0,
+    "fatalFindings": 0,
+    "scannedFiles": 248,
+    "emitCallCount": 11,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
     "stageCoveragePercent": 100
@@ -280,7 +281,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 242,
+      "scannedFiles": 243,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -289,15 +290,15 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 202
+      "scannedFiles": 203
     },
     {
       "name": "runtime-log-emit-contract",
-      "status": "FAIL",
-      "findingCount": 2,
+      "status": "PASS",
+      "findingCount": 0,
       "scannedFiles": 200,
       "metrics": {
-        "emitCallCount": 2
+        "emitCallCount": 1
       }
     },
     {
@@ -310,7 +311,7 @@
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 203,
+      "scannedFiles": 204,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -325,7 +326,7 @@
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 203,
+      "scannedFiles": 204,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -360,7 +361,7 @@
       "findingCount": 0,
       "scannedFiles": 19,
       "metrics": {
-        "emitCallCount": 10,
+        "emitCallCount": 11,
         "stageStartCount": 18,
         "stageTerminalCount": 37,
         "failureBranchCount": 24
@@ -373,24 +374,5 @@
       "scannedFiles": 2
     }
   ],
-  "findings": [
-    {
-      "checkId": "runtime-log-spine/emit-trace-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
-      "line": 30,
-      "severity": "fatal",
-      "message": "RuntimeLogger.emit contract is incomplete",
-      "hint": "Add traceId, level, modeVisibility, eventType, owner and mission/run/round identifiers. Failed/review_required/skipped events must include failureClass contract. Spread fields must be statically proven."
-    },
-    {
-      "checkId": "runtime-log-spine/emit-event-type-registry",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
-      "file": "src/plugins/deep-research-analysis/deep-research-analysis.logging.ts",
-      "line": 30,
-      "severity": "fatal",
-      "message": "eventType is not proven to come from RuntimeLogEventType registry",
-      "hint": "Import RuntimeLogEventType from the runtime log registry and use RuntimeLogEventType.X directly or through a traceable constant."
-    }
-  ]
+  "findings": []
 }

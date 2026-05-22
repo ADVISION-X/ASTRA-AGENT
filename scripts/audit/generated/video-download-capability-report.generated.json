@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T22:01:03.194Z",
+  "generatedAt": "2026-05-22T22:14:52.468Z",
   "capabilityDomain": "video-download-capability",
   "executionGroup": "domain",
   "lawIds": [
@@ -11,30 +11,20 @@
     "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-006-V1",
     "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-007-V1",
     "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-008-V1",
-    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1"
+    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1",
+    "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-010-V1"
   ],
   "status": "FAIL",
   "findings": [
     {
-      "checkId": "video-download/api-surface",
-      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1",
+      "checkId": "runner/inspector-error",
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-001-V1",
       "clauseId": "primary",
-      "message": "src/app/workbench-video-download-routes.ts is missing getVideoDownloadAbilityGroup.",
-      "severity": "fatal",
-      "filePath": "src/app/workbench-video-download-routes.ts"
+      "message": "ENOENT: no such file or directory, open '/Users/nexgen/Documents/AGENT/src/capabilities/video-download/children/download-telegram-web-video-once.ts'",
+      "severity": "fatal"
     }
   ],
   "inspectedFiles": [
-    "src/capabilities/video-download/schema.ts",
-    "src/capabilities/video-download/registry.ts",
-    "src/capabilities/video-download/runtime/platform-router.ts",
-    "src/capabilities/video-download/runtime/result.ts",
-    "src/capabilities/video-download/runtime/youtube-dlp-args.ts",
-    "src/capabilities/video-download/runtime/youtube-dlp-download.ts",
-    "src/capabilities/video-download/runtime/youtube-dlp-output.ts",
-    "src/capabilities/video-download/runtime/youtube-url.ts",
-    "src/capabilities/video-download/children/download-youtube-video-once.ts",
-    "src/app/workbench-video-download-routes.ts",
-    "src/lib/local-runtime/workbench-video-download-support.ts"
+    "scripts/audit/domains/video-download-capability/inspector.ts"
   ]
 }

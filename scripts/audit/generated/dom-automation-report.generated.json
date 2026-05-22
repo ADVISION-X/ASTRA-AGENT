@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T22:01:03.119Z",
+  "generatedAt": "2026-05-22T22:14:52.391Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -34,6 +34,8 @@
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
+    "scripts/acceptance/video-download-artifact-flow.acceptance.ts",
+    "scripts/acceptance/video-download-telegram-web.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
     "scripts/audit/build/compose-artifacts.ts",
@@ -245,6 +247,7 @@
     "src/capabilities/video-download/runtime/media-download.ts",
     "src/capabilities/video-download/runtime/platform-router.ts",
     "src/capabilities/video-download/runtime/result.ts",
+    "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
     "src/capabilities/video-download/runtime/tiktok-candidates.ts",
     "src/capabilities/video-download/runtime/tiktok-page-probe-script.ts",
     "src/capabilities/video-download/runtime/universal-candidates.ts",

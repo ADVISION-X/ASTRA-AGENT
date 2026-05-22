@@ -45,7 +45,7 @@ src/capabilities/video-download/
 Phase 1 建设内容：
 
 - `download-web-video-once`：通用子能力，适配任意网页视频提取；
-- 命名平台子能力：Facebook、TikTok、Instagram、Bilibili、Douyin、X/Twitter、小红书；
+- 命名平台子能力：Facebook、TikTok、Instagram、Bilibili、Douyin、X/Twitter、小红书、YouTube、Telegram Web；
 - 平台路由器：`platform-router.ts`，纯 URL → childCapabilityId 映射；
 - 证据系统：每次下载尝试都有 Forensics 兼容的 proof；
 - 诚实失败：DRM、登录墙、私密视频、不支持格式 → `review_required` 或 `failed`。
@@ -74,7 +74,9 @@ src/capabilities/video-download/
   │  ├─ download-bilibili-video-once.ts
   │  ├─ download-douyin-video-once.ts
   │  ├─ download-x-video-once.ts
-  │  └─ download-xiaohongshu-video-once.ts
+  │  ├─ download-xiaohongshu-video-once.ts
+  │  ├─ download-youtube-video-once.ts
+  │  └─ download-telegram-web-video-once.ts
   ├─ runtime/
   │  ├─ universal-page-probe-script.ts # 通用浏览器探针脚本（字符串）
   │  ├─ universal-candidates.ts        # 解析/排序通用探针结果
@@ -86,6 +88,7 @@ src/capabilities/video-download/
   │  ├─ facebook-candidates.ts         # Facebook 候选解析
   │  ├─ tiktok-page-probe-script.ts    # TikTok/Douyin 专属探针
   │  ├─ tiktok-candidates.ts           # TikTok/Douyin 候选解析
+  │  ├─ telegram-web-cache-probe-script.ts # Telegram Web CacheStorage 分片探针
   │  └─ result.ts                      # 结果构建工具
   └─ ports/
      ├─ browser-media-source-port.ts   # 浏览器媒体执行接口
@@ -105,6 +108,7 @@ src/capabilities/video-download/
 | `download-x-video-once` | x.com, twitter.com | `__NEXT_DATA__` / video CDN |
 | `download-xiaohongshu-video-once` | xiaohongshu.com, xhslink.com | 页面数据 / video element |
 | `download-youtube-video-once` | youtube.com, youtu.be, youtube-nocookie.com | 本地 yt-dlp runtime，受治理 artifact + subtitle proof |
+| `download-telegram-web-video-once` | web.telegram.org | Service Worker / CacheStorage 完整分片拼接，受治理 artifact proof |
 
 每个子能力规则：
 - 每次调用最多下载一个视频 artifact；
@@ -224,7 +228,9 @@ type VideoDownloadPlatformId =
   | "bilibili-web"
   | "douyin-web"
   | "x-web"
-  | "xiaohongshu-web";
+  | "xiaohongshu-web"
+  | "youtube-web"
+  | "telegram-web";
 ```
 
 ### 6.4 candidateKind 枚举（新增 hls_manifest, source_element）
@@ -237,7 +243,9 @@ type VideoDownloadCandidateKind =
   | "source_element"
   | "media_resource"
   | "hls_manifest"
-  | "dash_manifest";
+  | "dash_manifest"
+  | "telegram_sw_progressive_cache"
+  | "telegram_sw_download_stream";
 ```
 
 ### 6.5 候选排序优先级
@@ -283,6 +291,7 @@ Step 4: 候选去重 + 排序
 | `x.com`, `twitter.com` | `download-x-video-once` |
 | `xiaohongshu.com`, `xhslink.com` | `download-xiaohongshu-video-once` |
 | `youtube.com`, `youtu.be`, `youtube-nocookie.com` | `download-youtube-video-once` |
+| `web.telegram.org` | `download-telegram-web-video-once` |
 | 其他 | `download-web-video-once` |
 
 ## YouTube 清晰度与字幕验收
@@ -298,16 +307,17 @@ YouTube 子能力只允许作为 `src/capabilities/video-download/**` 内的受�
 验收要求：
 
 - 每个清晰度必须进入 bounded format selector，不得超过请求高度。
-- App API `/api/video-download/start` 必须把 `preferredQuality` 和 `downloadSubtitles` 传入 public facade。
+- App API `/api/video-download/start` 必须把 `preferredQuality` 和 `downloadSubtitles` 交给 mediator route，再进入 `video-download-artifact` job flow，由 job flow 调用 public facade。
 - `downloadSubtitles=true` 必须向本地 yt-dlp runtime 请求字幕，并把 `.vtt` 或 `.srt` 写入治理 artifact path。
 - success result 与 runtime proof 必须包含 `selectedQuality`、视频 artifact、`subtitleArtifacts`。
 - 平台没有提供字幕时，不得伪造字幕 artifact；下载视频仍可按真实结果成功。
 - YouTube 下载不得读取或导出 cookie、localStorage、sessionStorage、token。
 - YouTube 下载不得使用第三方 downloader 网站、去水印 API、隐藏付费 API 或第二 downloader owner。
+- App route 不得直接调用 `getVideoDownloadAbilityGroup().execute`；直调能力组是绕过 job flow 的违法捷径。
 
-## Telegram Web 内部下载链路取证（候选，不是 active child）
+## Telegram Web 内部下载链路取证与实现边界
 
-本节记录 Telegram Web 视频下载子能力的实证发现。它只能作为后续法案变更和实现前的施工地图，不能把 `download-telegram-web-video-once` 直接视为 active child。
+本节记录 Telegram Web 视频下载子能力的实证发现与 active 实现边界。`download-telegram-web-video-once` 只能在 `src/capabilities/video-download/**` 内实现。
 
 当前取证结论：
 
@@ -325,25 +335,25 @@ YES: 已缓存分片可程序化拼接成真实 MP4，并通过 ffprobe 验证�
 - Service Worker 使用 `tt-media-progressive` CacheStorage 缓存部分 progressive 分片；小视频在缓存分片完整时可以拼接为 MP4 artifact。
 - 已拼接验证的样例 artifact：`video/mp4`，`1965028` bytes，约 `35.8s`，`480x360`，H.264 + AAC。
 
-候选子能力名称（仅在法案放行后可进入 active 清单）：
+子能力名称：
 
 ```txt
 download-telegram-web-video-once
 ```
 
-候选 platformId：
+platformId：
 
 ```txt
 telegram-web
 ```
 
-候选宿主白名单：
+宿主白名单：
 
 ```txt
 web.telegram.org
 ```
 
-候选输入仍必须沿用命名平台输入结构：
+输入仍必须沿用命名平台输入结构：
 
 ```ts
 type DownloadTelegramWebVideoInput = {
@@ -378,13 +388,9 @@ type DownloadTelegramWebVideoInput = {
 - 把 poster、thumbnail、HTML、JSON、错误页、空文件、部分分片冒充完整视频 artifact。
 - 将 raw progressive URL、带敏感查询参数的 URL、群组名称、消息正文或账号身份写入 durable proof。
 
-候选实现路线：
+实现路线：
 
 ```txt
-Step 0: 法案准入
-  - 在 active video-download law 中增加 Telegram Web named child。
-  - 同步 schema、registry、platform-router、inspector、manifest、验收锚点。
-
 Step 1: 页面与链路识别
   - 仅接受 web.telegram.org 当前授权页面。
   - 识别目标视频消息、document id、progressive/download path、SW controller 状态。
@@ -395,10 +401,9 @@ Step 2: CacheStorage 证据探测
   - 只记录 redacted path、range、content-type、content-range、byte length。
   - 若所有分片覆盖完整 `fullSize`，可拼接 artifact 并进入验证。
 
-Step 3: 内部下载链路
-  - 对超过缓存覆盖范围的视频，只能走真实 Telegram Web SW / client / MTProto part 链路。
-  - 必须有 bounded chunk size、bounded maxBytes、bounded timeout、range coverage 记录。
-  - 不能退化为裸 HTTP direct URL 下载。
+Step 3: 完整分片拼接
+  - 只在 CacheStorage 分片完整、range 连续、fullSize 匹配时拼接 artifact。
+  - 对超过缓存覆盖范围的视频，当前 active 实现返回 review_required，不退化为裸 HTTP direct URL 下载。
 
 Step 4: 媒体验证
   - 逐字节拼接后必须验证 container、MIME、duration、width、height、byteSize。
@@ -410,7 +415,7 @@ Step 5: 证据落库
   - 媒体只能写入受治理 artifact path。
 ```
 
-候选 `candidateKind`：
+`candidateKind`：
 
 ```txt
 telegram_sw_progressive_cache
@@ -425,13 +430,12 @@ Telegram Web 验收口径：
 - 失败输出必须说明阻断点：未登录、页面不可见、SW 未接管、缓存不完整、内部 chunk 链路不可用、超时、超限、验证失败。
 - 验收不得依赖群组名称、账号身份、消息正文或任何 secret。
 
-Telegram Web active 实现阻断条件：
+Telegram Web 实现阻断条件：
 
-- active law 未增加 `download-telegram-web-video-once`。
 - `video-download-capability` inspector 未把 Telegram child、platformId、candidateKind 和禁用面纳入检查。
 - 没有媒体 container 验证。
 - 只能通过 UI 下载按钮成功。
-- 只能通过 CacheStorage 早期缓存成功，不能解释大文件的合法 chunk 链路。
+- 只能通过 CacheStorage 早期缓存成功，却把大文件未覆盖分片冒充完整 artifact。
 - 任何实现读取或记录 cookie/session/storage/token。
 
 ## 9. 质检建设
@@ -440,16 +444,17 @@ Phase 1 inspector 必须覆盖：
 
 ```txt
 scripts/audit/domains/video-download-capability/
-  ├─ manifest.json    (9 条 law IDs)
+  ├─ manifest.json    (10 条 law IDs)
   └─ inspector.ts
 ```
 
 inspector 阻断条件：
-- 法案文件缺失或少于 9 条 active law；
-- `src/capabilities/video-download/children/` 少于 9 个子文件；
+- 法案文件缺失或少于 10 条 active law；
+- `src/capabilities/video-download/children/` 少于 10 个子文件；
 - `platform-router.ts` 不存在；
 - `universal-page-probe-script.ts` 不存在；
 - `schema.ts` 中 `platformId` 仍是 `z.literal("facebook-web")` 硬编码；
+- Telegram Web child、platformId、candidateKind、platform-router 或 CacheStorage 探针缺失；
 - 代码中出现 cookie/session/token/DRM/CAPTCHA bypass 正向实现；
 - 代码中出现第三方下载站调用；
 - 截图/封面图冒充视频下载成功。
@@ -458,12 +463,13 @@ inspector 阻断条件：
 
 Phase 1 完成标准：
 
-- 法案文件存在并含 8 条 active law；
+- 法案文件存在并含 10 条 active law；
 - 施工图存在并明确 Phase 1 结构；
 - CI-FULL 能看到 video-download owner step；
 - `download-web-video-once` 在真实网页中能找到视频候选；
 - Facebook Reel 可下载真实 MP4 artifact；
-- platform-router 能正确路由 9 个平台 URL；
+- platform-router 能正确路由 10 个平台 URL；
+- Telegram Web 已授权页面缓存完整分片可拼接出真实 MP4 artifact；缓存不完整时返回 `review_required`；
 - 没有截图冒充完整视频；
 - 没有 cookie/session/token/DRM/CAPTCHA 绕过。
 
@@ -473,6 +479,7 @@ Phase 1 完成标准：
 
 - `npm run ci:full` 通过 `codex:entry-gate`、audit build、generated plan、typecheck 和现役 acceptance。
 - `video-download-capability` owner report 为 `PASS`，并进入 generated registry / matrix / plan。
-- YouTube API 实测至少覆盖两个不同 `preferredQuality` 请求，并证明输出 `selectedQuality`、文件路径、字节数、sha256。
+- YouTube API 实测至少覆盖两个不同 `preferredQuality` 请求，且必须经过 mediator + `video-download-artifact` job flow，并证明输出 `selectedQuality`、文件路径、字节数、sha256。
 - 字幕实测必须用 `downloadSubtitles=true` 请求，平台提供字幕时必须产生 `subtitleArtifacts`；平台未提供字幕时必须在交付中如实说明，不得伪造。
+- Telegram Web 实测必须证明 `web.telegram.org` 路由、CacheStorage 完整分片拼接成功路径、缓存不完整 `review_required` 路径、以及不读取 credential/storage/token 的红线。
 - 不允许通过手工编辑 generated artifacts、第二 downloader、第三方 downloader 网站、cookie/session/token 导出完成验收。

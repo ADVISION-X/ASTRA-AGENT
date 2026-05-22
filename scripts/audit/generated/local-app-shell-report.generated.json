@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T22:01:03.182Z",
+  "generatedAt": "2026-05-22T22:14:52.456Z",
   "capabilityDomain": "local-app-shell",
   "executionGroup": "domain",
   "lawIds": [
@@ -8,17 +8,8 @@
     "APEX-LOCAL-APP-SHELL-003-V1",
     "APEX-LOCAL-APP-SHELL-004-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "local-app-shell/video-download-route",
-      "lawId": "APEX-LOCAL-APP-SHELL-002-V1",
-      "clauseId": "primary",
-      "message": "src/app/workbench-video-download-routes.ts is missing getVideoDownloadAbilityGroup.",
-      "severity": "fatal",
-      "filePath": "src/app/workbench-video-download-routes.ts"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     "src/app/workbench-home-page.ts",
     "src/app/workbench-home-client.ts",

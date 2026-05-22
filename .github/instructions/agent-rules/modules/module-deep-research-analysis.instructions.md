@@ -707,6 +707,179 @@ actionableMessage
 
 ---
 
+### [GRASSEYE-DEEP-RESEARCH-013-V1] Smoke 活体链路验收主权
+
+```apex-law
+{
+  "lawId": "GRASSEYE-DEEP-RESEARCH-013-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "deep-research-analysis",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "acceptance+runtime-log+db+artifact",
+  "summary": "Deep Research Analysis must provide a minimum smoke acceptance that proves the job flow can execute its smallest live path through parser, persistence, final package, export, and runtime logs."
+}
+```
+
+#### 定义
+
+Smoke 是 Deep Research Analysis 的最小活体链路验收。
+
+它不是普通单元测试。  
+它不是 inspector 的替代品。  
+它不是完整业务覆盖。  
+它不是人工手动验证。  
+它不是 mock success。  
+
+Smoke 只回答一个问题：
+
+```txt
+Deep Research Analysis 的最小主链路是否真的活着？
+```
+
+#### Smoke 必须证明
+
+最小 smoke 必须证明以下链路可以真实跑通：
+
+```txt
+ResearchJob created
+-> decomposition prompt rendered
+-> raw decomposition response captured or fixture injected as raw AI output
+-> decomposition parser executed
+-> subQuestions persisted
+-> positive prompt rendered
+-> raw positive response captured or fixture injected as raw AI output
+-> positive parser executed
+-> positive answer persisted
+-> falsification prompt rendered
+-> raw falsification response captured or fixture injected as raw AI output
+-> falsification parser executed
+-> falsification answer persisted
+-> conflict matrix built
+-> final package built from persisted records
+-> raw final report response captured or fixture injected as raw AI output
+-> final parser executed
+-> final report persisted
+-> final-report.md exported
+-> research-bundle.json exported
+-> evidence-index.json exported
+-> runtime log has started and terminal evidence
+```
+
+#### Smoke 允许
+
+Smoke 允许使用 fixture 代替外部 AI 的真实输出。
+
+但 fixture 只能模拟：
+
+```txt
+外部 AI raw response
+```
+
+fixture 必须从与生产相同的 raw response 入口进入。
+
+允许：
+
+```txt
+fixture raw AI text
+-> parser
+-> quality scorer
+-> records
+-> final package
+-> export
+-> runtime log
+```
+
+#### Smoke 禁止
+
+Smoke 禁止绕过以下环节：
+
+```txt
+parser
+quality scorer
+persistence
+falsification
+conflict matrix
+final package
+final report parser
+export
+runtime log
+```
+
+禁止：
+
+```txt
+直接塞 parsed result
+直接标记 parse success
+直接写 final report 而不构建 final package
+直接写 export 文件而不入库 export record
+跳过 falsification
+关闭 runtime log
+catch 后返回 success
+fixture 走 production mock path
+```
+
+#### Smoke 与 Inspector 的关系
+
+Deep Research Analysis 必须同时具备：
+
+```txt
+静态执法链：inspector / audit / ts-morph / AST / symbol / anti-evasion
+活体运行链：smoke / acceptance / fixture raw response / real parser / real persistence / real export
+```
+
+二者缺一不可。
+
+```txt
+Inspector 防腐烂。
+Smoke 防断链。
+Runtime Log 防黑洞。
+CI-FULL 统一裁决。
+```
+
+#### CI 要求
+
+Deep Research smoke 必须由 `ci:full` 调用。
+
+允许局部命令：
+
+```txt
+npm run acceptance:deep-research-analysis-smoke
+```
+
+但最终 READY 必须以：
+
+```txt
+npm run ci:full
+```
+
+为准。
+
+#### 完成标准
+
+Smoke 完成标准只允许：
+
+```txt
+PASS
+FAIL
+```
+
+禁止：
+
+```txt
+partial-pass
+warning-pass
+manual-pass
+almost-pass
+pass-with-skipped-export
+pass-without-runtime-log
+pass-without-falsification
+```
+
+只要 smoke 失败，Deep Research Analysis 不得声明完成。
+
+---
+
 ## 4. 二元完成标准
 
 本 Job Flow 只允许二元运行判断：

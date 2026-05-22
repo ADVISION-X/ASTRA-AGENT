@@ -1,5 +1,6 @@
 import {
   RuntimeLogEventType,
+  createRuntimeEvent,
   createMissionTrace,
   type RuntimeFailureClass,
   type RuntimeLogger,
@@ -27,15 +28,8 @@ const emitDeepResearchEvent = (input: {
   preview?: Record<string, string>;
   payload?: Record<string, unknown>;
 }): void => {
-  input.logger.emit({
-    traceId: input.traceContext.traceId,
-    spanId: input.traceContext.spanId,
-    ...(input.traceContext.parentSpanId ? { parentSpanId: input.traceContext.parentSpanId } : {}),
-    owner: DEEP_RESEARCH_RUNTIME_LOG_OWNER,
-    ...(input.traceContext.missionId ? { missionId: input.traceContext.missionId } : {}),
-    ...(input.traceContext.runId ? { runId: input.traceContext.runId } : {}),
-    ...(input.traceContext.roundId ? { roundId: input.traceContext.roundId } : {}),
-    ...(input.traceContext.stepId ? { stepId: input.traceContext.stepId } : {}),
+  input.logger.emit(createRuntimeEvent({
+    context: input.traceContext,
     eventType: input.eventType,
     level: input.level,
     modeVisibility: ["FLOW", "DEBUG", "TRACE"],
@@ -49,7 +43,7 @@ const emitDeepResearchEvent = (input: {
       phase: input.phase,
       ...(input.payload ? input.payload : {}),
     },
-  });
+  }));
 };
 
 export const createDeepResearchTraceContext = (jobId: string): RuntimeTraceContext =>

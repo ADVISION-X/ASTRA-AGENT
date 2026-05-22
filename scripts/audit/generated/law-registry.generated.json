@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T22:00:57.164Z",
+  "generatedAt": "2026-05-22T22:14:46.218Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -911,6 +911,17 @@
       "summary": "Every phase transition, send, DOM capture, parse, persist, final synthesis, and export must emit structured Runtime Log Spine events.",
       "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
       "blockIndex": 11
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-013-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "acceptance+runtime-log+db+artifact",
+      "summary": "Deep Research Analysis must provide a minimum smoke acceptance that proves the job flow can execute its smallest live path through parser, persistence, final package, export, and runtime logs.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 12
     },
     {
       "lawId": "APEX-DOM-001-V1",
@@ -1944,6 +1955,17 @@
       "summary": "YouTube downloads must honor explicit quality requests and subtitle requests through governed local artifacts.",
       "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
       "blockIndex": 8
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "Telegram Web downloads must use only the user-authorized Telegram Web Service Worker / CacheStorage media chain and must never treat raw progressive URLs or UI download buttons as success.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 9
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T22:01:01.584Z",
+  "generatedAt": "2026-05-22T22:14:50.771Z",
   "capabilityDomain": "code-purity",
   "executionGroup": "foundation",
   "lawIds": [
@@ -27,10 +27,19 @@
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "scripts/acceptance/deep-research-analysis-smoke.ts has an over-line function near line 229.",
+      "message": "scripts/acceptance/deep-research-analysis-smoke.ts has an over-line function near line 265.",
       "severity": "fatal",
       "filePath": "scripts/acceptance/deep-research-analysis-smoke.ts",
       "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts has an over-line function near line 1.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/function-budget",
@@ -69,28 +78,46 @@
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/plugin-non-facade-capability-import",
-      "lawId": "APEX-CODE-PURITY-004-V1",
+      "checkId": "code-purity/zombie-file",
+      "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/plugins/video-download-artifact/video-download-artifact.result.ts imports non-facade ability-group code src/capabilities/video-download/schema.ts.",
+      "message": "scripts/acceptance/video-download-artifact-flow.acceptance.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
       "severity": "fatal",
-      "filePath": "src/plugins/video-download-artifact/video-download-artifact.result.ts",
-      "evidence": "{\"owner\":\"plugin:video-download-artifact\",\"remediation\":\"Route business flow through the public ability facade and keep private runtime children out of the plugin owner.\",\"role\":\"job-schema\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "scripts/acceptance/video-download-artifact-flow.acceptance.ts",
+      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/zombie-file",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "scripts/acceptance/deep-research-analysis-smoke.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
+      "message": "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
       "severity": "fatal",
-      "filePath": "scripts/acceptance/deep-research-analysis-smoke.ts",
-      "evidence": "{\"owner\":\"acceptance\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"acceptance-smoke\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/zombie-export",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts exports DecompositionQuestionTypeSchema without any active consumer.",
+      "message": "src/capabilities/video-download/runtime/candidate-schema.ts exports VideoDownloadCandidateKind without any active consumer.",
+      "severity": "fatal",
+      "filePath": "src/capabilities/video-download/runtime/candidate-schema.ts",
+      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts exports buildRenderedDeepResearchPromptHash without any active consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-prompt.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts exports DeepResearchDecompositionDimensionSchema without any active consumer.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-schema\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -99,7 +126,7 @@
       "checkId": "code-purity/zombie-export",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts exports DecompositionSubQuestionSchema without any active consumer.",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts exports DeepResearchDecompositionPrioritySchema without any active consumer.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-schema\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -108,7 +135,7 @@
       "checkId": "code-purity/zombie-export",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts exports DecompositionQualitySelfCheckSchema without any active consumer.",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts exports DeepResearchDecompositionSubQuestionSchema without any active consumer.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-schema\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -117,7 +144,16 @@
       "checkId": "code-purity/zombie-export",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts exports ParsedDecompositionOutput without any active consumer.",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts exports DeepResearchDecompositionQualitySelfCheckSchema without any active consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-schema\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts exports DeepResearchDecompositionSubQuestion without any active consumer.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.decomposition-schema.ts",
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-schema\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -127,6 +163,15 @@
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
       "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts exports DeepResearchPromptPhase without any active consumer.",
+      "severity": "fatal",
+      "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
+      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/zombie-export",
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts exports DeepResearchPromptAsset without any active consumer.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/deep-research-analysis.prompt-contracts.ts",
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -621,15 +666,6 @@
       "checkId": "code-purity/zombie-export",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/index.ts exports createDeepResearchRecordStore without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
       "message": "src/plugins/deep-research-analysis/index.ts exports DeepResearchRecordStore without any active consumer.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/index.ts",
@@ -729,15 +765,6 @@
       "checkId": "code-purity/zombie-export",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/index.ts exports buildDeepResearchFinalPackage without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
       "message": "src/plugins/deep-research-analysis/index.ts exports DeepResearchFinalPackageSchema without any active consumer.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/index.ts",
@@ -748,15 +775,6 @@
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
       "message": "src/plugins/deep-research-analysis/index.ts exports DeepResearchFinalPackage without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/index.ts exports exportDeepResearchArtifacts without any active consumer.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/index.ts",
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -900,33 +918,6 @@
       "checkId": "code-purity/zombie-export",
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/index.ts exports parseDeepResearchFalsificationResponse without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/index.ts exports parseDeepResearchFinalReportResponse without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/index.ts exports parseDeepResearchPositiveResponse without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
       "message": "src/plugins/deep-research-analysis/index.ts exports DeepResearchDecompositionResponse without any active consumer.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/index.ts",
@@ -955,15 +946,6 @@
       "lawId": "APEX-CODE-PURITY-017-V1",
       "clauseId": "primary",
       "message": "src/plugins/deep-research-analysis/index.ts exports DeepResearchPositiveAnswer without any active consumer.",
-      "severity": "fatal",
-      "filePath": "src/plugins/deep-research-analysis/index.ts",
-      "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/deep-research-analysis/index.ts exports runDeepResearchAnalysis without any active consumer.",
       "severity": "fatal",
       "filePath": "src/plugins/deep-research-analysis/index.ts",
       "evidence": "{\"owner\":\"plugin:deep-research-analysis\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -1091,6 +1073,8 @@
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
     "scripts/acceptance/runtime-log-spine-ast-anti-escape.acceptance.ts",
     "scripts/acceptance/runtime-log-stage-pair.acceptance.ts",
+    "scripts/acceptance/video-download-artifact-flow.acceptance.ts",
+    "scripts/acceptance/video-download-telegram-web.acceptance.ts",
     "scripts/audit/build-audit-artifacts.ts",
     "scripts/audit/build/compose-artifact-domain-artifacts.ts",
     "scripts/audit/build/compose-artifacts.ts",
@@ -1299,6 +1283,7 @@
     "src/capabilities/video-download/runtime/media-download.ts",
     "src/capabilities/video-download/runtime/platform-router.ts",
     "src/capabilities/video-download/runtime/result.ts",
+    "src/capabilities/video-download/runtime/telegram-web-cache-probe-script.ts",
     "src/capabilities/video-download/runtime/tiktok-candidates.ts",
     "src/capabilities/video-download/runtime/tiktok-page-probe-script.ts",
     "src/capabilities/video-download/runtime/universal-candidates.ts",

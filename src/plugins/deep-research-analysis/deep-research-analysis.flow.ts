@@ -132,7 +132,7 @@ const buildPromptPackage = (input: {
   timeoutMs: 120000,
   maxInputChars: 24000,
   maxFileCount: 0,
-  maxFileBytes: 0,
+  maxFileBytes: 200_000_000,
 });
 
 const buildInteraction = (input: {
@@ -241,7 +241,7 @@ export const runDeepResearchAnalysis = async (
     };
   }
   return {
-      jobId,
+    jobId,
     status: "review_required",
     jobStatus: "review_required",
     phase: "DECOMPOSE_PERSIST",

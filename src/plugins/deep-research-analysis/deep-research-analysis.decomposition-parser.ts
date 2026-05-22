@@ -1,11 +1,13 @@
-import { z } from "zod";
-
-import { createDecompositionOutputSchema } from "./deep-research-analysis.decomposition-schema.js";
+import {
+  DeepResearchDecompositionResponseSchema,
+  type DeepResearchDecompositionResponse,
+} from "./deep-research-analysis.decomposition-schema.js";
 import { buildDeepResearchTextHash } from "./deep-research-analysis.prompt-hash.js";
-import type { DecompositionOutput } from "./deep-research-analysis.prompt-contracts.js";
+
+type ParseStatus = "parsed" | "partial_review_required" | "failed";
 
 type DecompositionParseFailure = {
-  parseStatus: "partial_review_required" | "failed";
+  parseStatus: Exclude<ParseStatus, "parsed">;
   parsed: null;
   normalizedText: string;
   rawResponseHash: string;
@@ -14,126 +16,110 @@ type DecompositionParseFailure = {
 
 type DecompositionParseSuccess = {
   parseStatus: "parsed";
-  parsed: DecompositionOutput;
+  parsed: DeepResearchDecompositionResponse;
   normalizedText: string;
   rawResponseHash: string;
 };
 
-export type DecompositionParseResult =
-  | DecompositionParseFailure
-  | DecompositionParseSuccess;
+export type DecompositionParseResult = DecompositionParseFailure | DecompositionParseSuccess;
 
 const normalizeRawText = (rawText: string): string => rawText.trim();
 
 const buildFailure = (
   normalizedText: string,
-  rawResponseHash: string,
   reason: string,
-  parseStatus: DecompositionParseFailure["parseStatus"] = "failed",
+  parseStatus: Exclude<ParseStatus, "parsed"> = "failed",
 ): DecompositionParseFailure => ({
   parseStatus,
   parsed: null,
   normalizedText,
-  rawResponseHash,
+  rawResponseHash: buildDeepResearchTextHash(normalizedText),
   reason,
 });
 
-const extractCandidateJson = (rawText: string): string => {
-  const trimmed = normalizeRawText(rawText);
-  if (trimmed.startsWith("```")) {
-    const withoutFenceStart = trimmed.replace(/^```(?:json)?\s*/u, "");
-    return withoutFenceStart.replace(/\s*```$/u, "").trim();
+const candidateJsonFromText = (normalizedText: string): string => {
+  if (!normalizedText.startsWith("```")) {
+    return normalizedText;
   }
-  const firstBrace = trimmed.indexOf("{");
-  const lastBrace = trimmed.lastIndexOf("}");
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    return trimmed.slice(firstBrace, lastBrace + 1).trim();
-  }
-  return trimmed;
+  return normalizedText
+    .replace(/^```(?:json)?\s*/u, "")
+    .replace(/\s*```$/u, "")
+    .trim();
 };
 
-const parseJsonObject = (rawText: string): DecompositionParseResult => {
-  const normalizedText = normalizeRawText(rawText);
-  const rawResponseHash = buildDeepResearchTextHash(normalizedText);
+const parseJson = (normalizedText: string): unknown | DecompositionParseFailure => {
   if (!normalizedText) {
-    return buildFailure(normalizedText, rawResponseHash, "empty_ai_response");
+    return buildFailure(normalizedText, "empty_ai_response");
   }
   try {
-    const parsedJson: unknown = JSON.parse(extractCandidateJson(normalizedText));
-    if (parsedJson === null || Array.isArray(parsedJson) || typeof parsedJson !== "object") {
-      return buildFailure(normalizedText, rawResponseHash, "ai_response_must_be_json_object");
-    }
-    return {
-      parseStatus: "parsed",
-      parsed: parsedJson as DecompositionOutput,
-      normalizedText,
-      rawResponseHash,
-    };
+    return JSON.parse(candidateJsonFromText(normalizedText)) as unknown;
   } catch (error) {
-    const reason = error instanceof Error ? error.message : "invalid_json";
-    return buildFailure(normalizedText, rawResponseHash, `json_parse_failed:${reason}`);
+    const message = error instanceof Error ? error.message : "invalid_json";
+    return buildFailure(normalizedText, `json_parse_failed:${message}`);
   }
 };
 
-const hasDuplicateQuestions = (output: DecompositionOutput): boolean => {
-  const normalizedQuestions = output.subQuestions.map((item) =>
-    item.questionText.trim().toLocaleLowerCase(),
-  );
-  return new Set(normalizedQuestions).size !== normalizedQuestions.length;
+const isDecompositionParseFailure = (value: unknown): value is DecompositionParseFailure => {
+  if (typeof value !== "object" || value === null || !('parseStatus' in value)) {
+    return false;
+  }
+  return value.parseStatus === "failed" || value.parseStatus === "partial_review_required";
 };
 
-const hasQualitySelfCheckFalse = (raw: unknown): boolean => {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return false;
-  const maybeOutput = raw as { qualitySelfCheck?: Record<string, unknown> };
-  const selfCheck = maybeOutput.qualitySelfCheck;
-  return Boolean(selfCheck && Object.values(selfCheck).some((value) => value === false));
+const hasDuplicateQuestionText = (parsed: DeepResearchDecompositionResponse): boolean => {
+  const seen = new Set<string>();
+  for (const subQuestion of parsed.subQuestions) {
+    const normalized = subQuestion.questionText.trim().toLowerCase();
+    if (seen.has(normalized)) {
+      return true;
+    }
+    seen.add(normalized);
+  }
+  return false;
 };
+
+const hasQualitySelfCheckFailure = (parsed: DeepResearchDecompositionResponse): boolean =>
+  !parsed.qualitySelfCheck.coversFacts
+  || !parsed.qualitySelfCheck.coversCausality
+  || !parsed.qualitySelfCheck.coversImpact
+  || !parsed.qualitySelfCheck.coversEvidence
+  || !parsed.qualitySelfCheck.coversFalsification
+  || !parsed.qualitySelfCheck.coversRisks
+  || !parsed.qualitySelfCheck.hasNoDuplicateQuestions
+  || !parsed.qualitySelfCheck.isReadyForPositiveAndFalsification;
 
 export const parseDecompositionResponse = (input: {
   rawText: string;
   maxSubQuestions: number;
 }): DecompositionParseResult => {
-  const parsedJson = parseJsonObject(input.rawText);
-  if (parsedJson.parseStatus !== "parsed") {
-    return parsedJson;
+  const normalizedText = normalizeRawText(input.rawText);
+  const raw = parseJson(normalizedText);
+  if (isDecompositionParseFailure(raw)) {
+    return raw;
   }
-
-  const schemaResult = createDecompositionOutputSchema(input.maxSubQuestions)
-    .safeParse(parsedJson.parsed);
-  if (!schemaResult.success) {
-    const parseStatus = hasQualitySelfCheckFalse(parsedJson.parsed)
-      ? "partial_review_required"
-      : "failed";
-    const issueText = schemaResult.error.issues.map((issue) => issue.message).join("; ");
-    return buildFailure(
-      parsedJson.normalizedText,
-      parsedJson.rawResponseHash,
-      `invalid_decomposition_contract:${issueText}`,
-      parseStatus,
-    );
+  const parsed = DeepResearchDecompositionResponseSchema.safeParse(raw);
+  if (!parsed.success) {
+    return buildFailure(normalizedText, `invalid_decomposition_contract:${parsed.error.issues.map((issue) => issue.message).join("; ")}`);
   }
-
-  if (schemaResult.data.subQuestions.length === 0) {
-    return buildFailure(parsedJson.normalizedText, parsedJson.rawResponseHash, "empty_sub_questions");
+  if (parsed.data.subQuestions.length === 0) {
+    return buildFailure(normalizedText, "empty_sub_questions");
   }
-  if (hasDuplicateQuestions(schemaResult.data)) {
-    return buildFailure(
-      parsedJson.normalizedText,
-      parsedJson.rawResponseHash,
-      "duplicate_sub_questions",
-      "partial_review_required",
-    );
+  if (parsed.data.subQuestions.length > input.maxSubQuestions) {
+    return buildFailure(normalizedText, "sub_questions_exceed_limit", "partial_review_required");
+  }
+  if (hasDuplicateQuestionText(parsed.data)) {
+    return buildFailure(normalizedText, "duplicate_sub_questions", "partial_review_required");
+  }
+  if (hasQualitySelfCheckFailure(parsed.data)) {
+    return buildFailure(normalizedText, "quality_self_check_failed", "partial_review_required");
   }
   return {
     parseStatus: "parsed",
-    parsed: schemaResult.data,
-    normalizedText: parsedJson.normalizedText,
-    rawResponseHash: parsedJson.rawResponseHash,
+    parsed: parsed.data,
+    normalizedText,
+    rawResponseHash: buildDeepResearchTextHash(normalizedText),
   };
 };
 
-export const parseDecompositionSchemaOnly = (
-  value: unknown,
-  maxSubQuestions: number,
-): z.SafeParseReturnType<unknown, DecompositionOutput> =>
-  createDecompositionOutputSchema(maxSubQuestions).safeParse(value);
+export const parseDecompositionSchemaOnly = (rawText: string): DecompositionParseResult =>
+  parseDecompositionResponse({ rawText, maxSubQuestions: 12 });
