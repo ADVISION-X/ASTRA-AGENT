@@ -10,11 +10,14 @@ import { collectFailureClassFindings } from "../audit/domains/runtime-log-spine/
 import { collectForbiddenConsoleFindings } from "../audit/domains/runtime-log-spine/forbidden-console-inspector.js";
 import { collectModeVisibilityFindings } from "../audit/domains/runtime-log-spine/mode-visibility-inspector.js";
 import { collectRuntimeLogEmitContractFindings } from "../audit/domains/runtime-log-spine/runtime-log-emit-contract-inspector.js";
+import { collectAntiFakeInspectorFindingsWithSnapshot } from "../audit/domains/runtime-log-spine/anti-fake-inspector.js";
+import { collectRuntimeLogSemanticMetrics } from "../audit/domains/runtime-log-spine/semantic-metrics-inspector.js";
 
 const project = createAuditProject();
 project.createSourceFile(
   resolveFromRepo("src/plugins/runtime-log-spine-ast-anti-escape.fixture.ts"),
   `
+    import { createStageLogger, RuntimeFailureClass } from "../lib/runtime-logs/index.js";
     import { RuntimeLogEventType } from "../lib/runtime-logs/event-types.js";
 
     declare const logger: { emit(input: unknown): void };
@@ -49,6 +52,22 @@ project.createSourceFile(
       owner: "facebook-product-video-mining",
       status: "failed",
       reason: "x"
+    });
+
+    const stageLogger = createStageLogger({ logger });
+    const stage = stageLogger.start({
+      context: {} as never,
+      stageName: "FIXTURE_STAGE",
+      modeVisibility: ["FLOW", "DEBUG", "TRACE"],
+    });
+
+    stage.fail({
+      reason: "fixture_failed",
+      failureClass: RuntimeFailureClass.INTERNAL_BUG,
+      durationMs: 0,
+      retryable: false,
+      terminal: false,
+      recoveryPolicy: "skip_round",
     });
 
     export const run = () => {
@@ -89,10 +108,25 @@ const findings = [
   ...collectCatchBranchLogFindings(context).findings,
 ];
 
+const semanticMetrics = collectRuntimeLogSemanticMetrics(context);
+const antiFakeFindings = collectAntiFakeInspectorFindingsWithSnapshot(context, {
+  semanticMetrics: {
+    ...semanticMetrics.metrics,
+    stageStartCount: 1,
+    stageTerminalCount: 0,
+  },
+  stageCoveragePercent: 100,
+  stagePairViolationCount: 0,
+}).findings;
+
 assert.ok(findings.some((finding) => finding.lawId === RuntimeLogSpineLaw.NO_CONSOLE));
 assert.ok(findings.some((finding) => finding.lawId === RuntimeLogSpineLaw.EVENT_REGISTRY));
 assert.ok(findings.some((finding) => finding.lawId === RuntimeLogSpineLaw.MODE_VISIBILITY));
 assert.ok(findings.some((finding) => finding.lawId === RuntimeLogSpineLaw.FAILURE_CLASS));
 assert.ok(findings.some((finding) => finding.lawId === RuntimeLogSpineLaw.NO_SILENT_BRANCH));
+assert.ok(semanticMetrics.metrics.stageStartCount >= 1);
+assert.ok(semanticMetrics.metrics.stageTerminalCount >= 1);
+assert.ok(semanticMetrics.metrics.failureBranchCount >= 1);
+assert.ok(antiFakeFindings.some((finding) => finding.checkId === "runtime-log-spine/anti-fake-stage-counts"));
 
 process.stdout.write("[ACCEPTANCE] runtime-log-spine-ast-anti-escape PASS\n");

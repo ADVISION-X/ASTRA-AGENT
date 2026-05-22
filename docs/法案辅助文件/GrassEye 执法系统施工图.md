@@ -100,6 +100,8 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 
 - Code Purity 是 CI-FULL foundation-layer 常开检查。
 - 扫描范围覆盖 `src/**` 和 `scripts/**`。
+- 数字门是统一红线，不按文件角色区分 target / hard / disaster；任一红线超限即 FAIL。
+- 当前数字红线：文件 500 行、函数 75 行、参数 7、return 8、嵌套 5、圈复杂度 16、await 10、import declarations 28、import sources 24、named exports 24、class/object members 30。
 - `scripts/audit/**` 必须使用 ts-morph AST / symbol / anti-evasion 检查。
 - zombie 检测必须 machine-blocking，至少覆盖 zombie-file、zombie-export、orphan top-level declaration、literal-dead branch。
 - 活性必须从 lawful roots reachability 判定，不得把 zombie 文件的入边当作活性证明。

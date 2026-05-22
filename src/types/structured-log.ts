@@ -64,7 +64,7 @@ const StructuredJointCheckpointSchema = z.object({
   capabilityResult: StructuredJointCheckpointStatusSchema.default("not_applicable"),
 }).strict();
 
-const StructuredRuntimeEventSchema = z.object({
+const StructuredRuntimeEventIdentitySchema = z.object({
   eventId: z.string().min(1),
   eventType: StructuredRuntimeEventTypeSchema,
   level: StructuredRuntimeLogLevelSchema.default("INFO"),
@@ -89,6 +89,9 @@ const StructuredRuntimeEventSchema = z.object({
   actionableMessage: nullableString,
   ownerResponsible: nullableString,
   decision: nullableString,
+});
+
+const StructuredRuntimeEventSnapshotSchema = z.object({
   snapshotSummary: StructuredRuntimeSnapshotSummarySchema.nullable().default(null),
   resourceSummary: StructuredRuntimeResourceSummarySchema.nullable().default(null),
   provider: nullableString,
@@ -108,6 +111,9 @@ const StructuredRuntimeEventSchema = z.object({
   height: z.number().positive().nullable().default(null),
   runtimeProofRef: nullableString,
   imageInputs: z.array(StructuredAiImageInputSchema).default([]),
+});
+
+const StructuredRuntimeEventTimingSchema = z.object({
   startedAt: nullableString,
   endedAt: nullableString,
   createdAt: z.string().datetime(),
@@ -121,7 +127,12 @@ const StructuredRuntimeEventSchema = z.object({
   evidenceRefs: z.array(EvidenceRefSchema).default([]),
   proofRefs: z.array(z.string().min(1)).default([]),
   artifactRefs: z.array(z.string().min(1)).default([]),
-}).passthrough();
+});
+
+const StructuredRuntimeEventSchema = StructuredRuntimeEventIdentitySchema
+  .merge(StructuredRuntimeEventSnapshotSchema)
+  .merge(StructuredRuntimeEventTimingSchema)
+  .passthrough();
 
 const RuntimeActionEventSchema = z.object({
   actionLogId: z.string().min(1),

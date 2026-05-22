@@ -9,6 +9,8 @@ type Finding = ReturnType<typeof createFinding>;
 
 const pagePath = "src/app/workbench-home-page.ts";
 const clientPath = "src/app/workbench-home-client.ts";
+const videoDownloadClientPath = "src/app/workbench-video-download-client.ts";
+const videoDownloadRoutePath = "src/app/workbench-video-download-routes.ts";
 const stylesPath = "src/app/workbench-home-styles.ts";
 const serverPath = "src/app/create-workbench-server.ts";
 const inspectorPath = "scripts/audit/domains/local-app-shell/inspector.ts";
@@ -62,6 +64,8 @@ const inspectRootSurface = (findings: Finding[], lawId: string): void => {
 
 const inspectJobInputs = (findings: Finding[], lawId: string): void => {
   const pageText = readRepoFile(pagePath);
+  const videoClientText = readRepoFile(videoDownloadClientPath);
+  const videoRouteText = readRepoFile(videoDownloadRoutePath);
   const requiredAmazonFields = [
     "marketplace",
     "sellerCentralEntryUrl",
@@ -74,17 +78,24 @@ const inspectJobInputs = (findings: Finding[], lawId: string): void => {
     requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: fieldName, checkId: "local-app-shell/amazon-input" });
   }
   requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker: "data-facebook-form", checkId: "local-app-shell/facebook-input" });
+  for (const marker of ["data-video-download-form", "sourcePageUrl", "childCapabilityId", "preferredQuality", "maxMegabytes", "downloadSubtitles"]) {
+    requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker, checkId: "local-app-shell/video-download-input" });
+  }
+  requireMarker({ findings, lawId, filePath: videoDownloadClientPath, text: videoClientText, marker: "/api/video-download/start", checkId: "local-app-shell/video-download-client" });
+  requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "getVideoDownloadAbilityGroup", checkId: "local-app-shell/video-download-route" });
+  requireMarker({ findings, lawId, filePath: videoDownloadRoutePath, text: videoRouteText, marker: "missing_source_page_url", checkId: "local-app-shell/video-download-route" });
 };
 
 const inspectStatusWindow = (findings: Finding[], lawId: string): void => {
-  const pageText = readRepoFile(pagePath);
+  const pageText = `${readRepoFile(pagePath)}\n${readRepoFile(videoDownloadClientPath)}`;
   for (const marker of ["data-task-status-panel", "data-task-reason", "data-evidence-ref", "data-raw-result"]) {
     requireMarker({ findings, lawId, filePath: pagePath, text: pageText, marker, checkId: "local-app-shell/status-window" });
   }
+  requireMarker({ findings, lawId, filePath: videoDownloadClientPath, text: pageText, marker: "reviewRequiredReason", checkId: "local-app-shell/video-download-status" });
 };
 
 const inspectForbiddenPageTerms = (findings: Finding[], lawId: string): void => {
-  const pageText = `${readRepoFile(pagePath)}\n${readRepoFile(clientPath)}\n${readRepoFile(stylesPath)}`;
+  const pageText = `${readRepoFile(pagePath)}\n${readRepoFile(clientPath)}\n${readRepoFile(videoDownloadClientPath)}\n${readRepoFile(stylesPath)}`;
   const forbiddenPatterns = [
     /universal mission dashboard/iu,
     /commander console/iu,
@@ -196,6 +207,6 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings,
-    inspectedFiles: [pagePath, clientPath, stylesPath, serverPath, inspectorPath],
+    inspectedFiles: [pagePath, clientPath, videoDownloadClientPath, videoDownloadRoutePath, stylesPath, serverPath, inspectorPath],
   };
 };

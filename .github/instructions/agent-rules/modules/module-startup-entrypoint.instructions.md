@@ -21,8 +21,9 @@ The only startup chain is:
 ```txt
 dependency check
 -> optional update preflight
--> port clear
--> local app server start
+-> hot-mount health probe
+-> port clear when no healthy workbench is mounted
+-> local app server start when no healthy workbench is mounted
 -> /api/health readiness probe
 -> open local workbench URL
 -> structured terminal report
@@ -174,3 +175,74 @@ Forbidden:
 - Startup logs pretending to be evidence records.
 - Startup logs leaking secrets.
 - Startup success without failure handling.
+
+## [APEX-STARTUP-005-V1] Real Port Clear Capability
+
+```apex-law
+{
+  "lawId": "APEX-STARTUP-005-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "startup-entrypoint",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+ast",
+  "summary": "Every startup must keep a real local port cleanup path that discovers listeners, terminates stale listeners, and verifies the port is clear before starting a new app server.",
+  "appliesTo": [
+    "scripts/startup/**/*.{mjs,ts}"
+  ],
+  "forbidden": [
+    "Port clear implemented only as prose or log text.",
+    "Starting a new app server on an occupied unhealthy port.",
+    "Killing listeners without a post-clear listener check.",
+    "Ignoring port clear failure and continuing startup."
+  ]
+}
+```
+
+Required:
+
+- Startup must discover local TCP listeners for the configured workbench port.
+- Startup must attempt graceful termination before force termination.
+- Startup must verify no listener remains before starting a new local app server.
+- Startup must fail with a concrete `failureReason` if the port cannot be cleared.
+
+Forbidden:
+
+- Pretending port clear passed without checking current listeners.
+- Continuing to server start after a failed port clear.
+- Clearing a healthy hot-mounted GrassEye workbench just because the port is occupied.
+
+## [APEX-STARTUP-006-V1] Hot Mount Without Duplicate Restart
+
+```apex-law
+{
+  "lawId": "APEX-STARTUP-006-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "startup-entrypoint",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+ast",
+  "summary": "Startup must hot-mount an already healthy local workbench instead of killing and restarting it.",
+  "appliesTo": [
+    "scripts/startup/**/*.{mjs,ts}"
+  ],
+  "forbidden": [
+    "Always killing the app port before checking health.",
+    "Starting a duplicate app server when /api/health already passes.",
+    "Treating hot mount as job readiness or evidence truth.",
+    "Hot mount through a second startup command or second runtime chain."
+  ]
+}
+```
+
+Required:
+
+- Startup must probe the configured `/api/health` before clearing the port.
+- If the existing workbench is healthy, startup must reuse it, open the workbench URL, emit structured ready logs, and avoid spawning a duplicate app server.
+- If the existing listener is unhealthy or not GrassEye health-ready, startup may clear the port and start the single local app server chain.
+
+Forbidden:
+
+- Duplicate dev servers on the same workbench port.
+- Restarting a healthy workbench during code iteration.
+- Using hot mount to execute job flows, browser actions, AI judgment, evidence writes, or CI.

@@ -1,7 +1,0 @@
-
-> grasseye-local-workbench@0.1.0 audit:code-purity
-> node --import tsx scripts/audit/domains/code-purity/run-inspector.ts
-
-
-[CODE-PURITY][PASS] findings=0 hardFails=0 retiredSurface=0 fileCountFails=0
-

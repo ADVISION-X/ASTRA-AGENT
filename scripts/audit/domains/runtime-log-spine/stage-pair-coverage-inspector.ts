@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { SyntaxKind, Node, type SourceFile } from "ts-morph";
+import { SyntaxKind, Node, type CallExpression, type Expression, type SourceFile } from "ts-morph";
 
 import type { InspectorContext } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
@@ -28,41 +28,82 @@ const appendMissingRequiredRuntimeFileFindings = (findings: RuntimeLogSpineFindi
   }
 };
 
-const hasTerminalCallInStartBlock = (input: {
-  sourceFile: SourceFile;
-  startCall: ReturnType<typeof resolveCallsInSourceFile>[number];
-  terminalCalls: ReturnType<typeof resolveCallsInSourceFile>;
-}): boolean => {
-  const parentBlock = input.sourceFile
-    .getDescendantsOfKind(SyntaxKind.CallExpression)
-    .find((call) => call.getStartLineNumber() === input.startCall.line && call.getExpression().getText() === input.startCall.calleeText)
-    ?.getFirstAncestorByKind(SyntaxKind.Block);
-  return input.terminalCalls.some((terminalCall) => {
-    if (parentBlock === undefined) return false;
-    const callNode = input.sourceFile
-      .getDescendantsOfKind(SyntaxKind.CallExpression)
-      .find((candidate) => candidate.getStartLineNumber() === terminalCall.line && candidate.getExpression().getText() === terminalCall.calleeText);
-    return callNode ? callNode.getStart() >= parentBlock.getStart() && callNode.getEnd() <= parentBlock.getEnd() : false;
-  });
+type ResolvedRuntimeCall = ReturnType<typeof resolveCallsInSourceFile>[number];
+
+type ResolvedStageCall = {
+  resolvedCall: ResolvedRuntimeCall;
+  callNode: CallExpression;
+};
+
+const resolveStageHandleName = (callNode: CallExpression): string | null => {
+  const expression = callNode.getExpression();
+  if (!Node.isPropertyAccessExpression(expression) && !Node.isElementAccessExpression(expression)) {
+    return null;
+  }
+  const receiver = expression.getExpression();
+  return Node.isIdentifier(receiver) ? receiver.getText() : null;
+};
+
+const resolveStageHandleBinding = (callNode: CallExpression): string | null => {
+  const variableDeclaration = callNode.getFirstAncestorByKind(SyntaxKind.VariableDeclaration);
+  if (!variableDeclaration || variableDeclaration.getInitializer() !== callNode) {
+    return null;
+  }
+  const nameNode = variableDeclaration.getNameNode();
+  return Node.isIdentifier(nameNode) ? nameNode.getText() : null;
+};
+
+const collectResolvedStageCalls = (sourceFile: SourceFile, repoPath: string): ResolvedStageCall[] => {
+  const callQueue = sourceFile.getDescendantsOfKind(SyntaxKind.CallExpression);
+  return resolveCallsInSourceFile(sourceFile, repoPath)
+    .filter((resolvedCall) => resolvedCall.kind === "stage-start" || resolvedCall.kind === "stage-terminal")
+    .flatMap((resolvedCall) => {
+      const callIndex = callQueue.findIndex((callNode) =>
+        callNode.getStartLineNumber() === resolvedCall.line && callNode.getExpression().getText() === resolvedCall.calleeText,
+      );
+      if (callIndex < 0) {
+        return [];
+      }
+      const [callNode] = callQueue.splice(callIndex, 1);
+      return callNode ? [{ resolvedCall, callNode }] : [];
+    });
 };
 
 const appendStartCallPairFindings = (input: {
   findings: RuntimeLogSpineFinding[];
   repoPath: string;
-  sourceFile: SourceFile;
-  startCalls: ReturnType<typeof resolveCallsInSourceFile>;
-  terminalCalls: ReturnType<typeof resolveCallsInSourceFile>;
+  startCalls: ResolvedStageCall[];
+  terminalCalls: ResolvedStageCall[];
 }): void => {
+  const handleToStageName = new Map<string, string>();
+  const stagesWithTerminal = new Set<string>();
+
   for (const startCall of input.startCalls) {
-    const startObject = startCall.objectLiteralArg;
+    const startObject = startCall.resolvedCall.objectLiteralArg;
     const stageName = startObject ? getStringLiteralProperty(startObject, "stageName") : null;
-    const hasTerminalInBlock = hasTerminalCallInStartBlock({ sourceFile: input.sourceFile, startCall, terminalCalls: input.terminalCalls });
-    if (!stageName || !hasTerminalInBlock) {
+    const handleName = resolveStageHandleBinding(startCall.callNode);
+    if (stageName && handleName) {
+      handleToStageName.set(handleName, stageName);
+    }
+  }
+
+  for (const terminalCall of input.terminalCalls) {
+    const handleName = resolveStageHandleName(terminalCall.callNode);
+    const stageName = handleName ? handleToStageName.get(handleName) : undefined;
+    if (stageName) {
+      stagesWithTerminal.add(stageName);
+    }
+  }
+
+  for (const startCall of input.startCalls) {
+    const startObject = startCall.resolvedCall.objectLiteralArg;
+    const stageName = startObject ? getStringLiteralProperty(startObject, "stageName") : null;
+    if (!stageName || !stagesWithTerminal.has(stageName)) {
       input.findings.push({
         checkId: "runtime-log-spine/stage-start-terminal-pair",
         lawId: RuntimeLogSpineLaw.STAGE_PAIR,
         file: input.repoPath,
-        line: startCall.line,
+        line: startCall.resolvedCall.line,
         severity: "fatal",
         message: "stage has no proven started/terminal pair",
         hint: "Create a stage handle with stageLogger.start and close every success, failure, skip, review_required and early return path.",
@@ -74,22 +115,35 @@ const appendStartCallPairFindings = (input: {
 const appendTerminalContractFindings = (input: {
   findings: RuntimeLogSpineFinding[];
   repoPath: string;
-  terminalCalls: ReturnType<typeof resolveCallsInSourceFile>;
+  terminalCalls: ResolvedStageCall[];
 }): void => {
+  const isRuntimeFailureClassExpression = (expression: Expression | null | undefined): boolean => {
+    if (!expression) return false;
+    if (Node.isParenthesizedExpression(expression)) {
+      return isRuntimeFailureClassExpression(expression.getExpression());
+    }
+    if (Node.isPropertyAccessExpression(expression)) {
+      return expression.getExpression().getText() === "RuntimeFailureClass";
+    }
+    return Node.isConditionalExpression(expression)
+      && isRuntimeFailureClassExpression(expression.getWhenTrue())
+      && isRuntimeFailureClassExpression(expression.getWhenFalse());
+  };
+
   for (const terminalCall of input.terminalCalls) {
-    const objectLiteral = terminalCall.objectLiteralArg;
+    const objectLiteral = terminalCall.resolvedCall.objectLiteralArg;
     if (!objectLiteral) continue;
-    const missingTerminal = terminalCall.symbolName === "complete"
+    const missingTerminal = terminalCall.resolvedCall.symbolName === "complete"
       ? ["durationMs"].filter((field) => !hasProperty(objectLiteral, field))
       : ["reason", "failureClass"].filter((field) => !hasProperty(objectLiteral, field));
     const failureClass = getPropertyInitializer(objectLiteral, "failureClass");
-    const failureClassOk = terminalCall.symbolName === "complete" || (failureClass && Node.isPropertyAccessExpression(failureClass) && failureClass.getExpression().getText() === "RuntimeFailureClass");
+    const failureClassOk = terminalCall.resolvedCall.symbolName === "complete" || isRuntimeFailureClassExpression(failureClass);
     if (missingTerminal.length === 0 && failureClassOk) continue;
     input.findings.push({
       checkId: "runtime-log-spine/stage-terminal-contract",
       lawId: RuntimeLogSpineLaw.STAGE_PAIR,
       file: input.repoPath,
-      line: terminalCall.line,
+      line: terminalCall.resolvedCall.line,
       severity: "fatal",
       message: "stage has no proven started/terminal pair",
       hint: "Terminal stage calls must include durationMs where applicable and failureClass/reason for fail/skip/reviewRequired.",
@@ -102,13 +156,12 @@ const appendSourceFileStagePairFindings = (input: {
   repoPath: string;
   sourceFile: SourceFile;
 }): void => {
-  const calls = resolveCallsInSourceFile(input.sourceFile, input.repoPath);
-  const startCalls = calls.filter((call) => call.kind === "stage-start");
-  const terminalCalls = calls.filter((call) => call.kind === "stage-terminal");
+  const calls = collectResolvedStageCalls(input.sourceFile, input.repoPath);
+  const startCalls = calls.filter((call) => call.resolvedCall.kind === "stage-start");
+  const terminalCalls = calls.filter((call) => call.resolvedCall.kind === "stage-terminal");
   appendStartCallPairFindings({
     findings: input.findings,
     repoPath: input.repoPath,
-    sourceFile: input.sourceFile,
     startCalls,
     terminalCalls,
   });

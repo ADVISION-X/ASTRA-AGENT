@@ -309,7 +309,7 @@ Forbidden:
     "text-input active owner.",
     "open active owner.",
     "screenshot active owner.",
-    "video-download active owner.",
+    "video-download as a standalone top-level execution owner.",
     "universal-agent active owner.",
     "planner active owner."
   ]

@@ -35,6 +35,7 @@ health / mode
 
 - Amazon invoice upload：第一成熟 job flow。
 - Facebook product video mining：独立 job flow，不得塞进 Amazon 表单。
+- Video download skill：受治理的视频下载能力入口；它不是独立 job-flow 主权，也不是第二运行时。
 
 ## Amazon 输入面
 
@@ -92,6 +93,42 @@ Facebook product video mining 必须作为单独法门输入面。页面只允�
 - 把 rejected、uncertain、review_required 或 failed 候选显示为成功记录
 - 导出 cookies、tokens、localStorage、sessionStorage 或完整 HTML
 
+## Video Download 输入面
+
+Video download skill 必须作为独立受治理能力入口展示。页面只允许操作者提供：
+
+- Source page URL
+- Capability child id
+- Preferred quality
+- Max MB
+- Download subtitles
+- Start
+
+提交通过本地 HTTP API 进入 workbench handle，再调用 `video-download` public facade。
+页面不拥有下载算法、平台探针、业务价值判断或批量编排。
+
+下载结果必须进入右侧账本窗展示真实状态：
+
+- `success`
+- `failed`
+- `review_required`
+- `invalid_input`
+
+失败或复核态必须展示 `failureReason`、`reviewRequiredReason` 或 result reason，
+不得把候选缺失、登录墙、DRM、CAPTCHA、私密视频、下载过期、文件无效显示成成功。
+
+`src/lib/local-runtime/**` 若需要消费 Video Download 能力，只能通过
+`src/capabilities/video-download/index.ts`。
+
+禁止在页面重新暴露：
+
+- 外部 downloader 站点
+- 去水印 API
+- CAPTCHA / DRM / 登录绕过开关
+- cookie、token、localStorage、sessionStorage 导出
+- 批量下载编排面板
+- 截图或封面图冒充完整视频 artifact
+
 ## 禁止项
 
 - 端点说明页冒充 workbench。
@@ -115,6 +152,8 @@ local-app-shell owner inspector 检查：
 - root page 是否暴露 job flow list。
 - Amazon 输入面是否包含必要字段。
 - Facebook 输入面是否只暴露目标数量、Start、Latest。
+- Video Download 输入面是否只暴露 source URL、child capability、quality、max MB、subtitles、Start。
+- Video Download route 是否存在 `/api/video-download/start`，且页面只展示真实 result 状态。
 - 页面是否包含 task status / evidence refs / failure reason 展示区域。
 - 页面是否仍出现 forbidden dashboard / planner / visual runtime 控制面。
 - `src/app/**` 是否直接导入 job flow 文件或能力 runtime 私有实现。

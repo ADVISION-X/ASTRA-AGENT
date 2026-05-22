@@ -1,5 +1,12 @@
-import { Node, SyntaxKind, type Expression, type Identifier, type Node as MorphNode, type ObjectLiteralExpression } from "ts-morph";
+import {
+  Node,
+  type Expression,
+  type Identifier,
+  type Node as MorphNode,
+  type ObjectLiteralExpression,
+} from "ts-morph";
 
+import { resolveObjectLiteralExpression } from "./ast-object-literal-resolver.js";
 import { traceDestructuredBinding, traceImportedBinding, traceVariableInitializer, unwrapExpression } from "./ast-symbol-utils.js";
 
 const MAX_TRACE_DEPTH = 8;
@@ -19,27 +26,12 @@ const toExpression = (node: MorphNode | null): Expression | null => {
   return node as Expression;
 };
 
-const resolveObjectLiteral = (expression: Expression | null, depth = 0): ObjectLiteralExpression | null => {
-  const target = toExpression(unwrapExpression(expression));
-  if (!target || depth > MAX_TRACE_DEPTH) {
-    return null;
-  }
-  if (Node.isObjectLiteralExpression(target)) {
-    return target;
-  }
-  if (Node.isIdentifier(target)) {
-    const traced = traceVariableInitializer(target, depth + 1) ?? traceDestructuredBinding(target, depth + 1);
-    return resolveObjectLiteral(toExpression(traced), depth + 1);
-  }
-  return null;
-};
-
 const listSpreadObjectLiterals = (objectLiteral: ObjectLiteralExpression): ObjectLiteralExpression[] =>
   objectLiteral.getProperties().flatMap((property) => {
     if (!Node.isSpreadAssignment(property)) {
       return [];
     }
-    const resolved = resolveObjectLiteral(property.getExpression());
+    const resolved = resolveObjectLiteralExpression(property.getExpression());
     return resolved ? [resolved] : [];
   });
 
@@ -110,7 +102,7 @@ const isEventTypeInitializerFromRegistry = (expression: Expression | null, depth
 
 export const containsUnresolvedSpread = (objectLiteral: ObjectLiteralExpression): boolean =>
   objectLiteral.getProperties().some((property) =>
-    Node.isSpreadAssignment(property) && resolveObjectLiteral(property.getExpression()) === null,
+    Node.isSpreadAssignment(property) && resolveObjectLiteralExpression(property.getExpression()) === null,
   );
 
 export const getPropertyInitializer = (objectLiteral: ObjectLiteralExpression, propertyName: string): Expression | null => {
@@ -133,12 +125,7 @@ export const hasProperty = (objectLiteral: ObjectLiteralExpression, propertyName
 
 export const getNestedObject = (objectLiteral: ObjectLiteralExpression, propertyName: string): ObjectLiteralExpression | null => {
   const initializer = getPropertyInitializer(objectLiteral, propertyName);
-  if (initializer && Node.isObjectLiteralExpression(initializer)) return initializer;
-  if (initializer && Node.isIdentifier(initializer)) {
-    const traced = traceVariableInitializer(initializer) ?? traceDestructuredBinding(initializer);
-    return traced && Node.isObjectLiteralExpression(traced) ? traced : null;
-  }
-  return null;
+  return initializer ? resolveObjectLiteralExpression(initializer) : null;
 };
 
 export const hasNestedProperty = (objectLiteral: ObjectLiteralExpression, path: readonly string[]): boolean => {

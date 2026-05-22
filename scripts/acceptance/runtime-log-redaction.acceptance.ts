@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { redactRuntimeLogRecord, redactUrlForLog } from "../../src/lib/runtime-logs/index.js";
+import { redactRuntimeLogRecord, redactUrlForLog } from "../../src/lib/runtime-logs/redaction-contract.js";
 
 const redacted = redactRuntimeLogRecord({
   cookie: "c_user=123",

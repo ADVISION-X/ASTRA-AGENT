@@ -38,4 +38,4 @@ Kernel loads first. Current top-level authority is the 2026-05-21 job-flow autom
 
 ## Retired Routes
 
-The following are not active governance routes: universal agent runtime, pure visual round, AI next action, general orchestration loop, Nerve Bus, geometry guard, mouse click group, mouse scroll group, text input group, open group, screenshot group, ungoverned product-video runtime, video download, local AI runtime as a separate mainline, and muscle memory as workflow truth.
+The following are not active governance routes: universal agent runtime, pure visual round, AI next action, general orchestration loop, Nerve Bus, geometry guard, mouse click group, mouse scroll group, text input group, open group, screenshot group, ungoverned product-video runtime, video download as a standalone top-level route, local AI runtime as a separate mainline, and muscle memory as workflow truth.

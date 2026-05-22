@@ -23,6 +23,17 @@ export type FacebookLogCoverageReport = {
     hasStartedLog: boolean;
     hasTerminalLog: boolean;
     missingFields: string[];
+    startSites: Array<{
+      file: string;
+      line: number;
+      method: string;
+    }>;
+    terminalSites: Array<{
+      file: string;
+      line: number;
+      method: string;
+    }>;
+    confidence: "semantic";
   }>;
   failureCoverage: FacebookLogCoverageFinding[];
   aiCoverage: FacebookLogCoverageFinding[];
@@ -71,10 +82,10 @@ const renderSummarySection = (report: FacebookLogCoverageReport): string[] => [
 const renderStageCoverageSection = (report: FacebookLogCoverageReport): string[] => [
   "## Stage Coverage",
   "",
-  "| Stage | Started | Terminal | Missing Fields | Owners |",
-  "|---|---:|---:|---|---|",
+  "| Stage | Started | Terminal | Missing Fields | Confidence | Sites | Owners |",
+  "|---|---:|---:|---|---|---|---|",
   ...report.stageCoverage.map((stage) =>
-    `| ${stage.stageName} | ${stage.hasStartedLog ? "yes" : "no"} | ${stage.hasTerminalLog ? "yes" : "no"} | ${escapeCell(stage.missingFields.join(", ") || "none")} | ${escapeCell(stage.ownerFiles.join(", "))} |`,
+    `| ${stage.stageName} | ${stage.hasStartedLog ? "yes" : "no"} | ${stage.hasTerminalLog ? "yes" : "no"} | ${escapeCell(stage.missingFields.join(", ") || "none")} | ${stage.confidence} | ${escapeCell(`start:${stage.startSites.length} terminal:${stage.terminalSites.length}`)} | ${escapeCell(stage.ownerFiles.join(", "))} |`,
   ),
   "",
 ];

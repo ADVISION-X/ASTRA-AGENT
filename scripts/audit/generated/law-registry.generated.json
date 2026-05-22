@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T19:29:37.793Z",
+  "generatedAt": "2026-05-22T22:00:57.164Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -564,7 +564,7 @@
         "text-input active owner.",
         "open active owner.",
         "screenshot active owner.",
-        "video-download active owner.",
+        "video-download as a standalone top-level execution owner.",
         "universal-agent active owner.",
         "planner active owner."
       ],
@@ -750,11 +750,11 @@
     {
       "lawId": "APEX-CODE-PURITY-015-V1",
       "status": "active",
-      "tier": "P1",
+      "tier": "P0",
       "capabilityDomain": "code-purity",
       "enforcementMode": "auto",
       "evidenceMode": "fs+ast",
-      "summary": "Code-purity enforcement should produce actionable inventories and split recommendations without pretending every inventory item is a P0 blocker.",
+      "summary": "Code-purity enforcement must produce actionable inventories and every executable inventory item must block PASS.",
       "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
       "blockIndex": 14
     },
@@ -779,6 +779,138 @@
       "summary": "Active source must not keep zombie files, zombie exports, orphan top-level declarations, or literal-dead code branches.",
       "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
       "blockIndex": 16
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Deep Research Analysis must live as one explicit job flow under src/plugins/deep-research-analysis and must not become a universal agent, planner, or mission loop.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "ast+schema",
+      "summary": "AI may produce decomposition, positive analysis, falsification, and final synthesis content, but must not control runtime flow.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "dom+parser+db",
+      "summary": "The decomposition phase must send the user question and fixed decomposition prompt to AI, capture the DOM response, parse subquestions, and persist them.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "dom+parser+db+runtime-log",
+      "summary": "Each subquestion must be sent as an independent positive analysis interaction and persisted with raw and parsed evidence.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 3
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "dom+parser+db+runtime-log",
+      "summary": "Each positive analysis must be challenged by a separate falsification interaction using the original question, subquestion, and positive answer.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 4
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "db+artifact+hash",
+      "summary": "Final synthesis must be generated from persisted decomposition, positive answers, falsification answers, and conflict matrix, not from transient memory.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 5
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "dom+artifact+hash",
+      "summary": "DOM capture is observational evidence; persisted parsed records and raw response hashes are the durable truth.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 6
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "db+schema",
+      "summary": "Every phase must persist structured records before the next phase may consume them.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 7
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+db+hash",
+      "summary": "All prompts used by the job must be versioned, persisted, hashable, and linked to interactions.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 8
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-010-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "parser+db+runtime-log",
+      "summary": "Parser failure must produce review_required or failed status and must not be coerced into success.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 9
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-011-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "file+hash+db",
+      "summary": "Exported reports must include an evidence index that links final claims to persisted interaction records.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 10
+    },
+    {
+      "lawId": "GRASSEYE-DEEP-RESEARCH-012-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "deep-research-analysis",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "runtime-log+audit",
+      "summary": "Every phase transition, send, DOM capture, parse, persist, final synthesis, and export must emit structured Runtime Log Spine events.",
+      "filePath": ".github/instructions/agent-rules/modules/module-deep-research-analysis.instructions.md",
+      "blockIndex": 11
     },
     {
       "lawId": "APEX-DOM-001-V1",
@@ -1673,6 +1805,145 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-startup-entrypoint.instructions.md",
       "blockIndex": 3
+    },
+    {
+      "lawId": "APEX-STARTUP-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "startup-entrypoint",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Every startup must keep a real local port cleanup path that discovers listeners, terminates stale listeners, and verifies the port is clear before starting a new app server.",
+      "appliesTo": [
+        "scripts/startup/**/*.{mjs,ts}"
+      ],
+      "forbidden": [
+        "Port clear implemented only as prose or log text.",
+        "Starting a new app server on an occupied unhealthy port.",
+        "Killing listeners without a post-clear listener check.",
+        "Ignoring port clear failure and continuing startup."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-startup-entrypoint.instructions.md",
+      "blockIndex": 4
+    },
+    {
+      "lawId": "APEX-STARTUP-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "startup-entrypoint",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Startup must hot-mount an already healthy local workbench instead of killing and restarting it.",
+      "appliesTo": [
+        "scripts/startup/**/*.{mjs,ts}"
+      ],
+      "forbidden": [
+        "Always killing the app port before checking health.",
+        "Starting a duplicate app server when /api/health already passes.",
+        "Treating hot mount as job readiness or evidence truth.",
+        "Hot mount through a second startup command or second runtime chain."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-startup-entrypoint.instructions.md",
+      "blockIndex": 5
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-001-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "video-download is a governed media artifact ability group, not a DOM helper, product judge, plugin shortcut, or platform workflow.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 0
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-002-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "video download must use only user-authorized local page access and must never bypass credentials, login, CAPTCHA, risk controls, DRM, or platform protections.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 1
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "The video-download group exposes one universal child, named-platform children, and a YouTube child that each download one video artifact per invocation and must not become business workflows.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 2
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "every media candidate must be validated before download success can be claimed.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 3
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "every download attempt must leave Forensics-compatible artifact proof and structured failure evidence.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 4
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-006-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "downloaded video artifacts may feed AI analysis, but video-download must not own AI product judgment.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 5
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-007-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "the universal child must extract video candidates using only publicly observable browser media data and must never bypass platform security.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 6
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-008-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "platform detection must route to the correct child capability and must not silently fall back to the universal extractor on a known platform.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 7
+    },
+    {
+      "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "video-download-capability",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "law+blueprint+real-code-inspection",
+      "summary": "YouTube downloads must honor explicit quality requests and subtitle requests through governed local artifacts.",
+      "filePath": ".github/instructions/agent-rules/modules/module-video-download-capability.instructions.md",
+      "blockIndex": 8
     }
   ]
 }

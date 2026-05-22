@@ -8,6 +8,38 @@
 - 本施工图把 code-purity 的僵尸治理提升到 99/100 严苛度。
 - active source 里不允许保留“以后可能用”的文件、导出、顶层声明或硬编码死分支。
 - zombie finding 一旦出现，CI-FULL 必须给出 `FAIL`。
+- 数字执法只作为最后一道体积红线；owner、boundary、zombie、fake runtime、AI planner、generated truth、runtime log spine 仍然一票否决。
+
+## 数字红线
+
+Code Purity 的数字门只允许二元裁决：
+
+```txt
+PASS = 不超过红线
+FAIL = 超过红线
+```
+
+不得恢复 target / hard / disaster 梯次。
+不得输出 warning、partial pass、soft pass、remediation-only 或 pass-with-findings。
+
+当前红线：
+
+| 指标 | 红线 |
+| --- | ---: |
+| active executable source file physical lines | 500 |
+| function physical lines | 75 |
+| function parameters | 7 |
+| function return branches | 8 |
+| function nesting depth | 5 |
+| function cyclomatic complexity | 16 |
+| function await points | 10 |
+| import declarations | 28 |
+| import sources | 24 |
+| named exports | 24 |
+| class/object total members | 30 |
+
+500 行以内的文件如果破坏 owner、boundary、zombie、fake runtime、AI planner、generated truth 或 runtime log spine，仍然必须 FAIL。
+超过 500 行的文件 FAIL 的原因是它已经大到不适合 Codex 安全编辑，而不是因为行数可以替代结构法案。
 
 ## 僵尸定义
 

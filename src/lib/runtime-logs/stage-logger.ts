@@ -75,6 +75,21 @@ type RuntimeStageLogger = {
   }): RuntimeStageHandle;
 };
 
+type RuntimeStageStartInput = Parameters<RuntimeStageLogger["start"]>[0];
+type RuntimeStageCompleteInput = Parameters<RuntimeStageHandle["complete"]>[0];
+type RuntimeStageFailInput = Parameters<RuntimeStageHandle["fail"]>[0];
+type RuntimeStageSkipInput = Parameters<RuntimeStageHandle["skip"]>[0];
+type RuntimeStageReviewRequiredInput = Parameters<RuntimeStageHandle["reviewRequired"]>[0];
+
+type RuntimeStageHandleContext = {
+  logger: RuntimeLogger;
+  context: RuntimeTraceContext;
+  stageName: string;
+  stageAttempt: number;
+  startedAt: number;
+  modeVisibility: RuntimeLogMode[];
+};
+
 const DEFAULT_STAGE_VISIBILITY: RuntimeLogMode[] = ["DEBUG", "TRACE"];
 
 const buildStagePayload = (input: {
@@ -143,6 +158,152 @@ const emitTerminalStageEvent = (input: {
   }));
 };
 
+const emitStageStartEvent = (
+  logger: RuntimeLogger,
+  stageContext: RuntimeTraceContext,
+  stageInput: RuntimeStageStartInput,
+  stageAttempt: number,
+  modeVisibility: RuntimeLogMode[],
+): void => {
+  logger.emit(createRuntimeEvent({
+    context: stageContext,
+    eventType: RuntimeLogEventType.RUNTIME_STAGE_STARTED,
+    level: "info",
+    modeVisibility,
+    status: "started",
+    ...(stageInput.preview ? { preview: stageInput.preview } : {}),
+    ...(stageInput.refs ? { refs: stageInput.refs } : {}),
+    ...(stageInput.hashes ? { hashes: stageInput.hashes } : {}),
+    ...(stageInput.metrics ? { metrics: stageInput.metrics } : {}),
+    payload: buildStagePayload({
+      stageName: stageInput.stageName,
+      stageAttempt,
+      ...(stageInput.payload ? { payload: stageInput.payload } : {}),
+    }),
+  }));
+};
+
+const emitCompletedStage = (
+  handleContext: RuntimeStageHandleContext,
+  completeInput?: RuntimeStageCompleteInput,
+): void => {
+  emitTerminalStageEvent({
+    logger: handleContext.logger,
+    context: handleContext.context,
+    eventType: RuntimeLogEventType.RUNTIME_STAGE_COMPLETED,
+    level: "info",
+    stageName: handleContext.stageName,
+    stageAttempt: handleContext.stageAttempt,
+    startedAt: handleContext.startedAt,
+    status: "success",
+    modeVisibility: handleContext.modeVisibility,
+    ...(completeInput?.durationMs !== undefined ? { durationMs: completeInput.durationMs } : {}),
+    ...(completeInput?.preview ? { preview: completeInput.preview } : {}),
+    ...(completeInput?.refs ? { refs: completeInput.refs } : {}),
+    ...(completeInput?.hashes ? { hashes: completeInput.hashes } : {}),
+    ...(completeInput?.metrics ? { metrics: completeInput.metrics } : {}),
+    ...(completeInput?.payload ? { payload: completeInput.payload } : {}),
+  });
+};
+
+const emitFailedStage = (handleContext: RuntimeStageHandleContext, failInput: RuntimeStageFailInput): void => {
+  emitTerminalStageEvent({
+    logger: handleContext.logger,
+    context: handleContext.context,
+    eventType: RuntimeLogEventType.RUNTIME_STAGE_FAILED,
+    level: "error",
+    stageName: handleContext.stageName,
+    stageAttempt: handleContext.stageAttempt,
+    startedAt: handleContext.startedAt,
+    reason: failInput.reason,
+    ...(failInput.actionableMessage ? { actionableMessage: failInput.actionableMessage } : {}),
+    failureClass: failInput.failureClass,
+    retryable: failInput.retryable,
+    terminal: failInput.terminal,
+    recoveryPolicy: failInput.recoveryPolicy,
+    status: "failed",
+    modeVisibility: handleContext.modeVisibility,
+    ...(failInput.durationMs !== undefined ? { durationMs: failInput.durationMs } : {}),
+    ...(failInput.preview ? { preview: failInput.preview } : {}),
+    ...(failInput.refs ? { refs: failInput.refs } : {}),
+    ...(failInput.hashes ? { hashes: failInput.hashes } : {}),
+    ...(failInput.metrics ? { metrics: failInput.metrics } : {}),
+    ...(failInput.payload ? { payload: failInput.payload } : {}),
+  });
+};
+
+const emitSkippedStage = (handleContext: RuntimeStageHandleContext, skipInput: RuntimeStageSkipInput): void => {
+  emitTerminalStageEvent({
+    logger: handleContext.logger,
+    context: handleContext.context,
+    eventType: RuntimeLogEventType.RUNTIME_STAGE_SKIPPED,
+    level: "warn",
+    stageName: handleContext.stageName,
+    stageAttempt: handleContext.stageAttempt,
+    startedAt: handleContext.startedAt,
+    reason: skipInput.reason,
+    failureClass: skipInput.failureClass,
+    retryable: skipInput.retryable ?? false,
+    terminal: skipInput.terminal ?? false,
+    recoveryPolicy: skipInput.recoveryPolicy ?? "skip_round",
+    status: "skipped",
+    modeVisibility: handleContext.modeVisibility,
+    ...(skipInput.durationMs !== undefined ? { durationMs: skipInput.durationMs } : {}),
+    ...(skipInput.preview ? { preview: skipInput.preview } : {}),
+    ...(skipInput.refs ? { refs: skipInput.refs } : {}),
+    ...(skipInput.hashes ? { hashes: skipInput.hashes } : {}),
+    ...(skipInput.metrics ? { metrics: skipInput.metrics } : {}),
+    ...(skipInput.payload ? { payload: skipInput.payload } : {}),
+  });
+};
+
+const emitReviewRequiredStage = (
+  handleContext: RuntimeStageHandleContext,
+  reviewInput: RuntimeStageReviewRequiredInput,
+): void => {
+  emitTerminalStageEvent({
+    logger: handleContext.logger,
+    context: handleContext.context,
+    eventType: RuntimeLogEventType.RUNTIME_STAGE_REVIEW_REQUIRED,
+    level: "warn",
+    stageName: handleContext.stageName,
+    stageAttempt: handleContext.stageAttempt,
+    startedAt: handleContext.startedAt,
+    reason: reviewInput.reason,
+    ...(reviewInput.actionableMessage ? { actionableMessage: reviewInput.actionableMessage } : {}),
+    failureClass: reviewInput.failureClass,
+    retryable: reviewInput.retryable ?? false,
+    terminal: reviewInput.terminal ?? true,
+    recoveryPolicy: reviewInput.recoveryPolicy ?? "review_required",
+    status: "review_required",
+    modeVisibility: handleContext.modeVisibility,
+    ...(reviewInput.durationMs !== undefined ? { durationMs: reviewInput.durationMs } : {}),
+    ...(reviewInput.preview ? { preview: reviewInput.preview } : {}),
+    ...(reviewInput.refs ? { refs: reviewInput.refs } : {}),
+    ...(reviewInput.hashes ? { hashes: reviewInput.hashes } : {}),
+    ...(reviewInput.metrics ? { metrics: reviewInput.metrics } : {}),
+    ...(reviewInput.payload ? { payload: reviewInput.payload } : {}),
+  });
+};
+
+const createStageHandle = (handleContext: RuntimeStageHandleContext): RuntimeStageHandle => ({
+  stageName: handleContext.stageName,
+  startedAt: handleContext.startedAt,
+  ...(handleContext.context.stepId ? { stepId: handleContext.context.stepId } : {}),
+  complete(completeInput) {
+    emitCompletedStage(handleContext, completeInput);
+  },
+  fail(failInput) {
+    emitFailedStage(handleContext, failInput);
+  },
+  skip(skipInput) {
+    emitSkippedStage(handleContext, skipInput);
+  },
+  reviewRequired(reviewInput) {
+    emitReviewRequiredStage(handleContext, reviewInput);
+  },
+});
+
 export const createStageLogger = (input: {
   logger: RuntimeLogger;
 }): RuntimeStageLogger => ({
@@ -154,121 +315,15 @@ export const createStageLogger = (input: {
     });
     const startedAt = Date.now();
     const modeVisibility = stageInput.modeVisibility ?? DEFAULT_STAGE_VISIBILITY;
+    emitStageStartEvent(input.logger, stageContext, stageInput, stageAttempt, modeVisibility);
 
-    input.logger.emit(createRuntimeEvent({
+    return createStageHandle({
+      logger: input.logger,
       context: stageContext,
-      eventType: RuntimeLogEventType.RUNTIME_STAGE_STARTED,
-      level: "info",
-      modeVisibility,
-      status: "started",
-      ...(stageInput.preview ? { preview: stageInput.preview } : {}),
-      ...(stageInput.refs ? { refs: stageInput.refs } : {}),
-      ...(stageInput.hashes ? { hashes: stageInput.hashes } : {}),
-      ...(stageInput.metrics ? { metrics: stageInput.metrics } : {}),
-      payload: buildStagePayload({
-        stageName: stageInput.stageName,
-        stageAttempt,
-        ...(stageInput.payload ? { payload: stageInput.payload } : {}),
-      }),
-    }));
-
-    return {
       stageName: stageInput.stageName,
+      stageAttempt,
       startedAt,
-      ...(stageContext.stepId ? { stepId: stageContext.stepId } : {}),
-      complete(completeInput) {
-        emitTerminalStageEvent({
-          logger: input.logger,
-          context: stageContext,
-          eventType: RuntimeLogEventType.RUNTIME_STAGE_COMPLETED,
-          level: "info",
-          stageName: stageInput.stageName,
-          stageAttempt,
-          startedAt,
-          status: "success",
-          modeVisibility,
-          ...(completeInput?.durationMs !== undefined ? { durationMs: completeInput.durationMs } : {}),
-          ...(completeInput?.preview ? { preview: completeInput.preview } : {}),
-          ...(completeInput?.refs ? { refs: completeInput.refs } : {}),
-          ...(completeInput?.hashes ? { hashes: completeInput.hashes } : {}),
-          ...(completeInput?.metrics ? { metrics: completeInput.metrics } : {}),
-          ...(completeInput?.payload ? { payload: completeInput.payload } : {}),
-        });
-      },
-      fail(failInput) {
-        emitTerminalStageEvent({
-          logger: input.logger,
-          context: stageContext,
-          eventType: RuntimeLogEventType.RUNTIME_STAGE_FAILED,
-          level: "error",
-          stageName: stageInput.stageName,
-          stageAttempt,
-          startedAt,
-          reason: failInput.reason,
-          ...(failInput.actionableMessage ? { actionableMessage: failInput.actionableMessage } : {}),
-          failureClass: failInput.failureClass,
-          retryable: failInput.retryable,
-          terminal: failInput.terminal,
-          recoveryPolicy: failInput.recoveryPolicy,
-          status: "failed",
-          modeVisibility,
-          ...(failInput.durationMs !== undefined ? { durationMs: failInput.durationMs } : {}),
-          ...(failInput.preview ? { preview: failInput.preview } : {}),
-          ...(failInput.refs ? { refs: failInput.refs } : {}),
-          ...(failInput.hashes ? { hashes: failInput.hashes } : {}),
-          ...(failInput.metrics ? { metrics: failInput.metrics } : {}),
-          ...(failInput.payload ? { payload: failInput.payload } : {}),
-        });
-      },
-      skip(skipInput) {
-        emitTerminalStageEvent({
-          logger: input.logger,
-          context: stageContext,
-          eventType: RuntimeLogEventType.RUNTIME_STAGE_SKIPPED,
-          level: "warn",
-          stageName: stageInput.stageName,
-          stageAttempt,
-          startedAt,
-          reason: skipInput.reason,
-          failureClass: skipInput.failureClass,
-          retryable: skipInput.retryable ?? false,
-          terminal: skipInput.terminal ?? false,
-          recoveryPolicy: skipInput.recoveryPolicy ?? "skip_round",
-          status: "skipped",
-          modeVisibility,
-          ...(skipInput.durationMs !== undefined ? { durationMs: skipInput.durationMs } : {}),
-          ...(skipInput.preview ? { preview: skipInput.preview } : {}),
-          ...(skipInput.refs ? { refs: skipInput.refs } : {}),
-          ...(skipInput.hashes ? { hashes: skipInput.hashes } : {}),
-          ...(skipInput.metrics ? { metrics: skipInput.metrics } : {}),
-          ...(skipInput.payload ? { payload: skipInput.payload } : {}),
-        });
-      },
-      reviewRequired(reviewInput) {
-        emitTerminalStageEvent({
-          logger: input.logger,
-          context: stageContext,
-          eventType: RuntimeLogEventType.RUNTIME_STAGE_REVIEW_REQUIRED,
-          level: "warn",
-          stageName: stageInput.stageName,
-          stageAttempt,
-          startedAt,
-          reason: reviewInput.reason,
-          ...(reviewInput.actionableMessage ? { actionableMessage: reviewInput.actionableMessage } : {}),
-          failureClass: reviewInput.failureClass,
-          retryable: reviewInput.retryable ?? false,
-          terminal: reviewInput.terminal ?? true,
-          recoveryPolicy: reviewInput.recoveryPolicy ?? "review_required",
-          status: "review_required",
-          modeVisibility,
-          ...(reviewInput.durationMs !== undefined ? { durationMs: reviewInput.durationMs } : {}),
-          ...(reviewInput.preview ? { preview: reviewInput.preview } : {}),
-          ...(reviewInput.refs ? { refs: reviewInput.refs } : {}),
-          ...(reviewInput.hashes ? { hashes: reviewInput.hashes } : {}),
-          ...(reviewInput.metrics ? { metrics: reviewInput.metrics } : {}),
-          ...(reviewInput.payload ? { payload: reviewInput.payload } : {}),
-        });
-      },
-    };
+      modeVisibility,
+    });
   },
 });

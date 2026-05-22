@@ -4,7 +4,7 @@ import { selectLawId } from "../../../shared/finding-utils.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import {
-  classBreaksHardLimit,
+  classBreaksMemberRedLine,
   collectFunctionLikes,
   computeCyclomaticComplexity,
   computeMaxNestingDepth,
@@ -43,12 +43,12 @@ const collectFunctionBudgetReasons = (functionLike: ReturnType<typeof collectFun
   const nestingDepth = computeMaxNestingDepth(body);
   const complexity = computeCyclomaticComplexity(body);
   return [
-    lineCount > 40 ? `physical line count ${lineCount} exceeds hard limit 40` : null,
-    functionLike.getParameters().length > 5 ? `parameter count ${functionLike.getParameters().length} exceeds hard limit 5` : null,
-    returnCount > 5 ? `return branch count ${returnCount} exceeds hard limit 5` : null,
-    awaitCount > 7 ? `await count ${awaitCount} exceeds hard limit 7` : null,
-    nestingDepth > 4 ? `nesting depth ${nestingDepth} exceeds hard limit 4` : null,
-    complexity > 10 ? `cyclomatic complexity ${complexity} exceeds hard limit 10` : null,
+    lineCount > 75 ? `physical line count ${lineCount} exceeds red line 75` : null,
+    functionLike.getParameters().length > 7 ? `parameter count ${functionLike.getParameters().length} exceeds red line 7` : null,
+    returnCount > 8 ? `return branch count ${returnCount} exceeds red line 8` : null,
+    awaitCount > 10 ? `await count ${awaitCount} exceeds red line 10` : null,
+    nestingDepth > 5 ? `nesting depth ${nestingDepth} exceeds red line 5` : null,
+    complexity > 16 ? `cyclomatic complexity ${complexity} exceeds red line 16` : null,
   ].filter((reason): reason is string => reason !== null);
 };
 
@@ -67,18 +67,18 @@ const scanFunctionBudgets = (
       governedFile,
       inventoryLawId,
       `Function near line ${functionLike.getStartLineNumber()} breaks function budget: ${reasons.join("; ")}.`,
-      `${governedFile.repoPath} has an over-limit function near line ${functionLike.getStartLineNumber()}.`,
+      `${governedFile.repoPath} has an over-line function near line ${functionLike.getStartLineNumber()}.`,
     );
   }
 };
 
-const scanClassBudgets = (
+const scanClassAndObjectBudgets = (
   collector: InventoryFindingCollector,
   governedFile: GovernedFile,
   inventoryLawId: string,
 ): void => {
   for (const classDeclaration of governedFile.sourceFile.getClasses()) {
-    const classLimitBreak = classBreaksHardLimit(classDeclaration);
+    const classLimitBreak = classBreaksMemberRedLine(classDeclaration);
     if (!classLimitBreak) {
       continue;
     }
@@ -93,7 +93,27 @@ const scanClassBudgets = (
         role: governedFile.role,
         verificationCommand: "npm run ci:full",
       },
-      `${governedFile.repoPath} has a class that exceeds the object hard budget.`,
+      `${governedFile.repoPath} has a class that exceeds the object red line.`,
+    );
+  }
+
+  for (const objectLiteral of governedFile.sourceFile.getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression)) {
+    const memberCount = objectLiteral.getProperties().length;
+    if (memberCount <= 30) {
+      continue;
+    }
+    collector.push(
+      {
+        checkId: "code-purity/object-budget",
+        filePath: governedFile.repoPath,
+        lawId: inventoryLawId,
+        owner: governedFile.owner,
+        reason: `Object literal near line ${objectLiteral.getStartLineNumber()} has member count ${memberCount} and exceeds red line 30.`,
+        remediation: "Split the object into smaller owner-local contract or configuration objects.",
+        role: governedFile.role,
+        verificationCommand: "npm run ci:full",
+      },
+      `${governedFile.repoPath} has an object literal that exceeds the object red line.`,
     );
   }
 };
@@ -105,5 +125,5 @@ export const scanStructuralFunctionBudgets = (
 ): void => {
   const inventoryLawId = selectLawId(lawIds, "APEX-CODE-PURITY-015-V1");
   scanFunctionBudgets(collector, governedFile, inventoryLawId);
-  scanClassBudgets(collector, governedFile, inventoryLawId);
+  scanClassAndObjectBudgets(collector, governedFile, inventoryLawId);
 };

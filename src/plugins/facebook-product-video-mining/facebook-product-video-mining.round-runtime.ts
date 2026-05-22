@@ -142,6 +142,7 @@ const probeFacebookMiningRound = async (
       finalizeStage.fail({
         reason: probe.status,
         failureClass: RuntimeFailureClass.INTERNAL_BUG,
+        durationMs: 0,
         retryable: false,
         terminal: false,
         recoveryPolicy: "skip_round",
@@ -152,6 +153,7 @@ const probeFacebookMiningRound = async (
       finalizeStage.fail({
         reason: probe.status,
         failureClass: RuntimeFailureClass.SKIPPABLE_ROUND_FAILURE,
+        durationMs: 0,
         retryable: false,
         terminal: false,
         recoveryPolicy: "skip_round",

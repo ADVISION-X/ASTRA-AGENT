@@ -1,0 +1,78 @@
+{
+  "mainQuestion": "某科技股近期上涨是否由基本面支撑？",
+  "questionType": "stock",
+  "decompositionStrategy": "Separate price action, fundamentals, catalysts, valuation, evidence, falsification, and downside risk.",
+  "missingInfo": ["ticker", "market", "time window"],
+  "subQuestions": [
+    {
+      "id": "Q1",
+      "title": "Revenue and margin facts",
+      "questionText": "What recent revenue, margin, cash-flow, and guidance facts support or weaken the rally?",
+      "dimension": "facts",
+      "purpose": "Establish the fundamental evidence base.",
+      "requiredEvidence": ["latest earnings", "guidance", "cash flow"],
+      "positiveAnalysisFocus": "Identify fundamental metrics that improved enough to justify the rally.",
+      "falsificationFocus": "Check whether improvement is temporary, accounting-driven, or below peers.",
+      "expectedAnswerShape": "Evidence table with trend and interpretation.",
+      "priority": "high"
+    },
+    {
+      "id": "Q2",
+      "title": "Causality of the rally",
+      "questionText": "Is the price move mainly caused by fundamental change, sentiment, liquidity, or sector momentum?",
+      "dimension": "causality",
+      "purpose": "Separate business causes from market causes.",
+      "requiredEvidence": ["price-volume data", "sector performance", "news timeline"],
+      "positiveAnalysisFocus": "Connect the rally to company-specific improvements.",
+      "falsificationFocus": "Test whether the move can be explained without fundamentals.",
+      "expectedAnswerShape": "Cause ranking with evidence strength.",
+      "priority": "high"
+    },
+    {
+      "id": "Q3",
+      "title": "Valuation impact",
+      "questionText": "Does the current valuation already price in the expected fundamental improvement?",
+      "dimension": "impact",
+      "purpose": "Evaluate whether upside remains after the rally.",
+      "requiredEvidence": ["valuation multiples", "peer comparison", "earnings estimates"],
+      "positiveAnalysisFocus": "Show where valuation remains reasonable versus growth.",
+      "falsificationFocus": "Identify assumptions required to avoid overvaluation.",
+      "expectedAnswerShape": "Valuation comparison and sensitivity.",
+      "priority": "medium"
+    },
+    {
+      "id": "Q4",
+      "title": "Evidence quality",
+      "questionText": "Which evidence would most reliably confirm that fundamentals, not hype, support the move?",
+      "dimension": "evidence",
+      "purpose": "Define the proof needed for later analysis.",
+      "requiredEvidence": ["primary filings", "management commentary", "analyst revisions"],
+      "positiveAnalysisFocus": "Prioritize hard evidence over narrative signals.",
+      "falsificationFocus": "Flag evidence gaps and unsupported claims.",
+      "expectedAnswerShape": "Evidence checklist by reliability.",
+      "priority": "medium"
+    },
+    {
+      "id": "Q5",
+      "title": "Risks and reverse conditions",
+      "questionText": "What risks or future evidence would disprove the claim that fundamentals support the rally?",
+      "dimension": "risk",
+      "purpose": "Prepare reverse conditions for falsification.",
+      "requiredEvidence": ["risk factors", "estimate revisions", "competitive data"],
+      "positiveAnalysisFocus": "List manageable risks consistent with a valid fundamental thesis.",
+      "falsificationFocus": "Define specific signals that would break the thesis.",
+      "expectedAnswerShape": "Risk list with disconfirming triggers.",
+      "priority": "high"
+    }
+  ],
+  "qualitySelfCheck": {
+    "coversFacts": true,
+    "coversCausality": true,
+    "coversImpact": true,
+    "coversEvidence": true,
+    "coversFalsification": true,
+    "coversRisks": true,
+    "hasNoDuplicateQuestions": true,
+    "isReadyForPositiveAndFalsification": true
+  }
+}

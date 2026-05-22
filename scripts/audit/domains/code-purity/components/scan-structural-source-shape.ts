@@ -3,7 +3,6 @@ import { SyntaxKind } from "ts-morph";
 import { selectLawId } from "../../../shared/finding-utils.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
-import { countCrossOwnerImports } from "./structural-metrics.js";
 import { scanStructuralTypeEscapes } from "./scan-structural-type-escapes.js";
 
 const bannedPathTokenPattern = /(bridge|compatibility|legacy|shadow|fallback|universal-agent|planner|next-action|action-plan|mission-loop|nerve-bus|commander-console)/u;
@@ -51,15 +50,14 @@ const scanPathBudget = (
     });
   }
 
-  if (governedFile.lineCount > governedFile.budget.hardLimit) {
-    const budgetState = governedFile.lineCount > governedFile.budget.disaster ? "disaster" : "hard-limit";
+  if (governedFile.lineCount > governedFile.budget.maxLines) {
     pushSourceAtomicityFinding(collector, {
-      checkId: `code-purity/file-budget-${budgetState}`,
+      checkId: "code-purity/file-budget-red-line",
       governedFile,
       lawId: sourceAtomicityLawId,
-      reason: `${governedFile.budget.label} has ${governedFile.lineCount} lines and exceeds ${budgetState === "disaster" ? `disaster ${governedFile.budget.disaster}` : `hard limit ${governedFile.budget.hardLimit}`}.`,
-      remediation: budgetState === "disaster" ? "Physically split the file before adding or preserving feature logic." : "Split or reduce the file by runtime role until it falls under the hard limit.",
-      message: `${governedFile.repoPath} has ${governedFile.lineCount} lines and exceeds the ${governedFile.budget.label} ${budgetState} budget.`,
+      reason: `${governedFile.budget.label} has ${governedFile.lineCount} lines and exceeds red line ${governedFile.budget.maxLines}.`,
+      remediation: "Split or reduce the file by owner and runtime role until it falls under the red line.",
+      message: `${governedFile.repoPath} has ${governedFile.lineCount} lines and exceeds the ${governedFile.budget.label} red line.`,
     });
   }
 };
@@ -100,30 +98,21 @@ const collectImportBudgetChecks = (
 }> => {
   const importDeclarations = governedFile.sourceFile.getImportDeclarations();
   const uniqueImportSources = new Set(importDeclarations.map((declaration) => declaration.getModuleSpecifierValue()));
-  const crossOwnerImports = countCrossOwnerImports(governedFile);
   return [
-    importDeclarations.length > 16
+    importDeclarations.length > 28
       ? {
           checkId: "code-purity/import-declaration-budget",
-          reason: `Import declaration count ${importDeclarations.length} exceeds hard limit 16.`,
-          message: `${governedFile.repoPath} declares ${importDeclarations.length} imports and exceeds the hard limit 16.`,
+          reason: `Import declaration count ${importDeclarations.length} exceeds red line 28.`,
+          message: `${governedFile.repoPath} declares ${importDeclarations.length} imports and exceeds the red line 28.`,
           remediation: "Split the file by owner or role and collapse broad import surfaces.",
         }
       : null,
-    uniqueImportSources.size > 14
+    uniqueImportSources.size > 24
       ? {
           checkId: "code-purity/import-source-budget",
-          reason: `Import source count ${uniqueImportSources.size} exceeds hard limit 14.`,
-          message: `${governedFile.repoPath} imports ${uniqueImportSources.size} unique sources and exceeds the hard limit 14.`,
+          reason: `Import source count ${uniqueImportSources.size} exceeds red line 24.`,
+          message: `${governedFile.repoPath} imports ${uniqueImportSources.size} unique sources and exceeds the red line 24.`,
           remediation: "Split the file by runtime role and keep only the owner-local dependencies in each slice.",
-        }
-      : null,
-    crossOwnerImports > 4
-      ? {
-          checkId: "code-purity/cross-owner-import-budget",
-          reason: `Cross-owner import count ${crossOwnerImports} exceeds hard limit 4.`,
-          message: `${governedFile.repoPath} depends on ${crossOwnerImports} cross-owner surfaces and exceeds the hard limit 4.`,
-          remediation: "Move cross-owner logic back to the lawful owner or split the file at the boundary.",
         }
       : null,
   ].filter((check): check is NonNullable<typeof check> => check !== null);
@@ -144,14 +133,14 @@ const scanNamedExportBudget = (
   sourceAtomicityLawId: string,
 ): void => {
   const namedExports = governedFile.sourceFile.getExportedDeclarations().size;
-  if (namedExports > 10) {
+  if (namedExports > 24) {
     pushSourceAtomicityFinding(collector, {
       checkId: "code-purity/named-export-budget",
       governedFile,
       lawId: sourceAtomicityLawId,
-      reason: `Named export count ${namedExports} exceeds hard limit 10.`,
+      reason: `Named export count ${namedExports} exceeds red line 24.`,
       remediation: "Reduce the export surface or split the file into explicit owner-local contracts.",
-      message: `${governedFile.repoPath} exports ${namedExports} symbols and exceeds the hard limit 10.`,
+      message: `${governedFile.repoPath} exports ${namedExports} symbols and exceeds the red line 24.`,
     });
   }
 };

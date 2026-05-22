@@ -5,6 +5,7 @@ import { Node, SyntaxKind } from "ts-morph";
 import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
+import { pushStaleCodePurityTextReportFindings } from "./stale-code-purity-text-report.js";
 
 const requiredArtifacts = [
   "scripts/audit/generated/law-registry.generated.json",
@@ -304,6 +305,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   pushGeneratedPlanUniquenessFindings(findings, manifestLawId, context.generatedPlan);
   pushBlueprintAnchorFindings(findings, inspectedFiles, blueprintLawId, context.planEntry.blueprintRefs ?? []);
   pushCodePurityPrerequisiteFinding(findings, metaLawId, context.completedReports);
+  pushStaleCodePurityTextReportFindings(findings, inspectedFiles, chainLawId);
   pushStaticCoverageFindings(findings, inspectedFiles, metaLawId);
   pushCiFullEntryGateFindings(findings, inspectedFiles, chainLawId);
   pushRunnerTruthFindings(findings, inspectedFiles, chainLawId, runnerLawId, context);

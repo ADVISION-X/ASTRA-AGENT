@@ -6,6 +6,7 @@ import { handleAmazonRequest } from "./workbench-amazon-routes.js";
 import { handleFacebookRequest } from "./workbench-facebook-routes.js";
 import { writeCorsPreflight, writeJson } from "./workbench-http.js";
 import { renderWorkbenchHomePage } from "./workbench-home-page.js";
+import { handleVideoDownloadRequest } from "./workbench-video-download-routes.js";
 
 const HOME_PAGE_PATHS = new Set(["/", "/index.html"]);
 
@@ -47,6 +48,24 @@ const handleWorkbenchMetaRequest = async (input: {
   return false;
 };
 
+const handleKnownWorkbenchApiRequest = async (input: {
+  request: import("node:http").IncomingMessage;
+  response: import("node:http").ServerResponse;
+  workbench: GrassEyeWorkbenchHandle;
+  url: URL;
+}): Promise<boolean> => {
+  if (await handleWorkbenchMetaRequest(input)) {
+    return true;
+  }
+  if (await handleAmazonRequest(input.request, input.response, input.workbench, input.url)) {
+    return true;
+  }
+  if (await handleFacebookRequest(input.request, input.response, input.workbench, input.url)) {
+    return true;
+  }
+  return handleVideoDownloadRequest(input.request, input.response, input.workbench);
+};
+
 async function handleRequest(
   request: import("node:http").IncomingMessage,
   response: import("node:http").ServerResponse,
@@ -64,15 +83,7 @@ async function handleRequest(
     return;
   }
 
-  if (await handleWorkbenchMetaRequest({ request, response, workbench, url })) {
-    return;
-  }
-
-  if (await handleAmazonRequest(request, response, workbench, url)) {
-    return;
-  }
-
-  if (await handleFacebookRequest(request, response, workbench, url)) {
+  if (await handleKnownWorkbenchApiRequest({ request, response, workbench, url })) {
     return;
   }
 

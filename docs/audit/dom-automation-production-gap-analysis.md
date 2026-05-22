@@ -51,7 +51,7 @@ The original law file authorizes ten child abilities and contains DOM 014/015/01
 ## LAW-GAP / External Blockers
 
 1. `src/capabilities/video-download/**` exists, but capability-group-governance currently approves only `dom-automation`, `ai-input-gateway`, and `forensics-persistence` as active ability groups. Adding video-download to that allowlist would be a law change, not an implementation fix.
-2. DOM law requires the public facade to expose all ten child ability functions and public contracts, while code-purity enforces a hard named-export limit of 10 on the same facade. This creates a conflict once DOM reaches the legal ten-child surface.
+2. Resolved by the code-purity red-line update: DOM law requires the public facade to expose all ten child ability functions and public contracts, and code-purity now enforces a binary named-export red line of 24 instead of the old limit of 10.
 3. Existing global code-purity findings remain outside DOM, including audit helper budgets, Amazon acceptance/file budgets, and existing broad facade export surfaces.
 
 ## Non-Editable Law Note

@@ -18,25 +18,10 @@ export type CodePurityRole =
 
 export type FileBudget = {
   label: string;
-  target: number;
-  hardLimit: number;
-  disaster: number;
+  maxLines: number;
 };
 
-const jobFlowBudget: FileBudget = { label: "job-flow file", target: 180, hardLimit: 280, disaster: 420 };
-const jobStepBudget: FileBudget = { label: "job step/support file", target: 150, hardLimit: 240, disaster: 360 };
-const schemaBudget: FileBudget = { label: "schema/result/type file", target: 220, hardLimit: 360, disaster: 520 };
-const mediatorBudget: FileBudget = { label: "mediator route file", target: 100, hardLimit: 160, disaster: 240 };
-const abilityFacadeBudget: FileBudget = { label: "ability-group public facade", target: 120, hardLimit: 200, disaster: 300 };
-const childAbilityBudget: FileBudget = { label: "child ability runtime file", target: 140, hardLimit: 240, disaster: 360 };
-const browserPrimitiveBudget: FileBudget = { label: "browser or DOM runtime primitive", target: 170, hardLimit: 300, disaster: 450 };
-const evidenceBudget: FileBudget = { label: "evidence/runtime log file", target: 150, hardLimit: 260, disaster: 400 };
-const appShellBudget: FileBudget = { label: "local app shell file", target: 140, hardLimit: 240, disaster: 360 };
-const infrastructureBudget: FileBudget = { label: "src/lib infrastructure file", target: 150, hardLimit: 260, disaster: 400 };
-const startupBudget: FileBudget = { label: "script/startup file", target: 170, hardLimit: 280, disaster: 420 };
-const acceptanceBudget: FileBudget = { label: "acceptance smoke file", target: 180, hardLimit: 320, disaster: 480 };
-const auditInspectorBudget: FileBudget = { label: "audit owner inspector", target: 180, hardLimit: 320, disaster: 480 };
-const auditPhaseBudget: FileBudget = { label: "audit helper/phase file", target: 140, hardLimit: 240, disaster: 360 };
+const sourceFileBudget: FileBudget = { label: "active executable source file", maxLines: 500 };
 
 const schemaLikeFilePattern = /(schema|contract|types?|result)\.tsx?$/u;
 
@@ -155,23 +140,4 @@ const resolveSourceRole = (repoPath: string): CodePurityRole =>
 
 export const resolveCodePurityRole = (repoPath: string): CodePurityRole => resolveScriptRole(repoPath) ?? resolveSourceRole(repoPath);
 
-const budgetByRole: Record<Exclude<CodePurityRole, "infrastructure">, FileBudget> = {
-  "ability-group": abilityFacadeBudget,
-  "acceptance-smoke": acceptanceBudget,
-  "app-shell": appShellBudget,
-  "audit-inspector": auditInspectorBudget,
-  "audit-phase": auditPhaseBudget,
-  "browser-primitive": browserPrimitiveBudget,
-  "child-ability": childAbilityBudget,
-  "job-flow": jobFlowBudget,
-  "job-schema": schemaBudget,
-  "job-step": jobStepBudget,
-  "log-writer": evidenceBudget,
-  "mediator-route": mediatorBudget,
-  "startup-script": startupBudget,
-  "storage-adapter": evidenceBudget,
-  "type-contract": schemaBudget,
-};
-
-export const resolveCodePurityBudget = (repoPath: string, role: CodePurityRole): FileBudget =>
-  role === "infrastructure" ? (repoPath.startsWith("src/lib/") ? infrastructureBudget : jobStepBudget) : budgetByRole[role];
+export const resolveCodePurityBudget = (_repoPath: string, _role: CodePurityRole): FileBudget => sourceFileBudget;

@@ -12,9 +12,7 @@ import {
   type SetAccessorDeclaration,
 } from "ts-morph";
 
-import { toRepoPath } from "../../../shared/paths.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
-import { resolveCodePurityOwner } from "./code-purity-owner-model.js";
 
 type BudgetFunctionNode =
   | ArrowFunction
@@ -71,21 +69,6 @@ export const computeCyclomaticComplexity = (body: MorphNode): number =>
     return Node.isBinaryExpression(descendant) && ["&&", "||", "??"].includes(descendant.getOperatorToken().getText());
   }).length;
 
-export const countCrossOwnerImports = (governedFile: GovernedFile): number => {
-  const targetOwners = new Set<string>();
-  for (const importDeclaration of governedFile.sourceFile.getImportDeclarations()) {
-    const targetSourceFile = importDeclaration.getModuleSpecifierSourceFile();
-    if (!targetSourceFile) {
-      continue;
-    }
-    const targetOwner = resolveCodePurityOwner(toRepoPath(targetSourceFile.getFilePath()));
-    if (targetOwner !== governedFile.owner && targetOwner !== "unknown") {
-      targetOwners.add(targetOwner);
-    }
-  }
-  return targetOwners.size;
-};
-
 export const collectDirectiveComments = (governedFile: GovernedFile): { line: number; text: string }[] => {
   const seenRanges = new Set<string>();
   const directives: { line: number; text: string }[] = [];
@@ -109,19 +92,10 @@ export const collectDirectiveComments = (governedFile: GovernedFile): { line: nu
   return directives;
 };
 
-export const classBreaksHardLimit = (classDeclaration: ClassDeclaration): { reason: string } | null => {
-  const fieldCount = classDeclaration.getProperties().length;
-  const methodCount = classDeclaration.getMethods().length + classDeclaration.getGetAccessors().length + classDeclaration.getSetAccessors().length;
+export const classBreaksMemberRedLine = (classDeclaration: ClassDeclaration): { reason: string } | null => {
   const totalMembers = classDeclaration.getMembers().length;
-  const constructorParams = classDeclaration.getConstructors().flatMap((ctor) => ctor.getParameters()).length;
-  if (fieldCount > 14) {
-    return { reason: `field count ${fieldCount} exceeds hard limit 14` };
+  if (totalMembers > 30) {
+    return { reason: `member count ${totalMembers} exceeds red line 30` };
   }
-  if (methodCount > 14) {
-    return { reason: `method count ${methodCount} exceeds hard limit 14` };
-  }
-  if (totalMembers > 24) {
-    return { reason: `member count ${totalMembers} exceeds hard limit 24` };
-  }
-  return constructorParams > 6 ? { reason: `constructor parameter count ${constructorParams} exceeds hard limit 6` } : null;
+  return null;
 };

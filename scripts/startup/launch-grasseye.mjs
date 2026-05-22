@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { assessDependencyState, installDependencies } from "./lib/dependency-check.mjs";
 import { openWorkbenchPage } from "./lib/open-workbench-page.mjs";
 import { clearPortListeners, startLocalService, stopLocalService } from "./lib/process-control.mjs";
+import { probeExistingWorkbench, waitForWorkbenchHealth } from "./lib/service-readiness.mjs";
 import { handleStartupBootstrapFailure } from "./lib/startup-failure-handler.mjs";
 import { createStartupLogHelpers } from "./lib/startup-log-helpers.mjs";
 import { parseFlags, registerSignalHandlers } from "./lib/startup-main-support.mjs";
@@ -70,6 +71,22 @@ async function runUpdatePreflight(root, flags) {
 }
 
 async function preparePort() {
+  const hotMountStart = Date.now();
+  logEvent("STARTUP", "bootstrap", "hot_mount_probe", "started", `probing existing workbench at ${baseUrl}/api/health`);
+  const hotMount = await probeExistingWorkbench({ baseUrl, toFailureReason });
+  if (hotMount.mounted) {
+    logPass("STARTUP", "bootstrap", "hot_mount_probe", "passed", `hot-mounted existing workbench at ${baseUrl}`, {
+      refs: [`healthUrl=${hotMount.healthUrl}`, `contentType=${hotMount.contentType}`, `healthStatus=${hotMount.status}`],
+      durationMs: Date.now() - hotMountStart,
+    });
+    return { hotMounted: true };
+  }
+
+  logEvent("STARTUP", "bootstrap", "hot_mount_probe", "event", "no healthy workbench mounted; port clear may proceed", {
+    refs: [`healthUrl=${hotMount.healthUrl}`],
+    failureReason: hotMount.failureReason,
+  });
+
   const portStart = Date.now();
   logEvent("STARTUP", "bootstrap", "port_clear", "started", `clearing ${host}:${port}`);
   await clearPortListeners({
@@ -80,6 +97,7 @@ async function preparePort() {
   logPass("STARTUP", "bootstrap", "port_clear", "passed", `port ${host}:${port} is ready`, {
     durationMs: Date.now() - portStart,
   });
+  return { hotMounted: false };
 }
 
 async function startService(root) {
@@ -91,6 +109,8 @@ async function startService(root) {
     scriptName: "internal:app-server:dev",
     env: {
       GRASSEYE_LOG_MODE: "TRACE",
+      GRASSEYE_HOST: host,
+      GRASSEYE_PORT: String(port),
     },
     onStdoutLine: (line, scriptName) => terminalLogger.relayServiceStdoutLine(line, scriptName),
     onStderrLine: (line, scriptName) => terminalLogger.relayServiceStderrLine(line, scriptName),
@@ -101,39 +121,20 @@ async function startService(root) {
   return serviceHandle;
 }
 
-const waitForDelay = (delayMs) => new Promise((resolve) => {
-  setTimeout(resolve, delayMs);
-});
-
-async function probeHealth(healthUrl) {
-  const response = await fetch(healthUrl);
-  if (!response.ok) {
-    throw new Error(`Local workbench health returned HTTP ${response.status}`);
-  }
-  return response.headers.get("content-type") ?? "unknown";
-}
-
 async function verifyAppHealth() {
-  const healthStart = Date.now();
-  const healthUrl = `${baseUrl}/api/health`;
-  logEvent("APP", "app_shell", "APP_SHELL_HEALTH_CHECK_STARTED", "started", `probing local workbench health at ${healthUrl}`);
-  let lastFailureReason = "health probe did not run";
-
-  for (let attempt = 1; attempt <= 20; attempt += 1) {
-    try {
-      const contentType = await probeHealth(healthUrl);
+  await waitForWorkbenchHealth({
+    baseUrl,
+    toFailureReason,
+    onStarted: ({ healthUrl }) => {
+      logEvent("APP", "app_shell", "APP_SHELL_HEALTH_CHECK_STARTED", "started", `probing local workbench health at ${healthUrl}`);
+    },
+    onPassed: ({ healthUrl, contentType, status, attempt, durationMs }) => {
       logPass("APP", "app_shell", "APP_SHELL_HEALTH_PASSED", "passed", `local workbench health passed at ${healthUrl}`, {
-        refs: [`healthUrl=${healthUrl}`, `contentType=${contentType}`, `attempt=${attempt}`],
-        durationMs: Date.now() - healthStart,
+        refs: [`healthUrl=${healthUrl}`, `contentType=${contentType}`, `healthStatus=${status}`, `attempt=${attempt}`],
+        durationMs,
       });
-      return;
-    } catch (error) {
-      lastFailureReason = toFailureReason(error);
-      await waitForDelay(250);
-    }
-  }
-
-  throw new Error(`Local workbench health readiness failed: ${lastFailureReason}`);
+    },
+  });
 }
 
 function isControlledServiceExit(exit, shuttingDown) {
@@ -180,7 +181,12 @@ function classifyServiceExit(exit, shuttingDown) {
 async function performLaunch(flags, root) {
   await ensureDependencies(root, flags);
   await runUpdatePreflight(root, flags);
-  await preparePort();
+  const portState = await preparePort();
+  if (portState.hotMounted) {
+    await openReadyPage(flags);
+    logStartupReady();
+    return undefined;
+  }
   const serviceHandle = await startService(root);
   await verifyAppHealth();
   await openReadyPage(flags);
@@ -226,6 +232,9 @@ async function main() {
 
   try {
     state.serviceHandle = await performLaunch(flags, rootDir);
+    if (!state.serviceHandle) {
+      return;
+    }
     const exit = await state.serviceHandle.waitForExit();
     classifyServiceExit(exit, state.shuttingDown);
     return;

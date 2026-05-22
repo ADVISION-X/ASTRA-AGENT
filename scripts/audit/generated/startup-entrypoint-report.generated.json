@@ -1,12 +1,14 @@
 {
-  "generatedAt": "2026-05-22T19:29:42.845Z",
+  "generatedAt": "2026-05-22T22:01:03.191Z",
   "capabilityDomain": "startup-entrypoint",
   "executionGroup": "domain",
   "lawIds": [
     "APEX-STARTUP-001-V1",
     "APEX-STARTUP-002-V1",
     "APEX-STARTUP-003-V1",
-    "APEX-STARTUP-004-V1"
+    "APEX-STARTUP-004-V1",
+    "APEX-STARTUP-005-V1",
+    "APEX-STARTUP-006-V1"
   ],
   "status": "PASS",
   "findings": [],
@@ -22,6 +24,7 @@
     "scripts/startup/lib/port-listener-ops.mjs",
     "scripts/startup/lib/process-control.mjs",
     "scripts/startup/lib/service-process.mjs",
+    "scripts/startup/lib/service-readiness.mjs",
     "scripts/startup/lib/startup-failure-bundle.mjs",
     "scripts/startup/lib/startup-failure-handler.mjs",
     "scripts/startup/lib/startup-log-helpers.mjs",

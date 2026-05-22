@@ -28,6 +28,18 @@ All security redlines from Law 002 remain fully active. No law upgrade changes t
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-001-V1
 
+```apex-law
+{
+  "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-001-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "video-download-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+real-code-inspection",
+  "summary": "video-download is a governed media artifact ability group, not a DOM helper, product judge, plugin shortcut, or platform workflow."
+}
+```
+
 status: active
 tier: P0
 capabilityDomain: video-download-capability
@@ -61,6 +73,18 @@ FORBIDDEN:
 - creating a compatibility, fallback, bridge, duplicate, or shadow downloader beside the video-download owner.
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-002-V1
+
+```apex-law
+{
+  "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-002-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "video-download-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+real-code-inspection",
+  "summary": "video download must use only user-authorized local page access and must never bypass credentials, login, CAPTCHA, risk controls, DRM, or platform protections."
+}
+```
 
 status: active
 tier: P0
@@ -96,6 +120,18 @@ FORBIDDEN:
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-003-V1
 
+```apex-law
+{
+  "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-003-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "video-download-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+real-code-inspection",
+  "summary": "The video-download group exposes one universal child, named-platform children, and a YouTube child that each download one video artifact per invocation and must not become business workflows."
+}
+```
+
 status: active
 tier: P0
 capabilityDomain: video-download-capability
@@ -123,6 +159,7 @@ The approved child capabilities are:
 - `download-douyin-video-once` — Douyin page data extraction (same engine family as TikTok).
 - `download-x-video-once` — X/Twitter `__NEXT_DATA__` / video CDN extraction.
 - `download-xiaohongshu-video-once` — 小红书/RED page data / video element extraction.
+- `download-youtube-video-once` — YouTube governed artifact download through the local yt-dlp runtime for user-authorized videos.
 
 Required for every child capability:
 - Downloads at most one target video artifact per invocation.
@@ -151,6 +188,18 @@ FORBIDDEN:
 - universal child returning DRM-protected or login-required content as success.
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-004-V1
+
+```apex-law
+{
+  "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-004-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "video-download-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+real-code-inspection",
+  "summary": "every media candidate must be validated before download success can be claimed."
+}
+```
 
 status: active
 tier: P0
@@ -185,6 +234,18 @@ FORBIDDEN:
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-005-V1
 
+```apex-law
+{
+  "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-005-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "video-download-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+real-code-inspection",
+  "summary": "every download attempt must leave Forensics-compatible artifact proof and structured failure evidence."
+}
+```
+
 status: active
 tier: P0
 capabilityDomain: video-download-capability
@@ -218,6 +279,18 @@ FORBIDDEN:
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-006-V1
 
+```apex-law
+{
+  "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-006-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "video-download-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+real-code-inspection",
+  "summary": "downloaded video artifacts may feed AI analysis, but video-download must not own AI product judgment."
+}
+```
+
 status: active
 tier: P0
 capabilityDomain: video-download-capability
@@ -249,6 +322,18 @@ FORBIDDEN:
 - treating successful download as successful product discovery.
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-007-V1
+
+```apex-law
+{
+  "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-007-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "video-download-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+real-code-inspection",
+  "summary": "the universal child must extract video candidates using only publicly observable browser media data and must never bypass platform security."
+}
+```
 
 status: active
 tier: P0
@@ -297,6 +382,18 @@ FORBIDDEN:
 
 ## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-008-V1
 
+```apex-law
+{
+  "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-008-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "video-download-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+real-code-inspection",
+  "summary": "platform detection must route to the correct child capability and must not silently fall back to the universal extractor on a known platform."
+}
+```
+
 status: active
 tier: P0
 capabilityDomain: video-download-capability
@@ -321,6 +418,7 @@ Required routing rules:
 - `douyin.com`, `iesdouyin.com` → `download-douyin-video-once`
 - `x.com`, `twitter.com` → `download-x-video-once`
 - `xiaohongshu.com`, `xhslink.com` → `download-xiaohongshu-video-once`
+- `youtube.com`, `youtu.be`, `youtube-nocookie.com` → `download-youtube-video-once`
 - all other hosts → `download-web-video-once`
 
 Required behavior:
@@ -337,3 +435,49 @@ FORBIDDEN:
 - router silently substituting `download-web-video-once` for a named platform without logging the substitution;
 - child capabilities calling the router internally (router is caller-owned, not child-owned);
 - adding routing logic inside `src/mediator` or any job flow.
+
+## Law GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1
+
+```apex-law
+{
+  "lawId": "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "video-download-capability",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "law+blueprint+real-code-inspection",
+  "summary": "YouTube downloads must honor explicit quality requests and subtitle requests through governed local artifacts."
+}
+```
+
+status: active
+tier: P0
+capabilityDomain: video-download-capability
+enforcementMode: machine-blocking
+evidenceMode: law+blueprint+real-code-inspection
+
+summary: YouTube downloads must honor explicit quality requests and subtitle requests through governed local artifacts.
+
+### 主题
+
+YouTube 清晰度与字幕下载边界
+
+### 法条
+
+`download-youtube-video-once` may download a user-authorized YouTube video only through the governed local runtime and must preserve selected quality and subtitle proof in the result.
+
+Required behavior:
+- Input must accept the explicit quality set `2160p`, `1440p`, `1080p`, `720p`, `480p`, `360p`, `hd`, `sd`, and `best_available`.
+- Each explicit quality must map to a bounded format selector that does not exceed the requested height.
+- `downloadSubtitles=true` must request subtitles using `subtitleLanguages` and persist subtitle artifacts when the platform provides them.
+- Success output and runtime proof must include `selectedQuality` and `subtitleArtifacts`.
+- App API requests must be able to pass `preferredQuality` and `downloadSubtitles` into the video-download public facade.
+
+### 禁止
+
+FORBIDDEN:
+- ignoring requested quality while reporting it as selected;
+- treating subtitle request success as proven when no subtitle artifact exists and the platform provided subtitles;
+- storing subtitles outside the governed artifact path;
+- adding a YouTube downloader outside `src/capabilities/video-download/**`;
+- using a third-party downloader website or cookie/session export to fetch YouTube media.

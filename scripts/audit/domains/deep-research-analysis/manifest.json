@@ -1,0 +1,12 @@
+{
+  "capabilityDomain": "deep-research-analysis",
+  "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "description": "Deep Research Analysis job-flow owner audit."
+}

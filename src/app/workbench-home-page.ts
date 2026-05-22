@@ -1,5 +1,6 @@
 import { renderWorkbenchHomeClient } from "./workbench-home-client.js";
 import { renderWorkbenchHomeStyles } from "./workbench-home-styles.js";
+import { renderWorkbenchVideoDownloadClient } from "./workbench-video-download-client.js";
 
 const renderJobRail = (): string => `
 <aside class="rail">
@@ -12,6 +13,10 @@ const renderJobRail = (): string => `
     <button class="job-card" type="button" data-job-card="facebook" aria-pressed="false">
       <strong>Facebook product video mining</strong>
       <span class="muted">feed scan -> evidence refs</span>
+    </button>
+    <button class="job-card" type="button" data-job-card="video-download" aria-pressed="false">
+      <strong>Video download skill</strong>
+      <span class="muted">source URL -> media artifact</span>
     </button>
   </div>
 </aside>`;
@@ -57,6 +62,45 @@ const renderFacebookPanel = (): string => `
   </section>
 </section>`;
 
+const renderVideoDownloadPanel = (): string => `
+<section class="hidden" data-job-panel="video-download">
+  <h1>Video download skill</h1>
+  <p class="muted">video-download ability group</p>
+  <form class="form-grid" data-video-download-form>
+    <div class="field wide"><label>Source page URL</label><input name="sourcePageUrl" type="url" required /></div>
+    <div class="field">
+      <label>Capability</label>
+      <select name="childCapabilityId">
+        <option value="download-web-video-once">Universal web</option>
+        <option value="download-facebook-video-once">Facebook</option>
+        <option value="download-tiktok-video-once">TikTok</option>
+        <option value="download-instagram-video-once">Instagram</option>
+        <option value="download-bilibili-video-once">Bilibili</option>
+        <option value="download-douyin-video-once">Douyin</option>
+        <option value="download-x-video-once">X / Twitter</option>
+        <option value="download-xiaohongshu-video-once">Xiaohongshu</option>
+        <option value="download-youtube-video-once">YouTube</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Quality</label>
+      <select name="preferredQuality">
+        <option value="best_available">Best available</option>
+        <option value="1080p">1080p</option>
+        <option value="720p">720p</option>
+        <option value="480p">480p</option>
+        <option value="hd">HD</option>
+        <option value="sd">SD</option>
+      </select>
+    </div>
+    <div class="field"><label>Max MB</label><input name="maxMegabytes" type="number" min="1" max="500" value="200" required /></div>
+    <label class="check"><input name="downloadSubtitles" type="checkbox" /> download subtitles</label>
+    <div class="actions wide">
+      <button class="btn" type="submit">Start</button>
+    </div>
+  </form>
+</section>`;
+
 const renderLedger = (): string => `
 <aside class="ledger" data-task-status-panel>
   <div class="panel">
@@ -95,7 +139,7 @@ export const renderWorkbenchHomePage = (): string => `<!doctype html>
     </header>
     <main class="main">
       ${renderJobRail()}
-      <div class="workspace">${renderAmazonPanel()}${renderFacebookPanel()}</div>
+      <div class="workspace">${renderAmazonPanel()}${renderFacebookPanel()}${renderVideoDownloadPanel()}</div>
       ${renderLedger()}
     </main>
     <footer class="activity" data-activity-panel>
@@ -103,6 +147,6 @@ export const renderWorkbenchHomePage = (): string => `<!doctype html>
       <div class="activity-log" data-activity-log></div>
     </footer>
   </div>
-  <script>${renderWorkbenchHomeClient()}</script>
+  <script>${renderWorkbenchHomeClient()}${renderWorkbenchVideoDownloadClient()}</script>
 </body>
 </html>`;

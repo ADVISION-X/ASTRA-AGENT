@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T19:29:37.793Z",
+  "generatedAt": "2026-05-22T22:00:57.164Z",
   "entries": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -126,6 +126,43 @@
       "blueprintRefs": []
     },
     {
+      "capabilityDomain": "deep-research-analysis",
+      "manifestPath": "scripts/audit/domains/deep-research-analysis/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/deep-research-analysis/inspector.ts",
+      "executionGroup": "domain",
+      "lawIds": [
+        "GRASSEYE-DEEP-RESEARCH-001-V1",
+        "GRASSEYE-DEEP-RESEARCH-002-V1",
+        "GRASSEYE-DEEP-RESEARCH-003-V1",
+        "GRASSEYE-DEEP-RESEARCH-004-V1",
+        "GRASSEYE-DEEP-RESEARCH-005-V1",
+        "GRASSEYE-DEEP-RESEARCH-006-V1",
+        "GRASSEYE-DEEP-RESEARCH-007-V1",
+        "GRASSEYE-DEEP-RESEARCH-008-V1",
+        "GRASSEYE-DEEP-RESEARCH-009-V1",
+        "GRASSEYE-DEEP-RESEARCH-010-V1",
+        "GRASSEYE-DEEP-RESEARCH-011-V1",
+        "GRASSEYE-DEEP-RESEARCH-012-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "ast+schema",
+        "db+artifact+hash",
+        "db+schema",
+        "dom+artifact+hash",
+        "dom+parser+db",
+        "dom+parser+db+runtime-log",
+        "file+hash+db",
+        "fs+ast",
+        "fs+db+hash",
+        "parser+db+runtime-log",
+        "runtime-log+audit"
+      ],
+      "blueprintRefs": []
+    },
+    {
       "capabilityDomain": "dom-automation",
       "manifestPath": "scripts/audit/domains/dom-automation/manifest.json",
       "ownerInspectorPath": "scripts/audit/domains/dom-automation/inspector.ts",
@@ -247,6 +284,7 @@
             "## 本地形态",
             "## 首屏结构",
             "## 当前法门入口",
+            "## Video Download 输入面",
             "## 对口质检"
           ]
         }
@@ -312,7 +350,9 @@
         "APEX-STARTUP-001-V1",
         "APEX-STARTUP-002-V1",
         "APEX-STARTUP-003-V1",
-        "APEX-STARTUP-004-V1"
+        "APEX-STARTUP-004-V1",
+        "APEX-STARTUP-005-V1",
+        "APEX-STARTUP-006-V1"
       ],
       "clauseIds": [
         "primary"
@@ -327,8 +367,45 @@
           "requiredAnchors": [
             "## 唯一入口",
             "## 启动顺序",
+            "## 端口清理",
+            "## 热挂载",
             "## 启动禁止",
             "## 质检对口"
+          ]
+        }
+      ]
+    },
+    {
+      "capabilityDomain": "video-download-capability",
+      "manifestPath": "scripts/audit/domains/video-download-capability/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/video-download-capability/inspector.ts",
+      "executionGroup": "domain",
+      "lawIds": [
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-001-V1",
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-002-V1",
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-003-V1",
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-004-V1",
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-005-V1",
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-006-V1",
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-007-V1",
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-008-V1",
+        "GRASSEYE-VIDEO-DOWNLOAD-CAPABILITY-009-V1"
+      ],
+      "clauseIds": [
+        "primary"
+      ],
+      "evidenceModes": [
+        "law+blueprint+real-code-inspection"
+      ],
+      "blueprintRefs": [
+        {
+          "filePath": "docs/法案辅助文件/GrassEye Video Download 视频下载能力组施工图.md",
+          "requiredAnchors": [
+            "## 0. 定位",
+            "## 3. 目录结构",
+            "## 4. 子能力清单",
+            "## YouTube 清晰度与字幕验收",
+            "## 13. 验收标准"
           ]
         }
       ]

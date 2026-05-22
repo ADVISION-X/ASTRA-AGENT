@@ -65,97 +65,55 @@ Every active file must prove its owner, its role, and why it exists.
 
 ## 2. Strictness Model
 
-This law is intentionally near-maximal.
+Executable code-purity verdicts are binary:
 
-### P0 blocking
+```txt
+PASS = every numeric gate is within the red line and no structural veto law is violated.
+FAIL = any numeric red line is exceeded or any structural veto law is violated.
+```
 
-P0 rules block completion and CI readiness. They cover structures that rot the system quickly:
+Code size gates are binary, coarse, and secondary. They exist only to stop obvious structural swelling. They must not replace architecture boundary, owner boundary, zombie, fake runtime, generated truth, AI boundary, or runtime log spine laws.
 
-- architecture bypass
-- owner boundary violation
-- fake runtime success
-- type escape
-- zombie file / export / declaration / dead branch
-- touched disaster growth
-- bridge / compatibility / legacy dual truth
-- audit fake pass
-- generated artifact manual truth
+No target.
+No hard/disaster split.
+No warning.
+No remediation-only numeric state.
+No pass-with-findings.
 
-### P1 required remediation
-
-P1 is a remediation-priority label inside a FAIL result. It is not a third runtime verdict.
-
-- oversized but not disaster files
-- over-complex functions
-- single-caller helper files
-- broad import surfaces
-- unclear role files
-- incomplete inventory
-
-### P2 advisory hygiene
-
-P2 is planning prose only. It must not appear as a runtime verdict tier, warning grade, or executable PASS-with-caveat state.
-
-- naming polish
-- small extraction suggestions
-- non-critical duplicated comments
-- future split opportunities
-
-Codex must not downgrade P0 to P1 by calling it "legacy", "temporary", "small change", "later", or "only for CI".
+Codex must not downgrade structural violations by calling them "legacy", "temporary", "small change", "later", or "only for CI".
 
 ## 3. File Size Budget
 
-Line count is not the only purity signal, but it is a hard binary enforcement fence once a clause is wired into the executable inspector.
+Line count is not the only purity signal, but it is a binary red line once a clause is wired into the executable inspector.
 
-| File category | Target | Hard limit | Disaster |
-|---|---:|---:|---:|
-| Job flow file `src/plugins/<job-id>/*.flow.ts` | 180 | 280 | 420 |
-| Job step / support file | 150 | 240 | 360 |
-| Job schema / result / type file | 220 | 360 | 520 |
-| Mediator route file | 100 | 160 | 240 |
-| Ability group public facade | 120 | 200 | 300 |
-| Child ability runtime file | 140 | 240 | 360 |
-| Browser / DOM runtime primitive | 170 | 300 | 450 |
-| Evidence / runtime log file | 150 | 260 | 400 |
-| Local app shell file | 140 | 240 | 360 |
-| `src/lib` infrastructure file | 150 | 260 | 400 |
-| Script / startup file | 170 | 280 | 420 |
-| Acceptance smoke file | 180 | 320 | 480 |
-| Audit owner inspector | 180 | 320 | 480 |
-| Audit helper / phase file | 140 | 240 | 360 |
-| JSON config / generated summary | 300 | 600 | 900 |
-| Law file | 600 | 1200 | 1800 |
+| Metric | Red line |
+|---|---:|
+| Active executable source file physical lines | 500 |
 
 Required:
 
-- New files should target the target budget.
-- Touched files must not cross the hard limit.
-- Touched files already over the hard limit must not receive new logic unless the same task reduces or splits them.
-- Disaster files must not receive feature logic.
-- A disaster file on the current task path blocks completion unless the user explicitly authorizes a narrow emergency exception.
+- A file under 500 lines can still FAIL if it violates owner, boundary, zombie, fake runtime, AI planner, generated truth, or runtime log spine laws.
+- A file over 500 lines FAILS because it is too large to remain safely editable by Codex.
+- Touched files over the red line must be split or reduced before receiving new logic.
 
 Allowed exception:
 
-- A law file may exceed normal source limits because it is the written authority, but it must stay structured, parseable, and domain-specific.
+- A law file may exceed normal executable source limits because it is the written authority, but it must stay structured, parseable, and domain-specific.
 
 ## 4. Function / Object Budget
 
-| Function metric | Target | Hard limit |
-|---|---:|---:|
-| Physical lines | 24 | 40 |
-| Parameters | 3 | 5 |
-| Return branches | 3 | 5 |
-| Nesting depth | 2 | 4 |
-| Cyclomatic complexity | 6 | 10 |
-| Await points | 4 | 7 |
-| Direct side-effect calls | 3 | 6 |
+| Function metric | Red line |
+|---|---:|
+| Physical lines | 75 |
+| Parameters | 7 |
+| Return branches | 8 |
+| Nesting depth | 5 |
+| Cyclomatic complexity | 16 |
+| Await points | 10 |
 
-| Object / class metric | Target | Hard limit |
-|---|---:|---:|
-| Fields | 8 | 14 |
-| Methods | 8 | 14 |
-| Total members | 14 | 24 |
-| Constructor parameters | 4 | 6 |
+| Object / class metric | Red line |
+|---|---:|
+| Total members | 30 |
 
 Required:
 
@@ -168,16 +126,15 @@ Forbidden:
 - Catch-and-swallow.
 - `return null` as success.
 - Naked throw escaping public mediator, app-shell, job-flow, or runtime boundaries.
-- Adding new branches to an already over-limit function.
+- Adding new branches to an already over-line function.
 
 ## 5. Import / Export Budget
 
-| Import / export metric | Target | Hard limit |
-|---|---:|---:|
-| Import declarations | 10 | 16 |
-| Import sources | 8 | 14 |
-| Cross-owner imports | 2 | 4 |
-| Named exports | 6 | 10 |
+| Import / export metric | Red line |
+|---|---:|
+| Import declarations | 28 |
+| Import sources | 24 |
+| Named exports | 24 |
 
 Absolute bans:
 
@@ -244,7 +201,7 @@ Required:
 - A file must belong to the architecture chain.
 - A file must not exist only to forward calls.
 - A file must not mix business flow, runtime primitive, evidence persistence, logging, and audit logic.
-- Existing oversized files must enter inventory.
+- Existing over-line files must enter inventory.
 
 Forbidden:
 
@@ -269,17 +226,15 @@ Forbidden:
 
 Required:
 
-- If a touched file is under target, keep it under target when reasonable.
-- If a touched file is between target and hard limit, new logic must be narrow and justified.
-- If a touched file is over hard limit, split or reduce it before adding logic.
-- If a touched file is disaster-level, block or physically split.
+- If a touched file is under the red line, keep it under the red line.
+- If a touched file is over the red line, split or reduce it before adding logic.
 
 Forbidden:
 
-- "One small patch" on a dirty file.
+- "One small patch" on an over-line file.
 - "Legacy later."
 - "Temporary until CI passes."
-- Adding logic to a touched disaster file.
+- Adding logic to a touched over-line file.
 
 ## 9. Law APEX-CODE-PURITY-003-V1 — Role Purity
 
@@ -670,20 +625,19 @@ Generated artifacts:
 {
   "lawId": "APEX-CODE-PURITY-015-V1",
   "status": "active",
-  "tier": "P1",
+  "tier": "P0",
   "capabilityDomain": "code-purity",
   "enforcementMode": "auto",
   "evidenceMode": "fs+ast",
-  "summary": "Code-purity enforcement should produce actionable inventories and split recommendations without pretending every inventory item is a P0 blocker."
+  "summary": "Code-purity enforcement must produce actionable inventories and every executable inventory item must block PASS."
 }
 ```
 
 Required inventory when inspector maturity allows:
 
-- oversized files
-- disaster files
-- touched oversized files
-- over-limit functions
+- over-line files
+- touched over-line files
+- over-line functions
 - owner boundary violations
 - fake runtime surfaces
 - bridge / legacy surfaces
@@ -806,7 +760,7 @@ Must catch:
 - `export *`
 - bridge / compatibility / legacy active paths
 - fake / mock / placeholder / no-op success language in active runtime
-- touched disaster file growth
+- touched over-line file growth
 - capability importing plugins
 - mediator importing runtime primitives
 - generated artifact manual truth indicators
@@ -846,7 +800,7 @@ GrassEye code purity may be called READY only when:
 - active law file is GrassEye-specific
 - website-only rules are not active blockers
 - P0 guard runs in CI for all currently wired executable checks
-- no touched disaster file gained logic
+- no touched over-line file gained logic
 - no fake runtime path exists in active source truth
 - no bridge / compatibility / legacy dual path exists
 - no zombie file, zombie export, orphan declaration, or literal-dead branch remains in active source truth

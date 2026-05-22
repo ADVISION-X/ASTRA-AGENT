@@ -211,6 +211,126 @@ const buildFacebookDomProbeResult = (input: {
   });
 };
 
+const buildProbeHashes = (input: {
+  raw: RawFacebookProbe;
+  result: FacebookVideoDomProbeResult;
+}): {
+  currentSrcHash: string;
+  textHash: string;
+  domSignatureHash: string;
+  confidence: number;
+} => ({
+  currentSrcHash: createHash("sha256")
+    .update(input.result.primaryVideoFact?.currentSrc ?? "")
+    .digest("hex")
+    .slice(0, 24),
+  textHash: createHash("sha256")
+    .update(input.raw.bodyText)
+    .digest("hex")
+    .slice(0, 24),
+  domSignatureHash: createHash("sha256")
+    .update(JSON.stringify({
+      title: input.result.pageTitle,
+      blocker: input.result.blocker,
+      candidateCounts: input.result.rawDomSignalsSummary.candidateCounts,
+      videoCount: input.result.videoElementFacts.length,
+    }))
+    .digest("hex")
+    .slice(0, 24),
+  confidence: input.result.commentEntryElementRef?.confidence ?? input.result.moreMenuElementRef?.confidence ?? 0,
+});
+
+const failProbeStages = ({
+  identifyStage,
+  domProbeStage,
+  result,
+  roundId,
+  currentSrcHash,
+  textHash,
+  domSignatureHash,
+  confidence,
+}: {
+  identifyStage: ReturnType<ReturnType<typeof createStageLogger>["start"]>;
+  domProbeStage: ReturnType<ReturnType<typeof createStageLogger>["start"]>;
+  result: FacebookVideoDomProbeResult;
+  roundId: string;
+  currentSrcHash: string;
+  textHash: string;
+  domSignatureHash: string;
+  confidence: number;
+}): void => {
+  const reason = result.blocker ?? result.status;
+  identifyStage.fail({
+    reason,
+    failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
+    retryable: false,
+    terminal: false,
+    recoveryPolicy: "review_required",
+    hashes: { currentSrcHash, textHash },
+    metrics: { confidence },
+    payload: {
+      recoveryTrail: "facebook-dom-probe-recovery-trail",
+      action: "identify_facebook_video",
+      beforeHash: "dom-probe-before",
+      afterHash: "dom-probe-after",
+    },
+  });
+  domProbeStage.fail({
+    reason,
+    failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
+    retryable: false,
+    terminal: false,
+    recoveryPolicy: "review_required",
+    refs: { domSnapshotRef: `dom-snapshot:${roundId}` },
+    hashes: { domSignatureHash },
+    metrics: {
+      likeCount: result.likeCount ?? 0,
+      commentCountDisplayed: result.commentCountDisplayed ?? 0,
+    },
+    payload: {
+      recoveryTrail: "facebook-dom-probe-recovery-trail",
+      action: "probe_facebook_dom",
+      beforeHash: "dom-probe-before",
+      afterHash: "dom-probe-after",
+    },
+  });
+};
+
+const completeProbeStages = ({
+  identifyStage,
+  domProbeStage,
+  result,
+  roundId,
+  currentSrcHash,
+  textHash,
+  domSignatureHash,
+  confidence,
+}: {
+  identifyStage: ReturnType<ReturnType<typeof createStageLogger>["start"]>;
+  domProbeStage: ReturnType<ReturnType<typeof createStageLogger>["start"]>;
+  result: FacebookVideoDomProbeResult;
+  roundId: string;
+  currentSrcHash: string;
+  textHash: string;
+  domSignatureHash: string;
+  confidence: number;
+}): void => {
+  identifyStage.complete({
+    durationMs: 0,
+    hashes: { currentSrcHash, textHash },
+    metrics: { confidence },
+  });
+  domProbeStage.complete({
+    durationMs: 0,
+    refs: { domSnapshotRef: `dom-snapshot:${roundId}` },
+    hashes: { domSignatureHash },
+    metrics: {
+      likeCount: result.likeCount ?? 0,
+      commentCountDisplayed: result.commentCountDisplayed ?? 0,
+    },
+  });
+};
+
 export const probeCurrentFacebookVideo = async (input: {
   browser: BrowserController;
   runtimeLogger: RuntimeLogger;
@@ -242,74 +362,11 @@ export const probeCurrentFacebookVideo = async (input: {
     blocker,
     roundIndex: input.roundIndex,
   });
-  const currentSrcHash = createHash("sha256")
-    .update(result.primaryVideoFact?.currentSrc ?? "")
-    .digest("hex")
-    .slice(0, 24);
-  const textHash = createHash("sha256")
-    .update(raw.bodyText)
-    .digest("hex")
-    .slice(0, 24);
-  const domSignatureHash = createHash("sha256")
-    .update(JSON.stringify({
-      title: result.pageTitle,
-      blocker: result.blocker,
-      candidateCounts: result.rawDomSignalsSummary.candidateCounts,
-      videoCount: result.videoElementFacts.length,
-    }))
-    .digest("hex")
-    .slice(0, 24);
-  const confidence = result.commentEntryElementRef?.confidence ?? result.moreMenuElementRef?.confidence ?? 0;
+  const hashes = buildProbeHashes({ raw, result });
   if (result.status !== "success") {
-    identifyStage.fail({
-      reason: result.blocker ?? result.status,
-      failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
-      retryable: false,
-      terminal: false,
-      recoveryPolicy: "review_required",
-      hashes: { currentSrcHash, textHash },
-      metrics: { confidence },
-      payload: {
-        recoveryTrail: "facebook-dom-probe-recovery-trail",
-        action: "identify_facebook_video",
-        beforeHash: "dom-probe-before",
-        afterHash: "dom-probe-after",
-      },
-    });
-    domProbeStage.fail({
-      reason: result.blocker ?? result.status,
-      failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
-      retryable: false,
-      terminal: false,
-      recoveryPolicy: "review_required",
-      refs: { domSnapshotRef: `dom-snapshot:${input.roundId}` },
-      hashes: { domSignatureHash },
-      metrics: {
-        likeCount: result.likeCount ?? 0,
-        commentCountDisplayed: result.commentCountDisplayed ?? 0,
-      },
-      payload: {
-        recoveryTrail: "facebook-dom-probe-recovery-trail",
-        action: "probe_facebook_dom",
-        beforeHash: "dom-probe-before",
-        afterHash: "dom-probe-after",
-      },
-    });
+    failProbeStages({ identifyStage, domProbeStage, result, roundId: input.roundId, ...hashes });
     return result;
   }
-  identifyStage.complete({
-    durationMs: 0,
-    hashes: { currentSrcHash, textHash },
-    metrics: { confidence },
-  });
-  domProbeStage.complete({
-    durationMs: 0,
-    refs: { domSnapshotRef: `dom-snapshot:${input.roundId}` },
-    hashes: { domSignatureHash },
-    metrics: {
-      likeCount: result.likeCount ?? 0,
-      commentCountDisplayed: result.commentCountDisplayed ?? 0,
-    },
-  });
+  completeProbeStages({ identifyStage, domProbeStage, result, roundId: input.roundId, ...hashes });
   return result;
 };

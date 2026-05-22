@@ -29,9 +29,10 @@ scripts/startup/launch-grasseye.mjs
 ```txt
 dependency check
 -> optional update preflight
--> port clear
--> app server start
--> GET /api/health readiness probe
+-> hot-mount GET /api/health probe
+-> port clear when no healthy workbench is mounted
+-> app server start when no healthy workbench is mounted
+-> GET /api/health readiness probe for started service
 -> open local workbench page
 -> structured terminal report
 ```
@@ -40,11 +41,35 @@ dependency check
 
 - 检查 Node / npm / dependency 状态。
 - 可选执行受控 update preflight。
-- 清理本地 app server 端口。
-- 启动本地 HTTP workbench。
+- 启动前先探测现有 `/api/health`，健康则热挂载现有 workbench。
+- 现有端口不健康时，真实清理本地 app server 端口。
+- 未热挂载时启动本地 HTTP workbench。
 - 用 `/api/health` 证明 app shell readiness。
 - 在 readiness 通过后打开本地 workbench URL。
 - 输出结构化终端日志和明确 failureReason。
+
+## 端口清理
+
+端口清理必须是真实运行路径，不是日志占位：
+
+- 读取配置端口上的 TCP LISTEN 进程。
+- 先发 `SIGTERM`。
+- 再复查剩余监听进程。
+- 仍未释放时发 `SIGKILL`。
+- 最后再次复查端口。
+- 端口仍被占用时启动失败，并输出 remaining PID 作为 `failureReason`。
+
+健康的热挂载 workbench 不得被端口清理误杀。
+
+## 热挂载
+
+热挂载用于代码迭代期间复用已经健康的本地 workbench：
+
+- 在清理端口前，先探测 `${baseUrl}/api/health`。
+- `/api/health` 返回 HTTP OK 时，不启动第二个 app server。
+- 热挂载只打开 workbench 页面并输出 structured ready report。
+- 热挂载不证明 job readiness、AI readiness、evidence truth 或 CI truth。
+- `/api/health` 不可达或返回非 OK 时，进入端口清理和单一启动链。
 
 ## 启动禁止
 
@@ -85,6 +110,9 @@ startup-entrypoint owner inspector 检查：
 - `package.json` 是否暴露 `grasseye:start`。
 - `grasseye:start` 是否指向 `scripts/startup/launch-grasseye.mjs`。
 - 启动脚本是否探测 `/api/health`。
+- 启动脚本是否在清理端口前支持 hot-mount health probe。
+- 启动脚本是否通过真实 listener discovery / terminate / post-check 完成端口清理。
+- 启动脚本是否避免健康 workbench 被重复重启。
 - 启动脚本是否启动 local app server 并打开 workbench。
 - 启动脚本是否仍包含 registry readiness hard gate、AI readiness hard gate、CI/audit/acceptance/typecheck 调用、job flow 或能力调用。
 - 启动日志是否保留结构化字段和 failureReason。

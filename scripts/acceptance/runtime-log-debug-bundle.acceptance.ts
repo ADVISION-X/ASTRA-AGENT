@@ -3,11 +3,11 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { RuntimeLogEventType } from "../../src/lib/runtime-logs/index.js";
 import {
-  RuntimeLogEventType,
   createRuntimeDebugBundle,
   findRuntimeDebugBundleRound,
-} from "../../src/lib/runtime-logs/index.js";
+} from "../../src/lib/runtime-logs/debug-bundle-contract.js";
 
 const rootDir = mkdtempSync(join(tmpdir(), "runtime-log-debug-bundle-"));
 try {
