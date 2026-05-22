@@ -1,8 +1,9 @@
-import type { AiFeedResult, AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
+import type { AiFeedInput, AiFeedResult, AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import {
   FacebookProductVideoMiningSchemas,
   type FacebookProductVideoMiningContracts,
 } from "./facebook-product-video-mining.schema.js";
+import { executeFacebookAiFeedWithHardTimeout } from "./facebook-product-video-mining.ai-timeout.js";
 
 type FacebookCommentRecord = FacebookProductVideoMiningContracts["FacebookCommentRecord"];
 type FacebookVideoAiJudgment = FacebookProductVideoMiningContracts["FacebookVideoAiJudgment"];
@@ -118,6 +119,43 @@ const buildFailedAiJudgment = (input: {
   createdAt: new Date().toISOString(),
 });
 
+const buildAiFeedRequest = (input: {
+  providerKind: FacebookVideoAiJudgment["providerKind"];
+  modelName?: string | null;
+  missionId: string;
+  runId: string;
+  roundId: string;
+  prompt: string;
+  videoFilePath: string;
+  timeoutMs: number;
+  maxFileBytes: number;
+}): AiFeedInput => ({
+  providerKind: input.providerKind,
+  promptPackageId: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
+  promptContractId: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
+  expectedOutputSchemaRef: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
+  textPrompt: input.prompt,
+  inputRefs: [buildVideoInputRef({ roundId: input.roundId, videoFilePath: input.videoFilePath })],
+  modelName: input.modelName ?? null,
+  timeoutMs: input.timeoutMs,
+  maxInputChars: 30_000,
+  maxFileCount: 1,
+  maxFileBytes: input.maxFileBytes,
+  requestedBy: "ai-capability",
+  missionId: input.missionId,
+  runId: input.runId,
+  roundId: input.roundId,
+});
+
+const resolveFeedJudgment = (input: {
+  providerKind: FacebookVideoAiJudgment["providerKind"];
+  feedResult: AiFeedResult;
+}): FacebookVideoAiJudgment => input.feedResult.status !== "success"
+    || input.feedResult.parseStatus !== "json_valid"
+    || input.feedResult.parsedJson === null
+      ? buildFailedAiJudgment({ providerKind: input.providerKind, result: input.feedResult })
+      : judgmentFromFeed({ providerKind: input.providerKind, result: input.feedResult });
+
 export const judgeFacebookProductVideo = async (input: {
   aiInputGateway: AiInputGatewayAbilityGroup;
   providerKind: FacebookVideoAiJudgment["providerKind"];
@@ -131,27 +169,17 @@ export const judgeFacebookProductVideo = async (input: {
   timeoutMs: number;
   maxFileBytes: number;
 }): Promise<FacebookVideoAiJudgment> => {
-  const feedResult = await input.aiInputGateway.execute({
+  const prompt = buildPrompt({ probe: input.probe, comments: input.comments });
+  const request = buildAiFeedRequest({ ...input, prompt });
+  return executeFacebookAiFeedWithHardTimeout({
+    aiInputGateway: input.aiInputGateway,
+    request,
     providerKind: input.providerKind,
-    promptPackageId: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
-    promptContractId: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
-    expectedOutputSchemaRef: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
-    textPrompt: buildPrompt({ probe: input.probe, comments: input.comments }),
-    inputRefs: [buildVideoInputRef({ roundId: input.roundId, videoFilePath: input.videoFilePath })],
-    modelName: input.modelName ?? null,
+    prompt,
+    videoFilePath: input.videoFilePath,
     timeoutMs: input.timeoutMs,
-    maxInputChars: 30_000,
-    maxFileCount: 1,
-    maxFileBytes: input.maxFileBytes,
-    requestedBy: "ai-capability",
-    missionId: input.missionId,
-    runId: input.runId,
-    roundId: input.roundId,
+    resolveFeedResult: (feedResult) => resolveFeedJudgment({ providerKind: input.providerKind, feedResult }),
   });
-  if (feedResult.status !== "success" || feedResult.parseStatus !== "json_valid" || feedResult.parsedJson === null) {
-    return buildFailedAiJudgment({ providerKind: input.providerKind, result: feedResult });
-  }
-  return judgmentFromFeed({ providerKind: input.providerKind, result: feedResult });
 };
 
 export { FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID };

@@ -85,7 +85,7 @@ Workbench 和 local runtime 只接收输入、启动任务、查询状态；业�
 | `maxCommentWaitMs` | 默认 `12000` |
 | `preferredQuality` | 默认 `best_available` |
 | `maxVideoBytes` | 默认 `200_000_000`，上限 `500_000_000` |
-| `notInterestedEnabled` | 默认启用 |
+| `notInterestedEnabled` | 默认关闭，避免默认污染操作者 Facebook 推荐流；只有显式自动化输入才可开启 |
 | `saveRejectedTrace` | 默认保存拒绝 trace |
 
 ### 3.3 API surface
@@ -96,9 +96,19 @@ Workbench 和 local runtime 只接收输入、启动任务、查询状态；业�
 POST /api/facebook-product-video-mining/mission
 GET  /api/facebook-product-video-mining/run?runId=<runId>
 GET  /api/facebook-product-video-mining/latest
+GET  /api/facebook-product-video-mining/results?runId=<runId>
+GET  /api/facebook-product-video-mining/export?runId=<runId>
 ```
 
-这些 API 只能启动 mission、查询指定 run、查询最新 run；不能下发 DOM 操作、不能指定下一步、不能携带 AI action plan。
+这些 API 只能启动 mission、查询指定 run、查询最新 run、读取 saved product records、导出选品资料；不能下发 DOM 操作、不能指定下一步、不能携带 AI action plan。
+
+页面在 Start 后会轮询当前 run，显示：
+
+- saved product count / target product count。
+- 当前 saved `PRODUCT_SEEDING` records。
+- Export 按钮输出 `facebook-product-video-mining.selection.v1` JSON。
+
+导出资料只包含 `status=saved` 且 `aiSelectedOptionId=PRODUCT_SEEDING` 的候选，用于后续高级 AI 选品；不得把 rejected、uncertain、review_required 或 failed 记录混入成功导出。
 
 ## 4. 总流程图
 
@@ -162,12 +172,13 @@ flowchart TD
    - 构建固定 prompt contract：`facebook-product-video-mining.video-judge.v1`。
    - 输入包括视频文件 ref、页面事实、评论样本。
    - 通过 AI Input Gateway 投递给 web-chat provider。
+   - AI feed 有硬超时与 abort signal；超时返回 `review_required` / `UNCERTAIN`，不能让 run 长期停在 `running`。
    - AI 必须返回 JSON 判断，不得返回工作流、选择器、坐标或浏览器动作。
 
 6. 决策落库
    - `PRODUCT_SEEDING`：promote video artifact 到 Facebook mining video 目录，保存 candidate、comments、AI judgment、probe JSON。
-   - `NOT_PRODUCT_SEEDING` 或 `UNCERTAIN`：可点击 Not Interested，删除 staging artifact，保存 rejected/uncertain trace。
-   - AI feed 失败或 JSON 无效：删除 staging artifact，保存 `review_required`，mission 进入终止复核。
+   - `NOT_PRODUCT_SEEDING` 或 `UNCERTAIN`：默认不点击 Not Interested，删除 staging artifact，保存 rejected/uncertain trace。
+   - AI feed 失败、超时或 JSON 无效：删除 staging artifact，保存 `review_required`，mission 进入终止复核。
 
 7. 下一条导航
    - round 完成后调用 `navigateToNextFacebookVideo`。
@@ -230,7 +241,24 @@ failed
 - 视频证据：`videoArtifactRef`、`videoFilePath`、`videoSha256`、`videoByteSize`、`videoContentType`
 - 动作结果：`notInterestedStatus`
 
-### 6.4 存储位置
+### 6.4 selection export
+
+当前导出合同：
+
+```txt
+facebook-product-video-mining.selection.v1
+```
+
+核心字段：
+
+- run：当前 run 状态与目标数量。
+- savedProductCount / targetProductCount。
+- records：按保存时间排序的成功候选。
+- 每条 record 包含 source URL、Facebook video id、作者/文案/互动、AI confidence/reason、visible product、category、selling intent signals、video artifact ref/file path/sha256。
+
+导出不包含 cookies、tokens、localStorage、sessionStorage、完整 HTML 或浏览器 profile 数据。
+
+### 6.5 存储位置
 
 当前存储 owner：
 
@@ -292,7 +320,8 @@ VideoDownloadAbilityGroup.execute
 
 ```txt
 judgeFacebookProductVideo
-  -> aiInputGateway.execute
+  -> executeAiFeedWithHardTimeout
+  -> aiInputGateway.execute(..., { signal })
 ```
 
 prompt contract 是：

@@ -17,6 +17,10 @@ job flow entry points, health, mode, task status, evidence references, and local
 settings when needed. It does not own workflow order, browser actions, AI
 judgment, evidence truth, or CI truth.
 
+`src/lib/local-runtime/**` may consume plugin and ability owners only through
+their public facades. It must not import private plugin files, private ability
+files, or hidden business helper slices behind those facades.
+
 ## [APEX-LOCAL-APP-SHELL-001-V1] Local Workbench Surface
 
 ```apex-law
@@ -128,6 +132,8 @@ Required:
     "Visual-runtime control panel.",
     "AI next-action planner.",
     "Browser or DOM action controller in the app shell.",
+    "src/lib/local-runtime importing plugin files outside plugin public facades.",
+    "src/lib/local-runtime importing ability files outside ability public facades.",
     "App shell deciding business flow steps."
   ]
 }
@@ -141,3 +147,5 @@ Forbidden:
 - Visual runtime control panel.
 - App-shell next-action planner.
 - Browser/DOM control buttons owned by the app shell.
+- `src/lib/local-runtime/**` importing plugin files outside `src/plugins/<job-id>/index.ts`.
+- `src/lib/local-runtime/**` importing ability files outside `src/capabilities/<group-id>/index.ts`.

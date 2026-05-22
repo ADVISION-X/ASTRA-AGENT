@@ -7,6 +7,10 @@ import {
   FacebookProductVideoMiningSchemas,
   type FacebookProductVideoMiningContracts,
 } from "./facebook-product-video-mining.schema.js";
+import {
+  exportFacebookProductVideoMiningSelectionRecords,
+  listFacebookProductVideoMiningSavedRecords,
+} from "./facebook-product-video-mining.records.js";
 import { createFacebookProductVideoMiningStorage } from "./facebook-product-video-mining.storage.js";
 
 type FacebookProductVideoMiningMissionInput = FacebookProductVideoMiningContracts["FacebookProductVideoMiningMissionInput"];
@@ -58,6 +62,8 @@ export const getLatestFacebookProductVideoMiningRun = (input: {
 };
 
 export {
+  exportFacebookProductVideoMiningSelectionRecords,
+  listFacebookProductVideoMiningSavedRecords,
   createFacebookProductVideoMiningStorage,
   FacebookProductVideoMiningSchemas,
   runFacebookProductVideoMiningMission,

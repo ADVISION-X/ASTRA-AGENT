@@ -8,5 +8,5 @@
       "primary"
     ]
   },
-  "description": "AST-first code purity enforcement for active source files."
+  "description": "AST-first code purity enforcement with zombie-surface zero tolerance for active source files."
 }

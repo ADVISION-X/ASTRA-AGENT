@@ -21,14 +21,18 @@ import type { GrassEyeWorkbenchHandle } from "./workbench-handle.js";
 import {
   getLatestAmazonInvoiceUploadTaskForInvoice,
   getAmazonInvoiceUploadTaskStatus,
-  getFacebookProductVideoMiningRunStatus,
-  getLatestFacebookProductVideoMiningRun,
   openAmazonInvoiceAdminPage,
   resumeAmazonInvoiceUploadTask,
-  startFacebookProductVideoMiningMission,
   startAmazonInvoiceUploadTask,
   startAmazonInvoiceUploadMission,
-} from "../../plugins/local-workbench-plugin-tasks.js";
+} from "../../plugins/amazon-invoice-upload/index.js";
+import {
+  exportFacebookProductVideoMiningSelectionRecords,
+  getFacebookProductVideoMiningRunStatus,
+  getLatestFacebookProductVideoMiningRun,
+  listFacebookProductVideoMiningSavedRecords,
+  startFacebookProductVideoMiningMission,
+} from "../../plugins/facebook-product-video-mining/index.js";
 
 const buildSettingsHandle = (dataDir: string) => ({
   async getAppRunLimitSettings() {
@@ -112,6 +116,12 @@ const buildFacebookMiningHandle = (
   },
   async getLatestFacebookProductVideoMiningRun() {
     return getLatestFacebookProductVideoMiningRun({ dataDir });
+  },
+  async listFacebookProductVideoMiningSavedRecords(runId: string) {
+    return listFacebookProductVideoMiningSavedRecords({ dataDir, runId });
+  },
+  async exportFacebookProductVideoMiningSelectionRecords(runId: string) {
+    return exportFacebookProductVideoMiningSelectionRecords({ dataDir, runId });
   },
 });
 

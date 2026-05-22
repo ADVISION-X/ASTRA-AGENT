@@ -15,6 +15,8 @@ type StartAmazonInvoiceUploadTask = typeof import("../../plugins/amazon-invoice-
 type GetAmazonInvoiceUploadTaskStatus = typeof import("../../plugins/amazon-invoice-upload/index.js").getAmazonInvoiceUploadTaskStatus;
 type StartFacebookProductVideoMiningMission = typeof import("../../plugins/facebook-product-video-mining/index.js").startFacebookProductVideoMiningMission;
 type GetFacebookProductVideoMiningRunStatus = typeof import("../../plugins/facebook-product-video-mining/index.js").getFacebookProductVideoMiningRunStatus;
+type ListFacebookProductVideoMiningSavedRecords = typeof import("../../plugins/facebook-product-video-mining/index.js").listFacebookProductVideoMiningSavedRecords;
+type ExportFacebookProductVideoMiningSelectionRecords = typeof import("../../plugins/facebook-product-video-mining/index.js").exportFacebookProductVideoMiningSelectionRecords;
 
 type AmazonInvoiceUploadAdminOpenInput = Parameters<OpenAmazonInvoiceAdminPage>[1];
 type AmazonInvoiceUploadAdminOpenResult = Awaited<ReturnType<OpenAmazonInvoiceAdminPage>>;
@@ -25,6 +27,8 @@ type AmazonInvoiceUploadTaskResumeInput = { taskId: string };
 type AmazonInvoiceUploadTaskRecord = Awaited<ReturnType<GetAmazonInvoiceUploadTaskStatus>>;
 type FacebookProductVideoMiningMissionInput = Parameters<StartFacebookProductVideoMiningMission>[0];
 type FacebookProductVideoMiningRunStatus = Awaited<ReturnType<GetFacebookProductVideoMiningRunStatus>>;
+type FacebookProductVideoMiningSavedRecords = Awaited<ReturnType<ListFacebookProductVideoMiningSavedRecords>>;
+type FacebookProductVideoMiningSelectionExport = Awaited<ReturnType<ExportFacebookProductVideoMiningSelectionRecords>>;
 
 export type GrassEyeWorkbenchHandle = {
   init: () => Promise<void>;
@@ -72,4 +76,10 @@ export type GrassEyeWorkbenchHandle = {
     runId: string,
   ) => Promise<FacebookProductVideoMiningRunStatus>;
   getLatestFacebookProductVideoMiningRun: () => Promise<FacebookProductVideoMiningRunStatus>;
+  listFacebookProductVideoMiningSavedRecords: (
+    runId: string,
+  ) => Promise<FacebookProductVideoMiningSavedRecords>;
+  exportFacebookProductVideoMiningSelectionRecords: (
+    runId: string,
+  ) => Promise<FacebookProductVideoMiningSelectionExport>;
 };

@@ -17,12 +17,17 @@ return {status: composer ? "success" : "pending", message: composer ? "provider 
 
 const waitForProviderComposer = async (
   browser: BrowserController,
+  abortSignal?: AbortSignal,
 ): Promise<void> => {
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
+    if (abortSignal?.aborted) {
+      throw new Error("review_required: provider composer wait aborted.");
+    }
     const state = await browser.evaluateActiveTab<WebChatEvaluation>({
       description: "wait for provider web chat composer",
       script: PROVIDER_COMPOSER_READY_SCRIPT,
+      ...(abortSignal ? { abortSignal } : {}),
     });
     if (state.status === "success") return;
     if (state.status === "review_required" || state.status === "failed") {
@@ -66,6 +71,5 @@ export const openProviderPage = async (input: {
   if (!opened.ok) {
     throw new Error(`Web chat provider page could not be opened: ${opened.message}`);
   }
-  await waitForProviderComposer(input.browser);
+  await waitForProviderComposer(input.browser, input.context.abortSignal);
 };
-

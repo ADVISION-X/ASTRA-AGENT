@@ -1,14 +1,24 @@
 {
-  "generatedAt": "2026-05-22T11:07:50.798Z",
+  "generatedAt": "2026-05-22T12:43:50.475Z",
   "capabilityDomain": "facebook-product-video-mining",
   "executionGroup": "domain",
   "lawIds": [
     "APEX-FACEBOOK-MINING-001-V1",
     "APEX-FACEBOOK-MINING-002-V1",
-    "APEX-FACEBOOK-MINING-003-V1"
+    "APEX-FACEBOOK-MINING-003-V1",
+    "APEX-FACEBOOK-MINING-004-V1",
+    "APEX-FACEBOOK-MINING-005-V1"
   ],
-  "status": "PASS",
-  "findings": [],
+  "status": "FAIL",
+  "findings": [
+    {
+      "checkId": "facebook-mining/local-workbench-export",
+      "lawId": "APEX-FACEBOOK-MINING-002-V1",
+      "clauseId": "primary",
+      "message": "Local workbench plugin tasks must re-export Facebook mining start/run/latest public surfaces.",
+      "filePath": "src/plugins/local-workbench-plugin-tasks.ts"
+    }
+  ],
   "inspectedFiles": [
     "package.json",
     "scripts/acceptance/facebook-live-dom-probe.ts",
@@ -21,15 +31,17 @@
     "src/app/workbench-home-page.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.records.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.result.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.selection-export.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.storage.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
-    "src/plugins/facebook-product-video-mining/index.ts",
-    "src/plugins/local-workbench-plugin-tasks.ts"
+    "src/plugins/facebook-product-video-mining/index.ts"
   ]
 }

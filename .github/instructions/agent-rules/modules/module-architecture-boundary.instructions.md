@@ -265,7 +265,10 @@ GrassEye 只允许一条架构主链：
     "One flow owning multiple unrelated jobs.",
     "Job flow creating generic orchestration.",
     "Business logic placed inside ability groups.",
-    "Flow importing private runtime internals from other jobs."
+    "Flow importing private runtime internals from other jobs.",
+    "Flow importing unrelated job flow code.",
+    "Flow importing non-facade capability files.",
+    "Top-level files directly under src/plugins pretending to be shared job routers."
   ]
 }
 ````
@@ -308,9 +311,12 @@ Flow 禁止：
 * 创建通用 planner
 * 创建下一步 AI 决策器
 * 创建跨 job 的公共编排引擎
+* 直接 import 其他 job 的代码
+* 直接 import `src/capabilities/<group-id>/` 下非 `index.ts` 文件
 * 直接复制能力组内部实现
 * 把业务逻辑塞进能力组
 * 把多个无关需求混在一个 Flow
+* 在 `src/plugins/` 根部制造聚合 / 注册 / 路由文件
 
 ````
 
@@ -337,6 +343,7 @@ Flow 禁止：
     "Amazon-specific workflow inside an ability group.",
     "Facebook-specific workflow inside an ability group.",
     "Ability group importing job flow files.",
+    "Ability group importing unrelated capability owner files.",
     "Ability group deciding business success.",
     "Ability group dispatching multiple unrelated action kinds."
   ]
@@ -378,6 +385,7 @@ visual-observation
 * 判断 Facebook 视频是否值得采购
 * 写业务流程顺序
 * 直接依赖某个 job
+* import 其他能力组 owner 的实现代码
 * 变成小型 Flow
 * 变成通用 Agent
 
@@ -406,6 +414,7 @@ visual-observation
   "forbidden": [
     "Child ability performing a full business flow.",
     "Child ability calling unrelated ability groups.",
+    "Child ability importing unrelated capability owner files.",
     "Child ability making business decisions.",
     "Child ability containing hidden orchestration."
   ]
@@ -436,6 +445,7 @@ verify-dom-state-once
 * 完成整个 Facebook 视频挖掘流程
 * 自己决定下一步做什么
 * 调用多个业务步骤
+* import 其他能力组 owner 的代码
 
 ````
 

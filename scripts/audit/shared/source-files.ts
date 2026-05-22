@@ -3,7 +3,7 @@ import type { Project, SourceFile } from "ts-morph";
 import { toRepoPath } from "./paths.js";
 
 const isActiveRepoPath = (repoPath: string): boolean => {
-  if (!repoPath.endsWith(".ts") && !repoPath.endsWith(".tsx")) {
+  if (!/\.(?:ts|tsx|js|jsx|mjs)$/u.test(repoPath)) {
     return false;
   }
   if (repoPath.startsWith("scripts/audit/generated/")) {

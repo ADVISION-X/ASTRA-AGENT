@@ -1,5 +1,10 @@
 const WORKBENCH_HOME_CLIENT = `
-const state = { job: "amazon", taskId: localStorage.getItem("grasseye:lastTaskId") || "" };
+const state = {
+  job: "amazon",
+  taskId: localStorage.getItem("grasseye:lastTaskId") || "",
+  facebookRunId: localStorage.getItem("grasseye:lastFacebookRunId") || "",
+  facebookPoll: null,
+};
 const qs = (selector) => document.querySelector(selector);
 const setText = (selector, value) => { const node = qs(selector); if (node) node.textContent = value ?? "-"; };
 const writeActivity = (message, tone = "") => {
@@ -47,6 +52,54 @@ const renderLedger = (payload) => {
   setText("[data-evidence-ref]", record.evidenceRef || record.videoArtifactRef || "-");
   qs("[data-raw-result]").textContent = JSON.stringify(record, null, 2);
 };
+const renderFacebookRecords = (records) => {
+  const list = qs("[data-facebook-record-list]");
+  if (!list) return;
+  list.innerHTML = "";
+  for (const record of records || []) {
+    const item = document.createElement("article");
+    item.className = "record-item";
+    const title = document.createElement("strong");
+    title.textContent = [record.visibleProduct, record.productCategory, record.pageTitle].filter(Boolean).join(" · ") || record.candidateId;
+    const reason = document.createElement("div");
+    reason.textContent = record.aiReason || "-";
+    const meta = document.createElement("div");
+    meta.className = "record-meta";
+    meta.textContent = [record.sourcePageUrl, record.videoArtifactRef || record.videoFilePath || ""].filter(Boolean).join(" | ");
+    item.append(title, reason, meta);
+    list.append(item);
+  }
+};
+const renderFacebookResults = async (runId) => {
+  if (!runId) return;
+  const payload = await readJson("/api/facebook-product-video-mining/results?runId=" + encodeURIComponent(runId));
+  setText("[data-facebook-saved-count]", String(payload.records?.length || 0));
+  setText("[data-facebook-target-count]", String(payload.run?.targetProductCount || 0));
+  renderFacebookRecords(payload.records || []);
+  return payload;
+};
+const stopFacebookPolling = () => {
+  if (state.facebookPoll) clearInterval(state.facebookPoll);
+  state.facebookPoll = null;
+};
+const pollFacebookRun = async (runId) => {
+  const payload = await renderFacebookResults(runId);
+  if (payload?.run) renderLedger(payload.run);
+  const status = payload?.run?.status;
+  if (status && status !== "queued" && status !== "running") {
+    stopFacebookPolling();
+    writeActivity("facebook run stopped with status " + status, status === "completed" ? "ok" : "warn");
+  }
+};
+const startFacebookPolling = (runId) => {
+  state.facebookRunId = runId;
+  localStorage.setItem("grasseye:lastFacebookRunId", runId);
+  stopFacebookPolling();
+  state.facebookPoll = setInterval(() => {
+    pollFacebookRun(runId).catch((error) => writeActivity("facebook poll failed: " + error.message, "bad"));
+  }, 5000);
+  pollFacebookRun(runId).catch((error) => writeActivity("facebook poll failed: " + error.message, "bad"));
+};
 const startAmazon = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -89,14 +142,35 @@ const startFacebook = async (event) => {
     targetProductCount: Number(form.targetProductCount.value),
   };
   writeActivity("facebook product video mining submitted");
-  renderLedger(await readJson("/api/facebook-product-video-mining/mission", {
+  const run = await readJson("/api/facebook-product-video-mining/mission", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(mission),
-  }));
+  });
+  renderLedger(run);
+  startFacebookPolling(run.runId);
 };
 const refreshFacebookLatest = async () => {
-  renderLedger(await readJson("/api/facebook-product-video-mining/latest"));
+  const run = await readJson("/api/facebook-product-video-mining/latest");
+  renderLedger(run);
+  if (run?.runId) {
+    state.facebookRunId = run.runId;
+    localStorage.setItem("grasseye:lastFacebookRunId", run.runId);
+    await renderFacebookResults(run.runId);
+    if (run.status === "queued" || run.status === "running") startFacebookPolling(run.runId);
+  }
+};
+const exportFacebookSelection = async () => {
+  const runId = state.facebookRunId;
+  if (!runId) return writeActivity("facebook run id is required", "warn");
+  const exported = await readJson("/api/facebook-product-video-mining/export?runId=" + encodeURIComponent(runId));
+  const blob = new Blob([JSON.stringify(exported, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "facebook-product-video-selection-" + runId + ".json";
+  link.click();
+  URL.revokeObjectURL(link.href);
+  writeActivity("facebook selection export ready", "ok");
 };
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-job-card]").forEach((card) => {
@@ -108,7 +182,9 @@ document.addEventListener("DOMContentLoaded", () => {
   qs("[data-amazon-latest]").addEventListener("click", refreshAmazonLatest);
   qs("[data-amazon-resume]").addEventListener("click", resumeAmazon);
   qs("[data-facebook-latest]").addEventListener("click", refreshFacebookLatest);
+  qs("[data-facebook-export]").addEventListener("click", exportFacebookSelection);
   refreshShell();
+  if (state.facebookRunId) renderFacebookResults(state.facebookRunId).catch(() => undefined);
 });
 `;
 

@@ -16,6 +16,8 @@ const requiredArtifacts = [
 ] as const;
 
 const runnerFiles = ["scripts/audit/ci-full.ts", "scripts/audit/core/run-generated-plan.ts"] as const;
+const staticCoveragePath = "scripts/audit/generated/static-clause-coverage.generated.json";
+const packageJsonPath = "package.json";
 
 const fileHasContent = (repoPath: string): boolean => {
   const absolutePath = resolveFromRepo(repoPath);
@@ -128,6 +130,83 @@ const pushCodePurityPrerequisiteFinding = (
   );
 };
 
+const pushStaticCoverageFindings = (
+  findings: ReturnType<typeof createFinding>[],
+  inspectedFiles: Set<string>,
+  metaLawId: string,
+): void => {
+  inspectedFiles.add(staticCoveragePath);
+  try {
+    const parsed = JSON.parse(readFileSync(resolveFromRepo(staticCoveragePath), "utf8")) as {
+      summary?: {
+        activeLawCount?: number;
+        coveredLawCount?: number;
+        coveragePercent?: number;
+      };
+    };
+    const summary = parsed.summary;
+    if (!summary) {
+      throw new Error("missing summary");
+    }
+    if (summary.coveragePercent !== 100 || summary.activeLawCount !== summary.coveredLawCount) {
+      findings.push(
+        createFinding({
+          checkId: "audit-system/static-clause-coverage",
+          lawId: metaLawId,
+          filePath: staticCoveragePath,
+          message: `${staticCoveragePath} must report 100% static clause coverage for active laws.`,
+          evidence: JSON.stringify(summary),
+        }),
+      );
+    }
+  } catch (error) {
+    findings.push(
+      createFinding({
+        checkId: "audit-system/static-clause-coverage",
+        lawId: metaLawId,
+        filePath: staticCoveragePath,
+        message: `${staticCoveragePath} could not be parsed for coverage validation.`,
+        evidence: error instanceof Error ? error.message : String(error),
+      }),
+    );
+  }
+};
+
+const pushCiFullEntryGateFindings = (
+  findings: ReturnType<typeof createFinding>[],
+  inspectedFiles: Set<string>,
+  chainLawId: string,
+): void => {
+  inspectedFiles.add(packageJsonPath);
+  try {
+    const parsed = JSON.parse(readFileSync(resolveFromRepo(packageJsonPath), "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+    const ciFullScript = parsed.scripts?.["ci:full"];
+    if (typeof ciFullScript !== "string" || !ciFullScript.startsWith("npm run codex:entry-gate &&")) {
+      findings.push(
+        createFinding({
+          checkId: "audit-system/ci-full-entry-gate",
+          lawId: chainLawId,
+          filePath: packageJsonPath,
+          message: "package.json must route ci:full through codex:entry-gate before the audit runner.",
+          evidence: ciFullScript,
+        }),
+      );
+    }
+  } catch (error) {
+    findings.push(
+      createFinding({
+        checkId: "audit-system/ci-full-entry-gate",
+        lawId: chainLawId,
+        filePath: packageJsonPath,
+        message: "package.json could not be parsed for ci:full entry-gate validation.",
+        evidence: error instanceof Error ? error.message : String(error),
+      }),
+    );
+  }
+};
+
 const findHardcodedLawLiteral = (sourceFile: NonNullable<ReturnType<InspectorContext["project"]["getSourceFile"]>>) =>
   sourceFile
     .getDescendantsOfKind(SyntaxKind.StringLiteral)
@@ -222,6 +301,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   pushGeneratedPlanUniquenessFindings(findings, manifestLawId, context.generatedPlan);
   pushBlueprintAnchorFindings(findings, inspectedFiles, blueprintLawId, context.planEntry.blueprintRefs ?? []);
   pushCodePurityPrerequisiteFinding(findings, metaLawId, context.completedReports);
+  pushStaticCoverageFindings(findings, inspectedFiles, metaLawId);
+  pushCiFullEntryGateFindings(findings, inspectedFiles, chainLawId);
   pushRunnerTruthFindings(findings, inspectedFiles, chainLawId, runnerLawId, context);
 
   return {

@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-22T11:07:49.051Z",
+  "generatedAt": "2026-05-22T12:43:47.800Z",
   "summary": {
-    "activeLawCount": 71,
-    "coveredLawCount": 71,
+    "activeLawCount": 74,
+    "coveredLawCount": 74,
     "coveragePercent": 100
   },
   "coverage": [
@@ -447,6 +447,16 @@
       ]
     },
     {
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "capabilityDomain": "code-purity",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/code-purity/manifest.json"
+        }
+      ]
+    },
+    {
       "lawId": "APEX-DOM-001-V1",
       "capabilityDomain": "dom-automation",
       "clauses": [
@@ -628,6 +638,26 @@
     },
     {
       "lawId": "APEX-FACEBOOK-MINING-003-V1",
+      "capabilityDomain": "facebook-product-video-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/facebook-product-video-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-FACEBOOK-MINING-004-V1",
+      "capabilityDomain": "facebook-product-video-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/facebook-product-video-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-FACEBOOK-MINING-005-V1",
       "capabilityDomain": "facebook-product-video-mining",
       "clauses": [
         {

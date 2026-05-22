@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T11:07:49.051Z",
+  "generatedAt": "2026-05-22T12:43:47.800Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -60,7 +60,10 @@
         "One flow owning multiple unrelated jobs.",
         "Job flow creating generic orchestration.",
         "Business logic placed inside ability groups.",
-        "Flow importing private runtime internals from other jobs."
+        "Flow importing private runtime internals from other jobs.",
+        "Flow importing unrelated job flow code.",
+        "Flow importing non-facade capability files.",
+        "Top-level files directly under src/plugins pretending to be shared job routers."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-architecture-boundary.instructions.md",
       "blockIndex": 2
@@ -80,6 +83,7 @@
         "Amazon-specific workflow inside an ability group.",
         "Facebook-specific workflow inside an ability group.",
         "Ability group importing job flow files.",
+        "Ability group importing unrelated capability owner files.",
         "Ability group deciding business success.",
         "Ability group dispatching multiple unrelated action kinds."
       ],
@@ -101,6 +105,7 @@
       "forbidden": [
         "Child ability performing a full business flow.",
         "Child ability calling unrelated ability groups.",
+        "Child ability importing unrelated capability owner files.",
         "Child ability making business decisions.",
         "Child ability containing hidden orchestration."
       ],
@@ -231,6 +236,7 @@
       ],
       "forbidden": [
         "Manual enforcement matrix truth.",
+        "ci:full bypassing codex:entry-gate.",
         "Runner-owned law binding truth.",
         "Parallel audit truth chains."
       ],
@@ -452,14 +458,16 @@
       "capabilityDomain": "capability-group-governance",
       "enforcementMode": "machine-blocking",
       "evidenceMode": "ast",
-      "summary": "Job flows may use ability groups only through public facades and must not import private runtime internals.",
+      "summary": "Job flows may use ability groups only through public facades and must not import non-facade or private runtime internals.",
       "appliesTo": [
         "src/plugins/**/*.{ts,tsx,js,jsx,mjs}",
         "src/capabilities/**/*.{ts,tsx,js,jsx,mjs}"
       ],
       "forbidden": [
+        "Plugin importing non-facade ability files.",
         "Plugin importing ability runtime internals.",
         "Plugin importing ability private child files.",
+        "Ability group importing unrelated capability owner files.",
         "Ability group importing plugin files.",
         "Facade re-exporting unrelated owners.",
         "Barrel laundering of private imports."
@@ -760,6 +768,17 @@
       "summary": "Purity remediation must simplify the real structure, not hide the same mess behind another file.",
       "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
       "blockIndex": 15
+    },
+    {
+      "lawId": "APEX-CODE-PURITY-017-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "code-purity",
+      "enforcementMode": "auto",
+      "evidenceMode": "fs+ast+import-graph",
+      "summary": "Active source must not keep zombie files, zombie exports, orphan top-level declarations, or literal-dead code branches.",
+      "filePath": ".github/instructions/agent-rules/modules/module-code-purity.instructions.md",
+      "blockIndex": 16
     },
     {
       "lawId": "APEX-DOM-001-V1",
@@ -1188,6 +1207,56 @@
       "blockIndex": 2
     },
     {
+      "lawId": "APEX-FACEBOOK-MINING-004-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "facebook-product-video-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "Facebook mining must not default to mutating the operator's recommendation profile and must convert AI web-chat stalls into bounded review-required evidence instead of leaving runs indefinitely running.",
+      "appliesTo": [
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
+        "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+        "scripts/acceptance/facebook-product-video-mining*.ts",
+        "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
+      ],
+      "forbidden": [
+        "Default notInterestedEnabled=true for operator-facing Facebook mining.",
+        "AI web-chat judgment without a hard timeout.",
+        "AI web-chat timeout that leaves the run in running with no candidate evidence.",
+        "Provider composer wait that ignores the task abort signal."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
+      "blockIndex": 3
+    },
+    {
+      "lawId": "APEX-FACEBOOK-MINING-005-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "facebook-product-video-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "The Facebook mining workbench must expose saved product-seeding records for the active run and must provide a structured export for downstream senior-AI product selection.",
+      "appliesTo": [
+        "src/plugins/facebook-product-video-mining/**/*.{ts,tsx,js,jsx,mjs}",
+        "src/app/workbench-home-page.ts",
+        "src/app/workbench-home-client.ts",
+        "src/app/workbench-facebook-routes.ts",
+        "src/lib/local-runtime/workbench*.ts",
+        "scripts/acceptance/facebook-product-video-mining*.ts",
+        "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
+      ],
+      "forbidden": [
+        "Workbench showing only run status while hiding saved PRODUCT_SEEDING records.",
+        "Exporting rejected, uncertain, failed, or review-required candidates as successful products.",
+        "Export payloads that omit source URL, product signals, AI reason, confidence, or artifact references.",
+        "Export logic outside the Facebook mining owner surface."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
+      "blockIndex": 4
+    },
+    {
       "lawId": "APEX-LOCAL-APP-SHELL-001-V1",
       "status": "active",
       "tier": "P0",
@@ -1266,6 +1335,8 @@
         "Visual-runtime control panel.",
         "AI next-action planner.",
         "Browser or DOM action controller in the app shell.",
+        "src/lib/local-runtime importing plugin files outside plugin public facades.",
+        "src/lib/local-runtime importing ability files outside ability public facades.",
         "App shell deciding business flow steps."
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-local-app-shell.instructions.md",

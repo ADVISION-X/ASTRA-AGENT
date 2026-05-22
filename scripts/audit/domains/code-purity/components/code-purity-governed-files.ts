@@ -18,9 +18,9 @@ export type GovernedFile = {
   sourceFile: SourceFile;
 };
 
-const testLikePathPattern = /(^|\/)(tests?|fixtures?|__tests__)(\/|$)|\.fixture\.tsx?$/u;
+const normalizedTestLikePathPattern = /(^|\/)(tests?|fixtures?|__tests__)(\/|$)|\.fixture\.[cm]?[jt]sx?$/u;
 
-const isGovernedPath = (repoPath: string): boolean => !testLikePathPattern.test(repoPath);
+const isGovernedPath = (repoPath: string): boolean => !normalizedTestLikePathPattern.test(repoPath);
 
 export const collectCodePurityGovernedFiles = (project: Project): GovernedFile[] =>
   listActiveSourceFiles(project)

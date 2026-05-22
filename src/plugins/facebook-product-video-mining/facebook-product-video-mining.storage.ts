@@ -2,6 +2,7 @@ import type {
   FacebookProductVideoMiningContracts,
 } from "./facebook-product-video-mining.schema.js";
 import { createFacebookMiningCandidateStore } from "./facebook-product-video-mining.storage-candidates.js";
+import { createFacebookMiningSelectionExportStore } from "./facebook-product-video-mining.selection-export.js";
 import {
   createFacebookMiningRunCounterUpdater,
   createFacebookMiningRunStore,
@@ -16,6 +17,8 @@ type FacebookProductVideoCandidateRecord = FacebookProductVideoMiningContracts["
 type FacebookProductVideoMiningRunConfig = FacebookProductVideoMiningContracts["FacebookProductVideoMiningRunConfig"];
 type FacebookProductVideoMiningRunStatus = FacebookProductVideoMiningContracts["FacebookProductVideoMiningRunStatus"];
 type FacebookVideoAiJudgment = FacebookProductVideoMiningContracts["FacebookVideoAiJudgment"];
+type FacebookProductVideoMiningSelectionExport = FacebookProductVideoMiningContracts["FacebookProductVideoMiningSelectionExport"];
+type FacebookProductVideoMiningSelectionExportItem = FacebookProductVideoMiningContracts["FacebookProductVideoMiningSelectionExportItem"];
 
 export type FacebookProductVideoMiningStorage = {
   dbPath: string;
@@ -42,6 +45,8 @@ export type FacebookProductVideoMiningStorage = {
   getRunStatus(runId: string): FacebookProductVideoMiningRunStatus | null;
   getLatestRun(): FacebookProductVideoMiningRunStatus | null;
   listCandidates(runId: string): FacebookProductVideoCandidateRecord[];
+  listSavedSelectionRecords(runId: string): FacebookProductVideoMiningSelectionExportItem[];
+  buildSelectionExport(run: FacebookProductVideoMiningRunStatus): FacebookProductVideoMiningSelectionExport;
   close(): void;
 };
 
@@ -52,11 +57,13 @@ export const createFacebookProductVideoMiningStorage = (
   const updateRunCounters = createFacebookMiningRunCounterUpdater(db);
   const runStore = createFacebookMiningRunStore({ db, updateRunCounters });
   const candidateStore = createFacebookMiningCandidateStore({ db, updateRunCounters });
+  const selectionExportStore = createFacebookMiningSelectionExportStore(db);
 
   return {
     dbPath: resolveFacebookMiningDbPath(dataDir),
     ...runStore,
     ...candidateStore,
+    ...selectionExportStore,
     close() {
       db.close();
     },

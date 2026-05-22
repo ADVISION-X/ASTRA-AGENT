@@ -12,6 +12,8 @@ const clientPath = "src/app/workbench-home-client.ts";
 const stylesPath = "src/app/workbench-home-styles.ts";
 const serverPath = "src/app/create-workbench-server.ts";
 const inspectorPath = "scripts/audit/domains/local-app-shell/inspector.ts";
+const publicPluginFacadePathPattern = /^src\/plugins\/[^/]+\/index\.ts$/u;
+const publicCapabilityFacadePathPattern = /^src\/capabilities\/[^/]+\/index\.ts$/u;
 
 const readRepoFile = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
 
@@ -129,6 +131,40 @@ const inspectAppImports = (context: InspectorContext, findings: Finding[], lawId
   }
 };
 
+const inspectLocalRuntimeImports = (context: InspectorContext, findings: Finding[], lawId: string): void => {
+  for (const sourceFile of context.project.getSourceFiles()) {
+    const repoPath = getRepoSourcePath(sourceFile);
+    if (!repoPath.startsWith("src/lib/local-runtime/")) {
+      continue;
+    }
+    for (const importDeclaration of sourceFile.getImportDeclarations()) {
+      const target = importDeclaration.getModuleSpecifierSourceFile();
+      if (!target) {
+        continue;
+      }
+      const targetPath = getRepoSourcePath(target);
+      if (targetPath.startsWith("src/plugins/") && !publicPluginFacadePathPattern.test(targetPath)) {
+        pushFinding(findings, {
+          checkId: "local-app-shell/private-plugin-import",
+          lawId,
+          filePath: repoPath,
+          message: `${repoPath} imports plugin-owned code outside the plugin public facade.`,
+          evidence: targetPath,
+        });
+      }
+      if (targetPath.startsWith("src/capabilities/") && !publicCapabilityFacadePathPattern.test(targetPath)) {
+        pushFinding(findings, {
+          checkId: "local-app-shell/private-capability-import",
+          lawId,
+          filePath: repoPath,
+          message: `${repoPath} imports ability-group code outside the public facade.`,
+          evidence: targetPath,
+        });
+      }
+    }
+  }
+};
+
 const inspectAstProjectAccess = (context: InspectorContext, findings: Finding[], lawId: string): void => {
   if (context.project.getSourceFile(resolveFromRepo(inspectorPath))) {
     return;
@@ -154,6 +190,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectStatusWindow(findings, statusLawId);
   inspectForbiddenPageTerms(findings, boundaryLawId);
   inspectAppImports(context, findings, boundaryLawId);
+  inspectLocalRuntimeImports(context, findings, boundaryLawId);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

@@ -6,8 +6,11 @@ const roundSource = readFileSync("src/plugins/facebook-product-video-mining/face
 const roundOutcomesSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts", "utf8");
 const serverSource = readFileSync("src/app/workbench-facebook-routes.ts", "utf8");
 const videoSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts", "utf8");
+const aiJudgeSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts", "utf8");
+const aiTimeoutSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts", "utf8");
 const pageSource = readFileSync("src/app/workbench-home-page.ts", "utf8");
 const clientSource = readFileSync("src/app/workbench-home-client.ts", "utf8");
+const schemaSource = readFileSync("src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts", "utf8");
 
 assert.match(flowSource, /savedProductCount\s*>=\s*(?:run|input\.run)\.targetProductCount/u);
 assert.match(flowSource, /runFacebookMiningRound/u);
@@ -18,11 +21,22 @@ assert.match(flowSource, /createFacebookProductVideoMiningStorage/u);
 assert.match(videoSource, /artifactDisposition:\s*"staging"/u);
 assert.match(videoSource, /promoteArtifact/u);
 assert.match(videoSource, /deleteArtifact/u);
+assert.match(aiJudgeSource, /executeFacebookAiFeedWithHardTimeout/u);
+assert.match(aiTimeoutSource, /AbortController/u);
+assert.match(aiTimeoutSource, /ai_feed_timeout_after_/u);
+assert.match(schemaSource, /notInterestedEnabled:\s*z\.boolean\(\)\.default\(false\)/u);
 assert.match(serverSource, /POST:\/api\/facebook-product-video-mining\/mission/u);
 assert.match(serverSource, /GET:\/api\/facebook-product-video-mining\/run/u);
 assert.match(serverSource, /GET:\/api\/facebook-product-video-mining\/latest/u);
+assert.match(serverSource, /GET:\/api\/facebook-product-video-mining\/results/u);
+assert.match(serverSource, /GET:\/api\/facebook-product-video-mining\/export/u);
 assert.match(pageSource, /name="targetProductCount"/u);
+assert.match(pageSource, /data-facebook-record-list/u);
+assert.match(pageSource, /data-facebook-export/u);
 assert.doesNotMatch(pageSource, /name="feedEntryUrl"|name="providerKind"|name="modelName"|name="maxRounds"|name="maxMinutes"/u);
 assert.doesNotMatch(clientSource, /feedEntryUrl:\s*form\.|providerKind:\s*form\.|modelName:\s*form\.|maxRounds:\s*Number|maxMinutes:\s*Number/u);
+assert.match(clientSource, /api\/facebook-product-video-mining\/results\?runId=/u);
+assert.match(clientSource, /api\/facebook-product-video-mining\/export\?runId=/u);
+assert.match(clientSource, /setInterval/u);
 
 process.stdout.write("[facebook-product-video-mining-flow] PASS\n");

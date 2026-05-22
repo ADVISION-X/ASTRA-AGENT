@@ -10,6 +10,14 @@ import { getRepoSourcePath, listActiveSourceFiles } from "../../shared/source-fi
 const allowedSrcRoots = new Set(["app", "mediator", "plugins", "capabilities", "lib", "types"]);
 const allowedScriptRoots = new Set(["acceptance", "audit", "startup"]);
 const plannerNames = new Set(["nextAction", "actionPlan"]);
+const privateCapabilityPathPattern = /^src\/capabilities\/[^/]+\/(runtime|children)\//u;
+const publicCapabilityFacadePathPattern = /^src\/capabilities\/[^/]+\/index\.ts$/u;
+const jobPluginPathPattern = /^src\/plugins\/[^/]+\//u;
+
+const resolveOwnerRoot = (repoPath: string, segmentIndex: number): string | undefined => {
+  const segments = repoPath.split("/");
+  return segments.length > segmentIndex ? `${segments[0]}/${segments[1]}/${segments[2]}` : undefined;
+};
 
 const collectUnexpectedRoots = (rootPath: string, allowedRoots: ReadonlySet<string>): string[] =>
   readdirSync(resolveFromRepo(rootPath), { withFileTypes: true })
@@ -83,6 +91,170 @@ const inspectCapabilityImports = (
       }),
     );
   }
+
+  const sourceCapabilityRoot = resolveOwnerRoot(repoPath, 2);
+  if (!sourceCapabilityRoot) {
+    return;
+  }
+
+  for (const importDeclaration of sourceFile.getImportDeclarations()) {
+    const target = importDeclaration.getModuleSpecifierSourceFile();
+    if (!target) {
+      continue;
+    }
+    const targetPath = getRepoSourcePath(target);
+    if (!targetPath.startsWith("src/capabilities/")) {
+      continue;
+    }
+    const targetCapabilityRoot = resolveOwnerRoot(targetPath, 2);
+    if (!targetCapabilityRoot || targetCapabilityRoot === sourceCapabilityRoot) {
+      continue;
+    }
+    findings.push(
+      createFinding({
+        checkId: "architecture/capability-cross-owner-import",
+        lawId: capabilityLawId,
+        filePath: repoPath,
+        evidence: targetPath,
+        message: `${repoPath} imports unrelated capability owner code ${targetPath}.`,
+      }),
+    );
+  }
+};
+
+const inspectPluginImports = (
+  findings: ReturnType<typeof createFinding>[],
+  jobFlowLawId: string,
+  repoPath: string,
+  sourceFile: Parameters<typeof getRepoSourcePath>[0],
+): void => {
+  if (!jobPluginPathPattern.test(repoPath)) {
+    return;
+  }
+
+  const sourcePluginRoot = resolveOwnerRoot(repoPath, 2);
+  for (const importDeclaration of sourceFile.getImportDeclarations()) {
+    const target = importDeclaration.getModuleSpecifierSourceFile();
+    if (!target) {
+      continue;
+    }
+    const targetPath = getRepoSourcePath(target);
+    if (targetPath.startsWith("src/plugins/")) {
+      const targetPluginRoot = resolveOwnerRoot(targetPath, 2);
+      if (!targetPluginRoot || targetPluginRoot === sourcePluginRoot) {
+        continue;
+      }
+      findings.push(
+        createFinding({
+          checkId: "architecture/flow-cross-job-import",
+          lawId: jobFlowLawId,
+          filePath: repoPath,
+          evidence: targetPath,
+          message: `${repoPath} imports unrelated job flow code ${targetPath}.`,
+        }),
+      );
+      continue;
+    }
+    if (targetPath.startsWith("src/capabilities/") && !publicCapabilityFacadePathPattern.test(targetPath)) {
+      findings.push(
+        createFinding({
+          checkId: "architecture/flow-non-facade-capability-import",
+          lawId: jobFlowLawId,
+          filePath: repoPath,
+          evidence: targetPath,
+          message: `${repoPath} imports non-facade capability code ${targetPath}.`,
+        }),
+      );
+    }
+  }
+};
+
+const inspectPluginRootPlacement = (
+  findings: ReturnType<typeof createFinding>[],
+  jobFlowLawId: string,
+  repoPath: string,
+): void => {
+  if (!/^src\/plugins\/[^/]+\.tsx?$/u.test(repoPath)) {
+    return;
+  }
+  findings.push(
+    createFinding({
+      checkId: "architecture/plugin-root-file",
+      lawId: jobFlowLawId,
+      filePath: repoPath,
+      message: `${repoPath} is a top-level plugin file outside src/plugins/<job-id>/.`,
+    }),
+  );
+};
+
+const inspectMediatorImports = (
+  findings: ReturnType<typeof createFinding>[],
+  mediatorLawId: string,
+  repoPath: string,
+  sourceFile: Parameters<typeof getRepoSourcePath>[0],
+): void => {
+  if (!repoPath.startsWith("src/mediator/")) {
+    return;
+  }
+
+  for (const importDeclaration of sourceFile.getImportDeclarations()) {
+    const target = importDeclaration.getModuleSpecifierSourceFile();
+    if (!target) {
+      continue;
+    }
+    const targetPath = getRepoSourcePath(target);
+    if (
+      targetPath.startsWith("src/lib/browser/") ||
+      targetPath.startsWith("src/capabilities/") ||
+      privateCapabilityPathPattern.test(targetPath)
+    ) {
+      findings.push(
+        createFinding({
+          checkId: "architecture/mediator-runtime-import",
+          lawId: mediatorLawId,
+          filePath: repoPath,
+          evidence: targetPath,
+          message: `${repoPath} imports runtime action surface ${targetPath}.`,
+        }),
+      );
+    }
+  }
+};
+
+const inspectChildAbilityImports = (
+  findings: ReturnType<typeof createFinding>[],
+  childAbilityLawId: string,
+  repoPath: string,
+  sourceFile: Parameters<typeof getRepoSourcePath>[0],
+): void => {
+  if (!privateCapabilityPathPattern.test(repoPath)) {
+    return;
+  }
+
+  const sourceCapabilityRoot = resolveOwnerRoot(repoPath, 2);
+  for (const importDeclaration of sourceFile.getImportDeclarations()) {
+    const target = importDeclaration.getModuleSpecifierSourceFile();
+    if (!target) {
+      continue;
+    }
+    const targetPath = getRepoSourcePath(target);
+    if (!targetPath.startsWith("src/capabilities/")) {
+      continue;
+    }
+    const targetCapabilityRoot = resolveOwnerRoot(targetPath, 2);
+    if (!targetCapabilityRoot || targetCapabilityRoot === sourceCapabilityRoot) {
+      continue;
+    }
+    findings.push(
+      createFinding({
+        checkId: "architecture/child-ability-cross-owner-import",
+        lawId: childAbilityLawId,
+        filePath: repoPath,
+        evidence: targetPath,
+        message: `${repoPath} imports unrelated capability owner code ${targetPath}.`,
+      }),
+    );
+  }
 };
 
 const inspectSharedImports = (
@@ -148,26 +320,39 @@ const inspectSourceFile = (
   inspectedFiles: Set<string>,
   sourceFile: Parameters<typeof getRepoSourcePath>[0],
   lawIds: {
+    jobFlowLawId: string;
+    mediatorLawId: string;
     capabilityLawId: string;
+    childAbilityLawId: string;
     plannerLawId: string;
     sharedLawId: string;
   },
 ): void => {
   const repoPath = getRepoSourcePath(sourceFile);
   inspectedFiles.add(repoPath);
+  inspectPluginRootPlacement(findings, lawIds.jobFlowLawId, repoPath);
+  inspectPluginImports(findings, lawIds.jobFlowLawId, repoPath, sourceFile);
+  inspectMediatorImports(findings, lawIds.mediatorLawId, repoPath, sourceFile);
   inspectCapabilityImports(findings, lawIds.capabilityLawId, repoPath, sourceFile);
+  inspectChildAbilityImports(findings, lawIds.childAbilityLawId, repoPath, sourceFile);
   inspectSharedImports(findings, lawIds.sharedLawId, repoPath, sourceFile);
   inspectPlannerScope(findings, lawIds.plannerLawId, repoPath, sourceFile);
 };
 
 const resolveArchitectureLawIds = (planEntry: InspectorContext["planEntry"]): {
   rootLawId: string;
+  jobFlowLawId: string;
+  mediatorLawId: string;
   capabilityLawId: string;
+  childAbilityLawId: string;
   sharedLawId: string;
   plannerLawId: string;
 } => ({
   rootLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-006-V1"),
+  jobFlowLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-003-V1"),
+  mediatorLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-002-V1"),
   capabilityLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-004-V1"),
+  childAbilityLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-005-V1"),
   sharedLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-007-V1"),
   plannerLawId: selectLawId(planEntry.lawIds, "APEX-ARCH-009-V1"),
 });
@@ -177,7 +362,10 @@ const inspectProjectSources = (
   findings: ReturnType<typeof createFinding>[],
   inspectedFiles: Set<string>,
   lawIds: {
+    jobFlowLawId: string;
+    mediatorLawId: string;
     capabilityLawId: string;
+    childAbilityLawId: string;
     plannerLawId: string;
     sharedLawId: string;
   },

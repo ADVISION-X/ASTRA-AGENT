@@ -183,3 +183,90 @@ Facebook 种草视频入口必须保持一键任务形态：
 - 页面展示 `modelName`、`maxRounds`、`maxMinutes` 参数框。
 - client payload 重新携带这些页面参数。
 - 为了满足页面调参新增第二套配置面板、advanced panel、fallback 参数链或 shadow mission input。
+
+## [APEX-FACEBOOK-MINING-004-V1] Platform Safety Defaults And Bounded AI Judgment
+
+```apex-law
+{
+  "lawId": "APEX-FACEBOOK-MINING-004-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "facebook-product-video-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+ast",
+  "summary": "Facebook mining must not default to mutating the operator's recommendation profile and must convert AI web-chat stalls into bounded review-required evidence instead of leaving runs indefinitely running.",
+  "appliesTo": [
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
+    "scripts/acceptance/facebook-product-video-mining*.ts",
+    "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
+  ],
+  "forbidden": [
+    "Default notInterestedEnabled=true for operator-facing Facebook mining.",
+    "AI web-chat judgment without a hard timeout.",
+    "AI web-chat timeout that leaves the run in running with no candidate evidence.",
+    "Provider composer wait that ignores the task abort signal."
+  ]
+}
+```
+
+### 法条
+
+Facebook mining 的默认行为必须保护操作者当前 Facebook 账号与推荐流：
+
+- `notInterestedEnabled` 默认必须为 `false`；只有显式自动化输入才能开启负反馈动作。
+- AI 判断必须有硬超时，并在超时后返回 `review_required` / `UNCERTAIN` 判断。
+- AI 超时必须走正常 judgment failure 路径，保存候选 evidence 并让 mission 终止复核。
+- web-chat provider 页面等待必须接收并传递 abort signal。
+
+### 禁止
+
+- 默认点击 Not Interested、Hide、See less 等会污染推荐流的动作。
+- web-chat provider 卡住后让 run 长期保持 `running`。
+- 用后台未落库的下载 artifact 冒充任务进展。
+
+## [APEX-FACEBOOK-MINING-005-V1] Successful Records And Selection Export
+
+```apex-law
+{
+  "lawId": "APEX-FACEBOOK-MINING-005-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "facebook-product-video-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+ast",
+  "summary": "The Facebook mining workbench must expose saved product-seeding records for the active run and must provide a structured export for downstream senior-AI product selection.",
+  "appliesTo": [
+    "src/plugins/facebook-product-video-mining/**/*.{ts,tsx,js,jsx,mjs}",
+    "src/app/workbench-home-page.ts",
+    "src/app/workbench-home-client.ts",
+    "src/app/workbench-facebook-routes.ts",
+    "src/lib/local-runtime/workbench*.ts",
+    "scripts/acceptance/facebook-product-video-mining*.ts",
+    "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
+  ],
+  "forbidden": [
+    "Workbench showing only run status while hiding saved PRODUCT_SEEDING records.",
+    "Exporting rejected, uncertain, failed, or review-required candidates as successful products.",
+    "Export payloads that omit source URL, product signals, AI reason, confidence, or artifact references.",
+    "Export logic outside the Facebook mining owner surface."
+  ]
+}
+```
+
+### 法条
+
+当 operator 输入 `targetProductCount=50` 并点击 Start 后：
+
+- 系统必须按 flow 循环直到 `savedProductCount >= 50`、轮数/时间上限、失败或复核终态。
+- 页面必须可读取当前 run 的 saved `PRODUCT_SEEDING` records。
+- 页面必须显示 saved count / target count。
+- 页面必须提供结构化导出资料，用于后续高级 AI 选品。
+- 导出只能包含 status 为 `saved` 且 `aiSelectedOptionId=PRODUCT_SEEDING` 的候选。
+
+### 禁止
+
+- 把 rejected / uncertain / review_required 候选混入成功导出。
+- 页面伪造 50 完成。
+- 导出浏览器 session、cookie、localStorage、sessionStorage 或完整 HTML。

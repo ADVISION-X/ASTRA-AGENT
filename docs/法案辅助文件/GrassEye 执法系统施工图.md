@@ -1,6 +1,6 @@
 # GrassEye 执法系统施工图
 
-版本：2026-05-21  
+版本：2026-05-22  
 状态：active
 
 ## 统一身份与冻结边界
@@ -15,7 +15,9 @@
 ## 唯一链路
 
 ```txt
-law files
+package.json ci:full
+-> codex-entry-gate
+-> law files
 -> owner manifests
 -> blueprints
 -> generated registry / matrix / plan
@@ -45,12 +47,13 @@ CI-FULL 是尺子，不是机器。它不制造问题，不修改文件，不证
 
 ## CI-FULL 应该做
 
-1. build audit artifacts：读取法案、manifest、施工图，生成 registry、matrix、plan、coverage。
-2. run generated plan：按 executionGroup 调度 foundation、domain、meta inspectors。
-3. 为每个 owner inspector 写入独立 report。
-4. typecheck。
-5. 现役 acceptance smoke。
-6. 输出 summary。
+1. codex-entry-gate：先验证 law、audit、blueprint 入口可发现。
+2. build audit artifacts：读取法案、manifest、施工图，生成 registry、matrix、plan、coverage。
+3. run generated plan：按 executionGroup 调度 foundation、domain、meta inspectors。
+4. 为每个 owner inspector 写入独立 report。
+5. typecheck。
+6. 现役 acceptance smoke。
+7. 输出 summary。
 
 ## CI-FULL 禁止做
 
@@ -83,10 +86,12 @@ CI-FULL 是尺子，不是机器。它不制造问题，不修改文件，不证
 audit-system 只做最小连接检查：
 
 - generated registry、matrix、plan、coverage 是否存在且非空。
+- `package.json` 的 `ci:full` 是否先经过 `codex:entry-gate`。
 - generated plan 是否唯一连接 capabilityDomain -> owner inspector。
 - blueprint anchor 是否存在。
 - runner 是否仍硬编码 law truth 或 owner ordering truth。
 - code-purity report 是否在 audit-system 前已生成。
+- `static-clause-coverage.generated.json` 是否保持 100%。
 
 audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，不代替 code-purity 或能力域 owner。
 
@@ -95,14 +100,19 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 - Code Purity 是 CI-FULL foundation-layer 常开检查。
 - 扫描范围覆盖 `src/**` 和 `scripts/**`。
 - `scripts/audit/**` 必须使用 ts-morph AST / symbol / anti-evasion 检查。
+- zombie 检测必须 machine-blocking，至少覆盖 zombie-file、zombie-export、orphan top-level declaration、literal-dead branch。
+- 合法豁免只允许来自 `package.json` 脚本入口、generated-plan owner inspector 动态装载、或现役 law 明确授权的外部入口。
 - Code Purity 当前运行态只有 PASS / FAIL；不存在 warning inventory 作为第三态。
 - 一条 code-purity finding 就是 FAIL；finding 里可以携带整改建议，但不会改变二元裁决。
 
 ## READY 标准
 
 - `package.json` 只公开 `ci:full` 作为完整质检入口。
+- `package.json` 的 `ci:full` 必须显式先经过 `codex:entry-gate`。
 - law -> manifest -> generated artifacts -> runner -> reports -> summary 一条链完成完整质检。
 - active capabilityDomain 都有唯一 owner manifest 与 owner inspector。
 - audit-system 只做最小连接检查。
 - Code Purity 常开，并覆盖 `src/**` 和 `scripts/**`。
+- `static-clause-coverage.generated.json` 对 active laws 保持 100%。
+- Code Purity 对僵尸代码、僵尸文件、僵尸段落保持零容忍；任一 zombie finding 直接阻断 READY。
 - 最终 summary 只回答：当前真实代码是否符合当前法案和当前施工图。

@@ -83,7 +83,7 @@ const FacebookProductVideoMiningResolvedMissionConfigObjectSchema = z.object({
   maxCommentWaitMs: z.number().int().positive().default(12_000),
   preferredQuality: z.enum(["hd", "sd", "best_available"]).default("best_available"),
   maxVideoBytes: z.number().int().min(1_024).max(500_000_000).default(200_000_000),
-  notInterestedEnabled: z.boolean().default(true),
+  notInterestedEnabled: z.boolean().default(false),
   saveRejectedTrace: z.boolean().default(true),
 }).strict();
 
@@ -102,7 +102,7 @@ const FacebookProductVideoMiningRawMissionInputSchema = z.object({
   maxCommentWaitMs: z.number().int().positive().default(12_000),
   preferredQuality: z.enum(["hd", "sd", "best_available"]).default("best_available"),
   maxVideoBytes: z.number().int().min(1_024).max(500_000_000).default(200_000_000),
-  notInterestedEnabled: z.boolean().default(true),
+  notInterestedEnabled: z.boolean().default(false),
   saveRejectedTrace: z.boolean().default(true),
 }).strict().transform((value) => ({
   ...value,
@@ -246,6 +246,39 @@ export const FacebookProductVideoMiningRunStatusSchema = z.object({
   currentRoundIndex: z.number().int().nonnegative().nullable().default(null),
 }).strict();
 
+const FacebookProductVideoMiningSelectionExportItemSchema = z.object({
+  candidateId: z.string().min(1),
+  runId: z.string().min(1),
+  rank: z.number().int().positive(),
+  sourcePageUrl: z.string().min(1),
+  facebookVideoId: z.string().nullable(),
+  pageTitle: z.string().nullable(),
+  authorText: z.string().nullable(),
+  captionText: z.string().nullable(),
+  likeCount: z.number().int().nonnegative().nullable(),
+  commentCountDisplayed: z.number().int().nonnegative().nullable(),
+  commentsLoadedCount: z.number().int().nonnegative(),
+  aiConfidence: z.number().min(0).max(1).nullable(),
+  aiReason: z.string().nullable(),
+  visibleProduct: z.string().nullable(),
+  productCategory: z.string().nullable(),
+  sellingIntentSignals: z.array(z.string().min(1)),
+  evidenceFromVideo: z.array(z.string().min(1)),
+  videoArtifactRef: z.string().nullable(),
+  videoFilePath: z.string().nullable(),
+  videoSha256: z.string().nullable(),
+  createdAt: z.string().datetime(),
+}).strict();
+
+const FacebookProductVideoMiningSelectionExportSchema = z.object({
+  exportKind: z.literal("facebook-product-video-mining.selection.v1"),
+  exportedAt: z.string().datetime(),
+  run: FacebookProductVideoMiningRunStatusSchema,
+  savedProductCount: z.number().int().nonnegative(),
+  targetProductCount: z.number().int().positive(),
+  records: z.array(FacebookProductVideoMiningSelectionExportItemSchema),
+}).strict();
+
 export const FacebookProductVideoMiningSchemas = {
   FacebookProductVideoMiningMissionInputSchema,
   FacebookProductVideoMiningRunConfigSchema,
@@ -255,6 +288,8 @@ export const FacebookProductVideoMiningSchemas = {
   FacebookVideoAiJudgmentSchema,
   FacebookProductVideoCandidateRecordSchema,
   FacebookProductVideoMiningRunStatusSchema,
+  FacebookProductVideoMiningSelectionExportItemSchema,
+  FacebookProductVideoMiningSelectionExportSchema,
 } as const;
 
 export type FacebookProductVideoMiningContracts = {
@@ -267,5 +302,7 @@ export type FacebookProductVideoMiningContracts = {
   FacebookProductVideoCandidateRecord: z.infer<typeof FacebookProductVideoCandidateRecordSchema>;
   FacebookMiningStatus: z.infer<typeof FacebookMiningStatusSchema>;
   FacebookProductVideoMiningRunStatus: z.infer<typeof FacebookProductVideoMiningRunStatusSchema>;
+  FacebookProductVideoMiningSelectionExportItem: z.infer<typeof FacebookProductVideoMiningSelectionExportItemSchema>;
+  FacebookProductVideoMiningSelectionExport: z.infer<typeof FacebookProductVideoMiningSelectionExportSchema>;
   FacebookSelectorEvidence: z.infer<typeof FacebookSelectorEvidenceSchema>;
 };

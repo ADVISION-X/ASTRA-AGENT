@@ -1,6 +1,6 @@
 # GrassEye 能力组与子能力总纲施工图
 
-版本：2026-05-21  
+版本：2026-05-22  
 状态：active
 
 ## 1. 系统身份
@@ -25,6 +25,7 @@ Business Flow Script
 - 拥有业务分支
 - 拥有 review_required 决策
 - 直接调用浏览器、DOM、AI choice、evidence、runtime logs
+- 调用能力组时只允许通过 `src/capabilities/<group-id>/index.ts`
 
 ### 2.2 Ability Group
 
@@ -32,11 +33,14 @@ Business Flow Script
 - 不懂业务
 - 不决定流程
 - 不拥有岗位真相
+- public facade 是唯一外部入口
+- 不得 import 其他 ability-group owner 的实现
 
 ### 2.3 Child Ability
 
 - 只完成一个明确原子动作
 - 属于且仅属于一个 ability group
+- 不得 import 其他 ability-group owner 的代码
 
 ## 3. 当前现役能力组
 
@@ -67,11 +71,14 @@ src/plugins/amazon-invoice-upload/amazon-invoice-upload.flow.ts
 - 通用 mission loop
 - AI 自主规划多步动作
 - AI 输出浏览器命令
+- job flow 直连 capability 非 facade 文件
+- ability group 互相串 owner
 - 流程真相落到 catalog、registry 或 UI 层
 
 ## 6. 目录原则
 
 - 业务流程只留在 `src/plugins/<job-id>/**`
+- `src/plugins/` 根部不允许游离聚合 / 路由文件
 - 通用动作只留在 `src/capabilities/<group-id>/**`
 - 基础设施只留在 `src/lib/**`
 - 文档只保留现役蓝图，不保留旧宇宙旁支

@@ -6,6 +6,11 @@ import { createFinding, selectLawId } from "../../shared/finding-utils.js";
 import type { InspectorContext, InspectorFinding, InspectorOutput } from "../../shared/inspector-contracts.js";
 import { resolveFromRepo } from "../../shared/paths.js";
 import { getRepoSourcePath } from "../../shared/source-files.js";
+import {
+  inspectFacebookSafetyDefaults,
+  inspectMinimalOperatorInput,
+  inspectSavedRecordExportSurface,
+} from "./input-surface-inspector.js";
 
 const requiredPluginFiles = [
   "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
@@ -16,6 +21,9 @@ const requiredPluginFiles = [
   "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
   "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
   "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
+  "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-timeout.ts",
+  "src/plugins/facebook-product-video-mining/facebook-product-video-mining.selection-export.ts",
+  "src/plugins/facebook-product-video-mining/facebook-product-video-mining.records.ts",
   "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
   "src/plugins/facebook-product-video-mining/index.ts",
 ] as const;
@@ -28,10 +36,6 @@ const requiredAcceptanceFiles = [
   "scripts/acceptance/facebook-live-dom-probe.ts",
 ] as const;
 
-const facebookPagePath = "src/app/workbench-home-page.ts";
-const facebookClientPath = "src/app/workbench-home-client.ts";
-const facebookSchemaPath = "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts";
-
 const hasNamedExport = (sourceFile: SourceFile, moduleSpecifier: string, exportName: string): boolean =>
   sourceFile.getExportDeclarations().some((declaration) =>
     declaration.getModuleSpecifierValue() === moduleSpecifier
@@ -43,8 +47,6 @@ const hasIdentifier = (sourceFile: SourceFile, identifierName: string): boolean 
 
 const hasStringLiteral = (sourceFile: SourceFile, literalValue: string): boolean =>
   sourceFile.getDescendantsOfKind(SyntaxKind.StringLiteral).some((literal) => literal.getLiteralValue() === literalValue);
-
-const readRepoText = (repoPath: string): string => readFileSync(resolveFromRepo(repoPath), "utf8");
 
 const getRequiredSourceFile = (context: InspectorContext, repoPath: string): SourceFile | undefined =>
   context.project.getSourceFile(resolveFromRepo(repoPath));
@@ -132,7 +134,9 @@ const inspectWorkbenchHandleSurface = (
   if (workbenchHandle
     && hasIdentifier(workbenchHandle, "startFacebookProductVideoMiningMission")
     && hasIdentifier(workbenchHandle, "getFacebookProductVideoMiningRunStatus")
-    && hasIdentifier(workbenchHandle, "getLatestFacebookProductVideoMiningRun")) {
+    && hasIdentifier(workbenchHandle, "getLatestFacebookProductVideoMiningRun")
+    && hasIdentifier(workbenchHandle, "listFacebookProductVideoMiningSavedRecords")
+    && hasIdentifier(workbenchHandle, "exportFacebookProductVideoMiningSelectionRecords")) {
     return;
   }
   findings.push(createFinding({
@@ -151,7 +155,9 @@ const inspectAppShellRoutes = (
   if (appServer
     && hasStringLiteral(appServer, "POST:/api/facebook-product-video-mining/mission")
     && hasStringLiteral(appServer, "GET:/api/facebook-product-video-mining/run")
-    && hasStringLiteral(appServer, "GET:/api/facebook-product-video-mining/latest")) {
+    && hasStringLiteral(appServer, "GET:/api/facebook-product-video-mining/latest")
+    && hasStringLiteral(appServer, "GET:/api/facebook-product-video-mining/results")
+    && hasStringLiteral(appServer, "GET:/api/facebook-product-video-mining/export")) {
     return;
   }
   findings.push(createFinding({
@@ -191,98 +197,12 @@ const inspectPackageScripts = (
   }
 };
 
-const inspectMinimalOperatorInput = (
-  findings: InspectorFinding[],
-  inspectedFiles: Set<string>,
-  lawId: string,
-): void => {
-  inspectedFiles.add(facebookPagePath);
-  inspectedFiles.add(facebookClientPath);
-  inspectedFiles.add(facebookSchemaPath);
-  const pageText = readRepoText(facebookPagePath);
-  const clientText = readRepoText(facebookClientPath);
-  const schemaText = readRepoText(facebookSchemaPath);
-  inspectTargetCountInput(findings, lawId, pageText);
-  inspectForbiddenVisibleInputs(findings, lawId, pageText);
-  inspectForbiddenClientPayload(findings, lawId, clientText);
-  inspectSchemaDefaultMarkers(findings, lawId, schemaText);
-};
-
-const inspectTargetCountInput = (
-  findings: InspectorFinding[],
-  lawId: string,
-  pageText: string,
-): void => {
-  if (!pageText.includes('name="targetProductCount"')) {
-    findings.push(createFinding({
-      checkId: "facebook-mining/minimal-target-count-input",
-      lawId,
-      filePath: facebookPagePath,
-      message: "Facebook workbench must expose targetProductCount as the only operator mission input.",
-    }));
-  }
-};
-
-const inspectForbiddenVisibleInputs = (
-  findings: InspectorFinding[],
-  lawId: string,
-  pageText: string,
-): void => {
-  const forbiddenVisibleFields = /name="(?:feedEntryUrl|providerKind|modelName|maxRounds|maxMinutes)"/u;
-  if (forbiddenVisibleFields.test(pageText)) {
-    findings.push(createFinding({
-      checkId: "facebook-mining/forbidden-visible-advanced-input",
-      lawId,
-      filePath: facebookPagePath,
-      message: "Facebook workbench must not expose feed URL, provider, model, max rounds, or max minutes inputs.",
-      evidence: String(forbiddenVisibleFields),
-    }));
-  }
-};
-
-const inspectForbiddenClientPayload = (
-  findings: InspectorFinding[],
-  lawId: string,
-  clientText: string,
-): void => {
-  const forbiddenClientPayload = /feedEntryUrl:\s*form\.|providerKind:\s*form\.|modelName:\s*form\.|maxRounds:\s*Number|maxMinutes:\s*Number/u;
-  if (forbiddenClientPayload.test(clientText)) {
-    findings.push(createFinding({
-      checkId: "facebook-mining/forbidden-client-payload-advanced-input",
-      lawId,
-      filePath: facebookClientPath,
-      message: "Facebook client mission payload must submit only targetProductCount from the visible form.",
-      evidence: String(forbiddenClientPayload),
-    }));
-  }
-};
-
-const inspectSchemaDefaultMarkers = (
-  findings: InspectorFinding[],
-  lawId: string,
-  schemaText: string,
-): void => {
-  for (const marker of [
-    "DEFAULT_FACEBOOK_MINING_FEED_ENTRY_URL",
-    "DEFAULT_FACEBOOK_MINING_PROVIDER_KIND",
-    "DEFAULT_FACEBOOK_MINING_MAX_MINUTES",
-    "FACEBOOK_MINING_ROUNDS_PER_TARGET",
-  ]) {
-    if (!schemaText.includes(marker)) {
-      findings.push(createFinding({
-        checkId: "facebook-mining/schema-default-mission-parameter",
-        lawId,
-        filePath: facebookSchemaPath,
-        message: `Facebook mission schema must own automatic default marker ${marker}.`,
-      }));
-    }
-  }
-};
-
 export const inspectDomain = async (context: InspectorContext): Promise<InspectorOutput> => {
   const flowLawId = selectLawId(context.planEntry.lawIds, "APEX-FACEBOOK-MINING-001-V1");
   const surfaceLawId = selectLawId(context.planEntry.lawIds, "APEX-FACEBOOK-MINING-002-V1");
   const minimalInputLawId = selectLawId(context.planEntry.lawIds, "APEX-FACEBOOK-MINING-003-V1");
+  const safetyLawId = selectLawId(context.planEntry.lawIds, "APEX-FACEBOOK-MINING-004-V1");
+  const exportLawId = selectLawId(context.planEntry.lawIds, "APEX-FACEBOOK-MINING-005-V1");
   const findings: InspectorFinding[] = [];
   const inspectedFiles = new Set<string>();
 
@@ -290,6 +210,8 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   inspectWorkbenchSurface(context, findings, inspectedFiles, surfaceLawId);
   inspectPackageScripts(findings, inspectedFiles, surfaceLawId);
   inspectMinimalOperatorInput(findings, inspectedFiles, minimalInputLawId);
+  inspectFacebookSafetyDefaults(findings, inspectedFiles, safetyLawId);
+  inspectSavedRecordExportSurface(findings, inspectedFiles, exportLawId);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

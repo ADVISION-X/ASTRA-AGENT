@@ -52,6 +52,7 @@ Amazon invoice upload 必须收集：
 - adminOrderUrl
 
 提交通过本地 HTTP API 进入 workbench handle，再进入 Amazon job flow。页面不拥有流程顺序。
+`src/lib/local-runtime/**` 若需要消费 Amazon 能力，只能通过 `src/plugins/amazon-invoice-upload/index.ts`。
 
 ## Facebook 输入面
 
@@ -67,6 +68,12 @@ Facebook product video mining 必须作为单独法门输入面。页面只允�
 - provider kind 使用治理默认值。
 - modelName 默认为空。
 - max rounds、max minutes、评论加载、视频质量、视频大小、rejected trace 使用 schema 默认策略。
+- Not Interested 默认关闭，避免本地 Workbench 启动后对操作者 Facebook 推荐流做负反馈污染。
+- AI web-chat 判断必须有硬超时；超时后 run 进入复核终态，不能无限显示 running。
+- Start 后页面自动轮询当前 run，展示 saved product count / target count。
+- 页面展示 saved `PRODUCT_SEEDING` records，并提供 Export JSON 给高级 AI 选品。
+
+`src/lib/local-runtime/**` 若需要消费 Facebook product video mining，只能通过 `src/plugins/facebook-product-video-mining/index.ts`。
 
 是否产品视频、是否保存线索、是否继续下一轮，仍归对应 job flow 和能力组。
 
@@ -78,6 +85,8 @@ Facebook product video mining 必须作为单独法门输入面。页面只允�
 - Max rounds
 - Max minutes
 - advanced options / hidden second configuration panel
+- 把 rejected、uncertain、review_required 或 failed 候选显示为成功记录
+- 导出 cookies、tokens、localStorage、sessionStorage 或完整 HTML
 
 ## 禁止项
 
@@ -90,6 +99,7 @@ Facebook product video mining 必须作为单独法门输入面。页面只允�
 - 页面直接控制 DOM、browser、upload、click、fill、wait、verify。
 - 页面决定业务流程下一步。
 - 页面伪造 evidence 或 task success。
+- `src/lib/local-runtime/**` 直接 import plugin 私有文件或 capability 私有文件。
 
 ## 对口质检
 
@@ -104,3 +114,4 @@ local-app-shell owner inspector 检查：
 - 页面是否包含 task status / evidence refs / failure reason 展示区域。
 - 页面是否仍出现 forbidden dashboard / planner / visual runtime 控制面。
 - `src/app/**` 是否直接导入 job flow 文件或能力 runtime 私有实现。
+- `src/lib/local-runtime/**` 是否只通过 plugin / ability public facade 导入 job 与能力。

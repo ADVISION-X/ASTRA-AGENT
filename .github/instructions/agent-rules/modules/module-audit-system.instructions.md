@@ -49,6 +49,7 @@ APEX 质检系统只允许一条真实主链：
   ],
   "forbidden": [
     "Manual enforcement matrix truth.",
+    "ci:full bypassing codex:entry-gate.",
     "Runner-owned law binding truth.",
     "Parallel audit truth chains."
   ]
@@ -61,19 +62,21 @@ APEX 质检系统只允许一条真实主链：
 ### 法条
 APEX 质检系统的唯一主链是：
 
-**law → manifest → generated artifacts → runner**
+**package.json ci:full → codex:entry-gate → law → manifest → generated artifacts → runner**
 
 其中：
 
-1. `law` 是唯一规则源。
-2. `manifest` 是唯一脚本归属源。
-3. `generated artifacts` 是唯一运行计划源。
-4. `runner` 只执行，不裁定规则，不手工绑定 law。
+1. `package.json ci:full` 必须先经过 `codex:entry-gate`。
+2. `law` 是唯一规则源。
+3. `manifest` 是唯一脚本归属源。
+4. `generated artifacts` 是唯一运行计划源。
+5. `runner` 只执行，不裁定规则，不手工绑定 law。
 
 ### 禁止
 禁止以下形态成为质检系统真相源：
 
 - 手工维护的 enforcement matrix
+- `ci:full` 绕过 `codex:entry-gate`
 - runner 内置 lawId 列表
 - runner 内置脚本顺序真相
 - runner 内置 capability owner 绑定
@@ -407,6 +410,7 @@ lawId 级覆盖不能证明法条级覆盖。
 - auto law 无 owner inspector
 - inspector manifest 指向不存在 entry
 - inspector 越权上报 lawId
+- `package.json` 的 `ci:full` 未先经过 `codex:entry-gate`
 - runner 仍读取手工 matrix
 - generated artifacts 缺失或脏
 - `static-clause-coverage.generated.json` 缺失或未 100% 覆盖 active auto/meta auto / meta static clauses

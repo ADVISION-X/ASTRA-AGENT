@@ -10,6 +10,7 @@ const approvedCapabilityRoots = new Set([
 ]);
 
 const privateCapabilityPathPattern = /^src\/capabilities\/[^/]+\/(runtime|children)\//u;
+const publicCapabilityFacadePathPattern = /^src\/capabilities\/[^/]+\/index\.ts$/u;
 
 type CapabilityGroupFindingInput = Parameters<typeof createFinding>[0];
 
@@ -33,6 +34,11 @@ const registerCapabilityRoot = (capabilityRoots: Set<string>, repoPath: string):
   }
 };
 
+const resolveCapabilityRoot = (repoPath: string): string | undefined => {
+  const segments = repoPath.split("/");
+  return segments.length >= 3 ? `${segments[0]}/${segments[1]}/${segments[2]}` : undefined;
+};
+
 const pushCapabilityImportFindings = (
   sourceFile: Parameters<typeof getRepoSourcePath>[0],
   repoPath: string,
@@ -54,6 +60,33 @@ const pushCapabilityImportFindings = (
       filePath: repoPath,
       evidence: targetPath,
       message: `${repoPath} imports plugin-owned code ${targetPath}.`,
+    });
+  }
+
+  const sourceCapabilityRoot = resolveCapabilityRoot(repoPath);
+  if (!sourceCapabilityRoot) {
+    return;
+  }
+
+  for (const importDeclaration of sourceFile.getImportDeclarations()) {
+    const targetSourceFile = importDeclaration.getModuleSpecifierSourceFile();
+    if (!targetSourceFile) {
+      continue;
+    }
+    const targetPath = getRepoSourcePath(targetSourceFile);
+    if (!targetPath.startsWith("src/capabilities/")) {
+      continue;
+    }
+    const targetCapabilityRoot = resolveCapabilityRoot(targetPath);
+    if (!targetCapabilityRoot || targetCapabilityRoot === sourceCapabilityRoot) {
+      continue;
+    }
+    pushFinding({
+      checkId: "capability-group/cross-owner-import",
+      lawId: facadeLawId,
+      filePath: repoPath,
+      evidence: targetPath,
+      message: `${repoPath} imports unrelated capability owner code ${targetPath}.`,
     });
   }
 };
@@ -106,15 +139,22 @@ const inspectPluginFile = (
       continue;
     }
     const targetPath = getRepoSourcePath(targetSourceFile);
-    if (!privateCapabilityPathPattern.test(targetPath)) {
+    if (!targetPath.startsWith("src/capabilities/")) {
+      continue;
+    }
+    if (publicCapabilityFacadePathPattern.test(targetPath)) {
       continue;
     }
     pushFinding({
-      checkId: "capability-group/plugin-private-import",
+      checkId: privateCapabilityPathPattern.test(targetPath)
+        ? "capability-group/plugin-private-import"
+        : "capability-group/plugin-non-facade-import",
       lawId: facadeLawId,
       filePath: repoPath,
       evidence: targetPath,
-      message: `${repoPath} imports private capability runtime ${targetPath}.`,
+      message: privateCapabilityPathPattern.test(targetPath)
+        ? `${repoPath} imports private capability runtime ${targetPath}.`
+        : `${repoPath} imports non-facade capability code ${targetPath}.`,
     });
   }
 };
@@ -156,14 +196,30 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
   const facadeLawId = selectLawId(context.planEntry.lawIds, "APEX-CAPABILITY-GROUP-003-V1");
   const findings: ReturnType<typeof createFinding>[] = [];
   const capabilityRoots = new Set<string>();
+  const capabilityFacades = new Set<string>();
   const inspectedFiles = new Set<string>();
   const pushFinding = createDedupedFindingPusher(findings);
 
   for (const sourceFile of listActiveSourceFiles(context.project)) {
+    const repoPath = getRepoSourcePath(sourceFile);
+    if (publicCapabilityFacadePathPattern.test(repoPath)) {
+      capabilityFacades.add(repoPath);
+    }
     inspectSourceFile(sourceFile, inspectedFiles, capabilityRoots, facadeLawId, pushFinding);
   }
 
   pushUnapprovedCapabilityRoots(capabilityRoots, approvedCapabilityRoots, admissionLawId, pushFinding);
+  for (const capabilityRoot of capabilityRoots) {
+    if (capabilityFacades.has(`${capabilityRoot}/index.ts`)) {
+      continue;
+    }
+    pushFinding({
+      checkId: "capability-group/missing-public-facade",
+      lawId: facadeLawId,
+      filePath: capabilityRoot,
+      message: `${capabilityRoot} is missing public facade ${capabilityRoot}/index.ts.`,
+    });
+  }
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T11:07:50.807Z",
+  "generatedAt": "2026-05-22T12:43:50.487Z",
   "capabilityDomain": "audit-system",
   "executionGroup": "meta",
   "lawIds": [
@@ -18,6 +18,7 @@
   "findings": [],
   "inspectedFiles": [
     "docs/法案辅助文件/GrassEye 执法系统施工图.md",
+    "package.json",
     "scripts/audit/ci-full.ts",
     "scripts/audit/core/run-generated-plan.ts",
     "scripts/audit/generated/audit-conflicts.generated.json",

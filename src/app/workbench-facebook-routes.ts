@@ -41,6 +41,50 @@ const handleFacebookLatestRequest = async (
   return true;
 };
 
+const readRunId = (response: ServerResponse, url: URL): string | null => {
+  const runId = url.searchParams.get("runId");
+  if (!runId) {
+    writeJson(response, 400, { error: "missing_run_id" });
+    return null;
+  }
+  return runId;
+};
+
+const handleFacebookResultsRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> => {
+  const runId = readRunId(response, url);
+  if (!runId) return true;
+  const run = await workbench.getFacebookProductVideoMiningRunStatus(runId);
+  if (!run) {
+    writeJson(response, 404, { error: "run_not_found" });
+    return true;
+  }
+  writeJson(response, 200, {
+    run,
+    records: await workbench.listFacebookProductVideoMiningSavedRecords(runId),
+  });
+  return true;
+};
+
+const handleFacebookExportRequest = async (
+  response: ServerResponse,
+  workbench: GrassEyeWorkbenchHandle,
+  url: URL,
+): Promise<boolean> => {
+  const runId = readRunId(response, url);
+  if (!runId) return true;
+  const exported = await workbench.exportFacebookProductVideoMiningSelectionRecords(runId);
+  if (!exported) {
+    writeJson(response, 404, { error: "run_not_found" });
+    return true;
+  }
+  writeJson(response, 200, exported);
+  return true;
+};
+
 export const handleFacebookRequest = async (
   request: IncomingMessage,
   response: ServerResponse,
@@ -54,6 +98,8 @@ export const handleFacebookRequest = async (
     "POST:/api/facebook-product-video-mining/mission": () => handleFacebookMissionRequest(request, response, workbench),
     "GET:/api/facebook-product-video-mining/run": () => handleFacebookRunRequest(response, workbench, url),
     "GET:/api/facebook-product-video-mining/latest": () => handleFacebookLatestRequest(response, workbench),
+    "GET:/api/facebook-product-video-mining/results": () => handleFacebookResultsRequest(response, workbench, url),
+    "GET:/api/facebook-product-video-mining/export": () => handleFacebookExportRequest(response, workbench, url),
   };
   const routeHandler = routeHandlers[`${request.method}:${url.pathname}`];
   return routeHandler ? routeHandler() : false;

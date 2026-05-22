@@ -129,6 +129,31 @@ pre {
   font-family: var(--mono);
   font-size: 12px;
 }
+.result-strip {
+  margin-top: 18px;
+  max-width: 860px;
+  display: grid;
+  gap: 10px;
+}
+.result-summary {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.record-list { display: grid; gap: 8px; }
+.record-item {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 5px;
+}
+.record-item strong { font-size: 13px; }
+.record-meta { color: var(--muted); font-family: var(--mono); font-size: 11px; overflow-wrap: anywhere; }
 .activity {
   border-top: 1px solid var(--line);
   background: #fbfcf8;

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T11:07:49.051Z",
+  "generatedAt": "2026-05-22T12:43:47.800Z",
   "rows": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -70,7 +70,8 @@
         "APEX-CODE-PURITY-013-V1",
         "APEX-CODE-PURITY-014-V1",
         "APEX-CODE-PURITY-015-V1",
-        "APEX-CODE-PURITY-016-V1"
+        "APEX-CODE-PURITY-016-V1",
+        "APEX-CODE-PURITY-017-V1"
       ]
     },
     {
@@ -103,7 +104,9 @@
       "lawIds": [
         "APEX-FACEBOOK-MINING-001-V1",
         "APEX-FACEBOOK-MINING-002-V1",
-        "APEX-FACEBOOK-MINING-003-V1"
+        "APEX-FACEBOOK-MINING-003-V1",
+        "APEX-FACEBOOK-MINING-004-V1",
+        "APEX-FACEBOOK-MINING-005-V1"
       ]
     },
     {

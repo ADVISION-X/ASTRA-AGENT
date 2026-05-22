@@ -45,8 +45,16 @@ const renderFacebookPanel = (): string => `
     <div class="actions wide">
       <button class="btn" type="submit">Start</button>
       <button class="btn secondary" type="button" data-facebook-latest>Latest</button>
+      <button class="btn secondary" type="button" data-facebook-export>Export</button>
     </div>
   </form>
+  <section class="result-strip" data-facebook-results>
+    <div class="result-summary">
+      <span><b data-facebook-saved-count>0</b>/<b data-facebook-target-count>0</b></span>
+      <span class="muted">saved product records</span>
+    </div>
+    <div class="record-list" data-facebook-record-list></div>
+  </section>
 </section>`;
 
 const renderLedger = (): string => `

@@ -143,14 +143,16 @@ Forbidden:
   "capabilityDomain": "capability-group-governance",
   "enforcementMode": "machine-blocking",
   "evidenceMode": "ast",
-  "summary": "Job flows may use ability groups only through public facades and must not import private runtime internals.",
+  "summary": "Job flows may use ability groups only through public facades and must not import non-facade or private runtime internals.",
   "appliesTo": [
     "src/plugins/**/*.{ts,tsx,js,jsx,mjs}",
     "src/capabilities/**/*.{ts,tsx,js,jsx,mjs}"
   ],
   "forbidden": [
+    "Plugin importing non-facade ability files.",
     "Plugin importing ability runtime internals.",
     "Plugin importing ability private child files.",
+    "Ability group importing unrelated capability owner files.",
     "Ability group importing plugin files.",
     "Facade re-exporting unrelated owners.",
     "Barrel laundering of private imports."
@@ -160,7 +162,7 @@ Forbidden:
 
 Required:
 
-- Job flows import ability public APIs from the ability root facade.
+- Job flows import ability public APIs only from `src/capabilities/<group-id>/index.ts`.
 - Private runtime files are internal to their ability group.
 - Public facade exports must be explicit.
 
@@ -168,6 +170,8 @@ Forbidden:
 
 - `export *`.
 - Consumer imports from `runtime/**`.
+- Consumer imports from any non-facade ability file.
+- Ability group imports from unrelated `src/capabilities/<other-group-id>/**` owners.
 - Ability group imports from `src/plugins/**`.
 
 ## 5. Law APEX-CAPABILITY-GROUP-004-V1 — Business Neutrality
@@ -349,7 +353,9 @@ Minimum inspector checks:
 
 - Approved ability roots only.
 - Each ability group has public facade.
+- Plugins do not import non-facade ability files.
 - Plugins do not import ability runtime internals.
+- Ability groups do not import unrelated capability owners.
 - Ability groups do not import plugins.
 - Retired ability owner roots absent.
 - `export *` absent from public facades.

@@ -1,6 +1,6 @@
 ---
 name: "GrassEye Code Purity Governance"
-description: "GrassEye 代码纯洁度法案：以 8/10 严格度管理 job-flow 自动化系统的文件尺寸、职责边界、owner 归属、类型安全、证据真实性、审计可信度、反补丁缝合与反 Codex 钻空子。"
+description: "GrassEye 代码纯洁度法案：以 99/100 严苛度管理 job-flow 自动化系统的文件尺寸、职责边界、owner 归属、类型安全、证据真实性、审计可信度，以及僵尸代码/文件/段落的零容忍删除。"
 applyTo: "src/**/*.{ts,tsx,js,jsx,mjs,json},scripts/**/*.{ts,js,mjs,json},package.json,.github/instructions/agent-rules/**/*.md"
 ---
 
@@ -8,7 +8,7 @@ applyTo: "src/**/*.{ts,tsx,js,jsx,mjs,json},scripts/**/*.{ts,js,mjs,json},packag
 
 status: active
 version: 2026-05-21
-strictness: 8/10
+strictness: 99/100
 capabilityDomain: code-purity
 
 ## 0. Identity / 身份
@@ -39,6 +39,10 @@ The doctrine:
 
 - No god files.
 - No god functions.
+- No zombie files.
+- No zombie exports.
+- No orphan top-level declarations.
+- No literal-dead code branches kept in active source.
 - No hidden second system.
 - No compatibility bridge.
 - No legacy dual path.
@@ -61,7 +65,7 @@ Every active file must prove its owner, its role, and why it exists.
 
 ## 2. Strictness Model
 
-This law is intentionally strict, but not maximal.
+This law is intentionally near-maximal.
 
 ### P0 blocking
 
@@ -71,6 +75,7 @@ P0 rules block completion and CI readiness. They cover structures that rot the s
 - owner boundary violation
 - fake runtime success
 - type escape
+- zombie file / export / declaration / dead branch
 - touched disaster growth
 - bridge / compatibility / legacy dual truth
 - audit fake pass
@@ -342,7 +347,7 @@ Required:
 
 - One mature user demand maps to one explicit `src/plugins/<job-id>` flow.
 - Flow owns step order, business state, review-required decision, failure decision, and final result.
-- Flow calls ability public APIs, not private runtime internals.
+- Flow calls ability public APIs only from root facades, not non-facade ability files or private runtime internals.
 - Flow writes or requests evidence through lawful evidence/log APIs.
 
 Forbidden:
@@ -352,6 +357,8 @@ Forbidden:
 - Runtime next-action engine.
 - AI-generated step list.
 - Cross-job shared workflow engine.
+- Importing unrelated plugin owner code.
+- Importing non-facade ability source files.
 - Copying child ability implementation into the flow.
 
 ## 11. Law APEX-CODE-PURITY-005-V1 — Mediator Purity
@@ -407,6 +414,7 @@ Required:
 Forbidden:
 
 - Importing `src/plugins/**`.
+- Importing unrelated capability owners.
 - Deciding Amazon upload success.
 - Deciding whether a product video is valuable.
 - Calling unrelated ability groups as hidden orchestration.
@@ -562,6 +570,7 @@ Forbidden:
 - Business workflow in `src/lib`.
 - Job-specific decisions in shared helpers.
 - Ability implementation in `src/lib`.
+- Shared file importing capability-owned source.
 - Helper created merely to avoid splitting the correct owner file.
 - Shared file importing plugins.
 
@@ -740,7 +749,46 @@ Forbidden remediation:
 - Commenting code out instead of deleting it.
 - Lowering thresholds to pass.
 
-## 23. Enforcement Roadmap
+## 23. Law APEX-CODE-PURITY-017-V1 — Zombie Surface Zero Tolerance
+
+```apex-law
+{
+  "lawId": "APEX-CODE-PURITY-017-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "code-purity",
+  "enforcementMode": "auto",
+  "evidenceMode": "fs+ast+import-graph",
+  "summary": "Active source must not keep zombie files, zombie exports, orphan top-level declarations, or literal-dead code branches."
+}
+```
+
+Zombie surface means active code that cannot prove a live caller, a lawful entry route, or a live branch.
+
+Executable maturity must fail when it finds:
+
+- a file with no lawful inbound reference and no lawful entrypoint role
+- an export with no active importer or lawful namespace consumer
+- a non-exported top-level declaration with no live identifier usage
+- a literal-dead `if` / `else` / ternary / loop branch
+- dormant code kept as "maybe later", "temporary backup", or hard-coded false branch cargo
+
+Allowed exemptions:
+
+- package-script entry files declared in `package.json`
+- generated-plan loaded owner inspectors
+- exports consumed through lawful namespace import
+- external entry files explicitly owned by current runtime law
+
+Forbidden:
+
+- keeping dormant code for confidence
+- parking code behind hard-coded `false` or unreachable alternate branch
+- preserving unused exports "for later"
+- keeping orphan top-level declarations inside active runtime files
+- claiming zombie cleanup may wait until after CI turns green
+
+## 24. Enforcement Roadmap
 
 The code-purity inspector should mature in phases.
 
@@ -771,8 +819,12 @@ Must catch:
 
 ### Phase 3 full graph guard
 
-Should catch:
+Must catch before READY may be claimed:
 
+- zombie files with no lawful inbound reference
+- zombie exports with no active consumer
+- orphan top-level declarations
+- literal-dead branches in active source
 - pass-through wrappers
 - hidden chain lengthening
 - stale evidence chains
@@ -781,7 +833,7 @@ Should catch:
 
 No phase may claim full readiness until its required checks are runner-visible and failure-tested during development.
 
-## 24. Final Readiness Gate
+## 25. Final Readiness Gate
 
 GrassEye code purity may be called READY only when:
 
@@ -791,6 +843,7 @@ GrassEye code purity may be called READY only when:
 - no touched disaster file gained logic
 - no fake runtime path exists in active source truth
 - no bridge / compatibility / legacy dual path exists
+- no zombie file, zombie export, orphan declaration, or literal-dead branch remains in active source truth
 - no type escape was introduced
 - no generated artifact was hand-edited as truth
 - audit output is runner-visible
@@ -804,14 +857,15 @@ Forbidden:
 - PASS by weakening the law silently.
 - PASS by moving forbidden logic into another owner.
 
-## 25. Final Principle
+## 26. Final Principle
 
 ```txt
 If a file cannot explain its owner, it will become a dumping ground.
 If a flow can call anything, it will become an engine.
 If an ability can know business truth, it will become a second flow.
 If evidence can be forged, every green result becomes suspect.
+If zombie code is tolerated, every later edit will keep feeding the graveyard.
 If Codex can patch dirty files without paying down structure, the system will rot in days.
 
-Therefore: strict owner boundaries first, truthful runtime second, small files third, full automation fourth.
+Therefore: strict owner boundaries first, zombie deletion second, truthful runtime third, small files fourth, full automation fifth.
 ```

@@ -8,6 +8,7 @@ import {
 import { scanAuditTruth } from "./scan-audit-truth.js";
 import { scanOwnerBoundaries } from "./scan-owner-boundaries.js";
 import { scanStructuralBudgets } from "./scan-structural-budgets.js";
+import { scanZombieSurfaces } from "./scan-zombie-surfaces.js";
 
 type CodePurityPhaseRun = {
   findings: InspectorFinding[];
@@ -40,15 +41,18 @@ export const runCodePurityPhases = async (context: InspectorContext): Promise<Co
   const governedFiles = collectCodePurityGovernedFiles(context.project);
   const structuralScan = scanStructuralBudgets(governedFiles, context.planEntry.lawIds);
   const ownerBoundaryScan = scanOwnerBoundaries(governedFiles, context.planEntry.lawIds);
+  const zombieScan = scanZombieSurfaces(governedFiles, context.planEntry.lawIds);
   const auditTruthFindings = scanAuditTruth(context, context.planEntry.lawIds);
   const findings = dedupeFindings([
     ...structuralScan.findings,
     ...ownerBoundaryScan.findings,
+    ...zombieScan.findings,
     ...auditTruthFindings,
   ]);
   const inventoryItems = dedupeInventoryItems([
     ...structuralScan.inventoryItems,
     ...ownerBoundaryScan.inventoryItems,
+    ...zombieScan.inventoryItems,
   ]);
 
   try {
