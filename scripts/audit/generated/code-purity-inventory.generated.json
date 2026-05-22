@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-22T15:28:38.723Z",
-  "itemCount": 47,
+  "generatedAt": "2026-05-22T15:30:21.037Z",
+  "itemCount": 46,
   "items": [
     {
       "checkId": "code-purity/zombie-top-level-declaration",
@@ -63,16 +63,6 @@
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/function-budget",
-      "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-stage-coverage.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "audit:facebook-product-video-mining-log-coverage",
-      "reason": "Function near line 21 breaks function budget: physical line count 47 exceeds hard limit 40; cyclomatic complexity 11 exceeds hard limit 10.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "audit-phase",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
       "checkId": "code-purity/zombie-export",
       "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/facebook-mining-stage-coverage.ts",
       "lawId": "APEX-CODE-PURITY-017-V1",
@@ -97,7 +87,7 @@
       "filePath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "audit:facebook-product-video-mining-log-coverage",
-      "reason": "Function near line 22 breaks function budget: physical line count 59 exceeds hard limit 40.",
+      "reason": "Function near line 22 breaks function budget: physical line count 63 exceeds hard limit 40.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "audit-inspector",
       "verificationCommand": "npm run ci:full"
@@ -187,7 +177,7 @@
       "filePath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "audit:runtime-log-spine",
-      "reason": "Function near line 26 breaks function budget: physical line count 60 exceeds hard limit 40.",
+      "reason": "Function near line 26 breaks function budget: physical line count 64 exceeds hard limit 40.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "audit-inspector",
       "verificationCommand": "npm run ci:full"

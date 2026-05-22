@@ -89,7 +89,7 @@ const renderFindingsSection = (
   "",
 ];
 
-const renderMarkdown = (report: FacebookLogCoverageReport): string => [
+export const renderFacebookLogCoverageMarkdown = (report: FacebookLogCoverageReport): string => [
   "# Facebook Product Video Mining Log Coverage Report",
   "",
   `Status: ${report.status}`,
@@ -113,7 +113,7 @@ export const writeFacebookLogCoverageReport = (report: FacebookLogCoverageReport
   );
   writeFileSync(
     resolve(generatedDir, "facebook-product-video-mining-log-coverage-report.generated.md"),
-    renderMarkdown(report),
+    renderFacebookLogCoverageMarkdown(report),
     "utf8",
   );
 };

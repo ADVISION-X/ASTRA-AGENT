@@ -2,7 +2,7 @@ import type { InspectorContext, InspectorOutput } from "../../shared/inspector-c
 import { collectFacebookMiningAiLogCoverage } from "./facebook-mining-ai-log-coverage.js";
 import { collectFacebookMiningArtifactLogCoverage } from "./facebook-mining-artifact-log-coverage.js";
 import { collectFacebookMiningFailureCoverage } from "./facebook-mining-failure-coverage.js";
-import { writeFacebookLogCoverageReport, toInspectorFinding } from "./facebook-mining-report-writer.js";
+import { renderFacebookLogCoverageMarkdown, writeFacebookLogCoverageReport, toInspectorFinding } from "./facebook-mining-report-writer.js";
 import { collectFacebookMiningNavigationLogCoverage } from "./facebook-mining-navigation-log-coverage.js";
 import { collectFacebookMiningRecoveryLogCoverage } from "./facebook-mining-recovery-log-coverage.js";
 import { collectFacebookMiningStageCoverage } from "./facebook-mining-stage-coverage.js";
@@ -50,7 +50,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     ),
   );
 
-  writeFacebookLogCoverageReport({
+  const report = {
     generatedAt: new Date().toISOString(),
     status: findings.length === 0 ? "PASS" : "FAIL",
     summary: {
@@ -69,12 +69,16 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     artifactCoverage: artifact.findings,
     missingMandatoryStages,
     findings,
-  });
+  } as const;
+
+  writeFacebookLogCoverageReport(report);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings: findings.map(toInspectorFinding),
     inspectedFiles,
+    reportJson: report,
+    reportMarkdown: renderFacebookLogCoverageMarkdown(report),
   };
 };

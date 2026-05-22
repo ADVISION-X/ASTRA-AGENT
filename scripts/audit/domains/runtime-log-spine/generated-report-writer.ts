@@ -39,7 +39,7 @@ export const toInspectorFinding = (finding: RuntimeLogSpineFinding): InspectorFi
 
 const escapeCell = (value: string): string => value.replace(/\|/gu, "\\|").replace(/\n/gu, " ");
 
-const renderMarkdown = (report: RuntimeLogSpineReport): string => [
+export const renderRuntimeLogSpineMarkdown = (report: RuntimeLogSpineReport): string => [
   "# Runtime Log Spine Quality Report",
   "",
   `Status: ${report.status}`,
@@ -81,7 +81,7 @@ const renderMarkdown = (report: RuntimeLogSpineReport): string => [
 export const writeRuntimeLogSpineReport = (report: RuntimeLogSpineReport): void => {
   mkdirSync(generatedDir, { recursive: true });
   writeFileSync(resolve(generatedDir, "runtime-log-spine-report.generated.json"), `${JSON.stringify(report, null, 2)}\n`, "utf8");
-  writeFileSync(resolve(generatedDir, "runtime-log-spine-report.generated.md"), renderMarkdown(report), "utf8");
+  writeFileSync(resolve(generatedDir, "runtime-log-spine-report.generated.md"), renderRuntimeLogSpineMarkdown(report), "utf8");
 };
 
 export const runtimeReportPaths = [RUNTIME_LOG_GENERATED_JSON, RUNTIME_LOG_GENERATED_MD] as const;

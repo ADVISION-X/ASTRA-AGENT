@@ -6,7 +6,7 @@ import { collectDebugBundleFindings } from "./debug-bundle-inspector.js";
 import { collectEventTypeRegistryFindings } from "./event-type-registry-inspector.js";
 import { collectFailureClassFindings } from "./failure-class-inspector.js";
 import { collectForbiddenConsoleFindings } from "./forbidden-console-inspector.js";
-import { writeRuntimeLogSpineReport, toInspectorFinding } from "./generated-report-writer.js";
+import { renderRuntimeLogSpineMarkdown, writeRuntimeLogSpineReport, toInspectorFinding } from "./generated-report-writer.js";
 import { collectModeVisibilityFindings } from "./mode-visibility-inspector.js";
 import { collectRedactionFindings } from "./redaction-inspector.js";
 import { collectRuntimeLogEmitContractFindings } from "./runtime-log-emit-contract-inspector.js";
@@ -60,7 +60,7 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     ...(phase.metrics ? { metrics: phase.metrics } : {}),
   }));
 
-  writeRuntimeLogSpineReport({
+  const report = {
     generatedAt: new Date().toISOString(),
     status: findings.length === 0 ? "PASS" : "FAIL",
     summary: {
@@ -74,12 +74,16 @@ export const inspectDomain = async (context: InspectorContext): Promise<Inspecto
     },
     phases,
     findings,
-  });
+  } as const;
+
+  writeRuntimeLogSpineReport(report);
 
   return {
     capabilityDomain: context.planEntry.capabilityDomain,
     reportedLawIds: context.planEntry.lawIds,
     findings: findings.map(toInspectorFinding),
     inspectedFiles,
+    reportJson: report,
+    reportMarkdown: renderRuntimeLogSpineMarkdown(report),
   };
 };
