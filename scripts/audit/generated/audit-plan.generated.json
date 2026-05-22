@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T10:28:31.978Z",
+  "generatedAt": "2026-05-22T11:07:49.051Z",
   "entries": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -166,7 +166,8 @@
       "executionGroup": "domain",
       "lawIds": [
         "APEX-FACEBOOK-MINING-001-V1",
-        "APEX-FACEBOOK-MINING-002-V1"
+        "APEX-FACEBOOK-MINING-002-V1",
+        "APEX-FACEBOOK-MINING-003-V1"
       ],
       "clauseIds": [
         "primary"

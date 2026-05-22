@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T10:28:31.978Z",
+  "generatedAt": "2026-05-22T11:07:49.051Z",
   "laws": [
     {
       "lawId": "APEX-ARCH-001-V1",
@@ -1147,6 +1147,8 @@
         "src/lib/local-runtime/workbench*.ts",
         "src/app/create-workbench-server.ts",
         "src/app/server.ts",
+        "src/app/workbench-home-page.ts",
+        "src/app/workbench-home-client.ts",
         "scripts/acceptance/facebook-product-video-mining*.ts",
         "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}",
         "package.json"
@@ -1159,6 +1161,31 @@
       ],
       "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
       "blockIndex": 1
+    },
+    {
+      "lawId": "APEX-FACEBOOK-MINING-003-V1",
+      "status": "active",
+      "tier": "P0",
+      "capabilityDomain": "facebook-product-video-mining",
+      "enforcementMode": "machine-blocking",
+      "evidenceMode": "fs+ast",
+      "summary": "The Facebook mining app-shell surface must ask the operator only for target product count and must derive all other mission parameters from governed defaults.",
+      "appliesTo": [
+        "src/app/workbench-home-page.ts",
+        "src/app/workbench-home-client.ts",
+        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
+        "scripts/acceptance/facebook-product-video-mining*.ts",
+        "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
+      ],
+      "forbidden": [
+        "Visible Facebook feed URL input in the workbench.",
+        "Visible Facebook provider selector in the workbench.",
+        "Visible Facebook model, max rounds, or max minutes fields in the workbench.",
+        "Client-side Facebook mission payload requiring feedEntryUrl, providerKind, modelName, maxRounds, or maxMinutes.",
+        "Facebook mission schema requiring operator-supplied parameters beyond targetProductCount."
+      ],
+      "filePath": ".github/instructions/agent-rules/modules/module-facebook-product-video-mining.instructions.md",
+      "blockIndex": 2
     },
     {
       "lawId": "APEX-LOCAL-APP-SHELL-001-V1",

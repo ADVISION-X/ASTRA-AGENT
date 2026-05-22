@@ -1,10 +1,11 @@
 {
-  "generatedAt": "2026-05-22T10:28:33.692Z",
+  "generatedAt": "2026-05-22T11:07:50.798Z",
   "capabilityDomain": "facebook-product-video-mining",
   "executionGroup": "domain",
   "lawIds": [
     "APEX-FACEBOOK-MINING-001-V1",
-    "APEX-FACEBOOK-MINING-002-V1"
+    "APEX-FACEBOOK-MINING-002-V1",
+    "APEX-FACEBOOK-MINING-003-V1"
   ],
   "status": "PASS",
   "findings": [],
@@ -16,6 +17,8 @@
     "scripts/acceptance/facebook-product-video-mining-flow.acceptance.ts",
     "scripts/acceptance/facebook-product-video-mining-storage.acceptance.ts",
     "src/app/workbench-facebook-routes.ts",
+    "src/app/workbench-home-client.ts",
+    "src/app/workbench-home-page.ts",
     "src/lib/local-runtime/workbench.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",

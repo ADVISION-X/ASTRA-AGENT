@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-22T10:28:31.978Z",
+  "generatedAt": "2026-05-22T11:07:49.051Z",
   "summary": {
-    "activeLawCount": 70,
-    "coveredLawCount": 70,
+    "activeLawCount": 71,
+    "coveredLawCount": 71,
     "coveragePercent": 100
   },
   "coverage": [
@@ -618,6 +618,16 @@
     },
     {
       "lawId": "APEX-FACEBOOK-MINING-002-V1",
+      "capabilityDomain": "facebook-product-video-mining",
+      "clauses": [
+        {
+          "clauseId": "primary",
+          "source": "scripts/audit/domains/facebook-product-video-mining/manifest.json"
+        }
+      ]
+    },
+    {
+      "lawId": "APEX-FACEBOOK-MINING-003-V1",
       "capabilityDomain": "facebook-product-video-mining",
       "clauses": [
         {

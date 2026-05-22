@@ -71,7 +71,7 @@ const FacebookFeedEntryUrlSchema = z.string().url().refine((value) => {
   return host === "facebook.com" || host === "www.facebook.com" || host === "m.facebook.com";
 }, "feedEntryUrl must target facebook.com.");
 
-const FacebookProductVideoMiningResolvedMissionConfigSchema = z.object({
+const FacebookProductVideoMiningResolvedMissionConfigObjectSchema = z.object({
   missionId: z.string().min(1).optional(),
   feedEntryUrl: FacebookFeedEntryUrlSchema,
   providerKind: FacebookProviderKindSchema,
@@ -85,7 +85,10 @@ const FacebookProductVideoMiningResolvedMissionConfigSchema = z.object({
   maxVideoBytes: z.number().int().min(1_024).max(500_000_000).default(200_000_000),
   notInterestedEnabled: z.boolean().default(true),
   saveRejectedTrace: z.boolean().default(true),
-}).strict().superRefine(validateMissionRoundLimit);
+}).strict();
+
+const FacebookProductVideoMiningResolvedMissionConfigSchema =
+  FacebookProductVideoMiningResolvedMissionConfigObjectSchema.superRefine(validateMissionRoundLimit);
 
 const FacebookProductVideoMiningRawMissionInputSchema = z.object({
   missionId: z.string().min(1).optional(),
@@ -110,7 +113,7 @@ const FacebookProductVideoMiningRawMissionInputSchema = z.object({
 const FacebookProductVideoMiningMissionInputSchema =
   FacebookProductVideoMiningRawMissionInputSchema.pipe(FacebookProductVideoMiningResolvedMissionConfigSchema);
 
-const FacebookProductVideoMiningRunConfigSchema = FacebookProductVideoMiningResolvedMissionConfigSchema.extend({
+const FacebookProductVideoMiningRunConfigSchema = FacebookProductVideoMiningResolvedMissionConfigObjectSchema.extend({
   missionId: z.string().min(1),
   runId: z.string().min(1),
   startedAt: z.string().datetime(),
