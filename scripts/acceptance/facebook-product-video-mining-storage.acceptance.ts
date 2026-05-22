@@ -13,12 +13,12 @@ const now = new Date().toISOString();
 
 try {
   const parsed = FacebookProductVideoMiningSchemas.FacebookProductVideoMiningMissionInputSchema.parse({
-    feedEntryUrl: "https://www.facebook.com/reels/",
-    providerKind: "gpt-web-chat",
     targetProductCount: 1,
-    maxRounds: 2,
-    maxMinutes: 5,
   });
+  assert.equal(parsed.feedEntryUrl, "https://www.facebook.com/reels/");
+  assert.equal(parsed.providerKind, "gpt-web-chat");
+  assert.equal(parsed.modelName, null);
+  assert.equal(parsed.maxMinutes, 20);
   assert.equal(parsed.maxRounds >= parsed.targetProductCount, true);
   const storage = createFacebookProductVideoMiningStorage(dataDir);
   const run = storage.createRun({

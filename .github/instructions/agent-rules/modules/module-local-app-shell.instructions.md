@@ -74,6 +74,7 @@ Required:
 
 - Each visible job flow has its own bounded input surface.
 - Amazon invoice upload collects order id, seller URL, invoice number, approved PDF, marketplace, and human final-submit choice.
+- Facebook product video mining collects only target product count; feed URL, provider, model, max rounds, and max minutes remain governed defaults outside the visible app-shell form.
 - Job inputs submit to the app-shell HTTP API; workflow order remains inside the owning job flow.
 
 ## [APEX-LOCAL-APP-SHELL-003-V1] Status And Evidence Window

@@ -65,21 +65,22 @@ Workbench 和 local runtime 只接收输入、启动任务、查询状态；业�
 
 ### 3.2 Workbench 输入项
 
-当前页面收集的字段：
+当前页面只收集一个业务字段：
 
 | 字段 | 说明 |
 |---|---|
-| `feedEntryUrl` | Facebook feed / reels 入口 URL |
-| `providerKind` | `gemini-web-chat` 或 `gpt-web-chat` |
-| `modelName` | 可选模型名；空值走 provider 默认配置 |
 | `targetProductCount` | 希望保存的种草视频数量 |
-| `maxRounds` | 最大扫描轮数，必须大于等于目标保存数 |
-| `maxMinutes` | mission 最大运行分钟数 |
 
-代码 schema 还支持默认字段：
+点击 Start 后，页面提交的 mission payload 只包含 `targetProductCount`。
+其余参数由程序默认策略补齐：
 
 | 字段 | 默认行为 |
 |---|---|
+| `feedEntryUrl` | 默认 `https://www.facebook.com/reels/`；flow 会优先尝试聚焦已有 Facebook 视频 tab |
+| `providerKind` | 默认 `gpt-web-chat` |
+| `modelName` | 默认 `null`，走 provider 配置 |
+| `maxRounds` | 默认按目标数量自动放大，至少覆盖目标数量 |
+| `maxMinutes` | 默认 `20` |
 | `maxCommentScrolls` | 默认 `80` |
 | `maxCommentWaitMs` | 默认 `12000` |
 | `preferredQuality` | 默认 `best_available` |
@@ -184,8 +185,9 @@ src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.t
 
 关键约束：
 
-- `feedEntryUrl` 必须是 Facebook host。
-- `providerKind` 只能是 `gpt-web-chat` 或 `gemini-web-chat`。
+- APP 页面只要求 `targetProductCount`。
+- `feedEntryUrl` 如由 API 显式传入，必须是 Facebook host；页面不展示该字段。
+- `providerKind` 如由 API 显式传入，只能是 `gpt-web-chat` 或 `gemini-web-chat`；页面不展示该字段。
 - `maxRounds >= targetProductCount`。
 - `maxVideoBytes` 不能超过 schema 上限。
 - 外部输入必须先经 schema 校验。
@@ -397,6 +399,9 @@ npm run codex:entry-gate
 - local workbench re-export start / run / latest surface。
 - workbench handle 暴露 start / run / latest。
 - app shell 暴露 mission / run / latest routes。
+- Facebook workbench 输入面只暴露 `targetProductCount`，不得回归 feed URL / provider / model / max rounds / max minutes 参数表单。
+- Facebook client mission payload 只提交 `targetProductCount`。
+- Facebook schema 能从最小 mission input 自动补齐默认参数。
 - package scripts 包含 Facebook acceptance 和 audit。
 
 当前 acceptance 覆盖：

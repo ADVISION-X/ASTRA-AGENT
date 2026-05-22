@@ -41,12 +41,7 @@ const renderFacebookPanel = (): string => `
   <h1>Facebook product video mining</h1>
   <p class="muted">facebook-product-video-mining.flow.ts</p>
   <form class="form-grid" data-facebook-form>
-    <div class="field wide"><label>Facebook feed URL</label><input name="feedEntryUrl" type="url" required /></div>
-    <div class="field"><label>Provider</label><select name="providerKind"><option value="gemini-web-chat">gemini-web-chat</option><option value="gpt-web-chat">gpt-web-chat</option></select></div>
-    <div class="field"><label>Model</label><input name="modelName" placeholder="configured default" /></div>
     <div class="field"><label>Target product count</label><input name="targetProductCount" type="number" min="1" value="3" required /></div>
-    <div class="field"><label>Max rounds</label><input name="maxRounds" type="number" min="1" value="8" required /></div>
-    <div class="field"><label>Max minutes</label><input name="maxMinutes" type="number" min="1" value="20" required /></div>
     <div class="actions wide">
       <button class="btn" type="submit">Start</button>
       <button class="btn secondary" type="button" data-facebook-latest>Latest</button>

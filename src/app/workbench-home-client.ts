@@ -86,12 +86,7 @@ const startFacebook = async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   const mission = {
-    feedEntryUrl: form.feedEntryUrl.value,
-    providerKind: form.providerKind.value,
-    modelName: form.modelName.value || null,
     targetProductCount: Number(form.targetProductCount.value),
-    maxRounds: Number(form.maxRounds.value),
-    maxMinutes: Number(form.maxMinutes.value),
   };
   writeActivity("facebook product video mining submitted");
   renderLedger(await readJson("/api/facebook-product-video-mining/mission", {

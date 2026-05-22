@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 const FacebookProviderKindSchema = z.enum(["gpt-web-chat", "gemini-web-chat"]);
+const DEFAULT_FACEBOOK_MINING_FEED_ENTRY_URL = "https://www.facebook.com/reels/";
+const DEFAULT_FACEBOOK_MINING_PROVIDER_KIND = "gpt-web-chat";
+const DEFAULT_FACEBOOK_MINING_MAX_MINUTES = 20;
+const FACEBOOK_MINING_ROUNDS_PER_TARGET = 4;
+
 const FacebookMiningStatusSchema = z.enum([
   "queued",
   "running",
@@ -61,14 +66,16 @@ const validateMissionRoundLimit = (
   }
 };
 
-const FacebookProductVideoMiningMissionInputBaseSchema = z.object({
+const FacebookFeedEntryUrlSchema = z.string().url().refine((value) => {
+  const host = new URL(value).host.toLowerCase();
+  return host === "facebook.com" || host === "www.facebook.com" || host === "m.facebook.com";
+}, "feedEntryUrl must target facebook.com.");
+
+const FacebookProductVideoMiningResolvedMissionConfigSchema = z.object({
   missionId: z.string().min(1).optional(),
-  feedEntryUrl: z.string().url().refine((value) => {
-    const host = new URL(value).host.toLowerCase();
-    return host === "facebook.com" || host === "www.facebook.com" || host === "m.facebook.com";
-  }, "feedEntryUrl must target facebook.com."),
+  feedEntryUrl: FacebookFeedEntryUrlSchema,
   providerKind: FacebookProviderKindSchema,
-  modelName: z.string().min(1).nullable().optional(),
+  modelName: z.string().min(1).nullable(),
   targetProductCount: z.number().int().positive(),
   maxRounds: z.number().int().positive(),
   maxMinutes: z.number().int().positive(),
@@ -78,12 +85,32 @@ const FacebookProductVideoMiningMissionInputBaseSchema = z.object({
   maxVideoBytes: z.number().int().min(1_024).max(500_000_000).default(200_000_000),
   notInterestedEnabled: z.boolean().default(true),
   saveRejectedTrace: z.boolean().default(true),
-}).strict();
+}).strict().superRefine(validateMissionRoundLimit);
+
+const FacebookProductVideoMiningRawMissionInputSchema = z.object({
+  missionId: z.string().min(1).optional(),
+  feedEntryUrl: FacebookFeedEntryUrlSchema.default(DEFAULT_FACEBOOK_MINING_FEED_ENTRY_URL),
+  providerKind: FacebookProviderKindSchema.default(DEFAULT_FACEBOOK_MINING_PROVIDER_KIND),
+  modelName: z.string().min(1).nullable().optional(),
+  targetProductCount: z.number().int().positive(),
+  maxRounds: z.number().int().positive().optional(),
+  maxMinutes: z.number().int().positive().default(DEFAULT_FACEBOOK_MINING_MAX_MINUTES),
+  maxCommentScrolls: z.number().int().positive().default(80),
+  maxCommentWaitMs: z.number().int().positive().default(12_000),
+  preferredQuality: z.enum(["hd", "sd", "best_available"]).default("best_available"),
+  maxVideoBytes: z.number().int().min(1_024).max(500_000_000).default(200_000_000),
+  notInterestedEnabled: z.boolean().default(true),
+  saveRejectedTrace: z.boolean().default(true),
+}).strict().transform((value) => ({
+  ...value,
+  modelName: value.modelName ?? null,
+  maxRounds: value.maxRounds ?? Math.max(value.targetProductCount, value.targetProductCount * FACEBOOK_MINING_ROUNDS_PER_TARGET),
+}));
 
 const FacebookProductVideoMiningMissionInputSchema =
-  FacebookProductVideoMiningMissionInputBaseSchema.superRefine(validateMissionRoundLimit);
+  FacebookProductVideoMiningRawMissionInputSchema.pipe(FacebookProductVideoMiningResolvedMissionConfigSchema);
 
-const FacebookProductVideoMiningRunConfigSchema = FacebookProductVideoMiningMissionInputBaseSchema.extend({
+const FacebookProductVideoMiningRunConfigSchema = FacebookProductVideoMiningResolvedMissionConfigSchema.extend({
   missionId: z.string().min(1),
   runId: z.string().min(1),
   startedAt: z.string().datetime(),

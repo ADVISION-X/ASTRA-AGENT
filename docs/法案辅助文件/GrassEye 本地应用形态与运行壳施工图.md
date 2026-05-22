@@ -55,8 +55,29 @@ Amazon invoice upload 必须收集：
 
 ## Facebook 输入面
 
-Facebook product video mining 必须作为单独法门输入面。页面只提交结构化 mission input。
+Facebook product video mining 必须作为单独法门输入面。页面只允许操作者选择：
+
+- 目标种草视频数量
+- Start
+- Latest
+
+其余 mission 参数由程序自动完成：
+
+- Facebook feed entry 使用治理默认值或已有授权 Facebook 视频 tab。
+- provider kind 使用治理默认值。
+- modelName 默认为空。
+- max rounds、max minutes、评论加载、视频质量、视频大小、rejected trace 使用 schema 默认策略。
+
 是否产品视频、是否保存线索、是否继续下一轮，仍归对应 job flow 和能力组。
+
+禁止在页面重新暴露：
+
+- Facebook feed URL
+- Provider selector
+- Model
+- Max rounds
+- Max minutes
+- advanced options / hidden second configuration panel
 
 ## 禁止项
 
@@ -79,6 +100,7 @@ local-app-shell owner inspector 检查：
 - root page 是否暴露 health / mode 区域。
 - root page 是否暴露 job flow list。
 - Amazon 输入面是否包含必要字段。
+- Facebook 输入面是否只暴露目标数量、Start、Latest。
 - 页面是否包含 task status / evidence refs / failure reason 展示区域。
 - 页面是否仍出现 forbidden dashboard / planner / visual runtime 控制面。
 - `src/app/**` 是否直接导入 job flow 文件或能力 runtime 私有实现。

@@ -1,7 +1,7 @@
 ---
 name: "Facebook Product Video Mining"
-description: "Governs the Facebook product video mining job flow, app-shell surface, acceptance ownership, and audit owner binding."
-applyTo: "src/plugins/facebook-product-video-mining/**,src/plugins/local-workbench-plugin-tasks.ts,src/lib/local-runtime/workbench*.ts,src/app/create-workbench-server.ts,src/app/server.ts,scripts/acceptance/facebook-product-video-mining*.ts,scripts/acceptance/facebook-live-dom-probe.ts,scripts/audit/domains/facebook-product-video-mining/**,package.json"
+description: "Governs the Facebook product video mining job flow, minimal app-shell surface, acceptance ownership, and audit owner binding."
+applyTo: "src/plugins/facebook-product-video-mining/**,src/plugins/local-workbench-plugin-tasks.ts,src/lib/local-runtime/workbench*.ts,src/app/create-workbench-server.ts,src/app/server.ts,src/app/workbench-home-page.ts,src/app/workbench-home-client.ts,scripts/acceptance/facebook-product-video-mining*.ts,scripts/acceptance/facebook-live-dom-probe.ts,scripts/audit/domains/facebook-product-video-mining/**,package.json"
 ---
 
 # Facebook Product Video Mining
@@ -26,6 +26,18 @@ mission input
 
 App shell and local runtime may expose only start, status, latest, and mode metadata.
 They must not decide business order.
+
+The operator-facing Facebook workbench surface is intentionally minimal:
+
+```txt
+target product count -> Start
+```
+
+Feed entry, provider kind, model name, max rounds, max minutes, comment scan limits,
+quality preference, video byte limit, and rejected-trace behavior are program
+defaults owned by the Facebook mission schema and flow. They may be accepted by
+the API for automation and tests, but they must not return as visible app-shell
+configuration fields.
 
 ## [APEX-FACEBOOK-MINING-001-V1] Flow Ownership And Loop Truth
 
@@ -85,6 +97,8 @@ They must not decide business order.
     "src/lib/local-runtime/workbench*.ts",
     "src/app/create-workbench-server.ts",
     "src/app/server.ts",
+    "src/app/workbench-home-page.ts",
+    "src/app/workbench-home-client.ts",
     "scripts/acceptance/facebook-product-video-mining*.ts",
     "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}",
     "package.json"
@@ -113,3 +127,59 @@ Facebook domain 成熟后必须同时具备：
 - HTTP surface 直接下发业务步骤
 - 没有 owner inspector 的假接入
 - 只在 package script 声明而不进入 CI-FULL
+
+## [APEX-FACEBOOK-MINING-003-V1] Minimal Operator Input And Automatic Mission Defaults
+
+```apex-law
+{
+  "lawId": "APEX-FACEBOOK-MINING-003-V1",
+  "status": "active",
+  "tier": "P0",
+  "capabilityDomain": "facebook-product-video-mining",
+  "enforcementMode": "machine-blocking",
+  "evidenceMode": "fs+ast",
+  "summary": "The Facebook mining app-shell surface must ask the operator only for target product count and must derive all other mission parameters from governed defaults.",
+  "appliesTo": [
+    "src/app/workbench-home-page.ts",
+    "src/app/workbench-home-client.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.schema.ts",
+    "scripts/acceptance/facebook-product-video-mining*.ts",
+    "scripts/audit/domains/facebook-product-video-mining/**/*.{ts,json}"
+  ],
+  "forbidden": [
+    "Visible Facebook feed URL input in the workbench.",
+    "Visible Facebook provider selector in the workbench.",
+    "Visible Facebook model, max rounds, or max minutes fields in the workbench.",
+    "Client-side Facebook mission payload requiring feedEntryUrl, providerKind, modelName, maxRounds, or maxMinutes.",
+    "Facebook mission schema requiring operator-supplied parameters beyond targetProductCount."
+  ]
+}
+```
+
+### 法条
+
+Facebook 种草视频入口必须保持一键任务形态：
+
+```txt
+选择目标种草视频数量
+-> Start
+-> 程序自动使用当前治理默认值执行
+```
+
+程序默认值必须由 schema / flow 维护，不能由页面表单暴露给操作者调参。
+当前默认策略至少包含：
+
+- 默认 Facebook feed entry。
+- 默认 AI provider。
+- 默认 modelName 为空。
+- 默认最大轮数。
+- 默认最大分钟数。
+- 默认评论加载、视频质量、视频大小与 rejected trace 设置。
+
+### 禁止
+
+- 页面展示 `feedEntryUrl` 输入框。
+- 页面展示 `providerKind` selector。
+- 页面展示 `modelName`、`maxRounds`、`maxMinutes` 参数框。
+- client payload 重新携带这些页面参数。
+- 为了满足页面调参新增第二套配置面板、advanced panel、fallback 参数链或 shadow mission input。
