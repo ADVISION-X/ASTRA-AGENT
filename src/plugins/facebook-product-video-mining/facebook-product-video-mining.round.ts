@@ -9,6 +9,8 @@ import {
   downloadFacebookMiningRoundArtifacts,
   judgeFacebookMiningRound,
 } from "./facebook-product-video-mining.round-execution.js";
+import { downloadCurrentFacebookVideo } from "./facebook-product-video-mining.video.js";
+import { judgeFacebookProductVideo } from "./facebook-product-video-mining.ai-judge.js";
 
 export const runFacebookMiningRound = async (
   input: FacebookMiningRoundInput,
@@ -25,6 +27,7 @@ export const runFacebookMiningRound = async (
   const artifacts = await downloadFacebookMiningRoundArtifacts({
     ...context,
     probe: probe.value,
+    downloadCurrentFacebookVideo,
   });
   if (!artifacts.ok) {
     return artifacts.outcome;
@@ -32,6 +35,8 @@ export const runFacebookMiningRound = async (
   const resolution = await judgeFacebookMiningRound({
     ...context,
     artifacts: artifacts.value,
+    judgeFacebookProductVideo,
+    timeoutMs: 90_000,
   });
   if (!resolution.ok) {
     return resolution.outcome;

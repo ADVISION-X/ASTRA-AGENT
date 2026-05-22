@@ -1,6 +1,6 @@
-import { statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 
-import type { AiFeedInput, AiFeedResult, AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
+import type { AiInputGatewayAbilityGroup } from "../../capabilities/ai-input-gateway/index.js";
 import {
   RuntimeFailureClass,
   createMissionTrace,
@@ -44,6 +44,20 @@ type JudgeFacebookProductVideoInput = {
 };
 
 const FACEBOOK_RUNTIME_LOG_OWNER = "facebook-product-video-mining" as const;
+const FACEBOOK_AI_PROVIDER_FAILURE_PAYLOAD = {
+  recoveryTrail: "facebook-ai-recovery-trail",
+  action: "recover_ai_provider_failure",
+  status: "review_required",
+  reason: "ai_provider_returned_no_raw_output",
+  durationMs: 0,
+  beforeHash: "ai-provider-before",
+  afterHash: "ai-provider-after",
+} as const;
+
+const readVideoByteSize = (videoFilePath: string): number => {
+  if (!existsSync(videoFilePath)) return 0;
+  return statSync(videoFilePath).size;
+};
 
 const createFacebookRoundTrace = (input: {
   missionId: string;
@@ -60,14 +74,27 @@ const createFacebookRoundTrace = (input: {
 
 export const judgeFacebookProductVideo = async (input: JudgeFacebookProductVideoInput): Promise<FacebookVideoAiJudgment> => {
   const prompt = buildPrompt({ probe: input.probe, comments: input.comments });
-  const request = buildAiFeedRequest({ ...input, prompt });
+  const request = buildAiFeedRequest({
+    ...input,
+    prompt,
+    inputRefs: [
+      {
+        id: `${input.roundId}_video`,
+        kind: "video/mp4",
+        summary: "staging Facebook video artifact for product-seeding judgment",
+        filePath: input.videoFilePath,
+        mimeType: "video/mp4",
+        uploadStatus: "pending",
+      },
+    ],
+  });
   const traceContext = createFacebookRoundTrace(input);
   const stageLogger = createStageLogger({ logger: input.runtimeLogger });
   const fileRef = request.inputRefs[0]?.filePath ?? input.videoFilePath;
   const videoFileHash = buildAiHash(input.videoFilePath);
   const promptHash = buildAiHash(prompt);
   const beforeHash = promptHash;
-  const videoByteSize = statSync(input.videoFilePath).size;
+  const videoByteSize = readVideoByteSize(input.videoFilePath);
   const uploadStage = stageLogger.start({
     context: traceContext,
     stageName: "FACEBOOK_AI_UPLOAD",
@@ -132,6 +159,12 @@ export const judgeFacebookProductVideo = async (input: JudgeFacebookProductVideo
       retryable: false,
       terminal: false,
       recoveryPolicy: "review_required",
+      payload: {
+        ...FACEBOOK_AI_PROVIDER_FAILURE_PAYLOAD,
+        reason: judgment.reason,
+        durationMs: judgment.providerProof.durationMs,
+        afterHash,
+      },
     });
     responseStage.fail({
       reason: judgment.reason,
@@ -141,6 +174,13 @@ export const judgeFacebookProductVideo = async (input: JudgeFacebookProductVideo
       recoveryPolicy: "review_required",
       refs: { rawOutputRef },
       hashes: { rawOutputHash },
+      payload: {
+        ...FACEBOOK_AI_PROVIDER_FAILURE_PAYLOAD,
+        action: "wait_ai_response",
+        reason: judgment.reason,
+        durationMs: judgment.providerProof.durationMs,
+        afterHash,
+      },
     });
   } else {
     uploadStage.complete({

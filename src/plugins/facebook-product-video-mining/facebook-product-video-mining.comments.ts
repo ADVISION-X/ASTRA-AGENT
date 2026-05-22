@@ -1,27 +1,21 @@
-import { createHash } from "node:crypto";
-
 import type { BrowserController } from "../../lib/browser/browser-controller.js";
 import {
   RuntimeFailureClass,
-  createMissionTrace,
   createStageLogger,
   type RuntimeLogger,
-  withRoundTrace,
 } from "../../lib/runtime-logs/index.js";
 import {
-  FacebookProductVideoMiningSchemas,
   type FacebookProductVideoMiningContracts,
 } from "./facebook-product-video-mining.schema.js";
 import {
-  buildClickCommentEntryScript,
-  buildExpandNextScript,
-  buildExtractCommentsScript,
-} from "./facebook-product-video-mining.comment-scripts.js";
+  buildCommentsHash,
+  collectFacebookCommentRounds,
+  createFacebookCommentTraceContext,
+  openFacebookCommentSurface,
+} from "./facebook-product-video-mining.comments-support.js";
 
 type FacebookCommentRecord = FacebookProductVideoMiningContracts["FacebookCommentRecord"];
 type FacebookVideoDomProbeResult = FacebookProductVideoMiningContracts["FacebookVideoDomProbeResult"];
-
-const FACEBOOK_RUNTIME_LOG_OWNER = "facebook-product-video-mining" as const;
 
 export type FacebookCommentCollectionResult = {
   status: "success" | "review_required" | "failed";
@@ -31,206 +25,7 @@ export type FacebookCommentCollectionResult = {
   reason: string | null;
 };
 
-type RawCommentsResult = {
-  status: "success" | "review_required" | "failed";
-  reason: string | null;
-  comments: Array<{
-    commentId: string | null;
-    authorDisplayText: string | null;
-    commentText: string;
-    likeCount: number | null;
-    replyDepth: number;
-    parentCommentId: string | null;
-    sourceSignal: string;
-  }>;
-  expandableCount: number;
-};
-
-type RawActionResult = {
-  status: "success" | "review_required" | "failed";
-  reason: string | null;
-  acted: boolean;
-};
-
-const commentKey = (comment: Pick<FacebookCommentRecord, "authorDisplayText" | "commentText" | "parentCommentId">): string =>
-  `${comment.authorDisplayText ?? "anon"}|${comment.parentCommentId ?? "root"}|${comment.commentText}`;
-
-const normalizeCommentText = (comment: RawCommentsResult["comments"][number]): string => {
-  let text = comment.commentText.trim();
-  const author = comment.authorDisplayText?.trim();
-  if (author && text.startsWith(author)) {
-    text = text.slice(author.length).trim();
-  }
-  return text;
-};
-
-const shouldKeepComment = (comment: RawCommentsResult["comments"][number]): boolean => {
-  const text = normalizeCommentText(comment);
-  return text.length > 0
-    && !/^\d+\s*(秒|分钟|小时|天|周|月|年|s|m|h|d|w)$/iu.test(text)
-    && !/^查看原文/u.test(text)
-    && !/^see translation$/iu.test(text);
-};
-
-const buildCommentCollectionFailure = (
-  status: FacebookCommentCollectionResult["status"],
-  reason: string | null,
-  comments: FacebookCommentRecord[],
-): FacebookCommentCollectionResult => ({
-  status,
-  comments,
-  commentsComplete: false,
-  stopReason: reason,
-  reason,
-});
-
-const appendExtractedComments = (
-  deduped: Map<string, FacebookCommentRecord>,
-  extracted: RawCommentsResult,
-): boolean => {
-  const beforeCount = deduped.size;
-  extracted.comments.filter(shouldKeepComment).forEach((comment, index) => {
-    const parsed = FacebookProductVideoMiningSchemas.FacebookCommentRecordSchema.parse({
-      ...comment,
-      commentText: normalizeCommentText(comment),
-      ordinal: deduped.size + index,
-      capturedAt: new Date().toISOString(),
-    });
-    deduped.set(commentKey(parsed), parsed);
-  });
-  return deduped.size === beforeCount;
-};
-
-const buildCompletedCommentResult = (
-  deduped: Map<string, FacebookCommentRecord>,
-): FacebookCommentCollectionResult => ({
-  status: "success",
-  comments: [...deduped.values()],
-  commentsComplete: true,
-  stopReason: "no_more_comments",
-  reason: null,
-});
-
-const createFacebookRoundTrace = (input: {
-  missionId: string;
-  runId: string;
-  roundId: string;
-}) => withRoundTrace({
-  context: createMissionTrace({
-    missionId: input.missionId,
-    runId: input.runId,
-    owner: FACEBOOK_RUNTIME_LOG_OWNER,
-  }),
-  roundId: input.roundId,
-});
-
-const buildCommentsHash = (comments: readonly FacebookCommentRecord[]): string => createHash("sha256")
-  .update(JSON.stringify(comments))
-  .digest("hex")
-  .slice(0, 24);
-
-const extractRawComments = (
-  browser: BrowserController,
-): Promise<RawCommentsResult> =>
-  browser.evaluateActiveTab<RawCommentsResult>({
-    description: "extract visible Facebook comments",
-    script: buildExtractCommentsScript(),
-  });
-
-const waitForCommentSurfaceSignal = async (input: {
-  browser: BrowserController;
-  deadline: number;
-}): Promise<FacebookCommentCollectionResult | null> => {
-  while (Date.now() < input.deadline) {
-    const extracted = await extractRawComments(input.browser);
-    if (extracted.status !== "success") {
-      return buildCommentCollectionFailure(extracted.status, extracted.reason, []);
-    }
-    if (extracted.comments.length > 0 || extracted.expandableCount > 0) {
-      return null;
-    }
-    await input.browser.wait(300);
-  }
-  return null;
-};
-
-const openFacebookCommentSurface = async (input: {
-  browser: BrowserController;
-  probe: FacebookVideoDomProbeResult;
-  deadline: number;
-}): Promise<FacebookCommentCollectionResult | null> => {
-  const entryResult = await input.browser.evaluateActiveTab<RawActionResult>({
-    description: "open current Facebook comment surface",
-    script: buildClickCommentEntryScript(input.probe.commentEntryElementRef?.selector ?? null),
-  });
-  if (entryResult.status !== "success") {
-    return buildCommentCollectionFailure(entryResult.status, entryResult.reason, []);
-  }
-  return waitForCommentSurfaceSignal({
-    browser: input.browser,
-    deadline: Math.min(input.deadline, Date.now() + 5_000),
-  });
-};
-
-const waitForCommentExpansionEffect = async (input: {
-  browser: BrowserController;
-  deadline: number;
-  previousCommentCount: number;
-  previousExpandableCount: number;
-}): Promise<FacebookCommentCollectionResult | null> => {
-  while (Date.now() < input.deadline) {
-    const extracted = await extractRawComments(input.browser);
-    if (extracted.status !== "success") {
-      return buildCommentCollectionFailure(extracted.status, extracted.reason, []);
-    }
-    if (
-      extracted.comments.length > input.previousCommentCount
-      || extracted.expandableCount !== input.previousExpandableCount
-      || extracted.expandableCount === 0
-    ) {
-      return null;
-    }
-    await input.browser.wait(300);
-  }
-  return null;
-};
-
-const extractFacebookCommentRound = async (input: {
-  browser: BrowserController;
-  deduped: Map<string, FacebookCommentRecord>;
-  stableRounds: number;
-  deadline: number;
-}): Promise<{ result: FacebookCommentCollectionResult | null; stableRounds: number }> => {
-  const extracted = await extractRawComments(input.browser);
-  if (extracted.status !== "success") {
-    return {
-      result: buildCommentCollectionFailure(extracted.status, extracted.reason, [...input.deduped.values()]),
-      stableRounds: input.stableRounds,
-    };
-  }
-  const nextStableRounds = appendExtractedComments(input.deduped, extracted)
-    ? input.stableRounds + 1
-    : 0;
-  if (nextStableRounds >= 2 && extracted.expandableCount === 0) {
-    return { result: buildCompletedCommentResult(input.deduped), stableRounds: nextStableRounds };
-  }
-  await input.browser.evaluateActiveTab<RawActionResult>({
-    description: "expand more Facebook comments",
-    script: buildExpandNextScript(),
-  });
-  const expansionFailure = await waitForCommentExpansionEffect({
-    browser: input.browser,
-    deadline: Math.min(input.deadline, Date.now() + 5_000),
-    previousCommentCount: extracted.comments.length,
-    previousExpandableCount: extracted.expandableCount,
-  });
-  if (expansionFailure) {
-    return { result: expansionFailure, stableRounds: nextStableRounds };
-  }
-  return { result: null, stableRounds: nextStableRounds };
-};
-
-export const collectAllLoadableComments = async (input: {
+type CollectAllLoadableCommentsInput = {
   browser: BrowserController;
   runtimeLogger: RuntimeLogger;
   missionId: string;
@@ -239,80 +34,24 @@ export const collectAllLoadableComments = async (input: {
   probe: FacebookVideoDomProbeResult;
   maxCommentScrolls: number;
   maxCommentWaitMs: number;
-}): Promise<FacebookCommentCollectionResult> => {
+};
+
+export const collectAllLoadableComments = async (input: CollectAllLoadableCommentsInput): Promise<FacebookCommentCollectionResult> => {
   const commentsRef = `comments:${input.roundId}`;
-  const traceContext = createFacebookRoundTrace(input);
+  const traceContext = createFacebookCommentTraceContext(input);
   const stageLogger = createStageLogger({ logger: input.runtimeLogger });
-  const commentStage = stageLogger.start({
-    context: traceContext,
-    stageName: "FACEBOOK_COMMENT_COLLECTION",
-    modeVisibility: ["FLOW", "DEBUG", "TRACE"],
-    refs: { commentsRef },
-  });
+  const commentStage = stageLogger.start({ context: traceContext, stageName: "FACEBOOK_COMMENT_COLLECTION", modeVisibility: ["FLOW", "DEBUG", "TRACE"], refs: { commentsRef } });
   const deadline = Date.now() + input.maxCommentWaitMs;
   const openFailure = await openFacebookCommentSurface({ browser: input.browser, probe: input.probe, deadline });
   if (openFailure) {
-    commentStage.fail({
-      reason: openFailure.reason ?? "facebook_comment_surface_unavailable",
-      failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
-      retryable: false,
-      terminal: false,
-      recoveryPolicy: "review_required",
-      refs: { commentsRef },
-      hashes: { commentsHash: buildCommentsHash(openFailure.comments) },
-      metrics: { commentsLoadedCount: openFailure.comments.length },
-      payload: {
-        recoveryTrail: "facebook-comment-recovery-trail",
-        action: "open_comment_surface",
-        beforeHash: "comments-before",
-        afterHash: "comments-after",
-      },
-    });
+    commentStage.fail({ reason: openFailure.reason ?? "facebook_comment_surface_unavailable", failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE, retryable: false, terminal: false, recoveryPolicy: "review_required", refs: { commentsRef }, hashes: { commentsHash: buildCommentsHash(openFailure.comments) }, metrics: { commentsLoadedCount: openFailure.comments.length }, payload: { recoveryTrail: "facebook-comment-recovery-trail", action: "open_comment_surface", beforeHash: "comments-before", afterHash: "comments-after" } });
     return openFailure;
   }
-  const deduped = new Map<string, FacebookCommentRecord>();
-  let stableRounds = 0;
-  for (let round = 0; round < input.maxCommentScrolls && Date.now() < deadline; round += 1) {
-    const iteration = await extractFacebookCommentRound({ browser: input.browser, deduped, stableRounds, deadline });
-    if (iteration.result) {
-      commentStage.fail({
-        reason: iteration.result.reason ?? iteration.result.stopReason ?? "facebook_comment_collection_failed",
-        failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE,
-        retryable: false,
-        terminal: false,
-        recoveryPolicy: "review_required",
-        refs: { commentsRef },
-        hashes: { commentsHash: buildCommentsHash(iteration.result.comments) },
-        metrics: { commentsLoadedCount: iteration.result.comments.length },
-        payload: {
-          recoveryTrail: "facebook-comment-recovery-trail",
-          action: "expand_comments",
-          beforeHash: "comments-before",
-          afterHash: "comments-after",
-        },
-      });
-      return iteration.result;
-    }
-    stableRounds = iteration.stableRounds;
+  const result = await collectFacebookCommentRounds({ browser: input.browser, maxCommentScrolls: input.maxCommentScrolls, deadline });
+  if (result.reason) {
+    commentStage.fail({ reason: result.reason ?? result.stopReason ?? "facebook_comment_collection_failed", failureClass: RuntimeFailureClass.DOM_PROBE_FAILURE, retryable: false, terminal: false, recoveryPolicy: "review_required", refs: { commentsRef }, hashes: { commentsHash: buildCommentsHash(result.comments) }, metrics: { commentsLoadedCount: result.comments.length }, payload: { recoveryTrail: "facebook-comment-recovery-trail", action: "expand_comments", beforeHash: "comments-before", afterHash: "comments-after" } });
+    return result;
   }
-  const result: FacebookCommentCollectionResult = {
-    status: "success",
-    comments: [...deduped.values()],
-    commentsComplete: false,
-    stopReason: Date.now() >= deadline ? "max_wait_reached" : "max_scroll_reached",
-    reason: null,
-  };
-  commentStage.complete({
-    durationMs: 0,
-    refs: { commentsRef },
-    hashes: { commentsHash: buildCommentsHash(result.comments) },
-    metrics: { commentsLoadedCount: result.comments.length },
-    payload: {
-      recoveryTrail: "facebook-comment-recovery-trail",
-      action: "expand_comments",
-      beforeHash: "comments-before",
-      afterHash: "comments-after",
-    },
-  });
+  commentStage.complete({ durationMs: 0, refs: { commentsRef }, hashes: { commentsHash: buildCommentsHash(result.comments) }, metrics: { commentsLoadedCount: result.comments.length }, payload: { recoveryTrail: "facebook-comment-recovery-trail", action: "expand_comments", beforeHash: "comments-before", afterHash: "comments-after" } });
   return result;
 };

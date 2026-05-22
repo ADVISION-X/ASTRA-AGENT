@@ -87,9 +87,12 @@ const buildFailedDownloadStageSummary = (downloaded: VideoDownloadResult) => ({
   retryable: false,
   terminal: false,
   recoveryPolicy: "review_required" as const,
-  metrics: { byteSize: 0 },
+  durationMs: 0,
+  metrics: { byteSize: 0, durationMs: 0 },
   payload: {
     disposition: "staging",
+    status: downloaded.status,
+    reason: downloaded.reviewRequiredReason ?? downloaded.failureReason ?? "facebook_video_download_failed",
     ...FACEBOOK_VIDEO_DOWNLOAD_PAYLOAD,
   },
 });

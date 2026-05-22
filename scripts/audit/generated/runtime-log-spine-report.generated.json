@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-22T18:54:08.702Z",
+  "generatedAt": "2026-05-22T19:29:42.769Z",
   "status": "PASS",
-  "scannedFiles": 218,
+  "scannedFiles": 220,
   "inspectedFiles": [
     "scripts/acceptance/runtime-log-debug-bundle.acceptance.ts",
     "scripts/acceptance/runtime-log-redaction.acceptance.ts",
@@ -186,9 +186,11 @@
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.candidate-record.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.chrome-tabs.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comment-scripts.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe-script.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.hints.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.logging.ts",
@@ -228,11 +230,11 @@
   "eventTypeLiteralCount": 0,
   "missingModeVisibilityCount": 0,
   "missingTraceContractCount": 0,
-  "catchBranchCount": 17,
+  "catchBranchCount": 18,
   "catchBranchWithoutLogCount": 0,
   "failureBranchCount": 0,
   "failureWithoutClassCount": 0,
-  "stageStartCount": 177,
+  "stageStartCount": 179,
   "stageTerminalCount": 0,
   "stagePairViolationCount": 0,
   "heavyPayloadFlowViolationCount": 0,
@@ -240,7 +242,7 @@
   "summary": {
     "totalFindings": 0,
     "fatalFindings": 0,
-    "scannedFiles": 218,
+    "scannedFiles": 220,
     "emitCallCount": 1,
     "consoleViolationCount": 0,
     "failureWithoutClassCount": 0,
@@ -251,7 +253,7 @@
       "name": "forbidden-console",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 213,
+      "scannedFiles": 215,
       "metrics": {
         "consoleViolationCount": 0
       }
@@ -260,13 +262,13 @@
       "name": "event-type-registry",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 176
+      "scannedFiles": 178
     },
     {
       "name": "runtime-log-emit-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 174,
+      "scannedFiles": 176,
       "metrics": {
         "emitCallCount": 1
       }
@@ -275,13 +277,13 @@
       "name": "mode-visibility",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 174
+      "scannedFiles": 176
     },
     {
       "name": "stage-pair-coverage",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 177,
+      "scannedFiles": 179,
       "metrics": {
         "stageCoveragePercent": 100
       }
@@ -290,13 +292,13 @@
       "name": "catch-branch-log",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 17
+      "scannedFiles": 18
     },
     {
       "name": "failure-class",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 177,
+      "scannedFiles": 179,
       "metrics": {
         "failureWithoutClassCount": 0
       }
@@ -323,7 +325,7 @@
       "name": "browser-action-log-contract",
       "status": "PASS",
       "findingCount": 0,
-      "scannedFiles": 35
+      "scannedFiles": 36
     },
     {
       "name": "anti-fake-inspector",

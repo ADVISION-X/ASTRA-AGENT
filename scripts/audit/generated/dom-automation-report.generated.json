@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T18:54:08.736Z",
+  "generatedAt": "2026-05-22T19:29:42.807Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -323,9 +323,11 @@
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.candidate-record.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.chrome-tabs.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comment-scripts.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe-script.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.hints.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.logging.ts",

@@ -94,7 +94,17 @@ export const handleProbeFailure = (input: {
     || input.probe.status === "captcha_or_2fa_required"
     || input.probe.blocker === "facebook_rate_limited";
   return buildRoundFailureOutcome({
-    failureContract: input.failureContract,
+    failureContract: {
+      ...input.failureContract,
+      failureClass: input.failureContract.failureClass,
+      recoveryPolicy: input.failureContract.recoveryPolicy,
+      recoveryTrail: input.failureContract.recoveryTrail,
+      durationMs: input.failureContract.durationMs,
+      beforeHash: input.failureContract.beforeHash,
+      afterHash: input.failureContract.afterHash,
+      terminal: input.failureContract.terminal,
+      reason: input.failureContract.reason,
+    },
     terminal,
     reason: input.probe.blocker ?? input.probe.status,
   });
@@ -163,7 +173,11 @@ export const handleJudgmentFailure = async (input: JudgmentFailureInput): Promis
     status: "review_required",
     judgment: input.judgment,
   });
-  return buildRoundFailureOutcome({ failureContract: input.failureContract });
+  return buildRoundFailureOutcome({
+    failureContract: input.failureContract,
+    terminal: true,
+    reason: input.judgment.reason,
+  });
 };
 
 export const handleAcceptedJudgment = async (input: AcceptedJudgmentInput): Promise<FacebookDecisionApplySummary> => {

@@ -22,6 +22,7 @@ import {
 
 type FacebookMiningArtifactCollectionInput = FacebookMiningRoundContext & {
   probe: FacebookMiningRoundArtifacts["probe"];
+  downloadCurrentFacebookVideo: typeof downloadCurrentFacebookVideo;
 };
 
 type FacebookMiningRoundComments = Awaited<ReturnType<typeof collectAllLoadableComments>>;
@@ -88,7 +89,7 @@ const collectFacebookMiningArtifacts = async (input: FacebookMiningArtifactColle
     maxCommentScrolls: input.input.run.maxCommentScrolls,
     maxCommentWaitMs: input.input.run.maxCommentWaitMs,
   });
-  const download = await downloadCurrentFacebookVideo({
+  const download = await input.downloadCurrentFacebookVideo({
     videoDownload: input.input.videoDownload,
     runtimeLogger: input.input.runtimeLogger,
     missionId: input.input.run.missionId,
@@ -185,8 +186,10 @@ export const downloadFacebookMiningRoundArtifacts = async (
 
 export const judgeFacebookMiningRound = async (input: FacebookMiningRoundContext & {
   artifacts: FacebookMiningRoundArtifacts;
+  judgeFacebookProductVideo: typeof judgeFacebookProductVideo;
+  timeoutMs: number;
 }): Promise<FacebookMiningRoundStageResult<FacebookMiningRoundResolution>> => {
-  const judgment = await judgeFacebookProductVideo({
+  const judgment = await input.judgeFacebookProductVideo({
     aiInputGateway: input.input.aiInputGateway,
     runtimeLogger: input.input.runtimeLogger,
     providerKind: input.input.run.providerKind,
@@ -197,7 +200,7 @@ export const judgeFacebookMiningRound = async (input: FacebookMiningRoundContext
     probe: input.artifacts.probe,
     comments: input.artifacts.comments.comments,
     videoFilePath: input.artifacts.download.output.filePath,
-    timeoutMs: 90_000,
+    timeoutMs: input.timeoutMs,
     maxFileBytes: input.input.run.maxVideoBytes,
   });
   if (judgment.status !== "success") {

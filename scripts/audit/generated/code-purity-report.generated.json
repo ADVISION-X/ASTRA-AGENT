@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T18:54:07.702Z",
+  "generatedAt": "2026-05-22T19:29:41.660Z",
   "capabilityDomain": "code-purity",
   "executionGroup": "foundation",
   "lawIds": [
@@ -78,30 +78,21 @@
       "evidence": "{\"owner\":\"runtime-logs\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"log-writer\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts has an over-limit function near line 61.",
-      "severity": "fatal",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
-      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
       "checkId": "code-purity/file-budget-hard-limit",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts has 319 lines and exceeds the job step/support file hard-limit budget.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts has 248 lines and exceeds the job step/support file hard-limit budget.",
       "severity": "fatal",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
       "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts has an over-limit function near line 233.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts has an over-limit function near line 75.",
       "severity": "fatal",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
       "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
@@ -126,43 +117,25 @@
       "checkId": "code-purity/file-budget-hard-limit",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts has 382 lines and exceeds the job-flow file hard-limit budget.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts has 290 lines and exceeds the job-flow file hard-limit budget.",
       "severity": "fatal",
       "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
       "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
+      "checkId": "code-purity/named-export-budget",
+      "lawId": "APEX-CODE-PURITY-001-V1",
       "clauseId": "primary",
-      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts has an over-limit function near line 77.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-support.ts exports 13 symbols and exceeds the hard limit 10.",
       "severity": "fatal",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
-      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-support.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Reduce the export surface or split the file into explicit owner-local contracts.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     },
     {
       "checkId": "code-purity/function-budget",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "clauseId": "primary",
-      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts has an over-limit function near line 132.",
-      "severity": "fatal",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
-      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts has an over-limit function near line 302.",
-      "severity": "fatal",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
-      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-flow\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts has an over-limit function near line 102.",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts has an over-limit function near line 124.",
       "severity": "fatal",
       "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
       "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
@@ -174,6 +147,33 @@
       "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts has an over-limit function near line 126.",
       "severity": "fatal",
       "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.not-interested.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-execution.ts has an over-limit function near line 187.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-execution.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/file-budget-hard-limit",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts has 246 lines and exceeds the job step/support file hard-limit budget.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
+      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Split or reduce the file by runtime role until it falls under the hard limit.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "clauseId": "primary",
+      "message": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts has an over-limit function near line 71.",
+      "severity": "fatal",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
       "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
     }
   ],
@@ -478,9 +478,11 @@
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.candidate-record.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.chrome-tabs.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comment-scripts.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe-script.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.dom-probe.ts",
+    "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow-support.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.hints.ts",
     "src/plugins/facebook-product-video-mining/facebook-product-video-mining.logging.ts",

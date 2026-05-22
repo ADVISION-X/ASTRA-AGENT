@@ -19,11 +19,15 @@ import {
   buildNavigationPayload,
   buildNavigationVideoKey,
   ensureFacebookFeedTab,
-  isFacebookPageUrl,
+  pressArrowDownForNextVideo,
+  wheelScrollForNextVideo,
+  safeZoneClickForNextVideo,
+  runFallbackNavigation,
   type FacebookNavigationAction,
   type FacebookNavigationWaitResult,
-  runFixedNavigationActionLadder,
+  waitForNavigationChange,
 } from "./facebook-product-video-mining.navigation-support.js";
+import { collectChangedNavigationSignals } from "./facebook-product-video-mining.navigation-proof.js";
 
 export type FacebookMiningRoundOutcome = {
   terminal: boolean;
@@ -99,6 +103,24 @@ const buildRecoverFeedTabOutcome = (reason: string): FacebookMiningRoundOutcome 
   durationMs: 0,
 });
 
+const runFixedNavigationActionLadder = async (input: {
+  browser: BrowserController;
+  before: FacebookNavigationSignature;
+  feedEntryUrl: string;
+}): Promise<FacebookNavigationWaitResult & { actionLadder: FacebookNavigationAction[] }> => {
+  const actionLadder: FacebookNavigationAction[] = [];
+  for (const action of [pressArrowDownForNextVideo, wheelScrollForNextVideo, safeZoneClickForNextVideo, runFallbackNavigation]) {
+    actionLadder.push(await action(input.browser));
+    const result = await waitForNavigationChange({ browser: input.browser, before: input.before });
+    if (result.terminalReason || result.quorumMet) return { ...result, actionLadder };
+  }
+  const recoverReason = await ensureFacebookFeedTab({ browser: input.browser, feedEntryUrl: input.feedEntryUrl });
+  if (recoverReason) return { after: input.before, terminalReason: null, changedSignals: [], quorumMet: false, actionLadder };
+  actionLadder.push(await pressArrowDownForNextVideo(input.browser));
+  const result = await waitForNavigationChange({ browser: input.browser, before: input.before });
+  return { ...result, actionLadder };
+};
+
 export const navigateToNextFacebookVideo = async (input: NavigateToNextFacebookVideoInput): Promise<FacebookMiningRoundOutcome> => {
   const stageLogger = createStageLogger({ logger: input.logger });
   const traceContext = createFacebookRoundTrace(input);
@@ -135,9 +157,10 @@ export const navigateToNextFacebookVideo = async (input: NavigateToNextFacebookV
   const reason = result.terminalReason ?? (result.quorumMet ? null : "next_video_not_confirmed");
   const afterSignatureHash = buildNavigationHash(result.after.signature);
   const afterVideoKey = buildNavigationVideoKey(result.after);
+  const changedSignals = collectChangedNavigationSignals(before, result.after);
   const actionStrategy = result.actionLadder.map((action) => action.action).join("->") || "none";
   const fallbackUsed = result.actionLadder.some((action) => action.action === "arrow_down_and_scroll");
-  const stableMetrics = { stableSampleCount: result.changedSignals.length };
+  const stableMetrics = { stableSampleCount: changedSignals.length };
   const navigationPayload = buildNavigationPayload({ beforeVideoKey, afterVideoKey, actionStrategy, fallbackUsed });
   const verificationRefs = { newVideoKey: afterVideoKey };
   const navigationHashes = { beforeSignatureHash, afterSignatureHash };
@@ -195,7 +218,7 @@ export const navigateToNextFacebookVideo = async (input: NavigateToNextFacebookV
     reason,
     before,
     after: result.after,
-    action: { closeAction, actionLadder: result.actionLadder, changedSignals: result.changedSignals, quorumMet: result.quorumMet },
+    action: { closeAction, actionLadder: result.actionLadder, changedSignals, quorumMet: result.quorumMet },
   });
   return buildNavigationOutcome({
     reason,

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T18:54:07.701Z",
+  "generatedAt": "2026-05-22T19:29:41.659Z",
   "itemCount": 17,
   "items": [
     {
@@ -63,31 +63,21 @@
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Function near line 61 breaks function budget: physical line count 145 exceeds hard limit 40; cyclomatic complexity 15 exceeds hard limit 10.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-step",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
       "checkId": "code-purity/file-budget-hard-limit",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "owner": "plugin:facebook-product-video-mining",
-      "reason": "job step/support file has 319 lines and exceeds hard limit 240.",
+      "reason": "job step/support file has 248 lines and exceeds hard limit 240.",
       "remediation": "Split or reduce the file by runtime role until it falls under the hard limit.",
       "role": "job-step",
       "verificationCommand": "npm run ci:full"
     },
     {
       "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.comments.ts",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "plugin:facebook-product-video-mining",
-      "reason": "Function near line 233 breaks function budget: physical line count 86 exceeds hard limit 40.",
+      "reason": "Function near line 75 breaks function budget: physical line count 171 exceeds hard limit 40; cyclomatic complexity 15 exceeds hard limit 10.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "job-step",
       "verificationCommand": "npm run ci:full"
@@ -117,39 +107,19 @@
       "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
       "lawId": "APEX-CODE-PURITY-001-V1",
       "owner": "plugin:facebook-product-video-mining",
-      "reason": "job-flow file has 382 lines and exceeds hard limit 280.",
+      "reason": "job-flow file has 290 lines and exceeds hard limit 280.",
       "remediation": "Split or reduce the file by runtime role until it falls under the hard limit.",
       "role": "job-flow",
       "verificationCommand": "npm run ci:full"
     },
     {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
+      "checkId": "code-purity/named-export-budget",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation-support.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
       "owner": "plugin:facebook-product-video-mining",
-      "reason": "Function near line 77 breaks function budget: physical line count 54 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-flow",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Function near line 132 breaks function budget: physical line count 108 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-flow",
-      "verificationCommand": "npm run ci:full"
-    },
-    {
-      "checkId": "code-purity/function-budget",
-      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.flow.ts",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "owner": "plugin:facebook-product-video-mining",
-      "reason": "Function near line 302 breaks function budget: physical line count 80 exceeds hard limit 40.",
-      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
-      "role": "job-flow",
+      "reason": "Named export count 13 exceeds hard limit 10.",
+      "remediation": "Reduce the export surface or split the file into explicit owner-local contracts.",
+      "role": "job-step",
       "verificationCommand": "npm run ci:full"
     },
     {
@@ -157,7 +127,7 @@
       "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.navigation.ts",
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "plugin:facebook-product-video-mining",
-      "reason": "Function near line 102 breaks function budget: physical line count 106 exceeds hard limit 40.",
+      "reason": "Function near line 124 breaks function budget: physical line count 107 exceeds hard limit 40.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "job-step",
       "verificationCommand": "npm run ci:full"
@@ -168,6 +138,36 @@
       "lawId": "APEX-CODE-PURITY-015-V1",
       "owner": "plugin:facebook-product-video-mining",
       "reason": "Function near line 126 breaks function budget: physical line count 64 exceeds hard limit 40; cyclomatic complexity 11 exceeds hard limit 10.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-execution.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "Function near line 187 breaks function budget: physical line count 42 exceeds hard limit 40.",
+      "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/file-budget-hard-limit",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
+      "lawId": "APEX-CODE-PURITY-001-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "job step/support file has 246 lines and exceeds hard limit 240.",
+      "remediation": "Split or reduce the file by runtime role until it falls under the hard limit.",
+      "role": "job-step",
+      "verificationCommand": "npm run ci:full"
+    },
+    {
+      "checkId": "code-purity/function-budget",
+      "filePath": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
+      "lawId": "APEX-CODE-PURITY-015-V1",
+      "owner": "plugin:facebook-product-video-mining",
+      "reason": "Function near line 71 breaks function budget: physical line count 41 exceeds hard limit 40.",
       "remediation": "Physically split the function by validation, policy, execution, and evidence-writing roles.",
       "role": "job-step",
       "verificationCommand": "npm run ci:full"

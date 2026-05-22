@@ -27,19 +27,6 @@ type FacebookVideoDomProbeResult = FacebookProductVideoMiningContracts["Facebook
 
 const FACEBOOK_RUNTIME_LOG_OWNER = "facebook-product-video-mining" as const;
 
-export const FACEBOOK_MINING_ROUND_STATE_MACHINE = [
-  "WAIT_VIDEO_STABLE",
-  "SNAPSHOT_PAGE_FACTS",
-  "LOAD_COMMENTS",
-  "DOWNLOAD_VIDEO",
-  "AI_JUDGE",
-  "RECORD_RESULT",
-  "OPTIONAL_NOT_INTERESTED",
-  "ADVANCE_VIDEO",
-  "VERIFY_NEW_VIDEO",
-  "NEXT_ROUND",
-] as const;
-
 export type SuccessfulVideoDownload = VideoDownloadResult & {
   status: "success";
   output: Extract<VideoDownloadResult["output"], { status: "success" }>;

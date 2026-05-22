@@ -28,7 +28,7 @@ export type FacebookNavigationWaitResult = {
   quorumMet: boolean;
 };
 
-export const isFacebookPageUrl = (value: string): boolean => {
+const isFacebookPageUrl = (value: string): boolean => {
   if (URL.canParse(value)) {
     const host = new URL(value).host.toLowerCase();
     return host === "facebook.com" || host === "www.facebook.com" || host === "m.facebook.com";
@@ -49,24 +49,24 @@ const captureNavigationSignature = (
   script: buildNavigationSignatureScript(),
 });
 
-const pressArrowDownForNextVideo = async (browser: BrowserController): Promise<FacebookNavigationAction> => {
+export const pressArrowDownForNextVideo = async (browser: BrowserController): Promise<FacebookNavigationAction> => {
   await browser.textInput({ targetLabel: "press ArrowDown for next Facebook reel", action: "press-key", key: "ArrowDown" }).catch(() => null);
   return { acted: true, action: "arrow_down", text: null };
 };
 
-const wheelScrollForNextVideo = async (browser: BrowserController): Promise<FacebookNavigationAction> => {
+export const wheelScrollForNextVideo = async (browser: BrowserController): Promise<FacebookNavigationAction> => {
   await browser.scroll({ targetLabel: "wheel scroll Facebook reels feed", deltaX: 0, deltaY: 900 }).catch(() => null);
   return { acted: true, action: "wheel_scroll_095_viewport", text: null };
 };
 
-const safeZoneClickForNextVideo = (
+export const safeZoneClickForNextVideo = (
   browser: BrowserController,
 ): Promise<FacebookNavigationAction> => browser.evaluateActiveTab<FacebookNavigationAction>({
   description: "safe-zone click and scroll for next Facebook video",
   script: buildSafeZoneNavigateToNextVideoScript(),
 });
 
-const runFallbackNavigation = async (browser: BrowserController): Promise<FacebookNavigationAction> => {
+export const runFallbackNavigation = async (browser: BrowserController): Promise<FacebookNavigationAction> => {
   await pressArrowDownForNextVideo(browser);
   await wheelScrollForNextVideo(browser);
   return browser.evaluateActiveTab<FacebookNavigationAction>({
@@ -121,7 +121,7 @@ const readNavigationAttempt = async (input: {
   return { after, terminalReason: null, changedSignals, quorumMet: hasNavigationProofQuorum(changedSignals) };
 };
 
-const waitForNavigationChange = async (input: {
+export const waitForNavigationChange = async (input: {
   browser: BrowserController;
   before: FacebookNavigationSignature;
 }): Promise<FacebookNavigationWaitResult> => {
@@ -138,24 +138,6 @@ const waitForNavigationChange = async (input: {
     await input.browser.wait(300);
   }
   return latest;
-};
-
-export const runFixedNavigationActionLadder = async (input: {
-  browser: BrowserController;
-  before: FacebookNavigationSignature;
-  feedEntryUrl: string;
-}): Promise<FacebookNavigationWaitResult & { actionLadder: FacebookNavigationAction[] }> => {
-  const actionLadder: FacebookNavigationAction[] = [];
-  for (const action of [pressArrowDownForNextVideo, wheelScrollForNextVideo, safeZoneClickForNextVideo, runFallbackNavigation]) {
-    actionLadder.push(await action(input.browser));
-    const result = await waitForNavigationChange({ browser: input.browser, before: input.before });
-    if (result.terminalReason || result.quorumMet) return { ...result, actionLadder };
-  }
-  const recoverReason = await ensureFacebookFeedTab({ browser: input.browser, feedEntryUrl: input.feedEntryUrl });
-  if (recoverReason) return { after: input.before, terminalReason: null, changedSignals: [], quorumMet: false, actionLadder };
-  actionLadder.push(await pressArrowDownForNextVideo(input.browser));
-  const result = await waitForNavigationChange({ browser: input.browser, before: input.before });
-  return { ...result, actionLadder };
 };
 
 export const closeCommentSurface = async (browser: BrowserController): Promise<void> => {

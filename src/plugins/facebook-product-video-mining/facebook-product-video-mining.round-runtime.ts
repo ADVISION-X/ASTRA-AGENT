@@ -22,7 +22,6 @@ import { type FacebookMiningRoundOutcome } from "./facebook-product-video-mining
 import type { FacebookProductVideoMiningContracts } from "./facebook-product-video-mining.schema.js";
 import type { FacebookProductVideoMiningStorage } from "./facebook-product-video-mining.storage.js";
 import {
-  FACEBOOK_MINING_ROUND_STATE_MACHINE,
   createFacebookRoundTrace,
   isSuccessfulVideoDownload,
   continueFacebookMiningRound,
@@ -35,6 +34,19 @@ import {
 } from "./facebook-product-video-mining.round-runtime-support.js";
 
 type FacebookVideoAiJudgment = FacebookProductVideoMiningContracts["FacebookVideoAiJudgment"];
+
+const FACEBOOK_MINING_ROUND_STATE_MACHINE = [
+  "WAIT_VIDEO_STABLE",
+  "SNAPSHOT_PAGE_FACTS",
+  "LOAD_COMMENTS",
+  "DOWNLOAD_VIDEO",
+  "AI_JUDGE",
+  "RECORD_RESULT",
+  "OPTIONAL_NOT_INTERESTED",
+  "ADVANCE_VIDEO",
+  "VERIFY_NEW_VIDEO",
+  "NEXT_ROUND",
+] as const;
 
 export type FacebookMiningRoundInput = {
   browser: BrowserController;

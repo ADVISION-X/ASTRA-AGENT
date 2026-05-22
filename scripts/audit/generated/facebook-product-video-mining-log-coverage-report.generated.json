@@ -1,24 +1,24 @@
 {
-  "generatedAt": "2026-05-22T18:54:08.762Z",
-  "status": "FAIL",
+  "generatedAt": "2026-05-22T19:29:42.835Z",
+  "status": "PASS",
   "summary": {
-    "totalFindings": 4,
-    "fatalFindings": 4,
+    "totalFindings": 0,
+    "fatalFindings": 0,
     "mandatoryStageCount": 17,
-    "coveredStageCount": 16,
-    "stageCoveragePercent": 94
+    "coveredStageCount": 17,
+    "stageCoveragePercent": 100
   },
   "sections": [
     {
       "name": "stage coverage table",
-      "status": "FAIL",
-      "findingCount": 1,
-      "coveragePercent": 94
+      "status": "PASS",
+      "findingCount": 0,
+      "coveragePercent": 100
     },
     {
       "name": "failure coverage table",
-      "status": "FAIL",
-      "findingCount": 1
+      "status": "PASS",
+      "findingCount": 0
     },
     {
       "name": "AI coverage",
@@ -32,8 +32,8 @@
     },
     {
       "name": "recovery coverage",
-      "status": "FAIL",
-      "findingCount": 2
+      "status": "PASS",
+      "findingCount": 0
     },
     {
       "name": "artifact coverage",
@@ -114,9 +114,7 @@
       ],
       "hasStartedLog": true,
       "hasTerminalLog": true,
-      "missingFields": [
-        "durationMs"
-      ]
+      "missingFields": []
     },
     {
       "stageName": "FACEBOOK_AI_UPLOAD",
@@ -203,103 +201,11 @@
       "missingFields": []
     }
   ],
-  "failureCoverage": [
-    {
-      "checkId": "facebook-log-coverage/failure-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
-      "line": 71,
-      "severity": "fatal",
-      "message": "Facebook mining failure path lacks failureClass contract",
-      "hint": "Classify this path as DOM_PROBE_FAILURE / MEDIA_DOWNLOAD_FAILURE / AI_PARSE_FAILURE / NAVIGATION_FAILURE / RECOVERABLE_BROWSER_DRIFT / ACCOUNT_SECURITY_BLOCKER etc. Missing: failureClass, recoveryPolicy."
-    }
-  ],
+  "failureCoverage": [],
   "aiCoverage": [],
   "navigationCoverage": [],
-  "recoveryCoverage": [
-    {
-      "checkId": "facebook-log-coverage/recovery-trail",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
-      "line": 42,
-      "severity": "fatal",
-      "message": "Facebook recovery/fallback path lacks recoveryTrail logging",
-      "hint": "Add RECOVERY_STARTED/COMPLETED/FAILED events and include recoveryTrail linked to original failure. Missing: durationMs."
-    },
-    {
-      "checkId": "facebook-log-coverage/recovery-trail",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
-      "line": 132,
-      "severity": "fatal",
-      "message": "Facebook recovery/fallback path lacks recoveryTrail logging",
-      "hint": "Add RECOVERY_STARTED/COMPLETED/FAILED events and include recoveryTrail linked to original failure. Missing: recoveryTrail, action."
-    }
-  ],
+  "recoveryCoverage": [],
   "artifactCoverage": [],
-  "missingMandatoryStages": [
-    {
-      "stageName": "FACEBOOK_VIDEO_DOWNLOAD",
-      "ownerFiles": [
-        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
-        "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts"
-      ],
-      "requiredStartedLog": true,
-      "requiredTerminalLog": true,
-      "requiredFailureClasses": [
-        "MEDIA_DOWNLOAD_FAILURE"
-      ],
-      "requiredRefs": [
-        "artifactRef"
-      ],
-      "requiredHashes": [
-        "sha256"
-      ],
-      "requiredMetrics": [
-        "byteSize",
-        "durationMs"
-      ],
-      "flowVisibility": true,
-      "debugVisibility": true,
-      "traceVisibility": true
-    }
-  ],
-  "findings": [
-    {
-      "checkId": "facebook-log-coverage/mandatory-stage",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
-      "line": 41,
-      "severity": "fatal",
-      "message": "Facebook mining mandatory stage is missing log coverage",
-      "hint": "Add started and terminal logs for FACEBOOK_VIDEO_DOWNLOAD in src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts, src/plugins/facebook-product-video-mining/facebook-product-video-mining.round.ts. Missing fields: durationMs."
-    },
-    {
-      "checkId": "facebook-log-coverage/failure-contract",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.round-outcomes.ts",
-      "line": 71,
-      "severity": "fatal",
-      "message": "Facebook mining failure path lacks failureClass contract",
-      "hint": "Classify this path as DOM_PROBE_FAILURE / MEDIA_DOWNLOAD_FAILURE / AI_PARSE_FAILURE / NAVIGATION_FAILURE / RECOVERABLE_BROWSER_DRIFT / ACCOUNT_SECURITY_BLOCKER etc. Missing: failureClass, recoveryPolicy."
-    },
-    {
-      "checkId": "facebook-log-coverage/recovery-trail",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.video.ts",
-      "line": 42,
-      "severity": "fatal",
-      "message": "Facebook recovery/fallback path lacks recoveryTrail logging",
-      "hint": "Add RECOVERY_STARTED/COMPLETED/FAILED events and include recoveryTrail linked to original failure. Missing: durationMs."
-    },
-    {
-      "checkId": "facebook-log-coverage/recovery-trail",
-      "lawId": "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
-      "file": "src/plugins/facebook-product-video-mining/facebook-product-video-mining.ai-judge.ts",
-      "line": 132,
-      "severity": "fatal",
-      "message": "Facebook recovery/fallback path lacks recoveryTrail logging",
-      "hint": "Add RECOVERY_STARTED/COMPLETED/FAILED events and include recoveryTrail linked to original failure. Missing: recoveryTrail, action."
-    }
-  ]
+  "missingMandatoryStages": [],
+  "findings": []
 }

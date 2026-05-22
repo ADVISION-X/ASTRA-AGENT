@@ -131,6 +131,7 @@ export const buildAiFeedRequest = (input: {
   roundId: string;
   prompt: string;
   videoFilePath: string;
+  inputRefs?: AiFeedInput["inputRefs"];
   timeoutMs: number;
   maxFileBytes: number;
 }): AiFeedInput => ({
@@ -139,7 +140,7 @@ export const buildAiFeedRequest = (input: {
   promptContractId: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
   expectedOutputSchemaRef: FACEBOOK_PRODUCT_VIDEO_MINING_PROMPT_CONTRACT_ID,
   textPrompt: input.prompt,
-  inputRefs: [buildVideoInputRef({ roundId: input.roundId, videoFilePath: input.videoFilePath })],
+  inputRefs: input.inputRefs ?? [buildVideoInputRef({ roundId: input.roundId, videoFilePath: input.videoFilePath })],
   modelName: input.modelName ?? null,
   timeoutMs: input.timeoutMs,
   maxInputChars: 30_000,
