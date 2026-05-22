@@ -11,6 +11,7 @@ import {
   findComposerPoint,
   focusComposer,
   setComposerText,
+  waitForAttachmentCountAtLeast,
   verifyComposerText,
 } from "./web-chat-page-actions.js";
 
@@ -111,6 +112,11 @@ const populatePromptComposer = async (input: SubmitPromptViaClipboardInput): Pro
 };
 
 const submitPromptFromComposer = async (input: SubmitPromptViaClipboardInput): Promise<void> => {
+  const expectedAttachmentCount = input.request.inputRefs.filter((ref) => Boolean(ref.filePath)).length;
+  if (expectedAttachmentCount > 0) {
+    await withWebChatStep("verify_attachments_before_submit", () =>
+      waitForAttachmentCountAtLeast(input.browser, input.context, expectedAttachmentCount, 10_000));
+  }
   const submitPoint = await waitForSubmitButtonPoint({
     browser: input.browser,
     context: input.context,

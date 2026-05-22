@@ -3,22 +3,25 @@ import type { AiProviderAdapterContext } from "../contracts/ai-provider-adapter.
 import type { AiFeedInput } from "../schema.js";
 import type { UploadableAiFeedInputRef } from "../runtime/ai-feed-input-package.js";
 import {
-  clickDesktopPoint,
   copyFileObjectToMacClipboard,
   pasteMacClipboardIntoChrome,
-  pressEscapeInChrome,
 } from "./web-chat-clipboard.js";
+import {
+  focusComposer,
+  waitForAttachmentCountAtLeast,
+  waitForComposerFocused,
+  waitForUploadComplete,
+} from "./web-chat-page-actions.js";
 import {
   assertUploadTarget,
   clearComposer,
-  findUploadMenuPoint,
-  focusComposer,
-  waitForUploadComplete,
   waitForUploadTarget,
-} from "./web-chat-page-actions.js";
+} from "./web-chat-upload-page-actions.js";
+import { openProviderUploadMenu } from "./web-chat-upload-menu.js";
 
 const FILE_SELECTION_TIMEOUT_MS = 20_000;
 const CLIPBOARD_UPLOAD_TIMEOUT_MS = 20_000;
+const CLIPBOARD_PASTE_RETRY_LIMIT = 3;
 
 const withUploadTimeout = async <T>(
   label: string,
@@ -35,56 +38,31 @@ const uploadFileViaClipboardPaste = async (
   browser: BrowserController,
   context: AiProviderAdapterContext,
   filePath: string,
+  expectedAttachmentCount: number,
 ): Promise<void> => {
   const focused = await focusComposer(browser, context);
   if (focused.status !== "success") {
     throw new Error(`${focused.status}: ${focused.message}`);
   }
-  await withUploadTimeout(
-    "provider clipboard file paste",
-    CLIPBOARD_UPLOAD_TIMEOUT_MS,
-    copyFileObjectToMacClipboard(filePath, context.abortSignal)
-      .then(() => pasteMacClipboardIntoChrome(context.abortSignal)),
-  );
-};
-
-const getDesktopPoint = (point: { x?: number; y?: number; status: string; message: string }) => {
-  if (typeof point.x !== "number" || typeof point.y !== "number") {
-    throw new Error(`${point.status}: ${point.message}`);
+  await waitForComposerFocused(browser, context, 2_000);
+  for (let attempt = 1; attempt <= CLIPBOARD_PASTE_RETRY_LIMIT; attempt += 1) {
+    await withUploadTimeout(
+      "provider clipboard file paste",
+      CLIPBOARD_UPLOAD_TIMEOUT_MS,
+      copyFileObjectToMacClipboard(filePath, context.abortSignal)
+        .then(() => focusComposer(browser, context))
+        .then(() => waitForComposerFocused(browser, context, 2_000))
+        .then(() => pasteMacClipboardIntoChrome(context.abortSignal)),
+    );
+    await browser.wait(1_500);
+    try {
+      await waitForAttachmentCountAtLeast(browser, context, expectedAttachmentCount, 8_000);
+      return;
+    } catch (error) {
+      if (attempt >= CLIPBOARD_PASTE_RETRY_LIMIT) throw error;
+      await browser.wait(300);
+    }
   }
-  return { x: point.x, y: point.y };
-};
-
-const clickUploadMenuPoint = async (
-  browser: BrowserController,
-  context: AiProviderAdapterContext,
-): Promise<"composer-plus" | "upload-menu-item"> => {
-  const firstPoint = await findUploadMenuPoint(browser, context);
-  await clickDesktopPoint(getDesktopPoint(firstPoint), context.abortSignal);
-  await browser.wait(firstPoint.target === "composer-plus" ? 900 : 1_000);
-  return firstPoint.target ?? "upload-menu-item";
-};
-
-const clickUploadMenuItemAfterPlus = async (
-  browser: BrowserController,
-  context: AiProviderAdapterContext,
-): Promise<void> => {
-  const menuPoint = await findUploadMenuPoint(browser, context);
-  if (menuPoint.status !== "success" || menuPoint.target !== "upload-menu-item") {
-    throw new Error(`${menuPoint.status}: ${menuPoint.message}`);
-  }
-  await clickDesktopPoint(getDesktopPoint(menuPoint), context.abortSignal);
-  await browser.wait(1_000);
-};
-
-const uploadFileViaProviderMenu = async (
-  browser: BrowserController,
-  context: AiProviderAdapterContext,
-): Promise<void> => {
-  await pressEscapeInChrome(context.abortSignal).catch(() => undefined);
-  await browser.wait(300);
-  const target = await clickUploadMenuPoint(browser, context);
-  if (target === "composer-plus") await clickUploadMenuItemAfterPlus(browser, context);
 };
 
 const listUploadableRefs = (request: AiFeedInput): UploadableAiFeedInputRef[] =>
@@ -104,8 +82,14 @@ const waitForRefUploadComplete = async (input: {
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   ref: UploadableAiFeedInputRef;
+  expectedAttachmentCount: number;
 }): Promise<void> => {
-  await waitForUploadComplete(input.browser, input.context, input.ref.filePath, input.request.timeoutMs);
+  try {
+    await waitForAttachmentCountAtLeast(input.browser, input.context, input.expectedAttachmentCount, input.request.timeoutMs);
+    return;
+  } catch {
+    await waitForUploadComplete(input.browser, input.context, input.ref.filePath, input.request.timeoutMs);
+  }
 };
 
 const setProviderFileInputWithTimeout = async (input: {
@@ -136,6 +120,7 @@ const uploadLocatedFileInput = async (input: {
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   ref: UploadableAiFeedInputRef;
+  expectedAttachmentCount: number;
 }): Promise<void> => {
   const selector = assertUploadTarget(await waitForUploadTarget(input.browser, input.context, input.request.timeoutMs));
   const uploaded = await setProviderFileInputWithTimeout({ ...input, selector });
@@ -150,8 +135,9 @@ const tryClipboardUpload = async (input: {
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   ref: UploadableAiFeedInputRef;
+  expectedAttachmentCount: number;
 }): Promise<void> => {
-  await uploadFileViaClipboardPaste(input.browser, input.context, input.ref.filePath);
+  await uploadFileViaClipboardPaste(input.browser, input.context, input.ref.filePath, input.expectedAttachmentCount);
   await waitForRefUploadComplete(input);
 };
 
@@ -160,13 +146,14 @@ const uploadSingleFile = async (input: {
   context: AiProviderAdapterContext;
   request: AiFeedInput;
   ref: UploadableAiFeedInputRef;
+  expectedAttachmentCount: number;
 }): Promise<void> => {
   try {
     await uploadLocatedFileInput(input);
     return;
   } catch {
     try {
-      await uploadFileViaProviderMenu(input.browser, input.context);
+      await openProviderUploadMenu(input.browser, input.context);
       await uploadLocatedFileInput(input);
       return;
     } catch {
@@ -185,7 +172,7 @@ export const uploadFiles = async (
     await clearComposer(browser, context);
     await browser.wait(800);
   }
-  for (const ref of refs) {
-    await uploadSingleFile({ browser, context, request, ref });
+  for (const [index, ref] of refs.entries()) {
+    await uploadSingleFile({ browser, context, request, ref, expectedAttachmentCount: index + 1 });
   }
 };

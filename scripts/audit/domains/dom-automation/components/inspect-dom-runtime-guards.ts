@@ -37,30 +37,6 @@ const runtimeGuards: readonly RuntimeGuard[] = [
     requiredStringLiterals: ["expected text did not match"],
     message: "DOM click must gate sensitive text and expected-text mismatch as review_required.",
   },
-  {
-    checkId: "dom/scroll-budget-and-revalidation",
-    filePath: "src/capabilities/dom-automation/runtime/dom-scroll.ts",
-    lawId: "APEX-DOM-014-V1",
-    requiredIdentifiers: ["DOM_SCHEMAS", "captureDomEvidenceRef"],
-    requiredStringLiterals: ["maxSteps", "maxPixels", "element-not-reachable-by-scroll"],
-    message: "DOM scroll must require located ref, bounded budget, evidence, and viewport revalidation.",
-  },
-  {
-    checkId: "dom/select-native-custom-verification",
-    filePath: "src/capabilities/dom-automation/runtime/dom-select.ts",
-    lawId: "APEX-DOM-015-V1",
-    requiredIdentifiers: ["DOM_SCHEMAS", "approvedOptionList"],
-    requiredStringLiterals: ["selection-not-reflected", "[role='option']"],
-    message: "DOM select must handle native/custom dropdowns and verify reflected selection.",
-  },
-  {
-    checkId: "dom/dismiss-safe-allowlist",
-    filePath: "src/capabilities/dom-automation/runtime/dom-dismiss-overlay.ts",
-    lawId: "APEX-DOM-016-V1",
-    requiredIdentifiers: ["SAFE_OVERLAY_TYPES", "DANGEROUS_DISMISSAL_TEXT"],
-    requiredStringLiterals: ["overlay-type-not-in-safe-dismissal-allowlist", "overlay-still-present"],
-    message: "DOM overlay dismissal must use safe allowlist, dangerous text gate, and disappearance verification.",
-  },
 ];
 
 const inspectGuard = (sourceFile: SourceFile, guard: RuntimeGuard, collector: DomFindingCollector): void => {

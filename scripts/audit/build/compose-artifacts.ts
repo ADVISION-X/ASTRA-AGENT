@@ -18,6 +18,11 @@ type LawIndexes = {
   manifestsByDomain: Map<string, ManifestSource[]>;
 };
 
+type ResolvedManifestLaws = {
+  laws: LawSource[];
+  missingLawIds: string[];
+};
+
 type ArtifactOutputs = {
   conflicts: AuditConflict[];
   matrixRows: EnforcementMatrixRow[];
@@ -162,6 +167,48 @@ const appendDomainArtifacts = (
   appendStaticCoverage(outputs.staticCoverage, capabilityDomain, domainLaws, manifest);
 };
 
+const resolveManifestLaws = (
+  manifest: ManifestSource,
+  indexes: LawIndexes,
+): ResolvedManifestLaws => {
+  const resolved = new Map<string, LawSource>();
+  const missingLawIds: string[] = [];
+
+  for (const law of indexes.lawsByDomain.get(manifest.capabilityDomain) ?? []) {
+    resolved.set(law.lawId, law);
+  }
+
+  for (const lawId of manifest.lawIdRefs ?? []) {
+    const matchedLaw = indexes.lawsById.get(lawId)?.[0];
+    if (!matchedLaw) {
+      missingLawIds.push(lawId);
+      continue;
+    }
+    resolved.set(matchedLaw.lawId, matchedLaw);
+  }
+
+  return {
+    laws: [...resolved.values()],
+    missingLawIds,
+  };
+};
+
+const appendManifestLawRefConflicts = (
+  conflicts: AuditConflict[],
+  manifest: ManifestSource,
+  missingLawIds: readonly string[],
+): void => {
+  for (const lawId of missingLawIds) {
+    conflicts.push({
+      kind: "unknown-law-reference",
+      capabilityDomain: manifest.capabilityDomain,
+      filePath: manifest.manifestPath,
+      lawId,
+      message: `Manifest ${manifest.manifestPath} references unknown lawId ${lawId}.`,
+    });
+  }
+};
+
 const appendDomainArtifactsFromIndexes = (
   outputs: ArtifactOutputs,
   indexes: LawIndexes,
@@ -170,9 +217,20 @@ const appendDomainArtifactsFromIndexes = (
     const manifest = indexes.manifestsByDomain.get(capabilityDomain)?.[0];
     if (!manifest) {
       pushMissingManifestConflicts(outputs.conflicts, capabilityDomain, domainLaws);
+    }
+  }
+
+  for (const [capabilityDomain, manifests] of indexes.manifestsByDomain) {
+    const manifest = manifests[0];
+    if (!manifest) {
       continue;
     }
-    appendDomainArtifacts(outputs, capabilityDomain, domainLaws, manifest);
+    const resolved = resolveManifestLaws(manifest, indexes);
+    appendManifestLawRefConflicts(outputs.conflicts, manifest, resolved.missingLawIds);
+    if (resolved.laws.length === 0) {
+      continue;
+    }
+    appendDomainArtifacts(outputs, capabilityDomain, resolved.laws, manifest);
   }
 };
 

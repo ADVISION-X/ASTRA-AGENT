@@ -2,6 +2,7 @@ import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
+const APPLESCRIPT_TIMEOUT_MS = 10_000;
 
 const escapeAppleScriptText = (value: string): string =>
   value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
@@ -11,7 +12,7 @@ export const copyFileObjectToMacClipboard = async (
   abortSignal?: AbortSignal,
 ): Promise<void> => {
   const script = `set the clipboard to POSIX file "${escapeAppleScriptText(filePath)}"`;
-  await execFileAsync("osascript", ["-e", script], { signal: abortSignal });
+  await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
 };
 
 const copyTextToMacClipboard = async (
@@ -38,7 +39,7 @@ export const pasteMacClipboardIntoChrome = async (
     '  keystroke "v" using command down',
     "end tell",
   ].join("\n");
-  await execFileAsync("osascript", ["-e", script], { signal: abortSignal });
+  await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
 };
 
 export const clickDesktopPoint = async (
@@ -51,7 +52,7 @@ export const clickDesktopPoint = async (
     `  click at {${Math.round(point.x)}, ${Math.round(point.y)}}`,
     "end tell",
   ].join("\n");
-  await execFileAsync("osascript", ["-e", script], { signal: abortSignal });
+  await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
 };
 
 export const pressEscapeInChrome = async (
@@ -63,7 +64,7 @@ export const pressEscapeInChrome = async (
     "  key code 53",
     "end tell",
   ].join("\n");
-  await execFileAsync("osascript", ["-e", script], { signal: abortSignal });
+  await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
 };
 
 export const pasteTextAndSubmitInChrome = async (
@@ -78,5 +79,5 @@ export const pasteTextAndSubmitInChrome = async (
     "  delay 0.5",
     "end tell",
   ].join("\n");
-  await execFileAsync("osascript", ["-e", script], { signal: abortSignal });
+  await execFileAsync("osascript", ["-e", script], { signal: abortSignal, timeout: APPLESCRIPT_TIMEOUT_MS });
 };

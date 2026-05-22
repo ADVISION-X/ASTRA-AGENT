@@ -1,7 +1,7 @@
 import os from "node:os";
 import path from "node:path";
 
-export function getDefaultLocalDataDir(platform = process.platform): string {
+function getDefaultLocalDataDir(platform = process.platform): string {
   if (platform === "darwin") {
     return path.join(os.homedir(), "Library", "Application Support", "GrassEye", "local-data");
   }

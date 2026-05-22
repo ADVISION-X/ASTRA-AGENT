@@ -312,12 +312,16 @@ runner 不拥有法条定义权、绑定权、顺序主权。
 凡涉及 TS / TSX 语义判断，主裁证据必须来自 AST / symbol / type checker。
 若 `engine=ast` 或 TS-facing `hybrid`，则字符串搜索、`getFullText`、`includes`、纯 grep 只能作为辅助证据，不能冒充主裁。
 若 `engine=fs`，则审计对象必须天然属于文件系统拓扑、目录落位、锚点存在性这一类结构问题。
+凡涉及 owner-boundary、import-graph、zombie reachability，`import` 与 `re-export` 都必须进入主裁图；只查 import 放过 barrel laundering 视为伪执法。
+凡涉及 entry / liveness exemption，豁免必须来自 `package.json`、generated plan、或 active law 的结构性真相；`index.ts`、`contract.ts`、`schema.ts`、type-contract 等文件类别不得整类放行。
 
 ### 禁止
 禁止以下形态：
 
 - 字符串搜索冒充 AST 主裁
 - blind delegate
+- 只查 import 不查 re-export 的 owner / zombie 审计
+- 按文件类别整类豁免边界或活性
 - hollow enforcement
 - fake enforcement
 - law home 缺失仍宣称执法成立

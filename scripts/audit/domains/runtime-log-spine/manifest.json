@@ -1,0 +1,29 @@
+{
+  "capabilityDomain": "runtime-log-spine",
+  "ownerInspectorPath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
+  "executionGroup": "foundation",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye Runtime Log Spine 顶级观测施工图.md",
+      "requiredAnchors": [
+        "## 1. 推荐目录结构",
+        "## 8. Inspector 施工",
+        "## 9. Acceptance 测试"
+      ]
+    },
+    {
+      "filePath": "docs/法案辅助文件/GrassEye Facebook Mining 日志矩阵施工图.md",
+      "requiredAnchors": [
+        "## 3. Mandatory Stages",
+        "## 11. Inspector 验收"
+      ]
+    }
+  ],
+  "description": "Enforces Runtime Log Spine machine-blocking law, report generation, and downstream Facebook log coverage anchors."
+}

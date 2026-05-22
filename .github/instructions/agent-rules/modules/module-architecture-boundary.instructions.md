@@ -237,6 +237,7 @@ GrassEye 只允许一条架构主链：
 * 直接读 DOM
 * 直接判断 Amazon / Facebook 业务步骤
 * 保存业务状态
+* 通过 re-export / barrel 转运 runtime action surface
 * 变成通用工作流引擎
 * 变成第二个 orchestration
 
@@ -312,7 +313,9 @@ Flow 禁止：
 * 创建下一步 AI 决策器
 * 创建跨 job 的公共编排引擎
 * 直接 import 其他 job 的代码
+* 通过 re-export / barrel laundering 转运其他 job 代码
 * 直接 import `src/capabilities/<group-id>/` 下非 `index.ts` 文件
+* 通过 re-export / barrel laundering 转运 non-facade capability 或 private runtime
 * 直接复制能力组内部实现
 * 把业务逻辑塞进能力组
 * 把多个无关需求混在一个 Flow
@@ -386,6 +389,7 @@ visual-observation
 * 写业务流程顺序
 * 直接依赖某个 job
 * import 其他能力组 owner 的实现代码
+* 通过 re-export / barrel laundering 转运 job flow 或 foreign capability owner
 * 变成小型 Flow
 * 变成通用 Agent
 
@@ -446,6 +450,7 @@ verify-dom-state-once
 * 自己决定下一步做什么
 * 调用多个业务步骤
 * import 其他能力组 owner 的代码
+* 通过 re-export / barrel laundering 引入其他能力组 owner 的代码
 
 ````
 

@@ -1,14 +1,16 @@
 import { z } from "zod";
 
+import { lawIdSchema } from "./law-contracts.js";
 import { blueprintRefSchema, executionGroupSchema } from "./manifest-contracts.js";
 
-export const auditConflictSchema = z
+const auditConflictSchema = z
   .object({
     kind: z.enum([
       "duplicate-law-id",
       "duplicate-manifest-domain",
       "missing-manifest",
       "missing-inspector-entry",
+      "unknown-law-reference",
       "uncovered-law",
       "law-parse-error",
       "manifest-parse-error",
@@ -16,16 +18,16 @@ export const auditConflictSchema = z
     message: z.string().min(1),
     filePath: z.string().min(1).optional(),
     capabilityDomain: z.string().min(1).optional(),
-    lawId: z.string().regex(/^APEX-[A-Z0-9-]+$/u).optional(),
+    lawId: lawIdSchema.optional(),
   })
   .strict();
 
-export const enforcementMatrixRowSchema = z
+const enforcementMatrixRowSchema = z
   .object({
     capabilityDomain: z.string().min(1),
     manifestPath: z.string().min(1),
     ownerInspectorPath: z.string().min(1),
-    lawIds: z.array(z.string().regex(/^APEX-[A-Z0-9-]+$/u)),
+    lawIds: z.array(lawIdSchema),
   })
   .strict();
 
@@ -35,16 +37,16 @@ export const auditPlanEntrySchema = z
     manifestPath: z.string().min(1),
     ownerInspectorPath: z.string().min(1),
     executionGroup: executionGroupSchema,
-    lawIds: z.array(z.string().regex(/^APEX-[A-Z0-9-]+$/u)).min(1),
+    lawIds: z.array(lawIdSchema).min(1),
     clauseIds: z.array(z.string().min(1)).min(1),
     evidenceModes: z.array(z.string().min(1)).min(1),
     blueprintRefs: z.array(blueprintRefSchema),
   })
   .strict();
 
-export const staticClauseCoverageEntrySchema = z
+const staticClauseCoverageEntrySchema = z
   .object({
-    lawId: z.string().regex(/^APEX-[A-Z0-9-]+$/u),
+    lawId: lawIdSchema,
     capabilityDomain: z.string().min(1),
     clauses: z
       .array(

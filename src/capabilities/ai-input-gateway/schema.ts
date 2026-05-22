@@ -85,8 +85,6 @@ export const AiFeedResultSchema = z.object({
 
 export type AiInputGatewayProviderKind = z.infer<typeof AiInputGatewayProviderKindSchema>;
 export type AiInputGatewayChildCapabilityId = z.infer<typeof AiInputGatewayChildCapabilityIdSchema>;
-export type AiFeedInputRef = z.infer<typeof AiFeedInputRefSchema>;
 export type AiFeedInput = z.infer<typeof AiFeedInputSchema>;
 export type AiFeedProviderProof = z.infer<typeof AiFeedProviderProofSchema>;
 export type AiFeedResult = z.infer<typeof AiFeedResultSchema>;
-export type AiFeedStatus = z.infer<typeof AiFeedStatusSchema>;

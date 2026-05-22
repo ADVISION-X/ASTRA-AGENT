@@ -8,7 +8,7 @@ import type {
 import type { BrowserMediaSourcePort } from "./ports/browser-media-source-port.js";
 import type { VideoArtifactStoragePort } from "./ports/video-artifact-storage-port.js";
 
-export type VideoDownloadAbilityGroupId = "video-download";
+type VideoDownloadAbilityGroupId = "video-download";
 
 export type VideoDownloadExecutionContext = {
   browserMediaSourcePort: BrowserMediaSourcePort;
@@ -37,8 +37,3 @@ export interface VideoDownloadChildCapability {
   ): Promise<VideoDownloadResult>;
 }
 
-export type {
-  VideoDownloadAbilityInput,
-  VideoDownloadChildCapabilityId,
-  VideoDownloadResult,
-};

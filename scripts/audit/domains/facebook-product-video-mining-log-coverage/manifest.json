@@ -1,0 +1,43 @@
+{
+  "capabilityDomain": "facebook-product-video-mining-log-coverage",
+  "ownerInspectorPath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+  "executionGroup": "domain",
+  "coverage": {
+    "mode": "domain-wide",
+    "clauseIds": [
+      "primary"
+    ]
+  },
+  "lawIdRefs": [
+    "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+    "GRASSEYE-RUNTIME-LOG-SPINE-018-V1"
+  ],
+  "blueprintRefs": [
+    {
+      "filePath": "docs/法案辅助文件/GrassEye Facebook Mining 日志矩阵施工图.md",
+      "requiredAnchors": [
+        "## 3. Mandatory Stages",
+        "## 4. 总矩阵",
+        "## 11. Inspector 验收"
+      ]
+    },
+    {
+      "filePath": "docs/法案辅助文件/GrassEye Runtime Log Spine 顶级观测施工图.md",
+      "requiredAnchors": [
+        "## 3. Stage Logger 设计",
+        "## 8. Inspector 施工",
+        "## 9. Acceptance 测试"
+      ]
+    }
+  ],
+  "description": "Enforces Facebook product video mining mandatory runtime log coverage against the Runtime Log Spine law and matrix blueprint."
+}

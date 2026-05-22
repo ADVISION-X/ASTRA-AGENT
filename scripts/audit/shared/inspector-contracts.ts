@@ -2,11 +2,12 @@ import type { Project } from "ts-morph";
 import { z } from "zod";
 
 import { auditPlanEntrySchema } from "./generated-contracts.js";
+import { lawIdSchema } from "./law-contracts.js";
 
-export const inspectorFindingSchema = z
+const inspectorFindingSchema = z
   .object({
     checkId: z.string().min(1),
-    lawId: z.string().regex(/^APEX-[A-Z0-9-]+$/u),
+    lawId: lawIdSchema,
     clauseId: z.string().min(1),
     message: z.string().min(1),
     filePath: z.string().min(1).optional(),
@@ -17,15 +18,17 @@ export const inspectorFindingSchema = z
 export const inspectorOutputSchema = z
   .object({
     capabilityDomain: z.string().min(1),
-    reportedLawIds: z.array(z.string().regex(/^APEX-[A-Z0-9-]+$/u)),
+    reportedLawIds: z.array(lawIdSchema),
     findings: z.array(inspectorFindingSchema),
     inspectedFiles: z.array(z.string().min(1)),
+    reportJson: z.unknown().optional(),
+    reportMarkdown: z.string().min(1).optional(),
   })
   .strict();
 
 export type InspectorFinding = z.infer<typeof inspectorFindingSchema>;
 export type InspectorOutput = z.infer<typeof inspectorOutputSchema>;
-export type AuditPlanEntry = z.infer<typeof auditPlanEntrySchema>;
+type AuditPlanEntry = z.infer<typeof auditPlanEntrySchema>;
 export type CompletedReport = {
   status: "PASS" | "FAIL";
   findingCount: number;

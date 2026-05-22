@@ -249,7 +249,6 @@ export const VideoDownloadResultSchema = z.object({
 
 export type VideoDownloadChildCapabilityId = z.infer<typeof VideoDownloadChildCapabilityIdSchema>;
 export type VideoDownloadCandidate = z.infer<typeof VideoDownloadCandidateSchema>;
-export type VideoDownloadArtifactDisposition = z.infer<typeof VideoArtifactDispositionSchema>;
 export type VideoDownloadArtifact = z.infer<typeof VideoDownloadArtifactSchema>;
 export type VideoDownloadAbilityInput = z.input<typeof VideoDownloadAbilityInputSchema>;
 export type ParsedVideoDownloadAbilityInput = z.output<typeof VideoDownloadAbilityInputSchema>;

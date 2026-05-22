@@ -69,7 +69,7 @@ function scoreVisibleCandidates(input: LocateDomElementInput): ScoredDomLocatorC
     .sort((a, b) => b.score - a.score);
 }
 
-export function locateDomElementResultOnce(rawInput: LocateDomElementInput): DomLocateResult {
+function locateDomElementResultOnce(rawInput: LocateDomElementInput): DomLocateResult {
   const input = DOM_SCHEMAS.LocateDomElementInput.parse(rawInput) as LocateDomElementInput;
   if (input.frameHint) {
     return buildLocateFailure(

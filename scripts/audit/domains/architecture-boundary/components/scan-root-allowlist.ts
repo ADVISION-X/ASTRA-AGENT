@@ -6,10 +6,17 @@ import { resolveFromRepo } from "../../../shared/paths.js";
 
 const allowedSrcRoots = new Set(["app", "mediator", "plugins", "capabilities", "lib", "types"]);
 const allowedScriptRoots = new Set(["acceptance", "audit", "startup"]);
+const activeRootFilePattern = /\.(?:ts|tsx|js|jsx|mjs)$/u;
 
 const collectUnexpectedRoots = (rootPath: string, allowedRoots: ReadonlySet<string>): string[] =>
   readdirSync(resolveFromRepo(rootPath), { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && !allowedRoots.has(entry.name))
+    .map((entry) => `${rootPath}/${entry.name}`)
+    .sort();
+
+const collectUnexpectedRootFiles = (rootPath: string): string[] =>
+  readdirSync(resolveFromRepo(rootPath), { withFileTypes: true })
+    .filter((entry) => entry.isFile() && activeRootFilePattern.test(entry.name))
     .map((entry) => `${rootPath}/${entry.name}`)
     .sort();
 
@@ -35,6 +42,27 @@ const pushUnexpectedRoots = (
   }
 };
 
+const pushUnexpectedRootFiles = (
+  findings: InspectorFinding[],
+  input: {
+    lawId: string;
+    rootPath: string;
+    checkId: "architecture/allowed-src-root" | "architecture/allowed-script-root";
+    messageSuffix: string;
+  },
+): void => {
+  for (const unexpectedRootFile of collectUnexpectedRootFiles(input.rootPath)) {
+    findings.push(
+      createFinding({
+        checkId: input.checkId,
+        lawId: input.lawId,
+        filePath: unexpectedRootFile,
+        message: `${unexpectedRootFile} ${input.messageSuffix}`,
+      }),
+    );
+  }
+};
+
 export const inspectRootAllowlist = (findings: InspectorFinding[], rootLawId: string): void => {
   pushUnexpectedRoots(findings, {
     lawId: rootLawId,
@@ -43,11 +71,23 @@ export const inspectRootAllowlist = (findings: InspectorFinding[], rootLawId: st
     checkId: "architecture/allowed-src-root",
     messageSuffix: "is outside the approved src root allowlist.",
   });
+  pushUnexpectedRootFiles(findings, {
+    lawId: rootLawId,
+    rootPath: "src",
+    checkId: "architecture/allowed-src-root",
+    messageSuffix: "is an active root file outside the approved src owner roots.",
+  });
   pushUnexpectedRoots(findings, {
     lawId: rootLawId,
     rootPath: "scripts",
     allowedRoots: allowedScriptRoots,
     checkId: "architecture/allowed-script-root",
     messageSuffix: "is outside the approved scripts root allowlist.",
+  });
+  pushUnexpectedRootFiles(findings, {
+    lawId: rootLawId,
+    rootPath: "scripts",
+    checkId: "architecture/allowed-script-root",
+    messageSuffix: "is an active root file outside the approved scripts owner roots.",
   });
 };

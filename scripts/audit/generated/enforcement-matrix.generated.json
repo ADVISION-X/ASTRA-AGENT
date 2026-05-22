@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T14:15:23.970Z",
+  "generatedAt": "2026-05-22T14:53:52.261Z",
   "rows": [
     {
       "capabilityDomain": "architecture-boundary",
@@ -91,10 +91,25 @@
         "APEX-DOM-010-V1",
         "APEX-DOM-011-V1",
         "APEX-DOM-012-V1",
-        "APEX-DOM-013-V1",
-        "APEX-DOM-014-V1",
-        "APEX-DOM-015-V1",
-        "APEX-DOM-016-V1"
+        "APEX-DOM-013-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "facebook-product-video-mining-log-coverage",
+      "manifestPath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/facebook-product-video-mining-log-coverage/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-018-V1"
       ]
     },
     {
@@ -119,6 +134,33 @@
         "APEX-LOCAL-APP-SHELL-002-V1",
         "APEX-LOCAL-APP-SHELL-003-V1",
         "APEX-LOCAL-APP-SHELL-004-V1"
+      ]
+    },
+    {
+      "capabilityDomain": "runtime-log-spine",
+      "manifestPath": "scripts/audit/domains/runtime-log-spine/manifest.json",
+      "ownerInspectorPath": "scripts/audit/domains/runtime-log-spine/inspector.ts",
+      "lawIds": [
+        "GRASSEYE-RUNTIME-LOG-SPINE-001-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-002-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-003-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-004-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-005-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-006-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-007-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-008-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-009-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-010-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-011-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-012-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-013-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-014-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-015-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-016-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-017-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-018-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-019-V1",
+        "GRASSEYE-RUNTIME-LOG-SPINE-020-V1"
       ]
     },
     {

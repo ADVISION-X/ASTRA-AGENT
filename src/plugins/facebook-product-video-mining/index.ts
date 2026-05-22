@@ -67,4 +67,3 @@ export {
   createFacebookProductVideoMiningStorage,
   FacebookProductVideoMiningSchemas,
 };
-export type { FacebookProductVideoMiningContracts };

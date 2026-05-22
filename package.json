@@ -8,7 +8,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/copy-runtime-assets.mjs",
+    "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "internal:app-server": "node dist/src/app/server.js",
     "grasseye:start": "node scripts/startup/launch-grasseye.mjs",

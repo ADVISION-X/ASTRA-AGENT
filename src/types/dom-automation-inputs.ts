@@ -38,34 +38,6 @@ export type UploadApprovedFileInput = {
   uploadPurpose: string;
 };
 
-export type ScrollToElementInput = {
-  elementRef: DomElementRef;
-  scrollBudget?: { maxPixels?: number | undefined; maxSteps?: number | undefined } | undefined;
-  stickyHeaderOffset?: number | undefined;
-  scrollPurpose: string;
-};
-
-export type SelectOptionInput = {
-  elementRef: DomElementRef;
-  approvedOptionText: string;
-  matchMode: "exact" | "contains";
-  approvedOptionList?: string[] | undefined;
-  selectPurpose: string;
-};
-
-export type DismissOverlayInput = {
-  overlayType:
-    | "cookie-consent-overlay"
-    | "promotional-overlay"
-    | "informational-banner"
-    | "gdpr-consent"
-    | "app-install-prompt"
-    | "modal-dialog"
-    | "drawer-panel";
-  approvedDismissalText: string;
-  dismissPurpose: string;
-};
-
 export type VerifyDomStateInput = {
   snapshot: import("./dom-automation.js").DomSnapshot;
   expectedStates: Array<"file-selected" | "success-message" | "error-message" | "login-required" | "captcha-or-2fa-required">;

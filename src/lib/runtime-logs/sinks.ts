@@ -9,7 +9,7 @@ import { dirname } from "node:path";
 import type { RuntimeLogEvent } from "./schema.js";
 import type { RuntimeLogMode } from "./mode.js";
 import { isEventVisibleInMode } from "./mode.js";
-import { redactRuntimeLogPayload } from "./redaction.js";
+import { redactRuntimeLogEvent } from "./redaction.js";
 
 // ─── Terminal Sink ───────────────────────────────────────────────────────────
 
@@ -74,8 +74,9 @@ function formatTerminalLine(event: RuntimeLogEvent, mode: RuntimeLogMode): strin
 }
 
 export function writeTerminalSink(event: RuntimeLogEvent, activeMode: RuntimeLogMode): void {
-  if (!isEventVisibleInMode(event.modeVisibility, activeMode)) return;
-  const line = formatTerminalLine(event, activeMode);
+  const redactedEvent = redactRuntimeLogEvent(event);
+  if (!isEventVisibleInMode(redactedEvent.modeVisibility, activeMode)) return;
+  const line = formatTerminalLine(redactedEvent, activeMode);
   process.stdout.write(line + "\n");
 }
 
@@ -91,11 +92,7 @@ export function writeFileSink(
   options: FileSinkOptions,
 ): void {
   const shouldRedact = options.redact !== false;
-  let serializable: RuntimeLogEvent = event;
-
-  if (shouldRedact && event.payload) {
-    serializable = { ...event, payload: redactRuntimeLogPayload(event.payload) };
-  }
+  const serializable = shouldRedact ? redactRuntimeLogEvent(event) : event;
 
   const line = JSON.stringify(serializable) + "\n";
 

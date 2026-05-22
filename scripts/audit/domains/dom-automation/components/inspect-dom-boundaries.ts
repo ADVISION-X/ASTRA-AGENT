@@ -1,6 +1,6 @@
 import { Node, type SourceFile } from "ts-morph";
 
-import { domPublicFacade, domRoot } from "./dom-inspector-constants.js";
+import { domSurface } from "./dom-inspector-constants.js";
 import type { DomFindingCollector } from "./dom-inspector-support.js";
 import { getRepoSourcePath, listActiveSourceFiles } from "../../../shared/source-files.js";
 import type { InspectorContext } from "../../../shared/inspector-contracts.js";
@@ -31,7 +31,11 @@ const inspectImports = (sourceFile: SourceFile, collector: DomFindingCollector):
     const target = importDeclaration.getModuleSpecifierSourceFile();
     if (!target) continue;
     const targetPath = getRepoSourcePath(target);
-    if (targetPath.startsWith(domRoot) && !repoPath.startsWith(domRoot) && targetPath !== domPublicFacade) {
+    if (
+      targetPath.startsWith(domSurface.root)
+      && !repoPath.startsWith(domSurface.root)
+      && targetPath !== domSurface.publicFacade
+    ) {
       collector.push({
         checkId: "dom/public-facade-only",
         lawId: "APEX-DOM-002-V1",
@@ -40,7 +44,10 @@ const inspectImports = (sourceFile: SourceFile, collector: DomFindingCollector):
         message: `${repoPath} imports private DOM automation file ${targetPath}.`,
       });
     }
-    if (repoPath.startsWith(domRoot) && (targetPath.startsWith("src/plugins/") || targetPath.startsWith("src/capabilities/ai-input-gateway/"))) {
+    if (
+      repoPath.startsWith(domSurface.root)
+      && (targetPath.startsWith("src/plugins/") || targetPath.startsWith("src/capabilities/ai-input-gateway/"))
+    ) {
       collector.push({
         checkId: "dom/business-neutrality",
         lawId: "APEX-DOM-001-V1",
@@ -58,7 +65,7 @@ export const inspectDomBoundaries = (context: InspectorContext, collector: DomFi
     const repoPath = getRepoSourcePath(sourceFile);
     inspectedFiles.add(repoPath);
     inspectImports(sourceFile, collector);
-    if (repoPath.startsWith(domRoot)) {
+    if (repoPath.startsWith(domSurface.root)) {
       const plannerToken = findPlannerToken(sourceFile);
       if (plannerToken) {
         collector.push({

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T14:15:27.200Z",
+  "generatedAt": "2026-05-22T14:51:28.815Z",
   "capabilityDomain": "dom-automation",
   "executionGroup": "domain",
   "lawIds": [
@@ -15,54 +15,10 @@
     "APEX-DOM-010-V1",
     "APEX-DOM-011-V1",
     "APEX-DOM-012-V1",
-    "APEX-DOM-013-V1",
-    "APEX-DOM-014-V1",
-    "APEX-DOM-015-V1",
-    "APEX-DOM-016-V1"
+    "APEX-DOM-013-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/index.ts exports scrollToElementOnce without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/index.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/index.ts exports selectOptionOnce without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/index.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/index.ts exports dismissOverlayOnce without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/index.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/runtime/dom-locator.ts exports locateDomElementResultOnce without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/runtime/dom-locator.ts",
-      "evidence": "code-purity/zombie-export"
-    },
-    {
-      "checkId": "dom/foundation-code-purity-gate",
-      "lawId": "APEX-DOM-013-V1",
-      "clauseId": "primary",
-      "message": "DOM cannot claim readiness while code-purity reports: src/capabilities/dom-automation/schema.ts exports DOM_AUTOMATION_ABILITY_GROUP_ID without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/schema.ts",
-      "evidence": "code-purity/zombie-export"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/facebook-live-dom-probe.ts",
@@ -108,6 +64,7 @@
     "scripts/audit/domains/code-purity/inspector.ts",
     "scripts/audit/domains/dom-automation/components/dom-inspector-constants.ts",
     "scripts/audit/domains/dom-automation/components/dom-inspector-support.ts",
+    "scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts",
     "scripts/audit/domains/dom-automation/components/inspect-dom-boundaries.ts",
     "scripts/audit/domains/dom-automation/components/inspect-dom-contracts.ts",
     "scripts/audit/domains/dom-automation/components/inspect-dom-foundation-gates.ts",
@@ -127,7 +84,7 @@
     "scripts/audit/shared/paths.ts",
     "scripts/audit/shared/project.ts",
     "scripts/audit/shared/source-files.ts",
-    "scripts/copy-runtime-assets.mjs",
+    "scripts/audit/shared/source-module-targets.ts",
     "scripts/startup/launch-grasseye.mjs",
     "scripts/startup/lib/dependency-check.mjs",
     "scripts/startup/lib/dependency-package-utils.mjs",
@@ -161,6 +118,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
@@ -170,6 +128,8 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-upload-menu.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
@@ -184,13 +144,10 @@
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",
     "src/capabilities/dom-automation/runtime/dom-click.ts",
-    "src/capabilities/dom-automation/runtime/dom-dismiss-overlay.ts",
     "src/capabilities/dom-automation/runtime/dom-evidence.ts",
     "src/capabilities/dom-automation/runtime/dom-fill.ts",
     "src/capabilities/dom-automation/runtime/dom-locator-candidates.ts",
     "src/capabilities/dom-automation/runtime/dom-locator.ts",
-    "src/capabilities/dom-automation/runtime/dom-scroll.ts",
-    "src/capabilities/dom-automation/runtime/dom-select.ts",
     "src/capabilities/dom-automation/runtime/dom-snapshot.ts",
     "src/capabilities/dom-automation/runtime/dom-upload.ts",
     "src/capabilities/dom-automation/runtime/dom-verify.ts",
@@ -260,7 +217,6 @@
     "src/lib/local-runtime/contract.ts",
     "src/lib/local-runtime/default-data-dir.ts",
     "src/lib/local-runtime/ids.ts",
-    "src/lib/local-runtime/index.ts",
     "src/lib/local-runtime/settings-types.ts",
     "src/lib/local-runtime/settings.ts",
     "src/lib/local-runtime/structured-log-bus.ts",

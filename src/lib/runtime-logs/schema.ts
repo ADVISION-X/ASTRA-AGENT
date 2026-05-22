@@ -1,6 +1,6 @@
 import type { RuntimeLogEventType } from "./event-types.js";
 
-type RuntimeLogOwner =
+export type RuntimeLogOwner =
   | "ai-input-gateway"
   | "forensics-persistence"
   | "runtime-logs"
@@ -13,7 +13,9 @@ type RuntimeLogOwner =
   | "dom-automation"
   | "unknown";
 
-type RuntimeLogLevel = "debug" | "info" | "warn" | "error";
+export type RuntimeLogLevel = "debug" | "info" | "warn" | "error";
+
+export type RuntimeLogStatus = "started" | "success" | "failed" | "review_required" | "skipped";
 
 export type RuntimeLogMode = "FLOW" | "DEBUG" | "TRACE";
 
@@ -36,7 +38,7 @@ export type RuntimeLogEvent = {
   platformId?: string;
   abilityGroupId?: string;
   childCapabilityId?: string;
-  status?: "started" | "success" | "failed" | "review_required" | "skipped";
+  status?: RuntimeLogStatus;
   reason?: string;
   actionableMessage?: string;
   refs?: Record<string, string>;

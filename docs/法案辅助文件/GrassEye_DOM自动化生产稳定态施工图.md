@@ -133,7 +133,7 @@ src/lib/dom/**
 
 ## 4. 法定子能力清单
 
-DOM 能力组允许 **10 个** child ability（法案 v2 新增 scroll、select、dismiss-overlay）:
+DOM 能力组当前允许 **7 个** active child ability:
 
 | 子能力 | 输入 | 输出 | 生产级关键点 |
 |---|---|---|---|
@@ -144,9 +144,6 @@ DOM 能力组允许 **10 个** child ability（法案 v2 新增 scroll、select�
 | `upload-approved-file-once` | browser + approved file + file input ref | `DomActionResult` | path approval, file input only, no content leak |
 | `wait-for-dom-state-once` | browser + expected states | `DomVerificationResult` | polling, timeout truth |
 | `verify-dom-state-once` | snapshot + expected states | `DomVerificationResult` | observed page state, not business fiction |
-| `scroll-to-element-once` | browser + element ref + scroll budget | `DomActionResult` | viewport revalidation, sticky-header offset, 不得无限循环 |
-| `select-option-once` | browser + element ref + approved option text + match mode | `DomActionResult` | 原生 select + 自定义下拉, open/close 闭环, 选值校验 |
-| `dismiss-overlay-once` | browser + overlay type + approved dismissal text | `DomActionResult` | safe-type allowlist, 认证/确认对话框禁止消除 |
 
 新增子能力协议（每次新增必须按顺序走）:
 
@@ -863,18 +860,15 @@ manifest:
     "APEX-DOM-010-V1",
     "APEX-DOM-011-V1",
     "APEX-DOM-012-V1",
-    "APEX-DOM-013-V1",
-    "APEX-DOM-014-V1",
-    "APEX-DOM-015-V1",
-    "APEX-DOM-016-V1"
+    "APEX-DOM-013-V1"
   ]
 }
 ```
 
 Phase 1 inspector minimum:
 
-- Parse DOM law IDs（应包含 16 条）。
-- Check schema child ability enum has exactly **ten** legal values。
+- Parse DOM law IDs（应包含 13 条 active laws）。
+- Check schema child ability enum has exactly **seven** legal values。
 - Check public facade exports exactly the legal child functions。
 - Check `src/plugins/**` does not import `dom-automation/runtime`。
 - Check DOM runtime does not import `src/plugins`。
@@ -882,17 +876,11 @@ Phase 1 inspector minimum:
 - Check retired action owner roots do not exist。
 - Check `dom-upload.ts` contains approved path equality and file-input target checks。
 - Check `dom-click.ts` contains sensitive review gate。
-- Check `dom-scroll.ts` requires located element ref（不接受裸 selector）。
-- Check `dom-scroll.ts` contains scroll budget limit（防无限滚动）。
-- Check `dom-select.ts` handles both native select path and custom dropdown path。
-- Check `dom-select.ts` verifies displayed value after selection。
-- Check `dom-dismiss-overlay.ts` contains safe-type allowlist check。
-- Check `dom-dismiss-overlay.ts` refuses authentication and confirmation dialog types。
 
 Phase 2 inspector:
 
 - AST check throw-based normal locator failure。
-- AST check evidence capture before/after fill/click/upload/scroll/select/dismiss-overlay。
+- AST check evidence capture before/after fill/click/upload。
 - AST check no full HTML/cookie/storage/password snapshot fields。
 - AST check frameRef is not ignored by action paths once frame support is declared。
 - AST check snapshot has `overlays` and `dropdownTriggers` output fields。
@@ -920,10 +908,6 @@ Smoke 页面必须覆盖:
 - button
 - clickable div
 - file input
-- below-fold element（需要滚动才能操作）
-- native `<select>` dropdown
-- custom dropdown（Ant Design Select 模式）
-- cookie consent overlay / promotional banner
 - success message
 - error message
 - login-required page
@@ -947,17 +931,11 @@ Smoke 子流程:
 11. assert ambiguous duplicate target returns ambiguous
 12. assert dangerous click returns review_required
 13. assert login/captcha states outrank generic success
-14. scroll-to-element-once → below-fold button → click-dom-element-once（验证滚动后操作成功）
-15. select-option-once → native <select>（验证 .value 一致）
-16. select-option-once → custom dropdown（验证 trigger 文本一致）
-17. select-option-once → option not found → assert not_found
-18. dismiss-overlay-once → cookie banner → assert overlay gone
-19. dismiss-overlay-once → modal-dialog type → assert review_required
 ```
 
 验收原则:
 
-- DOM smoke 是子能力证明，10 个子能力全覆盖。
+- DOM smoke 是子能力证明，7 个 active 子能力全覆盖。
 - Amazon invoice upload smoke 是 job-flow 证明。
 - 两者不能互相替代。
 
@@ -1022,20 +1000,18 @@ ambiguous 有候选证据。
 不再出现假 frame 支持。
 ```
 
-### Phase 5: 新子能力生产稳定
+### Phase 5: 退役子能力保持下线
 
 目标:
 
-- `scroll-to-element-once`：viewport 重校验 + 滚动预算限制 + sticky offset。
-- `select-option-once`：原生 select + 至少两种自定义下拉库 + 选值校验。
-- `dismiss-overlay-once`：白名单类型检查 + 认证/确认对话框拒绝 + 消除后 DOM 校验。
+- 已退役的 `scroll-to-element-once`、`select-option-once`、`dismiss-overlay-once` 不再出现在 active law、schema child ability enum、public facade、runtime 文件、acceptance smoke 与 inspector 断言中。
+- 若未来要恢复这些能力，必须先恢复 active law，再恢复施工图、schema、runtime、acceptance 与 inspector。
 
 退出标准:
 
 ```txt
-smoke 步骤 14-19 全部通过。
-不出现假 select 成功（选值不反映在 trigger 上视为失败）。
-不出现白名单外遮层被自动消除。
+active DOM 面不再宣称已退役子能力。
+code-purity 不再因退役子能力产生 zombie surface。
 ```
 
 ### Phase 6: DOM Inspector + Acceptance

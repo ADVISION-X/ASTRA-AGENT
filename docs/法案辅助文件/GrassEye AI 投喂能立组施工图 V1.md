@@ -2,6 +2,7 @@
 
 版本：2026-05-21  
 状态：active
+最近校准：2026-05-22，参考 `/Users/nexgen/Documents/translate-films` 的 Gemini 文件投喂稳定链路
 
 ## 1. 当前定位
 
@@ -73,3 +74,32 @@ flow script
 
 在 Amazon 主线里，AI 只用于有限状态判断或人工接管判定。  
 如果 DOM 与显式规则已足够，主线可以完全不调用 AI。
+
+## 8. Web Chat 文件投喂稳定链路
+
+当前 Facebook 种草视频依赖 web-chat provider 上传视频 artifact。稳定链路必须按下面顺序执行：
+
+```mermaid
+flowchart TD
+  A["open or focus pinned provider workspace"] --> B["clear stale composer draft and attachments"]
+  B --> C["try located provider file input"]
+  C --> D{"attachment count verified?"}
+  D -- "yes" --> H["fill governed prompt"]
+  D -- "no" --> E["focus composer"]
+  E --> F["copy one file object to macOS clipboard and Cmd+V"]
+  F --> G{"input/global exact attachment count verified?"}
+  G -- "retry <= 3" --> E
+  G -- "yes" --> H
+  H --> I["verify attachments again before submit"]
+  I --> J["submit prompt"]
+  J --> K["wait for stable provider answer"]
+```
+
+技术要点：
+
+- 不以“本地文件名出现在页面文本里”作为唯一上传完成条件；ChatGPT/Gemini 可能隐藏、截断或异步改写文件 chip。
+- 上传验收以当前 composer 附件数量为主，input scope 为准；只有 global count 与期望数精确相等时才作为诊断性通过。
+- 剪贴板上传必须先聚焦 composer，再确认焦点，再复制 POSIX file 到 macOS clipboard，再执行 `Cmd+V`。
+- 剪贴板上传逐个文件执行，最多 3 次重试；AppleScript 单步必须有短超时，不能无限阻塞 mission。
+- prompt 发送前必须再次验证附件数量，防止“上传看似成功但发送时附件丢失”。
+- 回复读取必须等待稳定回答，避免把旧会话最后一条回复当作当前视频判断。

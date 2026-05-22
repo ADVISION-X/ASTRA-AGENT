@@ -763,22 +763,26 @@ Forbidden remediation:
 }
 ```
 
-Zombie surface means active code that cannot prove a live caller, a lawful entry route, or a live branch.
+Zombie surface means active code that cannot prove reachability from a lawful live entry surface, a live consumer, or a live branch.
 
 Executable maturity must fail when it finds:
 
-- a file with no lawful inbound reference and no lawful entrypoint role
-- an export with no active importer or lawful namespace consumer
+- a file that is not reachable from a lawful live entry surface
+- an export with no active importer or lawful namespace consumer from the reachable live graph
 - a non-exported top-level declaration with no live identifier usage
 - a literal-dead `if` / `else` / ternary / loop branch
+- a zombie-to-zombie import or re-export chain that is falsely treated as proof of life
+- a public boundary, contract, schema, index file, or type-contract treated as automatically live by file category
 - dormant code kept as "maybe later", "temporary backup", or hard-coded false branch cargo
 
 Allowed exemptions:
 
 - package-script entry files declared in `package.json`
-- generated-plan loaded owner inspectors
-- exports consumed through lawful namespace import
+- generated-plan loaded owner inspectors and only their dynamic export contract
+- exports consumed through lawful namespace import from a reachable importer
 - external entry files explicitly owned by current runtime law
+
+Public boundary files, `index.ts`, `contract.ts`, `schema.ts`, and type-contract files are not blanket exemptions.
 
 Forbidden:
 
@@ -786,6 +790,7 @@ Forbidden:
 - parking code behind hard-coded `false` or unreachable alternate branch
 - preserving unused exports "for later"
 - keeping orphan top-level declarations inside active runtime files
+- treating an inbound edge from an unreachable zombie file as proof of life
 - claiming zombie cleanup may wait until after CI turns green
 
 ## 24. Enforcement Roadmap
@@ -821,10 +826,11 @@ Must catch:
 
 Must catch before READY may be claimed:
 
-- zombie files with no lawful inbound reference
-- zombie exports with no active consumer
+- zombie files not reachable from lawful live entry surfaces
+- zombie exports with no active consumer from the reachable graph
 - orphan top-level declarations
 - literal-dead branches in active source
+- re-export / barrel laundering that hides owner or liveness truth
 - pass-through wrappers
 - hidden chain lengthening
 - stale evidence chains

@@ -1,6 +1,8 @@
-export const domRoot = "src/capabilities/dom-automation/";
-export const domPublicFacade = "src/capabilities/dom-automation/index.ts";
-export const domSchemaPath = "src/capabilities/dom-automation/schema.ts";
+export const domSurface = {
+  root: "src/capabilities/dom-automation/",
+  publicFacade: "src/capabilities/dom-automation/index.ts",
+  schemaPath: "src/capabilities/dom-automation/schema.ts",
+} as const;
 
 export const requiredDomLawIds = [
   "APEX-DOM-001-V1",
@@ -16,9 +18,6 @@ export const requiredDomLawIds = [
   "APEX-DOM-011-V1",
   "APEX-DOM-012-V1",
   "APEX-DOM-013-V1",
-  "APEX-DOM-014-V1",
-  "APEX-DOM-015-V1",
-  "APEX-DOM-016-V1",
 ] as const;
 
 export const requiredChildAbilities = [
@@ -29,9 +28,6 @@ export const requiredChildAbilities = [
   "upload-approved-file-once",
   "wait-for-dom-state-once",
   "verify-dom-state-once",
-  "scroll-to-element-once",
-  "select-option-once",
-  "dismiss-overlay-once",
 ] as const;
 
 export const requiredChildFunctionExports = [
@@ -42,9 +38,6 @@ export const requiredChildFunctionExports = [
   "uploadApprovedFileOnce",
   "waitForDomStateOnce",
   "verifyDomStateOnce",
-  "scrollToElementOnce",
-  "selectOptionOnce",
-  "dismissOverlayOnce",
 ] as const;
 
 export const requiredTargetKinds = [
@@ -82,7 +75,4 @@ export const requiredRuntimeFiles = [
   "src/capabilities/dom-automation/runtime/dom-upload.ts",
   "src/capabilities/dom-automation/runtime/dom-wait.ts",
   "src/capabilities/dom-automation/runtime/dom-verify.ts",
-  "src/capabilities/dom-automation/runtime/dom-scroll.ts",
-  "src/capabilities/dom-automation/runtime/dom-select.ts",
-  "src/capabilities/dom-automation/runtime/dom-dismiss-overlay.ts",
 ] as const;

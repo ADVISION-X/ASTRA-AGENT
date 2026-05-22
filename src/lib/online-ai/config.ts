@@ -59,7 +59,7 @@ function maskApiKey(apiKey: string): string {
   return `${apiKey.slice(0, 6)}...${apiKey.slice(-4)}`;
 }
 
-export function toPublicOnlineAiProviderStatus(config: OnlineAiProviderConfig): OnlineAiProviderPublicStatus {
+function toPublicOnlineAiProviderStatus(config: OnlineAiProviderConfig): OnlineAiProviderPublicStatus {
   return {
     providerCompany: config.providerCompany,
     providerKind: config.providerKind,
@@ -121,5 +121,3 @@ export async function saveOnlineAiProviderConfig(
   await safeChmod(filePath);
   return toPublicOnlineAiProviderStatus(config);
 }
-
-export { LOCKED_GEMINI_MODEL };

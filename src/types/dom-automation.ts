@@ -1,9 +1,9 @@
-export type DomTargetKind =
+type DomTargetKind =
   | "text-input" | "search-input" | "button" | "link" | "file-input"
   | "row" | "clickable" | "message" | "dialog" | "select" | "combobox"
   | "dropdown-trigger" | "overlay-dismiss-button" | "tab-button" | "rich-text-editor";
 
-export type DomElementSummary = {
+type DomElementSummary = {
   tagName: string;
   type?: string | undefined;
   role?: string | undefined;

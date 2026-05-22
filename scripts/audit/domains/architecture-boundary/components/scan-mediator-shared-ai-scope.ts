@@ -1,12 +1,18 @@
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
-import { getRepoSourcePath } from "../../../shared/source-files.js";
+import {
+  collectResolvedModuleTargets,
+  type SourceModuleTarget,
+} from "../../../shared/source-module-targets.js";
 import {
   findPlannerToken,
   isPlannerScope,
   privateCapabilityPathPattern,
   type ArchitectureSourceFile,
 } from "./architecture-boundary-shared.js";
+
+const describeEdgeVerb = (edgeKind: SourceModuleTarget["edgeKind"]): string =>
+  edgeKind === "re-export" ? "re-exports" : "imports";
 
 const pushBoundaryFinding = (
   findings: InspectorFinding[],
@@ -38,12 +44,8 @@ export const inspectMediatorImports = (
   if (!repoPath.startsWith("src/mediator/")) {
     return;
   }
-  for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    const target = importDeclaration.getModuleSpecifierSourceFile();
-    if (!target) {
-      continue;
-    }
-    const targetPath = getRepoSourcePath(target);
+  for (const target of collectResolvedModuleTargets(sourceFile)) {
+    const targetPath = target.targetPath;
     if (
       !targetPath.startsWith("src/lib/browser/") &&
       !targetPath.startsWith("src/capabilities/") &&
@@ -56,7 +58,7 @@ export const inspectMediatorImports = (
       lawId: mediatorLawId,
       repoPath,
       targetPath,
-      message: `${repoPath} imports runtime action surface ${targetPath}.`,
+      message: `${repoPath} ${describeEdgeVerb(target.edgeKind)} runtime action surface ${targetPath}.`,
     });
   }
 };
@@ -70,12 +72,8 @@ export const inspectSharedImports = (
   if (!repoPath.startsWith("src/lib/") || repoPath.startsWith("src/lib/local-runtime/")) {
     return;
   }
-  for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    const target = importDeclaration.getModuleSpecifierSourceFile();
-    if (!target) {
-      continue;
-    }
-    const targetPath = getRepoSourcePath(target);
+  for (const target of collectResolvedModuleTargets(sourceFile)) {
+    const targetPath = target.targetPath;
     if (!targetPath.startsWith("src/plugins/") && !targetPath.startsWith("src/capabilities/")) {
       continue;
     }
@@ -84,7 +82,7 @@ export const inspectSharedImports = (
       lawId: sharedLawId,
       repoPath,
       targetPath,
-      message: `${repoPath} imports owner code ${targetPath} from shared infrastructure.`,
+      message: `${repoPath} ${describeEdgeVerb(target.edgeKind)} owner code ${targetPath} from shared infrastructure.`,
     });
   }
 };

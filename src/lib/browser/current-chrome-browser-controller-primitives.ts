@@ -2,9 +2,7 @@ import type {
   BrowserScrollCoordinateSpace,
   BrowserTextInputKey,
 } from "./browser-controller.js";
-import type { ChromeWindowState } from "./current-chrome-window-control.js";
 import {
-  readFrontChromeWindowState as readCurrentChromeWindowState,
   runJxa as runCurrentChromeJxa,
   runAppleScript as runCurrentChromeAppleScript,
 } from "./current-chrome-window-control.js";
@@ -15,7 +13,6 @@ const activateChrome = async (abortSignal?: AbortSignal): Promise<void> => {
   await runAppleScript('tell application "Google Chrome" to activate', abortSignal ? { signal: abortSignal } : undefined);
 };
 const escapeAppleScriptText = (value: string): string => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-const readFrontChromeWindowState = async (): Promise<ChromeWindowState> => readCurrentChromeWindowState();
 const toQuartzWheelDelta = (value: number): number => -Math.round(value);
 
 const BROWSER_TEXT_INPUT_KEY_CODES: Record<BrowserTextInputKey, number> = {

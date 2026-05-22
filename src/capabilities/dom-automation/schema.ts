@@ -1,16 +1,11 @@
 import { z } from "zod";
 
-export const DOM_AUTOMATION_ABILITY_GROUP_ID = "dom-automation" as const;
-
 const DomAutomationChildCapabilityIdSchema = z.enum([
   "read-dom-snapshot-once",
   "locate-dom-element-once",
   "fill-dom-element-once",
   "click-dom-element-once",
   "upload-approved-file-once",
-  "scroll-to-element-once",
-  "select-option-once",
-  "dismiss-overlay-once",
   "verify-dom-state-once",
   "wait-for-dom-state-once",
 ]);
@@ -220,38 +215,6 @@ const UploadApprovedFileInputSchema = z.object({
   uploadPurpose: z.string().min(1).max(80),
 }).strict();
 
-const ScrollToElementInputSchema = z.object({
-  elementRef: DomElementRefSchema,
-  scrollBudget: z.object({
-    maxPixels: z.number().int().min(1).max(20000).optional().default(8000),
-    maxSteps: z.number().int().min(1).max(80).optional().default(20),
-  }).strict().optional().default({}),
-  stickyHeaderOffset: z.number().int().min(0).max(800).optional().default(0),
-  scrollPurpose: z.string().min(1).max(80),
-}).strict();
-
-const SelectOptionInputSchema = z.object({
-  elementRef: DomElementRefSchema,
-  approvedOptionText: z.string().min(1),
-  matchMode: z.enum(["exact", "contains"]),
-  approvedOptionList: z.array(z.string().min(1)).optional(),
-  selectPurpose: z.string().min(1).max(80),
-}).strict();
-
-const DismissOverlayInputSchema = z.object({
-  overlayType: z.enum([
-    "cookie-consent-overlay",
-    "promotional-overlay",
-    "informational-banner",
-    "gdpr-consent",
-    "app-install-prompt",
-    "modal-dialog",
-    "drawer-panel",
-  ]),
-  approvedDismissalText: z.string().min(1),
-  dismissPurpose: z.string().min(1).max(80),
-}).strict();
-
 const DomVerificationStatusSchema = z.enum([
   "success",
   "failed",
@@ -305,12 +268,9 @@ export const DOM_SCHEMAS = {
   DomSnapshot: DomSnapshotSchema,
   DomVerificationResult: DomVerificationResultSchema,
   ClickDomElementInput: ClickDomElementInputSchema,
-  DismissOverlayInput: DismissOverlayInputSchema,
   FillDomElementInput: FillDomElementInputSchema,
   LocateDomElementInput: LocateDomElementInputSchema,
   ReadDomSnapshotInput: ReadDomSnapshotInputSchema,
-  ScrollToElementInput: ScrollToElementInputSchema,
-  SelectOptionInput: SelectOptionInputSchema,
   UploadApprovedFileInput: UploadApprovedFileInputSchema,
   VerifyDomStateInput: VerifyDomStateInputSchema,
   WaitForDomStateInput: WaitForDomStateInputSchema,

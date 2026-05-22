@@ -13,7 +13,7 @@
 
 当前现役 zombie 分四类：
 
-1. zombie-file：活跃源码文件没有任何合法入边，也不是合法入口。
+1. zombie-file：活跃源码文件不从任何合法 live entry surface reachable。
 2. zombie-export：导出面没有任何现役 importer 或 lawful namespace consumer。
 3. zombie-top-level-declaration：未导出的顶层声明在同文件内没有任何活跃标识符使用。
 4. zombie-dead-branch：`if`、`else`、三元表达式、`while`、`for` 的分支被字面量布尔值硬编码成永不执行。
@@ -22,11 +22,14 @@
 
 一个 surface 只有在以下任一证据成立时才算活：
 
-- 被 `src/**` 或 `scripts/**` 的现役源码静态 import / re-export 引用。
+- 从 `package.json` 脚本入口、generated-plan owner inspector 动态入口、或 law 明确授权的外部入口出发，经现役源码 import / re-export reachability 图可达。
 - 被 `package.json` 的现役脚本入口直接启动。
 - 被 generated audit plan 动态装载为 owner inspector。
-- 导出面被 namespace import 合法消费。
+- 导出面被 reachable importer 的 namespace import 合法消费。
 - 被现役 law 明确授权为外部入口面。
+
+来自 zombie 文件的入边不算活性证明。
+`index.ts`、`contract.ts`、`schema.ts`、type-contract 不是天然豁免。
 
 不在以上清单里的“先留着”“备份一下”“以后可能回滚”都算 zombie 候选。
 
@@ -35,8 +38,8 @@
 code-purity inspector 必须：
 
 1. 收集 active source。
-2. 构建 import / re-export 引用图。
-3. 提取 package script entrypoints 与 generated-plan owner exemptions。
+2. 构建以合法根为起点的 import / re-export reachability 图。
+3. 提取 package script entrypoints、generated-plan owner exemptions、以及 law 明示的动态 export 豁免。
 4. 产出 zombie-file / zombie-export / zombie-top-level-declaration / zombie-dead-branch findings。
 5. 把整改动作写入 code-purity inventory，并保持执行态二元裁决。
 
@@ -44,6 +47,8 @@ code-purity inspector 必须：
 
 - 豁免必须由 law、package script、或 generated plan 给出。
 - 不允许手工白名单文件。
+- 不允许按 `index.ts`、`contract.ts`、`schema.ts`、type-contract 等文件类别整类豁免。
+- 合法入口文件里未被消费的 export 仍然是 zombie-export，除非该动态 export 合同被 generated plan 或 law 明示。
 - 不允许临时跳过某个 zombie check 让 CI 先绿。
 - 不允许以 wrapper、facade、bridge、注释掉旧逻辑的方式假装“已删除”。
 

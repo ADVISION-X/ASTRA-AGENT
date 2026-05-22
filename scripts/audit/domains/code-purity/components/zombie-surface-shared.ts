@@ -1,9 +1,11 @@
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { readFileSync } from "node:fs";
 
-import type { SourceFile } from "ts-morph";
-
+import { lawfulDomZombieExportsByFile } from "../../dom-automation/components/dom-lawful-zombie-exports.js";
 import { resolveFromRepo, toRepoPath } from "../../../shared/paths.js";
+import {
+  collectResolvedModuleTargets,
+  type SourceModuleTarget,
+} from "../../../shared/source-module-targets.js";
 import type { InventoryFindingCollector } from "./code-purity-finding-collector.js";
 import type { GovernedFile } from "./code-purity-governed-files.js";
 
@@ -13,17 +15,9 @@ export type ZombieGraph = {
   namespaceImportedFiles: Set<string>;
 };
 
-type ZombieGraphEdge = {
-  importedNames: string[];
-  namespaceImport: boolean;
-  targetPath: string;
-};
-
 const packagePath = "package.json";
 const ownerInspectorPathPattern = /^scripts\/audit\/domains\/[^/]+\/inspector\.ts$/u;
 const packageScriptEntrypointPattern = /(?:src|scripts)\/[A-Za-z0-9._/-]+\.(?:ts|tsx|js|jsx|mjs)/gu;
-const relativeModulePattern = /^\.{1,2}\//u;
-const candidateSuffixes = ["", ".ts", ".tsx", ".js", ".jsx", ".mjs", "/index.ts", "/index.tsx", "/index.js", "/index.jsx", "/index.mjs"];
 
 export const pushZombieFinding = (
   collector: InventoryFindingCollector,
@@ -71,116 +65,55 @@ const isLawfulZombieEntrypoint = (governedFile: GovernedFile, packageEntrypoints
   packageEntrypoints.has(governedFile.repoPath)
   || ownerInspectorPathPattern.test(governedFile.repoPath);
 
-const resolveRelativeTargetPath = (sourceFile: SourceFile, moduleSpecifierValue: string): string | undefined => {
-  if (!relativeModulePattern.test(moduleSpecifierValue)) {
-    return undefined;
-  }
-  const candidateBasePath = resolve(dirname(sourceFile.getFilePath()), moduleSpecifierValue);
-  for (const suffix of candidateSuffixes) {
-    const candidatePath = `${candidateBasePath}${suffix}`;
-    if (existsSync(candidatePath)) {
-      return toRepoPath(candidatePath);
-    }
-  }
-  return undefined;
-};
-
-const resolveGraphTargetPath = (
-  sourceFile: SourceFile,
-  targetFile: SourceFile | undefined,
-  moduleSpecifierValue: string,
-): string | undefined => targetFile ? toRepoPath(targetFile.getFilePath()) : resolveRelativeTargetPath(sourceFile, moduleSpecifierValue);
-
 const appendGraphEdge = (
   sourcePath: string,
-  targetPath: string | undefined,
+  target: SourceModuleTarget,
   governedPathSet: ReadonlySet<string>,
-  outboundByFile: Map<string, ZombieGraphEdge[]>,
-  input?: {
-    importedNames?: readonly string[];
-    namespaceImport?: boolean;
-  },
+  outboundByFile: Map<string, SourceModuleTarget[]>,
 ): void => {
-  if (!targetPath || !governedPathSet.has(targetPath)) {
+  if (!governedPathSet.has(target.targetPath)) {
     return;
   }
-  outboundByFile.get(sourcePath)?.push({
-    importedNames: [...(input?.importedNames ?? [])],
-    namespaceImport: input?.namespaceImport ?? false,
-    targetPath,
-  });
+  outboundByFile.get(sourcePath)?.push(target);
 };
 
-const collectImportEdges = (
-  governedFile: GovernedFile,
-  governedPathSet: ReadonlySet<string>,
-  outboundByFile: Map<string, ZombieGraphEdge[]>,
-): void => {
-  for (const importDeclaration of governedFile.sourceFile.getImportDeclarations()) {
-    const targetPath = resolveGraphTargetPath(
-      governedFile.sourceFile,
-      importDeclaration.getModuleSpecifierSourceFile(),
-      importDeclaration.getModuleSpecifierValue(),
-    );
-    const importedNames: string[] = [];
-    if (importDeclaration.getDefaultImport()) {
-      importedNames.push("default");
-    }
-    for (const namedImport of importDeclaration.getNamedImports()) {
-      importedNames.push(namedImport.getNameNode().getText());
-    }
-    appendGraphEdge(governedFile.repoPath, targetPath, governedPathSet, outboundByFile, {
-      importedNames,
-      namespaceImport: importDeclaration.getNamespaceImport() !== undefined,
-    });
-  }
-};
-
-const collectReExportEdges = (
-  governedFile: GovernedFile,
-  governedPathSet: ReadonlySet<string>,
-  outboundByFile: Map<string, ZombieGraphEdge[]>,
-): void => {
-  for (const exportDeclaration of governedFile.sourceFile.getExportDeclarations()) {
-    const targetPath = resolveGraphTargetPath(
-      governedFile.sourceFile,
-      exportDeclaration.getModuleSpecifierSourceFile(),
-      exportDeclaration.getModuleSpecifierValue() ?? "",
-    );
-    if (exportDeclaration.getNamedExports().length === 0) {
-      appendGraphEdge(governedFile.repoPath, targetPath, governedPathSet, outboundByFile, {
-        namespaceImport: true,
-      });
-      continue;
-    }
-    appendGraphEdge(
-      governedFile.repoPath,
-      targetPath,
-      governedPathSet,
-      outboundByFile,
-      {
-        importedNames: exportDeclaration.getNamedExports().map((namedExport) => namedExport.getNameNode().getText()),
-      },
-    );
-  }
-};
-
-const buildLiveReferenceEvidence = (
-  governedFiles: readonly GovernedFile[],
-  outboundByFile: ReadonlyMap<string, ZombieGraphEdge[]>,
-  packageEntrypoints: ReadonlySet<string>,
-): Omit<ZombieGraph, "reachableFiles"> & { reachableFiles: Set<string> } => {
+const createImportedNamesByFile = (governedFiles: readonly GovernedFile[]): Map<string, Set<string>> => {
   const importedNamesByFile = new Map<string, Set<string>>();
-  const namespaceImportedFiles = new Set<string>();
-  const reachableFiles = new Set<string>();
-
   for (const governedFile of governedFiles) {
     importedNamesByFile.set(governedFile.repoPath, new Set());
   }
+  return importedNamesByFile;
+};
 
-  const pendingPaths = governedFiles
+const listLawfulEntrypointPaths = (
+  governedFiles: readonly GovernedFile[],
+  packageEntrypoints: ReadonlySet<string>,
+): string[] =>
+  governedFiles
     .filter((governedFile) => isLawfulZombieEntrypoint(governedFile, packageEntrypoints))
     .map((governedFile) => governedFile.repoPath);
+
+const recordLiveEdgeEvidence = (
+  edge: SourceModuleTarget,
+  importedNamesByFile: ReadonlyMap<string, Set<string>>,
+  namespaceImportedFiles: Set<string>,
+): void => {
+  if (edge.namespaceImport) {
+    namespaceImportedFiles.add(edge.targetPath);
+  }
+  for (const importedName of edge.namedBindings) {
+    importedNamesByFile.get(edge.targetPath)?.add(importedName);
+  }
+};
+
+const collectReachableFiles = (
+  outboundByFile: ReadonlyMap<string, SourceModuleTarget[]>,
+  entrypointPaths: readonly string[],
+  importedNamesByFile: ReadonlyMap<string, Set<string>>,
+  namespaceImportedFiles: Set<string>,
+): Set<string> => {
+  const reachableFiles = new Set<string>();
+  const pendingPaths = [...entrypointPaths];
 
   while (pendingPaths.length > 0) {
     const currentPath = pendingPaths.shift();
@@ -189,17 +122,44 @@ const buildLiveReferenceEvidence = (
     }
     reachableFiles.add(currentPath);
     for (const edge of outboundByFile.get(currentPath) ?? []) {
-      if (edge.namespaceImport) {
-        namespaceImportedFiles.add(edge.targetPath);
-      }
-      for (const importedName of edge.importedNames) {
-        importedNamesByFile.get(edge.targetPath)?.add(importedName);
-      }
+      recordLiveEdgeEvidence(edge, importedNamesByFile, namespaceImportedFiles);
       if (!reachableFiles.has(edge.targetPath)) {
         pendingPaths.push(edge.targetPath);
       }
     }
   }
+
+  return reachableFiles;
+};
+
+const createOutboundByFile = (
+  governedFiles: readonly GovernedFile[],
+  governedPathSet: ReadonlySet<string>,
+): Map<string, SourceModuleTarget[]> => {
+  const outboundByFile = new Map<string, SourceModuleTarget[]>();
+  for (const governedFile of governedFiles) {
+    outboundByFile.set(governedFile.repoPath, []);
+  }
+  for (const governedFile of governedFiles) {
+    for (const target of collectResolvedModuleTargets(governedFile.sourceFile)) {
+      appendGraphEdge(governedFile.repoPath, target, governedPathSet, outboundByFile);
+    }
+  }
+  return outboundByFile;
+};
+
+export const buildZombieGraph = (governedFiles: readonly GovernedFile[]): ZombieGraph => {
+  const governedPathSet = new Set(governedFiles.map((governedFile) => governedFile.repoPath));
+  const packageEntrypoints = readPackageEntrypoints();
+  const outboundByFile = createOutboundByFile(governedFiles, governedPathSet);
+  const importedNamesByFile = createImportedNamesByFile(governedFiles);
+  const namespaceImportedFiles = new Set<string>();
+  const reachableFiles = collectReachableFiles(
+    outboundByFile,
+    listLawfulEntrypointPaths(governedFiles, packageEntrypoints),
+    importedNamesByFile,
+    namespaceImportedFiles,
+  );
 
   return {
     importedNamesByFile,
@@ -208,22 +168,7 @@ const buildLiveReferenceEvidence = (
   };
 };
 
-export const buildZombieGraph = (governedFiles: readonly GovernedFile[]): ZombieGraph => {
-  const governedPathSet = new Set(governedFiles.map((governedFile) => governedFile.repoPath));
-  const outboundByFile = new Map<string, ZombieGraphEdge[]>();
-
-  for (const governedFile of governedFiles) {
-    outboundByFile.set(governedFile.repoPath, []);
-  }
-
-  for (const governedFile of governedFiles) {
-    collectImportEdges(governedFile, governedPathSet, outboundByFile);
-    collectReExportEdges(governedFile, governedPathSet, outboundByFile);
-  }
-
-  return buildLiveReferenceEvidence(governedFiles, outboundByFile, readPackageEntrypoints());
-};
-
 export const isLawfulZombieExport = (governedFile: GovernedFile, exportName: string): boolean =>
-  ownerInspectorPathPattern.test(governedFile.repoPath)
-  && exportName === "inspectDomain";
+  (ownerInspectorPathPattern.test(governedFile.repoPath)
+    && exportName === "inspectDomain")
+  || Boolean(lawfulDomZombieExportsByFile[governedFile.repoPath]?.includes(exportName));

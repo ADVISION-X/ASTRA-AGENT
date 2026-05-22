@@ -14,7 +14,7 @@ const buildGeminiConfigHash = (config: OnlineAiProviderConfig) => buildHash(JSON
   endpoint: config.endpoint,
 }));
 
-export type GeminiGenerateInput = {
+type GeminiGenerateInput = {
   config: OnlineAiProviderConfig;
   promptText: string;
   imagePaths: string[];
@@ -27,7 +27,7 @@ export type GeminiGenerateInput = {
   abortSignal?: AbortSignal;
 };
 
-export type GeminiGenerateResult = {
+type GeminiGenerateResult = {
   rawText: string;
   modelName: string;
   runtimeName: "gemini-api";

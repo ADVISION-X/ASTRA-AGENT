@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-22T14:15:27.163Z",
+  "generatedAt": "2026-05-22T14:51:28.787Z",
   "capabilityDomain": "code-purity",
   "executionGroup": "foundation",
   "lawIds": [
@@ -21,465 +21,8 @@
     "APEX-CODE-PURITY-016-V1",
     "APEX-CODE-PURITY-017-V1"
   ],
-  "status": "FAIL",
-  "findings": [
-    {
-      "checkId": "code-purity/function-budget",
-      "lawId": "APEX-CODE-PURITY-015-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/domains/code-purity/components/zombie-surface-shared.ts has an over-limit function near line 168.",
-      "filePath": "scripts/audit/domains/code-purity/components/zombie-surface-shared.ts",
-      "evidence": "{\"owner\":\"audit:code-purity\",\"remediation\":\"Physically split the function by validation, policy, execution, and evidence-writing roles.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-file",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/local-runtime/index.ts is not reachable from any lawful live entry surface and behaves like a zombie file.",
-      "filePath": "src/lib/local-runtime/index.ts",
-      "evidence": "{\"owner\":\"local-runtime\",\"remediation\":\"Delete the file or reconnect it from a lawful package entry, generated-plan owner load, or reachable active importer.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/shared/generated-contracts.ts exports auditConflictSchema without any active consumer.",
-      "filePath": "scripts/audit/shared/generated-contracts.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/shared/generated-contracts.ts exports enforcementMatrixRowSchema without any active consumer.",
-      "filePath": "scripts/audit/shared/generated-contracts.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/shared/generated-contracts.ts exports staticClauseCoverageEntrySchema without any active consumer.",
-      "filePath": "scripts/audit/shared/generated-contracts.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/shared/inspector-contracts.ts exports inspectorFindingSchema without any active consumer.",
-      "filePath": "scripts/audit/shared/inspector-contracts.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/shared/inspector-contracts.ts exports AuditPlanEntry without any active consumer.",
-      "filePath": "scripts/audit/shared/inspector-contracts.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/shared/law-contracts.ts exports lawSourceSchema without any active consumer.",
-      "filePath": "scripts/audit/shared/law-contracts.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/shared/law-contracts.ts exports LawMetadata without any active consumer.",
-      "filePath": "scripts/audit/shared/law-contracts.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/shared/manifest-contracts.ts exports manifestSourceSchema without any active consumer.",
-      "filePath": "scripts/audit/shared/manifest-contracts.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/shared/manifest-contracts.ts exports BlueprintRef without any active consumer.",
-      "filePath": "scripts/audit/shared/manifest-contracts.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "scripts/audit/shared/manifest-contracts.ts exports AuditManifest without any active consumer.",
-      "filePath": "scripts/audit/shared/manifest-contracts.ts",
-      "evidence": "{\"owner\":\"audit-core\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"audit-phase\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/contract.ts exports AiInputGatewayAbilityGroupId without any active consumer.",
-      "filePath": "src/capabilities/ai-input-gateway/contract.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/contract.ts exports AiFeedInput without any active consumer.",
-      "filePath": "src/capabilities/ai-input-gateway/contract.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/contract.ts exports AiFeedResult without any active consumer.",
-      "filePath": "src/capabilities/ai-input-gateway/contract.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/contract.ts exports AiInputGatewayChildCapabilityId without any active consumer.",
-      "filePath": "src/capabilities/ai-input-gateway/contract.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/contract.ts exports AiInputGatewayProviderKind without any active consumer.",
-      "filePath": "src/capabilities/ai-input-gateway/contract.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/index.ts exports AI_INPUT_GATEWAY_ABILITY_GROUP_ID without any active consumer.",
-      "filePath": "src/capabilities/ai-input-gateway/index.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/index.ts exports AiFeedInputSchema without any active consumer.",
-      "filePath": "src/capabilities/ai-input-gateway/index.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/index.ts exports AiFeedResultSchema without any active consumer.",
-      "filePath": "src/capabilities/ai-input-gateway/index.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/index.ts exports AiInputGatewayChildCapabilityId without any active consumer.",
-      "filePath": "src/capabilities/ai-input-gateway/index.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/index.ts exports AiInputGatewayProviderKind without any active consumer.",
-      "filePath": "src/capabilities/ai-input-gateway/index.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/index.ts exports AiInputGatewayExecutionContext without any active consumer.",
-      "filePath": "src/capabilities/ai-input-gateway/index.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/schema.ts exports AiFeedInputRef without any active consumer.",
-      "filePath": "src/capabilities/ai-input-gateway/schema.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/ai-input-gateway/schema.ts exports AiFeedStatus without any active consumer.",
-      "filePath": "src/capabilities/ai-input-gateway/schema.ts",
-      "evidence": "{\"owner\":\"capability:ai-input-gateway\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/dom-automation/index.ts exports scrollToElementOnce without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/index.ts",
-      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/dom-automation/index.ts exports selectOptionOnce without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/index.ts",
-      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/dom-automation/index.ts exports dismissOverlayOnce without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/index.ts",
-      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/dom-automation/runtime/dom-locator.ts exports locateDomElementResultOnce without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/runtime/dom-locator.ts",
-      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"child-ability\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/dom-automation/schema.ts exports DOM_AUTOMATION_ABILITY_GROUP_ID without any active consumer.",
-      "filePath": "src/capabilities/dom-automation/schema.ts",
-      "evidence": "{\"owner\":\"capability:dom-automation\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/forensics-persistence/contract.ts exports FORENSICS_PERSISTENCE_ABILITY_GROUP_ID without any active consumer.",
-      "filePath": "src/capabilities/forensics-persistence/contract.ts",
-      "evidence": "{\"owner\":\"capability:forensics-persistence\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/forensics-persistence/contract.ts exports ForensicsPersistenceAbilityGroupId without any active consumer.",
-      "filePath": "src/capabilities/forensics-persistence/contract.ts",
-      "evidence": "{\"owner\":\"capability:forensics-persistence\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/forensics-persistence/contract.ts exports ForensicsPersistenceAbilityResult without any active consumer.",
-      "filePath": "src/capabilities/forensics-persistence/contract.ts",
-      "evidence": "{\"owner\":\"capability:forensics-persistence\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/video-download/contract.ts exports VideoDownloadAbilityGroupId without any active consumer.",
-      "filePath": "src/capabilities/video-download/contract.ts",
-      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/video-download/contract.ts exports VideoDownloadAbilityInput without any active consumer.",
-      "filePath": "src/capabilities/video-download/contract.ts",
-      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/video-download/contract.ts exports VideoDownloadChildCapabilityId without any active consumer.",
-      "filePath": "src/capabilities/video-download/contract.ts",
-      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/video-download/contract.ts exports VideoDownloadResult without any active consumer.",
-      "filePath": "src/capabilities/video-download/contract.ts",
-      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/video-download/index.ts exports VideoDownloadExecutionContext without any active consumer.",
-      "filePath": "src/capabilities/video-download/index.ts",
-      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/video-download/index.ts exports VideoDownloadArtifact without any active consumer.",
-      "filePath": "src/capabilities/video-download/index.ts",
-      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/video-download/index.ts exports VideoDownloadAbilityInput without any active consumer.",
-      "filePath": "src/capabilities/video-download/index.ts",
-      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"ability-group\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/capabilities/video-download/schema.ts exports VideoDownloadArtifactDisposition without any active consumer.",
-      "filePath": "src/capabilities/video-download/schema.ts",
-      "evidence": "{\"owner\":\"capability:video-download\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/local-runtime/contract.ts exports RequestedPlatformId without any active consumer.",
-      "filePath": "src/lib/local-runtime/contract.ts",
-      "evidence": "{\"owner\":\"local-runtime\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/local-runtime/default-data-dir.ts exports getDefaultLocalDataDir without any active consumer.",
-      "filePath": "src/lib/local-runtime/default-data-dir.ts",
-      "evidence": "{\"owner\":\"local-runtime\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"app-shell\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/online-ai/index.ts exports LOCKED_GEMINI_MODEL without any active consumer.",
-      "filePath": "src/lib/online-ai/index.ts",
-      "evidence": "{\"owner\":\"online-ai\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"infrastructure\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/online-ai/index.ts exports toPublicOnlineAiProviderStatus without any active consumer.",
-      "filePath": "src/lib/online-ai/index.ts",
-      "evidence": "{\"owner\":\"online-ai\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"infrastructure\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/online-ai/index.ts exports OnlineAiProviderConfig without any active consumer.",
-      "filePath": "src/lib/online-ai/index.ts",
-      "evidence": "{\"owner\":\"online-ai\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"infrastructure\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/online-ai/index.ts exports GeminiGenerateInput without any active consumer.",
-      "filePath": "src/lib/online-ai/index.ts",
-      "evidence": "{\"owner\":\"online-ai\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"infrastructure\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/online-ai/index.ts exports GeminiGenerateResult without any active consumer.",
-      "filePath": "src/lib/online-ai/index.ts",
-      "evidence": "{\"owner\":\"online-ai\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"infrastructure\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/plugins/facebook-product-video-mining/index.ts exports FacebookProductVideoMiningContracts without any active consumer.",
-      "filePath": "src/plugins/facebook-product-video-mining/index.ts",
-      "evidence": "{\"owner\":\"plugin:facebook-product-video-mining\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"job-step\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/types/dom-automation.ts exports DomTargetKind without any active consumer.",
-      "filePath": "src/types/dom-automation.ts",
-      "evidence": "{\"owner\":\"types\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/types/dom-automation.ts exports DomElementSummary without any active consumer.",
-      "filePath": "src/types/dom-automation.ts",
-      "evidence": "{\"owner\":\"types\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/types/evidence.ts exports EvidenceKindSchema without any active consumer.",
-      "filePath": "src/types/evidence.ts",
-      "evidence": "{\"owner\":\"types\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/types/evidence.ts exports EvidenceKind without any active consumer.",
-      "filePath": "src/types/evidence.ts",
-      "evidence": "{\"owner\":\"types\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/types/evidence.ts exports EvidenceRef without any active consumer.",
-      "filePath": "src/types/evidence.ts",
-      "evidence": "{\"owner\":\"types\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/types/evidence.ts exports ImageEvidence without any active consumer.",
-      "filePath": "src/types/evidence.ts",
-      "evidence": "{\"owner\":\"types\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-export",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/types/evidence.ts exports OcrTextResult without any active consumer.",
-      "filePath": "src/types/evidence.ts",
-      "evidence": "{\"owner\":\"types\",\"remediation\":\"Delete the export, delete the file, or reconnect the consumer through a lawful import surface.\",\"role\":\"type-contract\",\"verificationCommand\":\"npm run ci:full\"}"
-    },
-    {
-      "checkId": "code-purity/zombie-top-level-declaration",
-      "lawId": "APEX-CODE-PURITY-017-V1",
-      "clauseId": "primary",
-      "message": "src/lib/browser/current-chrome-browser-controller-primitives.ts keeps an orphan top-level variable named readFrontChromeWindowState.",
-      "filePath": "src/lib/browser/current-chrome-browser-controller-primitives.ts",
-      "evidence": "{\"owner\":\"browser\",\"remediation\":\"Delete the declaration or reconnect it to a real caller in the same active source file.\",\"role\":\"browser-primitive\",\"verificationCommand\":\"npm run ci:full\"}"
-    }
-  ],
+  "status": "PASS",
+  "findings": [],
   "inspectedFiles": [
     "scripts/acceptance/amazon-invoice-upload-smoke.ts",
     "scripts/acceptance/facebook-live-dom-probe.ts",
@@ -525,6 +68,7 @@
     "scripts/audit/domains/code-purity/inspector.ts",
     "scripts/audit/domains/dom-automation/components/dom-inspector-constants.ts",
     "scripts/audit/domains/dom-automation/components/dom-inspector-support.ts",
+    "scripts/audit/domains/dom-automation/components/dom-lawful-zombie-exports.ts",
     "scripts/audit/domains/dom-automation/components/inspect-dom-boundaries.ts",
     "scripts/audit/domains/dom-automation/components/inspect-dom-contracts.ts",
     "scripts/audit/domains/dom-automation/components/inspect-dom-foundation-gates.ts",
@@ -544,7 +88,7 @@
     "scripts/audit/shared/paths.ts",
     "scripts/audit/shared/project.ts",
     "scripts/audit/shared/source-files.ts",
-    "scripts/copy-runtime-assets.mjs",
+    "scripts/audit/shared/source-module-targets.ts",
     "scripts/startup/launch-grasseye.mjs",
     "scripts/startup/lib/dependency-check.mjs",
     "scripts/startup/lib/dependency-package-utils.mjs",
@@ -578,6 +122,7 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-answer-support.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-answer.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-clipboard.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-composer-scripts.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-evaluation.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-open.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-page-action-scripts.ts",
@@ -587,6 +132,8 @@
     "src/capabilities/ai-input-gateway/providers/web-chat-shared.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-submit.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-upload-menu.ts",
+    "src/capabilities/ai-input-gateway/providers/web-chat-upload-page-actions.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-upload.ts",
     "src/capabilities/ai-input-gateway/providers/web-chat-workspace.ts",
     "src/capabilities/ai-input-gateway/runtime/ai-feed-input-package.ts",
@@ -601,13 +148,10 @@
     "src/capabilities/dom-automation/index.ts",
     "src/capabilities/dom-automation/runtime/dom-action-result.ts",
     "src/capabilities/dom-automation/runtime/dom-click.ts",
-    "src/capabilities/dom-automation/runtime/dom-dismiss-overlay.ts",
     "src/capabilities/dom-automation/runtime/dom-evidence.ts",
     "src/capabilities/dom-automation/runtime/dom-fill.ts",
     "src/capabilities/dom-automation/runtime/dom-locator-candidates.ts",
     "src/capabilities/dom-automation/runtime/dom-locator.ts",
-    "src/capabilities/dom-automation/runtime/dom-scroll.ts",
-    "src/capabilities/dom-automation/runtime/dom-select.ts",
     "src/capabilities/dom-automation/runtime/dom-snapshot.ts",
     "src/capabilities/dom-automation/runtime/dom-upload.ts",
     "src/capabilities/dom-automation/runtime/dom-verify.ts",
@@ -674,7 +218,6 @@
     "src/lib/local-runtime/contract.ts",
     "src/lib/local-runtime/default-data-dir.ts",
     "src/lib/local-runtime/ids.ts",
-    "src/lib/local-runtime/index.ts",
     "src/lib/local-runtime/settings-types.ts",
     "src/lib/local-runtime/settings.ts",
     "src/lib/local-runtime/structured-log-bus.ts",

@@ -1,6 +1,5 @@
 import {
-  domPublicFacade,
-  domSchemaPath,
+  domSurface,
   requiredChildAbilities,
   requiredChildFunctionExports,
   requiredDetectedStates,
@@ -18,10 +17,9 @@ import {
   zObjectPropertyNames,
   type DomFindingCollector,
 } from "./dom-inspector-support.js";
+import { allowedMigrationFunctionExports } from "./dom-lawful-zombie-exports.js";
 import type { InspectorContext } from "../../../shared/inspector-contracts.js";
 import type { SourceFile } from "ts-morph";
-
-const allowedMigrationFunctionExports = ["locateDomElementResultOnce"] as const;
 
 const reportMissingSource = (
   collector: DomFindingCollector,
@@ -76,7 +74,7 @@ const inspectSchemaContract = (schema: SourceFile, collector: DomFindingCollecto
     expected: requiredChildAbilities,
     checkId: "dom/schema-child-ability-list",
     lawId: "APEX-DOM-013-V1",
-    filePath: domSchemaPath,
+    filePath: domSurface.schemaPath,
     label: "DOM child ability schema",
   });
   inspectExactSet(collector, {
@@ -84,7 +82,7 @@ const inspectSchemaContract = (schema: SourceFile, collector: DomFindingCollecto
     expected: requiredTargetKinds,
     checkId: "dom/schema-target-kind-list",
     lawId: "APEX-DOM-005-V1",
-    filePath: domSchemaPath,
+    filePath: domSurface.schemaPath,
     label: "DOM target-kind schema",
   });
   inspectExactSet(collector, {
@@ -92,7 +90,7 @@ const inspectSchemaContract = (schema: SourceFile, collector: DomFindingCollecto
     expected: requiredDetectedStates,
     checkId: "dom/schema-detected-state-list",
     lawId: "APEX-DOM-004-V1",
-    filePath: domSchemaPath,
+    filePath: domSurface.schemaPath,
     label: "DOM detected-state schema",
   });
   inspectExactSet(collector, {
@@ -100,7 +98,7 @@ const inspectSchemaContract = (schema: SourceFile, collector: DomFindingCollecto
     expected: requiredSnapshotFields,
     checkId: "dom/schema-snapshot-fields",
     lawId: "APEX-DOM-004-V1",
-    filePath: domSchemaPath,
+    filePath: domSurface.schemaPath,
     label: "DOM snapshot schema",
   });
 };
@@ -113,7 +111,7 @@ const inspectFacadeContract = (facade: SourceFile, collector: DomFindingCollecto
     expected: requiredChildFunctionExports,
     checkId: "dom/public-facade-child-export",
     lawId: "APEX-DOM-002-V1",
-    filePath: domPublicFacade,
+    filePath: domSurface.publicFacade,
     label: "DOM public facade",
   });
   const allowedRuntimeExports = new Set<string>([...requiredChildFunctionExports, ...allowedMigrationFunctionExports]);
@@ -122,7 +120,7 @@ const inspectFacadeContract = (facade: SourceFile, collector: DomFindingCollecto
     collector.push({
       checkId: "dom/public-facade-unlawful-runtime-export",
       lawId: "APEX-DOM-002-V1",
-      filePath: domPublicFacade,
+      filePath: domSurface.publicFacade,
       evidence: runtimeExport,
       message: `DOM public facade exports non-lawful runtime function ${runtimeExport}.`,
     });
@@ -138,10 +136,10 @@ const inspectRuntimeFiles = (collector: DomFindingCollector): void => {
 
 export const inspectDomContracts = (context: InspectorContext, collector: DomFindingCollector): void => {
   inspectGeneratedLawCoverage(context, collector);
-  const schema = sourceFileByRepoPath(context.project, domSchemaPath);
-  const facade = sourceFileByRepoPath(context.project, domPublicFacade);
-  if (!schema) return reportMissingSource(collector, "APEX-DOM-013-V1", domSchemaPath);
-  if (!facade) return reportMissingSource(collector, "APEX-DOM-013-V1", domPublicFacade);
+  const schema = sourceFileByRepoPath(context.project, domSurface.schemaPath);
+  const facade = sourceFileByRepoPath(context.project, domSurface.publicFacade);
+  if (!schema) return reportMissingSource(collector, "APEX-DOM-013-V1", domSurface.schemaPath);
+  if (!facade) return reportMissingSource(collector, "APEX-DOM-013-V1", domSurface.publicFacade);
   inspectSchemaContract(schema, collector);
   inspectFacadeContract(facade, collector);
   inspectRuntimeFiles(collector);

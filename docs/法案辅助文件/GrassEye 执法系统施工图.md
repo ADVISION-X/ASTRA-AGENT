@@ -92,6 +92,7 @@ audit-system 只做最小连接检查：
 - runner 是否仍硬编码 law truth 或 owner ordering truth。
 - code-purity report 是否在 audit-system 前已生成。
 - `static-clause-coverage.generated.json` 是否保持 100%。
+- owner-boundary / zombie graph 是否把 import 与 re-export 一并纳入主裁。
 
 audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，不代替 code-purity 或能力域 owner。
 
@@ -101,7 +102,10 @@ audit-system 不证明业务 owner 的业务正确性，不恢复第二主链，
 - 扫描范围覆盖 `src/**` 和 `scripts/**`。
 - `scripts/audit/**` 必须使用 ts-morph AST / symbol / anti-evasion 检查。
 - zombie 检测必须 machine-blocking，至少覆盖 zombie-file、zombie-export、orphan top-level declaration、literal-dead branch。
+- 活性必须从 lawful roots reachability 判定，不得把 zombie 文件的入边当作活性证明。
 - 合法豁免只允许来自 `package.json` 脚本入口、generated-plan owner inspector 动态装载、或现役 law 明确授权的外部入口。
+- 不允许按 `index.ts`、`contract.ts`、`schema.ts`、type-contract 等文件类别整类豁免。
+- owner-boundary 检查必须覆盖 import 与 re-export；barrel laundering 视为同级违法。
 - Code Purity 当前运行态只有 PASS / FAIL；不存在 warning inventory 作为第三态。
 - 一条 code-purity finding 就是 FAIL；finding 里可以携带整改建议，但不会改变二元裁决。
 

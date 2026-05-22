@@ -66,10 +66,11 @@ const writeDomainReport = (
 ): string => {
   mkdirSync(generatedDir, { recursive: true });
   const reportAbsolutePath = resolve(generatedDir, `${planEntry.capabilityDomain}-report.generated.json`);
+  const reportMarkdownPath = resolve(generatedDir, `${planEntry.capabilityDomain}-report.generated.md`);
   writeFileSync(
     reportAbsolutePath,
     `${JSON.stringify(
-      {
+      output.reportJson ?? {
         generatedAt: new Date().toISOString(),
         capabilityDomain: planEntry.capabilityDomain,
         executionGroup: planEntry.executionGroup,
@@ -82,6 +83,9 @@ const writeDomainReport = (
       2,
     )}\n`,
   );
+  if (output.reportMarkdown) {
+    writeFileSync(reportMarkdownPath, `${output.reportMarkdown.trimEnd()}\n`);
+  }
   return toRepoPath(reportAbsolutePath);
 };
 

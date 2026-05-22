@@ -1,12 +1,11 @@
 import type {
-  AiFeedInput,
   AiFeedResult,
   AiInputGatewayChildCapabilityId,
   AiInputGatewayProviderKind,
 } from "./schema.js";
 import type { AiProviderAdapter } from "./contracts/ai-provider-adapter.contract.js";
 
-export type AiInputGatewayAbilityGroupId = "ai-input-gateway";
+type AiInputGatewayAbilityGroupId = "ai-input-gateway";
 
 export type AiInputGatewayExecutionContext = {
   dataDir: string;
@@ -18,10 +17,3 @@ export interface AiInputGatewayAbilityGroup {
   listChildCapabilityIds(): AiInputGatewayChildCapabilityId[];
   execute(input: unknown, options?: { signal?: AbortSignal }): Promise<AiFeedResult>;
 }
-
-export type {
-  AiFeedInput,
-  AiFeedResult,
-  AiInputGatewayChildCapabilityId,
-  AiInputGatewayProviderKind,
-};

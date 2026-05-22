@@ -5,7 +5,7 @@
  * No mission truth, no AI truth, no forensics.
  */
 
-export type RequestedPlatformId =
+type RequestedPlatformId =
   | "tiktok-web"
   | "facebook-web"
   | "macos-local"

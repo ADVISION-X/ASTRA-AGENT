@@ -2,7 +2,7 @@ import { WEB_CHAT_SELECTOR_SCRIPT_PRELUDE } from "./web-chat-selector-prelude.js
 
 type WebChatActionStatus = "success" | "review_required" | "failed" | "pending";
 
-export type WebChatEvaluation = { status: WebChatActionStatus; message: string; answerText?: string | null; pageUrl?: string | null; selector?: string | null; generating?: boolean; target?: "composer-plus" | "upload-menu-item"; x?: number; y?: number; assistantCount?: number; composerText?: string | null };
+export type WebChatEvaluation = { status: WebChatActionStatus; message: string; answerText?: string | null; pageUrl?: string | null; selector?: string | null; generating?: boolean; target?: "composer-plus" | "upload-menu-item"; x?: number; y?: number; assistantCount?: number; composerText?: string | null; attachmentCount?: number; attachmentScope?: "input" | "global" | "none"; inputFocused?: boolean };
 
 const WEB_CHAT_GENERATION_STATE_SCRIPT = `
 const visibleButtonText = Array.from(document.querySelectorAll("button"))
@@ -80,51 +80,6 @@ return {
   status: "pending",
   message: hasFileName ? "waiting for provider upload completion" : "waiting for provider file chip",
   pageUrl: location.href,
-};
-`;
-
-export const FOCUS_COMPOSER_SCRIPT = `
-${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
-const input = resolveComposerInput();
-if (!(input instanceof HTMLElement)) {
-  return {status: "review_required", message: "provider input box not found", pageUrl: location.href};
-}
-input.focus();
-input.click();
-return {status: "success", message: "provider input box focused", pageUrl: location.href};
-`;
-
-export const buildSetComposerTextScript = (text: string): string => `
-${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
-const input = resolveComposerInput();
-if (!(input instanceof HTMLElement)) {
-  return {status: "review_required", message: "provider input box not found", pageUrl: location.href, composerText: null};
-}
-input.focus();
-const text = ${JSON.stringify(text)};
-if (input.isContentEditable) {
-  input.textContent = text;
-  input.dispatchEvent(new InputEvent("input", {bubbles: true, inputType: "insertText", data: text}));
-} else if ("value" in input) {
-  const descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), "value");
-  if (descriptor && typeof descriptor.set === "function") descriptor.set.call(input, text);
-  else input.value = text;
-  input.dispatchEvent(new InputEvent("input", {bubbles: true, inputType: "insertText", data: text}));
-}
-return {status: "success", message: "provider composer text set", pageUrl: location.href, composerText: clip(input.textContent || input.value || "")};
-`;
-
-export const buildVerifyComposerTextScript = (expectedText: string): string => `
-${WEB_CHAT_SELECTOR_SCRIPT_PRELUDE}
-const input = resolveComposerInput();
-const actual = input instanceof HTMLElement ? clip(input.textContent || input.value || "") : "";
-const expected = ${JSON.stringify(expectedText)};
-const expectedPrefix = clip(expected).slice(0, 80);
-return {
-  status: actual.includes(expectedPrefix) ? "success" : "pending",
-  message: actual.includes(expectedPrefix) ? "provider composer contains prompt text" : "provider composer prompt text missing",
-  pageUrl: location.href,
-  composerText: actual,
 };
 `;
 

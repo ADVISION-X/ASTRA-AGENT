@@ -18,10 +18,4 @@ interface ForensicsPersistenceAbilityGroup {
   readRecordRef(input: ForensicsReadRecordRefInput): Promise<ForensicsPersistenceAbilityResult>;
 }
 
-export { FORENSICS_PERSISTENCE_ABILITY_GROUP_ID };
-
-export type {
-  ForensicsPersistenceAbilityGroupId,
-  ForensicsPersistenceAbilityResult,
-  ForensicsPersistenceAbilityGroup,
-};
+export type { ForensicsPersistenceAbilityGroup };

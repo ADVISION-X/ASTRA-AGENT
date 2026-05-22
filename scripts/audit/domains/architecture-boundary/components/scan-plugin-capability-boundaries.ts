@@ -1,6 +1,9 @@
 import { createFinding } from "../../../shared/finding-utils.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
-import { getRepoSourcePath } from "../../../shared/source-files.js";
+import {
+  collectResolvedModuleTargets,
+  type SourceModuleTarget,
+} from "../../../shared/source-module-targets.js";
 import {
   jobPluginPathPattern,
   privateCapabilityPathPattern,
@@ -8,6 +11,9 @@ import {
   resolveOwnerRoot,
   type ArchitectureSourceFile,
 } from "./architecture-boundary-shared.js";
+
+const describeEdgeVerb = (edgeKind: SourceModuleTarget["edgeKind"]): string =>
+  edgeKind === "re-export" ? "re-exports" : "imports";
 
 const pushBoundaryFinding = (
   findings: InspectorFinding[],
@@ -36,12 +42,8 @@ const inspectCapabilityPluginImports = (
   repoPath: string,
   sourceFile: ArchitectureSourceFile,
 ): void => {
-  for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    const target = importDeclaration.getModuleSpecifierSourceFile();
-    if (!target) {
-      continue;
-    }
-    const targetPath = getRepoSourcePath(target);
+  for (const target of collectResolvedModuleTargets(sourceFile)) {
+    const targetPath = target.targetPath;
     if (!targetPath.startsWith("src/plugins/")) {
       continue;
     }
@@ -50,7 +52,7 @@ const inspectCapabilityPluginImports = (
       lawId: capabilityLawId,
       repoPath,
       targetPath,
-      message: `${repoPath} imports plugin-owned code ${targetPath}.`,
+      message: `${repoPath} ${describeEdgeVerb(target.edgeKind)} plugin-owned code ${targetPath}.`,
     });
   }
 };
@@ -66,12 +68,8 @@ const inspectCapabilityCrossOwnerImports = (
     return;
   }
 
-  for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    const target = importDeclaration.getModuleSpecifierSourceFile();
-    if (!target) {
-      continue;
-    }
-    const targetPath = getRepoSourcePath(target);
+  for (const target of collectResolvedModuleTargets(sourceFile)) {
+    const targetPath = target.targetPath;
     if (!targetPath.startsWith("src/capabilities/")) {
       continue;
     }
@@ -84,7 +82,7 @@ const inspectCapabilityCrossOwnerImports = (
       lawId: capabilityLawId,
       repoPath,
       targetPath,
-      message: `${repoPath} imports unrelated capability owner code ${targetPath}.`,
+      message: `${repoPath} ${describeEdgeVerb(target.edgeKind)} unrelated capability owner code ${targetPath}.`,
     });
   }
 };
@@ -109,12 +107,8 @@ const inspectCrossJobImports = (
   sourceFile: ArchitectureSourceFile,
 ): void => {
   const sourcePluginRoot = resolveOwnerRoot(repoPath, 2);
-  for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    const target = importDeclaration.getModuleSpecifierSourceFile();
-    if (!target) {
-      continue;
-    }
-    const targetPath = getRepoSourcePath(target);
+  for (const target of collectResolvedModuleTargets(sourceFile)) {
+    const targetPath = target.targetPath;
     if (!targetPath.startsWith("src/plugins/")) {
       continue;
     }
@@ -127,7 +121,7 @@ const inspectCrossJobImports = (
       lawId: jobFlowLawId,
       repoPath,
       targetPath,
-      message: `${repoPath} imports unrelated job flow code ${targetPath}.`,
+      message: `${repoPath} ${describeEdgeVerb(target.edgeKind)} unrelated job flow code ${targetPath}.`,
     });
   }
 };
@@ -138,12 +132,8 @@ const inspectNonFacadeCapabilityImports = (
   repoPath: string,
   sourceFile: ArchitectureSourceFile,
 ): void => {
-  for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    const target = importDeclaration.getModuleSpecifierSourceFile();
-    if (!target) {
-      continue;
-    }
-    const targetPath = getRepoSourcePath(target);
+  for (const target of collectResolvedModuleTargets(sourceFile)) {
+    const targetPath = target.targetPath;
     if (!targetPath.startsWith("src/capabilities/") || publicCapabilityFacadePathPattern.test(targetPath)) {
       continue;
     }
@@ -152,7 +142,7 @@ const inspectNonFacadeCapabilityImports = (
       lawId: jobFlowLawId,
       repoPath,
       targetPath,
-      message: `${repoPath} imports non-facade capability code ${targetPath}.`,
+      message: `${repoPath} ${describeEdgeVerb(target.edgeKind)} non-facade capability code ${targetPath}.`,
     });
   }
 };
@@ -188,12 +178,8 @@ export const inspectChildAbilityImports = (
     return;
   }
   const sourceCapabilityRoot = resolveOwnerRoot(repoPath, 2);
-  for (const importDeclaration of sourceFile.getImportDeclarations()) {
-    const target = importDeclaration.getModuleSpecifierSourceFile();
-    if (!target) {
-      continue;
-    }
-    const targetPath = getRepoSourcePath(target);
+  for (const target of collectResolvedModuleTargets(sourceFile)) {
+    const targetPath = target.targetPath;
     if (!targetPath.startsWith("src/capabilities/")) {
       continue;
     }
@@ -206,7 +192,7 @@ export const inspectChildAbilityImports = (
       lawId: childAbilityLawId,
       repoPath,
       targetPath,
-      message: `${repoPath} imports unrelated capability owner code ${targetPath}.`,
+      message: `${repoPath} ${describeEdgeVerb(target.edgeKind)} unrelated capability owner code ${targetPath}.`,
     });
   }
 };

@@ -1,8 +1,9 @@
-import type { ImportDeclaration } from "ts-morph";
-
 import { selectLawId } from "../../../shared/finding-utils.js";
-import { toRepoPath } from "../../../shared/paths.js";
 import type { InspectorFinding } from "../../../shared/inspector-contracts.js";
+import {
+  collectResolvedModuleTargets,
+  type SourceModuleTarget,
+} from "../../../shared/source-module-targets.js";
 import {
   type GovernedFile,
 } from "./code-purity-governed-files.js";
@@ -18,14 +19,12 @@ import type { CodePurityInventoryItem } from "./code-purity-report-writer.js";
 const privateCapabilityPathPattern = /^src\/capabilities\/[^/]+\/(runtime|children)\//u;
 const publicCapabilityFacadePathPattern = /^src\/capabilities\/[^/]+\/index\.ts$/u;
 
+const describeEdgeVerb = (edgeKind: SourceModuleTarget["edgeKind"]): string =>
+  edgeKind === "re-export" ? "re-exports" : "imports";
+
 type OwnerBoundaryScanResult = {
   findings: InspectorFinding[];
   inventoryItems: CodePurityInventoryItem[];
-};
-
-const resolveDirectImportPath = (importDeclaration: ImportDeclaration): string | undefined => {
-  const sourceFile = importDeclaration.getModuleSpecifierSourceFile();
-  return sourceFile ? toRepoPath(sourceFile.getFilePath()) : undefined;
 };
 
 const remediationForBoundary = (owner: string): string =>
@@ -61,17 +60,17 @@ const pushBoundaryFinding = (
 const scanCapabilityBoundary = (
   collector: InventoryFindingCollector,
   governedFile: GovernedFile,
-  directTargetPath: string,
+  directTarget: SourceModuleTarget,
   directTargetOwner: string,
   abilityLawId: string,
 ): void => {
-  if (governedFile.repoPath.startsWith("src/capabilities/") && directTargetPath.startsWith("src/plugins/")) {
+  if (governedFile.repoPath.startsWith("src/capabilities/") && directTarget.targetPath.startsWith("src/plugins/")) {
     pushBoundaryFinding(collector, {
       checkId: "code-purity/capability-imports-plugin",
       governedFile,
       lawId: abilityLawId,
-      reason: `Capability owner imports plugin-owned code ${directTargetPath}.`,
-      message: `${governedFile.repoPath} imports plugin-owned code ${directTargetPath}.`,
+      reason: `Capability owner ${describeEdgeVerb(directTarget.edgeKind)} plugin-owned code ${directTarget.targetPath}.`,
+      message: `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} plugin-owned code ${directTarget.targetPath}.`,
     });
   }
   if (
@@ -83,8 +82,8 @@ const scanCapabilityBoundary = (
       checkId: "code-purity/capability-cross-owner-import",
       governedFile,
       lawId: abilityLawId,
-      reason: `Capability owner imports unrelated capability owner ${directTargetPath}.`,
-      message: `${governedFile.repoPath} imports unrelated capability owner code ${directTargetPath}.`,
+      reason: `Capability owner ${describeEdgeVerb(directTarget.edgeKind)} unrelated capability owner ${directTarget.targetPath}.`,
+      message: `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} unrelated capability owner code ${directTarget.targetPath}.`,
     });
   }
 };
@@ -92,25 +91,25 @@ const scanCapabilityBoundary = (
 const scanPluginBoundary = (
   collector: InventoryFindingCollector,
   governedFile: GovernedFile,
-  directTargetPath: string,
+  directTarget: SourceModuleTarget,
   directTargetOwner: string,
   jobFlowLawId: string,
 ): void => {
   if (
     governedFile.repoPath.startsWith("src/plugins/") &&
-    directTargetPath.startsWith("src/capabilities/") &&
-    !publicCapabilityFacadePathPattern.test(directTargetPath)
+    directTarget.targetPath.startsWith("src/capabilities/") &&
+    !publicCapabilityFacadePathPattern.test(directTarget.targetPath)
   ) {
     pushBoundaryFinding(collector, {
       checkId: "code-purity/plugin-non-facade-capability-import",
       governedFile,
       lawId: jobFlowLawId,
-      reason: privateCapabilityPathPattern.test(directTargetPath)
-        ? `Plugin directly imports private capability runtime ${directTargetPath}.`
-        : `Plugin directly imports non-facade capability file ${directTargetPath}.`,
-      message: privateCapabilityPathPattern.test(directTargetPath)
-        ? `${governedFile.repoPath} imports private ability runtime or child file ${directTargetPath}.`
-        : `${governedFile.repoPath} imports non-facade ability-group code ${directTargetPath}.`,
+      reason: privateCapabilityPathPattern.test(directTarget.targetPath)
+        ? `Plugin directly ${describeEdgeVerb(directTarget.edgeKind)} private capability runtime ${directTarget.targetPath}.`
+        : `Plugin directly ${describeEdgeVerb(directTarget.edgeKind)} non-facade capability file ${directTarget.targetPath}.`,
+      message: privateCapabilityPathPattern.test(directTarget.targetPath)
+        ? `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} private ability runtime or child file ${directTarget.targetPath}.`
+        : `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} non-facade ability-group code ${directTarget.targetPath}.`,
     });
   }
   if (
@@ -122,8 +121,8 @@ const scanPluginBoundary = (
       checkId: "code-purity/plugin-cross-owner-import",
       governedFile,
       lawId: jobFlowLawId,
-      reason: `Plugin owner imports unrelated plugin owner ${directTargetPath}.`,
-      message: `${governedFile.repoPath} imports unrelated plugin owner code ${directTargetPath}.`,
+      reason: `Plugin owner ${describeEdgeVerb(directTarget.edgeKind)} unrelated plugin owner ${directTarget.targetPath}.`,
+      message: `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} unrelated plugin owner code ${directTarget.targetPath}.`,
     });
   }
 };
@@ -131,19 +130,19 @@ const scanPluginBoundary = (
 const scanMediatorBoundary = (
   collector: InventoryFindingCollector,
   governedFile: GovernedFile,
-  directTargetPath: string,
+  directTarget: SourceModuleTarget,
   mediatorLawId: string,
 ): void => {
   if (
     governedFile.repoPath.startsWith("src/mediator/") &&
-    (directTargetPath.startsWith("src/lib/browser/") || privateCapabilityPathPattern.test(directTargetPath))
+    (directTarget.targetPath.startsWith("src/lib/browser/") || privateCapabilityPathPattern.test(directTarget.targetPath))
   ) {
     pushBoundaryFinding(collector, {
       checkId: "code-purity/mediator-runtime-import",
       governedFile,
       lawId: mediatorLawId,
-      reason: `Mediator imports runtime implementation ${directTargetPath}.`,
-      message: `${governedFile.repoPath} imports browser or private runtime code ${directTargetPath}.`,
+      reason: `Mediator ${describeEdgeVerb(directTarget.edgeKind)} runtime implementation ${directTarget.targetPath}.`,
+      message: `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} browser or private runtime code ${directTarget.targetPath}.`,
     });
   }
 };
@@ -151,7 +150,7 @@ const scanMediatorBoundary = (
 const scanChildAbilityBoundary = (
   collector: InventoryFindingCollector,
   governedFile: GovernedFile,
-  directTargetPath: string,
+  directTarget: SourceModuleTarget,
   directTargetOwner: string,
   childAbilityLawId: string,
 ): void => {
@@ -164,8 +163,8 @@ const scanChildAbilityBoundary = (
       checkId: "code-purity/child-ability-cross-owner-import",
       governedFile,
       lawId: childAbilityLawId,
-      reason: `Child ability imports unrelated capability owner ${directTargetPath}.`,
-      message: `${governedFile.repoPath} imports unrelated capability owner code ${directTargetPath}.`,
+      reason: `Child ability ${describeEdgeVerb(directTarget.edgeKind)} unrelated capability owner ${directTarget.targetPath}.`,
+      message: `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} unrelated capability owner code ${directTarget.targetPath}.`,
     });
   }
 };
@@ -173,26 +172,26 @@ const scanChildAbilityBoundary = (
 const scanSharedBoundary = (
   collector: InventoryFindingCollector,
   governedFile: GovernedFile,
-  directTargetPath: string,
+  directTarget: SourceModuleTarget,
   sharedScopeLawId: string,
 ): void => {
   if (
     governedFile.repoPath.startsWith("src/lib/") &&
     !governedFile.repoPath.startsWith("src/lib/local-runtime/") &&
-    (directTargetPath.startsWith("src/plugins/") || directTargetPath.startsWith("src/capabilities/"))
+    (directTarget.targetPath.startsWith("src/plugins/") || directTarget.targetPath.startsWith("src/capabilities/"))
   ) {
     pushBoundaryFinding(collector, {
-      checkId: directTargetPath.startsWith("src/plugins/")
+      checkId: directTarget.targetPath.startsWith("src/plugins/")
         ? "code-purity/shared-scope-plugin-import"
         : "code-purity/shared-scope-capability-import",
       governedFile,
       lawId: sharedScopeLawId,
-      reason: directTargetPath.startsWith("src/plugins/")
-        ? `Shared infrastructure imports plugin-owned code ${directTargetPath}.`
-        : `Shared infrastructure imports capability-owned code ${directTargetPath}.`,
-      message: directTargetPath.startsWith("src/plugins/")
-        ? `${governedFile.repoPath} imports plugin-owned business flow code ${directTargetPath}.`
-        : `${governedFile.repoPath} imports capability-owned code ${directTargetPath}.`,
+      reason: directTarget.targetPath.startsWith("src/plugins/")
+        ? `Shared infrastructure ${describeEdgeVerb(directTarget.edgeKind)} plugin-owned code ${directTarget.targetPath}.`
+        : `Shared infrastructure ${describeEdgeVerb(directTarget.edgeKind)} capability-owned code ${directTarget.targetPath}.`,
+      message: directTarget.targetPath.startsWith("src/plugins/")
+        ? `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} plugin-owned business flow code ${directTarget.targetPath}.`
+        : `${governedFile.repoPath} ${describeEdgeVerb(directTarget.edgeKind)} capability-owned code ${directTarget.targetPath}.`,
     });
   }
 };
@@ -206,17 +205,16 @@ export const scanOwnerBoundaries = (governedFiles: readonly GovernedFile[], lawI
   const collector = createInventoryFindingCollector();
 
   for (const governedFile of governedFiles) {
-    for (const importDeclaration of governedFile.sourceFile.getImportDeclarations()) {
-      const directTargetPath = resolveDirectImportPath(importDeclaration);
-      if (!directTargetPath || !directTargetPath.startsWith("src/")) {
+    for (const directTarget of collectResolvedModuleTargets(governedFile.sourceFile)) {
+      if (!directTarget.targetPath.startsWith("src/")) {
         continue;
       }
-      const directTargetOwner = resolveCodePurityOwner(directTargetPath);
-      scanCapabilityBoundary(collector, governedFile, directTargetPath, directTargetOwner, abilityLawId);
-      scanPluginBoundary(collector, governedFile, directTargetPath, directTargetOwner, jobFlowLawId);
-      scanMediatorBoundary(collector, governedFile, directTargetPath, mediatorLawId);
-      scanChildAbilityBoundary(collector, governedFile, directTargetPath, directTargetOwner, childAbilityLawId);
-      scanSharedBoundary(collector, governedFile, directTargetPath, sharedScopeLawId);
+      const directTargetOwner = resolveCodePurityOwner(directTarget.targetPath);
+      scanCapabilityBoundary(collector, governedFile, directTarget, directTargetOwner, abilityLawId);
+      scanPluginBoundary(collector, governedFile, directTarget, directTargetOwner, jobFlowLawId);
+      scanMediatorBoundary(collector, governedFile, directTarget, mediatorLawId);
+      scanChildAbilityBoundary(collector, governedFile, directTarget, directTargetOwner, childAbilityLawId);
+      scanSharedBoundary(collector, governedFile, directTarget, sharedScopeLawId);
     }
   }
 

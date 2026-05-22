@@ -199,6 +199,8 @@ DOM probe 只负责 `SNAPSHOT_PAGE_FACTS` 的观察证据。它可以提供当�
    - 每次上传、提交、读取回答前都会重新聚焦 provider workspace tab，避免 Chrome active tab drift。
    - 首次没有保存 workspace URL 时只能打开 provider 入口并保存实际 workspace URL，不能复用任意旧 ChatGPT 会话或按标题匹配旧会话。
    - 文件上传必须优先使用已定位 provider file input；剪贴板文件粘贴只能作为后备，不能在 native dialog 未确认打开时输入本地文件路径。
+   - 上传完成不再只依赖文件名文本；必须通过 provider composer 附件数量确认。若 file input 选择后没有形成附件，则进入剪贴板后备：聚焦输入框、确认焦点、macOS clipboard 粘贴文件、按附件数量验收、最多 3 次重试。
+   - prompt 发送前再次检查附件数量，防止 provider 页面吞掉文件或焦点漂移后发送空 prompt。
    - AI 必须返回 JSON 判断，不得返回工作流、选择器、坐标或浏览器动作。
 
 6. 决策落库
